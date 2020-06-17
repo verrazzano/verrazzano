@@ -1,0 +1,34 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+    - |
+      kind: InitConfiguration
+      nodeRegistration:
+        kubeletExtraArgs:
+          node-labels: "ingress-ready=true"
+          authorization-mode: "AlwaysAllow"
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 80
+        listenAddress: "0.0.0.0"
+        protocol: tcp
+      - containerPort: 443
+        hostPort: 443
+        listenAddress: "0.0.0.0"
+        protocol: tcp
+    extraMounts:
+      - containerPath: /tmp/hostpath_pv
+        hostPath: /tmp/hostpath_pv
+        readOnly: False
+  - role: worker
+    extraMounts:
+      - containerPath: /tmp/hostpath_pv
+        hostPath: /tmp/hostpath_pv
+        readOnly: False
+  - role: worker
+    extraMounts:
+      - containerPath: /tmp/hostpath_pv
+        hostPath: /tmp/hostpath_pv
+        readOnly: False

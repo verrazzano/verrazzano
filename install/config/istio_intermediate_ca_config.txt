@@ -1,0 +1,16 @@
+[ req ]
+distinguished_name  = req_distinguished_name
+prompt              = no
+x509_extensions     = v3_ca
+
+[ req_distinguished_name ]
+countryName                     = US
+stateOrProvinceName             = CA
+0.organizationName              = Oracle Corporation
+commonName                      = Intermediate CA
+
+[ v3_ca ]
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints = critical, CA:true
+keyUsage = critical, digitalSignature, cRLSign, keyCertSign

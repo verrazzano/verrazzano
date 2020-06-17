@@ -1,0 +1,20 @@
+apiVersion: verrazzano.io/v1beta1
+kind: VerrazzanoBinding
+metadata:
+  name: hello-world-binding
+  namespace: default
+spec:
+  description: "Hello World Application binding"
+  modelName: hello-world-model
+  helidonBindings:
+    - name: "hello-world-application"
+      replicas: 2
+  placement:
+    - name: local
+      namespaces:
+        - name: greet
+          components:
+            - name: hello-world-application
+  ingressBindings:
+    - name: "greet-ingress"
+      dnsName: "*"

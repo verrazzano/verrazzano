@@ -1,0 +1,19 @@
+#!/bin/bash
+
+function install_rancher()
+{
+	echo "${NAME}.xip.io"
+}
+
+NAME="default"
+
+while getopts n:d:h flag
+do
+    case "${flag}" in
+        n) NAME=${OPTARG};;
+        d) DNS_TYPE=${OPTARG};;
+        h) usage;;
+    esac
+done
+
+install_rancher

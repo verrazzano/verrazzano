@@ -1,0 +1,10 @@
+auth:
+ region: ${OCI_REGION}
+ tenancy: ${OCI_TENANCY_OCID}
+ user: ${OCI_USER_OCID}
+ key: |
+$(awk '{printf "  %s\n", $0}' < ${OCI_PRIVATE_KEY_FILE})
+ fingerprint: ${OCI_FINGERPRINT}
+ passphrase: "${OCI_PRIVATE_KEY_PASSPHRASE}"
+compartment: ${OCI_COMPARTMENT_OCID}
+

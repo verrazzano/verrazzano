@@ -1,0 +1,18 @@
+# Copyright (C) 2020, Oracle Corporation and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+[req]
+req_extensions = v3_req
+distinguished_name = req_distinguished_name
+[ req_distinguished_name ]
+[ v3_req ]
+basicConstraints=CA:FALSE
+subjectAltName=@alt_names
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+
+[ alt_names ]
+DNS.1 = verrazzano-validation
+DNS.2 = verrazzano-validation.VERRAZZANO_NS
+DNS.3 = verrazzano-validation.VERRAZZANO_NS.svc
+DNS.4 = verrazzano-validation.VERRAZZANO_NS.svc.cluster.local

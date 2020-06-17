@@ -1,0 +1,38 @@
+spec:
+  validation:
+    openAPIV3Schema:
+      properties:
+        spec:
+          properties:
+            solver:
+              properties:
+                dns01:
+                  properties:
+                    ocidns:
+                      description: >-
+                        ACMEIssuerDNS01ProviderOCIDNS is a structure containing
+                        the DNS configuration  for OCIDNS DNS—Zone Record
+                        Management API
+                      properties:
+                        compartmentid:
+                          type: string
+                        ocizonename:
+                          type: string
+                        serviceAccountSecretRef:
+                          properties:
+                            key:
+                              description: >-
+                                The key of the secret to select from. Must be a
+                                valid secret key.
+                              type: string
+                            name:
+                              description: Name of the referent.
+                              type: string
+                          required:
+                            - name
+                          type: object
+                        useInstancePrincipals:
+                          type: boolean
+                      required:
+                        - ocizonename
+                      type: object
