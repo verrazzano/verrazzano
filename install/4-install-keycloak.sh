@@ -7,7 +7,7 @@ set -u
 
 KEYCLOAK_NS=keycloak
 KEYCLOAK_CHART_VERSION=8.2.2
-KEYCLOAK_IMAGE_TAG=10.0.1
+KEYCLOAK_IMAGE_TAG=10.0.1_3
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=$(openssl rand -base64 30 | tr -d "=+/" | cut -c1-10)
 MYSQL_IMAGE_TAG=8.0.20
@@ -129,6 +129,7 @@ keycloak:
   replicas: 1
   image:
     tag: ${KEYCLOAK_IMAGE_TAG}
+    repository: phx.ocir.io/odx-sre/sauron/keycloak-server
   extraArgs: -Dkeycloak.import=/etc/keycloak/realm.json
   ## Username for the initial Keycloak admin user
   username: ${ADMIN_USERNAME}
@@ -195,13 +196,13 @@ EOF
   kubectl exec keycloak-0 \
       -n ${KEYCLOAK_NS} \
       -c keycloak \
-      -- opt/jboss/keycloak/bin/kcadm.sh update realms/master -s loginTheme=oracle --no-config --server http://localhost:8080/auth --realm master --user ${ADMIN_USERNAME} --password ${ADMIN_PASSWORD}
+      -- /opt/jboss/keycloak/bin/kcadm.sh update realms/master -s loginTheme=oracle --no-config --server http://localhost:8080/auth --realm master --user ${ADMIN_USERNAME} --password ${ADMIN_PASSWORD}
 
   # Reset verrazzano-system/verrazzano password
   kubectl exec keycloak-0 \
           -n ${KEYCLOAK_NS} \
           -c keycloak \
-          -- opt/jboss/keycloak/bin/kcadm.sh update users/f37bf86b-7f56-4f39-b71d-953078fbb870/reset-password --server http://localhost:8080/auth --realm ${VZ_SYS_REALM} --user ${VZ_USERNAME} --password ${VZ_PASSWORD} -s type=password -s value=${VZ_NEW_PASSWORD} -n
+          -- /opt/jboss/keycloak/bin/kcadm.sh update users/f37bf86b-7f56-4f39-b71d-953078fbb870/reset-password --server http://localhost:8080/auth --realm ${VZ_SYS_REALM} --user ${VZ_USERNAME} --password ${VZ_PASSWORD} -s type=password -s value=${VZ_NEW_PASSWORD} -n
 
   # Wait for TLS cert from Cert Manager to go into a ready state
   kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
