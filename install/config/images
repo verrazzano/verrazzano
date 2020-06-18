@@ -11,7 +11,7 @@ phx.ocir.io/odx-sre/sauron/cert-manager-acmesolver:0.13.1_3
 phx.ocir.io/odx-sre/sauron/cert-manager-controller:0.13.1_3
 phx.ocir.io/odx-sre/sauron/elasticsearch-mirror:7.6.1-2
 phx.ocir.io/odx-sre/sauron/kibana-mirror:7.6.1-2
-phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator:v0.0.14
+phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator:v0.0.17
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.3
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.5
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-cluster-operator:v0.0.3
@@ -19,7 +19,7 @@ phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-operator:v0.0.11
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-api:v0.0.4
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.2
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-helidon-app-operator:v0.0.4
-phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-admission-controller:v0.0.6
+phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-admission-controller:v0.0.7
 phx.ocir.io/stevengreenberginc/verrazzano/web:1.0.19
 phx.ocir.io/stevengreenberginc/verrazzano/web-standalone:1.0.21
 phx.ocir.io/stevengreenberginc/verrazzano/istio-coredns-plugin:0.2-istio-1.1
