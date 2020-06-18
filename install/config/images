@@ -41,3 +41,4 @@ phx.ocir.io/odx-sre/sauron/beats-mirror/filebeat-oss:6.8.3-2
 phx.ocir.io/odx-sre/sauron/beats-mirror/journalbeat-oss:6.8.3-2
 phx.ocir.io/odx-sre/sauron/node-exporter-mirror:0.18.1-1
 phx.ocir.io/odx-sre/sauron/configmap-reloader:0.3
+phx.ocir.io/odx-sre/sauron/keycloak-server:10.0.1_3
