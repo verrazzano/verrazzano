@@ -2,7 +2,7 @@ apiVersion: verrazzano.io/v1beta1
 kind: VerrazzanoModel
 metadata:
   name: hello-world-model
-  namespace: default 
+  namespace: default
 spec:
   description: "Hello World application"
   helidonApplications:

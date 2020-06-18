@@ -10,7 +10,7 @@ kubectl -n verrazzano-system wait --for=condition=ready pods -l name=verrazzano-
 kubectl apply -f ${SCRIPT_DIR}/hello-world-model.yaml
 kubectl apply -f ${SCRIPT_DIR}/hello-world-binding.yaml
 
-#timeout 10m bash -c 'until kubectl get pods -n greet | grep NAME; do sleep 10; done'
+timeout 10m bash -c 'until kubectl get pods -n greet | grep NAME; do sleep 10; done'
 kubectl wait --for=condition=ready pods -n greet --all --timeout 5m
 
 CLUSTER_TYPE=${CLUSTER_TYPE:=OKE}
