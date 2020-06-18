@@ -372,8 +372,8 @@
     "email" : "VZ_USERNAME@verrazzano.io",
     "credentials" : [ {
       "type" : "password",
-      "hashedSaltedValue" : "x6WbvGCKX0ztucfENfvCdO2h1xhFewaPyeq1rAhj8934PsDzHO9jvhY2TiWtZunMCNacolfoO15roMXTcIFbmA==",
-      "salt" : "wbtclsXL9UNYnKIiinYMgw==",
+      "hashedSaltedValue" : "VZ_PW_HASH",
+      "salt" : "VZ_PW_SALT",
       "hashIterations" : 27500,
       "counter" : 0,
       "algorithm" : "pbkdf2-sha256",

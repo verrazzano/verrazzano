@@ -11,8 +11,7 @@ set -u
 KEYCLOAK_NS=keycloak
 KEYCLOAK_CHART_VERSION=8.2.2
 KEYCLOAK_IMAGE_TAG=10.0.1_3
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=$(openssl rand -base64 30 | tr -d "=+/" | cut -c1-10)
+KCADMIN_USERNAME=keycloakadmin
 MYSQL_IMAGE_TAG=8.0.20
 MYSQL_ROOT_PASSWORD=$(openssl rand -base64 30 | tr -d "=+/" | cut -c1-10)
 MYSQL_USERNAME=keycloak
@@ -20,7 +19,6 @@ MYSQL_PASSWORD=${MYSQL_ROOT_PASSWORD}
 VERRAZZANO_NS=verrazzano-system
 VZ_SYS_REALM=verrazzano-system
 VZ_USERNAME=verrazzano
-VZ_PASSWORD=verrazzan0
 DNS_PREFIX="verrazzano-ingress"
 TMP_DIR=$(mktemp -d)
 trap "rm -rf $TMP_DIR" EXIT
@@ -29,7 +27,6 @@ if ! kubectl get secret --namespace ${VERRAZZANO_NS} ${VZ_USERNAME} ; then
   consoleerr "ERROR: Must run 3-install-verrazzano.sh and then rerun this script."
   exit 1
 fi
-VZ_NEW_PASSWORD=$(kubectl get secret --namespace ${VERRAZZANO_NS} ${VZ_USERNAME} -o jsonpath="{.data.password}" | base64 --decode; echo)
 
 function set_INGRESS_IP() {
   if [ ${CLUSTER_TYPE} == "OKE" ]; then
@@ -92,7 +89,10 @@ EOF
 
 function install_keycloak {
   # Replace strings in keycloak.json file
-  sed "s|ENV_NAME|${ENV_NAME}|g;s|DNS_SUFFIX|${DNS_SUFFIX}|g;s|VZ_SYS_REALM|${VZ_SYS_REALM}|g;s|VZ_USERNAME|${VZ_USERNAME}|g" $SCRIPT_DIR/config/keycloak.json > ${TMP_DIR}/keycloak-sed.json
+  VZ_PW_SALT=$(kubectl get secret -n ${VERRAZZANO_NS} ${VZ_USERNAME} -o jsonpath="{.data.salt}")
+  VZ_PW_HASH=$(kubectl get secret -n ${VERRAZZANO_NS} ${VZ_USERNAME} -o jsonpath="{.data.hash}")
+
+  sed "s|ENV_NAME|${ENV_NAME}|g;s|DNS_SUFFIX|${DNS_SUFFIX}|g;s|VZ_SYS_REALM|${VZ_SYS_REALM}|g;s|VZ_USERNAME|${VZ_USERNAME}|g;s|VZ_PW_SALT|${VZ_PW_SALT}|g;s|VZ_PW_HASH|${VZ_PW_HASH}|g" $SCRIPT_DIR/config/keycloak.json > ${TMP_DIR}/keycloak-sed.json
 
   set +e
   if ! kubectl get secret ${KEYCLOAK_NS} keycloak-realm-cacert 2> /dev/null ; then
@@ -108,7 +108,7 @@ function install_keycloak {
 
   # Add keycloak helm repo
   helm repo add codecentric https://codecentric.github.io/helm-charts
-  
+
   # generate keycloak-values.yaml file 
   cat <<EOF > ${TMP_DIR}/keycloak-values-sed.yaml
 keycloak:
@@ -135,8 +135,7 @@ keycloak:
     repository: phx.ocir.io/odx-sre/sauron/keycloak-server
   extraArgs: -Dkeycloak.import=/etc/keycloak/realm.json
   ## Username for the initial Keycloak admin user
-  username: ${ADMIN_USERNAME}
-  password: ${ADMIN_PASSWORD}
+  username: ${KCADMIN_USERNAME}
 
   containerSecurityContext:
     runAsUser: 0
@@ -149,12 +148,17 @@ keycloak:
     - name: theme
       emptyDir: {} 
     - name: cacerts
-      emptyDir: {}
+      emptyDir: {}     
+    - name: keycloak-http
+      secret:
+         secretName: keycloak-http 
   extraVolumeMounts: |
     - name: keycloak-config
       mountPath: /etc/keycloak
     - name: theme
       mountPath: /opt/jboss/keycloak/themes/oracle
+    - name: keycloak-http
+      mountPath: /etc/keycloak-http
   service:
     port: 8083
   ingress:
@@ -195,17 +199,11 @@ EOF
   # Wait for keycloak to be up and running
   kubectl wait pod/keycloak-0 -n ${KEYCLOAK_NS} --for=condition=Ready --timeout=300s
 
-  # Update to use Oracle login theme settings for keycloak
-  kubectl exec keycloak-0 \
-      -n ${KEYCLOAK_NS} \
-      -c keycloak \
-      -- /opt/jboss/keycloak/bin/kcadm.sh update realms/master -s loginTheme=oracle --no-config --server http://localhost:8080/auth --realm master --user ${ADMIN_USERNAME} --password ${ADMIN_PASSWORD}
-
-  # Reset verrazzano-system/verrazzano password
-  kubectl exec keycloak-0 \
-          -n ${KEYCLOAK_NS} \
-          -c keycloak \
-          -- /opt/jboss/keycloak/bin/kcadm.sh update users/f37bf86b-7f56-4f39-b71d-953078fbb870/reset-password --server http://localhost:8080/auth --realm ${VZ_SYS_REALM} --user ${VZ_USERNAME} --password ${VZ_PASSWORD} -s type=password -s value=${VZ_NEW_PASSWORD} -n
+  kubectl -it exec keycloak-0 \
+    -n ${KEYCLOAK_NS} \
+    -c keycloak \
+    -- bash -c \
+    "/opt/jboss/keycloak/bin/kcadm.sh update realms/master -s loginTheme=oracle --no-config --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --password \$(cat /etc/keycloak-http/password)"
 
   # Wait for TLS cert from Cert Manager to go into a ready state
   kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
@@ -280,6 +278,8 @@ action "Installing Keycloak" install_keycloak || exit 1
 rm -rf $TMP_DIR
 
 consoleout
-consoleout "To retrieve the initial keycloak administrator ${ADMIN_USERNAME} password run:"
+consoleout "To retrieve the initial password for the Keycloak administrator user '${KCADMIN_USERNAME}' run:"
 consoleout "kubectl get secret --namespace keycloak keycloak-http -o jsonpath="{.data.password}" | base64 --decode; echo"
 
+consoleout "To retrieve the initial password for the Verrazzano administrator user '${VZ_USERNAME}' run:"
+consoleout "kubectl get secret --namespace ${VERRAZZANO_NS} ${VZ_USERNAME} -o jsonpath="{.data.password}" | base64 --decode; echo"
