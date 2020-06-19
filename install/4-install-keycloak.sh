@@ -13,20 +13,13 @@ KEYCLOAK_CHART_VERSION=8.2.2
 KEYCLOAK_IMAGE_TAG=10.0.1_3
 KCADMIN_USERNAME=keycloakadmin
 MYSQL_IMAGE_TAG=8.0.20
-MYSQL_ROOT_PASSWORD=$(openssl rand -base64 30 | tr -d "=+/" | cut -c1-10)
 MYSQL_USERNAME=keycloak
-MYSQL_PASSWORD=${MYSQL_ROOT_PASSWORD}
 VERRAZZANO_NS=verrazzano-system
 VZ_SYS_REALM=verrazzano-system
 VZ_USERNAME=verrazzano
 DNS_PREFIX="verrazzano-ingress"
 TMP_DIR=$(mktemp -d)
 trap "rm -rf $TMP_DIR" EXIT
-
-if ! kubectl get secret --namespace ${VERRAZZANO_NS} ${VZ_USERNAME} ; then
-  consoleerr "ERROR: Must run 3-install-verrazzano.sh and then rerun this script."
-  exit 1
-fi
 
 function set_INGRESS_IP() {
   if [ ${CLUSTER_TYPE} == "OKE" ]; then
@@ -57,10 +50,7 @@ busybox:
     image: container-registry.oracle.com/os/oraclelinux
     tag: 7-slim
 
-mysqlRootPassword: ${MYSQL_ROOT_PASSWORD}
-
 mysqlUser: ${MYSQL_USERNAME}
-mysqlPassword: ${MYSQL_PASSWORD}
 
 mysqlDatabase: keycloak
 
@@ -88,6 +78,17 @@ EOF
 }
 
 function install_keycloak {
+  retries=0
+  until [ "$retries" -ge 60 ]
+  do
+    kubectl get secret -n ${VERRAZZANO_NS} | grep ${VZ_USERNAME} && break
+    retries=$(($retries+1))
+    sleep 5
+  done
+  if ! kubectl get secret --namespace ${VERRAZZANO_NS} ${VZ_USERNAME} ; then
+    consoleerr "ERROR: Must run 3-install-verrazzano.sh and then rerun this script."
+    exit 1
+  fi
   # Replace strings in keycloak.json file
   VZ_PW_SALT=$(kubectl get secret -n ${VERRAZZANO_NS} ${VZ_USERNAME} -o jsonpath="{.data.salt}")
   VZ_PW_HASH=$(kubectl get secret -n ${VERRAZZANO_NS} ${VZ_USERNAME} -o jsonpath="{.data.hash}")
@@ -182,7 +183,7 @@ keycloak:
   persistence:
     deployPostgres: false
     dbVendor: mysql
-    dbPassword: ${MYSQL_PASSWORD}
+    dbPassword: $(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)
     dbUser: ${MYSQL_USERNAME}
     dbHost: mysql
     dbPort: 3306
