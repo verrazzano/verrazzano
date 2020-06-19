@@ -16,9 +16,9 @@ pipeline {
     }
 
     stages {
-        stage('Run acceptance tests') {
+        stage('Run acceptance tests on OKE') {
             steps {
-                build job: 'verrazzano-acceptance-test-suite/master', parameters: [string(name: 'VERRAZZANO_BRANCH_NAME', value: env.BRANCH_NAME)], wait: true, propagate: true
+                build job: 'verrazzano-oke-acceptance-test-suite/master', parameters: [string(name: 'VERRAZZANO_BRANCH_OR_TAG', value: env.BRANCH_NAME)], wait: true, propagate: true
             }
         }
     }
