@@ -4,7 +4,7 @@
 ## Introduction
 Verrazzano Enterprise Container Platform is a curated collection of open source and Oracle-authored components that form a complete platform for modernizing existing applications, and for deploying and managing your container applications across multiple Kubernetes clusters. 
 
-Verrazzano Enterprise Container Platform includes the following capabilites:
+Verrazzano Enterprise Container Platform includes the following capabilities:
 
 - Hybrid and multi-cluster workload management
 - Special handling for WebLogic, Coherence, and Helidon applications
@@ -21,7 +21,7 @@ This repository contains installation scripts and example applications for use w
 To install Verrazzano, follow these steps:  
 1. Create an OKE cluster  
 2. Start OCI Cloud Shell  
-3. Clone this repo in the Cloudshell home.  
+3. Clone this repo in the Cloud Shell home.
 4. Run the following scripts:  
    - `export CLUSTER_TYPE=OKE`
    - `export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>`

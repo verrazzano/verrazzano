@@ -74,7 +74,6 @@ function install_nginx_ingress_controller()
     fi
 
     helm repo add stable https://kubernetes-charts.storage.googleapis.com
-    # Need to update controller.image.repository to public repo  see VZ-587
     helm repo update
 
     helm upgrade ingress-controller stable/nginx-ingress --install \
