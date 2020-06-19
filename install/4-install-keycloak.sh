@@ -103,8 +103,7 @@ function install_keycloak {
   # Create keycloak secret
   kubectl create secret generic keycloak-realm-cacert \
       -n ${KEYCLOAK_NS} \
-      --from-file=realm.json=${TMP_DIR}/keycloak-sed.json \
-      --from-file=public.crt=$SCRIPT_DIR/config/keycloak-public.crt
+      --from-file=realm.json=${TMP_DIR}/keycloak-sed.json
 
   # Add keycloak helm repo
   helm repo add codecentric https://codecentric.github.io/helm-charts
