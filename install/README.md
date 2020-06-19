@@ -1,6 +1,6 @@
 # verrazzano-oke-install
 
-Setup [Verrazzano](http://verrazzano.pages.oracledx.com/website/docs/docs/demo-apps/bobs-books//) on [Oracle Kubernetes Engine](https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm) 
+Setup [Verrazzano](https://verrazzano.io/doc) on [Oracle Kubernetes Engine](https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm)
 
 # Quick Start
 ```
