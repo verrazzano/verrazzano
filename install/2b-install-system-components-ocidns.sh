@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-
+#
+# Copyright (c) 2020, Oracle Corporation and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+#
 INGRESS_VERSION=1.27.0
 CERT_MANAGER_VERSION=0.13.1
 EXTERNAL_DNS_VERSION=2.20.0
@@ -78,8 +81,10 @@ function install_nginx_ingress_controller()
     helm repo update
 
     helm upgrade ingress-controller stable/nginx-ingress --install \
-      --set controller.image.repository=phx.ocir.io/odx-sre/sauron/ingress-nginx-mirror \
-      --set controller.image.tag=0.26.1-1 \
+      --set controller.image.repository=phx.ocir.io/stevengreenberginc/ingress-nginx/ingress-nginx \
+      --set controller.image.tag=0.32-0 \
+      --set defaultBackend.image.repository=phx.ocir.io/stevengreenberginc/ingress-nginx/custom-error-pages \
+      --set defaultBackend.image.tag=0.32-0 \
       --namespace ingress-nginx \
       --set controller.metrics.enabled=true \
       --set controller.podAnnotations.'prometheus\.io/port'=10254 \

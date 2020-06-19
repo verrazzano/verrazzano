@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-
+#
+# Copyright (c) 2020, Oracle Corporation and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+#
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 . $SCRIPT_DIR/common.sh
 
@@ -15,7 +18,7 @@ function set_INGRESS_IP() {
 }
 
 VERRAZZANO_NS=verrazzano-system
-VERRAZZANO_VERSION=v0.0.18
+VERRAZZANO_VERSION=v0.0.23
 RancherAdminPassword=${RancherAdminPassword:=admin}
 set_INGRESS_IP
 
