@@ -38,7 +38,6 @@ function install_nginx_ingress_controller()
         kubectl create namespace ingress-nginx
     fi
 
-    # Need to update controller.image.repository to public repo  see VZ-587
     helm repo add stable https://kubernetes-charts.storage.googleapis.com
     helm repo update
 
