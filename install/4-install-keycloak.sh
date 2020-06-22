@@ -216,7 +216,7 @@ function usage {
     consoleerr "usage: $0 [-n name] [-d dns_type] [-s dns_suffix]"
     consoleerr "  -n name        Environment Name. Optional.  Optional.  Defaults to default."
     consoleerr "  -d dns_type    DNS type [xip.io|oci]. Optional.  Defaults to xip.io."
-    consoleerr "  -s dns_suffix  DNS suffix (e.g v8o.oracledx.com). Not valid for dns_type xip.io. Required for dns-type oci."
+    consoleerr "  -s dns_suffix  DNS suffix (e.g v8o.example.com). Not valid for dns_type xip.io. Required for dns-type oci."
     consoleerr "  -h             Help"
     consoleerr
     exit 1
