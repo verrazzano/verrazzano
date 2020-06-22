@@ -96,6 +96,18 @@ function install_verrazzano()
       --set clusterOperator.rancherPassword="${TOKEN_ARRAY[1]}" \
       --set clusterOperator.rancherHostname=${RANCHER_HOSTNAME} \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)"
+
+  retries=0
+  until [ "$retries" -ge 24 ]
+  do
+      kubectl get secret -n ${VERRAZZANO_NS} | grep verrazzano && break
+      retries=$(($retries+1))
+      sleep 5
+  done
+  if ! kubectl get secret --namespace ${VERRAZZANO_NS} verrazzano ; then
+      consoleerr "ERROR: failed creating verrazzano secret"
+      exit 1
+  fi
 }
 
 function usage {

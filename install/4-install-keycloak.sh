@@ -57,20 +57,13 @@ function install_mysql {
 }
 
 function install_keycloak {
-  retries=0
-  until [ "$retries" -ge 24 ]
-  do
-    kubectl get secret -n ${VERRAZZANO_NS} | grep ${VZ_USERNAME} && break
-    retries=$(($retries+1))
-    sleep 5
-  done
-  if ! kubectl get secret --namespace ${VERRAZZANO_NS} ${VZ_USERNAME} ; then
+  if ! kubectl get secret --namespace ${VERRAZZANO_NS} verrazzano ; then
     consoleerr "ERROR: Must run 3-install-verrazzano.sh and then rerun this script."
     exit 1
   fi
   # Replace strings in keycloak.json file
-  VZ_PW_SALT=$(kubectl get secret -n ${VERRAZZANO_NS} ${VZ_USERNAME} -o jsonpath="{.data.salt}")
-  VZ_PW_HASH=$(kubectl get secret -n ${VERRAZZANO_NS} ${VZ_USERNAME} -o jsonpath="{.data.hash}")
+  VZ_PW_SALT=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.salt}")
+  VZ_PW_HASH=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.hash}")
 
   sed "s|ENV_NAME|${ENV_NAME}|g;s|DNS_SUFFIX|${DNS_SUFFIX}|g;s|VZ_SYS_REALM|${VZ_SYS_REALM}|g;s|VZ_USERNAME|${VZ_USERNAME}|g;s|VZ_PW_SALT|${VZ_PW_SALT}|g;s|VZ_PW_HASH|${VZ_PW_HASH}|g" $SCRIPT_DIR/config/keycloak.json > ${TMP_DIR}/keycloak-sed.json
 
