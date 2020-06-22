@@ -43,35 +43,14 @@ function install_mysql {
     kubectl create namespace ${KEYCLOAK_NS}
   fi
 
-  # generate mysql-values.yaml file 
-  cat <<EOF > ${TMP_DIR}/mysql-values.yaml
-imageTag: ${MYSQL_IMAGE_TAG}
-busybox:
-    image: container-registry.oracle.com/os/oraclelinux
-    tag: 7-slim
-
-mysqlUser: ${MYSQL_USERNAME}
-
-mysqlDatabase: keycloak
-
-initializationFiles:
-  first-db.sql: |-
-    CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
-    USE keycloak;
-    GRANT ALL ON keycloak.* TO '${MYSQL_USERNAME}'@'%';
-    FLUSH PRIVILEGES;
-
-imagePullPolicy: IfNotPresent
-
-ssl:
-  enabled: false
-EOF
-
+  # sed mysql-values.yaml file 
+  sed "s|MYSQL_IMAGE_TAG|${MYSQL_IMAGE_TAG}|g;s|MYSQL_USERNAME|${MYSQL_USERNAME}|g" $SCRIPT_DIR/config/mysql-values.yaml > ${TMP_DIR}/mysql-values-sed.yaml
+  
   # Install mysql helm chart
   helm upgrade mysql stable/mysql \
       --install \
       --namespace ${KEYCLOAK_NS} \
-      -f ${TMP_DIR}/mysql-values.yaml
+      -f ${TMP_DIR}/mysql-values-sed.yaml
        
   # Wait for mysql pods to be up and running
   kubectl wait pods -l app=mysql -n ${KEYCLOAK_NS} --for=condition=Ready --timeout=300s
@@ -79,7 +58,7 @@ EOF
 
 function install_keycloak {
   retries=0
-  until [ "$retries" -ge 60 ]
+  until [ "$retries" -ge 24 ]
   do
     kubectl get secret -n ${VERRAZZANO_NS} | grep ${VZ_USERNAME} && break
     retries=$(($retries+1))
@@ -108,87 +87,14 @@ function install_keycloak {
 
   # Add keycloak helm repo
   helm repo add codecentric https://codecentric.github.io/helm-charts
-
-  # generate keycloak-values.yaml file 
-  cat <<EOF > ${TMP_DIR}/keycloak-values-sed.yaml
-keycloak:
-  extraInitContainers: |
-    - name: theme-provider
-      image: phx.ocir.io/stevengreenberginc/verrazzano/keycloak-oracle-theme:0.1
-      imagePullPolicy: IfNotPresent
-      command:
-        - sh
-      args:
-        - -c
-        - |
-          echo "Copying theme..."
-          cp -R /oracle/* /theme
-      volumeMounts:
-        - name: theme
-          mountPath: /theme
-        - name: cacerts
-          mountPath: /cacerts          
-
-  replicas: 1
-  image:
-    tag: ${KEYCLOAK_IMAGE_TAG}
-    repository: phx.ocir.io/odx-sre/sauron/keycloak-server
-  extraArgs: -Dkeycloak.import=/etc/keycloak/realm.json
-  ## Username for the initial Keycloak admin user
-  username: ${KCADMIN_USERNAME}
-
-  containerSecurityContext:
-    runAsUser: 0
-    runAsNonRoot: false
   
-  extraVolumes: |
-    - name: keycloak-config
-      secret:
-        secretName: keycloak-realm-cacert
-    - name: theme
-      emptyDir: {} 
-    - name: cacerts
-      emptyDir: {}     
-    - name: keycloak-http
-      secret:
-         secretName: keycloak-http 
-  extraVolumeMounts: |
-    - name: keycloak-config
-      mountPath: /etc/keycloak
-    - name: theme
-      mountPath: /opt/jboss/keycloak/themes/oracle
-    - name: keycloak-http
-      mountPath: /etc/keycloak-http
-  service:
-    port: 8083
-  ingress:
-    enabled: true
-    path: /
-
-    annotations:
-      external-dns.alpha.kubernetes.io/target: "${DNS_TARGET_NAME}"
-      kubernetes.io/ingress.class: nginx
-      kubernetes.io/tls-acme: "true"
-      external-dns.alpha.kubernetes.io/ttl: "60"
-
-    ## List of hosts for the ingress
-    hosts:
-      - keycloak.${ENV_NAME}.${DNS_SUFFIX}
-
-    tls:
-      - hosts:
-          - keycloak.${ENV_NAME}.${DNS_SUFFIX}
-        secretName: ${ENV_NAME}-secret
-
-  persistence:
-    deployPostgres: false
-    dbVendor: mysql
-    dbPassword: $(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)
-    dbUser: ${MYSQL_USERNAME}
-    dbHost: mysql
-    dbPort: 3306
-EOF
- 
+  if ! kubectl get secret --namespace ${KEYCLOAK_NS} mysql ; then
+    consoleerr "ERROR installing mysql. Please rerun this script."
+    exit 1
+  fi
+  # sed keycloak-values.yaml file 
+  sed "s|ENV_NAME|${ENV_NAME}|g;s|DNS_SUFFIX|${DNS_SUFFIX}|g;s|KEYCLOAK_IMAGE_TAG|${KEYCLOAK_IMAGE_TAG}|g;s|KCADMIN_USERNAME|${KCADMIN_USERNAME}|g;s|DNS_TARGET_NAME|${DNS_TARGET_NAME}|g;s|MYSQL_USERNAME|${MYSQL_USERNAME}|g;s|MYSQL_PASSWORD|$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)|g" $SCRIPT_DIR/config/keycloak-values.yaml > ${TMP_DIR}/keycloak-values-sed.yaml
+  
   # Install keycloak helm chart
   helm upgrade keycloak codecentric/keycloak \
       --install \
