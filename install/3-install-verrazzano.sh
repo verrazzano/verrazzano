@@ -100,7 +100,7 @@ function install_verrazzano()
   retries=0
   until [ "$retries" -ge 24 ]
   do
-      kubectl get secret -n ${VERRAZZANO_NS} | grep verrazzano && break
+      kubectl get secret -n ${VERRAZZANO_NS} verrazzano | grep verrazzano && break
       retries=$(($retries+1))
       sleep 5
   done
