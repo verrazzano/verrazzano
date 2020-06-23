@@ -18,7 +18,7 @@ function set_INGRESS_IP() {
 }
 
 VERRAZZANO_NS=verrazzano-system
-VERRAZZANO_VERSION=v0.0.27
+VERRAZZANO_VERSION=v0.0.30
 RancherAdminPassword=${RancherAdminPassword:=admin}
 set_INGRESS_IP
 
