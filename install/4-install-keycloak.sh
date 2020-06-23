@@ -4,6 +4,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
+. $SCRIPT_DIR/check-dns-env.sh || exit 1
 . $SCRIPT_DIR/common.sh
 
 set -u
@@ -115,53 +116,12 @@ function usage {
     exit 1
 }
 
-ENV_NAME="default"
-DNS_TYPE="xip.io"
-DNS_SUFFIX=""
-
-while getopts n:d:s:h flag
-do
-    case "${flag}" in
-        n) ENV_NAME=${OPTARG};;
-        d) DNS_TYPE=${OPTARG};;
-        s) DNS_SUFFIX=${OPTARG};;
-        h) usage;;
-    esac
-done
-# check for valid DNS type
-if [ $DNS_TYPE != "xip.io" ] && [ $DNS_TYPE != "oci" ]; then
-  consoleerr
-  consoleerr "Unknown DNS type ${DNS_TYPE}"
-  usage
-fi
-# check for name
-if [ $DNS_TYPE = "oci" ]; then
-  if [ -z "$ENV_NAME" ]; then
-    consoleerr
-    consoleerr "Name must be given with dns_type oci!"
-    usage
-  fi
-fi
-
+DNS_TYPE=${DNS_TYPE:-xip.io}
+DNS_SUFFIX=${OCI_DNS_ZONE_NAME:-}
+ENV_NAME=${VERRAZZANO_ENV_NAME:-default}
 if [ $DNS_TYPE = "xip.io" ]; then
   set_INGRESS_IP
-fi
-
-# check expected dns suffix for given dns type
-if [ -z "$DNS_SUFFIX" ]; then
-  if [ $DNS_TYPE = "oci" ]; then
-    consoleerr
-    consoleerr "-s option is required for ${DNS_TYPE}"
-    usage
-  else
-    DNS_SUFFIX="${INGRESS_IP}".xip.io
-  fi
-else
-  if [ $DNS_TYPE = "xip.io" ]; then
-    consoleerr
-    consoleerr "A dns_suffix should not be given with dns_type xip.io!"
-    usage
-  fi
+  DNS_SUFFIX="${INGRESS_IP}".xip.io
 fi
 
 DNS_TARGET_NAME=${DNS_PREFIX}.${ENV_NAME}.${DNS_SUFFIX}

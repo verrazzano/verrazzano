@@ -19,51 +19,7 @@ CONFIG_DIR=$SCRIPT_DIR/config
 TMP_DIR=$(mktemp -d)
 trap "rm -rf $TMP_DIR" EXIT
 
-CHECK_VALUES=false
-set +u
-if [ -z "$OCI_REGION" ]; then
-    echo "OCI_REGION environment variable must set to OCI Region"
-    CHECK_VALUES=true
-fi
-if [ -z "$OCI_TENANCY_OCID" ]; then
-    echo "OCI_TENANCY_OCID environment variable must set to OCI Tenancy OCID"
-    CHECK_VALUES=true
-fi
-if [ -z "$OCI_USER_OCID" ]; then
-    echo "OCI_USER_OCID environment variable must set to OCI User OCID"
-    CHECK_VALUES=true
-fi
-if [ -z "$OCI_COMPARTMENT_OCID" ]; then
-    echo "OCI_COMPARTMENT_OCID environment variable must set to OCI Compartment OCID"
-    CHECK_VALUES=true
-fi
-if [ -z "$OCI_FINGERPRINT" ]; then
-    echo "OCI_FINGERPRINT environment variable must set to OCI Fingerprint"
-    CHECK_VALUES=true
-fi
-if [ -z "$OCI_PRIVATE_KEY_FILE" ]; then
-    echo "OCI_PRIVATE_KEY_FILE environment variable must set to OCI Private Key File"
-    CHECK_VALUES=true
-fi
-if [ -z "$EMAIL_ADDRESS" ]; then
-    echo "EMAIL_ADDRESS environment variable must set to your email address"
-    CHECK_VALUES=true
-fi
-if [ -z "$OCI_DNS_ZONE_OCID" ]; then
-    echo "OCI_DNS_ZONE_OCID environment variable must set to OCI DNS Zone OCID"
-    CHECK_VALUES=true
-fi
-if [ -z "$OCI_DNS_ZONE_NAME" ]; then
-    echo "OCI_DNS_ZONE_NAME environment variable must set to OCI DNS Zone Name"
-    CHECK_VALUES=true
-fi
-if [ $CHECK_VALUES = true ]; then
-    exit 1
-fi
-
-[ ! -f $OCI_PRIVATE_KEY_FILE ] && { echo $OCI_PRIVATE_KEY_FILE does not exist; exit 1; }
-
-set -eu
+. $SCRIPT_DIR/check-ocidns-env.sh || exit 1
 
 function install_nginx_ingress_controller()
 {
@@ -224,29 +180,7 @@ function install_rancher()
     kubectl -n cattle-system rollout status -w deploy/rancher
 }
 
-function usage {
-    consoleerr
-    consoleerr "usage: $0 [-n name]"
-    consoleerr "  -n name        Environment Name. Required."
-    consoleerr "  -h             Help"
-    consoleerr
-    exit 1
-}
-
-NAME=""
-
-while getopts n:h flag
-do
-    case "${flag}" in
-        n) NAME=${OPTARG};;
-        h) usage;;
-    esac
-done
-if [ -z "$NAME" ]; then
-    consoleerr
-    consoleerr "-n option is required"
-    usage
-fi
+NAME=${VERRAZZANO_ENV_NAME}
 
 action "Installing Nginx Ingress Controller" install_nginx_ingress_controller || exit 1
 action "Installing cert manager" install_cert_manager || exit 1

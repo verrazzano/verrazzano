@@ -4,6 +4,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
+. $SCRIPT_DIR/check-dns-env.sh || exit 1
 . $SCRIPT_DIR/common.sh
 
 CONFIG_DIR=$SCRIPT_DIR/config
@@ -121,40 +122,12 @@ function usage {
     exit 1
 }
 
-NAME="default"
-DNS_TYPE="xip.io"
-DNS_SUFFIX=""
-
-while getopts n:d:s:h flag
-do
-    case "${flag}" in
-        n) NAME=${OPTARG};;
-        d) DNS_TYPE=${OPTARG};;
-        s) DNS_SUFFIX=${OPTARG};;
-        h) usage;;
-    esac
-done
-# check for valid DNS type
-if [ $DNS_TYPE != "xip.io" ] && [ $DNS_TYPE != "oci" ]; then
-  consoleerr
-  consoleerr "Unknown DNS type ${DNS_TYPE}"
-  usage
-fi
-# check expected dns suffix for given dns type
-if [ -z "$DNS_SUFFIX" ]; then
-  if [ $DNS_TYPE = "oci" ]; then
-    consoleerr
-    consoleerr "-s option is required for ${DNS_TYPE}"
-    usage
-  else
-    DNS_SUFFIX="${INGRESS_IP}".xip.io
-  fi
-else
-  if [ $DNS_TYPE = "xip.io" ]; then
-    consoleerr
-    consoleerr "A dns_suffix should not be given with dns_type xip.io!"
-    usage
-  fi
+DNS_TYPE=${DNS_TYPE:-xip.io}
+DNS_SUFFIX=${OCI_DNS_ZONE_NAME:-}
+NAME=${VERRAZZANO_ENV_NAME:-default}
+if [ $DNS_TYPE = "xip.io" ]; then
+  set_INGRESS_IP
+  DNS_SUFFIX="${INGRESS_IP}".xip.io
 fi
 
 RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}

@@ -153,23 +153,8 @@ function usage {
     exit 1
 }
 
-NAME="default"
+NAME=${VERRAZZANO_ENV_NAME:-default}
 DNS_TYPE="xip.io"
-
-while getopts n:d:h flag
-do
-    case "${flag}" in
-        n) NAME=${OPTARG};;
-        d) DNS_TYPE=${OPTARG};;
-        h) usage;;
-    esac
-done
-# check for valid DNS type
-if [ $DNS_TYPE != "xip.io" ]; then
-  consoleerr
-  consoleerr "Unknown DNS type ${DNS_TYPE}!"
-  usage
-fi
 
 action "Installing Nginx Ingress Controller" install_nginx_ingress_controller || exit 1
 action "Installing cert manager" install_cert_manager || exit 1
