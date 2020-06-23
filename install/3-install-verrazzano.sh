@@ -22,9 +22,6 @@ VERRAZZANO_VERSION=v0.0.24
 RancherAdminPassword=${RancherAdminPassword:=admin}
 set_INGRESS_IP
 
-VZ_USERNAME=verrazzano
-VZ_NEW_PASSWORD=$(openssl rand -base64 30 | tr -d "=+/" | cut -c1-10)
-
 set -u
 
 function create_admission_controller_cert()
@@ -70,13 +67,8 @@ function install_verrazzano()
   kubectl delete vmc local
   kubectl delete secret verrazzano-managed-cluster-local
   kubectl -n cattle-system delete secret rancher-admin-secret
-  kubectl -n ${VERRAZZANO_NS} delete secret ${VZ_USERNAME}
 
   kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="${RancherAdminPassword}"
-
-  kubectl create secret generic ${VZ_USERNAME} -n ${VERRAZZANO_NS} \
-           --from-literal=username=${VZ_USERNAME} \
-           --from-literal=password=${VZ_NEW_PASSWORD}
 
   export RANCHER_ADMIN_TOKEN=$(curl -k --connect-timeout 30 --retry 10 --retry-delay 30 \
   -d '{"Username":"admin", "Password":"'"${RancherAdminPassword}"'"}' \
@@ -104,6 +96,18 @@ function install_verrazzano()
       --set clusterOperator.rancherPassword="${TOKEN_ARRAY[1]}" \
       --set clusterOperator.rancherHostname=${RANCHER_HOSTNAME} \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)"
+
+  retries=0
+  until [ "$retries" -ge 24 ]
+  do
+      kubectl get secret -n ${VERRAZZANO_NS} verrazzano | grep verrazzano && break
+      retries=$(($retries+1))
+      sleep 5
+  done
+  if ! kubectl get secret --namespace ${VERRAZZANO_NS} verrazzano ; then
+      consoleerr "ERROR: failed creating verrazzano secret"
+      exit 1
+  fi
 }
 
 function usage {
@@ -161,6 +165,3 @@ fi
 
 action "Creating admission controller cert" create_admission_controller_cert || exit 1
 action "Installing Verrazzano system components" install_verrazzano || exit 1
-
-consoleout "To retrieve the initial administrator ${VZ_USERNAME} password run:"
-consoleout "kubectl get secret --namespace ${VERRAZZANO_NS} ${VZ_USERNAME} -o jsonpath="{.data.password}" | base64 --decode; echo"
