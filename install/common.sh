@@ -8,8 +8,6 @@ if [ -z "{SCRIPT_DIR}" ] ; then
     exit 1
 fi
 
-. $SCRIPT_DIR/imageConstants.sh
-
 set -u
 
 BUILD_DIR="${SCRIPT_DIR}/build"
@@ -191,3 +189,30 @@ command -v openssl >/dev/null 2>&1 || {
 command -v jq >/dev/null 2>&1 || {
     fail "jq is required but cannot be found on the path. Aborting.";
 }
+
+##################################################
+####Constants for Docker images, versions, tags
+##################################################
+CERT_MANAGER_IMAGE=phx.ocir.io/odx-sre/sauron/cert-manager-controller
+CERT_MANAGER_SOLVER_IMAGE=phx.ocir.io/odx-sre/sauron/cert-manager-acmesolver
+EXTERNAL_DNS_REPO=stevengreenberginc/external-dns/external-dns
+GRAFANA_REPO=container-registry.oracle.com/olcne/grafana
+ISTIO_CORE_DNS_PLUGIN_IMAGE=phx.ocir.io/stevengreenberginc/verrazzano/istio-coredns-plugin
+ISTIO_CORE_DNS_IMAGE=container-registry.oracle.com/olcne/coredns
+NGINX_INGRESS_CONTROLLER_IMAGE=phx.ocir.io/stevengreenberginc/ingress-nginx/ingress-nginx
+NGINX_DEFAULT_BACKEND_IMAGE=phx.ocir.io/stevengreenberginc/ingress-nginx/custom-error-pages
+RANCHER_IMAGE=phx.ocir.io/stevengreenberginc/rancher/rancher
+
+CERT_MANAGER_TAG=0.13.1_3
+CERT_MANAGER_VERSION=0.13.1
+EXTERNAL_DNS_VERSION=2.20.0
+GRAFANA_TAG=v6.4.4
+ISTIO_CORE_DNS_PLUGIN_TAG=0.2-istio-1.1
+ISTIO_VERSION=1.4.6
+ISTIO_CORE_DNS_TAG=1.6.2
+KEYCLOAK_IMAGE_TAG=10.0.1_3
+KEYCLOAK_CHART_VERSION=8.2.2
+NGINX_INGRESS_CONTROLLER_TAG=0.32-0
+NGINX_INGRESS_CONTROLLER_VERSION=1.27.0
+NGINX_DEFAULT_BACKEND_TAG=0.32-0
+RANCHER_VERSION=v2.4.3
