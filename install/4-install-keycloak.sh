@@ -9,8 +9,6 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 set -u
 
 KEYCLOAK_NS=keycloak
-KEYCLOAK_CHART_VERSION=8.2.2
-KEYCLOAK_IMAGE_TAG=10.0.1_3
 KCADMIN_USERNAME=keycloakadmin
 MYSQL_IMAGE_TAG=8.0.20
 MYSQL_USERNAME=keycloak

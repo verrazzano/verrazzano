@@ -12,9 +12,6 @@ elif [ ${CLUSTER_TYPE} == "KIND" ]; then
   INGRESS_TYPE=NodePort
 fi
 
-ISTIO_VERSION=1.4.6
-OLCNE_IMAGE_REPO=container-registry.oracle.com/olcne
-VZ_IMAGE_REPO=phx.ocir.io/stevengreenberginc/verrazzano
 CONFIG_DIR=$SCRIPT_DIR/config
 INSTALL_DIR=$(mktemp -d)
 trap "rm -rf INSTALL_DIR" EXIT
@@ -96,13 +93,13 @@ function install_istio()
         --set gateways.istio-ingressgateway.type="${INGRESS_TYPE}" \
         --set sidecarInjectorWebhook.rewriteAppHTTPProbe=true \
         --set grafana.enabled=true \
-        --set grafana.image.repository=$OLCNE_IMAGE_REPO/grafana \
-        --set grafana.image.tag=v6.4.4 \
+        --set grafana.image.repository=$GRAFANA_REPO \
+        --set grafana.image.tag=$GRAFANA_TAG \
         --set prometheus.hub=$OLCNE_IMAGE_REPO \
         --set prometheus.tag=v2.13.1 \
-        --set istiocoredns.coreDNSImage=$OLCNE_IMAGE_REPO/coredns \
-        --set istiocoredns.coreDNSTag=1.6.2 \
-        --set istiocoredns.coreDNSPluginImage=$VZ_IMAGE_REPO/istio-coredns-plugin:0.2-istio-1.1 \
+        --set istiocoredns.coreDNSImage=$ISTIO_CORE_DNS_IMAGE \
+        --set istiocoredns.coreDNSTag=$ISTIO_CORE_DNS_TAG \
+        --set istiocoredns.coreDNSPluginImage=$ISTIO_CORE_DNS_PLUGIN_IMAGE:$ISTIO_CORE_DNS_PLUGIN_TAG \
         --values ${INSTALL_DIR}/istio/example-values/values-istio-multicluster-gateways.yaml \
         > ${INSTALL_DIR}/istio.yaml || return $?
 

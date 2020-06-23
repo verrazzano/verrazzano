@@ -12,9 +12,6 @@ elif [ ${CLUSTER_TYPE} == "KIND" ]; then
   INGRESS_TYPE=NodePort
 fi
 
-INGRESS_VERSION=1.27.0
-CERT_MANAGER_VERSION=0.13.1
-RANCHER_VERSION=v2.4.3
 VERRAZZANO_NS=verrazzano-system
 
 set -eu
@@ -42,16 +39,16 @@ function install_nginx_ingress_controller()
     helm repo update
 
     helm upgrade ingress-controller stable/nginx-ingress --install \
-      --set controller.image.repository=phx.ocir.io/stevengreenberginc/ingress-nginx/ingress-nginx \
-      --set controller.image.tag=0.32-0 \
-      --set defaultBackend.image.repository=phx.ocir.io/stevengreenberginc/ingress-nginx/custom-error-pages \
-      --set defaultBackend.image.tag=0.32-0 \
+      --set controller.image.repository=$NGINX_INGRESS_CONTROLLER_IMAGE \
+      --set controller.image.tag=$NGINX_INGRESS_CONTROLLER_TAG \
+      --set defaultBackend.image.repository=$NGINX_DEFAULT_BACKEND_IMAGE \
+      --set defaultBackend.image.tag=$NGINX_DEFAULT_BACKEND_TAG \
       --namespace ingress-nginx \
       --set controller.metrics.enabled=true \
       --set controller.podAnnotations.'prometheus\.io/port'=10254 \
       --set controller.podAnnotations.'prometheus\.io/scrape'=true \
       --set controller.podAnnotations.'system\.io/scrape'=true \
-      --version $INGRESS_VERSION \
+      --version $NGINX_INGRESS_CONTROLLER_VERSION \
       --set controller.service.type="${INGRESS_TYPE}" \
       --timeout 15m0s \
       --wait
@@ -89,9 +86,9 @@ function install_cert_manager()
         --install \
         --namespace cert-manager \
         --version $CERT_MANAGER_VERSION \
-        --set image.repository=phx.ocir.io/odx-sre/sauron/cert-manager-controller \
-        --set image.tag=0.13.1_3 \
-        --set extraArgs[0]=--acme-http01-solver-image=phx.ocir.io/odx-sre/sauron/cert-manager-acmesolver:0.13.1_3 \
+        --set image.repository=$CERT_MANAGER_IMAGE \
+        --set image.tag=$CERT_MANAGER_TAG \
+        --set extraArgs[0]=--acme-http01-solver-image=$CERT_MANAGER_SOLVER_IMAGE:$CERT_MANAGER_TAG \
         --set cainjector.enabled=false \
         --set webhook.enabled=false \
         --set webhook.injectAPIServerCA=false \
@@ -129,8 +126,8 @@ function install_rancher()
     helm upgrade rancher rancher-stable/rancher \
       --install --namespace cattle-system \
       --version $RANCHER_VERSION  \
-      --set rancherImageTag=v2.4.3-OL \
-      --set rancherImage=phx.ocir.io/stevengreenberginc/rancher/rancher \
+      --set rancherImageTag=$RANCHER_TAG \
+      --set rancherImage=$RANCHER_IMAGE \
       --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
       --set ingress.tls.source=rancher \
       --wait
