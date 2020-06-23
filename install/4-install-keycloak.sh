@@ -50,10 +50,8 @@ function install_mysql {
   helm upgrade mysql stable/mysql \
       --install \
       --namespace ${KEYCLOAK_NS} \
+      --wait \
       -f ${TMP_DIR}/mysql-values-sed.yaml
-       
-  # Wait for mysql pods to be up and running
-  kubectl wait pods -l app=mysql -n ${KEYCLOAK_NS} --for=condition=Ready --timeout=300s
 }
 
 function install_keycloak {
@@ -93,10 +91,8 @@ function install_keycloak {
       --install \
       --namespace ${KEYCLOAK_NS} \
       --version ${KEYCLOAK_CHART_VERSION} \
+      --wait \
       -f ${TMP_DIR}/keycloak-values-sed.yaml
-
-  # Wait for keycloak to be up and running
-  kubectl wait pod/keycloak-0 -n ${KEYCLOAK_NS} --for=condition=Ready --timeout=300s
 
   kubectl -it exec keycloak-0 \
     -n ${KEYCLOAK_NS} \
