@@ -11,7 +11,7 @@ phx.ocir.io/odx-sre/sauron/cert-manager-acmesolver:0.13.1_3
 phx.ocir.io/odx-sre/sauron/cert-manager-controller:0.13.1_3
 phx.ocir.io/odx-sre/sauron/elasticsearch-mirror:7.6.1-2
 phx.ocir.io/odx-sre/sauron/kibana-mirror:7.6.1-2
-phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator:v0.0.27
+phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator:v0.0.28
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.4
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.6
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-cluster-operator:v0.0.4
