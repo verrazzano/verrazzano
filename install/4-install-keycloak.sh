@@ -40,10 +40,10 @@ function install_mysql {
     kubectl create namespace ${KEYCLOAK_NS}
   fi
 
-  # sed mysql-values.yaml file 
+  # sed mysql-values-template.yaml file
   sed -e "s|MYSQL_IMAGE_TAG|${MYSQL_IMAGE_TAG}|g" \
       -e "s|MYSQL_USERNAME|${MYSQL_USERNAME}|g" \
-      $SCRIPT_DIR/config/mysql-values.yaml > ${TMP_DIR}/mysql-values-sed.yaml
+      $SCRIPT_DIR/config/mysql-values-template.yaml > ${TMP_DIR}/mysql-values-sed.yaml
   
   # Install mysql helm chart
   helm upgrade mysql stable/mysql \
@@ -82,13 +82,13 @@ function install_keycloak {
     consoleerr "ERROR installing mysql. Please rerun this script."
     exit 1
   fi
-  # sed keycloak-values.yaml file
+  # sed keycloak-values-template.yaml file
   sed -e "s|ENV_NAME|${ENV_NAME}|g;s|DNS_SUFFIX|${DNS_SUFFIX}|g" \
       -e "s|KEYCLOAK_IMAGE_TAG|${KEYCLOAK_IMAGE_TAG}|g;s|KCADMIN_USERNAME|${KCADMIN_USERNAME}|g" \
       -e "s|DNS_TARGET_NAME|${DNS_TARGET_NAME}|g;s|MYSQL_USERNAME|${MYSQL_USERNAME}|g" \
       -e "s|MYSQL_PASSWORD|$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)|g" \
       -e "s|KEYCLOAK_IMAGE|$KEYCLOAK_IMAGE|g" \
-      $SCRIPT_DIR/config/keycloak-values.yaml > ${TMP_DIR}/keycloak-values-sed.yaml
+      $SCRIPT_DIR/config/keycloak-values-template.yaml > ${TMP_DIR}/keycloak-values-sed.yaml
 
   # Install keycloak helm chart
   helm upgrade keycloak codecentric/keycloak \
