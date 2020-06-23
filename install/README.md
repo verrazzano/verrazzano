@@ -1,67 +1,61 @@
-# verrazzano-oke-install
+# Verrazzano Installation
 
-Setup [Verrazzano](https://verrazzano.io/doc) on [Oracle Kubernetes Engine](https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm)
+These scripts can install [Verrazzano](https://verrazzano.io/doc) on [Oracle Container Engine for Kubernetes (OKE)](https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm) or on [Kubernetes in Docker (KinD)](https://kind.sigs.k8s.io/).
+
+By default Verrazzano uses [xip.io](http://xip.io/) for domain name resolution.  When installing on OKE the [Oracle Cloud Infrastructure Domain Name Service (DNS)[(https://docs.cloud.oracle.com/en-us/iaas/Content/DNS/Concepts/dnszonemanagement.htm) may be optionally used instead.
 
 # Quick Start
+
+## Install Verrazzano on OKE
 ```
-export VERRAZZANO_KUBECONFIG=<OKE cluster designated for a Verrazzano installation>
-kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com
-./install-oke.sh
+   export CLUSTER_TYPE=OKE
+   export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
+   export KUBECONFIG=$VERRAZZANO_KUBECONFIG
+   kubectl create secret docker-registry ocr \
+       --docker-username=<username> \
+       --docker-password=<password> \
+       --docker-server=container-registry.oracle.com
+   ./1-install-istio.sh
+   ./2a-install-system-components-magicdns.sh
+   ./3-install-verrazzano.sh
+   ./4-install-keycloak.sh
 ```
 
-# System Configuration
+## Install Verrazzano on KinD
+```
+   export CLUSTER_TYPE=KIND`
+   export VERRAZZANO_KUBECONFIG=<path to kubernetes config where kind cluster info will be written>`
+   export KUBECONFIG=$VERRAZZANO_KUBECONFIG`
+   ./0-create-kind-cluster.sh`
+   kubectl create secret docker-registry ocr \
+       --docker-username=<username> \
+       --docker-password=<password> \
+       --docker-server=container-registry.oracle.com
+   ./install/1-install-istio.sh
+   ./install/2a-install-system-components-magicdns.sh
+   ./install/3-install-verrazzano.sh
+   ./install/4-install-keycloak.sh
+```
+
+# System Requirements
 
 ## Resource Requirements
 
-The following configuration has proven sufficient to install Verrazzano and deploy Bob's demo.
+The following configuration has proven sufficient to install Verrazzano and deploy the Bob's Books example application.
 
-OCI Compute instance shape `VM.Standard2.4` which has:
+[OCI Compute instance shape](https://www.oracle.com/cloud/compute/virtual-machines.html) `VM.Standard2.4` which has:
 * 4 `2.0 GHz Intel® Xeon® Platinum 8167M` cores
 * 60 GB of memory
 * Select disk size of at least 200 GB.  A minimum of 100 GB of storage required for docker images.
 
-The following environments are not sufficient for running Verrazzano:
-* Dual-core Mac with 16 GB of memory
-
 ## Software Requirements
 
 The following software must be installed on your system.  
-* Kubectl
-* Helm
+* helm
 * jq
+* kubectl
+* kind (for KinD installation)
 * openssl
-
-## Steps to Install Prerequisites on Linux
-This section contains the instructions for configuring a Linux system with the required software:
-```text
-# kubectl
-curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
-chmod +x ./kubectl
-sudo mv ./kubectl /usr/local/bin/kubectl
-
-# helm
-curl https://get.helm.sh/helm-v3.1.2-linux-amd64.tar.gz -o helm-v3.1.2-linux-amd64.tar.gz
-tar xzvf helm-v3.1.2-linux-amd64.tar.gz
-sudo mv linux-amd64/helm /usr/local/bin/helm
-```
-
-# General Instructions for Installing Dependencies
-
-## Install kubectl
-Follow the [kubectl install instructions](https://kubernetes.io/docs/tasks/tools/install-kubectl/) on the Kubernetes webstie to install kubectl CLI.
-
-Verify that `kubectl` is installed:
-```
-kubectl version
-```
-
-## Install helm
-Follow the [Helm install instructions](https://helm.sh/docs/intro/install/) on the helm webstie to install helm CLI.
-
-Verify that `helm` is installed:
-```
-helm version
-```
 
 # Install in OKE Cluster using xip.io
 
@@ -203,4 +197,30 @@ Or you can use an existing Kind cluster.  Perform the following step to pre-load
 Perform the following steps to complete the installation:
 ```
 make install-verrazzano-kind
+```
+
+# General Instructions for Installing Dependencies
+
+## Install helm
+Follow the [Helm install instructions](https://helm.sh/docs/intro/install/) on the helm website to install the `helm`.
+
+Verify that `helm` is installed:
+```
+helm version
+```
+
+## Install kind
+Follow the [Quick Start](https://kind.sigs.k8s.io/docs/user/quick-start/) on the KinD website to install `kind`.
+
+Verify that `kind` is installed:
+```
+kind version
+```
+
+## Install kubectl
+Follow the [kubectl install instructions](https://kubernetes.io/docs/tasks/tools/install-kubectl/) on the Kubernetes website to install `kubectl`.
+
+Verify that `kubectl` is installed:
+```
+kubectl version
 ```

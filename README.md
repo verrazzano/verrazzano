@@ -25,6 +25,7 @@ To install Verrazzano, follow these steps:
 4. Run the following scripts:  
    - `export CLUSTER_TYPE=OKE`
    - `export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>`
+   - `export KUBECONFIG=<path to valid kubernetes config>`
    - `kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com`
    - `./install/1-install-istio.sh`
    - `./install/2a-install-system-components-magicdns.sh`
