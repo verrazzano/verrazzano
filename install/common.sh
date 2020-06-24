@@ -193,8 +193,7 @@ command -v jq >/dev/null 2>&1 || {
 ##################################################
 ####Constants for Docker images, versions, tags
 ##################################################
-OCIR_REGISTRY=phx.ocir.io
-OLCNE_IMAGE_REPO=container-registry.oracle.com/olcne
+GLOBAL_HUB_REPO=container-registry.oracle.com/olcne
 
 CERT_MANAGER_IMAGE=phx.ocir.io/odx-sre/sauron/cert-manager-controller
 CERT_MANAGER_TAG=0.13.1_3
@@ -204,6 +203,7 @@ CERT_MANAGER_SOLVER_IMAGE=phx.ocir.io/odx-sre/sauron/cert-manager-acmesolver
 EXTERNAL_DNS_REPO=stevengreenberginc/external-dns/external-dns
 EXTERNAL_DNS_VERSION=2.20.0
 EXTERNAL_DNS_TAG=v0.7.1-OL
+EXTERNAL_DNS_REGISTRY=phx.ocir.io
 
 GRAFANA_REPO=container-registry.oracle.com/olcne/grafana
 GRAFANA_TAG=v6.4.4

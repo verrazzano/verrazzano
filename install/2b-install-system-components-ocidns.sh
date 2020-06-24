@@ -167,7 +167,7 @@ function install_external_dns()
         --install \
         --namespace cert-manager \
         --version $EXTERNAL_DNS_VERSION \
-        --set image.registry=$OCIR_REGISTRY \
+        --set image.registry=$EXTERNAL_DNS_REGISTRY \
         --set image.repository=$EXTERNAL_DNS_REPO \
         --set image.tag=$EXTERNAL_DNS_TAG \
         --set provider=oci \
