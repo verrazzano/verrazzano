@@ -143,16 +143,6 @@ function install_rancher()
     kubectl -n cattle-system rollout status -w deploy/rancher
 }
 
-function usage {
-    consoleerr
-    consoleerr "usage: $0 [-n name] [-d dns_type]"
-    consoleerr "  -n name        Environment Name. Optional.  Defaults to default."
-    consoleerr "  -d dns_type    DNS type [xip.io]. Optional.  Defaults to xip.io."
-    consoleerr "  -h             Help"
-    consoleerr
-    exit 1
-}
-
 NAME=${VERRAZZANO_ENV_NAME:-default}
 DNS_TYPE="xip.io"
 

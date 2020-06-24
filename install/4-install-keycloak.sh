@@ -105,17 +105,6 @@ function install_keycloak {
   kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
 }
 
-function usage {
-    consoleerr
-    consoleerr "usage: $0 [-n name] [-d dns_type] [-s dns_suffix]"
-    consoleerr "  -n name        Environment Name. Optional.  Optional.  Defaults to default."
-    consoleerr "  -d dns_type    DNS type [xip.io|oci]. Optional.  Defaults to xip.io."
-    consoleerr "  -s dns_suffix  DNS suffix (e.g v8o.example.com). Not valid for dns_type xip.io. Required for dns-type oci."
-    consoleerr "  -h             Help"
-    consoleerr
-    exit 1
-}
-
 DNS_TYPE=${DNS_TYPE:-xip.io}
 DNS_SUFFIX=${OCI_DNS_ZONE_NAME:-}
 ENV_NAME=${VERRAZZANO_ENV_NAME:-default}
