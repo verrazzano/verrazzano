@@ -19,19 +19,25 @@ This repository contains installation scripts and example applications for use w
 
 # Installation
 
-Verrazzano can be installed in a single Oracle OKE or [kind](https://kind.sigs.k8s.io/) cluster. For each cluster type, 
-you have two DNS choices: [xip.io](http://xip.io/) or
- [Oracle OCI DNS](https://docs.cloud.oracle.com/en-us/iaas/Content/DNS/Concepts/dnszonemanagement.htm).
+Verrazzano can be installed in a single [Oracle OKE](https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm) cluster 
+or a [kind](https://kind.sigs.k8s.io/) cluster. For each cluster type, you have two DNS choices: 
+[xip.io](http://xip.io/) or
+[Oracle OCI DNS](https://docs.cloud.oracle.com/en-us/iaas/Content/DNS/Concepts/dnszonemanagement.htm).
 
 > **NOTE**: You should only install this alpla release of Verazzano in a cluster that can be safely deleted when your evaluation is complete.
 
-1. Follow instructions for the [installation prerequisites](./install/INSTALL_PREREQ.md)
-2. Install using xip.io DNS or OCI DNS below as describe next
-3. Verify installation
+First, follow instructions described in the [installation prerequisites](./install/INSTALL_PREREQ.md).
 
-## Install Verrazzano using xip.io
+Next, install Verrazzano then get the information needed to access the consoles:
+
+1. Install using xip.io DNS or OCI DNS 
+2. Get the console URLS
+3. Get the console credentials
+
+## 1. Do the install (1a or 1b).
+
+### 1a Install Verrazzano using xip.io
 Run the following scripts in order:
-
 ```
    ./install/1-install-istio.sh
    ./install/2a-install-system-components-magicdns.sh
@@ -39,9 +45,9 @@ Run the following scripts in order:
    ./install/4-install-keycloak.sh
 ```
 **OR**
-##  Install using OCI DNS
+### 1b. Install using OCI DNS
 
-Installing Verrazzano on OCI DNS requires the following environment variables needed to create OCI DNS records:
+Installing Verrazzano on OCI DNS requires the following environment variables to create DNS records:
 
 Environment Variable | Required | Description
 --- | --- | --- |
@@ -64,14 +70,30 @@ Run the following scripts in order:
    ./install/4-install-keycloak.sh -n <env-name> -d oci -s <oci-dns-zone-name>
 ```
 
-## Getting the console URLs
+## 2. Get the console URLs
+Verrazzano installs several consoles.  You can get the URL for the consoles with the following command:  
+`kubectl get ingress -A`
 
+Following is an example of the ingresses:
+```
+   NAMESPACE           NAME                               HOSTS                                          ADDRESS          PORTS     AGE
+   cattle-system       rancher                            rancher.myenv.mydomain.comm                    128.234.33.198   80, 443   93m
+   keycloak            keycloak                           keycloak.myenv.mydomain.comm                   128.234.33.198   80, 443   69m
+   verrazzano-system   verrazzano-console-ingress         console.myenv.mydomain.comm                    128.234.33.198   80, 443   81m
+   verrazzano-system   verrazzano-consoleplugin-ingress   verrazzano-consoleplugin.myenv.mydomain.comm   128.234.33.198   80, 443   81m
+   verrazzano-system   verrazzano-operator-ingress        api.myenv.mydomain.comm                        128.234.33.198   80, 443   81m
+   verrazzano-system   vmi-system-api                     api.vmi.system.myenv.mydomain.comm             128.234.33.198   80, 443   80m
+   verrazzano-system   vmi-system-es-ingest               elasticsearch.vmi.system.myenv.mydomain.comm   128.234.33.198   80, 443   80m
+   verrazzano-system   vmi-system-grafana                 grafana.vmi.system.myenv.mydomain.comm         128.234.33.198   80, 443   80m
+   verrazzano-system   vmi-system-kibana                  kibana.vmi.system.myenv.mydomain.comm          128.234.33.198   80, 443   80m
+   verrazzano-system   vmi-system-prometheus              prometheus.vmi.system.myenv.mydomain.comm      128.234.33.198   80, 443   80m
+   verrazzano-system   vmi-system-prometheus-gw           prometheus-gw.vmi.system.myenv.mydomain.comm   128.234.33.198   80, 443   80m```
+```
 
-## Getting Credentials
+## 3. Get Console Credentials
 You will need the credentials to access the various consoles installed by Verrazzano.
 
 ### Consoles accessed by the same username/password.
-
 - UI Console
 - Grafana
 - Prometheus
@@ -80,24 +102,20 @@ You will need the credentials to access the various consoles installed by Verraz
 
 User:  `verrazzano`
 
-You can get the password by running the following command:  
+Run the following command to get the password: 
 `kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo`
 
 ### The Keycloak Admin console:
-
 User `keycloakadmin`
  
-run this command to get the password:  
-kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo
+Run the following command to get the password:  
+`kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo`
 
 ### The Rancher console:
-
 User `keycloakadmin`
  
-run this command to get the password:  
+Run the following command to get the password:  
 `kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath=“{.data.password}” | base64 --decode; echo`
-
-
 
 
 ## More Information
