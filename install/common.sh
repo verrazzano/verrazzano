@@ -203,6 +203,7 @@ CERT_MANAGER_SOLVER_IMAGE=phx.ocir.io/odx-sre/sauron/cert-manager-acmesolver
 
 EXTERNAL_DNS_REPO=stevengreenberginc/external-dns/external-dns
 EXTERNAL_DNS_VERSION=2.20.0
+EXTERNAL_DNS_TAG=v0.7.1-OL
 
 GRAFANA_REPO=container-registry.oracle.com/olcne/grafana
 GRAFANA_TAG=v6.4.4
@@ -228,3 +229,4 @@ NGINX_DEFAULT_BACKEND_TAG=0.32-0
 
 RANCHER_IMAGE=phx.ocir.io/stevengreenberginc/rancher/rancher
 RANCHER_VERSION=v2.4.3
+RANCHER_TAG=v2.4.3-OL
