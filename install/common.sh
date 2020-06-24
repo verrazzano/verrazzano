@@ -193,6 +193,7 @@ command -v jq >/dev/null 2>&1 || {
 ##################################################
 ####Constants for Docker images, versions, tags
 ##################################################
+OCIR_REGISTRY=phx.ocir.io
 CERT_MANAGER_IMAGE=phx.ocir.io/odx-sre/sauron/cert-manager-controller
 CERT_MANAGER_TAG=0.13.1_3
 CERT_MANAGER_VERSION=0.13.1
