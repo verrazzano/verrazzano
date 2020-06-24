@@ -129,6 +129,7 @@ function install_rancher()
     helm upgrade rancher rancher-stable/rancher \
       --install --namespace cattle-system \
       --version $RANCHER_VERSION  \
+      --set rancherImageTag=v2.4.3-OL \
       --set rancherImage=phx.ocir.io/stevengreenberginc/rancher/rancher \
       --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
       --set ingress.tls.source=rancher \

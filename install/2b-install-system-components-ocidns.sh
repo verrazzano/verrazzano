@@ -172,7 +172,7 @@ function install_external_dns()
         --version $EXTERNAL_DNS_VERSION \
         --set image.registry=phx.ocir.io \
         --set image.repository=stevengreenberginc/external-dns/external-dns \
-        --set image.tag=v0.7.1 \
+        --set image.tag=v0.7.1-OL \
         --set provider=oci \
         --set logLevel=debug \
         --set registry=txt \
@@ -208,6 +208,7 @@ function install_rancher()
         --install --namespace cattle-system \
         --version $RANCHER_VERSION  \
         --set rancherImage=phx.ocir.io/stevengreenberginc/rancher/rancher \
+        --set rancherImageTag=v2.4.3-OL \
         --set hostname=rancher.${NAME}.${OCI_DNS_ZONE_NAME} \
         --set ingress.tls.source=letsEncrypt \
         --set letsEncrypt.ingress.class=rancher \
