@@ -28,13 +28,13 @@ or a [kind](https://kind.sigs.k8s.io/) cluster. For each cluster type, you have 
 
 First, follow instructions described in the [installation prerequisites](./install/INSTALL_PREREQ.md).
 
-Next, install Verrazzano then get the information needed to access the consoles:
+Next, install Verrazzano, then get the information needed to access the consoles:
 
 1. Install using xip.io DNS or OCI DNS 
 2. Get the console URLS
 3. Get the console credentials
 
-## 1. Do the install (1a or 1b).
+## 1. Do the install (1a or 1b)
 
 ### 1a Install Verrazzano using xip.io
 Run the following scripts in order:
@@ -97,7 +97,7 @@ Following is an example of the ingresses:
 ## 3. Get Console Credentials
 You will need the credentials to access the various consoles installed by Verrazzano.
 
-### Consoles accessed by the same username/password.
+### Consoles accessed by the same username/password
 - UI Console
 - Grafana
 - Prometheus
@@ -109,13 +109,13 @@ User:  `verrazzano`
 Run the following command to get the password: 
 `kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo`
 
-### The Keycloak Admin console:
+### The Keycloak Admin console
 User `keycloakadmin`
  
 Run the following command to get the password:  
 `kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo`
 
-### The Rancher console:
+### The Rancher console
 User `keycloakadmin`
  
 Run the following command to get the password:  
