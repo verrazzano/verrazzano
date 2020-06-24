@@ -16,7 +16,7 @@ fi
 function loadImage()
 {
   image=$1
-  if docker exec -it ${KIND_CLUSTER_NAME}-control-plane crictl images  -o json | jq '.images[].repoTags[]' | grep -q "$image";
+  if docker exec ${KIND_CLUSTER_NAME}-control-plane crictl images  -o json | jq '.images[].repoTags[]' | grep -q "$image";
   then
     echo  "$image is loaded"
   else
