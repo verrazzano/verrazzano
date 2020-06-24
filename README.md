@@ -62,6 +62,10 @@ Environment Variable | Required | Description
 `OCI_TENANCY_OCID` | Yes | OCI tenancy OCID
 `OCI_USER_OCID` | Yes | OCI user OCID
 
+When you use OCI DNS install, you need to provide a Verrazzano name (env-name) that will
+be used as part of the domain name used to access Verrazzano ingresses.  
+For example, you could use `sales` as an env-name.
+
 Run the following scripts in order:
 ```
    ./install/1-install-istio.sh
