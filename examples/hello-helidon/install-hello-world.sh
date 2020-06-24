@@ -16,10 +16,20 @@ kubectl apply -f ${SCRIPT_DIR}/hello-world-binding.yaml
 retries=0
 until [ "$retries" -ge 60 ]
 do
+    if kubectl get namespace greet > /dev/null 2>&1 ; then
+        break
+    fi
+    sleep .5
+done
+
+retries=0
+until [ "$retries" -ge 60 ]
+do
    kubectl get pods -n greet | grep NAME && break
    retries=$(($retries+1))
    sleep 5
 done
+
 kubectl wait --for=condition=ready pods -n greet --all --timeout 5m
 
 CLUSTER_TYPE=${CLUSTER_TYPE:=OKE}
