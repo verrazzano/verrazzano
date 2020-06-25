@@ -129,8 +129,12 @@ function install_rancher()
       --set rancherImageTag=$RANCHER_TAG \
       --set rancherImage=$RANCHER_IMAGE \
       --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
-      --set ingress.tls.source=rancher \
-      --wait
+      --set ingress.tls.source=rancher
+
+    if [ $CLUSTER_TYPE == "OLCNE" ]; then
+      # CRI-O does not deliver MKNOD by default, until https://github.com/rancher/rancher/pull/27582 is merged we must add the capability
+      kubectl patch deployments -n cattle-system rancher -p '{"spec":{"template":{"spec":{"containers":[{"name":"rancher","securityContext":{"capabilities":{"add":["MKNOD"]}}}]}}}}'
+    fi
 
     if [ $DNS_TYPE = "xip.io" ]; then
       RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${NAME}.${DNS_SUFFIX} auth\",\"cert-manager.io/issuer\":\"rancher\",\"cert-manager.io/issuer-kind\":\"Issuer\"}}}"
