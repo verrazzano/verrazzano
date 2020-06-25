@@ -158,8 +158,8 @@ KIND_KUBECONFIG="${BUILD_DIR}/kind-kubeconfig"
 
 
 CLUSTER_TYPE="${CLUSTER_TYPE:-}"
-if [ "${CLUSTER_TYPE}" != "KIND" ] && [ "${CLUSTER_TYPE}" != "OKE" ] ; then
-    fail "CLUSTER_TYPE environment variable must be set to KIND or OKE"
+if [ "${CLUSTER_TYPE}" != "KIND" ] && [ "${CLUSTER_TYPE}" != "OKE" ] && [ "${CLUSTER_TYPE}" != "OLCNE" ]; then
+    fail "CLUSTER_TYPE environment variable must be set to KIND, OKE or OLCNE"
 fi
 
 VERRAZZANO_KUBECONFIG="${VERRAZZANO_KUBECONFIG:-}"
