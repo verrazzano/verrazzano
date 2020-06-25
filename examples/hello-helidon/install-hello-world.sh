@@ -33,7 +33,7 @@ done
 kubectl wait --for=condition=ready pods -n greet --all --timeout 5m
 
 CLUSTER_TYPE=${CLUSTER_TYPE:=OKE}
-if [ ${CLUSTER_TYPE} == "OKE" ]; then
+if [ ${CLUSTER_TYPE} == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
   SERVER=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq -r '.status.loadBalancer.ingress[0].ip')
   PORT=80
 elif [ ${CLUSTER_TYPE} == "KIND" ]; then
