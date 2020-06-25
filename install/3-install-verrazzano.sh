@@ -23,7 +23,7 @@ VERRAZZANO_NS=verrazzano-system
 VERRAZZANO_VERSION=v0.0.32
 RancherAdminPassword=${RancherAdminPassword:=admin}
 
-set -u
+set -eu
 
 function create_admission_controller_cert()
 {
@@ -64,10 +64,12 @@ function create_admission_controller_cert()
 
 function install_verrazzano()
 {
+  set +e
   helm uninstall verrazzano --namespace ${VERRAZZANO_NS}
   kubectl delete vmc local
   kubectl delete secret verrazzano-managed-cluster-local
   kubectl -n cattle-system delete secret rancher-admin-secret
+  set -e
 
   kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="${RancherAdminPassword}"
 
