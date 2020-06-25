@@ -8,7 +8,7 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
 if [ ${CLUSTER_TYPE} == "OKE" ]; then
   INGRESS_TYPE=LoadBalancer
-elif [ ${CLUSTER_TYPE} == "KIND" ]; then
+elif [ ${CLUSTER_TYPE} == "KIND" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
   INGRESS_TYPE=NodePort
 fi
 
@@ -144,7 +144,7 @@ action "Waiting for all Kubernetes nodes to be ready" \
     kubectl wait --for=condition=ready nodes --all || exit 1
 
 # Secret named ocr must exist in the default namespace to pull OLCNE images in a OKE cluster
-if [ ${CLUSTER_TYPE} == "OKE" ]; then
+if [ ${CLUSTER_TYPE} == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
   action "Checking for secret named ocr in default namespace" kubectl get secret ocr -n default ||
     fail -e "ERROR: Secret named ocr is required to pull images from ${GLOBAL_HUB_REPO}.\nCreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
 fi
@@ -156,7 +156,7 @@ if ! kubectl get namespace istio-system > /dev/null 2>&1 ; then
 fi
 
 # Copy the secret named ocr to the istio-system namespace for pulling OLCNE images in a OKE cluster
-if [ ${CLUSTER_TYPE} == "OKE" ]; then
+if [ ${CLUSTER_TYPE} == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
   if ! kubectl get secret ocr -n istio-system > /dev/null 2>&1 ; then
     action "Copying ocr secret to istio-system namespace" \
         copy_ocr_secret

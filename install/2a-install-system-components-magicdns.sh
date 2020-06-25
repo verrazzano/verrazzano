@@ -8,7 +8,7 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
 if [ ${CLUSTER_TYPE} == "OKE" ]; then
   INGRESS_TYPE=LoadBalancer
-elif [ ${CLUSTER_TYPE} == "KIND" ]; then
+elif [ ${CLUSTER_TYPE} == "KIND" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
   INGRESS_TYPE=NodePort
 fi
 
