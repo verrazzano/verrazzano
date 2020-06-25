@@ -42,6 +42,11 @@ function install_nginx_ingress_controller()
     helm repo add stable https://kubernetes-charts.storage.googleapis.com
     helm repo update
 
+    EXTRA_NGINX_ARGUMENTS=""
+    if [ $CLUSTER_TYPE == "OLCNE" ]; then
+      EXTRA_NGINX_ARGUMENTS=" --set controller.service.externalIPs={"${INGRESS_IP}"} --set controller.service.externalTrafficPolicy=Local --set controller.autoscaling.enabled=true "
+    fi
+
     helm upgrade ingress-controller stable/nginx-ingress --install \
       --set controller.image.repository=$NGINX_INGRESS_CONTROLLER_IMAGE \
       --set controller.image.tag=$NGINX_INGRESS_CONTROLLER_TAG \
@@ -55,10 +60,13 @@ function install_nginx_ingress_controller()
       --version $NGINX_INGRESS_CONTROLLER_VERSION \
       --set controller.service.type="${INGRESS_TYPE}" \
       --timeout 15m0s \
+      ${EXTRA_NGINX_ARGUMENTS} \
       --wait
 
     if [ $CLUSTER_TYPE = "KIND" ]; then
         kubectl patch deployments -n ingress-nginx ingress-controller-nginx-ingress-controller -p '{"spec":{"template":{"spec":{"containers":[{"name":"nginx-ingress-controller","ports":[{"containerPort":80,"hostPort":80},{"containerPort":443,"hostPort":443}]}],"tolerations":[{"key":"node-role.kubernetes.io/master","operator":"Equal","effect":"NoSchedule"}],"nodeSelector":{"ingress-ready":"true"}}}}}'
+    elif [ $CLUSTER_TYPE == "OLCNE" ]; then
+      kubectl patch service -n ingress-nginx ingress-controller-nginx-ingress-controller -p '{ "spec": { "ports": [{ "port": 80, "nodePort": 30080 }, { "port": 443, "nodePort": 30443 }, { "name": "healthz", "nodePort": 30254, "port": 30254, "protocol": "TCP", "targetPort": 10254 } ]  }}'
     fi
 
     if [ $DNS_TYPE = "xip.io" ]; then
