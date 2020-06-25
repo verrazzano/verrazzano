@@ -136,7 +136,7 @@ function install_rancher()
       kubectl patch deployments -n cattle-system rancher -p '{"spec":{"template":{"spec":{"containers":[{"name":"rancher","securityContext":{"capabilities":{"add":["MKNOD"]}}}]}}}}'
     fi
 
-    if [ $DNS_TYPE = "xip.io" ]; then
+    if [ $DNS_TYPE == "xip.io" ] || [ $DNS_TYPE == "manual" ]; then
       RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${NAME}.${DNS_SUFFIX} auth\",\"cert-manager.io/issuer\":\"rancher\",\"cert-manager.io/issuer-kind\":\"Issuer\"}}}"
     fi
 
@@ -149,7 +149,8 @@ function usage {
     consoleerr
     consoleerr "usage: $0 [-n name] [-d dns_type]"
     consoleerr "  -n name        Environment Name. Optional.  Defaults to default."
-    consoleerr "  -d dns_type    DNS type [xip.io]. Optional.  Defaults to xip.io."
+    consoleerr "  -d dns_type    DNS type [xip.io|manual]. Optional.  Defaults to xip.io."
+    consoleerr "  -s dns_suffix  DNS suffix (e.g v8o.example.com). Not valid for dns_type xip.io. Required for dns-type oci or manual"
     consoleerr "  -h             Help"
     consoleerr
     exit 1
@@ -163,13 +164,20 @@ do
     case "${flag}" in
         n) NAME=${OPTARG};;
         d) DNS_TYPE=${OPTARG};;
+        s) DNS_SUFFIX=${OPTARG};;
         h) usage;;
     esac
 done
 # check for valid DNS type
-if [ $DNS_TYPE != "xip.io" ]; then
+if [ $DNS_TYPE != "xip.io" ] && [ $DNS_TYPE != "manual" ]; then
   consoleerr
   consoleerr "Unknown DNS type ${DNS_TYPE}!"
+  usage
+fi
+
+if [ $DNS_TYPE == "manual" ] && [ -z $DNS_SUFFIX ]; then
+  consoleerr
+  consoleerr "-s option is required for ${DNS_TYPE}"
   usage
 fi
 
