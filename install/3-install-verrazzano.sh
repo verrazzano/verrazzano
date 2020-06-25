@@ -22,7 +22,6 @@ function set_INGRESS_IP() {
 VERRAZZANO_NS=verrazzano-system
 VERRAZZANO_VERSION=v0.0.32
 RancherAdminPassword=${RancherAdminPassword:=admin}
-set_INGRESS_IP
 
 set -u
 
@@ -143,6 +142,9 @@ if [ $DNS_TYPE != "xip.io" ] && [ $DNS_TYPE != "oci" ] && [ $DNS_TYPE != "manual
   consoleerr "Unknown DNS type ${DNS_TYPE}"
   usage
 fi
+
+set_INGRESS_IP
+
 # check expected dns suffix for given dns type
 if [ -z "$DNS_SUFFIX" ]; then
   if [ $DNS_TYPE == "oci" ] || [ $DNS_TYPE == "manual" ]; then

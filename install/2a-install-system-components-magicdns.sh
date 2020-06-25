@@ -32,6 +32,8 @@ function install_nginx_ingress_controller()
     helm uninstall ingress-controller --namespace ingress-nginx
     set -e
 
+    set_INGRESS_IP
+
     # Create the namespace for nginx
     if ! kubectl get namespace ingress-nginx ; then
         kubectl create namespace ingress-nginx
@@ -58,8 +60,6 @@ function install_nginx_ingress_controller()
     if [ $CLUSTER_TYPE = "KIND" ]; then
         kubectl patch deployments -n ingress-nginx ingress-controller-nginx-ingress-controller -p '{"spec":{"template":{"spec":{"containers":[{"name":"nginx-ingress-controller","ports":[{"containerPort":80,"hostPort":80},{"containerPort":443,"hostPort":443}]}],"tolerations":[{"key":"node-role.kubernetes.io/master","operator":"Equal","effect":"NoSchedule"}],"nodeSelector":{"ingress-ready":"true"}}}}}'
     fi
-
-    set_INGRESS_IP
 
     if [ $DNS_TYPE = "xip.io" ]; then
       DNS_SUFFIX="${INGRESS_IP}".xip.io
