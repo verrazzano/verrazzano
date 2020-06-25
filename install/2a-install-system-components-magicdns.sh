@@ -159,7 +159,7 @@ function usage {
 NAME="default"
 DNS_TYPE="xip.io"
 
-while getopts n:d:h flag
+while getopts n:d:s:h flag
 do
     case "${flag}" in
         n) NAME=${OPTARG};;
