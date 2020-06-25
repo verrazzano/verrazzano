@@ -53,23 +53,20 @@ Run the script to create your kind cluster:
    ./0-create-kind-cluster.sh
 ```
 
+### Using an OLCNE Cluster
+```
+   export CLUSTER_TYPE=OLCNE
+   export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
+   export KUBECONFIG=$VERRAZZANO_KUBECONFIG
+```
+
 ### Create Oracle Container Registry secret
-For both cluster types, you need to create the "ocr" secret. This is needed for pulling images from the container-registry.oracle.com repository.
+For all cluster types, you need to create the "ocr" secret. This is needed for pulling images from the container-registry.oracle.com repository.
 ```
    kubectl create secret docker-registry ocr \
        --docker-username=<username> \
        --docker-password=<password> \
        --docker-server=container-registry.oracle.com
-```
-
-## 2. Do the install
-
-Install using xip.io or OCI DNS (2a or 2b).  In both cases, DNS records
-will be automatically configured for you.
-
-### 2a. Install using xip.io
-Run the following scripts in order:
-```
    ./install/1-install-istio.sh
    ./install/2a-install-system-components-magicdns.sh
    ./install/3-install-verrazzano.sh
