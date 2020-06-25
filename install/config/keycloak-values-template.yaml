@@ -19,7 +19,7 @@ keycloak:
   replicas: 1
   image:
     tag: KEYCLOAK_IMAGE_TAG
-    repository: phx.ocir.io/odx-sre/sauron/keycloak-server
+    repository: KEYCLOAK_IMAGE
   extraArgs: -Dkeycloak.import=/etc/keycloak/realm.json
   ## Username for the initial Keycloak admin user
   username: KCADMIN_USERNAME

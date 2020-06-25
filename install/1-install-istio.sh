@@ -12,9 +12,6 @@ elif [ ${CLUSTER_TYPE} == "KIND" ]; then
   INGRESS_TYPE=NodePort
 fi
 
-ISTIO_VERSION=1.4.6
-OLCNE_IMAGE_REPO=container-registry.oracle.com/olcne
-VZ_IMAGE_REPO=phx.ocir.io/stevengreenberginc/verrazzano
 CONFIG_DIR=$SCRIPT_DIR/config
 INSTALL_DIR=$(mktemp -d)
 trap "rm -rf INSTALL_DIR" EXIT
@@ -82,7 +79,7 @@ function install_istio()
     # Create helm template for installing istio CRDs
     helm template istio-init ${INSTALL_DIR}/istio-init \
         --namespace istio-system \
-        --set global.hub=$OLCNE_IMAGE_REPO \
+        --set global.hub=$GLOBAL_HUB_REPO \
         --set global.tag=$ISTIO_VERSION \
         --set global.imagePullSecrets[0]=ocr \
         > ${INSTALL_DIR}/istio-crds.yaml || return $?
@@ -90,19 +87,19 @@ function install_istio()
     # Create helm template for installing istio proper
     helm template istio ${INSTALL_DIR}/istio \
         --namespace istio-system \
-        --set global.hub=$OLCNE_IMAGE_REPO \
+        --set global.hub=$GLOBAL_HUB_REPO \
         --set global.tag=$ISTIO_VERSION \
         --set global.imagePullSecrets[0]=ocr \
         --set gateways.istio-ingressgateway.type="${INGRESS_TYPE}" \
         --set sidecarInjectorWebhook.rewriteAppHTTPProbe=true \
         --set grafana.enabled=true \
-        --set grafana.image.repository=$OLCNE_IMAGE_REPO/grafana \
-        --set grafana.image.tag=v6.4.4 \
-        --set prometheus.hub=$OLCNE_IMAGE_REPO \
+        --set grafana.image.repository=$GRAFANA_REPO \
+        --set grafana.image.tag=$GRAFANA_TAG \
+        --set prometheus.hub=$GLOBAL_HUB_REPO \
         --set prometheus.tag=v2.13.1 \
-        --set istiocoredns.coreDNSImage=$OLCNE_IMAGE_REPO/coredns \
-        --set istiocoredns.coreDNSTag=1.6.2 \
-        --set istiocoredns.coreDNSPluginImage=$VZ_IMAGE_REPO/istio-coredns-plugin:0.2-istio-1.1 \
+        --set istiocoredns.coreDNSImage=$ISTIO_CORE_DNS_IMAGE \
+        --set istiocoredns.coreDNSTag=$ISTIO_CORE_DNS_TAG \
+        --set istiocoredns.coreDNSPluginImage=$ISTIO_CORE_DNS_PLUGIN_IMAGE:$ISTIO_CORE_DNS_PLUGIN_TAG \
         --values ${INSTALL_DIR}/istio/example-values/values-istio-multicluster-gateways.yaml \
         > ${INSTALL_DIR}/istio.yaml || return $?
 
@@ -149,7 +146,7 @@ action "Waiting for all Kubernetes nodes to be ready" \
 # Secret named ocr must exist in the default namespace to pull OLCNE images in a OKE cluster
 if [ ${CLUSTER_TYPE} == "OKE" ]; then
   action "Checking for secret named ocr in default namespace" kubectl get secret ocr -n default ||
-    fail -e "ERROR: Secret named ocr is required to pull images from ${OLCNE_IMAGE_REPO}.\nCreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
+    fail -e "ERROR: Secret named ocr is required to pull images from ${GLOBAL_HUB_REPO}.\nCreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
 fi
 
 # Create istio-system namespace if it does not exist

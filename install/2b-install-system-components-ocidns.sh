@@ -4,9 +4,6 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 INGRESS_VERSION=1.27.0
-CERT_MANAGER_VERSION=0.13.1
-EXTERNAL_DNS_VERSION=2.20.0
-RANCHER_VERSION=v2.4.3
 VERRAZZANO_NS=verrazzano-system
 DNS_PREFIX="verrazzano-ingress"
 OCI_PRIVATE_KEY_PASSPHRASE=${OCI_PRIVATE_KEY_PASSPHRASE:-""}
@@ -80,10 +77,10 @@ function install_nginx_ingress_controller()
     helm repo update
 
     helm upgrade ingress-controller stable/nginx-ingress --install \
-      --set controller.image.repository=phx.ocir.io/stevengreenberginc/ingress-nginx/ingress-nginx \
-      --set controller.image.tag=0.32-0 \
-      --set defaultBackend.image.repository=phx.ocir.io/stevengreenberginc/ingress-nginx/custom-error-pages \
-      --set defaultBackend.image.tag=0.32-0 \
+      --set controller.image.repository=$NGINX_INGRESS_CONTROLLER_IMAGE \
+      --set controller.image.tag=$NGINX_INGRESS_CONTROLLER_TAG \
+      --set defaultBackend.image.repository=$NGINX_DEFAULT_BACKEND_IMAGE \
+      --set defaultBackend.image.tag=$NGINX_DEFAULT_BACKEND_TAG \
       --namespace ingress-nginx \
       --set controller.metrics.enabled=true \
       --set controller.podAnnotations.'prometheus\.io/port'=10254 \
@@ -118,9 +115,9 @@ function install_cert_manager()
         --install \
         --namespace cert-manager \
         --version $CERT_MANAGER_VERSION \
-        --set image.repository=phx.ocir.io/odx-sre/sauron/cert-manager-controller \
-        --set image.tag=0.13.1_3 \
-        --set extraArgs[0]=--acme-http01-solver-image=phx.ocir.io/odx-sre/sauron/cert-manager-acmesolver:0.13.1_3 \
+        --set image.repository=$CERT_MANAGER_IMAGE \
+        --set image.tag=$CERT_MANAGER_TAG \
+        --set extraArgs[0]=--acme-http01-solver-image=$CERT_MANAGER_SOLVER_IMAGE:$CERT_MANAGER_TAG \
         --set cainjector.enabled=false \
         --set webhook.enabled=false \
         --set webhook.injectAPIServerCA=false \
@@ -170,9 +167,9 @@ function install_external_dns()
         --install \
         --namespace cert-manager \
         --version $EXTERNAL_DNS_VERSION \
-        --set image.registry=phx.ocir.io \
-        --set image.repository=stevengreenberginc/external-dns/external-dns \
-        --set image.tag=v0.7.1 \
+        --set image.registry=$EXTERNAL_DNS_REGISTRY \
+        --set image.repository=$EXTERNAL_DNS_REPO \
+        --set image.tag=$EXTERNAL_DNS_TAG \
         --set provider=oci \
         --set logLevel=debug \
         --set registry=txt \
@@ -207,7 +204,8 @@ function install_rancher()
       helm upgrade rancher rancher-stable/rancher \
         --install --namespace cattle-system \
         --version $RANCHER_VERSION  \
-        --set rancherImage=phx.ocir.io/stevengreenberginc/rancher/rancher \
+        --set rancherImage=$RANCHER_IMAGE \
+        --set rancherImageTag=$RANCHER_TAG \
         --set hostname=rancher.${NAME}.${OCI_DNS_ZONE_NAME} \
         --set ingress.tls.source=letsEncrypt \
         --set letsEncrypt.ingress.class=rancher \
