@@ -84,6 +84,13 @@ function install_istio()
         --set global.imagePullSecrets[0]=ocr \
         > ${INSTALL_DIR}/istio-crds.yaml || return $?
 
+    # Generate cluster specific configuration
+    EXTRA_HELM_ARGUMENTS=""
+    if [ ${CLUSTER_TYPE} == "OLCNE" ]; then
+      ISTIO_INGRESS_IP=$(dig +short ingress-verrazzano.${NAME}.${DNS_SUFFIX})
+      EXTRA_HELM_ARGUMENTS=" --set gateways.istio-ingressgateway.externalIPs={"${ISTIO_INGRESS_IP}"}"
+    fi
+
     # Create helm template for installing istio proper
     helm template istio ${INSTALL_DIR}/istio \
         --namespace istio-system \
@@ -101,6 +108,7 @@ function install_istio()
         --set istiocoredns.coreDNSTag=$ISTIO_CORE_DNS_TAG \
         --set istiocoredns.coreDNSPluginImage=$ISTIO_CORE_DNS_PLUGIN_IMAGE:$ISTIO_CORE_DNS_PLUGIN_TAG \
         --values ${INSTALL_DIR}/istio/example-values/values-istio-multicluster-gateways.yaml \
+        ${EXTRA_HELM_ARGUMENTS} \
         > ${INSTALL_DIR}/istio.yaml || return $?
 
     # Change to use the OLCNE image for kubectl then install the istio CRDs
@@ -138,6 +146,37 @@ function copy_ocr_secret()
         | sed 's|namespace: default|namespace: istio-system|' \
         | kubectl apply -n istio-system -f -
 }
+
+function usage {
+    consoleerr
+    consoleerr "usage: $0 [-n name] [-d dns_type]"
+    consoleerr "  -n name        Environment Name. Optional.  Defaults to default."
+    consoleerr "  -d dns_type    DNS type [xip.io|manual|oci]. Optional.  Defaults to xip.io."
+    consoleerr "  -s dns_suffix  DNS suffix (e.g v8o.example.com). Optional. Not valid for dns_type xip.io. Required for dns-type manual"
+    consoleerr "  -h             Help"
+    consoleerr
+    exit 1
+}
+
+NAME="default"
+DNS_TYPE="xip.io"
+
+while getopts n:d:s:h flag
+do
+    case "${flag}" in
+        n) NAME=${OPTARG};;
+        d) DNS_TYPE=${OPTARG};;
+        s) DNS_SUFFIX=${OPTARG};;
+        h) usage;;
+        *) usage;;
+    esac
+done
+
+if [ $DNS_TYPE == "manual" ] && [ -z $DNS_SUFFIX ]; then
+  consoleerr
+  consoleerr "-s option is required for ${DNS_TYPE}"
+  usage
+fi
 
 # Wait for all cluster nodes to be ready
 action "Waiting for all Kubernetes nodes to be ready" \
