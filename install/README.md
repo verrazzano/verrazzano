@@ -15,18 +15,18 @@ By default Verrazzano uses [xip.io](http://xip.io/) for domain name resolution. 
        --docker-username=<username> \
        --docker-password=<password> \
        --docker-server=container-registry.oracle.com
-   ./1-install-istio.sh
-   ./2a-install-system-components-magicdns.sh
-   ./3-install-verrazzano.sh
-   ./4-install-keycloak.sh
+   ./install/1-install-istio.sh
+   ./install/2a-install-system-components-magicdns.sh
+   ./install/3-install-verrazzano.sh
+   ./install/4-install-keycloak.sh
 ```
 
 ## Install Verrazzano on KinD
 ```
-   export CLUSTER_TYPE=KIND`
-   export VERRAZZANO_KUBECONFIG=<path to kubernetes config where kind cluster info will be written>`
-   export KUBECONFIG=$VERRAZZANO_KUBECONFIG`
-   ./0-create-kind-cluster.sh`
+   export CLUSTER_TYPE=KIND
+   export VERRAZZANO_KUBECONFIG=<path to kubernetes config where kind cluster info will be written>
+   export KUBECONFIG=$VERRAZZANO_KUBECONFIG
+   ./install/0-create-kind-cluster.sh
    kubectl create secret docker-registry ocr \
        --docker-username=<username> \
        --docker-password=<password> \
