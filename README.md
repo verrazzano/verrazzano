@@ -101,7 +101,7 @@ Installing Verrazzano on OCI DNS requires the following environment variables to
 Environment Variable | Required | Description
 --- | --- | --- |
 `EMAIL_ADDRESS` | Yes | Email address
-`OCI_COMPARTMENT_OCID` | Yes | OCI Compartment OCID
+`OCI_COMPARTMENT_OCID` | Yes | OCI DNS Compartment OCID
 `OCI_DNS_ZONE_NAME` | Yes | Name of OCI DNS Zone
 `OCI_DNS_ZONE_OCID` | Yes | OCI DNS Zone OCID
 `OCI_FINGERPRINT` | Yes | OCI fingerprint
