@@ -130,6 +130,7 @@ do
         d) DNS_TYPE=${OPTARG};;
         s) DNS_SUFFIX=${OPTARG};;
         h) usage;;
+        *) usage;;
     esac
 done
 # check for valid DNS type

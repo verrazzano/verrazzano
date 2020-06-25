@@ -238,6 +238,7 @@ do
     case "${flag}" in
         n) NAME=${OPTARG};;
         h) usage;;
+        *) usage;;
     esac
 done
 if [ -z "$NAME" ]; then
