@@ -68,7 +68,7 @@ Set the following ENV vars:
 
 Run the script to create your kind cluster:
 ```
-   ./0-create-kind-cluster.sh`
+   ./0-create-kind-cluster.sh
 ```
 
 ### Create Oracle Container Registry secret
