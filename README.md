@@ -112,8 +112,7 @@ Environment Variable | Required | Description
 `OCI_USER_OCID` | Yes | OCI user OCID
 
 When you use OCI DNS install, you need to provide a Verrazzano name (env-name) that will
-be used as part of the domain name used to access Verrazzano ingresses.  
-For example, you could use `sales` as an env-name.
+be used as part of the domain name used to access Verrazzano ingresses.  For example, you could use `sales` as an env-name.
 
 Run the following scripts in order:
 ```
@@ -172,8 +171,6 @@ Run the following command to get the password:
 
 
 ## More Information
-More detailed installation instructions can be found in the `install` folder in this repository.
-
 Example applications can be found in the `examples` folder.
 
 For additional information, see the [Verrazzano documentation](https://verrazzano.io/doc).
