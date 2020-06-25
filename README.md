@@ -72,7 +72,7 @@ Run the script to create your kind cluster:
 ```
 
 ### Create Oracle Container Registry secret
-You need to create the "ocr" secret, which is needed for pulling images from the container-registry.oracle.com repository.
+For both cluster types, you need to create the "ocr" secret. This is needed for pulling images from the container-registry.oracle.com repository.
 ```
    kubectl create secret docker-registry ocr \
        --docker-username=<username> \
