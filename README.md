@@ -123,23 +123,25 @@ Run the following scripts in order:
 ```
 
 ## 3. Get the console URLs
-Verrazzano installs several consoles.  You can get the URL for the consoles with the following command:  
+Verrazzano installs several consoles.  You can get the ingress for the consoles with the following command:  
 `kubectl get ingress -A`
+
+Simply prefix `https://` to the host name to get the URL.  For example `https://rancher.myenv.mydomain.com`
 
 Following is an example of the ingresses:
 ```
    NAMESPACE           NAME                               HOSTS                                          ADDRESS          PORTS     AGE
-   cattle-system       rancher                            rancher.myenv.mydomain.comm                    128.234.33.198   80, 443   93m
-   keycloak            keycloak                           keycloak.myenv.mydomain.comm                   128.234.33.198   80, 443   69m
-   verrazzano-system   verrazzano-console-ingress         console.myenv.mydomain.comm                    128.234.33.198   80, 443   81m
-   verrazzano-system   verrazzano-consoleplugin-ingress   verrazzano-consoleplugin.myenv.mydomain.comm   128.234.33.198   80, 443   81m
-   verrazzano-system   verrazzano-operator-ingress        api.myenv.mydomain.comm                        128.234.33.198   80, 443   81m
-   verrazzano-system   vmi-system-api                     api.vmi.system.myenv.mydomain.comm             128.234.33.198   80, 443   80m
-   verrazzano-system   vmi-system-es-ingest               elasticsearch.vmi.system.myenv.mydomain.comm   128.234.33.198   80, 443   80m
-   verrazzano-system   vmi-system-grafana                 grafana.vmi.system.myenv.mydomain.comm         128.234.33.198   80, 443   80m
-   verrazzano-system   vmi-system-kibana                  kibana.vmi.system.myenv.mydomain.comm          128.234.33.198   80, 443   80m
-   verrazzano-system   vmi-system-prometheus              prometheus.vmi.system.myenv.mydomain.comm      128.234.33.198   80, 443   80m
-   verrazzano-system   vmi-system-prometheus-gw           prometheus-gw.vmi.system.myenv.mydomain.comm   128.234.33.198   80, 443   80m```
+   cattle-system       rancher                            rancher.myenv.mydomain.com                     128.234.33.198   80, 443   93m
+   keycloak            keycloak                           keycloak.myenv.mydomain.com                    128.234.33.198   80, 443   69m
+   verrazzano-system   verrazzano-console-ingress         console.myenv.mydomain.com                     128.234.33.198   80, 443   81m
+   verrazzano-system   verrazzano-consoleplugin-ingress   verrazzano-consoleplugin.myenv.mydomain.com    128.234.33.198   80, 443   81m
+   verrazzano-system   verrazzano-operator-ingress        api.myenv.mydomain.com                         128.234.33.198   80, 443   81m
+   verrazzano-system   vmi-system-api                     api.vmi.system.myenv.mydomain.com              128.234.33.198   80, 443   80m
+   verrazzano-system   vmi-system-es-ingest               elasticsearch.vmi.system.myenv.mydomain.com    128.234.33.198   80, 443   80m
+   verrazzano-system   vmi-system-grafana                 grafana.vmi.system.myenv.mydomain.com          128.234.33.198   80, 443   80m
+   verrazzano-system   vmi-system-kibana                  kibana.vmi.system.myenv.mydomain.com           128.234.33.198   80, 443   80m
+   verrazzano-system   vmi-system-prometheus              prometheus.vmi.system.myenv.mydomain.com       128.234.33.198   80, 443   80m
+   verrazzano-system   vmi-system-prometheus-gw           prometheus-gw.vmi.system.myenv.mydomain.com    128.234.33.198   80, 443   80m
 ```
 
 ## 4. Get Console Credentials
