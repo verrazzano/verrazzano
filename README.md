@@ -61,9 +61,9 @@ Create the OKE cluster using the OCI console or some other means, then set the f
 ### Using a kind Cluster
 Set the following ENV vars: 
 ```
-   export CLUSTER_TYPE=KIND`
-   export VERRAZZANO_KUBECONFIG=<path to kubernetes config where kind cluster info will be written>`
-   export KUBECONFIG=$VERRAZZANO_KUBECONFIG`
+   export CLUSTER_TYPE=KIND
+   export VERRAZZANO_KUBECONFIG=<path to kubernetes config where kind cluster info will be written>
+   export KUBECONFIG=$VERRAZZANO_KUBECONFIG
 ```
 
 Run the script to create your kind cluster:
