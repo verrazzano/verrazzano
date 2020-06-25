@@ -15,18 +15,18 @@ By default Verrazzano uses [xip.io](http://xip.io/) for domain name resolution. 
        --docker-username=<username> \
        --docker-password=<password> \
        --docker-server=container-registry.oracle.com
-   ./1-install-istio.sh
-   ./2a-install-system-components-magicdns.sh
-   ./3-install-verrazzano.sh
-   ./4-install-keycloak.sh
+   ./install/1-install-istio.sh
+   ./install/2a-install-system-components-magicdns.sh
+   ./install/3-install-verrazzano.sh
+   ./install/4-install-keycloak.sh
 ```
 
 ## Install Verrazzano on KinD
 ```
-   export CLUSTER_TYPE=KIND`
-   export VERRAZZANO_KUBECONFIG=<path to kubernetes config where kind cluster info will be written>`
-   export KUBECONFIG=$VERRAZZANO_KUBECONFIG`
-   ./0-create-kind-cluster.sh`
+   export CLUSTER_TYPE=KIND
+   export VERRAZZANO_KUBECONFIG=<path to kubernetes config where kind cluster info will be written>
+   export KUBECONFIG=$VERRAZZANO_KUBECONFIG
+   ./install/0-create-kind-cluster.sh
    kubectl create secret docker-registry ocr \
        --docker-username=<username> \
        --docker-password=<password> \
@@ -199,9 +199,15 @@ Perform the following steps to complete the installation:
 make install-verrazzano-kind
 ```
 
-# General Instructions for Installing Dependencies
-
-## Install helm
+# Instructions for Installing Dependencies
+## Oracle Linux 7
+```shell script
+sudo yum install -y oracle-olcne-release-el7
+sudo yum-config-manager --enable ol7_olcne11 ol7_addons ol7_latest
+sudo yum install -y kubectl helm jq openssl
+```
+## Other Platforms
+### Install helm
 Follow the [Helm install instructions](https://helm.sh/docs/intro/install/) on the helm website to install the `helm`.
 
 Verify that `helm` is installed:
@@ -209,7 +215,7 @@ Verify that `helm` is installed:
 helm version
 ```
 
-## Install kind
+### Install kind
 Follow the [Quick Start](https://kind.sigs.k8s.io/docs/user/quick-start/) on the KinD website to install `kind`.
 
 Verify that `kind` is installed:
@@ -217,7 +223,7 @@ Verify that `kind` is installed:
 kind version
 ```
 
-## Install kubectl
+### Install kubectl
 Follow the [kubectl install instructions](https://kubernetes.io/docs/tasks/tools/install-kubectl/) on the Kubernetes website to install `kubectl`.
 
 Verify that `kubectl` is installed:
