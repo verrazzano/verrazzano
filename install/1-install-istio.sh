@@ -84,7 +84,7 @@ function install_istio()
 
     # Generate cluster specific configuration
     EXTRA_HELM_ARGUMENTS=""
-    if [ ${CLUSTER_TYPE} == "OLCNE" ]; then
+    if [ ${CLUSTER_TYPE} == "OLCNE" ] && [ $DNS_TYPE == "manual" ]; then
       ISTIO_INGRESS_IP=$(dig +short ingress-verrazzano.${NAME}.${DNS_SUFFIX})
       EXTRA_HELM_ARGUMENTS=" --set gateways.istio-ingressgateway.externalIPs={"${ISTIO_INGRESS_IP}"}"
     fi
