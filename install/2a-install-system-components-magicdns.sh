@@ -44,7 +44,7 @@ function install_nginx_ingress_controller()
 
     EXTRA_NGINX_ARGUMENTS=""
     if [ $CLUSTER_TYPE == "OLCNE" ]; then
-      EXTRA_NGINX_ARGUMENTS=" --set controller.service.externalIPs={"${INGRESS_IP}"} --set controller.service.externalTrafficPolicy=Local --set controller.autoscaling.enabled=true "
+      EXTRA_NGINX_ARGUMENTS=" --set controller.service.externalIPs={"${INGRESS_IP}"} --set controller.service.externalTrafficPolicy=Local --set controller.autoscaling.enabled=true --set controller.autoscaling.minReplicas=2"
     fi
 
     helm upgrade ingress-controller stable/nginx-ingress --install \
