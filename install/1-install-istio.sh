@@ -71,8 +71,6 @@ function install_istio()
     helm repo add istio.io https://storage.googleapis.com/istio-release/releases/${ISTIO_VERSION}/charts || return $?
 
     # Fetch istio charts for istio and istio-init
-    rm -rf "${INSTALL_DIR}"
-    mkdir -p $INSTALL_DIR || return $?
     helm fetch istio.io/istio --untar=true --untardir=$INSTALL_DIR || return $?
     helm fetch istio.io/istio-init --untar=true --untardir=$INSTALL_DIR || return $?
 
