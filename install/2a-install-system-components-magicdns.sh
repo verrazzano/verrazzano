@@ -23,6 +23,11 @@ function set_INGRESS_IP() {
     INGRESS_IP=$(kubectl get node ${KIND_CLUSTER_NAME}-control-plane -o json | jq -r '.status.addresses[] | select (.type == "InternalIP") | .address')
   elif [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
     INGRESS_IP=$(dig +short ingress-mgmt.${NAME}.${DNS_SUFFIX})
+    if [ -z $INGRESS_IP ]; then
+      consoleerr
+      consoleerr "Unable to identify an Ingress IP address. If you do not have a dynamic load balancer service use dns_type of manual"
+      exit 1
+    fi
   fi
 }
 
