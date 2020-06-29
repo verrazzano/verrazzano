@@ -17,10 +17,20 @@ function set_INGRESS_IP() {
   fi
 }
 
+function set_HELM_REPO_PARAMS() {
+  VERRAZZANO_HELM_REPO_USERNAME="${VERRAZZANO_HELM_REPO_USERNAME:-}"
+  VERRAZZANO_HELM_REPO_PASSWORD="${VERRAZZANO_HELM_REPO_PASSWORD:-}"
+  VERRAZZANO_HELM_REPO_BRANCH="${VERRAZZANO_HELM_REPO_BRANCH:-}"
+  if [ -z "$VERRAZZANO_HELM_REPO_BRANCH" ]; then
+    VERRAZZANO_HELM_REPO_BRANCH="master"
+  fi
+}
+
 VERRAZZANO_NS=verrazzano-system
 VERRAZZANO_VERSION=v0.0.34
 RancherAdminPassword=${RancherAdminPassword:=admin}
 set_INGRESS_IP
+set_HELM_REPO_PARAMS
 
 set -u
 
@@ -84,7 +94,9 @@ function install_verrazzano()
 
   helm \
       upgrade --install verrazzano \
-      https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-helm-chart/o/${VERRAZZANO_VERSION}%2Fverrazzano-${VERRAZZANO_VERSION}.tgz \
+      --username ${VERRAZZANO_HELM_REPO_USERNAME} \
+      --password ${VERRAZZANO_HELM_REPO_PASSWORD} \
+      https://raw.githubusercontent.com/verrazzano/helm-charts/${VERRAZZANO_HELM_REPO_BRANCH}/verrazzano-${VERRAZZANO_VERSION}.tgz \
       --namespace ${VERRAZZANO_NS} \
       --set image.pullPolicy=IfNotPresent \
       --set config.envName=${NAME} \
