@@ -26,7 +26,7 @@ function set_HELM_REPO_PARAMS() {
     VERRAZZANO_HELM_REPO_BRANCH="master"
   fi
   if [ -z "$VERRAZZANO_VERSION" ]; then
-    VERRAZZANO_VERSION="v0.0.34"
+    VERRAZZANO_VERSION="v0.0.35"
   fi
 }
 
