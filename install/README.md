@@ -151,7 +151,7 @@ Run the following command to get the password:
 User `admin`
  
 Run the following command to get the password:  
-`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath=“{.data.password}” | base64 --decode; echo`
+`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo`
 
 
 ## More Information
