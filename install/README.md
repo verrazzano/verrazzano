@@ -20,11 +20,13 @@ The following configuration has proven sufficient to install Verrazzano and depl
 ## Software Requirements
 
 The following software must be installed on your system.  
+* curl
 * helm
 * jq
 * kubectl
 * kind (for KinD installation)
 * openssl
+* patch (for OCI DNS installation)
 
 ## 1. Preparing for installation
 
