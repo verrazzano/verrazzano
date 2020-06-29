@@ -7,8 +7,8 @@ container-registry.oracle.com/olcne/proxyv2:1.4.6
 container-registry.oracle.com/olcne/sidecar_injector:1.4.6
 container-registry.oracle.com/olcne/coredns:1.6.2
 container-registry.oracle.com/os/oraclelinux:7-slim
-phx.ocir.io/odx-sre/sauron/cert-manager-acmesolver:0.13.1_3
-phx.ocir.io/odx-sre/sauron/cert-manager-controller:0.13.1_3
+phx.ocir.io/stevengreenberginc/bfs/cert-manager-acmesolver:0.13.1_3
+phx.ocir.io/stevengreenberginc/bfs/cert-manager-controller:0.13.1_3
 phx.ocir.io/odx-sre/sauron/elasticsearch-mirror:7.6.1-2
 phx.ocir.io/odx-sre/sauron/kibana-mirror:7.6.1-2
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator:v0.0.36
@@ -22,7 +22,7 @@ phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-helidon-app-operator:v0.0.5
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-admission-controller:v0.0.7
 phx.ocir.io/stevengreenberginc/verrazzano/web:1.0.19
 phx.ocir.io/stevengreenberginc/verrazzano/web-standalone:1.0.21
-phx.ocir.io/stevengreenberginc/verrazzano/istio-coredns-plugin:0.2-istio-1.1
+phx.ocir.io/stevengreenberginc/bfs/verrazzano/istio-coredns-plugin:0.2-istio-1.1
 phx.ocir.io/odx-sre/sauron/prometheus-pusher:1.0.1_9
 phx.ocir.io/odx-sre/sauron/prometheus-pushgateway:0.5.2_7
 phx.ocir.io/odx-sre/sauron/pushgateway-mirror:1.2.0-1
