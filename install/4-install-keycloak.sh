@@ -24,7 +24,11 @@ function set_INGRESS_IP() {
   elif [ ${CLUSTER_TYPE} == "KIND" ]; then
     INGRESS_IP=$(kubectl get node ${KIND_CLUSTER_NAME}-control-plane -o json | jq -r '.status.addresses[] | select (.type == "InternalIP") | .address')
   elif [ ${CLUSTER_TYPE} == "OLCNE" ]; then
-    INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json  | jq -r '.spec.externalIPs[0]')
+    # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
+    INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
+    if [ ${INGRESS_IP} == "null" ]; then
+      INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json  | jq -r '.spec.externalIPs[0]')
+    fi
   fi
 }
 

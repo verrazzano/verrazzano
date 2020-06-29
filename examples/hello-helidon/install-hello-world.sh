@@ -40,7 +40,10 @@ elif [ ${CLUSTER_TYPE} == "KIND" ]; then
   SERVER=$(kubectl get node ${KIND_CLUSTER_NAME}-control-plane -o json | jq -r '.status.addresses[] | select (.type == "InternalIP") | .address')
   PORT=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq '.spec.ports[] | select(.port == 80) | .nodePort')
 elif [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
-  SERVER=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq -r '.spec.externalIPs[0]')
+  SERVER=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq -r '.status.loadBalancer.ingress[0].ip')
+  if [ "${SERVER}" == "null" ]; then
+      SERVER=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq -r '.spec.externalIPs[0]')
+  fi
   PORT=80
 fi
 
