@@ -108,9 +108,6 @@ function install_cert_manager()
 
     helm repo add jetstack https://charts.jetstack.io
 
-    #kubectl apply \
-    #    -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.13/deploy/manifests/00-crds.yaml \
-    #    --validate=false
     curl -L -o "$CONFIG_DIR/00-crds.yaml" \
         https://raw.githubusercontent.com/jetstack/cert-manager/release-0.13/deploy/manifests/00-crds.yaml
     patch "$CONFIG_DIR/00-crds.yaml" "$CONFIG_DIR/00-crds.patch"
@@ -130,9 +127,6 @@ function install_cert_manager()
         --set ingressShim.defaultIssuerKind=ClusterIssuer \
         --wait
 
-    #kubectl patch crd clusterissuers.cert-manager.io -p "$(cat $CONFIG_DIR/oci-solver-issuers-patch.yaml)" --type=merge
-    #kubectl patch crd issuers.cert-manager.io -p "$(cat $CONFIG_DIR/oci-solver-issuers-patch.yaml)" --type=merge
-    #kubectl patch crd challenges.acme.cert-manager.io -p "$(cat $CONFIG_DIR/oci-solver-challenges-patch.yaml)" --type=merge
     set +e
     kubectl delete secret -n cert-manager verrazzano-oci-dns-config
     set -e
