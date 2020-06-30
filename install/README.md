@@ -156,7 +156,9 @@ Run the following command to get the password:
 `kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath=“{.data.password}” | base64 --decode; echo`
 
 
-## More Information
+## Install example applications
 Example applications can be found in the `examples` folder.
 
-For additional information, see the [Verrazzano documentation](https://verrazzano.io/doc).
+
+## More Information
+For additional information, see the [Verrazzano documentation](https://verrazzano.io/docs).

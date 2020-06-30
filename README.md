@@ -31,6 +31,7 @@ To install Verrazzano, follow these steps:
    - `./install/2a-install-system-components-magicdns.sh`
    - `./install/3-install-verrazzano.sh`
    - `./install/4-install-keycloak.sh`
+5. (Optional) Install some example applications - see [instructions here](./install/README.md#install-example-applications)
 
 > **NOTE**: This alpha release of Verrazzano is intended for installation in a single OKE or Kind cluster. You should only install Verazzano in a cluster that can be safely deleted when your evaluation is complete.
 

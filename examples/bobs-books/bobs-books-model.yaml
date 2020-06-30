@@ -1,0 +1,124 @@
+# Copyright (c) 2020, Oracle Corporation and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: verrazzano.io/v1beta1
+kind: VerrazzanoModel
+metadata:
+  name: bobs-books-model
+  namespace: default
+spec:
+  description: "Bob's Books model"
+  weblogicDomains:
+    - name: bobbys-front-end
+      #t3Port: 32702
+      domainCRValues:
+        domainUID: bobbys-front-end
+        domainHome: /u01/oracle/user_projects/domains/bobbys-front-end
+        image: docker.pkg.github.com/verrazzano/examples/bobbys-front-end:0.1.3
+        logHome: /u01/oracle/user_projects/domains/bobbys-front-end/logs
+        logHomeEnabled: false
+        includeServerOutInPodLog: true
+        replicas: 1
+        webLogicCredentialsSecret:
+          name: bobbys-front-end-weblogic-credentials
+        imagePullSecrets:
+          - name: github-packages
+        clusters:
+          - clusterName: cluster-1
+        serverPod:
+          env:
+            - name: JAVA_OPTIONS
+              value: "-Dweblogic.StdoutDebugEnabled=false"
+            - name: USER_MEM_ARGS
+              value: "-Djava.security.egd=file:/dev/./urandom -Xms64m -Xmx256m "
+            - name: WL_HOME
+              value: /u01/oracle/wlserver
+            - name: MW_HOME
+              value: /u01/oracle
+      connections:
+        - ingress:
+            - name: bobbys-ingress
+              match:
+                - uri:
+                    prefix: "/bobbys-front-end"
+        - rest:
+            - target: "bobbys-helidon-stock-application"
+              environmentVariableForHost: "HELIDON_HOSTNAME"
+              environmentVariableForPort: "HELIDON_PORT"
+    - name: bobs-bookstore
+      #t3Port: 32402
+      domainCRValues:
+        domainUID: bobs-bookstore
+        domainHome: /u01/oracle/user_projects/domains/bobs-bookstore
+        image: docker.pkg.github.com/verrazzano/examples/bobs-bookstore-order-manager:0.1.3
+        logHome: /u01/oracle/bobs-bookstore/logs
+        logHomeEnabled: false
+        includeServerOutInPodLog: true
+        replicas: 2
+        webLogicCredentialsSecret:
+          name: bobs-bookstore-weblogic-credentials
+        imagePullSecrets:
+          - name: github-packages
+        clusters:
+          - clusterName: cluster-1
+        serverPod:
+          env:
+            - name: JAVA_OPTIONS
+              value: "-Dweblogic.StdoutDebugEnabled=false"
+            - name: USER_MEM_ARGS
+              value: "-Djava.security.egd=file:/dev/./urandom -Xms64m -Xmx256m "
+            - name: WL_HOME
+              value: /u01/oracle/wlserver
+            - name: MW_HOME
+              value: /u01/oracle
+      connections:
+        - ingress:
+            - name: bobs-ingress
+              match:
+                - uri:
+                    prefix: "/bobs-bookstore-order-manager"
+        - database:
+            - target: mysql
+              datasourceName: jdbc/books
+  helidonApplications:
+    - name: "bobbys-helidon-stock-application"
+      image: "docker.pkg.github.com/verrazzano/examples/bobbys-helidon-stock-application:0.1.3"
+      imagePullSecrets:
+        - name: github-packages
+      connections:
+        - coherence:
+            - target: "bobbys-coherence"
+              address: "bobbys-coherence-wka"
+        - rest:
+            - target: "bobs-bookstore"
+              environmentVariableForHost: "BACKEND_HOSTNAME"
+              environmentVariableForPort: "BACKEND_PORT"
+    - name: "roberts-helidon-stock-application"
+      image: "docker.pkg.github.com/verrazzano/examples/roberts-helidon-stock-application:0.1.3"
+      imagePullSecrets:
+        - name: github-packages
+      connections:
+        - ingress:
+            - name: "roberts-ingress"
+        - coherence:
+            - target: "roberts-coherence"
+              address: "roberts-coherence-wka"
+  coherenceClusters:
+    - name: "bobbys-coherence"
+      image: "docker.pkg.github.com/verrazzano/examples/bobbys-coherence:0.1.3"
+      imagePullSecrets:
+        - name: github-packages # secret to pull bobbys-coherence image from GitHub Packages
+        - name: ocr  # secret to pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
+      cacheConfig: "bobbys-cache-config.xml"
+      pofConfig: "bobbys-pof-config.xml"
+    - name: "roberts-coherence"
+      image: "docker.pkg.github.com/verrazzano/examples/roberts-coherence:0.1.3"
+      imagePullSecrets:
+        - name: github-packages # secret to pull roberts-coherence image from GitHub Packages
+        - name: ocr  # secret to pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
+      cacheConfig: "books-cache-config.xml"
+      pofConfig: "books-pof-config.xml"
+      connections:
+        - rest:
+            - target: "bobs-bookstore"
+              environmentVariableForHost: "BACKEND_HOSTNAME"
+              environmentVariableForPort: "BACKEND_PORT"
