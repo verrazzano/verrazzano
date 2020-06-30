@@ -18,7 +18,7 @@ function set_INGRESS_IP() {
 }
 
 VERRAZZANO_NS=verrazzano-system
-VERRAZZANO_VERSION=v0.0.36
+VERRAZZANO_VERSION=v0.0.37
 set_INGRESS_IP
 
 set -u
