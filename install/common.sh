@@ -200,15 +200,15 @@ CERT_MANAGER_TAG=0.13.1_3
 CERT_MANAGER_VERSION=0.13.1
 CERT_MANAGER_SOLVER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/cert-manager-acmesolver
 
-EXTERNAL_DNS_REPO=stevengreenberginc/external-dns/external-dns
+EXTERNAL_DNS_REPO=stevengreenberginc/bfs/external-dns/external-dns
 EXTERNAL_DNS_VERSION=2.20.0
-EXTERNAL_DNS_TAG=v0.7.1-OL
+EXTERNAL_DNS_TAG=v0.7.1
 EXTERNAL_DNS_REGISTRY=phx.ocir.io
 
 GRAFANA_REPO=container-registry.oracle.com/olcne/grafana
 GRAFANA_TAG=v6.4.4
 
-KEYCLOAK_IMAGE=phx.ocir.io/odx-sre/sauron/keycloak-server
+KEYCLOAK_IMAGE=phx.ocir.io/stevengreenberginc/bfs/keycloak
 ISTIO_CORE_DNS_PLUGIN_IMAGE=phx.ocir.io/stevengreenberginc/bfs/verrazzano/istio-coredns-plugin
 ISTIO_CORE_DNS_PLUGIN_TAG=0.2-istio-1.1
 ISTIO_CORE_DNS_IMAGE=container-registry.oracle.com/olcne/coredns

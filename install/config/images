@@ -37,10 +37,10 @@ phx.ocir.io/stevengreenberginc/verrazzano/keycloak-oracle-theme:0.1
 phx.ocir.io/stevengreenberginc/verrazzano/helidon-greet-app-v1:0.12
 phx.ocir.io/stevengreenberginc/verrazzano/helidon-greet-app-v2:0.12
 phx.ocir.io/stevengreenberginc/rancher/rancher:v2.4.3-OL
-phx.ocir.io/stevengreenberginc/external-dns/external-dns:v0.7.1-OL
+phx.ocir.io/stevengreenberginc/bfs/external-dns/external-dns:v0.7.1
 phx.ocir.io/odx-sre/sauron/beats-mirror/filebeat-oss:6.8.3-2
 phx.ocir.io/odx-sre/sauron/beats-mirror/journalbeat-oss:6.8.3-2
 phx.ocir.io/odx-sre/sauron/node-exporter-mirror:0.18.1-1
 phx.ocir.io/odx-sre/sauron/configmap-reloader:0.3
-phx.ocir.io/odx-sre/sauron/keycloak-server:10.0.1_3
+phx.ocir.io/stevengreenberginc/bfs/keycloak:10.0.1_3
 phx.ocir.io/stevengreenberginc/bfs/fluentd-kubernetes-daemonset:v1.10.4-oraclelinux-elasticsearch7-1.0
