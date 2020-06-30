@@ -70,15 +70,17 @@ function install_verrazzano()
 
   kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="${RancherAdminPassword}"
 
-  export RANCHER_ADMIN_TOKEN=$(curl -k --connect-timeout 30 --retry 10 --retry-delay 30 \
+  RANCHER_ADMIN_TOKEN=$(curl -k --connect-timeout 30 --retry 10 --retry-delay 30 \
   -d '{"Username":"admin", "Password":"'"${RancherAdminPassword}"'"}' \
   -H "Content-Type: application/json" \
   -X POST https://${RANCHER_HOSTNAME}/v3-public/localProviders/local?action=login | jq -r '.token')
+  export RANCHER_ADMIN_TOKEN
 
-  export RANCHER_ACCESS_TOKEN=$(curl -k --connect-timeout 30 --retry 10 --retry-delay 30 \
+  RANCHER_ACCESS_TOKEN=$(curl -k --connect-timeout 30 --retry 10 --retry-delay 30 \
   -d '{"type":"token", "description":"automation"}' \
   -H "Content-Type: application/json" -H "Authorization: Bearer ${RANCHER_ADMIN_TOKEN}" \
   -X POST https://${RANCHER_HOSTNAME}/v3/token | jq -r '.token')
+  export RANCHER_ACCESS_TOKEN
 
   export TOKEN_ARRAY=(${RANCHER_ACCESS_TOKEN//:/ })
 
