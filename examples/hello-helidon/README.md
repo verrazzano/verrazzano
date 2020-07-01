@@ -91,8 +91,6 @@ This example provides a simple *Hello World* REST service written with [Helidon]
     replicaset.apps/prom-pusher-hello-world-binding-787d9c6894   1         1         1       19m
     ```
 
-
-
 * Get the External IP for istio-ingressgateway service
 
     ```
