@@ -9,7 +9,7 @@ set -e
 
 DNS_TYPE="xip.io"
 
-while getopts d: flag
+while getopts n:d:s:h flag
 do
     case "${flag}" in
         d) DNS_TYPE=${OPTARG};;
