@@ -21,13 +21,6 @@ function set_INGRESS_IP() {
     INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
   elif [ ${CLUSTER_TYPE} == "KIND" ]; then
     INGRESS_IP=$(kubectl get node ${KIND_CLUSTER_NAME}-control-plane -o json | jq -r '.status.addresses[] | select (.type == "InternalIP") | .address')
-  elif [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
-    INGRESS_IP=$(dig +short ingress-mgmt.${NAME}.${DNS_SUFFIX})
-    if [ -z $INGRESS_IP ]; then
-      consoleerr
-      consoleerr "Unable to identify an Ingress IP address. If you do not have a dynamic load balancer service use dns_type of manual"
-      exit 1
-    fi
   fi
 }
 
@@ -36,8 +29,6 @@ function install_nginx_ingress_controller()
     set +e
     helm uninstall ingress-controller --namespace ingress-nginx
     set -e
-
-    set_INGRESS_IP
 
     # Create the namespace for nginx
     if ! kubectl get namespace ingress-nginx ; then
@@ -51,6 +42,12 @@ function install_nginx_ingress_controller()
     if [ ${CLUSTER_TYPE} == "OLCNE" ]; then
       EXTRA_NGINX_ARGUMENTS=$EXTRA_NGINX_ARGUMENTS" --set controller.service.externalTrafficPolicy=Local --set controller.autoscaling.enabled=true --set controller.autoscaling.minReplicas=2"
       if [ $DNS_TYPE == "manual" ]; then
+        INGRESS_IP=$(dig +short ingress-mgmt.${NAME}.${DNS_SUFFIX})
+        if [ -z $INGRESS_IP ]; then
+          consoleerr
+          consoleerr "Unable to identify an Ingress IP address. Check documentation and ensure the ingress-mgmt DNS record exists"
+          exit 1
+        fi
         EXTRA_NGINX_ARGUMENTS=$EXTRA_NGINX_ARGUMENTS" --set controller.service.externalIPs={"${INGRESS_IP}"}"
       fi
     fi
@@ -76,6 +73,8 @@ function install_nginx_ingress_controller()
     elif [ $CLUSTER_TYPE == "OLCNE" ]; then
       kubectl patch service -n ingress-nginx ingress-controller-nginx-ingress-controller -p '{ "spec": { "ports": [{ "port": 80, "nodePort": 30080 }, { "port": 443, "nodePort": 30443 }, { "name": "healthz", "nodePort": 30254, "port": 30254, "protocol": "TCP", "targetPort": 10254 } ]  }}'
     fi
+
+    set_INGRESS_IP
 
     if [ $DNS_TYPE = "xip.io" ]; then
       DNS_SUFFIX="${INGRESS_IP}".xip.io
