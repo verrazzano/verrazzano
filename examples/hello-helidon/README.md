@@ -3,11 +3,11 @@
 
 This example provides a simple *Hello World* REST service written with [Helidon](https://helidon.io)
 
-### Install demo
+### Install example
 
 * Pre-requisites: Install Verrazzano following the [installation instructions](../install/README.md).
 
-* Install demo
+* Install example
 
 ```
     kubectl apply -f ./hello-world-model.yaml
@@ -103,9 +103,9 @@ This example provides a simple *Hello World* REST service written with [Helidon]
     - Default greeting message: `curl -X GET http://<external_ip>/greet`
     - Greet Robert: `curl -X GET http://<external_ip>/greet/Robert`
 
-###Uninstall Demo
+###Uninstall example
 
-* Uninstall demo
+* Uninstall example
 
 ```
     kubectl delete -f ./hello-world-binding.yaml
