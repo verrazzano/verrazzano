@@ -103,7 +103,7 @@ This example provides a simple *Hello World* REST service written with [Helidon]
     - Default greeting message: `curl -X GET http://<external_ip>/greet`
     - Greet Robert: `curl -X GET http://<external_ip>/greet/Robert`
 
-###Uninstall example
+### Uninstall example
 
 * Uninstall example
 
