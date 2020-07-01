@@ -119,7 +119,7 @@ function install_rancher()
     if ! kubectl get namespace cattle-system ; then
         kubectl create namespace cattle-system
     fi
-
+    kubectl -n cattle-system delete secret rancher-admin-secret
     helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
     helm repo update
 
@@ -139,6 +139,10 @@ function install_rancher()
     kubectl patch ingress rancher -n cattle-system -p "$RANCHER_PATCH_DATA"  --type=merge
 
     kubectl -n cattle-system rollout status -w deploy/rancher
+
+    RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- reset-password 2>/dev/null)
+    ADMIN_PW=`echo $RANCHER_DATA | awk '{ print $NF }'`
+    kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
 }
 
 function usage {

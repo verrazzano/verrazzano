@@ -19,7 +19,6 @@ function set_INGRESS_IP() {
 
 VERRAZZANO_NS=verrazzano-system
 VERRAZZANO_VERSION=v0.0.38
-RancherAdminPassword=${RancherAdminPassword:=admin}
 set_INGRESS_IP
 
 set -u
@@ -66,9 +65,7 @@ function install_verrazzano()
   helm uninstall verrazzano --namespace ${VERRAZZANO_NS}
   kubectl delete vmc local
   kubectl delete secret verrazzano-managed-cluster-local
-  kubectl -n cattle-system delete secret rancher-admin-secret
-
-  kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="${RancherAdminPassword}"
+  RancherAdminPassword=`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode`
 
   export RANCHER_ADMIN_TOKEN=$(curl -k --connect-timeout 30 --retry 10 --retry-delay 30 \
   -d '{"Username":"admin", "Password":"'"${RancherAdminPassword}"'"}' \
