@@ -9,16 +9,16 @@ This example provides a simple *Hello World* REST service written with [Helidon]
 
 * Install example
 
-```
+    ```
     kubectl apply -f ./hello-world-model.yaml
     kubectl apply -f ./hello-world-binding.yaml
-```
+    ```
 
 * Verify if all objects have started. Objects are started in the *greeting*, *verrazzano-system* and *monitoring*
   namespaces. The following code block shows the objects to expect. Objects not related to this sample application
   have been removed from the list.
 
-```
+    ```
     kubectl get all -n greet
     NAME                                          READY   STATUS    RESTARTS   AGE
     pod/hello-world-application-bb58ccfd6-2q9mb   3/3     Running   0          19m
@@ -89,15 +89,15 @@ This example provides a simple *Hello World* REST service written with [Helidon]
     
     NAME                                                         DESIRED   CURRENT   READY   AGE
     replicaset.apps/prom-pusher-hello-world-binding-787d9c6894   1         1         1       19m
-```
+    ```
 
 
 
 * Get the External IP for istio-ingressgateway service
 
-```
+    ```
     kubectl get service istio-ingressgateway -n istio-system
-```
+    ```
 
 * Use the external IP to call the different endpoints of the greeting REST service:
     - Default greeting message: `curl -X GET http://<external_ip>/greet`
@@ -107,8 +107,8 @@ This example provides a simple *Hello World* REST service written with [Helidon]
 
 * Uninstall example
 
-```
+    ```
     kubectl delete -f ./hello-world-binding.yaml
     kubectl delete -f ./hello-world-model.yaml
-```
+    ```
 
