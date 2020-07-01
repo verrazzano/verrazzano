@@ -11,7 +11,7 @@ phx.ocir.io/stevengreenberginc/bfs/cert-manager-acmesolver:0.13.1_3
 phx.ocir.io/stevengreenberginc/bfs/cert-manager-controller:0.13.1_3
 phx.ocir.io/odx-sre/sauron/elasticsearch-mirror:7.6.1-2
 phx.ocir.io/stevengreenberginc/bfs/kibana:7.6.1-2
-phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator:v0.0.38
+phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator-jenkins:286ce6bea77d7f0207bbd57bc63192b1dd559f45
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.4
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.6
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-cluster-operator:v0.0.4
@@ -25,7 +25,7 @@ phx.ocir.io/stevengreenberginc/verrazzano/web-standalone:1.0.21
 phx.ocir.io/stevengreenberginc/bfs/verrazzano/istio-coredns-plugin:0.2-istio-1.1
 phx.ocir.io/odx-sre/sauron/prometheus-pusher:1.0.1_9
 phx.ocir.io/odx-sre/sauron/prometheus-pushgateway:0.5.2_7
-phx.ocir.io/odx-sre/sauron/pushgateway-mirror:1.2.0-1
+phx.ocir.io/stevengreenberginc/bfs/pushgateway:1.2.0-1
 phx.ocir.io/stevengreenberginc/ingress-nginx/ingress-nginx:0.32-0
 phx.ocir.io/stevengreenberginc/ingress-nginx/custom-error-pages:0.32-0
 container-registry.oracle.com/middleware/coherence:12.2.1.4.0
@@ -40,7 +40,7 @@ phx.ocir.io/stevengreenberginc/rancher/rancher:v2.4.3-OL
 phx.ocir.io/stevengreenberginc/bfs/external-dns/external-dns:v0.7.1
 phx.ocir.io/stevengreenberginc/bfs/filebeat:6.8.3-2
 phx.ocir.io/stevengreenberginc/bfs/journalbeat:6.8.3-2
-phx.ocir.io/odx-sre/sauron/node-exporter-mirror:0.18.1-1
+phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-1
 phx.ocir.io/odx-sre/sauron/configmap-reloader:0.3
 phx.ocir.io/stevengreenberginc/bfs/keycloak:10.0.1_3
 phx.ocir.io/stevengreenberginc/bfs/fluentd-kubernetes-daemonset:v1.10.4-oraclelinux-elasticsearch7-1.0
