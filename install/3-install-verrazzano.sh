@@ -95,11 +95,6 @@ function install_verrazzano()
       --set clusterOperator.rancherUserName="${TOKEN_ARRAY[0]}" \
       --set clusterOperator.rancherPassword="${TOKEN_ARRAY[1]}" \
       --set clusterOperator.rancherHostname=${RANCHER_HOSTNAME} \
-      --set verrazzanoOperator.imageName=phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator-jenkins \
-      --set verrazzanoOperator.imageVersion=286ce6bea77d7f0207bbd57bc63192b1dd559f45 \
-      --set verrazzanoOperator.nodeExporterImage=phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-1 \
-      --set monitoringOperator.prometheusGatewayImage=phx.ocir.io/stevengreenberginc/bfs/pushgateway:1.2.0-1 \
-      --set monitoringOperator.nodeExporterImage=phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-1 \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)"
 
   retries=0
