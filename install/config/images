@@ -44,3 +44,4 @@ phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-1
 phx.ocir.io/odx-sre/sauron/configmap-reloader:0.3
 phx.ocir.io/stevengreenberginc/bfs/keycloak:10.0.1_3
 phx.ocir.io/stevengreenberginc/bfs/fluentd-kubernetes-daemonset:v1.10.4-oraclelinux-elasticsearch7-1.0
+
