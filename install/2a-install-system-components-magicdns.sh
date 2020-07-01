@@ -12,8 +12,6 @@ elif [ ${CLUSTER_TYPE} == "KIND" ]; then
   INGRESS_TYPE=NodePort
 fi
 
-VERRAZZANO_NS=verrazzano-system
-
 set -eu
 
 function set_INGRESS_IP() {
