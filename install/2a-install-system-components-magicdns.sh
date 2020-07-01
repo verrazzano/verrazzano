@@ -176,3 +176,8 @@ fi
 action "Installing Nginx Ingress Controller" install_nginx_ingress_controller || exit 1
 action "Installing cert manager" install_cert_manager || exit 1
 action "Installing Rancher" install_rancher || exit 1
+consoleout
+consoleout "Rancher Admin Console: https:\\\\rancher.${NAME}.${DNS_SUFFIX}"
+consoleout "Credentials for Accessing the Rancher Console"
+consoleout "User: admin"
+consoleout "Password: kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo"

@@ -162,3 +162,18 @@ fi
 
 action "Creating admission controller cert" create_admission_controller_cert || exit 1
 action "Installing Verrazzano system components" install_verrazzano || exit 1
+consoleout
+consoleout "Verrazzano installs several consoles. You can get the ingress for the consoles with the following command:"
+consoleout "kubectl get ingress -A"
+consoleout "Simply prefix https:// to the host name to get the URL. For example https://console.myenv.mydomain.com"
+consoleout
+consoleout "You will need the credentials to access the various consoles installed by Verrazzano."
+consoleout "Consoles accessed by the same username/password"
+consoleout "UI Console"
+consoleout "Grafana"
+consoleout "Prometheus"
+consoleout "Kibana"
+consoleout "Elasticsearch"
+consoleout "Verrazzano Credentials are:"
+consoleout "User: verrazzano"
+consoleout "Password: kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo"

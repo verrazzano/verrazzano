@@ -177,8 +177,7 @@ action "Installing Keycloak" install_keycloak || exit 1
 rm -rf $TMP_DIR
 
 consoleout
-consoleout "To retrieve the initial password for the Keycloak administrator user '${KCADMIN_USERNAME}' run:"
-consoleout "kubectl get secret --namespace keycloak keycloak-http -o jsonpath="{.data.password}" | base64 --decode; echo"
-
-consoleout "To retrieve the initial password for the Verrazzano administrator user '${VZ_USERNAME}' run:"
-consoleout "kubectl get secret --namespace ${VERRAZZANO_NS} ${VZ_USERNAME} -o jsonpath="{.data.password}" | base64 --decode; echo"
+consoleout "KeyCloak Admin Console: https:\\\\keycloak.${ENV_NAME}.${DNS_SUFFIX}"
+consoleout "Credentials for Accessing the KeyCloak Admin Console"
+consoleout "User: keycloakadmin"
+consoleout "Password: kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo"
