@@ -225,21 +225,31 @@ function usage {
     consoleerr
     consoleerr "usage: $0 [-n name]"
     consoleerr "  -n name        Environment Name. Required."
+    consoleerr "  -d dns_type    DNS type [oci]. Optional.  Defaults to oci."
     consoleerr "  -h             Help"
     consoleerr
     exit 1
 }
 
 NAME=""
+DNS_TYPE="oci"
 
-while getopts n:h flag
+while getopts n:d:h flag
 do
     case "${flag}" in
         n) NAME=${OPTARG};;
+        d) DNS_TYPE=${OPTARG};;
         h) usage;;
         *) usage;;
     esac
 done
+
+if [ $DNS_TYPE != "oci" ]; then
+  consoleerr
+  consoleerr "Unknown DNS type ${DNS_TYPE}!"
+  usage
+fi
+
 if [ -z "$NAME" ]; then
     consoleerr
     consoleerr "-n option is required"
