@@ -175,10 +175,30 @@ action "Installing MySQL" install_mysql || exit 1
 action "Installing Keycloak" install_keycloak || exit 1
 
 rm -rf $TMP_DIR
-
 consoleout
-consoleout "To retrieve the initial password for the Keycloak administrator user '${KCADMIN_USERNAME}' run:"
-consoleout "kubectl get secret --namespace keycloak keycloak-http -o jsonpath="{.data.password}" | base64 --decode; echo"
-
-consoleout "To retrieve the initial password for the Verrazzano administrator user '${VZ_USERNAME}' run:"
-consoleout "kubectl get secret --namespace ${VERRAZZANO_NS} ${VZ_USERNAME} -o jsonpath="{.data.password}" | base64 --decode; echo"
+consoleout "Rancher Admin Console: https://rancher.${ENV_NAME}.${DNS_SUFFIX}"
+consoleout "Credentials for Accessing the Rancher Console"
+consoleout "User: admin"
+consoleout "Password: kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo"
+consoleout
+consoleout
+consoleout "KeyCloak Admin Console: https://keycloak.${ENV_NAME}.${DNS_SUFFIX}"
+consoleout "Credentials for Accessing the KeyCloak Admin Console"
+consoleout "User: keycloakadmin"
+consoleout "Password: kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo"
+consoleout
+consoleout
+consoleout "Verrazzano installs several consoles. You can get the ingress for the consoles with the following command:"
+consoleout "kubectl get ingress -A"
+consoleout "Simply prefix https:// to the host name to get the URL. For example https://console.myenv.mydomain.com"
+consoleout
+consoleout "You will need the credentials to access the various consoles installed by Verrazzano."
+consoleout "Consoles are accessed by the same username/password"
+consoleout "UI Console"
+consoleout "Grafana"
+consoleout "Prometheus"
+consoleout "Kibana"
+consoleout "Elasticsearch"
+consoleout "Verrazzano Credentials are:"
+consoleout "User: verrazzano"
+consoleout "Password: kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo"
