@@ -77,7 +77,7 @@ cluster if you are using a multi-cluster environment.:
    ```
 
 1. Update the Verrazzano Binding for Bob's Books with correct DNS names for
-   each of the applications.  THis step is optional, you can use the IP
+   each of the applications.  This step is optional, you can use the IP
    address to access the applications if you do not have DNS names.
 
    The provided binding includes the following ingress bindings which use
