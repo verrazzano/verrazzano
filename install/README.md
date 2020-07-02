@@ -101,7 +101,7 @@ be used as part of the domain name used to access Verrazzano ingresses.  For exa
 Run the following scripts in order:
 ```
    ./install/1-install-istio.sh
-   ./install/2b-install-system-components-ocidns.sh -n <env-name> -s 
+   ./install/2b-install-system-components-ocidns.sh -n <env-name> 
    ./install/3-install-verrazzano.sh -n <env-name> -d oci -s <oci-dns-zone-name>
    ./install/4-install-keycloak.sh -n <env-name> -d oci -s <oci-dns-zone-name>
 ```
