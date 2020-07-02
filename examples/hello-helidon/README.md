@@ -1,20 +1,22 @@
 
-# Hello World Helidon Example Application
+# Hello World Helidon
 
-This example provides a simple *Hello World* REST service written with [Helidon](https://helidon.io)
+This example application provides a simple *Hello World* REST service written with [Helidon](https://helidon.io).
+Check the [Verrazzano examples](https://github.com/verrazzano/examples) for more information and the code of this
+application.
 
-### Install example
+## Deploying the example application
 
-* Pre-requisites: Install Verrazzano following the [installation instructions](../install/README.md).
+1. Pre-requisites: Install Verrazzano following the [installation instructions](../install/README.md).
 
-* Install example
+1. Deploy the Verrazzano Model and Binding for the example application:
 
     ```
     kubectl apply -f ./hello-world-model.yaml
     kubectl apply -f ./hello-world-binding.yaml
     ```
 
-* Verify if all objects have started. Objects are started in the *greeting*, *verrazzano-system* and *monitoring*
+1. Verify if all objects have started. Objects are started in the *greeting*, *verrazzano-system* and *monitoring*
   namespaces. The following code block shows the objects to expect. Objects not related to this sample application
   have been removed from the list.
 
@@ -90,20 +92,49 @@ This example provides a simple *Hello World* REST service written with [Helidon]
     NAME                                                         DESIRED   CURRENT   READY   AGE
     replicaset.apps/prom-pusher-hello-world-binding-787d9c6894   1         1         1       19m
     ```
+## Explore the example application
 
-* Get the External IP for istio-ingressgateway service
+The Hello World Helidon example application implements a REST service with the following endpoints:
+
+- /greet - Returns a default greeting message that is stored in memory in an application scoped bean.
+This endpoint accepts `GET` HTTP request method.
+- /greet/{name} - Returns a greeting message including the name provided in the path parameter. This
+endpoint accepts `GET` HTTP request method.
+- /greet/greeting - Changes the greeting message to be used in future calls to the other endpoints. This
+endpoint accepts `PUT` HTTP request method, and a json payload.
+
+The steps to test these endpoints are described next.
+
+1. Get the EXTERNAL-IP for istio-ingressgateway service:
 
     ```
     kubectl get service istio-ingressgateway -n istio-system
+    NAME                   TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)                                                                                                                                      AGE
+    istio-ingressgateway   LoadBalancer   10.96.112.37   132.145.65.29   15020:30119/TCP,80:31380/TCP,443:31390/TCP,31400:31400/TCP,15029:32408/TCP,15030:31772/TCP,15031:31659/TCP,15032:30859/TCP,15443:32712/TCP   5d18h
     ```
 
-* Use the external IP to call the different endpoints of the greeting REST service:
-    - Default greeting message: `curl -X GET http://<external_ip>/greet`
-    - Greet Robert: `curl -X GET http://<external_ip>/greet/Robert`
+1. Use the EXTERNAL-IP to call the different endpoints of the greeting REST service:
 
-### Uninstall example
+    ```
+    # Get default message
+    curl -s -X GET http://132.145.65.29/greet
+    {"message":"Hello World!"}
 
-* Uninstall example
+    # Get message for Robert:
+    curl -s -X GET http://132.145.65.29/greet/Robert
+    {"message":"Hello Robert!"}
+
+    # Change the message:
+    curl -s -X PUT -H "Content-Type: application/json" -d '{"greeting" : "Hallo"}' http://132.145.65.29/greet/greeting
+
+    # Get message for Robert again:
+    $ curl -s -X GET http://132.145.65.29/greet/Robert
+    {"message":"Hallo Robert!"}
+    ```
+
+## Uninstalling the example application
+
+1. Delete the Verrazzano Model and Binding of the example application:
 
     ```
     kubectl delete -f ./hello-world-binding.yaml
