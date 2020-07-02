@@ -69,10 +69,20 @@ For all cluster types, you need to create the "ocr" secret. This is needed for p
        --docker-username=<username> \
        --docker-password=<password> \
        --docker-server=container-registry.oracle.com
-   ./install/1-install-istio.sh
-   ./install/2a-install-system-components-magicdns.sh
-   ./install/3-install-verrazzano.sh
-   ./install/4-install-keycloak.sh
+```
+
+## 2. Do the install
+
+Install using xip.io or OCI DNS (2a or 2b).  In both cases, DNS records
+will be automatically configured for you.
+
+### 2a. Install using xip.io
+Run the following scripts in order:
+```
+   ./1-install-istio.sh
+   ./2a-install-system-components-magicdns.sh
+   ./3-install-verrazzano.sh
+   ./4-install-keycloak.sh
 ```
 **OR**
 ### 2b. Install using OCI DNS
@@ -97,10 +107,10 @@ be used as part of the domain name used to access Verrazzano ingresses.  For exa
 
 Run the following scripts in order:
 ```
-   ./install/1-install-istio.sh
-   ./install/2b-install-system-components-ocidns.sh -n <env-name> -s 
-   ./install/3-install-verrazzano.sh -n <env-name> -d oci -s <oci-dns-zone-name>
-   ./install/4-install-keycloak.sh -n <env-name> -d oci -s <oci-dns-zone-name>
+   ./1-install-istio.sh
+   ./2b-install-system-components-ocidns.sh -n <env-name> -s
+   ./3-install-verrazzano.sh -n <env-name> -d oci -s <oci-dns-zone-name>
+   ./4-install-keycloak.sh -n <env-name> -d oci -s <oci-dns-zone-name>
 ```
 
 ## 3. Get the console URLs
@@ -153,7 +163,9 @@ Run the following command to get the password:
 `kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo`
 
 
-## More Information
+## Install example applications
 Example applications can be found in the `examples` folder.
 
-For additional information, see the [Verrazzano documentation](https://verrazzano.io/doc).
+
+## More Information
+For additional information, see the [Verrazzano documentation](https://verrazzano.io/docs).
