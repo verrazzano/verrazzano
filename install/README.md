@@ -72,10 +72,10 @@ will be automatically configured for you.
 ### 2a. Install using xip.io
 Run the following scripts in order:
 ```
-   ./install/1-install-istio.sh
-   ./install/2a-install-system-components-magicdns.sh
-   ./install/3-install-verrazzano.sh
-   ./install/4-install-keycloak.sh
+   ./1-install-istio.sh
+   ./2a-install-system-components-magicdns.sh
+   ./3-install-verrazzano.sh
+   ./4-install-keycloak.sh
 ```
 **OR**
 ### 2b. Install using OCI DNS
@@ -100,10 +100,10 @@ be used as part of the domain name used to access Verrazzano ingresses.  For exa
 
 Run the following scripts in order:
 ```
-   ./install/1-install-istio.sh
-   ./install/2b-install-system-components-ocidns.sh -n <env-name> -s 
-   ./install/3-install-verrazzano.sh -n <env-name> -d oci -s <oci-dns-zone-name>
-   ./install/4-install-keycloak.sh -n <env-name> -d oci -s <oci-dns-zone-name>
+   ./1-install-istio.sh
+   ./2b-install-system-components-ocidns.sh -n <env-name> -s
+   ./3-install-verrazzano.sh -n <env-name> -d oci -s <oci-dns-zone-name>
+   ./4-install-keycloak.sh -n <env-name> -d oci -s <oci-dns-zone-name>
 ```
 
 ## 3. Get the console URLs
