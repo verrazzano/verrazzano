@@ -20,11 +20,13 @@ The following configuration has proven sufficient to install Verrazzano and depl
 ## Software Requirements
 
 The following software must be installed on your system.  
+* curl
 * helm
 * jq
 * kubectl
 * kind (for KinD installation)
 * openssl
+* patch (for OCI DNS installation)
 
 ## 1. Preparing for installation
 
@@ -148,7 +150,7 @@ Run the following command to get the password:
 User `admin`
  
 Run the following command to get the password:  
-`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath=“{.data.password}” | base64 --decode; echo`
+`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo`
 
 
 ## More Information

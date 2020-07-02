@@ -107,9 +107,11 @@ function install_cert_manager()
 
     helm repo add jetstack https://charts.jetstack.io
 
-    kubectl apply \
-        -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.13/deploy/manifests/00-crds.yaml \
-        --validate=false
+    curl -L -o "$TMP_DIR/00-crds.yaml" \
+        https://raw.githubusercontent.com/jetstack/cert-manager/release-0.13/deploy/manifests/00-crds.yaml
+    patch "$TMP_DIR/00-crds.yaml" "$CONFIG_DIR/00-crds.patch"
+    kubectl apply -f "$TMP_DIR/00-crds.yaml" --validate=false
+
     helm upgrade cert-manager jetstack/cert-manager \
         --install \
         --namespace cert-manager \
@@ -124,9 +126,6 @@ function install_cert_manager()
         --set ingressShim.defaultIssuerKind=ClusterIssuer \
         --wait
 
-    kubectl patch crd clusterissuers.cert-manager.io -p "$(cat $CONFIG_DIR/oci-solver-issuers-patch.yaml)" --type=merge
-    kubectl patch crd issuers.cert-manager.io -p "$(cat $CONFIG_DIR/oci-solver-issuers-patch.yaml)" --type=merge
-    kubectl patch crd challenges.acme.cert-manager.io -p "$(cat $CONFIG_DIR/oci-solver-challenges-patch.yaml)" --type=merge
     set +e
     kubectl delete secret -n cert-manager verrazzano-oci-dns-config
     set -e
@@ -198,6 +197,7 @@ function install_rancher()
         kubectl create namespace cattle-system
     fi
 
+    kubectl -n cattle-system delete secret rancher-admin-secret
     helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
 
       helm upgrade rancher rancher-stable/rancher \
@@ -219,6 +219,10 @@ function install_rancher()
     kubectl patch ingress rancher -n cattle-system -p "$RANCHER_PATCH_DATA"  --type=merge
 
     kubectl -n cattle-system rollout status -w deploy/rancher
+
+     RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- reset-password 2>/dev/null)
+    ADMIN_PW=`echo $RANCHER_DATA | awk '{ print $NF }'`
+    kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
 }
 
 function usage {
