@@ -195,7 +195,7 @@ command -v jq >/dev/null 2>&1 || {
 ##################################################
 GLOBAL_HUB_REPO=container-registry.oracle.com/olcne
 
-CERT_MANAGER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/cert-manager-controller
+CERT_MANAGER_IMAGE=phx.ocir.io/odx-sre/sauron/cert-manager-controller
 CERT_MANAGER_TAG=0.13.1_3
 CERT_MANAGER_VERSION=0.13.1
 CERT_MANAGER_SOLVER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/cert-manager-acmesolver
