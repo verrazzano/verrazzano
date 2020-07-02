@@ -35,9 +35,14 @@ To install Verrazzano, follow these steps:
 
 > **NOTE**: This alpha release of Verrazzano is intended for installation in a single OKE or Kind cluster. You should only install Verazzano in a cluster that can be safely deleted when your evaluation is complete.
 
-## More Information
-More detailed [installation instructions](./install/README.md) can be found in the `install` folder in this repository.
+## Deploying the example applications
 
-Example applications can be found in the `examples` folder.
+To deploy the example applications, please see the following instructions:
+
+* [Bob's Books](./examples/bobs-books/README.md)
+* [Helidon Hello World](./example/hello-helidon/README.md)
+* TBD
+
+## More Information
 
 For additional information, see the [Verrazzano documentation](https://verrazzano.io/doc).
