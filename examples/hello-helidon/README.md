@@ -96,11 +96,11 @@ application.
 
 The Hello World Helidon example application implements a REST service with the following endpoints:
 
-- /greet - Returns a default greeting message that is stored in memory in an application scoped bean.
+- `/greet` - Returns a default greeting message that is stored in memory in an application scoped bean.
 This endpoint accepts `GET` HTTP request method.
-- /greet/{name} - Returns a greeting message including the name provided in the path parameter. This
+- `/greet/{name}` - Returns a greeting message including the name provided in the path parameter. This
 endpoint accepts `GET` HTTP request method.
-- /greet/greeting - Changes the greeting message to be used in future calls to the other endpoints. This
+- `/greet/greeting` - Changes the greeting message to be used in future calls to the other endpoints. This
 endpoint accepts `PUT` HTTP request method, and a json payload.
 
 The steps to test these endpoints are described next.
