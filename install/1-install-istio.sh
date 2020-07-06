@@ -86,6 +86,11 @@ function install_istio()
     EXTRA_HELM_ARGUMENTS=""
     if [ ${CLUSTER_TYPE} == "OLCNE" ] && [ $DNS_TYPE == "manual" ]; then
       ISTIO_INGRESS_IP=$(dig +short ingress-verrazzano.${NAME}.${DNS_SUFFIX})
+      if [ -z ${ISTIO_INGRESS_IP} ]; then
+        consoleerr
+        consoleerr "Unable to identify an Ingress IP address. Check documentation and ensure the ingress-verrazzano DNS record exists"
+        exit 1
+      fi
       EXTRA_HELM_ARGUMENTS=" --set gateways.istio-ingressgateway.externalIPs={"${ISTIO_INGRESS_IP}"}"
     fi
 
