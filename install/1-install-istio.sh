@@ -181,6 +181,12 @@ if [ $DNS_TYPE == "manual" ] && [ -z $DNS_SUFFIX ]; then
   usage
 fi
 
+if [ "$DNS_TYPE" == "manual" ]; then
+  command -v dig >/dev/null 2>&1 || {
+      fail "dig is required for dns_type $DNS_TYPE but cannot be found on the path. Aborting.";
+  }
+fi
+
 # Wait for all cluster nodes to be ready
 action "Waiting for all Kubernetes nodes to be ready" \
     kubectl wait --for=condition=ready nodes --all || exit 1
