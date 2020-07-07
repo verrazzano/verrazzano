@@ -175,39 +175,26 @@ action "Installing MySQL" install_mysql || exit 1
 action "Installing Keycloak" install_keycloak || exit 1
 
 rm -rf $TMP_DIR
-consoleout
-consoleout "Installation is finished.  These details will help you access your environment:"
-consoleout
-consoleout "Rancher"
-consoleout "-------"
-consoleout "Rancher Admin Console: https://rancher.${ENV_NAME}.${DNS_SUFFIX}"
-consoleout "Credentials for Accessing the Rancher Console"
-consoleout "User: admin"
-consoleout "To obtain the initial password: "
-consoleout "  kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo"
-consoleout
-consoleout "KeyCloak"
-consoleout "--------"
-consoleout "KeyCloak Admin Console: https://keycloak.${ENV_NAME}.${DNS_SUFFIX}"
-consoleout "Credentials for Accessing the KeyCloak Admin Console"
-consoleout "User: keycloakadmin"
-consoleout "To obtain the initial password: "
-consoleout "  kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo"
-consoleout
-consoleout "Others"
-consoleout "------"
-consoleout "Verrazzano provides various user interfaces. You can find the addresses for these with the following command:"
-consoleout "  kubectl get ingress -A"
-consoleout "All of these are served on https only. For example https://console.myenv.mydomain.com"
-consoleout
-consoleout "You will need the credentials to access the following user interfaces.  They are all accessed by the same username/password."
-consoleout "  Verrazzano Console"
-consoleout "  Grafana"
-consoleout "  Prometheus"
-consoleout "  Kibana"
-consoleout "  Elasticsearch"
-consoleout
-consoleout "The credentials are:"
+
+consoleout 
+consoleout "Installation Complete."
+consoleout 
+consoleout "Verrazzano provides various user interfaces."
+consoleout 
+consoleout "Verrazzano Console - https://console.${ENV_NAME}.${DNS_SUFFIX}"
+consoleout "Grafana - https://grafana.vmi.system.${ENV_NAME}.${DNS_SUFFIX}"
+consoleout "Prometheus - https://prometheus.vmi.system.${ENV_NAME}.${DNS_SUFFIX}"
+consoleout "Kibana - https://kibana.vmi.system.${ENV_NAME}.${DNS_SUFFIX}"
+consoleout "Elasticsearch - https://elasticsearch.vmi.system.${ENV_NAME}.${DNS_SUFFIX}"
+consoleout 
+consoleout "You will need the credentials to access the preceding user interfaces.  They are all accessed by the same username/password."
 consoleout "User: verrazzano"
-consoleout "To obtain the initial password: "
-consoleout "  kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo"
+consoleout "Password: kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo"
+consoleout 
+consoleout "Rancher - https://rancher.${ENV_NAME}.${DNS_SUFFIX}"
+consoleout "User: admin"
+consoleout "Password: kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo"
+consoleout 
+consoleout "Keycloak - https://keycloak.${ENV_NAME}.${DNS_SUFFIX}"
+consoleout "User: keycloakadmin"
+consoleout "Password: kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo"
