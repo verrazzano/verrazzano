@@ -9,22 +9,51 @@ application.
 
 1. Pre-requisites: Install Verrazzano following the [installation instructions](../install/README.md).
 
-1. Deploy the Verrazzano Model and Binding for the example application:
+1. Run the following script to deploy the Verrazzano Model and Binding for the example application.
+
+    ### Using an OKE Cluster
 
     ```
-    kubectl apply -f ./hello-world-model.yaml
-    kubectl apply -f ./hello-world-binding.yaml
+    ./install-hello-world.sh
+    pod/verrazzano-operator-7c785bb84b-d7tlx condition met
+    pod/verrazzano-admission-controller-58cf8b4b89-64vzk condition met
+    verrazzanomodel.verrazzano.io/hello-world-model created
+    verrazzanobinding.verrazzano.io/hello-world-binding created
+    NAME                                      READY   STATUS            RESTARTS   AGE
+    pod/hello-world-application-bb58ccfd6-6xmpg condition met
+    pod/hello-world-application-bb58ccfd6-89ftc condition met
+    {"message":"Hello World!"}
     ```
 
-1. Verify if all objects have started. Objects are started in the *greeting*, *verrazzano-system* and *monitoring*
+    ### Using a Kind Cluster
+
+    ```
+    export KIND_CLUSTER_NAME=verrazzano
+    export CLUSTER_TYPE=KIND
+    ./install-hello-world.sh
+    pod/verrazzano-operator-66dff84cd7-v2jzs condition met
+    pod/verrazzano-admission-controller-59dcbbdfdf-t828v condition met
+    verrazzanomodel.verrazzano.io/hello-world-model created
+    verrazzanobinding.verrazzano.io/hello-world-binding created
+    NAME                                       READY   STATUS     RESTARTS   AGE
+    pod/hello-world-application-868c5d9d88-qdsz2 condition met
+    pod/hello-world-application-868c5d9d88-r5rbm condition met
+    {"message":"Hello World!"}
+    ```
+
+   This script not only installs the model and binding, but also waits for the pods in the *greet* namespace to be
+   ready, and then calls one of the endpoints provided by the REST service implemented by the example application. In the
+   next sections we provide more details of the application and endpoints provided by it.
+
+1. Verify if all objects have started. Objects are started in the *greet*, *verrazzano-system* and *monitoring*
   namespaces. The following code block shows the objects to expect. Objects not related to this sample application
   have been removed from the list.
 
     ```
     kubectl get all -n greet
     NAME                                          READY   STATUS    RESTARTS   AGE
-    pod/hello-world-application-bb58ccfd6-2q9mb   3/3     Running   0          19m
-    pod/hello-world-application-bb58ccfd6-w2zz5   3/3     Running   0          19m
+    pod/hello-world-application-bb58ccfd6-6xmpg   3/3     Running   0          19m
+    pod/hello-world-application-bb58ccfd6-89ftc   3/3     Running   0          19m
 
     NAME                              TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
     service/hello-world-application   ClusterIP   10.96.119.252   <none>        8080/TCP   19m
@@ -105,39 +134,49 @@ endpoint accepts `PUT` HTTP request method, and a json payload.
 
 The steps to test these endpoints are described next.
 
-1. Get the EXTERNAL-IP for istio-ingressgateway service:
+1. Get the IP address and port to call the REST service.
+    ### Using OKE cluster
+    Get the EXTERNAL-IP for istio-ingressgateway service:
 
     ```
-    kubectl get service istio-ingressgateway -n istio-system
-    NAME                   TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)                                                                                                                                      AGE
-    istio-ingressgateway   LoadBalancer   10.96.112.37   132.145.65.29   15020:30119/TCP,80:31380/TCP,443:31390/TCP,31400:31400/TCP,15029:32408/TCP,15030:31772/TCP,15031:31659/TCP,15032:30859/TCP,15443:32712/TCP   5d18h
+    SERVER=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq -r '.status.loadBalancer.ingress[0].ip')
+    PORT=80
     ```
 
-1. Use the EXTERNAL-IP to call the different endpoints of the greeting REST service:
+   ### Using Kind Cluster
+   Get the IP of one node of the cluster and the port from the istio-ingressgateway service:
+
+   ```
+   SERVER=$(kubectl get node ${KIND_CLUSTER_NAME}-worker -o json | jq -r '.status.addresses[] | select (.type == "InternalIP") | .address')
+   PORT=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq '.spec.ports[] | select(.port == 80) | .nodePort')
+   ```
+
+1. Use the IP address and port to call the different endpoints of the greeting REST service:
 
     ```
     # Get default message
-    curl -s -X GET http://132.145.65.29/greet
+    curl -s -X GET http://"${SERVER}":"${PORT}"/greet
     {"message":"Hello World!"}
 
     # Get message for Robert:
-    curl -s -X GET http://132.145.65.29/greet/Robert
+    curl -s -X GET http://"${SERVER}":"${PORT}"/greet/Robert
     {"message":"Hello Robert!"}
 
     # Change the message:
-    curl -s -X PUT -H "Content-Type: application/json" -d '{"greeting" : "Hallo"}' http://132.145.65.29/greet/greeting
+    curl -s -X PUT -H "Content-Type: application/json" -d '{"greeting" : "Hallo"}' http://"${SERVER}":"${PORT}"/greet/greeting
 
     # Get message for Robert again:
-    $ curl -s -X GET http://132.145.65.29/greet/Robert
+    $ curl -s -X GET http://"${SERVER}":"${PORT}"/greet/Robert
     {"message":"Hallo Robert!"}
     ```
 
 ## Uninstalling the example application
 
-1. Delete the Verrazzano Model and Binding of the example application:
+1. Run the following script to delete the Verrazzano Model and Binding for the example application:
 
     ```
-    kubectl delete -f ./hello-world-binding.yaml
-    kubectl delete -f ./hello-world-model.yaml
+    ./uninstall-hello-world.sh
+    verrazzanobinding.verrazzano.io "hello-world-binding" deleted
+    verrazzanomodel.verrazzano.io "hello-world-model" deleted
     ```
 
