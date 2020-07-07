@@ -55,8 +55,15 @@ Run the script to create your kind cluster:
    ./0-create-kind-cluster.sh
 ```
 
+### Using an OLCNE Cluster
+```
+   export CLUSTER_TYPE=OLCNE
+   export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
+   export KUBECONFIG=$VERRAZZANO_KUBECONFIG
+```
+
 ### Create Oracle Container Registry secret
-For both cluster types, you need to create the "ocr" secret. This is needed for pulling images from the container-registry.oracle.com repository.
+For all cluster types, you need to create the "ocr" secret. This is needed for pulling images from the container-registry.oracle.com repository.
 ```
    kubectl create secret docker-registry ocr \
        --docker-username=<username> \
