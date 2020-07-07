@@ -23,6 +23,12 @@ function set_INGRESS_IP() {
     INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
   elif [ ${CLUSTER_TYPE} == "KIND" ]; then
     INGRESS_IP=$(kubectl get node ${KIND_CLUSTER_NAME}-control-plane -o json | jq -r '.status.addresses[] | select (.type == "InternalIP") | .address')
+  elif [ ${CLUSTER_TYPE} == "OLCNE" ]; then
+    # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
+    INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
+    if [ ${INGRESS_IP} == "null" ]; then
+      INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json  | jq -r '.spec.externalIPs[0]')
+    fi
   fi
 }
 
@@ -112,8 +118,8 @@ function usage {
     consoleerr
     consoleerr "usage: $0 [-n name] [-d dns_type] [-s dns_suffix]"
     consoleerr "  -n name        Environment Name. Optional.  Optional.  Defaults to default."
-    consoleerr "  -d dns_type    DNS type [xip.io|oci]. Optional.  Defaults to xip.io."
-    consoleerr "  -s dns_suffix  DNS suffix (e.g v8o.example.com). Not valid for dns_type xip.io. Required for dns-type oci."
+    consoleerr "  -d dns_type    DNS type [xip.io|manual|oci]. Optional.  Defaults to xip.io."
+    consoleerr "  -s dns_suffix  DNS suffix (e.g v8o.example.com). Not valid for dns_type xip.io. Required for dns-type oci or manual"
     consoleerr "  -h             Help"
     consoleerr
     exit 1
@@ -130,10 +136,11 @@ do
         d) DNS_TYPE=${OPTARG};;
         s) DNS_SUFFIX=${OPTARG};;
         h) usage;;
+        *) usage;;
     esac
 done
 # check for valid DNS type
-if [ $DNS_TYPE != "xip.io" ] && [ $DNS_TYPE != "oci" ]; then
+if [ $DNS_TYPE != "xip.io" ] && [ $DNS_TYPE != "oci" ] && [ $DNS_TYPE != "manual" ]; then
   consoleerr
   consoleerr "Unknown DNS type ${DNS_TYPE}"
   usage
@@ -153,7 +160,7 @@ fi
 
 # check expected dns suffix for given dns type
 if [ -z "$DNS_SUFFIX" ]; then
-  if [ $DNS_TYPE = "oci" ]; then
+  if [ $DNS_TYPE == "oci" ] || [ $DNS_TYPE == "manual" ]; then
     consoleerr
     consoleerr "-s option is required for ${DNS_TYPE}"
     usage

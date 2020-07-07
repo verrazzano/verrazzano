@@ -6,7 +6,7 @@
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 . $SCRIPT_DIR/common.sh
 
-if [ ${CLUSTER_TYPE} == "OKE" ]; then
+if [ ${CLUSTER_TYPE} == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
   INGRESS_TYPE=LoadBalancer
 elif [ ${CLUSTER_TYPE} == "KIND" ]; then
   INGRESS_TYPE=NodePort
@@ -71,8 +71,6 @@ function install_istio()
     helm repo add istio.io https://storage.googleapis.com/istio-release/releases/${ISTIO_VERSION}/charts || return $?
 
     # Fetch istio charts for istio and istio-init
-    rm -rf "${INSTALL_DIR}"
-    mkdir -p $INSTALL_DIR || return $?
     helm fetch istio.io/istio --untar=true --untardir=$INSTALL_DIR || return $?
     helm fetch istio.io/istio-init --untar=true --untardir=$INSTALL_DIR || return $?
 
@@ -83,6 +81,18 @@ function install_istio()
         --set global.tag=$ISTIO_VERSION \
         --set global.imagePullSecrets[0]=ocr \
         > ${INSTALL_DIR}/istio-crds.yaml || return $?
+
+    # Generate cluster specific configuration
+    EXTRA_HELM_ARGUMENTS=""
+    if [ ${CLUSTER_TYPE} == "OLCNE" ] && [ $DNS_TYPE == "manual" ]; then
+      ISTIO_INGRESS_IP=$(dig +short ingress-verrazzano.${NAME}.${DNS_SUFFIX})
+      if [ -z ${ISTIO_INGRESS_IP} ]; then
+        consoleerr
+        consoleerr "Unable to identify an Ingress IP address. Check documentation and ensure the ingress-verrazzano DNS record exists"
+        exit 1
+      fi
+      EXTRA_HELM_ARGUMENTS=" --set gateways.istio-ingressgateway.externalIPs={"${ISTIO_INGRESS_IP}"}"
+    fi
 
     # Create helm template for installing istio proper
     helm template istio ${INSTALL_DIR}/istio \
@@ -101,6 +111,7 @@ function install_istio()
         --set istiocoredns.coreDNSTag=$ISTIO_CORE_DNS_TAG \
         --set istiocoredns.coreDNSPluginImage=$ISTIO_CORE_DNS_PLUGIN_IMAGE:$ISTIO_CORE_DNS_PLUGIN_TAG \
         --values ${INSTALL_DIR}/istio/example-values/values-istio-multicluster-gateways.yaml \
+        ${EXTRA_HELM_ARGUMENTS} \
         > ${INSTALL_DIR}/istio.yaml || return $?
 
     # Change to use the OLCNE image for kubectl then install the istio CRDs
@@ -139,12 +150,49 @@ function copy_ocr_secret()
         | kubectl apply -n istio-system -f -
 }
 
+function usage {
+    consoleerr
+    consoleerr "usage: $0 [-n name] [-d dns_type]"
+    consoleerr "  -n name        Environment Name. Optional.  Defaults to default."
+    consoleerr "  -d dns_type    DNS type [xip.io|manual|oci]. Optional.  Defaults to xip.io."
+    consoleerr "  -s dns_suffix  DNS suffix (e.g v8o.example.com). Optional. Not valid for dns_type xip.io. Required for dns-type manual"
+    consoleerr "  -h             Help"
+    consoleerr
+    exit 1
+}
+
+NAME="default"
+DNS_TYPE="xip.io"
+
+while getopts n:d:s:h flag
+do
+    case "${flag}" in
+        n) NAME=${OPTARG};;
+        d) DNS_TYPE=${OPTARG};;
+        s) DNS_SUFFIX=${OPTARG};;
+        h) usage;;
+        *) usage;;
+    esac
+done
+
+if [ $DNS_TYPE == "manual" ] && [ -z $DNS_SUFFIX ]; then
+  consoleerr
+  consoleerr "-s option is required for ${DNS_TYPE}"
+  usage
+fi
+
+if [ "$DNS_TYPE" == "manual" ]; then
+  command -v dig >/dev/null 2>&1 || {
+      fail "dig is required for dns_type $DNS_TYPE but cannot be found on the path. Aborting.";
+  }
+fi
+
 # Wait for all cluster nodes to be ready
 action "Waiting for all Kubernetes nodes to be ready" \
     kubectl wait --for=condition=ready nodes --all || exit 1
 
 # Secret named ocr must exist in the default namespace to pull OLCNE images in a OKE cluster
-if [ ${CLUSTER_TYPE} == "OKE" ]; then
+if [ ${CLUSTER_TYPE} == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
   action "Checking for secret named ocr in default namespace" kubectl get secret ocr -n default ||
     fail -e "ERROR: Secret named ocr is required to pull images from ${GLOBAL_HUB_REPO}.\nCreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
 fi
@@ -156,7 +204,7 @@ if ! kubectl get namespace istio-system > /dev/null 2>&1 ; then
 fi
 
 # Copy the secret named ocr to the istio-system namespace for pulling OLCNE images in a OKE cluster
-if [ ${CLUSTER_TYPE} == "OKE" ]; then
+if [ ${CLUSTER_TYPE} == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
   if ! kubectl get secret ocr -n istio-system > /dev/null 2>&1 ; then
     action "Copying ocr secret to istio-system namespace" \
         copy_ocr_secret

@@ -3,7 +3,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
-if [ -z "{SCRIPT_DIR}" ] ; then
+if [ -z "${SCRIPT_DIR}" ] ; then
     echo "SCRIPT_DIR not set"
     exit 1
 fi
@@ -158,8 +158,8 @@ KIND_KUBECONFIG="${BUILD_DIR}/kind-kubeconfig"
 
 
 CLUSTER_TYPE="${CLUSTER_TYPE:-}"
-if [ "${CLUSTER_TYPE}" != "KIND" ] && [ "${CLUSTER_TYPE}" != "OKE" ] ; then
-    fail "CLUSTER_TYPE environment variable must be set to KIND or OKE"
+if [ "${CLUSTER_TYPE}" != "KIND" ] && [ "${CLUSTER_TYPE}" != "OKE" ] && [ "${CLUSTER_TYPE}" != "OLCNE" ]; then
+    fail "CLUSTER_TYPE environment variable must be set to KIND, OKE or OLCNE"
 fi
 
 VERRAZZANO_KUBECONFIG="${VERRAZZANO_KUBECONFIG:-}"
@@ -220,11 +220,11 @@ KEYCLOAK_CHART_VERSION=8.2.2
 
 MYSQL_IMAGE_TAG=8.0.20
 
-NGINX_INGRESS_CONTROLLER_IMAGE=phx.ocir.io/stevengreenberginc/ingress-nginx/ingress-nginx
+NGINX_INGRESS_CONTROLLER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/nginx-ingress-controller
 NGINX_INGRESS_CONTROLLER_TAG=0.32-0
 NGINX_INGRESS_CONTROLLER_VERSION=1.27.0
 
-NGINX_DEFAULT_BACKEND_IMAGE=phx.ocir.io/stevengreenberginc/ingress-nginx/custom-error-pages
+NGINX_DEFAULT_BACKEND_IMAGE=phx.ocir.io/stevengreenberginc/bfs/nginx-ingress-default-backend
 NGINX_DEFAULT_BACKEND_TAG=0.32-0
 
 RANCHER_IMAGE=phx.ocir.io/stevengreenberginc/rancher/rancher

@@ -11,7 +11,7 @@ set -u
 
 . $SCRIPT_DIR/common.sh
 
-KIND_IMAGE="kindest/node:v1.15.11@sha256:6cc31f3533deb138792db2c7d1ffc36f7456a06f1db5556ad3b6927641016f50"
+KIND_IMAGE="kindest/node:v1.16.9@sha256:7175872357bc85847ec4b1aba46ed1d12fa054c83ac7a8a11f5c268957fd5765"
 
 command -v kind >/dev/null 2>&1 || {
     consoleerr "kind is required but cannot be found on the path";

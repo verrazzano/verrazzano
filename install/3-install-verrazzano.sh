@@ -14,14 +14,20 @@ function set_INGRESS_IP() {
     INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
   elif [ ${CLUSTER_TYPE} == "KIND" ]; then
     INGRESS_IP=$(kubectl get node ${KIND_CLUSTER_NAME}-control-plane -o json | jq -r '.status.addresses[] | select (.type == "InternalIP") | .address')
+  elif [ ${CLUSTER_TYPE} == "OLCNE" ]; then
+    # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
+    INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
+    if [ ${INGRESS_IP} == "null" ]; then
+      INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json  | jq -r '.spec.externalIPs[0]')
+    fi
   fi
 }
 
 VERRAZZANO_NS=verrazzano-system
-VERRAZZANO_VERSION=v0.0.39
+VERRAZZANO_VERSION=v0.0.42
 set_INGRESS_IP
 
-set -u
+set -eu
 
 function create_admission_controller_cert()
 {
@@ -62,20 +68,25 @@ function create_admission_controller_cert()
 
 function install_verrazzano()
 {
+  set +e
   helm uninstall verrazzano --namespace ${VERRAZZANO_NS}
   kubectl delete vmc local
   kubectl delete secret verrazzano-managed-cluster-local
+  set -e
+
   RancherAdminPassword=`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode`
 
-  export RANCHER_ADMIN_TOKEN=$(curl -k --connect-timeout 30 --retry 10 --retry-delay 30 \
+  RANCHER_ADMIN_TOKEN=$(curl -k --connect-timeout 30 --retry 10 --retry-delay 30 \
   -d '{"Username":"admin", "Password":"'"${RancherAdminPassword}"'"}' \
   -H "Content-Type: application/json" \
   -X POST https://${RANCHER_HOSTNAME}/v3-public/localProviders/local?action=login | jq -r '.token')
+  export RANCHER_ADMIN_TOKEN
 
-  export RANCHER_ACCESS_TOKEN=$(curl -k --connect-timeout 30 --retry 10 --retry-delay 30 \
+  RANCHER_ACCESS_TOKEN=$(curl -k --connect-timeout 30 --retry 10 --retry-delay 30 \
   -d '{"type":"token", "description":"automation"}' \
   -H "Content-Type: application/json" -H "Authorization: Bearer ${RANCHER_ADMIN_TOKEN}" \
   -X POST https://${RANCHER_HOSTNAME}/v3/token | jq -r '.token')
+  export RANCHER_ACCESS_TOKEN
 
   export TOKEN_ARRAY=(${RANCHER_ACCESS_TOKEN//:/ })
 
@@ -111,8 +122,8 @@ function usage {
     consoleerr
     consoleerr "usage: $0 [-n name] [-d dns_type] [-s dns_suffix]"
     consoleerr "  -n name        Environment Name. Optional.  Defaults to default."
-    consoleerr "  -d dns_type    DNS type [xip.io|oci]. Optional.  Defaults to xip.io."
-    consoleerr "  -s dns_suffix  DNS suffix (e.g v8o.example.com). Not valid for dns_type xip.io. Required for dns-type oci."
+    consoleerr "  -d dns_type    DNS type [xip.io|manual|oci]. Optional.  Defaults to xip.io."
+    consoleerr "  -s dns_suffix  DNS suffix (e.g v8o.example.com). Not valid for dns_type xip.io. Required for dns-type oci or manual"
     consoleerr "  -h             Help"
     consoleerr
     exit 1
@@ -129,17 +140,21 @@ do
         d) DNS_TYPE=${OPTARG};;
         s) DNS_SUFFIX=${OPTARG};;
         h) usage;;
+        *) usage;;
     esac
 done
 # check for valid DNS type
-if [ $DNS_TYPE != "xip.io" ] && [ $DNS_TYPE != "oci" ]; then
+if [ $DNS_TYPE != "xip.io" ] && [ $DNS_TYPE != "oci" ] && [ $DNS_TYPE != "manual" ]; then
   consoleerr
   consoleerr "Unknown DNS type ${DNS_TYPE}"
   usage
 fi
+
+set_INGRESS_IP
+
 # check expected dns suffix for given dns type
 if [ -z "$DNS_SUFFIX" ]; then
-  if [ $DNS_TYPE = "oci" ]; then
+  if [ $DNS_TYPE == "oci" ] || [ $DNS_TYPE == "manual" ]; then
     consoleerr
     consoleerr "-s option is required for ${DNS_TYPE}"
     usage

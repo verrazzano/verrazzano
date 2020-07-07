@@ -4,7 +4,6 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 INGRESS_VERSION=1.27.0
-VERRAZZANO_NS=verrazzano-system
 DNS_PREFIX="verrazzano-ingress"
 OCI_PRIVATE_KEY_PASSPHRASE=${OCI_PRIVATE_KEY_PASSPHRASE:-""}
 
@@ -230,20 +229,31 @@ function usage {
     consoleerr
     consoleerr "usage: $0 [-n name]"
     consoleerr "  -n name        Environment Name. Required."
+    consoleerr "  -d dns_type    DNS type [oci]. Optional.  Defaults to oci."
     consoleerr "  -h             Help"
     consoleerr
     exit 1
 }
 
 NAME=""
+DNS_TYPE="oci"
 
-while getopts n:h flag
+while getopts n:d:h flag
 do
     case "${flag}" in
         n) NAME=${OPTARG};;
+        d) DNS_TYPE=${OPTARG};;
         h) usage;;
+        *) usage;;
     esac
 done
+
+if [ $DNS_TYPE != "oci" ]; then
+  consoleerr
+  consoleerr "Unknown DNS type ${DNS_TYPE}!"
+  usage
+fi
+
 if [ -z "$NAME" ]; then
     consoleerr
     consoleerr "-n option is required"
