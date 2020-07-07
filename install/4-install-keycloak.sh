@@ -176,29 +176,38 @@ action "Installing Keycloak" install_keycloak || exit 1
 
 rm -rf $TMP_DIR
 consoleout
+consoleout "Installation is finished.  These details will help you access your environment:"
+consoleout
+consoleout "Rancher"
+consoleout "-------"
 consoleout "Rancher Admin Console: https://rancher.${ENV_NAME}.${DNS_SUFFIX}"
 consoleout "Credentials for Accessing the Rancher Console"
 consoleout "User: admin"
-consoleout "Password: kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo"
+consoleout "To obtain the initial password: "
+consoleout "  kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo"
 consoleout
-consoleout
+consoleout "KeyCloak"
+consoleout "--------"
 consoleout "KeyCloak Admin Console: https://keycloak.${ENV_NAME}.${DNS_SUFFIX}"
 consoleout "Credentials for Accessing the KeyCloak Admin Console"
 consoleout "User: keycloakadmin"
-consoleout "Password: kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo"
+consoleout "To obtain the initial password: "
+consoleout "  kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo"
 consoleout
+consoleout "Others"
+consoleout "------"
+consoleout "Verrazzano provides various user interfaces. You can find the addresses for these with the following command:"
+consoleout "  kubectl get ingress -A"
+consoleout "All of these are served on https only. For example https://console.myenv.mydomain.com"
 consoleout
-consoleout "Verrazzano installs several consoles. You can get the ingress for the consoles with the following command:"
-consoleout "kubectl get ingress -A"
-consoleout "Simply prefix https:// to the host name to get the URL. For example https://console.myenv.mydomain.com"
+consoleout "You will need the credentials to access the following user interfaces.  They are all accessed by the same username/password."
+consoleout "  Verrazzano Console"
+consoleout "  Grafana"
+consoleout "  Prometheus"
+consoleout "  Kibana"
+consoleout "  Elasticsearch"
 consoleout
-consoleout "You will need the credentials to access the various consoles installed by Verrazzano."
-consoleout "Consoles are accessed by the same username/password"
-consoleout "UI Console"
-consoleout "Grafana"
-consoleout "Prometheus"
-consoleout "Kibana"
-consoleout "Elasticsearch"
-consoleout "Verrazzano Credentials are:"
+consoleout "The credentials are:"
 consoleout "User: verrazzano"
-consoleout "Password: kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo"
+consoleout "To obtain the initial password: "
+consoleout "  kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo"
