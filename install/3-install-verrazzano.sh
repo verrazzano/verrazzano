@@ -103,6 +103,7 @@ function install_verrazzano()
       --set clusterOperator.rancherUserName="${TOKEN_ARRAY[0]}" \
       --set clusterOperator.rancherPassword="${TOKEN_ARRAY[1]}" \
       --set clusterOperator.rancherHostname=${RANCHER_HOSTNAME} \
+      --set monitoringOperator.configReloaderImage=phx.ocir.io/stevengreenberginc/bfs/configmap-reloader:0.3 \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)"
 
   retries=0
