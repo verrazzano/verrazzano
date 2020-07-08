@@ -31,6 +31,7 @@ set -eu
 
 function create_admission_controller_cert()
 {
+  echo # for newline before additional output from below commands
   rm -rf $CERTS_OUT
   mkdir -p $CERTS_OUT
 
@@ -66,30 +67,69 @@ function create_admission_controller_cert()
   rm -rf $CERTS_OUT
 }
 
+function dump_rancher_ingress {
+  echo
+  echo "########  rancher ingress details ##########"
+  kubectl get ingress rancher -n cattle-system -o yaml
+  echo "########  end rancher ingress details ##########"
+}
+
 function install_verrazzano()
 {
   set +e
+  echo # for newline before additional output from below commands
+  logDt "Uninstalling any existing verrazzano components\n"
   helm uninstall verrazzano --namespace ${VERRAZZANO_NS}
   kubectl delete vmc local
   kubectl delete secret verrazzano-managed-cluster-local
   set -e
+  logDt "Completed uninstall\n"
 
   RancherAdminPassword=`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode`
 
-  RANCHER_ADMIN_TOKEN=$(curl -k --connect-timeout 30 --retry 10 --retry-delay 30 \
+  if [ -z "$RancherAdminPassword" ] ; then
+    consoleerr "ERROR: Failed to retrieve rancher-admin-secret - did you run the scripts to install Istio and system components?"
+    return 1
+  fi
+
+  # Wait until rancher TLS cert is ready
+  logDt "Waiting for Rancher TLS cert to reach ready state"
+  kubectl wait --for=condition=ready cert tls-rancher-ingress -n cattle-system
+
+  # Make sure rancher ingress has an IP
+  wait_for_ingress_ip rancher cattle-system
+
+  logDt "Retrieving the rancher admin token from Rancher at ${RANCHER_HOSTNAME}"
+  RANCHER_ADMIN_TOKEN=$(curl -s -k --connect-timeout 30 --retry 10 --retry-delay 30 \
   -d '{"Username":"admin", "Password":"'"${RancherAdminPassword}"'"}' \
   -H "Content-Type: application/json" \
   -X POST https://${RANCHER_HOSTNAME}/v3-public/localProviders/local?action=login | jq -r '.token')
   export RANCHER_ADMIN_TOKEN
 
-  RANCHER_ACCESS_TOKEN=$(curl -k --connect-timeout 30 --retry 10 --retry-delay 30 \
+  if [ -z "$RANCHER_ADMIN_TOKEN" ] ; then
+      echo "RANCHER_ADMIN_TOKEN is empty! Did you run the scripts to install Istio and system components?"
+      return 1
+  fi
+
+  logDt "Retrieving the access token from Rancher at ${RANCHER_HOSTNAME}"
+  RANCHER_ACCESS_TOKEN=$(curl -s -k --connect-timeout 30 --retry 10 --retry-delay 30 \
   -d '{"type":"token", "description":"automation"}' \
   -H "Content-Type: application/json" -H "Authorization: Bearer ${RANCHER_ADMIN_TOKEN}" \
   -X POST https://${RANCHER_HOSTNAME}/v3/token | jq -r '.token')
+
+  if [ -z "$RANCHER_ACCESS_TOKEN" ] ; then
+      logDt "RANCHER_ACCESS_TOKEN is empty!\n"
+      echo
+      echo "Dumping additional detail below"
+      dump_rancher_ingress
+      return 1
+  fi
+
   export RANCHER_ACCESS_TOKEN
 
   export TOKEN_ARRAY=(${RANCHER_ACCESS_TOKEN//:/ })
 
+  logDt "Installing verrazzano from Helm chart\n"
   helm \
       upgrade --install verrazzano \
       https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-helm-chart/o/${VERRAZZANO_VERSION}%2Fverrazzano-${VERRAZZANO_VERSION}.tgz \
@@ -105,6 +145,7 @@ function install_verrazzano()
       --set clusterOperator.rancherHostname=${RANCHER_HOSTNAME} \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)"
 
+  logDt "\nVerifying that needed secrets are created"
   retries=0
   until [ "$retries" -ge 24 ]
   do
@@ -116,6 +157,7 @@ function install_verrazzano()
       consoleerr "ERROR: failed creating verrazzano secret"
       exit 1
   fi
+  logDt "Verrazzano install completed\n"
 }
 
 function usage {

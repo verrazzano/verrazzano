@@ -149,6 +149,30 @@ function onerror()
     exit $rv
 }
 
+function wait_for_ingress_ip() {
+  retries=0
+  #args $1 = ingress name, $2 = namespace
+
+  logDt "Waiting for ingress $1 in namespace $2 to have an IP"
+  until [ "$retries" -ge 10 ]
+  do
+      ingress_ip=$(kubectl get ingress $1 -n $2 -o json | jq -r '.status.loadBalancer.ingress[].ip')
+      if [ ! -z "$ingress_ip" ] ; then
+          break;
+      fi
+      retries=$(($retries+1))
+      sleep 5
+  done
+  if [ "$retries" -ge 10 ] ; then
+    logDt "An error occurred - ingress $1 in namespace $2 did not have an IP address"
+    exit 1
+  fi
+}
+
+function logDt() {
+  echo -e $(date) $@
+}
+
 trap onerror ERR EXIT
 
 KIND_CLUSTER_NAME=${KIND_CLUSTER_NAME:=verrazzano}
