@@ -183,9 +183,25 @@ action "Installing Keycloak" install_keycloak || exit 1
 
 rm -rf $TMP_DIR
 
-consoleout
-consoleout "To retrieve the initial password for the Keycloak administrator user '${KCADMIN_USERNAME}' run:"
-consoleout "kubectl get secret --namespace keycloak keycloak-http -o jsonpath="{.data.password}" | base64 --decode; echo"
-
-consoleout "To retrieve the initial password for the Verrazzano administrator user '${VZ_USERNAME}' run:"
-consoleout "kubectl get secret --namespace ${VERRAZZANO_NS} ${VZ_USERNAME} -o jsonpath="{.data.password}" | base64 --decode; echo"
+consoleout 
+consoleout "Installation Complete."
+consoleout 
+consoleout "Verrazzano provides various user interfaces."
+consoleout 
+consoleout "Verrazzano Console - https://console.${ENV_NAME}.${DNS_SUFFIX}"
+consoleout "Grafana - https://grafana.vmi.system.${ENV_NAME}.${DNS_SUFFIX}"
+consoleout "Prometheus - https://prometheus.vmi.system.${ENV_NAME}.${DNS_SUFFIX}"
+consoleout "Kibana - https://kibana.vmi.system.${ENV_NAME}.${DNS_SUFFIX}"
+consoleout "Elasticsearch - https://elasticsearch.vmi.system.${ENV_NAME}.${DNS_SUFFIX}"
+consoleout 
+consoleout "You will need the credentials to access the preceding user interfaces.  They are all accessed by the same username/password."
+consoleout "User: verrazzano"
+consoleout "Password: kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo"
+consoleout 
+consoleout "Rancher - https://rancher.${ENV_NAME}.${DNS_SUFFIX}"
+consoleout "User: admin"
+consoleout "Password: kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo"
+consoleout 
+consoleout "Keycloak - https://keycloak.${ENV_NAME}.${DNS_SUFFIX}"
+consoleout "User: keycloakadmin"
+consoleout "Password: kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo"
