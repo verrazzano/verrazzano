@@ -227,6 +227,6 @@ NGINX_INGRESS_CONTROLLER_VERSION=1.27.0
 NGINX_DEFAULT_BACKEND_IMAGE=phx.ocir.io/stevengreenberginc/bfs/nginx-ingress-default-backend
 NGINX_DEFAULT_BACKEND_TAG=0.32-0
 
-RANCHER_IMAGE=phx.ocir.io/stevengreenberginc/rancher/rancher
+RANCHER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/rancher
 RANCHER_VERSION=v2.4.3
 RANCHER_TAG=v2.4.3-OL
