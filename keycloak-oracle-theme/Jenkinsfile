@@ -16,7 +16,7 @@ pipeline {
             registryCredentialsId 'ocir-pull-and-push-account'
        }
     }
-    phx.ocir.io/stevengreenberginc/bfs/verrazzano/keycloak-oracle-theme:0.1
+
     environment {
         DOCKER_CI_IMAGE_NAME = 'keycloak-oracle-theme-jenkins'
         DOCKER_PUBLISH_IMAGE_NAME = 'keycloak-oracle-theme'
