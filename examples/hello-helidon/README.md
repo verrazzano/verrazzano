@@ -9,9 +9,9 @@ application.
 
 1. Pre-requisites: Install Verrazzano following the [installation instructions](../install/README.md).
 
-1. Run the following script to deploy the Verrazzano Model and Binding for the example application.
+1. Run the following script to deploy the Verrazzano Model and Verrazzano Binding for the example application.
 
-    ### Using an OKE Cluster
+    ### Using an OKE cluster
 
     ```
     ./install-hello-world.sh
@@ -25,7 +25,7 @@ application.
     {"message":"Hello World!"}
     ```
 
-    ### Using a Kind Cluster
+    ### Using a kind cluster
 
     ```
     export KIND_CLUSTER_NAME=verrazzano
@@ -43,9 +43,9 @@ application.
 
    This script not only installs the model and binding, but also waits for the pods in the *greet* namespace to be
    ready, and then calls one of the endpoints provided by the REST service implemented by the example application. In the
-   next sections we provide more details of the application and endpoints provided by it.
+   following sections, you'll find more details about the application and endpoints provided by it.
 
-1. Verify if all objects have started. Objects are started in the *greet*, *verrazzano-system* and *monitoring*
+1. Verify that all the objects have started. Objects are started in the *greet*, *verrazzano-system*, and *monitoring*
   namespaces. The following code block shows the objects to expect. Objects not related to this sample application
   have been removed from the list.
 
@@ -134,24 +134,24 @@ endpoint accepts `PUT` HTTP request method, and a json payload.
 
 The steps to test these endpoints are described next.
 
-1. Get the IP address and port to call the REST service.
-    ### Using OKE cluster
-    Get the EXTERNAL-IP for istio-ingressgateway service:
+1. Get the IP address and port number for calling the REST service.
+    ### Using an OKE cluster
+    Get the EXTERNAL-IP address for the `istio-ingressgateway` service:
 
     ```
     SERVER=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq -r '.status.loadBalancer.ingress[0].ip')
     PORT=80
     ```
 
-   ### Using Kind Cluster
-   Get the IP of one node of the cluster and the port from the istio-ingressgateway service:
+   ### Using a kind cluster
+   Get the IP address of one node in the cluster and the port number from the `istio-ingressgateway` service:
 
    ```
    SERVER=$(kubectl get node ${KIND_CLUSTER_NAME}-worker -o json | jq -r '.status.addresses[] | select (.type == "InternalIP") | .address')
    PORT=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq '.spec.ports[] | select(.port == 80) | .nodePort')
    ```
 
-1. Use the IP address and port to call the different endpoints of the greeting REST service:
+1. Use the IP address and port number to call the following endpoints of the greeting REST service:
 
     ```
     # Get default message
@@ -172,7 +172,7 @@ The steps to test these endpoints are described next.
 
 ## Uninstalling the example application
 
-1. Run the following script to delete the Verrazzano Model and Binding for the example application:
+1. Run the following script to delete the Verrazzano Model and Verrazzano Binding for the example application:
 
     ```
     ./uninstall-hello-world.sh
