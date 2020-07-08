@@ -23,7 +23,7 @@ phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-admission-controller:v0.0.9
 phx.ocir.io/stevengreenberginc/verrazzano/web:1.0.20
 phx.ocir.io/stevengreenberginc/verrazzano/web-standalone:1.0.22
 phx.ocir.io/stevengreenberginc/bfs/verrazzano/istio-coredns-plugin:0.2-istio-1.1
-phx.ocir.io/odx-sre/sauron/prometheus-pusher:1.0.1_9
+phx.ocir.io/stevengreenberginc/bfs/prometheus-pusher:1.0.1_6
 phx.ocir.io/stevengreenberginc/bfs/pushgateway:1.2.0-1
 phx.ocir.io/stevengreenberginc/bfs/nginx-ingress-controller:0.32-0
 phx.ocir.io/stevengreenberginc/bfs/nginx-ingress-default-backend:0.32-0
