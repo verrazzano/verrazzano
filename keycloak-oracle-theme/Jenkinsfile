@@ -30,9 +30,6 @@ pipeline {
 
     stages {
         stage('Clean workspace and checkout') {
-            when {
-                changeset '**/keycloak-oracle-theme/**'
-            }
             steps {
                 script {
                     checkout scm
@@ -44,12 +41,7 @@ pipeline {
         }
        
         stage('Build Docker Image') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    changeset '**/keycloak-oracle-theme/**'
-                }
-            }
+            when { not { buildingTag() } }
             steps {
                 sh """
                     echo "Building image ${DOCKER_IMAGE_FULL_NAME}:${HEAD_COMMIT}"
@@ -64,12 +56,7 @@ pipeline {
         }
 
         stage('Scan Image') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    changeset '**/keycloak-oracle-theme/**'
-                }
-            }
+            when { not { buildingTag() } }
             steps {
                 script {
                     clairScanTemp "${DOCKER_IMAGE_FULL_NAME}:${HEAD_COMMIT}"
