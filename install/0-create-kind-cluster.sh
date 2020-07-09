@@ -19,7 +19,7 @@ command -v kind >/dev/null 2>&1 || {
     exit 1;
 }
 
-${SCRIPT_DIR}/5-delete-kind-cluster.sh >&5 6>&5
+env LOGFILE=$LOGFILE ${SCRIPT_DIR}/5-delete-kind-cluster.sh >&5 6>&5
 
 action "Creating kind cluster ${KIND_CLUSTER_NAME}..." \
     kind create cluster \
