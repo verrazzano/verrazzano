@@ -24,7 +24,7 @@ function set_INGRESS_IP() {
 }
 
 VERRAZZANO_NS=verrazzano-system
-VERRAZZANO_VERSION=v0.0.46
+VERRAZZANO_VERSION=v0.0.49
 set_INGRESS_IP
 
 set -eu
@@ -103,8 +103,6 @@ function install_verrazzano()
       --set clusterOperator.rancherUserName="${TOKEN_ARRAY[0]}" \
       --set clusterOperator.rancherPassword="${TOKEN_ARRAY[1]}" \
       --set clusterOperator.rancherHostname=${RANCHER_HOSTNAME} \
-      --set verrazzanoAdmissionController.imageName=phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-admission-controller-ci-jenkins \
-      --set verrazzanoAdmissionController.imageVersion=fde429fa51125df2928d713f3fd1873484ab55a7 \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)"
 
   retries=0
