@@ -47,4 +47,4 @@ To deploy the example applications, please see the following instructions:
 
 For additional information, see the [Verrazzano documentation](https://verrazzano.io/doc).
 
-More detailed [installation instructions](./install/README.md) can be found in the `install` director.
+More detailed [installation instructions](./install/README.md) can be found in the `install` directory.
