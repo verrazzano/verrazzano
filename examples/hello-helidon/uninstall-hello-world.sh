@@ -9,16 +9,24 @@ set -euo pipefail
 
 echo "Removing Helidon hello world application."
 
-echo "Delete application binding."
-if ! kubectl delete -f ${SCRIPT_DIR}/hello-world-binding.yaml --timeout 5m; then
-  echo "ERROR: Delete application binding failed. Exiting."
-  exit 1
+if ! kubectl get vb -o name | grep verrazzanobinding.verrazzano.io/hello-world-binding; then
+  echo "Delete of application binding not required."
+else
+  echo "Delete application binding."
+  if ! kubectl delete -f ${SCRIPT_DIR}/hello-world-binding.yaml --timeout 5m; then
+    echo "ERROR: Delete application binding failed. Exiting."
+    exit 1
+  fi
 fi
 
-echo "Delete application model."
-if ! kubectl delete -f ${SCRIPT_DIR}/hello-world-model.yaml --timeout 2m; then
-  echo "ERROR: Delete application model failed. Exiting."
-  exit 1
+if ! kubectl get vm -o name | grep verrazzanomodel.verrazzano.io/hello-world-model; then
+  echo "Delete of application model not required."
+else
+  echo "Delete application model."
+  if ! kubectl delete -f ${SCRIPT_DIR}/hello-world-model.yaml --timeout 2m; then
+    echo "ERROR: Delete application model failed. Exiting."
+    exit 1
+  fi
 fi
 
 echo "Removal of Helidon hello world application was successful."
