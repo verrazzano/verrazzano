@@ -10,7 +10,7 @@ set -euo pipefail
 echo "Removing Helidon hello world application."
 
 if ! kubectl get vb -o name | grep verrazzanobinding.verrazzano.io/hello-world-binding; then
-  echo "Delete of application binding not required."
+  echo "Delete application binding not required."
 else
   echo "Delete application binding."
   if ! kubectl delete -f ${SCRIPT_DIR}/hello-world-binding.yaml --timeout 5m; then
@@ -20,7 +20,7 @@ else
 fi
 
 if ! kubectl get vm -o name | grep verrazzanomodel.verrazzano.io/hello-world-model; then
-  echo "Delete of application model not required."
+  echo "Delete application model not required."
 else
   echo "Delete application model."
   if ! kubectl delete -f ${SCRIPT_DIR}/hello-world-model.yaml --timeout 2m; then
