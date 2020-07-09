@@ -169,3 +169,6 @@ Example applications can be found in the `examples` folder.
 
 ## More Information
 For additional information, see the [Verrazzano documentation](https://verrazzano.io/docs).
+
+More detailed [installation instructions](./install/README.md) can be found in the `install` director.
+
