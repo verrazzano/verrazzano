@@ -31,7 +31,7 @@ pipeline {
     stages {
         stage('Clean workspace and checkout') {
             when {
-                changeset 'keycloak-oracle-theme/**'
+                changeset '**/keycloak-oracle-theme/**'
             }
             steps {
                 script {
@@ -47,7 +47,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
-                    changeset 'keycloak-oracle-theme/**'
+                    changeset '**/keycloak-oracle-theme/**'
                 }
             }
             steps {
@@ -67,7 +67,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
-                    changeset 'keycloak-oracle-theme/**'
+                    changeset '**/keycloak-oracle-theme/**'
                 }
             }
             steps {
