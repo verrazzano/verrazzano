@@ -35,13 +35,10 @@ pipeline {
             }
             steps {
                 script {
-                    sh "pwd"
                     checkout scm
-                    sh "pwd"
                     echo "${WORKSPACE}"
                     HEAD_COMMIT = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
                     sh "echo Head commit is ${HEAD_COMMIT}"
-                    sh "ls -l"
                 }
             }
         }
@@ -55,7 +52,7 @@ pipeline {
             }
             steps {
                 sh """
-                    echo "Docker build in directory shown below and docker file is ${DOCKERFILE}"
+                    echo "Building image ${DOCKER_IMAGE_FULL_NAME}:${HEAD_COMMIT}"
                     cd keycloak-oracle-theme
                     docker build --pull --no-cache \
                       -t ${DOCKER_IMAGE_FULL_NAME}:${HEAD_COMMIT} \
