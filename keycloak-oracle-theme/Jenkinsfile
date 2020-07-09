@@ -1,0 +1,105 @@
+// Copyright (c) 2020, Oracle Corporation and/or its affiliates. 
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+def HEAD_COMMIT
+
+pipeline {
+    options {
+        checkoutToSubdirectory('verrazzano')
+    }
+
+    agent {
+       docker {
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryCredentialsId 'ocir-pull-and-push-account'
+       }
+    }
+
+    environment {
+        DOCKER_CI_IMAGE_NAME = 'keycloak-oracle-theme-jenkins'
+        DOCKER_PUBLISH_IMAGE_NAME = 'keycloak-oracle-theme'
+        DOCKER_IMAGE_NAME = "${env.BRANCH_NAME == 'master' ? env.DOCKER_PUBLISH_IMAGE_NAME : env.DOCKER_CI_IMAGE_NAME}"
+        DOCKER_IMAGE_FULL_NAME = "${env.DOCKER_REPO}/${env.DOCKER_BFS_NAMESPACE}/${DOCKER_IMAGE_NAME}"
+        DOCKERFILE='keycloak-oracle-theme/Dockerfile'
+        CREATE_LATEST_TAG = "${env.BRANCH_NAME == 'master' ? '1' : '0'}"
+        DOCKER_CREDS = credentials('ocir-pull-and-push-account')
+        NETRC_FILE = credentials('netrc')
+    }
+
+    stages {
+        stage('Clean workspace and checkout') {
+            when {
+                changeset '**/keycloak-oracle-theme/**'
+            }
+            steps {
+                script {
+                    checkout scm
+                    echo "${WORKSPACE}"
+                    HEAD_COMMIT = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
+                    sh "echo Head commit is ${HEAD_COMMIT}"
+                }
+            }
+        }
+       
+        stage('Build Docker Image') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    changeset '**/keycloak-oracle-theme/**'
+                }
+            }
+            steps {
+                sh """
+                    echo "Building image ${DOCKER_IMAGE_FULL_NAME}:${HEAD_COMMIT}"
+                    cd keycloak-oracle-theme
+                    docker build --pull --no-cache \
+                      -t ${DOCKER_IMAGE_FULL_NAME}:${HEAD_COMMIT} \
+                      -f ./Dockerfile \
+                      .
+                    docker push ${DOCKER_IMAGE_FULL_NAME}:${HEAD_COMMIT}
+                """
+            }
+        }
+
+        stage('Scan Image') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    changeset '**/keycloak-oracle-theme/**'
+                }
+            }
+            steps {
+                script {
+                    clairScanTemp "${DOCKER_IMAGE_FULL_NAME}:${HEAD_COMMIT}"
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Publish Image') {
+            when { buildingTag() }
+            steps {
+                sh """
+                    docker pull ${DOCKER_IMAGE_FULL_NAME}:${HEAD_COMMIT}
+                    docker tag ${DOCKER_IMAGE_FULLNAME}:${HEAD_COMMIT} ${DOCKER_IMAGE_FULLNAME}:${TAG_NAME}
+                    docker push ${DOCKER_IMAGE_FULL_NAME}:${TAG_NAME}
+                """
+            }
+        }
+    }
+
+    post {
+        failure {
+            mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: 'noreply@oracle.com',
+            subject: "Verrazzano: ${env.JOB_NAME} - Failed",
+            body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
+        }
+    }
+    
+}
