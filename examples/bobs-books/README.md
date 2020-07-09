@@ -64,6 +64,14 @@ cluster if you are using a multi-cluster environment.:
    Docker images for the example application.  The source code for the example
    applications is in the [examples repository](https://github.com/verrazzano/examples).
 
+1. Create the secret containing the MySQL credentials:
+
+   ```
+   kubectl create secret generic mysql-credentials \
+           --from-literal=username=books \
+           --from-literal=password=WebLogic1234
+   ```
+
 1. Deploy the MySQL database:
 
    ```
