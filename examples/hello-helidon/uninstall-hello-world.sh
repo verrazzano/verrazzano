@@ -5,5 +5,20 @@
 #
 SCRIPT_DIR=$(cd $(dirname $0); pwd -P)
 
-kubectl delete -f ${SCRIPT_DIR}/hello-world-binding.yaml --timeout 5m
-kubectl delete -f ${SCRIPT_DIR}/hello-world-model.yaml --timeout 2m
+set -euo pipefail
+
+echo "Removing Helidon hello world application."
+
+echo "Delete application binding."
+if ! kubectl delete -f ${SCRIPT_DIR}/hello-world-binding.yaml --timeout 5m; then
+  echo "ERROR: Delete application binding failed. Exiting."
+  exit 1
+fi
+
+echo "Delete application model."
+if ! kubectl delete -f ${SCRIPT_DIR}/hello-world-model.yaml --timeout 2m; then
+  echo "ERROR: Delete application model failed. Exiting."
+  exit 1
+fi
+
+echo "Removal of Helidon hello world application was successful."
