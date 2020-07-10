@@ -12,7 +12,7 @@ set -u
 
 BUILD_DIR="${SCRIPT_DIR}/build"
 LOGDIR="${BUILD_DIR}/logs"
-LOGFILE="${LOGDIR}/$(basename $0).log"
+export LOGFILE="${LOGFILE:-${LOGDIR}/$(basename $0).log}"
 
 if [ ! -d "${LOGDIR}" ] ; then
     mkdir -p "${LOGDIR}"
@@ -28,7 +28,7 @@ exec 5<&1
 exec 6<&2
 
 mkdir -p "$LOGDIR"
-exec 1> "$LOGFILE" 2>&1
+exec 1>> "$LOGFILE" 2>&1
 
 function consoleout()
 {
@@ -116,7 +116,7 @@ function action() {
   if [ -z "${DISABLE_SPINNER}" ] ; then
     spin >&$CONSOLE_STDOUT &
     spin_pid=$!
-    trap "kill -0 $spin_pid && kill $spin_pid" INT ERR EXIT
+    trap "kill -0 $spin_pid 2>/dev/null && kill $spin_pid 2>/dev/null " INT ERR EXIT
   fi
 
   shift
@@ -124,8 +124,8 @@ function action() {
   rc=$?
 
   if [ -z "${DISABLE_SPINNER}" ] ; then
-    kill $spin_pid
-    wait $spin_pid
+    kill $spin_pid 2>/dev/null
+    wait $spin_pid 2>/dev/null
   fi
 
   if [ $rc -eq 0 ] ; then
