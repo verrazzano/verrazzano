@@ -190,6 +190,8 @@ command -v jq >/dev/null 2>&1 || {
     fail "jq is required but cannot be found on the path. Aborting.";
 }
 
+# NOTE to auditors - all of these image names will change to OCR when we go public
+
 ##################################################
 ####Constants for Docker images, versions, tags
 ##################################################

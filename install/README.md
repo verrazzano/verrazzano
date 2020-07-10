@@ -34,7 +34,7 @@ Prepare for installation as shown below, depending on your cluster type.
 Then, create the the docker registry secret.
 
 ###  Using an OKE Cluster
-Create the OKE cluster using the OCI console or some other means, then set the following ENV vars:
+Create the OKE cluster using the OCI console or some other means, then set the following environment variables:
 ```
    export CLUSTER_TYPE=OKE
    export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
@@ -43,7 +43,7 @@ Create the OKE cluster using the OCI console or some other means, then set the f
 ```
 
 ### Using a kind Cluster
-Set the following ENV vars: 
+Set the following envrionment variables:
 ```
    export CLUSTER_TYPE=KIND
    export VERRAZZANO_KUBECONFIG=<path to kubernetes config where kind cluster info will be written>
@@ -56,6 +56,7 @@ Run the script to create your kind cluster:
 ```
 
 ### Using an OLCNE Cluster
+Set the following environment variables:
 ```
    export CLUSTER_TYPE=OLCNE
    export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
@@ -63,7 +64,8 @@ Run the script to create your kind cluster:
 ```
 
 ### Create Oracle Container Registry secret
-For all cluster types, you need to create the "ocr" secret. This is needed for pulling images from the container-registry.oracle.com repository.
+For all cluster types, you need to create the `ocr` secret. This is needed to pull images from
+Oracle Container Registry (`container-registry.oracle.com`).
 ```
    kubectl create secret docker-registry ocr \
        --docker-username=<username> \
@@ -71,7 +73,7 @@ For all cluster types, you need to create the "ocr" secret. This is needed for p
        --docker-server=container-registry.oracle.com
 ```
 
-## 2. Do the install
+## 2. Install the software components
 
 Install using xip.io or OCI DNS (2a or 2b).  In both cases, DNS records
 will be automatically configured for you.
@@ -103,7 +105,8 @@ Environment Variable | Required | Description
 `OCI_USER_OCID` | Yes | OCI user OCID
 
 When you use OCI DNS install, you need to provide a Verrazzano name (env-name) that will
-be used as part of the domain name used to access Verrazzano ingresses.  For example, you could use `sales` as an env-name.
+be used as part of the domain name used to access Verrazzano ingresses.  For example,
+you could use `sales` as an env-name.
 
 Run the following scripts in order:
 ```
