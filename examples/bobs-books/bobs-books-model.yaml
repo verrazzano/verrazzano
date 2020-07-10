@@ -13,6 +13,7 @@ spec:
       domainCRValues:
         domainUID: bobbys-front-end
         domainHome: /u01/oracle/user_projects/domains/bobbys-front-end
+        # note to auditor - all the images will be in OCR when we go public
         image: docker.pkg.github.com/verrazzano/examples/bobbys-front-end:0.1.3
         logHome: /u01/oracle/user_projects/domains/bobbys-front-end/logs
         logHomeEnabled: false
