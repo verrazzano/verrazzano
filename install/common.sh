@@ -92,6 +92,7 @@ function echo_progress()
   return 0
 }
 
+# adapted from https://www.shellscript.sh/tips/spinner/
 function spin()
 {
   local spinner='\|/-'
