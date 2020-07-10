@@ -7,19 +7,19 @@ application.
 
 ## Deploying the example application
 
-1. Pre-requisites: Install Verrazzano following the [installation instructions](../install/README.md).
+1. Prerequisites: Install Verrazzano following the [installation instructions](../install/README.md).
 
 1. Deploy the Verrazzano Model and Verrazzano Binding for the example application.
 
     ### Using an OKE cluster
-    Run the following script to deploy the Verrazzano Model and Verrazzano Binding in a OKE cluster:
+    Run the following script:
 
     ```
     ./install-hello-world.sh
     ```
 
     ### Using a kind cluster
-    Run the following script to deploy the Verrazzano Model and Verrazzano Binding in a kind cluster:
+    Run the following script:
 
     ```
     export KIND_CLUSTER_NAME=verrazzano
@@ -27,8 +27,8 @@ application.
     ./install-hello-world.sh
     ```
 
-   The installation script installs the Verrazzano Model and Verrazzano Binding, waits for the pods in the `greet` namespace to be
-   ready, and calls one of the endpoints provided by the REST service implemented by the example application.
+   The scripts deploy the Verrazzano Model and Verrazzano Binding, wait for the pods in the `greet` namespace to be
+   ready, and call one of the endpoints provided by the REST service implemented by the example application.
 
 1. Verify that all the objects have started. Objects are started in the `greet`, `verrazzano-system`, and `monitoring`
   namespaces. The following code block shows the objects to expect. Objects not related to this sample application
@@ -110,14 +110,14 @@ application.
 
 The Hello World Helidon example application implements a REST service with the following endpoints:
 
-- `/greet` - Returns a default greeting message that is stored in memory in an application scoped bean.
-This endpoint accepts `GET` HTTP request method.
+- `/greet` - Returns a default greeting message that is stored in memory in an application-scoped bean.
+This endpoint accepts the `GET` HTTP request method.
 - `/greet/{name}` - Returns a greeting message including the name provided in the path parameter. This
-endpoint accepts `GET` HTTP request method.
+endpoint accepts the `GET` HTTP request method.
 - `/greet/greeting` - Changes the greeting message to be used in future calls to the other endpoints. This
-endpoint accepts `PUT` HTTP request method, and a json payload.
+endpoint accepts the `PUT` HTTP request method, and a JSON payload.
 
-The steps to test these endpoints are described next.
+Follow these steps to test the endpoints:
 
 1. Get the IP address and port number for calling the REST service.
     ### Using an OKE cluster
