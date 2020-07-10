@@ -22,10 +22,11 @@ kubectl apply -f ${SCRIPT_DIR}/hello-world-binding.yaml
 echo "Wait for application namespace to be active."
 retries=0
 while true; do
-    if [[ $(kubectl get namespace greet --no-headers | grep Active | wc -l) -ge 1 ]]; then
+    status=$(kubectl get ns -o=jsonpath='{.items[?(@.metadata.name=="greet")].status.phase}')
+    if [ "${status}" == "Active" ]; then
       echo "Application namespace found and active."
       break
-    elif [ "$retries" -ge 60 ]; then
+    elif [ $retries -ge 60 ]; then
       echo "ERROR: Application namespace not found. Exiting."
       exit 1
     else
@@ -37,10 +38,12 @@ done
 echo "Wait for application pods to be running."
 retries=0
 while true; do
-  if [[ $(kubectl get pods -n greet --no-headers | grep Running | wc -l) -ge 2 ]]; then
+  # Can't use kubectl wait with timeout as this fails immediately if there are no pods.
+  count=$(kubectl get pods -n greet -o=jsonpath='{.items[?(@.status.phase=="Running")].metadata.name}' | wc -w)
+  if [ $count -ge 2 ]; then
     echo "Application pods found and running."
     break
-  elif [ "$retries" -ge 60 ]; then
+  elif [ $retries -ge 60 ]; then
     echo "ERROR: Application pods not found. Exiting."
     exit 1
   else
@@ -49,15 +52,12 @@ while true; do
   fi
 done
 
-echo "Wait for application pods to be ready."
-kubectl wait --for=condition=ready pods -n greet --all --timeout 5m
-
 echo "Determine application endpoint."
 CLUSTER_TYPE=${CLUSTER_TYPE:=OKE}
-if [ ${CLUSTER_TYPE} == "OKE" ]; then
+if [ "${CLUSTER_TYPE}" == "OKE" ]; then
   SERVER=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq -r '.status.loadBalancer.ingress[0].ip')
   PORT=80
-elif [ ${CLUSTER_TYPE} == "KIND" ]; then
+elif [ "${CLUSTER_TYPE}" == "KIND" ]; then
   SERVER=$(kubectl get node ${KIND_CLUSTER_NAME}-control-plane -o json | jq -r '.status.addresses[] | select (.type == "InternalIP") | .address')
   PORT=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq '.spec.ports[] | select(.port == 80) | .nodePort')
 elif [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
@@ -79,6 +79,8 @@ if [ $code -ne 0 ]; then
 elif [[ "$reply" != *"$expect"* ]]; then
   echo "ERROR: Application reply unexpected: $reply, expected: $expect. Exiting."
   exit 1
+else
+  echo "Application reply correct: $reply"
 fi
 
-echo "Installation of Helidon hello world application was successful."
+echo "Installation of Helidon hello world application successful."

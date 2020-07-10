@@ -4,29 +4,39 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname $0); pwd -P)
+BINDING="hello-world-binding"
+MODEL="hello-world-model"
 
 set -euo pipefail
 
 echo "Removing Helidon hello world application."
 
-if ! kubectl get vb -o name | grep verrazzanobinding.verrazzano.io/hello-world-binding; then
-  echo "Delete application binding not required."
+# Delete the binding
+echo "Delete application binding ${BINDING}."
+if ! kubectl get VerrazzanoBindings ${BINDING}; then
+  echo "Delete application binding not required. Skipping."
 else
-  echo "Delete application binding."
-  if ! kubectl delete -f ${SCRIPT_DIR}/hello-world-binding.yaml --timeout 5m; then
+  # Ignore exit code since it isn't always correct
+  kubectl delete -f ${SCRIPT_DIR}/hello-world-binding.yaml --timeout 5m || true
+  # Check again to confirm that the binding still exists before failing.
+  if kubectl get VerrazzanoBindings ${BINDING} &> /dev/null; then
     echo "ERROR: Delete application binding failed. Exiting."
     exit 1
   fi
 fi
 
-if ! kubectl get vm -o name | grep verrazzanomodel.verrazzano.io/hello-world-model; then
-  echo "Delete application model not required."
+# Delete the model
+echo "Delete application model ${MODEL}."
+if ! kubectl get VerrazzanoModels ${MODEL}; then
+  echo "Delete application model not required. Skipping."
 else
-  echo "Delete application model."
-  if ! kubectl delete -f ${SCRIPT_DIR}/hello-world-model.yaml --timeout 2m; then
+  # Ignore exit code since it isn't always correct
+  kubectl delete -f ${SCRIPT_DIR}/hello-world-model.yaml --timeout 2m || true
+  # Check again to confirm that the model still exists before failing.
+  if kubectl get VerrazzanoModels ${MODEL} &> /dev/null; then
     echo "ERROR: Delete application model failed. Exiting."
     exit 1
   fi
 fi
 
-echo "Removal of Helidon hello world application was successful."
+echo "Removal of Helidon hello world application successful."
