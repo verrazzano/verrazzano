@@ -9,43 +9,28 @@ application.
 
 1. Pre-requisites: Install Verrazzano following the [installation instructions](../install/README.md).
 
-1. Run the following script to deploy the Verrazzano Model and Verrazzano Binding for the example application.
+1. Deploy the Verrazzano Model and Verrazzano Binding for the example application.
 
     ### Using an OKE cluster
+    Run the following script to deploy the Verrazzano Model and Verrazzano Binding in a OKE cluster:
 
     ```
     ./install-hello-world.sh
-    pod/verrazzano-operator-7c785bb84b-d7tlx condition met
-    pod/verrazzano-admission-controller-58cf8b4b89-64vzk condition met
-    verrazzanomodel.verrazzano.io/hello-world-model created
-    verrazzanobinding.verrazzano.io/hello-world-binding created
-    NAME                                      READY   STATUS            RESTARTS   AGE
-    pod/hello-world-application-bb58ccfd6-6xmpg condition met
-    pod/hello-world-application-bb58ccfd6-89ftc condition met
-    {"message":"Hello World!"}
     ```
 
     ### Using a kind cluster
+    Run the following script to deploy the Verrazzano Model and Verrazzano Binding in a kind cluster:
 
     ```
     export KIND_CLUSTER_NAME=verrazzano
     export CLUSTER_TYPE=KIND
     ./install-hello-world.sh
-    pod/verrazzano-operator-66dff84cd7-v2jzs condition met
-    pod/verrazzano-admission-controller-59dcbbdfdf-t828v condition met
-    verrazzanomodel.verrazzano.io/hello-world-model created
-    verrazzanobinding.verrazzano.io/hello-world-binding created
-    NAME                                       READY   STATUS     RESTARTS   AGE
-    pod/hello-world-application-868c5d9d88-qdsz2 condition met
-    pod/hello-world-application-868c5d9d88-r5rbm condition met
-    {"message":"Hello World!"}
     ```
 
-   This script not only installs the model and binding, but also waits for the pods in the *greet* namespace to be
-   ready, and then calls one of the endpoints provided by the REST service implemented by the example application. In the
-   following sections, you'll find more details about the application and endpoints provided by it.
+   The installation script installs the Verrazzano Model and Verrazzano Binding, waits for the pods in the `greet` namespace to be
+   ready, and calls one of the endpoints provided by the REST service implemented by the example application.
 
-1. Verify that all the objects have started. Objects are started in the *greet*, *verrazzano-system*, and *monitoring*
+1. Verify that all the objects have started. Objects are started in the `greet`, `verrazzano-system`, and `monitoring`
   namespaces. The following code block shows the objects to expect. Objects not related to this sample application
   have been removed from the list.
 
@@ -179,4 +164,3 @@ The steps to test these endpoints are described next.
     verrazzanobinding.verrazzano.io "hello-world-binding" deleted
     verrazzanomodel.verrazzano.io "hello-world-model" deleted
     ```
-
