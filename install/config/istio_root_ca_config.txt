@@ -25,7 +25,7 @@ x509_extensions     = v3_ca
 [ req_distinguished_name ]
 countryName                     = US
 stateOrProvinceName             = CA
-0.organizationName              = Oracle Corporation
+0.organizationName              = Verrazzano Demo CA
 commonName                      = Root CA
 
 [ v3_ca ]
