@@ -103,8 +103,6 @@ function install_verrazzano()
       --set clusterOperator.rancherUserName="${TOKEN_ARRAY[0]}" \
       --set clusterOperator.rancherPassword="${TOKEN_ARRAY[1]}" \
       --set clusterOperator.rancherHostname=${RANCHER_HOSTNAME} \
-      --set verrazzanoOperator.imageName=phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator-jenkins \
-      --set verrazzanoOperator.imageVersion=36568047933d3dde47ea9bd73e4c5d4588d16aeb \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)"
 
   retries=0
