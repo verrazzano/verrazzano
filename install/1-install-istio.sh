@@ -150,6 +150,32 @@ function copy_ocr_secret()
         | kubectl apply -n istio-system -f -
 }
 
+function verify_ocr_secret()
+{
+    kubectl get secret ocr -n default || fail -e "ERROR: Secret named ocr is required to pull images from ${GLOBAL_HUB_REPO}.\nCreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
+    kubectl apply -f $CONFIG_DIR/ocrtest.yaml
+    OCR_VERIFIED=false
+    retries=0
+    until [ "$retries" -ge 24 ]
+    do
+       OCRTEST=$(kubectl get pod -l job-name=ocrtest | grep ocrtest)       
+       if [[ "$OCRTEST" == *"Running"* || "$OCRTEST" == *"Completed"* ]]; then
+           OCR_VERIFIED=true
+           break
+       fi
+       if [[ "$OCRTEST" == *"ImagePullBackOff"* || "$OCRTEST" == *"ErrImagePull"* ]]; then
+           OCR_VERIFIED=false
+           break
+       fi
+       retries=$(($retries+1))
+       sleep 5
+    done
+    kubectl delete job ocrtest
+    if [ $OCR_VERIFIED = false ]; then
+        fail -e "ERROR: Secret named ocr has invalid username or password.\nDelete and recreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
+    fi
+}
+
 function usage {
     consoleerr
     consoleerr "usage: $0 [-n name] [-d dns_type]"
@@ -193,8 +219,7 @@ action "Waiting for all Kubernetes nodes to be ready" \
 
 # Secret named ocr must exist in the default namespace to pull OLCNE images in a OKE cluster
 if [ ${CLUSTER_TYPE} == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
-  action "Checking for secret named ocr in default namespace" kubectl get secret ocr -n default ||
-    fail -e "ERROR: Secret named ocr is required to pull images from ${GLOBAL_HUB_REPO}.\nCreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
+  action "Checking for secret named ocr in default namespace" verify_ocr_secret || exit 1
 fi
 
 # Create istio-system namespace if it does not exist
