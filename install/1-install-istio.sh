@@ -6,7 +6,7 @@
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
 . $SCRIPT_DIR/common.sh
-. $SCRIPT_DIR/dump-k8s.sh
+. $SCRIPT_DIR/k8s-utils.sh
 
 
 if [ ${CLUSTER_TYPE} == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then

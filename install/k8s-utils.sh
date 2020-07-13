@@ -40,17 +40,17 @@ function dump_objects () {
      echo ""
      echo "--------------------------------------------------------"
      echo  $oType $i
-     echo "--------------------------------------------------"
+     echo "--------------------------------------------------------"
      kubectl describe $oType -n $ns $i
   done
 
-dump_footer
+  dump_footer
 }
 
 # Dump the pods in the given namespace
 # $1 Namespace - the namespace of the pod
 # Usage:
-# dumpPods "verrazzano-system"
+# dump_pods "verrazzano-system"
 function dump_pods () {
   dump_objects "pod" $1
 }
@@ -58,7 +58,7 @@ function dump_pods () {
 # Dump the jobs in the given namespace
 # $1 Namespace - the namespace of the job
 # Usage:
-# dumpJobs "verrazzano-system"
+# dump_jobs "verrazzano-system"
 function dump_jobs () {
   dump_objects "job" $1
 }
