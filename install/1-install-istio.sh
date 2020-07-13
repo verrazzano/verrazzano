@@ -155,8 +155,8 @@ function verify_ocr_secret()
     kubectl get secret ocr -n default || fail -e "ERROR: Secret named ocr is required to pull images from ${GLOBAL_HUB_REPO}.\nCreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
     kubectl apply -f $CONFIG_DIR/ocrtest.yaml
     OCR_VERIFIED=false
-    retries=0
-    until [ "$retries" -ge 24 ]
+    RETRIES=0
+    until [ "$RETRIES" -ge 24 ]
     do
        OCRTEST=$(kubectl get pod -l job-name=ocrtest | grep ocrtest)       
        if [[ "$OCRTEST" == *"Running"* || "$OCRTEST" == *"Completed"* ]]; then
@@ -167,7 +167,7 @@ function verify_ocr_secret()
            OCR_VERIFIED=false
            break
        fi
-       retries=$(($retries+1))
+       RETRIES=$(($RETRIES+1))
        sleep 5
     done
     kubectl delete job ocrtest
