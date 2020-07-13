@@ -62,5 +62,3 @@ function dump_pods () {
 function dump_jobs () {
   dump_objects "job" $1
 }
-
-dump_jobs "istio-system"
