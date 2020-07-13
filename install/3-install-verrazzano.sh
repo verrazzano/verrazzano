@@ -65,7 +65,7 @@ function check_ingress_ports() {
 }
 
 VERRAZZANO_NS=verrazzano-system
-VERRAZZANO_VERSION=v0.0.51
+VERRAZZANO_VERSION=v0.0.52
 set_INGRESS_IP
 check_ingress_ports
 if [ $? -ne 0 ]; then
@@ -149,11 +149,6 @@ function install_verrazzano()
       --set clusterOperator.rancherUserName="${TOKEN_ARRAY[0]}" \
       --set clusterOperator.rancherPassword="${TOKEN_ARRAY[1]}" \
       --set clusterOperator.rancherHostname=${RANCHER_HOSTNAME} \
-      --set verrazzanoOperator.imageName=phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator-jenkins \
-      --set verrazzanoOperator.imageVersion=6a76a4a19f91e4fec2081c82f984c9a183d2fe2a \
-      --set monitoringOperator.imageVersion=v0.0.17 \
-      --set monitoringOperator.esImage=phx.ocir.io/stevengreenberginc/bfs/elasticsearch:7.6.1-80f8609-6 \
-      --set monitoringOperator.esWaitImage=phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.17 \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)"
 
   retries=0
