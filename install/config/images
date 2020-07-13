@@ -11,7 +11,7 @@ phx.ocir.io/stevengreenberginc/bfs/cert-manager-acmesolver:0.13.1_3
 phx.ocir.io/odx-sre/sauron/cert-manager-controller:0.13.1_3
 phx.ocir.io/stevengreenberginc/bfs/elasticsearch:7.6.1-80f8609-6
 phx.ocir.io/stevengreenberginc/bfs/kibana:7.6.1-2
-phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator:v0.0.51
+phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator-jenkins:6a76a4a19f91e4fec2081c82f984c9a183d2fe2a
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.6
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.7
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-cluster-operator:v0.0.6
