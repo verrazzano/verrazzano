@@ -108,10 +108,10 @@ Expand the trust selection on the left, change `Secure Socket Layers (SSL)` to `
 ### 2b. Install using manual DNS
 Run the following scripts in order:
 ```
-   ./1-install-istio.sh                     -d manual -n <env-name> -s <dns-suffix>
-   ./2b-install-system-components-ocidns.sh -d manual -n <env-name> -s <dns-suffix>
-   ./3-install-verrazzano.sh                -d manual -n <env-name> -s <dns-suffix>
-   ./4-install-keycloak.sh                  -d manual -n <env-name> -s <dns-suffix>
+   ./1-install-istio.sh                       -d manual -n <env-name> -s <dns-suffix>
+   ./2a-install-system-components-magicdns.sh -d manual -n <env-name> -s <dns-suffix>
+   ./3-install-verrazzano.sh                  -d manual -n <env-name> -s <dns-suffix>
+   ./4-install-keycloak.sh                    -d manual -n <env-name> -s <dns-suffix>
 ```
 **OR**
 ### 2c. Install using OCI DNS
