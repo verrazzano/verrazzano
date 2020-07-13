@@ -23,9 +23,55 @@ function set_INGRESS_IP() {
   fi
 }
 
+# Check if the nginx ingress ports are accessible
+function check_ingress_ports() {
+  exitvalue=0
+  if [ ${CLUSTER_TYPE} == "OKE" ]; then
+    # Get the ports from the ingress
+    PORTS=$(kubectl get services -n ingress-nginx ingress-controller-nginx-ingress-controller -o=custom-columns=PORT:.spec.ports[*].name --no-headers)
+    IFS=',' read -r -a port_array <<< "$PORTS"
+
+    index=0
+    for element in "${port_array[@]}"
+    do
+      # For each get the port, nodePort and targetPort
+      RESP=$(kubectl get services -n ingress-nginx ingress-controller-nginx-ingress-controller -o=custom-columns=PORT:.spec.ports[$index].port,NODEPORT:.spec.ports[$index].nodePort,TARGETPORT:.spec.ports[$index].targetPort --no-headers)
+      ((index++))
+
+      IFS=' ' read -r -a vals <<< "$RESP"
+      PORT="${vals[0]}"
+      NODEPORT="${vals[1]}"
+      TARGETPORT="${vals[2]}"
+
+      # Attempt to access the port on the $INGRESS_IP
+      if [ $TARGETPORT == "https" ]; then
+        curl -k https://$INGRESS_IP:$PORT
+      else
+        curl http://$INGRESS_IP:$PORT
+      fi
+
+      # Check the result of the curl call
+      if [ $? -eq 0 ]; then
+        echo
+        echo "Port $PORT is accessible on ingress($INGRESS_IP).  Note that '404 page not found' is an expected response."
+      else
+        echo
+        echo "ERROR: Port $PORT is NOT accessible on ingress($INGRESS_IP)!  Check that security lists include an ingress rule for the node port $NODEPORT."
+        exitvalue=1
+      fi
+    done
+  fi
+  return $exitvalue
+}
+
 VERRAZZANO_NS=verrazzano-system
 VERRAZZANO_VERSION=v0.0.50
 set_INGRESS_IP
+check_ingress_ports
+if [ $? -ne 0 ]; then
+  echo "ERROR : Failed ingress port check."
+  exit 1
+fi
 
 set -eu
 
