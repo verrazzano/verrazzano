@@ -170,7 +170,7 @@ function wait_for_ingress_ip() {
 }
 
 function logDt() {
-  echo -e $(date) $@
+  echo -e $(date -u "+%Y-%m-%d %H:%M%:%S %Z") $@
 }
 
 trap onerror ERR EXIT
