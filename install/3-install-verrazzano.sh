@@ -152,7 +152,7 @@ function install_verrazzano()
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)"
 
   retries=0
-  until [ "$retries" -ge 24 ]
+  until [ "$retries" -ge 60 ]
   do
       kubectl get secret -n ${VERRAZZANO_NS} verrazzano | grep verrazzano && break
       retries=$(($retries+1))
