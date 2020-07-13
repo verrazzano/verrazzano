@@ -156,7 +156,7 @@ function verify_ocr_secret()
     kubectl apply -f $CONFIG_DIR/ocrtest.yaml
     OCR_VERIFIED=false
     RETRIES=0
-    until [ "$RETRIES" -ge 24 ]
+    until [ "$RETRIES" -ge 60 ]
     do
        OCRTEST=$(kubectl get pod -l job-name=ocrtest | grep ocrtest)       
        if [[ "$OCRTEST" == *"Running"* || "$OCRTEST" == *"Completed"* ]]; then
