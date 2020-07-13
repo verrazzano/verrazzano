@@ -4,7 +4,10 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
+
 . $SCRIPT_DIR/common.sh
+. $SCRIPT_DIR/dump-k8s.sh
+
 
 if [ ${CLUSTER_TYPE} == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
   INGRESS_TYPE=LoadBalancer
@@ -118,7 +121,12 @@ function install_istio()
     sed "s|/kubectl:|/istio_kubectl:|g" ${INSTALL_DIR}/istio-crds.yaml | kubectl apply -f - || return $?
 
     # Wait for istio CRD creation jobs to complete
-    kubectl -n istio-system wait --for=condition=complete job --all --timeout=300s || return $?
+    if ! kubectl -n istio-system wait --for=condition=complete job --all --timeout=300s ; then
+      stat = $?
+      consoleerr "ERROR: Istio CRD creation failed - dumping jobs into log file"
+      dump_jobs "istio-system"
+      return $stat
+    fi
 
     # Change to use the OLCNE image for kubectl then install istio proper
     sed "s|/kubectl:|/istio_kubectl:|g" ${INSTALL_DIR}/istio.yaml | kubectl apply -f - || return $?
