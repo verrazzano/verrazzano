@@ -260,6 +260,10 @@ if [ -z "$NAME" ]; then
     usage
 fi
 
+command -v patch >/dev/null 2>&1 || {
+    fail "patch is required for dns_type $DNS_TYPE but cannot be found on the path. Aborting.";
+}
+
 action "Installing Nginx Ingress Controller" install_nginx_ingress_controller || exit 1
 action "Installing cert manager" install_cert_manager || exit 1
 action "Installing external DNS" install_external_dns || exit 1
