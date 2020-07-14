@@ -100,7 +100,7 @@ On the dialog box that appears, check `Trust this CA to identify websites` and c
     2.2 Chrome on macOS: 
 Browse to `chrome://settings/privacy` and click `Manage certificates`, which opens the keychain.
 In the keychain dialog box, select `System` keychain in the top left column, select `Certificates` in the bottom left column, then click the
-plus sign on the bottom to import the certificate. Next, double click on the imported certificate and you will see another dialog box.
+plus sign on the bottom to import the certificate. Next, double-click on the imported certificate and you will see another dialog box.
 Expand the trust selection on the left, change `Secure Socket Layers (SSL)` to `Always Trust`.  Finally, dismiss the dialog box to save your change.
 
 **OR**
