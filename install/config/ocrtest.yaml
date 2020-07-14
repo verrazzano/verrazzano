@@ -1,0 +1,16 @@
+# Copyright (c) 2020, Oracle Corporation and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ocrtest
+spec:
+  template:
+    spec:
+      containers:
+      - name: ocrtest
+        image: container-registry.oracle.com/os/oraclelinux:7-slim #41 MB
+        imagePullPolicy: Always
+      restartPolicy: Never
+      imagePullSecrets:
+      - name: ocr
