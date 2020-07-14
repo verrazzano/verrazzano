@@ -77,7 +77,7 @@ Install using xip.io, OCI DNS or manual DNS configuration. In xip.io and OCI DNS
 will be automatically configured for you. In manual mode you must create the records as per
 [Verrazzano Prerequisites](https://verrazzano.io/docs/install/prereqs/)
 
-### 2a. Install using xip.io
+### Install using xip.io
 Run the following scripts in order:
 ```
    ./1-install-istio.sh
@@ -105,7 +105,7 @@ plus sign on the bottom to import the certificate. Next, double-click on the imp
 Expand the trust selection on the left, change `Secure Socket Layers (SSL)` to `Always Trust`.  Finally, dismiss the dialog box to save your change.
 
 **OR**
-### 2b. Install using manual DNS
+### Install using manual DNS
 Run the following scripts in order:
 ```
    ./1-install-istio.sh                       -d manual -n <env-name> -s <dns-suffix>
@@ -114,7 +114,7 @@ Run the following scripts in order:
    ./4-install-keycloak.sh                    -d manual -n <env-name> -s <dns-suffix>
 ```
 **OR**
-### 2c. Install using OCI DNS
+### Install using OCI DNS
 
 Installing Verrazzano on OCI DNS requires the following environment variables to create DNS records:
 
