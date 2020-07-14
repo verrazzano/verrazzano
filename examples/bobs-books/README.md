@@ -38,7 +38,7 @@ cluster if you are using a multi-cluster environment.:
    ```
    kubectl create secret docker-registry github-packages \
            --docker-server=docker.pkg.github.com \
-           --docker-eusername=YOUR_GITHUB_USERNAME \
+           --docker-username=YOUR_GITHUB_USERNAME \
            --docker-password=YOUR_GITHUB_PERSONAL_ACCESS_TOEKSN \
            --docker-email=YOUR_EMAIL
    ```
