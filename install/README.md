@@ -86,7 +86,7 @@ Run the following scripts in order:
 ```
 
 In order to use the consoles, you need to import the root certificate so that the certificates used
-by Verrazzano will be trusted by the browser.  Do the following:
+by Verrazzano will be trusted by the browser.  Following are examples of importing the certificate on OSX. 
 
 1. Save the root certificate to a file named ca.crt:
 ```kubectl get secret default-secret -n verrazzano-system  -o json|jq '.data."ca.crt"' | tr -d '"' | base64 -D >./ca.crt```
