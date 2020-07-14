@@ -184,6 +184,21 @@ function verify_ocr_secret()
     fi
 }
 
+function wait_for_nodes_to_exist {
+    retries=0
+    until kubectl get nodes | grep NAME; do
+      retries=$(($retries+1))
+      sleep 10
+      if [ "$retries" -ge 30 ] ; then
+        break
+      fi
+    done
+    if [ "$retries" -ge 30 ] ; then
+      logDt "Kubernetes nodes don't exist in cluster"
+      return 1
+    fi
+}
+
 function usage {
     consoleerr
     consoleerr "usage: $0 [-n name] [-d dns_type]"
@@ -221,7 +236,10 @@ if [ "$DNS_TYPE" == "manual" ]; then
   }
 fi
 
-# Wait for all cluster nodes to be ready
+# Wait for all cluster nodes to exist, and then to be ready
+action "Waiting for nodes to be exist in cluster..." wait_for_nodes_to_exist || exit 1
+
+logDt "Kubernetes nodes exist"
 action "Waiting for all Kubernetes nodes to be ready" \
     kubectl wait --for=condition=ready nodes --all || exit 1
 
