@@ -84,6 +84,25 @@ Run the following scripts in order:
    ./3-install-verrazzano.sh
    ./4-install-keycloak.sh
 ```
+
+In order to use the consoles, you need to import the root certificate so that the certificates used
+by Verrazzano will be trusted by the browser.  Following are examples of importing the certificate on OSX. 
+
+1. Save the root certificate to a file named ca.crt:
+```kubectl get secret default-secret -n verrazzano-system  -o json|jq '.data."ca.crt"' | tr -d '"' | base64 -D >./ca.crt```
+
+2. Install the root certificate. The instructions below explain how to do this for Firefox and Chrome on OSX.
+ 
+    2.1 Firefox: 
+Go to `about:preferences#privacy` and click `View Certificates`.  Then click the `Authorities` tab and import the certificate.
+On the dialog box that appears, check `Trust this CA to identify websites` and click `OK`.  Then click `OK` on the main dialog box. 
+
+    2.2 Chrome on OSX: 
+Browse to `chrome://settings/privacy` and click `Manage certificates`, which opens the keychain.
+In the keychain dialog box, select `System` keychain in the top left column, select `Certificates` in the bottom left column, then click the
+plus sign on the bottom to import the certificate. Next, double click on the imported certificate and you will see another dialog box.
+Expand the trust selection on the left, change `Secure Socket Layers (SSL)` to `Always Trust`.  Finally, dismiss the dialog box to save your change.
+
 **OR**
 ### 2b. Install using OCI DNS
 
