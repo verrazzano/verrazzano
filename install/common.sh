@@ -219,38 +219,39 @@ command -v jq >/dev/null 2>&1 || {
 ##################################################
 GLOBAL_HUB_REPO=container-registry.oracle.com/olcne
 
-CERT_MANAGER_IMAGE=phx.ocir.io/odx-sre/sauron/cert-manager-controller
-CERT_MANAGER_TAG=0.13.1_3
+CERT_MANAGER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/cert-manager-controller
+CERT_MANAGER_TAG=0.13.1-049f555-17
 CERT_MANAGER_VERSION=0.13.1
 CERT_MANAGER_SOLVER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/cert-manager-acmesolver
+CERT_MANAGER_SOLVER_TAG=0.13.1-049f555-17
 
-EXTERNAL_DNS_REPO=stevengreenberginc/bfs/external-dns/external-dns
+EXTERNAL_DNS_REPO=stevengreenberginc/bfs/external-dns
 EXTERNAL_DNS_VERSION=2.20.0
-EXTERNAL_DNS_TAG=v0.7.1
+EXTERNAL_DNS_TAG=v0.7.1-08253d3-9
 EXTERNAL_DNS_REGISTRY=phx.ocir.io
 
 GRAFANA_REPO=container-registry.oracle.com/olcne/grafana
 GRAFANA_TAG=v6.4.4
 
 KEYCLOAK_IMAGE=phx.ocir.io/stevengreenberginc/bfs/keycloak
-ISTIO_CORE_DNS_PLUGIN_IMAGE=phx.ocir.io/stevengreenberginc/bfs/verrazzano/istio-coredns-plugin
-ISTIO_CORE_DNS_PLUGIN_TAG=0.2-istio-1.1
+ISTIO_CORE_DNS_PLUGIN_IMAGE=phx.ocir.io/stevengreenberginc/bfs/istio-coredns-plugin
+ISTIO_CORE_DNS_PLUGIN_TAG=0.2-4fc7d69-12
 ISTIO_CORE_DNS_IMAGE=container-registry.oracle.com/olcne/coredns
 ISTIO_CORE_DNS_TAG=1.6.2
 ISTIO_VERSION=1.4.6
 
-KEYCLOAK_IMAGE_TAG=10.0.1_3
+KEYCLOAK_IMAGE_TAG=10.0.1-2fee5c4-3
 KEYCLOAK_CHART_VERSION=8.2.2
 
 MYSQL_IMAGE_TAG=8.0.20
 
 NGINX_INGRESS_CONTROLLER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/nginx-ingress-controller
-NGINX_INGRESS_CONTROLLER_TAG=0.32-0
+NGINX_INGRESS_CONTROLLER_TAG=0.32-cf9d06b-18
 NGINX_INGRESS_CONTROLLER_VERSION=1.27.0
 
 NGINX_DEFAULT_BACKEND_IMAGE=phx.ocir.io/stevengreenberginc/bfs/nginx-ingress-default-backend
-NGINX_DEFAULT_BACKEND_TAG=0.32-0
+NGINX_DEFAULT_BACKEND_TAG=0.32-cf9d06b-18
 
 RANCHER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/rancher
 RANCHER_VERSION=v2.4.3
-RANCHER_TAG=v2.4.3-OL
+RANCHER_TAG=v2.4.3-16152f5-15

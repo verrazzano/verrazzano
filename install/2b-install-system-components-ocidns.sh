@@ -118,7 +118,7 @@ function install_cert_manager()
         --version $CERT_MANAGER_VERSION \
         --set image.repository=$CERT_MANAGER_IMAGE \
         --set image.tag=$CERT_MANAGER_TAG \
-        --set extraArgs[0]=--acme-http01-solver-image=$CERT_MANAGER_SOLVER_IMAGE:$CERT_MANAGER_TAG \
+        --set extraArgs[0]=--acme-http01-solver-image=$CERT_MANAGER_SOLVER_IMAGE:$CERT_MANAGER_SOLVER_TAG \
         --set cainjector.enabled=false \
         --set webhook.enabled=false \
         --set webhook.injectAPIServerCA=false \
