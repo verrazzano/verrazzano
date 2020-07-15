@@ -216,6 +216,17 @@ function install_verrazzano()
       --set config.dnsSuffix=${DNS_SUFFIX} \
       --set config.enableMonitoringStorage=true \
       --set verrazzanoOperator.sslVerify=false \
+      --set monitoringOperator.esImage=phx.ocir.io/stevengreenberginc/bfs/elasticsearch:7.6.1-6e8328f-9 \
+      --set monitoringOperator.kibanaImage=phx.ocir.io/stevengreenberginc/bfs/kibana:7.6.1-2270f8a-4 \
+      --set verrazzanoOperator.imageName=phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator-jenkins \
+      --set verrazzanoOperator.imageVersion=6d51fa9ea317dc33ebfaf5d76a879d8177f8df12 \
+      --set verrazzanoOperator.prometheusPusherImage= phx.ocir.io/stevengreenberginc/bfs/prometheus-pusher:1.0.1-abedd4b-18 \
+      --set monitoringOperator.prometheusGatewayImage=phx.ocir.io/stevengreenberginc/bfs/pushgateway:1.2.0-cf661e0-9 \
+      --set verrazzanoOperator.filebeatImage=phx.ocir.io/stevengreenberginc/bfs/filebeat:6.8.3-c8d475a-5 \
+      --set verrazzanoOperator.journalbeatImage=phx.ocir.io/stevengreenberginc/bfs/journalbeat:6.8.3-c8d475a-5 \
+      --set verrazzanoOperator.nodeExporterImage=phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-25813b2-6 \
+      --set monitoringOperator.configReloaderImage=phx.ocir.io/stevengreenberginc/bfs/configmap-reloader:0.3-3449794-30 \
+      --set verrazzanoOperator.fluentdImage=phx.ocir.io/stevengreenberginc/bfs/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-16 \
       --set clusterOperator.rancherURL=https://${RANCHER_HOSTNAME} \
       --set clusterOperator.rancherUserName="${TOKEN_ARRAY[0]}" \
       --set clusterOperator.rancherPassword="${TOKEN_ARRAY[1]}" \

@@ -9,9 +9,9 @@ container-registry.oracle.com/olcne/coredns:1.6.2
 container-registry.oracle.com/os/oraclelinux:7-slim
 phx.ocir.io/stevengreenberginc/bfs/cert-manager-acmesolver:0.13.1-049f555-17
 phx.ocir.io/stevengreenberginc/bfs/cert-manager-controller:0.13.1-049f555-17
-phx.ocir.io/stevengreenberginc/bfs/elasticsearch:7.6.1-80f8609-6
-phx.ocir.io/stevengreenberginc/bfs/kibana:7.6.1-2
-phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator:v0.0.53
+phx.ocir.io/stevengreenberginc/bfs/elasticsearch:7.6.1-6e8328f-9
+phx.ocir.io/stevengreenberginc/bfs/kibana:7.6.1-2270f8a-4
+phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator-jenkins:6d51fa9ea317dc33ebfaf5d76a879d8177f8df12
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.6
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.7
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-cluster-operator:v0.0.6
@@ -23,8 +23,8 @@ phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-admission-controller:v0.0.1
 phx.ocir.io/stevengreenberginc/verrazzano/console:0.1.0
 phx.ocir.io/stevengreenberginc/verrazzano/console-plugin:0.1.0
 phx.ocir.io/stevengreenberginc/bfs/istio-coredns-plugin:0.2-4fc7d69-12
-phx.ocir.io/stevengreenberginc/bfs/prometheus-pusher:1.0.1_6
-phx.ocir.io/stevengreenberginc/bfs/pushgateway:1.2.0-1
+phx.ocir.io/stevengreenberginc/bfs/prometheus-pusher:1.0.1-abedd4b-18
+phx.ocir.io/stevengreenberginc/bfs/pushgateway:1.2.0-cf661e0-9
 phx.ocir.io/stevengreenberginc/bfs/nginx-ingress-controller:0.32-cf9d06b-18
 phx.ocir.io/stevengreenberginc/bfs/nginx-ingress-default-backend:0.32-cf9d06b-18
 container-registry.oracle.com/middleware/coherence:12.2.1.4.0
@@ -37,10 +37,10 @@ phx.ocir.io/stevengreenberginc/bfs/rancher:v2.4.3-16152f5-15
 phx.ocir.io/stevengreenberginc/bfs/external-dns:v0.7.1-08253d3-9
 phx.ocir.io/stevengreenberginc/verrazzano/helidon-greet-app-v1:0.12
 phx.ocir.io/stevengreenberginc/verrazzano/helidon-greet-app-v2:0.12
-phx.ocir.io/stevengreenberginc/bfs/filebeat:6.8.3-2
-phx.ocir.io/stevengreenberginc/bfs/journalbeat:6.8.3-2
-phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-1
-phx.ocir.io/stevengreenberginc/bfs/configmap-reloader:0.3
+phx.ocir.io/stevengreenberginc/bfs/filebeat:6.8.3-c8d475a-5
+phx.ocir.io/stevengreenberginc/bfs/journalbeat:6.8.3-c8d475a-5
+phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-25813b2-6
+phx.ocir.io/stevengreenberginc/bfs/configmap-reloader:0.3-3449794-30
 phx.ocir.io/stevengreenberginc/bfs/keycloak:10.0.1-2fee5c4-3
-phx.ocir.io/stevengreenberginc/bfs/fluentd-kubernetes-daemonset:v1.10.4-oraclelinux-elasticsearch7-1.0
+phx.ocir.io/stevengreenberginc/bfs/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-16
 
