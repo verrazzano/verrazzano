@@ -225,7 +225,7 @@ CERT_MANAGER_VERSION=0.13.1
 CERT_MANAGER_SOLVER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/cert-manager-acmesolver
 CERT_MANAGER_SOLVER_TAG=0.13.1-049f555-17
 
-EXTERNAL_DNS_REPO=stevengreenberginc/bfs/external-dns/external-dns
+EXTERNAL_DNS_REPO=stevengreenberginc/bfs/external-dns
 EXTERNAL_DNS_VERSION=2.20.0
 EXTERNAL_DNS_TAG=v0.7.1-08253d3-9
 EXTERNAL_DNS_REGISTRY=phx.ocir.io
