@@ -234,7 +234,7 @@ GRAFANA_REPO=container-registry.oracle.com/olcne/grafana
 GRAFANA_TAG=v6.4.4
 
 KEYCLOAK_IMAGE=phx.ocir.io/stevengreenberginc/bfs/keycloak
-ISTIO_CORE_DNS_PLUGIN_IMAGE=phx.ocir.io/stevengreenberginc/bfs/verrazzano/istio-coredns-plugin
+ISTIO_CORE_DNS_PLUGIN_IMAGE=phx.ocir.io/stevengreenberginc/bfs/istio-coredns-plugin
 ISTIO_CORE_DNS_PLUGIN_TAG=0.2-4fc7d69-12
 ISTIO_CORE_DNS_IMAGE=container-registry.oracle.com/olcne/coredns
 ISTIO_CORE_DNS_TAG=1.6.2
