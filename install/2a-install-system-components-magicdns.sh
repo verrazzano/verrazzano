@@ -165,6 +165,12 @@ function install_rancher()
     RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- reset-password 2>/dev/null)
     ADMIN_PW=`echo $RANCHER_DATA | awk '{ print $NF }'`
     kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
+
+    get_rancher_access_token "rancher.${NAME}.${DNS_SUFFIX}" "${ADMIN_PW}" || exit 1
+    echo "Set Rancher ServerUrl to rancher.${NAME}.${DNS_SUFFIX}"
+    curl -s "https://rancher.${NAME}.${DNS_SUFFIX}/v3/settings/server-url" -H 'content-type: application/json'  -H "Authorization: Bearer $RANCHER_ACCESS_TOKEN" \
+      -X PUT --data-binary '{"name":"server-url","value":"'https://rancher.${NAME}.${DNS_SUFFIX}'"}' --insecure > /dev/null
+
 }
 
 function usage {
