@@ -10,6 +10,8 @@ spec:
   helidonApplications:
     - name: "hello-world-application"
       image: "docker.pkg.github.com/verrazzano/examples/helidon-greet-app-v1:0.1.4"
+      imagePullSecrets:
+        - name: github-packages
       connections:
         - ingress:
             - name: "greet-ingress"
