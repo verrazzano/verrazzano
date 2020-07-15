@@ -40,7 +40,7 @@ phx.ocir.io/stevengreenberginc/verrazzano/helidon-greet-app-v2:0.12
 phx.ocir.io/stevengreenberginc/bfs/filebeat:6.8.3-c8d475a-5
 phx.ocir.io/stevengreenberginc/bfs/journalbeat:6.8.3-c8d475a-5
 phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-25813b2-6
-phx.ocir.io/stevengreenberginc/bfs/configmap-reloader:0.3-3449794-30
+phx.ocir.io/stevengreenberginc/bfs/configmap-reload:0.3-3449794-32
 phx.ocir.io/stevengreenberginc/bfs/keycloak:10.0.1-2fee5c4-3
 phx.ocir.io/stevengreenberginc/bfs/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-16
 
