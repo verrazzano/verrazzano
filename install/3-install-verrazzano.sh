@@ -220,7 +220,7 @@ function install_verrazzano()
       --set monitoringOperator.kibanaImage=phx.ocir.io/stevengreenberginc/bfs/kibana:7.6.1-2270f8a-4 \
       --set verrazzanoOperator.imageName=phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator-jenkins \
       --set verrazzanoOperator.imageVersion=6d51fa9ea317dc33ebfaf5d76a879d8177f8df12 \
-      --set verrazzanoOperator.prometheusPusherImage= phx.ocir.io/stevengreenberginc/bfs/prometheus-pusher:1.0.1-abedd4b-18 \
+      --set verrazzanoOperator.prometheusPusherImage=phx.ocir.io/stevengreenberginc/bfs/prometheus-pusher:1.0.1-abedd4b-18 \
       --set monitoringOperator.prometheusGatewayImage=phx.ocir.io/stevengreenberginc/bfs/pushgateway:1.2.0-cf661e0-9 \
       --set verrazzanoOperator.filebeatImage=phx.ocir.io/stevengreenberginc/bfs/filebeat:6.8.3-c8d475a-5 \
       --set verrazzanoOperator.journalbeatImage=phx.ocir.io/stevengreenberginc/bfs/journalbeat:6.8.3-c8d475a-5 \
