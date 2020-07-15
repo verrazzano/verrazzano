@@ -9,6 +9,19 @@ application.
 
 1. Prerequisites: Install Verrazzano following the [installation instructions](../install/README.md).
 
+1. Create a `docker-registry` secret to enable pulling images from GitHub Packages.
+
+   ```
+   kubectl create secret docker-registry github-packages \
+           --docker-server=docker.pkg.github.com \
+           --docker-username=YOUR_GITHUB_USERNAME \
+           --docker-password=YOUR_GITHUB_PERSONAL_ACCESS_TOEKSN \
+           --docker-email=YOUR_EMAIL
+   ```
+
+   Replace `YOUR_GITHUB_USERNAME`, `YOUR_GITHUB_PERSONAL_ACCESS_TOKEN` and `YOUR_EMAIL` with
+   the values that you use to access GitHub.
+
 1. Deploy the Verrazzano Model and Verrazzano Binding for the example application.
 
     ### Using an OKE cluster
