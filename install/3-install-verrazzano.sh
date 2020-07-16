@@ -225,7 +225,8 @@ function install_verrazzano()
       --set verrazzanoOperator.filebeatImage=phx.ocir.io/stevengreenberginc/bfs/filebeat:6.8.3-c8d475a-5 \
       --set verrazzanoOperator.journalbeatImage=phx.ocir.io/stevengreenberginc/bfs/journalbeat:6.8.3-c8d475a-5 \
       --set verrazzanoOperator.nodeExporterImage=phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-25813b2-6 \
-      --set monitoringOperator.configReloaderImage=phx.ocir.io/stevengreenberginc/bfs/configmap-reloader:0.3-3449794-30 \
+      --set monitoringOperator.nodeExporterImage=phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-25813b2-6 \
+      --set monitoringOperator.configReloaderImage=phx.ocir.io/stevengreenberginc/bfs/configmap-reload:0.3-3449794-32 \
       --set verrazzanoOperator.fluentdImage=phx.ocir.io/stevengreenberginc/bfs/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-16 \
       --set clusterOperator.rancherURL=https://${RANCHER_HOSTNAME} \
       --set clusterOperator.rancherUserName="${TOKEN_ARRAY[0]}" \
