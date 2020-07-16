@@ -61,6 +61,7 @@ Run the script to create your kind cluster:
    export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
    export KUBECONFIG=$VERRAZZANO_KUBECONFIG
 ```
+> **NOTE**: At this time the only supported deployment for OLCNE is DNS type manual
 
 ### Create Oracle Container Registry secret
 For all cluster types, you need to create the "ocr" secret. This is needed for pulling images from the container-registry.oracle.com repository.
