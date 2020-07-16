@@ -1,10 +1,14 @@
 
 # Installation
 
-Verrazzano can be installed in a single [Oracle OKE](https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm) cluster 
-or a [kind](https://kind.sigs.k8s.io/) cluster. For each cluster type, you have two DNS choices: 
+Verrazzano can be installed in a single [Oracle OKE](https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm) cluster,
+an [Oracle Linux Cloud Native Environment](https://docs.oracle.com/en/operating-systems/olcne/) deployment,
+or a [kind](https://kind.sigs.k8s.io/) cluster.
+For the Oracle OKE and kind cluster types you have two DNS choices:
 [xip.io](http://xip.io/) or
 [Oracle OCI DNS](https://docs.cloud.oracle.com/en-us/iaas/Content/DNS/Concepts/dnszonemanagement.htm).
+Oracle Linux Cloud Native Environment currently only supports a third choice of manual DNS
+as described in the [Verrazzano Prerequisites](https://verrazzano.io/docs/install/prereqs/).
 
 > **NOTE**: You should only install this alpha release of Verrazzano in a cluster that can be safely deleted when your evaluation is complete.
 
