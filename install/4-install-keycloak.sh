@@ -177,7 +177,7 @@ fi
 
 DNS_TARGET_NAME=${DNS_PREFIX}.${ENV_NAME}.${DNS_SUFFIX}
 
-action "Cleaning up previous installation" cleanup_all || exit 1
+action "Preparing for installation" cleanup_all || exit 1
 action "Installing MySQL" install_mysql || exit 1
 action "Installing Keycloak" install_keycloak || exit 1
 
