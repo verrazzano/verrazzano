@@ -157,7 +157,7 @@ function install_verrazzano()
       -H "Content-Type: application/json" \
       -X POST https://${RANCHER_HOSTNAME}/v3-public/localProviders/local?action=login | jq -r '.token')
 
-    if [ ! -z "$RANCHER_ADMIN_TOKEN" ] ; then
+    if [ -n "$RANCHER_ADMIN_TOKEN" ] ; then
       break
     fi
 
@@ -185,7 +185,7 @@ function install_verrazzano()
       -H "Content-Type: application/json" -H "Authorization: Bearer ${RANCHER_ADMIN_TOKEN}" \
       -X POST https://${RANCHER_HOSTNAME}/v3/token | jq -r '.token')
 
-    if [ ! -z "$RANCHER_ACCESS_TOKEN" ] ; then
+    if [ -n "$RANCHER_ACCESS_TOKEN" ] ; then
       break
     fi
 
