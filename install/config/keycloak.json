@@ -273,10 +273,10 @@
         "containerId" : "541e7f36-2b3f-4c53-96bb-8946d8b23195",
         "attributes" : { }
       } ],
-      "sauron-oauth-client" : [ {
+      "verrazzano-oauth-client" : [ {
         "id" : "33d23d2d-d8fa-4cbd-8b1c-9a054f6b47d4",
         "name" : "Admin",
-        "description" : "Admin role on all sauron instances",
+        "description" : "Admin role on all verrazzano instances",
         "composite" : false,
         "clientRole" : true,
         "containerId" : "23425d4c-eebb-48b5-a62f-1b6049067bca",
@@ -386,7 +386,7 @@
     "requiredActions" : [ ],
     "realmRoles" : [ "admin", "offline_access", "uma_authorization", "Admin" ],
     "clientRoles" : {
-      "sauron-oauth-client" : [ "Admin" ],
+      "verrazzano-oauth-client" : [ "Admin" ],
       "account" : [ "manage-account", "view-profile" ],
       "realm-management" : [ "manage-users" ]
     },
@@ -416,7 +416,7 @@
     "requiredActions" : [ ],
     "realmRoles" : [ "offline_access", "readall", "uma_authorization", "kibanauser", "viewer", "monitor" ],
     "clientRoles" : {
-      "sauron-oauth-client" : [ "Viewer" ],
+      "verrazzano-oauth-client" : [ "Viewer" ],
       "account" : [ "manage-account", "view-profile" ]
     },
     "notBefore" : 0,
@@ -424,12 +424,12 @@
   }, {
     "id" : "0f3293ca-009e-401f-9dbe-ac0c31d2906f",
     "createdTimestamp" : 1564417628739,
-    "username" : "service-account-sauron-oauth-client",
+    "username" : "service-account-verrazzano-oauth-client",
     "enabled" : true,
     "totp" : false,
     "emailVerified" : false,
-    "email" : "service-account-sauron-oauth-client@placeholder.org",
-    "serviceAccountClientId" : "sauron-oauth-client",
+    "email" : "service-account-verrazzano-oauth-client@placeholder.org",
+    "serviceAccountClientId" : "verrazzano-oauth-client",
     "credentials" : [ ],
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
@@ -655,7 +655,7 @@
     "optionalClientScopes" : [ "address", "phone", "offline_access", "microprofile-jwt" ]
   }, {
     "id" : "23425d4c-eebb-48b5-a62f-1b6049067bca",
-    "clientId" : "sauron-oauth-client",
+    "clientId" : "verrazzano-oauth-client",
     "rootUrl" : "",
     "adminUrl" : "",
     "surrogateAuthRequired" : false,
@@ -940,7 +940,7 @@
       "protocolMapper" : "oidc-audience-mapper",
       "consentRequired" : false,
       "config" : {
-        "included.client.audience" : "sauron-oauth-client",
+        "included.client.audience" : "verrazzano-oauth-client",
         "id.token.claim" : "false",
         "access.token.claim" : "true",
         "userinfo.token.claim" : "false"
