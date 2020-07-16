@@ -6,7 +6,7 @@ or a [kind](https://kind.sigs.k8s.io/) cluster. For each cluster type, you have 
 [xip.io](http://xip.io/) or
 [Oracle OCI DNS](https://docs.cloud.oracle.com/en-us/iaas/Content/DNS/Concepts/dnszonemanagement.htm).
 
-> **NOTE**: You should only install this alpla release of Verazzano in a cluster that can be safely deleted when your evaluation is complete.
+> **NOTE**: You should only install this alpha release of Verrazzano in a cluster that can be safely deleted when your evaluation is complete.
 
 ## Resource Requirements
 
@@ -31,7 +31,7 @@ The following software must be installed on your system.
 ## 1. Preparing for installation
 
 Prepare for installation as shown below, depending on your cluster type.
-Then, create the the docker registry secret.
+Then, create the docker registry secret.
 
 ###  Using an OKE Cluster
 Create the OKE cluster using the OCI console or some other means, then set the following ENV vars:
