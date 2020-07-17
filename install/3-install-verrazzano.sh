@@ -163,6 +163,8 @@ function install_verrazzano()
       --set clusterOperator.rancherUserName="${TOKEN_ARRAY[0]}" \
       --set clusterOperator.rancherPassword="${TOKEN_ARRAY[1]}" \
       --set clusterOperator.rancherHostname=${RANCHER_HOSTNAME} \
+      --set monitoringOperator.esImage=docker.elastic.co/elasticsearch/elasticsearch-oss:7.6.1 \
+      --set monitoringOperator.kibanaImage=docker.elastic.co/kibana/kibana-oss:7.6.1 \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)"
 
   logDt "\nVerifying that needed secrets are created"
