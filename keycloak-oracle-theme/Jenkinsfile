@@ -5,7 +5,7 @@ def HEAD_COMMIT
 
 pipeline {
     options {
-        checkoutToSubdirectory('verrazzano')
+        skipDefaultCheckout()
     }
 
     agent {
