@@ -45,9 +45,11 @@ function check_ingress_ports() {
 
       # Attempt to access the port on the $INGRESS_IP
       if [ $TARGETPORT == "https" ]; then
-        curl -k https://$INGRESS_IP:$PORT
+        ARGS=(-k https://$INGRESS_IP:$PORT)
+        call_curl 0 response http_code ARGS
       else
-        curl http://$INGRESS_IP:$PORT
+        ARGS=(http://$INGRESS_IP:$PORT)
+        call_curl 0 response http_code ARGS
       fi
 
       # Check the result of the curl call
