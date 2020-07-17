@@ -32,6 +32,7 @@ pipeline {
         stage('Clean workspace and checkout') {
             steps {
                 script {
+                    sh "rm -rf ${WORKSPACE}/verrazzano" //could be leftover from previous checkouts to subdirectory
                     checkout scm
                     echo "${WORKSPACE}"
                     HEAD_COMMIT = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
