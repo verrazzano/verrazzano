@@ -170,65 +170,7 @@ function wait_for_ingress_ip() {
 }
 
 function logDt() {
-  echo -e $(date -u "+%Y-%m-%d %H:%M%:%S %Z") "$@"
-}
-
-function get_rancher_access_token {
-    # args  $1 = rancher hostname, $2 = rancher password
-  logDt "Retrieving the rancher admin token from Rancher at $1"
-
-  # Use external retries instead of curl retries, since curl does not retry for all
-  # the scenarios we want (e.g. connection errors)
-  retries=0
-  until [ $retries -ge 10 ]
-  do
-    RANCHER_ADMIN_TOKEN=$(curl -s -k --connect-timeout 30 \
-      -d '{"Username":"admin", "Password":"'"$2"'"}' \
-      -H "Content-Type: application/json" \
-      -X POST https://$1/v3-public/localProviders/local?action=login | jq -r '.token')
-
-    if [ ! -z "$RANCHER_ADMIN_TOKEN" ] ; then
-      break
-    fi
-
-    logDt "Retrying get RANCHER_ADMIN_TOKEN"
-    retries=$(($retries+1))
-    sleep 30
-  done
-
-  if [ -z "$RANCHER_ADMIN_TOKEN" ] ; then
-      echo "RANCHER_ADMIN_TOKEN is empty! Did you run the scripts to install Istio and system components?"
-      return 1
-  fi
-
-  logDt "Retrieving the access token from Rancher at $1"
-
-  # Use external retries instead of curl retries, since curl does not retry for all
-  # the scenarios we want (e.g. connection errors)
-  retries=0
-  until [ "$retries" -ge 10 ]
-  do
-    RANCHER_ACCESS_TOKEN=$(curl -s -k --connect-timeout 30 \
-      -d '{"type":"token", "description":"automation"}' \
-      -H "Content-Type: application/json" -H "Authorization: Bearer ${RANCHER_ADMIN_TOKEN}" \
-      -X POST https://$1/v3/token | jq -r '.token')
-
-    if [ ! -z "$RANCHER_ACCESS_TOKEN" ] ; then
-      break
-    fi
-
-    logDt "Retrying get RANCHER_ACCESS_TOKEN"
-    retries=$(($retries+1))
-    sleep 30
-  done
-
-  if [ -z "$RANCHER_ACCESS_TOKEN" ] ; then
-      logDt "RANCHER_ACCESS_TOKEN is empty!\n"
-      echo
-      echo "Dumping additional detail below"
-      dump_rancher_ingress
-      return 1
-  fi
+  echo -e $(date -u "+%Y-%m-%d %H:%M%:%S %Z") $@
 }
 
 trap onerror ERR EXIT
