@@ -16,7 +16,7 @@ VZ_SYS_REALM=verrazzano-system
 VZ_USERNAME=verrazzano
 DNS_PREFIX="verrazzano-ingress"
 TMP_DIR=$(mktemp -d)
-trap "rm -rf $TMP_DIR" EXIT
+trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
 function set_INGRESS_IP() {
   if [ ${CLUSTER_TYPE} == "OKE" ]; then
@@ -33,28 +33,28 @@ function set_INGRESS_IP() {
 }
 
 function cleanup_all {
-  set +e
-  helm uninstall keycloak --namespace ${KEYCLOAK_NS} > /dev/null 2>&1
-  helm uninstall mysql --namespace ${KEYCLOAK_NS} > /dev/null 2>&1
-  kubectl delete --all pvc --namespace ${KEYCLOAK_NS} > /dev/null 2>&1
-  set -e
+  helm uninstall keycloak --namespace ${KEYCLOAK_NS} > /dev/null 2>&1 || true
+  helm uninstall mysql --namespace ${KEYCLOAK_NS} > /dev/null 2>&1 || true
+  kubectl delete --all pvc --namespace ${KEYCLOAK_NS} > /dev/null 2>&1 || true
 }
 
 function install_mysql {
-  # Create keycloak namespace if it does not exist
+  log "Check for Keycloak namespace"
   if ! kubectl get namespace ${KEYCLOAK_NS} 2> /dev/null ; then
+    log "Create Keycloak namespace"
     kubectl create namespace ${KEYCLOAK_NS}
   fi
 
-  # sed mysql-values-template.yaml file
+  log "Update MySQL configuration template"
   sed -e "s|MYSQL_IMAGE_TAG|${MYSQL_IMAGE_TAG}|g" \
       -e "s|MYSQL_USERNAME|${MYSQL_USERNAME}|g" \
       $SCRIPT_DIR/config/mysql-values-template.yaml > ${TMP_DIR}/mysql-values-sed.yaml
   
-  # Install mysql helm chart
+  log "Install MySQL helm chart"
   helm upgrade mysql stable/mysql \
       --install \
       --namespace ${KEYCLOAK_NS} \
+      --timeout 10m \
       --wait \
       -f ${TMP_DIR}/mysql-values-sed.yaml
 }
@@ -70,11 +70,9 @@ function install_keycloak {
 
   sed "s|ENV_NAME|${ENV_NAME}|g;s|DNS_SUFFIX|${DNS_SUFFIX}|g;s|VZ_SYS_REALM|${VZ_SYS_REALM}|g;s|VZ_USERNAME|${VZ_USERNAME}|g;s|VZ_PW_SALT|${VZ_PW_SALT}|g;s|VZ_PW_HASH|${VZ_PW_HASH}|g" $SCRIPT_DIR/config/keycloak.json > ${TMP_DIR}/keycloak-sed.json
 
-  set +e
   if ! kubectl get secret ${KEYCLOAK_NS} keycloak-realm-cacert 2> /dev/null ; then
-      kubectl delete secret keycloak-realm-cacert -n ${KEYCLOAK_NS}
+      kubectl delete secret keycloak-realm-cacert -n ${KEYCLOAK_NS} || true
   fi
-  set -e
 
   # Create keycloak secret
   kubectl create secret generic keycloak-realm-cacert \
@@ -186,7 +184,7 @@ fi
 
 DNS_TARGET_NAME=${DNS_PREFIX}.${ENV_NAME}.${DNS_SUFFIX}
 
-action "Cleaning up previous installation" cleanup_all || exit 1
+action "Cleaning up previous Keycloak installation" cleanup_all || exit 1
 action "Installing MySQL" install_mysql || exit 1
 action "Installing Keycloak" install_keycloak || exit 1
 action "Setting Rancher Server URL" set_server_url || exit 1

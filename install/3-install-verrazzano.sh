@@ -71,7 +71,7 @@ VERRAZZANO_VERSION=v0.0.58
 set_INGRESS_IP
 check_ingress_ports
 if [ $? -ne 0 ]; then
-  echo "ERROR : Failed ingress port check."
+  echo "ERROR: Failed ingress port check."
   exit 1
 fi
 
@@ -124,14 +124,11 @@ function dump_rancher_ingress {
 
 function install_verrazzano()
 {
-  set +e
-  echo # for newline before additional output from below commands
-  logDt "Uninstalling any existing verrazzano components\n"
-  helm uninstall verrazzano --namespace ${VERRAZZANO_NS}
-  kubectl delete vmc local
-  kubectl delete secret verrazzano-managed-cluster-local
-  set -e
-  logDt "Completed uninstall\n"
+  logDt "Uninstalling any existing verrazzano components"
+  helm uninstall verrazzano --namespace ${VERRAZZANO_NS} /dev/null 2>&1 || true
+  kubectl delete vmc local /dev/null 2>&1 || true
+  kubectl delete secret verrazzano-managed-cluster-local /dev/null 2>&1 || true
+  logDt "Completed uninstall"
 
   RancherAdminPassword=`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode`
 
@@ -151,7 +148,7 @@ function install_verrazzano()
 
   export TOKEN_ARRAY=(${RANCHER_ACCESS_TOKEN//:/ })
 
-  logDt "Installing verrazzano from Helm chart\n"
+  logDt "Installing verrazzano from Helm chart"
   helm \
       upgrade --install verrazzano \
       https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-helm-chart/o/${VERRAZZANO_VERSION}%2Fverrazzano-${VERRAZZANO_VERSION}.tgz \
@@ -167,7 +164,7 @@ function install_verrazzano()
       --set clusterOperator.rancherHostname=${RANCHER_HOSTNAME} \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)"
 
-  logDt "\nVerifying that needed secrets are created"
+  logDt "Verifying that needed secrets are created"
   retries=0
   until [ "$retries" -ge 60 ]
   do
@@ -179,7 +176,7 @@ function install_verrazzano()
       consoleerr "ERROR: failed creating verrazzano secret"
       exit 1
   fi
-  logDt "Verrazzano install completed\n"
+  logDt "Verrazzano install completed"
 }
 
 function usage {

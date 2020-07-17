@@ -27,9 +27,7 @@ function set_INGRESS_IP() {
 
 function install_nginx_ingress_controller()
 {
-    set +e
-    helm uninstall ingress-controller --namespace ingress-nginx
-    set -e
+    helm uninstall ingress-controller --namespace ingress-nginx || true
 
     # Create the namespace for nginx
     if ! kubectl get namespace ingress-nginx ; then
@@ -130,17 +128,24 @@ spec:
 
 function install_rancher()
 {
-    set +e
-    helm uninstall rancher --namespace cattle-system
-    set -e
+    log "Uninstall Rancher (if required)"
+    helm uninstall rancher --namespace cattle-system > /dev/null 2>&1 || true
 
-    if ! kubectl get namespace cattle-system ; then
+    log "Delete Rancher secrets"
+    kubectl -n cattle-system delete secret rancher-admin-secret > /dev/null 2>&1 || true
+
+    log "Create Rancher namespace (if required)"
+    if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
         kubectl create namespace cattle-system
     fi
-    kubectl -n cattle-system delete secret rancher-admin-secret
+
+    log "Add Rancher helm repository location"
     helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
+
+    log "Update helm repositoriess"
     helm repo update
 
+    log "Install Rancher"
     helm upgrade rancher rancher-stable/rancher \
       --install --namespace cattle-system \
       --version $RANCHER_VERSION  \
@@ -158,10 +163,13 @@ function install_rancher()
       RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${NAME}.${DNS_SUFFIX} auth\",\"cert-manager.io/issuer\":\"rancher\",\"cert-manager.io/issuer-kind\":\"Issuer\"}}}"
     fi
 
-    kubectl patch ingress rancher -n cattle-system -p "$RANCHER_PATCH_DATA"  --type=merge
+    log "Patch Rancher ingress"
+    kubectl patch ingress rancher -n cattle-system -p "$RANCHER_PATCH_DATA" --type=merge
 
+    log "Rollout Rancher"
     kubectl -n cattle-system rollout status -w deploy/rancher
 
+    log "Create Rancher secrets"
     RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- reset-password 2>/dev/null)
     ADMIN_PW=`echo $RANCHER_DATA | awk '{ print $NF }'`
     kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
@@ -204,6 +212,6 @@ if [ $DNS_TYPE == "manual" ] && [ -z $DNS_SUFFIX ]; then
   usage
 fi
 
-action "Installing Nginx Ingress Controller" install_nginx_ingress_controller || exit 1
-action "Installing cert manager" install_cert_manager || exit 1
+action "Installing NGINX ingress controller" install_nginx_ingress_controller || exit 1
+action "Installing certificate manager" install_cert_manager || exit 1
 action "Installing Rancher" install_rancher || exit 1
