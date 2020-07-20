@@ -21,11 +21,14 @@ This repository contains installation scripts and example applications for use w
 To install Verrazzano, follow these steps:  
 1. Create an OKE cluster  
 2. Start OCI Cloud Shell  
+3. Copy the kubeconfig to Cloud Shell
 3. Clone this repo in the Cloud Shell home.
+   - `git clone https://github.com/verrazzano/verrazzano`
+   - `cd verrazzano`
 4. Run the following scripts:  
    - `export CLUSTER_TYPE=OKE`
-   - `export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>`
-   - `export KUBECONFIG=<path to valid kubernetes config>`
+   - `export VERRAZZANO_KUBECONFIG=~/.kube/config`
+   - `export KUBECONFIG=~/.kube/config`
    - `kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com`
    - `./install/1-install-istio.sh`
    - `./install/2a-install-system-components-magicdns.sh`
