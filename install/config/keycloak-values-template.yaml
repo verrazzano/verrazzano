@@ -3,7 +3,7 @@
 keycloak:
   extraInitContainers: |
     - name: theme-provider
-      image: phx.ocir.io/stevengreenberginc/bfs/verrazzano/keycloak-oracle-theme:6f0b5b6f53800ac94198ef0530eb41aa3246dbe7
+      image: phx.ocir.io/stevengreenberginc/bfs/verrazzano/keycloak-oracle-theme:fc5084e7cb5fceb5ce224327397acb87f2f520c1
       imagePullPolicy: IfNotPresent
       command:
         - sh
