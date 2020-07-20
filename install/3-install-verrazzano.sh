@@ -23,57 +23,71 @@ function set_INGRESS_IP() {
   fi
 }
 
+# Check if the ingress ports are accessible
+function check_all_ingress_ports() {
+  local exitvalue=0
+
+  if [ ${CLUSTER_TYPE} == "OKE" ]; then
+    check_ingress_ports ingress-nginx ingress-controller-nginx-ingress-controller $INGRESS_IP
+    if [ $? -ne 0 ]; then
+      exitvalue=1
+    fi
+
+    ISTIO_INGRESS_IP=$(kubectl get svc istio-ingressgateway -n istio-system -o json | jq -r '.status.loadBalancer.ingress[0].ip')
+    check_ingress_ports istio-system istio-ingressgateway $ISTIO_INGRESS_IP
+    if [ $? -ne 0 ]; then
+      exitvalue=1
+    fi
+  fi
+  return $exitvalue
+}
+
 # Check if the nginx ingress ports are accessible
 function check_ingress_ports() {
-  exitvalue=0
-  if [ ${CLUSTER_TYPE} == "OKE" ]; then
-    # Get the ports from the ingress
-    PORTS=$(kubectl get services -n ingress-nginx ingress-controller-nginx-ingress-controller -o=custom-columns=PORT:.spec.ports[*].name --no-headers)
-    IFS=',' read -r -a port_array <<< "$PORTS"
+  local exitvalue=0
+  local namespace=$1
+  local ingress_service=$2
+  local ingress_ip=$3
 
-    index=0
-    for element in "${port_array[@]}"
-    do
-      # For each get the port, nodePort and targetPort
-      RESP=$(kubectl get services -n ingress-nginx ingress-controller-nginx-ingress-controller -o=custom-columns=PORT:.spec.ports[$index].port,NODEPORT:.spec.ports[$index].nodePort,TARGETPORT:.spec.ports[$index].targetPort --no-headers)
-      ((index++))
+  echo "Checking access on ports for ingress $namespace.$ingress_service"
 
-      IFS=' ' read -r -a vals <<< "$RESP"
-      PORT="${vals[0]}"
-      NODEPORT="${vals[1]}"
-      TARGETPORT="${vals[2]}"
+  # Get the ports from the ingress
+  local ports=$(kubectl get services -n $namespace $ingress_service -o=custom-columns=PORT:.spec.ports[*].name --no-headers)
+  IFS=',' read -r -a port_array <<< "$ports"
 
-      # Attempt to access the port on the $INGRESS_IP
-      if [ $TARGETPORT == "https" ]; then
-        ARGS=(-k https://$INGRESS_IP:$PORT)
+  for i in "${!port_array[@]}"; do
+    # For each get the port, nodePort and targetPort
+    local resp=$(kubectl get services -n $namespace $ingress_service -o=custom-columns=PORT:.spec.ports[$i].port,NODEPORT:.spec.ports[$i].nodePort,TARGETPORT:.spec.ports[$i].targetPort --no-headers)
+
+    IFS=' ' read -r -a vals <<< "$resp"
+    local port="${vals[0]}"
+    local node_port="${vals[1]}"
+    local target_port="${vals[2]}"
+
+    if [ $port == "80" ] || [ $port == "443" ]; then
+      # Attempt to access the port on the ingress ip
+      if [ $port == "443" ]; then
+        ARGS=(-k https://$ingress_ip:$port)
         call_curl 0 response http_code ARGS
       else
-        ARGS=(http://$INGRESS_IP:$PORT)
+        ARGS=(http://$ingress_ip:$port)
         call_curl 0 response http_code ARGS
       fi
-
       # Check the result of the curl call
       if [ $? -eq 0 ]; then
-        echo
-        echo "Port $PORT is accessible on ingress($INGRESS_IP).  Note that '404 page not found' is an expected response."
+        echo "Port $port is accessible on $ingress_service($ingress_ip).  Note that '404 page not found' is an expected response."
       else
-        echo
-        echo "ERROR: Port $PORT is NOT accessible on ingress($INGRESS_IP)!  Check that security lists include an ingress rule for the node port $NODEPORT."
+        echo "ERROR: Port $port is NOT accessible on $ingress_service($ingress_ip)!  Check that security lists include an ingress rule for the node port $node_port."
         exitvalue=1
       fi
-    done
-  fi
+    fi
+  done
   return $exitvalue
 }
 
 VERRAZZANO_NS=verrazzano-system
 VERRAZZANO_VERSION=v0.0.56
 set_INGRESS_IP
-check_ingress_ports
-if [ $? -ne 0 ]; then
-  echo "ERROR : Failed ingress port check."
-  exit 1
-fi
 
 set -eu
 
@@ -297,4 +311,5 @@ if ! kubectl get namespace ${VERRAZZANO_NS} ; then
 fi
 
 action "Creating admission controller cert" create_admission_controller_cert || exit 1
+action "Checking ingress ports" check_all_ingress_ports || exit 1
 action "Installing Verrazzano system components" install_verrazzano || exit 1
