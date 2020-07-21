@@ -182,15 +182,18 @@ function get_rancher_access_token {
   retries=0
   until [ $retries -ge 10 ]
   do
-    RANCHER_ADMIN_TOKEN=$(curl -s -k --connect-timeout 30 \
-      -d '{"Username":"admin", "Password":"'"$2"'"}' \
-      -H "Content-Type: application/json" \
-      -X POST https://$1/v3-public/localProviders/local?action=login | jq -r '.token')
+    ARGS=(-k --connect-timeout 30 \
+    -d '{"Username":"admin", "Password":"'$2'"}' \
+    -H "Content-Type: application/json" \
+    -X POST https://$1/v3-public/localProviders/local?action=login)
+    call_curl 201 response http_code ARGS
+    if [ $? -eq 0 ]; then
+      RANCHER_ADMIN_TOKEN=$(echo $response | jq -r '.token')
 
-    if [ ! -z "$RANCHER_ADMIN_TOKEN" ] ; then
-      break
+      if [ ! -z "$RANCHER_ADMIN_TOKEN" ] ; then
+        break
+      fi
     fi
-
     logDt "Retrying get RANCHER_ADMIN_TOKEN"
     retries=$(($retries+1))
     sleep 30
@@ -208,15 +211,19 @@ function get_rancher_access_token {
   retries=0
   until [ "$retries" -ge 10 ]
   do
-    RANCHER_ACCESS_TOKEN=$(curl -s -k --connect-timeout 30 \
-      -d '{"type":"token", "description":"automation"}' \
-      -H "Content-Type: application/json" -H "Authorization: Bearer ${RANCHER_ADMIN_TOKEN}" \
-      -X POST https://$1/v3/token | jq -r '.token')
+    ARGS=(-k --connect-timeout 30 \
+    -d '{"type":"token", "description":"automation"}' \
+    -H "Content-Type: application/json"
+    -H "Authorization: Bearer ${RANCHER_ADMIN_TOKEN}" \
+    -X POST https://$1/v3/token )
+    call_curl 201 response http_code ARGS
+    if [ $? -eq 0 ]; then
+      RANCHER_ACCESS_TOKEN=$(echo $response | jq -r '.token')
 
-    if [ ! -z "$RANCHER_ACCESS_TOKEN" ] ; then
-      break
+      if [ ! -z "$RANCHER_ACCESS_TOKEN" ] ; then
+        break
+      fi
     fi
-
     logDt "Retrying get RANCHER_ACCESS_TOKEN"
     retries=$(($retries+1))
     sleep 30
@@ -229,6 +236,47 @@ function get_rancher_access_token {
       dump_rancher_ingress
       return 1
   fi
+}
+
+# Call curl with the given arguments and set the given variables for response body and http code.
+# $1 the expected http response code; pass 0 to indicate that the http code shouldn't be checked
+# $2 the variable to set with the response body
+# $3 the variable to set with the http response code
+# $4 array of arguments to pass to the curl call
+# Exit code: success (0); error code (1) if the curl call fails or if the expected http code is not returned
+function call_curl {
+  local resp
+  local exitcode
+  local expected_code=$1
+  local resp_body=$2
+  local http_code=$3
+  local arg_name=$4[@]
+  local curl_args=("${!arg_name}")
+  local regex="(.*)-- http_code:(.*)"
+
+  # make the curl call
+  resp=$(curl -s -w '-- http_code:%{http_code}\n' "${curl_args[@]}"); exitcode=$?
+
+  # if the curl command succeeded
+  if [ $exitcode -eq 0 ]; then
+    # use regex to capture the response body and http code
+    if [[ $resp  =~ $regex ]];  then
+      local body='"${BASH_REMATCH[1]}"'
+      eval $resp_body=$body
+      local code=${BASH_REMATCH[2]}
+      eval $http_code=$code
+      # check for the expected http code response
+      if [ $expected_code -gt 0 ] && [ $code -ne $expected_code ]; then
+        echo "ERROR: Expected http response code" $expected_code "but got" $code"!  Response: " $resp
+        return 1
+      fi
+      return 0
+    fi
+    echo "ERROR: Can't parse curl response: " $resp
+  else
+    echo "ERROR: curl call failed with exit code: " $exitcode
+  fi
+  return 1
 }
 
 trap onerror ERR EXIT
