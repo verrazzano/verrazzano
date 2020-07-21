@@ -22,7 +22,7 @@ To install Verrazzano, follow these steps:
 1. Create an OKE cluster.
 2. Start OCI Cloud Shell.
 3. Copy the `kubeconfig` to Cloud Shell.
-4. Clone this repo in the Cloud Shell home.
+4. Clone this repo in the Cloud Shell home:
    - `git clone https://github.com/verrazzano/verrazzano`
    - `cd verrazzano`
 5. Run the following scripts:  
