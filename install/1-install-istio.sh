@@ -113,6 +113,13 @@ function install_istio()
         --set istiocoredns.coreDNSImage=$ISTIO_CORE_DNS_IMAGE \
         --set istiocoredns.coreDNSTag=$ISTIO_CORE_DNS_TAG \
         --set istiocoredns.coreDNSPluginImage=$ISTIO_CORE_DNS_PLUGIN_IMAGE:$ISTIO_CORE_DNS_PLUGIN_TAG \
+        --set gateways.istio-ingressgateway.ports[0].port=80 \
+        --set gateways.istio-ingressgateway.ports[0].targetPort=80 \
+        --set gateways.istio-ingressgateway.ports[0].name=http2 \
+        --set gateways.istio-ingressgateway.ports[0].nodePort=31380 \
+        --set gateways.istio-ingressgateway.ports[1].port=443 \
+        --set gateways.istio-ingressgateway.ports[1].name=https \
+        --set gateways.istio-ingressgateway.ports[1].nodePort=31390 \
         --values ${INSTALL_DIR}/istio/example-values/values-istio-multicluster-gateways.yaml \
         ${EXTRA_HELM_ARGUMENTS} \
         > ${INSTALL_DIR}/istio.yaml || return $?
