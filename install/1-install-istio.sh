@@ -178,6 +178,7 @@ function verify_ocr_secret()
            OCR_VERIFIED=true
            break
        fi
+       kubectl get pod -l job-name=ocrtest -o yaml
 #       if [[ "$OCRTEST" == *"ImagePullBackOff"* || "$OCRTEST" == *"ErrImagePull"* ]]; then
 #           OCR_VERIFIED=false
 #           break
