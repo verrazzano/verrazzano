@@ -1,4 +1,4 @@
-#!/usr/bin/env bash -x
+#!/usr/bin/env bash
 #
 # Copyright (c) 2020, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
@@ -174,7 +174,6 @@ function verify_ocr_secret()
     until [ "$RETRIES" -ge 60 ]
     do
        OCRTEST=$(kubectl get pod -l job-name=ocrtest | grep ocrtest)
-       echo "OCRTEST: ${OCRTEST}"
        if [[ "$OCRTEST" == *"Running"* || "$OCRTEST" == *"Completed"* ]]; then
            OCR_VERIFIED=true
            break
