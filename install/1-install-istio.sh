@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bash -x
 #
 # Copyright (c) 2020, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
@@ -173,21 +173,21 @@ function verify_ocr_secret()
     RETRIES=0
     until [ "$RETRIES" -ge 60 ]
     do
-       OCRTEST=$(kubectl get pod -l job-name=ocrtest | grep ocrtest)       
+       OCRTEST=$(kubectl get pod -l job-name=ocrtest | grep ocrtest)
+       echo "OCRTEST: ${OCRTEST}"
        if [[ "$OCRTEST" == *"Running"* || "$OCRTEST" == *"Completed"* ]]; then
            OCR_VERIFIED=true
            break
        fi
-       kubectl get pod -l job-name=ocrtest -o yaml
-#       if [[ "$OCRTEST" == *"ImagePullBackOff"* || "$OCRTEST" == *"ErrImagePull"* ]]; then
-#           OCR_VERIFIED=false
-#           break
-#       fi
+       if [[ "$OCRTEST" == *"ImagePullBackOff"* || "$OCRTEST" == *"ErrImagePull"* ]]; then
+           OCR_VERIFIED=false
+           break
+       fi
        RETRIES=$(($RETRIES+1))
        sleep 5
     done
     kubectl delete job ocrtest
-    if [ $OCR_VERIFIED = false ]; then
+    if [ "$OCR_VERIFIED" == false ]; then
         fail -e "ERROR: Secret named ocr has invalid username or password.\nDelete and recreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
     fi
 }
