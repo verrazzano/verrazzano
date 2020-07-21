@@ -20,35 +20,37 @@ echo "Apply application binding."
 kubectl apply -f ${SCRIPT_DIR}/hello-world-binding.yaml
 
 echo "Wait for application namespace to be active."
-retries=0
+attempt=1
 while true; do
-    status=$(kubectl get ns -o=jsonpath='{.items[?(@.metadata.name=="greet")].status.phase}')
+    status=$(kubectl get ns -o=jsonpath='{.items[?(@.metadata.name=="greet")].status.phase}' || true)
     if [ "${status}" == "Active" ]; then
-      echo "Application namespace found and active."
+      echo "Application namespace found and active on attempt ${attempt}."
       break
-    elif [ $retries -ge 60 ]; then
-      echo "ERROR: Application namespace not found. Exiting."
+    elif [ ${attempt} -gt 60 ]; then
+      echo "ERROR: Application namespace not found on attempt ${attempt}. Exiting."
       exit 1
     else
-      retries=$(($retries+1))
+      attempt=$(($attempt+1))
+      echo "Application namespace not found on attempt ${attempt}, status ${status}. Retrying after delay."
       sleep .5
     fi
 done
 
 echo "Wait for application pods to be running."
-retries=0
+attempt=1
 while true; do
   # Can't use kubectl wait with timeout as this fails immediately if there are no pods.
-  count=$(kubectl get pods -n greet -o=jsonpath='{.items[?(@.status.phase=="Running")].metadata.name}' | wc -w)
-  if [ $count -ge 2 ]; then
-    echo "Application pods found and running."
+  count=$( ( kubectl get pods -n greet -o=jsonpath='{.items[?(@.status.phase=="Running")].metadata.name}' || true ) | wc -w)
+  if [ ${count} -ge 2 ]; then
+    echo "Application pods found and running on attempt ${attempt}."
     break
-  elif [ $retries -ge 60 ]; then
-    echo "ERROR: Application pods not found. Exiting."
+  elif [ ${attempt} -gt 60 ]; then
+    echo "ERROR: Application pods not found on attempt ${attempt}. Exiting."
     exit 1
   else
-    retries=$(($retries+1))
-    sleep 5
+    attempt=$((attempt+1))
+    echo "Application pods not found on attempt ${attempt}, count ${count}. Retrying after delay."
+    sleep .5
   fi
 done
 
