@@ -27,11 +27,13 @@ while true; do
       echo "Application namespace found and active on attempt ${attempt}."
       break
     elif [ ${attempt} -gt 60 ]; then
-      echo "ERROR: Application namespace not found on attempt ${attempt}. Exiting."
+      echo "ERROR: Application namespace not found on final attempt ${attempt}. Exiting."
       exit 1
     else
+      if [ ${attempt} -eq 1 ]; then
+        echo "Application namespace not found on initial attempt, status \"${status}\". Retrying after delay."
+      fi
       attempt=$(($attempt+1))
-      echo "Application namespace not found on attempt ${attempt}, status ${status}. Retrying after delay."
       sleep .5
     fi
 done
@@ -45,11 +47,13 @@ while true; do
     echo "Application pods found and running on attempt ${attempt}."
     break
   elif [ ${attempt} -gt 60 ]; then
-    echo "ERROR: Application pods not found on attempt ${attempt}. Exiting."
+    echo "ERROR: Application pods not found on final attempt ${attempt}. Exiting."
     exit 1
   else
+    if [ ${attempt} -eq 1 ]; then
+      echo "Application pods not found on initial attempt, count ${count}. Retrying after delay."
+    fi
     attempt=$((attempt+1))
-    echo "Application pods not found on attempt ${attempt}, count ${count}. Retrying after delay."
     sleep .5
   fi
 done
