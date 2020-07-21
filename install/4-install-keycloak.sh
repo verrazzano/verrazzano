@@ -114,6 +114,15 @@ function install_keycloak {
   kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
 }
 
+function set_server_url
+{
+    RancherAdminPassword=`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode`
+    get_rancher_access_token "rancher.${ENV_NAME}.${DNS_SUFFIX}" "${RancherAdminPassword}" || exit 1
+    echo "Set Rancher ServerUrl to rancher.${ENV_NAME}.${DNS_SUFFIX}"
+    curl -s "https://rancher.${ENV_NAME}.${DNS_SUFFIX}/v3/settings/server-url" -H 'content-type: application/json'  -H "Authorization: Bearer $RANCHER_ACCESS_TOKEN" \
+      -X PUT --data-binary '{"name":"server-url","value":"'https://rancher.${ENV_NAME}.${DNS_SUFFIX}'"}' --insecure > /dev/null
+}
+
 function usage {
     consoleerr
     consoleerr "usage: $0 [-n name] [-d dns_type] [-s dns_suffix]"
@@ -180,6 +189,7 @@ DNS_TARGET_NAME=${DNS_PREFIX}.${ENV_NAME}.${DNS_SUFFIX}
 action "Preparing for installation" cleanup_all || exit 1
 action "Installing MySQL" install_mysql || exit 1
 action "Installing Keycloak" install_keycloak || exit 1
+action "Setting Rancher Server URL" set_server_url || exit 1
 
 rm -rf $TMP_DIR
 
