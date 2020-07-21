@@ -178,10 +178,10 @@ function verify_ocr_secret()
            OCR_VERIFIED=true
            break
        fi
-       if [[ "$OCRTEST" == *"ImagePullBackOff"* || "$OCRTEST" == *"ErrImagePull"* ]]; then
-           OCR_VERIFIED=false
-           break
-       fi
+#       if [[ "$OCRTEST" == *"ImagePullBackOff"* || "$OCRTEST" == *"ErrImagePull"* ]]; then
+#           OCR_VERIFIED=false
+#           break
+#       fi
        RETRIES=$(($RETRIES+1))
        sleep 5
     done
