@@ -7,11 +7,11 @@ container-registry.oracle.com/olcne/proxyv2:1.4.6
 container-registry.oracle.com/olcne/sidecar_injector:1.4.6
 container-registry.oracle.com/olcne/coredns:1.6.2
 container-registry.oracle.com/os/oraclelinux:7-slim
-phx.ocir.io/stevengreenberginc/bfs/cert-manager-acmesolver:0.13.1-049f555-17
-phx.ocir.io/stevengreenberginc/bfs/cert-manager-controller:0.13.1-049f555-17
+phx.ocir.io/stevengreenberginc/bfs/cert-manager-acmesolver:0.13.1-0e7394e-18
+phx.ocir.io/stevengreenberginc/bfs/cert-manager-controller:0.13.1-0e7394e-18
 docker.elastic.co/elasticsearch/elasticsearch-oss:7.6.1
 docker.elastic.co/kibana/kibana-oss:7.6.1
-phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator:v0.0.56
+phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator:v0.0.58
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.6
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.7
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-cluster-operator:v0.0.6
@@ -38,7 +38,7 @@ phx.ocir.io/stevengreenberginc/bfs/external-dns:v0.7.1-08253d3-9
 phx.ocir.io/stevengreenberginc/bfs/filebeat:6.8.3-c8d475a-5
 phx.ocir.io/stevengreenberginc/bfs/journalbeat:6.8.3-c8d475a-5
 phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-25813b2-6
-phx.ocir.io/stevengreenberginc/bfs/configmap-reload:0.3-3449794-32
+phx.ocir.io/stevengreenberginc/bfs/configmap-reload:0.3-81d6423-33
 phx.ocir.io/stevengreenberginc/bfs/keycloak:10.0.1-2fee5c4-3
 phx.ocir.io/stevengreenberginc/bfs/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-16
 

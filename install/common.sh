@@ -326,10 +326,10 @@ command -v jq >/dev/null 2>&1 || {
 GLOBAL_HUB_REPO=container-registry.oracle.com/olcne
 
 CERT_MANAGER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/cert-manager-controller
-CERT_MANAGER_TAG=0.13.1-049f555-17
+CERT_MANAGER_TAG=0.13.1-0e7394e-18
 CERT_MANAGER_VERSION=0.13.1
 CERT_MANAGER_SOLVER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/cert-manager-acmesolver
-CERT_MANAGER_SOLVER_TAG=0.13.1-049f555-17
+CERT_MANAGER_SOLVER_TAG=0.13.1-0e7394e-18
 
 EXTERNAL_DNS_REPO=stevengreenberginc/bfs/external-dns
 EXTERNAL_DNS_VERSION=2.20.0
