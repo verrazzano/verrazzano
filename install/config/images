@@ -33,7 +33,7 @@ oracle/weblogic-kubernetes-operator:2.6.0
 container-registry.oracle.com/olcne/prometheus:v2.13.1
 container-registry.oracle.com/olcne/grafana:v6.4.4
 phx.ocir.io/stevengreenberginc/bfs/verrazzano/keycloak-oracle-theme:fc5084e7cb5fceb5ce224327397acb87f2f520c1
-phx.ocir.io/stevengreenberginc/bfs/rancher:v2.4.3-d7d6d15-20
+phx.ocir.io/stevengreenberginc/bfs/rancher-jenkins:v0.0.0-cb5f8fb-2
 phx.ocir.io/stevengreenberginc/bfs/rancher/rancher-agent-jenkins:v0.0.0-cb5f8fb-2
 phx.ocir.io/stevengreenberginc/bfs/external-dns:v0.7.1-08253d3-9
 phx.ocir.io/stevengreenberginc/bfs/filebeat:6.8.3-c8d475a-5
