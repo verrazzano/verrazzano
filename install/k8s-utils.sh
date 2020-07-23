@@ -63,27 +63,32 @@ function dump_jobs () {
   dump_objects "job" $1
 }
 
-# Dump the ocrtest pod and job
+# Dump specified job
+# $1 job regex
 # Usage:
-# $1 ocrtest pod name
-# $2 ocrtest job description
-# dump_ocrtest ${ocrPodName} ${jobDescribe}
-function dump_ocrtest () {
-  dump_header
-
-  local ocrName=$1
+# dump_job "jobRegex"
+function dump_job () {
+  local jobName=$(kubectl get jobs | grep -Eo $1)
 
   echo ""
-  echo 'Describing Job for ocrtest: '${ocrName}
+  echo 'Describing Job for ocrtest: '${jobName}
   echo "========================================================"
-  kubectl describe job ocrtest
+  kubectl describe job ${jobName}
   echo "========================================================"
+  echo ""
+}
 
-  echo 'Describing Pod for ocrtest: '${ocrName}
-  echo "========================================================"
-  kubectl describe pod ${ocrName}
-  echo "========================================================"
+# Dump specified pod
+# $1 pod regex
+# Usage:
+# dump_pod "podRegex"
+function dump_pod () {
+  local podName=$(kubectl get pods | grep -Eo $1)
 
-
-  dump_footer
+  echo ""
+  echo 'Describing Pod for ocrtest: '${podName}
+  echo "========================================================"
+  kubectl describe pod ${podName}
+  echo "========================================================"
+  echo ""
 }
