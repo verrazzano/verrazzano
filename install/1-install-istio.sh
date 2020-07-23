@@ -173,7 +173,7 @@ function verify_ocr_secret()
     RETRIES=0
     until [ "$RETRIES" -ge 60 ]
     do
-       OCRTEST=$(kubectl get pod -l job-name=ocrtest | grep ocrtest)       
+       OCRTEST=$(kubectl get pod -l job-name=ocrtest | grep ocrtest)
        if [[ "$OCRTEST" == *"Running"* || "$OCRTEST" == *"Completed"* ]]; then
            OCR_VERIFIED=true
            break
@@ -186,8 +186,8 @@ function verify_ocr_secret()
        sleep 5
     done
     kubectl delete job ocrtest
-    if [ $OCR_VERIFIED = false ]; then
-        fail "ERROR: Secret named ocr has invalid username or password.\nDelete and recreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
+    if [ "$OCR_VERIFIED" == false ]; then
+        fail -e "ERROR: Secret named ocr has invalid username or password.\nDelete and recreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
     fi
 }
 
