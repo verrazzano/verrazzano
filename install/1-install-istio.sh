@@ -113,6 +113,13 @@ function install_istio()
         --set istiocoredns.coreDNSImage=$ISTIO_CORE_DNS_IMAGE \
         --set istiocoredns.coreDNSTag=$ISTIO_CORE_DNS_TAG \
         --set istiocoredns.coreDNSPluginImage=$ISTIO_CORE_DNS_PLUGIN_IMAGE:$ISTIO_CORE_DNS_PLUGIN_TAG \
+        --set gateways.istio-ingressgateway.ports[0].port=80 \
+        --set gateways.istio-ingressgateway.ports[0].targetPort=80 \
+        --set gateways.istio-ingressgateway.ports[0].name=http2 \
+        --set gateways.istio-ingressgateway.ports[0].nodePort=31380 \
+        --set gateways.istio-ingressgateway.ports[1].port=443 \
+        --set gateways.istio-ingressgateway.ports[1].name=https \
+        --set gateways.istio-ingressgateway.ports[1].nodePort=31390 \
         --values ${INSTALL_DIR}/istio/example-values/values-istio-multicluster-gateways.yaml \
         ${EXTRA_HELM_ARGUMENTS} \
         > ${INSTALL_DIR}/istio.yaml || return $?
@@ -169,7 +176,7 @@ function verify_ocr_secret()
     RETRIES=0
     until [ "$RETRIES" -ge 60 ]
     do
-       OCRTEST=$(kubectl get pod -l job-name=ocrtest | grep ocrtest)       
+       OCRTEST=$(kubectl get pod -l job-name=ocrtest | grep ocrtest)
        if [[ "$OCRTEST" == *"Running"* || "$OCRTEST" == *"Completed"* ]]; then
            OCR_VERIFIED=true
            break
@@ -182,8 +189,12 @@ function verify_ocr_secret()
        sleep 5
     done
     kubectl delete job ocrtest
+<<<<<<< HEAD
     if [ $OCR_VERIFIED = false ]; then
         dump_ocrtest ${ocrPodName}
+=======
+    if [ "$OCR_VERIFIED" == false ]; then
+>>>>>>> b517d6e6724ee9bfc52ec5af4f05656393eaec62
         fail -e "ERROR: Secret named ocr has invalid username or password.\nDelete and recreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
     fi
 }
