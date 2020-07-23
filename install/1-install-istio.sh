@@ -160,8 +160,11 @@ function copy_ocr_secret()
 
 function verify_ocr_secret()
 {
-    kubectl get secret ocr -n default || fail -e "ERROR: Secret named ocr is required to pull images from ${GLOBAL_HUB_REPO}.\nCreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
+    kubectl get secret ocr -n default || fail -e "ERROR: Secret named ocr is required to pull images from ${GLOBAL_HUB_REPO}.\nCreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com")
     kubectl apply -f $CONFIG_DIR/ocrtest.yaml
+
+    local ocrPodName=${kubectl get pods | grep -Eo "ocrtest-([[:alnum:]]+)"}
+
     OCR_VERIFIED=false
     RETRIES=0
     until [ "$RETRIES" -ge 60 ]
@@ -180,6 +183,7 @@ function verify_ocr_secret()
     done
     kubectl delete job ocrtest
     if [ $OCR_VERIFIED = false ]; then
+        dump_ocrtest ${ocrPodName}
         fail -e "ERROR: Secret named ocr has invalid username or password.\nDelete and recreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
     fi
 }

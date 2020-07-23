@@ -62,3 +62,26 @@ function dump_pods () {
 function dump_jobs () {
   dump_objects "job" $1
 }
+
+# Dump the ocrtest pod and job
+# Usage:
+# $1 ocrtest pod name
+# dump_ocrtest ${ocrPodName}
+function dump_ocrtest () {
+  dump_header
+
+  local ocrName = $1
+
+  echo 'Describing Pod for ocrtest: '${ocrName}
+  echo "========================================================"
+  kubectl describe pod ${ocrName}
+  echo "========================================================"
+
+  echo ""
+  echo 'Describing Job for ocrtest: '${ocrName}
+  echo "========================================================"
+  kubectl describe job ocrtest
+  echo "========================================================"
+
+  dump_footer
+}
