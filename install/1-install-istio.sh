@@ -168,17 +168,22 @@ function copy_ocr_secret()
 function verify_ocr_secret()
 {
     kubectl get secret ocr -n default || fail "ERROR: Secret named ocr is required to pull images from ${GLOBAL_HUB_REPO}.\nCreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
-    kubectl apply -f $CONFIG_DIR/ocrtest.yaml
+    OCR_TEST_JOB_NAME=ocrtest-$(uuidgen)
+    sed -e "s/OCR_TEST_JOB_NAME/${OCR_TEST_JOB_NAME}/" $CONFIG_DIR/ocrtest.yaml | kubectl apply -f -
     OCR_VERIFIED=false
     RETRIES=0
     until [ "$RETRIES" -ge 60 ]
     do
-       OCRTEST=$(kubectl get pod -l job-name=ocrtest | grep ocrtest)
+       OCRTEST=$(kubectl get pod -l job-name=$OCR_TEST_JOB_NAME | grep ocrtest)
        if [[ "$OCRTEST" == *"Running"* || "$OCRTEST" == *"Completed"* ]]; then
+           logDt "OCR Secret verified at attempt $RETRIES, job status is below"
+           echo $OCRTEST
            OCR_VERIFIED=true
            break
        fi
        if [[ "$OCRTEST" == *"ImagePullBackOff"* || "$OCRTEST" == *"ErrImagePull"* ]]; then
+           logDt "OCR Secret verification failed at attempt $RETRIES, job status is below"
+           echo $OCRTEST
            OCR_VERIFIED=false
            break
        fi
