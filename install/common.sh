@@ -333,7 +333,7 @@ CERT_MANAGER_SOLVER_TAG=0.13.1-0e7394e-18
 
 EXTERNAL_DNS_REPO=stevengreenberginc/bfs/external-dns
 EXTERNAL_DNS_VERSION=2.20.0
-EXTERNAL_DNS_TAG=v0.7.1-08253d3-9
+EXTERNAL_DNS_TAG=v0.7.1-cfe79c5-10
 EXTERNAL_DNS_REGISTRY=phx.ocir.io
 
 GRAFANA_REPO=container-registry.oracle.com/olcne/grafana
@@ -341,7 +341,7 @@ GRAFANA_TAG=v6.4.4
 
 KEYCLOAK_IMAGE=phx.ocir.io/stevengreenberginc/bfs/keycloak
 ISTIO_CORE_DNS_PLUGIN_IMAGE=phx.ocir.io/stevengreenberginc/bfs/istio-coredns-plugin
-ISTIO_CORE_DNS_PLUGIN_TAG=0.2-4fc7d69-12
+ISTIO_CORE_DNS_PLUGIN_TAG=0.2-5caa06b-13
 ISTIO_CORE_DNS_IMAGE=container-registry.oracle.com/olcne/coredns
 ISTIO_CORE_DNS_TAG=1.6.2
 ISTIO_VERSION=1.4.6
