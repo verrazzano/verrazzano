@@ -144,6 +144,7 @@ function install_rancher()
     helm upgrade rancher rancher-stable/rancher \
       --install --namespace cattle-system \
       --version $RANCHER_VERSION  \
+      --set systemDefaultRegistry=phx.ocir.io/stevengreenberginc/bfs \
       --set rancherImageTag=$RANCHER_TAG \
       --set rancherImage=$RANCHER_IMAGE \
       --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
