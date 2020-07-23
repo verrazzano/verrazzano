@@ -11,7 +11,7 @@ phx.ocir.io/stevengreenberginc/bfs/cert-manager-acmesolver:0.13.1-0e7394e-18
 phx.ocir.io/stevengreenberginc/bfs/cert-manager-controller:0.13.1-0e7394e-18
 docker.elastic.co/elasticsearch/elasticsearch-oss:7.6.1
 docker.elastic.co/kibana/kibana-oss:7.6.1
-phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator:v0.0.61
+phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator:v0.0.67
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.6
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.7
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-cluster-operator:v0.0.6
