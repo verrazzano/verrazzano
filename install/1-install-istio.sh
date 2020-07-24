@@ -176,13 +176,13 @@ function verify_ocr_secret()
     do
        OCRTEST=$(kubectl get pod -l job-name=$OCR_TEST_JOB_NAME | grep ocrtest)
        if [[ "$OCRTEST" == *"Running"* || "$OCRTEST" == *"Completed"* ]]; then
-           logDt "OCR Secret verified at attempt $RETRIES, job status is below"
+           log "OCR Secret verified at attempt $RETRIES, job status is below"
            echo $OCRTEST
            OCR_VERIFIED=true
            break
        fi
        if [[ "$OCRTEST" == *"ImagePullBackOff"* || "$OCRTEST" == *"ErrImagePull"* ]]; then
-           logDt "OCR Secret verification failed at attempt $RETRIES, job status is below"
+           log "OCR Secret verification failed at attempt $RETRIES, job status is below"
            echo $OCRTEST
            OCR_VERIFIED=false
            break
@@ -206,7 +206,7 @@ function wait_for_nodes_to_exist {
       fi
     done
     if [ "$retries" -ge 30 ] ; then
-      logDt "Kubernetes nodes don't exist in cluster"
+      log "Kubernetes nodes don't exist in cluster"
       return 1
     fi
 }
@@ -251,7 +251,7 @@ fi
 # Wait for all cluster nodes to exist, and then to be ready
 action "Waiting for all Kubernetes nodes to exist in cluster" wait_for_nodes_to_exist || exit 1
 
-logDt "Kubernetes nodes exist"
+log "Kubernetes nodes exist"
 action "Waiting for all Kubernetes nodes to be ready" \
     kubectl wait --for=condition=ready nodes --all || exit 1
 
