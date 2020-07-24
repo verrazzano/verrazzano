@@ -223,12 +223,12 @@ KEYCLOAK_CHART_VERSION=8.2.2
 
 MYSQL_IMAGE_TAG=8.0.20
 
-NGINX_INGRESS_CONTROLLER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/nginx-ingress-controller
-NGINX_INGRESS_CONTROLLER_TAG=0.32-cf9d06b-18
+NGINX_INGRESS_CONTROLLER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/nginx-ingress-controller-jenkins
+NGINX_INGRESS_CONTROLLER_TAG=cda536c-1
 NGINX_INGRESS_CONTROLLER_VERSION=1.27.0
 
-NGINX_DEFAULT_BACKEND_IMAGE=phx.ocir.io/stevengreenberginc/bfs/nginx-ingress-default-backend
-NGINX_DEFAULT_BACKEND_TAG=0.32-cf9d06b-18
+NGINX_DEFAULT_BACKEND_IMAGE=phx.ocir.io/stevengreenberginc/bfs/nginx-ingress-default-backend-jenkins
+NGINX_DEFAULT_BACKEND_TAG=cda536c-1
 
 RANCHER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/rancher
 RANCHER_VERSION=v2.4.3
