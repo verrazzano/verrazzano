@@ -48,7 +48,7 @@ while true; do
     echo "Application pods found and running on attempt ${attempt}, pod count ${count}."
     break
   elif [ ${attempt} -ge 60 ]; then
-    echo "ERROR: Application pods not found on final attempt ${attempt}, pod count ${count}. Listing pods in application namespace."
+    echo "ERROR: Application pods not found on final attempt ${attempt}, pod count ${count}. Listing pods in application pods."
     kubectl get pods -n greet || true
     echo "ERROR: Exiting."
     exit 1
