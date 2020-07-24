@@ -64,15 +64,15 @@ function dump_jobs () {
 }
 
 # Dump specified job
-# $1 Namespace - the namespace of the job
+# $1 namespace - the namespace of the job
 # $2 job regex - regex that will collect the job name from the list of jobs
 # Usage:
-# dump_job ""jobRegex"
+# dump_job "namespace" "jobRegex"
 function dump_job () {
   local jobName=$(kubectl get jobs -n $1 | grep -Eo $2)
 
   echo ""
-  echo 'Describing Job for ocrtest: '${jobName}
+  echo "Describing Job for ocrtest: ${jobName}"
   echo "========================================================"
   kubectl describe job ${jobName}
   echo "========================================================"
@@ -80,15 +80,15 @@ function dump_job () {
 }
 
 # Dump specified pod
-# $1 Namespace - the namespace of the pod
+# $1 namespace - the namespace of the pod
 # $1 pod regex - regex that will collect the pod name from the list of pods
 # Usage:
-# dump_pod "podRegex"
+# dump_pod "namespace" "podRegex"
 function dump_pod () {
   local podName=$(kubectl get pods -n $1 | grep -Eo $2)
 
   echo ""
-  echo 'Describing Pod for ocrtest: '${podName}
+  echo "Describing Pod for ocrtest: ${podName}"
   echo "========================================================"
   kubectl describe pod ${podName}
   echo "========================================================"

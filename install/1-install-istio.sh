@@ -186,7 +186,7 @@ function verify_ocr_secret()
        sleep 5
     done
 
-    if [ $OCR_VERIFIED == false ]; then
+    if [ "$OCR_VERIFIED" == false ]; then
       dump_header
       dump_job "default" "ocrtest"
       dump_pod "default" "ocrtest-([[:alnum:]]+)"
