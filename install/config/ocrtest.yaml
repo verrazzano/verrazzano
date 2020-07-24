@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: ocrtest
+  name: OCR_TEST_JOB_NAME
 spec:
   template:
     spec:
