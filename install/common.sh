@@ -14,12 +14,12 @@ BUILD_DIR="${SCRIPT_DIR}/build"
 
 # DEPRECATED: This function is deprecated and is replaced by the status function in logging.sh
 function consoleout() {
-  status "${@}"
+  status "$@"
 }
 
 # DEPRECATED: This function is deprecated and is replaced by the error function in logging.sh
 function consoleerr() {
-  error "${@}"
+  error "$@"
 }
 
 function wait_for_ingress_ip() {
