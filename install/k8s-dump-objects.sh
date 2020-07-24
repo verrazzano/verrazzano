@@ -6,15 +6,16 @@
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
 . $SCRIPT_DIR/common.sh
+. $SCRIPT_DIR/logging.sh
 
 function dump_header() {
-  echo "================================  DIAGNOSTIC OUTPUT START ================================="
-  echo ""
+  log "================================  DIAGNOSTIC OUTPUT START ================================="
+  log ""
 }
 
 function dump_footer() {
-  echo ""
-  echo "================================  DIAGNOSTIC OUTPUT END ==================================="
+  log ""
+  log "================================  DIAGNOSTIC OUTPUT END ==================================="
 }
 
 # Dump the objects of the specified type in the given namespace
@@ -112,21 +113,24 @@ function dump_objects() {
 
   if [[ -z "$type"  || -z "$namespace" ]]
   then
-    echo "Object type and namespace must be specified to describe objects."
+    error "Object type and namespace must be specified to describe objects."
     exit
   fi
 
-
   local object_names=($(kubectl get "${type}" --no-headers -o custom-columns=":metadata.name" --field-selector="${fields}" -n "${namespace}"| grep -E "${regex}"))
+
+  dump_header
 
   for object in "${object_names[@]}"
   do
-    echo ""
-    echo "========================================================"
-    echo "Describing type: ${type}, name: ${object}"
-    echo "========================================================"
+    log ""
+    log "========================================================"
+    log "Describing type: ${type}, name: ${object}"
+    log "========================================================"
     kubectl describe "${type}" "${object}" -n "${namespace}"
   done
+
+  dump_footer
 }
 
 # format the field selectors for a given array
@@ -139,7 +143,8 @@ function format_field_selectors() {
   states=()
   for state in "${@:3}"
   do
-    states+=("${1}${2}${state}")
+    formatted_state="$(tr '[:lower:]' '[:upper:]' <<< ${state:0:1})$(tr '[:upper:]' '[:lower:]' <<< ${state:1})"
+    states+=("${1}${2}${formatted_state}")
   done
 
   echo $(join , "${states[@]}")
@@ -161,15 +166,15 @@ function join() {
 # Usage:
 # usage
 function usage {
-    consoleerr
-    consoleerr "usage: $0 -o object_type -n namespace [-r name_regex] [-s state] [-S not_state] [-h]"
-    consoleerr " -o object_type   Type of the object (i.e. namespaces, pods, jobs, etc)"
-    consoleerr " -n namespace     Namespace of the given object type"
-    consoleerr " -r name_regex    Regex to retrieve certain jobs by name"
-    consoleerr " -s state         Specified state the described object should be in (i.e. Running)"
-    consoleerr " -S not_state     Specified state that the described object should not be in"
-    consoleerr " -h               Help"
-    consoleerr
+    error
+    error "usage: $0 -o object_type -n namespace [-r name_regex] [-s state] [-S not_state] [-h]"
+    error " -o object_type   Type of the object (i.e. namespaces, pods, jobs, etc)"
+    error " -n namespace     Namespace of the given object type"
+    error " -r name_regex    Regex to retrieve certain jobs by name"
+    error " -s state         Specified state the described object should be in (i.e. Running)"
+    error " -S not_state     Specified state that the described object should not be in"
+    error " -h               Help"
+    error
     exit 1
 }
 
