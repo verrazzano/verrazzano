@@ -191,10 +191,8 @@ function verify_ocr_secret()
     done
 
     if [ "$OCR_VERIFIED" == false ]; then
-      dump_header
-      dump_job "default" "ocrtest"
-      dump_pod "default" "ocrtest-([[:alnum:]]+)"
-      dump_footer
+      "$SCRIPT_DIR"/k8s-dump-objects -o "jobs" -n "default" -r "ocrtest$"
+      "$SCRIPT_DIR"/k8s-dump-objects -o "pods" -n "default" -r "ocrtest-*$"
       kubectl delete job ocrtest
       fail -e "ERROR: Cannot access Oracle Container Registry. This may be due to incorrect credentials, check the ocr secret and re-create the secret if the credentials are wrong.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
     fi
