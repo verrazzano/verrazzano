@@ -101,7 +101,7 @@ function dump_pod () {
 # $3 object name regex - regex to retrieve certain jobs by name
 # $4 (optional) fields - field selectors for kubectl organized as shown here: https://kubernetes.io/docs/concepts/overview/working-with-objects/field-selectors/
 # Usage:
-# dump_objects "objectType" "namespace" "objectRegex" "states" "notStates"
+# dump_objects "objectType" "namespace" "objectRegex" "fields"
 function dump_objects() {
   local type=$1
   local namespace=$2
@@ -176,7 +176,5 @@ shift $((OPTIND -1))
 STATE_FORMAT=$(format_field_selectors "status.phase" "=" "${STATES[@]}")
 NOT_STATE_FORMAT=$(format_field_selectors "status.phase" "!=" "${NOT_STATES[@]}")
 FIELD_SELECTORS=$(join , "$STATE_FORMAT" "$NOT_STATE_FORMAT")
-
-
 
 dump_objects "${OBJECT_TYPE}" "${NAMESPACE}" "${NAME_REGEX}" "${FIELD_SELECTORS}"
