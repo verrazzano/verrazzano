@@ -133,7 +133,7 @@ function install_verrazzano()
   RancherAdminPassword=`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode`
 
   if [ -z "$RancherAdminPassword" ] ; then
-    consoleerr "ERROR: Failed to retrieve rancher-admin-secret - did you run the scripts to install Istio and system components?"
+    error "ERROR: Failed to retrieve rancher-admin-secret - did you run the scripts to install Istio and system components?"
     return 1
   fi
 
@@ -146,7 +146,7 @@ function install_verrazzano()
 
   local rancher_access_token=$(get_rancher_access_token "${RANCHER_HOSTNAME}" "${RancherAdminPassword}")
   if [ $? -ne 0 ] ; then
-    consoleerr "ERROR: Failed to get rancher access token"
+    error "ERROR: Failed to get rancher access token"
     exit 1
   fi
 
@@ -177,20 +177,20 @@ function install_verrazzano()
       sleep 5
   done
   if ! kubectl get secret --namespace ${VERRAZZANO_NS} verrazzano ; then
-      consoleerr "ERROR: failed creating verrazzano secret"
+      error "ERROR: failed creating verrazzano secret"
       exit 1
   fi
   logDt "Verrazzano install completed"
 }
 
 function usage {
-    consoleerr
-    consoleerr "usage: $0 [-n name] [-d dns_type] [-s dns_suffix]"
-    consoleerr "  -n name        Environment Name. Optional.  Defaults to default."
-    consoleerr "  -d dns_type    DNS type [xip.io|manual|oci]. Optional.  Defaults to xip.io."
-    consoleerr "  -s dns_suffix  DNS suffix (e.g v8o.example.com). Not valid for dns_type xip.io. Required for dns-type oci or manual"
-    consoleerr "  -h             Help"
-    consoleerr
+    error
+    error "usage: $0 [-n name] [-d dns_type] [-s dns_suffix]"
+    error "  -n name        Environment Name. Optional.  Defaults to default."
+    error "  -d dns_type    DNS type [xip.io|manual|oci]. Optional.  Defaults to xip.io."
+    error "  -s dns_suffix  DNS suffix (e.g v8o.example.com). Not valid for dns_type xip.io. Required for dns-type oci or manual"
+    error "  -h             Help"
+    error
     exit 1
 }
 
@@ -210,8 +210,8 @@ do
 done
 # check for valid DNS type
 if [ $DNS_TYPE != "xip.io" ] && [ $DNS_TYPE != "oci" ] && [ $DNS_TYPE != "manual" ]; then
-  consoleerr
-  consoleerr "Unknown DNS type ${DNS_TYPE}"
+  error
+  error "Unknown DNS type ${DNS_TYPE}"
   usage
 fi
 
@@ -220,16 +220,16 @@ set_INGRESS_IP
 # check expected dns suffix for given dns type
 if [ -z "$DNS_SUFFIX" ]; then
   if [ $DNS_TYPE == "oci" ] || [ $DNS_TYPE == "manual" ]; then
-    consoleerr
-    consoleerr "-s option is required for ${DNS_TYPE}"
+    error
+    error "-s option is required for ${DNS_TYPE}"
     usage
   else
     DNS_SUFFIX="${INGRESS_IP}".xip.io
   fi
 else
   if [ $DNS_TYPE = "xip.io" ]; then
-    consoleerr
-    consoleerr "A dns_suffix should not be given with dns_type xip.io!"
+    error
+    error "A dns_suffix should not be given with dns_type xip.io!"
     usage
   fi
 fi
