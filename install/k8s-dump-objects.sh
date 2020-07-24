@@ -5,6 +5,8 @@
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
+. $SCRIPT_DIR/common.sh
+
 function dump_header() {
   echo "================================  DIAGNOSTIC OUTPUT START ================================="
   echo ""
@@ -153,6 +155,22 @@ function join() {
   local IFS="$1"
   shift
   echo "$*"
+}
+
+# prints usage message for this script to consoleerr
+# Usage:
+# usage
+function usage {
+    consoleerr
+    consoleerr "usage: $0 -o object_type -n namespace [-r name_regex] [-s state] [-S not_state] [-h]"
+    consoleerr " -o object_type   Type of the object (i.e. namespaces, pods, jobs, etc)"
+    consoleerr " -n namespace     Namespace of the given object type"
+    consoleerr " -r name_regex    Regex to retrieve certain jobs by name"
+    consoleerr " -s state         Specified state the described object should be in (i.e. Running)"
+    consoleerr " -S not_state     Specified state that the descrobed object should not be in"
+    consoleerr " -h               Help"
+    consoleerr
+    exit 1
 }
 
 NAMESPACE="default"
