@@ -27,7 +27,8 @@ while true; do
     echo "Application namespace found and active on attempt ${attempt}, namespace status \"${status}\"."
     break
   elif [ ${attempt} -ge 60 ]; then
-    echo "ERROR: Application namespace not found on final attempt ${attempt}, namespace status \"${status}\". Exiting."
+    echo "ERROR: Application namespace not found on final attempt ${attempt}, namespace status \"${status}\". Listing namespaces and exiting."
+    kubectl get ns -o json || true
     exit 1
   elif [ ${attempt} -eq 1 ]; then
     echo "Application namespace not found on initial attempt, namespace status \"${status}\". Retrying after delay."
@@ -46,7 +47,8 @@ while true; do
     echo "Application pods found and running on attempt ${attempt}, pod count ${count}."
     break
   elif [ ${attempt} -ge 60 ]; then
-    echo "ERROR: Application pods not found on final attempt ${attempt}, pod count ${count}. Exiting."
+    echo "ERROR: Application pods not found on final attempt ${attempt}, pod count ${count}. Listing pods in application namespace and exiting."
+    kubectl get pods -n greet -o json || true
     exit 1
   elif [ ${attempt} -eq 1 ]; then
     echo "Application pods not found on initial attempt, pod count ${count}. Retrying after delay."
