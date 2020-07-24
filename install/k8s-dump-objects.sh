@@ -167,7 +167,7 @@ function usage {
     consoleerr " -n namespace     Namespace of the given object type"
     consoleerr " -r name_regex    Regex to retrieve certain jobs by name"
     consoleerr " -s state         Specified state the described object should be in (i.e. Running)"
-    consoleerr " -S not_state     Specified state that the descrobed object should not be in"
+    consoleerr " -S not_state     Specified state that the described object should not be in"
     consoleerr " -h               Help"
     consoleerr
     exit 1
