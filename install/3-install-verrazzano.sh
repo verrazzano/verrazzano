@@ -144,9 +144,13 @@ function install_verrazzano()
   # Make sure rancher ingress has an IP
   wait_for_ingress_ip rancher cattle-system
 
-  get_rancher_access_token "${RANCHER_HOSTNAME}" "${RancherAdminPassword}" || exit 1
+  local rancher_access_token=$(get_rancher_access_token "${RANCHER_HOSTNAME}" "${RancherAdminPassword}")
+  if [ $? -ne 0 ] ; then
+    consoleerr "ERROR: Failed to get rancher access token"
+    exit 1
+  fi
 
-  export TOKEN_ARRAY=(${RANCHER_ACCESS_TOKEN//:/ })
+  export TOKEN_ARRAY=(${rancher_access_token//:/ })
 
   logDt "Installing verrazzano from Helm chart"
   helm \

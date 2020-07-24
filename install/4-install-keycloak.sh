@@ -128,11 +128,13 @@ function set_rancher_server_url
       return 0
     fi
     echo "Get Rancher access token."
-    if ! get_rancher_access_token "${rancher_host_name}" "${rancher_admin_password}"; then
+    local rancher_access_token=$(get_rancher_access_token "${rancher_host_name}" "${rancher_admin_password}")
+    if [ $? -ne 0 ] ; then
       echo "Failed to get Rancher access token. Continuing without setting Rancher server URL."
       return 0
     fi
-    if [ -z "${RANCHER_ACCESS_TOKEN}" ]; then
+
+    if [ -z "${rancher_access_token}" ]; then
       echo "Failed to get valid Rancher access token. Continuing without setting Rancher server URL."
       return 0
     fi
