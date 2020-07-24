@@ -39,7 +39,7 @@ function wait_for_ingress_ip() {
       sleep 5
   done
   if [ "$retries" -ge 10 ] ; then
-    log "An error occurred - ingress $1 in namespace $2 did not have an IP address"
+    log "An error occurred - ingress $ingress_name in namespace $namespace did not have an IP address"
     exit 1
   fi
 }
