@@ -21,7 +21,7 @@ function dump_footer() {
 #
 # Usage:
 # dump_objects "pods" "verrazzano-system"
-function dump_objects () {
+function old_dump_objects () {
   dump_header
   
   local oType=$1
@@ -52,7 +52,7 @@ function dump_objects () {
 # Usage:
 # dump_pods "verrazzano-system"
 function dump_pods () {
-  dump_objects "pod" $1
+  old_dump_objects "pod" $1
 }
 
 # Dump the jobs in the given namespace
@@ -60,7 +60,7 @@ function dump_pods () {
 # Usage:
 # dump_jobs "verrazzano-system"
 function dump_jobs () {
-  dump_objects "job" $1
+  old_dump_objects "job" $1
 }
 
 # Dump specified job
@@ -81,7 +81,7 @@ function dump_job () {
 
 # Dump specified pod
 # $1 namespace - the namespace of the pod
-# $1 pod regex - regex that will collect the pod name from the list of pods
+# $2 pod regex - regex that will collect the pod name from the list of pods
 # Usage:
 # dump_pod "namespace" "podRegex"
 function dump_pod () {
@@ -94,3 +94,89 @@ function dump_pod () {
   echo "========================================================"
   echo ""
 }
+
+# Dump specified objects based on described requirements
+# $1 object type - i.e. namespaces, pods, jobs
+# $2 namespace - namespace of the objects
+# $3 object name regex - regex to retrieve certain jobs by name
+# $4 (optional) fields - field selectors for kubectl organized as shown here: https://kubernetes.io/docs/concepts/overview/working-with-objects/field-selectors/
+# Usage:
+# dump_objects "objectType" "namespace" "objectRegex" "states" "notStates"
+function dump_objects() {
+  local type=$1
+  local namespace=$2
+  local regex=$3
+  local fields=$4
+
+  if [[ -z "$type"  || -z "$namespace" ]]
+  then
+    echo "Object type and namespace must be specified to describe objects."
+    exit
+  fi
+
+
+  local object_names=($(kubectl get "${type}" --no-headers -o custom-columns=":metadata.name" --field-selector="${fields}" -n "${namespace}"| grep -E "${regex}"))
+
+  for object in "${object_names[@]}"
+  do
+    echo ""
+    echo "========================================================"
+    echo "Describing type: ${type}, name: ${object}"
+    echo "========================================================"
+    kubectl describe "${type}" "${object}" -n "${namespace}"
+  done
+}
+
+# format the field selectors for a given array
+# $1 selector - kubernetes selector: metadata.name, metadata.namespace, status.phase
+# $2 eq - "=" or "!="
+# $3 state - state of the object
+# Usage:
+# format_field_selectors "selector" "=" "status"
+function format_field_selectors() {
+  states=()
+  for state in "${@:3}"
+  do
+    states+=("${1}${2}${state}")
+  done
+
+  echo $(join , "${states[@]}")
+}
+
+
+# join an array with a specified value
+# $1 join - value to join by
+# $2 values - values in which to join
+# Usage:
+# join_by , "${ARRAY[@]}"
+function join() {
+  local IFS="$1"
+  shift
+  echo "$*"
+}
+
+NAMESPACE="default"
+NAME_REGEX=""
+STATES=()
+NOT_STATES=()
+while getopts o:n:r:s:S:h flag
+do
+    case "${flag}" in
+        o) OBJECT_TYPE=${OPTARG};;
+        n) NAMESPACE=${OPTARG};;
+        r) NAME_REGEX=${OPTARG};;
+        s) STATES+=("${OPTARG}");;
+        S) NOT_STATES+=("${OPTARG}");;
+        h) usage;;
+        *) usage;;
+    esac
+done
+shift $((OPTIND -1))
+
+STATE_FORMAT=$(format_field_selectors "status.phase" "=" "${STATES[@]}")
+NOT_STATE_FORMAT=$(format_field_selectors "status.phase" "!=" "${NOT_STATES[@]}")
+FIELD_SELECTORS=$(join , "$STATE_FORMAT" "$NOT_STATE_FORMAT")
+
+
+
+dump_objects "${OBJECT_TYPE}" "${NAMESPACE}" "${NAME_REGEX}" "${FIELD_SELECTORS}"
