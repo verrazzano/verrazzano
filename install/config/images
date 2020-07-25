@@ -48,4 +48,3 @@ phx.ocir.io/stevengreenberginc/bfs/configmap-reload:0.3-81d6423-33
 phx.ocir.io/stevengreenberginc/bfs/keycloak:10.0.1-2fee5c4-3
 phx.ocir.io/stevengreenberginc/bfs/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-16
 container-registry.oracle.com/os/oraclelinux:7.8@sha256:46fc083cf0250ed5260fa6fe822d7d4c139ca1f7fc38e4a17ba662464bd1df4a
-container-registry.oracle.com/os/oraclelinux:7-slim@sha256:9b86d1332a883ee8f68dd44ba42133de518b2e0ec1cc70257e59fb4da86b1ad3
