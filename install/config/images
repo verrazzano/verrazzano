@@ -11,15 +11,15 @@ phx.ocir.io/stevengreenberginc/bfs/cert-manager-acmesolver:0.13.1-0e7394e-18
 phx.ocir.io/stevengreenberginc/bfs/cert-manager-controller:0.13.1-0e7394e-18
 docker.elastic.co/elasticsearch/elasticsearch-oss:7.6.1
 docker.elastic.co/kibana/kibana-oss:7.6.1
-phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator:ade0d0a3cbc85e35f1704ab9bad3ea1c3b0a81b8
-phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.6
-phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.7
-phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-cluster-operator:v0.0.6
+phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator:v0.0.63
+phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.8
+phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.8
+phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-cluster-operator:v0.0.7
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-operator:v0.0.17
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-api:v0.0.6
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.17
-phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-helidon-app-operator:v0.0.6
-phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-admission-controller:v0.0.10
+phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-helidon-app-operator:v0.0.7
+phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-admission-controller:v0.0.11
 phx.ocir.io/stevengreenberginc/verrazzano/console:0.1.1
 phx.ocir.io/stevengreenberginc/verrazzano/console-plugin:0.1.1
 phx.ocir.io/stevengreenberginc/bfs/istio-coredns-plugin:0.2-5caa06b-13
@@ -40,6 +40,6 @@ phx.ocir.io/stevengreenberginc/bfs/filebeat:6.8.3-58a0ddf-6
 phx.ocir.io/stevengreenberginc/bfs/journalbeat:6.8.3-58a0ddf-6
 phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-0f43627-7
 phx.ocir.io/stevengreenberginc/bfs/configmap-reload:0.3-81d6423-33
-phx.ocir.io/stevengreenberginc/bfs/keycloak:10.0.1-2fee5c4-3
-phx.ocir.io/stevengreenberginc/bfs/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-16
+phx.ocir.io/stevengreenberginc/bfs/keycloak:10.0.1-2dcd823-4
+phx.ocir.io/stevengreenberginc/bfs/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-17
 
