@@ -6,7 +6,7 @@ container-registry.oracle.com/olcne/pilot:1.4.6
 container-registry.oracle.com/olcne/proxyv2:1.4.6
 container-registry.oracle.com/olcne/sidecar_injector:1.4.6
 container-registry.oracle.com/olcne/coredns:1.6.2
-container-registry.oracle.com/os/oraclelinux:7-slim
+container-registry.oracle.com/os/oraclelinux:7-slim@sha256:9b86d1332a883ee8f68dd44ba42133de518b2e0ec1cc70257e59fb4da86b1ad3
 phx.ocir.io/stevengreenberginc/bfs/cert-manager-acmesolver:0.13.1-0e7394e-18
 phx.ocir.io/stevengreenberginc/bfs/cert-manager-controller:0.13.1-0e7394e-18
 docker.elastic.co/elasticsearch/elasticsearch-oss:7.6.1
@@ -16,7 +16,7 @@ phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.8
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.8
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-cluster-operator:v0.0.7
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-operator:v0.0.17
-phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-api:v0.0.6
+phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-api:v0.0.7
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.17
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-helidon-app-operator:v0.0.7
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-admission-controller:v0.0.11
