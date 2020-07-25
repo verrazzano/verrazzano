@@ -197,16 +197,16 @@ command -v jq >/dev/null 2>&1 || {
 ##################################################
 GLOBAL_HUB_REPO=container-registry.oracle.com/olcne
 
-CERT_MANAGER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/cert-manager-controller
+CERT_MANAGER_IMAGE=container-registry.oracle.com/verrazzano/cert-manager-controller
 CERT_MANAGER_TAG=0.13.1-0e7394e-18
 CERT_MANAGER_VERSION=0.13.1
-CERT_MANAGER_SOLVER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/cert-manager-acmesolver
+CERT_MANAGER_SOLVER_IMAGE=container-registry.oracle.com/verrazzano/cert-manager-acmesolver
 CERT_MANAGER_SOLVER_TAG=0.13.1-0e7394e-18
 
-EXTERNAL_DNS_REPO=stevengreenberginc/bfs/external-dns
+EXTERNAL_DNS_REPO=container-registry.oracle.com/verrazzano/external-dns
 EXTERNAL_DNS_VERSION=2.20.0
 EXTERNAL_DNS_TAG=v0.7.1-cfe79c5-10
-EXTERNAL_DNS_REGISTRY=phx.ocir.io
+EXTERNAL_DNS_REGISTRY=container-registry.oracle.com
 
 GRAFANA_REPO=container-registry.oracle.com/olcne/grafana
 GRAFANA_TAG=v6.4.4
