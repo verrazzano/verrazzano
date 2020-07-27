@@ -25,8 +25,8 @@ phx.ocir.io/stevengreenberginc/verrazzano/console-plugin:0.1.1
 phx.ocir.io/stevengreenberginc/bfs/istio-coredns-plugin:0.2-5caa06b-13
 phx.ocir.io/stevengreenberginc/bfs/prometheus-pusher:1.0.1-ff71638-19
 phx.ocir.io/stevengreenberginc/bfs/pushgateway:1.2.0-6893444-10
-phx.ocir.io/stevengreenberginc/bfs/nginx-ingress-controller:v0.0.0-ea1c033-9
-phx.ocir.io/stevengreenberginc/bfs/nginx-ingress-default-backend:v0.0.0-ea1c033-9
+phx.ocir.io/stevengreenberginc/bfs/nginx-ingress-controller:0.32-ea1c033-10
+phx.ocir.io/stevengreenberginc/bfs/nginx-ingress-default-backend:0.32-ea1c033-10
 container-registry.oracle.com/middleware/coherence:12.2.1.4.0
 oracle/coherence-operator:2.1.1
 oracle/weblogic-kubernetes-operator:2.6.0
