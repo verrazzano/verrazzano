@@ -44,11 +44,6 @@ function wait_for_ingress_ip() {
   fi
 }
 
-# DEPRECATED: This function is deprecated and is replaced by the log function in logging.sh
-function logDt() {
-  log "$@"
-}
-
 function get_rancher_access_token {
   local rancher_hostname=$1
   local rancher_password=$2

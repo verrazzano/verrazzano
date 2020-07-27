@@ -21,13 +21,13 @@ fi
 if [ -z "${_LOGGING_CONSOLE_STDOUT:-}" ]; then
   export _LOGGING_CONSOLE_STDOUT=4 #"/dev/fd/5"
   export _LOGGING_CONSOLE_STDERR=5 #"/dev/fd/6"
-  exec 4>&1 5<&2
+  exec 4>&1 5>&2
 fi
 
 # Redirect stdout and stderr for this shell to a log file.
 echo "Output redirected to ${LOG_FILE}"
 if [ ${DEBUG:-0} -ge 4 ]; then
-  exec 1>> "$LOG_FILE" 2>&1
+  exec 2>> "$LOG_FILE" 2>&1
 
   # Enable full shell trace logging.
   set -xs
@@ -261,7 +261,7 @@ function fail() {
   local msg="${1:-}"
   local rc=${2:-1}
   if [ -n "${msg}" ]; then
-    echo -e "\n${msg}"
+    echo -e "\n${msg}" >&2
     echo -e "\n${msg}" >&${_LOGGING_CONSOLE_STDERR}
   fi
   exit ${rc}
@@ -278,10 +278,10 @@ function fail() {
 function log() {
   local msg="$@"
   if [ ${DEBUG:-0} -ge 0 ]; then
-    echo -e "${msg}"
+    echo -e "${msg}" >&2
   fi
   if [ ${DEBUG:-0} -ge 1 ]; then
-    echo -e "${msg}" >&${_LOGGING_CONSOLE_STDOUT}
+    echo -e "${msg}" >&${_LOGGING_CONSOLE_STDERR}
   fi
 }
 
@@ -291,8 +291,8 @@ function log() {
 function debug() {
   local msg="$@"
   if [ ${DEBUG:-0} -ge 2 ]; then
-    echo -e "${msg}" >&${_LOGGING_CONSOLE_STDOUT}
-    echo -e "${msg}"
+    echo -e "${msg}" >&${_LOGGING_CONSOLE_STDERR}
+    echo -e "${msg}" >&2
   fi
 }
 
@@ -303,7 +303,7 @@ function trace() {
   local msg="$@"
   if [ ${DEBUG:-0} -ge 3 ]; then
     echo -e "${msg}" >&${_LOGGING_CONSOLE_STDOUT}
-    echo -e "${msg}"
+    echo -e "${msg}" >&2
   fi
 }
 
