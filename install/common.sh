@@ -203,7 +203,7 @@ CERT_MANAGER_VERSION=0.13.1
 CERT_MANAGER_SOLVER_IMAGE=container-registry.oracle.com/verrazzano/cert-manager-acmesolver
 CERT_MANAGER_SOLVER_TAG=0.13.1-0e7394e-18
 
-EXTERNAL_DNS_REPO=container-registry.oracle.com/verrazzano/external-dns
+EXTERNAL_DNS_REPO=verrazzano/external-dns
 EXTERNAL_DNS_VERSION=2.20.0
 EXTERNAL_DNS_TAG=v0.7.1-cfe79c5-10
 EXTERNAL_DNS_REGISTRY=container-registry.oracle.com
