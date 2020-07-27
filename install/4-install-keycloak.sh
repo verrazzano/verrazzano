@@ -32,12 +32,6 @@ function set_INGRESS_IP() {
   fi
 }
 
-function cleanup_all {
-  helm uninstall keycloak --namespace ${KEYCLOAK_NS} > /dev/null 2>&1 || true
-  helm uninstall mysql --namespace ${KEYCLOAK_NS} > /dev/null 2>&1 || true
-  kubectl delete --all pvc --namespace ${KEYCLOAK_NS} > /dev/null 2>&1 || true
-}
-
 function install_mysql {
   log "Check for Keycloak namespace"
   if ! kubectl get namespace ${KEYCLOAK_NS} 2> /dev/null ; then
@@ -217,7 +211,6 @@ fi
 
 DNS_TARGET_NAME=${DNS_PREFIX}.${ENV_NAME}.${DNS_SUFFIX}
 
-action "Preparing for installation" cleanup_all || exit 1
 action "Installing MySQL" install_mysql
   if [ "$?" -ne 0 ]; then
     "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "${KEYCLOAK_NS}" -m "Install MySQL Failure"

@@ -63,10 +63,6 @@ set -eu
 
 function install_nginx_ingress_controller()
 {
-    set +e
-    helm uninstall ingress-controller --namespace ingress-nginx
-    set -e
-
     # Create the namespace for nginx
     if ! kubectl get namespace ingress-nginx ; then
         kubectl create namespace ingress-nginx
@@ -96,10 +92,6 @@ function install_nginx_ingress_controller()
 
 function install_cert_manager()
 {
-    set +e
-    helm uninstall cert-manager --namespace cert-manager
-    set -e
-
     # Create the namespace for cert-manager
     if ! kubectl get namespace cert-manager ; then
         kubectl create namespace cert-manager
@@ -126,9 +118,6 @@ function install_cert_manager()
         --set ingressShim.defaultIssuerKind=ClusterIssuer \
         --wait
 
-    set +e
-    kubectl delete secret -n cert-manager verrazzano-oci-dns-config
-    set -e
     source /dev/stdin <<<"$(echo 'cat <<EOF >$TMP_DIR/oci.yaml'; cat $CONFIG_DIR/oci.yaml; echo EOF;)"
     kubectl create secret generic -n cert-manager verrazzano-oci-dns-config --from-file=$TMP_DIR/oci.yaml
     kubectl apply -f <(echo "
@@ -157,10 +146,6 @@ spec:
 
 function install_external_dns()
 {
-    set +e
-    helm uninstall external-dns --namespace cert-manager
-    set -e
-
     helm upgrade external-dns stable/external-dns \
         --install \
         --namespace cert-manager \
@@ -189,16 +174,10 @@ function install_external_dns()
 
 function install_rancher()
 {
-    log "Uninstall Rancher (if required)"
-    helm uninstall rancher --namespace cattle-system > /dev/null 2>&1 || true
-
     log "Create Rancher namespace (if required)"
     if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
         kubectl create namespace cattle-system
     fi
-
-    log "Delete Rancher secrets"
-    kubectl -n cattle-system delete secret rancher-admin-secret > /dev/null 2>&1 || true
 
     log "Add Rancher helm repository location"
     helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
