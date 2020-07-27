@@ -30,7 +30,7 @@ function wait_for_ingress_ip() {
   until [ "$retries" -ge 10 ]
   do
       ingress_ip=$(kubectl get ingress $1 -n $2 -o json | jq -r '.status.loadBalancer.ingress[].ip')
-      if [ ! -z "$ingress_ip" ] ; then
+      if [ -n "$ingress_ip" ] ; then
           break;
       fi
       retries=$(($retries+1))
