@@ -209,7 +209,7 @@ function action() {
 # $@: The message to be written to the console's stdout and the log file.  Written as "${@}".
 # Returns 0
 function section() {
-  local msg="${@}"
+  local msg="$@"
   echo "${msg}"
   if [ -n "${_logging_action_rc:-}" ] && _logging_action_spinner_enabled; then
     echo -en "\n" >&${_LOGGING_CONSOLE_STDOUT}
@@ -226,7 +226,7 @@ function section() {
 # $@: The message to be written to the console's stdout and the log file.  Written as "${@}".
 # Returns 0
 function status() {
-  local msg="${@}"
+  local msg="$@"
   echo "${msg}"
   if [ -n "${_logging_action_rc:-}" ] && _logging_action_spinner_enabled; then
     echo -e "\n${msg}" >&${_LOGGING_CONSOLE_STDOUT}
@@ -242,7 +242,7 @@ function status() {
 # $@: The message to be written to the console's standard error and the log file.  Written as "${@}".
 # Returns 0
 function error() {
-  local msg="${@}"
+  local msg="$@"
   echo "${msg}"
   if [ -n "${_logging_action_rc:-}" ] && _logging_action_spinner_enabled; then
     echo -e "\n${msg}" >&${_LOGGING_CONSOLE_STDERR}
@@ -276,7 +276,7 @@ function fail() {
 # $@: The message to write.  Written as "${@}".
 # Returns 0
 function log() {
-  local msg="${@}"
+  local msg="$@"
   if [ ${DEBUG:-0} -ge 0 ]; then
     echo -e "${msg}"
   fi
@@ -289,7 +289,7 @@ function log() {
 # $@: The message to write.  Written as "${@}".
 # Returns 0
 function debug() {
-  local msg="${@}"
+  local msg="$@"
   if [ ${DEBUG:-0} -ge 2 ]; then
     echo -e "${msg}" >&${_LOGGING_CONSOLE_STDOUT}
     echo -e "${msg}"
@@ -300,7 +300,7 @@ function debug() {
 # $@: The message to write.  Written as "${@}".
 # Returns 0
 function trace() {
-  local msg="${@}"
+  local msg="$@"
   if [ ${DEBUG:-0} -ge 3 ]; then
     echo -e "${msg}" >&${_LOGGING_CONSOLE_STDOUT}
     echo -e "${msg}"

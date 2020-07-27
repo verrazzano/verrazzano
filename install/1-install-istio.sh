@@ -128,7 +128,7 @@ function install_istio()
 
     log "Wait for istio CRD creation jobs to complete"
     if ! kubectl -n istio-system wait --for=condition=complete job --all --timeout=300s ; then
-      stat = $?
+      stat=$?
       consoleerr "ERROR: Istio CRD creation failed - dumping jobs into log file"
       dump_jobs "istio-system"
       return $stat
@@ -193,10 +193,10 @@ function verify_ocr_secret()
     if [ "$OCR_VERIFIED" == false ]; then
       "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "default" -r "ocrtest"
       "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "default" -r "ocrtest-*"
-      kubectl delete job ocrtest
+      kubectl delete job $OCR_TEST_JOB_NAME
       fail -e "ERROR: Cannot access Oracle Container Registry. This may be due to incorrect credentials, check the ocr secret and re-create the secret if the credentials are wrong.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
     fi
-    kubectl delete job ocrtest
+    kubectl delete job $OCR_TEST_JOB_NAME
 }
 
 function wait_for_nodes_to_exist {

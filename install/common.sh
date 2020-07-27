@@ -14,12 +14,12 @@ BUILD_DIR="${SCRIPT_DIR}/build"
 
 # DEPRECATED: This function is deprecated and is replaced by the status function in logging.sh
 function consoleout() {
-  status "${@}"
+  status "$@"
 }
 
 # DEPRECATED: This function is deprecated and is replaced by the error function in logging.sh
 function consoleerr() {
-  error "${@}"
+  error "$@"
 }
 
 function wait_for_ingress_ip() {
@@ -30,7 +30,7 @@ function wait_for_ingress_ip() {
   until [ "$retries" -ge 10 ]
   do
       ingress_ip=$(kubectl get ingress $1 -n $2 -o json | jq -r '.status.loadBalancer.ingress[].ip')
-      if [ ! -z "$ingress_ip" ] ; then
+      if [ -n "$ingress_ip" ] ; then
           break;
       fi
       retries=$(($retries+1))
@@ -197,28 +197,28 @@ command -v jq >/dev/null 2>&1 || {
 ##################################################
 GLOBAL_HUB_REPO=container-registry.oracle.com/olcne
 
-CERT_MANAGER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/cert-manager-controller
+CERT_MANAGER_IMAGE=container-registry.oracle.com/verrazzano/cert-manager-controller
 CERT_MANAGER_TAG=0.13.1-0e7394e-18
 CERT_MANAGER_VERSION=0.13.1
-CERT_MANAGER_SOLVER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/cert-manager-acmesolver
+CERT_MANAGER_SOLVER_IMAGE=container-registry.oracle.com/verrazzano/cert-manager-acmesolver
 CERT_MANAGER_SOLVER_TAG=0.13.1-0e7394e-18
 
-EXTERNAL_DNS_REPO=stevengreenberginc/bfs/external-dns
+EXTERNAL_DNS_REPO=container-registry.oracle.com/verrazzano/external-dns
 EXTERNAL_DNS_VERSION=2.20.0
 EXTERNAL_DNS_TAG=v0.7.1-cfe79c5-10
-EXTERNAL_DNS_REGISTRY=phx.ocir.io
+EXTERNAL_DNS_REGISTRY=container-registry.oracle.com
 
 GRAFANA_REPO=container-registry.oracle.com/olcne/grafana
 GRAFANA_TAG=v6.4.4
 
-KEYCLOAK_IMAGE=phx.ocir.io/stevengreenberginc/bfs/keycloak
 ISTIO_CORE_DNS_PLUGIN_IMAGE=phx.ocir.io/stevengreenberginc/bfs/istio-coredns-plugin
 ISTIO_CORE_DNS_PLUGIN_TAG=0.2-5caa06b-13
 ISTIO_CORE_DNS_IMAGE=container-registry.oracle.com/olcne/coredns
 ISTIO_CORE_DNS_TAG=1.6.2
 ISTIO_VERSION=1.4.6
 
-KEYCLOAK_IMAGE_TAG=10.0.1-2fee5c4-3
+KEYCLOAK_IMAGE=phx.ocir.io/stevengreenberginc/bfs/keycloak
+KEYCLOAK_IMAGE_TAG=10.0.1-2dcd823-4
 KEYCLOAK_CHART_VERSION=8.2.2
 
 MYSQL_IMAGE_TAG=8.0.20
