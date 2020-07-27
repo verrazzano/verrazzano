@@ -16,16 +16,16 @@ elif [ ${CLUSTER_TYPE} == "KIND" ]; then
 fi
 
 CONFIG_DIR=$SCRIPT_DIR/config
-INSTALL_DIR=$(mktemp -d)
-trap "rm -rf INSTALL_DIR" EXIT
+TMP_DIR=$(mktemp -d)
+trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
-set -u
+set -ueo pipefail
 
 function create_secret {
   CERTS_OUT=$SCRIPT_DIR/build/istio-certs
 
-  rm -rf $CERTS_OUT
-  rm -f ./index.txt* serial serial.old
+  rm -rf $CERTS_OUT || true
+  rm -f ./index.txt* serial serial.old || true
 
   mkdir -p $CERTS_OUT
   touch ./index.txt
@@ -70,22 +70,22 @@ function create_secret {
 
 function install_istio()
 {
-    # Add istio helm repo
+    log "Add istio helm repository"
     helm repo add istio.io https://storage.googleapis.com/istio-release/releases/${ISTIO_VERSION}/charts || return $?
 
-    # Fetch istio charts for istio and istio-init
-    helm fetch istio.io/istio --untar=true --untardir=$INSTALL_DIR || return $?
-    helm fetch istio.io/istio-init --untar=true --untardir=$INSTALL_DIR || return $?
+    log "Fetch istio charts for istio and istio-init"
+    helm fetch istio.io/istio --untar=true --untardir=$TMP_DIR || return $?
+    helm fetch istio.io/istio-init --untar=true --untardir=$TMP_DIR || return $?
 
-    # Create helm template for installing istio CRDs
-    helm template istio-init ${INSTALL_DIR}/istio-init \
+    log "Create helm template for installing istio CRDs"
+    helm template istio-init ${TMP_DIR}/istio-init \
         --namespace istio-system \
         --set global.hub=$GLOBAL_HUB_REPO \
         --set global.tag=$ISTIO_VERSION \
         --set global.imagePullSecrets[0]=ocr \
-        > ${INSTALL_DIR}/istio-crds.yaml || return $?
+        > ${TMP_DIR}/istio-crds.yaml || return $?
 
-    # Generate cluster specific configuration
+    log "Generate cluster specific configuration"
     EXTRA_HELM_ARGUMENTS=""
     if [ ${CLUSTER_TYPE} == "OLCNE" ] && [ $DNS_TYPE == "manual" ]; then
       ISTIO_INGRESS_IP=$(dig +short ingress-verrazzano.${NAME}.${DNS_SUFFIX})
@@ -97,8 +97,8 @@ function install_istio()
       EXTRA_HELM_ARGUMENTS=" --set gateways.istio-ingressgateway.externalIPs={"${ISTIO_INGRESS_IP}"}"
     fi
 
-    # Create helm template for installing istio proper
-    helm template istio ${INSTALL_DIR}/istio \
+    log "Create helm template for installing istio proper"
+    helm template istio ${TMP_DIR}/istio \
         --namespace istio-system \
         --set global.hub=$GLOBAL_HUB_REPO \
         --set global.tag=$ISTIO_VERSION \
@@ -120,14 +120,14 @@ function install_istio()
         --set gateways.istio-ingressgateway.ports[1].port=443 \
         --set gateways.istio-ingressgateway.ports[1].name=https \
         --set gateways.istio-ingressgateway.ports[1].nodePort=31390 \
-        --values ${INSTALL_DIR}/istio/example-values/values-istio-multicluster-gateways.yaml \
+        --values ${TMP_DIR}/istio/example-values/values-istio-multicluster-gateways.yaml \
         ${EXTRA_HELM_ARGUMENTS} \
-        > ${INSTALL_DIR}/istio.yaml || return $?
+        > ${TMP_DIR}/istio.yaml || return $?
 
-    # Change to use the OLCNE image for kubectl then install the istio CRDs
-    sed "s|/kubectl:|/istio_kubectl:|g" ${INSTALL_DIR}/istio-crds.yaml | kubectl apply -f - || return $?
+    log "Change to use the OLCNE image for kubectl then install the istio CRDs"
+    sed "s|/kubectl:|/istio_kubectl:|g" ${TMP_DIR}/istio-crds.yaml | kubectl apply -f - || return $?
 
-    # Wait for istio CRD creation jobs to complete
+    log "Wait for istio CRD creation jobs to complete"
     if ! kubectl -n istio-system wait --for=condition=complete job --all --timeout=300s ; then
       stat = $?
       consoleerr "ERROR: Istio CRD creation failed - dumping jobs into log file"
@@ -135,8 +135,8 @@ function install_istio()
       return $stat
     fi
 
-    # Change to use the OLCNE image for kubectl then install istio proper
-    sed "s|/kubectl:|/istio_kubectl:|g" ${INSTALL_DIR}/istio.yaml | kubectl apply -f - || return $?
+    log "Change to use the OLCNE image for kubectl then install istio proper"
+    sed "s|/kubectl:|/istio_kubectl:|g" ${TMP_DIR}/istio.yaml | kubectl apply -f - || return $?
 
 }
 
@@ -167,25 +167,30 @@ function copy_ocr_secret()
 
 function verify_ocr_secret()
 {
-    kubectl get secret ocr -n default || fail -e "ERROR: Secret named ocr is required to pull images from ${GLOBAL_HUB_REPO}.\nCreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
-    kubectl apply -f $CONFIG_DIR/ocrtest.yaml
+    kubectl get secret ocr -n default || fail "ERROR: Secret named ocr is required to pull images from ${GLOBAL_HUB_REPO}.\nCreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
+    OCR_TEST_JOB_NAME=ocrtest-$(uuidgen | tr "[:upper:]" "[:lower:]")
+    sed -e "s/OCR_TEST_JOB_NAME/${OCR_TEST_JOB_NAME}/" $CONFIG_DIR/ocrtest.yaml | kubectl apply -f -
     OCR_VERIFIED=false
     RETRIES=0
     until [ "$RETRIES" -ge 60 ]
     do
-       OCRTEST=$(kubectl get pod -l job-name=ocrtest | grep ocrtest)
+       OCRTEST=$(kubectl get pod -l job-name=$OCR_TEST_JOB_NAME | grep ocrtest)
        if [[ "$OCRTEST" == *"Running"* || "$OCRTEST" == *"Completed"* ]]; then
+           log "OCR Secret verified at attempt $RETRIES, job status is below"
+           echo $OCRTEST
            OCR_VERIFIED=true
            break
        fi
        if [[ "$OCRTEST" == *"ImagePullBackOff"* || "$OCRTEST" == *"ErrImagePull"* ]]; then
+           log "OCR Secret verification failed at attempt $RETRIES, job status is below"
+           echo $OCRTEST
            OCR_VERIFIED=false
            break
        fi
        RETRIES=$(($RETRIES+1))
        sleep 5
     done
-    kubectl delete job ocrtest
+    kubectl delete job $OCR_TEST_JOB_NAME
     if [ "$OCR_VERIFIED" == false ]; then
         fail -e "ERROR: Secret named ocr has invalid username or password.\nDelete and recreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
     fi
@@ -201,7 +206,7 @@ function wait_for_nodes_to_exist {
       fi
     done
     if [ "$retries" -ge 30 ] ; then
-      logDt "Kubernetes nodes don't exist in cluster"
+      log "Kubernetes nodes don't exist in cluster"
       return 1
     fi
 }
@@ -239,14 +244,14 @@ fi
 
 if [ "$DNS_TYPE" == "manual" ]; then
   command -v dig >/dev/null 2>&1 || {
-      fail "dig is required for dns_type $DNS_TYPE but cannot be found on the path. Aborting.";
+      fail "dig is required for dns_type $DNS_TYPE but cannot be found on the path. Aborting."
   }
 fi
 
 # Wait for all cluster nodes to exist, and then to be ready
-action "Waiting for nodes to be exist in cluster..." wait_for_nodes_to_exist || exit 1
+action "Waiting for all Kubernetes nodes to exist in cluster" wait_for_nodes_to_exist || exit 1
 
-logDt "Kubernetes nodes exist"
+log "Kubernetes nodes exist"
 action "Waiting for all Kubernetes nodes to be ready" \
     kubectl wait --for=condition=ready nodes --all || exit 1
 
@@ -275,6 +280,6 @@ if ! kubectl get secret cacerts -n istio-system > /dev/null 2>&1 ; then
 fi
 
 action "Installing Istio" install_istio || exit 1
-action "Updating coredns" update_coredns || exit 1
+action "Updating CoreDNS configuration" update_coredns || exit 1
 
 kubectl get pods -n istio-system
