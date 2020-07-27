@@ -127,9 +127,7 @@ function download_chart() {
   curl -ksH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/tags/${VERRAZZANO_VERSION}" -o response.txt
   assetId=$(jq -r ".assets[] | select(.name == (\"verrazzano-${VERRAZZANO_VERSION}.tgz\")) | .id" response.txt)
   echo "assetId is $assetId"
-  wget -q --auth-no-challenge --header='Accept:application/octet-stream' \
-  https://${GITHUB_API_TOKEN}:@api.github.com/repos/verrazzano/verrazzano-operator/releases/assets/$assetId \
-  -O verrazzano-${VERRAZZANO_VERSION}.tgz
+  curl -L https://api.github.com/repos/verrazzano/verrazzano-operator/releases/assets/$assetId?access_token=${GITHUB_API_TOKEN} -o verrazzano-${VERRAZZANO_VERSION}.tgz -H 'Accept: application/octet-stream'
 }
 
 function install_verrazzano()
