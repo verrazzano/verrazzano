@@ -67,7 +67,7 @@ function check_ingress_ports() {
 }
 
 VERRAZZANO_NS=verrazzano-system
-VERRAZZANO_VERSION=v0.0.0-4e268232ec969a8352d133807daf7a8d6f753597
+VERRAZZANO_VERSION=v0.0.64
 set_INGRESS_IP
 check_ingress_ports
 if [ $? -ne 0 ]; then
@@ -122,6 +122,15 @@ function dump_rancher_ingress {
   echo "########  end rancher ingress details ##########"
 }
 
+function download_chart() {
+  curl -ksH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/tags/${VERRAZZANO_VERSION}" -o response.txt
+  assetId=$(jq -r ".assets[] | select(.name == (\"verrazzano-${VERRAZZANO_VERSION}.tgz\")) | .id" response.txt)
+  echo "assetId is $assetId"
+  wget -q --auth-no-challenge --header='Accept:application/octet-stream' \
+  https://${GITHUB_API_TOKEN}:@api.github.com/repos/verrazzano/verrazzano-operator/releases/assets/$assetId \
+  -O verrazzano-${VERRAZZANO_VERSION}.tgz
+}
+
 function install_verrazzano()
 {
   set +e
@@ -154,7 +163,7 @@ function install_verrazzano()
   logDt "Installing verrazzano from Helm chart\n"
   helm \
       upgrade --install verrazzano \
-      https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-helm-chart/o/${VERRAZZANO_VERSION}%2Fverrazzano-${VERRAZZANO_VERSION}.tgz \
+      ./verrazzano-${VERRAZZANO_VERSION}.tgz \
       --namespace ${VERRAZZANO_NS} \
       --set image.pullPolicy=IfNotPresent \
       --set config.envName=${NAME} \
@@ -240,4 +249,5 @@ if ! kubectl get namespace ${VERRAZZANO_NS} ; then
 fi
 
 action "Creating admission controller cert" create_admission_controller_cert || exit 1
+action "Downloading helm chart archive" download_chart || exit 1
 action "Installing Verrazzano system components" install_verrazzano || exit 1
