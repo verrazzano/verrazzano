@@ -20,36 +20,39 @@ echo "Apply application binding."
 kubectl apply -f ${SCRIPT_DIR}/hello-world-binding.yaml
 
 echo "Wait for application namespace to be active."
-retries=0
+attempt=1
 while true; do
-    status=$(kubectl get ns -o=jsonpath='{.items[?(@.metadata.name=="greet")].status.phase}')
-    if [ "${status}" == "Active" ]; then
-      echo "Application namespace found and active."
-      break
-    elif [ $retries -ge 60 ]; then
-      echo "ERROR: Application namespace not found. Exiting."
-      exit 1
-    else
-      retries=$(($retries+1))
-      sleep .5
-    fi
+  status=$(kubectl get ns -o=jsonpath='{.items[?(@.metadata.name=="greet")].status.phase}' || true)
+  if [ "${status}" == "Active" ]; then
+    echo "Application namespace found and active on attempt ${attempt}, namespace status \"${status}\"."
+    break
+  elif [ ${attempt} -ge 60 ]; then
+    echo "ERROR: Application namespace not found on final attempt ${attempt}, namespace status \"${status}\". Exiting."
+    exit 1
+  elif [ ${attempt} -eq 1 ]; then
+    echo "Application namespace not found on initial attempt, namespace status \"${status}\". Retrying after delay."
+  fi
+  attempt=$(($attempt+1))
+  sleep .5
 done
 
 echo "Wait for application pods to be running."
-retries=0
+attempt=1
 while true; do
   # Can't use kubectl wait with timeout as this fails immediately if there are no pods.
-  count=$(kubectl get pods -n greet -o=jsonpath='{.items[?(@.status.phase=="Running")].metadata.name}' | wc -w)
-  if [ $count -ge 2 ]; then
-    echo "Application pods found and running."
+  # xargs is used to trim whitespace from value
+  count=$( (kubectl get pods -n greet -o=jsonpath='{.items[?(@.status.phase=="Running")].metadata.name}' || true) | wc -w | xargs)
+  if [ ${count} -ge 2 ]; then
+    echo "Application pods found and running on attempt ${attempt}, pod count ${count}."
     break
-  elif [ $retries -ge 60 ]; then
-    echo "ERROR: Application pods not found. Exiting."
+  elif [ ${attempt} -ge 60 ]; then
+    echo "ERROR: Application pods not found on final attempt ${attempt}, pod count ${count}. Exiting."
     exit 1
-  else
-    retries=$(($retries+1))
-    sleep 5
+  elif [ ${attempt} -eq 1 ]; then
+    echo "Application pods not found on initial attempt, pod count ${count}. Retrying after delay."
   fi
+  attempt=$((attempt+1))
+  sleep 5
 done
 
 echo "Determine application endpoint."
@@ -70,17 +73,17 @@ fi
 
 url="http://${SERVER}:${PORT}/greet"
 expect="Hello World"
-echo "Connect to application endpoint $url"
-reply=$(curl -s --connect-timeout 30 --retry 10 --retry-delay 30 -X GET $url)
+echo "Connect to application endpoint ${url}"
+reply=$(curl -s --connect-timeout 30 --retry 10 --retry-delay 30 -X GET ${url})
 code=$?
-if [ $code -ne 0 ]; then
-  echo "ERROR: Application connection failed: $code. Exiting."
-  exit $code
-elif [[ "$reply" != *"$expect"* ]]; then
-  echo "ERROR: Application reply unexpected: $reply, expected: $expect. Exiting."
+if [ ${code} -ne 0 ]; then
+  echo "ERROR: Application connection failed: ${code}. Exiting."
+  exit ${code}
+elif [[ "$reply" != *"${expect}"* ]]; then
+  echo "ERROR: Application reply unexpected: ${reply}, expected: ${expect}. Exiting."
   exit 1
 else
-  echo "Application reply correct: $reply"
+  echo "Application reply correct: ${reply}"
 fi
 
 echo "Installation of Helidon hello world application successful."

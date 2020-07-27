@@ -13,7 +13,7 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 CONFIG_DIR=$SCRIPT_DIR/config
 
 TMP_DIR=$(mktemp -d)
-trap "rm -rf $TMP_DIR" EXIT
+trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
 CHECK_VALUES=false
 set +u
@@ -203,6 +203,7 @@ function install_rancher()
       helm upgrade rancher rancher-stable/rancher \
         --install --namespace cattle-system \
         --version $RANCHER_VERSION  \
+        --set systemDefaultRegistry=phx.ocir.io/stevengreenberginc/bfs \
         --set rancherImage=$RANCHER_IMAGE \
         --set rancherImageTag=$RANCHER_TAG \
         --set hostname=rancher.${NAME}.${OCI_DNS_ZONE_NAME} \
