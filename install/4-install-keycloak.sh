@@ -141,7 +141,7 @@ function set_rancher_server_url
     echo "Set Rancher server URL to ${rancher_server_url}"
     curl_args=("${rancher_server_url}/v3/settings/server-url" \
           -H 'content-type: application/json' \
-          -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" \
+          -H "Authorization: Bearer ${rancher_access_token}" \
           -X PUT \
           --data-binary '{"name":"server-url","value":"'${rancher_server_url}'"}' \
           --insecure)
