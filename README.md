@@ -42,9 +42,8 @@ To install Verrazzano, follow these steps:
 
 To deploy the example applications, please see the following instructions:
 
-* [Bob's Books](./examples/bobs-books/README.md)
 * [Helidon Hello World](./examples/hello-helidon/README.md)
-* TBD
+* [Bob's Books](./examples/bobs-books/README.md)
 
 ## More Information
 
