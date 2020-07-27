@@ -123,6 +123,7 @@ function dump_rancher_ingress {
 }
 
 function download_chart() {
+  GITHUB_API_TOKEN="${GITHUB_API_TOKEN:-}"
   curl -ksH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/tags/${VERRAZZANO_VERSION}" -o response.txt
   assetId=$(jq -r ".assets[] | select(.name == (\"verrazzano-${VERRAZZANO_VERSION}.tgz\")) | .id" response.txt)
   echo "assetId is $assetId"
