@@ -19,7 +19,7 @@ This repository contains installation scripts and example applications for use w
 
 ## tl;dr
 To install Verrazzano, follow these steps:  
-1. Create an OKE cluster.
+1. Create an Oracle Cloud Infrastructure Container Engine for Kubernetes (OKE) cluster.
 2. Start OCI Cloud Shell.
 3. Copy the `kubeconfig` to Cloud Shell.
 4. Clone this repo in the Cloud Shell home:
@@ -36,7 +36,7 @@ To install Verrazzano, follow these steps:
    - `./install/4-install-keycloak.sh`
 6. (Optional) Install some example applications - see below for details.
 
-> **NOTE**: This alpha release of Verrazzano is intended for installation in a single OKE or Kind cluster. You should only install Verazzano in a cluster that can be safely deleted when your evaluation is complete.
+> **NOTE**: This alpha release of Verrazzano is intended for installation in a single OKE or Oracle Linux Cloud Native Environment (OLCNE) cluster. You should only install Verazzano in a cluster that can be safely deleted when your evaluation is complete.
 
 ## Deploying the example applications
 
