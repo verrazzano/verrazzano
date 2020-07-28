@@ -1,10 +1,9 @@
 
 # Installation
 
-Verrazzano can be installed in a single [Oracle OKE](https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm) cluster,
-an [Oracle Linux Cloud Native Environment](https://docs.oracle.com/en/operating-systems/olcne/) deployment,
-or a [kind](https://kind.sigs.k8s.io/) cluster.
-For the Oracle OKE and kind cluster types you have two DNS choices:
+Verrazzano can be installed in a single [Oracle Cloud Infrastructure Container Engine for Kubernetes (OKE)](https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm) cluster or
+an [Oracle Linux Cloud Native Environment](https://docs.oracle.com/en/operating-systems/olcne/) deployment.
+For the Oracle OKE cluster type you have two DNS choices:
 [xip.io](http://xip.io/) or
 [Oracle OCI DNS](https://docs.cloud.oracle.com/en-us/iaas/Content/DNS/Concepts/dnszonemanagement.htm).
 Oracle Linux Cloud Native Environment currently only supports a third choice of manual DNS
@@ -28,7 +27,6 @@ The following software must be installed on your system.
 * helm
 * jq
 * kubectl
-* kind (for KinD installation)
 * openssl
 * patch (for OCI DNS installation)
 
@@ -44,19 +42,6 @@ Create the OKE cluster using the OCI console or some other means, then set the f
    export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
    export KUBECONFIG=$VERRAZZANO_KUBECONFIG
 
-```
-
-### Using a kind Cluster
-Set the following ENV vars: 
-```
-   export CLUSTER_TYPE=KIND
-   export VERRAZZANO_KUBECONFIG=<path to kubernetes config where kind cluster info will be written>
-   export KUBECONFIG=$VERRAZZANO_KUBECONFIG
-```
-
-Run the script to create your kind cluster:
-```
-   ./0-create-kind-cluster.sh
 ```
 
 ### Using an OLCNE Cluster
