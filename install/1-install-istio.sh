@@ -173,6 +173,7 @@ function verify_ocr_secret()
     RETRIES=0
     until [ "$RETRIES" -ge 60 ]
     do
+       break
        OCRTEST=$(kubectl get pod -l job-name=$OCR_TEST_JOB_NAME | grep ocrtest)
        if [[ "$OCRTEST" == *"Running"* || "$OCRTEST" == *"Completed"* ]]; then
            log "OCR Secret verified at attempt $RETRIES, job status is below"
