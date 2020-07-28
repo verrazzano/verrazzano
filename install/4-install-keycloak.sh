@@ -216,11 +216,13 @@ fi
 DNS_TARGET_NAME=${DNS_PREFIX}.${ENV_NAME}.${DNS_SUFFIX}
 
 action "Preparing for installation" cleanup_all || exit 1
-action "Installing MySQL" install_mysql || \
-  "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "${KEYCLOAK_NS}"; \
-  "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "${KEYCLOAK_NS}"; \
-  kubectl describe nodes; \
-  exit 1
+action "Installing MySQL" install_mysql
+  if [ "$?" -ne 0 ]; then
+    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "${KEYCLOAK_NS}"
+    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "${KEYCLOAK_NS}"
+    kubectl describe nodes
+    exit 1
+  fi
 
 action "Installing Keycloak" install_keycloak || exit 1
 action "Setting Rancher Server URL" set_rancher_server_url || true
