@@ -34,12 +34,17 @@ function dump_objects() {
   if [[ -z "$type"  || -z "$namespace" ]]
   then
     error "Object type and namespace must be specified to describe objects."
-    exit
+    exit 1
   fi
 
   local object_names=($(kubectl get "${type}" --no-headers -o custom-columns=":metadata.name" --field-selector="${fields}" -n "${namespace}"| grep -E "${regex}"))
 
   dump_header
+
+  if [ -z "$object_names" ]
+  then
+    log "No resources of object type: \"${type}\" in namespace: \"${namespace}\" with the current specifications were located"
+  fi
 
   for object in "${object_names[@]}"
   do
@@ -67,7 +72,7 @@ function format_field_selectors() {
     states+=("${1}${2}${formatted_state}")
   done
 
-  echo $(join , "${states[@]}")
+  echo $(join_by , "${states[@]}")
 }
 
 
@@ -76,7 +81,7 @@ function format_field_selectors() {
 # $2 values - values in which to join
 # Usage:
 # join_by , "${ARRAY[@]}"
-function join() {
+function join_by() {
   local IFS="$1"
   shift
   echo "$*"
@@ -90,9 +95,9 @@ function usage {
     error "usage: $0 -o object_type -n namespace [-r name_regex] [-s state] [-S not_state] [-h]"
     error " -o object_type   Type of the object (i.e. namespaces, pods, jobs, etc)"
     error " -n namespace     Namespace of the given object type"
-    error " -r name_regex    Regex to retrieve certain jobs by name"
-    error " -s state         Specified state the described object should be in (i.e. Running)"
-    error " -S not_state     Specified state that the described object should not be in"
+    error " -r name_regex    Regex to retrieve certain objects by name (Optional)"
+    error " -s state         Specified state the described object should be in (i.e. Running) (Multiple values allowed) (Optional)"
+    error " -S not_state     Specified state that the described object should not be in (Multiple values allowed) (Optional)"
     error " -h               Help"
     error
     exit 1
@@ -118,6 +123,6 @@ shift $((OPTIND -1))
 
 STATE_FORMAT=$(format_field_selectors "status.phase" "=" "${STATES[@]}")
 NOT_STATE_FORMAT=$(format_field_selectors "status.phase" "!=" "${NOT_STATES[@]}")
-FIELD_SELECTORS=$(join , "$STATE_FORMAT" "$NOT_STATE_FORMAT")
+FIELD_SELECTORS="${STATE_FORMAT},${NOT_STATE_FORMAT}"
 
 dump_objects "${OBJECT_TYPE}" "${NAMESPACE}" "${NAME_REGEX}" "${FIELD_SELECTORS}"

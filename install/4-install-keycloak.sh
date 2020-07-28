@@ -49,6 +49,8 @@ function install_mysql {
   sed -e "s|MYSQL_IMAGE_TAG|${MYSQL_IMAGE_TAG}|g" \
       -e "s|MYSQL_USERNAME|${MYSQL_USERNAME}|g" \
       $SCRIPT_DIR/config/mysql-values-template.yaml > ${TMP_DIR}/mysql-values-sed.yaml
+
+  return 1
   
   log "Install MySQL helm chart"
   helm upgrade mysql stable/mysql \
@@ -216,7 +218,12 @@ fi
 DNS_TARGET_NAME=${DNS_PREFIX}.${ENV_NAME}.${DNS_SUFFIX}
 
 action "Preparing for installation" cleanup_all || exit 1
-action "Installing MySQL" install_mysql || exit 1
+action "Installing MySQL" install_mysql || \
+  "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "${KEYCLOAK_NS}"; \
+  "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "${KEYCLOAK_NS}"; \
+  kubectl describe nodes; \
+  exit 1
+
 action "Installing Keycloak" install_keycloak || exit 1
 action "Setting Rancher Server URL" set_rancher_server_url || true
 
