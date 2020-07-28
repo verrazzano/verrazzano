@@ -130,9 +130,9 @@ function install_verrazzano()
   kubectl delete secret verrazzano-managed-cluster-local /dev/null 2>&1 || true
   log "Completed uninstall"
 
-  RancherAdminPassword=`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode`
+  local rancher_admin_password=`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode`
 
-  if [ -z "$RancherAdminPassword" ] ; then
+  if [ -z "$rancher_admin_password" ] ; then
     error "ERROR: Failed to retrieve rancher-admin-secret - did you run the scripts to install Istio and system components?"
     return 1
   fi
@@ -144,13 +144,12 @@ function install_verrazzano()
   # Make sure rancher ingress has an IP
   wait_for_ingress_ip rancher cattle-system
 
-  local rancher_access_token=$(get_rancher_access_token "${RANCHER_HOSTNAME}" "${RancherAdminPassword}")
+  get_rancher_access_token "${RANCHER_HOSTNAME}" "${rancher_admin_password}"
   if [ $? -ne 0 ] ; then
     error "ERROR: Failed to get rancher access token"
     exit 1
   fi
-
-  export TOKEN_ARRAY=(${rancher_access_token//:/ })
+  local token_array=(${RANCHER_ACCESS_TOKEN//:/ })
 
   log "Installing verrazzano from Helm chart"
   helm \
@@ -163,8 +162,8 @@ function install_verrazzano()
       --set config.enableMonitoringStorage=true \
       --set verrazzanoOperator.sslVerify=false \
       --set clusterOperator.rancherURL=https://${RANCHER_HOSTNAME} \
-      --set clusterOperator.rancherUserName="${TOKEN_ARRAY[0]}" \
-      --set clusterOperator.rancherPassword="${TOKEN_ARRAY[1]}" \
+      --set clusterOperator.rancherUserName="${token_array[0]}" \
+      --set clusterOperator.rancherPassword="${token_array[1]}" \
       --set clusterOperator.rancherHostname=${RANCHER_HOSTNAME} \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)"
 

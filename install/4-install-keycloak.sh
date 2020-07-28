@@ -128,20 +128,20 @@ function set_rancher_server_url
       return 0
     fi
     echo "Get Rancher access token."
-    local rancher_access_token=$(get_rancher_access_token "${rancher_host_name}" "${rancher_admin_password}")
+    get_rancher_access_token "${rancher_host_name}" "${rancher_admin_password}"
     if [ $? -ne 0 ] ; then
       echo "Failed to get Rancher access token. Continuing without setting Rancher server URL."
       return 0
     fi
 
-    if [ -z "${rancher_access_token}" ]; then
+    if [ -z "${RANCHER_ACCESS_TOKEN}" ]; then
       echo "Failed to get valid Rancher access token. Continuing without setting Rancher server URL."
       return 0
     fi
     echo "Set Rancher server URL to ${rancher_server_url}"
     curl_args=("${rancher_server_url}/v3/settings/server-url" \
           -H 'content-type: application/json' \
-          -H "Authorization: Bearer ${rancher_access_token}" \
+          -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" \
           -X PUT \
           --data-binary '{"name":"server-url","value":"'${rancher_server_url}'"}' \
           --insecure)

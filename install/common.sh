@@ -110,7 +110,8 @@ function get_rancher_access_token {
       dump_rancher_ingress
       return 1
   fi
-  echo $rancher_access_token
+
+  RANCHER_ACCESS_TOKEN=$rancher_access_token
 }
 
 # Call curl with the given arguments and set the given variables for response body and http code.
