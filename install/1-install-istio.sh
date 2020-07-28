@@ -258,7 +258,6 @@ action "Waiting for all Kubernetes nodes to be ready" \
 # Secret named ocr must exist in the default namespace to pull OLCNE images in a OKE cluster
 if [ ${CLUSTER_TYPE} == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
   action "Checking for secret named ocr in default namespace" verify_ocr_secret || exit 1
-  exit 0
 fi
 
 # Create istio-system namespace if it does not exist
