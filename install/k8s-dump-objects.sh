@@ -6,13 +6,30 @@
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
 . $SCRIPT_DIR/common.sh
+
+export LOG_FILE="${SCRIPT_DIR}/build/logs/diagnostics.log"
 . $SCRIPT_DIR/logging.sh
 
+# Dump Diagnostic header with message
+# $1 message - message given by failure to identify cause
+# Usage:
+# dump_header "message"
 function dump_header() {
-  log "================================  DIAGNOSTIC OUTPUT START ================================="
-  log ""
+  local message=$1
+
+  if [ -z "$message" ]
+  then
+    log "================================  DIAGNOSTIC OUTPUT START ================================="
+    log ""
+  else
+    log "================================  DIAGNOSTIC OUTPUT START: ${message} ================================="
+    log ""
+  fi
 }
 
+# Dump Diagnostic footer
+# Usage:
+# dump_footer
 function dump_footer() {
   log ""
   log "================================  DIAGNOSTIC OUTPUT END ==================================="
@@ -23,13 +40,15 @@ function dump_footer() {
 # $2 namespace - namespace of the objects
 # $3 object name regex - regex to retrieve certain jobs by name
 # $4 (optional) fields - field selectors for kubectl organized as shown here: https://kubernetes.io/docs/concepts/overview/working-with-objects/field-selectors/
+# $5 message - dump header message to inform the cause of the output
 # Usage:
-# dump_objects "objectType" "namespace" "objectRegex" "fields"
+# dump_objects "objectType" "namespace" "objectRegex" "fields" "message"
 function dump_objects() {
   local type=$1
   local namespace=$2
   local regex=$3
   local fields=$4
+  local message=$5
 
   if [[ -z "$type"  || -z "$namespace" ]]
   then
@@ -39,7 +58,7 @@ function dump_objects() {
 
   local object_names=($(kubectl get "${type}" --no-headers -o custom-columns=":metadata.name" --field-selector="${fields}" -n "${namespace}"| grep -E "${regex}"))
 
-  dump_header
+  dump_header "$message"
 
   if [ -z "$object_names" ]
   then
@@ -92,12 +111,13 @@ function join_by() {
 # usage
 function usage {
     error
-    error "usage: $0 -o object_type -n namespace [-r name_regex] [-s state] [-S not_state] [-h]"
+    error "usage: $0 -o object_type -n namespace -m message [-r name_regex] [-s state] [-S not_state] [-h]"
     error " -o object_type   Type of the object (i.e. namespaces, pods, jobs, etc)"
     error " -n namespace     Namespace of the given object type"
     error " -r name_regex    Regex to retrieve certain objects by name (Optional)"
     error " -s state         Specified state the described object should be in (i.e. Running) (Multiple values allowed) (Optional)"
     error " -S not_state     Specified state that the described object should not be in (Multiple values allowed) (Optional)"
+    error " -m message       Message for the diagnostic header to inform on cause of output"
     error " -h               Help"
     error
     exit 1
@@ -107,7 +127,8 @@ NAMESPACE="default"
 NAME_REGEX=""
 STATES=()
 NOT_STATES=()
-while getopts o:n:r:s:S:h flag
+MESSAGE=""
+while getopts o:n:r:s:S:m:h flag
 do
     case "${flag}" in
         o) OBJECT_TYPE=${OPTARG};;
@@ -115,6 +136,7 @@ do
         r) NAME_REGEX=${OPTARG};;
         s) STATES+=("${OPTARG}");;
         S) NOT_STATES+=("${OPTARG}");;
+        m) MESSAGE=${OPTARG};;
         h) usage;;
         *) usage;;
     esac
@@ -125,4 +147,4 @@ STATE_FORMAT=$(format_field_selectors "status.phase" "=" "${STATES[@]}")
 NOT_STATE_FORMAT=$(format_field_selectors "status.phase" "!=" "${NOT_STATES[@]}")
 FIELD_SELECTORS="${STATE_FORMAT},${NOT_STATE_FORMAT}"
 
-dump_objects "${OBJECT_TYPE}" "${NAMESPACE}" "${NAME_REGEX}" "${FIELD_SELECTORS}"
+dump_objects "${OBJECT_TYPE}" "${NAMESPACE}" "${NAME_REGEX}" "${FIELD_SELECTORS}" "${MESSAGE}"

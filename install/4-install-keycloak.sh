@@ -218,10 +218,10 @@ DNS_TARGET_NAME=${DNS_PREFIX}.${ENV_NAME}.${DNS_SUFFIX}
 action "Preparing for installation" cleanup_all || exit 1
 action "Installing MySQL" install_mysql
   if [ "$?" -ne 0 ]; then
-    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "${KEYCLOAK_NS}"
-    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "${KEYCLOAK_NS}"
+    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "${KEYCLOAK_NS}" -m "Install MySQL Failure"
+    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "${KEYCLOAK_NS}" -m "Install MySQL Failure"
     kubectl describe nodes
-    exit 1
+    fail "Installation of MySQL failed\nCheck ${SCRIPT_DIR}/build/logs/diagnostics.log for a descriptive output of the error"
   fi
 
 action "Installing Keycloak" install_keycloak || exit 1
