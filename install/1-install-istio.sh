@@ -171,7 +171,7 @@ function verify_ocr_secret()
     sed -e "s/OCR_TEST_JOB_NAME/${OCR_TEST_JOB_NAME}/" $CONFIG_DIR/ocrtest.yaml | kubectl apply -f -
     OCR_VERIFIED=false
     RETRIES=0
-    until [ "$RETRIES" -ge 60 ]
+    until [ "$RETRIES" -ge 30 ]
     do
        OCRTEST=$(kubectl get pod -l job-name=$OCR_TEST_JOB_NAME | grep ocrtest)
        if [[ "$OCRTEST" == *"Running"* || "$OCRTEST" == *"Completed"* ]]; then
@@ -183,11 +183,11 @@ function verify_ocr_secret()
        if [[ "$OCRTEST" == *"ImagePullBackOff"* || "$OCRTEST" == *"ErrImagePull"* ]]; then
            log "OCR Secret verification failed at attempt $RETRIES, job status is below"
            echo $OCRTEST
+           kubectl describe pod `echo $OCRTEST | awk '{ print $1 }'` | grep "Failed" | head -n 1
            OCR_VERIFIED=false
-           break
        fi
        RETRIES=$(($RETRIES+1))
-       sleep 5
+       sleep 1
     done
 
     if [ "$OCR_VERIFIED" == false ]; then
