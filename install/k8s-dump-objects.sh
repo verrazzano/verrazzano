@@ -17,8 +17,7 @@ export LOG_FILE="${SCRIPT_DIR}/build/logs/diagnostics.log"
 function dump_header() {
   local message=$1
 
-  if [ -z "$message" ]
-  then
+  if [ -z "$message" ] ; then
     log "================================  DIAGNOSTIC OUTPUT START ================================="
     log ""
   else
@@ -50,8 +49,7 @@ function dump_objects() {
   local fields=$4
   local message=$5
 
-  if [[ -z "$type"  || -z "$namespace" ]]
-  then
+  if [[ -z "$type"  || -z "$namespace" ]] ; then
     error "Object type and namespace must be specified to describe objects."
     exit 1
   fi
@@ -60,8 +58,7 @@ function dump_objects() {
 
   dump_header "$message"
 
-  if [ -z "$object_names" ]
-  then
+  if [ -z "$object_names" ] ; then
     log "No resources of object type: \"${type}\" in namespace: \"${namespace}\" with the current specifications were located"
   fi
 

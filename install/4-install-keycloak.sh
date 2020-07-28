@@ -222,7 +222,7 @@ action "Installing MySQL" install_mysql
   if [ "$?" -ne 0 ]; then
     "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "${KEYCLOAK_NS}" -m "Install MySQL Failure"
     "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "${KEYCLOAK_NS}" -m "Install MySQL Failure"
-    kubectl describe nodes
+    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "nodes" -n "default" -m "Install MySQL Failure"
     fail "Installation of MySQL failed\nCheck ${SCRIPT_DIR}/build/logs/diagnostics.log for a descriptive output of the error"
   fi
 
