@@ -49,8 +49,6 @@ function install_mysql {
   sed -e "s|MYSQL_IMAGE_TAG|${MYSQL_IMAGE_TAG}|g" \
       -e "s|MYSQL_USERNAME|${MYSQL_USERNAME}|g" \
       $SCRIPT_DIR/config/mysql-values-template.yaml > ${TMP_DIR}/mysql-values-sed.yaml
-
-  return 1
   
   log "Install MySQL helm chart"
   helm upgrade mysql stable/mysql \
