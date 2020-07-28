@@ -172,7 +172,7 @@ function verify_ocr_secret()
     sed -e "s/OCR_TEST_JOB_NAME/${OCR_TEST_JOB_NAME}/" $CONFIG_DIR/ocrtest.yaml | kubectl apply -f -
     OCR_VERIFIED=false
     RETRIES=0
-    until [ "$RETRIES" -ge 60 ]
+    until [ "$RETRIES" -ge 30 ]
     do
        OCRTEST=$(kubectl get pod -l job-name=$OCR_TEST_JOB_NAME | grep ocrtest)
        if [[ "$OCRTEST" == *"Running"* || "$OCRTEST" == *"Completed"* ]]; then
@@ -184,15 +184,15 @@ function verify_ocr_secret()
        if [[ "$OCRTEST" == *"ImagePullBackOff"* || "$OCRTEST" == *"ErrImagePull"* ]]; then
            log "OCR Secret verification failed at attempt $RETRIES, job status is below"
            echo $OCRTEST
+           kubectl describe pod `echo $OCRTEST | awk '{ print $1 }'` | grep "Failed" | head -n 1
            OCR_VERIFIED=false
-           break
        fi
        RETRIES=$(($RETRIES+1))
-       sleep 5
+       sleep 1
     done
     kubectl delete job $OCR_TEST_JOB_NAME
     if [ "$OCR_VERIFIED" == false ]; then
-        fail "ERROR: Secret named ocr has invalid username or password.\nDelete and recreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
+        fail "ERROR: OCR Secret verification failed. See log file for more details."
     fi
 }
 
@@ -258,6 +258,7 @@ action "Waiting for all Kubernetes nodes to be ready" \
 # Secret named ocr must exist in the default namespace to pull OLCNE images in a OKE cluster
 if [ ${CLUSTER_TYPE} == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
   action "Checking for secret named ocr in default namespace" verify_ocr_secret || exit 1
+  exit 0
 fi
 
 # Create istio-system namespace if it does not exist
