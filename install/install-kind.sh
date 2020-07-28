@@ -11,17 +11,22 @@ export CLUSTER_TYPE=KIND
 
 . $SCRIPT_DIR/common.sh
 
+status "Creating cluster..."
+$SCRIPT_DIR/0-create-kind-cluster.sh
+status "Installing Istio..."
+$SCRIPT_DIR/1-install-istio.sh
+status "Installing system components..."
+$SCRIPT_DIR/2a-install-system-components-magicdns.sh
+status "Installing Verrazzano..."
+$SCRIPT_DIR/3-install-verrazzano.sh
+status "Installing Keycloak..."
+$SCRIPT_DIR/4-install-keycloak.sh
 
-$SCRIPT_DIR/0-create-kind-cluster.sh >&$CONSOLE_STDOUT 2>&$CONSOLE_STDERR
-$SCRIPT_DIR/1-install-istio.sh >&$CONSOLE_STDOUT 2>&$CONSOLE_STDERR
-$SCRIPT_DIR/2a-install-system-components-magicdns.sh >&$CONSOLE_STDOUT 2>&$CONSOLE_STDERR
-$SCRIPT_DIR/3-install-verrazzano.sh >&$CONSOLE_STDOUT 2>&$CONSOLE_STDERR
-$SCRIPT_DIR/4-install-keycloak.sh >&$CONSOLE_STDOUT 2>&$CONSOLE_STDERR
+function wait_for_env_ready() {
+  kubectl -n verrazzano-system wait --for=condition=ready pods -l app=verrazzano-operator --timeout 2m
+  kubectl -n verrazzano-system wait --for=condition=ready pods -l name=verrazzano-validation --timeout 2m
+}
+action "Wait for environment to be ready" wait_for_env_ready || fail "Environment not ready"
 
-#
-# Wait for environment to be ready
-kubectl -n verrazzano-system wait --for=condition=ready pods -l app=verrazzano-operator --timeout 2m
-kubectl -n verrazzano-system wait --for=condition=ready pods -l name=verrazzano-validation --timeout 2m
-
-consoleout
-consoleout "Installation of cluster ${CLUSTER_TYPE} completed"
+status ""
+status "Installation of cluster ${CLUSTER_TYPE} completed"

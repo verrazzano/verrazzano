@@ -13,7 +13,7 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 CONFIG_DIR=$SCRIPT_DIR/config
 
 TMP_DIR=$(mktemp -d)
-trap "rm -rf $TMP_DIR" EXIT
+trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
 CHECK_VALUES=false
 set +u
@@ -260,6 +260,10 @@ if [ -z "$NAME" ]; then
     consoleerr "-n option is required"
     usage
 fi
+
+command -v patch >/dev/null 2>&1 || {
+    fail "patch is required for dns_type $DNS_TYPE but cannot be found on the path. Aborting.";
+}
 
 action "Installing Nginx Ingress Controller" install_nginx_ingress_controller || exit 1
 action "Installing cert manager" install_cert_manager || exit 1

@@ -1,12 +1,16 @@
 
 # Installation
 
-Verrazzano can be installed in a single [Oracle OKE](https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm) cluster 
-or a [kind](https://kind.sigs.k8s.io/) cluster. For each cluster type, you have two DNS choices: 
+Verrazzano can be installed in a single [Oracle OKE](https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm) cluster,
+an [Oracle Linux Cloud Native Environment](https://docs.oracle.com/en/operating-systems/olcne/) deployment,
+or a [kind](https://kind.sigs.k8s.io/) cluster.
+For the Oracle OKE and kind cluster types you have two DNS choices:
 [xip.io](http://xip.io/) or
 [Oracle OCI DNS](https://docs.cloud.oracle.com/en-us/iaas/Content/DNS/Concepts/dnszonemanagement.htm).
+Oracle Linux Cloud Native Environment currently only supports a third choice of manual DNS
+as described in the [Verrazzano Prerequisites](https://verrazzano.io/docs/install/prereqs/).
 
-> **NOTE**: You should only install this alpla release of Verazzano in a cluster that can be safely deleted when your evaluation is complete.
+> **NOTE**: You should only install this alpha release of Verrazzano in a cluster that can be safely deleted when your evaluation is complete.
 
 ## Resource Requirements
 
@@ -31,7 +35,7 @@ The following software must be installed on your system.
 ## 1. Preparing for installation
 
 Prepare for installation as shown below, depending on your cluster type.
-Then, create the the docker registry secret.
+Then, create the docker registry secret.
 
 ###  Using an OKE Cluster
 Create the OKE cluster using the OCI console or some other means, then set the following ENV vars:
@@ -61,6 +65,7 @@ Run the script to create your kind cluster:
    export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
    export KUBECONFIG=$VERRAZZANO_KUBECONFIG
 ```
+> **NOTE**: At this time the only supported deployment for OLCNE is DNS type manual
 
 ### Create Oracle Container Registry secret
 For all cluster types, you need to create the "ocr" secret. This is needed for pulling images from the container-registry.oracle.com repository.
@@ -73,10 +78,11 @@ For all cluster types, you need to create the "ocr" secret. This is needed for p
 
 ## 2. Do the install
 
-Install using xip.io or OCI DNS (2a or 2b).  In both cases, DNS records
-will be automatically configured for you.
+Install using xip.io, OCI DNS or manual DNS configuration. In xip.io and OCI DNS cases the DNS records
+will be automatically configured for you. In manual mode you must create the records as per
+[Verrazzano Prerequisites](https://verrazzano.io/docs/install/prereqs/)
 
-### 2a. Install using xip.io
+### Install using xip.io
 Run the following scripts in order:
 ```
    ./1-install-istio.sh
@@ -104,7 +110,16 @@ plus sign on the bottom to import the certificate. Next, double-click on the imp
 Expand the trust selection on the left, change `Secure Socket Layers (SSL)` to `Always Trust`.  Finally, dismiss the dialog box to save your change.
 
 **OR**
-### 2b. Install using OCI DNS
+### Install using manual DNS
+Run the following scripts in order:
+```
+   ./1-install-istio.sh                       -d manual -n <env-name> -s <dns-suffix>
+   ./2a-install-system-components-magicdns.sh -d manual -n <env-name> -s <dns-suffix>
+   ./3-install-verrazzano.sh                  -d manual -n <env-name> -s <dns-suffix>
+   ./4-install-keycloak.sh                    -d manual -n <env-name> -s <dns-suffix>
+```
+**OR**
+### Install using OCI DNS
 
 Installing Verrazzano on OCI DNS requires the following environment variables to create DNS records:
 
