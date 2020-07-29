@@ -34,7 +34,7 @@ container-registry.oracle.com/olcne/prometheus:v2.13.1
 container-registry.oracle.com/olcne/grafana:v6.4.4
 phx.ocir.io/stevengreenberginc/bfs/verrazzano/keycloak-oracle-theme:fc5084e7cb5fceb5ce224327397acb87f2f520c1
 phx.ocir.io/stevengreenberginc/bfs/rancher:v2.4.3-0cc4e86-22
-phx.ocir.io/stevengreenberginc/bfs/rancher:v2.4.3-0cc4e86-22
+phx.ocir.io/stevengreenberginc/bfs/rancher-agent:v2.4.3-0cc4e86-22
 phx.ocir.io/stevengreenberginc/bfs/external-dns:v0.7.1-cfe79c5-10
 phx.ocir.io/stevengreenberginc/bfs/filebeat:6.8.3-58a0ddf-6
 phx.ocir.io/stevengreenberginc/bfs/journalbeat:6.8.3-58a0ddf-6
