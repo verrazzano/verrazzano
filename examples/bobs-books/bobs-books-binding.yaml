@@ -26,7 +26,7 @@ spec:
   databaseBindings:
     - name: mysql
       credentials: mysql-credentials
-      url: "jdbc:mysql://mysql.bob.svc.default.local:3306/books"
+      url: "jdbc:mysql://mysql.bob.svc.cluster.local:3306/books"
   placement:
     - name: local
       namespaces:
