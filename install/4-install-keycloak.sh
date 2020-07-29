@@ -220,10 +220,10 @@ DNS_TARGET_NAME=${DNS_PREFIX}.${ENV_NAME}.${DNS_SUFFIX}
 action "Preparing for installation" cleanup_all || exit 1
 action "Installing MySQL" install_mysql
   if [ "$?" -ne 0 ]; then
-    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "${KEYCLOAK_NS}" -m "Install MySQL Failure"
-    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "${KEYCLOAK_NS}" -m "Install MySQL Failure"
+    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "${KEYCLOAK_NS}" -m "install_mysql"
+    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "${KEYCLOAK_NS}" -m "install_mysql"
     "$SCRIPT_DIR"/k8s-dump-objects.sh -o "nodes" -n "default" -m "Install MySQL Failure"
-    log "If the current log file is not descriptive enough, check ${SCRIPT_DIR}/build/logs/diagnostics.log for a more descriptive output of the error"
+    log "For additional detailed information on the cluster at the time of this error, please check ${SCRIPT_DIR}/build/logs/diagnostics.log"
     fail "Installation of MySQL failed"
   fi
 

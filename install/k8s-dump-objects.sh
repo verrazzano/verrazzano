@@ -5,10 +5,9 @@
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
+export LOG_FILE="${SCRIPT_DIR}/build/logs/diagnostics.log"
 . $SCRIPT_DIR/common.sh
 
-export LOG_FILE="${SCRIPT_DIR}/build/logs/diagnostics.log"
-. $SCRIPT_DIR/logging.sh
 
 # Dump Diagnostic header with message
 # $1 message - message given by failure to identify cause
