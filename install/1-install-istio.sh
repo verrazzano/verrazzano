@@ -6,7 +6,6 @@
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
 . $SCRIPT_DIR/common.sh
-. $SCRIPT_DIR/k8s-utils.sh
 
 
 if [ ${CLUSTER_TYPE} == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
@@ -172,7 +171,7 @@ function verify_ocr_secret()
     sed -e "s/OCR_TEST_JOB_NAME/${OCR_TEST_JOB_NAME}/" $CONFIG_DIR/ocrtest.yaml | kubectl apply -f -
     OCR_VERIFIED=false
     RETRIES=0
-    until [ "$RETRIES" -ge 60 ]
+    until [ "$RETRIES" -ge 30 ]
     do
        OCRTEST=$(kubectl get pod -l job-name=$OCR_TEST_JOB_NAME | grep ocrtest)
        if [[ "$OCRTEST" == *"Running"* || "$OCRTEST" == *"Completed"* ]]; then
@@ -184,16 +183,20 @@ function verify_ocr_secret()
        if [[ "$OCRTEST" == *"ImagePullBackOff"* || "$OCRTEST" == *"ErrImagePull"* ]]; then
            log "OCR Secret verification failed at attempt $RETRIES, job status is below"
            echo $OCRTEST
+           kubectl describe pod `echo $OCRTEST | awk '{ print $1 }'` | grep "Failed" | head -n 1
            OCR_VERIFIED=false
-           break
        fi
        RETRIES=$(($RETRIES+1))
-       sleep 5
+       sleep 1
     done
-    kubectl delete job $OCR_TEST_JOB_NAME
+
     if [ "$OCR_VERIFIED" == false ]; then
-        fail "ERROR: Secret named ocr has invalid username or password.\nDelete and recreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
+      "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "default" -r "ocrtest" -m "ocr Test Failure"
+      "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "default" -r "ocrtest-*" -m "ocr Test Failure"
+      kubectl delete job $OCR_TEST_JOB_NAME
+      fail "ERROR: Cannot access Oracle Container Registry. This may be due to incorrect credentials, check the ocr secret and re-create the secret if the credentials are wrong. \ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com\nCheck ${SCRIPT_DIR}/build/logs/diagnostics.log for a descriptive output of the error"
     fi
+    kubectl delete job $OCR_TEST_JOB_NAME
 }
 
 function wait_for_nodes_to_exist {
