@@ -64,10 +64,6 @@ function install_keycloak {
 
   sed "s|ENV_NAME|${ENV_NAME}|g;s|DNS_SUFFIX|${DNS_SUFFIX}|g;s|VZ_SYS_REALM|${VZ_SYS_REALM}|g;s|VZ_USERNAME|${VZ_USERNAME}|g;s|VZ_PW_SALT|${VZ_PW_SALT}|g;s|VZ_PW_HASH|${VZ_PW_HASH}|g" $SCRIPT_DIR/config/keycloak.json > ${TMP_DIR}/keycloak-sed.json
 
-  if ! kubectl get secret ${KEYCLOAK_NS} keycloak-realm-cacert 2> /dev/null ; then
-      kubectl delete secret keycloak-realm-cacert -n ${KEYCLOAK_NS} || true
-  fi
-
   # Create keycloak secret
   kubectl create secret generic keycloak-realm-cacert \
       -n ${KEYCLOAK_NS} \
