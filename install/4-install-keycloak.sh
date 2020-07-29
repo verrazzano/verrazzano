@@ -223,7 +223,8 @@ action "Installing MySQL" install_mysql
     "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "${KEYCLOAK_NS}" -m "Install MySQL Failure"
     "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "${KEYCLOAK_NS}" -m "Install MySQL Failure"
     "$SCRIPT_DIR"/k8s-dump-objects.sh -o "nodes" -n "default" -m "Install MySQL Failure"
-    fail "Installation of MySQL failed\nCheck ${SCRIPT_DIR}/build/logs/diagnostics.log for a descriptive output of the error"
+    log "If these logs do not provide a sufficient description of the failure that occurred,\nCheck ${SCRIPT_DIR}/build/logs/diagnostics.log for a more descriptive output of the error"
+    fail "Installation of MySQL failed"
   fi
 
 action "Installing Keycloak" install_keycloak || exit 1
