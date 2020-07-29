@@ -223,11 +223,7 @@ action "Installing MySQL" install_mysql
     "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "${KEYCLOAK_NS}" -m "install_mysql"
     "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "${KEYCLOAK_NS}" -m "install_mysql"
     "$SCRIPT_DIR"/k8s-dump-objects.sh -o "nodes" -n "default" -m "install_mysql"
-    if [ ! -z "$DIAGNOSTIC_LOG" ] ; then
-        log "For additional detailed information on the cluster at the time of this error, please check ${DIAGNOSTIC_LOG}"
-      else
-        log "For additional detailed information on the cluster at the time of this error, please check ${SCRIPT_DIR}/build/logs/diagnostics.log"
-    fi
+    log "For additional detailed information on the cluster at the time of this error, please check the diagnostics log file"
     fail "Installation of MySQL failed"
   fi
 
