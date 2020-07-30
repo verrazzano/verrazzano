@@ -64,17 +64,17 @@ spec:
       - env:
         - name: MYSQL_ROOT_PASSWORD
           valueFrom:
-            secretRefKey:
+            secretKeyRef:
               name: mysql-credentials
               key: password
         - name: MYSQL_USER
           valueFrom:
-            secretRefKey:
+            secretKeyRef:
               name: mysql-credentials
               key: username
         - name: MYSQL_PASSWORD
           valueFrom:
-            secretRefKey:
+            secretKeyRef:
               name: mysql-credentials
               key: password
         - name: MYSQL_DATABASE
