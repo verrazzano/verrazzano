@@ -67,7 +67,7 @@ function check_ingress_ports() {
 }
 
 VERRAZZANO_NS=verrazzano-system
-VERRAZZANO_VERSION=v0.0.0-da3fe17bb0a9900d1c5280fceff4e920e41b2697
+VERRAZZANO_VERSION=v0.0.0-9cc1addbcdacd0d37a6389e10c1c7e30122b064d
 set_INGRESS_IP
 check_ingress_ports
 if [ $? -ne 0 ]; then
@@ -102,10 +102,6 @@ function create_admission_controller_cert()
   # Create the cert signing the CSR with the CA created before
   openssl x509 -req -in $CERTS_OUT/verrazzano.csr -CA $CERTS_OUT/ca.crt -CAkey $CERTS_OUT/ca.key -CAcreateserial -out $CERTS_OUT/verrazzano-crt.pem
 
-  if kubectl get secret verrazzano-validation -n ${VERRAZZANO_NS} ; then
-    kubectl delete secret verrazzano-validation -n ${VERRAZZANO_NS}
-  fi
-
   kubectl create secret generic verrazzano-validation -n ${VERRAZZANO_NS} \
   --from-file=cert.pem=$CERTS_OUT/verrazzano-crt.pem \
   --from-file=key.pem=$CERTS_OUT/verrazzano-key.pem \
@@ -124,12 +120,6 @@ function dump_rancher_ingress {
 
 function install_verrazzano()
 {
-  log "Uninstalling any existing verrazzano components"
-  helm uninstall verrazzano --namespace ${VERRAZZANO_NS} /dev/null 2>&1 || true
-  kubectl delete vmc local /dev/null 2>&1 || true
-  kubectl delete secret verrazzano-managed-cluster-local /dev/null 2>&1 || true
-  log "Completed uninstall"
-
   local rancher_admin_password=`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode`
 
   if [ -z "$rancher_admin_password" ] ; then

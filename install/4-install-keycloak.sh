@@ -32,12 +32,6 @@ function set_INGRESS_IP() {
   fi
 }
 
-function cleanup_all {
-  helm uninstall keycloak --namespace ${KEYCLOAK_NS} > /dev/null 2>&1 || true
-  helm uninstall mysql --namespace ${KEYCLOAK_NS} > /dev/null 2>&1 || true
-  kubectl delete --all pvc --namespace ${KEYCLOAK_NS} > /dev/null 2>&1 || true
-}
-
 function install_mysql {
   log "Check for Keycloak namespace"
   if ! kubectl get namespace ${KEYCLOAK_NS} 2> /dev/null ; then
@@ -69,10 +63,6 @@ function install_keycloak {
   VZ_PW_HASH=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.hash}")
 
   sed "s|ENV_NAME|${ENV_NAME}|g;s|DNS_SUFFIX|${DNS_SUFFIX}|g;s|VZ_SYS_REALM|${VZ_SYS_REALM}|g;s|VZ_USERNAME|${VZ_USERNAME}|g;s|VZ_PW_SALT|${VZ_PW_SALT}|g;s|VZ_PW_HASH|${VZ_PW_HASH}|g" $SCRIPT_DIR/config/keycloak.json > ${TMP_DIR}/keycloak-sed.json
-
-  if ! kubectl get secret ${KEYCLOAK_NS} keycloak-realm-cacert 2> /dev/null ; then
-      kubectl delete secret keycloak-realm-cacert -n ${KEYCLOAK_NS} || true
-  fi
 
   # Create keycloak secret
   kubectl create secret generic keycloak-realm-cacert \
@@ -217,7 +207,6 @@ fi
 
 DNS_TARGET_NAME=${DNS_PREFIX}.${ENV_NAME}.${DNS_SUFFIX}
 
-action "Preparing for installation" cleanup_all || exit 1
 action "Installing MySQL" install_mysql
   if [ "$?" -ne 0 ]; then
     "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "${KEYCLOAK_NS}" -m "install_mysql"
