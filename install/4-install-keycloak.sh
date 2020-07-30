@@ -32,12 +32,6 @@ function set_INGRESS_IP() {
   fi
 }
 
-function cleanup_all {
-  helm uninstall keycloak --namespace ${KEYCLOAK_NS} > /dev/null 2>&1 || true
-  helm uninstall mysql --namespace ${KEYCLOAK_NS} > /dev/null 2>&1 || true
-  kubectl delete --all pvc --namespace ${KEYCLOAK_NS} > /dev/null 2>&1 || true
-}
-
 function install_mysql {
   log "Check for Keycloak namespace"
   if ! kubectl get namespace ${KEYCLOAK_NS} 2> /dev/null ; then
@@ -61,7 +55,7 @@ function install_mysql {
 
 function install_keycloak {
   if ! kubectl get secret --namespace ${VERRAZZANO_NS} verrazzano ; then
-    consoleerr "ERROR: Must run 3-install-verrazzano.sh and then rerun this script."
+    error "ERROR: Must run 3-install-verrazzano.sh and then rerun this script."
     exit 1
   fi
   # Replace strings in keycloak.json file
@@ -69,10 +63,6 @@ function install_keycloak {
   VZ_PW_HASH=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.hash}")
 
   sed "s|ENV_NAME|${ENV_NAME}|g;s|DNS_SUFFIX|${DNS_SUFFIX}|g;s|VZ_SYS_REALM|${VZ_SYS_REALM}|g;s|VZ_USERNAME|${VZ_USERNAME}|g;s|VZ_PW_SALT|${VZ_PW_SALT}|g;s|VZ_PW_HASH|${VZ_PW_HASH}|g" $SCRIPT_DIR/config/keycloak.json > ${TMP_DIR}/keycloak-sed.json
-
-  if ! kubectl get secret ${KEYCLOAK_NS} keycloak-realm-cacert 2> /dev/null ; then
-      kubectl delete secret keycloak-realm-cacert -n ${KEYCLOAK_NS} || true
-  fi
 
   # Create keycloak secret
   kubectl create secret generic keycloak-realm-cacert \
@@ -83,7 +73,7 @@ function install_keycloak {
   helm repo add codecentric https://codecentric.github.io/helm-charts
   
   if ! kubectl get secret --namespace ${KEYCLOAK_NS} mysql ; then
-    consoleerr "ERROR installing mysql. Please rerun this script."
+    error "ERROR installing mysql. Please rerun this script."
     exit 1
   fi
   # sed keycloak-values-template.yaml file
@@ -128,10 +118,12 @@ function set_rancher_server_url
       return 0
     fi
     echo "Get Rancher access token."
-    if ! get_rancher_access_token "${rancher_host_name}" "${rancher_admin_password}"; then
+    get_rancher_access_token "${rancher_host_name}" "${rancher_admin_password}"
+    if [ $? -ne 0 ] ; then
       echo "Failed to get Rancher access token. Continuing without setting Rancher server URL."
       return 0
     fi
+
     if [ -z "${RANCHER_ACCESS_TOKEN}" ]; then
       echo "Failed to get valid Rancher access token. Continuing without setting Rancher server URL."
       return 0
@@ -153,13 +145,13 @@ function set_rancher_server_url
 }
 
 function usage {
-    consoleerr
-    consoleerr "usage: $0 [-n name] [-d dns_type] [-s dns_suffix]"
-    consoleerr "  -n name        Environment Name. Optional.  Optional.  Defaults to default."
-    consoleerr "  -d dns_type    DNS type [xip.io|manual|oci]. Optional.  Defaults to xip.io."
-    consoleerr "  -s dns_suffix  DNS suffix (e.g v8o.example.com). Not valid for dns_type xip.io. Required for dns-type oci or manual"
-    consoleerr "  -h             Help"
-    consoleerr
+    error
+    error "usage: $0 [-n name] [-d dns_type] [-s dns_suffix]"
+    error "  -n name        Environment Name. Optional.  Optional.  Defaults to default."
+    error "  -d dns_type    DNS type [xip.io|manual|oci]. Optional.  Defaults to xip.io."
+    error "  -s dns_suffix  DNS suffix (e.g v8o.example.com). Not valid for dns_type xip.io. Required for dns-type oci or manual"
+    error "  -h             Help"
+    error
     exit 1
 }
 
@@ -179,15 +171,15 @@ do
 done
 # check for valid DNS type
 if [ $DNS_TYPE != "xip.io" ] && [ $DNS_TYPE != "oci" ] && [ $DNS_TYPE != "manual" ]; then
-  consoleerr
-  consoleerr "Unknown DNS type ${DNS_TYPE}"
+  error
+  error "Unknown DNS type ${DNS_TYPE}"
   usage
 fi
 # check for name
 if [ $DNS_TYPE = "oci" ]; then
   if [ -z "$ENV_NAME" ]; then
-    consoleerr
-    consoleerr "Name must be given with dns_type oci!"
+    error
+    error "Name must be given with dns_type oci!"
     usage
   fi
 fi
@@ -199,24 +191,30 @@ fi
 # check expected dns suffix for given dns type
 if [ -z "$DNS_SUFFIX" ]; then
   if [ $DNS_TYPE == "oci" ] || [ $DNS_TYPE == "manual" ]; then
-    consoleerr
-    consoleerr "-s option is required for ${DNS_TYPE}"
+    error
+    error "-s option is required for ${DNS_TYPE}"
     usage
   else
     DNS_SUFFIX="${INGRESS_IP}".xip.io
   fi
 else
   if [ $DNS_TYPE = "xip.io" ]; then
-    consoleerr
-    consoleerr "A dns_suffix should not be given with dns_type xip.io!"
+    error
+    error "A dns_suffix should not be given with dns_type xip.io!"
     usage
   fi
 fi
 
 DNS_TARGET_NAME=${DNS_PREFIX}.${ENV_NAME}.${DNS_SUFFIX}
 
-action "Preparing for installation" cleanup_all || exit 1
-action "Installing MySQL" install_mysql || exit 1
+action "Installing MySQL" install_mysql
+  if [ "$?" -ne 0 ]; then
+    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "${KEYCLOAK_NS}" -m "Install MySQL Failure"
+    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "${KEYCLOAK_NS}" -m "Install MySQL Failure"
+    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "nodes" -n "default" -m "Install MySQL Failure"
+    fail "Installation of MySQL failed\nCheck ${SCRIPT_DIR}/build/logs/diagnostics.log for a descriptive output of the error"
+  fi
+
 action "Installing Keycloak" install_keycloak || exit 1
 action "Setting Rancher Server URL" set_rancher_server_url || true
 

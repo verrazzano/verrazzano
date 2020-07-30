@@ -1,10 +1,9 @@
 
 # Installation
 
-Verrazzano can be installed in a single [Oracle OKE](https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm) cluster,
-an [Oracle Linux Cloud Native Environment](https://docs.oracle.com/en/operating-systems/olcne/) deployment,
-or a [kind](https://kind.sigs.k8s.io/) cluster.
-For the Oracle OKE and kind cluster types you have two DNS choices:
+Verrazzano can be installed in a single [Oracle Cloud Infrastructure Container Engine for Kubernetes (OKE)](https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm) cluster or
+an [Oracle Linux Cloud Native Environment](https://docs.oracle.com/en/operating-systems/olcne/) deployment.
+For the Oracle OKE cluster type you have two DNS choices:
 [xip.io](http://xip.io/) or
 [Oracle OCI DNS](https://docs.cloud.oracle.com/en-us/iaas/Content/DNS/Concepts/dnszonemanagement.htm).
 Oracle Linux Cloud Native Environment currently only supports a third choice of manual DNS
@@ -28,7 +27,6 @@ The following software must be installed on your system.
 * helm
 * jq
 * kubectl
-* kind (for KinD installation)
 * openssl
 * patch (for OCI DNS installation)
 
@@ -44,19 +42,6 @@ Create the OKE cluster using the OCI console or some other means, then set the f
    export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
    export KUBECONFIG=$VERRAZZANO_KUBECONFIG
 
-```
-
-### Using a kind Cluster
-Set the following ENV vars: 
-```
-   export CLUSTER_TYPE=KIND
-   export VERRAZZANO_KUBECONFIG=<path to kubernetes config where kind cluster info will be written>
-   export KUBECONFIG=$VERRAZZANO_KUBECONFIG
-```
-
-Run the script to create your kind cluster:
-```
-   ./0-create-kind-cluster.sh
 ```
 
 ### Using an OLCNE Cluster
@@ -90,25 +75,6 @@ Run the following scripts in order:
    ./3-install-verrazzano.sh
    ./4-install-keycloak.sh
 ```
-
-In order to use the consoles, you need to import the root certificate so that the certificates used
-by Verrazzano will be trusted by the browser.  Following are examples of importing the certificate on macOS. 
-
-1. Save the root certificate to a file named `ca.crt`:
-```kubectl get secret default-secret -n verrazzano-system  -o json|jq '.data."ca.crt"' | tr -d '"' | base64 -D >./ca.crt```
-
-2. Install the root certificate as shown below:
- 
-    2.1 Firefox: 
-Go to `about:preferences#privacy` and click `View Certificates`.  Then click the `Authorities` tab and import the certificate.
-On the dialog box that appears, check `Trust this CA to identify websites` and click `OK`.  Then click `OK` on the main dialog box. 
-
-    2.2 Chrome on macOS: 
-Browse to `chrome://settings/privacy` and click `Manage certificates`, which opens the keychain.
-In the keychain dialog box, select `System` keychain in the top left column, select `Certificates` in the bottom left column, then click the
-plus sign on the bottom to import the certificate. Next, double-click on the imported certificate and you will see another dialog box.
-Expand the trust selection on the left, change `Secure Socket Layers (SSL)` to `Always Trust`.  Finally, dismiss the dialog box to save your change.
-
 **OR**
 ### Install using manual DNS
 Run the following scripts in order:

@@ -27,8 +27,6 @@ function set_INGRESS_IP() {
 
 function install_nginx_ingress_controller()
 {
-    helm uninstall ingress-controller --namespace ingress-nginx || true
-
     # Create the namespace for nginx
     if ! kubectl get namespace ingress-nginx ; then
         kubectl create namespace ingress-nginx
@@ -82,10 +80,6 @@ function install_nginx_ingress_controller()
 
 function install_cert_manager()
 {
-    set +e
-    helm uninstall cert-manager --namespace cert-manager
-    set -e
-
     # Create the namespace for cert-manager
     if ! kubectl get namespace cert-manager ; then
         kubectl create namespace cert-manager
@@ -128,12 +122,6 @@ spec:
 
 function install_rancher()
 {
-    log "Uninstall Rancher (if required)"
-    helm uninstall rancher --namespace cattle-system > /dev/null 2>&1 || true
-
-    log "Delete Rancher secrets"
-    kubectl -n cattle-system delete secret rancher-admin-secret > /dev/null 2>&1 || true
-
     log "Create Rancher namespace (if required)"
     if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
         kubectl create namespace cattle-system

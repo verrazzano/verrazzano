@@ -63,10 +63,6 @@ set -eu
 
 function install_nginx_ingress_controller()
 {
-    set +e
-    helm uninstall ingress-controller --namespace ingress-nginx
-    set -e
-
     # Create the namespace for nginx
     if ! kubectl get namespace ingress-nginx ; then
         kubectl create namespace ingress-nginx
@@ -96,10 +92,6 @@ function install_nginx_ingress_controller()
 
 function install_cert_manager()
 {
-    set +e
-    helm uninstall cert-manager --namespace cert-manager
-    set -e
-
     # Create the namespace for cert-manager
     if ! kubectl get namespace cert-manager ; then
         kubectl create namespace cert-manager
@@ -126,9 +118,6 @@ function install_cert_manager()
         --set ingressShim.defaultIssuerKind=ClusterIssuer \
         --wait
 
-    set +e
-    kubectl delete secret -n cert-manager verrazzano-oci-dns-config
-    set -e
     source /dev/stdin <<<"$(echo 'cat <<EOF >$TMP_DIR/oci.yaml'; cat $CONFIG_DIR/oci.yaml; echo EOF;)"
     kubectl create secret generic -n cert-manager verrazzano-oci-dns-config --from-file=$TMP_DIR/oci.yaml
     kubectl apply -f <(echo "
@@ -157,10 +146,6 @@ spec:
 
 function install_external_dns()
 {
-    set +e
-    helm uninstall external-dns --namespace cert-manager
-    set -e
-
     helm upgrade external-dns stable/external-dns \
         --install \
         --namespace cert-manager \
@@ -189,39 +174,43 @@ function install_external_dns()
 
 function install_rancher()
 {
-    set +e
-    helm uninstall rancher --namespace cattle-system
-    set -e
-
-    if ! kubectl get namespace cattle-system ; then
+    log "Create Rancher namespace (if required)"
+    if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
         kubectl create namespace cattle-system
     fi
 
-    kubectl -n cattle-system delete secret rancher-admin-secret
+    log "Add Rancher helm repository location"
     helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
 
-      helm upgrade rancher rancher-stable/rancher \
-        --install --namespace cattle-system \
-        --version $RANCHER_VERSION  \
-        --set systemDefaultRegistry=phx.ocir.io/stevengreenberginc/bfs \
-        --set rancherImage=$RANCHER_IMAGE \
-        --set rancherImageTag=$RANCHER_TAG \
-        --set hostname=rancher.${NAME}.${OCI_DNS_ZONE_NAME} \
-        --set ingress.tls.source=letsEncrypt \
-        --set letsEncrypt.ingress.class=rancher \
-        --set letsEncrypt.environment=production \
-        --set letsEncrypt.email=$EMAIL_ADDRESS \
-        --wait
+    log "Update helm repositoriess"
+    helm repo update
+
+    log "Install Rancher"
+    helm upgrade rancher rancher-stable/rancher \
+      --install --namespace cattle-system \
+      --version $RANCHER_VERSION  \
+      --set systemDefaultRegistry=phx.ocir.io/stevengreenberginc/bfs \
+      --set rancherImage=$RANCHER_IMAGE \
+      --set rancherImageTag=$RANCHER_TAG \
+      --set hostname=rancher.${NAME}.${OCI_DNS_ZONE_NAME} \
+      --set ingress.tls.source=letsEncrypt \
+      --set letsEncrypt.ingress.class=rancher \
+      --set letsEncrypt.environment=production \
+      --set letsEncrypt.email=$EMAIL_ADDRESS \
+      --wait
 
     K8S_IO_HOSTNAME=${DNS_PREFIX}.${NAME}.${OCI_DNS_ZONE_NAME}
 
     RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${OCI_DNS_ZONE_NAME} auth\",\"external-dns.alpha.kubernetes.io/target\":\"${K8S_IO_HOSTNAME}\",\"cert-manager.io/issuer\":null,\"external-dns.alpha.kubernetes.io/ttl\":\"60\"}}}"
 
+    log "Patch Rancher ingress"
     kubectl patch ingress rancher -n cattle-system -p "$RANCHER_PATCH_DATA"  --type=merge
 
+    log "Rollout Rancher"
     kubectl -n cattle-system rollout status -w deploy/rancher
 
-     RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- reset-password 2>/dev/null)
+    log "Create Rancher secrets"
+    RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- reset-password 2>/dev/null)
     ADMIN_PW=`echo $RANCHER_DATA | awk '{ print $NF }'`
     kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
 }

@@ -23,13 +23,15 @@ function consoleerr() {
 }
 
 function wait_for_ingress_ip() {
-  retries=0
-  #args $1 = ingress name, $2 = namespace
+  local retries=0
+  local ingress_name=$1
+  local namespace=$2
+  local ingress_ip
 
-  logDt "Waiting for ingress $1 in namespace $2 to have an IP"
+  log "Waiting for ingress $ingress_name in namespace $namespace to have an IP"
   until [ "$retries" -ge 10 ]
   do
-      ingress_ip=$(kubectl get ingress $1 -n $2 -o json | jq -r '.status.loadBalancer.ingress[].ip')
+      ingress_ip=$(kubectl get ingress $ingress_name -n $namespace -o json | jq -r '.status.loadBalancer.ingress[].ip')
       if [ -n "$ingress_ip" ] ; then
           break;
       fi
@@ -37,79 +39,79 @@ function wait_for_ingress_ip() {
       sleep 5
   done
   if [ "$retries" -ge 10 ] ; then
-    logDt "An error occurred - ingress $1 in namespace $2 did not have an IP address"
+    log "An error occurred - ingress $ingress_name in namespace $namespace did not have an IP address"
     exit 1
   fi
 }
 
-# DEPRECATED: This function is deprecated and is replaced by the log function in logging.sh
-function logDt() {
-  log "$@"
-}
-
 function get_rancher_access_token {
-    # args  $1 = rancher hostname, $2 = rancher password
-  logDt "Retrieving the rancher admin token from Rancher at $1"
+  local rancher_hostname=$1
+  local rancher_password=$2
+  local rancher_admin_token=""
+  local retries=0
+  log "Retrieving the rancher admin token from Rancher at $rancher_hostname"
 
   # Use external retries instead of curl retries, since curl does not retry for all
   # the scenarios we want (e.g. connection errors)
-  retries=0
   until [ $retries -ge 10 ]
   do
     ARGS=(-k --connect-timeout 30 \
-    -d '{"Username":"admin", "Password":"'$2'"}' \
+    -d '{"Username":"admin", "Password":"'$rancher_password'"}' \
     -H "Content-Type: application/json" \
-    -X POST https://$1/v3-public/localProviders/local?action=login)
+    -X POST https://$rancher_hostname/v3-public/localProviders/local?action=login)
     call_curl 201 response http_code ARGS
     if [ $? -eq 0 ]; then
-      RANCHER_ADMIN_TOKEN=$(echo $response | jq -r '.token')
+      rancher_admin_token=$(echo $response | jq -r '.token')
 
-      if [ ! -z "$RANCHER_ADMIN_TOKEN" ] ; then
+      if [ ! -z "$rancher_admin_token" ] ; then
         break
       fi
     fi
-    logDt "Retrying get RANCHER_ADMIN_TOKEN"
+    log "Retrying get rancher_admin_token"
     retries=$(($retries+1))
     sleep 30
   done
 
-  if [ -z "$RANCHER_ADMIN_TOKEN" ] ; then
-      echo "RANCHER_ADMIN_TOKEN is empty! Did you run the scripts to install Istio and system components?"
+  if [ -z "$rancher_admin_token" ] ; then
+      echo "rancher_admin_token is empty! Did you run the scripts to install Istio and system components?"
       return 1
   fi
 
-  logDt "Retrieving the access token from Rancher at $1"
+  log "Retrieving the access token from Rancher at $rancher_hostname"
 
+  local rancher_access_token=""
   # Use external retries instead of curl retries, since curl does not retry for all
   # the scenarios we want (e.g. connection errors)
-  retries=0
+  local retries=0
   until [ "$retries" -ge 10 ]
   do
     ARGS=(-k --connect-timeout 30 \
     -d '{"type":"token", "description":"automation"}' \
     -H "Content-Type: application/json"
-    -H "Authorization: Bearer ${RANCHER_ADMIN_TOKEN}" \
-    -X POST https://$1/v3/token )
+    -H "Authorization: Bearer ${rancher_admin_token}" \
+    -X POST https://$rancher_hostname/v3/token )
     call_curl 201 response http_code ARGS
     if [ $? -eq 0 ]; then
-      RANCHER_ACCESS_TOKEN=$(echo $response | jq -r '.token')
+      rancher_access_token=$(echo $response | jq -r '.token')
 
-      if [ ! -z "$RANCHER_ACCESS_TOKEN" ] ; then
+      if [ ! -z "$rancher_access_token" ] ; then
         break
       fi
     fi
-    logDt "Retrying get RANCHER_ACCESS_TOKEN"
+    log "Retrying get rancher_access_token"
     retries=$(($retries+1))
     sleep 30
   done
 
-  if [ -z "$RANCHER_ACCESS_TOKEN" ] ; then
-      logDt "RANCHER_ACCESS_TOKEN is empty!\n"
+  if [ -z "$rancher_access_token" ] ; then
+      log "rancher_access_token is empty!\n"
       echo
       echo "Dumping additional detail below"
       dump_rancher_ingress
       return 1
   fi
+
+  RANCHER_ACCESS_TOKEN=$rancher_access_token
 }
 
 # Call curl with the given arguments and set the given variables for response body and http code.
@@ -191,6 +193,9 @@ command -v openssl >/dev/null 2>&1 || {
 command -v jq >/dev/null 2>&1 || {
   fail "jq is required but cannot be found on the path. Aborting."
 }
+command -v curl >/dev/null 2>&1 || {
+  fail "curl is required but cannot be found on the path. Aborting."
+}
 
 ##################################################
 ####Constants for Docker images, versions, tags
@@ -232,4 +237,4 @@ NGINX_DEFAULT_BACKEND_TAG=0.32-cf9d06b-18
 
 RANCHER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/rancher
 RANCHER_VERSION=v2.4.3
-RANCHER_TAG=v2.4.3-573f075-21
+RANCHER_TAG=v2.4.3-0cc4e86-22
