@@ -67,7 +67,7 @@ function check_ingress_ports() {
 }
 
 VERRAZZANO_NS=verrazzano-system
-VERRAZZANO_VERSION=v0.0.0-da3fe17bb0a9900d1c5280fceff4e920e41b2697
+VERRAZZANO_VERSION=v0.0.0-4d201382a6cb8992b1f029691432e9b3f16901be
 set_INGRESS_IP
 check_ingress_ports
 if [ $? -ne 0 ]; then
@@ -155,6 +155,10 @@ function install_verrazzano()
       --set clusterOperator.rancherUserName="${token_array[0]}" \
       --set clusterOperator.rancherPassword="${token_array[1]}" \
       --set clusterOperator.rancherHostname=${RANCHER_HOSTNAME} \
+      --set verrazzanoAdmissionController.ImageName=phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-admission-controller-ci-jenkins \
+      --set verrazzanoAdmissionController.ImageVersion=f2ac4efdac51240f81cbbeb064c1b0e0e04ecab9 \
+      --set verrazzanoOperator.wlsMicroImage=phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator-jenkins:00a870eaebb25c4c099386f5d2ee298a8f6de8d8 \
+      --set verrazzanoOperator.weblogicOperatorImage=oracle/weblogic-kubernetes-operator:3.0.0 \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)"
 
   log "Verifying that needed secrets are created"
