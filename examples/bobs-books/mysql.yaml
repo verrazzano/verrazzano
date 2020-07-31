@@ -14,9 +14,6 @@ metadata:
   namespace: bob
 data:
   initdb.sql: |
-    alter user 'books'@'%'
-    IDENTIFIED WITH mysql_native_password
-    BY 'WebLogic1234';
     create table `orders` (
         `id` int not null auto_increment,
         `order_date` date,
@@ -66,11 +63,20 @@ spec:
       containers:
       - env:
         - name: MYSQL_ROOT_PASSWORD
-          value: WebLogic1234
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credentials
+              key: password
         - name: MYSQL_USER
-          value: books
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credentials
+              key: username
         - name: MYSQL_PASSWORD
-          value: WebLogic1234
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credentials
+              key: password
         - name: MYSQL_DATABASE
           value: books
         image: mysql:8.0.20
