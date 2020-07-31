@@ -67,7 +67,7 @@ function check_ingress_ports() {
 }
 
 VERRAZZANO_NS=verrazzano-system
-VERRAZZANO_VERSION=v0.0.0-9cc1addbcdacd0d37a6389e10c1c7e30122b064d
+VERRAZZANO_VERSION=v0.0.65
 set_INGRESS_IP
 check_ingress_ports
 if [ $? -ne 0 ]; then
@@ -116,6 +116,14 @@ function dump_rancher_ingress {
   echo "########  rancher ingress details ##########"
   kubectl get ingress rancher -n cattle-system -o yaml
   echo "########  end rancher ingress details ##########"
+}
+
+function download_chart() {
+  GITHUB_API_TOKEN="${GITHUB_API_TOKEN:-}"
+  curl -ksH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/tags/${VERRAZZANO_VERSION}" -o response.txt
+  assetId=$(jq -r ".assets[] | select(.name == (\"verrazzano-${VERRAZZANO_VERSION}.tgz\")) | .id" response.txt)
+  echo "assetId is $assetId"
+  curl -L https://api.github.com/repos/verrazzano/verrazzano-operator/releases/assets/$assetId?access_token=${GITHUB_API_TOKEN} -o verrazzano-${VERRAZZANO_VERSION}.tgz -H 'Accept: application/octet-stream'
 }
 
 function install_verrazzano()
@@ -230,4 +238,5 @@ if ! kubectl get namespace ${VERRAZZANO_NS} ; then
 fi
 
 action "Creating admission controller cert" create_admission_controller_cert || exit 1
+action "Downloading helm chart archive" download_chart || exit 1
 action "Installing Verrazzano system components" install_verrazzano || exit 1

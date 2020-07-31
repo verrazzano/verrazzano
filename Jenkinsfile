@@ -16,6 +16,10 @@ pipeline {
         }
     }
 
+    environment {
+        GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
+    }
+
     stages {
         stage('Run acceptance tests on OKE') {
             steps {
