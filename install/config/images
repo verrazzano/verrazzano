@@ -20,8 +20,8 @@ phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-api:v0.
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.17
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-helidon-app-operator:v0.0.7
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-admission-controller:v0.0.11
-phx.ocir.io/stevengreenberginc/verrazzano/console:0.1.1
-phx.ocir.io/stevengreenberginc/verrazzano/console-plugin:0.1.1
+phx.ocir.io/stevengreenberginc/verrazzano/console:0.1.2
+phx.ocir.io/stevengreenberginc/verrazzano/console-plugin:0.1.2
 phx.ocir.io/stevengreenberginc/bfs/istio-coredns-plugin:0.2-5caa06b-13
 phx.ocir.io/stevengreenberginc/bfs/prometheus-pusher:1.0.1-ff71638-19
 phx.ocir.io/stevengreenberginc/bfs/pushgateway:1.2.0-6893444-10
