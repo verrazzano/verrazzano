@@ -216,24 +216,24 @@ EXTERNAL_DNS_REGISTRY=container-registry.oracle.com
 GRAFANA_REPO=container-registry.oracle.com/olcne/grafana
 GRAFANA_TAG=v6.4.4
 
-ISTIO_CORE_DNS_PLUGIN_IMAGE=phx.ocir.io/stevengreenberginc/bfs/istio-coredns-plugin
+ISTIO_CORE_DNS_PLUGIN_IMAGE=container-registry.oracle.com/verrazzano/istio-coredns-plugin
 ISTIO_CORE_DNS_PLUGIN_TAG=0.2-5caa06b-13
 ISTIO_CORE_DNS_IMAGE=container-registry.oracle.com/olcne/coredns
 ISTIO_CORE_DNS_TAG=1.6.2
 ISTIO_VERSION=1.4.6
 
 KEYCLOAK_IMAGE=phx.ocir.io/stevengreenberginc/bfs/keycloak
-KEYCLOAK_IMAGE_TAG=10.0.1-2dcd823-4
+KEYCLOAK_IMAGE_TAG=10.0.1-30d98b0-5
 KEYCLOAK_CHART_VERSION=8.2.2
 
 MYSQL_IMAGE_TAG=8.0.20
 
-NGINX_INGRESS_CONTROLLER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/nginx-ingress-controller
-NGINX_INGRESS_CONTROLLER_TAG=0.32-cf9d06b-18
+NGINX_INGRESS_CONTROLLER_IMAGE=container-registry.oracle.com/verrazzano/nginx-ingress-controller
+NGINX_INGRESS_CONTROLLER_TAG=0.32-aadecdc-21
 NGINX_INGRESS_CONTROLLER_VERSION=1.27.0
 
-NGINX_DEFAULT_BACKEND_IMAGE=phx.ocir.io/stevengreenberginc/bfs/nginx-ingress-default-backend
-NGINX_DEFAULT_BACKEND_TAG=0.32-cf9d06b-18
+NGINX_DEFAULT_BACKEND_IMAGE=container-registry.oracle.com/verrazzano/nginx-ingress-default-backend
+NGINX_DEFAULT_BACKEND_TAG=0.32-aadecdc-21
 
 RANCHER_IMAGE=phx.ocir.io/stevengreenberginc/bfs/rancher
 RANCHER_VERSION=v2.4.3

@@ -40,6 +40,6 @@ phx.ocir.io/stevengreenberginc/bfs/filebeat:6.8.3-58a0ddf-6
 phx.ocir.io/stevengreenberginc/bfs/journalbeat:6.8.3-58a0ddf-6
 phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-0f43627-7
 phx.ocir.io/stevengreenberginc/bfs/configmap-reload:0.3-81d6423-33
-phx.ocir.io/stevengreenberginc/bfs/keycloak:10.0.1-2dcd823-4
+phx.ocir.io/stevengreenberginc/bfs/keycloak:10.0.1-30d98b0-5
 phx.ocir.io/stevengreenberginc/bfs/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-17
 
