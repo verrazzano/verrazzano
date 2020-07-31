@@ -152,7 +152,7 @@ function install_verrazzano()
   log "Installing verrazzano from Helm chart"
   helm \
       upgrade --install verrazzano \
-      https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-helm-chart/o/${VERRAZZANO_VERSION}%2Fverrazzano-${VERRAZZANO_VERSION}.tgz \
+      ./verrazzano-${VERRAZZANO_VERSION}.tgz \
       --namespace ${VERRAZZANO_NS} \
       --set image.pullPolicy=IfNotPresent \
       --set config.envName=${NAME} \
