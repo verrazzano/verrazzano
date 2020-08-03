@@ -40,8 +40,8 @@ function dump_footer() {
 # $3 namespace - namespace of the objects
 # $4 object name regex - regex to retrieve certain jobs by name
 # $5 (optional) fields - field selectors for kubectl organized as shown here: https://kubernetes.io/docs/concepts/overview/working-with-objects/field-selectors/
-# $6 message - dump header message to inform the cause of the output
-# $7 container - (optional) container in which the logs should be retrieved
+# $6 (optional) message - dump header message to inform the cause of the output
+# $7 (optional) container - container in which the logs should be retrieved
 # Usage:
 # dump_objects "command" "objectType" "namespace" "objectRegex" "fields" "message" "container"
 function dump_objects() {
