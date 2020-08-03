@@ -216,7 +216,7 @@ EXTERNAL_DNS_REGISTRY=container-registry.oracle.com
 GRAFANA_REPO=container-registry.oracle.com/olcne/grafana
 GRAFANA_TAG=v6.4.4
 
-ISTIO_CORE_DNS_PLUGIN_IMAGE=phx.ocir.io/stevengreenberginc/bfs/istio-coredns-plugin
+ISTIO_CORE_DNS_PLUGIN_IMAGE=container-registry.oracle.com/verrazzano/istio-coredns-plugin
 ISTIO_CORE_DNS_PLUGIN_TAG=0.2-5caa06b-13
 ISTIO_CORE_DNS_IMAGE=container-registry.oracle.com/olcne/coredns
 ISTIO_CORE_DNS_TAG=1.6.2
