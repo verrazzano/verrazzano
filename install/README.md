@@ -113,7 +113,28 @@ Run the following scripts in order:
    ./4-install-keycloak.sh -n <env-name> -d oci -s <oci-dns-zone-name>
 ```
 
-## 3. Get the console URLs
+## 3. Verify the install
+Verrazzano installs multiple objects in multiple namespaces.  All the pods in the `verrazzano-system` namespaces in the `Running` status does not garantee but likely indicates that the Verrazzano is up and running.
+```
+kubectl get pods -n verrazzano-system
+verrazzano-admission-controller-84d6bc647c-7b8tl   1/1     Running   0          5m13s
+verrazzano-cluster-operator-57fb95fc99-kqjll       1/1     Running   0          5m13s
+verrazzano-monitoring-operator-7cb5947f4c-x9kfc    1/1     Running   0          5m13s
+verrazzano-operator-b6d95b4c4-sxprv                1/1     Running   0          5m13s
+vmi-system-api-7c8654dc76-2bdll                    1/1     Running   0          4m44s
+vmi-system-es-data-0-6679cf99f4-9p25f              2/2     Running   0          4m44s
+vmi-system-es-data-1-8588867569-zlwwx              2/2     Running   0          4m44s
+vmi-system-es-ingest-78f6dfddfc-2v5nc              1/1     Running   0          4m44s
+vmi-system-es-master-0                             1/1     Running   0          4m44s
+vmi-system-es-master-1                             1/1     Running   0          4m44s
+vmi-system-es-master-2                             1/1     Running   0          4m44s
+vmi-system-grafana-5f7bc8b676-xx49f                1/1     Running   0          4m44s
+vmi-system-kibana-649466fcf8-4n8ct                 1/1     Running   0          4m44s
+vmi-system-prometheus-0-7f97ff97dc-gfclv           3/3     Running   0          4m44s
+vmi-system-prometheus-gw-7cb9df774-48g4b           1/1     Running   0          4m44s
+```
+
+## 4. Get the console URLs
 Verrazzano installs several consoles.  You can get the ingress for the consoles with the following command:  
 `kubectl get ingress -A`
 
@@ -133,7 +154,7 @@ Following is an example of the ingresses:
    verrazzano-system   vmi-system-prometheus-gw           prometheus-gw.vmi.system.myenv.mydomain.com    128.234.33.198   80, 443   80m
 ```
 
-## 4. Get Console Credentials
+## 5. Get Console Credentials
 You will need the credentials to access the various consoles installed by Verrazzano.
 
 ### Consoles accessed by the same username/password
