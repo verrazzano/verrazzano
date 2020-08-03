@@ -35,19 +35,23 @@ function dump_footer() {
 }
 
 # Dump specified objects based on described requirements
-# $1 object type - i.e. namespaces, pods, jobs
-# $2 namespace - namespace of the objects
-# $3 object name regex - regex to retrieve certain jobs by name
-# $4 (optional) fields - field selectors for kubectl organized as shown here: https://kubernetes.io/docs/concepts/overview/working-with-objects/field-selectors/
-# $5 message - dump header message to inform the cause of the output
+# $1 command - command type specified
+# $2 object type - i.e. namespaces, pods, jobs
+# $3 namespace - namespace of the objects
+# $4 object name regex - regex to retrieve certain jobs by name
+# $5 (optional) fields - field selectors for kubectl organized as shown here: https://kubernetes.io/docs/concepts/overview/working-with-objects/field-selectors/
+# $6 message - dump header message to inform the cause of the output
+# $7 container - (optional) container in which the logs should be retrieved
 # Usage:
-# dump_objects "objectType" "namespace" "objectRegex" "fields" "message"
+# dump_objects "command" "objectType" "namespace" "objectRegex" "fields" "message" "container"
 function dump_objects() {
-  local type=$1
-  local namespace=$2
-  local regex=$3
-  local fields=$4
-  local message=$5
+  local command=$1
+  local type=$2
+  local namespace=$3
+  local regex=$4
+  local fields=$5
+  local message=$6
+  local container=$7
 
   if [[ -z "$type"  || -z "$namespace" ]] ; then
     error "Object type and namespace must be specified to describe objects."
@@ -66,9 +70,17 @@ function dump_objects() {
   do
     log ""
     log "========================================================"
-    log "Describing type: ${type}, name: ${object}"
+    log "Command: ${command}, type: ${type}, name: ${object}"
     log "========================================================"
-    kubectl describe "${type}" "${object}" -n "${namespace}"
+    if [ "$command" == "describe" ] ; then
+      kubectl "${command}" "${type}" "${object}" -n "${namespace}"
+    elif [ "$command" == "logs" ] ; then
+      if [ -z "$container" ] ; then
+        kubectl "${command}" "${object}" -n "${namespace}"
+      else
+        kubectl "${command}" "${object}" -n "${namespace}" -c "${container}"
+      fi
+    fi
   done
 
   dump_footer
@@ -108,13 +120,15 @@ function join_by() {
 # usage
 function usage {
     error
-    error "usage: $0 -o object_type -n namespace -m message [-r name_regex] [-s state] [-S not_state] [-h]"
+    error "usage: $0 -o object_type -n namespace -m message [-r name_regex] [-s state] [-S not_state] [-l] [-c container] [-h]"
     error " -o object_type   Type of the object (i.e. namespaces, pods, jobs, etc)"
     error " -n namespace     Namespace of the given object type"
     error " -r name_regex    Regex to retrieve certain objects by name (Optional)"
     error " -s state         Specified state the described object should be in (i.e. Running) (Multiple values allowed) (Optional)"
     error " -S not_state     Specified state that the described object should not be in (Multiple values allowed) (Optional)"
     error " -m message       Message for the diagnostic header to inform on cause of output"
+    error " -l               Retrieve logs for specified object"
+    error " -c container     Container in which to pull logs from"
     error " -h               Help"
     error
     exit 1
@@ -125,7 +139,8 @@ NAME_REGEX=""
 STATES=()
 NOT_STATES=()
 MESSAGE=""
-while getopts o:n:r:s:S:m:h flag
+COMMAND="describe"
+while getopts o:n:r:s:S:m:lc:h flag
 do
     case "${flag}" in
         o) OBJECT_TYPE=${OPTARG};;
@@ -134,6 +149,8 @@ do
         s) STATES+=("${OPTARG}");;
         S) NOT_STATES+=("${OPTARG}");;
         m) MESSAGE=${OPTARG};;
+        l) COMMAND="logs";;
+        c) CONTAINER="${OPTARG}";;
         h) usage;;
         *) usage;;
     esac
@@ -144,4 +161,4 @@ STATE_FORMAT=$(format_field_selectors "status.phase" "=" "${STATES[@]}")
 NOT_STATE_FORMAT=$(format_field_selectors "status.phase" "!=" "${NOT_STATES[@]}")
 FIELD_SELECTORS="${STATE_FORMAT},${NOT_STATE_FORMAT}"
 
-dump_objects "${OBJECT_TYPE}" "${NAMESPACE}" "${NAME_REGEX}" "${FIELD_SELECTORS}" "${MESSAGE}"
+dump_objects "${COMMAND}" "${OBJECT_TYPE}" "${NAMESPACE}" "${NAME_REGEX}" "${FIELD_SELECTORS}" "${MESSAGE}" "${CONTAINER}"
