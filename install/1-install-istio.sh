@@ -170,8 +170,9 @@ function verify_ocr_secret()
     OCR_TEST_JOB_NAME=ocrtest-$(uuidgen | tr "[:upper:]" "[:lower:]")
     sed -e "s/OCR_TEST_JOB_NAME/${OCR_TEST_JOB_NAME}/" $CONFIG_DIR/ocrtest.yaml | kubectl apply -f -
     OCR_VERIFIED=false
+    OCR_SECRET_RETRIES=${OCR_SECRET_RETRIES:-40}
     RETRIES=0
-    until [ "$RETRIES" -ge 30 ]
+    until [ "$RETRIES" -ge "${OCR_SECRET_RETRIES}" ]
     do
        OCRTEST=$(kubectl get pod -l job-name=$OCR_TEST_JOB_NAME | grep ocrtest)
        if [[ "$OCRTEST" == *"Running"* || "$OCRTEST" == *"Completed"* ]]; then
@@ -187,10 +188,11 @@ function verify_ocr_secret()
            OCR_VERIFIED=false
        fi
        RETRIES=$(($RETRIES+1))
-       sleep 1
+       sleep 2
     done
 
     if [ "$OCR_VERIFIED" == false ]; then
+      log "OCR Secret verification failed after $OCR_SECRET_RETRIES attempts."
       "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "default" -r "ocrtest" -m "verify_ocr_secret"
       "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "default" -r "ocrtest-*" -m "verify_ocr_secret"
       kubectl delete job $OCR_TEST_JOB_NAME
