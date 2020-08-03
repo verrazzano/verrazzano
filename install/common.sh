@@ -222,7 +222,7 @@ ISTIO_CORE_DNS_IMAGE=container-registry.oracle.com/olcne/coredns
 ISTIO_CORE_DNS_TAG=1.6.2
 ISTIO_VERSION=1.4.6
 
-KEYCLOAK_IMAGE=phx.ocir.io/stevengreenberginc/bfs/keycloak
+KEYCLOAK_IMAGE=container-registry.oracle.com/verrazzano/keycloak
 KEYCLOAK_IMAGE_TAG=10.0.1-30d98b0-5
 KEYCLOAK_CHART_VERSION=8.2.2
 
