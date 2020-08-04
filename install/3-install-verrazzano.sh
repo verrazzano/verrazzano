@@ -120,10 +120,10 @@ function dump_rancher_ingress {
 
 function download_chart() {
   GITHUB_API_TOKEN="${GITHUB_API_TOKEN:-}"
-  curl -ksH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/tags/${VERRAZZANO_VERSION}" -o response.txt
+  curl -sH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/tags/${VERRAZZANO_VERSION}" -o response.txt
   assetId=$(jq -r ".assets[] | select(.name == (\"verrazzano-${VERRAZZANO_VERSION}.tgz\")) | .id" response.txt)
   echo "assetId is $assetId"
-  curl -L https://api.github.com/repos/verrazzano/verrazzano-operator/releases/assets/$assetId?access_token=${GITHUB_API_TOKEN} -o verrazzano-${VERRAZZANO_VERSION}.tgz -H 'Accept: application/octet-stream'
+  curl -H "Authorization: token ${GITHUB_API_TOKEN}" -H 'Accept: application/octet-stream' -L https://api.github.com/repos/verrazzano/verrazzano-operator/releases/assets/$assetId -o verrazzano-${VERRAZZANO_VERSION}.tgz
 }
 
 function install_verrazzano()
