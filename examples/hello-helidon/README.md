@@ -8,6 +8,9 @@ application.
 ## Deploying the example application
 
 1. Prerequisites: Install Verrazzano following the [installation instructions](../install/README.md).
+   The Hello World Helidon example application model and binding files are contained in the Verrazzano project.
+   It is located at `<VERRAZZANO_HOME>/examples/hello-helidon` where `VERRAZZANO_HOME` is the root of the 
+   Verrazzano project. All paths in this document are relative to `<VERRAZZANO_HOME>/examples/hello-helidon`.
 
 1. Create a `docker-registry` secret to enable pulling images from GitHub Packages.
 
@@ -15,7 +18,7 @@ application.
    kubectl create secret docker-registry github-packages \
            --docker-server=docker.pkg.github.com \
            --docker-username=YOUR_GITHUB_USERNAME \
-           --docker-password=YOUR_GITHUB_PERSONAL_ACCESS_TOEKSN \
+           --docker-password=YOUR_GITHUB_PERSONAL_ACCESS_TOKEN \
            --docker-email=YOUR_EMAIL
    ```
 
@@ -23,6 +26,8 @@ application.
    the values that you use to access GitHub.
 
 1. Deploy the Verrazzano Model and Verrazzano Binding for the example application.
+
+    **Note:**  All files and paths in this document are relative to `<VERRAZZANO_HOME>/examples/hello-helidon`. 
 
     ### Using an OKE cluster
     Run the following script:
@@ -48,7 +53,7 @@ application.
   have been removed from the list.
 
     ```
-    kubectl get all -n greet
+    kubectl get all -n greet | grep hello-world
     NAME                                          READY   STATUS    RESTARTS   AGE
     pod/hello-world-application-bb58ccfd6-6xmpg   3/3     Running   0          19m
     pod/hello-world-application-bb58ccfd6-89ftc   3/3     Running   0          19m
@@ -62,7 +67,7 @@ application.
     NAME                                                DESIRED   CURRENT   READY   AGE
     replicaset.apps/hello-world-application-bb58ccfd6   2         2         2       19m
 
-    kubectl get all -n verrazzano-system
+    kubectl get all -n verrazzano-system | grep hello-world
     NAME                                                        READY   STATUS    RESTARTS   AGE
     pod/vmi-hello-world-binding-api-7f74b6bcc4-8sqjm            1/1     Running   0          19m
     pod/vmi-hello-world-binding-es-data-0-7c98fd4fcf-sxgdp      2/2     Running   0          19m
@@ -109,7 +114,7 @@ application.
     NAME                                                 READY   AGE
     statefulset.apps/vmi-hello-world-binding-es-master   3/3     19m
 
-    kubectl get all -n monitoring
+    kubectl get all -n monitoring | grep hello-world
     NAME                                                   READY   STATUS    RESTARTS   AGE
     pod/prom-pusher-hello-world-binding-787d9c6894-62nts   1/1     Running   0          19m
 

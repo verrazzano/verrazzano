@@ -1,11 +1,17 @@
 # Bob's Books
 
-Bob's Books is an example application made up of several components:
-
-* which I will
-* describe here
+The Bob's Books example application is a book store demo intended to mimic a real application which contains WebLogic, 
+Helidon and Coherence components.
 
 ## Deploying the example application
+
+The Bob's Books example application model and binding files are contained in the Verrazzano project.
+To install Verrazzano, follow the [installation instructions](../install/README.md).
+
+The example is located at `<VERRAZZANO_HOME>/examples/bobs-books` where `VERRAZZANO_HOME` is the root of the 
+Verrazzano project.
+
+**NOTE:** All files and paths in this document are relative to `<VERRAZZANO_HOME>/examples/bobs-books`.
 
 To deploy the Bob's Books example application to an existing Verrazzano environment,
 note that all of the commands shown must be executed against the Verrazzano management
@@ -39,7 +45,7 @@ cluster if you are using a multi-cluster environment.:
    kubectl create secret docker-registry github-packages \
            --docker-server=docker.pkg.github.com \
            --docker-username=YOUR_GITHUB_USERNAME \
-           --docker-password=YOUR_GITHUB_PERSONAL_ACCESS_TOEKSN \
+           --docker-password=YOUR_GITHUB_PERSONAL_ACCESS_TOKEN \
            --docker-email=YOUR_EMAIL
    ```
 
