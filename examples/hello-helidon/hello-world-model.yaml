@@ -9,7 +9,7 @@ spec:
   description: "Hello World application"
   helidonApplications:
     - name: "hello-world-application"
-      image: "docker.pkg.github.com/verrazzano/examples/helidon-greet-app-v1:v0.0.0-e655fa5-4"
+      image: "docker.pkg.github.com/verrazzano/examples/helidon-greet-app-v1:0.1.10-3-e36dc62-117"
       imagePullSecrets:
         - name: github-packages
       connections:
