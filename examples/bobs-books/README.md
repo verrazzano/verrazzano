@@ -5,13 +5,13 @@ Helidon and Coherence components.
 
 ## Deploying the example application
 
-The Bob's Books example application is contained in the Verrazzano project.
+The Bob's Books example application model and binding files are contained in the Verrazzano project.
 To install Verrazzano, follow the [installation instructions](../install/README.md).
 
-The example is located at <VERRAZZANO_HOME>/examples/bobs-books where VERRAZZANO_HOME is the root of the 
+The example is located at `<VERRAZZANO_HOME>/examples/bobs-books` where `VERRAZZANO_HOME` is the root of the 
 Verrazzano project.
 
-**NOTE:** All files and paths in this document are relative to <VERRAZZANO_HOME>/examples/bobs-books.
+**NOTE:** All files and paths in this document are relative to `<VERRAZZANO_HOME>/examples/bobs-books`.
 
 To deploy the Bob's Books example application to an existing Verrazzano environment,
 note that all of the commands shown must be executed against the Verrazzano management

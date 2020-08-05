@@ -8,9 +8,9 @@ application.
 ## Deploying the example application
 
 1. Prerequisites: Install Verrazzano following the [installation instructions](../install/README.md).
-   The Hello World Helidon example is contained in the Verrazzano project.
-   It is located at <VERRAZZANO_HOME>/examples/hello-helidon where VERRAZZANO_HOME is the root of the 
-   Verrazzano project. All paths in this document are relative to <VERRAZZANO_HOME>/examples/hello-helidon.
+   The Hello World Helidon example application model and binding files are contained in the Verrazzano project.
+   It is located at `<VERRAZZANO_HOME>/examples/hello-helidon` where `VERRAZZANO_HOME` is the root of the 
+   Verrazzano project. All paths in this document are relative to `<VERRAZZANO_HOME>/examples/hello-helidon`.
 
 1. Create a `docker-registry` secret to enable pulling images from GitHub Packages.
 
@@ -27,7 +27,7 @@ application.
 
 1. Deploy the Verrazzano Model and Verrazzano Binding for the example application.
 
-    **Note:**  All files and paths in this document are relative to <VERRAZZANO_HOME>/examples/hello-helidon. 
+    **Note:**  All files and paths in this document are relative to `<VERRAZZANO_HOME>/examples/hello-helidon`. 
 
     ### Using an OKE cluster
     Run the following script:
