@@ -13,7 +13,7 @@ spec:
       domainCRValues:
         domainUID: bobbys-front-end
         domainHome: /u01/oracle/user_projects/domains/bobbys-front-end
-        image: docker.pkg.github.com/verrazzano/examples/bobbys-front-end:0.1.9
+        image: docker.pkg.github.com/verrazzano/examples/bobbys-front-end:0.1.10-2
         logHome: /u01/oracle/user_projects/domains/bobbys-front-end/logs
         logHomeEnabled: false
         includeServerOutInPodLog: true
@@ -49,7 +49,7 @@ spec:
       domainCRValues:
         domainUID: bobs-bookstore
         domainHome: /u01/oracle/user_projects/domains/bobs-bookstore
-        image: docker.pkg.github.com/verrazzano/examples/bobs-bookstore-order-manager:0.1.9
+        image: docker.pkg.github.com/verrazzano/examples/bobs-bookstore-order-manager:0.1.10-2
         logHome: /u01/oracle/bobs-bookstore/logs
         logHomeEnabled: false
         includeServerOutInPodLog: true
@@ -81,7 +81,7 @@ spec:
               datasourceName: books
   helidonApplications:
     - name: "bobbys-helidon-stock-application"
-      image: "docker.pkg.github.com/verrazzano/examples/bobbys-helidon-stock-application:0.1.9"
+      image: "docker.pkg.github.com/verrazzano/examples/bobbys-helidon-stock-application:0.1.10-2"
       imagePullSecrets:
         - name: github-packages
       connections:
@@ -93,7 +93,7 @@ spec:
               environmentVariableForHost: "BACKEND_HOSTNAME"
               environmentVariableForPort: "BACKEND_PORT"
     - name: "roberts-helidon-stock-application"
-      image: "docker.pkg.github.com/verrazzano/examples/roberts-helidon-stock-application:0.1.9"
+      image: "docker.pkg.github.com/verrazzano/examples/roberts-helidon-stock-application:0.1.10-2"
       imagePullSecrets:
         - name: github-packages
       connections:
@@ -104,14 +104,14 @@ spec:
               address: "roberts-coherence-wka"
   coherenceClusters:
     - name: "bobbys-coherence"
-      image: "docker.pkg.github.com/verrazzano/examples/bobbys-coherence:0.1.9"
+      image: "docker.pkg.github.com/verrazzano/examples/bobbys-coherence:0.1.10-2"
       imagePullSecrets:
         - name: github-packages # secret to pull bobbys-coherence image from GitHub Packages
         - name: ocr  # secret to pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
       cacheConfig: "bobbys-cache-config.xml"
       pofConfig: "bobbys-pof-config.xml"
     - name: "roberts-coherence"
-      image: "docker.pkg.github.com/verrazzano/examples/roberts-coherence:0.1.9"
+      image: "docker.pkg.github.com/verrazzano/examples/roberts-coherence:0.1.10-2"
       imagePullSecrets:
         - name: github-packages # secret to pull roberts-coherence image from GitHub Packages
         - name: ocr  # secret to pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
