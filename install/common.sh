@@ -114,6 +114,13 @@ function get_rancher_access_token {
   RANCHER_ACCESS_TOKEN=$rancher_access_token
 }
 
+function dump_rancher_ingress {
+  echo
+  echo "########  rancher ingress details ##########"
+  kubectl get ingress rancher -n cattle-system -o yaml
+  echo "########  end rancher ingress details ##########"
+}
+
 # Call curl with the given arguments and set the given variables for response body and http code.
 # $1 the expected http response code; pass 0 to indicate that the http code shouldn't be checked
 # $2 the variable to set with the response body

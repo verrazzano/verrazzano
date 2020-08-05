@@ -111,13 +111,6 @@ function create_admission_controller_cert()
   rm -rf $CERTS_OUT
 }
 
-function dump_rancher_ingress {
-  echo
-  echo "########  rancher ingress details ##########"
-  kubectl get ingress rancher -n cattle-system -o yaml
-  echo "########  end rancher ingress details ##########"
-}
-
 function install_verrazzano()
 {
   local rancher_admin_password=`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode`
