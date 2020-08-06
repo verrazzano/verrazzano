@@ -169,7 +169,7 @@ Follow these steps to test the endpoints:
     curl -s -X PUT -H "Content-Type: application/json" -d '{"greeting" : "Hallo"}' http://"${SERVER}":"${PORT}"/greet/greeting
 
     # Get message for Robert again:
-    $ curl -s -X GET http://"${SERVER}":"${PORT}"/greet/Robert
+    curl -s -X GET http://"${SERVER}":"${PORT}"/greet/Robert
     {"message":"Hallo Robert!"}
     ```
 
