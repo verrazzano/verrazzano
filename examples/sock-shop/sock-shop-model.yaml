@@ -1,0 +1,79 @@
+# Copyright (C) 2020, Oracle Corporation and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: verrazzano.io/v1beta1
+kind: VerrazzanoModel
+metadata:
+  name: sock-shop-model
+  namespace: default
+spec:
+  description: "Sock Shop Model"
+  helidonApplications:
+    - name: "carts"
+      port: 80
+      targetPort: 7001
+      image: "helidonsockshop/carts-core:2.0.0"
+      connections:
+        - ingress:
+            - name: "carts-ingress"
+              match:
+                - uri:
+                    prefix: /carts
+    - name: "catalogue"
+      port: 80
+      targetPort: 7001
+      image: "helidonsockshop/catalog-core:2.0.0"
+      connections:
+        - ingress:
+            - name: "catalogue-ingress"
+              match:
+                - uri:
+                    prefix: /catalogue
+    - name: "orders"
+      port: 80
+      targetPort: 7001
+      image: "helidonsockshop/orders-core:2.0.0"
+      connections:
+        - ingress:
+            - name: "orders-ingress"
+              match:
+                - uri:
+                    prefix: /orders
+    - name: "payment"
+      port: 80
+      targetPort: 7001
+      image: "helidonsockshop/payment-core:2.0.0"
+      connections:
+        - ingress:
+            - name: "payment-ingress"
+              match:
+                - uri:
+                    prefix: /payment
+    - name: "shipping"
+      port: 80
+      targetPort: 7001
+      image: "helidonsockshop/shipping-core:2.0.0"
+      connections:
+        - ingress:
+            - name: "shipping-ingress"
+              match:
+                - uri:
+                    prefix: /shipping
+    - name: "user"
+      port: 80
+      targetPort: 7001
+      image: "helidonsockshop/users-core:2.0.0"
+      connections:
+        - ingress:
+            - name: "user-ingress"
+              match:
+                - uri:
+                    prefix: /register
+                - uri:
+                    prefix: /login
+                - uri:
+                    prefix: /addresses
+                - uri:
+                    prefix: /customers
+                - uri:
+                    prefix: /cards
