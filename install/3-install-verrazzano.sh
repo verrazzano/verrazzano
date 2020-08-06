@@ -148,7 +148,7 @@ function install_verrazzano()
       --set clusterOperator.rancherUserName="${token_array[0]}" \
       --set clusterOperator.rancherPassword="${token_array[1]}" \
       --set clusterOperator.rancherHostname=${RANCHER_HOSTNAME} \
-      --set verrazzanoOperator.fluentdImage=container-registry-admin.oraclecorp.com/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-17 \
+      --set verrazzanoOperator.fluentdImage=container-registry.oracle.com/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-17 \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)"
 
   log "Verifying that needed secrets are created"

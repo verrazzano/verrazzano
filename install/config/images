@@ -33,13 +33,13 @@ oracle/weblogic-kubernetes-operator:3.0.0
 container-registry.oracle.com/olcne/prometheus:v2.13.1
 container-registry.oracle.com/olcne/grafana:v6.4.4
 phx.ocir.io/stevengreenberginc/bfs/verrazzano/keycloak-oracle-theme:fc5084e7cb5fceb5ce224327397acb87f2f520c1
-container-registry-admin.oraclecorp.com/verrazzano/rancher:v2.4.3-0cc4e86-22
-container-registry-admin.oraclecorp.com/verrazzano/rancher-agent:v2.4.3-0cc4e86-22
+container-registry.oracle.com/verrazzano/rancher:v2.4.3-0cc4e86-22
+container-registry.oracle.com/verrazzano/rancher-agent:v2.4.3-0cc4e86-22
 phx.ocir.io/stevengreenberginc/bfs/external-dns:v0.7.1-cfe79c5-10
 phx.ocir.io/stevengreenberginc/bfs/filebeat:6.8.3-58a0ddf-6
 phx.ocir.io/stevengreenberginc/bfs/journalbeat:6.8.3-58a0ddf-6
 phx.ocir.io/stevengreenberginc/bfs/node-exporter:0.18.1-0f43627-7
 phx.ocir.io/stevengreenberginc/bfs/configmap-reload:0.3-81d6423-33
 phx.ocir.io/stevengreenberginc/bfs/keycloak:10.0.1-30d98b0-5
-phx.ocir.io/stevengreenberginc/bfs/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-17
+container-registry.oracle.com/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-6ce326d-17
 
