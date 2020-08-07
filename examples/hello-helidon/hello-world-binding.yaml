@@ -10,7 +10,7 @@ spec:
   modelName: hello-world-model
   helidonBindings:
     - name: "hello-world-application"
-      replicas: 2
+      replicas: 1
   placement:
     - name: local
       namespaces:
