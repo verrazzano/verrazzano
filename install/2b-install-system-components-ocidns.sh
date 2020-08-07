@@ -189,6 +189,7 @@ function install_rancher()
     helm upgrade rancher rancher-stable/rancher \
       --install --namespace cattle-system \
       --version $RANCHER_VERSION  \
+      --set systemDefaultRegistry=container-registry.oracle.com/verrazzano \
       --set rancherImage=$RANCHER_IMAGE \
       --set rancherImageTag=$RANCHER_TAG \
       --set hostname=rancher.${NAME}.${OCI_DNS_ZONE_NAME} \
