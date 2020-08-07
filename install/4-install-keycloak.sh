@@ -226,7 +226,6 @@ consoleout "Installation Complete."
 consoleout
 consoleout "Verrazzano provides various user interfaces."
 consoleout
-consoleout "Verrazzano Console - https://console.${ENV_NAME}.${DNS_SUFFIX}"
 consoleout "Grafana - https://grafana.vmi.system.${ENV_NAME}.${DNS_SUFFIX}"
 consoleout "Prometheus - https://prometheus.vmi.system.${ENV_NAME}.${DNS_SUFFIX}"
 consoleout "Kibana - https://kibana.vmi.system.${ENV_NAME}.${DNS_SUFFIX}"
