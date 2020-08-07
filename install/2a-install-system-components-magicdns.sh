@@ -52,6 +52,7 @@ function install_nginx_ingress_controller()
     helm upgrade ingress-controller stable/nginx-ingress --install \
       --set controller.image.repository=$NGINX_INGRESS_CONTROLLER_IMAGE \
       --set controller.image.tag=$NGINX_INGRESS_CONTROLLER_TAG \
+      --set controller.config.client-body-buffer-size=64k \
       --set defaultBackend.image.repository=$NGINX_DEFAULT_BACKEND_IMAGE \
       --set defaultBackend.image.tag=$NGINX_DEFAULT_BACKEND_TAG \
       --namespace ingress-nginx \
