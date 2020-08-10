@@ -52,12 +52,6 @@ Create the OKE cluster using the OCI console or some other means, then set the f
 ```
 > **NOTE**: At this time the only supported deployment for OLCNE is DNS type manual
 
-### Generating access token for verrazzano helm chart
-Verrazzano helm charts are hosted as release assets for the verrazzano-operator github repo (see the [releases page](https://github.com/verrazzano/verrazzano-operator/releases) for latest releases.). A github personal access token is required to be able to use the verrazzano helm chart. Generate an access token for your github userid with the instructions given [here](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) and then set the token as GITHUB_API_TOKEN environment variable.
-```
-   export GITHUB_API_TOKEN=<your-personal-github-access-token>
-```
-
 ### Create Oracle Container Registry secret
 For all cluster types, you need to create the "ocr" secret. This is needed for pulling images from the container-registry.oracle.com repository.
 ```

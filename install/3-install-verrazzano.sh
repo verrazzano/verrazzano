@@ -113,6 +113,11 @@ function create_admission_controller_cert()
 
 function download_chart() {
   GITHUB_API_TOKEN="${GITHUB_API_TOKEN:-}"
+  if [ -z "$GITHUB_API_TOKEN" ] ; then
+    error "GITHUB_API_TOKEN is required to be set to download the verrazzano helm chart."
+    return 1
+  fi
+  
   curl -sH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/tags/${VERRAZZANO_VERSION}" -o response.txt
   assetId=$(jq -r ".assets[] | select(.name == (\"verrazzano-${VERRAZZANO_VERSION}.tgz\")) | .id" response.txt)
   echo "assetId is $assetId"
