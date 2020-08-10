@@ -198,7 +198,9 @@ function install_rancher()
       --set letsEncrypt.ingress.class=rancher \
       --set letsEncrypt.environment=production \
       --set letsEncrypt.email=$EMAIL_ADDRESS \
-      --wait
+      --set resources.requests.ephemeral-storage=1G \
+      --set resources.limits.ephemeral-storage=2G \
+      wait
 
     K8S_IO_HOSTNAME=${DNS_PREFIX}.${NAME}.${OCI_DNS_ZONE_NAME}
 
