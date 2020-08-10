@@ -130,8 +130,6 @@ Following is an example of the ingresses:
    NAMESPACE           NAME                               HOSTS                                          ADDRESS          PORTS     AGE
    cattle-system       rancher                            rancher.myenv.mydomain.com                     128.234.33.198   80, 443   93m
    keycloak            keycloak                           keycloak.myenv.mydomain.com                    128.234.33.198   80, 443   69m
-   verrazzano-system   verrazzano-console-ingress         console.myenv.mydomain.com                     128.234.33.198   80, 443   81m
-   verrazzano-system   verrazzano-consoleplugin-ingress   verrazzano-consoleplugin.myenv.mydomain.com    128.234.33.198   80, 443   81m
    verrazzano-system   verrazzano-operator-ingress        api.myenv.mydomain.com                         128.234.33.198   80, 443   81m
    verrazzano-system   vmi-system-api                     api.vmi.system.myenv.mydomain.com              128.234.33.198   80, 443   80m
    verrazzano-system   vmi-system-es-ingest               elasticsearch.vmi.system.myenv.mydomain.com    128.234.33.198   80, 443   80m
@@ -145,7 +143,6 @@ Following is an example of the ingresses:
 You will need the credentials to access the various consoles installed by Verrazzano.
 
 ### Consoles accessed by the same username/password
-- UI Console
 - Grafana
 - Prometheus
 - Kibana
