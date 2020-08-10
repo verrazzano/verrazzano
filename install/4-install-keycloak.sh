@@ -136,7 +136,7 @@ function set_rancher_server_url
           --data-binary '{"name":"server-url","value":"'${rancher_server_url}'"}' \
           --insecure)
     call_curl 200 http_response http_status curl_args || true
-    if [ ${http_status} -ne 200 ]; then
+    if [ ${http_status:--1} -ne 200 ]; then
       echo "Failed to set Rancher server URL. Continuing without setting Rancher server URL."
       return 0
     else
