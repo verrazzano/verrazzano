@@ -111,19 +111,6 @@ function create_admission_controller_cert()
   rm -rf $CERTS_OUT
 }
 
-function download_chart() {
-  GITHUB_API_TOKEN="${GITHUB_API_TOKEN:-}"
-  if [ -z "$GITHUB_API_TOKEN" ] ; then
-    error "GITHUB_API_TOKEN is required to be set to download the verrazzano helm chart."
-    return 1
-  fi
-  
-  curl -sH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/tags/${VERRAZZANO_VERSION}" -o response.txt
-  assetId=$(jq -r ".assets[] | select(.name == (\"verrazzano-${VERRAZZANO_VERSION}.tgz\")) | .id" response.txt)
-  echo "assetId is $assetId"
-  curl -H "Authorization: token ${GITHUB_API_TOKEN}" -H 'Accept: application/octet-stream' -L https://api.github.com/repos/verrazzano/verrazzano-operator/releases/assets/$assetId -o verrazzano-${VERRAZZANO_VERSION}.tgz
-}
-
 function install_verrazzano()
 {
   local rancher_admin_password=`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode`
@@ -150,7 +137,7 @@ function install_verrazzano()
   log "Installing verrazzano from Helm chart"
   helm \
       upgrade --install verrazzano \
-      ./verrazzano-${VERRAZZANO_VERSION}.tgz \
+      https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-helm-chart/o/${VERRAZZANO_VERSION}%2Fverrazzano-${VERRAZZANO_VERSION}.tgz \
       --namespace ${VERRAZZANO_NS} \
       --set image.pullPolicy=IfNotPresent \
       --set config.envName=${NAME} \
@@ -236,5 +223,4 @@ if ! kubectl get namespace ${VERRAZZANO_NS} ; then
 fi
 
 action "Creating admission controller cert" create_admission_controller_cert || exit 1
-action "Downloading helm chart archive" download_chart || exit 1
 action "Installing Verrazzano system components" install_verrazzano || exit 1
