@@ -67,7 +67,7 @@ function check_ingress_ports() {
 }
 
 VERRAZZANO_NS=verrazzano-system
-VERRAZZANO_VERSION=v0.0.67
+VERRAZZANO_VERSION=v0.0.69
 set_INGRESS_IP
 check_ingress_ports
 if [ $? -ne 0 ]; then
@@ -111,11 +111,17 @@ function create_admission_controller_cert()
   rm -rf $CERTS_OUT
 }
 
-function dump_rancher_ingress {
-  echo
-  echo "########  rancher ingress details ##########"
-  kubectl get ingress rancher -n cattle-system -o yaml
-  echo "########  end rancher ingress details ##########"
+function download_chart() {
+  GITHUB_API_TOKEN="${GITHUB_API_TOKEN:-}"
+  if [ -z "$GITHUB_API_TOKEN" ] ; then
+    error "GITHUB_API_TOKEN is required to be set to download the verrazzano helm chart."
+    return 1
+  fi
+  
+  curl -sH "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/verrazzano/verrazzano-operator/releases/tags/${VERRAZZANO_VERSION}" -o response.txt
+  assetId=$(jq -r ".assets[] | select(.name == (\"verrazzano-${VERRAZZANO_VERSION}.tgz\")) | .id" response.txt)
+  echo "assetId is $assetId"
+  curl -H "Authorization: token ${GITHUB_API_TOKEN}" -H 'Accept: application/octet-stream' -L https://api.github.com/repos/verrazzano/verrazzano-operator/releases/assets/$assetId -o verrazzano-${VERRAZZANO_VERSION}.tgz
 }
 
 function install_verrazzano()
@@ -144,7 +150,7 @@ function install_verrazzano()
   log "Installing verrazzano from Helm chart"
   helm \
       upgrade --install verrazzano \
-      https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-helm-chart/o/${VERRAZZANO_VERSION}%2Fverrazzano-${VERRAZZANO_VERSION}.tgz \
+      ./verrazzano-${VERRAZZANO_VERSION}.tgz \
       --namespace ${VERRAZZANO_NS} \
       --set image.pullPolicy=IfNotPresent \
       --set config.envName=${NAME} \
@@ -230,4 +236,5 @@ if ! kubectl get namespace ${VERRAZZANO_NS} ; then
 fi
 
 action "Creating admission controller cert" create_admission_controller_cert || exit 1
+action "Downloading helm chart archive" download_chart || exit 1
 action "Installing Verrazzano system components" install_verrazzano || exit 1

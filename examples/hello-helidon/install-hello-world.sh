@@ -42,7 +42,7 @@ while true; do
   # Can't use kubectl wait with timeout as this fails immediately if there are no pods.
   # xargs is used to trim whitespace from value
   count=$( (kubectl get pods -n greet -o=jsonpath='{.items[?(@.status.phase=="Running")].metadata.name}' || true) | wc -w | xargs)
-  if [ ${count} -ge 2 ]; then
+  if [ ${count} -ge 1 ]; then
     echo "Application pods found and running on attempt ${attempt}, pod count ${count}."
     break
   elif [ ${attempt} -ge 60 ]; then
