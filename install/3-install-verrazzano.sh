@@ -67,7 +67,7 @@ function check_ingress_ports() {
 }
 
 VERRAZZANO_NS=verrazzano-system
-VERRAZZANO_VERSION=v0.0.0-62b2c610f0ab6f3a7b9e570031e8b5904ea7acf5
+VERRAZZANO_VERSION=v0.0.73
 set_INGRESS_IP
 check_ingress_ports
 if [ $? -ne 0 ]; then
@@ -109,13 +109,6 @@ function create_admission_controller_cert()
   --from-file=ca.key=$CERTS_OUT/ca.key
 
   rm -rf $CERTS_OUT
-}
-
-function dump_rancher_ingress {
-  echo
-  echo "########  rancher ingress details ##########"
-  kubectl get ingress rancher -n cattle-system -o yaml
-  echo "########  end rancher ingress details ##########"
 }
 
 function install_verrazzano()

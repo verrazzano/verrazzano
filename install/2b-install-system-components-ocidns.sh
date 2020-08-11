@@ -190,7 +190,7 @@ function install_rancher()
     helm upgrade rancher rancher-stable/rancher \
       --install --namespace cattle-system \
       --version $RANCHER_VERSION  \
-      --set systemDefaultRegistry=phx.ocir.io/stevengreenberginc/bfs \
+      --set systemDefaultRegistry=container-registry.oracle.com/verrazzano \
       --set rancherImage=$RANCHER_IMAGE \
       --set rancherImageTag=$RANCHER_TAG \
       --set hostname=rancher.${NAME}.${OCI_DNS_ZONE_NAME} \
@@ -198,9 +198,7 @@ function install_rancher()
       --set letsEncrypt.ingress.class=rancher \
       --set letsEncrypt.environment=production \
       --set letsEncrypt.email=$EMAIL_ADDRESS \
-      --set resources.requests.ephemeral-storage=1G \
-      --set resources.limits.ephemeral-storage=2G \
-      wait
+      --wait
 
     K8S_IO_HOSTNAME=${DNS_PREFIX}.${NAME}.${OCI_DNS_ZONE_NAME}
 
