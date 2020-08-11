@@ -70,19 +70,19 @@ will be automatically configured for you. In manual mode you must create the rec
 ### Install using xip.io
 Run the following scripts in order:
 ```
-   ./1-install-istio.sh
-   ./2a-install-system-components-magicdns.sh
-   ./3-install-verrazzano.sh
-   ./4-install-keycloak.sh
+   ./install/1-install-istio.sh
+   ./install/2a-install-system-components-magicdns.sh
+   ./install/3-install-verrazzano.sh
+   ./install/4-install-keycloak.sh
 ```
 **OR**
 ### Install using manual DNS
 Run the following scripts in order:
 ```
-   ./1-install-istio.sh                       -d manual -n <env-name> -s <dns-suffix>
-   ./2a-install-system-components-magicdns.sh -d manual -n <env-name> -s <dns-suffix>
-   ./3-install-verrazzano.sh                  -d manual -n <env-name> -s <dns-suffix>
-   ./4-install-keycloak.sh                    -d manual -n <env-name> -s <dns-suffix>
+   ./install/1-install-istio.sh                       -d manual -n <env-name> -s <dns-suffix>
+   ./install/2a-install-system-components-magicdns.sh -d manual -n <env-name> -s <dns-suffix>
+   ./install/3-install-verrazzano.sh                  -d manual -n <env-name> -s <dns-suffix>
+   ./install/4-install-keycloak.sh                    -d manual -n <env-name> -s <dns-suffix>
 ```
 **OR**
 ### Install using OCI DNS
@@ -107,10 +107,10 @@ be used as part of the domain name used to access Verrazzano ingresses.  For exa
 
 Run the following scripts in order:
 ```
-   ./1-install-istio.sh
-   ./2b-install-system-components-ocidns.sh -n <env-name>
-   ./3-install-verrazzano.sh -n <env-name> -d oci -s <oci-dns-zone-name>
-   ./4-install-keycloak.sh -n <env-name> -d oci -s <oci-dns-zone-name>
+   ./install/1-install-istio.sh
+   ./install/2b-install-system-components-ocidns.sh -n <env-name>
+   ./install/3-install-verrazzano.sh -n <env-name> -d oci -s <oci-dns-zone-name>
+   ./install/4-install-keycloak.sh -n <env-name> -d oci -s <oci-dns-zone-name>
 ```
 
 ## 3. Get the console URLs
