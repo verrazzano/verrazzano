@@ -11,15 +11,6 @@ as described in the [Verrazzano Prerequisites](https://verrazzano.io/docs/instal
 
 > **NOTE**: You should only install this alpha release of Verrazzano in a cluster that can be safely deleted when your evaluation is complete.
 
-## Resource Requirements
-
-The following configuration has proven sufficient to install Verrazzano and deploy the Bob's Books example application.
-
-[OCI Compute instance shape](https://www.oracle.com/cloud/compute/virtual-machines.html) `VM.Standard2.4` which has:
-* 4 `2.0 GHz Intel® Xeon® Platinum 8167M` cores
-* 60 GB of memory
-* Select disk size of at least 200 GB.  A minimum of 100 GB of storage required for docker images.
-
 ## Software Requirements
 
 The following software must be installed on your system.  
@@ -36,7 +27,9 @@ Prepare for installation as shown below, depending on your cluster type.
 Then, create the docker registry secret.
 
 ###  Using an OKE Cluster
-Create the OKE cluster using the OCI console or some other means, then set the following ENV vars:
+Create the OKE cluster using the OCI console or some other means.  The OKE cluster with 3 nodes of `VM.Standard2.4` [OCI Compute instance shape](https://www.oracle.com/cloud/compute/virtual-machines.html) has proven sufficient to install Verrazzano and deploy the Bob's Books example application.
+
+Then set the following ENV vars:
 ```
    export CLUSTER_TYPE=OKE
    export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
