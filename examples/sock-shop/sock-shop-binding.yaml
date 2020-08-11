@@ -1,0 +1,35 @@
+# Copyright (C) 2020, Oracle Corporation and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: verrazzano.io/v1beta1
+kind: VerrazzanoBinding
+metadata:
+  name: sock-shop-binding
+  namespace: default
+spec:
+  description: "Sock Shop Binding"
+  modelName: sock-shop-model
+  placement:
+    - name: local
+      namespaces:
+        - name: sockshop
+          components:
+            - name: carts
+            - name: catalogue
+            - name: orders
+            - name: payment
+            - name: shipping
+            - name: user
+  ingressBindings:
+    - name: "catalogue-ingress"
+      dnsName: "*"
+    - name: "shipping-ingress"
+      dnsName: "*"
+    - name: "payment-ingress"
+      dnsName: "*"
+    - name: "orders-ingress"
+      dnsName: "*"
+    - name: "carts-ingress"
+      dnsName: "*"
+    - name: "user-ingress"
+      dnsName: "*"
