@@ -1,5 +1,8 @@
 #!/bin/bash
-
+#
+# Copyright (c) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+#
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 INSTALL_DIR=$SCRIPT_DIR/../install
 
@@ -132,22 +135,6 @@ function delete_istio_namepsace() {
   if [ "$(kubectl get namespace istio-system)" ] ; then
     kubectl delete namespace istio-system
   fi
-}
-
-
-function helm_uninstalls() {
-  # uninstall all helm components installed by verrazzano
-  helm uninstall keycloak -n keycloak
-  helm uninstall mysql -n keycloak
-  helm uninstall verrazzano -n verrazzano-system
-  helm uninstall rancher -n cattle-system
-  helm uninstall cert-manager -n cert-manager
-  helm uninstall ingress-controller -n ingress-nginx
-}
-
-function delete_extra_secrets() {
-  # remove rancher token
-  kubectl delete secret rancher-admin-secret -n cattle-system
 }
 
 action "Deleting Core DNS" delete_coredns || exit 1
