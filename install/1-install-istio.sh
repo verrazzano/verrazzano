@@ -164,9 +164,20 @@ function copy_ocr_secret()
         | kubectl apply -n istio-system -f -
 }
 
+function verify_ocr_secret_exists()
+{
+    local _error_msg
+    read -r -d '' _error_msg <<- EOM
+ERROR: Secret named ocr is required to pull images from ${GLOBAL_HUB_REPO}.
+Create the secret in the default namespace and then rerun this script.
+e.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com
+EOM
+
+    kubectl get secret ocr -n default || fail "${_error_msg}"
+}
+
 function verify_ocr_secret()
 {
-    kubectl get secret ocr -n default || fail "ERROR: Secret named ocr is required to pull images from ${GLOBAL_HUB_REPO}.\nCreate the secret in the default namespace and then rerun this script.\ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
     OCR_TEST_JOB_NAME=ocrtest-$(uuidgen | tr "[:upper:]" "[:lower:]")
     sed -e "s/OCR_TEST_JOB_NAME/${OCR_TEST_JOB_NAME}/" $CONFIG_DIR/ocrtest.yaml | kubectl apply -f -
     OCR_VERIFIED=false
@@ -263,7 +274,8 @@ action "Waiting for all Kubernetes nodes to be ready" \
 
 # Secret named ocr must exist in the default namespace to pull OLCNE images in a OKE cluster
 if [ ${CLUSTER_TYPE} == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
-  action "Checking for secret named ocr in default namespace" verify_ocr_secret || exit 1
+  action "Verifying that secret named ocr exists in default namespace" verify_ocr_secret_exists || exit 1
+  action "Verifying that secret named ocr contains valid credentials" verify_ocr_secret || exit 1
 fi
 
 # Create istio-system namespace if it does not exist
