@@ -9,6 +9,19 @@ metadata:
 spec:
   description: "Sock Shop Binding"
   modelName: sock-shop-model
+  helidonBindings:
+    - name: "carts"
+      replicas: 1
+    - name: "catalogue"
+      replicas: 1
+    - name: "orders"
+      replicas: 1
+    - name: "payment"
+      replicas: 1
+    - name: "shipping"
+      replicas: 1
+    - name: "user"
+      replicas: 1
   placement:
     - name: local
       namespaces:
