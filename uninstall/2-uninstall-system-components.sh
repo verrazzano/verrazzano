@@ -8,6 +8,10 @@ INSTALL_DIR=$SCRIPT_DIR/../install
 
 . $INSTALL_DIR/common.sh
 
+function delete_external_dns() {
+    helm delete external-dns -n cert-manager || 2>/dev/null
+}
+
 function delete_nginx() {
   # uninstall ingress-nginx
   log "Uninstalling ingress-nginx"
@@ -37,8 +41,11 @@ function delete_cert_manager() {
   kubectl delete -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.13/deploy/manifests/00-crds.yaml
 
   # delete namespace
-  kubectl delete namespace cert-manager
+  if [ "$(kubectl get namespace cert-manager)" ] ; then
+    kubectl delete namespace cert-manager
+  fi
 }
 
+action "Deleting External DNS Components" delete_external_dns
 action "Deleting Nginx Components" delete_nginx
 action "Delete Cert Manager Components" delete_cert_manager
