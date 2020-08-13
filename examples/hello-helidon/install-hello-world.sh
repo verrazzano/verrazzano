@@ -47,15 +47,12 @@ while true; do
     break
   elif [ ${attempt} -ge 60 ]; then
     echo "ERROR: Application pods not found on final attempt ${attempt}, pod count ${count}. Exiting."
-    kubectl get pods -n greet
-    sleep 60
-    kubectl get pods -n greet
     exit 1
   elif [ ${attempt} -eq 1 ]; then
     echo "Application pods not found on initial attempt, pod count ${count}. Retrying after delay."
   fi
   attempt=$((attempt+1))
-  sleep 5
+  sleep 10
 done
 
 echo "Determine application endpoint."
