@@ -9,7 +9,16 @@ INSTALL_DIR=$SCRIPT_DIR/../install
 . $INSTALL_DIR/common.sh
 
 function delete_external_dns() {
-    helm delete external-dns -n cert-manager || 2>/dev/null
+  helm delete external-dns -n cert-manager || 2>/dev/null
+
+  # delete clusterro;e and clusterrolebinding
+  if [ "$(kubectl get clusterrole external-dns)" ] ; then
+    kubectl delete clusterrole external-dns
+  fi
+
+  if [ "$(kubectl get clusterrolebinding external-dns)" ] ; then
+    kubectl delete clusterrolebinding external-dns
+  fi
 }
 
 function delete_nginx() {
@@ -43,6 +52,11 @@ function delete_cert_manager() {
   # delete namespace
   if [ "$(kubectl get namespace cert-manager)" ] ; then
     kubectl delete namespace cert-manager
+  fi
+
+  # delete cert manager config map
+  if [ "$(kubectl get configmap cert-manager-controller -n kube-system)" ] ; then
+    kubectl delete configmap cert-manager-controller -n kube-system
   fi
 }
 
