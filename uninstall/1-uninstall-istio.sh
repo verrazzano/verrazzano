@@ -13,23 +13,6 @@ trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
 CONFIG_DIR=$INSTALL_DIR/config
 
-function delete_coredns() {
-  # delete coredns if cluster type is OKE
-  if [ ${CLUSTER_TYPE} == "OKE" ]; then
-        local cluster_ip
-        cluster_ip=$(kubectl get svc -n istio-system istiocoredns -o jsonpath={.spec.clusterIP})
-        if [ $? -ne 0 ] ; then
-            return $?
-        fi
-
-        # Update coredns configmap to include global section in data.
-        # This update requires coredns be greater than 1.4.0
-        sed -e "s#@CLUSTER_IP@#${cluster_ip}#g" $CONFIG_DIR/coredns-template.yaml \
-           | kubectl delete -f -
-    fi
-    return 0
-}
-
 function uninstall_istio() {
   # check if istio namespace has been created
   if [ -z $(kubectl get namespace istio-system) ] ; then
@@ -137,7 +120,6 @@ function delete_istio_namepsace() {
   fi
 }
 
-action "Deleting Core DNS" delete_coredns || exit 1
 action "Uninstalling Istio Components" uninstall_istio || exit 1
 action "Cleaning Up Istio Secrets" delete_secrets || exit 1
 action "Deleting Istio Namespace" delete_istio_namepsace || exit 1
