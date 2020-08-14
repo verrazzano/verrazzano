@@ -8,9 +8,6 @@ metadata:
 spec:
   description: "Hello World Application binding"
   modelName: hello-world-model
-  helidonBindings:
-    - name: "hello-world-application"
-      replicas: 1
   placement:
     - name: local
       namespaces:

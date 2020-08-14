@@ -77,6 +77,7 @@ function install_nginx_ingress_controller()
       --set controller.config.client-body-buffer-size=64k \
       --set defaultBackend.image.repository=$NGINX_DEFAULT_BACKEND_IMAGE \
       --set defaultBackend.image.tag=$NGINX_DEFAULT_BACKEND_TAG \
+      --set controller.publishService.enabled=true \
       --namespace ingress-nginx \
       --set controller.metrics.enabled=true \
       --set controller.podAnnotations.'prometheus\.io/port'=10254 \

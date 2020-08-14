@@ -18,11 +18,6 @@ spec:
       replicas: 2
     - name: "bobbys-helidon-stock-application"
       replicas: 3
-  weblogicBindings:
-    - name: "bobbys-front-end"
-      replicas: 1
-    - name: "bobs-bookstore"
-      replicas: 1
   databaseBindings:
     - name: mysql
       credentials: mysql-credentials
