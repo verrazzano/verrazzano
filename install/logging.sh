@@ -22,20 +22,20 @@ if [ -z "${_LOGGING_CONSOLE_STDOUT:-}" ]; then
   export _LOGGING_CONSOLE_STDOUT=4 #"/dev/fd/5"
   export _LOGGING_CONSOLE_STDERR=5 #"/dev/fd/6"
   exec 4>&1 5<&2
-fi
 
-# Redirect stdout and stderr for this shell to a log file.
-echo "Output redirected to ${LOG_FILE}"
-if [ ${DEBUG:-0} -ge 4 ]; then
-  exec 1>> "$LOG_FILE" 2>&1
+  # Redirect stdout and stderr for this shell to a log file.
+  echo "Output redirected to ${LOG_FILE}"
+  if [ ${DEBUG:-0} -ge 4 ]; then
+    exec 1>> "$LOG_FILE" 2>&1
 
-  # Enable full shell trace logging.
-  set -xs
-else
-  # The >(...) portion prefixes a timestamp to every line of the merged stdout/stderr.
-  exec &> >( while IFS= read -r l; do printf '[%s] %s\n' "$(date -u '+%Y-%m-%d %H:%M:%S %Z')" "$l"; done 1>> ${LOG_FILE} )
+    # Enable full shell trace logging.
+    set -x
+  else
+    # The >(...) portion prefixes a timestamp to every line of the merged stdout/stderr.
+    exec &> >( while IFS= read -r l; do printf '[%s] %s\n' "$(date -u '+%Y-%m-%d %H:%M:%S %Z')" "$l"; done 1>> ${LOG_FILE} )
+  fi
+  echo "Output captured for ${_LOGGING_CALLER_PATH}"
 fi
-echo "Output captured for ${_LOGGING_CALLER_PATH}"
 
 ###################################################################################################
 # The functions below deals writing output to both the console and the log file.
@@ -79,8 +79,10 @@ function _logging_action_color_enabled() {
 # Internal function
 function _logging_action_started() {
   local msg="${_logging_action_msg:-}"
-  local status="START "
+  local status=" .... "
   local endlin="\n"
+  # Remember the current shell pid to prevent sub scripts from killing spinner.
+  export _logging_action_pid=$$
   # Remember the logging action message for use in success/failure/cleanup functions.
   export _logging_action_msg="${msg}"
 
@@ -95,6 +97,8 @@ function _logging_action_started() {
     # Execute the spinner function is an asynchronous sub-shell.
     _logging_action_spinner &
     export _logging_action_spinner_pid=$!
+    # Disown spinner pid to prevent bash's job control from emitting kill message.
+    disown ${_logging_action_spinner_pid}
   fi
 }
 
@@ -139,16 +143,26 @@ function _logging_action_failure() {
 # Update console action status for a completsed action.
 # Internal function
 function _logging_action_complete() {
-  if _logging_action_spinner_enabled; then
-    _logging_action_spinner_kill
+  # If this shell is the same one that started the action, then update the action status.
+  if [ "${_logging_action_pid:-}" = "$$" ]; then
+    if _logging_action_spinner_enabled; then
+      _logging_action_spinner_kill
+    fi
+    local rc="${_logging_action_rc:-}"
+    if [ "${rc}" = "0" ]; then
+      _logging_action_success
+    elif [ -n "${rc}" ]; then
+      _logging_action_failure
+    fi
+    export _logging_action_rc=""
+    export _logging_action_pid=""
   fi
-  local rc="${_logging_action_rc:-}"
-  if [ "${rc}" = "0" ]; then
-    _logging_action_success
-  elif [ -n "${rc}" ]; then
-    _logging_action_failure
+  # If there is a failure message set output the message.
+  if [ -n "${_logging_failure_msg:-}" ]; then
+    printf "\n${_logging_failure_msg}\n"
+    printf "\n${_logging_failure_msg}\n" >&${_LOGGING_CONSOLE_STDERR}
+    export _logging_failure_msg=""
   fi
-  export _logging_action_rc=""
 }
 
 # Loop until killed updating the console action status with a spinner.
@@ -176,8 +190,8 @@ function _logging_action_spinner_kill() {
   if [ -n "${pid}" ]; then
     if kill -0 ${pid} 2>/dev/null ; then
       kill -9 ${pid} 2>/dev/null || true
-      unset _logging_action_spinner_pid
       wait ${pid} 2>/dev/null || true
+      export _logging_action_spinner_pid=""
     fi
   fi
 }
@@ -260,10 +274,7 @@ function error() {
 function fail() {
   local msg="${1:-}"
   local rc=${2:-1}
-  if [ -n "${msg}" ]; then
-    echo -e "\n${msg}"
-    echo -e "\n${msg}" >&${_LOGGING_CONSOLE_STDERR}
-  fi
+  export _logging_failure_msg="${msg}"
   exit ${rc}
 }
 
