@@ -19,13 +19,13 @@ This repository contains installation scripts and example applications for use w
 
 ## tl;dr
 To install Verrazzano, follow these steps:  
-1. Create an Oracle Cloud Infrastructure Container Engine for Kubernetes (OKE) cluster.
-2. Start OCI Cloud Shell.
-3. Copy the `kubeconfig` to Cloud Shell.
-4. Clone this repo in the Cloud Shell home:
+1. Create an [Oracle Cloud Infrastructure Container Engine for Kubernetes (OKE)](https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm) cluster.
+2. Launch an [OCI Cloud Shell](https://docs.cloud.oracle.com/en-us/iaas/Content/API/Concepts/cloudshellgettingstarted.htm).
+3. Set up a [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) file in the OCI Cloud Shell for the OKE cluster. See these detailed [instructions](https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Tasks/contengdownloadkubeconfigfile.htm).
+4. Clone this [repo](https://github.com/verrazzano/verrazzano`) into the home directory of the OCI Cloud Shell.
    - `git clone https://github.com/verrazzano/verrazzano`
    - `cd verrazzano`
-5. Run the following scripts:  
+5. Execute the following commands in the OCI Cloud Shell:
    - `export CLUSTER_TYPE=OKE`
    - `export VERRAZZANO_KUBECONFIG=~/.kube/config`
    - `export KUBECONFIG=~/.kube/config`
