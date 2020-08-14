@@ -52,7 +52,7 @@ while true; do
     echo "Application pods not found on initial attempt, pod count ${count}. Retrying after delay."
   fi
   attempt=$((attempt+1))
-  sleep 5
+  sleep 10
 done
 
 echo "Determine application endpoint."

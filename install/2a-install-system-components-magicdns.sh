@@ -62,6 +62,7 @@ function install_nginx_ingress_controller()
       --set controller.podAnnotations.'system\.io/scrape'=true \
       --version $NGINX_INGRESS_CONTROLLER_VERSION \
       --set controller.service.type="${INGRESS_TYPE}" \
+      --set controller.publishService.enabled=true \
       --timeout 15m0s \
       ${EXTRA_NGINX_ARGUMENTS} \
       --wait
