@@ -21,6 +21,11 @@ function set_INGRESS_IP() {
       INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json  | jq -r '.spec.externalIPs[0]')
     fi
   fi
+  if [ -n "${INGRESS_IP:-}" ]; then
+    log "Found ingress address ${INGRESS_IP}"
+  else
+    fail "Failed to find ingress address."
+  fi
 }
 
 # Check if the nginx ingress ports are accessible
@@ -54,11 +59,9 @@ function check_ingress_ports() {
 
       # Check the result of the curl call
       if [ $? -eq 0 ]; then
-        echo
-        log "Port $PORT is accessible on ingress($INGRESS_IP).  Note that '404 page not found' is an expected response."
+        log "Port $PORT is accessible on ingress address $INGRESS_IP.  Note that '404 page not found' is an expected response."
       else
-        echo
-        log "ERROR: Port $PORT is NOT accessible on ingress($INGRESS_IP)!  Check that security lists include an ingress rule for the node port $NODEPORT."
+        log "ERROR: Port $PORT is NOT accessible on ingress address $INGRESS_IP!  Check that security lists include an ingress rule for the node port $NODEPORT."
         exitvalue=1
       fi
     done
@@ -68,12 +71,8 @@ function check_ingress_ports() {
 
 VERRAZZANO_NS=verrazzano-system
 VERRAZZANO_VERSION=v0.0.77
-set_INGRESS_IP
-check_ingress_ports
-if [ $? -ne 0 ]; then
-  error "ERROR: Failed ingress port check."
-  exit 1
-fi
+action "Getting ingress address" set_INGRESS_IP
+action "Checking ingress ports" check_ingress_ports || fail "ERROR: Failed ingress port check."
 
 set -eu
 
