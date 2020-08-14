@@ -67,7 +67,7 @@ function check_ingress_ports() {
 }
 
 VERRAZZANO_NS=verrazzano-system
-VERRAZZANO_VERSION=v0.0.75
+VERRAZZANO_VERSION=v0.0.0-e5ffcec53e9a0a73e2b49686b891966782e409f
 set_INGRESS_IP
 check_ingress_ports
 if [ $? -ne 0 ]; then
