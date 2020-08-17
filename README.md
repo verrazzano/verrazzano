@@ -35,6 +35,11 @@ To install Verrazzano, follow these steps:
    - `./install/3-install-verrazzano.sh`
    - `./install/4-install-keycloak.sh`
 6. (Optional) Install some example applications - see below for details.
+7. In the case that Verrazzano needs to be uninstalled, execute the following commands in the OCI Cloud Shell:
+   - `./uninstall/1-uninstall-istio.sh`
+   - `./uninstall/2-uninstall-system-components-magicdns.sh`
+   - `./uninstall/3-uninstall-verrazzano.sh`
+   - `./uninstall/4-uninstall-keycloak.sh`
 
 > **NOTE**: This alpha release of Verrazzano is intended for installation in a single OKE or Oracle Linux Cloud Native Environment (OLCNE) cluster. You should only install Verazzano in a cluster that can be safely deleted when your evaluation is complete.
 
@@ -50,3 +55,5 @@ To deploy the example applications, please see the following instructions:
 For additional information, see the [Verrazzano documentation](https://verrazzano.io/doc).
 
 More detailed [installation instructions](./install/README.md) can be found in the `install` directory.
+
+More detailed [uninstall instructions](./uninstall/README.md) can be found in the `uninstall` directory
