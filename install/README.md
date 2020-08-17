@@ -6,8 +6,7 @@ an [Oracle Linux Cloud Native Environment](https://docs.oracle.com/en/operating-
 For the Oracle OKE cluster type you have two DNS choices:
 [xip.io](http://xip.io/) or
 [Oracle OCI DNS](https://docs.cloud.oracle.com/en-us/iaas/Content/DNS/Concepts/dnszonemanagement.htm).
-Oracle Linux Cloud Native Environment currently only supports a third choice of manual DNS
-as described in the [Verrazzano Prerequisites](https://verrazzano.io/docs/install/prereqs/).
+Oracle Linux Cloud Native Environment currently only supports a third choice of manual DNS.
 
 > **NOTE**: You should only install this alpha release of Verrazzano in a cluster that can be safely deleted when your evaluation is complete.
 
@@ -57,8 +56,7 @@ For all cluster types, you need to create the "ocr" secret. This is needed for p
 ## 2. Do the install
 
 Install using xip.io, OCI DNS or manual DNS configuration. In xip.io and OCI DNS cases the DNS records
-will be automatically configured for you. In manual mode you must create the records as per
-[Verrazzano Prerequisites](https://verrazzano.io/docs/install/prereqs/)
+will be automatically configured for you. In manual mode you must create the DNS records manually.
 
 ### Install using xip.io
 Run the following scripts in order:
@@ -176,7 +174,3 @@ Run the following command to get the password:
 
 ## Install example applications
 Example applications can be found in the `examples` folder.
-
-
-## More Information
-For additional information, see the [Verrazzano documentation](https://verrazzano.io/docs).
