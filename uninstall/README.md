@@ -39,7 +39,7 @@ The formatting of these commands can be applied to all of the install scripts.
 
 ### Complete Uninstall
 
-To completely uninstall all Verrazzano components, These scripts need to execute:
+To completely uninstall all Verrazzano components, These scripts need to be executed:
 ```
    ./uninstall/1-uninstall-istio.sh
    ./uninstall/2-uninstall-system-components-ocidns.sh
