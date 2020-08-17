@@ -78,7 +78,7 @@ function delete_rancher() {
       | grep -E 'coreos.com|.cattle.io' \
       | xargs kubectl delete crd &
     sleep 30
-    kill $!
+    kill $! || 2>/dev/null
   done
 
   # delete clusterrolebindings deployed by rancher
@@ -120,5 +120,5 @@ function delete_rancher() {
 
 action "Deleting External DNS Components" delete_external_dns
 action "Deleting Nginx Components" delete_nginx
-action "Delete Cert Manager Components" delete_cert_manager
-action "Delete Rancher Components" delete_rancher
+action "Deleting Cert Manager Components" delete_cert_manager
+action "Deleting Rancher Components" delete_rancher
