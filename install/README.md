@@ -27,7 +27,7 @@ Prepare for installation as shown below, depending on your cluster type.
 Then, create the docker registry secret.
 
 ###  Using an OKE Cluster
-Create the OKE cluster using the OCI console or some other means.  The OKE cluster with 3 nodes of `VM.Standard2.4` [OCI Compute instance shape](https://www.oracle.com/cloud/compute/virtual-machines.html) has proven sufficient to install Verrazzano and deploy the Bob's Books example application.
+Create the OKE cluster using the OCI console or some other means.  Select `v1.16.8` in `KUBERNETES VERSION`. The OKE cluster with 3 nodes of `VM.Standard2.4` [OCI Compute instance shape](https://www.oracle.com/cloud/compute/virtual-machines.html) has proven sufficient to install Verrazzano and deploy the Bob's Books example application.
 
 Then set the following ENV vars:
 ```
