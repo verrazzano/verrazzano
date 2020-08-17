@@ -20,12 +20,14 @@ function delete_keycloak() {
   helm delete keycloak -n keycloak || 2>/dev/null
 
   # delete keycloak namespace
+  log "Deleting Keycloak namespace"
   kubectl get namespace --no-headers -o custom-columns=":metadata.name" \
     | grep -E 'keycloak' \
     | xargs kubectl delete namespace
 }
 
 function delete_resources() {
+  log "Deleting ClusterRoles and ClusterRoleBindings"
   # deleting clusterrolebindings
   kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
     | grep -E 'cattle-admin|proxy-role-binding-kubernetes-master' \
@@ -38,9 +40,14 @@ function delete_resources() {
 }
 
 function finalize() {
+  log "Deleting ocr Secret"
   if [ "$(kubectl get secret ocr)" ] ; then
     kubectl delete secret ocr
   fi
+
+  # Grab all leftover Helm repos and delete resources
+  log "Deleting Helm repos"
+  helm repo ls | awk 'NR>1 {print $1}' | xargs -I name helm repo remove name
 }
 
 action "Deleting MySQL Components" delete_mysql

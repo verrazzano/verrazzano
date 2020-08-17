@@ -9,25 +9,29 @@ INSTALL_DIR=$SCRIPT_DIR/../install
 . $INSTALL_DIR/common.sh
 
 function delete_verrazzano() {
-  # delete helm installation of Verrazanno
+  # delete helm installation of Verrazzano
   log "Deleting Verrazzano"
   helm delete verrazzano -n verrazzano-system || 2>/dev/null
 
   # delete verrazzano-managed-cluster-local secret
+  log "Deleting Verrazzano secrets"
   if [ "$(kubectl get secret verrazzano-managed-cluster-local)" ] ; then
     kubectl delete secret verrazzano-managed-cluster-local
   fi
 
   # delete crds
+  log "Deleting Verrazzano crds"
   kubectl get crds --no-headers -o custom-columns=":metadata.name" \
     | grep -E 'verrazzano.io' \
     | xargs kubectl delete crd
 
   # deleting certificatesigningrequests
+  log "Deleting CertificateSigningRequests"
   kubectl get csr --no-headers -o custom-columns=":metadata.name" \
     | grep -E 'csr-' \
     | xargs kubectl delete csr
 
+  log "Deleting ClusterRoles and ClusterRoleBindings"
   # deleting clusterrolebindings
   kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
     | grep -E 'filebeat|journalbeat|node-exporter' \
@@ -39,6 +43,7 @@ function delete_verrazzano() {
     | xargs kubectl delete clusterrole
 
   # deleting namespaces
+  log "Deleting Verrazzano namespaces"
   kubectl get namespace --no-headers -o custom-columns=":metadata.name" \
     | grep -E 'verrazzano-system|monitoring|logging' \
     | xargs kubectl delete namespace

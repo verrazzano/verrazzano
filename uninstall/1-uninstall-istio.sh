@@ -93,6 +93,8 @@ function uninstall_istio() {
 }
 
 function delete_secrets() {
+  # Delete istio.default in all namespaces
+  log "Collecting istio secrets for deletion"
   if [ "$(kubectl get secret istio.default)" ] ; then
     kubectl delete secret istio.default
   fi
@@ -106,15 +108,13 @@ function delete_secrets() {
   fi
 
   # delete secrets left over in kube-system
-  local istiosec=($(kubectl get secrets -n kube-system -o custom-columns=":metadata.name" --no-headers |  grep istio))
-
-  for sec in "${istiosec[@]}"
-  do
-    kubectl delete secret "${sec}" -n kube-system
-  done
+  kubectl get secrets -n kube-system -o custom-columns=":metadata.name" --no-headers \
+  | grep 'istio' \
+  | xargs kubectl delete secret -n kube-system
 }
 
 function delete_istio_namepsace() {
+  log "Deleting istio-system namespace"
   if [ "$(kubectl get namespace istio-system)" ] ; then
     kubectl delete namespace istio-system
   fi

@@ -9,10 +9,11 @@ INSTALL_DIR=$SCRIPT_DIR/../install
 . $INSTALL_DIR/common.sh
 
 function delete_external_dns() {
-  log "Uninstalling external-dns"
+  log "Deleting external-dns"
   helm delete external-dns -n cert-manager || 2>/dev/null
 
-  # delete clusterro;e and clusterrolebinding
+  # delete clusterrole and clusterrolebinding
+  log "Deleting ClusterRoles and ClusterRoleBindings for external-dns"
   if [ "$(kubectl get clusterrole external-dns)" ] ; then
     kubectl delete clusterrole external-dns
   fi
@@ -24,10 +25,11 @@ function delete_external_dns() {
 
 function delete_nginx() {
   # uninstall ingress-nginx
-  log "Uninstalling ingress-nginx"
+  log "Deleting ingress-nginx"
   helm delete ingress-controller -n ingress-nginx || 2>/dev/null
 
   # delete the nginx clusterrole and clusterrolebinding
+  log "Deleting ClusterRoles and ClusterRoleBindings for ingress-nginx"
   if [ "$(kubectl get clusterrole ingress-controller-nginx-ingress)" ] ; then
     kubectl delete clusterrole ingress-controller-nginx-ingress
   fi
@@ -37,38 +39,43 @@ function delete_nginx() {
   fi
 
   # delete ingress-nginx namespace
+  log "Deleting ingress-nginx namespace"
   if [ "$(kubectl get namespace ingress-nginx)" ] ; then
     kubectl delete namespace ingress-nginx
   fi
 }
 
 function delete_cert_manager() {
-    # uninstall cert manager deployment
-  log "Uninstalling cert-manager"
+  # uninstall cert manager deployment
+  log "Deleting cert-manager"
   helm delete cert-manager -n cert-manager || 2>/dev/null
 
   # delete the custom resource definition for cert manager
+  log "deleting the custom resource definition for cert manager"
   kubectl delete -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.13/deploy/manifests/00-crds.yaml
 
-  # delete namespace
-  if [ "$(kubectl get namespace cert-manager)" ] ; then
-    kubectl delete namespace cert-manager
-  fi
-
   # delete cert manager config map
+  log "Deleting config map for cert manager"
   if [ "$(kubectl get configmap cert-manager-controller -n kube-system)" ] ; then
     kubectl delete configmap cert-manager-controller -n kube-system
+  fi
+
+  # delete namespace
+  log "Deleting cert manager namespace"
+  if [ "$(kubectl get namespace cert-manager)" ] ; then
+    kubectl delete namespace cert-manager
   fi
 }
 
 function delete_rancher() {
-  log "Uninstalling rancher"
+  # Deleting rancher components
+  log "Deleting rancher"
   helm delete rancher -n cattle-system || 2>/dev/null
 
+  log "Deleting CRDs from rancher"
   while [ "$(kubectl get crds --no-headers -o custom-columns=":metadata.name" | grep -E 'coreos.com|.cattle.io')" ]
   do
     # remove finalizers from crds
-    log "Deleting CRDs"
     kubectl get crds --no-headers -o custom-columns=":metadata.name" \
       | grep -E 'coreos.com|.cattle.io' \
       | xargs kubectl patch crd -p '{"metadata":{"finalizers":null}}' --type=merge
@@ -115,7 +122,7 @@ function delete_rancher() {
     | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge
 
   # delete cattle namespaces
-  kubectl get namespaces --no-headers -o custom-columns=":metadata.name" | grep 'cattle' | xargs kubectl delete namespaces
+  kubectl get namespaces --no-headers -o custom-columns=":metadata.name" | grep -E 'cattle|local' | xargs kubectl delete namespaces
 }
 
 action "Deleting External DNS Components" delete_external_dns
