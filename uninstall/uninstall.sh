@@ -19,7 +19,7 @@ export CLUSTER_TYPE=OKE
 section "Uninstalling Istio..."
 $SCRIPT_DIR/1-uninstall-istio.sh
 section "Uninstalling system components..."
-$SCRIPT_DIR/2-uninstall-system-components-magicdns.sh
+$SCRIPT_DIR/2-uninstall-system-components.sh
 section "Uninstalling Verrazzano..."
 $SCRIPT_DIR/3-uninstall-verrazzano.sh
 section "Uninstalling Keycloak..."

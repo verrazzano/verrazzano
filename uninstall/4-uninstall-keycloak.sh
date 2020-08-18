@@ -48,6 +48,15 @@ function finalize() {
   # Grab all leftover Helm repos and delete resources
   log "Deleting Helm repos"
   helm repo ls | awk 'NR>1 {print $1}' | xargs -I name helm repo remove name
+
+  # Removing possible reference to verrazzano in clusterroles and clusterrolebindings
+  kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
+    | grep -E 'verrazzano' \
+    | xargs kubectl delete clusterrolebinding
+
+  kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
+    | grep -E 'verrazzano' \
+    | xargs kubectl delete clusterrole
 }
 
 action "Deleting MySQL Components" delete_mysql
