@@ -45,7 +45,7 @@ function uninstall_istio() {
     fi
 
   # create template to to delete istio by file
-  log "Create helm template for installing istio proper"
+  log "Create helm template for uninstalling istio proper"
     helm template istio ${TMP_DIR}/istio \
         --namespace istio-system \
         --set global.hub=$GLOBAL_HUB_REPO \
