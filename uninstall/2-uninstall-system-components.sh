@@ -8,6 +8,10 @@ INSTALL_DIR=$SCRIPT_DIR/../install
 
 . $INSTALL_DIR/common.sh
 
+if [ "$(kubectl get vb -A)" ] || [ "$(kubectl get vm -A)" ] ; then
+  error "Please delete all Verrazzano Models and Verrazzano Bindings before continuing the uninstall"
+fi
+
 function delete_external_dns() {
   log "Deleting external-dns"
   helm delete external-dns -n cert-manager || 2>/dev/null

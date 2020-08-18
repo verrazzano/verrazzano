@@ -13,6 +13,10 @@ trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
 CONFIG_DIR=$INSTALL_DIR/config
 
+if [ "$(kubectl get vb -A)" ] || [ "$(kubectl get vm -A)" ] ; then
+  error "Please delete all Verrazzano Models and Verrazzano Bindings before continuing the uninstall"
+fi
+
 function uninstall_istio() {
   # check if istio namespace has been created
   if [ -z $(kubectl get namespace istio-system) ] ; then
