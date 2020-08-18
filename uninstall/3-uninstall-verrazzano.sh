@@ -10,6 +10,7 @@ INSTALL_DIR=$SCRIPT_DIR/../install
 
 if [ "$(kubectl get vb -A)" ] || [ "$(kubectl get vm -A)" ] ; then
   error "Please delete all Verrazzano Models and Verrazzano Bindings before continuing the uninstall"
+  exit 1
 fi
 
 function delete_verrazzano() {

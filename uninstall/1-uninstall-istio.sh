@@ -15,6 +15,7 @@ CONFIG_DIR=$INSTALL_DIR/config
 
 if [ "$(kubectl get vb -A)" ] || [ "$(kubectl get vm -A)" ] ; then
   error "Please delete all Verrazzano Models and Verrazzano Bindings before continuing the uninstall"
+  exit 1
 fi
 
 function uninstall_istio() {
