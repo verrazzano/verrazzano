@@ -7,7 +7,7 @@ application.
 
 ## Deploying the example application
 
-1. Prerequisites: Install Verrazzano following the [installation instructions](../install/README.md).
+1. Prerequisites: Install Verrazzano following the [installation instructions](../../install/README.md).
    The Helidon Sock Shop example application model and binding files are located at `<VERRAZZANO_HOME>/examples/sock-shop` where `VERRAZZANO_HOME` is the root of the 
    Verrazzano project. All paths in this document are relative to `<VERRAZZANO_HOME>/examples/sock-shop`.
 

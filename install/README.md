@@ -6,8 +6,7 @@ an [Oracle Linux Cloud Native Environment](https://docs.oracle.com/en/operating-
 For the Oracle OKE cluster type you have two DNS choices:
 [xip.io](http://xip.io/) or
 [Oracle OCI DNS](https://docs.cloud.oracle.com/en-us/iaas/Content/DNS/Concepts/dnszonemanagement.htm).
-Oracle Linux Cloud Native Environment currently only supports a third choice of manual DNS
-as described in the [Verrazzano Prerequisites](https://verrazzano.io/docs/install/prereqs/).
+Oracle Linux Cloud Native Environment currently only supports a third choice of manual DNS.
 
 > **NOTE**: You should only install this alpha release of Verrazzano in a cluster that can be safely deleted when your evaluation is complete.
 
@@ -27,7 +26,7 @@ Prepare for installation as shown below, depending on your cluster type.
 Then, create the docker registry secret.
 
 ###  Using an OKE Cluster
-Create the OKE cluster using the OCI console or some other means.  The OKE cluster with 3 nodes of `VM.Standard2.4` [OCI Compute instance shape](https://www.oracle.com/cloud/compute/virtual-machines.html) has proven sufficient to install Verrazzano and deploy the Bob's Books example application.
+Create the OKE cluster using the OCI console or some other means.  Select `v1.16.8` in `KUBERNETES VERSION`. The OKE cluster with 3 nodes of `VM.Standard2.4` [OCI Compute instance shape](https://www.oracle.com/cloud/compute/virtual-machines.html) has proven sufficient to install Verrazzano and deploy the Bob's Books example application.
 
 Then set the following ENV vars:
 ```
@@ -57,8 +56,7 @@ For all cluster types, you need to create the "ocr" secret. This is needed for p
 ## 2. Do the install
 
 Install using xip.io, OCI DNS or manual DNS configuration. In xip.io and OCI DNS cases the DNS records
-will be automatically configured for you. In manual mode you must create the records as per
-[Verrazzano Prerequisites](https://verrazzano.io/docs/install/prereqs/)
+will be automatically configured for you. In manual mode you must create the DNS records manually.
 
 ### Install using xip.io
 Run the following scripts in order:
@@ -177,6 +175,20 @@ Run the following command to get the password:
 ## Install example applications
 Example applications can be found in the `examples` folder.
 
+## Install Issues
+### 1. OKE Missing Security List Ingress Rules
+The install scripts will perform a check which attempts access through the ingress ports.  If the check fails then the install will exit and you should see error messages like this:
 
-## More Information
-For additional information, see the [Verrazzano documentation](https://verrazzano.io/docs).
+`ERROR: Port 443 is NOT accessible on ingress(132.145.66.80)!  Check that security lists include an ingress rule for the node port 31739.`
+
+On an OKE install this may indicate that there is a missing ingress rule(s).  To check and fix the issue do the following:
+  1. Get the ports for the LoadBalancer services. 
+     * Run `kubectl get services -A`.
+     * Note the ports for the LoadBalancer type services.  For example `80:31541/TCP,443:31739/TCP`.
+  2. Check the security lists in OCI console.
+     * Go to `Networking/Virtual Cloud Networks`.
+     * Select the related VCN.
+     * Go to the `Security Lists` for the VCN.
+     * Select the security list named `oke-wkr-...`.
+     * Check the ingress rules for the security list.  There should be one rule for each of the destination ports named in the LoadBalancer services.  In the above example the destination ports are `31541` & `31739` and we would expect the ingress rule for `31739` to be missing since it was named in the above ERROR output.
+     * If a rule is missing then add it by clicking `Add Ingress Rules` and filling in the source CIDR and destination port range (missing port).  Use the existing rules as a guide.
