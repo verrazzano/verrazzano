@@ -12,14 +12,14 @@ phx.ocir.io/stevengreenberginc/bfs/cert-manager-controller:0.13.1-0e7394e-18
 phx.ocir.io/stevengreenberginc/bfs/elasticsearch:7.6.1-1d68e1a-2
 phx.ocir.io/stevengreenberginc/bfs/kibana:7.6.1-ccfddab-1
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator:v0.0.77
-phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.9
+phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.10
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.8
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-cluster-operator:v0.0.8
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-operator:v0.0.17
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-api:v0.0.7
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.17
 phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-helidon-app-operator:v0.0.7
-phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-admission-controller:v0.0.13
+phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-admission-controller:v0.0.14
 phx.ocir.io/stevengreenberginc/bfs/istio-coredns-plugin:0.2-5caa06b-13
 phx.ocir.io/stevengreenberginc/bfs/prometheus-pusher:1.0.1-ff71638-19
 phx.ocir.io/stevengreenberginc/bfs/pushgateway:1.2.0-6893444-10

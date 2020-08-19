@@ -70,7 +70,7 @@ function check_ingress_ports() {
 }
 
 VERRAZZANO_NS=verrazzano-system
-VERRAZZANO_VERSION=v0.0.79
+VERRAZZANO_VERSION=v0.0.0-c4b349c03897e6dcc311ee00697c5c4204d1d015
 action "Getting ingress address" set_INGRESS_IP
 action "Checking ingress ports" check_ingress_ports || fail "ERROR: Failed ingress port check."
 
