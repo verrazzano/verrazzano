@@ -213,6 +213,27 @@ function verify_ocr_secret()
     kubectl delete job $OCR_TEST_JOB_NAME
 }
 
+function check_kube_version {
+    kubeVer=$(kubectl version -o json)
+    servVer=$(echo $kubeVer | jq -r '.serverVersion.gitVersion')
+    major=$(echo $kubeVer | jq -r '.serverVersion.major')
+    minor=$(echo $kubeVer | jq -r '.serverVersion.minor')
+    patch=$(echo $servVer | cut -d'.' -f 3)
+    VER_ERROR_MSG="Kubernetes serverVersion $servVer must be greater than or equal to v1.16.8 and less than or equal to v1.18"
+    if [ "$major" -ne 1 ] ; then
+      log $VER_ERROR_MSG
+      return 1
+    fi
+    if [ "$minor" -lt 16 ] || [ "$minor" -gt 18  ]; then
+      log $VER_ERROR_MSG
+      return 1
+    fi
+    if [ "$minor" -eq 16 ] && [ "$patch" -lt 8  ]; then
+      log $VER_ERROR_MSG
+      return 1
+    fi
+}
+
 function wait_for_nodes_to_exist {
     retries=0
     until kubectl get nodes | grep NAME; do
@@ -264,6 +285,8 @@ if [ "$DNS_TYPE" == "manual" ]; then
       fail "dig is required for dns_type $DNS_TYPE but cannot be found on the path. Aborting."
   }
 fi
+
+action "Checking Kubernetes version" check_kube_version || exit 1
 
 # Wait for all cluster nodes to exist, and then to be ready
 action "Waiting for all Kubernetes nodes to exist in cluster" wait_for_nodes_to_exist || exit 1
