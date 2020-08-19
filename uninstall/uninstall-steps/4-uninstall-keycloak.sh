@@ -4,14 +4,9 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
-INSTALL_DIR=$SCRIPT_DIR/../install
+INSTALL_DIR=$SCRIPT_DIR/../../install
 
 . $INSTALL_DIR/common.sh
-
-if [ "$(kubectl get vb -A)" ] || [ "$(kubectl get vm -A)" ] ; then
-  error "Please delete all Verrazzano Models and Verrazzano Bindings before continuing the uninstall"
-  exit 1
-fi
 
 function delete_mysql() {
   # delete helm installation of MySQL
@@ -45,11 +40,6 @@ function delete_resources() {
 }
 
 function finalize() {
-  log "Deleting ocr Secret"
-  if [ "$(kubectl get secret ocr)" ] ; then
-    kubectl delete secret ocr
-  fi
-
   # Grab all leftover Helm repos and delete resources
   log "Deleting Helm repos"
   helm repo ls | awk 'NR>1 {print $1}' | xargs -I name helm repo remove name
