@@ -73,16 +73,18 @@ function delete_rancher() {
   helm delete rancher -n cattle-system || 2>/dev/null
 
   log "Deleting CRDs from rancher"
-  while [ "$(kubectl get crds --no-headers -o custom-columns=":metadata.name" | grep -E 'coreos.com|.cattle.io')" ]
+  while [ "$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | grep -E 'coreos.com|cattle.io')" ]
   do
     # remove finalizers from crds
-    kubectl get crds --no-headers -o custom-columns=":metadata.name" \
-      | grep -E 'coreos.com|.cattle.io' \
+    kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" \
+      | grep -E 'coreos.com|cattle.io' \
+      | awk '{print $1}' \
       | xargs kubectl patch crd -p '{"metadata":{"finalizers":null}}' --type=merge
 
     # delete crds (include timeout for undiscovered finalizer problem)
-    kubectl get crds --no-headers -o custom-columns=":metadata.name" \
-      | grep -E 'coreos.com|.cattle.io' \
+    kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" \
+      | grep -E 'coreos.com|cattle.io' \
+      | awk '{print $1}' \
       | xargs kubectl delete crd &
     sleep 30
     kill $! || 2>/dev/null
@@ -90,14 +92,16 @@ function delete_rancher() {
 
   # delete clusterrolebindings deployed by rancher
   log "Deleting ClusterRoleBindings"
-  kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'clusterrolebinding-|cattle-globalrolebinding-|globaladmin-user|grb-u|rancher' \
+  kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
+    | grep -E 'cattle.io|rancher' \
+    | awk '{print $1}' \
     | xargs kubectl delete clusterrolebinding
 
   # delete clusterroles
   log "Deleting ClusterRoles"
-  kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'p-|project-|user-|cluster-owner|create-ns' \
+  kubectl get clusterrole --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
+    | grep -E 'cattle.io' \
+    | awk '{print $1}' \
     | xargs kubectl delete clusterrole
 
   # delete rolebinding
@@ -117,12 +121,16 @@ function delete_rancher() {
 
   log "Deleting cattle namespaces"
   # delete namespace finalizers
-  kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'cattle|p-' \
+  kubectl get namespaces --no-headers -o custom-columns=":metadata.name,:metadata.annotations,:metadata.labels" \
+    | grep -E 'cattle.io' \
+    | awk '{print $1}' \
     | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge
 
   # delete cattle namespaces
-  kubectl get namespaces --no-headers -o custom-columns=":metadata.name" | grep -E 'cattle|local|p-' | xargs kubectl delete namespaces
+  kubectl get namespaces --no-headers -o custom-columns=":metadata.name,:metadata.annotations,:metadata.labels" \
+    | grep -E 'cattle.io|cattle-system' \
+    | awk '{print $1}' \
+    | xargs kubectl delete namespaces
 }
 
 action "Deleting External DNS Components" delete_external_dns

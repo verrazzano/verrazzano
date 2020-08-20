@@ -21,9 +21,9 @@ function delete_keycloak() {
 
   # delete keycloak namespace
   log "Deleting Keycloak namespace"
-  kubectl get namespace --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'keycloak' \
-    | xargs kubectl delete namespace
+  if [ "$(kubectl get namespace keycloak)" ] ; then
+    kubectl delete namespace keycloak
+  fi
 }
 
 function delete_resources() {

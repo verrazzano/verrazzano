@@ -23,6 +23,10 @@ function delete_verrazzano() {
   log "Deleting Verrazzano crds"
   kubectl get crds --no-headers -o custom-columns=":metadata.name" \
     | grep -E 'verrazzano.io' \
+    | xargs kubectl patch crd -p '{"metadata":{"finalizers":null}}' --type=merge
+
+  kubectl get crds --no-headers -o custom-columns=":metadata.name" \
+    | grep -E 'verrazzano.io' \
     | xargs kubectl delete crd
 
   # deleting certificatesigningrequests
@@ -33,19 +37,22 @@ function delete_verrazzano() {
 
   log "Deleting ClusterRoles and ClusterRoleBindings"
   # deleting clusterrolebindings
-  kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'filebeat|journalbeat|node-exporter' \
+  kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
+    | grep -E 'verrazzano' \
+    | awk '{print $1}' \
     | xargs kubectl delete clusterrolebinding
 
   # deleting clusterroles
-  kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'filebeat|journalbeat|node-exporter' \
+  kubectl get clusterrole --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
+    | grep -E 'verrazzano' \
+    | awk '{print $1}' \
     | xargs kubectl delete clusterrole
 
   # deleting namespaces
   log "Deleting Verrazzano namespaces"
-  kubectl get namespace --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'verrazzano-system|monitoring|logging' \
+  kubectl get namespace --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
+    | grep -E 'verrazzano' \
+    | awk '{print $1}' \
     | xargs kubectl delete namespace
 }
 
