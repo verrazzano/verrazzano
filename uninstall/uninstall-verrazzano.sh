@@ -8,6 +8,17 @@ INSTALL_DIR=$SCRIPT_DIR/../install
 
 . $INSTALL_DIR/common.sh
 
+while true
+do
+  echo -n "$(tput bold)All Verrazzano resources and applications will be permanently removed from the cluster. Do you wish to proceed? [y/n]:$(tput sgr0)" >&4
+  read -r -t 30 resp
+  case $resp in
+    [Yy]* ) break;;
+    [Nn]* ) exit;;
+    * ) status 'Please answer yes or no'
+  esac
+done
+
 section "Uninstalling Verrazzano Applications"
 $SCRIPT_DIR/uninstall-steps/0-uninstall-applications.sh
 section "Uninstalling Istio..."
