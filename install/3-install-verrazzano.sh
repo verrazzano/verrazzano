@@ -71,7 +71,6 @@ function check_ingress_ports() {
 }
 
 VERRAZZANO_NS=verrazzano-system
-VERRAZZANO_VERSION=v0.0.81
 action "Getting ingress address" set_INGRESS_IP
 action "Checking ingress ports" check_ingress_ports || fail "ERROR: Failed ingress port check."
 
@@ -137,7 +136,7 @@ function install_verrazzano()
   log "Installing verrazzano from Helm chart"
   helm \
       upgrade --install verrazzano \
-      https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-helm-chart/o/${VERRAZZANO_VERSION}%2Fverrazzano-${VERRAZZANO_VERSION}.tgz \
+      ${SCRIPT_DIR}/chart \
       --namespace ${VERRAZZANO_NS} \
       --set image.pullPolicy=IfNotPresent \
       --set config.envName=${NAME} \
