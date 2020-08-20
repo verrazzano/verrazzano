@@ -1,0 +1,76 @@
+# Copyright (c) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.clusterOperator.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.clusterOperator.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.clusterOperator.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.clusterOperator.name }}
+    spec:
+      containers:
+        - name: {{ .Values.clusterOperator.name }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: {{ .Values.clusterOperator.imageName }}:{{ .Values.clusterOperator.imageVersion }}
+          args:
+            - --v=4
+            - --rancherURL={{ .Values.clusterOperator.rancherURL }}
+            - --rancherUserName={{ .Values.clusterOperator.rancherUserName }}
+            - --rancherPassword={{ .Values.clusterOperator.rancherPassword }}
+            - --rancherHost={{ .Values.clusterOperator.rancherHostname }}
+      serviceAccount: {{ .Values.clusterOperator.name }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.clusterOperator.name }}
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.clusterOperator.name }}
+rules:
+  - apiGroups:
+      - verrazzano.io
+    resources:
+      - verrazzanomanagedclusters
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.clusterOperator.name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.clusterOperator.name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.clusterOperator.name }}
+    namespace: {{ .Release.Namespace }}
