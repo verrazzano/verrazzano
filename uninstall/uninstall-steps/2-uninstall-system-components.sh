@@ -93,7 +93,7 @@ function delete_rancher() {
   # delete clusterrolebindings deployed by rancher
   log "Deleting ClusterRoleBindings"
   kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
-    | grep -E 'cattle.io|rancher' \
+    | grep -E 'cattle.io|app:rancher' \
     | awk '{print $1}' \
     | xargs kubectl delete clusterrolebinding
 
