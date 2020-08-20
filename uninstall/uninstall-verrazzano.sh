@@ -8,11 +8,8 @@ INSTALL_DIR=$SCRIPT_DIR/../install
 
 . $INSTALL_DIR/common.sh
 
-if [ "$(kubectl get vb -A)" ] || [ "$(kubectl get vm -A)" ] ; then
-  error "Please delete all Verrazzano Models and Verrazzano Bindings before continuing the uninstall"
-  exit 1
-fi
-
+section "Uninstalling Verrazzano Applications"
+$SCRIPT_DIR/uninstall-steps/0-uninstall-applications.sh
 section "Uninstalling Istio..."
 $SCRIPT_DIR/uninstall-steps/1-uninstall-istio.sh
 section "Uninstalling system components..."
