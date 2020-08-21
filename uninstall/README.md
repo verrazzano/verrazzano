@@ -16,37 +16,23 @@ The software requirements for the [install](../install/README.md) are also requi
 
 ## 1. Prepare for Uninstall
 
-All resources (applications, pods, etc.) that are not directly installed by the Verrazzano installation should be removed from the cluster.
-The uninstall scripts work by scraping the cluster and looking for resources by way of pattern matching.
-Any resource left on the cluster is at risk of being deleted by the uninstall scripts, so they should be preemptively removed.
+All resources (applications, pods, etc.) created and/or managed by Verrazzano should be checked before uninstalling.
+The uninstall script will delete all Verrazzano resources including Verrazzano-managed applications. 
+Please make sure that you want to delete these applications before uninstalling Verrazzano.
+If so, the uninstall script will take care of deleting all applications deployed with Verrazzano.
 
 ## 2. Uninstall Verrazzano
 
 > **NOTE:** All references to files are in relation to the project directory
 
-### Partial Uninstall
-
-Each script in the `uninstall` directory correlates with a counterpart in the `install` directory.
-For example, the resources created in
-```
-    ./install/1-install-istio.sh
-```
-can be removed with
-```
-    ./uninstall/1-uninstall-istio.sh
-```
-The formatting of these commands can be applied to all of the install scripts.
-
 ### Complete Uninstall
 
-To completely uninstall all Verrazzano components, These scripts need to be executed:
+To completely uninstall all Verrazzano components, This script needs to be executed:
 ```
-   ./uninstall/1-uninstall-istio.sh
-   ./uninstall/2-uninstall-system-components-ocidns.sh
-   ./uninstall/3-uninstall-verrazzano.sh
-   ./uninstall/4-uninstall-keycloak.sh
+   ./uninstall/uninstall-verrazzano.sh
 ```
-After these processes, the cluster should return to its original state.
+After these processes, the cluster should return to its original state. 
+Verrazzano should be deleted in its entirety to avoid unwanted complications.
 
 ## 3. Verify uninstall
 A complete verification of an uninstall of Verrazzano would require a complete scrape of the resources located on the cluster.
