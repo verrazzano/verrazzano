@@ -11,7 +11,7 @@ INSTALL_DIR=$SCRIPT_DIR/../install
 function usage() {
   error
     error "usage: $0 [-f] [-h]"
-    error " -f    Force the uninstall and suppress warnings"
+    error " -f    Force the uninstall and suppress prompts"
     error " -h    Help"
     error
     exit
@@ -38,14 +38,16 @@ if [ "$FORCE" = false ] ; then
       * ) status 'Please answer yes or no'
     esac
   done
+fi
 
-  if [ "$(kubectl get vb -A)" ] || [ "$(kubectl get vm -A)" ] ; then
-    echo "$(tput bold)The following applications will be deleted upon uninstall:$(tput sgr0)" >&4
-    echo "Verrazzano Models:" >&4
-    echo "$(kubectl get vm -A --no-headers -o custom-columns=":metadata.name")" >&4
-    echo "Verrazzano Bindings:" >&4
-    echo "$(kubectl get vb -A --no-headers -o custom-columns=":metadata.name")" >&4
+if [ "$(kubectl get vb -A)" ] || [ "$(kubectl get vm -A)" ] ; then
+  echo "$(tput bold)The following applications will be deleted upon uninstall:$(tput sgr0)" >&4
+  echo "Verrazzano Models:" >&4
+  echo "$(kubectl get vm -A --no-headers -o custom-columns=":metadata.name")" >&4
+  echo "Verrazzano Bindings:" >&4
+  echo "$(kubectl get vb -A --no-headers -o custom-columns=":metadata.name")" >&4
 
+  if [ "$FORCE" = false ] ; then
     while true
     do
       echo -n "$(tput bold)Are you sure you want to delete these applications? [y/n]:$(tput sgr0)" >&4
