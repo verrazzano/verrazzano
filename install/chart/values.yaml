@@ -9,7 +9,7 @@ image:
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator-jenkins
-  imageVersion: 63af98bf7daa0cb44560bf4c8bb9052fe7228f48
+  imageVersion: 61c39ab1eb3ed2521eb068fcedbf40b7b7df451f
   sslVerify: true
   cohMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.8
   helidonMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-helidon-app-operator:v0.0.7
