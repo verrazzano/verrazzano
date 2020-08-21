@@ -10,7 +10,7 @@ spec:
       containers:
       - name: ocrtest
         image: container-registry.oracle.com/os/oraclelinux:7-slim@sha256:9b86d1332a883ee8f68dd44ba42133de518b2e0ec1cc70257e59fb4da86b1ad3
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
       restartPolicy: Never
       imagePullSecrets:
       - name: ocr

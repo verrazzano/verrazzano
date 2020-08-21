@@ -199,7 +199,7 @@ function verify_ocr_secret()
            OCR_VERIFIED=false
        fi
        RETRIES=$(($RETRIES+1))
-       sleep 2
+       sleep 3
     done
 
     if [ "$OCR_VERIFIED" == false ]; then
