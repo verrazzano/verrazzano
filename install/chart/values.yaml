@@ -46,7 +46,7 @@ monitoringOperator:
 clusterOperator:
   name: verrazzano-cluster-operator
   imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-cluster-operator
-  imageVersion: v0.0.8
+  imageVersion: v0.0.9
   rancherURL:
   rancherUserName:
   rancherPassword:
