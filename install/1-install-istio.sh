@@ -181,7 +181,7 @@ function verify_ocr_secret()
     OCR_TEST_JOB_NAME=ocrtest-$(uuidgen | tr "[:upper:]" "[:lower:]")
     sed -e "s/OCR_TEST_JOB_NAME/${OCR_TEST_JOB_NAME}/" $CONFIG_DIR/ocrtest.yaml | kubectl apply -f -
     OCR_VERIFIED=false
-    OCR_SECRET_RETRIES=${OCR_SECRET_RETRIES:-40}
+    OCR_SECRET_RETRIES=${OCR_SECRET_RETRIES:-75}
     RETRIES=0
     until [ "$RETRIES" -ge "${OCR_SECRET_RETRIES}" ]
     do
@@ -199,7 +199,7 @@ function verify_ocr_secret()
            OCR_VERIFIED=false
        fi
        RETRIES=$(($RETRIES+1))
-       sleep 3
+       sleep 4
     done
 
     if [ "$OCR_VERIFIED" == false ]; then
