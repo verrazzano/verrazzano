@@ -43,7 +43,7 @@ function install_mysql {
   sed -e "s|MYSQL_IMAGE_TAG|${MYSQL_IMAGE_TAG}|g" \
       -e "s|MYSQL_USERNAME|${MYSQL_USERNAME}|g" \
       $SCRIPT_DIR/config/mysql-values-template.yaml > ${TMP_DIR}/mysql-values-sed.yaml
-  
+
   log "Install MySQL helm chart"
   helm upgrade mysql stable/mysql \
       --install \
@@ -100,6 +100,15 @@ function install_keycloak {
 
   # Wait for TLS cert from Cert Manager to go into a ready state
   kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
+}
+
+function verify_service_ips
+{
+  # Make sure nginx service has an external IP
+  wait_for_service_ip ingress-controller-nginx-ingress-controller ingress-nginx
+  # Make sure istio ingressgateway has an external IP
+  wait_for_service_ip istio-ingressgateway istio-system
+
 }
 
 function set_rancher_server_url
@@ -217,6 +226,7 @@ action "Installing MySQL" install_mysql
   fi
 
 action "Installing Keycloak" install_keycloak || exit 1
+action "Verifying Service IPs" verify_service_ips || exit 1
 action "Setting Rancher Server URL" set_rancher_server_url || true
 
 rm -rf $TMP_DIR
