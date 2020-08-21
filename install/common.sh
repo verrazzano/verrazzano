@@ -40,7 +40,7 @@ function wait_for_ingress_ip() {
   done
   if [ "$retries" -ge 10 ] ; then
     log "An error occurred - ingress $ingress_name in namespace $namespace did not have an IP address"
-    exit 1
+    return 1
   fi
 }
 
@@ -63,9 +63,9 @@ function wait_for_service_ip() {
   done
   if [ "$retries" -ge 10 ] ; then
     log "An error occurred - service $svc_name in namespace $namespace did not have an IP address"
-    exit 1
+    return 1
   fi
-  log "Service $svc_name in namespace $namespace is listening on external ip: $svc_ip"
+  log "Service $svc_name in namespace $namespace is listening on external IP: $svc_ip"
 }
 
 function get_rancher_access_token {
