@@ -8,8 +8,23 @@ INSTALL_DIR=$SCRIPT_DIR/../install
 
 . $INSTALL_DIR/common.sh
 
+while true
+do
+  echo -n "$(tput bold)All Verrazzano resources and applications will be permanently removed from the cluster. Do you wish to proceed? [y/n]:$(tput sgr0)" >&4
+  read -r -t 30 resp
+  case $resp in
+    [Yy]* ) break;;
+    [Nn]* ) exit;;
+    * ) status 'Please answer yes or no'
+  esac
+done
+
 if [ "$(kubectl get vb -A)" ] || [ "$(kubectl get vm -A)" ] ; then
-  error "Please delete all Verrazzano Models and Verrazzano Bindings before continuing the uninstall"
+  error "Please delete all Verrazzano Models and Verrazzano Bindings before continuing the uninstall. A list of models and bindings is shown below:"
+  error "Verrazzano Models:"
+  error "$(kubectl get vm -A --no-headers -o custom-columns=":metadata.name")"
+  error "Verrazzano Bindings:"
+  error "$(kubectl get vb -A --no-headers -o custom-columns=":metadata.name")"
   exit 1
 fi
 
