@@ -81,7 +81,7 @@ function install_keycloak {
       -e "s|KEYCLOAK_IMAGE_TAG|${KEYCLOAK_IMAGE_TAG}|g;s|KCADMIN_USERNAME|${KCADMIN_USERNAME}|g" \
       -e "s|DNS_TARGET_NAME|${DNS_TARGET_NAME}|g;s|MYSQL_USERNAME|${MYSQL_USERNAME}|g" \
       -e "s|MYSQL_PASSWORD|$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)|g" \
-      -e "s|KEYCLOAK_IMAGE|$KEYCLOAK_IMAGE|g" \
+      -e "s|KEYCLOAK_IMAGE|$KEYCLOAK_IMAGE|g;s|KEYCLOAK_THEME_IMAGE|$KEYCLOAK_THEME_IMAGE|g" \
       $SCRIPT_DIR/config/keycloak-values-template.yaml > ${TMP_DIR}/keycloak-values-sed.yaml
 
   # Install keycloak helm chart
