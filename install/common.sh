@@ -9,6 +9,8 @@ SOURCE_DIR=$(cd $(dirname $BASH_SOURCE); pwd -P)
 SCRIPT_DIR=${SCRIPT_DIR:-$(cd $(dirname ${BASH_SOURCE[${#BASH_SOURCE[@]} - 1]}); pwd -P)}
 # The directory where any generated artifacts should be stored.
 BUILD_DIR="${SCRIPT_DIR}/build"
+# The max length of the environment name passed in by the user.
+ENV_NAME_LENGTH_LIMIT=10
 
 . ${SOURCE_DIR}/logging.sh
 
@@ -119,6 +121,16 @@ function dump_rancher_ingress {
   echo "########  rancher ingress details ##########"
   kubectl get ingress rancher -n cattle-system -o yaml
   echo "########  end rancher ingress details ##########"
+}
+
+function validate_environment_name {
+  local env_name=$1
+  # check environment name length
+  if [ ${#env_name} -gt $ENV_NAME_LENGTH_LIMIT ]; then
+    log "The environment name "${env_name}" is too long!  The maximum length is "${ENV_NAME_LENGTH_LIMIT} "."
+    return 1
+  fi
+  return 0
 }
 
 # Call curl with the given arguments and set the given variables for response body and http code.

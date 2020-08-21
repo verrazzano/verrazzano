@@ -169,6 +169,13 @@ do
         *) usage;;
     esac
 done
+
+# check environment name length
+validate_environment_name ENV_NAME
+if [ $? -ne 0 ]; then
+  exit 1
+fi
+
 # check for valid DNS type
 if [ $DNS_TYPE != "xip.io" ] && [ $DNS_TYPE != "oci" ] && [ $DNS_TYPE != "manual" ]; then
   error
