@@ -77,7 +77,7 @@ spec:
     spec:
       containers:
         - name: webhook
-          image: {{ .Values.verrazzanoAdmissionController.imageName }}:{{ .Values.verrazzanoAdmissionController.imageVersion }}
+          image: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoAdmissionController.imageName }}:{{ .Values.verrazzanoAdmissionController.imageVersion }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             - --v=4

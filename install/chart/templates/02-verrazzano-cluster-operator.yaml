@@ -21,7 +21,7 @@ spec:
       containers:
         - name: {{ .Values.clusterOperator.name }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          image: {{ .Values.clusterOperator.imageName }}:{{ .Values.clusterOperator.imageVersion }}
+          image: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.clusterOperator.imageName }}:{{ .Values.clusterOperator.imageVersion }}
           args:
             - --v=4
             - --rancherURL={{ .Values.clusterOperator.rancherURL }}

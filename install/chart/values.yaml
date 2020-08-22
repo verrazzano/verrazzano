@@ -6,14 +6,18 @@ image:
   pullPolicy: Always
   terminationGracePeriodSeconds: 60
 
+docker:
+  repository: phx.ocir.io
+  namespace: stevengreenberginc/verrazzano
+
 verrazzanoOperator:
   name: verrazzano-operator
-  imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator-jenkins
+  imageName: verrazzano-operator-jenkins
   imageVersion: 61c39ab1eb3ed2521eb068fcedbf40b7b7df451f
   sslVerify: true
-  cohMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-coh-cluster-operator:v0.0.8
-  helidonMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-helidon-app-operator:v0.0.7
-  wlsMicroImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-wko-operator:v0.0.10
+  cohMicroImage: verrazzano-coh-cluster-operator:v0.0.8
+  helidonMicroImage: verrazzano-helidon-app-operator:v0.0.7
+  wlsMicroImage: verrazzano-wko-operator:v0.0.10
   prometheusPusherImage: container-registry.oracle.com/verrazzano/prometheus-pusher:1.0.1-ff71638-19
   nodeExporterImage: container-registry.oracle.com/verrazzano/node-exporter:0.18.1-0f43627-7
   filebeatImage: container-registry.oracle.com/verrazzano/filebeat:6.8.3-8218206-8
@@ -24,7 +28,7 @@ verrazzanoOperator:
 
 monitoringOperator:
   name: verrazzano-monitoring-operator
-  imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-operator
+  imageName: verrazzano-monitoring-operator
   imageVersion: v0.0.18
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
@@ -36,16 +40,16 @@ monitoringOperator:
   alertManagerImage: prom/alertmanager:v0.16.0
   esWaitTargetVersion: 7.6.1
   esImage: container-registry.oracle.com/verrazzano/elasticsearch:7.6.1-1d68e1a-2
-  esWaitImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.18
+  esWaitImage: verrazzano-monitoring-instance-eswait:v0.0.18
   esInitImage: container-registry.oracle.com/os/oraclelinux:7.8@sha256:46fc083cf0250ed5260fa6fe822d7d4c139ca1f7fc38e4a17ba662464bd1df4a
   kibanaImage: container-registry.oracle.com/verrazzano/kibana:7.6.1-ccfddab-1
-  monitoringInstanceApiImage: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-instance-api:v0.0.7
+  monitoringInstanceApiImage: verrazzano-monitoring-instance-api:v0.0.7
   configReloaderImage: container-registry.oracle.com/verrazzano/configmap-reload:0.3-81d6423-33
   nodeExporterImage: container-registry.oracle.com/verrazzano/node-exporter:0.18.1-0f43627-7
 
 clusterOperator:
   name: verrazzano-cluster-operator
-  imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-cluster-operator
+  imageName: verrazzano-cluster-operator
   imageVersion: v0.0.9
   rancherURL:
   rancherUserName:
@@ -55,7 +59,7 @@ clusterOperator:
 verrazzanoAdmissionController:
   name: verrazzano-validation
   controllerName: verrazzano-admission-controller
-  imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-admission-controller
+  imageName: verrazzano-admission-controller
   imageVersion: v0.0.14
   caBundle:
 

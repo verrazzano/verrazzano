@@ -662,7 +662,7 @@ spec:
       containers:
         - name: {{ .Values.monitoringOperator.name }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          image: {{ .Values.monitoringOperator.imageName }}:{{ .Values.monitoringOperator.imageVersion }}
+          image: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.monitoringOperator.imageName }}:{{ .Values.monitoringOperator.imageVersion }}
           ports:
             - containerPort: 8080
               name: http
@@ -682,7 +682,7 @@ spec:
             - name: ALERT_MANAGER_IMAGE
               value: {{ .Values.monitoringOperator.alertManagerImage }}
             - name: ELASTICSEARCH_WAIT_IMAGE
-              value: {{ .Values.monitoringOperator.esWaitImage }}
+              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.monitoringOperator.esWaitImage }}
             - name: ELASTICSEARCH_IMAGE
               value: {{ .Values.monitoringOperator.esImage }}
             - name: ELASTICSEARCH_INIT_IMAGE
@@ -692,7 +692,7 @@ spec:
             - name: ELASTICSEARCH_WAIT_TARGET_VERSION
               value: {{ .Values.monitoringOperator.esWaitTargetVersion }}
             - name: VERRAZZANO_MONITORING_INSTANCE_API_IMAGE
-              value: {{ .Values.monitoringOperator.monitoringInstanceApiImage }}
+              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.monitoringOperator.monitoringInstanceApiImage }}
             - name: CONFIG_RELOADER_IMAGE
               value: {{ .Values.monitoringOperator.configReloaderImage }}
             - name: NODE_EXPORTER_IMAGE
