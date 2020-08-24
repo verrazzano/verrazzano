@@ -108,8 +108,9 @@ function delete_secrets() {
   fi
 
   # delete secrets left over in kube-system
-  kubectl get secrets -n kube-system -o custom-columns=":metadata.name" --no-headers \
-  | grep 'istio' \
+  kubectl get secrets -n kube-system --no-headers -o custom-columns=":metadata.name,:metadata.annotations" \
+  | grep "istio.io" \
+  | awk '{print $1}' \
   | xargs kubectl delete secret -n kube-system
 }
 
