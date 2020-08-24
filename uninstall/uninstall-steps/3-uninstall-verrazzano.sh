@@ -51,7 +51,7 @@ function delete_verrazzano() {
   # deleting namespaces
   log "Deleting Verrazzano namespaces"
   kubectl get namespace --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
-    | grep -E 'verrazzano' \
+    | grep -E 'k8s-app:verrazzano.io|verrazzano-system' \
     | awk '{print $1}' \
     | xargs kubectl delete namespace
 }
