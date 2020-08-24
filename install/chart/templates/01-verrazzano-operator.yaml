@@ -38,11 +38,11 @@ spec:
             - name: PROMETHEUS_PUSHER_IMAGE
               value: {{ .Values.verrazzanoOperator.prometheusPusherImage }}
             - name: NODE_EXPORTER_IMAGE
-              value: {{ .Values.verrazzanoOperator.nodeExporterImage }}
+              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.nodeExporterImage }}
             - name: FILEBEAT_IMAGE
-              value: {{ .Values.verrazzanoOperator.filebeatImage }}
+              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.filebeatImage }}
             - name: JOURNALBEAT_IMAGE
-              value: {{ .Values.verrazzanoOperator.journalbeatImage }}
+              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.journalbeatImage }}
             - name: WEBLOGIC_OPERATOR_IMAGE
               value: {{ .Values.verrazzanoOperator.weblogicOperatorImage }}
             - name: FLUENTD_IMAGE
