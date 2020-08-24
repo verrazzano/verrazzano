@@ -34,7 +34,7 @@ cluster if you are using a multi-cluster environment.:
 
 1. Accept the license agreements for the Verrazzano images.  If you have not
    done so already, in a web browser, you must navigate to the [Oracle Container Registry](https://container-registry.oracle.com),
-   select the "Verrazzano" category, and review and accept the
+   select the "Verrazzano" category, review, and sign in to accept the
    licenses for the four repositories listed at the top of the page: example-bobbys-coherence, example-bobbys-front-end,
    example-bobs-books-order-manager, and example-roberts-coherence. You will not be able to pull these
    images until you have accepted the licenses.
