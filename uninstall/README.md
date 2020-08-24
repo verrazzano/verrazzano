@@ -20,8 +20,6 @@ The software requirements for the [install](../install/README.md) are also requi
 
 The uninstall script will delete all Verrazzano resources including any Verrazzano-managed applications.
 
-### Complete Uninstall
-
 To completely uninstall all Verrazzano components, this script needs to be executed:
 ```
    ./uninstall/uninstall-verrazzano.sh
