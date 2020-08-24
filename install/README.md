@@ -28,7 +28,7 @@ Then, create the docker registry secret.
 ###  Using an OKE Cluster
 Create the OKE cluster using the OCI console or some other means.  Select `v1.16.8` in `KUBERNETES VERSION`. The OKE cluster with 3 nodes of `VM.Standard2.4` [OCI Compute instance shape](https://www.oracle.com/cloud/compute/virtual-machines.html) has proven sufficient to install Verrazzano and deploy the Bob's Books example application.
 
-Then set the following ENV vars:
+Then set the following `ENV` vars:
 ```
    export CLUSTER_TYPE=OKE
    export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
@@ -37,6 +37,21 @@ Then set the following ENV vars:
 ```
 
 ### Using an OLCNE Cluster
+
+When using an OLCNE cluster, the following prerequisites must be met:
+
+* If the clusters are in different data centers, we recommend that you have a private network between the clusters, for example an IPSec Virtual Private Network, or a hardware-based solution like Oracle Cloud Infrastructure FastConnect. You must be able to route IP traffic from each worker in each cluster to either each worker in every other cluster, or alternatively to a load balancer which provides access to workers in each other cluster.
+
+* A DNS provider where you can create DNS A and CNAME records. For a non-production environment, this could be a "magic DNS" service like `xip.io`.
+
+* A storage provider that supports "Read/Write Multiple" mounts. For example, an NFS service like:
+
+    * Oracle Cloud Infrastructure File Storage Service.
+    * Azure Files.
+    * Amazon Elastic File System.
+    * A hardware-based storage system that provides NFS capabilities.
+
+Also set the following `ENV` vars:
 ```
    export CLUSTER_TYPE=OLCNE
    export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
@@ -156,18 +171,18 @@ You will need the credentials to access the various consoles installed by Verraz
 
 User:  `verrazzano`
 
-Run the following command to get the password: 
+Run the following command to get the password:
 `kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo`
 
 ### The Keycloak Admin console
 User `keycloakadmin`
- 
+
 Run the following command to get the password:  
 `kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo`
 
 ### The Rancher console
 User `admin`
- 
+
 Run the following command to get the password:  
 `kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo`
 
@@ -182,7 +197,7 @@ The install scripts will perform a check which attempts access through the ingre
 `ERROR: Port 443 is NOT accessible on ingress(132.145.66.80)!  Check that security lists include an ingress rule for the node port 31739.`
 
 On an OKE install this may indicate that there is a missing ingress rule(s).  To check and fix the issue do the following:
-  1. Get the ports for the LoadBalancer services. 
+  1. Get the ports for the LoadBalancer services.
      * Run `kubectl get services -A`.
      * Note the ports for the LoadBalancer type services.  For example `80:31541/TCP,443:31739/TCP`.
   2. Check the security lists in OCI console.
