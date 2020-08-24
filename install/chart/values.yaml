@@ -7,13 +7,15 @@ image:
   terminationGracePeriodSeconds: 60
 
 docker:
-  repository: phx.ocir.io
-  namespace: stevengreenberginc/verrazzano
+#  repository: phx.ocir.io
+#  namespace: stevengreenberginc/verrazzano
+  repository: container-registry.oracle.com
+  namespace: verrazzano
 
 verrazzanoOperator:
   name: verrazzano-operator
-  imageName: verrazzano-operator-jenkins
-  imageVersion: 61c39ab1eb3ed2521eb068fcedbf40b7b7df451f
+  imageName: verrazzano-operator
+  imageVersion: v0.0.83
   sslVerify: true
   cohMicroImage: verrazzano-coh-cluster-operator:v0.0.8
   helidonMicroImage: verrazzano-helidon-app-operator:v0.0.7
@@ -39,12 +41,12 @@ monitoringOperator:
   prometheusGatewayImage: container-registry.oracle.com/verrazzano/prometheus-pushgateway:1.2.0-6893444-10
   alertManagerImage: prom/alertmanager:v0.16.0
   esWaitTargetVersion: 7.6.1
-  esImage: container-registry.oracle.com/verrazzano/elasticsearch:7.6.1-1d68e1a-2
+  esImage: elasticsearch:7.6.1-1d68e1a-3
   esWaitImage: verrazzano-monitoring-instance-eswait:v0.0.18
   esInitImage: container-registry.oracle.com/os/oraclelinux:7.8@sha256:46fc083cf0250ed5260fa6fe822d7d4c139ca1f7fc38e4a17ba662464bd1df4a
-  kibanaImage: container-registry.oracle.com/verrazzano/kibana:7.6.1-ccfddab-1
+  kibanaImage: kibana:7.6.1-ccfddab-2
   monitoringInstanceApiImage: verrazzano-monitoring-instance-api:v0.0.7
-  configReloaderImage: container-registry.oracle.com/verrazzano/configmap-reload:0.3-81d6423-33
+  configReloaderImage: configmap-reload:0.3-81d6423-34
   nodeExporterImage: container-registry.oracle.com/verrazzano/node-exporter:0.18.1-0f43627-7
 
 clusterOperator:
@@ -60,7 +62,7 @@ verrazzanoAdmissionController:
   name: verrazzano-validation
   controllerName: verrazzano-admission-controller
   imageName: verrazzano-admission-controller
-  imageVersion: v0.0.14
+  imageVersion: v0.0.17
   caBundle:
 
 # OCI-related values

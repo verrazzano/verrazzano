@@ -81,6 +81,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             - --v=4
+            - --verrazzanoUri={{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/certs
