@@ -223,7 +223,8 @@ GLOBAL_HUB_REPO=container-registry.oracle.com/olcne
 
 CERT_MANAGER_IMAGE=container-registry.oracle.com/verrazzano/cert-manager-controller
 CERT_MANAGER_TAG=0.13.1-0e7394e-18
-CERT_MANAGER_VERSION=0.13.1
+CERT_MANAGER_RELEASE=0.13
+CERT_MANAGER_HELM_CHART_VERSION=0.13.1
 CERT_MANAGER_SOLVER_IMAGE=container-registry.oracle.com/verrazzano/cert-manager-acmesolver
 CERT_MANAGER_SOLVER_TAG=0.13.1-0e7394e-18
 
