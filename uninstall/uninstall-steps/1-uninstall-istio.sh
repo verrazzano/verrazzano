@@ -123,7 +123,7 @@ function delete_istio_namepsace() {
   fi
 }
 
-check_network
+check_network || exit 1
 action "Deleting Istio Components" uninstall_istio || exit 1
 action "Deleting Istio Secrets" delete_secrets || exit 1
 action "Deleting Istio Namespace" delete_istio_namepsace || exit 1

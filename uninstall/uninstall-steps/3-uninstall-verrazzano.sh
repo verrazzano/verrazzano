@@ -56,5 +56,5 @@ function delete_verrazzano() {
     | xargs kubectl delete namespace
 }
 
-check_network
+check_network || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1

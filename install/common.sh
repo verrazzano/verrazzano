@@ -176,10 +176,7 @@ function call_curl {
 
 function check_network() {
   curl http://www.oracle.com
-  if [ $? -ne 0 ] ; then
-    error "Could not connect to the network"
-    exit 1
-  fi
+  return $?
 }
 
 KIND_CLUSTER_NAME=${KIND_CLUSTER_NAME:=verrazzano}

@@ -57,7 +57,7 @@ function finalize() {
     | xargs kubectl delete clusterrole
 }
 
-check_network
+check_network || exit 1
 action "Deleting MySQL Components" delete_mysql || exit 1
 action "Deleting Keycloak Components" delete_keycloak || exit 1
 action "Deleting Leftover Resources" delete_resources || exit 1
