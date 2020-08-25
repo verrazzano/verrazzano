@@ -47,8 +47,19 @@ To deploy the example applications, please see the following instructions:
 * [Helidon Hello World](./examples/hello-helidon/README.md)
 * [Bob's Books](./examples/bobs-books/README.md)
 
+## Verrazzano Helm Chart
+
+The `chart` directory contains helm chart for Verrazzano that packages together the core elements that will be installed into the Verrazzano Management Cluster - micro operators,
+verrazzano-operator, verrazzano-monitoring-operator, etc - into a single Helm chart.
+
+### Chart Parameters
+
+See `./chart/values.yaml` for the full list of configurable parameters that can be set using
+`--set parameter=value` when installing the Helm chart.
+
 ## More Information
 
 More detailed [installation instructions](./install/README.md) can be found in the `install` directory.
 
 More detailed [uninstall instructions](./uninstall/README.md) can be found in the `uninstall` directory
+
