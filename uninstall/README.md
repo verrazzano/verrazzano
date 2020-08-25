@@ -1,7 +1,6 @@
 # Uninstall
 
-Verrazzano creates a list of services and resources that reside on the cluster in which Verrazzano is installed.
-If these resources need to be deleted, the scripts in the `uninstall` directory will make that process easier. At any stage of the installation or development process, you can use these scripts to clean the cluster of all current Verrazzano resources.
+To uninstall Verrazzano, use the scripts in the `uninstall` directory.
 
 ## Software Requirements
 

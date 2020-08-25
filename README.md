@@ -56,6 +56,8 @@ To deploy the example applications, please see the following instructions:
 
 * [Helidon Hello World](./examples/hello-helidon/README.md)
 * [Bob's Books](./examples/bobs-books/README.md)
+* [Helidon Sock Shop](./examples/sock-shop/README.md)
+* [ToDo List](https://github.com/verrazzano/examples/blob/master/todo-list/README.md)
 
 
 
