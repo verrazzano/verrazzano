@@ -11,7 +11,10 @@ INSTALL_DIR=$SCRIPT_DIR/../../install
 function delete_mysql() {
   # delete helm installation of MySQL
   log "Deleting MySQL"
-  helm delete mysql -n keycloak || 2>/dev/null
+  helm ls -A \
+    | grep "mysql" \
+    | awk '{print $1}' \
+    | xargs helm delete -n keycloak
 }
 
 function delete_keycloak() {
@@ -54,7 +57,8 @@ function finalize() {
     | xargs kubectl delete clusterrole
 }
 
-action "Deleting MySQL Components" delete_mysql
-action "Deleting Keycloak Components" delete_keycloak
-action "Deleting Leftover Resources" delete_resources
-action "Finalizing Uninstall" finalize
+check_network
+action "Deleting MySQL Components" delete_mysql || exit 1
+action "Deleting Keycloak Components" delete_keycloak || exit 1
+action "Deleting Leftover Resources" delete_resources || exit 1
+action "Finalizing Uninstall" finalize || exit 1

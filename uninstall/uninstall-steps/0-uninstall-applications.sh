@@ -18,5 +18,6 @@ function delete_models {
     | xargs kubectl delete VerrazzanoModels
 }
 
-action "Deleting Verrazzano Bindings" delete_bindings
-action "Deleting Verrazzano Models" delete_models
+check_network
+action "Deleting Verrazzano Bindings" delete_bindings || exit 1
+action "Deleting Verrazzano Models" delete_models || exit 1

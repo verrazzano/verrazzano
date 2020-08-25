@@ -40,26 +40,31 @@ if [ "$FORCE" = false ] ; then
   done
 fi
 
-if [ "$(kubectl get vb -A)" ] || [ "$(kubectl get vm -A)" ] ; then
-  echo "$(tput bold)The following applications will be deleted upon uninstall:$(tput sgr0)" >&4
-  echo "Verrazzano Models:" >&4
-  echo "$(kubectl get vm -A --no-headers -o custom-columns=":metadata.name")" >&4
-  echo "Verrazzano Bindings:" >&4
-  echo "$(kubectl get vb -A --no-headers -o custom-columns=":metadata.name")" >&4
+function check_applications () {
+  if [ "$(kubectl get vb -A)" ] || [ "$(kubectl get vm -A)" ] ; then
+    echo "$(tput bold)The following applications will be deleted upon uninstall:$(tput sgr0)" >&4
+    echo "Verrazzano Models:" >&4
+    echo "$(kubectl get vm -A --no-headers -o custom-columns=":metadata.name")" >&4
+    echo "Verrazzano Bindings:" >&4
+    echo "$(kubectl get vb -A --no-headers -o custom-columns=":metadata.name")" >&4
 
-  if [ "$FORCE" = false ] ; then
-    while true
-    do
-      echo -n "$(tput bold)Are you sure you want to delete these applications? [y/n]:$(tput sgr0)" >&4
-      read -r -t 30 resp
-      case $resp in
-        [Yy]* ) break;;
-        [Nn]* ) exit;;
-        * ) status 'Please answer yes or no'
-      esac
-    done
+    if [ "$FORCE" = false ] ; then
+      while true
+      do
+        echo -n "$(tput bold)Are you sure you want to delete these applications? [y/n]:$(tput sgr0)" >&4
+        read -r -t 30 resp
+        case $resp in
+          [Yy]* ) break;;
+          [Nn]* ) exit;;
+          * ) status 'Please answer yes or no'
+        esac
+      done
+    fi
   fi
-fi
+}
+
+action "Verifying Network" check_network
+action "Verifying Verrazzano Applications" check_applications
 
 section "Uninstalling Verrazzano Applications"
 $SCRIPT_DIR/uninstall-steps/0-uninstall-applications.sh

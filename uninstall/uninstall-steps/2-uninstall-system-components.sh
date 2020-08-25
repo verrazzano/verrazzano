@@ -133,7 +133,8 @@ function delete_rancher() {
     | xargs kubectl delete namespaces
 }
 
-action "Deleting External DNS Components" delete_external_dns
-action "Deleting Nginx Components" delete_nginx
-action "Deleting Cert Manager Components" delete_cert_manager
-action "Deleting Rancher Components" delete_rancher
+check_network
+action "Deleting External DNS Components" delete_external_dns || exit 1
+action "Deleting Nginx Components" delete_nginx || exit 1
+action "Deleting Cert Manager Components" delete_cert_manager || exit 1
+action "Deleting Rancher Components" delete_rancher || exit 1
