@@ -240,6 +240,12 @@ do
     esac
 done
 
+# check environment name length
+validate_environment_name $NAME
+if [ $? -ne 0 ]; then
+  exit 1
+fi
+
 if [ $DNS_TYPE != "oci" ]; then
   consoleerr
   consoleerr "Unknown DNS type ${DNS_TYPE}!"
