@@ -9,7 +9,7 @@ application.
 
 1. Prerequisites: Install Verrazzano following the [installation instructions](../../install/README.md).
    The Hello World Helidon example application model and binding files are contained in the Verrazzano project.
-   It is located at `<VERRAZZANO_HOME>/examples/hello-helidon` where `VERRAZZANO_HOME` is the root of the 
+   It is located at `<VERRAZZANO_HOME>/examples/hello-helidon` where `VERRAZZANO_HOME` is the root of the
    Verrazzano project. All paths in this document are relative to `<VERRAZZANO_HOME>/examples/hello-helidon`.
 
 1. Create a `docker-registry` secret to enable pulling images from GitHub Packages.
@@ -27,21 +27,12 @@ application.
 
 1. Deploy the Verrazzano Model and Verrazzano Binding for the example application.
 
-    **Note:**  All files and paths in this document are relative to `<VERRAZZANO_HOME>/examples/hello-helidon`. 
+    **Note:**  All files and paths in this document are relative to `<VERRAZZANO_HOME>/examples/hello-helidon`.
 
     ### Using an OKE cluster
     Run the following script:
 
     ```
-    ./install-hello-world.sh
-    ```
-
-    ### Using a kind cluster
-    Run the following script:
-
-    ```
-    export KIND_CLUSTER_NAME=verrazzano
-    export CLUSTER_TYPE=KIND
     ./install-hello-world.sh
     ```
 
@@ -138,21 +129,13 @@ endpoint accepts the `PUT` HTTP request method, and a JSON payload.
 Follow these steps to test the endpoints:
 
 1. Get the IP address and port number for calling the REST service.
-    ### Using an OKE cluster
-    Get the EXTERNAL-IP address for the `istio-ingressgateway` service:
+
+   To get the EXTERNAL-IP address for the `istio-ingressgateway` service:
 
     ```
     SERVER=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq -r '.status.loadBalancer.ingress[0].ip')
     PORT=80
     ```
-
-   ### Using a kind cluster
-   Get the IP address of one node in the cluster and the port number from the `istio-ingressgateway` service:
-
-   ```
-   SERVER=$(kubectl get node ${KIND_CLUSTER_NAME}-worker -o json | jq -r '.status.addresses[] | select (.type == "InternalIP") | .address')
-   PORT=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq '.spec.ports[] | select(.port == 80) | .nodePort')
-   ```
 
 1. Use the IP address and port number to call the following endpoints of the greeting REST service:
 
