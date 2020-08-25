@@ -91,7 +91,7 @@ function install_cert_manager()
     helm repo update
 
     kubectl apply \
-        -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.13/deploy/manifests/00-crds.yaml \
+        -f "https://raw.githubusercontent.com/jetstack/cert-manager/release-${CERT_MANAGER_RELEASE}/deploy/manifests/00-crds.yaml" \
         --validate=false
 
     helm upgrade cert-manager jetstack/cert-manager \
