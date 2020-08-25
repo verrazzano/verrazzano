@@ -678,7 +678,7 @@ spec:
             - name: PROMETHEUS_INIT_IMAGE
               value: {{ .Values.monitoringOperator.prometheusInitImage }}
             - name: PROMETHEUS_GATEWAY_IMAGE
-              value: {{ .Values.monitoringOperator.prometheusGatewayImage }}
+              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.monitoringOperator.prometheusGatewayImage }}
             - name: ALERT_MANAGER_IMAGE
               value: {{ .Values.monitoringOperator.alertManagerImage }}
             - name: ELASTICSEARCH_WAIT_IMAGE
@@ -696,7 +696,7 @@ spec:
             - name: CONFIG_RELOADER_IMAGE
               value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.monitoringOperator.configReloaderImage }}
             - name: NODE_EXPORTER_IMAGE
-              value: {{ .Values.monitoringOperator.nodeExporterImage }}
+              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.monitoringOperator.nodeExporterImage }}
           livenessProbe:
             failureThreshold: 5
             httpGet:

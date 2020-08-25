@@ -36,7 +36,7 @@ spec:
             - name: WLS_MICRO_IMAGE
               value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.wlsMicroImage }}
             - name: PROMETHEUS_PUSHER_IMAGE
-              value: {{ .Values.verrazzanoOperator.prometheusPusherImage }}
+              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.prometheusPusherImage }}
             - name: NODE_EXPORTER_IMAGE
               value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.nodeExporterImage }}
             - name: FILEBEAT_IMAGE

@@ -7,10 +7,10 @@ image:
   terminationGracePeriodSeconds: 60
 
 docker:
-#  repository: phx.ocir.io
-#  namespace: stevengreenberginc/verrazzano
-  repository: container-registry.oracle.com
-  namespace: verrazzano
+  repository: phx.ocir.io
+  namespace: stevengreenberginc/verrazzano
+#  repository: container-registry.oracle.com
+#  namespace: verrazzano
 
 verrazzanoOperator:
   name: verrazzano-operator
@@ -20,7 +20,7 @@ verrazzanoOperator:
   cohMicroImage: verrazzano-coh-cluster-operator:v0.0.8
   helidonMicroImage: verrazzano-helidon-app-operator:v0.0.7
   wlsMicroImage: verrazzano-wko-operator:v0.0.10
-  prometheusPusherImage: container-registry.oracle.com/verrazzano/prometheus-pusher:1.0.1-ff71638-19
+  prometheusPusherImage: prometheus-pusher:1.0.1-ff71638-20
   nodeExporterImage: node-exporter:0.18.1-0cca78f-10
   filebeatImage: filebeat:6.8.3-8218206-10
   journalbeatImage: journalbeat:6.8.3-8218206-10
@@ -38,7 +38,7 @@ monitoringOperator:
   grafanaImage: container-registry.oracle.com/olcne/grafana:v6.4.4
   prometheusImage: container-registry.oracle.com/olcne/prometheus:v2.13.1
   prometheusInitImage: container-registry.oracle.com/os/oraclelinux:7-slim@sha256:9b86d1332a883ee8f68dd44ba42133de518b2e0ec1cc70257e59fb4da86b1ad3
-  prometheusGatewayImage: container-registry.oracle.com/verrazzano/prometheus-pushgateway:1.2.0-6893444-10
+  prometheusGatewayImage: prometheus-pushgateway:1.2.0-6893444-13
   alertManagerImage: prom/alertmanager:v0.16.0
   esWaitTargetVersion: 7.6.1
   esImage: elasticsearch:7.6.1-1d68e1a-3
@@ -47,7 +47,7 @@ monitoringOperator:
   kibanaImage: kibana:7.6.1-ccfddab-2
   monitoringInstanceApiImage: verrazzano-monitoring-instance-api:v0.0.7
   configReloaderImage: configmap-reload:0.3-81d6423-34
-  nodeExporterImage: container-registry.oracle.com/verrazzano/node-exporter:0.18.1-0f43627-7
+  nodeExporterImage: node-exporter:0.18.1-0cca78f-10
 
 clusterOperator:
   name: verrazzano-cluster-operator
@@ -62,7 +62,7 @@ verrazzanoAdmissionController:
   name: verrazzano-validation
   controllerName: verrazzano-admission-controller
   imageName: verrazzano-admission-controller
-  imageVersion: v0.0.14
+  imageVersion: v0.0.17
   caBundle:
 
 # OCI-related values
