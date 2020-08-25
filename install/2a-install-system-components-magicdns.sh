@@ -91,13 +91,13 @@ function install_cert_manager()
     helm repo update
 
     kubectl apply \
-        -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.13/deploy/manifests/00-crds.yaml \
+        -f "https://raw.githubusercontent.com/jetstack/cert-manager/release-${CERT_MANAGER_RELEASE}/deploy/manifests/00-crds.yaml" \
         --validate=false
 
     helm upgrade cert-manager jetstack/cert-manager \
         --install \
         --namespace cert-manager \
-        --version $CERT_MANAGER_VERSION \
+        --version $CERT_MANAGER_HELM_CHART_VERSION \
         --set image.repository=$CERT_MANAGER_IMAGE \
         --set image.tag=$CERT_MANAGER_TAG \
         --set extraArgs[0]=--acme-http01-solver-image=$CERT_MANAGER_SOLVER_IMAGE:$CERT_MANAGER_SOLVER_TAG \

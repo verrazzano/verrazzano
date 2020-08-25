@@ -79,7 +79,7 @@ spec:
               key: password
         - name: MYSQL_DATABASE
           value: books
-        image: mysql:8.0.20
+        image: "mysql:8.0.20"
         imagePullPolicy: IfNotPresent
         name: mysql
         ports:

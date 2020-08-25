@@ -52,7 +52,7 @@ function delete_cert_manager() {
 
   # delete the custom resource definition for cert manager
   log "deleting the custom resource definition for cert manager"
-  kubectl delete -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.13/deploy/manifests/00-crds.yaml
+  kubectl delete -f "https://raw.githubusercontent.com/jetstack/cert-manager/release-${CERT_MANAGER_RELEASE}/deploy/manifests/00-crds.yaml"
 
   # delete cert manager config map
   log "Deleting config map for cert manager"
