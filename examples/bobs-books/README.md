@@ -124,7 +124,3 @@ cluster if you are using a multi-cluster environment.:
    ```
    kubectl apply -f bobs-books-binding.yaml
    ```
-
-## Explore the Bob's Books example application
-
-TBD
