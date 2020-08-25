@@ -2,32 +2,22 @@
 # Helidon Sock Shop
 
 This example application provides a [Helidon](https://helidon.io) implementation of [Sock Shop Microservices Demo Application](https://microservices-demo.github.io/).
-See the [Verrazzano examples](https://github.com/verrazzano/examples) and [Helidon Sock Shop](https://github.com/helidon-sockshop/sockshop) for more information and the source code for this
-application.
+
 
 ## Deploying the example application
 
 1. Prerequisites: Install Verrazzano following the [installation instructions](../../install/README.md).
-   The Helidon Sock Shop example application model and binding files are located at `<VERRAZZANO_HOME>/examples/sock-shop` where `VERRAZZANO_HOME` is the root of the 
+   The Helidon Sock Shop example application model and binding files are located at `<VERRAZZANO_HOME>/examples/sock-shop` where `VERRAZZANO_HOME` is the root of the
    Verrazzano project. All paths in this document are relative to `<VERRAZZANO_HOME>/examples/sock-shop`.
 
 1. Deploy the Verrazzano Model and Verrazzano Binding for the example application.
 
-    ### Using an Oracle Cloud Infrastructure Container Engine for Kubernetes (also known as OKE) cluster
-    Run the following script:
+    Using an Oracle Cloud Infrastructure Container Engine for Kubernetes (also known as OKE) cluster, run the following script:
 
     ```
     ./install-sock-shop.sh
     ```
 
-    ### Using a kind cluster
-    Run the following commands:
-
-    ```
-    export KIND_CLUSTER_NAME=verrazzano
-    export CLUSTER_TYPE=KIND
-    ./install-sock-shop.sh
-    ```
 
    The scripts deploy the Verrazzano Model and Verrazzano Binding, wait for the pods in the `sockshop` namespace to be
    ready, and call one of the endpoints provided by the REST service implemented by the example application.
@@ -45,7 +35,7 @@ pod/payment-b49c788d4-zb55n      3/3     Running   0          3m31s
 pod/shipping-5699d7b7b8-fzrb2    3/3     Running   0          3m31s
 pod/user-7d849bbc8d-5xhqz        3/3     Running   0          3m31s
 
-NAME                TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
+    NAME                TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
 service/carts       ClusterIP   10.96.142.78   <none>        80/TCP    3m32s
 service/catalogue   ClusterIP   10.96.96.83    <none>        80/TCP    3m32s
 service/orders      ClusterIP   10.96.33.151   <none>        80/TCP    3m32s
@@ -53,7 +43,7 @@ service/payment     ClusterIP   10.96.58.12    <none>        80/TCP    3m32s
 service/shipping    ClusterIP   10.96.14.251   <none>        80/TCP    3m32s
 service/user        ClusterIP   10.96.207.43   <none>        80/TCP    3m32s
 
-NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
+    NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
 deployment.apps/carts       1/1     1            1           3m32s
 deployment.apps/catalogue   1/1     1            1           3m32s
 deployment.apps/orders      1/1     1            1           3m32s
@@ -61,7 +51,7 @@ deployment.apps/payment     1/1     1            1           3m32s
 deployment.apps/shipping    1/1     1            1           3m32s
 deployment.apps/user        1/1     1            1           3m32s
 
-NAME                                   DESIRED   CURRENT   READY   AGE
+    NAME                                   DESIRED   CURRENT   READY   AGE
 replicaset.apps/carts-7b8f98c7d9       1         1         1       3m33s
 replicaset.apps/catalogue-6544766df7   1         1         1       3m33s
 replicaset.apps/orders-59c644cd67      1         1         1       3m33s
@@ -87,21 +77,13 @@ endpoint accepts the `POST` HTTP request method.
 Follow these steps to test the endpoints:
 
 1. Get the IP address and port number for calling the REST service.
-    ### Using an OKE cluster
-    Get the EXTERNAL-IP address for the `istio-ingressgateway` service:
+
+    To get the EXTERNAL-IP address for the `istio-ingressgateway` service:
 
     ```
     SERVER=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq -r '.status.loadBalancer.ingress[0].ip')
     PORT=80
     ```
-
-   ### Using a kind cluster
-   Get the IP address of one node in the cluster and the port number from the `istio-ingressgateway` service:
-
-   ```
-   SERVER=$(kubectl get node ${KIND_CLUSTER_NAME}-worker -o json | jq -r '.status.addresses[] | select (.type == "InternalIP") | .address')
-   PORT=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq '.spec.ports[] | select(.port == 80) | .nodePort')
-   ```
 
 1. Use the IP address and port number to call the following services:
 
@@ -109,13 +91,13 @@ Follow these steps to test the endpoints:
     # Get catalogue
     curl -s -X GET http://"${SERVER}":"${PORT}"/catalogue
     [{"count":115,"description":"For all those leg lovers out there....", ...}]
-    
+
     # Add a new user (replace values of username and password)
     curl -i --header "Content-Type: application/json" --request POST --data '{"username":"foo","password":"****","email":"foo@example.com","firstName":"foo","lastName":"foo"}' http://"${SERVER}":"${PORT}"/register
-    
+
     # Add an item to the user's cart
     curl -i --header "Content-Type: application/json" --request POST --data '{"itemId": "a0a4f044-b040-410d-8ead-4de0446aec7e","unitPrice": "7.99"}' http://"${SERVER}":"${PORT}"/carts/{username}/items
-    
+
     # Get cart items
     curl -i http://"${SERVER}":"${PORT}"/carts/{username}/items
 
