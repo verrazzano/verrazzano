@@ -46,7 +46,7 @@ spec:
             - name: WEBLOGIC_OPERATOR_IMAGE
               value: {{ .Values.verrazzanoOperator.weblogicOperatorImage }}
             - name: FLUENTD_IMAGE
-              value: {{ .Values.verrazzanoOperator.fluentdImage }}
+              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.fluentdImage }}
       serviceAccount: {{ .Values.verrazzanoOperator.name }}
 ---
 kind: Service
