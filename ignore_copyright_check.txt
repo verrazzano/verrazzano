@@ -3,4 +3,3 @@
 install/config/images
 install/config/00-crds.patch
 chart/NOTES.txt
-chart/index.yaml
