@@ -34,9 +34,9 @@ cluster if you are using a multi-cluster environment.:
 
 1. If you have not done so already, in a web browser, navigate to the [Oracle Container Registry](https://container-registry.oracle.com):
 
-       * Select the "Middleware" category, review, and sign in to accept the licenses for the WebLogic and Coherence images.
+       * Select **Middleware**, review, and sign in to accept the licenses for the WebLogic and Coherence images.
 
-       * Select the "Verrazzano" category, review, and accept the licenses for the four repositories listed at the top of the page:
+       * Select **Verrazzano**, review, and accept the licenses for the four repositories listed at the top of the page:
        example-bobbys-coherence, example-bobbys-front-end, example-bobs-books-order-manager, and example-roberts-coherence.
 
    You will not be able to pull these images until you have accepted the licenses.
