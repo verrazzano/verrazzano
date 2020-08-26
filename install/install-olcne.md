@@ -1,13 +1,6 @@
+# Installation on OLCNE
 
-# Installation
-
-You can install Verrazzano in a single [Oracle Cloud Infrastructure Container Engine for Kubernetes (OKE)](https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm) cluster or
-an [Oracle Linux Cloud Native Environment (OCLNE)](https://docs.oracle.com/en/operating-systems/olcne/) deployment. For an Oracle OKE cluster, you have two DNS choices:
-[xip.io](http://xip.io/) or
-[Oracle OCI DNS](https://docs.cloud.oracle.com/en-us/iaas/Content/DNS/Concepts/dnszonemanagement.htm).
-Oracle Linux Cloud Native Environment currently supports only a manual DNS.
-
-This README describes installing Verrazzano in an OKE cluster. For instructions on installing Verrazzano on OLCNE, see this [document](install-olcne.md).
+This document describes installing Verrazzano in an [Oracle Linux Cloud Native Environment (OCLNE)](https://docs.oracle.com/en/operating-systems/olcne/) cluster.
 
 > **NOTE**: You should only install this alpha release of Verrazzano in a cluster that can be safely deleted when your evaluation is complete.
 
@@ -19,20 +12,129 @@ The following software must be installed on your system.
 * jq
 * kubectl
 * openssl
-* patch (for OCI DNS installation)
 
 ### 1. Preparing for installation
 
-* Create the OKE cluster using the OCI console or some other means.  
-* Select `v1.16.8` in `KUBERNETES VERSION`.
-* An OKE cluster with 3 nodes of `VM.Standard2.4` [OCI Compute instance shape](https://www.oracle.com/cloud/compute/virtual-machines.html) has proven sufficient to install Verrazzano and deploy the Bob's Books example application.
+When using an OLCNE cluster, the following prerequisites must be met:
+
+* Oracle Linux Cloud Native Environment 1.1 with Kubernetes 1.17.4.
+
+```
+    sudo yum install -y oracle-olcne-release-el7
+    sudo yum-config-manager --enable ol7_olcne11 ol7_addons ol7_latest
+    sudo yum install -y kubectl helm jq openssl curl patch
+```
+
+* A storage provider that supports "Read/Write Multiple" mounts. For example, an NFS service like:
+
+    * Oracle Cloud Infrastructure File Storage Service.
+    * A hardware-based storage system that provides NFS capabilities.
+
+
+* A load balancer in front of the worker nodes in the cluster. For a non-production environment, you may choose to access your clusters using NodePorts instead, in which case the load balancer is not required.
 
 * Set the following `ENV` vars:
 ```
-   export CLUSTER_TYPE=OKE
+   export CLUSTER_TYPE=OLCNE
    export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
    export KUBECONFIG=$VERRAZZANO_KUBECONFIG
 ```
+
+#### Prerequisites details
+##### Storage
+A default storage class is necessary. When using preallocated PersistentVolumes, for example, iSCSI/FC/NFS,
+they should be declared with a `storageClassName` as shown:
+* Create a default `StorageClass`
+  ```yaml
+  cat << EOF | kubectl apply -f -
+    apiVersion: storage.k8s.io/v1
+    kind: StorageClass
+    metadata:
+      name: datacentre5-nfs
+      annotations:
+        storageclass.kubernetes.io/is-default-class: "true"
+    provisioner: kubernetes.io/no-provisioner
+    volumeBindingMode: WaitForFirstConsumer
+  EOF
+  ```
+* Create a `PersistentVolume`
+  ```yaml
+  cat << EOF | kubectl apply -f -
+    apiVersion: v1
+    kind: PersistentVolume
+    metadata:
+      name: pv0001
+    spec:
+      storageClassName: datacentre5-nfs
+      accessModes:
+        - ReadWriteOnce
+        - ReadWriteMany
+      capacity:
+        storage: 50Gi
+      nfs:
+        path: /datapool/k8s/pv0001
+        server: 10.10.10.10
+      volumeMode: Filesystem
+  EOF
+  ```
+
+#### Networking
+
+When installing Verrazzano on Oracle Linux Cloud Native Environment (OLCNE), it's likely you will be using your
+own external load balancer services, not those dynamically provided by Kubernetes.
+Prior to installation, two load balancers should be deployed, one for management traffic and one
+for general traffic.
+
+
+* Target Host: Hostnames of Kubernetes worker nodes
+* Target Port: See table
+* Distribution: Round Robin
+* Health Check: TCP
+
+Traffic Type | Service Name | Target Port | Type | Suggested External Port
+ ---|---|---|---|---
+Management | `istio-ingressgateway` | 31380 | TCP | 80
+Management | `istio-ingressgateway` | 31390 | TCP | 443
+General | `ingress-controller-nginx-ingress-controller` | 30080 | TCP | 80
+General | `ingress-controller-nginx-ingress-controller` | 30443 | TCP | 443
+
+An NGINX example of the management load balancer:
+```
+load_module /usr/lib64/nginx/modules/ngx_stream_module.so;
+events {
+  worker_connections 2048;
+}
+stream {
+  upstream backend_http {
+    server worker-0.example.com:31380;
+    server worker-1.example.com:31380;
+    server worker-2.example.com:31380;
+  }
+  upstream backend_https {
+    server worker-0.example.com:31390;
+    server worker-1.example.com:31390;
+    server worker-2.example.com:31390;
+  }
+  server {
+    listen 80;
+    proxy_pass backend_http;
+  }
+  server {
+    listen 443;
+    proxy_pass backend_https;
+  }
+}
+```
+
+##### Manual DNS type
+When using the `manual` DNS type, the installer searches the DNS zone you provide for two specific records:
+
+Record | Use
+---|---
+ingress-mgmt | Set as the `.spec.externalIPs` value of the `istio-ingressgateway` service
+ingress-verrazzano | Set as the `.spec.externalIPs` value of the `ingress-controller-nginx-ingress-controller` service
+
+> **NOTE**: At this time, the only supported deployment for OLCNE is the manual DNS type.
 
 ### 2. Create the Oracle Container Registry secret
 You need to create an "ocr" secret for pulling images from the container-registry.oracle.com repository.
@@ -45,43 +147,14 @@ You need to create an "ocr" secret for pulling images from the container-registr
 
 ### 3. Do the install
 
-According to your DNS choice, install Verrazzano using one of the following methods:
-
-#### Install using xip.io
-Run the following scripts in order:
-```
-   ./1-install-istio.sh
-   ./2a-install-system-components-magicdns.sh
-   ./3-install-verrazzano.sh
-   ./4-install-keycloak.sh
-```
-
-#### Install using OCI DNS
-
-Installing Verrazzano on OCI DNS requires the following environment variables to create DNS records:
-
-Environment Variable | Required | Description
---- | --- | --- |
-`EMAIL_ADDRESS` | Yes | Email address
-`OCI_COMPARTMENT_OCID` | Yes | OCI DNS Compartment OCID
-`OCI_DNS_ZONE_NAME` | Yes | Name of OCI DNS Zone
-`OCI_DNS_ZONE_OCID` | Yes | OCI DNS Zone OCID
-`OCI_FINGERPRINT` | Yes | OCI fingerprint
-`OCI_PRIVATE_KEY_FILE` | Yes | OCI private key file
-`OCI_PRIVATE_KEY_PASSPHRASE` | No | OCI private key passphrase
-`OCI_REGION` | Yes | OCI region
-`OCI_TENANCY_OCID` | Yes | OCI tenancy OCID
-`OCI_USER_OCID` | Yes | OCI user OCID
-
-When you use OCI DNS install, you need to provide a Verrazzano name (env-name) that will
-be used as part of the domain name used to access Verrazzano ingresses.  For example, you could use `sales` as an env-name.
+You will install Verrazzano using the `manual` DNS type. In manual mode, you must create the DNS records manually.
 
 Run the following scripts in order:
 ```
-   ./1-install-istio.sh
-   ./2b-install-system-components-ocidns.sh -n <env-name>
-   ./3-install-verrazzano.sh -n <env-name> -d oci -s <oci-dns-zone-name>
-   ./4-install-keycloak.sh -n <env-name> -d oci -s <oci-dns-zone-name>
+   ./1-install-istio.sh                       -d manual -n <env-name> -s <dns-suffix>
+   ./2a-install-system-components-magicdns.sh -d manual -n <env-name> -s <dns-suffix>
+   ./3-install-verrazzano.sh                  -d manual -n <env-name> -s <dns-suffix>
+   ./4-install-keycloak.sh                    -d manual -n <env-name> -s <dns-suffix>
 ```
 
 ### 4. Verify the install
@@ -154,21 +227,3 @@ Run the following command to get the password:
 
 ### 7. (Optional) Install the example applications
 Example applications are located in the `examples` directory.
-
-### Known Issues
-#### OKE Missing Security List Ingress Rules
-The install scripts will perform a check which attempts access through the ingress ports.  If the check fails then the install will exit and you should see error messages like this:
-
-`ERROR: Port 443 is NOT accessible on ingress(132.145.66.80)!  Check that security lists include an ingress rule for the node port 31739.`
-
-On an OKE install this may indicate that there is a missing ingress rule(s).  To check and fix the issue do the following:
-  1. Get the ports for the LoadBalancer services.
-     * Run `kubectl get services -A`.
-     * Note the ports for the LoadBalancer type services.  For example `80:31541/TCP,443:31739/TCP`.
-  2. Check the security lists in OCI console.
-     * Go to `Networking/Virtual Cloud Networks`.
-     * Select the related VCN.
-     * Go to the `Security Lists` for the VCN.
-     * Select the security list named `oke-wkr-...`.
-     * Check the ingress rules for the security list.  There should be one rule for each of the destination ports named in the LoadBalancer services.  In the above example the destination ports are `31541` & `31739` and we would expect the ingress rule for `31739` to be missing since it was named in the above ERROR output.
-     * If a rule is missing then add it by clicking `Add Ingress Rules` and filling in the source CIDR and destination port range (missing port).  Use the existing rules as a guide.
