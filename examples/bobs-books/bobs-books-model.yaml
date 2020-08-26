@@ -21,7 +21,7 @@ spec:
         webLogicCredentialsSecret:
           name: bobbys-front-end-weblogic-credentials
         imagePullSecrets:
-          - name: github-packages
+          - name: ocr
         clusters:
           - clusterName: cluster-1
         serverPod:
@@ -57,7 +57,7 @@ spec:
         webLogicCredentialsSecret:
           name: bobs-bookstore-weblogic-credentials
         imagePullSecrets:
-          - name: github-packages
+          - name: ocr
         clusters:
           - clusterName: cluster-1
         serverPod:
@@ -83,7 +83,7 @@ spec:
     - name: "bobbys-helidon-stock-application"
       image: "container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.10-3-e5ae893-124"
       imagePullSecrets:
-        - name: github-packages
+        - name: ocr
       connections:
         - coherence:
             - target: "bobbys-coherence"
@@ -95,7 +95,7 @@ spec:
     - name: "roberts-helidon-stock-application"
       image: "container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.10-3-e5ae893-124"
       imagePullSecrets:
-        - name: github-packages
+        - name: ocr
       connections:
         - ingress:
             - name: "roberts-ingress"
@@ -106,15 +106,13 @@ spec:
     - name: "bobbys-coherence"
       image: "container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.10-3-e5ae893-124"
       imagePullSecrets:
-        - name: github-packages # secret to pull bobbys-coherence image from GitHub Packages
-        - name: ocr  # secret to pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
+        - name: ocr  # secret to pull bobbys-coherence and container-registry.oracle.com/middleware/coherence:12.2.1.4.0
       cacheConfig: "bobbys-cache-config.xml"
       pofConfig: "bobbys-pof-config.xml"
     - name: "roberts-coherence"
       image: "container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.10-3-e5ae893-124"
       imagePullSecrets:
-        - name: github-packages # secret to pull roberts-coherence image from GitHub Packages
-        - name: ocr  # secret to pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
+        - name: ocr  # secret to pull roberts-coherence and container-registry.oracle.com/middleware/coherence:12.2.1.4.0
       cacheConfig: "books-cache-config.xml"
       pofConfig: "books-pof-config.xml"
       connections:
