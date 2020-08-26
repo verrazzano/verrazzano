@@ -63,8 +63,8 @@ function check_applications () {
   fi
 }
 
-action "Verifying Network" check_network || exit 1
-action "Verifying Verrazzano Applications" check_applications || exit 1
+action "Verifying Network Connection" check_network || exit 1
+action "Retrieving Verrazzano Applications" check_applications || exit 1
 
 section "Uninstalling Verrazzano Applications"
 $SCRIPT_DIR/uninstall-steps/0-uninstall-applications.sh
