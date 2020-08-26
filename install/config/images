@@ -12,7 +12,7 @@ container-registry.oracle.com/verrazzano/cert-manager-acmesolver:0.13.1-0e7394e-
 container-registry.oracle.com/verrazzano/cert-manager-controller:0.13.1-0e7394e-18
 container-registry.oracle.com/verrazzano/elasticsearch:7.6.1-1d68e1a-3
 container-registry.oracle.com/verrazzano/kibana:7.6.1-ccfddab-2
-container-registry.oracle.com/verrazzano/verrazzano-operator:v0.0.86
+container-registry.oracle.com/verrazzano/verrazzano-operator:v0.0.88-71a55ef-4
 container-registry.oracle.com/verrazzano/verrazzano-wko-operator:v0.0.10
 container-registry.oracle.com/verrazzano/verrazzano-coh-cluster-operator:v0.0.8
 container-registry.oracle.com/verrazzano/verrazzano-cluster-operator:v0.0.9
