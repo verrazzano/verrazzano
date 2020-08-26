@@ -28,36 +28,36 @@ This example application provides a [Helidon](https://helidon.io) implementation
     ```
     kubectl get all -n sockshop
     NAME                             READY   STATUS    RESTARTS   AGE
-pod/carts-7b8f98c7d9-xntp4       3/3     Running   0          3m31s
-pod/catalogue-6544766df7-slgwl   3/3     Running   0          3m31s
-pod/orders-59c644cd67-rp7mb      3/3     Running   0          3m31s
-pod/payment-b49c788d4-zb55n      3/3     Running   0          3m31s
-pod/shipping-5699d7b7b8-fzrb2    3/3     Running   0          3m31s
-pod/user-7d849bbc8d-5xhqz        3/3     Running   0          3m31s
+    pod/carts-7b8f98c7d9-xntp4       3/3     Running   0          3m31s
+    pod/catalogue-6544766df7-slgwl   3/3     Running   0          3m31s
+    pod/orders-59c644cd67-rp7mb      3/3     Running   0          3m31s
+    pod/payment-b49c788d4-zb55n      3/3     Running   0          3m31s
+    pod/shipping-5699d7b7b8-fzrb2    3/3     Running   0          3m31s
+    pod/user-7d849bbc8d-5xhqz        3/3     Running   0          3m31s
 
     NAME                TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
-service/carts       ClusterIP   10.96.142.78   <none>        80/TCP    3m32s
-service/catalogue   ClusterIP   10.96.96.83    <none>        80/TCP    3m32s
-service/orders      ClusterIP   10.96.33.151   <none>        80/TCP    3m32s
-service/payment     ClusterIP   10.96.58.12    <none>        80/TCP    3m32s
-service/shipping    ClusterIP   10.96.14.251   <none>        80/TCP    3m32s
-service/user        ClusterIP   10.96.207.43   <none>        80/TCP    3m32s
+    service/carts       ClusterIP   10.96.142.78   <none>        80/TCP    3m32s
+    service/catalogue   ClusterIP   10.96.96.83    <none>        80/TCP    3m32s
+    service/orders      ClusterIP   10.96.33.151   <none>        80/TCP    3m32s
+    service/payment     ClusterIP   10.96.58.12    <none>        80/TCP    3m32s
+    service/shipping    ClusterIP   10.96.14.251   <none>        80/TCP    3m32s
+    service/user        ClusterIP   10.96.207.43   <none>        80/TCP    3m32s
 
     NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/carts       1/1     1            1           3m32s
-deployment.apps/catalogue   1/1     1            1           3m32s
-deployment.apps/orders      1/1     1            1           3m32s
-deployment.apps/payment     1/1     1            1           3m32s
-deployment.apps/shipping    1/1     1            1           3m32s
-deployment.apps/user        1/1     1            1           3m32s
+    deployment.apps/carts       1/1     1            1           3m32s
+    deployment.apps/catalogue   1/1     1            1           3m32s
+    deployment.apps/orders      1/1     1            1           3m32s
+    deployment.apps/payment     1/1     1            1           3m32s
+    deployment.apps/shipping    1/1     1            1           3m32s
+    deployment.apps/user        1/1     1            1           3m32s
 
     NAME                                   DESIRED   CURRENT   READY   AGE
-replicaset.apps/carts-7b8f98c7d9       1         1         1       3m33s
-replicaset.apps/catalogue-6544766df7   1         1         1       3m33s
-replicaset.apps/orders-59c644cd67      1         1         1       3m33s
-replicaset.apps/payment-b49c788d4      1         1         1       3m33s
-replicaset.apps/shipping-5699d7b7b8    1         1         1       3m33s
-replicaset.apps/user-7d849bbc8d        1         1         1       3m33s
+    replicaset.apps/carts-7b8f98c7d9       1         1         1       3m33s
+    replicaset.apps/catalogue-6544766df7   1         1         1       3m33s
+    replicaset.apps/orders-59c644cd67      1         1         1       3m33s
+    replicaset.apps/payment-b49c788d4      1         1         1       3m33s
+    replicaset.apps/shipping-5699d7b7b8    1         1         1       3m33s
+    replicaset.apps/user-7d849bbc8d        1         1         1       3m33s
     ```
 ## Explore the example application
 
@@ -71,7 +71,7 @@ This endpoint accepts the `GET` HTTP request method.
   "email":"foo@example.com",
   "firstName":"foo",
   "lastName":"coo"
-}` to create an user. This
+}` to create a user. This
 endpoint accepts the `POST` HTTP request method.
 
 Follow these steps to test the endpoints:
@@ -105,7 +105,7 @@ Follow these steps to test the endpoints:
 
 ## Uninstalling the example application
 
-1. Run the following script to delete the Verrazzano Model and Verrazzano Binding for the example application:
+Run the following script to delete the Verrazzano Model and Verrazzano Binding for the example application:
 
     ```
     ./uninstall-sock-shop.sh
