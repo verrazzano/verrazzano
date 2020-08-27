@@ -1,5 +1,7 @@
 # Uninstall
 
+**IMPORTANT NOTE:** This uninstaller is provided as an EXPERIMENTAL feature.
+
 You can completely uninstall Verrazzano and any Verrazzano-managed applications from your cluster.  You must delete all Verrazzano application models and Verrazzano application bindings from your system
 before uninstalling Verrazzano.  The uninstaller will list any deployed models and bindings and prompt to ask if you want them to be deleted before proceeding.
 
