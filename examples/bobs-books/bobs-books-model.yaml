@@ -122,6 +122,9 @@ spec:
         - name: ocr  # secret to pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
       cacheConfig: "books-cache-config.xml"
       pofConfig: "books-pof-config.xml"
+      ports:
+        - name: extend
+          port: 9000
       connections:
         - rest:
             - target: "bobs-bookstore"
