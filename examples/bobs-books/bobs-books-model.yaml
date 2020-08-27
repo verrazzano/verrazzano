@@ -102,6 +102,11 @@ spec:
         - coherence:
             - target: "roberts-coherence"
               address: "roberts-coherence-wka"
+        - rest:
+            - target: "bobs-bookstore"
+              environmentVariableForHost: "BACKEND_HOSTNAME"
+              environmentVariableForPort: "BACKEND_PORT"
+
   coherenceClusters:
     - name: "bobbys-coherence"
       image: "docker.pkg.github.com/verrazzano/examples/bobbys-coherence:0.1.10-3-e5ae893-124"

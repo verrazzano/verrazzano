@@ -4,10 +4,10 @@
 You can install Verrazzano in a single [Oracle Cloud Infrastructure Container Engine for Kubernetes (OKE)](https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm) cluster or
 an [Oracle Linux Cloud Native Environment (OCLNE)](https://docs.oracle.com/en/operating-systems/olcne/) deployment. For an Oracle OKE cluster, you have two DNS choices:
 [xip.io](http://xip.io/) or
-[Oracle OCI DNS](https://docs.cloud.oracle.com/en-us/iaas/Content/DNS/Concepts/dnszonemanagement.htm).
-Oracle Linux Cloud Native Environment currently supports only a manual DNS.
+[Oracle OCI DNS](https://docs.cloud.oracle.com/en-us/iaas/Content/DNS/Concepts/dnszonemanagement.htm). Oracle Linux Cloud Native Environment currently supports only a manual DNS.
 
 This README describes installing Verrazzano in an OKE cluster. For instructions on installing Verrazzano on OLCNE, see this [document](install-olcne.md).
+
 
 > **NOTE**: You should only install this alpha release of Verrazzano in a cluster that can be safely deleted when your evaluation is complete.
 
@@ -21,6 +21,7 @@ The following software must be installed on your system.
 * openssl
 * patch (for OCI DNS installation)
 
+
 ### 1. Preparing for installation
 
 * Create the OKE cluster using the OCI console or some other means.  
@@ -28,14 +29,17 @@ The following software must be installed on your system.
 * An OKE cluster with 3 nodes of `VM.Standard2.4` [OCI Compute instance shape](https://www.oracle.com/cloud/compute/virtual-machines.html) has proven sufficient to install Verrazzano and deploy the Bob's Books example application.
 
 * Set the following `ENV` vars:
+
 ```
    export CLUSTER_TYPE=OKE
    export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
    export KUBECONFIG=$VERRAZZANO_KUBECONFIG
+
 ```
 
 ### 2. Create the Oracle Container Registry secret
 You need to create an "ocr" secret for pulling images from the container-registry.oracle.com repository.
+
 ```
    kubectl create secret docker-registry ocr \
        --docker-username=<username> \
@@ -47,6 +51,7 @@ You need to create an "ocr" secret for pulling images from the container-registr
 
 According to your DNS choice, install Verrazzano using one of the following methods:
 
+
 #### Install using xip.io
 Run the following scripts in order:
 ```
@@ -56,7 +61,9 @@ Run the following scripts in order:
    ./4-install-keycloak.sh
 ```
 
+
 #### Install using OCI DNS
+
 
 Installing Verrazzano on OCI DNS requires the following environment variables to create DNS records:
 
@@ -84,7 +91,9 @@ Run the following scripts in order:
    ./4-install-keycloak.sh -n <env-name> -d oci -s <oci-dns-zone-name>
 ```
 
+
 ### 4. Verify the install
+
 Verrazzano installs multiple objects in multiple namespaces.  All the pods in the `verrazzano-system` namespaces in the `Running` status does not guarantee but likely indicates that Verrazzano is up and running.
 ```
 kubectl get pods -n verrazzano-system
@@ -126,6 +135,8 @@ Following is an example of the ingresses:
 ```
 
 ### 6. Get console credentials
+
+
 You will need the credentials to access the various consoles installed by Verrazzano.
 
 #### Consoles accessed by the same user name/password
@@ -139,13 +150,17 @@ You will need the credentials to access the various consoles installed by Verraz
 Run the following command to get the password:
 `kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo`
 
+
 #### The Keycloak admin console
+
 **User:** `keycloakadmin`
 
 Run the following command to get the password:  
 `kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo`
 
+
 #### The Rancher console
+
 **User:** `admin`
 
 Run the following command to get the password:  
@@ -155,8 +170,10 @@ Run the following command to get the password:
 ### 7. (Optional) Install the example applications
 Example applications are located in the `examples` directory.
 
+
 ### Known Issues
 #### OKE Missing Security List Ingress Rules
+
 The install scripts will perform a check which attempts access through the ingress ports.  If the check fails then the install will exit and you should see error messages like this:
 
 `ERROR: Port 443 is NOT accessible on ingress(132.145.66.80)!  Check that security lists include an ingress rule for the node port 31739.`
