@@ -23,10 +23,10 @@ If you are using Oracle Linux 7 you can install these requirements with:
     sudo yum install -y kubectl helm jq openssl curl
 ```
 
-### Cluster Requirements
+### Cluster requirements
 Deploy Oracle Linux Cloud Native Environment with the Kubernetes module following instructions from the [Getting Started](https://docs.oracle.com/en/operating-systems/olcne/start/deploy-kube.html) guide.
 
-####  Prerequisites Summary
+####  Prerequisites summary
 A Verrazzano Oracle Linux Cloud Native Environment deployment requires:
 * A default storage provider that supports "Multiple Read/Write" mounts. For example, an NFS service like:
     * Oracle Cloud Infrastructure File Storage Service.
@@ -99,7 +99,7 @@ General | `istio-ingressgateway` | 31390 | TCP | 443
 Management | `ingress-controller-nginx-ingress-controller` | 30080 | TCP | 80
 Management | `ingress-controller-nginx-ingress-controller` | 30443 | TCP | 443
 
-##### Configuration Example
+##### Configuration example
 An NGINX example of the general traffic load balancer:
 ```
 load_module /usr/lib64/nginx/modules/ngx_stream_module.so;
