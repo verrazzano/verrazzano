@@ -75,7 +75,7 @@ function uninstall_istio() {
 
   # delete istio
   log "Change to use the OLCNE image for kubectl then uninstall istio proper"
-  sed "s|/kubectl:|/istio_kubectl:|g" ${TMP_DIR}/istio.yaml | kubectl delete --ignore-not-found=true -f
+  sed "s|/kubectl:|/istio_kubectl:|g" ${TMP_DIR}/istio.yaml | kubectl delete --ignore-not-found=true -f -
 
   # delete istio-crds
   log "Change to use the OLCNE image for kubectl then uninstall the istio CRDs"
@@ -84,8 +84,10 @@ function uninstall_istio() {
   kubectl delete -f ${TMP_DIR}/istio-init/files --ignore-not-found=true
   kubectl delete -f ${TMP_DIR}/istio/files --ignore-not-found=true
 
-  helm repo ls \
-    | grep "istio.io" \
+  local istio_res=("$(helm repo ls \
+    | grep "istio.io" || true)")
+
+  printf "%s\n" "${istio_res[@]}" \
     | awk '{print $1}' \
     | xargs helm repo remove \
     || return $? # return on pipefail
@@ -99,8 +101,10 @@ function delete_secrets() {
   kubectl delete secret istio.default -n kube-node-lease --ignore-not-found=true || return $?
 
   # delete secrets left over in kube-system
-  kubectl get secrets -n kube-system --no-headers -o custom-columns=":metadata.name,:metadata.annotations" \
-  | grep "istio.io" || true \
+  local secret_res=("$(kubectl get secrets -n kube-system --no-headers -o custom-columns=":metadata.name,:metadata.annotations" \
+  | grep "istio.io" || true)")
+
+  printf "%s\n" "${secret_res[@]}" \
   | awk '{print $1}' \
   | xargs kubectl delete secret -n kube-system \
   || return $? # return on pipefail

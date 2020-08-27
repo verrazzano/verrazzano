@@ -12,8 +12,10 @@ set -o pipefail
 
 function delete_external_dns() {
   log "Deleting external-dns"
-  helm ls -A \
-    | grep "external-dns" || true \
+  local extdns_rec=("$(helm ls -A \
+    | grep "external-dns" || true)")
+
+  printf "%s\n" "${extdns_rec[@]}" \
     | awk '{print $1}' \
     | xargs helm uninstall -n cert-manager \
     || return $? # return on pipefail
@@ -27,8 +29,10 @@ function delete_external_dns() {
 function delete_nginx() {
   # uninstall ingress-nginx
   log "Deleting ingress-nginx"
-  helm ls -A \
-    | grep "ingress-controller" || true \
+  local ingress_res=("$(helm ls -A \
+    | grep "ingress-controller" || true)")
+
+  printf "%s\n" "${ingress_res[@]}" \
     | awk '{print $1}' \
     | xargs helm uninstall -n cert-manager \
     || return $? # return on pipefail
@@ -46,8 +50,10 @@ function delete_nginx() {
 function delete_cert_manager() {
   # uninstall cert manager deployment
   log "Deleting cert-manager"
-  helm ls -A \
-    | grep "cert-manager" || true \
+  local cert_res=("$(helm ls -A \
+    | grep "cert-manager" || true)")
+
+  printf "%s\n" "${cert_res[@]}" \
     | awk '{print $1}' \
     | xargs helm uninstall \
     || return $? # return on pipefail
@@ -68,39 +74,49 @@ function delete_cert_manager() {
 function delete_rancher() {
   # Deleting rancher components
   log "Deleting rancher"
-  helm ls -A \
-    | grep "rancher" || true \
+  local rancher_res=("$(helm ls -A \
+    | grep "rancher" || true)")
+
+  printf "%s\n" "${rancher_res[@]}" \
     | awk '{print $1}' \
     | xargs helm uninstall -n cattle-system \
     || return $? # return on pipefail
 
   log "Deleting CRDs from rancher"
   # delete crds
-  kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" \
-    | grep -E 'coreos.com|cattle.io' || true \
+  local rancher_crd_res=("$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" \
+    | grep -E 'coreos.com|cattle.io' || true)")
+
+  printf "%s\n" "${rancher_crd_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl delete crd  \
     || return $? & # return on pipefail
 
   # remove finalizers from crds
-  kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" \
-    | grep -E 'coreos.com|cattle.io' || true \
+  local rancher_crd_fin_res=("$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" \
+    | grep -E 'coreos.com|cattle.io' || true)")
+
+  printf "%s\n" "${rancher_crd_fin_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl patch crd -p '{"metadata":{"finalizers":null}}' --type=merge \
     || return $? # return on pipefail
 
   # delete clusterrolebindings deployed by rancher
   log "Deleting ClusterRoleBindings"
-  kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
-    | grep -E 'cattle.io|app:rancher' || true \
+  local rancher_crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
+    | grep -E 'cattle.io|app:rancher' || true)")
+
+  printf "%s\n" "${rancher_crb_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl delete clusterrolebinding \
     || return $? # return on pipefail
 
   # delete clusterroles
   log "Deleting ClusterRoles"
-  kubectl get clusterrole --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
-    | grep -E 'cattle.io' || true \
+  local rancher_cr_res=("$(kubectl get clusterrole --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
+    | grep -E 'cattle.io' || true)")
+
+  printf "%s\n" "${rancher_cr_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl delete clusterrole \
     || return $? # return on pipefail
@@ -110,27 +126,32 @@ function delete_rancher() {
   local default_names=("default" "kube-node-lease" "kube-public" "kube-system")
   for namespace in "${default_names[@]}"
   do
-    kubectl get rolebinding --no-headers -o custom-columns=":metadata.name" -n "${namespace}"\
-      | grep 'clusterrolebinding-' || true \
+    local rancher_rb_res=("$(kubectl get rolebinding --no-headers -o custom-columns=":metadata.name" -n "${namespace}"\
+      | grep 'clusterrolebinding-' || true)")
+
+    printf "%s\n" "${rancher_rb_res[@]}" \
       | xargs kubectl delete rolebinding -n "${namespace}" \
       || return $? # return on pipefail
   done
 
   # delete configmap in kube-system
   kubectl delete configmap cattle-controllers -n kube-system  --ignore-not-found=true || return $?
-  kubectl create namespace istio-system || return $?
 
   log "Deleting cattle namespaces"
   # delete namespace finalizers
-  kubectl get namespaces --no-headers -o custom-columns=":metadata.name,:metadata.annotations,:metadata.labels" \
-    | grep -E 'cattle.io' || true \
+  local rancher_ns_fin_res=("$(kubectl get namespaces --no-headers -o custom-columns=":metadata.name,:metadata.annotations,:metadata.labels" \
+    | grep -E 'cattle.io' || true)")
+
+  printf "%s\n" "${rancher_ns_fin_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
     || return $? # return on pipefail
 
   # delete cattle namespaces
-  kubectl get namespaces --no-headers -o custom-columns=":metadata.name,:metadata.annotations,:metadata.labels" \
-    | grep -E 'cattle.io|cattle-system' || true \
+  local rancher_ns_res=("$(kubectl get namespaces --no-headers -o custom-columns=":metadata.name,:metadata.annotations,:metadata.labels" \
+    | grep -E 'cattle.io|cattle-system' || true)")
+
+  printf "%s\n" "${rancher_ns_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl delete namespaces \
     || return $? # return on pipefail

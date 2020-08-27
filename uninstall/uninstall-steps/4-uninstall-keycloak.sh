@@ -13,8 +13,10 @@ set -o pipefail
 function delete_mysql() {
   # delete helm installation of MySQL
   log "Deleting MySQL"
-  helm ls -A \
-    | grep "mysql" || true  \
+  local mysql_res=("$(helm ls -A \
+    | grep "mysql" || true)")
+
+  printf "%s\n" "${mysql_res[@]}" \
     | awk '{print $1}' \
     | xargs helm delete -n keycloak \
     || return $? # return on pipefail
@@ -23,9 +25,11 @@ function delete_mysql() {
 function delete_keycloak() {
   # delete helm installation of Keycloak
   log "Deleting Keycloak"
-  helm ls -A \
+  local keycloak_res=("$(helm ls -A \
     | awk '{print $1}' \
-    | grep "keycloak" || true  \
+    | grep "keycloak" || true)")
+
+  printf "%s\n" "${keycloak_res[@]}" \
     | xargs helm delete -n keycloak \
     || return $? # return on pipefail
 
@@ -37,14 +41,18 @@ function delete_keycloak() {
 function delete_resources() {
   log "Deleting ClusterRoles and ClusterRoleBindings"
   # deleting clusterrolebindings
-  kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'cattle-admin|proxy-role-binding-kubernetes-master' || true  \
+  local crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
+    | grep -E 'cattle-admin|proxy-role-binding-kubernetes-master' || true)")
+
+  printf "%s\n" "${crb_res[@]}" \
     | xargs kubectl delete clusterrolebinding \
     || return $? # return on pipefail
 
   # deleting clusterroles
-  kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'cattle-admin|local-cluster|proxy-clusterrole-kubeapiserver' || true  \
+  local cr_res=("$(kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
+    | grep -E 'cattle-admin|local-cluster|proxy-clusterrole-kubeapiserver' || true)")
+
+  printf "%s\n" "${cr_res[@]}" \
     | xargs kubectl delete clusterrole \
     || return $? # return on pipefail
 }
@@ -58,13 +66,17 @@ function finalize() {
     || return $? # return on pipefail
 
   # Removing possible reference to verrazzano in clusterroles and clusterrolebindings
-  kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'verrazzano' || true  \
+  local crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
+    | grep -E 'verrazzano' || true)")
+
+  printf "%s\n" "${crb_res[@]}" \
     | xargs kubectl delete clusterrolebinding \
     || return $? # return on pipefail
 
-  kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'verrazzano' || true  \
+  local cr_res=("$(kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
+    | grep -E 'verrazzano' || true)")
+
+  printf "%s\n" "${cr_res[@]}" \
     | xargs kubectl delete clusterrole \
     || return $? # return on pipefail
 }
