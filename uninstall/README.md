@@ -1,6 +1,9 @@
 # Uninstall
 
-To uninstall Verrazzano, use the scripts in the `uninstall` directory.
+**IMPORTANT NOTE:** This uninstaller is provided as an EXPERIMENTAL feature.
+
+You can completely uninstall Verrazzano and any Verrazzano-managed applications from your cluster.  You must delete all Verrazzano application models and Verrazzano application bindings from your system
+before uninstalling Verrazzano.  The uninstaller will list any deployed models and bindings and prompt to ask if you want them to be deleted before proceeding.
 
 ## Software Requirements
 
@@ -14,11 +17,13 @@ The software requirements for the [install](../install/README.md) are also requi
 
 ## Uninstall Verrazzano
 
-> **NOTE:** All references to files are in relation to the project directory.
-
-The uninstall script will delete all Verrazzano resources including any Verrazzano-managed applications.
-
-To completely uninstall all Verrazzano components, run:
+* Set the following `ENV` vars:
 ```
-   ./uninstall/uninstall-verrazzano.sh
+   export CLUSTER_TYPE=<OKE|KIND|OLCNE>
+   export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
+   export KUBECONFIG=$VERRAZZANO_KUBECONFIG
+```
+To completely uninstall all Verrazzano components including any Verrazzano-managed applications, run:
+```
+   ./uninstall-verrazzano.sh
 ```

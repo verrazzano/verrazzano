@@ -39,17 +39,6 @@ To install Verrazzano, follow these steps:
 
 > **NOTE**: This alpha release of Verrazzano is intended for installation in a single OKE or Oracle Linux Cloud Native Environment (OLCNE) cluster. You should only install Verazzano in a cluster that can be safely deleted when your evaluation is complete.
 
-## Uninstall
-
-
-To uninstall Verrazzano, execute the following command in the OCI Cloud Shell:
-
- ```
- ./uninstall/uninstall-verrazzano.sh
- ```
-
-
-
 ## Deploying the example applications
 
 To deploy the example applications, please see the following instructions:
@@ -76,4 +65,3 @@ See `./chart/values.yaml` for the full list of configurable parameters that can 
 
 More detailed [installation instructions](./install/README.md) can be found in the `install` directory.
 
-More detailed [uninstall instructions](./uninstall/README.md) can be found in the `uninstall` directory
