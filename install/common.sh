@@ -174,6 +174,7 @@ function call_curl {
   return 1
 }
 
+
 KIND_CLUSTER_NAME=${KIND_CLUSTER_NAME:=verrazzano}
 VERRAZZANO_DIR=${SCRIPT_DIR}/.verrazzano
 KIND_KUBE_CONTEXT="kind-${KIND_CLUSTER_NAME}"

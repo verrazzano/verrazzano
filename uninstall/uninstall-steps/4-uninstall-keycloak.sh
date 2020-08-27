@@ -8,53 +8,80 @@ INSTALL_DIR=$SCRIPT_DIR/../../install
 
 . $INSTALL_DIR/common.sh
 
+set -o pipefail
+
 function delete_mysql() {
   # delete helm installation of MySQL
   log "Deleting MySQL"
-  helm delete mysql -n keycloak || 2>/dev/null
+  local mysql_res=("$(helm ls -A \
+    | grep "mysql" || true)")
+
+  printf "%s\n" "${mysql_res[@]}" \
+    | awk '{print $1}' \
+    | xargs helm delete -n keycloak \
+    || return $? # return on pipefail
 }
 
 function delete_keycloak() {
   # delete helm installation of Keycloak
   log "Deleting Keycloak"
-  helm delete keycloak -n keycloak || 2>/dev/null
+  local keycloak_res=("$(helm ls -A \
+    | awk '{print $1}' \
+    | grep "keycloak" || true)")
+
+  printf "%s\n" "${keycloak_res[@]}" \
+    | xargs helm delete -n keycloak \
+    || return $? # return on pipefail
 
   # delete keycloak namespace
   log "Deleting Keycloak namespace"
-  if [ "$(kubectl get namespace keycloak)" ] ; then
-    kubectl delete namespace keycloak
-  fi
+  kubectl delete namespace keycloak --ignore-not-found=true || return $?
 }
 
 function delete_resources() {
   log "Deleting ClusterRoles and ClusterRoleBindings"
   # deleting clusterrolebindings
-  kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'cattle-admin|proxy-role-binding-kubernetes-master' \
-    | xargs kubectl delete clusterrolebinding
+  local crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
+    | grep -E 'cattle-admin|proxy-role-binding-kubernetes-master' || true)")
+
+  printf "%s\n" "${crb_res[@]}" \
+    | xargs kubectl delete clusterrolebinding \
+    || return $? # return on pipefail
 
   # deleting clusterroles
-  kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'cattle-admin|local-cluster|proxy-clusterrole-kubeapiserver' \
-    | xargs kubectl delete clusterrole
+  local cr_res=("$(kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
+    | grep -E 'cattle-admin|local-cluster|proxy-clusterrole-kubeapiserver' || true)")
+
+  printf "%s\n" "${cr_res[@]}" \
+    | xargs kubectl delete clusterrole \
+    || return $? # return on pipefail
 }
 
 function finalize() {
   # Grab all leftover Helm repos and delete resources
   log "Deleting Helm repos"
-  helm repo ls | awk 'NR>1 {print $1}' | xargs -I name helm repo remove name
+  helm repo ls || true \
+    | awk 'NR>1 {print $1}' \
+    | xargs -I name helm repo remove name \
+    || return $? # return on pipefail
 
   # Removing possible reference to verrazzano in clusterroles and clusterrolebindings
-  kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'verrazzano' \
-    | xargs kubectl delete clusterrolebinding
+  local crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
+    | grep -E 'verrazzano' || true)")
 
-  kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'verrazzano' \
-    | xargs kubectl delete clusterrole
+  printf "%s\n" "${crb_res[@]}" \
+    | xargs kubectl delete clusterrolebinding \
+    || return $? # return on pipefail
+
+  local cr_res=("$(kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
+    | grep -E 'verrazzano' || true)")
+
+  printf "%s\n" "${cr_res[@]}" \
+    | xargs kubectl delete clusterrole \
+    || return $? # return on pipefail
 }
 
-action "Deleting MySQL Components" delete_mysql
-action "Deleting Keycloak Components" delete_keycloak
-action "Deleting Leftover Resources" delete_resources
-action "Finalizing Uninstall" finalize
+action "Deleting MySQL Components" delete_mysql || exit 1
+action "Deleting Keycloak Components" delete_keycloak || exit 1
+action "Deleting Leftover Resources" delete_resources || exit 1
+action "Finalizing Uninstall" finalize || exit 1
