@@ -2,10 +2,10 @@
 
 This document describes installing Verrazzano in an [Oracle Linux Cloud Native Environment (OCLNE)](https://docs.oracle.com/en/operating-systems/olcne/) cluster.
 
-Verrazzano requires Oracle Linux Cloud Native Environment version 1.1 or above.
+Verrazzano requires Oracle Linux Cloud Native Environment version 1.1 or later.
 > **NOTE**: You should only install this alpha release of Verrazzano in a cluster that can be safely deleted when your evaluation is complete.
 
-## 1. Requirements
+## Requirements
 
 ### Deployment system requirements
 
@@ -32,11 +32,11 @@ A Verrazzano Oracle Linux Cloud Native Environment deployment requires:
     * Oracle Cloud Infrastructure File Storage Service.
     * A hardware-based storage system that provides NFS capabilities.
 * Load balancers in front of the worker nodes in the cluster. For a non-production environment, you may choose to access your clusters using NodePorts instead, in which case the load balancer is not required.
-* DNS records that reference the load balancers
+* DNS records that reference the load balancers.
 
 Examples for meeting these requirements follow.
 
-#### Prerequisites detail
+#### Prerequisites details
 
 ##### Storage
 A default storage class is necessary. When using preallocated PersistentVolumes, for example Gluster/NFS,
@@ -181,13 +181,13 @@ Installation will result in a number of management services that need to point t
     elasticsearch.vmi.system.myenv.mydomain.com      CNAME   ingress-mgmt.myenv.mydomain.com.
 ```
 
-Deployment of applications as a VerrazzanoBinding will create four more services in the form
+Deployment of applications as a VerrazzanoBinding will create four more services in the form:
 * grafana.vmi.**binding-name**.myenv.mydomain.com
 * prometheus.vmi.**binding-name**.myenv.mydomain.com
 * kibana.vmi.**binding-name**.myenv.mydomain.com
 * elasticsearch.vmi.**binding-name**.myenv.mydomain.com
 
-For simplicity an administrator may want to create [wildcard DNS records](https://tools.ietf.org/html/rfc1034#section-4.3.3) for the management addresses
+For simplicity, an administrator may want to create [wildcard DNS records](https://tools.ietf.org/html/rfc1034#section-4.3.3) for the management addresses:
 ```
     *.system.myenv.mydomain.com                      CNAME   ingress-mgmt.myenv.mydomain.com.
     *.mybinding.myenv.mydomain.com                   CNAME   ingress-mgmt.myenv.mydomain.com.
@@ -196,20 +196,20 @@ or
 ```
     *.myenv.mydomain.com                             CNAME   ingress-mgmt.myenv.mydomain.com.
 ```
-```
 
-> **NOTE**: At this time, the only supported deployment for OLCNE is the manual DNS type.
 
-## 2. Installation
+**NOTE:** At this time, the only supported deployment for OLCNE is the manual DNS type.
+
+## Installation
 
 ### 1. Configure the environment
 
 Set the following `ENV` vars:
-```
-   export CLUSTER_TYPE=OLCNE
-   export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
-   export KUBECONFIG=$VERRAZZANO_KUBECONFIG
-```
+  ```
+    export CLUSTER_TYPE=OLCNE
+    export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
+    export KUBECONFIG=$VERRAZZANO_KUBECONFIG
+  ```
 
 ### 2. Create the Oracle Container Registry secret
 You need to create an "ocr" secret for pulling images from the container-registry.oracle.com repository.
