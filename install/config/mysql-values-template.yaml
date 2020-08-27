@@ -3,7 +3,7 @@
 imageTag: MYSQL_IMAGE_TAG
 busybox:
     image: container-registry.oracle.com/os/oraclelinux
-    tag: 7-slim@sha256:9b86d1332a883ee8f68dd44ba42133de518b2e0ec1cc70257e59fb4da86b1ad3
+    tag: 7-slim
 
 mysqlUser: MYSQL_USERNAME
 
