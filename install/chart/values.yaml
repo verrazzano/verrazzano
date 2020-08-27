@@ -7,15 +7,13 @@ image:
   terminationGracePeriodSeconds: 60
 
 docker:
-  repository: phx.ocir.io
-  namespace: stevengreenberginc/verrazzano
-#  repository: container-registry.oracle.com
-#  namespace: verrazzano
+  repository: container-registry.oracle.com
+  namespace: verrazzano
 
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: verrazzano-operator
-  imageVersion: v0.0.83
+  imageVersion: v0.0.88-71a55ef-4
   sslVerify: true
   cohMicroImage: verrazzano-coh-cluster-operator:v0.0.8
   helidonMicroImage: verrazzano-helidon-app-operator:v0.0.7
@@ -37,13 +35,13 @@ monitoringOperator:
   defaultPrometheusReplicas: 1
   grafanaImage: container-registry.oracle.com/olcne/grafana:v6.4.4
   prometheusImage: container-registry.oracle.com/olcne/prometheus:v2.13.1
-  prometheusInitImage: container-registry.oracle.com/os/oraclelinux:7-slim@sha256:9b86d1332a883ee8f68dd44ba42133de518b2e0ec1cc70257e59fb4da86b1ad3
+  prometheusInitImage: container-registry.oracle.com/os/oraclelinux:7-slim
   prometheusGatewayImage: prometheus-pushgateway:1.2.0-6893444-13
-  alertManagerImage: prom/alertmanager:v0.16.0
+  alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
   esImage: elasticsearch:7.6.1-1d68e1a-3
   esWaitImage: verrazzano-monitoring-instance-eswait:v0.0.18
-  esInitImage: container-registry.oracle.com/os/oraclelinux:7.8@sha256:46fc083cf0250ed5260fa6fe822d7d4c139ca1f7fc38e4a17ba662464bd1df4a
+  esInitImage: container-registry.oracle.com/os/oraclelinux:7.8
   kibanaImage: kibana:7.6.1-ccfddab-2
   monitoringInstanceApiImage: verrazzano-monitoring-instance-api:v0.0.7
   configReloaderImage: configmap-reload:0.3-81d6423-34
