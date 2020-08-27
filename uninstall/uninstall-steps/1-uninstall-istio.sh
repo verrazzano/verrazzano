@@ -85,7 +85,7 @@ function uninstall_istio() {
   kubectl delete -f ${TMP_DIR}/istio/files --ignore-not-found=true
 
   local istio_res=("$(helm repo ls \
-    | grep "istio.io" || true)")
+    | grep "istio.io" || true)") || return $?
 
   printf "%s\n" "${istio_res[@]}" \
     | awk '{print $1}' \
@@ -102,7 +102,7 @@ function delete_secrets() {
 
   # delete secrets left over in kube-system
   local secret_res=("$(kubectl get secrets -n kube-system --no-headers -o custom-columns=":metadata.name,:metadata.annotations" \
-  | grep "istio.io" || true)")
+  | grep "istio.io" || true)") || return $?
 
   printf "%s\n" "${secret_res[@]}" \
   | awk '{print $1}' \
