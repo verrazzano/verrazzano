@@ -1,5 +1,7 @@
 # Uninstall
 
+*NOTE*: Uninstall is an experimental feature.  
+
 To uninstall Verrazzano, use the scripts in the `uninstall` directory.
 
 ## Software Requirements
