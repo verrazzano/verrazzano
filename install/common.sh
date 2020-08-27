@@ -174,10 +174,6 @@ function call_curl {
   return 1
 }
 
-function check_network() {
-  curl http://www.oracle.com
-  return $?
-}
 
 KIND_CLUSTER_NAME=${KIND_CLUSTER_NAME:=verrazzano}
 VERRAZZANO_DIR=${SCRIPT_DIR}/.verrazzano

@@ -8,16 +8,27 @@ INSTALL_DIR=$SCRIPT_DIR/../../install
 
 . $INSTALL_DIR/common.sh
 
+set -o pipefail
+
 function delete_bindings {
+  binding_crd=$(kubectl get crd | grep "verrazzanobinding" || true) || return $?
+  if [ -z "$binding_crd" ] ; then
+    return
+  fi
   kubectl get VerrazzanoBindings --no-headers -o custom-columns=":metadata.name" \
-    | xargs kubectl delete VerrazzanoBindings
+    | xargs kubectl delete VerrazzanoBindings \
+    || return $? # return on pipefail
 }
 
 function delete_models {
+  model_crd=$(kubectl get crd | grep "verrazzanomodel" || true) || return $?
+  if [ -z "$binding_crd" ] ; then
+    return
+  fi
   kubectl get VerrazzanoModels --no-headers -o custom-columns=":metadata.name" \
-    | xargs kubectl delete VerrazzanoModels
+    | xargs kubectl delete VerrazzanoModels \
+    || return $? # return on pipefail
 }
 
-check_network || exit 1
 action "Deleting Verrazzano Bindings" delete_bindings || exit 1
 action "Deleting Verrazzano Models" delete_models || exit 1
