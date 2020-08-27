@@ -247,7 +247,7 @@ KEYCLOAK_IMAGE=container-registry.oracle.com/verrazzano/keycloak
 KEYCLOAK_IMAGE_TAG=10.0.1-30d98b0-5
 KEYCLOAK_CHART_VERSION=8.2.2
 
-KEYCLOAK_THEME_IMAGE=phx.ocir.io/stevengreenberginc/bfs/verrazzano/keycloak-oracle-theme:v0.0.1
+KEYCLOAK_THEME_IMAGE=container-registry.oracle.com/verrazzano/keycloak-oracle-theme:v0.0.1
 
 MYSQL_IMAGE_TAG=8.0.20
 
