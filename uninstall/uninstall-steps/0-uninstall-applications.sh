@@ -11,7 +11,7 @@ INSTALL_DIR=$SCRIPT_DIR/../../install
 set -o pipefail
 
 function delete_bindings {
-  binding_crd=$(kubectl get crd | grep "verrazzanobinding" || true) || return $?
+  binding_crd=$(kubectl get crd | grep "verrazzanobinding" || true)
   if [ -z "$binding_crd" ] ; then
     return
   fi
@@ -21,7 +21,7 @@ function delete_bindings {
 }
 
 function delete_models {
-  model_crd=$(kubectl get crd | grep "verrazzanomodel" || true) || return $?
+  model_crd=$(kubectl get crd | grep "verrazzanomodel" || true)
   if [ -z "$binding_crd" ] ; then
     return
   fi
