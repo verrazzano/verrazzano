@@ -14,7 +14,7 @@ function delete_mysql() {
   # delete helm installation of MySQL
   log "Deleting MySQL"
   local mysql_res=("$(helm ls -A \
-    | grep "mysql" || true)") || return $?
+    | grep "mysql" || true)")
 
   printf "%s\n" "${mysql_res[@]}" \
     | awk '{print $1}' \
@@ -27,7 +27,7 @@ function delete_keycloak() {
   log "Deleting Keycloak"
   local keycloak_res=("$(helm ls -A \
     | awk '{print $1}' \
-    | grep "keycloak" || true)") || return $?
+    | grep "keycloak" || true)")
 
   printf "%s\n" "${keycloak_res[@]}" \
     | xargs helm delete -n keycloak \
@@ -42,7 +42,7 @@ function delete_resources() {
   log "Deleting ClusterRoles and ClusterRoleBindings"
   # deleting clusterrolebindings
   local crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'cattle-admin|proxy-role-binding-kubernetes-master' || true)") || return $?
+    | grep -E 'cattle-admin|proxy-role-binding-kubernetes-master' || true)")
 
   printf "%s\n" "${crb_res[@]}" \
     | xargs kubectl delete clusterrolebinding \
@@ -50,7 +50,7 @@ function delete_resources() {
 
   # deleting clusterroles
   local cr_res=("$(kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'cattle-admin|local-cluster|proxy-clusterrole-kubeapiserver' || true)") || return $?
+    | grep -E 'cattle-admin|local-cluster|proxy-clusterrole-kubeapiserver' || true)")
 
   printf "%s\n" "${cr_res[@]}" \
     | xargs kubectl delete clusterrole \
@@ -67,14 +67,14 @@ function finalize() {
 
   # Removing possible reference to verrazzano in clusterroles and clusterrolebindings
   local crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'verrazzano' || true)") || return $?
+    | grep -E 'verrazzano' || true)")
 
   printf "%s\n" "${crb_res[@]}" \
     | xargs kubectl delete clusterrolebinding \
     || return $? # return on pipefail
 
   local cr_res=("$(kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'verrazzano' || true)") || return $?
+    | grep -E 'verrazzano' || true)")
 
   printf "%s\n" "${cr_res[@]}" \
     | xargs kubectl delete clusterrole \

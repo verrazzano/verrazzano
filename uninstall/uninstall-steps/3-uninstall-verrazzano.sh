@@ -14,7 +14,7 @@ function delete_verrazzano() {
   # delete helm installation of Verrazzano
   log "Deleting Verrazzano"
   local verr_res=("$(helm ls -A \
-    | grep "verrazzano" || true)") || return $?
+    | grep "verrazzano" || true)")
 
   printf "%s\n" "${verr_res[@]}" \
     | awk '{print $1}' \
@@ -28,14 +28,14 @@ function delete_verrazzano() {
   # delete crds
   log "Deleting Verrazzano crds"
   local verr_crd_fin_res=("$(kubectl get crds --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'verrazzano.io' || true)") || return $?
+    | grep -E 'verrazzano.io' || true)")
 
   printf "%s\n" "${verr_crd_fin_res[@]}" \
     | xargs kubectl patch crd -p '{"metadata":{"finalizers":null}}' --type=merge \
     || return $? # return on pipefail
 
   local verr_crd_rec=("$(kubectl get crds --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'verrazzano.io' || true)") || return $?
+    | grep -E 'verrazzano.io' || true)")
 
   printf "%s\n" "${verr_crd_rec[@]}" \
     | xargs kubectl delete crd \
@@ -44,7 +44,7 @@ function delete_verrazzano() {
   # deleting certificatesigningrequests
   log "Deleting CertificateSigningRequests"
   local verr_csr_res=("$(kubectl get csr --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'csr-' || true)") || return $?
+    | grep -E 'csr-' || true)")
 
   printf "%s\n" "${verr_csr_res[@]}" \
     | xargs kubectl delete csr \
@@ -53,7 +53,7 @@ function delete_verrazzano() {
   log "Deleting ClusterRoles and ClusterRoleBindings"
   # deleting clusterrolebindings
   local verr_crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
-    | grep -E 'verrazzano' || true)") || return $?
+    | grep -E 'verrazzano' || true)")
 
   printf "%s\n" "${verr_crb_res[@]}" \
     | awk '{print $1}' \
@@ -62,7 +62,7 @@ function delete_verrazzano() {
 
   # deleting clusterroles
   local verr_cr_res=("$(kubectl get clusterrole --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
-    | grep -E 'verrazzano' || true)") || return $?
+    | grep -E 'verrazzano' || true)")
 
   printf "%s\n" "${verr_cr_res[@]}" \
     | awk '{print $1}' \
@@ -72,7 +72,7 @@ function delete_verrazzano() {
   # deleting namespaces
   log "Deleting Verrazzano namespaces"
   local verr_ns_res=("$(kubectl get namespace --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
-    | grep -E 'k8s-app:verrazzano.io|verrazzano-system' || true)") || return $?
+    | grep -E 'k8s-app:verrazzano.io|verrazzano-system' || true)")
 
   printf "%s\n" "${verr_ns_res[@]}" \
     | awk '{print $1}' \

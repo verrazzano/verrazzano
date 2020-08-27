@@ -46,11 +46,11 @@ fi
 
 function check_applications () {
   # check to make sure crds exist and grab them
-  binding_crd=$(kubectl get crd | grep "verrazzanobinding" || true) || return $?
+  binding_crd=$(kubectl get crd | grep "verrazzanobinding" || true)
   if [ -z "$binding_crd" ] ; then
     return
   fi
-  model_crd=$(kubectl get crd | grep "verrazzanomodel" || true) || return $?
+  model_crd=$(kubectl get crd | grep "verrazzanomodel" || true)
   if [ -z "$model_crd" ] ; then
     return
   fi
@@ -62,17 +62,17 @@ function check_applications () {
     Verrazzano Models:
         $(kubectl get vm --no-headers -o custom-columns=":metadata.name" || return $?)
     Verrazzano Bindings:
-        $(kubectl get vb --no-headers -o custom-columns=":metadata.name" || return $?)\n" >&4
+        $(kubectl get vb --no-headers -o custom-columns=":metadata.name" || return $?)\n"
   fi
 }
 
 function prompt_delete_applications () {
   # check to make sure crds exist and grab them
-  binding_crd=$(kubectl get crd | grep "verrazzanobinding" || true) || return $?
+  binding_crd=$(kubectl get crd | grep "verrazzanobinding" || true)
   if [ -z "$binding_crd" ] ; then
     return
   fi
-  model_crd=$(kubectl get crd | grep "verrazzanomodel" || true) || return $?
+  model_crd=$(kubectl get crd | grep "verrazzanomodel" || true)
   if [ -z "$model_crd" ] ; then
     return
   fi

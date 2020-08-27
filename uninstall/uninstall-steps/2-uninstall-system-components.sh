@@ -13,7 +13,7 @@ set -o pipefail
 function delete_external_dns() {
   log "Deleting external-dns"
   local extdns_rec=("$(helm ls -A \
-    | grep "external-dns" || true)") || return $?
+    | grep "external-dns" || true)")
 
   printf "%s\n" "${extdns_rec[@]}" \
     | awk '{print $1}' \
@@ -30,7 +30,7 @@ function delete_nginx() {
   # uninstall ingress-nginx
   log "Deleting ingress-nginx"
   local ingress_res=("$(helm ls -A \
-    | grep "ingress-controller" || true)") || return $?
+    | grep "ingress-controller" || true)")
 
   printf "%s\n" "${ingress_res[@]}" \
     | awk '{print $1}' \
@@ -51,7 +51,7 @@ function delete_cert_manager() {
   # uninstall cert manager deployment
   log "Deleting cert-manager"
   local cert_res=("$(helm ls -A \
-    | grep "cert-manager" || true)") || return $?
+    | grep "cert-manager" || true)")
 
   printf "%s\n" "${cert_res[@]}" \
     | awk '{print $1}' \
@@ -60,7 +60,7 @@ function delete_cert_manager() {
 
   # delete the custom resource definition for cert manager
   log "deleting the custom resource definition for cert manager"
-  kubectl delete -f https://raw.githubusercontent.com/jetstack/cert-manager/release-${CERT_MANAGER_RELEASE}/deploy/manifests/00-crds.yaml --ignore-not-found=true || return $?
+  kubectl delete -f "https://raw.githubusercontent.com/jetstack/cert-manager/release-${CERT_MANAGER_RELEASE}/deploy/manifests/00-crds.yaml" --ignore-not-found=true || return $?
 
   # delete cert manager config map
   log "Deleting config map for cert manager"
@@ -75,7 +75,7 @@ function delete_rancher() {
   # Deleting rancher components
   log "Deleting rancher"
   local rancher_res=("$(helm ls -A \
-    | grep "rancher" || true)") || return $?
+    | grep "rancher" || true)")
 
   printf "%s\n" "${rancher_res[@]}" \
     | awk '{print $1}' \
@@ -83,28 +83,37 @@ function delete_rancher() {
     || return $? # return on pipefail
 
   log "Deleting CRDs from rancher"
-  # delete crds
-  local rancher_crd_res=("$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" \
-    | grep -E 'coreos.com|cattle.io' || true)") || return $?
 
-  printf "%s\n" "${rancher_crd_res[@]}" \
-    | awk '{print $1}' \
-    | xargs kubectl delete crd  \
-    || return $? & # return on pipefail
+local crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | grep -E 'coreos.com|cattle.io')
 
-  # remove finalizers from crds
-  local rancher_crd_fin_res=("$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" \
-    | grep -E 'coreos.com|cattle.io' || true)") || return $?
+  while [ "$crd_content" ]
+  do
+      # remove finalizers from crds
+    local rancher_crd_fin_res=("$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" \
+      | grep -E 'coreos.com|cattle.io' || true)")
 
-  printf "%s\n" "${rancher_crd_fin_res[@]}" \
-    | awk '{print $1}' \
-    | xargs kubectl patch crd -p '{"metadata":{"finalizers":null}}' --type=merge \
-    || return $? # return on pipefail
+    printf "%s\n" "${rancher_crd_fin_res[@]}" \
+      | awk '{print $1}' \
+      | xargs kubectl patch crd -p '{"metadata":{"finalizers":null}}' --type=merge \
+      || return $? # return on pipefail
+
+    # delete crds
+    local rancher_crd_res=("$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" \
+      | grep -E 'coreos.com|cattle.io' || true)")
+
+    printf "%s\n" "${rancher_crd_res[@]}" \
+      | awk '{print $1}' \
+      | xargs kubectl delete crd  \
+      || return $? &# return on pipefail
+    sleep 30
+    kill $! || 2>/dev/null
+    crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | grep -E 'coreos.com|cattle.io')
+  done
 
   # delete clusterrolebindings deployed by rancher
   log "Deleting ClusterRoleBindings"
   local rancher_crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
-    | grep -E 'cattle.io|app:rancher' || true)") || return $?
+    | grep -E 'cattle.io|app:rancher' || true)")
 
   printf "%s\n" "${rancher_crb_res[@]}" \
     | awk '{print $1}' \
@@ -114,7 +123,7 @@ function delete_rancher() {
   # delete clusterroles
   log "Deleting ClusterRoles"
   local rancher_cr_res=("$(kubectl get clusterrole --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
-    | grep -E 'cattle.io' || true)") || return $?
+    | grep -E 'cattle.io' || true)")
 
   printf "%s\n" "${rancher_cr_res[@]}" \
     | awk '{print $1}' \
@@ -127,7 +136,7 @@ function delete_rancher() {
   for namespace in "${default_names[@]}"
   do
     local rancher_rb_res=("$(kubectl get rolebinding --no-headers -o custom-columns=":metadata.name" -n "${namespace}"\
-      | grep 'clusterrolebinding-' || true)") || return $?
+      | grep 'clusterrolebinding-' || true)")
 
     printf "%s\n" "${rancher_rb_res[@]}" \
       | xargs kubectl delete rolebinding -n "${namespace}" \
@@ -140,7 +149,7 @@ function delete_rancher() {
   log "Deleting cattle namespaces"
   # delete namespace finalizers
   local rancher_ns_fin_res=("$(kubectl get namespaces --no-headers -o custom-columns=":metadata.name,:metadata.annotations,:metadata.labels" \
-    | grep -E 'cattle.io' || true)") || return $?
+    | grep -E 'cattle.io' || true)")
 
   printf "%s\n" "${rancher_ns_fin_res[@]}" \
     | awk '{print $1}' \
@@ -149,7 +158,7 @@ function delete_rancher() {
 
   # delete cattle namespaces
   local rancher_ns_res=("$(kubectl get namespaces --no-headers -o custom-columns=":metadata.name,:metadata.annotations,:metadata.labels" \
-    | grep -E 'cattle.io|cattle-system' || true)") || return $?
+    | grep -E 'cattle.io|cattle-system' || true)")
 
   printf "%s\n" "${rancher_ns_res[@]}" \
     | awk '{print $1}' \
@@ -159,5 +168,5 @@ function delete_rancher() {
 
 action "Deleting External DNS Components" delete_external_dns || exit 1
 action "Deleting Nginx Components" delete_nginx || exit 1
-action "Deleting Cert Manager Components" delete_cert_manager || exit 1
 action "Deleting Rancher Components" delete_rancher || exit 1
+action "Deleting Cert Manager Components" delete_cert_manager || exit 1
