@@ -111,6 +111,14 @@ function delete_secrets() {
 }
 
 function delete_istio_namepsace() {
+  local istio_ns_fin_res=("$(kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
+    | grep -E 'istio-system' || true)")
+
+  printf "%s\n" "${istio_ns_fin_res[@]}" \
+    | awk '{print $1}' \
+    | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge  \
+    || return $? # return on pipefail
+
   log "Deleting istio-system namespace"
   kubectl delete namespace istio-system --ignore-not-found=true || return $?
 }

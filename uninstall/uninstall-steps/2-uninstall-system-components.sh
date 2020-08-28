@@ -44,6 +44,14 @@ function delete_nginx() {
 
   # delete ingress-nginx namespace
   log "Deleting ingress-nginx namespace"
+  local ingress_ns_fin_res=("$(kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
+    | grep -E 'ingress-nginx' || true)")
+
+  printf "%s\n" "${ingress_ns_fin_res[@]}" \
+    | awk '{print $1}' \
+    | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge  \
+    || return $? # return on pipefail
+
   kubectl delete namespace ingress-nginx --ignore-not-found=true || return $?
 }
 

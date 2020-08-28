@@ -34,6 +34,14 @@ function delete_keycloak() {
     || return $? # return on pipefail
 
   # delete keycloak namespace
+  local keycloak_ns_fin_res=("$(kubectl get namespace --no-headers -o custom-columns=":metadata.name" \
+    | grep -E 'keycloak' || true)")
+
+  printf "%s\n" "${keycloak_ns_fin_res[@]}" \
+    | awk '{print $1}' \
+    | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
+    || return $? # return on pipefail
+
   log "Deleting Keycloak namespace"
   kubectl delete namespace keycloak --ignore-not-found=true || return $?
 }
