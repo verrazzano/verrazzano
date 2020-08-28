@@ -70,7 +70,7 @@ Run the following scripts in order:
 For example, an appropriate zone name for the `v8o.example.com` domain is `sales.v8o.example.com`.
 * Create an OCI DNS zone using the OCI Console or the OCI CLI.  CLI example:
 ```
-oci dns zone create -c <compartment ocid> --name <env-name>.v8o.oracledx.com --zone-type PRIMARY
+oci dns zone create -c <compartment ocid> --name <zone-name-prefix>.v8o.oracledx.com --zone-type PRIMARY
 ```
 
 #### Installation
