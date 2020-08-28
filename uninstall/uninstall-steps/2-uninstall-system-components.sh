@@ -158,7 +158,7 @@ local crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.n
   log "Deleting cattle namespaces"
   # delete namespace finalizers
   local rancher_ns_fin_res=("$(kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'cattle-|local' || true)")
+    | grep -E 'cattle-|local|p-' || true)")
 
   printf "%s\n" "${rancher_ns_fin_res[@]}" \
     | awk '{print $1}' \
@@ -167,7 +167,7 @@ local crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.n
 
   # delete cattle namespaces
   local rancher_ns_res=("$(kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'cattle-|local' || true)")
+    | grep -E 'cattle-|local|p-' || true)")
 
   printf "%s\n" "${rancher_ns_res[@]}" \
     | awk '{print $1}' \
