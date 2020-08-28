@@ -12,18 +12,20 @@ application.
    It is located at `<VERRAZZANO_HOME>/examples/hello-helidon` where `VERRAZZANO_HOME` is the root of the
    Verrazzano project. All paths in this document are relative to `<VERRAZZANO_HOME>/examples/hello-helidon`.
 
-1. Create a `docker-registry` secret to enable pulling images from GitHub Packages.
+1. Create a `docker-registry` secret to enable pulling images from Oracle Container
+   Registry.  This is needed to pull hello-helidon example images.  Note that you
+   may have already created this secret when installing Verrazzano itself.
 
    ```
-   kubectl create secret docker-registry github-packages \
-           --docker-server=docker.pkg.github.com \
-           --docker-username=YOUR_GITHUB_USERNAME \
-           --docker-password=YOUR_GITHUB_PERSONAL_ACCESS_TOKEN \
+   kubectl create secret docker-registry ocr \
+           --docker-server=container-registry.oracle.com \
+           --docker-username=YOUR_USERNAME \
+           --docker-password=YOUR_PASSWORD \
            --docker-email=YOUR_EMAIL
    ```
 
-   Replace `YOUR_GITHUB_USERNAME`, `YOUR_GITHUB_PERSONAL_ACCESS_TOKEN` and `YOUR_EMAIL` with
-   the values that you use to access GitHub.
+   Replace `YOUR_USERNAME`, `YOUR_PASSWORD` and `YOUR_EMAIL` with the values that you
+   use to access Oracle Container Registry.
 
 1. Deploy the Verrazzano Model and Verrazzano Binding for the example application.
 
@@ -158,7 +160,7 @@ Follow these steps to test the endpoints:
 
 ## Uninstalling the example application
 
-1. Run the following script to delete the Verrazzano Model and Verrazzano Binding for the example application:
+Run the following script to delete the Verrazzano Model and Verrazzano Binding for the example application:
 
     ```
     ./uninstall-hello-world.sh
