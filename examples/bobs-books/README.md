@@ -41,20 +41,6 @@ cluster if you are using a multi-cluster environment.:
 
    You will not be able to pull these images until you have accepted the licenses.
 
-1. Create a `docker-registry` secret to enable pulling images from GitHub Packages.
-   **NOTE** This is a temporary requirement and will disappear when we go live!
-
-   ```
-   kubectl create secret docker-registry github-packages \
-           --docker-server=docker.pkg.github.com \
-           --docker-username=YOUR_GITHUB_USERNAME \
-           --docker-password=YOUR_GITHUB_PERSONAL_ACCESS_TOKEN \
-           --docker-email=YOUR_EMAIL
-   ```
-
-   Replace `YOUR_GITHUB_USERNAME`, `YOUR_GITHUB_PERSONAL_ACCESS_TOKEN` and `YOUR_EMAIL` with
-   the values that you use to access GitHub.
-
 1. Create secrets containing the WebLogic administration credentials for the
    two domains:
 
@@ -117,7 +103,6 @@ cluster if you are using a multi-cluster environment.:
     - name: "roberts-ingress"
       dnsName: "*"
     ```
-
 
 1. Deploy the Verrazzano Binding for Bob's Books:
 
