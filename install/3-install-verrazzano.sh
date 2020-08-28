@@ -144,7 +144,7 @@ function install_verrazzano()
       --set config.enableMonitoringStorage=true \
       --set verrazzanoOperator.sslVerify=false \
       --set verrazzanoOperator.imageName=phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-operator-jenkins \
-      --set verrazzanoOperator.imageVersion=958fb7498a21dddb6200c5eb1199000cacac4402 \
+      --set verrazzanoOperator.imageVersion=a81728b66ead65beda33260566a7a4d2dd7c9980 \
       --set clusterOperator.rancherURL=https://${RANCHER_HOSTNAME} \
       --set clusterOperator.rancherUserName="${token_array[0]}" \
       --set clusterOperator.rancherPassword="${token_array[1]}" \
