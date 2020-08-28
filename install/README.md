@@ -65,6 +65,16 @@ Run the following scripts in order:
 #### Install using OCI DNS
 
 
+#### Prerequisites
+* A DNS Zone is a distinct portion of a domain namespace. Therefore, ensure that the zone is appropriately associated with a parent domain.
+For example, an appropriate zone name for the `v8o.example.com` domain is `sales.v8o.example.com`.
+* Create an OCI DNS zone using the OCI Console or the OCI CLI.  CLI example:
+```
+oci dns zone create -c <compartment ocid> --name <env-name>.v8o.oracledx.com --zone-type PRIMARY
+```
+
+#### Installation
+
 Installing Verrazzano on OCI DNS requires the following environment variables to create DNS records:
 
 Environment Variable | Required | Description
