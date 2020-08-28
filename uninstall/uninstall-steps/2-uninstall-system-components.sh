@@ -66,8 +66,17 @@ function delete_cert_manager() {
   log "Deleting config map for cert manager"
   kubectl delete configmap cert-manager-controller -n kube-system --ignore-not-found=true || return $?
 
-  # delete namespace
   log "Deleting cert manager namespace"
+  # delete namespace finalizers
+  local cert_ns_fin_res=("$(kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
+    | grep -E 'cert-manager' || true)")
+
+  printf "%s\n" "${cert_ns_fin_res[@]}" \
+    | awk '{print $1}' \
+    | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
+    || return $? # return on pipefail
+
+  # delete namespace
   kubectl delete namespace cert-manager --ignore-not-found=true || return $?
 }
 
