@@ -16,7 +16,7 @@ The following software must be installed on your deployment system:
 * kubectl
 * openssl
 
-If you are using Oracle Linux 7 you can install these requirements with:
+If you are using Oracle Linux 7, then you can install these requirements with:
 ```
     sudo yum install -y oracle-olcne-release-el7
     sudo yum-config-manager --enable ol7_olcne11 ol7_addons ol7_latest
@@ -74,9 +74,6 @@ they should be declared with a `storageClassName` as shown:
       volumeMode: Filesystem
   EOF
   ```
-
-For testing, you may want to use something like [rancher/local-path-provisioner](https://github.com/rancher/local-path-provisioner) and make it the default via
-`kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'`
 
 #### Networking
 
@@ -164,7 +161,7 @@ Record | Use
 ingress-mgmt | Set as the `.spec.externalIPs` value of the `ingress-controller-nginx-ingress-controller` service
 ingress-verrazzano | Set as the `.spec.externalIPs` value of the `istio-ingressgateway` service
 
-For example
+For example:
 ```
      198.51.100.10                                   A       ingress-mgmt.myenv.mydomain.com.
      203.0.113.10                                    A       ingress-verrazzano.myenv.mydomain.com.
@@ -255,6 +252,7 @@ vmi-system-prometheus-gw-7cb9df774-48g4b           1/1     Running   0          
 
 ### 5. Get the console URLs
 Verrazzano installs several consoles.  You can get the ingress for the consoles with the following command:  
+
 `kubectl get ingress -A`
 
 Simply prefix `https://` to the host name to get the URL.  For example `https://rancher.myenv.mydomain.com`
@@ -285,18 +283,21 @@ You will need the credentials to access the various consoles installed by Verraz
 **User:**  `verrazzano`
 
 Run the following command to get the password:
+
 `kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo`
 
 #### The Keycloak admin console
 **User:** `keycloakadmin`
 
-Run the following command to get the password:  
+Run the following command to get the password:
+
 `kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo`
 
 #### The Rancher console
 **User:** `admin`
 
-Run the following command to get the password:  
+Run the following command to get the password:
+
 `kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo`
 
 

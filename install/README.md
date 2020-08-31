@@ -115,7 +115,8 @@ vmi-system-prometheus-gw-7cb9df774-48g4b           1/1     Running   0          
 ```
 
 ### 5. Get the console URLs
-Verrazzano installs several consoles.  You can get the ingress for the consoles with the following command:  
+Verrazzano installs several consoles.  You can get the ingress for the consoles with the following command:
+
 `kubectl get ingress -A`
 
 Simply prefix `https://` to the host name to get the URL.  For example `https://rancher.myenv.mydomain.com`
@@ -148,6 +149,7 @@ You will need the credentials to access the various consoles installed by Verraz
 **User:**  `verrazzano`
 
 Run the following command to get the password:
+
 `kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo`
 
 
@@ -156,6 +158,7 @@ Run the following command to get the password:
 **User:** `keycloakadmin`
 
 Run the following command to get the password:  
+
 `kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo`
 
 
@@ -164,6 +167,7 @@ Run the following command to get the password:
 **User:** `admin`
 
 Run the following command to get the password:  
+
 `kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo`
 
 
@@ -187,5 +191,5 @@ On an OKE install this may indicate that there is a missing ingress rule(s).  To
      * Select the related VCN.
      * Go to the `Security Lists` for the VCN.
      * Select the security list named `oke-wkr-...`.
-     * Check the ingress rules for the security list.  There should be one rule for each of the destination ports named in the LoadBalancer services.  In the above example the destination ports are `31541` & `31739` and we would expect the ingress rule for `31739` to be missing since it was named in the above ERROR output.
-     * If a rule is missing then add it by clicking `Add Ingress Rules` and filling in the source CIDR and destination port range (missing port).  Use the existing rules as a guide.
+     * Check the ingress rules for the security list.  There should be one rule for each of the destination ports named in the LoadBalancer services.  In the above example, the destination ports are `31541` & `31739` and we would expect the ingress rule for `31739` to be missing since it was named in the above ERROR output.
+     * If a rule is missing, then add it by clicking `Add Ingress Rules` and filling in the source CIDR and destination port range (missing port).  Use the existing rules as a guide.

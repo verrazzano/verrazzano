@@ -1,7 +1,6 @@
 # Bob's Books
 
-The Bob's Books example application is a book store demo intended to mimic a real application which contains WebLogic,
-Helidon and Coherence components.
+The Bob's Books example application is a book store demo intended to mimic a real application which contains WebLogic, Helidon and Coherence components. For more information and the code of this application, see the [Verrazzano examples](https://github.com/verrazzano/examples).
 
 ## Deploying the example application
 
@@ -15,11 +14,11 @@ Verrazzano project.
 
 To deploy the Bob's Books example application to an existing Verrazzano environment,
 note that all of the commands shown must be executed against the Verrazzano management
-cluster if you are using a multi-cluster environment.:
+cluster if you are using a multi-cluster environment.
 
 1. Create a `docker-registry` secret to enable pulling images from Oracle Container
    Registry.  This is needed to pull WebLogic and Coherence images.  Note that you
-   may have already created this secret when installing Verrazzano itself.
+   may have already created this secret when installing Verrazzano.
 
    ```
    kubectl create secret docker-registry ocr \
@@ -34,9 +33,9 @@ cluster if you are using a multi-cluster environment.:
 
 1. If you have not done so already, in a web browser, navigate to the [Oracle Container Registry](https://container-registry.oracle.com):
 
-       * Select **Middleware**, review, and sign in to accept the licenses for the WebLogic and Coherence images.
+  * Select **Middleware**, review, and _Sign in_ to accept the licenses for the WebLogic and Coherence images.
 
-       * Select **Verrazzano**, review, and accept the licenses for the four repositories listed at the top of the page:
+  * Select **Verrazzano**, review, and accept the licenses for the four repositories listed at the top of the page:
        example-bobbys-coherence, example-bobbys-front-end, example-bobs-books-order-manager, and example-roberts-coherence.
 
    You will not be able to pull these images until you have accepted the licenses.
@@ -79,7 +78,7 @@ cluster if you are using a multi-cluster environment.:
    kubectl apply -f bobs-books-model.yaml
    ```
 
-1. Update the Verrazzano Binding for Bob's Books with correct DNS names for
+1. Update the Verrazzano Binding for Bob's Books with the correct DNS names for
    each of the applications.  This step is optional, you can use the IP
    address to access the applications if you do not have DNS names.
 
@@ -90,7 +89,7 @@ cluster if you are using a multi-cluster environment.:
    `example.com`, you might create DNS A records called `bobbys-books.example.com`,
    `roberts-books.example.com` and `bobs-books.example.com`.
 
-   Update the section shown below to sepcify the correct DNS names.  Each
+   Update the following section to specify the correct DNS names.  Each
    of the DNS A records should point to the external IP address of the
    `istio-ingressgateway` service in the `istio-system` namespace.
 
