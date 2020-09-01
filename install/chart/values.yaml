@@ -37,7 +37,7 @@ monitoringOperator:
   prometheusImage: container-registry.oracle.com/olcne/prometheus:v2.13.1
   prometheusInitImage: container-registry.oracle.com/os/oraclelinux:7-slim
   prometheusGatewayImage: prometheus-pushgateway:1.2.0-6893444-13
-  alertManagerImage: prom/alertmanager:v0.16.0
+  alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
   esImage: elasticsearch:7.6.1-1d68e1a-3
   esWaitImage: verrazzano-monitoring-instance-eswait:v0.0.18

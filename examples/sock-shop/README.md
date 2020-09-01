@@ -1,7 +1,7 @@
 
 # Helidon Sock Shop
 
-This example application provides a [Helidon](https://helidon.io) implementation of [Sock Shop Microservices Demo Application](https://microservices-demo.github.io/).
+This example application provides a [Helidon](https://helidon.io) implementation of the [Sock Shop Microservices Demo Application](https://microservices-demo.github.io/).
 
 
 ## Deploying the example application

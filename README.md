@@ -34,21 +34,10 @@ To install Verrazzano, follow these steps:
    - `./install/2a-install-system-components-magicdns.sh`
    - `./install/3-install-verrazzano.sh`
    - `./install/4-install-keycloak.sh`
-6. (Optional) Install some example applications - see below for details.
+6. (Optional) Install some example applications - see [Deploying the example applications](#deploying-the-example-applications) for details.
 
 
-> **NOTE**: This alpha release of Verrazzano is intended for installation in a single OKE or Oracle Linux Cloud Native Environment (OLCNE) cluster. You should only install Verazzano in a cluster that can be safely deleted when your evaluation is complete.
-
-## Uninstall
-
-
-To uninstall Verrazzano, execute the following command in the OCI Cloud Shell:
-
- ```
- ./uninstall/uninstall-verrazzano.sh
- ```
-
-
+> **NOTE**: This alpha release of Verrazzano is intended for installation in a single OKE or Oracle Linux Cloud Native Environment (OLCNE) cluster. You should only install Verrazzano in a cluster that can be safely deleted when your evaluation is complete.
 
 ## Deploying the example applications
 
@@ -63,17 +52,15 @@ To deploy the example applications, please see the following instructions:
 
 ## Verrazzano Helm Chart
 
-The `chart` directory contains helm chart for Verrazzano that packages together the core elements that will be installed into the Verrazzano Management Cluster - micro operators,
-verrazzano-operator, verrazzano-monitoring-operator, etc - into a single Helm chart.
+The `chart` directory contains a Helm chart for Verrazzano that packages together the core elements that will be installed into the Verrazzano Management Cluster - micro operators,
+verrazzano-operator, verrazzano-monitoring-operator, and such - into a single Helm chart.
 
 ### Chart Parameters
 
-See `./chart/values.yaml` for the full list of configurable parameters that can be set using
+See the `./chart/values.yaml` file for the full list of configurable parameters that can be set using
 `--set parameter=value` when installing the Helm chart.
 
 
 ## More Information
 
-More detailed [installation instructions](./install/README.md) can be found in the `install` directory.
-
-More detailed [uninstall instructions](./uninstall/README.md) can be found in the `uninstall` directory
+For more detailed [installation instructions](./install/README.md), see the `install` directory.
