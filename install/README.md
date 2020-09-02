@@ -15,7 +15,7 @@ This README describes installing Verrazzano in an OKE cluster. For instructions 
 
 The following software must be installed on your system.  
 * curl
-* helm
+* helm (version 3.0.x, 3.1.x or 3.2.x)
 * jq
 * kubectl
 * openssl
