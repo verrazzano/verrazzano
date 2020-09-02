@@ -42,9 +42,34 @@ function wait_for_ingress_ip() {
   done
   if [ "$retries" -ge 10 ] ; then
     log "An error occurred - ingress $ingress_name in namespace $namespace did not have an IP address"
-    exit 1
+    return 1
   fi
 }
+
+function wait_for_service_ip() {
+  local retries=0
+  local svc_name=$1
+  local namespace=$2
+  local svc_ip
+
+  log "Waiting for service $svc_name in namespace $namespace to have an IP"
+  until [ "$retries" -ge 10 ]
+  do
+      svc_ip=$(kubectl get svc $svc_name -n $namespace -o json | jq -r '.status.loadBalancer.ingress[].ip')
+      if [ -n "$svc_ip" ] ; then
+          break;
+      fi
+      retries=$(($retries+1))
+      sleep 5
+  done
+  if [ "$retries" -ge 10 ] ; then
+    log "An error occurred - service $svc_name in namespace $namespace did not have an IP address"
+    return 1
+  fi
+  log "Service $svc_name in namespace $namespace is listening on external IP: $svc_ip"
+}
+
+
 
 function get_rancher_access_token {
   local rancher_hostname=$1

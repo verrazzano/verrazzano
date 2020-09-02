@@ -102,6 +102,15 @@ function install_keycloak {
   kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
 }
 
+function verify_service_ips
+{
+  # Make sure nginx service has an external IP
+  wait_for_service_ip ingress-controller-nginx-ingress-controller ingress-nginx
+  # Make sure istio ingressgateway has an external IP
+  wait_for_service_ip istio-ingressgateway istio-system
+
+}
+
 function set_rancher_server_url
 {
     local rancher_host_name="rancher.${ENV_NAME}.${DNS_SUFFIX}"
@@ -224,6 +233,7 @@ action "Installing MySQL" install_mysql
   fi
 
 action "Installing Keycloak" install_keycloak || exit 1
+action "Verifying Service IPs" verify_service_ips || exit 1
 action "Setting Rancher Server URL" set_rancher_server_url || true
 
 rm -rf $TMP_DIR
