@@ -219,7 +219,7 @@ function check_kube_version {
     log "$kubeVer"
     log "------End Kubernetes Version Info----"
     local servVer=$(echo $kubeVer | jq -r '.serverVersion.gitVersion')
-    if [ $? -ne 0 ] || [ "$servVer" == "null" ] || [ -z "$servVer" ]; then
+    if [ "$servVer" == "null" ] || [ -z "$servVer" ]; then
         log "Could not retrieve Kubernetes server version"
         return 1
     fi
