@@ -124,13 +124,6 @@ function delete_istio_namepsace() {
 }
 
 function finalize() {
-  # Grab all leftover Helm repos and delete resources
-  log "Deleting Helm repos"
-  helm repo ls || true \
-    | awk 'NR>1 {print $1}' \
-    | xargs -I name helm repo remove name \
-    || return $? # return on pipefail
-
   # Removing possible reference to verrazzano in clusterroles and clusterrolebindings
   local crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
     | grep -E 'verrazzano' || true)")
@@ -144,6 +137,16 @@ function finalize() {
 
   printf "%s\n" "${cr_res[@]}" \
     | xargs kubectl delete clusterrole \
+    || return $? # return on pipefail
+
+  # Grab all leftover Helm repos and delete resources
+  log "Deleting Helm repos"
+  local helm_repos=("$(helm repo ls \
+    | grep -E 'istio.io|stable|jetstack|rancher-stable|codecentric' || true)")
+
+  printf "%s\n" "${helm_repos[@]}" \
+    | awk '{print $1}' \
+    | xargs -I name helm repo remove name \
     || return $? # return on pipefail
 }
 

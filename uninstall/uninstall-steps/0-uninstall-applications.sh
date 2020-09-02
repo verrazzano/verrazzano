@@ -13,6 +13,7 @@ set -o pipefail
 function initializing_uninstall {
   # Deleting rancher through API
   log "Deleting Rancher through API"
+  rancher_exists=$(kubectl get namespace cattle-system) || return 0
   rancher_host_name="$(kubectl get ingress -n cattle-system --no-headers -o custom-columns=":spec.rules[0].host")" || return $?
   rancher_cluster_url="https://${rancher_host_name}/v3/clusters/local"
   rancher_admin_password=$(kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password}) || return $?
