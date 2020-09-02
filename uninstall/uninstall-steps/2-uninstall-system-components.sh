@@ -101,7 +101,7 @@ function delete_rancher() {
 
   log "Deleting CRDs from rancher"
 
-  local crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | grep -E 'coreos.com|cattle.io') || return $?
+  local crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | grep -E 'coreos.com|cattle.io' || true)
 
   while [ "$crd_content" ]
   do
@@ -124,7 +124,7 @@ function delete_rancher() {
       || return $? &# return on pipefail
     sleep 30
     kill $! || true
-    crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | grep -E 'coreos.com|cattle.io' || true) || return $?
+    crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | grep -E 'coreos.com|cattle.io' || true)
   done
 
   # delete clusterrolebindings deployed by rancher
