@@ -217,9 +217,14 @@ function verify_ocr_secret()
 function check_kube_version {
     local kubeVer=$(kubectl version -o json)
     log "------Begin Kubernetes Version Info----"
-    log $kubeVer
+    log "$kubeVer"
     log "------End Kubernetes Version Info----"
     local servVer=$(echo $kubeVer | jq -r '.serverVersion.gitVersion')
+    if [ $? -ne 0 ] || [ "$servVer" == "null" ] || [ -z "$servVer" ]; then
+        log "Could not retrieve Kubernetes server version"
+        return 1
+    fi
+
     local major=$(echo $kubeVer | jq -r '.serverVersion.major')
     local minor=$(echo $kubeVer | jq -r '.serverVersion.minor')
     local patch=$(echo $servVer | cut -d'.' -f 3)
@@ -240,15 +245,15 @@ function check_kube_version {
 
 function check_helm_version {
     local helmVer=$(helm version --short | cut -d':' -f2 | tr -d " ")
-    log "Helm Version is $helmVer"
+    log "Helm version is $helmVer"
     local majorVer=$(echo $helmVer | cut -d'.' -f1)
     local minorVer=$(echo $helmVer | cut -d'.' -f2)
     if [ "$majorVer" != "v3" ]; then
-        log "Helm Major version is $majorVer, expected v3!"
+        log "Helm major version is $majorVer, expected v3!"
         return 1
     fi
     if [ "$minorVer" -gt 2 ]; then
-        log "Helm Minor version is $minorVer, expected less than or equal to 2!"
+        log "Helm minor version is $minorVer, expected less than or equal to 2!"
         return 1
     fi
     return 0
