@@ -23,40 +23,40 @@ function uninstall_istio() {
 
   # delete istio crds
   log "Deleting Istio Custom Resource Definitions"
-  local rancher_crd_res=("$(kubectl get crd --no-headers -o custom-columns=":metadata.name" \
+  local istio_crd_res=("$(kubectl get crd --no-headers -o custom-columns=":metadata.name" \
     | grep 'istio.io' || true)")
 
-  printf "%s\n" "${rancher_crd_res[@]}" \
+  printf "%s\n" "${istio_crd_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl delete crd \
     || return $? # return on pipefail
 
   # delete istio api services
   log "Deleting Istio API Services"
-  local rancher_api_res=("$(kubectl get apiservice --no-headers -o custom-columns=":metadata.name" \
+  local istio_api_res=("$(kubectl get apiservice --no-headers -o custom-columns=":metadata.name" \
     | grep 'istio.io' || true)")
 
-  printf "%s\n" "${rancher_api_res[@]}" \
+  printf "%s\n" "${istio_api_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl delete apiservice \
     || return $? # return on pipefail
 
   # delete istio cluster role bindings
   log "Deleting Istio Cluster Role Bindings"
-  local rancher_crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
+  local istio_crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
     | grep -E 'istio-system|istio-multi' || true)")
 
-  printf "%s\n" "${rancher_crb_res[@]}" \
+  printf "%s\n" "${istio_crb_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl delete clusterrolebinding \
     || return $? # return on pipefail
 
   # delete istio cluster roles
   log "Deleting Istio Cluster Roles"
-  local rancher_crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
+  local istio_crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
     | grep -E 'istio-system|istio-reader|istiocoredns' || true)")
 
-  printf "%s\n" "${rancher_crb_res[@]}" \
+  printf "%s\n" "${istio_crb_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl delete clusterrole \
     || return $? # return on pipefail
