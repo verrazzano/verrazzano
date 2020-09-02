@@ -188,6 +188,133 @@ spec:
                     pofConfig:
                       description: Coherence pof config
                       type: string
+                    ports:
+                      description: Coherence ports (optional)
+                      items:
+                        description: '----- NamedPortSpec struct ----------------------------------------------------
+                          NamedPortSpec defines a named port for a Coherence component'
+                        properties:
+                          name:
+                            description: Name specifies the name of th port.
+                            type: string
+                          port:
+                            description: Port specifies the port used.
+                            format: int32
+                            type: integer
+                          protocol:
+                            description: Protocol for container port. Must be UDP
+                              or TCP. Defaults to "TCP"
+                            type: string
+                          service:
+                            description: Service specifies the service used to expose
+                              the port.
+                            properties:
+                              annotations:
+                                additionalProperties:
+                                  type: string
+                                description: Annotations is free form yaml that will
+                                  be added to the service annotations
+                                type: object
+                              enabled:
+                                description: Enabled controls whether to create the
+                                  service yaml or not
+                                type: boolean
+                              externalName:
+                                description: externalName is the external reference
+                                  that kubedns or equivalent will return as a CNAME
+                                  record for this service. No proxying will be involved.
+                                  Must be a valid RFC-1123 hostname (https://tools.ietf.org/html/rfc1123)
+                                  and requires Type to be ExternalName.
+                                type: string
+                              externalTrafficPolicy:
+                                description: externalTrafficPolicy denotes if this
+                                  Service desires to route external traffic to node-local
+                                  or cluster-wide endpoints. "Local" preserves the
+                                  client source IP and avoids a second hop for LoadBalancer
+                                  and Nodeport type services, but risks potentially
+                                  imbalanced traffic spreading. "Cluster" obscures
+                                  the client source IP and may cause a second hop
+                                  to another node, but should have good overall load-spreading.
+                                type: string
+                              healthCheckNodePort:
+                                description: healthCheckNodePort specifies the healthcheck
+                                  nodePort for the service. If not specified, HealthCheckNodePort
+                                  is created by the service api backend with the allocated
+                                  nodePort. Will use user-specified nodePort value
+                                  if specified by the client. Only effects when Type
+                                  is set to LoadBalancer and ExternalTrafficPolicy
+                                  is set to Local.
+                                format: int32
+                                type: integer
+                              labels:
+                                additionalProperties:
+                                  type: string
+                                description: 'The extra labels to add to the service.
+                                  More info: http://kubernetes.io/docs/user-guide/labels'
+                                type: object
+                              loadBalancerIP:
+                                description: LoadBalancerIP is the IP address of the
+                                  load balancer
+                                type: string
+                              loadBalancerSourceRanges:
+                                description: 'If specified and supported by the platform,
+                                  this will restrict traffic through the cloud-provider
+                                  load-balancer will be restricted to the specified
+                                  client IPs. This field will be ignored if the cloud-provider
+                                  does not support the feature." More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/'
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                              name:
+                                description: An optional name to use to override the
+                                  generated service name.
+                                type: string
+                              port:
+                                description: The service port value
+                                format: int32
+                                type: integer
+                              publishNotReadyAddresses:
+                                description: publishNotReadyAddresses, when set to
+                                  true, indicates that DNS implementations must publish
+                                  the notReadyAddresses of subsets for the Endpoints
+                                  associated with the Service. The default value is
+                                  false. The primary use case for setting this field
+                                  is to use a StatefulSet's Headless Service to propagate
+                                  SRV records for its Pods without respect to their
+                                  readiness for purpose of peer discovery.
+                                type: boolean
+                              sessionAffinity:
+                                description: 'Supports "ClientIP" and "None". Used
+                                  to maintain session affinity. Enable client IP based
+                                  session affinity. Must be ClientIP or None. Defaults
+                                  to None. More info: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies'
+                                type: string
+                              sessionAffinityConfig:
+                                description: sessionAffinityConfig contains the configurations
+                                  of session affinity.
+                                properties:
+                                  clientIP:
+                                    description: clientIP contains the configurations
+                                      of Client IP based session affinity.
+                                    properties:
+                                      timeoutSeconds:
+                                        description: timeoutSeconds specifies the
+                                          seconds of ClientIP type session sticky
+                                          time. The value must be >0 && <=86400(for
+                                          1 day) if ServiceAffinity == "ClientIP".
+                                          Default value is 10800(for 3 hours).
+                                        format: int32
+                                        type: integer
+                                    type: object
+                                type: object
+                              type:
+                                description: Type is the K8s service type (typically
+                                  ClusterIP or LoadBalancer) The default is "ClusterIP".
+                                type: string
+                            type: object
+                        type: object
+                      type: array
                   required:
                   - cacheConfig
                   - image
@@ -291,6 +418,117 @@ spec:
                               - target
                               type: object
                             type: array
+                        type: object
+                      type: array
+                    env:
+                      description: Environment Variables
+                      items:
+                        description: EnvVar represents an environment variable present
+                          in a Container.
+                        properties:
+                          name:
+                            description: Name of the environment variable. Must be
+                              a C_IDENTIFIER.
+                            type: string
+                          value:
+                            description: 'Variable references $(VAR_NAME) are expanded
+                              using the previous defined environment variables in
+                              the container and any service environment variables.
+                              If a variable cannot be resolved, the reference in the
+                              input string will be unchanged. The $(VAR_NAME) syntax
+                              can be escaped with a double $$, ie: $$(VAR_NAME). Escaped
+                              references will never be expanded, regardless of whether
+                              the variable exists or not. Defaults to "".'
+                            type: string
+                          valueFrom:
+                            description: Source for the environment variable's value.
+                              Cannot be used if value is not empty.
+                            properties:
+                              configMapKeyRef:
+                                description: Selects a key of a ConfigMap.
+                                properties:
+                                  key:
+                                    description: The key to select.
+                                    type: string
+                                  name:
+                                    description: 'Name of the referent. More info:
+                                      https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                      TODO: Add other useful fields. apiVersion, kind,
+                                      uid?'
+                                    type: string
+                                  optional:
+                                    description: Specify whether the ConfigMap or
+                                      its key must be defined
+                                    type: boolean
+                                required:
+                                - key
+                                type: object
+                              fieldRef:
+                                description: 'Selects a field of the pod: supports
+                                  metadata.name, metadata.namespace, metadata.labels,
+                                  metadata.annotations, spec.nodeName, spec.serviceAccountName,
+                                  status.hostIP, status.podIP, status.podIPs.'
+                                properties:
+                                  apiVersion:
+                                    description: Version of the schema the FieldPath
+                                      is written in terms of, defaults to "v1".
+                                    type: string
+                                  fieldPath:
+                                    description: Path of the field to select in the
+                                      specified API version.
+                                    type: string
+                                required:
+                                - fieldPath
+                                type: object
+                              resourceFieldRef:
+                                description: 'Selects a resource of the container:
+                                  only resources limits and requests (limits.cpu,
+                                  limits.memory, limits.ephemeral-storage, requests.cpu,
+                                  requests.memory and requests.ephemeral-storage)
+                                  are currently supported.'
+                                properties:
+                                  containerName:
+                                    description: 'Container name: required for volumes,
+                                      optional for env vars'
+                                    type: string
+                                  divisor:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: Specifies the output format of the
+                                      exposed resources, defaults to "1"
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  resource:
+                                    description: 'Required: resource to select'
+                                    type: string
+                                required:
+                                - resource
+                                type: object
+                              secretKeyRef:
+                                description: Selects a key of a secret in the pod's
+                                  namespace
+                                properties:
+                                  key:
+                                    description: The key of the secret to select from.  Must
+                                      be a valid secret key.
+                                    type: string
+                                  name:
+                                    description: 'Name of the referent. More info:
+                                      https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                      TODO: Add other useful fields. apiVersion, kind,
+                                      uid?'
+                                    type: string
+                                  optional:
+                                    description: Specify whether the Secret or its
+                                      key must be defined
+                                    type: boolean
+                                required:
+                                - key
+                                type: object
+                            type: object
+                        required:
+                        - name
                         type: object
                       type: array
                     fluentdEnabled:
