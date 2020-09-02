@@ -65,31 +65,6 @@ function delete_resources() {
     || return $? # return on pipefail
 }
 
-function finalize() {
-  # Grab all leftover Helm repos and delete resources
-  log "Deleting Helm repos"
-  helm repo ls || true \
-    | awk 'NR>1 {print $1}' \
-    | xargs -I name helm repo remove name \
-    || return $? # return on pipefail
-
-  # Removing possible reference to verrazzano in clusterroles and clusterrolebindings
-  local crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'verrazzano' || true)")
-
-  printf "%s\n" "${crb_res[@]}" \
-    | xargs kubectl delete clusterrolebinding \
-    || return $? # return on pipefail
-
-  local cr_res=("$(kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'verrazzano' || true)")
-
-  printf "%s\n" "${cr_res[@]}" \
-    | xargs kubectl delete clusterrole \
-    || return $? # return on pipefail
-}
-
 action "Deleting MySQL Components" delete_mysql || exit 1
 action "Deleting Keycloak Components" delete_keycloak || exit 1
 action "Deleting Leftover Resources" delete_resources || exit 1
-action "Finalizing Uninstall" finalize || exit 1

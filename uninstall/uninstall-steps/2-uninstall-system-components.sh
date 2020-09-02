@@ -101,7 +101,7 @@ function delete_rancher() {
 
   log "Deleting CRDs from rancher"
 
-local crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | grep -E 'coreos.com|cattle.io')
+  local crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | grep -E 'coreos.com|cattle.io') || return $?
 
   while [ "$crd_content" ]
   do
@@ -123,8 +123,8 @@ local crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.n
       | xargs kubectl delete crd  \
       || return $? &# return on pipefail
     sleep 30
-    kill $! || 2>/dev/null
-    crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | grep -E 'coreos.com|cattle.io')
+    kill $! || true
+    crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | grep -E 'coreos.com|cattle.io' || true) || return $?
   done
 
   # delete clusterrolebindings deployed by rancher
@@ -181,9 +181,22 @@ local crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.n
     | awk '{print $1}' \
     | xargs kubectl delete namespaces \
     || return $? # return on pipefail
+
+  # delete annotations left in kube-system secrets
+  log "Delete Rancher Secret Annotations"
+  for namespace in "${default_names[@]}"
+  do
+    keycloak_ann_res=("$(kubectl get secret -n "${namespace}" --no-headers -o custom-columns=":metadata.name,:metadata.annotations" \
+      | grep -E 'field.cattle.io/projectId:' || true)")
+
+    printf "%s\n" "${keycloak_ann_res[@]}" \
+      | awk '{print $1}' \
+      | xargs -I resource kubectl annotate secret resource -n "${namespace}" field.cattle.io/projectId- \
+      || return $? # return on pipefail
+  done
 }
 
+action "Deleting Rancher Components" delete_rancher || exit 1
 action "Deleting External DNS Components" delete_external_dns || exit 1
 action "Deleting Nginx Components" delete_nginx || exit 1
-action "Deleting Rancher Components" delete_rancher || exit 1
 action "Deleting Cert Manager Components" delete_cert_manager || exit 1
