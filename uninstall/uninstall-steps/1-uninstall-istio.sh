@@ -111,10 +111,43 @@ function delete_secrets() {
 }
 
 function delete_istio_namepsace() {
+  local istio_ns_fin_res=("$(kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
+    | grep -E 'istio-system' || true)")
+
+  printf "%s\n" "${istio_ns_fin_res[@]}" \
+    | awk '{print $1}' \
+    | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge  \
+    || return $? # return on pipefail
+
   log "Deleting istio-system namespace"
   kubectl delete namespace istio-system --ignore-not-found=true || return $?
+}
+
+function finalize() {
+  # Grab all leftover Helm repos and delete resources
+  log "Deleting Helm repos"
+  helm repo ls || true \
+    | awk 'NR>1 {print $1}' \
+    | xargs -I name helm repo remove name \
+    || return $? # return on pipefail
+
+  # Removing possible reference to verrazzano in clusterroles and clusterrolebindings
+  local crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
+    | grep -E 'verrazzano' || true)")
+
+  printf "%s\n" "${crb_res[@]}" \
+    | xargs kubectl delete clusterrolebinding \
+    || return $? # return on pipefail
+
+  local cr_res=("$(kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
+    | grep -E 'verrazzano' || true)")
+
+  printf "%s\n" "${cr_res[@]}" \
+    | xargs kubectl delete clusterrole \
+    || return $? # return on pipefail
 }
 
 action "Deleting Istio Components" uninstall_istio || exit 1
 action "Deleting Istio Secrets" delete_secrets || exit 1
 action "Deleting Istio Namespace" delete_istio_namepsace || exit 1
+action "Finalizing Uninstall" finalize || exit 1

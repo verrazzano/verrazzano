@@ -71,6 +71,15 @@ function delete_verrazzano() {
 
   # deleting namespaces
   log "Deleting Verrazzano namespaces"
+  # delete namespace finalizers
+  local verr_ns_fin_res=("$(kubectl get namespace --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
+    | grep -E 'k8s-app:verrazzano.io|verrazzano-system' || true)")
+
+  printf "%s\n" "${verr_ns_fin_res[@]}" \
+    | awk '{print $1}' \
+    | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
+    || return $? # return on pipefail
+
   local verr_ns_res=("$(kubectl get namespace --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
     | grep -E 'k8s-app:verrazzano.io|verrazzano-system' || true)")
 
