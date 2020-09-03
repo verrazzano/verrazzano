@@ -44,20 +44,14 @@ function initializing_uninstall {
 }
 
 function delete_bindings {
-  binding_crd=$(kubectl get crd | grep "verrazzanobinding" || true)
-  if [ -z "$binding_crd" ] ; then
-    return
-  fi
+  kubectl get crd verrazzanobindings.verrazzano.io || return 0
   kubectl get VerrazzanoBindings --no-headers -o custom-columns=":metadata.name" \
     | xargs kubectl delete VerrazzanoBindings \
     || return $? # return on pipefail
 }
 
 function delete_models {
-  model_crd=$(kubectl get crd | grep "verrazzanomodel" || true)
-  if [ -z "$binding_crd" ] ; then
-    return
-  fi
+  kubectl get crd verrazzanomodels.verrazzano.io || return 0
   kubectl get VerrazzanoModels --no-headers -o custom-columns=":metadata.name" \
     | xargs kubectl delete VerrazzanoModels \
     || return $? # return on pipefail
