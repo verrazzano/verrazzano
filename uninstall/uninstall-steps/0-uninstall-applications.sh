@@ -43,23 +43,21 @@ function initializing_uninstall {
 }
 
 function delete_bindings {
-  binding_crd=$(kubectl get crd | grep "verrazzanobinding" || true)
-  if [ -z "$binding_crd" ] ; then
-    return
+  crd=$(kubectl get crd) || return $?
+  if echo $crd | grep -q "verrazzanobinding" ; then
+    kubectl get VerrazzanoBindings --no-headers -o custom-columns=":metadata.name" \
+      | xargs kubectl delete VerrazzanoBindings \
+      || return $? # return on pipefail
   fi
-  kubectl get VerrazzanoBindings --no-headers -o custom-columns=":metadata.name" \
-    | xargs kubectl delete VerrazzanoBindings \
-    || return $? # return on pipefail
 }
 
 function delete_models {
-  model_crd=$(kubectl get crd | grep "verrazzanomodel" || true)
-  if [ -z "$binding_crd" ] ; then
-    return
+  crd=$(kubectl get crd) || return $?
+  if echo $crd | grep -q "verrazzanomodel" ; then
+    kubectl get VerrazzanoModels --no-headers -o custom-columns=":metadata.name" \
+      | xargs kubectl delete VerrazzanoModels \
+      || return $? # return on pipefail
   fi
-  kubectl get VerrazzanoModels --no-headers -o custom-columns=":metadata.name" \
-    | xargs kubectl delete VerrazzanoModels \
-    || return $? # return on pipefail
 }
 
 action "Initializing Uninstall" initializing_uninstall || exit 1

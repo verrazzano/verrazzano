@@ -13,11 +13,8 @@ set -o pipefail
 function delete_mysql() {
   # delete helm installation of MySQL
   log "Deleting MySQL"
-  local mysql_res=("$(helm ls -A \
-    | grep "mysql" || true)")
-
-  printf "%s\n" "${mysql_res[@]}" \
-    | awk '{print $1}' \
+  helm ls -A \
+    | awk '/mysql/ {print $1}' \
     | xargs helm delete -n keycloak \
     || return $? # return on pipefail
 }
@@ -25,20 +22,14 @@ function delete_mysql() {
 function delete_keycloak() {
   # delete helm installation of Keycloak
   log "Deleting Keycloak"
-  local keycloak_res=("$(helm ls -A \
-    | awk '{print $1}' \
-    | grep "keycloak" || true)")
-
-  printf "%s\n" "${keycloak_res[@]}" \
+  helm ls -A \
+    | awk '/keycloak/ {print $1}' \
     | xargs helm delete -n keycloak \
     || return $? # return on pipefail
 
   # delete keycloak namespace
-  local keycloak_ns_fin_res=("$(kubectl get namespace --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'keycloak' || true)")
-
-  printf "%s\n" "${keycloak_ns_fin_res[@]}" \
-    | awk '{print $1}' \
+  kubectl get namespace --no-headers -o custom-columns=":metadata.name" \
+    | awk '/keycloak/ {print $1}' \
     | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
     || return $? # return on pipefail
 
@@ -49,18 +40,14 @@ function delete_keycloak() {
 function delete_resources() {
   log "Deleting ClusterRoles and ClusterRoleBindings"
   # deleting clusterrolebindings
-  local crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'cattle-admin|proxy-role-binding-kubernetes-master' || true)")
-
-  printf "%s\n" "${crb_res[@]}" \
+  kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
+    | awk '/cattle-admin|proxy-role-binding-kubernetes-master/' \
     | xargs kubectl delete clusterrolebinding \
     || return $? # return on pipefail
 
   # deleting clusterroles
-  local cr_res=("$(kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'cattle-admin|local-cluster|proxy-clusterrole-kubeapiserver' || true)")
-
-  printf "%s\n" "${cr_res[@]}" \
+  kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
+    | awk '/cattle-admin|local-cluster|proxy-clusterrole-kubeapiserver/' \
     | xargs kubectl delete clusterrole \
     || return $? # return on pipefail
 }
