@@ -18,12 +18,12 @@ function delete_external_dns() {
   printf "%s\n" "${extdns_rec[@]}" \
     | awk '{print $1}' \
     | xargs helm uninstall -n cert-manager \
-    || return $? # return on pipefail
+    || error "Could not delete external-dns from helm"; return $? # return on pipefail
 
   # delete clusterrole and clusterrolebinding
   log "Deleting ClusterRoles and ClusterRoleBindings for external-dns"
-  kubectl delete clusterrole external-dns --ignore-not-found=true || return $?
-  kubectl delete clusterrolebinding external-dns --ignore-not-found=true || return $?
+  kubectl delete clusterrole external-dns --ignore-not-found=true || error "Could not delete ClusterRole external-dns"; return $?
+  kubectl delete clusterrolebinding external-dns --ignore-not-found=true || error "Could not delete ClusterRoleBinding external-dns"; return $?
 }
 
 function delete_nginx() {
@@ -35,12 +35,12 @@ function delete_nginx() {
   printf "%s\n" "${ingress_res[@]}" \
     | awk '{print $1}' \
     | xargs helm uninstall -n ingress-nginx \
-    || return $? # return on pipefail
+    || error "Could not delete ingress-controller from helm"; return $? # return on pipefail
 
   # delete the nginx clusterrole and clusterrolebinding
   log "Deleting ClusterRoles and ClusterRoleBindings for ingress-nginx"
-  kubectl delete clusterrole ingress-controller-nginx-ingress --ignore-not-found=true || return $?
-  kubectl delete clusterrolebinding ingress-controller-nginx-ingress --ignore-not-found=true || return $?
+  kubectl delete clusterrole ingress-controller-nginx-ingress --ignore-not-found=true || error "Could not delete ClusterRole ingress-controller-nginx-ingress"; return $?
+  kubectl delete clusterrolebinding ingress-controller-nginx-ingress --ignore-not-found=true || error "Could not delete ClusterRoleBinding ingress-controller-nginx-ingress"; return $?
 
   # delete ingress-nginx namespace
   log "Deleting ingress-nginx namespace"
@@ -50,9 +50,9 @@ function delete_nginx() {
   printf "%s\n" "${ingress_ns_fin_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge  \
-    || return $? # return on pipefail
+    || error "Could not remove finalizer from namespace ingress-nginx"; return $? # return on pipefail
 
-  kubectl delete namespace ingress-nginx --ignore-not-found=true || return $?
+  kubectl delete namespace ingress-nginx --ignore-not-found=true || error "Could not delete namespace ingress-nginx"; return $?
 }
 
 function delete_cert_manager() {
@@ -64,15 +64,16 @@ function delete_cert_manager() {
   printf "%s\n" "${cert_res[@]}" \
     | awk '{print $1}' \
     | xargs helm uninstall -n cert-manager \
-    || return $? # return on pipefail
+    || error "Could not delete cert-manager from helm"; return $? # return on pipefail
 
   # delete the custom resource definition for cert manager
   log "deleting the custom resource definition for cert manager"
-  kubectl delete -f "https://raw.githubusercontent.com/jetstack/cert-manager/release-${CERT_MANAGER_RELEASE}/deploy/manifests/00-crds.yaml" --ignore-not-found=true || return $?
+  kubectl delete -f "https://raw.githubusercontent.com/jetstack/cert-manager/release-${CERT_MANAGER_RELEASE}/deploy/manifests/00-crds.yaml" --ignore-not-found=true \
+    || error "Could not delete CustomResourceDefinition from cert-manager"; return $?
 
   # delete cert manager config map
   log "Deleting config map for cert manager"
-  kubectl delete configmap cert-manager-controller -n kube-system --ignore-not-found=true || return $?
+  kubectl delete configmap cert-manager-controller -n kube-system --ignore-not-found=true || error "Could not delete ConfigMap from cert-manager-controller"; return $?
 
   log "Deleting cert manager namespace"
   # delete namespace finalizers
@@ -82,10 +83,10 @@ function delete_cert_manager() {
   printf "%s\n" "${cert_ns_fin_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
-    || return $? # return on pipefail
+    || error "Could not remove finalizers from namespace cert-manager"; return $? # return on pipefail
 
   # delete namespace
-  kubectl delete namespace cert-manager --ignore-not-found=true || return $?
+  kubectl delete namespace cert-manager --ignore-not-found=true || error "Could not delete namespace cert-manager"; return $?
 }
 
 function delete_rancher() {
@@ -97,7 +98,7 @@ function delete_rancher() {
   printf "%s\n" "${rancher_res[@]}" \
     | awk '{print $1}' \
     | xargs helm uninstall -n cattle-system \
-    || return $? # return on pipefail
+    || error "Could not delete rancher from helm"; return $? # return on pipefail
 
   log "Deleting CRDs from rancher"
 
@@ -112,7 +113,7 @@ function delete_rancher() {
     printf "%s\n" "${rancher_crd_fin_res[@]}" \
       | awk '{print $1}' \
       | xargs kubectl patch crd -p '{"metadata":{"finalizers":null}}' --type=merge \
-      || return $? # return on pipefail
+      || error "Could not remove finalizers from CustomResourceDefinitions in Rancher"; return $? # return on pipefail
 
     # delete crds
     local rancher_crd_res=("$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" \
@@ -121,7 +122,7 @@ function delete_rancher() {
     printf "%s\n" "${rancher_crd_res[@]}" \
       | awk '{print $1}' \
       | xargs kubectl delete crd  \
-      || return $? &# return on pipefail
+      || error "Could not delete CustomResourceDefinitions from Rancher"; return $? &# return on pipefail
     sleep 30
     kill $! || true
     crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | grep -E 'coreos.com|cattle.io' || true)
@@ -135,7 +136,7 @@ function delete_rancher() {
   printf "%s\n" "${rancher_crb_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl delete clusterrolebinding \
-    || return $? # return on pipefail
+    || error "Could not delete ClusterRoleBindings from Rancher"; return $? # return on pipefail
 
   # delete clusterroles
   log "Deleting ClusterRoles"
@@ -145,7 +146,7 @@ function delete_rancher() {
   printf "%s\n" "${rancher_cr_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl delete clusterrole \
-    || return $? # return on pipefail
+    || error "Could not delete ClusterRoles from Rancher"; return $? # return on pipefail
 
   # delete rolebinding
   log "Deleting RoleBindings"
@@ -157,7 +158,7 @@ function delete_rancher() {
 
     printf "%s\n" "${rancher_rb_res[@]}" \
       | xargs kubectl delete rolebinding -n "${namespace}" \
-      || return $? # return on pipefail
+      || error "Could not delete RoleBindings from Rancher in namespace ${namespace}"; return $? # return on pipefail
   done
 
   # delete configmap in kube-system
@@ -171,7 +172,7 @@ function delete_rancher() {
   printf "%s\n" "${rancher_ns_fin_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
-    || return $? # return on pipefail
+    || error "Could not remove finalizers from namespaces in Rancher"; return $? # return on pipefail
 
   # delete cattle namespaces
   local rancher_ns_res=("$(kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
@@ -180,7 +181,7 @@ function delete_rancher() {
   printf "%s\n" "${rancher_ns_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl delete namespaces \
-    || return $? # return on pipefail
+    || error "Could not delete namespaces from Rancher"; return $? # return on pipefail
 
   # delete annotations left in kube-system secrets
   log "Delete Rancher Secret Annotations"
@@ -192,7 +193,7 @@ function delete_rancher() {
     printf "%s\n" "${keycloak_ann_res[@]}" \
       | awk '{print $1}' \
       | xargs -I resource kubectl annotate secret resource -n "${namespace}" field.cattle.io/projectId- \
-      || return $? # return on pipefail
+      || error "Could not delete Annotations from Rancher"; return $? # return on pipefail
   done
 }
 

@@ -19,7 +19,7 @@ function delete_mysql() {
   printf "%s\n" "${mysql_res[@]}" \
     | awk '{print $1}' \
     | xargs helm delete -n keycloak \
-    || return $? # return on pipefail
+    || error "Could not delete mysql from helm"; return $? # return on pipefail
 }
 
 function delete_keycloak() {
@@ -31,7 +31,7 @@ function delete_keycloak() {
 
   printf "%s\n" "${keycloak_res[@]}" \
     | xargs helm delete -n keycloak \
-    || return $? # return on pipefail
+    || error "Could not delete keycloak from helm"; return $? # return on pipefail
 
   # delete keycloak namespace
   local keycloak_ns_fin_res=("$(kubectl get namespace --no-headers -o custom-columns=":metadata.name" \
@@ -40,10 +40,10 @@ function delete_keycloak() {
   printf "%s\n" "${keycloak_ns_fin_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
-    || return $? # return on pipefail
+    || error "Could not remove finalizers from namespace keycloak"; return $? # return on pipefail
 
   log "Deleting Keycloak namespace"
-  kubectl delete namespace keycloak --ignore-not-found=true || return $?
+  kubectl delete namespace keycloak --ignore-not-found=true || error "Could not delete namespace keycloak"; return $?
 }
 
 function delete_resources() {
@@ -54,7 +54,7 @@ function delete_resources() {
 
   printf "%s\n" "${crb_res[@]}" \
     | xargs kubectl delete clusterrolebinding \
-    || return $? # return on pipefail
+    || error "Could not delete ClusterRoleBindings from Keycloak"; return $? # return on pipefail
 
   # deleting clusterroles
   local cr_res=("$(kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
@@ -62,7 +62,7 @@ function delete_resources() {
 
   printf "%s\n" "${cr_res[@]}" \
     | xargs kubectl delete clusterrole \
-    || return $? # return on pipefail
+    || error "Could not delete ClusterRoles from Keycloak"; return $? # return on pipefail
 }
 
 action "Deleting MySQL Components" delete_mysql || exit 1

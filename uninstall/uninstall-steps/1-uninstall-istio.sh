@@ -18,8 +18,8 @@ CONFIG_DIR=$INSTALL_DIR/config
 function uninstall_istio() {
   # delete webhook configurations
   log "Removing Istio Webhook Configurations"
-  kubectl delete MutatingWebhookConfiguration istio-sidecar-injector --ignore-not-found=true || return $?
-  kubectl delete ValidatingWebhookConfiguration istio-galley --ignore-not-found=true || return $?
+  kubectl delete MutatingWebhookConfiguration istio-sidecar-injector --ignore-not-found=true || error "Could not delete MutatingWebhookConfiguration from Istio"; return $?
+  kubectl delete ValidatingWebhookConfiguration istio-galley --ignore-not-found=true || error "Could not delete ValidatingWebhookConfiguration from Istio"; return $?
 
   # delete istio crds
   log "Deleting Istio Custom Resource Definitions"
@@ -29,7 +29,7 @@ function uninstall_istio() {
   printf "%s\n" "${istio_crd_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl delete crd \
-    || return $? # return on pipefail
+    || error "Could not delete CustomResourceDefinition from Istio"; return $? # return on pipefail
 
   # delete istio api services
   log "Deleting Istio API Services"
@@ -39,7 +39,7 @@ function uninstall_istio() {
   printf "%s\n" "${istio_api_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl delete apiservice \
-    || return $? # return on pipefail
+    || error "Could not delete APIServices from Istio"; return $? # return on pipefail
 
   # delete istio cluster role bindings
   log "Deleting Istio Cluster Role Bindings"
@@ -49,7 +49,7 @@ function uninstall_istio() {
   printf "%s\n" "${istio_crb_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl delete clusterrolebinding \
-    || return $? # return on pipefail
+    || error "Could not delete ClusterRoleBindings from Istio"; return $? # return on pipefail
 
   # delete istio cluster roles
   log "Deleting Istio Cluster Roles"
@@ -59,15 +59,15 @@ function uninstall_istio() {
   printf "%s\n" "${istio_crb_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl delete clusterrole \
-    || return $? # return on pipefail
+    || error "Could not delete ClusterRoles from Istio"; return $? # return on pipefail
 }
 
 function delete_secrets() {
   # Delete istio.default in all namespaces
   log "Collecting istio secrets for deletion"
-  kubectl delete secret istio.default --ignore-not-found=true || return $?
-  kubectl delete secret istio.default -n kube-public --ignore-not-found=true || return $?
-  kubectl delete secret istio.default -n kube-node-lease --ignore-not-found=true || return $?
+  kubectl delete secret istio.default --ignore-not-found=true || error "Could not delete secret from Istio in namespace default"; return $?
+  kubectl delete secret istio.default -n kube-public --ignore-not-found=true || error "Could not delete secret from Istio in namespace kube-public"; return $?
+  kubectl delete secret istio.default -n kube-node-lease --ignore-not-found=true || error "Could not delete secret from Istio in namespace kuce-node-lease"; return $?
 
   # delete secrets left over in kube-system
   local secret_res=("$(kubectl get secrets -n kube-system --no-headers -o custom-columns=":metadata.name,:metadata.annotations" \
@@ -76,7 +76,7 @@ function delete_secrets() {
   printf "%s\n" "${secret_res[@]}" \
   | awk '{print $1}' \
   | xargs kubectl delete secret -n kube-system \
-  || return $? # return on pipefail
+  || error "Could not delete secrets from Istio in namespace kube-system"; return $? # return on pipefail
 }
 
 function delete_istio_namepsace() {
@@ -86,10 +86,10 @@ function delete_istio_namepsace() {
   printf "%s\n" "${istio_ns_fin_res[@]}" \
     | awk '{print $1}' \
     | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge  \
-    || return $? # return on pipefail
+    || error "Could not remove finalizers from namespace istio-system"; return $? # return on pipefail
 
   log "Deleting istio-system namespace"
-  kubectl delete namespace istio-system --ignore-not-found=true || return $?
+  kubectl delete namespace istio-system --ignore-not-found=true || error "Could not delete namespace istio-system"; return $?
 }
 
 function finalize() {
@@ -98,7 +98,7 @@ function finalize() {
   helm repo ls || true \
     | awk 'NR>1 {print $1}' \
     | xargs -I name helm repo remove name \
-    || return $? # return on pipefail
+    || error "Could not delete helm repos"; return $? # return on pipefail
 
   # Removing possible reference to verrazzano in clusterroles and clusterrolebindings
   local crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
@@ -106,14 +106,14 @@ function finalize() {
 
   printf "%s\n" "${crb_res[@]}" \
     | xargs kubectl delete clusterrolebinding \
-    || return $? # return on pipefail
+    || error "Could not delete ClusterRoleBindings"; return $? # return on pipefail
 
   local cr_res=("$(kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
     | grep -E 'verrazzano' || true)")
 
   printf "%s\n" "${cr_res[@]}" \
     | xargs kubectl delete clusterrole \
-    || return $? # return on pipefail
+    || error "Could not delete ClusterRoles"; return $? # return on pipefail
 }
 
 action "Deleting Istio Components" uninstall_istio || exit 1

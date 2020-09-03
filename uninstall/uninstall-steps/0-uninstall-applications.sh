@@ -13,10 +13,10 @@ set -o pipefail
 function initializing_uninstall {
   # Deleting rancher through API
   log "Deleting Rancher through API"
-  rancher_host_name="$(kubectl get ingress -n cattle-system --no-headers -o custom-columns=":spec.rules[0].host")" || return $?
+  rancher_host_name="$(kubectl get ingress -n cattle-system --no-headers -o custom-columns=":spec.rules[0].host")" || error "Could not collect Rancher hostname"; return $?
   rancher_cluster_url="https://${rancher_host_name}/v3/clusters/local"
-  rancher_admin_password=$(kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password}) || return $?
-  rancher_admin_password=$(echo ${rancher_admin_password} | base64 --decode) || return $?
+  rancher_admin_password=$(kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password}) || error "Could not collect rancher-admin-secret"; return $?
+  rancher_admin_password=$(echo ${rancher_admin_password} | base64 --decode) || error "Could not decode rancher-admin-secret"; return $?
 
   if [ "$rancher_admin_password" ] && [ "$rancher_host_name" ] ; then
     echo "Get Rancher access token."
@@ -49,7 +49,7 @@ function delete_bindings {
   fi
   kubectl get VerrazzanoBindings --no-headers -o custom-columns=":metadata.name" \
     | xargs kubectl delete VerrazzanoBindings \
-    || return $? # return on pipefail
+    || error "Could not delete VerrazzanoBindings"; return $? # return on pipefail
 }
 
 function delete_models {
@@ -59,7 +59,7 @@ function delete_models {
   fi
   kubectl get VerrazzanoModels --no-headers -o custom-columns=":metadata.name" \
     | xargs kubectl delete VerrazzanoModels \
-    || return $? # return on pipefail
+    || error "Could not delete VerrazzanoModels"; return $? # return on pipefail
 }
 
 action "Initializing Uninstall" initializing_uninstall || exit 1

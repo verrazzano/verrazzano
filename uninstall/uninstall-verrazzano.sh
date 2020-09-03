@@ -54,15 +54,15 @@ function check_applications () {
   if [ -z "$model_crd" ] ; then
     return 0
   fi
-  bindings=$(kubectl get vb) || return $?
-  models=$(kubectl get vm) || return $?
+  bindings=$(kubectl get vb) || error "Could not collect VerrazzanoBindings"; return $?
+  models=$(kubectl get vm) || error "Could not collect VerrazzanoModels"; return $?
 
   if [ "$bindings" ] || [ "$models" ] ; then
     APPLICATION_RESOURCES="$(tput bold)The following applications will be deleted upon uninstall:$(tput sgr0)
     Verrazzano Models:
-        $(kubectl get vm --no-headers -o custom-columns=":metadata.name" || return $?)
+        $(kubectl get vm --no-headers -o custom-columns=":metadata.name" || error "Could not collect VerrazzanoModels"; return $?)
     Verrazzano Bindings:
-        $(kubectl get vb --no-headers -o custom-columns=":metadata.name" || return $?)\n"
+        $(kubectl get vb --no-headers -o custom-columns=":metadata.name" || error "Could not collect VerrazzanoBindings"; return $?)\n"
   fi
 }
 
@@ -70,14 +70,14 @@ function prompt_delete_applications () {
   # check to make sure crds exist and grab them
   binding_crd=$(kubectl get crd | grep "verrazzanobinding" || true)
   if [ -z "$binding_crd" ] ; then
-    return
+    return 0
   fi
   model_crd=$(kubectl get crd | grep "verrazzanomodel" || true)
   if [ -z "$model_crd" ] ; then
-    return
+    return 0
   fi
-  bindings=$(kubectl get vb) || return $?
-  models=$(kubectl get vm) || return $?
+  bindings=$(kubectl get vb) || error "Could not collect VerrazzanoBindings"; return $?
+  models=$(kubectl get vm) || error "Could not collect VerrazzanoModels"; return $?
 
   if [ "$bindings" ] || [ "$models" ] ; then
       if [ "$FORCE" = false ] ; then
