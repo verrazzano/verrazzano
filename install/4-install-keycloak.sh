@@ -102,15 +102,6 @@ function install_keycloak {
   kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
 }
 
-function verify_service_ips
-{
-  # Make sure nginx service has an external IP
-  wait_for_service_ip ingress-controller-nginx-ingress-controller ingress-nginx
-  # Make sure istio ingressgateway has an external IP
-  wait_for_service_ip istio-ingressgateway istio-system
-
-}
-
 function set_rancher_server_url
 {
     local rancher_host_name="rancher.${ENV_NAME}.${DNS_SUFFIX}"
@@ -233,7 +224,6 @@ action "Installing MySQL" install_mysql
   fi
 
 action "Installing Keycloak" install_keycloak || exit 1
-action "Verifying Service IPs" verify_service_ips || exit 1
 action "Setting Rancher Server URL" set_rancher_server_url || true
 
 rm -rf $TMP_DIR
@@ -259,3 +249,10 @@ consoleout
 consoleout "Keycloak - https://keycloak.${ENV_NAME}.${DNS_SUFFIX}"
 consoleout "User: keycloakadmin"
 consoleout "Password: kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo"
+if  [ -z "$(kubectl get svc istio-ingressgateway -n istio-system -o json | jq -r '.status.loadBalancer.ingress[].ip')" ]
+then
+  consoleout
+  consoleout "WARNING: Istio Ingressgateway did not have a valid external ip assigned yet. Public access to deployed applications will not work."
+  consoleout "Use the following command to check if an Exteranl IP has been assigned to the gateway."
+  consoleout "kubectl get svc istio-ingressgateway -n istio-system"
+fi
