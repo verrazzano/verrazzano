@@ -129,6 +129,7 @@ function finalize() {
     | grep -E 'verrazzano' || true)")
 
   printf "%s\n" "${crb_res[@]}" \
+    | awk '{print $1}' \
     | xargs kubectl delete clusterrolebinding \
     || return $? # return on pipefail
 
@@ -136,6 +137,7 @@ function finalize() {
     | grep -E 'verrazzano' || true)")
 
   printf "%s\n" "${cr_res[@]}" \
+    | awk '{print $1}' \
     | xargs kubectl delete clusterrole \
     || return $? # return on pipefail
 
