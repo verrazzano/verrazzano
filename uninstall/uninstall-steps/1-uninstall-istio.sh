@@ -23,41 +23,29 @@ function uninstall_istio() {
 
   # delete istio crds
   log "Deleting Istio Custom Resource Definitions"
-  local istio_crd_res=("$(kubectl get crd --no-headers -o custom-columns=":metadata.name" \
-    | grep 'istio.io' || true)")
-
-  printf "%s\n" "${istio_crd_res[@]}" \
-    | awk '{print $1}' \
+  kubectl get crd --no-headers -o custom-columns=":metadata.name" \
+    | awk '/istio.io/ {print $1}' \
     | xargs kubectl delete crd \
     || error "Could not delete CustomResourceDefinition from Istio"; return $? # return on pipefail
 
   # delete istio api services
   log "Deleting Istio API Services"
-  local istio_api_res=("$(kubectl get apiservice --no-headers -o custom-columns=":metadata.name" \
-    | grep 'istio.io' || true)")
-
-  printf "%s\n" "${istio_api_res[@]}" \
-    | awk '{print $1}' \
+  kubectl get apiservice --no-headers -o custom-columns=":metadata.name" \
+    | awk '/istio.io/ {print $1}' \
     | xargs kubectl delete apiservice \
     || error "Could not delete APIServices from Istio"; return $? # return on pipefail
 
   # delete istio cluster role bindings
   log "Deleting Istio Cluster Role Bindings"
-  local istio_crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'istio-system|istio-multi' || true)")
-
-  printf "%s\n" "${istio_crb_res[@]}" \
-    | awk '{print $1}' \
+  kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
+    | awk '/istio-system|istio-multi/ {print $1}' \
     | xargs kubectl delete clusterrolebinding \
     || error "Could not delete ClusterRoleBindings from Istio"; return $? # return on pipefail
 
   # delete istio cluster roles
   log "Deleting Istio Cluster Roles"
-  local istio_crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'istio-system|istio-reader|istiocoredns' || true)")
-
-  printf "%s\n" "${istio_crb_res[@]}" \
-    | awk '{print $1}' \
+  kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
+    | awk '/istio-system|istio-reader|istiocoredns/ {print $1}' \
     | xargs kubectl delete clusterrole \
     || error "Could not delete ClusterRoles from Istio"; return $? # return on pipefail
 }
@@ -70,22 +58,16 @@ function delete_secrets() {
   kubectl delete secret istio.default -n kube-node-lease --ignore-not-found=true || error "Could not delete secret from Istio in namespace kuce-node-lease"; return $?
 
   # delete secrets left over in kube-system
-  local secret_res=("$(kubectl get secrets -n kube-system --no-headers -o custom-columns=":metadata.name,:metadata.annotations" \
-  | grep "istio." || true)")
-
-  printf "%s\n" "${secret_res[@]}" \
-  | awk '{print $1}' \
+  kubectl get secrets -n kube-system --no-headers -o custom-columns=":metadata.name,:metadata.annotations" \
+  | awk '/istio./ {print $1}' \
   | xargs kubectl delete secret -n kube-system \
   || error "Could not delete secrets from Istio in namespace kube-system"; return $? # return on pipefail
 }
 
 function delete_istio_namepsace() {
   log "Deleting istio-system finalizers"
-  local istio_ns_fin_res=("$(kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'istio-system' || true)")
-
-  printf "%s\n" "${istio_ns_fin_res[@]}" \
-    | awk '{print $1}' \
+  kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
+    | awk '/istio-system/ {print $1}' \
     | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge  \
     || error "Could not remove finalizers from namespace istio-system"; return $? # return on pipefail
 
@@ -103,17 +85,13 @@ function finalize() {
 
   # Removing possible reference to verrazzano in clusterroles and clusterrolebindings
   log "Removing Verrazzano ClusterRoles and ClusterRoleBindings"
-  local crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'verrazzano' || true)")
-
-  printf "%s\n" "${crb_res[@]}" \
+  kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
+    | awk '/verrazzano/' \
     | xargs kubectl delete clusterrolebinding \
     || error "Could not delete ClusterRoleBindings"; return $? # return on pipefail
 
-  local cr_res=("$(kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'verrazzano' || true)")
-
-  printf "%s\n" "${cr_res[@]}" \
+  kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
+    | awk '/verrazzano/' \
     | xargs kubectl delete clusterrole \
     || error "Could not delete ClusterRoles"; return $? # return on pipefail
 }

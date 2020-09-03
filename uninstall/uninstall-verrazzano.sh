@@ -46,14 +46,8 @@ fi
 
 function check_applications () {
   # check to make sure crds exist and grab them
-  binding_crd=$(kubectl get crd | grep "verrazzanobinding" || true)
-  if [ -z "$binding_crd" ] ; then
-    return 0
-  fi
-  model_crd=$(kubectl get crd | grep "verrazzanomodel" || true)
-  if [ -z "$model_crd" ] ; then
-    return 0
-  fi
+  kubectl get crd verrazzanobindings.verrazzano.io || return 0
+  kubectl get crd verrazzanomodels.verrazzano.io || return 0
   bindings=$(kubectl get vb) || error "Could not collect VerrazzanoBindings"; return $?
   models=$(kubectl get vm) || error "Could not collect VerrazzanoModels"; return $?
 
@@ -68,14 +62,8 @@ function check_applications () {
 
 function prompt_delete_applications () {
   # check to make sure crds exist and grab them
-  binding_crd=$(kubectl get crd | grep "verrazzanobinding" || true)
-  if [ -z "$binding_crd" ] ; then
-    return 0
-  fi
-  model_crd=$(kubectl get crd | grep "verrazzanomodel" || true)
-  if [ -z "$model_crd" ] ; then
-    return 0
-  fi
+  kubectl get crd verrazzanobindings.verrazzano.io || return 0
+  kubectl get crd verrazzanomodels.verrazzano.io || return 0
   bindings=$(kubectl get vb) || error "Could not collect VerrazzanoBindings"; return $?
   models=$(kubectl get vm) || error "Could not collect VerrazzanoModels"; return $?
 
