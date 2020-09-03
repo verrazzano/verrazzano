@@ -26,7 +26,7 @@ function delete_verrazzano() {
   kubectl delete secret verrazzano-managed-cluster-local --ignore-not-found=true || error "Could not delete secrets from Verrazzano"; return $?
 
   # delete crds
-  log "Deleting Verrazzano crds"
+  log "Deleting Verrazzano crd finalizers"
   local verr_crd_fin_res=("$(kubectl get crds --no-headers -o custom-columns=":metadata.name" \
     | grep -E 'verrazzano.io' || true)")
 
@@ -34,6 +34,7 @@ function delete_verrazzano() {
     | xargs kubectl patch crd -p '{"metadata":{"finalizers":null}}' --type=merge \
     || error "Could not remove finalizers from CustomResourceDefinitions in Verrazzano"; return $? # return on pipefail
 
+  log "Deleting Verrazzano crds"
   local verr_crd_rec=("$(kubectl get crds --no-headers -o custom-columns=":metadata.name" \
     | grep -E 'verrazzano.io' || true)")
 
@@ -61,6 +62,7 @@ function delete_verrazzano() {
     || error "Could not delete ClusterRoleBindings from Verrazzano"; return $? # return on pipefail
 
   # deleting clusterroles
+  log "Deleting ClusterRoles"
   local verr_cr_res=("$(kubectl get clusterrole --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
     | grep -E 'verrazzano' || true)")
 
@@ -70,7 +72,7 @@ function delete_verrazzano() {
     || error "Could not delete ClusterRoles from Verrazzano"; return $? # return on pipefail
 
   # deleting namespaces
-  log "Deleting Verrazzano namespaces"
+  log "Deleting Verrazzano namespace finalizers"
   # delete namespace finalizers
   local verr_ns_fin_res=("$(kubectl get namespace --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
     | grep -E 'k8s-app:verrazzano.io|verrazzano-system' || true)")
@@ -80,6 +82,7 @@ function delete_verrazzano() {
     | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
     || error "Could not remove finalizers from Verrazzano namespaces"; return $? # return on pipefail
 
+  log "Deleting Verrazzano namespaces"
   local verr_ns_res=("$(kubectl get namespace --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
     | grep -E 'k8s-app:verrazzano.io|verrazzano-system' || true)")
 

@@ -19,7 +19,7 @@ function initializing_uninstall {
   rancher_admin_password=$(echo ${rancher_admin_password} | base64 --decode) || error "Could not decode rancher-admin-secret"; return $?
 
   if [ "$rancher_admin_password" ] && [ "$rancher_host_name" ] ; then
-    echo "Get Rancher access token."
+    log "Retrieving Rancher access token."
     get_rancher_access_token "${rancher_host_name}" "${rancher_admin_password}"
   fi
 
@@ -43,6 +43,7 @@ function initializing_uninstall {
 }
 
 function delete_bindings {
+  log "Deleting VerrazzanoBindings"
   binding_crd=$(kubectl get crd | grep "verrazzanobinding" || true)
   if [ -z "$binding_crd" ] ; then
     return
@@ -53,6 +54,7 @@ function delete_bindings {
 }
 
 function delete_models {
+  log "Deleting VerrazzanoModels"
   model_crd=$(kubectl get crd | grep "verrazzanomodel" || true)
   if [ -z "$binding_crd" ] ; then
     return

@@ -34,6 +34,7 @@ function delete_keycloak() {
     || error "Could not delete keycloak from helm"; return $? # return on pipefail
 
   # delete keycloak namespace
+  log "Deleting keycloak namespace finalizers"
   local keycloak_ns_fin_res=("$(kubectl get namespace --no-headers -o custom-columns=":metadata.name" \
     | grep -E 'keycloak' || true)")
 

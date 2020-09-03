@@ -43,7 +43,7 @@ function delete_nginx() {
   kubectl delete clusterrolebinding ingress-controller-nginx-ingress --ignore-not-found=true || error "Could not delete ClusterRoleBinding ingress-controller-nginx-ingress"; return $?
 
   # delete ingress-nginx namespace
-  log "Deleting ingress-nginx namespace"
+  log "Deleting ingress-nginx namespace finalizers"
   local ingress_ns_fin_res=("$(kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
     | grep -E 'ingress-nginx' || true)")
 
@@ -52,6 +52,7 @@ function delete_nginx() {
     | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge  \
     || error "Could not remove finalizer from namespace ingress-nginx"; return $? # return on pipefail
 
+  log "Deleting ingress-nginx namespace"
   kubectl delete namespace ingress-nginx --ignore-not-found=true || error "Could not delete namespace ingress-nginx"; return $?
 }
 
@@ -75,7 +76,7 @@ function delete_cert_manager() {
   log "Deleting config map for cert manager"
   kubectl delete configmap cert-manager-controller -n kube-system --ignore-not-found=true || error "Could not delete ConfigMap from cert-manager-controller"; return $?
 
-  log "Deleting cert manager namespace"
+  log "Deleting cert-manager namespace finalizers"
   # delete namespace finalizers
   local cert_ns_fin_res=("$(kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
     | grep -E 'cert-manager' || true)")
@@ -86,6 +87,7 @@ function delete_cert_manager() {
     || error "Could not remove finalizers from namespace cert-manager"; return $? # return on pipefail
 
   # delete namespace
+  log "Deleting cert-manager namespace"
   kubectl delete namespace cert-manager --ignore-not-found=true || error "Could not delete namespace cert-manager"; return $?
 }
 
@@ -175,6 +177,7 @@ function delete_rancher() {
     || error "Could not remove finalizers from namespaces in Rancher"; return $? # return on pipefail
 
   # delete cattle namespaces
+  log "Delete rancher namespace"
   local rancher_ns_res=("$(kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
     | grep -E 'cattle-|local|p-|user-' || true)")
 

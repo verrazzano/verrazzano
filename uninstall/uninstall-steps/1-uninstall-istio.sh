@@ -80,6 +80,7 @@ function delete_secrets() {
 }
 
 function delete_istio_namepsace() {
+  log "Deleting istio-system finalizers"
   local istio_ns_fin_res=("$(kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
     | grep -E 'istio-system' || true)")
 
@@ -101,6 +102,7 @@ function finalize() {
     || error "Could not delete helm repos"; return $? # return on pipefail
 
   # Removing possible reference to verrazzano in clusterroles and clusterrolebindings
+  log "Removing Verrazzano ClusterRoles and ClusterRoleBindings"
   local crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
     | grep -E 'verrazzano' || true)")
 
