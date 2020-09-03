@@ -17,7 +17,7 @@ function delete_external_dns() {
 
   printf "%s\n" "${extdns_rec[@]}" \
     | awk '{print $1}' \
-    | xargs helm uninstall -n cert-manager \
+    | xargs helm -I name uninstall name -n cert-manager \
     || return $? # return on pipefail
 
   # delete clusterrole and clusterrolebinding
