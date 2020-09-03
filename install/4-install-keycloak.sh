@@ -249,7 +249,7 @@ consoleout
 consoleout "Keycloak - https://keycloak.${ENV_NAME}.${DNS_SUFFIX}"
 consoleout "User: keycloakadmin"
 consoleout "Password: kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo"
-if [ ${CLUSTER_TYPE} == "OKE" ] -a -z "$(kubectl get services -n istio-system istio-ingressgateway -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')" ] 2> /dev/null
+if [ ${CLUSTER_TYPE} == "OKE" -a -z "$(kubectl get services -n istio-system istio-ingressgateway -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')" ] 2> /dev/null
 then
   consoleout
   consoleout "WARNING: istio-ingressgateway service does not have a valid external IP assigned yet. Public access to deployed applications will not work."
