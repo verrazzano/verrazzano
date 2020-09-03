@@ -93,7 +93,7 @@ spec:
               environmentVariableForHost: "BACKEND_HOSTNAME"
               environmentVariableForPort: "BACKEND_PORT"
     - name: "roberts-helidon-stock-application"
-      image: "docker.pkg.github.com/verrazzano/examples/roberts-helidon-stock-application:v0.0.0-e3c3c3e-5"
+      image: "docker.pkg.github.com/verrazzano/examples/roberts-helidon-stock-application:v0.0.0-edfc0aa-6"
       imagePullSecrets:
         - name: github-packages
         - name: ocr
@@ -116,7 +116,7 @@ spec:
       cacheConfig: "bobbys-cache-config.xml"
       pofConfig: "bobbys-pof-config.xml"
     - name: "roberts-coherence"
-      image: "docker.pkg.github.com/verrazzano/examples/roberts-coherence:v0.0.0-e3c3c3e-5"
+      image: "docker.pkg.github.com/verrazzano/examples/roberts-coherence:v0.0.0-edfc0aa-6"
       imagePullSecrets:
         - name: github-packages
         - name: ocr  # secret to pull roberts-coherence and container-registry.oracle.com/middleware/coherence:12.2.1.4.0
