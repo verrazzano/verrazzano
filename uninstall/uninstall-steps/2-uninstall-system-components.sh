@@ -132,7 +132,8 @@ function delete_rancher() {
   done
 
   # delete configmap in kube-system
-  kubectl delete configmap cattle-controllers -n kube-system  --ignore-not-found=true || return $?
+  log "Deleting ConfigMap"
+  kubectl delete configmap cattle-controllers -n kube-system  --ignore-not-found=true || error "Could not delete ConfigMap from Rancher in namespace kube-system"; return $?
 
   log "Deleting cattle namespaces"
   # delete namespace finalizers
