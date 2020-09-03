@@ -13,7 +13,7 @@ docker:
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: verrazzano-operator-jenkins
-  imageVersion: b08140f9afc378d2f98391f2ab990669981658c2
+  imageVersion: 98b5f6f04bc1e0c918f704952402a4480e7fb35b
   sslVerify: true
   cohMicroImage: verrazzano-coh-cluster-operator:v0.0.8
   helidonMicroImage: verrazzano-helidon-app-operator:v0.0.7
