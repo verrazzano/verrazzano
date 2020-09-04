@@ -141,7 +141,7 @@ function install_istio()
 
 function update_coredns()
 {
-    if [ ${CLUSTER_TYPE} == "OKE" ]; then
+    if [ "${CLUSTER_TYPE}" == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
         local cluster_ip
         cluster_ip=$(kubectl get svc -n istio-system istiocoredns -o jsonpath={.spec.clusterIP})
         if [ $? -ne 0 ] ; then
