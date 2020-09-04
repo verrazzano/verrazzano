@@ -17,7 +17,7 @@ function delete_verrazzano() {
   log "Deleting Verrazzano"
   helm ls -A \
     | awk '/verrazzano/ {print $1}' \
-    | xargs helm uninstall -n verrazzano-system \
+    | xargsr helm uninstall -n verrazzano-system \
     || err_exit $? "Could not delete verrazzano from helm" # return on pipefail
 
   # delete verrazzano-managed-cluster-local secret
@@ -28,34 +28,34 @@ function delete_verrazzano() {
   log "Deleting Verrazzano crd finalizers"
   kubectl get crds --no-headers -o custom-columns=":metadata.name" \
     | awk '/verrazzano.io/' \
-    | xargs kubectl patch crd -p '{"metadata":{"finalizers":null}}' --type=merge \
+    | xargsr kubectl patch crd -p '{"metadata":{"finalizers":null}}' --type=merge \
     || err_exit $? "Could not remove finalizers from CustomResourceDefinitions in Verrazzano" # return on pipefail
 
   log "Deleting Verrazzano crds"
   kubectl get crds --no-headers -o custom-columns=":metadata.name" \
     | awk '/verrazzano.io/' \
-    | xargs kubectl delete crd \
+    | xargsr kubectl delete crd \
     || err_exit $? "Could not delete CustomResourceDefinitions from Verrazzano" # return on pipefail
 
   # deleting certificatesigningrequests
   log "Deleting CertificateSigningRequests"
   kubectl get csr --no-headers -o custom-columns=":metadata.name" \
     | awk '/csr-/' \
-    | xargs kubectl delete csr \
+    | xargsr kubectl delete csr \
     || err_exit $? "Could not delete CertificateSigningRequests from Verrazzano" # return on pipefail
 
   log "Deleting ClusterRoles and ClusterRoleBindings"
   # deleting clusterrolebindings
   kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
     | awk '/verrazzano/ {print $1}' \
-    | xargs kubectl delete clusterrolebinding \
+    | xargsr kubectl delete clusterrolebinding \
     || err_exit $? "Could not delete ClusterRoleBindings from Verrazzano" # return on pipefail
 
   # deleting clusterroles
   log "Deleting ClusterRoles"
   kubectl get clusterrole --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
     | awk '/verrazzano/ {print $1}' \
-    | xargs kubectl delete clusterrole \
+    | xargsr kubectl delete clusterrole \
     || err_exit $? "Could not delete ClusterRoles from Verrazzano" # return on pipefail
 
   # deleting namespaces
@@ -63,13 +63,13 @@ function delete_verrazzano() {
   # delete namespace finalizers
   kubectl get namespace --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
     | awk '/k8s-app:verrazzano.io|verrazzano-system/ {print $1}' \
-    | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
+    | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
     || err_exit $? "Could not remove finalizers from Verrazzano namespaces" # return on pipefail
 
   log "Deleting Verrazzano namespaces"
   kubectl get namespace --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
     | awk '/k8s-app:verrazzano.io|verrazzano-system/ {print $1}' \
-    | xargs kubectl delete namespace \
+    | xargsr kubectl delete namespace \
     || err_exit $? "Could not delete Verrazzano namespaces" # return on pipefail
 }
 

@@ -49,7 +49,7 @@ function delete_bindings {
   log "Deleting VerrazzanoBindings"
   kubectl get crd verrazzanobindings.verrazzano.io || return 0
   kubectl get VerrazzanoBindings --no-headers -o custom-columns=":metadata.name" \
-    | xargs kubectl delete VerrazzanoBindings \
+    | xargsr kubectl delete VerrazzanoBindings \
     || err_exit $? "Could not delete VerrazzanoBindings" # return on pipefail
 }
 
@@ -57,7 +57,7 @@ function delete_models {
   log "Deleting VerrazzanoModels"
   kubectl get crd verrazzanomodels.verrazzano.io || return 0
   kubectl get VerrazzanoModels --no-headers -o custom-columns=":metadata.name" \
-    | xargs kubectl delete VerrazzanoModels \
+    | xargsr kubectl delete VerrazzanoModels \
     || err_exit $? "Could not delete VerrazzanoModels" # return on pipefail
 }
 
