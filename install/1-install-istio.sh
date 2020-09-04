@@ -72,15 +72,24 @@ function install_istio()
     helm fetch istio.io/istio --untar=true --untardir=$TMP_DIR || return $?
     helm fetch istio.io/istio-init --untar=true --untardir=$TMP_DIR || return $?
 
+    EXTRA_ISTIO_ARGUMENTS=""
+    if [ ${REGISTRY_SECRET_EXISTS} == "0" ]; then
+      EXTRA_ISTIO_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_REGISTRY_SECRET}"
+    fi
+
     log "Create helm template for installing istio CRDs"
     helm template istio-init ${TMP_DIR}/istio-init \
         --namespace istio-system \
         --set global.hub=$GLOBAL_HUB_REPO \
         --set global.tag=$ISTIO_VERSION \
+        ${EXTRA_ISTIO_ARGUMENTS} \
         > ${TMP_DIR}/istio-crds.yaml || return $?
 
     log "Generate cluster specific configuration"
     EXTRA_HELM_ARGUMENTS=""
+    if [ ${REGISTRY_SECRET_EXISTS} == "0" ]; then
+      EXTRA_HELM_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_REGISTRY_SECRET}"
+    fi
     if [ ${CLUSTER_TYPE} == "OLCNE" ] && [ $DNS_TYPE == "manual" ]; then
       ISTIO_INGRESS_IP=$(dig +short ingress-verrazzano.${NAME}.${DNS_SUFFIX})
       if [ -z ${ISTIO_INGRESS_IP} ]; then
@@ -88,7 +97,7 @@ function install_istio()
         consoleerr "Unable to identify an Ingress IP address. Check documentation and ensure the ingress-verrazzano DNS record exists"
         exit 1
       fi
-      EXTRA_HELM_ARGUMENTS=" --set gateways.istio-ingressgateway.externalIPs={"${ISTIO_INGRESS_IP}"}"
+      EXTRA_HELM_ARGUMENTS=$EXTRA_HELM_ARGUMENTS" --set gateways.istio-ingressgateway.externalIPs={"${ISTIO_INGRESS_IP}"}"
     fi
 
     log "Create helm template for installing istio proper"
@@ -258,10 +267,26 @@ log "Kubernetes nodes exist"
 action "Waiting for all Kubernetes nodes to be ready" \
     kubectl wait --for=condition=ready nodes --all || exit 1
 
+# Validate the optional global registry secret
+check_registry_secret_exists
+REGISTRY_SECRET_EXISTS=$?
+echo "Registry secret return values is ${REGISTRY_SECRET_EXISTS}"
+if [ "${REGISTRY_SECRET_EXISTS}" == "0" ]; then
+  action "Verifying that secret named ${GLOBAL_REGISTRY_SECRET} contains valid credentials" verify_registry_secret || exit 1
+fi
+
 # Create istio-system namespace if it does not exist
 if ! kubectl get namespace istio-system > /dev/null 2>&1 ; then
   action "Creating istio-system namespace" \
     kubectl create namespace istio-system || exit 1
+fi
+
+# Copy the optional global registry secret to the istio-system namespace for pulling OLCNE images in a OKE cluster
+if [ "${REGISTRY_SECRET_EXISTS}" == "0" ]; then
+  if ! kubectl get secret ${GLOBAL_REGISTRY_SECRET} -n istio-system > /dev/null 2>&1 ; then
+    action "Copying ${GLOBAL_REGISTRY_SECRET} secret to istio-system namespace" \
+        copy_registry_secret "istio-system"
+  fi
 fi
 
 # Create certificates and istio secret to hold certificates if we haven't already

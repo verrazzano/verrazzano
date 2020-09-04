@@ -21,7 +21,7 @@ spec:
       containers:
         - name: {{ .Values.verrazzanoOperator.name }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          image: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.imageName }}:{{ .Values.verrazzanoOperator.imageVersion }}
+          image: {{ .Values.verrazzanoOperator.imageName }}:{{ .Values.verrazzanoOperator.imageVersion }}
           args:
             - --v=4
             - --verrazzanoUri={{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
@@ -113,6 +113,12 @@ kind: ServiceAccount
 metadata:
   name: {{ .Values.verrazzanoOperator.name }}
   namespace: {{ .Release.Namespace }}
+{{- if .Values.global.imagePullSecrets }}
+imagePullSecrets:
+{{- range .Values.global.imagePullSecrets }}
+  - name: {{ . }}
+{{- end }}
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole

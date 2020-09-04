@@ -133,6 +133,21 @@ function validate_environment_name {
   return 0
 }
 
+# Check if the optional global registry secret exists
+function check_registry_secret_exists() {
+  kubectl get secret ${GLOBAL_REGISTRY_SECRET} -n default
+  return $?
+}
+
+# Copy global registry secret to the namespace passed in the first argument
+function copy_registry_secret()
+{
+  DEST_NS=$1
+  kubectl get secret ${GLOBAL_REGISTRY_SECRET} -n default -o yaml \
+      | sed "s|namespace: default|namespace: ${DEST_NS}|" \
+      | kubectl apply -n ${DEST_NS} -f -
+}
+
 # Call curl with the given arguments and set the given variables for response body and http code.
 # $1 the expected http response code; pass 0 to indicate that the http code shouldn't be checked
 # $2 the variable to set with the response body
@@ -212,6 +227,7 @@ command -v curl >/dev/null 2>&1 || {
 ####Constants for Docker images, versions, tags
 ##################################################
 GLOBAL_HUB_REPO=container-registry.oracle.com/olcne
+GLOBAL_REGISTRY_SECRET=verrazzano-container-registry
 
 CERT_MANAGER_IMAGE=container-registry.oracle.com/verrazzano/cert-manager-controller
 CERT_MANAGER_TAG=0.13.1-0e7394e-18

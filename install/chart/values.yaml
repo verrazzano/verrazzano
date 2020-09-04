@@ -2,18 +2,21 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 name: verrazzano
 
+global:
+  imagePullSecrets: []
+
 image:
   pullPolicy: Always
   terminationGracePeriodSeconds: 60
 
 docker:
-  repository: phx.ocir.io
-  namespace: stevengreenberginc/verrazzano
+  repository: container-registry.oracle.com
+  namespace: verrazzano
 
 verrazzanoOperator:
   name: verrazzano-operator
-  imageName: verrazzano-operator
-  imageVersion: v0.0.95-2a2ed1c-1
+  imageName: ghcr.io/verrazzano/verrazzano-operator-jenkins
+  imageVersion: c9a0de0c45848a56a250faf73fee3bdfbc3fa45a
   cohMicroImage: verrazzano-coh-cluster-operator:v0.0.8
   helidonMicroImage: verrazzano-helidon-app-operator:v0.0.7
   wlsMicroImage: verrazzano-wko-operator:v0.0.10
