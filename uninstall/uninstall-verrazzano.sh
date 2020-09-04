@@ -5,8 +5,10 @@
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 INSTALL_DIR=$SCRIPT_DIR/../install
+UNINSTALL_DIR=$SCRIPT_DIR/..
 
 . $INSTALL_DIR/common.sh
+. $UNINSTALL_DIR/uninstall-utils.sh
 
 set -o pipefail
 
@@ -48,15 +50,15 @@ function check_applications () {
   # check to make sure crds exist and grab them
   kubectl get crd verrazzanobindings.verrazzano.io || return 0
   kubectl get crd verrazzanomodels.verrazzano.io || return 0
-  bindings=$(kubectl get vb) || error "Could not collect VerrazzanoBindings"; return $?
-  models=$(kubectl get vm) || error "Could not collect VerrazzanoModels"; return $?
+  bindings=$(kubectl get vb) || err_exit $? "Could not collect VerrazzanoBindings"
+  models=$(kubectl get vm) || err_exit $? "Could not collect VerrazzanoModels"
 
   if [ "$bindings" ] || [ "$models" ] ; then
     APPLICATION_RESOURCES="$(tput bold)The following applications will be deleted upon uninstall:$(tput sgr0)
     Verrazzano Models:
-        $(kubectl get vm --no-headers -o custom-columns=":metadata.name" || error "Could not collect VerrazzanoModels"; return $?)
+        $(kubectl get vm --no-headers -o custom-columns=":metadata.name" || err_exit $? "Could not collect VerrazzanoModels")
     Verrazzano Bindings:
-        $(kubectl get vb --no-headers -o custom-columns=":metadata.name" || error "Could not collect VerrazzanoBindings"; return $?)\n"
+        $(kubectl get vb --no-headers -o custom-columns=":metadata.name" || err_exit $? "Could not collect VerrazzanoBindings")\n"
   fi
 }
 
@@ -64,8 +66,8 @@ function prompt_delete_applications () {
   # check to make sure crds exist and grab them
   kubectl get crd verrazzanobindings.verrazzano.io || return 0
   kubectl get crd verrazzanomodels.verrazzano.io || return 0
-  bindings=$(kubectl get vb) || error "Could not collect VerrazzanoBindings"; return $?
-  models=$(kubectl get vm) || error "Could not collect VerrazzanoModels"; return $?
+  bindings=$(kubectl get vb) || err_exit $? "Could not collect VerrazzanoBindings"
+  models=$(kubectl get vm) || err_exit $? "Could not collect VerrazzanoModels"
 
   if [ "$bindings" ] || [ "$models" ] ; then
       if [ "$FORCE" = false ] ; then
