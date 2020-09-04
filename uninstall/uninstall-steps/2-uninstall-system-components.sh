@@ -5,8 +5,10 @@
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 INSTALL_DIR=$SCRIPT_DIR/../../install
+UNINSTALL_DIR=$SCRIPT_DIR/..
 
 . $INSTALL_DIR/common.sh
+. $UNINSTALL_DIR/uninstall-utils.sh
 
 set -o pipefail
 
@@ -14,7 +16,7 @@ function delete_external_dns() {
   log "Deleting external-dns"
   helm ls -A \
     | awk '/external-dns/ {print $1}' \
-    | xargs helm uninstall -n cert-manager \
+    | xargsr helm uninstall -n cert-manager \
     || return $? # return on pipefail
 
   # delete clusterrole and clusterrolebinding
@@ -28,7 +30,7 @@ function delete_nginx() {
   log "Deleting ingress-nginx"
   helm ls -A \
     | awk '/ingress-controller/ {print $1}' \
-    | xargs helm uninstall -n ingress-nginx \
+    | xargsr helm uninstall -n ingress-nginx \
     || return $? # return on pipefail
 
   # delete the nginx clusterrole and clusterrolebinding
@@ -40,7 +42,7 @@ function delete_nginx() {
   log "Deleting ingress-nginx namespace"
   kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
     | awk '/ingress-nginx/ {print $1}' \
-    | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge  \
+    | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge  \
     || return $? # return on pipefail
 
   kubectl delete namespace ingress-nginx --ignore-not-found=true || return $?
@@ -51,7 +53,7 @@ function delete_cert_manager() {
   log "Deleting cert-manager"
   helm ls -A \
     | awk '/cert-manager/ {print $1}' \
-    | xargs helm uninstall -n cert-manager \
+    | xargsr helm uninstall -n cert-manager \
     || return $? # return on pipefail
 
   # delete the custom resource definition for cert manager
@@ -66,7 +68,7 @@ function delete_cert_manager() {
   # delete namespace finalizers
   kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
     | awk '/cert-manager/ {print $1}' \
-    | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
+    | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
     || return $? # return on pipefail
 
   # delete namespace
@@ -78,7 +80,7 @@ function delete_rancher() {
   log "Deleting rancher"
   helm ls -A \
     | awk '/rancher/ {print $1}' \
-    | xargs helm uninstall -n cattle-system \
+    | xargsr helm uninstall -n cattle-system \
     || return $? # return on pipefail
 
   log "Deleting CRDs from rancher"
@@ -90,13 +92,13 @@ function delete_rancher() {
       # remove finalizers from crds
     kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" \
       | awk '/coreos.com|cattle.io/ {print $1}' \
-      | xargs kubectl patch crd -p '{"metadata":{"finalizers":null}}' --type=merge \
+      | xargsr kubectl patch crd -p '{"metadata":{"finalizers":null}}' --type=merge \
       || return $? # return on pipefail
 
     # delete crds
     kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" \
       | awk '/coreos.com|cattle.io/ {print $1}' \
-      | xargs kubectl delete crd  \
+      | xargsr kubectl delete crd  \
       || return $? &# return on pipefail
     sleep 30
     kill $! || true
@@ -107,14 +109,14 @@ function delete_rancher() {
   log "Deleting ClusterRoleBindings"
   kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
     | awk '/cattle.io|app:rancher/ {print $1}' \
-    | xargs kubectl delete clusterrolebinding \
+    | xargsr kubectl delete clusterrolebinding \
     || return $? # return on pipefail
 
   # delete clusterroles
   log "Deleting ClusterRoles"
   kubectl get clusterrole --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
     | awk '/cattle.io/ {print $1}' \
-    | xargs kubectl delete clusterrole \
+    | xargsr kubectl delete clusterrole \
     || return $? # return on pipefail
 
   # delete rolebinding
@@ -124,7 +126,7 @@ function delete_rancher() {
   do
     kubectl get rolebinding --no-headers -o custom-columns=":metadata.name" -n "${namespace}"\
       | awk '/clusterrolebinding-/' \
-      | xargs kubectl delete rolebinding -n "${namespace}" \
+      | xargsr kubectl delete rolebinding -n "${namespace}" \
       || return $? # return on pipefail
   done
 
@@ -135,13 +137,13 @@ function delete_rancher() {
   # delete namespace finalizers
   kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
     | awk '/cattle-|local|p-|user-/ {print $1}' \
-    | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
+    | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
     || return $? # return on pipefail
 
   # delete cattle namespaces
   kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
     | awk '/cattle-|local|p-|user-/ {print $1}' \
-    | xargs kubectl delete namespaces \
+    | xargsr kubectl delete namespaces \
     || return $? # return on pipefail
 
   # delete annotations left in kube-system secrets
@@ -150,7 +152,7 @@ function delete_rancher() {
   do
     kubectl get secret -n "${namespace}" --no-headers -o custom-columns=":metadata.name,:metadata.annotations" \
       | awk '/field.cattle.io\/projectId:/ {print $1}' \
-      | xargs -I resource kubectl annotate secret resource -n "${namespace}" field.cattle.io/projectId- \
+      | xargsr -I resource kubectl annotate secret resource -n "${namespace}" field.cattle.io/projectId- \
       || return $? # return on pipefail
   done
 }
