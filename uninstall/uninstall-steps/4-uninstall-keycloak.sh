@@ -5,8 +5,10 @@
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 INSTALL_DIR=$SCRIPT_DIR/../../install
+UNINSTALL_DIR=$SCRIPT_DIR/..
 
 . $INSTALL_DIR/common.sh
+. $UNINSTALL_DIR/uninstall-utils.sh
 
 set -o pipefail
 
@@ -15,7 +17,7 @@ function delete_mysql() {
   log "Deleting MySQL"
   helm ls -A \
     | awk '/mysql/ {print $1}' \
-    | xargs helm delete -n keycloak \
+    | xargsr helm delete -n keycloak \
     || return $? # return on pipefail
 }
 
@@ -24,13 +26,13 @@ function delete_keycloak() {
   log "Deleting Keycloak"
   helm ls -A \
     | awk '/keycloak/ {print $1}' \
-    | xargs helm delete -n keycloak \
+    | xargsr helm delete -n keycloak \
     || return $? # return on pipefail
 
   # delete keycloak namespace
   kubectl get namespace --no-headers -o custom-columns=":metadata.name" \
     | awk '/keycloak/ {print $1}' \
-    | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
+    | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
     || return $? # return on pipefail
 
   log "Deleting Keycloak namespace"
@@ -42,13 +44,13 @@ function delete_resources() {
   # deleting clusterrolebindings
   kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
     | awk '/cattle-admin|proxy-role-binding-kubernetes-master/' \
-    | xargs kubectl delete clusterrolebinding \
+    | xargsr kubectl delete clusterrolebinding \
     || return $? # return on pipefail
 
   # deleting clusterroles
   kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
     | awk '/cattle-admin|local-cluster|proxy-clusterrole-kubeapiserver/' \
-    | xargs kubectl delete clusterrole \
+    | xargsr kubectl delete clusterrole \
     || return $? # return on pipefail
 }
 

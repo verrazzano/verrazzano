@@ -5,8 +5,10 @@
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 INSTALL_DIR=$SCRIPT_DIR/../../install
+UNINSTALL_DIR=$SCRIPT_DIR/..
 
 . $INSTALL_DIR/common.sh
+. $UNINSTALL_DIR/uninstall-utils.sh
 
 set -o pipefail
 
@@ -25,28 +27,28 @@ function uninstall_istio() {
   log "Deleting Istio Custom Resource Definitions"
   kubectl get crd --no-headers -o custom-columns=":metadata.name" \
     | awk '/istio.io/ {print $1}' \
-    | xargs kubectl delete crd \
+    | xargsr kubectl delete crd \
     || return $? # return on pipefail
 
   # delete istio api services
   log "Deleting Istio API Services"
   kubectl get apiservice --no-headers -o custom-columns=":metadata.name" \
     | awk '/istio.io/ {print $1}' \
-    | xargs kubectl delete apiservice \
+    | xargsr kubectl delete apiservice \
     || return $? # return on pipefail
 
   # delete istio cluster role bindings
   log "Deleting Istio Cluster Role Bindings"
   kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
     | awk '/istio-system|istio-multi/ {print $1}' \
-    | xargs kubectl delete clusterrolebinding \
+    | xargsr kubectl delete clusterrolebinding \
     || return $? # return on pipefail
 
   # delete istio cluster roles
   log "Deleting Istio Cluster Roles"
   kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
     | awk '/istio-system|istio-reader|istiocoredns/ {print $1}' \
-    | xargs kubectl delete clusterrole \
+    | xargsr kubectl delete clusterrole \
     || return $? # return on pipefail
 }
 
@@ -60,14 +62,14 @@ function delete_secrets() {
   # delete secrets left over in kube-system
   kubectl get secrets -n kube-system --no-headers -o custom-columns=":metadata.name,:metadata.annotations" \
   | awk '/istio./ {print $1}' \
-  | xargs kubectl delete secret -n kube-system \
+  | xargsr kubectl delete secret -n kube-system \
   || return $? # return on pipefail
 }
 
 function delete_istio_namepsace() {
   kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
     | awk '/istio-system/ {print $1}' \
-    | xargs kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge  \
+    | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge  \
     || return $? # return on pipefail
 
   log "Deleting istio-system namespace"
@@ -75,22 +77,22 @@ function delete_istio_namepsace() {
 }
 
 function finalize() {
-  # Grab all leftover Helm repos and delete resources
-  log "Deleting Helm repos"
-  helm repo ls || true \
-    | awk 'NR>1 {print $1}' \
-    | xargs -I name helm repo remove name \
-    || return $? # return on pipefail
-
   # Removing possible reference to verrazzano in clusterroles and clusterrolebindings
   kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
     | awk '/verrazzano/' \
-    | xargs kubectl delete clusterrolebinding \
+    | xargsr kubectl delete clusterrolebinding \
     || return $? # return on pipefail
 
   kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
     | awk '/verrazzano/' \
-    | xargs kubectl delete clusterrole \
+    | xargsr kubectl delete clusterrole \
+    || return $? # return on pipefail
+
+  # Grab all leftover Helm repos and delete resources
+  log "Deleting Helm repos"
+  helm repo ls \
+    | awk '/istio.io|stable|jetstack|rancher-stable|codecentric/ {print $1}' \
+    | xargsr -I name helm repo remove name \
     || return $? # return on pipefail
 }
 
