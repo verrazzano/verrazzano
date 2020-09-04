@@ -124,7 +124,7 @@ function install_verrazzano()
   kubectl wait --for=condition=ready cert tls-rancher-ingress -n cattle-system
 
   # Make sure rancher ingress has an IP
-  wait_for_ingress_ip rancher cattle-system
+  wait_for_ingress_ip rancher cattle-system || exit 1
 
   get_rancher_access_token "${RANCHER_HOSTNAME}" "${rancher_admin_password}"
   if [ $? -ne 0 ] ; then
