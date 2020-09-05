@@ -81,9 +81,15 @@ spec:
               datasourceName: books
   helidonApplications:
     - name: "bobbys-helidon-stock-application"
-      image: "container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.10-3-e5ae893-124"
+      image: "docker.pkg.github.com/verrazzano/examples/bobbys-helidon-stock-application:v0.0.0-5cfa06d-1"
       imagePullSecrets:
         - name: ocr
+        - name: github-packages
+      env:
+        - name: COH_CACHE_CONFIG
+          value: bobbys-cache-config.xml
+        - name: COH_POF_CONFIG
+          value: bobbys-pof-config.xml
       connections:
         - coherence:
             - target: "bobbys-coherence"
@@ -109,11 +115,14 @@ spec:
               address: "roberts-coherence-wka"
   coherenceClusters:
     - name: "bobbys-coherence"
-      image: "container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.10-3-e5ae893-124"
+      image: "docker.pkg.github.com/verrazzano/examples/bobbys-coherence:v0.0.0-5cfa06d-1"
       imagePullSecrets:
         - name: ocr  # secret to pull bobbys-coherence and container-registry.oracle.com/middleware/coherence:12.2.1.4.0
       cacheConfig: "bobbys-cache-config.xml"
       pofConfig: "bobbys-pof-config.xml"
+      ports:
+        - name: extend
+          port: 9000
     - name: "roberts-coherence"
       image: "container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.10-3-7508985-127"
       imagePullSecrets:
