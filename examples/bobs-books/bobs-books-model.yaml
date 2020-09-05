@@ -87,9 +87,9 @@ spec:
         - name: github-packages
       env:
         - name: COH_CACHE_CONFIG
-          value: bobbys-cache-config.xml
+          value: bobbys-helidon-cache-config.xml
         - name: COH_POF_CONFIG
-          value: bobbys-pof-config.xml
+          value: bobbys-helidon-pof-config.xml
       connections:
         - coherence:
             - target: "bobbys-coherence"
@@ -117,6 +117,7 @@ spec:
     - name: "bobbys-coherence"
       image: "docker.pkg.github.com/verrazzano/examples/bobbys-coherence:v0.0.0-5cfa06d-1"
       imagePullSecrets:
+        - name: github-packages
         - name: ocr  # secret to pull bobbys-coherence and container-registry.oracle.com/middleware/coherence:12.2.1.4.0
       cacheConfig: "bobbys-cache-config.xml"
       pofConfig: "bobbys-pof-config.xml"
