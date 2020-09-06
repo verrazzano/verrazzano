@@ -268,9 +268,7 @@ action "Waiting for all Kubernetes nodes to be ready" \
     kubectl wait --for=condition=ready nodes --all || exit 1
 
 # Validate the optional global registry secret
-check_registry_secret_exists
-REGISTRY_SECRET_EXISTS=$?
-echo "Registry secret return values is ${REGISTRY_SECRET_EXISTS}"
+REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 if [ "${REGISTRY_SECRET_EXISTS}" == "0" ]; then
   action "Verifying that secret named ${GLOBAL_REGISTRY_SECRET} contains valid credentials" verify_registry_secret || exit 1
 fi

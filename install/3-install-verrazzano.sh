@@ -232,8 +232,7 @@ fi
 RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
 
 # Set environment variable for checking if optional imagePullSecret was provided
-check_registry_secret_exists
-REGISTRY_SECRET_EXISTS=$?
+REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 
 if ! kubectl get namespace ${VERRAZZANO_NS} ; then
   action "Creating ${VERRAZZANO_NS} namespace" kubectl create namespace ${VERRAZZANO_NS} || exit 1
