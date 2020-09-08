@@ -26,19 +26,20 @@ function xargsr() {
   fi
 }
 
-# error exit command
+# error return command
 # $1 exit_code - code given by the command that triggered this function
 # $2 message - error message given to the user when an error is reached
 # Usage:
-# err_exit $? "message"
-function err_exit() {
+# err_return $? "message"
+function err_return() {
   exit_code=$1
-  if (($exit_code < 0 && $exit_code > 255)) ; then
-    error "exit code not a valid integer"
-    exit 1
-  fi
   message=$2
 
+  if (($exit_code < 0 && $exit_code > 255)) ; then
+    error "the exit code given is not a valid integer"
+    exit 1
+  fi
+
   error "$message"
-  exit "$exit_code"
+  return "$exit_code"
 }

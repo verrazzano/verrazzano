@@ -50,15 +50,15 @@ function check_applications () {
   # check to make sure crds exist and grab them
   kubectl get crd verrazzanobindings.verrazzano.io || return 0
   kubectl get crd verrazzanomodels.verrazzano.io || return 0
-  bindings=$(kubectl get vb) || err_exit $? "Could not collect VerrazzanoBindings"
-  models=$(kubectl get vm) || err_exit $? "Could not collect VerrazzanoModels"
+  bindings=$(kubectl get vb) || err_return $? "Could not collect VerrazzanoBindings" || return $?
+  models=$(kubectl get vm) || err_return $? "Could not collect VerrazzanoModels" || return $?
 
   if [ "$bindings" ] || [ "$models" ] ; then
     APPLICATION_RESOURCES="$(tput bold)The following applications will be deleted upon uninstall:$(tput sgr0)
     Verrazzano Models:
-        $(kubectl get vm --no-headers -o custom-columns=":metadata.name" || err_exit $? "Could not collect VerrazzanoModels")
+        $(kubectl get vm --no-headers -o custom-columns=":metadata.name" || err_return $? "Could not collect VerrazzanoModels" || return $?)
     Verrazzano Bindings:
-        $(kubectl get vb --no-headers -o custom-columns=":metadata.name" || err_exit $? "Could not collect VerrazzanoBindings")\n"
+        $(kubectl get vb --no-headers -o custom-columns=":metadata.name" || err_return $? "Could not collect VerrazzanoBindings" || return $?)\n"
   fi
 }
 
@@ -66,8 +66,8 @@ function prompt_delete_applications () {
   # check to make sure crds exist and grab them
   kubectl get crd verrazzanobindings.verrazzano.io || return 0
   kubectl get crd verrazzanomodels.verrazzano.io || return 0
-  bindings=$(kubectl get vb) || err_exit $? "Could not collect VerrazzanoBindings"
-  models=$(kubectl get vm) || err_exit $? "Could not collect VerrazzanoModels"
+  bindings=$(kubectl get vb) || err_return $? "Could not collect VerrazzanoBindings" || return $?
+  models=$(kubectl get vm) || err_return $? "Could not collect VerrazzanoModels" || return $?
 
   if [ "$bindings" ] || [ "$models" ] ; then
       if [ "$FORCE" = false ] ; then

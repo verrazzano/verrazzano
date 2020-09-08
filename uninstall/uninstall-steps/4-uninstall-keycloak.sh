@@ -18,7 +18,7 @@ function delete_mysql() {
   helm ls -A \
     | awk '/mysql/ {print $1}' \
     | xargsr helm delete -n keycloak \
-    || err_exit $? "Could not delete MySQL from helm" # return on pipefail
+    || err_return $? "Could not delete MySQL from helm" || return $? # return on pipefail
 }
 
 function delete_keycloak() {
@@ -27,17 +27,17 @@ function delete_keycloak() {
   helm ls -A \
     | awk '/keycloak/ {print $1}' \
     | xargsr helm delete -n keycloak \
-    || err_exit $? "Could not delete keycloak from helm" # return on pipefail
+    || err_return $? "Could not delete keycloak from helm" || return $? # return on pipefail
 
   # delete keycloak namespace
   log "Deleting keycloak namespace finalizers"
   kubectl get namespace --no-headers -o custom-columns=":metadata.name" \
     | awk '/keycloak/ {print $1}' \
     | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
-    || err_exit $? "Could not remove finalizers from namespace keycloak" # return on pipefail
+    || err_return $? "Could not remove finalizers from namespace keycloak" || return $? # return on pipefail
 
   log "Deleting Keycloak namespace"
-  kubectl delete namespace keycloak --ignore-not-found=true || err_exit $? "Could not delete namespace keycloak"
+  kubectl delete namespace keycloak --ignore-not-found=true || err_return $? "Could not delete namespace keycloak" || return $?
 }
 
 function delete_resources() {
@@ -46,13 +46,13 @@ function delete_resources() {
   kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
     | awk '/cattle-admin|proxy-role-binding-kubernetes-master/' \
     | xargsr kubectl delete clusterrolebinding \
-    || err_exit $? "Could not delete ClusterRoleBindings from Keycloak" # return on pipefail
+    || err_return $? "Could not delete ClusterRoleBindings from Keycloak" || return $? # return on pipefail
 
   # deleting clusterroles
   kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
     | awk '/cattle-admin|local-cluster|proxy-clusterrole-kubeapiserver/' \
     | xargsr kubectl delete clusterrole \
-    || err_exit $? "Could not delete ClusterRoles from Keycloak" # return on pipefail
+    || err_return $? "Could not delete ClusterRoles from Keycloak" || return $? # return on pipefail
 }
 
 action "Deleting MySQL Components" delete_mysql || exit 1
