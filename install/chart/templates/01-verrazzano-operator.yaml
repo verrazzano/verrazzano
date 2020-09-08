@@ -26,7 +26,6 @@ spec:
             - --v=4
             - --verrazzanoUri={{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
             - --enableMonitoringStorage={{ .Values.config.enableMonitoringStorage }}
-            - --sslVerify={{ .Values.verrazzanoOperator.sslVerify }}
             - --apiServerRealm={{ .Values.verrazzanoOperator.apiServerRealm }}
           env:
             - name: COH_MICRO_IMAGE
