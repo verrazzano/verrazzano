@@ -18,7 +18,7 @@ function delete_mysql() {
   helm ls -A \
     | awk '/mysql/ {print $1}' \
     | xargsr helm delete -n keycloak \
-    || err_exit $? "Could not delete mysql from helm" # return on pipefail
+    || err_exit $? "Could not delete MySQL from helm" # return on pipefail
 }
 
 function delete_keycloak() {
