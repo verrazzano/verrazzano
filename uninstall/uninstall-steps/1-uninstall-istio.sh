@@ -46,7 +46,7 @@ function uninstall_istio() {
 
   # delete istio cluster roles
   log "Deleting Istio Cluster Roles"
-  kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
+  kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
     | awk '/istio-system|istio-reader|istiocoredns/ {print $1}' \
     | xargsr kubectl delete clusterrole \
     || return $? # return on pipefail
