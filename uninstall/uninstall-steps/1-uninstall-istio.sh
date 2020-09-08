@@ -92,10 +92,14 @@ function finalize() {
 
   # Grab all leftover Helm repos and delete resources
   log "Deleting Helm repos"
-  helm repo ls \
-    | awk '/istio.io|stable|jetstack|rancher-stable|codecentric/ {print $1}' \
-    | xargsr -I name helm repo remove name \
-    || err_exit $? "Could not delete helm repos" # return on pipefail
+  local helm_ls
+  helm_ls=$(helm repo ls)
+  if [ $? -eq 0 ]; then
+    echo "$helm_ls" \
+      | awk '/istio.io|stable|jetstack|rancher-stable|codecentric/ {print $1}' \
+      | xargsr -I name helm repo remove name \
+      || return $? # return on pipefail
+  fi
 }
 
 action "Deleting Istio Components" uninstall_istio || exit 1
