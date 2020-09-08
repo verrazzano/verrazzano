@@ -54,7 +54,7 @@ function uninstall_istio() {
 
 function delete_secrets() {
   # Delete istio.default in all namespaces
-  log "Collecting istio secrets for deletion"
+  log "Retrieveing istio secrets for deletion"
   kubectl delete secret istio.default --ignore-not-found=true || err_return $? "Could not delete secret from Istio in namespace default" || return $?
   kubectl delete secret istio.default -n kube-public --ignore-not-found=true || err_return $? "Could not delete secret from Istio in namespace kube-public" || return $?
   kubectl delete secret istio.default -n kube-node-lease --ignore-not-found=true || err_return $? "Could not delete secret from Istio in namespace kuce-node-lease" || return $?
