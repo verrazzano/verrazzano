@@ -46,7 +46,7 @@ function uninstall_istio() {
 
   # delete istio cluster roles
   log "Deleting Istio Cluster Roles"
-  kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
+  kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
     | awk '/istio-system|istio-reader|istiocoredns/ {print $1}' \
     | xargsr kubectl delete clusterrole \
     || return $? # return on pipefail
@@ -90,10 +90,14 @@ function finalize() {
 
   # Grab all leftover Helm repos and delete resources
   log "Deleting Helm repos"
-  helm repo ls \
-    | awk '/istio.io|stable|jetstack|rancher-stable|codecentric/ {print $1}' \
-    | xargsr -I name helm repo remove name \
-    || return $? # return on pipefail
+  local helm_ls
+  helm_ls=$(helm repo ls)
+  if [ $? -eq 0 ]; then
+    echo "$helm_ls" \
+      | awk '/istio.io|stable|jetstack|rancher-stable|codecentric/ {print $1}' \
+      | xargsr -I name helm repo remove name \
+      || return $? # return on pipefail
+  fi
 }
 
 action "Deleting Istio Components" uninstall_istio || exit 1
