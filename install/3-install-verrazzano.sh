@@ -142,7 +142,6 @@ function install_verrazzano()
       --set config.envName=${NAME} \
       --set config.dnsSuffix=${DNS_SUFFIX} \
       --set config.enableMonitoringStorage=true \
-      --set verrazzanoOperator.sslVerify=false \
       --set clusterOperator.rancherURL=https://${RANCHER_HOSTNAME} \
       --set clusterOperator.rancherUserName="${token_array[0]}" \
       --set clusterOperator.rancherPassword="${token_array[1]}" \
