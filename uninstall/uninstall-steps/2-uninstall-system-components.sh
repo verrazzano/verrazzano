@@ -92,13 +92,14 @@ function delete_rancher() {
 
   while [ "$crd_content" ]
   do
-      # remove finalizers from crds
+    # remove finalizers from crds
     kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" \
       | awk '/coreos.com|cattle.io/ {print $1}' \
       | xargsr kubectl patch crd -p '{"metadata":{"finalizers":null}}' --type=merge \
       || err_return $? "Could not remove finalizers from CustomResourceDefinitions in Rancher" || return $? # return on pipefail
 
     # delete crds
+    # This process is backgrounded in order to timeout due to finalizers hanging
     kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" \
       | awk '/coreos.com|cattle.io/ {print $1}' \
       | xargsr kubectl delete crd  \
