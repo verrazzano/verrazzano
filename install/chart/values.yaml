@@ -13,8 +13,7 @@ docker:
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: verrazzano-operator
-  imageVersion: v0.0.91-b4c3058-1
-  sslVerify: true
+  imageVersion: v0.0.92-03e362c-1
   cohMicroImage: verrazzano-coh-cluster-operator:v0.0.8
   helidonMicroImage: verrazzano-helidon-app-operator:v0.0.7
   wlsMicroImage: verrazzano-wko-operator:v0.0.10
