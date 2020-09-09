@@ -32,7 +32,7 @@ function initializing_uninstall {
     if [ "$status" != 200 ] && [ "$status" != 404 ] ; then
       return 1
     fi
-    local time_out=30
+    local max_retries=30
     local retries=0
     while true ; do
       still_exists="$(curl -s -X GET -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")"
@@ -44,7 +44,7 @@ function initializing_uninstall {
         sleep 10
       fi
       ((retries+=1))
-      if [ "$retries" -ge "$time_out" ] ; then
+      if [ "$retries" -ge "$max_retries" ] ; then
         return 1
       fi
     done
