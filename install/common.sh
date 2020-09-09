@@ -175,11 +175,7 @@ function call_curl {
 }
 
 
-KIND_CLUSTER_NAME=${KIND_CLUSTER_NAME:=verrazzano}
 VERRAZZANO_DIR=${SCRIPT_DIR}/.verrazzano
-KIND_KUBE_CONTEXT="kind-${KIND_CLUSTER_NAME}"
-KIND_KUBECONFIG="${BUILD_DIR}/kind-kubeconfig"
-
 
 CLUSTER_TYPE="${CLUSTER_TYPE:-}"
 if [ "${CLUSTER_TYPE}" != "OKE" ] && [ "${CLUSTER_TYPE}" != "OLCNE" ]; then

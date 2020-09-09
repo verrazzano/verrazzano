@@ -21,8 +21,6 @@ trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 function set_INGRESS_IP() {
   if [ ${CLUSTER_TYPE} == "OKE" ]; then
     INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
-  elif [ ${CLUSTER_TYPE} == "KIND" ]; then
-    INGRESS_IP=$(kubectl get node ${KIND_CLUSTER_NAME}-control-plane -o json | jq -r '.status.addresses[] | select (.type == "InternalIP") | .address')
   elif [ ${CLUSTER_TYPE} == "OLCNE" ]; then
     # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
     INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')

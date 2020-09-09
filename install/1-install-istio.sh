@@ -8,11 +8,7 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 . $SCRIPT_DIR/common.sh
 
 
-if [ ${CLUSTER_TYPE} == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
-  INGRESS_TYPE=LoadBalancer
-elif [ ${CLUSTER_TYPE} == "KIND" ]; then
-  INGRESS_TYPE=NodePort
-fi
+INGRESS_TYPE=LoadBalancer #this is true for both OKE and OLCNE clusters
 
 CONFIG_DIR=$SCRIPT_DIR/config
 TMP_DIR=$(mktemp -d)
