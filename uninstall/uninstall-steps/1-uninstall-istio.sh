@@ -98,6 +98,12 @@ function finalize() {
       | xargsr -I name helm repo remove name \
       || return $? # return on pipefail
   fi
+
+  log "Removing Namespace Finalizers"
+  kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
+    | awk '{print $1}' \
+    | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
+    || return $? # return on pipefail
 }
 
 action "Deleting Istio Components" uninstall_istio || exit 1
