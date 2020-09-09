@@ -182,21 +182,16 @@ KIND_KUBECONFIG="${BUILD_DIR}/kind-kubeconfig"
 
 
 CLUSTER_TYPE="${CLUSTER_TYPE:-}"
-if [ "${CLUSTER_TYPE}" != "KIND" ] && [ "${CLUSTER_TYPE}" != "OKE" ] && [ "${CLUSTER_TYPE}" != "OLCNE" ]; then
-  fail "CLUSTER_TYPE environment variable must be set to KIND, OKE or OLCNE"
+if [ "${CLUSTER_TYPE}" != "OKE" ] && [ "${CLUSTER_TYPE}" != "OLCNE" ]; then
+  fail "CLUSTER_TYPE environment variable must be set to OKE or OLCNE"
 fi
 
 VERRAZZANO_KUBECONFIG="${VERRAZZANO_KUBECONFIG:-}"
-if [ "${CLUSTER_TYPE}" == "KIND" ] && [ -z "${VERRAZZANO_KUBECONFIG}" ] ; then
-  VERRAZZANO_KUBECONFIG="${KIND_KUBECONFIG}"
-  mkdir -p $(dirname $VERRAZZANO_KUBECONFIG)
-else
-  if [ -z "${VERRAZZANO_KUBECONFIG}" ] ; then
-    fail "Environment variable VERRAZZANO_KUBECONFIG must be set and point to a valid kubernetes configuration file"
-  fi
-  if [ ! -f "${VERRAZZANO_KUBECONFIG}" ] ; then
-    fail "Environment variable VERRAZZANO_KUBECONFIG points to file ${VERRAZZANO_KUBECONFIG} which does not exist"
-  fi
+if [ -z "${VERRAZZANO_KUBECONFIG}" ] ; then
+  fail "Environment variable VERRAZZANO_KUBECONFIG must be set and point to a valid kubernetes configuration file"
+fi
+if [ ! -f "${VERRAZZANO_KUBECONFIG}" ] ; then
+  fail "Environment variable VERRAZZANO_KUBECONFIG points to file ${VERRAZZANO_KUBECONFIG} which does not exist"
 fi
 export KUBECONFIG="${VERRAZZANO_KUBECONFIG}"
 
