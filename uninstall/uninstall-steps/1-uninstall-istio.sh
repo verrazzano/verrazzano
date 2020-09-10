@@ -100,8 +100,8 @@ function finalize() {
   fi
 
   log "Removing Namespace Finalizers"
-  kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
-    | awk '{print $1}' \
+  kubectl get namespaces --no-headers -o custom-columns=":metadata.name,:metadata.finalizers" \
+    | awk '/controller.cattle.io/ {print $1}' \
     | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
     || return $? # return on pipefail
 }
