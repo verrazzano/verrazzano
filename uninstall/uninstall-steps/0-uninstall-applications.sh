@@ -32,7 +32,9 @@ function initializing_uninstall {
     if [ "$status" != 200 ] && [ "$status" != 404 ] ; then
       return 1
     fi
-    while [ true ] ; do
+    local max_retries=30
+    local retries=0
+    while true ; do
       still_exists="$(curl -s -X GET -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")"
       state="$(echo "$still_exists" | jq -r ".state" )"
       if [ "$state" != "active" ] && [ "$state" != "removing" ] ; then
@@ -40,6 +42,10 @@ function initializing_uninstall {
       else
         log "Rancher cluster is still in state: ${state}"
         sleep 10
+      fi
+      ((retries+=1))
+      if [ "$retries" -ge "$max_retries" ] ; then
+        return 1
       fi
     done
   fi
