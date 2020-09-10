@@ -31,10 +31,8 @@ function delete_keycloak() {
 
   # delete keycloak namespace
   log "Deleting keycloak namespace finalizers"
-  kubectl get namespace --no-headers -o custom-columns=":metadata.name" \
-    | awk '/keycloak/ {print $1}' \
-    | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
-    || err_return $? "Could not remove finalizers from namespace keycloak" || return $? # return on pipefail
+  patch_k8s_resources namespace ":metadata.name" "Could not remove finalizers from namespace keycloak" '/keycloak/ {print $1}' '{"metadata":{"finalizers":null}}' \
+    || return $? # return on pipefail
 
   log "Deleting Keycloak namespace"
   kubectl delete namespace keycloak --ignore-not-found=true || err_return $? "Could not delete namespace keycloak" || return $?
@@ -43,16 +41,12 @@ function delete_keycloak() {
 function delete_resources() {
   log "Deleting ClusterRoles and ClusterRoleBindings"
   # deleting clusterrolebindings
-  kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name" \
-    | awk '/cattle-admin|proxy-role-binding-kubernetes-master/' \
-    | xargsr kubectl delete clusterrolebinding \
-    || err_return $? "Could not delete ClusterRoleBindings from Keycloak" || return $? # return on pipefail
+  delete_k8s_resources clusterrolebinding ":metadata.name" "Could not delete ClusterRoleBindings from Keycloak" '/cattle-admin|proxy-role-binding-kubernetes-master/' \
+    || return $? # return on pipefail
 
   # deleting clusterroles
-  kubectl get clusterrole --no-headers -o custom-columns=":metadata.name" \
-    | awk '/cattle-admin|local-cluster|proxy-clusterrole-kubeapiserver/' \
-    | xargsr kubectl delete clusterrole \
-    || err_return $? "Could not delete ClusterRoles from Keycloak" || return $? # return on pipefail
+  delete_k8s_resources clusterrole ":metadata.name" "Could not delete ClusterRoles from Keycloak" '/cattle-admin|local-cluster|proxy-clusterrole-kubeapiserver/' \
+    || return $? # return on pipefail
 }
 
 action "Deleting MySQL Components" delete_mysql || exit 1
