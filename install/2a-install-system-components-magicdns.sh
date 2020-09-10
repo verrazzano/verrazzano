@@ -150,7 +150,7 @@ function install_rancher()
     kubectl patch ingress rancher -n cattle-system -p "$RANCHER_PATCH_DATA" --type=merge
 
     log "Rollout Rancher"
-    kubectl -n cattle-system rollout status -w deploy/rancher
+    kubectl -n cattle-system rollout status -w deploy/rancher || return $?
 
     log "Create Rancher secrets"
     RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- reset-password 2>/dev/null)
