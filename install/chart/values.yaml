@@ -7,8 +7,8 @@ image:
   terminationGracePeriodSeconds: 60
 
 docker:
-  repository: phx.ocir.io
-  namespace: stevengreenberginc/verrazzano
+  repository: container-registry.oracle.com
+  namespace: verrazzano
 
 verrazzanoOperator:
   name: verrazzano-operator
