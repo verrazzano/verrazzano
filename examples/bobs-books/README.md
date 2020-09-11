@@ -22,7 +22,7 @@ cluster if you are using a multi-cluster environment.
 
    ```
    kubectl create secret docker-registry ocr \
-           --docker-server=container-registry.oracle.com \
+           --docker-server=container-registry-fra.oracle.com \
            --docker-username=YOUR_USERNAME \
            --docker-password=YOUR_PASSWORD \
            --docker-email=YOUR_EMAIL
@@ -31,7 +31,7 @@ cluster if you are using a multi-cluster environment.
    Replace `YOUR_USERNAME`, `YOUR_PASSWORD` and `YOUR_EMAIL` with the values that you
    use to access Oracle Container Registry.
 
-1. If you have not done so already, in a web browser, navigate to the [Oracle Container Registry](https://container-registry.oracle.com):
+1. If you have not done so already, in a web browser, navigate to the [Oracle Container Registry](https://container-registry-fra.oracle.com):
 
   * Select **Middleware**, review, and _Sign in_ to accept the licenses for the WebLogic and Coherence images.
 

@@ -2,7 +2,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 imageTag: MYSQL_IMAGE_TAG
 busybox:
-    image: container-registry.oracle.com/os/oraclelinux
+    image: container-registry-fra.oracle.com/os/oraclelinux
     tag: 7-slim
 
 mysqlUser: MYSQL_USERNAME

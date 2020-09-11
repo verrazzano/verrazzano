@@ -18,7 +18,7 @@ application.
 
    ```
    kubectl create secret docker-registry ocr \
-           --docker-server=container-registry.oracle.com \
+           --docker-server=container-registry-fra.oracle.com \
            --docker-username=YOUR_USERNAME \
            --docker-password=YOUR_PASSWORD \
            --docker-email=YOUR_EMAIL

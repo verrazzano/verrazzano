@@ -220,44 +220,44 @@ command -v curl >/dev/null 2>&1 || {
 ##################################################
 ####Constants for Docker images, versions, tags
 ##################################################
-GLOBAL_HUB_REPO=container-registry.oracle.com/olcne
+GLOBAL_HUB_REPO=container-registry-fra.oracle.com/olcne
 
-CERT_MANAGER_IMAGE=container-registry.oracle.com/verrazzano/cert-manager-controller
+CERT_MANAGER_IMAGE=container-registry-fra.oracle.com/verrazzano/cert-manager-controller
 CERT_MANAGER_TAG=0.13.1-0e7394e-18
 CERT_MANAGER_RELEASE=0.13
 CERT_MANAGER_HELM_CHART_VERSION=0.13.1
-CERT_MANAGER_SOLVER_IMAGE=container-registry.oracle.com/verrazzano/cert-manager-acmesolver
+CERT_MANAGER_SOLVER_IMAGE=container-registry-fra.oracle.com/verrazzano/cert-manager-acmesolver
 CERT_MANAGER_SOLVER_TAG=0.13.1-0e7394e-18
 
 EXTERNAL_DNS_REPO=verrazzano/external-dns
 EXTERNAL_DNS_VERSION=2.20.0
 EXTERNAL_DNS_TAG=v0.7.1-cfe79c5-10
-EXTERNAL_DNS_REGISTRY=container-registry.oracle.com
+EXTERNAL_DNS_REGISTRY=container-registry-fra.oracle.com
 
-GRAFANA_REPO=container-registry.oracle.com/olcne/grafana
+GRAFANA_REPO=container-registry-fra.oracle.com/olcne/grafana
 GRAFANA_TAG=v6.4.4
 
-ISTIO_CORE_DNS_PLUGIN_IMAGE=container-registry.oracle.com/verrazzano/istio-coredns-plugin
+ISTIO_CORE_DNS_PLUGIN_IMAGE=container-registry-fra.oracle.com/verrazzano/istio-coredns-plugin
 ISTIO_CORE_DNS_PLUGIN_TAG=0.2-5caa06b-13
-ISTIO_CORE_DNS_IMAGE=container-registry.oracle.com/olcne/coredns
+ISTIO_CORE_DNS_IMAGE=container-registry-fra.oracle.com/olcne/coredns
 ISTIO_CORE_DNS_TAG=1.6.2
 ISTIO_VERSION=1.4.6
 
-KEYCLOAK_IMAGE=container-registry.oracle.com/verrazzano/keycloak
+KEYCLOAK_IMAGE=container-registry-fra.oracle.com/verrazzano/keycloak
 KEYCLOAK_IMAGE_TAG=10.0.1-30d98b0-5
 KEYCLOAK_CHART_VERSION=8.2.2
 
-KEYCLOAK_THEME_IMAGE=container-registry.oracle.com/verrazzano/keycloak-oracle-theme:v0.0.1
+KEYCLOAK_THEME_IMAGE=container-registry-fra.oracle.com/verrazzano/keycloak-oracle-theme:v0.0.1
 
 MYSQL_IMAGE_TAG=8.0.20
 
-NGINX_INGRESS_CONTROLLER_IMAGE=container-registry.oracle.com/verrazzano/nginx-ingress-controller
+NGINX_INGRESS_CONTROLLER_IMAGE=container-registry-fra.oracle.com/verrazzano/nginx-ingress-controller
 NGINX_INGRESS_CONTROLLER_TAG=0.32-aadecdc-21
 NGINX_INGRESS_CONTROLLER_VERSION=1.27.0
 
-NGINX_DEFAULT_BACKEND_IMAGE=container-registry.oracle.com/verrazzano/nginx-ingress-default-backend
+NGINX_DEFAULT_BACKEND_IMAGE=container-registry-fra.oracle.com/verrazzano/nginx-ingress-default-backend
 NGINX_DEFAULT_BACKEND_TAG=0.32-aadecdc-21
 
-RANCHER_IMAGE=container-registry.oracle.com/verrazzano/rancher
+RANCHER_IMAGE=container-registry-fra.oracle.com/verrazzano/rancher
 RANCHER_VERSION=v2.4.3
 RANCHER_TAG=v2.4.3-0cc4e86-22

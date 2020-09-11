@@ -170,7 +170,7 @@ function verify_ocr_secret_exists()
     read -r -d '' _error_msg <<- EOM
 ERROR: Secret named ocr is required to pull images from ${GLOBAL_HUB_REPO}.
 Create the secret in the default namespace and then rerun this script.
-e.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com
+e.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry-fra.oracle.com
 EOM
 
     kubectl get secret ocr -n default || fail "${_error_msg}"
@@ -208,7 +208,7 @@ function verify_ocr_secret()
       "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "default" -r "ocrtest-*" -m "verify_ocr_secret"
       kubectl delete job $OCR_TEST_JOB_NAME
       log "For additional detailed information on the cluster at the time of this error, please check the diagnostics log file"
-      fail "ERROR: Cannot access Oracle Container Registry. This may be due to incorrect credentials. Check the ocr secret and re-create the secret if the credentials are wrong. \ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
+      fail "ERROR: Cannot access Oracle Container Registry. This may be due to incorrect credentials. Check the ocr secret and re-create the secret if the credentials are wrong. \ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry-fra.oracle.com"
     fi
     kubectl delete job $OCR_TEST_JOB_NAME
 }
