@@ -98,8 +98,14 @@ function finalize() {
     echo "$helm_ls" \
       | awk '/istio.io|stable|jetstack|rancher-stable|codecentric/ {print $1}' \
       | xargsr -I name helm repo remove name \
-      || return $? # return on pipefail
+      || err_return $? "Could delete Helm Repos" || return $? # return on pipefail
   fi
+
+  log "Removing Namespace Finalizers"
+  kubectl get namespaces --no-headers -o custom-columns=":metadata.name,:metadata.finalizers" \
+    | awk '/controller.cattle.io/ {print $1}' \
+    | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
+    || err_return $? "Could not remove Rancher finalizers from all namespaces" || return $? # return on pipefail
 }
 
 action "Deleting Istio Components" uninstall_istio || exit 1
