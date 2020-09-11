@@ -130,6 +130,7 @@ function delete_rancher() {
     || return $? # return on pipefail
 
   # delete cattle namespaces
+  log "Delete rancher namespace"
   delete_k8s_resources namespaces ":metadata.name" "Could not delete namespaces from Rancher" '/cattle-|local|p-|user-/ {print $1}' \
     || return $? # return on pipefail
 
