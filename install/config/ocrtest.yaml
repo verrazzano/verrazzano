@@ -9,7 +9,7 @@ spec:
     spec:
       containers:
       - name: ocrtest
-        image: container-registry-fra.oracle.com/os/oraclelinux:7-slim
+        image: container-registry.oracle.com/os/oraclelinux:7-slim
         imagePullPolicy: Always
       restartPolicy: Never
       imagePullSecrets:
