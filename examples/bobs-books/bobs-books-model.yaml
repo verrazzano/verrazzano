@@ -81,7 +81,7 @@ spec:
               datasourceName: books
   helidonApplications:
     - name: "bobbys-helidon-stock-application"
-      image: "docker.pkg.github.com/verrazzano/examples/bobbys-helidon-stock-application:v0.0.0-5cfa06d-1"
+      image: "ghcr.io/verrazzano/example-bobbys-helidon-stock-application:0.1.10-3-6e5f030-129"
       imagePullSecrets:
         - name: ocr
         - name: github-packages
@@ -115,7 +115,7 @@ spec:
               address: "roberts-coherence-wka"
   coherenceClusters:
     - name: "bobbys-coherence"
-      image: "docker.pkg.github.com/verrazzano/examples/bobbys-coherence:v0.0.0-5cfa06d-1"
+      image: "ghcr.io/verrazzano/example-bobbys-coherence:0.1.10-3-6e5f030-129"
       imagePullSecrets:
         - name: github-packages
         - name: ocr  # secret to pull bobbys-coherence and container-registry.oracle.com/middleware/coherence:12.2.1.4.0
