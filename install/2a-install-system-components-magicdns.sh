@@ -6,19 +6,13 @@
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 . $SCRIPT_DIR/common.sh
 
-if [ ${CLUSTER_TYPE} == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
-  INGRESS_TYPE=LoadBalancer
-elif [ ${CLUSTER_TYPE} == "KIND" ]; then
-  INGRESS_TYPE=NodePort
-fi
+INGRESS_TYPE=LoadBalancer #this is true for both OKE and OLCNE clusters
 
 set -eu
 
 function set_INGRESS_IP() {
   if [ ${CLUSTER_TYPE} == "OKE" ]; then
     INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
-  elif [ ${CLUSTER_TYPE} == "KIND" ]; then
-    INGRESS_IP=$(kubectl get node ${KIND_CLUSTER_NAME}-control-plane -o json | jq -r '.status.addresses[] | select (.type == "InternalIP") | .address')
   elif [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
     # Will not always be present, only return non-null when LoadBalancer providers are available.
     INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
@@ -67,9 +61,7 @@ function install_nginx_ingress_controller()
       ${EXTRA_NGINX_ARGUMENTS} \
       --wait
 
-    if [ $CLUSTER_TYPE = "KIND" ]; then
-        kubectl patch deployments -n ingress-nginx ingress-controller-nginx-ingress-controller -p '{"spec":{"template":{"spec":{"containers":[{"name":"nginx-ingress-controller","ports":[{"containerPort":80,"hostPort":80},{"containerPort":443,"hostPort":443}]}],"tolerations":[{"key":"node-role.kubernetes.io/master","operator":"Equal","effect":"NoSchedule"}],"nodeSelector":{"ingress-ready":"true"}}}}}'
-    elif [ $CLUSTER_TYPE == "OLCNE" ]; then
+    if [ $CLUSTER_TYPE == "OLCNE" ]; then
       kubectl patch service -n ingress-nginx ingress-controller-nginx-ingress-controller -p '{ "spec": { "ports": [{ "port": 80, "nodePort": 30080 }, { "port": 443, "nodePort": 30443 }, { "name": "healthz", "nodePort": 30254, "port": 30254, "protocol": "TCP", "targetPort": 10254 } ]  }}'
     fi
 
@@ -158,7 +150,7 @@ function install_rancher()
     kubectl patch ingress rancher -n cattle-system -p "$RANCHER_PATCH_DATA" --type=merge
 
     log "Rollout Rancher"
-    kubectl -n cattle-system rollout status -w deploy/rancher
+    kubectl -n cattle-system rollout status -w deploy/rancher || return $?
 
     log "Create Rancher secrets"
     RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- reset-password 2>/dev/null)
