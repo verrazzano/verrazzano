@@ -13,7 +13,7 @@ docker:
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: verrazzano-operator-jenkins
-  imageVersion: a87fd83e6ee77dea769b346d00172b8d609772a8
+  imageVersion: d77d2f430127470164b2cd3437dcfbb9a467ecf0
   cohMicroImage: verrazzano-coh-cluster-operator:v0.0.8
   helidonMicroImage: verrazzano-helidon-app-operator:v0.0.7
   wlsMicroImage: verrazzano-wko-operator:v0.0.10
@@ -28,6 +28,12 @@ verrazzanoOperator:
   cohMicroRequestMemory: 28Mi
   helidonMicroRequestMemory: 24Mi
   wlsMicroRequestMemory: 32Mi
+  esMasterNodeRequestMemory: 1.4Gi
+  esIngestNodeRequestMemory: 2.5Gi
+  esDataNodeRequestMemory: 4.8Gi
+  grafanaRequestMemory: 48Mi
+  prometheusRequestMemory: 128Mi
+  kibanaRequestMemory: 192Mi
 
 monitoringOperator:
   name: verrazzano-monitoring-operator

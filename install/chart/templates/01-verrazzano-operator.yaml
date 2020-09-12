@@ -55,6 +55,18 @@ spec:
               value: {{ .Values.verrazzanoOperator.helidonMicroRequestMemory }}
             - name: WLS_MICRO_REQUEST_MEMORY
               value: {{ .Values.verrazzanoOperator.wlsMicroRequestMemory }}
+            - name: ES_MASTER_NODE_REQUEST_MEMORY
+              value: {{ .Values.verrazzanoOperator.esMasterNodeRequestMemory }}
+            - name: ES_INGEST_NODE_REQUEST_MEMORY
+              value: {{ .Values.verrazzanoOperator.esIngestNodeRequestMemory }}
+            - name: ES_DATA_NODE_REQUEST_MEMORY
+              value: {{ .Values.verrazzanoOperator.esDataNodeRequestMemory }}
+            - name: GRAFANA_REQUEST_MEMORY
+              value: {{ .Values.verrazzanoOperator.grafanaRequestMemory }}
+            - name: PROMETHEUS_REQUEST_MEMORY
+              value: {{ .Values.verrazzanoOperator.prometheusRequestMemory }}
+            - name: KIBANA_REQUEST_MEMORY
+              value: {{ .Values.verrazzanoOperator.kibanaRequestMemory }}
       serviceAccount: {{ .Values.verrazzanoOperator.name }}
 ---
 kind: Service
