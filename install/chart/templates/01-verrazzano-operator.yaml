@@ -49,6 +49,12 @@ spec:
               value: {{ .Values.verrazzanoOperator.weblogicOperatorImage }}
             - name: FLUENTD_IMAGE
               value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.fluentdImage }}
+            - name: COH_MICRO_REQUEST_MEMORY
+              value: {{ .Values.verrazzanoOperator.cohMicroRequestMemory }}
+            - name: HELIDON_MICRO_REQUEST_MEMORY
+              value: {{ .Values.verrazzanoOperator.helidonMicroRequestMemory }}
+            - name: WLS_MICRO_REQUEST_MEMORY
+              value: {{ .Values.verrazzanoOperator.wlsMicroRequestMemory }}
       serviceAccount: {{ .Values.verrazzanoOperator.name }}
 ---
 kind: Service
