@@ -67,6 +67,8 @@ spec:
               value: {{ .Values.verrazzanoOperator.prometheusRequestMemory }}
             - name: KIBANA_REQUEST_MEMORY
               value: {{ .Values.verrazzanoOperator.kibanaRequestMemory }}
+            - name: ES_MASTER_NODE_REPLICAS
+              value: "{{ .Values.verrazzanoOperator.esMasterNodeReplicas }}"
       serviceAccount: {{ .Values.verrazzanoOperator.name }}
 ---
 kind: Service
