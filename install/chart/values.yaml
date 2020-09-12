@@ -24,6 +24,7 @@ verrazzanoOperator:
   weblogicOperatorImage: oracle/weblogic-kubernetes-operator:3.0.0
   fluentdImage: fluentd-kubernetes-daemonset:v1.10.4-6ce326d-18
   apiServerRealm: verrazzano-system
+  RequestMemory: 72Mi
 
 monitoringOperator:
   name: verrazzano-monitoring-operator
@@ -45,6 +46,7 @@ monitoringOperator:
   monitoringInstanceApiImage: verrazzano-monitoring-instance-api:v0.0.7
   configReloaderImage: configmap-reload:0.3-81d6423-34
   nodeExporterImage: node-exporter:0.18.1-0cca78f-10
+  RequestMemory: 48Mi
 
 clusterOperator:
   name: verrazzano-cluster-operator
@@ -54,6 +56,7 @@ clusterOperator:
   rancherUserName:
   rancherPassword:
   rancherHostname:
+  RequestMemory: 27Mi
 
 verrazzanoAdmissionController:
   name: verrazzano-validation
@@ -61,6 +64,7 @@ verrazzanoAdmissionController:
   imageName: verrazzano-admission-controller
   imageVersion: v0.0.17
   caBundle:
+  RequestMemory: 15Mi
 
 # OCI-related values
 oci:

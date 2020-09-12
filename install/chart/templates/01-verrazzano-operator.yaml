@@ -27,6 +27,9 @@ spec:
             - --verrazzanoUri={{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
             - --enableMonitoringStorage={{ .Values.config.enableMonitoringStorage }}
             - --apiServerRealm={{ .Values.verrazzanoOperator.apiServerRealm }}
+          resources:
+            requests:
+              memory: {{ .Values.verrazzanoOperator.RequestMemory }}
           env:
             - name: COH_MICRO_IMAGE
               value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.cohMicroImage }}
