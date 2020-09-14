@@ -141,7 +141,7 @@ function install_istio()
 
 function update_coredns()
 {
-    if [ ${CLUSTER_TYPE} == "OKE" ]; then
+    if [ "${CLUSTER_TYPE}" == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
         local cluster_ip
         cluster_ip=$(kubectl get svc -n istio-system istiocoredns -o jsonpath={.spec.clusterIP})
         if [ $? -ne 0 ] ; then
@@ -214,11 +214,19 @@ function verify_ocr_secret()
 }
 
 function check_kube_version {
-    kubeVer=$(kubectl version -o json)
-    servVer=$(echo $kubeVer | jq -r '.serverVersion.gitVersion')
-    major=$(echo $kubeVer | jq -r '.serverVersion.major')
-    minor=$(echo $kubeVer | jq -r '.serverVersion.minor')
-    patch=$(echo $servVer | cut -d'.' -f 3)
+    local kubeVer=$(kubectl version -o json)
+    log "------Begin Kubernetes Version Info----"
+    log "$kubeVer"
+    log "------End Kubernetes Version Info----"
+    local servVer=$(echo $kubeVer | jq -r '.serverVersion.gitVersion')
+    if [ "$servVer" == "null" ] || [ -z "$servVer" ]; then
+        log "Could not retrieve Kubernetes server version"
+        return 1
+    fi
+
+    local major=$(echo $kubeVer | jq -r '.serverVersion.major')
+    local minor=$(echo $kubeVer | jq -r '.serverVersion.minor')
+    local patch=$(echo $servVer | cut -d'.' -f 3)
     VER_ERROR_MSG="Kubernetes serverVersion $servVer must be greater than or equal to v1.16.8 and less than or equal to v1.18"
     if [ "$major" -ne 1 ] ; then
       log $VER_ERROR_MSG
@@ -232,6 +240,22 @@ function check_kube_version {
       log $VER_ERROR_MSG
       return 1
     fi
+}
+
+function check_helm_version {
+    local helmVer=$(helm version --short | cut -d':' -f2 | tr -d " ")
+    log "Helm version is $helmVer"
+    local majorVer=$(echo $helmVer | cut -d'.' -f1)
+    local minorVer=$(echo $helmVer | cut -d'.' -f2)
+    if [ "$majorVer" != "v3" ]; then
+        log "Helm major version is $majorVer, expected v3!"
+        return 1
+    fi
+    if [ "$minorVer" -gt 2 ]; then
+        log "Helm minor version is $minorVer, expected less than or equal to 2!"
+        return 1
+    fi
+    return 0
 }
 
 function wait_for_nodes_to_exist {
@@ -287,6 +311,7 @@ if [ "$DNS_TYPE" == "manual" ]; then
 fi
 
 action "Checking Kubernetes version" check_kube_version || exit 1
+action "Checking Helm version" check_helm_version || (error "Helm version must be v3.0.x, v.3.1.x or v3.2.x!"; exit 1)
 
 # Wait for all cluster nodes to exist, and then to be ready
 action "Waiting for all Kubernetes nodes to exist in cluster" wait_for_nodes_to_exist || exit 1

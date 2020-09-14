@@ -7,6 +7,7 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 INSTALL_DIR=$SCRIPT_DIR/../install
 
 . $INSTALL_DIR/common.sh
+. $SCRIPT_DIR/uninstall-utils.sh
 
 set -o pipefail
 
@@ -48,11 +49,11 @@ function check_applications () {
   # check to make sure crds exist and grab them
   binding_crd=$(kubectl get crd | grep "verrazzanobinding" || true)
   if [ -z "$binding_crd" ] ; then
-    return
+    return 0
   fi
   model_crd=$(kubectl get crd | grep "verrazzanomodel" || true)
   if [ -z "$model_crd" ] ; then
-    return
+    return 0
   fi
   bindings=$(kubectl get vb) || return $?
   models=$(kubectl get vm) || return $?
@@ -101,13 +102,13 @@ prompt_delete_applications || exit 1
 
 section "Uninstalling Verrazzano Applications"
 $SCRIPT_DIR/uninstall-steps/0-uninstall-applications.sh || exit 1
-section "Uninstalling Istio..."
-$SCRIPT_DIR/uninstall-steps/1-uninstall-istio.sh || exit 1
-section "Uninstalling system components..."
-$SCRIPT_DIR/uninstall-steps/2-uninstall-system-components.sh || exit 1
-section "Uninstalling Verrazzano..."
-$SCRIPT_DIR/uninstall-steps/3-uninstall-verrazzano.sh || exit 1
 section "Uninstalling Keycloak..."
 $SCRIPT_DIR/uninstall-steps/4-uninstall-keycloak.sh || exit 1
+section "Uninstalling Verrazzano..."
+$SCRIPT_DIR/uninstall-steps/3-uninstall-verrazzano.sh || exit 1
+section "Uninstalling system components..."
+$SCRIPT_DIR/uninstall-steps/2-uninstall-system-components.sh || exit 1
+section "Uninstalling Istio..."
+$SCRIPT_DIR/uninstall-steps/1-uninstall-istio.sh || exit 1
 
 section "Uninstallation of Verrazzano complete."

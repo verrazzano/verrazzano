@@ -5,20 +5,19 @@
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 INSTALL_DIR=$SCRIPT_DIR/../../install
+UNINSTALL_DIR=$SCRIPT_DIR/..
 
 . $INSTALL_DIR/common.sh
+. $UNINSTALL_DIR/uninstall-utils.sh
 
 set -o pipefail
 
 function delete_verrazzano() {
   # delete helm installation of Verrazzano
   log "Deleting Verrazzano"
-  local verr_res=("$(helm ls -A \
-    | grep "verrazzano" || true)")
-
-  printf "%s\n" "${verr_res[@]}" \
-    | awk '{print $1}' \
-    | xargs helm uninstall -n verrazzano-system \
+  helm ls -A \
+    | awk '/verrazzano/ {print $1}' \
+    | xargsr helm uninstall -n verrazzano-system \
     || return $? # return on pipefail
 
   # delete verrazzano-managed-cluster-local secret
@@ -27,56 +26,47 @@ function delete_verrazzano() {
 
   # delete crds
   log "Deleting Verrazzano crds"
-  local verr_crd_fin_res=("$(kubectl get crds --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'verrazzano.io' || true)")
-
-  printf "%s\n" "${verr_crd_fin_res[@]}" \
-    | xargs kubectl patch crd -p '{"metadata":{"finalizers":null}}' --type=merge \
+  kubectl get crds --no-headers -o custom-columns=":metadata.name" \
+    | awk '/verrazzano.io/' \
+    | xargsr kubectl patch crd -p '{"metadata":{"finalizers":null}}' --type=merge \
     || return $? # return on pipefail
 
-  local verr_crd_rec=("$(kubectl get crds --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'verrazzano.io' || true)")
-
-  printf "%s\n" "${verr_crd_rec[@]}" \
-    | xargs kubectl delete crd \
+  kubectl get crds --no-headers -o custom-columns=":metadata.name" \
+    | awk '/verrazzano.io/' \
+    | xargsr kubectl delete crd \
     || return $? # return on pipefail
 
   # deleting certificatesigningrequests
   log "Deleting CertificateSigningRequests"
-  local verr_csr_res=("$(kubectl get csr --no-headers -o custom-columns=":metadata.name" \
-    | grep -E 'csr-' || true)")
-
-  printf "%s\n" "${verr_csr_res[@]}" \
-    | xargs kubectl delete csr \
+  kubectl get csr --no-headers -o custom-columns=":metadata.name" \
+    | awk '/csr-/' \
+    | xargsr kubectl delete csr \
     || return $? # return on pipefail
 
   log "Deleting ClusterRoles and ClusterRoleBindings"
   # deleting clusterrolebindings
-  local verr_crb_res=("$(kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
-    | grep -E 'verrazzano' || true)")
-
-  printf "%s\n" "${verr_crb_res[@]}" \
-    | awk '{print $1}' \
-    | xargs kubectl delete clusterrolebinding \
+  kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
+    | awk '/verrazzano/ {print $1}' \
+    | xargsr kubectl delete clusterrolebinding \
     || return $? # return on pipefail
 
   # deleting clusterroles
-  local verr_cr_res=("$(kubectl get clusterrole --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
-    | grep -E 'verrazzano' || true)")
-
-  printf "%s\n" "${verr_cr_res[@]}" \
-    | awk '{print $1}' \
-    | xargs kubectl delete clusterrole \
+  kubectl get clusterrole --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
+    | awk '/verrazzano/ {print $1}' \
+    | xargsr kubectl delete clusterrole \
     || return $? # return on pipefail
 
   # deleting namespaces
   log "Deleting Verrazzano namespaces"
-  local verr_ns_res=("$(kubectl get namespace --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
-    | grep -E 'k8s-app:verrazzano.io|verrazzano-system' || true)")
+  # delete namespace finalizers
+  kubectl get namespace --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
+    | awk '/k8s-app:verrazzano.io|verrazzano-system/ {print $1}' \
+    | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
+    || return $? # return on pipefail
 
-  printf "%s\n" "${verr_ns_res[@]}" \
-    | awk '{print $1}' \
-    | xargs kubectl delete namespace \
+  kubectl get namespace --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
+    | awk '/k8s-app:verrazzano.io|verrazzano-system/ {print $1}' \
+    | xargsr kubectl delete namespace \
     || return $? # return on pipefail
 }
 

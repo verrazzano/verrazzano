@@ -93,20 +93,20 @@ spec:
               environmentVariableForHost: "BACKEND_HOSTNAME"
               environmentVariableForPort: "BACKEND_PORT"
     - name: "roberts-helidon-stock-application"
-      image: "container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.10-3-e5ae893-124"
+      image: "container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.10-3-7508985-127"
       imagePullSecrets:
         - name: ocr
+      env:
+        - name: COH_CACHE_CONFIG
+          value: roberts-cache-config.xml
+        - name: COH_POF_CONFIG
+          value: roberts-pof-config.xml
       connections:
         - ingress:
             - name: "roberts-ingress"
         - coherence:
             - target: "roberts-coherence"
               address: "roberts-coherence-wka"
-        - rest:
-            - target: "bobs-bookstore"
-              environmentVariableForHost: "BACKEND_HOSTNAME"
-              environmentVariableForPort: "BACKEND_PORT"
-
   coherenceClusters:
     - name: "bobbys-coherence"
       image: "container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.10-3-e5ae893-124"
@@ -115,11 +115,14 @@ spec:
       cacheConfig: "bobbys-cache-config.xml"
       pofConfig: "bobbys-pof-config.xml"
     - name: "roberts-coherence"
-      image: "container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.10-3-e5ae893-124"
+      image: "container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.10-3-7508985-127"
       imagePullSecrets:
         - name: ocr  # secret to pull roberts-coherence and container-registry.oracle.com/middleware/coherence:12.2.1.4.0
       cacheConfig: "books-cache-config.xml"
       pofConfig: "books-pof-config.xml"
+      ports:
+        - name: extend
+          port: 9000
       connections:
         - rest:
             - target: "bobs-bookstore"
