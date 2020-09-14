@@ -43,3 +43,36 @@ function err_return() {
   error "$message"
   return "$exit_code"
 }
+
+# utility function to delete kubernetes resources
+# $1 resource-type - type of the resources being deleted
+# $2 custom-cols   - custom columns used when getting the resources
+# $3 err-msg       - the message to log if an error is encountered
+# $4 filter-args   - arguments given to awk to filter the resource list for deletion (optional)
+# $5 namespace     - namespace for resources to be deleted (optional)
+# Usage:
+# delete_k8s_resources resource-type custom-cols [filter-args] [namespace]
+function delete_k8s_resources() {
+  ( [ -z "$5" ] && kubectl get $1 --no-headers -o custom-columns="$2" || kubectl get $1 --no-headers -o custom-columns="$2" -n "$5" ) \
+    | ( [ -z "$4" ] && cat || awk "$4" ) \
+    | ( [ -z "$5" ] && xargsr kubectl delete $1 || xargsr kubectl delete $1 -n "$5" ) \
+    || err_return $? "$3" || return $? # return on pipefail
+}
+
+# utility function to patch kubernetes resources
+# $1 resource-type - type of the resources being patched
+# $2 custom-cols   - custom columns used when getting the resources
+# $3 err-msg       - the message to log if an error is encountered
+# $4 filter-args   - arguments given to awk to filter the resource list for patching
+# $5 patch         - the patch to be applied to the resources
+# Usage:
+# patch_k8s_resources resource-type custom-cols filter-args patch
+function patch_k8s_resources() {
+  if [ -z "$5" ]; then
+    err_return 1 "The patch argument cannot be empty." || return $?
+  fi
+  kubectl get $1 --no-headers -o custom-columns="$2" \
+    | awk "$4" \
+    | xargsr kubectl patch $1 -p "$5" --type=merge \
+    || err_return $? "$3" || return $? # return on pipefail
+}

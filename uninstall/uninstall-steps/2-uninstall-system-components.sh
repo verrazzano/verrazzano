@@ -40,10 +40,8 @@ function delete_nginx() {
 
   # delete ingress-nginx namespace
   log "Deleting ingress-nginx namespace finalizers"
-  kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
-    | awk '/ingress-nginx/ {print $1}' \
-    | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge  \
-    || err_return $? "Could not remove finalizer from namespace ingress-nginx" || return $? # return on pipefail
+  patch_k8s_resources namespaces ":metadata.name" "Could not remove finalizer from namespace ingress-nginx" '/ingress-nginx/ {print $1}' '{"metadata":{"finalizers":null}}' \
+    || return $? # return on pipefail
 
   log "Deleting ingress-nginx namespace"
   kubectl delete namespace ingress-nginx --ignore-not-found=true || err_return $? "Could not delete namespace ingress-nginx" || return $?
@@ -68,10 +66,8 @@ function delete_cert_manager() {
 
   log "Deleting cert-manager namespace finalizers"
   # delete namespace finalizers
-  kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
-    | awk '/cert-manager/ {print $1}' \
-    | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
-    || err_return $? "Could not remove finalizers from namespace cert-manager" || return $? # return on pipefail
+  patch_k8s_resources namespaces ":metadata.name" "Could not remove finalizers from namespace cert-manager" '/cert-manager/ {print $1}' '{"metadata":{"finalizers":null}}' \
+    || return $? # return on pipefail
 
   # delete namespace
   log "Deleting cert-manager namespace"
@@ -93,17 +89,13 @@ function delete_rancher() {
   while [ "$crd_content" ]
   do
     # remove finalizers from crds
-    kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" \
-      | awk '/coreos.com|cattle.io/ {print $1}' \
-      | xargsr kubectl patch crd -p '{"metadata":{"finalizers":null}}' --type=merge \
-      || err_return $? "Could not remove finalizers from CustomResourceDefinitions in Rancher" || return $? # return on pipefail
+    patch_k8s_resources crds ":metadata.name,:spec.group" "Could not remove finalizers from CustomResourceDefinitions in Rancher" '/coreos.com|cattle.io/ {print $1}' '{"metadata":{"finalizers":null}}' \
+      || return $? # return on pipefail
 
     # delete crds
     # This process is backgrounded in order to timeout due to finalizers hanging
-    kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" \
-      | awk '/coreos.com|cattle.io/ {print $1}' \
-      | xargsr kubectl delete crd  \
-      || err_return $? "Could not delete CustomResourceDefinitions from Rancher" || return $? &# return on pipefail
+    delete_k8s_resources crds ":metadata.name,:spec.group" "Could not delete CustomResourceDefinitions from Rancher" '/coreos.com|cattle.io/ {print $1}' \
+      || return $? &# return on pipefail
     sleep 30
     kill $! || true
     crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | awk '/coreos.com|cattle.io/')
@@ -111,27 +103,21 @@ function delete_rancher() {
 
   # delete clusterrolebindings deployed by rancher
   log "Deleting ClusterRoleBindings"
-  kubectl get clusterrolebinding --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
-    | awk '/cattle.io|app:rancher/ {print $1}' \
-    | xargsr kubectl delete clusterrolebinding \
-    || err_return $? "Could not delete ClusterRoleBindings from Rancher" || return $? # return on pipefail
+  delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Rancher" '/cattle.io|app:rancher/ {print $1}' \
+    || return $? # return on pipefail
 
   # delete clusterroles
   log "Deleting ClusterRoles"
-  kubectl get clusterrole --no-headers -o custom-columns=":metadata.name,:metadata.labels" \
-    | awk '/cattle.io/ {print $1}' \
-    | xargsr kubectl delete clusterrole \
-    || err_return $? "Could not delete ClusterRoles from Rancher" || return $? # return on pipefail
+  delete_k8s_resources clusterrole ":metadata.name,:metadata.labels" "Could not delete ClusterRoles from Rancher" '/cattle.io/ {print $1}' \
+    || return $? # return on pipefail
 
   # delete rolebinding
   log "Deleting RoleBindings"
   local default_names=("default" "kube-node-lease" "kube-public" "kube-system")
   for namespace in "${default_names[@]}"
   do
-    kubectl get rolebinding --no-headers -o custom-columns=":metadata.name" -n "${namespace}"\
-      | awk '/clusterrolebinding-/' \
-      | xargsr kubectl delete rolebinding -n "${namespace}" \
-      || err_return $? "Could not delete RoleBindings from Rancher in namespace ${namespace}" || return $? # return on pipefail
+    delete_k8s_resources rolebinding ":metadata.name" "Could not delete RoleBindings from Rancher in namespace ${namespace}" '/clusterrolebinding-/' "${namespace}" \
+      || return $? # return on pipefail
   done
 
   # delete configmap in kube-system
@@ -140,17 +126,13 @@ function delete_rancher() {
 
   log "Deleting cattle namespaces"
   # delete namespace finalizers
-  kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
-    | awk '/cattle-|local|p-|user-/ {print $1}' \
-    | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
-    || err_return $? "Could not remove finalizers from namespaces in Rancher" || return $? # return on pipefail
+  patch_k8s_resources namespaces ":metadata.name" "Could not remove finalizers from namespaces in Rancher" '/cattle-|local|p-|user-/ {print $1}' '{"metadata":{"finalizers":null}}' \
+    || return $? # return on pipefail
 
   # delete cattle namespaces
   log "Delete rancher namespace"
-  kubectl get namespaces --no-headers -o custom-columns=":metadata.name" \
-    | awk '/cattle-|local|p-|user-/ {print $1}' \
-    | xargsr kubectl delete namespaces \
-    || err_return $? "Could not delete namespaces from Rancher" || return $? # return on pipefail
+  delete_k8s_resources namespaces ":metadata.name" "Could not delete namespaces from Rancher" '/cattle-|local|p-|user-/ {print $1}' \
+    || return $? # return on pipefail
 
   # delete annotations left in kube-system secrets
   log "Delete Rancher Secret Annotations"

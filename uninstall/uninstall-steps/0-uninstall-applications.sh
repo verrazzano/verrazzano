@@ -54,17 +54,15 @@ function initializing_uninstall {
 function delete_bindings {
   log "Deleting VerrazzanoBindings"
   kubectl get crd verrazzanobindings.verrazzano.io || return 0
-  kubectl get VerrazzanoBindings --no-headers -o custom-columns=":metadata.name" \
-    | xargsr kubectl delete VerrazzanoBindings \
-    || err_return $? "Could not delete VerrazzanoBindings" || return $? # return on pipefail
+  delete_k8s_resources VerrazzanoBindings ":metadata.name" "Could not delete VerrazzanoBindings" \
+    || return $? # return on pipefail
 }
 
 function delete_models {
   log "Deleting VerrazzanoModels"
   kubectl get crd verrazzanomodels.verrazzano.io || return 0
-  kubectl get VerrazzanoModels --no-headers -o custom-columns=":metadata.name" \
-    | xargsr kubectl delete VerrazzanoModels \
-    || err_return $? "Could not delete VerrazzanoModels" || return $? # return on pipefail
+  delete_k8s_resources VerrazzanoModels ":metadata.name" "Could not delete VerrazzanoModels" \
+    || return $? # return on pipefail
 }
 
 action "Initializing Uninstall" initializing_uninstall || exit 1
