@@ -37,17 +37,7 @@ The following software must be installed on your system.
 
 ```
 
-### 2. Create the Oracle Container Registry secret
-You need to create an "ocr" secret for pulling images from the container-registry.oracle.com repository.
-
-```
-   kubectl create secret docker-registry ocr \
-       --docker-username=<username> \
-       --docker-password=<password> \
-       --docker-server=container-registry.oracle.com
-```
-
-### 3. Do the install
+### 2. Do the install
 
 According to your DNS choice, install Verrazzano using one of the following methods:
 
