@@ -8,7 +8,7 @@ cluster.
 ## Prerequisites
 * Verrazzano requires Oracle Linux Cloud Native Environment version 1.1 or later.
 * Verrazzano installation requires the following software be installed on the system used to install Verrazzano.
-  The OLCNE operator node is typically used to install Verrazzano.  
+  The Oracle Linux Cloud Native Environment operator node is typically used to install Verrazzano.  
   * curl
   * helm (version 3.0.x, 3.1.x or 3.2.x)
   * jq
@@ -24,15 +24,15 @@ cluster.
 
 ## Installation
 
-### 1. Prepare for the OLCNE install
-OLCNE can be installed in several different type of environments.
+### 1. Prepare for the Oracle Linux Cloud Native Environment install
+Oracle Linux Cloud Native Environment can be installed in several different type of environments.
 These range from physical on premises hardware to virtualized cloud infrastructure.
-The OLCNE installation instructions assume that networking and compute resources already exists.
+The Oracle Linux Cloud Native Environment installation instructions assume that networking and compute resources already exists.
 The basic infrastructure requirements are a network with a public and private subnet
 and a set of host connected to those networks.
 
 #### OCI Example
-The OCI infrastructure detailed below is an example of infrastructure that could be used to evaluate Verrazzano installed on OLCNE.
+The OCI infrastructure detailed below is an example of infrastructure that could be used to evaluate Verrazzano installed on Oracle Linux Cloud Native Environment.
 If other environments are used the capacity and configuration should be similar to those below.
 
 The VCN Wizard of the OCI console can be used to automatically create most of the described network infrastructure.
@@ -81,7 +81,7 @@ All CIDR values provided below are examples and can be customized as required.
       |No       |10.0.1.0/24|TCP     |All         |6443             |           |Kubernetes API Server|
       |No       |10.0.1.0/24|TCP     |All         |6446             |           |MySQL                |
       |No       |10.0.1.0/24|TCP     |All         |8090-8091        |           |OLCNE Platform Agent |
-      |No       |10.0.1.0/24|TCP     |All         |8472             |           |Flannel              |
+      |No       |10.0.1.0/24|UDP     |All         |8472             |           |Flannel              |
       |No       |10.0.1.0/24|TCP     |All         |10250-10255      |           |Kubernetes Kublet    |
             
     * Security List / Egress Rules
@@ -114,7 +114,7 @@ All CIDR values provided below are examples and can be customized as required.
   * NAT Gateway
   * Service Gateway
   
-The compute resources describe below follow the guidelines provided in the OLCNE Getting Started guide.
+The compute resources describe below follow the guidelines provided in the Oracle Linux Cloud Native Environment Getting Started guide.
 The attributes indicated (e.g. Subnet RAM, Shape, Image) are recommendations that have been tested.
 Other values can be used if required.
   
@@ -129,7 +129,7 @@ Other values can be used if required.
   | Kubernetes Worker Node 2      | Private | 32GB          | VM.Standard.E2.4    | Oracle Linux 7.8    |
   | Kubernetes Worker Node 3      | Private | 32GB          | VM.Standard.E2.4    | Oracle Linux 7.8    |
 
-### 2. Do the OLCNE install
+### 2. Do the Oracle Linux Cloud Native Environment install
 Deploy Oracle Linux Cloud Native Environment with the Kubernetes module following instructions from the [Getting Started](https://docs.oracle.com/en/operating-systems/olcne/start/deploy-kube.html) guide.
 * Use single Kubernetes control plane node
 * Skip Kubernetes API load balancer (3.4.3)
@@ -193,9 +193,9 @@ The value for `name` below may be customized but will need to match the Persiste
   EOF
   ```
 * Create the required number of `PersistentVolume` resources.
-  The Verrazzano system requires 5 persistent volumes for itself.
-  Additionally each deployed Verrazzano binding requires an additional 4 persistent volumes.
-  The command below creates 9 persistent volumes which is enough for one deployed binding.
+  The Verrazzano system requires five persistent volumes for itself.
+  Each deployed Verrazzano binding requires an additional four persistent volumes.
+  The command below creates nine persistent volumes which is enough for one deployed binding.
   The value for storageClassName must match the above `StorageClass` name.
   The values for `name` may be customized.
   The value for `path` must match the `Export Path` of the Export from above combined with the persistent volume folder from above.
@@ -222,11 +222,10 @@ The value for `name` below may be customized but will need to match the Persiste
   ```
   
 #### Load Balancers
-Verrazzano on Oracle Linux Cloud Native Environment can use external load balancer services.
+Verrazzano on Oracle Linux Cloud Native Environment uses external load balancer services.
 These will not automatically be provided by Verrazzano or Kubernetes.
-If desired two load balancers may be deployed outside of subnet used for the Kubernetes cluster.
+Two load balancers must be deployed outside of the subnet used for the Kubernetes cluster.
 One load balancer is for management traffic and the other for application traffic.
-If load balancers are not created the management and application user interfaces will need to be accessed by IP address.
 
 Specific steps will differ for each load balancer provider, but a generic configuration and an OCI example follow.
 
@@ -277,7 +276,7 @@ When using the `manual` DNS type, the installer searches the DNS Zone you provid
 These are used to configure the cluster and should refer to external addresses of the load balancers in the previous step.
 The A records will need to be created manually.
 
-**NOTE:** At this time, the only supported deployment for OLCNE is the manual DNS type.
+**NOTE:** At this time, the only supported deployment for Oracle Linux Cloud Native Environment is the manual DNS type.
 
 |Record             | Use                                                                                              |
 |-------------------|--------------------------------------------------------------------------------------------------|
@@ -329,7 +328,7 @@ DNS A records must be manually added to the zone and published using values desc
 DNS CNAME records in same way.
 
 ### 4. Do the Verrazzano install
-During install of Verrazzano these steps should be performed on the OLCNE operator node.
+During install of Verrazzano these steps should be performed on the Oracle Linux Cloud Native Environment operator node.
  
 Clone the Verrazzano install repository
 ```
