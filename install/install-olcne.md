@@ -208,16 +208,7 @@ Set the following `ENV` vars:
     export KUBECONFIG=$VERRAZZANO_KUBECONFIG
   ```
 
-### 2. Create the Oracle Container Registry secret
-You need to create an "ocr" secret for pulling images from the container-registry.oracle.com repository.
-```
-   kubectl create secret docker-registry ocr \
-       --docker-username=<username> \
-       --docker-password=<password> \
-       --docker-server=container-registry.oracle.com
-```
-
-### 3. Install Verrazzano
+### 2. Install Verrazzano
 
 You will install Verrazzano using the `manual` DNS type.
 
@@ -229,7 +220,7 @@ Run the following scripts in order:
    ./4-install-keycloak.sh                    -d manual -n <env-name> -s <dns-suffix>
 ```
 
-### 4. Verify installation
+### 3. Verify installation
 Verrazzano installs multiple objects in multiple namespaces.  All the pods in the `verrazzano-system` namespaces in the `Running` status does not guarantee but likely indicates that Verrazzano is up and running.
 ```
 kubectl get pods -n verrazzano-system
@@ -250,7 +241,7 @@ vmi-system-prometheus-0-7f97ff97dc-gfclv           3/3     Running   0          
 vmi-system-prometheus-gw-7cb9df774-48g4b           1/1     Running   0          4m44s
 ```
 
-### 5. Get the console URLs
+### 4. Get the console URLs
 Verrazzano installs several consoles.  You can get the ingress for the consoles with the following command:  
 
 `kubectl get ingress -A`
@@ -271,7 +262,7 @@ Following is an example of the ingresses:
    verrazzano-system   vmi-system-prometheus-gw           prometheus-gw.vmi.system.myenv.mydomain.com    128.234.33.198   80, 443   80m
 ```
 
-### 6. Get console credentials
+### 5. Get console credentials
 You will need the credentials to access the various consoles installed by Verrazzano.
 
 #### Consoles accessed by the same user name/password
