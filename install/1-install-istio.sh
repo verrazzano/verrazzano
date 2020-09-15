@@ -267,12 +267,6 @@ log "Kubernetes nodes exist"
 action "Waiting for all Kubernetes nodes to be ready" \
     kubectl wait --for=condition=ready nodes --all || exit 1
 
-# Validate the optional global registry secret
-REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
-if [ "${REGISTRY_SECRET_EXISTS}" == "0" ]; then
-  action "Verifying that secret named ${GLOBAL_REGISTRY_SECRET} contains valid credentials" verify_registry_secret || exit 1
-fi
-
 # Create istio-system namespace if it does not exist
 if ! kubectl get namespace istio-system > /dev/null 2>&1 ; then
   action "Creating istio-system namespace" \
@@ -280,6 +274,7 @@ if ! kubectl get namespace istio-system > /dev/null 2>&1 ; then
 fi
 
 # Copy the optional global registry secret to the istio-system namespace for pulling OLCNE images in a OKE cluster
+REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 if [ "${REGISTRY_SECRET_EXISTS}" == "0" ]; then
   if ! kubectl get secret ${GLOBAL_REGISTRY_SECRET} -n istio-system > /dev/null 2>&1 ; then
     action "Copying ${GLOBAL_REGISTRY_SECRET} secret to istio-system namespace" \
