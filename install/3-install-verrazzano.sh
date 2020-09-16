@@ -133,9 +133,9 @@ function install_verrazzano()
 
   EXTRA_V8O_ARGUMENTS=""
   if [ ${REGISTRY_SECRET_EXISTS} == "0" ]; then
-    EXTRA_V8O_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_REGISTRY_SECRET}"
-    if ! kubectl get secret ${GLOBAL_REGISTRY_SECRET} -n ${VERRAZZANO_NS} > /dev/null 2>&1 ; then
-      action "Copying ${GLOBAL_REGISTRY_SECRET} secret to ${VERRAZZANO_NS} namespace" \
+    EXTRA_V8O_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+    if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${VERRAZZANO_NS} > /dev/null 2>&1 ; then
+      action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${VERRAZZANO_NS} namespace" \
           copy_registry_secret "${VERRAZZANO_NS}"
     fi
   fi

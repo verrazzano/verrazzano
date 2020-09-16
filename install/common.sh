@@ -135,7 +135,7 @@ function validate_environment_name {
 
 # Check if the optional global registry secret exists
 function check_registry_secret_exists() {
-  kubectl get secret ${GLOBAL_REGISTRY_SECRET} -n default > /dev/null 2>&1
+  kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n default > /dev/null 2>&1
   echo $?
 }
 
@@ -143,7 +143,7 @@ function check_registry_secret_exists() {
 function copy_registry_secret()
 {
   DEST_NS=$1
-  kubectl get secret ${GLOBAL_REGISTRY_SECRET} -n default -o yaml \
+  kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n default -o yaml \
       | sed "s|namespace: default|namespace: ${DEST_NS}|" \
       | kubectl apply -n ${DEST_NS} -f -
 }
@@ -227,7 +227,7 @@ command -v curl >/dev/null 2>&1 || {
 ####Constants for Docker images, versions, tags
 ##################################################
 GLOBAL_HUB_REPO=container-registry.oracle.com/olcne
-GLOBAL_REGISTRY_SECRET=verrazzano-container-registry
+GLOBAL_IMAGE_PULL_SECRET=verrazzano-container-registry
 
 CERT_MANAGER_IMAGE=container-registry.oracle.com/verrazzano/cert-manager-controller
 CERT_MANAGER_TAG=0.13.1-0e7394e-18

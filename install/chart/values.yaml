@@ -15,8 +15,8 @@ docker:
 
 verrazzanoOperator:
   name: verrazzano-operator
-  imageName: ghcr.io/verrazzano/verrazzano-operator-jenkins
-  imageVersion: c9a0de0c45848a56a250faf73fee3bdfbc3fa45a
+  imageName: ghcr.io/verrazzano/verrazzano-operator
+  imageVersion: v0.0.96-d168873-1
   cohMicroImage: verrazzano-coh-cluster-operator:v0.0.8
   helidonMicroImage: verrazzano-helidon-app-operator:v0.0.7
   wlsMicroImage: verrazzano-wko-operator:v0.0.10
