@@ -142,7 +142,7 @@ A Verrazzano Oracle Linux Cloud Native Environment deployment requires:
 * A default storage provider that supports "Multiple Read/Write" mounts. For example, an NFS service like:
     * Oracle Cloud Infrastructure File Storage Service.
     * A hardware-based storage system that provides NFS capabilities.
-* Load balancers in front of the worker nodes in the cluster. For a non-production environment, you may choose to access your clusters using NodePorts instead, in which case the load balancer is not required.
+* Load balancers in front of the worker nodes in the cluster.
 * DNS records that reference the load balancers.
 
 Examples for meeting these requirements follow.

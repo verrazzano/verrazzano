@@ -26,8 +26,10 @@ spec:
             - --v=4
             - --verrazzanoUri={{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
             - --enableMonitoringStorage={{ .Values.config.enableMonitoringStorage }}
-            - --sslVerify={{ .Values.verrazzanoOperator.sslVerify }}
             - --apiServerRealm={{ .Values.verrazzanoOperator.apiServerRealm }}
+          resources:
+            requests:
+              memory: {{ .Values.verrazzanoOperator.RequestMemory }}
           env:
             - name: COH_MICRO_IMAGE
               value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.cohMicroImage }}
@@ -47,6 +49,26 @@ spec:
               value: {{ .Values.verrazzanoOperator.weblogicOperatorImage }}
             - name: FLUENTD_IMAGE
               value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.fluentdImage }}
+            - name: COH_MICRO_REQUEST_MEMORY
+              value: {{ .Values.verrazzanoOperator.cohMicroRequestMemory }}
+            - name: HELIDON_MICRO_REQUEST_MEMORY
+              value: {{ .Values.verrazzanoOperator.helidonMicroRequestMemory }}
+            - name: WLS_MICRO_REQUEST_MEMORY
+              value: {{ .Values.verrazzanoOperator.wlsMicroRequestMemory }}
+            - name: ES_MASTER_NODE_REQUEST_MEMORY
+              value: {{ .Values.verrazzanoOperator.esMasterNodeRequestMemory }}
+            - name: ES_INGEST_NODE_REQUEST_MEMORY
+              value: {{ .Values.verrazzanoOperator.esIngestNodeRequestMemory }}
+            - name: ES_DATA_NODE_REQUEST_MEMORY
+              value: {{ .Values.verrazzanoOperator.esDataNodeRequestMemory }}
+            - name: GRAFANA_REQUEST_MEMORY
+              value: {{ .Values.verrazzanoOperator.grafanaRequestMemory }}
+            - name: PROMETHEUS_REQUEST_MEMORY
+              value: {{ .Values.verrazzanoOperator.prometheusRequestMemory }}
+            - name: KIBANA_REQUEST_MEMORY
+              value: {{ .Values.verrazzanoOperator.kibanaRequestMemory }}
+            - name: ES_MASTER_NODE_REPLICAS
+              value: "{{ .Values.verrazzanoOperator.esMasterNodeReplicas }}"
       serviceAccount: {{ .Values.verrazzanoOperator.name }}
 ---
 kind: Service

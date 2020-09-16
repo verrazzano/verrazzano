@@ -670,6 +670,9 @@ spec:
             - containerPort: {{ .Values.monitoringOperator.metricsPort }}
               name: metrics
               protocol: TCP
+          resources:
+            requests:
+              memory: {{ .Values.monitoringOperator.RequestMemory }}
           env:
             - name: GRAFANA_IMAGE
               value: {{ .Values.monitoringOperator.grafanaImage }}

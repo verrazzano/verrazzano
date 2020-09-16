@@ -8,11 +8,7 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 . $SCRIPT_DIR/common.sh
 
 
-if [ ${CLUSTER_TYPE} == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
-  INGRESS_TYPE=LoadBalancer
-elif [ ${CLUSTER_TYPE} == "KIND" ]; then
-  INGRESS_TYPE=NodePort
-fi
+INGRESS_TYPE=LoadBalancer #this is true for both OKE and OLCNE clusters
 
 CONFIG_DIR=$SCRIPT_DIR/config
 TMP_DIR=$(mktemp -d)
@@ -81,7 +77,6 @@ function install_istio()
         --namespace istio-system \
         --set global.hub=$GLOBAL_HUB_REPO \
         --set global.tag=$ISTIO_VERSION \
-        --set global.imagePullSecrets[0]=ocr \
         > ${TMP_DIR}/istio-crds.yaml || return $?
 
     log "Generate cluster specific configuration"
@@ -101,7 +96,6 @@ function install_istio()
         --namespace istio-system \
         --set global.hub=$GLOBAL_HUB_REPO \
         --set global.tag=$ISTIO_VERSION \
-        --set global.imagePullSecrets[0]=ocr \
         --set gateways.istio-ingressgateway.type="${INGRESS_TYPE}" \
         --set sidecarInjectorWebhook.rewriteAppHTTPProbe=true \
         --set grafana.enabled=true \
@@ -155,62 +149,6 @@ function update_coredns()
            || return 1
     fi
     return 0
-}
-
-function copy_ocr_secret()
-{
-    kubectl get secret ocr -n default -o yaml \
-        | sed 's|namespace: default|namespace: istio-system|' \
-        | kubectl apply -n istio-system -f -
-}
-
-function verify_ocr_secret_exists()
-{
-    local _error_msg
-    read -r -d '' _error_msg <<- EOM
-ERROR: Secret named ocr is required to pull images from ${GLOBAL_HUB_REPO}.
-Create the secret in the default namespace and then rerun this script.
-e.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com
-EOM
-
-    kubectl get secret ocr -n default || fail "${_error_msg}"
-}
-
-function verify_ocr_secret()
-{
-    OCR_TEST_JOB_NAME=ocrtest-$(uuidgen | tr "[:upper:]" "[:lower:]")
-    sed -e "s/OCR_TEST_JOB_NAME/${OCR_TEST_JOB_NAME}/" $CONFIG_DIR/ocrtest.yaml | kubectl apply -f -
-    OCR_VERIFIED=false
-    OCR_SECRET_RETRIES=${OCR_SECRET_RETRIES:-75}
-    RETRIES=0
-    until [ "$RETRIES" -ge "${OCR_SECRET_RETRIES}" ]
-    do
-       OCRTEST=$(kubectl get pod -l job-name=$OCR_TEST_JOB_NAME | grep ocrtest)
-       if [[ "$OCRTEST" == *"Running"* || "$OCRTEST" == *"Completed"* ]]; then
-           log "OCR Secret verified at attempt $RETRIES, job status is below"
-           echo $OCRTEST
-           OCR_VERIFIED=true
-           break
-       fi
-       if [[ "$OCRTEST" == *"ImagePullBackOff"* || "$OCRTEST" == *"ErrImagePull"* ]]; then
-           log "OCR Secret verification failed at attempt $RETRIES, job status is below"
-           echo $OCRTEST
-           kubectl describe pod `echo $OCRTEST | awk '{ print $1 }'` | grep "Failed" | head -n 1
-           OCR_VERIFIED=false
-       fi
-       RETRIES=$(($RETRIES+1))
-       sleep 4
-    done
-
-    if [ "$OCR_VERIFIED" == false ]; then
-      log "OCR Secret verification failed after $OCR_SECRET_RETRIES attempts."
-      "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "default" -r "ocrtest" -m "verify_ocr_secret"
-      "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "default" -r "ocrtest-*" -m "verify_ocr_secret"
-      kubectl delete job $OCR_TEST_JOB_NAME
-      log "For additional detailed information on the cluster at the time of this error, please check the diagnostics log file"
-      fail "ERROR: Cannot access Oracle Container Registry. This may be due to incorrect credentials. Check the ocr secret and re-create the secret if the credentials are wrong. \ne.g. kubectl create secret docker-registry ocr --docker-username=<username> --docker-password=<password> --docker-server=container-registry.oracle.com"
-    fi
-    kubectl delete job $OCR_TEST_JOB_NAME
 }
 
 function check_kube_version {
@@ -320,24 +258,10 @@ log "Kubernetes nodes exist"
 action "Waiting for all Kubernetes nodes to be ready" \
     kubectl wait --for=condition=ready nodes --all || exit 1
 
-# Secret named ocr must exist in the default namespace to pull OLCNE images in a OKE cluster
-if [ ${CLUSTER_TYPE} == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
-  action "Verifying that secret named ocr exists in default namespace" verify_ocr_secret_exists || exit 1
-  action "Verifying that secret named ocr contains valid credentials" verify_ocr_secret || exit 1
-fi
-
 # Create istio-system namespace if it does not exist
 if ! kubectl get namespace istio-system > /dev/null 2>&1 ; then
   action "Creating istio-system namespace" \
     kubectl create namespace istio-system || exit 1
-fi
-
-# Copy the secret named ocr to the istio-system namespace for pulling OLCNE images in a OKE cluster
-if [ ${CLUSTER_TYPE} == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
-  if ! kubectl get secret ocr -n istio-system > /dev/null 2>&1 ; then
-    action "Copying ocr secret to istio-system namespace" \
-        copy_ocr_secret
-  fi
 fi
 
 # Create certificates and istio secret to hold certificates if we haven't already
