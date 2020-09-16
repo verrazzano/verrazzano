@@ -59,7 +59,7 @@ verrazzanoAdmissionController:
   name: verrazzano-validation
   controllerName: verrazzano-admission-controller
   imageName: verrazzano-admission-controller-ci-jenkins
-  imageVersion: fc86c3e62c6138358b79106a0c391e9c355330ff
+  imageVersion: 9514bbc809dbbeca80dc56e4b7cfbfdf390d3259
   caBundle:
 
 # OCI-related values
