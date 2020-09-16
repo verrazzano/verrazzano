@@ -15,7 +15,7 @@ verrazzanoOperator:
   imageName: verrazzano-operator
   imageVersion: v0.0.94-eed5952-1
   cohMicroImage: verrazzano-coh-cluster-operator:v0.0.8
-  helidonMicroImage: verrazzano-helidon-app-operator:v0.0.7
+  helidonMicroImage: verrazzano-helidon-app-operator-jenkins:e8c634cbdaa265776b22e9035dc017f2d14b09aa
   wlsMicroImage: verrazzano-wko-operator:v0.0.10
   prometheusPusherImage: prometheus-pusher:1.0.1-ff71638-20
   nodeExporterImage: node-exporter:0.18.1-0cca78f-10
@@ -58,8 +58,8 @@ clusterOperator:
 verrazzanoAdmissionController:
   name: verrazzano-validation
   controllerName: verrazzano-admission-controller
-  imageName: verrazzano-admission-controller
-  imageVersion: v0.0.17
+  imageName: verrazzano-admission-controller-ci-jenkins
+  imageVersion: fc86c3e62c6138358b79106a0c391e9c355330ff
   caBundle:
 
 # OCI-related values
