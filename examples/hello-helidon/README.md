@@ -19,8 +19,8 @@ This guide should take about 10 minutes to complete.
 ## Overview
 
 Deploying an application to Verrazzano requires two primary steps.
-0. Applying the application's Verrazzano model resource.
-0. Applying the application's Verrazzano binding resource.
+1. Applying the application's Verrazzano model resource.
+1. Applying the application's Verrazzano binding resource.
 
 Details about applying these resources and validating the results are provided in the remainder of this guide.
 
@@ -120,13 +120,13 @@ This table provides a brief description of each field in the model.
 Below are the steps required to deploy the example application.
 Steps similar to the `apply` steps below would be used to deploy any application to Verrazzano.
 
-0. Clone the Verrazzano [repository](https://github.com/verrazzano/verrazzano).
+1. Clone the Verrazzano [repository](https://github.com/verrazzano/verrazzano).
 
    ```bash
    git clone https://github.com/verrazzano/verrazzano.git
    ```
 
-0. Change the current directory to the example hello-helidon directory.
+1. Change the current directory to the example hello-helidon directory.
 
    ```bash
    cd verrazzano/examples/hello-helidon
@@ -134,7 +134,7 @@ Steps similar to the `apply` steps below would be used to deploy any application
 
    _Note: The remainder of this guide uses file locations relative to this directory._ 
 
-0. Apply the [application's Verrazzano model](../../examples/hello-helidon/hello-world-model.yaml).
+1. Apply the [application's Verrazzano model](../../examples/hello-helidon/hello-world-model.yaml).
 
    ```bash
    kubectl apply -f ./hello-world-model.yaml
@@ -144,7 +144,7 @@ Steps similar to the `apply` steps below would be used to deploy any application
    No other resources or objects are created as a result.
    Bindings applied in the future may reference such registered model.
 
-0. Apply the [application's Verrazzano binding](../../examples/hello-helidon/hello-world-binding.yaml).
+1. Apply the [application's Verrazzano binding](../../examples/hello-helidon/hello-world-binding.yaml).
 
    ```bash
    kubectl apply -f ./hello-world-binding.yaml
@@ -170,7 +170,7 @@ _Note: The steps above that apply the model and binding are included in the conv
   _Note: Many other Kubernetes objects unrelated to the example application may also exist.  
   Those have been omitted from the lists below._
   
-0. Verify the Helidon application pod is running  
+1. Verify the Helidon application pod is running  
    
    ```bash
    kubectl get pods -n greet | grep hello-world-application
@@ -187,7 +187,7 @@ _Note: The steps above that apply the model and binding are included in the conv
    |greet            |hello-world-application-648f8f79d9                    |ReplicaSet |
    |greet            |hello-world-application-648f8f79d9-8xkhl              |Pod        |
 
-0. Verify the Verrazzano Helidon application operator pod is running
+1. Verify the Verrazzano Helidon application operator pod is running
 
    ```bash
    kubectl get pods -n verrazzano-system | grep verrazzano-helidon-app-operator
@@ -206,7 +206,7 @@ _Note: The steps above that apply the model and binding are included in the conv
    |verrazzano-system|verrazzano-helidon-app-operator-d746d7bc6-67th8       |Pod        |
    |verrazzano-system|verrazzano-helidon-app-operator-metrics               |Service    |
 
-0. Verify the Verrazzano monitoring infrastructure is running
+1. Verify the Verrazzano monitoring infrastructure is running
 
    ```bash
    kubectl get pods -n verrazzano-system | grep vmi-hello-world-binding
@@ -265,7 +265,7 @@ _Note: The steps above that apply the model and binding are included in the conv
    |verrazzano-system|vmi-hello-world-binding-prometheus-gw-6df8bf4689      |ReplicaSet |
    |verrazzano-system|vmi-hello-world-binding-prometheus-gw-6df8bf4689-dmfxh|Pod        |
 
-0. Verify the Verrazzano metrics collection infrastructure is running
+1. Verify the Verrazzano metrics collection infrastructure is running
 
    ```bash
    kubectl get pods -n monitoring | grep prom-pusher-hello-world-binding
@@ -281,7 +281,7 @@ _Note: The steps above that apply the model and binding are included in the conv
    |monitoring       |prom-pusher-hello-world-binding-6648484f89            |ReplicaSet |
    |monitoring       |prom-pusher-hello-world-binding-6648484f89-t8rf8      |Pod        |
   
-0. Diagnose failures
+1. Diagnose failures
 
    View the event logs of any pod not entering the "Running" state within a reasonable length of time.
    
@@ -301,31 +301,31 @@ endpoint accepts the `PUT` HTTP request method, and a JSON payload.
 
 Follow these steps to explore the application's functionality.
 
-0.  Get the IP address of the load balancer exposing the applications REST service endpoints
+1.  Get the IP address of the load balancer exposing the applications REST service endpoints
     ```
     SERVER=$(kubectl get service -n istio-system istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}') && echo $SERVER
     ```
 
-0.  Get the default message
+1.  Get the default message
     ```bash
     curl -s -X GET http://${SERVER}/greet
 
     {"message":"Hello World!"}
     ```
 
-0.  Get a message for Robert
+1.  Get a message for Robert
     ```bash
     curl -s -X GET http://${SERVER}/greet/Robert
 
     {"message":"Hello Robert!"}
     ```
 
-0.  Update the default greeting
+1.  Update the default greeting
     ```bash
     curl -s -X PUT -H "Content-Type: application/json" -d '{"greeting" : "Greetings"}' http://${SERVER}/greet/greeting
     ```
 
-0.  Get the new message for Robert
+1.  Get the new message for Robert
     ```bash
     curl -s -X GET http://${SERVER}/greet/Robert
 
@@ -384,7 +384,7 @@ The username and password used for Prometheus access are the same as for Grafana
 
 Run the following commands to delete the application's Verrazzano binding and optionally Verrazzano model.
 
-0. Delete the application's binding
+1. Delete the application's binding
 
    ```bash
    kubectl delete -f ./hello-world-binding.yaml
@@ -393,7 +393,7 @@ Run the following commands to delete the application's Verrazzano binding and op
    The deletion of of the application's model will result in the destruction 
    of all application specific Kubernetes objects.
     
-0. Delete the application's model (optional)
+1. Delete the application's model (optional)
 
    ```bash
    kubectl delete -f ./hello-world-model.yaml
