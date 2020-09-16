@@ -73,7 +73,7 @@ function install_istio()
     helm fetch istio.io/istio-init --untar=true --untardir=$TMP_DIR || return $?
 
     EXTRA_ISTIO_ARGUMENTS=""
-    if [ ${REGISTRY_SECRET_EXISTS} == "0" ]; then
+    if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
       EXTRA_ISTIO_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
 
@@ -87,7 +87,7 @@ function install_istio()
 
     log "Generate cluster specific configuration"
     EXTRA_HELM_ARGUMENTS=""
-    if [ ${REGISTRY_SECRET_EXISTS} == "0" ]; then
+    if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
       EXTRA_HELM_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
     if [ ${CLUSTER_TYPE} == "OLCNE" ] && [ $DNS_TYPE == "manual" ]; then
@@ -275,7 +275,7 @@ fi
 
 # Copy the optional global registry secret to the istio-system namespace for pulling OLCNE images in a OKE cluster
 REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
-if [ "${REGISTRY_SECRET_EXISTS}" == "0" ]; then
+if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
   if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n istio-system > /dev/null 2>&1 ; then
     action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to istio-system namespace" \
         copy_registry_secret "istio-system"

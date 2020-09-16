@@ -132,7 +132,7 @@ function install_verrazzano()
   local token_array=(${RANCHER_ACCESS_TOKEN//:/ })
 
   EXTRA_V8O_ARGUMENTS=""
-  if [ ${REGISTRY_SECRET_EXISTS} == "0" ]; then
+  if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
     EXTRA_V8O_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${VERRAZZANO_NS} > /dev/null 2>&1 ; then
       action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${VERRAZZANO_NS} namespace" \

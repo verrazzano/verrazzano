@@ -135,8 +135,14 @@ function validate_environment_name {
 
 # Check if the optional global registry secret exists
 function check_registry_secret_exists() {
+  local result
   kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n default > /dev/null 2>&1
-  echo $?
+  if [ $? -eq 0 ]; then
+    result="TRUE"
+  else
+    result="FALSE"
+  fi
+  echo ${result}
 }
 
 # Copy global registry secret to the namespace passed in the first argument
