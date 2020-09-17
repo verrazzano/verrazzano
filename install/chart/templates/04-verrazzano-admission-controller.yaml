@@ -82,6 +82,9 @@ spec:
           args:
             - --v=4
             - --verrazzanoUri={{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
+          resources:
+            requests:
+              memory: {{ .Values.verrazzanoAdmissionController.RequestMemory }}
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/certs

@@ -1,32 +1,143 @@
-# Installation on Oracle Linux Cloud Native Environment
+# Verrazzano Installation on Oracle Linux Cloud Native Environment
 
-This document describes installing Verrazzano in an [Oracle Linux Cloud Native Environment (OCLNE)](https://docs.oracle.com/en/operating-systems/olcne/) cluster.
+This document describes installing [Verrazzano](https://verrazzano.io/) on [Oracle Linux Cloud Native Environment (OLCNE)](https://docs.oracle.com/en/operating-systems/olcne/)
+cluster.
 
-Verrazzano requires Oracle Linux Cloud Native Environment version 1.1 or later.
 > **NOTE**: You should only install this alpha release of Verrazzano in a cluster that can be safely deleted when your evaluation is complete.
 
-## Requirements
+## Prerequisites
+* Verrazzano requires Oracle Linux Cloud Native Environment version 1.1 or later.
+* Verrazzano installation requires the following software be installed on the system used to install Verrazzano.
+  The Oracle Linux Cloud Native Environment operator node is typically used to install Verrazzano.  
+  * curl
+  * helm (version 3.0.x, 3.1.x or 3.2.x)
+  * jq
+  * kubectl
+  * openssl
 
-### Deployment system requirements
+  If you are using Oracle Linux 7 these requirements can be installed as shown below.
+  ```
+  sudo yum install -y oracle-olcne-release-el7
+  sudo yum-config-manager --enable ol7_olcne11 ol7_addons ol7_latest
+  sudo yum install -y kubectl helm jq openssl curl
+  ```
 
-The following software must be installed on your deployment system:
-* curl
-* helm
-* jq
-* kubectl
-* openssl
+## Installation
 
-If you are using Oracle Linux 7, then you can install these requirements with:
-```
-    sudo yum install -y oracle-olcne-release-el7
-    sudo yum-config-manager --enable ol7_olcne11 ol7_addons ol7_latest
-    sudo yum install -y kubectl helm jq openssl curl
-```
+### 1. Prepare for the Oracle Linux Cloud Native Environment install
+Oracle Linux Cloud Native Environment can be installed in several different type of environments.
+These range from physical on premises hardware to virtualized cloud infrastructure.
+The Oracle Linux Cloud Native Environment installation instructions assume that networking and compute resources already exists.
+The basic infrastructure requirements are a network with a public and private subnet
+and a set of host connected to those networks.
 
-### Cluster requirements
+#### OCI Example
+The OCI infrastructure detailed below is an example of infrastructure that could be used to evaluate Verrazzano installed on Oracle Linux Cloud Native Environment.
+If other environments are used the capacity and configuration should be similar to those below.
+
+The VCN Wizard of the OCI console can be used to automatically create most of the described network infrastructure.
+Additional security lists rules as detailed below will need to be added manually. 
+All CIDR values provided below are examples and can be customized as required.
+
+* Virtual Cloud Network (e.g. CIDR 10.0.0.0/16)
+  * Public Subnet (e.g. CIDR 10.0.0.0/24)
+    * Security List / Ingress Rules
+
+      |Stateless|Destination|Protocol|Source Ports|Destination Ports|Type & Code|Description        |
+      |---------|-----------|--------|------------|-----------------|-----------|-------------------|
+      |No       |0.0.0.0/0  |ICMP    |            |                 |3, 4       |ICMP Errors        |
+      |No       |10.0.0.0/16|ICMP    |            |                 |3          |ICMP Errors        |
+      |No       |0.0.0.0/0  |TCP     |All         |22               |           |SSH                |
+      |No       |0.0.0.0/0  |TCP     |All         |80               |           |HTTP Load Balancer |
+      |No       |0.0.0.0/0  |TCP     |All         |443              |           |HTTPS Load Balancer|
+
+    * Security List / Egress Rules
+ 
+      |Stateless|Destination|Protocol|Source Ports|Destination Ports|Type & Code|Description        |
+      |---------|-----------|--------|------------|-----------------|-----------|-------------------|
+      |No       |10.0.1.0/24|TCP     |All         |22               |           |SSH                |
+      |No       |10.0.1.0/24|TCP     |All         |30080            |           |HTTP Load Balancer |
+      |No       |10.0.1.0/24|TCP     |All         |30443            |           |HTTPS Load Balancer|
+      |No       |10.0.1.0/24|TCP     |All         |31380            |           |HTTP Load Balancer |
+      |No       |10.0.1.0/24|TCP     |All         |31390            |           |HTTPS Load Balancer|
+
+  * Private Subnet (e.g. CIDR 10.0.1.0/24)
+    * Security List / Ingress Rules
+      
+      |Stateless|Destination|Protocol|Source Ports|Destination Ports|Type & Code|Description          |
+      |---------|-----------|--------|------------|-----------------|-----------|---------------------|
+      |No       |0.0.0.0/0  |ICMP    |            |                 |3, 4       |ICMP Errors          |
+      |No       |10.0.0.0/16|ICMP    |            |                 |3          |ICMP Errors          |
+      |No       |10.0.0.0/16|TCP     |All         |22               |           |SSH                  |
+      |No       |10.0.0.0/24|TCP     |All         |30080            |           |HTTP Load Balancer   |
+      |No       |10.0.0.0/24|TCP     |All         |30443            |           |HTTPS Load Balancer  |
+      |No       |10.0.0.0/24|TCP     |All         |31380            |           |HTTP Load Balancer   |
+      |No       |10.0.0.0/24|TCP     |All         |31390            |           |HTTPS Load Balancer  |
+      |No       |10.0.1.0/24|UDP     |All         |111              |           |NFS                  |
+      |No       |10.0.1.0/24|TCP     |All         |111              |           |NFS                  |
+      |No       |10.0.1.0/24|UDP     |All         |2048             |           |NFS                  |
+      |No       |10.0.1.0/24|TCP     |All         |2048-2050        |           |NFS                  |
+      |No       |10.0.1.0/24|TCP     |All         |2379-2380        |           |Kubernetes etcd      |
+      |No       |10.0.1.0/24|TCP     |All         |6443             |           |Kubernetes API Server|
+      |No       |10.0.1.0/24|TCP     |All         |6446             |           |MySQL                |
+      |No       |10.0.1.0/24|TCP     |All         |8090-8091        |           |OLCNE Platform Agent |
+      |No       |10.0.1.0/24|UDP     |All         |8472             |           |Flannel              |
+      |No       |10.0.1.0/24|TCP     |All         |10250-10255      |           |Kubernetes Kublet    |
+            
+    * Security List / Egress Rules
+       
+      |Stateless|Destination|Protocol|Source Ports|Destination Ports|Type and Code|Description       |
+      |---------|-----------|--------|------------|-----------------|-------------|------------------|
+      |No       |10.0.0.0/0 |TCP     |            |                 |             |All egress traffic|
+          
+  * DHCP Options
+
+    |DNS Type                 |
+    |-------------------------|
+    |Internet and VCN Resolver|
+    
+  * Route Tables
+    * Public Subnet Route Table Rules
+    
+      |Destination|Target          |
+      |-----------|----------------|
+      |0.0.0.0/0  |Internet Gateway|
+      
+    * Private Subnet Route Table Rules
+    
+      |Destination     |Target         |
+      |----------------|---------------|
+      |0.0.0.0/0       |NAT Gateway    |
+      |All OCI Services|Service Gateway|
+      
+  * Internet Gateway
+  * NAT Gateway
+  * Service Gateway
+  
+The compute resources describe below follow the guidelines provided in the Oracle Linux Cloud Native Environment Getting Started guide.
+The attributes indicated (e.g. Subnet RAM, Shape, Image) are recommendations that have been tested.
+Other values can be used if required.
+  
+* Compute Instances
+
+  | Role                          | Subnet  | Suggested RAM | Compatible VM Shape | Compatible VM Image |
+  |-------------------------------|---------|---------------|---------------------|---------------------|
+  | SSH Jump Host                 | Public  | 8GB           | VM.Standard.E2.1    | Oracle Linux 7.8    |
+  | OLCNE Operator Host           | Private | 16GB          | VM.Standard.E2.2    | Oracle Linux 7.8    |
+  | Kubernetes Control Plane Node | Private | 32GB          | VM.Standard.E2.4    | Oracle Linux 7.8    |
+  | Kubernetes Worker Node 1      | Private | 32GB          | VM.Standard.E2.4    | Oracle Linux 7.8    |
+  | Kubernetes Worker Node 2      | Private | 32GB          | VM.Standard.E2.4    | Oracle Linux 7.8    |
+  | Kubernetes Worker Node 3      | Private | 32GB          | VM.Standard.E2.4    | Oracle Linux 7.8    |
+
+### 2. Do the Oracle Linux Cloud Native Environment install
 Deploy Oracle Linux Cloud Native Environment with the Kubernetes module following instructions from the [Getting Started](https://docs.oracle.com/en/operating-systems/olcne/start/deploy-kube.html) guide.
+* Use single Kubernetes control plane node
+* Skip Kubernetes API load balancer (3.4.3)
+* Use private CA certificates (3.5.3)
 
-####  Prerequisites summary
+### 3. Prepare for the Verrazzano install
+
+####  Prerequisites Overview
 A Verrazzano Oracle Linux Cloud Native Environment deployment requires:
 * A default storage provider that supports "Multiple Read/Write" mounts. For example, an NFS service like:
     * Oracle Cloud Infrastructure File Storage Service.
@@ -36,191 +147,220 @@ A Verrazzano Oracle Linux Cloud Native Environment deployment requires:
 
 Examples for meeting these requirements follow.
 
-#### Prerequisites details
+#### Prerequisites Detail
 
 ##### Storage
-A default storage class is necessary. When using preallocated PersistentVolumes, for example Gluster/NFS,
-they should be declared with a `storageClassName` as shown:
+Verrazzano requires persistent storage for several components.
+This persistent storage is provided by a default storage class.
+A number of persistent storage providers exist for Kubernetes.
+This guide will focus on a preallocated persistent volumes.
+In particular the provided samples will illustrate the use of OCI's NFS File System.
+
+###### OCI Example  
+Before storage can be exposed to Kubernetes is must be created.
+In OCI this is done using File System resources.
+Using the OCI console create a new File System.
+Within the new file system create an Export.
+Remember the value used for  `Export Path` as it will be used later. 
+Also note the Mount Target's `IP Address` for use later.
+
+Once the exports have been created, referenced persistent volume folders (e.g. /example/pv0001) will need to be created.
+In OCI this can be done by mounting the export on one of the Kubernetes worker nodes and creating the folders.
+In the example below the value '/example' is the `Export Path` and '10.0.1.8' is the Mount Target's `IP Address`.
+The command below should be executed on one of the Kubernetes worker nodes.
+This will result in the creation of 9 persistent volume folders.
+The reason for 9 persistent volume folders is covered in the next section. 
+```
+sudo mount 10.0.1.8:/example /mnt
+for x in {0001..0009}; do sudo mkdir -p /mnt/pv${x} && sudo chmod 777 /mnt/pv${x}; done
+```
+
+###### Persistent Volumes
+A default Kubernetes storage class is required by Verrazzano.
+When using pre-allocated PersistentVolumes, for example NFS, persistent volumes should be declared as shown below.
+The value for `name` below may be customized but will need to match the PersistentVolume storageClassName value later.
 * Create a default `StorageClass`
-  ```yaml
+  ```
   cat << EOF | kubectl apply -f -
     apiVersion: storage.k8s.io/v1
     kind: StorageClass
     metadata:
-      name: datacentre5-nfs
+      name: example-nfs
       annotations:
         storageclass.kubernetes.io/is-default-class: "true"
     provisioner: kubernetes.io/no-provisioner
     volumeBindingMode: WaitForFirstConsumer
   EOF
   ```
-* Create a `PersistentVolume`
-  ```yaml
-  cat << EOF | kubectl apply -f -
+* Create the required number of `PersistentVolume` resources.
+  The Verrazzano system requires five persistent volumes for itself.
+  Each deployed Verrazzano binding requires an additional four persistent volumes.
+  The command below creates nine persistent volumes which is enough for one deployed binding.
+  The value for storageClassName must match the above `StorageClass` name.
+  The values for `name` may be customized.
+  The value for `path` must match the `Export Path` of the Export from above combined with the persistent volume folder from above.
+  The value for `server` must be changed to match the location of your file system server.  
+  ```
+  for n in {0001..0009}; do cat << EOF | kubectl apply -f -
     apiVersion: v1
     kind: PersistentVolume
     metadata:
-      name: pv0001
+      name: pv${n}
     spec:
-      storageClassName: datacentre5-nfs
+      storageClassName: example-nfs
       accessModes:
         - ReadWriteOnce
         - ReadWriteMany
       capacity:
         storage: 50Gi
       nfs:
-        path: /datapool/k8s/pv0001
-        server: 10.10.10.10
+        path: /example/pv${n}
+        server: 10.0.1.8
       volumeMode: Filesystem
+      persistentVolumeReclaimPolicy: Recycle
   EOF
   ```
+  
+#### Load Balancers
+Verrazzano on Oracle Linux Cloud Native Environment uses external load balancer services.
+These will not automatically be provided by Verrazzano or Kubernetes.
+Two load balancers must be deployed outside of the subnet used for the Kubernetes cluster.
+One load balancer is for management traffic and the other for application traffic.
 
-#### Networking
+Specific steps will differ for each load balancer provider, but a generic configuration and an OCI example follow.
 
-Verrazzano on Oracle Linux Cloud Native Environment will use your own external load balancer services, not those dynamically provided by Kubernetes.
-Prior to installation two load balancers should be deployed outside of Kubernetes, one for management traffic and one
-for general traffic.
-
-Specific steps will differ for each load balancer provider, but a generic configuration and an example follow.
-
-##### Configuration
-* Target Host: Hostnames of Kubernetes worker nodes
-* Target Port: See table
+##### Generic Configuration
+* Target Host: Host names of Kubernetes worker nodes
+* Target Ports: See table
+* External Ports: See table
 * Distribution: Round Robin
 * Health Check: TCP
 
-Traffic Type | Service Name | Target Port | Type | Suggested External Port
- ---|---|---|---|---
-General | `istio-ingressgateway` | 31380 | TCP | 80
-General | `istio-ingressgateway` | 31390 | TCP | 443
-Management | `ingress-controller-nginx-ingress-controller` | 30080 | TCP | 80
-Management | `ingress-controller-nginx-ingress-controller` | 30443 | TCP | 443
+| Traffic Type | Service Name                                  | Type | Suggested External Port | Target Port |
+|--------------|-----------------------------------------------|------|-------------------------|-------------|
+| Application  | `istio-ingressgateway`                        | TCP  | 80                      | 31380       |
+| Application  | `istio-ingressgateway`                        | TCP  | 443                     | 31390       |
+| Management   | `ingress-controller-nginx-ingress-controller` | TCP  | 80                      | 30080       |
+| Management   | `ingress-controller-nginx-ingress-controller` | TCP  | 443                     | 30443       |
 
-##### Configuration example
-An NGINX example of the general traffic load balancer:
-```
-load_module /usr/lib64/nginx/modules/ngx_stream_module.so;
-events {
-  worker_connections 2048;
-}
-stream {
-  upstream backend_http {
-    server worker-0.example.com:31380;
-    server worker-1.example.com:31380;
-    server worker-2.example.com:31380;
-  }
-  upstream backend_https {
-    server worker-0.example.com:31390;
-    server worker-1.example.com:31390;
-    server worker-2.example.com:31390;
-  }
-  server {
-    listen 80;
-    proxy_pass backend_http;
-  }
-  server {
-    listen 443;
-    proxy_pass backend_https;
-  }
-}
-```
-An NGINX example of the management load balancer:
-```
-load_module /usr/lib64/nginx/modules/ngx_stream_module.so;
-events {
-  worker_connections 2048;
-}
-stream {
-  upstream backend_http {
-    server worker-0.example.com:30080;
-    server worker-1.example.com:30080;
-    server worker-2.example.com:30080;
-  }
-  upstream backend_https {
-    server worker-0.example.com:30443;
-    server worker-1.example.com:30443;
-    server worker-2.example.com:30443;
-  }
-  server {
-    listen 80;
-    proxy_pass backend_http;
-  }
-  server {
-    listen 443;
-    proxy_pass backend_https;
-  }
-}
-```
+##### OCI Example
+The details below can be used to create OCI Load Balancers for accessing application and management user interfaces respectively.
+These load balancers will route HTTP/HTTP traffic from the internet into the private subnet.
+If load balancers are desired they should be created now even though the application and management endpoints will actually be installed later.
 
-##### Manual DNS type
-When using the `manual` DNS type, the installer searches the DNS zone you provide for two specific A records.
+* Application Load Balancer: Public Subnet
+  * Listeners
+    * HTTP Listener: Protocol TCP, Port 80
+    * HTTPS Listener: Protocol TCP, Port 443
+  * Backend Sets
+    * HTTP Backend Sets:
+      * Health Check: Protocol TCP, Port 31380
+      * Backends: Kubernetes Worker Nodes, Port 31380, Distribution Policy Weighted Round Robin
+    * HTTPS Backend Sets
+      * Health Check: Protocol TCP, Port 31390
+      * Backends: Kubernetes Worker Nodes, Port 31390, Distribution Policy Weighted Round Robin
+* Management Load Balancer: Public Subnet
+  * Listeners
+    * HTTP Listener: Protocol TCP, Port 80
+    * HTTPS Listener: Protocol TCP, Port 443
+  * Backend Sets
+    * HTTP Backend Sets:
+      * Health Check: Protocol TCP, Port 30080
+      * Backends: Kubernetes Worker Nodes, Port 30080, Distribution Policy Weighted Round Robin
+    * HTTPS Backend Sets
+      * Health Check: Protocol TCP, Port 30443
+      * Backends: Kubernetes Worker Nodes, Port 30443, Distribution Policy Weighted Round Robin
+
+##### DNS
+When using the `manual` DNS type, the installer searches the DNS Zone you provide for two specific A records.
 These are used to configure the cluster and should refer to external addresses of the load balancers in the previous step.
+The A records will need to be created manually.
 
-Record | Use
----|---
-ingress-mgmt | Set as the `.spec.externalIPs` value of the `ingress-controller-nginx-ingress-controller` service
-ingress-verrazzano | Set as the `.spec.externalIPs` value of the `istio-ingressgateway` service
+**NOTE:** At this time, the only supported deployment for Oracle Linux Cloud Native Environment is the manual DNS type.
+
+|Record             | Use                                                                                              |
+|-------------------|--------------------------------------------------------------------------------------------------|
+|ingress-mgmt       | Set as the `.spec.externalIPs` value of the `ingress-controller-nginx-ingress-controller` service|
+|ingress-verrazzano | Set as the `.spec.externalIPs` value of the `istio-ingressgateway` service                       |
 
 For example:
 ```
-     198.51.100.10                                   A       ingress-mgmt.myenv.mydomain.com.
-     203.0.113.10                                    A       ingress-verrazzano.myenv.mydomain.com.
+198.51.100.10                                   A       ingress-mgmt.myenv.mydomain.com.
+203.0.113.10                                    A       ingress-verrazzano.myenv.mydomain.com.
 ```
 
-Installation will result in a number of management services that need to point to the ingress-mgmt address.
+Verrazzano installation will result in a number of management services that need to point to the ingress-mgmt address.
 ```
-    keycloak.myenv.mydomain.com                      CNAME   ingress-mgmt.myenv.mydomain.com.
-    rancher.myenv.mydomain.com                       CNAME   ingress-mgmt.myenv.mydomain.com.
+keycloak.myenv.mydomain.com                      CNAME   ingress-mgmt.myenv.mydomain.com.
+rancher.myenv.mydomain.com                       CNAME   ingress-mgmt.myenv.mydomain.com.
 
-    grafana.vmi.system.myenv.mydomain.com            CNAME   ingress-mgmt.myenv.mydomain.com.
-    prometheus.vmi.system.myenv.mydomain.com         CNAME   ingress-mgmt.myenv.mydomain.com.
-    kibana.vmi.system.myenv.mydomain.com             CNAME   ingress-mgmt.myenv.mydomain.com.
-    elasticsearch.vmi.system.myenv.mydomain.com      CNAME   ingress-mgmt.myenv.mydomain.com.
+grafana.vmi.system.myenv.mydomain.com            CNAME   ingress-mgmt.myenv.mydomain.com.
+prometheus.vmi.system.myenv.mydomain.com         CNAME   ingress-mgmt.myenv.mydomain.com.
+kibana.vmi.system.myenv.mydomain.com             CNAME   ingress-mgmt.myenv.mydomain.com.
+elasticsearch.vmi.system.myenv.mydomain.com      CNAME   ingress-mgmt.myenv.mydomain.com.
 ```
 
 Deployment of applications as a VerrazzanoBinding will create four more services in the form:
-* grafana.vmi.**binding-name**.myenv.mydomain.com
-* prometheus.vmi.**binding-name**.myenv.mydomain.com
-* kibana.vmi.**binding-name**.myenv.mydomain.com
-* elasticsearch.vmi.**binding-name**.myenv.mydomain.com
+* grafana.vmi.**mybinding**.myenv.mydomain.com
+* prometheus.vmi.**mybinding**.myenv.mydomain.com
+* kibana.vmi.**mybinding**.myenv.mydomain.com
+* elasticsearch.vmi.**mybinding**.myenv.mydomain.com
 
 For simplicity, an administrator may want to create [wildcard DNS records](https://tools.ietf.org/html/rfc1034#section-4.3.3) for the management addresses:
 ```
-    *.system.myenv.mydomain.com                      CNAME   ingress-mgmt.myenv.mydomain.com.
-    *.mybinding.myenv.mydomain.com                   CNAME   ingress-mgmt.myenv.mydomain.com.
+*.system.myenv.mydomain.com                      CNAME   ingress-mgmt.myenv.mydomain.com.
+*.mybinding.myenv.mydomain.com                   CNAME   ingress-mgmt.myenv.mydomain.com.
 ```
 or
 ```
-    *.myenv.mydomain.com                             CNAME   ingress-mgmt.myenv.mydomain.com.
+*.myenv.mydomain.com                             CNAME   ingress-mgmt.myenv.mydomain.com.
 ```
 
+##### OCI Example
+DNS is configured in OCI by creating DNS Zones in the OCI console.
+When creating a DNS Zone use these values.
+* Method: Manual
+* Zone Name: <dns-suffix>
+* Zone Type: Primary 
+The value for '<dns-suffix>' excludes the environment (e.g. use mydomain.com portion of myenv.mydomain.com).
 
-**NOTE:** At this time, the only supported deployment for OLCNE is the manual DNS type.
+DNS A records must be manually added to the zone and published using values described above.
+DNS CNAME records in same way.
 
-## Installation
+### 4. Do the Verrazzano install
+During install of Verrazzano these steps should be performed on the Oracle Linux Cloud Native Environment operator node.
+ 
+Clone the Verrazzano install repository
+```
+git clone https://github.com/verrazzano/verrazzano.git 
+cd verrazzano/install
+``` 
+Use the following commands to install git if required.
+```
+sudo yum install -y git
+```
 
-### 1. Configure the environment
-
-Set the following `ENV` vars:
-  ```
-    export CLUSTER_TYPE=OLCNE
-    export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
-    export KUBECONFIG=$VERRAZZANO_KUBECONFIG
-  ```
-
-### 2. Install Verrazzano
+Set the following environment variables:
+The value for '<path to valid kubernetes config>' is typically ${HOME}/.kube/config
+```
+export CLUSTER_TYPE=OLCNE
+export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
+export KUBECONFIG=$VERRAZZANO_KUBECONFIG
+```
 
 You will install Verrazzano using the `manual` DNS type.
+The value for '<env-name>' is a unique DNS subdomain for the cluster (e.g. myenv in myenv.mydomain.com).
+The value for '<dns-suffix>' is the remainder of the DNS domain (e.g. mydomain.com in myenv.mydomain.com).
 
 Run the following scripts in order:
 ```
-   ./1-install-istio.sh                       -d manual -n <env-name> -s <dns-suffix>
-   ./2a-install-system-components-magicdns.sh -d manual -n <env-name> -s <dns-suffix>
-   ./3-install-verrazzano.sh                  -d manual -n <env-name> -s <dns-suffix>
-   ./4-install-keycloak.sh                    -d manual -n <env-name> -s <dns-suffix>
+./1-install-istio.sh                       -d manual -n <env-name> -s <dns-suffix>
+./2a-install-system-components-magicdns.sh -d manual -n <env-name> -s <dns-suffix>
+./3-install-verrazzano.sh                  -d manual -n <env-name> -s <dns-suffix>
+./4-install-keycloak.sh                    -d manual -n <env-name> -s <dns-suffix>
 ```
 
-### 3. Verify installation
+### 5. Verify the Verrazzano install
 Verrazzano installs multiple objects in multiple namespaces.  All the pods in the `verrazzano-system` namespaces in the `Running` status does not guarantee but likely indicates that Verrazzano is up and running.
 ```
 kubectl get pods -n verrazzano-system
@@ -241,56 +381,61 @@ vmi-system-prometheus-0-7f97ff97dc-gfclv           3/3     Running   0          
 vmi-system-prometheus-gw-7cb9df774-48g4b           1/1     Running   0          4m44s
 ```
 
-### 4. Get the console URLs
-Verrazzano installs several consoles.  You can get the ingress for the consoles with the following command:  
+### 6. Get the console URLs
+Verrazzano installs several consoles.
+You can get the ingress for the consoles with the following command:  
 
 `kubectl get ingress -A`
 
-Simply prefix `https://` to the host name to get the URL.  For example `https://rancher.myenv.mydomain.com`
+Prefix `https://` to the host name returned to get the URL.
+For example `https://rancher.myenv.mydomain.com`
 
 Following is an example of the ingresses:
 ```
-   NAMESPACE           NAME                               HOSTS                                          ADDRESS          PORTS     AGE
-   cattle-system       rancher                            rancher.myenv.mydomain.com                     128.234.33.198   80, 443   93m
-   keycloak            keycloak                           keycloak.myenv.mydomain.com                    128.234.33.198   80, 443   69m
-   verrazzano-system   verrazzano-operator-ingress        api.myenv.mydomain.com                         128.234.33.198   80, 443   81m
-   verrazzano-system   vmi-system-api                     api.vmi.system.myenv.mydomain.com              128.234.33.198   80, 443   80m
-   verrazzano-system   vmi-system-es-ingest               elasticsearch.vmi.system.myenv.mydomain.com    128.234.33.198   80, 443   80m
-   verrazzano-system   vmi-system-grafana                 grafana.vmi.system.myenv.mydomain.com          128.234.33.198   80, 443   80m
-   verrazzano-system   vmi-system-kibana                  kibana.vmi.system.myenv.mydomain.com           128.234.33.198   80, 443   80m
-   verrazzano-system   vmi-system-prometheus              prometheus.vmi.system.myenv.mydomain.com       128.234.33.198   80, 443   80m
-   verrazzano-system   vmi-system-prometheus-gw           prometheus-gw.vmi.system.myenv.mydomain.com    128.234.33.198   80, 443   80m
+NAMESPACE           NAME                               HOSTS                                          ADDRESS          PORTS     AGE
+cattle-system       rancher                            rancher.myenv.mydomain.com                     128.234.33.198   80, 443   93m
+keycloak            keycloak                           keycloak.myenv.mydomain.com                    128.234.33.198   80, 443   69m
+verrazzano-system   verrazzano-operator-ingress        api.myenv.mydomain.com                         128.234.33.198   80, 443   81m
+verrazzano-system   vmi-system-api                     api.vmi.system.myenv.mydomain.com              128.234.33.198   80, 443   80m
+verrazzano-system   vmi-system-es-ingest               elasticsearch.vmi.system.myenv.mydomain.com    128.234.33.198   80, 443   80m
+verrazzano-system   vmi-system-grafana                 grafana.vmi.system.myenv.mydomain.com          128.234.33.198   80, 443   80m
+verrazzano-system   vmi-system-kibana                  kibana.vmi.system.myenv.mydomain.com           128.234.33.198   80, 443   80m
+verrazzano-system   vmi-system-prometheus              prometheus.vmi.system.myenv.mydomain.com       128.234.33.198   80, 443   80m
+verrazzano-system   vmi-system-prometheus-gw           prometheus-gw.vmi.system.myenv.mydomain.com    128.234.33.198   80, 443   80m
 ```
 
-### 5. Get console credentials
+### 7. Get console credentials
 You will need the credentials to access the various consoles installed by Verrazzano.
 
 #### Consoles accessed by the same user name/password
-- Grafana
-- Prometheus
-- Kibana
-- Elasticsearch
+* Grafana
+* Prometheus
+* Kibana
+* Elasticsearch
 
-**User:**  `verrazzano`
+**User:** `verrazzano`
 
 Run the following command to get the password:
-
-`kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo`
+```
+kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
+```
 
 #### The Keycloak admin console
 **User:** `keycloakadmin`
 
 Run the following command to get the password:
-
-`kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo`
+```
+kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo
+```
 
 #### The Rancher console
 **User:** `admin`
 
 Run the following command to get the password:
+```
+kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo
+```
 
-`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo`
+### 8. (Optional) Install the example applications
 
-
-### 7. (Optional) Install the example applications
 Example applications are located in the `examples` directory.
