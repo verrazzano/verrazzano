@@ -46,7 +46,7 @@ _LOGGING_ACTION_SUCCESS_CODES='\033[1;32m'
 _LOGGING_ACTION_FAILURE_CODES='\033[1;31m'
 _LOGGING_ACTION_SECTION_CODES='\033[1m'
 _LOGGING_ACTION_NORMAL_CODES='\033[0;39m'
-_LOGGING_ACTION_FORMAT='%-76s[%6s]'
+_LOGGING_ACTION_FORMAT='%-77s[%6s]'
 
 # Determine if the action spinner should be enabled.
 # The spinner will not be enabled when:
@@ -114,7 +114,7 @@ function _logging_action_success() {
     beglin="${_LOGGING_ACTION_BEGLINE_CODES}"
   fi
   if _logging_action_color_enabled; then
-    format="${beglin}%-76s[${_LOGGING_ACTION_SUCCESS_CODES}%6s${_LOGGING_ACTION_NORMAL_CODES}]"
+    format="${beglin}%-77s[${_LOGGING_ACTION_SUCCESS_CODES}%6s${_LOGGING_ACTION_NORMAL_CODES}]"
   fi
 
   printf "${_LOGGING_ACTION_FORMAT}\n" "${msg}" "${status}"
@@ -133,7 +133,7 @@ function _logging_action_failure() {
     beglin="${_LOGGING_ACTION_BEGLINE_CODES}"
   fi
   if _logging_action_color_enabled; then
-    format="${beglin}%-76s[${_LOGGING_ACTION_FAILURE_CODES}%6s${_LOGGING_ACTION_NORMAL_CODES}]"
+    format="${beglin}%-77s[${_LOGGING_ACTION_FAILURE_CODES}%6s${_LOGGING_ACTION_NORMAL_CODES}]"
   fi
 
   printf "${_LOGGING_ACTION_FORMAT}\n" "${msg}" "${status}"

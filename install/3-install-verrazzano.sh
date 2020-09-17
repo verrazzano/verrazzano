@@ -134,10 +134,6 @@ function install_verrazzano()
   EXTRA_V8O_ARGUMENTS=""
   if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
     EXTRA_V8O_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
-    if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${VERRAZZANO_NS} > /dev/null 2>&1 ; then
-      action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${VERRAZZANO_NS} namespace" \
-          copy_registry_secret "${VERRAZZANO_NS}"
-    fi
   fi
 
   log "Installing verrazzano from Helm chart"
@@ -236,6 +232,13 @@ REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 
 if ! kubectl get namespace ${VERRAZZANO_NS} ; then
   action "Creating ${VERRAZZANO_NS} namespace" kubectl create namespace ${VERRAZZANO_NS} || exit 1
+fi
+
+if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
+  if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${VERRAZZANO_NS} > /dev/null 2>&1 ; then
+    action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${VERRAZZANO_NS} namespace" \
+        copy_registry_secret "${VERRAZZANO_NS}"
+  fi
 fi
 
 action "Creating admission controller cert" create_admission_controller_cert || exit 1
