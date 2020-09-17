@@ -14,9 +14,9 @@ verrazzanoOperator:
   name: verrazzano-operator
   imageName: verrazzano-operator
   imageVersion: v0.0.95-2a2ed1c-1
-  cohMicroImage: verrazzano-coh-cluster-operator:v0.0.8
+  cohMicroImage: verrazzano-coh-cluster-operator-jenkins:25b3b2e5968297b819e6b85692ceea8d93ec89f1
   helidonMicroImage: verrazzano-helidon-app-operator-jenkins:e8c634cbdaa265776b22e9035dc017f2d14b09aa
-  wlsMicroImage: verrazzano-wko-operator:v0.0.10
+  wlsMicroImage: verrazzano-wko-operator-jenkins:09bd65a7c37b259fc9ab3c90553cd8dce3005909
   prometheusPusherImage: prometheus-pusher:1.0.1-ff71638-20
   nodeExporterImage: node-exporter:0.18.1-0cca78f-10
   filebeatImage: filebeat:6.8.3-8218206-10
@@ -60,8 +60,8 @@ monitoringOperator:
 
 clusterOperator:
   name: verrazzano-cluster-operator
-  imageName: verrazzano-cluster-operator
-  imageVersion: v0.0.9
+  imageName: verrazzano-cluster-operator-jenkins
+  imageVersion: 8112778071d72fc6419ed309efd087723c046d73
   rancherURL:
   rancherUserName:
   rancherPassword:
