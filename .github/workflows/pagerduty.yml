@@ -1,0 +1,15 @@
+on:
+  issues:
+    types: [opened, reopened]
+jobs:
+  pagerduty:
+    runs-on: ubuntu-latest
+    steps:
+      - name: web-request
+        uses: satak/webrequest-action@master
+        with:
+          url: https://events.pagerduty.com/v2/enqueue
+          method: POST
+          payload: '{"routing_key":"${{ secrets.PAGERDUTY_ROUTING_KEY }}","event_action":"trigger","payload":{"summary":"Issue https://github.com/verrazzano/verrazzano/issues/${{ github.event.issue.number }} opened or re-opened","source":"build.verrazzano.io","severity":"critical","component":"verrazzano"}}'
+          headers: '{"content-type": "application/json"}'
+
