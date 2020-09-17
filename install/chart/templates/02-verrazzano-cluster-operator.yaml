@@ -21,7 +21,7 @@ spec:
       containers:
         - name: {{ .Values.clusterOperator.name }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          image: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.clusterOperator.imageName }}:{{ .Values.clusterOperator.imageVersion }}
+          image: {{ .Values.clusterOperator.imageName }}:{{ .Values.clusterOperator.imageVersion }}
           args:
             - --v=4
             - --rancherURL={{ .Values.clusterOperator.rancherURL }}
@@ -38,6 +38,12 @@ kind: ServiceAccount
 metadata:
   name: {{ .Values.clusterOperator.name }}
   namespace: {{ .Release.Namespace }}
+{{- if .Values.global.imagePullSecrets }}
+imagePullSecrets:
+{{- range .Values.global.imagePullSecrets }}
+- name: {{ . }}
+{{- end }}
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole

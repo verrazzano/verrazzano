@@ -32,11 +32,11 @@ spec:
               memory: {{ .Values.verrazzanoOperator.RequestMemory }}
           env:
             - name: COH_MICRO_IMAGE
-              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.cohMicroImage }}
+              value: {{ .Values.verrazzanoOperator.cohMicroImage }}
             - name: HELIDON_MICRO_IMAGE
-              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.helidonMicroImage }}
+              value: {{ .Values.verrazzanoOperator.helidonMicroImage }}
             - name: WLS_MICRO_IMAGE
-              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.wlsMicroImage }}
+              value: {{ .Values.verrazzanoOperator.wlsMicroImage }}
             - name: PROMETHEUS_PUSHER_IMAGE
               value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.prometheusPusherImage }}
             - name: NODE_EXPORTER_IMAGE
