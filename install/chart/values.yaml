@@ -38,8 +38,8 @@ verrazzanoOperator:
 
 monitoringOperator:
   name: verrazzano-monitoring-operator
-  imageName: verrazzano-monitoring-operator
-  imageVersion: v0.0.19
+  imageName: verrazzano-monitoring-operator-jenkins
+  imageVersion: 4b478b514cf24cc17de7fe14397c0aa7c904acb8
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
@@ -50,7 +50,7 @@ monitoringOperator:
   alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
   esImage: elasticsearch:7.6.1-1d68e1a-3
-  esWaitImage: verrazzano-monitoring-instance-eswait:v0.0.18
+  esWaitImage: verrazzano-monitoring-instance-eswait-jenkins:4b478b514cf24cc17de7fe14397c0aa7c904acb8
   esInitImage: container-registry.oracle.com/os/oraclelinux:7.8
   kibanaImage: kibana:7.6.1-ccfddab-2
   monitoringInstanceApiImage: verrazzano-monitoring-instance-api:v0.0.7
