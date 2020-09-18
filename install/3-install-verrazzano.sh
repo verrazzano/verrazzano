@@ -131,6 +131,15 @@ function install_verrazzano()
   fi
   local token_array=(${RANCHER_ACCESS_TOKEN//:/ })
 
+  EXTRA_V8O_ARGUMENTS=""
+  if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
+    EXTRA_V8O_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+    if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${VERRAZZANO_NS} > /dev/null 2>&1 ; then
+      action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${VERRAZZANO_NS} namespace" \
+          copy_registry_secret "${VERRAZZANO_NS}"
+    fi
+  fi
+
   log "Installing verrazzano from Helm chart"
   helm \
       upgrade --install verrazzano \
@@ -144,7 +153,8 @@ function install_verrazzano()
       --set clusterOperator.rancherUserName="${token_array[0]}" \
       --set clusterOperator.rancherPassword="${token_array[1]}" \
       --set clusterOperator.rancherHostname=${RANCHER_HOSTNAME} \
-      --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)" || return $?
+      --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)" \
+      ${EXTRA_V8O_ARGUMENTS} || return $?
 
   log "Verifying that needed secrets are created"
   retries=0
@@ -220,6 +230,9 @@ else
 fi
 
 RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
+
+# Set environment variable for checking if optional imagePullSecret was provided
+REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 
 if ! kubectl get namespace ${VERRAZZANO_NS} ; then
   action "Creating ${VERRAZZANO_NS} namespace" kubectl create namespace ${VERRAZZANO_NS} || exit 1

@@ -2,6 +2,9 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 name: verrazzano
 
+global:
+  imagePullSecrets: []
+
 image:
   pullPolicy: Always
   terminationGracePeriodSeconds: 60
@@ -12,8 +15,8 @@ docker:
 
 verrazzanoOperator:
   name: verrazzano-operator
-  imageName: verrazzano-operator
-  imageVersion: v0.0.95-2a2ed1c-1
+  imageName: ghcr.io/verrazzano/verrazzano-operator
+  imageVersion: v0.0.96-d168873-1
   cohMicroImage: verrazzano-coh-cluster-operator:v0.0.9
   helidonMicroImage: verrazzano-helidon-app-operator:v0.0.8
   wlsMicroImage: verrazzano-wko-operator:v0.0.11
@@ -39,7 +42,7 @@ verrazzanoOperator:
 monitoringOperator:
   name: verrazzano-monitoring-operator
   imageName: verrazzano-monitoring-operator
-  imageVersion: v0.0.18
+  imageVersion: v0.0.19
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
@@ -50,7 +53,7 @@ monitoringOperator:
   alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
   esImage: elasticsearch:7.6.1-1d68e1a-3
-  esWaitImage: verrazzano-monitoring-instance-eswait:v0.0.18
+  esWaitImage: verrazzano-monitoring-instance-eswait:v0.0.19
   esInitImage: container-registry.oracle.com/os/oraclelinux:7.8
   kibanaImage: kibana:7.6.1-ccfddab-2
   monitoringInstanceApiImage: verrazzano-monitoring-instance-api:v0.0.7
