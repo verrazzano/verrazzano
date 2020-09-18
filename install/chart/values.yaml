@@ -17,9 +17,9 @@ verrazzanoOperator:
   name: verrazzano-operator
   imageName: ghcr.io/verrazzano/verrazzano-operator
   imageVersion: v0.0.96-d168873-1
-  cohMicroImage: verrazzano-coh-cluster-operator:v0.0.8
-  helidonMicroImage: verrazzano-helidon-app-operator:v0.0.7
-  wlsMicroImage: verrazzano-wko-operator:v0.0.10
+  cohMicroImage: verrazzano-coh-cluster-operator:v0.0.9
+  helidonMicroImage: verrazzano-helidon-app-operator:v0.0.8
+  wlsMicroImage: verrazzano-wko-operator:v0.0.11
   prometheusPusherImage: prometheus-pusher:1.0.1-ff71638-20
   nodeExporterImage: node-exporter:0.18.1-0cca78f-10
   filebeatImage: filebeat:6.8.3-8218206-10
@@ -53,7 +53,7 @@ monitoringOperator:
   alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
   esImage: elasticsearch:7.6.1-1d68e1a-3
-  esWaitImage: verrazzano-monitoring-instance-eswait:v0.0.18
+  esWaitImage: verrazzano-monitoring-instance-eswait:v0.0.19
   esInitImage: container-registry.oracle.com/os/oraclelinux:7.8
   kibanaImage: kibana:7.6.1-ccfddab-2
   monitoringInstanceApiImage: verrazzano-monitoring-instance-api:v0.0.7
@@ -64,7 +64,7 @@ monitoringOperator:
 clusterOperator:
   name: verrazzano-cluster-operator
   imageName: verrazzano-cluster-operator
-  imageVersion: v0.0.9
+  imageVersion: v0.0.10
   rancherURL:
   rancherUserName:
   rancherPassword:
@@ -75,7 +75,7 @@ verrazzanoAdmissionController:
   name: verrazzano-validation
   controllerName: verrazzano-admission-controller
   imageName: verrazzano-admission-controller
-  imageVersion: v0.0.17
+  imageVersion: v0.0.18
   caBundle:
   RequestMemory: 15Mi
 
