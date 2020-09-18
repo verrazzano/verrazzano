@@ -14,9 +14,9 @@ verrazzanoOperator:
   name: verrazzano-operator
   imageName: verrazzano-operator
   imageVersion: v0.0.95-2a2ed1c-1
-  cohMicroImage: verrazzano-coh-cluster-operator-jenkins:25b3b2e5968297b819e6b85692ceea8d93ec89f1
-  helidonMicroImage: verrazzano-helidon-app-operator-jenkins:e8c634cbdaa265776b22e9035dc017f2d14b09aa
-  wlsMicroImage: verrazzano-wko-operator-jenkins:09bd65a7c37b259fc9ab3c90553cd8dce3005909
+  cohMicroImage: verrazzano-coh-cluster-operator:v0.0.9
+  helidonMicroImage: verrazzano-helidon-app-operator:v0.0.8
+  wlsMicroImage: verrazzano-wko-operator:v0.0.11
   prometheusPusherImage: prometheus-pusher:1.0.1-ff71638-20
   nodeExporterImage: node-exporter:0.18.1-0cca78f-10
   filebeatImage: filebeat:6.8.3-8218206-10
@@ -38,8 +38,8 @@ verrazzanoOperator:
 
 monitoringOperator:
   name: verrazzano-monitoring-operator
-  imageName: verrazzano-monitoring-operator-jenkins
-  imageVersion: 4b478b514cf24cc17de7fe14397c0aa7c904acb8
+  imageName: verrazzano-monitoring-operator
+  imageVersion: v0.0.18
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
@@ -50,7 +50,7 @@ monitoringOperator:
   alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
   esImage: elasticsearch:7.6.1-1d68e1a-3
-  esWaitImage: verrazzano-monitoring-instance-eswait-jenkins:4b478b514cf24cc17de7fe14397c0aa7c904acb8
+  esWaitImage: verrazzano-monitoring-instance-eswait:v0.0.18
   esInitImage: container-registry.oracle.com/os/oraclelinux:7.8
   kibanaImage: kibana:7.6.1-ccfddab-2
   monitoringInstanceApiImage: verrazzano-monitoring-instance-api:v0.0.7
@@ -60,8 +60,8 @@ monitoringOperator:
 
 clusterOperator:
   name: verrazzano-cluster-operator
-  imageName: verrazzano-cluster-operator-jenkins
-  imageVersion: 8112778071d72fc6419ed309efd087723c046d73
+  imageName: verrazzano-cluster-operator
+  imageVersion: v0.0.10
   rancherURL:
   rancherUserName:
   rancherPassword:
@@ -71,8 +71,8 @@ clusterOperator:
 verrazzanoAdmissionController:
   name: verrazzano-validation
   controllerName: verrazzano-admission-controller
-  imageName: verrazzano-admission-controller-ci-jenkins
-  imageVersion: 9514bbc809dbbeca80dc56e4b7cfbfdf390d3259
+  imageName: verrazzano-admission-controller
+  imageVersion: v0.0.18
   caBundle:
   RequestMemory: 15Mi
 
