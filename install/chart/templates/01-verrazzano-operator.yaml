@@ -27,9 +27,6 @@ spec:
             - --verrazzanoUri={{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
             - --enableMonitoringStorage={{ .Values.config.enableMonitoringStorage }}
             - --apiServerRealm={{ .Values.verrazzanoOperator.apiServerRealm }}
-{{- if .Values.global.imagePullSecrets }}
-            - --imagePullSecret={{ index .Values.global.imagePullSecrets 0 }}
-{{- end }}
           resources:
             requests:
               memory: {{ .Values.verrazzanoOperator.RequestMemory }}
