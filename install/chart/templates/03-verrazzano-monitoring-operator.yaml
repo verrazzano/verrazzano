@@ -361,6 +361,12 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     k8s-app: {{ .Values.monitoringOperator.name }}
+{{- if .Values.global.imagePullSecrets }}
+imagePullSecrets:
+{{- range .Values.global.imagePullSecrets }}
+- name: {{ . }}
+{{- end }}
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -662,7 +668,7 @@ spec:
       containers:
         - name: {{ .Values.monitoringOperator.name }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          image: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.monitoringOperator.imageName }}:{{ .Values.monitoringOperator.imageVersion }}
+          image: {{ .Values.monitoringOperator.imageName }}:{{ .Values.monitoringOperator.imageVersion }}
           ports:
             - containerPort: 8080
               name: http
