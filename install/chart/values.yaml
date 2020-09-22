@@ -41,8 +41,8 @@ verrazzanoOperator:
 
 monitoringOperator:
   name: verrazzano-monitoring-operator
-  imageName: ghcr.io/verrazzano/verrazzano-monitoring-operator-jenkins
-  imageVersion: 2a31eb95974b64ad198165121b174edce8aed701
+  imageName: ghcr.io/verrazzano/verrazzano-monitoring-operator
+  imageVersion: v0.0.22
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
@@ -53,10 +53,10 @@ monitoringOperator:
   alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
   esImage: elasticsearch:7.6.1-1d68e1a-3
-  esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.20
+  esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.22
   esInitImage: container-registry.oracle.com/os/oraclelinux:7.8
   kibanaImage: kibana:7.6.1-ccfddab-2
-  monitoringInstanceApiImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-api-jenkins:54eb4cd556a87a102c4a095d9d621b6d7fc89771
+  monitoringInstanceApiImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-api:v0.0.8
   configReloaderImage: configmap-reload:0.3-81d6423-34
   nodeExporterImage: node-exporter:0.18.1-0cca78f-10
   RequestMemory: 48Mi
