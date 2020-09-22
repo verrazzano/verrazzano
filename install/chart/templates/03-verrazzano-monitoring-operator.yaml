@@ -691,7 +691,7 @@ spec:
             - name: ALERT_MANAGER_IMAGE
               value: {{ .Values.monitoringOperator.alertManagerImage }}
             - name: ELASTICSEARCH_WAIT_IMAGE
-              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.monitoringOperator.esWaitImage }}
+              value: {{ .Values.monitoringOperator.esWaitImage }}
             - name: ELASTICSEARCH_IMAGE
               value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.monitoringOperator.esImage }}
             - name: ELASTICSEARCH_INIT_IMAGE
@@ -701,7 +701,7 @@ spec:
             - name: ELASTICSEARCH_WAIT_TARGET_VERSION
               value: {{ .Values.monitoringOperator.esWaitTargetVersion }}
             - name: VERRAZZANO_MONITORING_INSTANCE_API_IMAGE
-              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.monitoringOperator.monitoringInstanceApiImage }}
+              value: {{ .Values.monitoringOperator.monitoringInstanceApiImage }}
             - name: CONFIG_RELOADER_IMAGE
               value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.monitoringOperator.configReloaderImage }}
             - name: NODE_EXPORTER_IMAGE
