@@ -271,6 +271,6 @@ NGINX_INGRESS_CONTROLLER_VERSION=1.27.0
 NGINX_DEFAULT_BACKEND_IMAGE=container-registry.oracle.com/verrazzano/nginx-ingress-default-backend
 NGINX_DEFAULT_BACKEND_TAG=0.32-aadecdc-21
 
-RANCHER_IMAGE=container-registry.oracle.com/verrazzano/rancher
+RANCHER_IMAGE=ghcr.io/verrazzano/rancher
 RANCHER_VERSION=v2.4.3
-RANCHER_TAG=v2.4.3-0cc4e86-22
+RANCHER_TAG=v2.4.3-dfd6383be-27

@@ -9,10 +9,6 @@ image:
   pullPolicy: Always
   terminationGracePeriodSeconds: 60
 
-docker:
-  repository: phx.ocir.io
-  namespace: stevengreenberginc/verrazzano
-
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: ghcr.io/verrazzano/verrazzano-operator
