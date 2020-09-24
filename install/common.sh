@@ -264,12 +264,12 @@ KEYCLOAK_THEME_IMAGE=container-registry.oracle.com/verrazzano/keycloak-oracle-th
 
 MYSQL_IMAGE_TAG=8.0.20
 
-NGINX_INGRESS_CONTROLLER_IMAGE=container-registry.oracle.com/verrazzano/nginx-ingress-controller
-NGINX_INGRESS_CONTROLLER_TAG=0.32-aadecdc-21
+NGINX_INGRESS_CONTROLLER_IMAGE=ghcr.io/verrazzano/nginx-ingress-controller
+NGINX_INGRESS_CONTROLLER_TAG=0.32-d584a2b7a-31
 NGINX_INGRESS_CONTROLLER_VERSION=1.27.0
 
-NGINX_DEFAULT_BACKEND_IMAGE=container-registry.oracle.com/verrazzano/nginx-ingress-default-backend
-NGINX_DEFAULT_BACKEND_TAG=0.32-aadecdc-21
+NGINX_DEFAULT_BACKEND_IMAGE=ghcr.io/verrazzano/nginx-ingress-default-backend
+NGINX_DEFAULT_BACKEND_TAG=0.32-d584a2b7a-31
 
 RANCHER_IMAGE=ghcr.io/verrazzano/rancher
 RANCHER_VERSION=v2.4.3
