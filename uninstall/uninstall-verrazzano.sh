@@ -5,9 +5,10 @@
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 INSTALL_DIR=$SCRIPT_DIR/../install
+UNINSTALL_DIR=$SCRIPT_DIR/..
 
 . $INSTALL_DIR/common.sh
-. $SCRIPT_DIR/uninstall-utils.sh
+. $UNINSTALL_DIR/uninstall-utils.sh
 
 set -o pipefail
 
@@ -47,38 +48,26 @@ fi
 
 function check_applications () {
   # check to make sure crds exist and grab them
-  binding_crd=$(kubectl get crd | grep "verrazzanobinding" || true)
-  if [ -z "$binding_crd" ] ; then
-    return 0
-  fi
-  model_crd=$(kubectl get crd | grep "verrazzanomodel" || true)
-  if [ -z "$model_crd" ] ; then
-    return 0
-  fi
-  bindings=$(kubectl get vb) || return $?
-  models=$(kubectl get vm) || return $?
+  kubectl get crd verrazzanobindings.verrazzano.io || return 0
+  kubectl get crd verrazzanomodels.verrazzano.io || return 0
+  bindings=$(kubectl get vb) || err_return $? "Could not retrieve VerrazzanoBindings" || return $?
+  models=$(kubectl get vm) || err_return $? "Could not retrieve VerrazzanoModels" || return $?
 
   if [ "$bindings" ] || [ "$models" ] ; then
     APPLICATION_RESOURCES="$(tput bold)The following applications will be deleted upon uninstall:$(tput sgr0)
     Verrazzano Models:
-        $(kubectl get vm --no-headers -o custom-columns=":metadata.name" || return $?)
+        $(kubectl get vm --no-headers -o custom-columns=":metadata.name" || err_return $? "Could not retrieve VerrazzanoModels" || return $?)
     Verrazzano Bindings:
-        $(kubectl get vb --no-headers -o custom-columns=":metadata.name" || return $?)\n"
+        $(kubectl get vb --no-headers -o custom-columns=":metadata.name" || err_return $? "Could not retrieve VerrazzanoBindings" || return $?)\n"
   fi
 }
 
 function prompt_delete_applications () {
   # check to make sure crds exist and grab them
-  binding_crd=$(kubectl get crd | grep "verrazzanobinding" || true)
-  if [ -z "$binding_crd" ] ; then
-    return
-  fi
-  model_crd=$(kubectl get crd | grep "verrazzanomodel" || true)
-  if [ -z "$model_crd" ] ; then
-    return
-  fi
-  bindings=$(kubectl get vb) || return $?
-  models=$(kubectl get vm) || return $?
+  kubectl get crd verrazzanobindings.verrazzano.io || return 0
+  kubectl get crd verrazzanomodels.verrazzano.io || return 0
+  bindings=$(kubectl get vb) || err_return $? "Could not retrieve VerrazzanoBindings" || return $?
+  models=$(kubectl get vm) || err_return $? "Could not retrieve VerrazzanoModels" || return $?
 
   if [ "$bindings" ] || [ "$models" ] ; then
       if [ "$FORCE" = false ] ; then

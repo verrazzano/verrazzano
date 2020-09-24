@@ -19,7 +19,7 @@ The software requirements for the [install](../install/README.md) are also requi
 
 * Set the following `ENV` vars:
 ```
-   export CLUSTER_TYPE=<OKE|KIND|OLCNE>
+   export CLUSTER_TYPE=<OKE|OLCNE>
    export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
    export KUBECONFIG=$VERRAZZANO_KUBECONFIG
 ```
