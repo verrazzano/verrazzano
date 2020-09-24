@@ -9,10 +9,6 @@ image:
   pullPolicy: Always
   terminationGracePeriodSeconds: 60
 
-docker:
-  repository: phx.ocir.io
-  namespace: stevengreenberginc/verrazzano
-
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: ghcr.io/verrazzano/verrazzano-operator
@@ -20,12 +16,12 @@ verrazzanoOperator:
   cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:v0.0.10
   helidonMicroImage: ghcr.io/verrazzano/verrazzano-helidon-app-operator:v0.0.9
   wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:v0.0.12
-  prometheusPusherImage: prometheus-pusher:1.0.1-ff71638-20
-  nodeExporterImage: node-exporter:0.18.1-0cca78f-10
-  filebeatImage: filebeat:6.8.3-8218206-10
-  journalbeatImage: journalbeat:6.8.3-8218206-10
+  prometheusPusherImage: ghcr.io/verrazzano/prometheus-pusher:1.0.1-32840da-22
+  nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-a96baf6-12
+  filebeatImage: ghcr.io/verrazzano/filebeat:6.8.3-b0f5416df-12
+  journalbeatImage: ghcr.io/verrazzano/journalbeat:6.8.3-b0f5416df-12
   weblogicOperatorImage: oracle/weblogic-kubernetes-operator:3.0.0
-  fluentdImage: fluentd-kubernetes-daemonset:v1.10.4-6ce326d-18
+  fluentdImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-7f37ac6-20
   apiServerRealm: verrazzano-system
   RequestMemory: 72Mi
   cohMicroRequestMemory: 28Mi
@@ -58,7 +54,7 @@ monitoringOperator:
   kibanaImage: ghcr.io/verrazzano/kibana:7.6.1-5eab01c-4
   monitoringInstanceApiImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-api:v0.0.8
   configReloaderImage: ghcr.io/verrazzano/configmap-reload:0.3-3a08aff-36
-  nodeExporterImage: node-exporter:0.18.1-0cca78f-10
+  nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-a96baf6-12
   RequestMemory: 48Mi
 
 clusterOperator:

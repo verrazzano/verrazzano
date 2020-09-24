@@ -380,7 +380,7 @@ spec:
             - name: CONFIG_RELOADER_IMAGE
               value: {{ .Values.monitoringOperator.configReloaderImage }}
             - name: NODE_EXPORTER_IMAGE
-              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.monitoringOperator.nodeExporterImage }}
+              value: {{ .Values.monitoringOperator.nodeExporterImage }}
           livenessProbe:
             failureThreshold: 5
             httpGet:
