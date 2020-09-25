@@ -11,8 +11,8 @@ image:
 
 verrazzanoOperator:
   name: verrazzano-operator
-  imageName: ghcr.io/verrazzano/verrazzano-operator-jenkins
-  imageVersion: a9c97e69a8e25b5cec4a6bc3116eb0a1bcf96c29
+  imageName: ghcr.io/verrazzano/verrazzano-operator
+  imageVersion: v0.0.99-07df6c6-1
   cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:v0.0.10
   helidonMicroImage: ghcr.io/verrazzano/verrazzano-helidon-app-operator:v0.0.9
   wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:v0.0.12
@@ -49,7 +49,7 @@ monitoringOperator:
   alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
   esImage: ghcr.io/verrazzano/elasticsearch:7.6.1-0412e78-5
-  esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.23
+  esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.24
   esInitImage: container-registry.oracle.com/os/oraclelinux:7.8
   kibanaImage: ghcr.io/verrazzano/kibana:7.6.1-5eab01c-4
   monitoringInstanceApiImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-api:v0.0.8
