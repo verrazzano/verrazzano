@@ -39,6 +39,9 @@ pipeline {
                     echo "${WORKSPACE}"
                     HEAD_COMMIT = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
                     sh "echo Head commit is ${HEAD_COMMIT}"
+                    sh """
+                        echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                    """
                 }
             }
         }
