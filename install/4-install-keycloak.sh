@@ -67,6 +67,16 @@ function install_keycloak {
       -n ${KEYCLOAK_NS} \
       --from-file=realm.json=${TMP_DIR}/keycloak-sed.json
 
+  # Check if using the optional imagePullSecret
+  EXTRA_HELM_ARGUMENTS=""
+  if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
+    if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${KEYCLOAK_NS} > /dev/null 2>&1 ; then
+        copy_registry_secret "${KEYCLOAK_NS}"
+        EXTRA_HELM_ARGUMENTS=" --set keycloak.image.pullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+    fi
+  fi
+
+
   # Add keycloak helm repo
   helm repo add codecentric https://codecentric.github.io/helm-charts
   
@@ -87,6 +97,7 @@ function install_keycloak {
       --install \
       --namespace ${KEYCLOAK_NS} \
       --version ${KEYCLOAK_CHART_VERSION} \
+      ${EXTRA_HELM_ARGUMENTS} \
       --wait \
       -f ${TMP_DIR}/keycloak-values-sed.yaml
 
@@ -211,6 +222,7 @@ else
 fi
 
 DNS_TARGET_NAME=${DNS_PREFIX}.${ENV_NAME}.${DNS_SUFFIX}
+REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 
 action "Installing MySQL" install_mysql
   if [ "$?" -ne 0 ]; then

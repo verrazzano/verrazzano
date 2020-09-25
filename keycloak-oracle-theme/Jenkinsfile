@@ -46,6 +46,13 @@ pipeline {
             }
         }
 
+        stage('Copyright Compliance Check') {
+            when { not { buildingTag() } }
+            steps {
+                copyrightScan "${WORKSPACE}"
+            }
+        }
+
         stage('Build Docker Image') {
             when { not { buildingTag() } }
             steps {
@@ -58,13 +65,6 @@ pipeline {
                       .
                     docker push ${DOCKER_IMAGE_FULL_NAME}:${HEAD_COMMIT}
                 """
-            }
-        }
-
-        stage('Copyright Compliance Check') {
-            when { not { buildingTag() } }
-            steps {
-                copyrightScan "${WORKSPACE}"
             }
         }
 
