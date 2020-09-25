@@ -21,7 +21,7 @@ spec:
       containers:
         - name: {{ .Values.verrazzanoOperator.name }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          image: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.imageName }}:{{ .Values.verrazzanoOperator.imageVersion }}
+          image: ghcr.io/verrazzano/verrazzano-operator-jenkins:96d3498d41b9204338bffc129d5eccec452a1b43
           args:
             - --v=4
             - --verrazzanoUri={{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
