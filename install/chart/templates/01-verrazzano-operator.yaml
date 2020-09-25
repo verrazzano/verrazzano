@@ -32,23 +32,23 @@ spec:
               memory: {{ .Values.verrazzanoOperator.RequestMemory }}
           env:
             - name: COH_MICRO_IMAGE
-              value: {{ .Values.verrazzanoOperator.cohMicroImage }}
+              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.cohMicroImage }}
             - name: HELIDON_MICRO_IMAGE
-              value: {{ .Values.verrazzanoOperator.helidonMicroImage }}
+              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.helidonMicroImage }}
             - name: WLS_MICRO_IMAGE
-              value: {{ .Values.verrazzanoOperator.wlsMicroImage }}
+              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.wlsMicroImage }}
             - name: PROMETHEUS_PUSHER_IMAGE
-              value: {{ .Values.verrazzanoOperator.prometheusPusherImage }}
+              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.prometheusPusherImage }}
             - name: NODE_EXPORTER_IMAGE
-              value: {{ .Values.verrazzanoOperator.nodeExporterImage }}
+              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.nodeExporterImage }}
             - name: FILEBEAT_IMAGE
-              value: {{ .Values.verrazzanoOperator.filebeatImage }}
+              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.filebeatImage }}
             - name: JOURNALBEAT_IMAGE
-              value: {{ .Values.verrazzanoOperator.journalbeatImage }}
+              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.journalbeatImage }}
             - name: WEBLOGIC_OPERATOR_IMAGE
               value: {{ .Values.verrazzanoOperator.weblogicOperatorImage }}
             - name: FLUENTD_IMAGE
-              value: {{ .Values.verrazzanoOperator.fluentdImage }}
+              value: {{ .Values.docker.repository }}/{{ .Values.docker.namespace }}/{{ .Values.verrazzanoOperator.fluentdImage }}
             - name: COH_MICRO_REQUEST_MEMORY
               value: {{ .Values.verrazzanoOperator.cohMicroRequestMemory }}
             - name: HELIDON_MICRO_REQUEST_MEMORY
@@ -113,12 +113,6 @@ kind: ServiceAccount
 metadata:
   name: {{ .Values.verrazzanoOperator.name }}
   namespace: {{ .Release.Namespace }}
-{{- if .Values.global.imagePullSecrets }}
-imagePullSecrets:
-{{- range .Values.global.imagePullSecrets }}
-  - name: {{ . }}
-{{- end }}
-{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
