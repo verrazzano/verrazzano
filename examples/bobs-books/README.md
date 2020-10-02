@@ -134,18 +134,18 @@ cluster if you are using a multi-cluster environment.
     ```
 1. Test the sample application endpoints.
 
-    This table shows the application endpoints using the following example values:
+    The following table shows the application endpoints using the these example values:
     * Environment Name: `demo`
-    * External IP address is `123.456.78.901`
+    * External IP address: `123.456.78.901`
     * DNS Zone: `verrazzano.demo.com`
     * The password specified when creating the secret `bobbys-front-end-weblogic-credentials` is `welcome1`. A secure secret should be used when creating this credential.
     
     | Description| End Point | Credentials |
     | --- | --- | --- |
     | Bobby's Books | http://123.456.78.901/bobbys-front-end | |
-    | Bobby's Books WebLogic Console | http://123.456.78.901/console | weblogic/welcome1 |
+    | Bobby's Books WebLogic Console | http://123.456.78.901/console | `weblogic`/`welcome1` |
     | Robert's Books | http://123.456.78.901 | |
-    | ElasticSearch | https://elasticsearch.vmi.bobs-books-binding.demo.verrazzano.demo.com | verrazzano/`telemetry-password` |
-    | Kibana | https://kibana.vmi.bobs-books-binding.demo.verrazzano.demo.com | verrazzano/`telemetry-password` |
-    | Grafana | https://grafana.vmi.bobs-books-binding.demo.verrazzano.demo.com | verrazzano/`telemetry-password` |
-    | Prometheus | https://prometheus.vmi.bobs-books-binding.demo.verrazzano.demo.com | verrazzano/`telemetry-password` |
+    | Elasticsearch | https://elasticsearch.vmi.bobs-books-binding.demo.verrazzano.demo.com | `verrazzano`/`telemetry-password` |
+    | Kibana | https://kibana.vmi.bobs-books-binding.demo.verrazzano.demo.com | `verrazzano`/`telemetry-password` |
+    | Grafana | https://grafana.vmi.bobs-books-binding.demo.verrazzano.demo.com | `verrazzano`/`telemetry-password` |
+    | Prometheus | https://prometheus.vmi.bobs-books-binding.demo.verrazzano.demo.com | `verrazzano`/`telemetry-password` |
