@@ -92,6 +92,11 @@ verrazzanoAdmissionController:
   caBundle:
   RequestMemory: 15Mi
 
+console:
+  name: console
+  imageName: ghcr.io/verrazzano/console
+  imageVersion: 69211f9ec669829740063cd48c654d4605a1cfc5
+
 # OCI-related values
 oci:
   region: ""

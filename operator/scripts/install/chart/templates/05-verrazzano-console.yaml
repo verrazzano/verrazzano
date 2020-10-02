@@ -1,0 +1,91 @@
+# Copyright (c) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .Values.console.name }}
+  name: {{ .Values.console.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.console.name }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.console.name }}
+    spec:
+      containers:
+      - image: {{ .Values.console.imageName }}:{{ .Values.console.imageVersion }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        name: {{ .Values.console.name }}
+        ports:
+            - containerPort: 8000
+        env:
+          - name: VZ_UI_URL
+            value: "https://verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}"
+          - name: VZ_KEYCLOAK_URL
+            value: "https://keycloak.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}"
+          - name: VZ_CLIENT_ID
+            value: webui
+      serviceAccount: {{ .Values.console.name }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.console.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - name: console
+    port: 8000
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app: {{ .Values.console.name }}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+    annotations:
+      external-dns.alpha.kubernetes.io/target: verrazzano-ingress.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
+      kubernetes.io/tls-acme: "true"
+    name: {{ .Values.console.name }}-ingress
+    namespace: {{ .Release.Namespace }}
+spec:
+  rules:
+    - host: verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
+      http:
+        paths:
+        - backend:
+            serviceName: {{ .Values.console.name }}
+            servicePort: 8000
+          path: /
+        - backend:
+            serviceName: {{ .Values.verrazzanoOperator.name }}
+            servicePort: 3456
+          path: /20210501
+  tls:
+  - hosts:
+    - verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
+    secretName: {{ .Values.config.envName }}-secret
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.console.name }}
+  namespace: {{ .Release.Namespace }}
+{{- if .Values.global.imagePullSecrets }}
+imagePullSecrets:
+{{- range .Values.global.imagePullSecrets }}
+- name: {{ . }}
+{{- end }}
+{{- end }}

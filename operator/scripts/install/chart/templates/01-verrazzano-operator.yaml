@@ -99,28 +99,6 @@ spec:
       port: 3456
       targetPort: 3456
 ---
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  annotations:
-    external-dns.alpha.kubernetes.io/target: verrazzano-ingress.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
-    kubernetes.io/tls-acme: "true"
-  name: {{ .Values.verrazzanoOperator.name }}-ingress
-  namespace: {{ .Release.Namespace }}
-spec:
-  rules:
-    - host: api.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
-      http:
-        paths:
-          - backend:
-              serviceName: {{ .Values.verrazzanoOperator.name }}
-              servicePort: 3456
-            path: /
-  tls:
-    - hosts:
-        - api.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
-      secretName: {{ .Values.config.envName }}-secret
----
 apiVersion: v1
 kind: ServiceAccount
 metadata:
