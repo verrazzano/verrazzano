@@ -111,11 +111,11 @@ cluster if you are using a multi-cluster environment.
 
 ## Access the sample application endpoints
 
-1. Get the external address of the `Istio` ingress gateway
+1. Get the external address of the Istio ingress gateway.
 
-    Access to the sample application is through the ingress gateway of the `Istio` mesh.
+    Access to the sample application is through the ingress gateway of the Istio mesh.
 
-    Execute this command to get the external IP address of the `Istio` ingress gateway:
+    Run this command to get the external IP address of the Istio ingress gateway:
     ```
     kubectl get service istio-ingressgateway -n istio-system
     ```
@@ -126,25 +126,26 @@ cluster if you are using a multi-cluster environment.
     istio-ingressgateway   LoadBalancer   10.96.39.106   123.456.78.901   80:31380/TCP,443:31390/TCP   4d2h
     ```
 
-1. Get the password for telemetry endpoints
+1. Get the password for telemetry endpoints.
 
-    Execute this command to get the password that was generated for the telemetry components:
+    Run this command to get the password that was generated for the telemetry components:
     ```
     kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
     ```
-1. Test the sample application endpoints
+1. Test the sample application endpoints.
 
     This table shows the application endpoints using the following example values:
     * Environment Name: `demo`
     * External IP address is `123.456.78.901`
     * DNS Zone: `verrazzano.demo.com`
+    * The password specified when creating the secret `bobbys-front-end-weblogic-credentials` is `welcome1`. A secure secret should be used when creating this credential.
     
     | Description| End Point | Credentials |
     | --- | --- | --- |
     | Bobby's Books | http://123.456.78.901/bobbys-front-end | |
     | Bobby's Books WebLogic Console | http://123.456.78.901/console | weblogic/welcome1 |
     | Robert's Books | http://123.456.78.901 | |
-    | ElasticSearch | https://elasticsearch.vmi.bobs-books-binding.demo.verrazzano.demo.com | verrazzano/<password> |
+    | ElasticSearch | https://elasticsearch.vmi.bobs-books-binding.demo.verrazzano.demo.com | verrazzano/`telemetry-password` |
     | Kibana | https://kibana.vmi.bobs-books-binding.demo.verrazzano.demo.com | verrazzano/`telemetry-password` |
     | Grafana | https://grafana.vmi.bobs-books-binding.demo.verrazzano.demo.com | verrazzano/`telemetry-password` |
     | Prometheus | https://prometheus.vmi.bobs-books-binding.demo.verrazzano.demo.com | verrazzano/`telemetry-password` |
