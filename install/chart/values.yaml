@@ -15,12 +15,12 @@ verrazzanoOperator:
   imageVersion: v.0.0.102-24f5934-2
   cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:v0.0.10
   helidonMicroImage: ghcr.io/verrazzano/verrazzano-helidon-app-operator:v0.0.9
-  wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:v0.0.12
+  wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:v0.0.13
   prometheusPusherImage: ghcr.io/verrazzano/prometheus-pusher:1.0.1-32840da-22
   nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-a96baf6-12
   filebeatImage: ghcr.io/verrazzano/filebeat:6.8.3-b0f5416df-12
   journalbeatImage: ghcr.io/verrazzano/journalbeat:6.8.3-b0f5416df-12
-  weblogicOperatorImage: oracle/weblogic-kubernetes-operator:3.0.0
+  weblogicOperatorImage: oracle/weblogic-kubernetes-operator:3.0.2
   fluentdImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-7f37ac6-20
   apiServerRealm: verrazzano-system
   RequestMemory: 72Mi
