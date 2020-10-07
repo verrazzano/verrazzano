@@ -94,7 +94,7 @@ Follow these steps to test the endpoints:
     curl -s -X GET http://"${SERVER}":"${PORT}"/catalogue
     [{"count":115,"description":"For all those leg lovers out there....", ...}]
 
-    # Add a new user (replace values of user name and password)
+    # Add a new user (replace values of username and password)
     curl -i --header "Content-Type: application/json" --request POST --data '{"username":"foo","password":"****","email":"foo@example.com","firstName":"foo","lastName":"foo"}' http://"${SERVER}":"${PORT}"/register
 
     # Add an item to the user's cart

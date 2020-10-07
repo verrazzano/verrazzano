@@ -9,8 +9,6 @@ The Bob's Books is a book store demo application which contains WebLogic, Helido
 
    **NOTE:** All files and paths in this document are relative to `<VERRAZZANO_HOME>/examples/bobs-books`.
 
-   To deploy the Bob's Books example application to an existing Verrazzano environment, note that if you are using a multi-cluster environment, then all of the commands shown must be run against the Verrazzano management cluster.
-
 1. Create a `docker-registry` secret to enable pulling images from the Oracle Container
    Registry.  This is needed to pull WebLogic and Coherence images.  Note that you
    may have already created this secret when installing Verrazzano.
