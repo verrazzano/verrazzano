@@ -4,13 +4,15 @@
 This example application provides a [Helidon](https://helidon.io) implementation of the [Sock Shop Microservices Demo Application](https://microservices-demo.github.io/).
 
 
-## Deploying the example application
+## Deploy the example application
 
 1. Prerequisites: Install Verrazzano following the [installation instructions](../../install/README.md).
-   The Helidon Sock Shop example application model and binding files are located at `<VERRAZZANO_HOME>/examples/sock-shop` where `VERRAZZANO_HOME` is the root of the
-   Verrazzano project. All paths in this document are relative to `<VERRAZZANO_HOME>/examples/sock-shop`.
+   The Helidon Sock Shop example application model and binding files are located at `<VERRAZZANO_HOME>/examples/sock-shop`, where `VERRAZZANO_HOME` is the root of the
+   Verrazzano project.
 
-1. Deploy the Verrazzano Model and Verrazzano Binding for the example application.
+   **NOTE:** All paths in this document are relative to `<VERRAZZANO_HOME>/examples/sock-shop`.
+
+1. Deploy the Verrazzano Application Model and Verrazzano Application Binding for the example application.
 
     Using an Oracle Cloud Infrastructure Container Engine for Kubernetes (also known as OKE) cluster, run the following script:
 
@@ -19,11 +21,11 @@ This example application provides a [Helidon](https://helidon.io) implementation
     ```
 
 
-   The scripts deploy the Verrazzano Model and Verrazzano Binding, wait for the pods in the `sockshop` namespace to be
-   ready, and call one of the endpoints provided by the REST service implemented by the example application.
+   The script deploys the Verrazzano Application Model and Verrazzano Application Binding, waits for the pods in the `sockshop` namespace to be
+   ready, and calls one of the endpoints provided by the REST service implemented by the example application.
 
 1. Verify that all the objects have started. Objects are started in the `sockshop`, `verrazzano-system`, and `monitoring`
-  namespaces. The following code block shows some of the objects to expect. Objects not related to this sample application have been removed from the list.
+  namespaces. The following code block shows some of the objects to expect. Objects not related to this example application have been removed from the list.
 
     ```
     kubectl get all -n sockshop
@@ -103,9 +105,9 @@ Follow these steps to test the endpoints:
 
     ```
 
-## Uninstalling the example application
+## Uninstall the example application
 
-Run the following script to delete the Verrazzano Model and Verrazzano Binding for the example application:
+Run the following script to delete the Verrazzano Application Model and Verrazzano Application Binding for the example application:
 
     ```
     ./uninstall-sock-shop.sh

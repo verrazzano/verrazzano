@@ -1,22 +1,15 @@
 # Bob's Books
 
-The Bob's Books example application is a book store demo intended to mimic a real application which contains WebLogic, Helidon and Coherence components. For more information and the code of this application, see the [Verrazzano examples](https://github.com/verrazzano/examples).
+The Bob's Books is a book store demo application which contains WebLogic, Helidon, and Coherence components. For more information and the code of this application, see the [Verrazzano examples](https://github.com/verrazzano/examples).
 
-## Deploying the example application
+## Deploy the example application
 
-The Bob's Books example application model and binding files are contained in the Verrazzano project.
-To install Verrazzano, follow the [installation instructions](../../install/README.md).
+1. Prerequisites: Install Verrazzano following the [installation instructions](../../install/README.md).
+   The Bob's Books example application model and binding files are contained in the Verrazzano project located at `<VERRAZZANO_HOME>/examples/bobs-books`, where `VERRAZZANO_HOME` is the root of the Verrazzano project.
 
-The example is located at `<VERRAZZANO_HOME>/examples/bobs-books` where `VERRAZZANO_HOME` is the root of the
-Verrazzano project.
+   **NOTE:** All files and paths in this document are relative to `<VERRAZZANO_HOME>/examples/bobs-books`.
 
-**NOTE:** All files and paths in this document are relative to `<VERRAZZANO_HOME>/examples/bobs-books`.
-
-To deploy the Bob's Books example application to an existing Verrazzano environment,
-note that all of the commands shown must be executed against the Verrazzano management
-cluster if you are using a multi-cluster environment.
-
-1. Create a `docker-registry` secret to enable pulling images from Oracle Container
+1. Create a `docker-registry` secret to enable pulling images from the Oracle Container
    Registry.  This is needed to pull WebLogic and Coherence images.  Note that you
    may have already created this secret when installing Verrazzano.
 
@@ -29,16 +22,15 @@ cluster if you are using a multi-cluster environment.
    ```
 
    Replace `YOUR_USERNAME`, `YOUR_PASSWORD` and `YOUR_EMAIL` with the values that you
-   use to access Oracle Container Registry.
+   use to access the Oracle Container Registry.
 
 1. If you have not done so already, in a web browser, navigate to the [Oracle Container Registry](https://container-registry.oracle.com):
 
-  * Select **Middleware**, review, and _Sign in_ to accept the licenses for the WebLogic and Coherence images.
+  - Select **Middleware**, review, and _Sign in_ to accept the licenses for the WebLogic and Coherence images.
 
-  * Select **Verrazzano**, review, and accept the licenses for the four repositories listed at the top of the page:
-       example-bobbys-coherence, example-bobbys-front-end, example-bobs-books-order-manager, and example-roberts-coherence.
+  - Select **Verrazzano**, review, and accept the licenses for the four repositories listed at the top of the page: `example-bobbys-coherence`, `example-bobbys-front-end`, `example-bobs-books-order-manager`, and `example-roberts-coherence`.
 
-   You will not be able to pull these images until you have accepted the licenses.
+    You will not be able to pull these images until you have accepted the licenses.
 
 1. Create secrets containing the WebLogic administration credentials for the
    two domains:
@@ -72,14 +64,14 @@ cluster if you are using a multi-cluster environment.
    kubectl apply -f mysql.yaml
    ```
 
-1. Deploy the Verrazzano Model for Bob's Books:
+1. Deploy the Verrazzano Application Model for Bob's Books:
 
    ```
    kubectl apply -f bobs-books-model.yaml
    ```
 
-1. Update the Verrazzano Binding for Bob's Books with the correct DNS names for
-   each of the applications.  This step is optional, you can use the IP
+1. Update the Verrazzano Application Binding for Bob's Books with the correct DNS names for
+   each of the applications.  This step is optional; you can use the IP
    address to access the applications if you do not have DNS names.
 
    The provided binding includes the following ingress bindings which use
@@ -103,43 +95,41 @@ cluster if you are using a multi-cluster environment.
       dnsName: "*"
     ```
 
-1. Deploy the Verrazzano Binding for Bob's Books:
+1. Deploy the Verrazzano Application Binding for Bob's Books:
 
    ```
    kubectl apply -f bobs-books-binding.yaml
    ```
 
-## Access the sample application endpoints
+## Access the example application
 
-1. Get the external address of the Istio ingress gateway.
-
-    Access to the sample application is through the ingress gateway of the Istio mesh.
+1. Get the external address of the Istio ingress gateway. Access to the example application is through the ingress gateway of the Istio mesh.
 
     Run this command to get the external IP address of the Istio ingress gateway:
     ```
     kubectl get service istio-ingressgateway -n istio-system
     ```
 
-    For the sake of example, assume the response is:
+    For example, assume the response is:
     ```
     NAME                   TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)                      AGE
     istio-ingressgateway   LoadBalancer   10.96.39.106   123.456.78.901   80:31380/TCP,443:31390/TCP   4d2h
     ```
 
-1. Get the password for telemetry endpoints.
+1. Get the password for the telemetry endpoints.
 
     Run this command to get the password that was generated for the telemetry components:
     ```
     kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
     ```
-1. Test the sample application endpoints.
+1. Test the example application endpoints.
 
     The following table shows the application endpoints using the these example values:
-    * Environment Name: `demo`
-    * External IP address: `123.456.78.901`
-    * DNS Zone: `verrazzano.demo.com`
-    * The password specified when creating the secret `bobbys-front-end-weblogic-credentials` is `welcome1`. A secure secret should be used when creating this credential.
-    
+    - Environment name: `demo`
+    - External IP address: `123.456.78.901`
+    - DNS zone: `verrazzano.demo.com`
+    - The password specified when creating the secret `bobbys-front-end-weblogic-credentials` is `welcome1`. However, you should use a more secure secret when creating this credential.
+
     | Description| End Point | Credentials |
     | --- | --- | --- |
     | Bobby's Books | http://123.456.78.901/bobbys-front-end | |
