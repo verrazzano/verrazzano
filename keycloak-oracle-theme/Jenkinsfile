@@ -1,7 +1,7 @@
 // Copyright (c) 2020, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-def HEAD_COMMIT
+def DOCKER_IMAGE_TAG
 
 pipeline {
     options {
@@ -37,11 +37,15 @@ pipeline {
                     sh "rm -rf ${WORKSPACE}/verrazzano" //could be leftover from previous checkouts to subdirectory
                     checkout scm
                     echo "${WORKSPACE}"
-                    HEAD_COMMIT = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
-                    sh "echo Head commit is ${HEAD_COMMIT}"
                     sh """
                         echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
                     """
+                    def props = readProperties file: '.verrazzano-development-version'
+                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
+                    DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+                    sh "echo Image tag is ${DOCKER_IMAGE_TAG}"
                 }
             }
         }
@@ -57,13 +61,13 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    echo "Building image ${DOCKER_IMAGE_FULL_NAME}:${HEAD_COMMIT}"
+                    echo "Building image ${DOCKER_IMAGE_FULL_NAME}:${DOCKER_IMAGE_TAG}"
                     cd keycloak-oracle-theme
                     docker build --pull --no-cache \
-                      -t ${DOCKER_IMAGE_FULL_NAME}:${HEAD_COMMIT} \
+                      -t ${DOCKER_IMAGE_FULL_NAME}:${DOCKER_IMAGE_TAG} \
                       -f ./Dockerfile \
                       .
-                    docker push ${DOCKER_IMAGE_FULL_NAME}:${HEAD_COMMIT}
+                    docker push ${DOCKER_IMAGE_FULL_NAME}:${DOCKER_IMAGE_TAG}
                 """
             }
         }
@@ -72,7 +76,7 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 script {
-                    clairScanTemp "${DOCKER_IMAGE_FULL_NAME}:${HEAD_COMMIT}"
+                    clairScanTemp "${DOCKER_IMAGE_FULL_NAME}:${DOCKER_IMAGE_TAG}"
                 }
             }
             post {
@@ -86,8 +90,8 @@ pipeline {
             when { buildingTag() }
             steps {
                 sh """
-                    docker pull ${DOCKER_IMAGE_FULL_NAME}:${HEAD_COMMIT}
-                    docker tag ${DOCKER_IMAGE_FULLNAME}:${HEAD_COMMIT} ${DOCKER_IMAGE_FULLNAME}:${TAG_NAME}
+                    docker pull ${DOCKER_IMAGE_FULL_NAME}:${DOCKER_IMAGE_TAG}
+                    docker tag ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG} ${DOCKER_IMAGE_FULLNAME}:${TAG_NAME}
                     docker push ${DOCKER_IMAGE_FULL_NAME}:${TAG_NAME}
                 """
             }
