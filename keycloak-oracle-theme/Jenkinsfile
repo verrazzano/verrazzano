@@ -85,17 +85,6 @@ pipeline {
                 }
             }
         }
-
-        stage('Publish Image') {
-            when { buildingTag() }
-            steps {
-                sh """
-                    docker pull ${DOCKER_IMAGE_FULL_NAME}:${DOCKER_IMAGE_TAG}
-                    docker tag ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG} ${DOCKER_IMAGE_FULLNAME}:${TAG_NAME}
-                    docker push ${DOCKER_IMAGE_FULL_NAME}:${TAG_NAME}
-                """
-            }
-        }
     }
 
     post {
