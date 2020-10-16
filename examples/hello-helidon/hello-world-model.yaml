@@ -9,7 +9,7 @@ spec:
   description: "Hello World application"
   helidonApplications:
     - name: "hello-world-application"
-      image: "container-registry.oracle.com/verrazzano/example-hello-world-helidon:0.1.10-3-e5ae893-124"
+      image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4"
       imagePullSecrets:
         - name: ocr
       connections:
