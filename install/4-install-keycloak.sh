@@ -21,8 +21,6 @@ trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 function set_INGRESS_IP() {
   if [ ${CLUSTER_TYPE} == "OKE" ]; then
     INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
-  elif [ ${CLUSTER_TYPE} == "KIND" ]; then
-    INGRESS_IP=$(kubectl get node ${KIND_CLUSTER_NAME}-control-plane -o json | jq -r '.status.addresses[] | select (.type == "InternalIP") | .address')
   elif [ ${CLUSTER_TYPE} == "OLCNE" ]; then
     # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
     INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
@@ -69,6 +67,16 @@ function install_keycloak {
       -n ${KEYCLOAK_NS} \
       --from-file=realm.json=${TMP_DIR}/keycloak-sed.json
 
+  # Check if using the optional imagePullSecret
+  EXTRA_HELM_ARGUMENTS=""
+  if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
+    if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${KEYCLOAK_NS} > /dev/null 2>&1 ; then
+        copy_registry_secret "${KEYCLOAK_NS}"
+        EXTRA_HELM_ARGUMENTS=" --set keycloak.image.pullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+    fi
+  fi
+
+
   # Add keycloak helm repo
   helm repo add codecentric https://codecentric.github.io/helm-charts
   
@@ -89,6 +97,7 @@ function install_keycloak {
       --install \
       --namespace ${KEYCLOAK_NS} \
       --version ${KEYCLOAK_CHART_VERSION} \
+      ${EXTRA_HELM_ARGUMENTS} \
       --wait \
       -f ${TMP_DIR}/keycloak-values-sed.yaml
 
@@ -213,6 +222,7 @@ else
 fi
 
 DNS_TARGET_NAME=${DNS_PREFIX}.${ENV_NAME}.${DNS_SUFFIX}
+REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 
 action "Installing MySQL" install_mysql
   if [ "$?" -ne 0 ]; then

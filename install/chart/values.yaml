@@ -2,65 +2,78 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 name: verrazzano
 
+global:
+  imagePullSecrets: []
+
 image:
   pullPolicy: Always
   terminationGracePeriodSeconds: 60
 
-docker:
-  repository: container-registry.oracle.com
-  namespace: verrazzano
-
 verrazzanoOperator:
   name: verrazzano-operator
-  imageName: verrazzano-operator
-  imageVersion: v0.0.93-8be65b3-1
-  cohMicroImage: verrazzano-coh-cluster-operator:v0.0.8
-  helidonMicroImage: verrazzano-helidon-app-operator:v0.0.7
-  wlsMicroImage: verrazzano-wko-operator:v0.0.10
-  prometheusPusherImage: prometheus-pusher:1.0.1-ff71638-20
-  nodeExporterImage: node-exporter:0.18.1-0cca78f-10
-  filebeatImage: filebeat:6.8.3-8218206-10
-  journalbeatImage: journalbeat:6.8.3-8218206-10
-  weblogicOperatorImage: oracle/weblogic-kubernetes-operator:3.0.0
-  fluentdImage: fluentd-kubernetes-daemonset:v1.10.4-6ce326d-18
+  imageName: ghcr.io/verrazzano/verrazzano-operator
+  imageVersion: v0.0.105-a96ce29-1
+  cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:v0.0.10
+  helidonMicroImage: ghcr.io/verrazzano/verrazzano-helidon-app-operator:v0.0.9
+  wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:v0.0.13
+  prometheusPusherImage: ghcr.io/verrazzano/prometheus-pusher:1.0.1-32840da-22
+  nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-a96baf6-12
+  filebeatImage: ghcr.io/verrazzano/filebeat:6.8.3-b0f5416df-12
+  journalbeatImage: ghcr.io/verrazzano/journalbeat:6.8.3-b0f5416df-12
+  weblogicOperatorImage: oracle/weblogic-kubernetes-operator:3.0.2
+  fluentdImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-7f37ac6-20
   apiServerRealm: verrazzano-system
+  RequestMemory: 72Mi
+  cohMicroRequestMemory: 28Mi
+  helidonMicroRequestMemory: 24Mi
+  wlsMicroRequestMemory: 32Mi
+  esMasterNodeRequestMemory: 1.4Gi
+  esIngestNodeRequestMemory: 2.5Gi
+  esDataNodeRequestMemory: 4.8Gi
+  grafanaRequestMemory: 48Mi
+  prometheusRequestMemory: 128Mi
+  kibanaRequestMemory: 192Mi
+  esMasterNodeReplicas: 3
 
 monitoringOperator:
   name: verrazzano-monitoring-operator
-  imageName: verrazzano-monitoring-operator
-  imageVersion: v0.0.18
+  imageName: ghcr.io/verrazzano/verrazzano-monitoring-operator
+  imageVersion: v0.0.25
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
   grafanaImage: container-registry.oracle.com/olcne/grafana:v6.4.4
   prometheusImage: container-registry.oracle.com/olcne/prometheus:v2.13.1
   prometheusInitImage: container-registry.oracle.com/os/oraclelinux:7-slim
-  prometheusGatewayImage: prometheus-pushgateway:1.2.0-6893444-13
+  prometheusGatewayImage: ghcr.io/verrazzano/prometheus-pushgateway:1.2.0-ef27969-15
   alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
-  esImage: elasticsearch:7.6.1-1d68e1a-3
-  esWaitImage: verrazzano-monitoring-instance-eswait:v0.0.18
+  esImage: ghcr.io/verrazzano/elasticsearch:7.6.1-0412e78-5
+  esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.24
   esInitImage: container-registry.oracle.com/os/oraclelinux:7.8
-  kibanaImage: kibana:7.6.1-ccfddab-2
-  monitoringInstanceApiImage: verrazzano-monitoring-instance-api:v0.0.7
-  configReloaderImage: configmap-reload:0.3-81d6423-34
-  nodeExporterImage: node-exporter:0.18.1-0cca78f-10
+  kibanaImage: ghcr.io/verrazzano/kibana:7.6.1-5eab01c-4
+  monitoringInstanceApiImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-api:v0.0.8
+  configReloaderImage: ghcr.io/verrazzano/configmap-reload:0.3-3a08aff-36
+  nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-a96baf6-12
+  RequestMemory: 48Mi
 
 clusterOperator:
   name: verrazzano-cluster-operator
-  imageName: verrazzano-cluster-operator
-  imageVersion: v0.0.9
+  imageName: ghcr.io/verrazzano/verrazzano-cluster-operator
+  imageVersion: v0.0.11
   rancherURL:
   rancherUserName:
   rancherPassword:
   rancherHostname:
+  RequestMemory: 27Mi
 
 verrazzanoAdmissionController:
   name: verrazzano-validation
   controllerName: verrazzano-admission-controller
-  imageName: verrazzano-admission-controller
-  imageVersion: v0.0.17
+  imageName: ghcr.io/verrazzano/verrazzano-admission-controller
+  imageVersion: v0.0.20
   caBundle:
+  RequestMemory: 15Mi
 
 # OCI-related values
 oci:

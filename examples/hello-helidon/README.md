@@ -2,19 +2,18 @@
 # Hello World Helidon
 
 This example application provides a simple *Hello World* REST service written with [Helidon](https://helidon.io).
-Check the [Verrazzano examples](https://github.com/verrazzano/examples) for more information and the code of this
-application.
+For more information and the code of this application, see the [Verrazzano examples](https://github.com/verrazzano/examples).
 
-## Deploying the example application
+## Deploy the example application
 
 1. Prerequisites: Install Verrazzano following the [installation instructions](../../install/README.md).
-   The Hello World Helidon example application model and binding files are contained in the Verrazzano project.
-   It is located at `<VERRAZZANO_HOME>/examples/hello-helidon` where `VERRAZZANO_HOME` is the root of the
-   Verrazzano project. All paths in this document are relative to `<VERRAZZANO_HOME>/examples/hello-helidon`.
+   The Hello World Helidon example application model and binding files are contained in the Verrazzano project located at `<VERRAZZANO_HOME>/examples/hello-helidon`, where `VERRAZZANO_HOME` is the root of the Verrazzano project.
 
-1. Create a `docker-registry` secret to enable pulling images from Oracle Container
-   Registry.  This is needed to pull hello-helidon example images.  Note that you
-   may have already created this secret when installing Verrazzano itself.
+   **NOTE:** All paths in this document are relative to `<VERRAZZANO_HOME>/examples/hello-helidon`.
+
+1. Create a `docker-registry` secret to enable pulling images from the Oracle Container
+   Registry.  This is needed to pull `hello-helidon` example images.  Note that you
+   may have already created this secret when installing Verrazzano.
 
    ```
    kubectl create secret docker-registry ocr \
@@ -24,10 +23,10 @@ application.
            --docker-email=YOUR_EMAIL
    ```
 
-   Replace `YOUR_USERNAME`, `YOUR_PASSWORD` and `YOUR_EMAIL` with the values that you
-   use to access Oracle Container Registry.
+    Replace `YOUR_USERNAME`, `YOUR_PASSWORD` and `YOUR_EMAIL` with the values that you
+   use to access the Oracle Container Registry.
 
-1. Deploy the Verrazzano Model and Verrazzano Binding for the example application.
+1. Deploy the Verrazzano Application Model and Verrazzano Application Binding for the example application.
 
     **Note:**  All files and paths in this document are relative to `<VERRAZZANO_HOME>/examples/hello-helidon`.
 
@@ -38,11 +37,11 @@ application.
     ./install-hello-world.sh
     ```
 
-   The scripts deploy the Verrazzano Model and Verrazzano Binding, wait for the pods in the `greet` namespace to be
-   ready, and call one of the endpoints provided by the REST service implemented by the example application.
+   The script deploys the Verrazzano Application Model and Verrazzano Application Binding, waits for the pods in the `greet` namespace to be
+   ready, and calls one of the endpoints provided by the REST service implemented by the example application.
 
 1. Verify that all the objects have started. Objects are started in the `greet`, `verrazzano-system`, and `monitoring`
-  namespaces. The following code block shows the objects to expect. Objects not related to this sample application
+  namespaces. The following code block shows the objects to expect. Objects not related to this example application
   have been removed from the list.
 
     ```
@@ -126,7 +125,7 @@ This endpoint accepts the `GET` HTTP request method.
 - `/greet/{name}` - Returns a greeting message including the name provided in the path parameter. This
 endpoint accepts the `GET` HTTP request method.
 - `/greet/greeting` - Changes the greeting message to be used in future calls to the other endpoints. This
-endpoint accepts the `PUT` HTTP request method, and a JSON payload.
+endpoint accepts the `PUT` HTTP request method and a JSON payload.
 
 Follow these steps to test the endpoints:
 
@@ -158,9 +157,9 @@ Follow these steps to test the endpoints:
     {"message":"Hallo Robert!"}
     ```
 
-## Uninstalling the example application
+## Uninstall the example application
 
-Run the following script to delete the Verrazzano Model and Verrazzano Binding for the example application:
+Run the following script to delete the Verrazzano Application Model and Verrazzano Application Binding for the example application:
 
     ```
     ./uninstall-hello-world.sh

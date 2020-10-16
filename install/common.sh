@@ -133,6 +133,27 @@ function validate_environment_name {
   return 0
 }
 
+# Check if the optional global registry secret exists
+function check_registry_secret_exists() {
+  local result
+  kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n default > /dev/null 2>&1
+  if [ $? -eq 0 ]; then
+    result="TRUE"
+  else
+    result="FALSE"
+  fi
+  echo ${result}
+}
+
+# Copy global registry secret to the namespace passed in the first argument
+function copy_registry_secret()
+{
+  DEST_NS=$1
+  kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n default -o yaml \
+      | sed "s|namespace: default|namespace: ${DEST_NS}|" \
+      | kubectl apply -n ${DEST_NS} -f -
+}
+
 # Call curl with the given arguments and set the given variables for response body and http code.
 # $1 the expected http response code; pass 0 to indicate that the http code shouldn't be checked
 # $2 the variable to set with the response body
@@ -175,28 +196,19 @@ function call_curl {
 }
 
 
-KIND_CLUSTER_NAME=${KIND_CLUSTER_NAME:=verrazzano}
 VERRAZZANO_DIR=${SCRIPT_DIR}/.verrazzano
-KIND_KUBE_CONTEXT="kind-${KIND_CLUSTER_NAME}"
-KIND_KUBECONFIG="${BUILD_DIR}/kind-kubeconfig"
-
 
 CLUSTER_TYPE="${CLUSTER_TYPE:-}"
-if [ "${CLUSTER_TYPE}" != "KIND" ] && [ "${CLUSTER_TYPE}" != "OKE" ] && [ "${CLUSTER_TYPE}" != "OLCNE" ]; then
-  fail "CLUSTER_TYPE environment variable must be set to KIND, OKE or OLCNE"
+if [ "${CLUSTER_TYPE}" != "OKE" ] && [ "${CLUSTER_TYPE}" != "OLCNE" ]; then
+  fail "CLUSTER_TYPE environment variable must be set to OKE or OLCNE"
 fi
 
 VERRAZZANO_KUBECONFIG="${VERRAZZANO_KUBECONFIG:-}"
-if [ "${CLUSTER_TYPE}" == "KIND" ] && [ -z "${VERRAZZANO_KUBECONFIG}" ] ; then
-  VERRAZZANO_KUBECONFIG="${KIND_KUBECONFIG}"
-  mkdir -p $(dirname $VERRAZZANO_KUBECONFIG)
-else
-  if [ -z "${VERRAZZANO_KUBECONFIG}" ] ; then
-    fail "Environment variable VERRAZZANO_KUBECONFIG must be set and point to a valid kubernetes configuration file"
-  fi
-  if [ ! -f "${VERRAZZANO_KUBECONFIG}" ] ; then
-    fail "Environment variable VERRAZZANO_KUBECONFIG points to file ${VERRAZZANO_KUBECONFIG} which does not exist"
-  fi
+if [ -z "${VERRAZZANO_KUBECONFIG}" ] ; then
+  fail "Environment variable VERRAZZANO_KUBECONFIG must be set and point to a valid kubernetes configuration file"
+fi
+if [ ! -f "${VERRAZZANO_KUBECONFIG}" ] ; then
+  fail "Environment variable VERRAZZANO_KUBECONFIG points to file ${VERRAZZANO_KUBECONFIG} which does not exist"
 fi
 export KUBECONFIG="${VERRAZZANO_KUBECONFIG}"
 
@@ -221,43 +233,44 @@ command -v curl >/dev/null 2>&1 || {
 ####Constants for Docker images, versions, tags
 ##################################################
 GLOBAL_HUB_REPO=container-registry.oracle.com/olcne
+GLOBAL_IMAGE_PULL_SECRET=verrazzano-container-registry
 
-CERT_MANAGER_IMAGE=container-registry.oracle.com/verrazzano/cert-manager-controller
-CERT_MANAGER_TAG=0.13.1-0e7394e-18
+CERT_MANAGER_IMAGE=ghcr.io/verrazzano/cert-manager-controller
+CERT_MANAGER_TAG=0.13.1-fbae6c270-21
 CERT_MANAGER_RELEASE=0.13
 CERT_MANAGER_HELM_CHART_VERSION=0.13.1
-CERT_MANAGER_SOLVER_IMAGE=container-registry.oracle.com/verrazzano/cert-manager-acmesolver
-CERT_MANAGER_SOLVER_TAG=0.13.1-0e7394e-18
+CERT_MANAGER_SOLVER_IMAGE=ghcr.io/verrazzano/cert-manager-acmesolver
+CERT_MANAGER_SOLVER_TAG=0.13.1-fbae6c270-20
 
 EXTERNAL_DNS_REPO=verrazzano/external-dns
 EXTERNAL_DNS_VERSION=2.20.0
-EXTERNAL_DNS_TAG=v0.7.1-cfe79c5-10
-EXTERNAL_DNS_REGISTRY=container-registry.oracle.com
+EXTERNAL_DNS_TAG=v0.7.1-7df1f5e2-12
+EXTERNAL_DNS_REGISTRY=ghcr.io
 
 GRAFANA_REPO=container-registry.oracle.com/olcne/grafana
 GRAFANA_TAG=v6.4.4
 
-ISTIO_CORE_DNS_PLUGIN_IMAGE=container-registry.oracle.com/verrazzano/istio-coredns-plugin
-ISTIO_CORE_DNS_PLUGIN_TAG=0.2-5caa06b-13
+ISTIO_CORE_DNS_PLUGIN_IMAGE=ghcr.io/verrazzano/istio-coredns-plugin
+ISTIO_CORE_DNS_PLUGIN_TAG=0.2-0ba26c32-15
 ISTIO_CORE_DNS_IMAGE=container-registry.oracle.com/olcne/coredns
 ISTIO_CORE_DNS_TAG=1.6.2
 ISTIO_VERSION=1.4.6
 
-KEYCLOAK_IMAGE=container-registry.oracle.com/verrazzano/keycloak
-KEYCLOAK_IMAGE_TAG=10.0.1-30d98b0-5
+KEYCLOAK_IMAGE=ghcr.io/verrazzano/keycloak
+KEYCLOAK_IMAGE_TAG=10.0.1-30d98b0-6
 KEYCLOAK_CHART_VERSION=8.2.2
 
-KEYCLOAK_THEME_IMAGE=container-registry.oracle.com/verrazzano/keycloak-oracle-theme:v0.0.1
+KEYCLOAK_THEME_IMAGE=ghcr.io/verrazzano/keycloak-oracle-theme:v0.0.2
 
 MYSQL_IMAGE_TAG=8.0.20
 
-NGINX_INGRESS_CONTROLLER_IMAGE=container-registry.oracle.com/verrazzano/nginx-ingress-controller
-NGINX_INGRESS_CONTROLLER_TAG=0.32-aadecdc-21
+NGINX_INGRESS_CONTROLLER_IMAGE=ghcr.io/verrazzano/nginx-ingress-controller
+NGINX_INGRESS_CONTROLLER_TAG=0.32-d584a2b7a-31
 NGINX_INGRESS_CONTROLLER_VERSION=1.27.0
 
-NGINX_DEFAULT_BACKEND_IMAGE=container-registry.oracle.com/verrazzano/nginx-ingress-default-backend
-NGINX_DEFAULT_BACKEND_TAG=0.32-aadecdc-21
+NGINX_DEFAULT_BACKEND_IMAGE=ghcr.io/verrazzano/nginx-ingress-default-backend
+NGINX_DEFAULT_BACKEND_TAG=0.32-d584a2b7a-31
 
-RANCHER_IMAGE=container-registry.oracle.com/verrazzano/rancher
+RANCHER_IMAGE=ghcr.io/verrazzano/rancher
 RANCHER_VERSION=v2.4.3
-RANCHER_TAG=v2.4.3-0cc4e86-22
+RANCHER_TAG=v2.4.3-dfd6383be-27

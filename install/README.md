@@ -34,20 +34,15 @@ The following software must be installed on your system.
    export CLUSTER_TYPE=OKE
    export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
    export KUBECONFIG=$VERRAZZANO_KUBECONFIG
-
 ```
 
-### 2. Create the Oracle Container Registry secret
-You need to create an "ocr" secret for pulling images from the container-registry.oracle.com repository.
+* Create the optional `imagePullSecret` named `verrazzano-container-registry`.  This step is required when one or more of the Docker images installed by Verrazzano are private.  For example, while testing a change to the `verrazzano-operator` you may be using a Docker image that requires credentials to access.
 
 ```
-   kubectl create secret docker-registry ocr \
-       --docker-username=<username> \
-       --docker-password=<password> \
-       --docker-server=container-registry.oracle.com
+    kubectl create secret docker-registry verrazzano-container-registry --docker-username=<username> --docker-password=<password> --docker-server=<docker server>
 ```
 
-### 3. Do the install
+### 2. Do the install
 
 According to your DNS choice, install Verrazzano using one of the following methods:
 
@@ -103,7 +98,7 @@ Run the following scripts in order:
 ```
 
 
-### 4. Verify the install
+### 3. Verify the install
 
 Verrazzano installs multiple objects in multiple namespaces.  All the pods in the `verrazzano-system` namespaces in the `Running` status does not guarantee but likely indicates that Verrazzano is up and running.
 ```
@@ -125,7 +120,7 @@ vmi-system-prometheus-0-7f97ff97dc-gfclv           3/3     Running   0          
 vmi-system-prometheus-gw-7cb9df774-48g4b           1/1     Running   0          4m44s
 ```
 
-### 5. Get the console URLs
+### 4. Get the console URLs
 Verrazzano installs several consoles.  You can get the ingress for the consoles with the following command:
 
 `kubectl get ingress -A`
@@ -146,7 +141,7 @@ Following is an example of the ingresses:
    verrazzano-system   vmi-system-prometheus-gw           prometheus-gw.vmi.system.myenv.mydomain.com    128.234.33.198   80, 443   80m
 ```
 
-### 6. Get console credentials
+### 5. Get console credentials
 
 
 You will need the credentials to access the various consoles installed by Verrazzano.
@@ -182,7 +177,7 @@ Run the following command to get the password:
 `kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo`
 
 
-### 7. (Optional) Install the example applications
+### 6. (Optional) Install the example applications
 Example applications are located in the `examples` directory.
 
 
