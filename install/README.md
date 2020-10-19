@@ -22,21 +22,21 @@ The following software must be installed on your system.
 * patch (for OCI DNS installation)
 
 
-### 1. Preparing for installation
+### 1. Prepare for installation
 
-* Create the OKE cluster using the OCI console or some other means.  
-* Select `v1.16.8` in `KUBERNETES VERSION`.
-* An OKE cluster with 3 nodes of `VM.Standard2.4` [OCI Compute instance shape](https://www.oracle.com/cloud/compute/virtual-machines.html) has proven sufficient to install Verrazzano and deploy the Bob's Books example application.
+* Create the OKE cluster using the OCI Console or some other means.  
+* For `KUBERNETES VERSION`, select `v1.16.8`.
+* For `SHAPE`, an OKE cluster with 3 nodes of `VM.Standard2.4` [OCI Compute instance shape](https://www.oracle.com/cloud/compute/virtual-machines.html) has proven sufficient to install Verrazzano and deploy the Bob's Books example application.
 
 * Set the following `ENV` vars:
 
 ```
    export CLUSTER_TYPE=OKE
-   export VERRAZZANO_KUBECONFIG=<path to valid kubernetes config>
+   export VERRAZZANO_KUBECONFIG=<path to valid Kubernetes config>
    export KUBECONFIG=$VERRAZZANO_KUBECONFIG
 ```
 
-* Create the optional `imagePullSecret` named `verrazzano-container-registry`.  This step is required when one or more of the Docker images installed by Verrazzano are private.  For example, while testing a change to the `verrazzano-operator` you may be using a Docker image that requires credentials to access.
+* Create the optional `imagePullSecret` named `verrazzano-container-registry`.  This step is required when one or more of the Docker images installed by Verrazzano are private.  For example, while testing a change to the `verrazzano-operator`, you may be using a Docker image that requires credentials to access it.
 
 ```
     kubectl create secret docker-registry verrazzano-container-registry --docker-username=<username> --docker-password=<password> --docker-server=<docker server>
@@ -61,12 +61,14 @@ Run the following scripts in order:
 
 
 #### Prerequisites
-* A DNS Zone is a distinct portion of a domain namespace. Therefore, ensure that the zone is appropriately associated with a parent domain.
+* A DNS zone is a distinct portion of a domain namespace. Therefore, ensure that the zone is appropriately associated with a parent domain.
 For example, an appropriate zone name for parent domain `v8o.example.com` domain is `us.v8o.example.com`.
-* Create an OCI DNS zone using the OCI Console or the OCI CLI.  CLI example:
-```
-oci dns zone create -c <compartment ocid> --name <zone-name-prefix>.v8o.oracledx.com --zone-type PRIMARY
-```
+* Create an OCI DNS zone using the OCI Console or the OCI CLI.  
+
+  CLI example:
+  ```
+  oci dns zone create -c <compartment ocid> --name <zone-name-prefix>.v8o.oracledx.com --zone-type PRIMARY
+  ```
 
 #### Installation
 
@@ -76,8 +78,8 @@ Environment Variable | Required | Description
 --- | --- | --- |
 `EMAIL_ADDRESS` | Yes | Email address
 `OCI_COMPARTMENT_OCID` | Yes | OCI DNS Compartment OCID
-`OCI_DNS_ZONE_NAME` | Yes | Name of OCI DNS Zone
-`OCI_DNS_ZONE_OCID` | Yes | OCI DNS Zone OCID
+`OCI_DNS_ZONE_NAME` | Yes | Name of OCI DNS zone
+`OCI_DNS_ZONE_OCID` | Yes | OCI DNS zone OCID
 `OCI_FINGERPRINT` | Yes | OCI fingerprint
 `OCI_PRIVATE_KEY_FILE` | Yes | OCI private key file
 `OCI_PRIVATE_KEY_PASSPHRASE` | No | OCI private key passphrase
@@ -85,8 +87,8 @@ Environment Variable | Required | Description
 `OCI_TENANCY_OCID` | Yes | OCI tenancy OCID
 `OCI_USER_OCID` | Yes | OCI user OCID
 
-When you use OCI DNS install, you need to provide a Verrazzano name (env-name) that will
-be used as part of the domain name used to access Verrazzano ingresses.  For example, you could use `sales` as an env-name,
+When you use the OCI DNS installation, you need to provide a Verrazzano name (`env-name`) that will
+be used as part of the domain name used to access Verrazzano ingresses.  For example, you could use `sales` as an `env-name`,
 yielding `sales.us.v8o.example.com` as the sales related domain (assuming the domain and zone names listed above).
 
 Run the following scripts in order:
@@ -100,7 +102,7 @@ Run the following scripts in order:
 
 ### 3. Verify the install
 
-Verrazzano installs multiple objects in multiple namespaces.  All the pods in the `verrazzano-system` namespaces in the `Running` status does not guarantee but likely indicates that Verrazzano is up and running.
+Verrazzano installs multiple objects in multiple namespaces. In the `verrazzano-system` namespaces, all the pods in the `Running` status does not guarantee but likely indicates that Verrazzano is up and running.
 ```
 kubectl get pods -n verrazzano-system
 verrazzano-admission-controller-84d6bc647c-7b8tl   1/1     Running   0          5m13s
@@ -184,18 +186,18 @@ Example applications are located in the `examples` directory.
 ### Known Issues
 #### OKE Missing Security List Ingress Rules
 
-The install scripts will perform a check which attempts access through the ingress ports.  If the check fails then the install will exit and you should see error messages like this:
+The install scripts perform a check, which attempts access through the ingress ports.  If the check fails, then the install will exit and you will see error messages like this:
 
 `ERROR: Port 443 is NOT accessible on ingress(132.145.66.80)!  Check that security lists include an ingress rule for the node port 31739.`
 
-On an OKE install this may indicate that there is a missing ingress rule(s).  To check and fix the issue do the following:
+On an OKE install, this may indicate that there is a missing ingress rule or rules.  To verify and fix the issue, do the following:
   1. Get the ports for the LoadBalancer services.
      * Run `kubectl get services -A`.
      * Note the ports for the LoadBalancer type services.  For example `80:31541/TCP,443:31739/TCP`.
-  2. Check the security lists in OCI console.
+  2. Check the security lists in the OCI Console.
      * Go to `Networking/Virtual Cloud Networks`.
      * Select the related VCN.
      * Go to the `Security Lists` for the VCN.
      * Select the security list named `oke-wkr-...`.
-     * Check the ingress rules for the security list.  There should be one rule for each of the destination ports named in the LoadBalancer services.  In the above example, the destination ports are `31541` & `31739` and we would expect the ingress rule for `31739` to be missing since it was named in the above ERROR output.
+     * Check the ingress rules for the security list.  There should be one rule for each of the destination ports named in the LoadBalancer services.  In the above example, the destination ports are `31541` & `31739`. We would expect the ingress rule for `31739` to be missing because it was named in the above ERROR output.
      * If a rule is missing, then add it by clicking `Add Ingress Rules` and filling in the source CIDR and destination port range (missing port).  Use the existing rules as a guide.
