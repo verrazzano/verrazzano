@@ -16,12 +16,12 @@ verrazzanoOperator:
   cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:0.3.0-20201016235836-3c55fe5
   helidonMicroImage: ghcr.io/verrazzano/verrazzano-helidon-app-operator:0.3.0-20201017001457-4a797b6
   wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:0.3.0-20201016233034-c8453ca
-  prometheusPusherImage: ghcr.io/verrazzano/prometheus-pusher:1.0.1-32840da-22
-  nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-a96baf6-12
-  filebeatImage: ghcr.io/verrazzano/filebeat:6.8.3-b0f5416df-12
-  journalbeatImage: ghcr.io/verrazzano/journalbeat:6.8.3-b0f5416df-12
+  prometheusPusherImage: ghcr.io/verrazzano/prometheus-pusher:1.0.1-20201016212958-5b64612
+  nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
+  filebeatImage: ghcr.io/verrazzano/filebeat:6.8.3-20201016212236-05eabe44b
+  journalbeatImage: ghcr.io/verrazzano/journalbeat:6.8.3-20201016212623-05eabe44b
   weblogicOperatorImage: oracle/weblogic-kubernetes-operator:3.0.2
-  fluentdImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-7f37ac6-20
+  fluentdImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-20201016214205-7f37ac6
   apiServerRealm: verrazzano-system
   RequestMemory: 72Mi
   cohMicroRequestMemory: 28Mi
@@ -45,16 +45,16 @@ monitoringOperator:
   grafanaImage: container-registry.oracle.com/olcne/grafana:v6.4.4
   prometheusImage: container-registry.oracle.com/olcne/prometheus:v2.13.1
   prometheusInitImage: container-registry.oracle.com/os/oraclelinux:7-slim
-  prometheusGatewayImage: ghcr.io/verrazzano/prometheus-pushgateway:1.2.0-ef27969-15
+  prometheusGatewayImage: ghcr.io/verrazzano/prometheus-pushgateway:1.2.0-20201016205229-164dd8b
   alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
-  esImage: ghcr.io/verrazzano/elasticsearch:7.6.1-0412e78-5
+  esImage: ghcr.io/verrazzano/elasticsearch:7.6.1-20201016211502-0412e78
   esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:v0.0.24
   esInitImage: container-registry.oracle.com/os/oraclelinux:7.8
-  kibanaImage: ghcr.io/verrazzano/kibana:7.6.1-5eab01c-4
+  kibanaImage: ghcr.io/verrazzano/kibana:7.6.1-20201016212846-5eab01c
   monitoringInstanceApiImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-api:0.3.0-20201016233839-0c158e9
-  configReloaderImage: ghcr.io/verrazzano/configmap-reload:0.3-3a08aff-36
-  nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-a96baf6-12
+  configReloaderImage: ghcr.io/verrazzano/configmap-reload:0.3-20201016205243-4f24a0e
+  nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
   RequestMemory: 48Mi
 
 clusterOperator:
