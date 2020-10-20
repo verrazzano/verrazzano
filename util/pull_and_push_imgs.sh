@@ -55,6 +55,8 @@ do
   then
     consoleerr "$SOURCE_REPO/$p not found in repository"
     continue
+  else
+    echo "$SOURCE_REPO/$p" >> pushed_images.txt
   fi
   docker tag $SOURCE_REPO/$p $DEST_REPO/$p
 done < $IMG_LIST_FILE
