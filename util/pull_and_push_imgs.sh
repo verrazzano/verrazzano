@@ -51,7 +51,11 @@ docker login --username $SOURCE_REPO_USER --password $SOURCE_REPO_PWD $SOURCE_RE
 while IFS="" read -r p || [ -n "$p" ]
 do
   log "pulling and tagging $SOURCE_REPO/$p"
-  docker pull $SOURCE_REPO/$p
+  if ! docker pull $SOURCE_REPO/$p
+  then
+    consoleerr "$SOURCE_REPO/$p not found in repository"
+    continue
+  fi
   docker tag $SOURCE_REPO/$p $DEST_REPO/$p
 done < $IMG_LIST_FILE
 
