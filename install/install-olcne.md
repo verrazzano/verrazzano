@@ -74,7 +74,7 @@ All CIDR values provided are examples and can be customized as required.
       |No       |`10.0.0.0/24`|TCP     |All         |31380            |           |HTTP load balancer   |
       |No       |`10.0.0.0/24`|TCP     |All         |31390            |           |HTTPS load balancer  |
       |No       |`10.0.1.0/24`|UDP     |All         |111              |           |NFS                  |
-      |No       |`10.0.1.0/2`4|TCP     |All         |111              |           |NFS                  |
+      |No       |`10.0.1.0/24`|TCP     |All         |111              |           |NFS                  |
       |No       |`10.0.1.0/24`|UDP     |All         |2048             |           |NFS                  |
       |No       |`10.0.1.0/24`|TCP     |All         |2048-2050        |           |NFS                  |
       |No       |`10.0.1.0/24`|TCP     |All         |2379-2380        |           |Kubernetes etcd      |
@@ -114,7 +114,7 @@ All CIDR values provided are examples and can be customized as required.
   * NAT Gateway
   * Service Gateway
 
-The following compute resources follow the guidelines provided in the Oracle Linux Cloud Native Environment Getting Started guide.
+The following compute resources adhere to the guidelines provided in the Oracle Linux Cloud Native Environment Getting Started guide.
 The attributes indicated (for example, Subnet RAM, Shape, Image) are recommendations that have been tested.
 Other values can be used if required.
 
@@ -153,7 +153,7 @@ Examples for meeting these requirements follow.
 Verrazzano requires persistent storage for several components.
 This persistent storage is provided by a default storage class.
 A number of persistent storage providers exist for Kubernetes.
-This guide will focus on a pre-allocated persistent volumes.
+This guide will focus on pre-allocated persistent volumes.
 In particular, the provided samples will illustrate the use of OCI's NFS File System.
 
 ###### OCI Example  
@@ -363,7 +363,7 @@ Run the following scripts in order:
 ```
 
 ### 5. Verify the Verrazzano install
-Verrazzano installs multiple objects in multiple namespaces.  All the pods in the `verrazzano-system` namespaces in the `Running` status does not guarantee, but likely indicates, that Verrazzano is up and running.
+Verrazzano installs multiple objects in multiple namespaces.  All the pods in the `verrazzano-system` namespaces in the `Running` state does not guarantee, but likely indicates, that Verrazzano is up and running.
 ```
 kubectl get pods -n verrazzano-system
 verrazzano-admission-controller-84d6bc647c-7b8tl   1/1     Running   0          5m13s

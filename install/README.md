@@ -102,7 +102,7 @@ Run the following scripts in order:
 
 ### 3. Verify the install
 
-Verrazzano installs multiple objects in multiple namespaces. In the `verrazzano-system` namespaces, all the pods in the `Running` status does not guarantee but likely indicates that Verrazzano is up and running.
+Verrazzano installs multiple objects in multiple namespaces. In the `verrazzano-system` namespaces, all the pods in the `Running` state does not guarantee, but likely indicates, that Verrazzano is up and running.
 ```
 kubectl get pods -n verrazzano-system
 verrazzano-admission-controller-84d6bc647c-7b8tl   1/1     Running   0          5m13s
