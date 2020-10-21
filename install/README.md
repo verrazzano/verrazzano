@@ -9,7 +9,7 @@ an [Oracle Linux Cloud Native Environment (OCLNE)](https://docs.oracle.com/en/op
 This README describes installing Verrazzano in an OKE cluster. For instructions on installing Verrazzano on OLCNE, see this [document](install-olcne.md).
 
 
-> **NOTE**: You should only install this alpha release of Verrazzano in a cluster that can be safely deleted when your evaluation is complete.
+> **NOTE**: You should install this alpha release of Verrazzano only in a cluster that can be safely deleted when your evaluation is complete.
 
 ## Software requirements
 
@@ -44,7 +44,7 @@ The following software must be installed on your system.
 
 ### 2. Do the install
 
-According to your DNS choice, install Verrazzano using one of the following methods:
+According to your DNS choice, install Verrazzano using one of the following methods.
 
 
 #### Install using xip.io
@@ -72,12 +72,12 @@ For example, an appropriate zone name for parent domain `v8o.example.com` domain
 
 #### Installation
 
-Installing Verrazzano on OCI DNS requires the following environment variables to create DNS records:
+Installing Verrazzano on OCI DNS requires the following environment variables to create DNS records.
 
 Environment Variable | Required | Description
 --- | --- | --- |
 `EMAIL_ADDRESS` | Yes | Email address
-`OCI_COMPARTMENT_OCID` | Yes | OCI DNS Compartment OCID
+`OCI_COMPARTMENT_OCID` | Yes | OCI DNS compartment OCID
 `OCI_DNS_ZONE_NAME` | Yes | Name of OCI DNS zone
 `OCI_DNS_ZONE_OCID` | Yes | OCI DNS zone OCID
 `OCI_FINGERPRINT` | Yes | OCI fingerprint
@@ -89,7 +89,7 @@ Environment Variable | Required | Description
 
 When you use the OCI DNS installation, you need to provide a Verrazzano name (`env-name`) that will
 be used as part of the domain name used to access Verrazzano ingresses.  For example, you could use `sales` as an `env-name`,
-yielding `sales.us.v8o.example.com` as the sales related domain (assuming the domain and zone names listed above).
+yielding `sales.us.v8o.example.com` as the sales-related domain (assuming the domain and zone names listed previously).
 
 Run the following scripts in order:
 ```
@@ -102,7 +102,7 @@ Run the following scripts in order:
 
 ### 3. Verify the install
 
-Verrazzano installs multiple objects in multiple namespaces. In the `verrazzano-system` namespaces, all the pods in the `Running` state does not guarantee, but likely indicates, that Verrazzano is up and running.
+Verrazzano installs multiple objects in multiple namespaces. In the `verrazzano-system` namespaces, all the pods in the `Running` state does not guarantee, but likely indicates that Verrazzano is up and running.
 ```
 kubectl get pods -n verrazzano-system
 verrazzano-admission-controller-84d6bc647c-7b8tl   1/1     Running   0          5m13s
@@ -199,5 +199,5 @@ On an OKE install, this may indicate that there is a missing ingress rule or rul
      * Select the related VCN.
      * Go to the `Security Lists` for the VCN.
      * Select the security list named `oke-wkr-...`.
-     * Check the ingress rules for the security list.  There should be one rule for each of the destination ports named in the LoadBalancer services.  In the above example, the destination ports are `31541` & `31739`. We would expect the ingress rule for `31739` to be missing because it was named in the above ERROR output.
+     * Check the ingress rules for the security list.  There should be one rule for each of the destination ports named in the LoadBalancer services.  In the above example, the destination ports are `31541` & `31739`. We would expect the ingress rule for `31739` to be missing because it was named in the ERROR output.
      * If a rule is missing, then add it by clicking `Add Ingress Rules` and filling in the source CIDR and destination port range (missing port).  Use the existing rules as a guide.
