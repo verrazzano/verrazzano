@@ -27,7 +27,7 @@ cluster.
 ### 1. Prepare for the Oracle Linux Cloud Native Environment install
 Oracle Linux Cloud Native Environment can be installed in several different types of environments.
 These range from physical, on-premises hardware to virtualized cloud infrastructure.
-The Oracle Linux Cloud Native Environment installation instructions assume that networking and compute resources already exists.
+The Oracle Linux Cloud Native Environment installation instructions assume that networking and compute resources already exist.
 The basic infrastructure requirements are a network with a public and private subnet
 and a set of hosts connected to those networks.
 
@@ -35,12 +35,12 @@ and a set of hosts connected to those networks.
 The following is an example of OCI infrastructure that can be used to evaluate Verrazzano installed on Oracle Linux Cloud Native Environment.
 If other environments are used, the capacity and configuration should be similar.
 
-You can use the VCN Wizard of the OCI console to automatically create most of the described network infrastructure.
+You can use the VCN Wizard of the OCI Console to automatically create most of the described network infrastructure.
 Additional security lists/rules, as detailed below, need to be added manually.
 All CIDR values provided are examples and can be customized as required.
 
-* Virtual Cloud Network (e.g. CIDR 10.0.0.0/16)
-  * Public Subnet (e.g. CIDR 10.0.0.0/24)
+* Virtual Cloud Network (for example, CIDR 10.0.0.0/16)
+  * Public Subnet (for example, CIDR 10.0.0.0/24)
     * Security List / Ingress Rules
 
       |Stateless|Destination|Protocol|Source Ports|Destination Ports|Type & Code|Description        |
@@ -61,7 +61,7 @@ All CIDR values provided are examples and can be customized as required.
       |No       |`10.0.1.0/24`|TCP     |All         |31380            |           |HTTP load balancer |
       |No       |`10.0.1.0/24`|TCP     |All         |31390            |           |HTTPS load balancer|
 
-  * Private Subnet (e.g. CIDR 10.0.1.0/24)
+  * Private Subnet (for example, CIDR 10.0.1.0/24)
     * Security List / Ingress Rules
 
       |Stateless|Destination|Protocol|Source Ports|Destination Ports|Type & Code|Description          |
@@ -114,8 +114,8 @@ All CIDR values provided are examples and can be customized as required.
   * NAT Gateway
   * Service Gateway
 
-The following compute resources adhere to the guidelines provided in the Oracle Linux Cloud Native Environment Getting Started guide.
-The attributes indicated (for example, Subnet RAM, Shape, Image) are recommendations that have been tested.
+The following compute resources adhere to the guidelines provided in the Oracle Linux Cloud Native Environment [Getting Started](https://docs.oracle.com/en/operating-systems/olcne/start/deploy-kube.html) guide.
+The attributes indicated (for example, Subnet, RAM, Shape, and Image) are recommendations that have been tested.
 Other values can be used if required.
 
 * Compute Instances
@@ -166,7 +166,7 @@ Also note the Mount Target's `IP Address` for use later.
 
 After the exports have been created, referenced persistent volume folders (for example, `/example/pv0001`) will need to be created.
 In OCI, this can be done by mounting the export on one of the Kubernetes worker nodes and creating the folders.
-In the following example, the value `'/example'` is the `Export Path` and `10.0.1.8` is the Mount Target's `IP Address`.
+In the following example, the value `/example` is the `Export Path` and `10.0.1.8` is the Mount Target's `IP Address`.
 The following command should be run on one of the Kubernetes worker nodes.
 This will result in the creation of nine persistent volume folders.
 The reason for nine persistent volume folders is covered in the next section.
@@ -245,7 +245,7 @@ Specific steps will differ for each load balancer provider, but a generic config
 
 ##### OCI Example
 The following details can be used to create OCI load balancers for accessing application and management user interfaces, respectively.
-These load balancers will route HTTP/HTTP traffic from the Internet to the private subnet.
+These load balancers will route HTTP/HTTPS traffic from the Internet to the private subnet.
 If load balancers are desired, then they should be created now even though the application and management endpoints will be installed later.
 
 * Application Load Balancer: Public Subnet
@@ -363,7 +363,7 @@ Run the following scripts in order:
 ```
 
 ### 5. Verify the Verrazzano install
-Verrazzano installs multiple objects in multiple namespaces.  All the pods in the `verrazzano-system` namespaces in the `Running` state does not guarantee, but likely indicates, that Verrazzano is up and running.
+Verrazzano installs multiple objects in multiple namespaces.  All the pods in the `verrazzano-system` namespaces in the `Running` state does not guarantee, but likely indicates that Verrazzano is up and running.
 ```
 kubectl get pods -n verrazzano-system
 verrazzano-admission-controller-84d6bc647c-7b8tl   1/1     Running   0          5m13s
