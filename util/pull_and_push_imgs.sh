@@ -54,6 +54,7 @@ do
   if ! docker pull $SOURCE_REPO/$p
   then
     consoleerr "$SOURCE_REPO/$p not found in repository"
+    echo "$SOURCE_REPO/$p" >> skipped_images.txt
     continue
   else
     echo "$SOURCE_REPO/$p" >> pushed_images.txt
@@ -69,7 +70,7 @@ docker login --username $DEST_REPO_USER --password $DEST_REPO_PWD $DEST_REPO
 # do
 #   log "pushing $DEST_REPO/$p"
 #   docker push $DEST_REPO/$p
-# done < $IMG_LIST_FILE
+# done < pushed_images.txt
 
 docker logout $DEST_REPO
 
