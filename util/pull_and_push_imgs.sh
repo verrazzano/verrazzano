@@ -46,7 +46,7 @@ do
     esac
 done
 
-log "logging in to $SOURCE_REPO"
+log "login in to $SOURCE_REPO"
 docker login --username $SOURCE_REPO_USER --password $SOURCE_REPO_PWD $SOURCE_REPO
 while IFS="" read -r p || [ -n "$p" ]
 do
@@ -64,7 +64,7 @@ done < $IMG_LIST_FILE
 
 docker logout $SOURCE_REPO
 
-log "logging in to $DEST_REPO"
+log "login in to $DEST_REPO"
 docker login --username $DEST_REPO_USER --password $DEST_REPO_PWD $DEST_REPO
 # while IFS="" read -r p || [ -n "$p" ]
 # do
