@@ -54,10 +54,10 @@ do
   if ! docker pull $SOURCE_REPO/$p
   then
     consoleerr "$SOURCE_REPO/$p not found in repository"
-    echo "$SOURCE_REPO/$p" >> skipped_images.txt
+    echo "$p" >> skipped_images.txt
     continue
   else
-    echo "$SOURCE_REPO/$p" >> pushed_images.txt
+    echo "$p" >> pushed_images.txt
   fi
   docker tag $SOURCE_REPO/$p $DEST_REPO/$p
 done < $IMG_LIST_FILE
