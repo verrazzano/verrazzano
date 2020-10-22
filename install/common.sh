@@ -260,7 +260,7 @@ KEYCLOAK_IMAGE=ghcr.io/verrazzano/keycloak
 KEYCLOAK_IMAGE_TAG=10.0.1-20201016212759-30d98b0
 KEYCLOAK_CHART_VERSION=8.2.2
 
-KEYCLOAK_THEME_IMAGE=ghcr.io/verrazzano/keycloak-oracle-theme:v0.0.2
+KEYCLOAK_THEME_IMAGE=ghcr.io/verrazzano/keycloak-oracle-theme:0.3.0-20201023130529-203f009
 
 MYSQL_IMAGE_TAG=8.0.20
 
