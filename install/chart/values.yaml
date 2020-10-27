@@ -71,7 +71,7 @@ verrazzanoAdmissionController:
   name: verrazzano-validation
   controllerName: verrazzano-admission-controller
   imageName: ghcr.io/verrazzano/verrazzano-admission-controller
-  imageVersion: 0.3.0-20201016232023-5326fc7
+  imageVersion: 0.4.0-20201027121300-ffd7251
   caBundle:
   RequestMemory: 15Mi
 
