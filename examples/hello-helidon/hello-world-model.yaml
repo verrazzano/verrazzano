@@ -12,7 +12,6 @@ spec:
       image: "container-registry.oracle.com/verrazzano/example-hello-world-helidon:0.1.10-3-20201016220428-56fb4d4"
       imagePullSecrets:
         - name: ocr
-        - name: github-packages
       connections:
         - ingress:
             - name: "greet-ingress"

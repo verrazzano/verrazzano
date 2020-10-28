@@ -21,7 +21,6 @@ spec:
         webLogicCredentialsSecret:
           name: bobbys-front-end-weblogic-credentials
         imagePullSecrets:
-          - name: github-packages
           - name: ocr
         clusters:
           - clusterName: cluster-1
@@ -58,7 +57,6 @@ spec:
         webLogicCredentialsSecret:
           name: bobs-bookstore-weblogic-credentials
         imagePullSecrets:
-          - name: github-packages
           - name: ocr
         clusters:
           - clusterName: cluster-1
@@ -102,7 +100,6 @@ spec:
     - name: "roberts-helidon-stock-application"
       image: "container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.10-3-20201016220428-56fb4d4"
       imagePullSecrets:
-        - name: github-packages
         - name: ocr
       env:
         - name: COH_CACHE_CONFIG
@@ -128,7 +125,6 @@ spec:
     - name: "roberts-coherence"
       image: "container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.10-3-20201016220428-56fb4d4"
       imagePullSecrets:
-        - name: github-packages
         - name: ocr  # secret to pull roberts-coherence and container-registry.oracle.com/middleware/coherence:12.2.1.4.0
       cacheConfig: "books-cache-config.xml"
       pofConfig: "books-pof-config.xml"
