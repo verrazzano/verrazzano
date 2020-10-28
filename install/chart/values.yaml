@@ -60,7 +60,7 @@ monitoringOperator:
 clusterOperator:
   name: verrazzano-cluster-operator
   imageName: ghcr.io/verrazzano/verrazzano-cluster-operator
-  imageVersion: 0.4.0-20201026183756-b25149b
+  imageVersion: 0.4.0-20201027191729-4a755e2
   rancherURL:
   rancherUserName:
   rancherPassword:
@@ -71,7 +71,7 @@ verrazzanoAdmissionController:
   name: verrazzano-validation
   controllerName: verrazzano-admission-controller
   imageName: ghcr.io/verrazzano/verrazzano-admission-controller
-  imageVersion: 0.4.0-20201027121300-ffd7251
+  imageVersion: 0.4.0-20201027171233-fdbe79a
   caBundle:
   RequestMemory: 15Mi
 
