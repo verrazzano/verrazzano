@@ -50,7 +50,7 @@ spec:
       domainCRValues:
         domainUID: bobs-bookstore
         domainHome: /u01/oracle/user_projects/domains/bobs-bookstore
-        image: "container-registry.oracle.com/verrazzano/example-bobs-bookstore-order-manager:0.1.10-3-20201016220428-56fb4d4"
+        image: "container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.10-3-20201016220428-56fb4d4"
         logHome: /u01/oracle/bobs-bookstore/logs
         logHomeEnabled: false
         includeServerOutInPodLog: true
