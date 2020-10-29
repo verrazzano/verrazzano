@@ -7,7 +7,8 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 . $SCRIPT_DIR/common.sh
 
 CONFIG_DIR=$SCRIPT_DIR/config
-CERTS_OUT=$SCRIPT_DIR/build/admin-control-cert
+TMP_DIR=$(mktemp -d)
+trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
 function set_INGRESS_IP() {
   if [ ${CLUSTER_TYPE} == "OKE" ]; then
@@ -76,36 +77,54 @@ set -eu
 
 function create_admission_controller_cert()
 {
+  exitvalue=0
   echo # for newline before additional output from below commands
-  rm -rf $CERTS_OUT
-  mkdir -p $CERTS_OUT
 
   # Prepare verrazzano_admission_controller_ca_config.txt and verrazzano_admission_controller_cert_config.txt
-  sed "s/VERRAZZANO_NS/${VERRAZZANO_NS}/g" $CONFIG_DIR/verrazzano_admission_controller_ca_config.txt > $CERTS_OUT/verrazzano_admission_controller_ca_config.txt
-  sed "s/VERRAZZANO_NS/${VERRAZZANO_NS}/g" $CONFIG_DIR/verrazzano_admission_controller_cert_config.txt > $CERTS_OUT/verrazzano_admission_controller_cert_config.txt
+  sed "s/VERRAZZANO_NS/${VERRAZZANO_NS}/g" $CONFIG_DIR/verrazzano_admission_controller_ca_config.txt > $TMP_DIR/verrazzano_admission_controller_ca_config.txt
+  sed "s/VERRAZZANO_NS/${VERRAZZANO_NS}/g" $CONFIG_DIR/verrazzano_admission_controller_cert_config.txt > $TMP_DIR/verrazzano_admission_controller_cert_config.txt
 
   # Create the private key for our custom CA
-  openssl genrsa -out $CERTS_OUT/ca.key 2048
+  openssl genrsa -out $TMP_DIR/ca.key 2048
+  if ! openssl genrsa -out $TMP_DIR/ca.key 2048 ; then
+    echo "ERROR: Failed to create private key for our CA"
+    return 1
+  fi
 
   # Generate a CA cert with the private key
-  openssl req -new -x509 -key $CERTS_OUT/ca.key -out $CERTS_OUT/ca.crt -config $CERTS_OUT/verrazzano_admission_controller_ca_config.txt
+  if ! openssl req -new -x509 -key $TMP_DIR/ca.key -out $TMP_DIR/ca.crt -config $TMP_DIR/verrazzano_admission_controller_ca_config.txt; then
+    echo "ERROR: Failed to generate CA cert with private key"
+    return 1
+  fi
 
   # Create the private key for our server
-  openssl genrsa -out $CERTS_OUT/verrazzano-key.pem 2048
+  if ! openssl genrsa -out $TMP_DIR/verrazzano-key.pem 2048; then
+    echo "ERROR: Failed to create private key for server"
+    return 1
+  fi
 
   # Create a CSR from the configuration file and our private key
-  openssl req -new -key $CERTS_OUT/verrazzano-key.pem -subj "/CN=verrazzano-validation.${VERRAZZANO_NS}.svc" -out $CERTS_OUT/verrazzano.csr -config $CERTS_OUT/verrazzano_admission_controller_cert_config.txt
+  if ! openssl req -new -key $TMP_DIR/verrazzano-key.pem -subj "/CN=verrazzano-validation.${VERRAZZANO_NS}.svc" -out $TMP_DIR/verrazzano.csr -config $TMP_DIR/verrazzano_admission_controller_cert_config.txt; then
+  echo "ERROR: Failed to create a certificate signing request (CSR) from the configuration file and private key"
+    return 1
+  fi
 
   # Create the cert signing the CSR with the CA created before
-  openssl x509 -req -in $CERTS_OUT/verrazzano.csr -CA $CERTS_OUT/ca.crt -CAkey $CERTS_OUT/ca.key -CAcreateserial -out $CERTS_OUT/verrazzano-crt.pem
+  if ! openssl x509 -req -in $TMP_DIR/verrazzano.csr -CA $TMP_DIR/ca.crt -CAkey $TMP_DIR/ca.key -CAcreateserial -out $TMP_DIR/verrazzano-crt.pem; then
+    echo "ERROR: Failed to create certificate signing request (CSR) with CA"
+    return 1
+  fi
 
   kubectl create secret generic verrazzano-validation -n ${VERRAZZANO_NS} \
-  --from-file=cert.pem=$CERTS_OUT/verrazzano-crt.pem \
-  --from-file=key.pem=$CERTS_OUT/verrazzano-key.pem \
-  --from-file=ca.crt=$CERTS_OUT/ca.crt \
-  --from-file=ca.key=$CERTS_OUT/ca.key
+  --from-file=cert.pem=$TMP_DIR/verrazzano-crt.pem \
+  --from-file=key.pem=$TMP_DIR/verrazzano-key.pem \
+  --from-file=ca.crt=$TMP_DIR/ca.crt \
+  --from-file=ca.key=$TMP_DIR/ca.key
 
-  rm -rf $CERTS_OUT
+  if [ $? -ne 0 ]; then
+      echo "ERROR: Failed to create secret verrazzano-validation"
+      return 1
+  fi
 }
 
 function install_verrazzano()
