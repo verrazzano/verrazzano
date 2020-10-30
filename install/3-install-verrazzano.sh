@@ -77,7 +77,6 @@ set -eu
 
 function create_admission_controller_cert()
 {
-  exitvalue=0
   echo # for newline before additional output from below commands
 
   # Prepare verrazzano_admission_controller_ca_config.txt and verrazzano_admission_controller_cert_config.txt
@@ -85,7 +84,6 @@ function create_admission_controller_cert()
   sed "s/VERRAZZANO_NS/${VERRAZZANO_NS}/g" $CONFIG_DIR/verrazzano_admission_controller_cert_config.txt > $TMP_DIR/verrazzano_admission_controller_cert_config.txt
 
   # Create the private key for our custom CA
-  openssl genrsa -out $TMP_DIR/ca.key 2048
   if ! openssl genrsa -out $TMP_DIR/ca.key 2048 ; then
     echo "ERROR: Failed to create private key for our CA"
     return 1
