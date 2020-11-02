@@ -132,8 +132,7 @@ function install_istio()
     log "Wait for istio CRD creation jobs to complete"
     if ! kubectl -n istio-system wait --for=condition=complete job --all --timeout=300s ; then
       stat=$?
-      consoleerr "ERROR: Istio CRD creation failed - dumping jobs into log file"
-      dump_jobs "istio-system"
+      consoleerr "ERROR: Istio CRD creation failed"
       return $stat
     fi
 
