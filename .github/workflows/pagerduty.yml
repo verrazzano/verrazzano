@@ -1,5 +1,6 @@
 # Copyright (c) 2020, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+name: pagerduty-trigger
 on:
   issues:
     types: [opened, reopened]
@@ -7,13 +8,11 @@ on:
     types: [created]
 jobs:
   pagerduty:
+    env:
+      ROUTING_KEY: ${{ secrets.PAGERDUTY_ROUTING_KEY }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
     runs-on: ubuntu-latest
     steps:
       - name: web-request
-        uses: satak/webrequest-action@master
-        with:
-          url: https://events.pagerduty.com/v2/enqueue
-          method: POST
-          payload: '{"routing_key":"${{ secrets.PAGERDUTY_ROUTING_KEY }}","event_action":"trigger","payload":{"summary":"Issue https://github.com/verrazzano/verrazzano/issues/${{ github.event.issue.number }} has been opened, commented on, or re-opened","source":"build.verrazzano.io","severity":"critical","component":"verrazzano"}}'
-          headers: '{"content-type": "application/json"}'
-
+        run: |
+          curl -v -k -d '{"routing_key":'"\"$ROUTING_KEY\""',"event_action":"trigger","payload":{"summary":"Issue https://github.com/verrazzano/verrazzano/issues/'"$ISSUE_NUMBER"' has been opened, commented on, or re-opened","source":"build.verrazzano.io","severity":"critical","component":"verrazzano"}}' -H 'content-type: application/json' -X POST https://events.pagerduty.com/v2/enqueue
