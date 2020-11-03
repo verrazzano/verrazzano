@@ -5,6 +5,7 @@
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 . $SCRIPT_DIR/common.sh
+. $SCRIPT_DIR/config.sh
 
 set -u
 
@@ -18,17 +19,21 @@ DNS_PREFIX="verrazzano-ingress"
 TMP_DIR=$(mktemp -d)
 trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
-function set_INGRESS_IP() {
-  if [ ${CLUSTER_TYPE} == "OKE" ]; then
-    INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
-  elif [ ${CLUSTER_TYPE} == "OLCNE" ]; then
-    # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
-    INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
-    if [ ${INGRESS_IP} == "null" ]; then
-      INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json  | jq -r '.spec.externalIPs[0]')
-    fi
-  fi
-}
+ENV_NAME=$(get_config_value ".environmentName")
+# check environment name length
+validate_environment_name $ENV_NAME
+if [ $? -ne 0 ]; then
+  exit 1
+fi
+
+INGRESS_IP=$(get_verrazzano_ingress_ip)
+if [ -n "${INGRESS_IP:-}" ]; then
+  log "Found ingress address ${INGRESS_IP}"
+else
+  fail "Failed to find ingress address."
+fi
+
+DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
 function install_mysql {
   log "Check for Keycloak namespace"
@@ -153,74 +158,6 @@ function set_rancher_server_url
     fi
 }
 
-function usage {
-    error
-    error "usage: $0 [-n name] [-d dns_type] [-s dns_suffix]"
-    error "  -n name        Environment Name. Optional.  Optional.  Defaults to default."
-    error "  -d dns_type    DNS type [xip.io|manual|oci]. Optional.  Defaults to xip.io."
-    error "  -s dns_suffix  DNS suffix (e.g v8o.example.com). Not valid for dns_type xip.io. Required for dns-type oci or manual"
-    error "  -h             Help"
-    error
-    exit 1
-}
-
-ENV_NAME="default"
-DNS_TYPE="xip.io"
-DNS_SUFFIX=""
-
-while getopts n:d:s:h flag
-do
-    case "${flag}" in
-        n) ENV_NAME=${OPTARG};;
-        d) DNS_TYPE=${OPTARG};;
-        s) DNS_SUFFIX=${OPTARG};;
-        h) usage;;
-        *) usage;;
-    esac
-done
-
-# check environment name length
-validate_environment_name ENV_NAME
-if [ $? -ne 0 ]; then
-  exit 1
-fi
-
-# check for valid DNS type
-if [ $DNS_TYPE != "xip.io" ] && [ $DNS_TYPE != "oci" ] && [ $DNS_TYPE != "manual" ]; then
-  error
-  error "Unknown DNS type ${DNS_TYPE}"
-  usage
-fi
-# check for name
-if [ $DNS_TYPE = "oci" ]; then
-  if [ -z "$ENV_NAME" ]; then
-    error
-    error "Name must be given with dns_type oci!"
-    usage
-  fi
-fi
-
-if [ $DNS_TYPE = "xip.io" ]; then
-  set_INGRESS_IP
-fi
-
-# check expected dns suffix for given dns type
-if [ -z "$DNS_SUFFIX" ]; then
-  if [ $DNS_TYPE == "oci" ] || [ $DNS_TYPE == "manual" ]; then
-    error
-    error "-s option is required for ${DNS_TYPE}"
-    usage
-  else
-    DNS_SUFFIX="${INGRESS_IP}".xip.io
-  fi
-else
-  if [ $DNS_TYPE = "xip.io" ]; then
-    error
-    error "A dns_suffix should not be given with dns_type xip.io!"
-    usage
-  fi
-fi
-
 DNS_TARGET_NAME=${DNS_PREFIX}.${ENV_NAME}.${DNS_SUFFIX}
 REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 
@@ -259,7 +196,7 @@ consoleout
 consoleout "Keycloak - https://keycloak.${ENV_NAME}.${DNS_SUFFIX}"
 consoleout "User: keycloakadmin"
 consoleout "Password: kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo"
-if [ ${CLUSTER_TYPE} == "OKE" -a -z "$(kubectl get services -n istio-system istio-ingressgateway -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')" ] 2> /dev/null
+if [ $(get_application_ingress_ip) == "null" ];
 then
   consoleout
   consoleout "WARNING: istio-ingressgateway service does not have a valid external IP assigned yet. Public access to deployed applications will not work."
