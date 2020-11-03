@@ -15,4 +15,4 @@ jobs:
     steps:
       - name: web-request
         run: |
-          curl -v -k -d '{"routing_key":'"\"$ROUTING_KEY\""',"event_action":"trigger","payload":{"summary":"Issue https://github.com/verrazzano/verrazzano/issues/'"$ISSUE_NUMBER"' has been opened, commented on, or re-opened","source":"build.verrazzano.io","severity":"critical","component":"verrazzano"}}' -H 'content-type: application/json' -X POST https://events.pagerduty.com/v2/enqueue
+          curl -v -k -d '{"routing_key":'"\"$ROUTING_KEY\""',"event_action":"trigger","payload":{"summary":"Issue https://github.com/verrazzano/verrazzano/issues/'"$ISSUE_NUMBER"' has been opened, commented on, or re-opened","source":"user","severity":"critical","component":"verrazzano"}}' -H 'content-type: application/json' -X POST https://events.pagerduty.com/v2/enqueue
