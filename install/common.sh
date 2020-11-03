@@ -198,11 +198,6 @@ function call_curl {
 
 VERRAZZANO_DIR=${SCRIPT_DIR}/.verrazzano
 
-CLUSTER_TYPE="${CLUSTER_TYPE:-}"
-if [ "${CLUSTER_TYPE}" != "OKE" ] && [ "${CLUSTER_TYPE}" != "OLCNE" ]; then
-  fail "CLUSTER_TYPE environment variable must be set to OKE or OLCNE"
-fi
-
 VERRAZZANO_KUBECONFIG="${VERRAZZANO_KUBECONFIG:-}"
 if [ -z "${VERRAZZANO_KUBECONFIG}" ] ; then
   fail "Environment variable VERRAZZANO_KUBECONFIG must be set and point to a valid kubernetes configuration file"

@@ -1,0 +1,34 @@
+{
+   "environmentName": "default",
+   "dns": {
+      "type": "external", 
+      "external": {
+         "suffix": "my.domain.suffix"
+      }
+   },
+   "ingress": {
+      "type": "LoadBalancer",
+      "verrazzano": { 
+         "extraInstallArgs": [
+            {
+               "name": "controller.service.externalTrafficPolicy",
+               "value": "Local"
+            },
+            {
+               "name": "controller.autoscaling.enabled",
+               "value": "true"
+            },
+            {
+               "name": "controller.autoscaling.minReplicas",
+               "value": 2
+            }
+         ],
+         "patchServiceSpec": "{ \"spec\": { \"ports\": [{ \"port\": 80, \"nodePort\": 30080 }, { \"port\": 443, \"nodePort\": 30443 }, { \"name\": \"healthz\", \"nodePort\": 30254, \"port\": 30254, \"protocol\": \"TCP\", \"targetPort\": 10254 } ]  }}",
+         "patchDeploymentSpec": "",
+         "additionalExternalIPs": [ "IP-address-of ingress-mgmt.<env name>.<dns suffix>" ]
+      },
+      "application": { 
+         "additionalExternalIPs": [ "IP-address-of ingress-verrazzano.<env name>.<dns suffix>" ]
+      }
+   }
+}

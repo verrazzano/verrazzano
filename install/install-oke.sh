@@ -16,9 +16,10 @@ if [ ! -d "${SCRIPT_DIR}/.verrazzano" ] ; then
   mkdir -p ${SCRIPT_DIR}/.verrazzano
 fi
 
-export CLUSTER_TYPE=OKE
+export INSTALL_CONFIG_FILE="$SCRIPT_DIR/config/config_defaults.json"
 
 . $SCRIPT_DIR/common.sh
+. $SCRIPT_DIR/config.sh
 
 section "Installing Istio..."
 $SCRIPT_DIR/1-install-istio.sh
@@ -36,5 +37,5 @@ function wait_for_env_ready() {
 action "Wait for environment to be ready" wait_for_env_ready || fail "Environment not ready"
 
 status ""
-section "Installation of environment ${CLUSTER_TYPE} complete."
+section "Installation of environment $(get_config_value ".environmentName") complete."
 

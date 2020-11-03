@@ -1,0 +1,19 @@
+{
+   "environmentName": "default",
+   "dns": {
+      "type": "xip.io"
+   },
+   "ingress": {
+      "type": "LoadBalancer",
+      "verrazzano": {
+         "extraInstallArgs": [],
+         "patchServiceSpec": "",
+         "patchDeploymentSpec": "",
+         "additionalExternalIPs": []
+      },
+      "application": {
+         "additionalExternalIPs": []
+      }
+   }
+}
+

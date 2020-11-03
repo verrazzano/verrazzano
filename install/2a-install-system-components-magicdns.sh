@@ -5,19 +5,9 @@
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 . $SCRIPT_DIR/common.sh
-
-INGRESS_TYPE=LoadBalancer #this is true for both OKE and OLCNE clusters
+. $SCRIPT_DIR/config.sh
 
 set -eu
-
-function set_INGRESS_IP() {
-  if [ ${CLUSTER_TYPE} == "OKE" ]; then
-    INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
-  elif [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
-    # Will not always be present, only return non-null when LoadBalancer providers are available.
-    INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
-  fi
-}
 
 function install_nginx_ingress_controller()
 {
@@ -29,19 +19,40 @@ function install_nginx_ingress_controller()
     helm repo add stable https://charts.helm.sh/stable
     helm repo update
 
-    EXTRA_NGINX_ARGUMENTS=""
-    if [ ${CLUSTER_TYPE} == "OLCNE" ]; then
-      EXTRA_NGINX_ARGUMENTS=$EXTRA_NGINX_ARGUMENTS" --set controller.service.externalTrafficPolicy=Local --set controller.autoscaling.enabled=true --set controller.autoscaling.minReplicas=2"
-      if [ $DNS_TYPE == "manual" ]; then
-        INGRESS_IP=$(dig +short ingress-mgmt.${NAME}.${DNS_SUFFIX})
-        if [ -z $INGRESS_IP ]; then
-          consoleerr
-          consoleerr "Unable to identify an Ingress IP address. Check documentation and ensure the ingress-mgmt DNS record exists"
-          exit 1
-        fi
-        EXTRA_NGINX_ARGUMENTS=$EXTRA_NGINX_ARGUMENTS" --set controller.service.externalIPs={"${INGRESS_IP}"}"
+    local ingress_type=""
+    ingress_type=$(get_config_value ".ingress.type")
+
+    local EXTRA_NGINX_ARGUMENTS=""
+    local patch_service_spec=""
+    local extra_install_args=""
+    local extra_install_args_len=0
+    local param_name=""
+    local param_value=""
+    if [ "$ingress_type" == "LoadBalancer" ]; then
+      # Get any patch for the service and deployment specs
+      patch_service_spec="$(get_config_value '.ingress.verrazzano.patchServiceSpec')"
+      # Handle any additional NGINX install args - since NGINX is for Verrazzano system Ingress,
+      # these should be in .ingress.verrazzano.extraInstallArgs[]
+      extra_install_args=($(get_config_array ".ingress.verrazzano.extraInstallArgs[]"))
+      if [ ${#extra_install_args[@]} -ne 0 ]; then
+        for arg in "${extra_install_args[@]}"; do
+          param_name=$(echo "$arg" | jq -r '.name')
+          param_value=$(echo "$arg" | jq -r '.value')
+          if [ ! -z "$param_name" ] && [ ! -z "$param_value" ]; then
+            EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set $param_name=$param_value"
+          fi
+        done
       fi
-    fi
+
+      # Handle any external IPs specified for Verrazzano Ingress - this may exist when an
+      # external LB is used
+      local additional_external_ips=($(get_config_array ".ingress.verrazzano.additionalExternalIPs[]"))
+      local additional_external_ips_len=${#additional_external_ips[@]}
+      if [ $additional_external_ips_len -ne 0 ]; then
+        printf -v joined '%s,' "${additional_external_ips[@]}"
+        EXTRA_NGINX_ARGUMENTS=$EXTRA_NGINX_ARGUMENTS" --set controller.service.externalIPs={"${joined%,}"}"
+      fi
+    fi #end if ingress_type is LoadBalancer
 
     helm upgrade ingress-controller stable/nginx-ingress --install \
       --set controller.image.repository=$NGINX_INGRESS_CONTROLLER_IMAGE \
@@ -55,20 +66,14 @@ function install_nginx_ingress_controller()
       --set controller.podAnnotations.'prometheus\.io/scrape'=true \
       --set controller.podAnnotations.'system\.io/scrape'=true \
       --version $NGINX_INGRESS_CONTROLLER_VERSION \
-      --set controller.service.type="${INGRESS_TYPE}" \
+      --set controller.service.type="${ingress_type}" \
       --set controller.publishService.enabled=true \
       --timeout 15m0s \
       ${EXTRA_NGINX_ARGUMENTS} \
       --wait
 
-    if [ $CLUSTER_TYPE == "OLCNE" ]; then
-      kubectl patch service -n ingress-nginx ingress-controller-nginx-ingress-controller -p '{ "spec": { "ports": [{ "port": 80, "nodePort": 30080 }, { "port": 443, "nodePort": 30443 }, { "name": "healthz", "nodePort": 30254, "port": 30254, "protocol": "TCP", "targetPort": 10254 } ]  }}'
-    fi
-
-    set_INGRESS_IP
-
-    if [ $DNS_TYPE = "xip.io" ]; then
-      DNS_SUFFIX="${INGRESS_IP}".xip.io
+    if [ ! -z "${patch_service_spec}" ]; then
+      kubectl patch service -n ingress-nginx ingress-controller-nginx-ingress-controller -p "${patch_service_spec}"
     fi
 }
 
@@ -137,14 +142,12 @@ function install_rancher()
       --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
       --set ingress.tls.source=rancher
 
-    if [ $CLUSTER_TYPE == "OLCNE" ]; then
-      # CRI-O does not deliver MKNOD by default, until https://github.com/rancher/rancher/pull/27582 is merged we must add the capability
-      kubectl patch deployments -n cattle-system rancher -p '{"spec":{"template":{"spec":{"containers":[{"name":"rancher","securityContext":{"capabilities":{"add":["MKNOD"]}}}]}}}}'
-    fi
+    # CRI-O does not deliver MKNOD by default, until https://github.com/rancher/rancher/pull/27582 is merged we must add the capability
+    # OLCNE uses CRI-O and needs this change, and it doesn't hurt other cases
+    kubectl patch deployments -n cattle-system rancher -p '{"spec":{"template":{"spec":{"containers":[{"name":"rancher","securityContext":{"capabilities":{"add":["MKNOD"]}}}]}}}}'
 
-    if [ $DNS_TYPE == "xip.io" ] || [ $DNS_TYPE == "manual" ]; then
-      RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${NAME}.${DNS_SUFFIX} auth\",\"cert-manager.io/issuer\":\"rancher\",\"cert-manager.io/issuer-kind\":\"Issuer\"}}}"
-    fi
+    # Patch for rancher needed in both cases this script supports (xip.io "magic" DNS and external DNS)
+    RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${NAME}.${DNS_SUFFIX} auth\",\"cert-manager.io/issuer\":\"rancher\",\"cert-manager.io/issuer-kind\":\"Issuer\"}}}"
 
     log "Patch Rancher ingress"
     kubectl patch ingress rancher -n cattle-system -p "$RANCHER_PATCH_DATA" --type=merge
@@ -166,24 +169,26 @@ function install_rancher()
 
 function usage {
     consoleerr
-    consoleerr "usage: $0 [-n name] [-d dns_type]"
-    consoleerr "  -n name        Environment Name. Optional.  Defaults to default."
-    consoleerr "  -d dns_type    DNS type [xip.io|manual]. Optional.  Defaults to xip.io."
-    consoleerr "  -s dns_suffix  DNS suffix (e.g v8o.example.com). Not valid for dns_type xip.io. Required for dns-type oci or manual"
-    consoleerr "  -h             Help"
+    consoleerr "usage: $0"
+    consoleerr "-h             Help"
+    consoleerr "INSTALL_CONFIG_FILE environment variable must be set to a valid installation config file"
     consoleerr
     exit 1
 }
 
-NAME="default"
-DNS_TYPE="xip.io"
+NAME=$(get_config_value ".environmentName")
+DNS_TYPE=$(get_config_value ".dns.type")
+DNS_SUFFIX=""
 
-while getopts n:d:s:h flag
+if [ "$DNS_TYPE" == "oci" ]; then
+  fail "This script is not intended for use with OCI DNS. Please run the appropriate script for OCI DNS."
+fi
+
+log "2a got name $NAME and DNS_TYPE $DNS_TYPE"
+
+while getopts h flag
 do
     case "${flag}" in
-        n) NAME=${OPTARG};;
-        d) DNS_TYPE=${OPTARG};;
-        s) DNS_SUFFIX=${OPTARG};;
         h) usage;;
         *) usage;;
     esac
@@ -195,19 +200,14 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# check for valid DNS type
-if [ $DNS_TYPE != "xip.io" ] && [ $DNS_TYPE != "manual" ]; then
-  consoleerr
-  consoleerr "Unknown DNS type ${DNS_TYPE}!"
-  usage
-fi
-
-if [ $DNS_TYPE == "manual" ] && [ -z $DNS_SUFFIX ]; then
-  consoleerr
-  consoleerr "-s option is required for ${DNS_TYPE}"
-  usage
-fi
-
 action "Installing NGINX ingress controller" install_nginx_ingress_controller || exit 1
+
+# We can only know the ingress IP after installing nginx ingress controller
+INGRESS_IP=$(get_verrazzano_ingress_ip)
+
+# DNS_SUFFIX is only used by install_rancher
+DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
+log "2a dns suffix is ${DNS_SUFFIX}"
+
 action "Installing certificate manager" install_cert_manager || exit 1
 action "Installing Rancher" install_rancher || exit 1

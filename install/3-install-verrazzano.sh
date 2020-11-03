@@ -5,32 +5,36 @@
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 . $SCRIPT_DIR/common.sh
+. $SCRIPT_DIR/config.sh
 
 CONFIG_DIR=$SCRIPT_DIR/config
 TMP_DIR=$(mktemp -d)
 trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
-function set_INGRESS_IP() {
-  if [ ${CLUSTER_TYPE} == "OKE" ]; then
-    INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
-  elif [ ${CLUSTER_TYPE} == "OLCNE" ]; then
-    # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
-    INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
-    if [ ${INGRESS_IP} == "null" ]; then
-      INGRESS_IP=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json  | jq -r '.spec.externalIPs[0]')
-    fi
-  fi
-  if [ -n "${INGRESS_IP:-}" ]; then
-    log "Found ingress address ${INGRESS_IP}"
-  else
-    fail "Failed to find ingress address."
-  fi
-}
+VERRAZZANO_NS=verrazzano-system
+
+ENV_NAME=$(get_config_value ".environmentName")
+# check environment name length
+validate_environment_name $ENV_NAME
+if [ $? -ne 0 ]; then
+  exit 1
+fi
+
+INGRESS_TYPE=$(get_config_value ".ingress.type")
+INGRESS_IP=$(get_verrazzano_ingress_ip)
+if [ -n "${INGRESS_IP:-}" ]; then
+  log "Found ingress address ${INGRESS_IP}"
+else
+  fail "Failed to find ingress address."
+fi
+
+DNS_TYPE=$(get_config_value ".dns.type")
+DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
 # Check if the nginx ingress ports are accessible
 function check_ingress_ports() {
   exitvalue=0
-  if [ ${CLUSTER_TYPE} == "OKE" ]; then
+  if [ ${INGRESS_TYPE} == "LoadBalancer" ] && [ $DNS_TYPE != "external" ]; then
     # Get the ports from the ingress
     PORTS=$(kubectl get services -n ingress-nginx ingress-controller-nginx-ingress-controller -o=custom-columns=PORT:.spec.ports[*].name --no-headers)
     IFS=',' read -r -a port_array <<< "$PORTS"
@@ -69,8 +73,6 @@ function check_ingress_ports() {
   return $exitvalue
 }
 
-VERRAZZANO_NS=verrazzano-system
-action "Getting ingress address" set_INGRESS_IP
 action "Checking ingress ports" check_ingress_ports || fail "ERROR: Failed ingress port check."
 
 set -eu
@@ -127,6 +129,8 @@ function create_admission_controller_cert()
 
 function install_verrazzano()
 {
+  local RANCHER_HOSTNAME=rancher.${ENV_NAME}.${DNS_SUFFIX}
+
   local rancher_admin_password=`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode`
 
   if [ -z "$rancher_admin_password" ] ; then
@@ -168,7 +172,7 @@ function install_verrazzano()
       ${SCRIPT_DIR}/chart \
       --namespace ${VERRAZZANO_NS} \
       --set image.pullPolicy=IfNotPresent \
-      --set config.envName=${NAME} \
+      --set config.envName=${ENV_NAME} \
       --set config.dnsSuffix=${DNS_SUFFIX} \
       --set config.enableMonitoringStorage=true \
       --set clusterOperator.rancherURL=https://${RANCHER_HOSTNAME} \
@@ -193,66 +197,6 @@ function install_verrazzano()
   fi
   log "Verrazzano install completed"
 }
-
-function usage {
-    error
-    error "usage: $0 [-n name] [-d dns_type] [-s dns_suffix]"
-    error "  -n name        Environment Name. Optional.  Defaults to default."
-    error "  -d dns_type    DNS type [xip.io|manual|oci]. Optional.  Defaults to xip.io."
-    error "  -s dns_suffix  DNS suffix (e.g v8o.example.com). Not valid for dns_type xip.io. Required for dns-type oci or manual"
-    error "  -h             Help"
-    error
-    exit 1
-}
-
-NAME="default"
-DNS_TYPE="xip.io"
-DNS_SUFFIX=""
-
-while getopts n:d:s:h flag
-do
-    case "${flag}" in
-        n) NAME=${OPTARG};;
-        d) DNS_TYPE=${OPTARG};;
-        s) DNS_SUFFIX=${OPTARG};;
-        h) usage;;
-        *) usage;;
-    esac
-done
-
-# check environment name length
-validate_environment_name $NAME
-if [ $? -ne 0 ]; then
-  exit 1
-fi
-
-# check for valid DNS type
-if [ $DNS_TYPE != "xip.io" ] && [ $DNS_TYPE != "oci" ] && [ $DNS_TYPE != "manual" ]; then
-  error
-  error "Unknown DNS type ${DNS_TYPE}"
-  usage
-fi
-
-set_INGRESS_IP
-
-# check expected dns suffix for given dns type
-if [ -z "$DNS_SUFFIX" ]; then
-  if [ $DNS_TYPE == "oci" ] || [ $DNS_TYPE == "manual" ]; then
-    error
-    error "-s option is required for ${DNS_TYPE}"
-    usage
-  else
-    DNS_SUFFIX="${INGRESS_IP}".xip.io
-  fi
-else
-  if [ $DNS_TYPE = "xip.io" ]; then
-    error
-    error "A dns_suffix should not be given with dns_type xip.io!"
-    usage
-  fi
-fi
-
-RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
 
 # Set environment variable for checking if optional imagePullSecret was provided
 REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
