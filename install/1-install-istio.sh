@@ -257,7 +257,7 @@ if [ "$DNS_TYPE" == "manual" ]; then
 fi
 
 action "Checking Kubernetes version" check_kube_version || exit 1
-action "Checking Helm version" check_helm_version || (error "Helm version must be v3.0.x, v.3.1.x or v3.2.x!"; exit 1)
+action "Checking Helm version" check_helm_version || (error "Helm version must be v3.0.x, v.3.1.x or v3.2.x! Your Helm version is: $(helm version --short)"; exit 1)
 
 # Wait for all cluster nodes to exist, and then to be ready
 action "Waiting for all Kubernetes nodes to exist in cluster" wait_for_nodes_to_exist || exit 1
