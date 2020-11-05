@@ -31,6 +31,8 @@ spec:
             requests:
               memory: {{ .Values.verrazzanoOperator.RequestMemory }}
           env:
+            - name: INSTALL_PROFILE
+              value: {{ .Values.global.installProfile }}
             - name: COH_MICRO_IMAGE
               value: {{ .Values.verrazzanoOperator.cohMicroImage }}
             - name: HELIDON_MICRO_IMAGE

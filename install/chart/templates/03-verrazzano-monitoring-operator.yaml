@@ -355,6 +355,8 @@ spec:
             requests:
               memory: {{ .Values.monitoringOperator.RequestMemory }}
           env:
+            - name: INSTALL_PROFILE
+              value: {{ .Values.global.installProfile }}
             - name: GRAFANA_IMAGE
               value: {{ .Values.monitoringOperator.grafanaImage }}
             - name: PROMETHEUS_IMAGE

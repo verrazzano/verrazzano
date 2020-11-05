@@ -4,6 +4,7 @@ name: verrazzano
 
 global:
   imagePullSecrets: []
+  installProfile: prod
 
 image:
   pullPolicy: Always
