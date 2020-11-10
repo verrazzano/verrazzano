@@ -14,11 +14,6 @@ trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 VERRAZZANO_NS=verrazzano-system
 
 ENV_NAME=$(get_config_value ".environmentName")
-# check environment name length
-validate_environment_name $ENV_NAME
-if [ $? -ne 0 ]; then
-  exit 1
-fi
 
 INGRESS_TYPE=$(get_config_value ".ingress.type")
 INGRESS_IP=$(get_verrazzano_ingress_ip)

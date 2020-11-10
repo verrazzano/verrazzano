@@ -15,16 +15,10 @@ MYSQL_USERNAME=keycloak
 VERRAZZANO_NS=verrazzano-system
 VZ_SYS_REALM=verrazzano-system
 VZ_USERNAME=verrazzano
-DNS_PREFIX="verrazzano-ingress"
 TMP_DIR=$(mktemp -d)
 trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
 ENV_NAME=$(get_config_value ".environmentName")
-# check environment name length
-validate_environment_name $ENV_NAME
-if [ $? -ne 0 ]; then
-  exit 1
-fi
 
 INGRESS_IP=$(get_verrazzano_ingress_ip)
 if [ -n "${INGRESS_IP:-}" ]; then
@@ -158,7 +152,7 @@ function set_rancher_server_url
     fi
 }
 
-DNS_TARGET_NAME=${DNS_PREFIX}.${ENV_NAME}.${DNS_SUFFIX}
+DNS_TARGET_NAME=verrazzano-ingress.${ENV_NAME}.${DNS_SUFFIX}
 REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 
 action "Installing MySQL" install_mysql

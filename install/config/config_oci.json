@@ -1,5 +1,5 @@
 {
-   "environmentName": "default",
+   "environmentName": "myenv",
    "dns": {
       "type": "oci",
       "oci": {
@@ -8,14 +8,30 @@
          "userOcid": "userOcid",
          "dnsZoneCompartmentOcid": "dnsZoneCompartmentOcid",
          "fingerprint": "fingerprint",
-         "privateKeyFile": "privateKeyFile",
-         "privateKeyPassphrase": "privateKeyPassphrase",
+         "privateKeyFile": "/Users/guzhang/oci/oci_api_key.pem",
+         "privateKeyPassphrase": "",
          "emailAddress": "emailAddress",
          "dnsZoneOcid": "dnsZoneOcid",
          "dnsZoneName": "my.dns.zone.name"
       }
    },
    "ingress": {
-      "type": "LoadBalancer"
+      "type": "LoadBalancer",
+      "verrazzano": {
+         "extraInstallArgs": [
+            {
+               "name": "controller.service.enableHttp",
+               "value": "false"
+            },
+            {
+               "name": "controller.service.annotations.'external-dns\\.alpha\\.kubernetes\\.io/ttl'",
+               "value": "60"
+            },
+            {
+               "name": "controller.service.annotations.'external-dns\\.alpha\\.kubernetes\\.io/hostname'",
+               "value": "verrazzano-ingress.myenv.my.dns.zone.name"
+            }
+         ]
+      }
    }
 }
