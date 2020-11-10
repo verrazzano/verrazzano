@@ -8,8 +8,8 @@
          "userOcid": "userOcid",
          "dnsZoneCompartmentOcid": "dnsZoneCompartmentOcid",
          "fingerprint": "fingerprint",
-         "privateKeyFile": "/Users/guzhang/oci/oci_api_key.pem",
-         "privateKeyPassphrase": "",
+         "privateKeyFile": "privateKeyFile",
+         "privateKeyPassphrase": "privateKeyPassphrase",
          "emailAddress": "emailAddress",
          "dnsZoneOcid": "dnsZoneOcid",
          "dnsZoneName": "my.dns.zone.name"
