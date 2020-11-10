@@ -68,8 +68,8 @@ function install_nginx_ingress_controller()
       --version $NGINX_INGRESS_CONTROLLER_VERSION \
       --set controller.service.type="${ingress_type}" \
       --set controller.publishService.enabled=true \
-      --timeout 15m0s \
       ${EXTRA_NGINX_ARGUMENTS} \
+      --timeout 15m0s \
       --wait
 
     if [ ! -z "${patch_service_spec}" ]; then
@@ -137,8 +137,8 @@ function install_rancher()
       --install --namespace cattle-system \
       --version $RANCHER_VERSION  \
       --set systemDefaultRegistry=ghcr.io/verrazzano \
-      --set rancherImageTag=$RANCHER_TAG \
       --set rancherImage=$RANCHER_IMAGE \
+      --set rancherImageTag=$RANCHER_TAG \
       --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
       --set ingress.tls.source=rancher
 
@@ -161,47 +161,16 @@ function install_rancher()
     kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
 }
 
-function usage {
-    consoleerr
-    consoleerr "usage: $0"
-    consoleerr "-h             Help"
-    consoleerr "INSTALL_CONFIG_FILE environment variable must be set to a valid installation config file"
-    consoleerr
-    exit 1
-}
-
 NAME=$(get_config_value ".environmentName")
 DNS_TYPE=$(get_config_value ".dns.type")
-DNS_SUFFIX=""
 
-if [ "$DNS_TYPE" == "oci" ]; then
-  fail "This script is not intended for use with OCI DNS. Please run the appropriate script for OCI DNS."
-fi
-
-log "2a got name $NAME and DNS_TYPE $DNS_TYPE"
-
-while getopts h flag
-do
-    case "${flag}" in
-        h) usage;;
-        *) usage;;
-    esac
-done
-
-# check environment name length
-validate_environment_name $NAME
-if [ $? -ne 0 ]; then
-  exit 1
-fi
-
-action "Installing NGINX ingress controller" install_nginx_ingress_controller || exit 1
+action "Installing Nginx Ingress Controller" install_nginx_ingress_controller || exit 1
 
 # We can only know the ingress IP after installing nginx ingress controller
 INGRESS_IP=$(get_verrazzano_ingress_ip)
 
 # DNS_SUFFIX is only used by install_rancher
 DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
-log "2a dns suffix is ${DNS_SUFFIX}"
 
-action "Installing certificate manager" install_cert_manager || exit 1
+action "Installing cert manager" install_cert_manager || exit 1
 action "Installing Rancher" install_rancher || exit 1

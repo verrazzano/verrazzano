@@ -24,7 +24,6 @@
             }
          ],
          "patchServiceSpec": "{ \"spec\": { \"ports\": [{ \"port\": 80, \"nodePort\": 30080 }, { \"port\": 443, \"nodePort\": 30443 }, { \"name\": \"healthz\", \"nodePort\": 30254, \"port\": 30254, \"protocol\": \"TCP\", \"targetPort\": 10254 } ]  }}",
-         "patchDeploymentSpec": "",
          "additionalExternalIPs": [ "IP-address-of ingress-mgmt.<env name>.<dns suffix>" ]
       },
       "application": { 

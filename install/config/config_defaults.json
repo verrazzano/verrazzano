@@ -8,7 +8,6 @@
       "verrazzano": {
          "extraInstallArgs": [],
          "patchServiceSpec": "",
-         "patchDeploymentSpec": "",
          "additionalExternalIPs": []
       },
       "application": {

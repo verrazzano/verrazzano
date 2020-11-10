@@ -8,6 +8,9 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
 DEFAULT_CONFIG_FILE="$SCRIPT_DIR/config/config_defaults.json"
 
+# The max length of the environment name passed in by the user.
+ENV_NAME_LENGTH_LIMIT=10
+
 # Read a JSON installation config file and output the JSON to stdout
 function read_config() {
   local config_file=$1
@@ -127,12 +130,23 @@ function validate_dns_section {
   fi
 }
 
+function validate_environment_name {
+  set -o pipefail
+  local jsonToValidate=$1
+  local env_name=$(get_config_value '.environmentName') || fail "Could not get environmentName from config"
+  # check environment name length
+  if [ ${#env_name} -gt $ENV_NAME_LENGTH_LIMIT ]; then
+    fail "The environment name "${env_name}" is too long!  The maximum length is "${ENV_NAME_LENGTH_LIMIT}"."
+  fi
+}
+
 # Make sure CONFIG_JSON and DEFAULT_CONFIG_JSON contain valid JSON
 function validate_config_json {
   set -o pipefail
   local jsonToValidate=$1
   echo "$jsonToValidate" | jq . > /dev/null || fail "Failed to read installation config file contents. Make sure it is valid JSON"
 
+  validate_environment_name "$jsonToValidate"
   validate_dns_section "$jsonToValidate"
 }
 
