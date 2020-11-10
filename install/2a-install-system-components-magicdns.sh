@@ -7,6 +7,9 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 . $SCRIPT_DIR/common.sh
 . $SCRIPT_DIR/config.sh
 
+TMP_DIR=$(mktemp -d)
+trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
+
 set -eu
 
 function install_nginx_ingress_controller()
@@ -77,6 +80,69 @@ function install_nginx_ingress_controller()
     fi
 }
 
+function setup_cert_manager_crd() {
+  curl -L -o "$TMP_DIR/00-crds.yaml" \
+    "https://raw.githubusercontent.com/jetstack/cert-manager/release-${CERT_MANAGER_RELEASE}/deploy/manifests/00-crds.yaml"
+  if [ "$DNS_TYPE" == "oci" ]; then
+    command -v patch >/dev/null 2>&1 || {
+      fail "patch is required but cannot be found on the path. Aborting.";
+    }
+    patch "$TMP_DIR/00-crds.yaml" "$SCRIPT_DIR/config/00-crds.patch"
+  fi
+}
+
+function setup_cluster_issuer() {
+  if [ "$DNS_TYPE" == "oci" ]; then
+    local OCI_PRIVATE_KEY_PASSPHRASE=$(get_config_value ".dns.oci.privateKeyPassphrase")
+    local OCI_REGION=$(get_config_value ".dns.oci.region")
+    local OCI_TENANCY_OCID=$(get_config_value ".dns.oci.tenancyOcid")
+    local OCI_USER_OCID=$(get_config_value ".dns.oci.userOcid")
+    local OCI_COMPARTMENT_OCID=$(get_config_value ".dns.oci.dnsZoneCompartmentOcid")
+    local OCI_FINGERPRINT=$(get_config_value ".dns.oci.fingerprint")
+    local OCI_PRIVATE_KEY_FILE=$(get_config_value ".dns.oci.privateKeyFile")
+    local EMAIL_ADDRESS=$(get_config_value ".dns.oci.emailAddress")
+    local OCI_DNS_ZONE_OCID=$(get_config_value ".dns.oci.dnsZoneOcid")
+    local OCI_DNS_ZONE_NAME=$(get_config_value ".dns.oci.dnsZoneName")
+
+    [ ! -f $OCI_PRIVATE_KEY_FILE ] && { fail $OCI_PRIVATE_KEY_FILE does not exist; }
+
+    source /dev/stdin <<<"$(echo 'cat <<EOF >$TMP_DIR/oci.yaml'; cat $SCRIPT_DIR/config/oci.yaml; echo EOF;)"
+
+    kubectl create secret generic -n cert-manager verrazzano-oci-dns-config --from-file=$TMP_DIR/oci.yaml
+
+    kubectl apply -f <(echo "
+apiVersion: cert-manager.io/v1alpha2
+kind: ClusterIssuer
+metadata:
+  name: verrazzano-cluster-issuer
+spec:
+  acme:
+    email: $EMAIL_ADDRESS
+    server: "https://acme-v02.api.letsencrypt.org/directory"
+    privateKeySecretRef:
+      name: verrazzano-cert-acme-secret
+    solvers:
+      - dns01:
+          ocidns:
+            useInstancePrincipals: false
+            serviceAccountSecretRef:
+              name: verrazzano-oci-dns-config
+              key: "oci.yaml"
+            ocizonename: $DNS_SUFFIX
+")
+  else
+    kubectl apply -f <(echo "
+apiVersion: cert-manager.io/v1alpha2
+kind: ClusterIssuer
+metadata:
+  name: verrazzano-cluster-issuer
+spec:
+  ca:
+    secretName: tls-rancher
+")
+  fi
+}
+
 function install_cert_manager()
 {
     # Create the namespace for cert-manager
@@ -87,9 +153,8 @@ function install_cert_manager()
     helm repo add jetstack https://charts.jetstack.io
     helm repo update
 
-    kubectl apply \
-        -f "https://raw.githubusercontent.com/jetstack/cert-manager/release-${CERT_MANAGER_RELEASE}/deploy/manifests/00-crds.yaml" \
-        --validate=false
+    setup_cert_manager_crd
+    kubectl apply -f "$TMP_DIR/00-crds.yaml" --validate=false
 
     helm upgrade cert-manager jetstack/cert-manager \
         --install \
@@ -101,22 +166,44 @@ function install_cert_manager()
         --set cainjector.enabled=false \
         --set webhook.enabled=false \
         --set webhook.injectAPIServerCA=false \
-        --set ingressShim.defaultIssuerName=verrazzano-issuer \
+        --set ingressShim.defaultIssuerName=verrazzano-cluster-issuer \
         --set ingressShim.defaultIssuerKind=ClusterIssuer \
         --set clusterResourceNamespace=cattle-system \
         --wait
 
-    kubectl apply -f <(echo "
-apiVersion: cert-manager.io/v1alpha2
-kind: ClusterIssuer
-metadata:
-  name: verrazzano-issuer
-spec:
-  ca:
-    secretName: tls-rancher
-")
+    setup_cluster_issuer
 
     kubectl -n cert-manager rollout status -w deploy/cert-manager
+}
+
+function install_external_dns()
+{
+  if [ "$DNS_TYPE" == "oci" ]; then
+    helm upgrade external-dns stable/external-dns \
+        --install \
+        --namespace cert-manager \
+        --version $EXTERNAL_DNS_VERSION \
+        --set image.registry=$EXTERNAL_DNS_REGISTRY \
+        --set image.repository=$EXTERNAL_DNS_REPO \
+        --set image.tag=$EXTERNAL_DNS_TAG \
+        --set provider=oci \
+        --set logLevel=debug \
+        --set registry=txt \
+        --set sources[0]=ingress \
+        --set sources[1]=service \
+        --set domainFilters[0]=${DNS_SUFFIX} \
+        --set zoneIdFilters[0]=$(get_config_value ".dns.oci.dnsZoneOcid") \
+        --set txtOwnerId=v8o-local-${NAME} \
+        --set txtPrefix=_v8o-local-${NAME}_ \
+        --set policy=sync \
+        --set interval=24h \
+        --set triggerLoopOnEvent=true \
+        --set extraVolumes[0].name=config \
+        --set extraVolumes[0].secret.secretName=verrazzano-oci-dns-config \
+        --set extraVolumeMounts[0].name=config \
+        --set extraVolumeMounts[0].mountPath=/etc/kubernetes/ \
+        --wait
+  fi
 }
 
 function install_rancher()
@@ -179,4 +266,5 @@ INGRESS_IP=$(get_verrazzano_ingress_ip)
 DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
 action "Installing cert manager" install_cert_manager || exit 1
+action "Installing external DNS" install_external_dns || exit 1
 action "Installing Rancher" install_rancher || exit 1
