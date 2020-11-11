@@ -24,7 +24,7 @@ export INSTALL_CONFIG_FILE="$SCRIPT_DIR/config/config_defaults.json"
 section "Installing Istio..."
 $SCRIPT_DIR/1-install-istio.sh
 section "Installing system components..."
-$SCRIPT_DIR/2a-install-system-components-magicdns.sh
+$SCRIPT_DIR/2-install-system-components.sh
 section "Installing Verrazzano..."
 $SCRIPT_DIR/3-install-verrazzano.sh
 section "Installing Keycloak..."
