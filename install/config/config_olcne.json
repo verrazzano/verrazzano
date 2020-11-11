@@ -8,8 +8,8 @@
    },
    "ingress": {
       "type": "LoadBalancer",
-      "verrazzano": { 
-         "extraInstallArgs": [
+      "verrazzano": {
+         "nginxInstallArgs": [
             {
                "name": "controller.service.externalTrafficPolicy",
                "value": "Local"
@@ -21,10 +21,29 @@
             {
                "name": "controller.autoscaling.minReplicas",
                "value": 2
+            },
+            {
+               "name": "controller.service.externalIPs[0]",
+               "value": "10.20.30.40"
             }
          ],
-         "patchServiceSpec": "{ \"spec\": { \"ports\": [{ \"port\": 80, \"nodePort\": 30080 }, { \"port\": 443, \"nodePort\": 30443 }, { \"name\": \"healthz\", \"nodePort\": 30254, \"port\": 30254, \"protocol\": \"TCP\", \"targetPort\": 10254 } ]  }}",
-         "additionalExternalIPs": [ "IP-address-of ingress-mgmt.<env name>.<dns suffix>" ]
+         "ports": [
+            {
+               "port": 80,
+               "nodePort": 30080
+            },
+            {
+               "port": 443,
+               "nodePort": 30443
+            },
+            {
+               "name": "healthz",
+               "port": 30254,
+               "nodePort": 30254,
+               "protocol": "TCP",
+               "targetPort": 10254
+            }
+         ]
       },
       "application": { 
          "additionalExternalIPs": [ "IP-address-of ingress-verrazzano.<env name>.<dns suffix>" ]

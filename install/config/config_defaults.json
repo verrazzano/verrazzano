@@ -13,9 +13,8 @@
    "ingress": {
       "type": "LoadBalancer",
       "verrazzano": {
-         "extraInstallArgs": [],
-         "patchServiceSpec": "",
-         "additionalExternalIPs": []
+         "nginxInstallArgs": [],
+         "ports": []
       },
       "application": {
          "additionalExternalIPs": []
