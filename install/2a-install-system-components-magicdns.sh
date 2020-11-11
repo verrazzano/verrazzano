@@ -92,7 +92,7 @@ function setup_cert_manager_crd() {
 }
 
 function setup_cluster_issuer() {
-  if [ "$DNS_TYPE" == "oci" ]; then
+  if [ "$CERT_ISSUER_TYPE" == "acme" ]; then
     local OCI_PRIVATE_KEY_PASSPHRASE=$(get_config_value ".dns.oci.privateKeyPassphrase")
     local OCI_REGION=$(get_config_value ".dns.oci.region")
     local OCI_TENANCY_OCID=$(get_config_value ".dns.oci.tenancyOcid")
@@ -108,7 +108,7 @@ function setup_cluster_issuer() {
 
     source /dev/stdin <<<"$(echo 'cat <<EOF >$TMP_DIR/oci.yaml'; cat $SCRIPT_DIR/config/oci.yaml; echo EOF;)"
 
-    kubectl create secret generic -n cert-manager verrazzano-oci-dns-config --from-file=$TMP_DIR/oci.yaml
+    kubectl create secret generic -n cert-manager $OCI_DNS_CONFIG_SECRET --from-file=$TMP_DIR/oci.yaml
 
     kubectl apply -f <(echo "
 apiVersion: cert-manager.io/v1alpha2
@@ -126,11 +126,11 @@ spec:
           ocidns:
             useInstancePrincipals: false
             serviceAccountSecretRef:
-              name: verrazzano-oci-dns-config
+              name: $OCI_DNS_CONFIG_SECRET
               key: "oci.yaml"
             ocizonename: $DNS_SUFFIX
 ")
-  else
+  elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
     kubectl apply -f <(echo "
 apiVersion: cert-manager.io/v1alpha2
 kind: ClusterIssuer
@@ -138,8 +138,10 @@ metadata:
   name: verrazzano-cluster-issuer
 spec:
   ca:
-    secretName: tls-rancher
+    secretName: $(get_config_value ".certificates.ca.secretName")
 ")
+  else
+    fail "certificates issuerType $CERT_ISSUER_TYPE is not supported.";
   fi
 }
 
@@ -168,7 +170,7 @@ function install_cert_manager()
         --set webhook.injectAPIServerCA=false \
         --set ingressShim.defaultIssuerName=verrazzano-cluster-issuer \
         --set ingressShim.defaultIssuerKind=ClusterIssuer \
-        --set clusterResourceNamespace=cattle-system \
+        --set clusterResourceNamespace=$(get_config_value ".certificates.clusterResourceNamespace") \
         --wait
 
     setup_cluster_issuer
@@ -199,7 +201,7 @@ function install_external_dns()
         --set interval=24h \
         --set triggerLoopOnEvent=true \
         --set extraVolumes[0].name=config \
-        --set extraVolumes[0].secret.secretName=verrazzano-oci-dns-config \
+        --set extraVolumes[0].secret.secretName=$OCI_DNS_CONFIG_SECRET \
         --set extraVolumeMounts[0].name=config \
         --set extraVolumeMounts[0].mountPath=/etc/kubernetes/ \
         --wait
@@ -254,8 +256,10 @@ function install_rancher()
     kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
 }
 
+OCI_DNS_CONFIG_SECRET="verrazzano-oci-dns-config"
 NAME=$(get_config_value ".environmentName")
 DNS_TYPE=$(get_config_value ".dns.type")
+CERT_ISSUER_TYPE=$(get_config_value ".certificates.issuerType")
 
 action "Installing Nginx Ingress Controller" install_nginx_ingress_controller || exit 1
 

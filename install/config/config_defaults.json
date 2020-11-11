@@ -3,6 +3,13 @@
    "dns": {
       "type": "xip.io"
    },
+   "certificates": {
+      "issuerType": "ca",
+      "clusterResourceNamespace": "cattle-system",
+      "ca": {
+         "secretName": "tls-rancher"
+      }
+   },
    "ingress": {
       "type": "LoadBalancer",
       "verrazzano": {

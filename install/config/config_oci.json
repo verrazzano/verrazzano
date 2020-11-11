@@ -15,6 +15,13 @@
          "dnsZoneName": "my.dns.zone.name"
       }
    },
+   "certificates": {
+      "issuerType": "acme",
+      "clusterResourceNamespace": "cert-manager",
+      "acme": {
+         "provider": "letsEncrypt"
+      }
+   },
    "ingress": {
       "type": "LoadBalancer",
       "verrazzano": {
