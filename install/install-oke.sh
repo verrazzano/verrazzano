@@ -16,7 +16,11 @@ if [ ! -d "${SCRIPT_DIR}/.verrazzano" ] ; then
   mkdir -p ${SCRIPT_DIR}/.verrazzano
 fi
 
-export INSTALL_CONFIG_FILE="$SCRIPT_DIR/config/config_defaults.json"
+if [ -z "$INSTALL_CONFIG_FILE" ]; then
+  export INSTALL_CONFIG_FILE="$SCRIPT_DIR/config/config_defaults.json"
+else
+  export INSTALL_CONFIG_FILE="$INSTALL_CONFIG_FILE"
+fi
 
 . $SCRIPT_DIR/common.sh
 . $SCRIPT_DIR/config.sh

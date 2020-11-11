@@ -34,14 +34,16 @@ function get_config_value() {
   fi
   if [ "$config_val" == "null" ]; then
     config_val=""
+    return 0
   fi
   echo $config_val
+  return 0
 }
 
 # get_config_array outputs to stdout, the contents of a configuration array element. It expects
 # input expression to be in the form of ".someField.someArray[]" i.e. with trailing box brackets. Caller should enclose return
 # value in parentheses to get the result as an array
-# (e.g.) MY_CONFIG_ARRAY=($(get_config_array ".ingress.nginx.extraInstallArgs[]"))
+# (e.g.) MY_CONFIG_ARRAY=($(get_config_array ".ingress.verrazzano.nginxInstallArgs[]"))
 # Array elements will each be enclosed in quotes
 function get_config_array() {
   set -o pipefail
@@ -56,7 +58,9 @@ function get_config_array() {
   fi
   if [ ${#config_array[@]} -ne 0 ]; then
     echo "${config_array[@]}"
+    return 0
   fi
+  return 0
 }
 
 function validate_dns_section {
@@ -206,11 +210,12 @@ fi
 
 validate_config_json "$CONFIG_JSON" || fail "Installation config is invalid"
 validate_config_json "$DEFAULT_CONFIG_JSON" || fail "Default installation config is invalid"
-
+echo env name is $(get_config_value ".environmentName")
+echo dns type is $(get_config_value ".dns.type")
 ## Test cases - TODO remove before merging
 #ENV_NAME=$(get_config_value ".environmentName")
 #log "got environmentName value ${ENV_NAME}"
-#EXTRA_ARG0=$(get_config_value ".ingress.verrazzano.extraInstallArgs[0]")
+#EXTRA_ARG0=$(get_config_value ".ingress.verrazzano.nginxInstallArgs[0]")
 #log "status $? and got 0th extra argument value ${EXTRA_ARG0}"
-#EXTRA_ARGS_ARR=($(get_config_array ".ingress.verrazzano.extraInstallArgs[]"))
+#EXTRA_ARGS_ARR=($(get_config_array ".ingress.verrazzano.nginxInstallArgs[]"))
 #echo "status $? and got array [ ${EXTRA_ARGS_ARR[@]} ] containing ${EXTRA_ARGS_ARR[0]} and ${EXTRA_ARGS_ARR[1]}"
