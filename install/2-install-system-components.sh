@@ -66,7 +66,7 @@ function install_nginx_ingress_controller()
     # Handle any ports specified for Verrazzano Ingress - these must be patched after install
     local port_mappings=($(get_config_array ".ingress.verrazzano.ports[]"))
     local port_mappings_len=${#port_mappings[@]}
-    local nginx_svc_patch_spec
+    local nginx_svc_patch_spec=""
     if [ $port_mappings_len -ne 0 ]; then
       printf -v joined '%s,' "${port_mappings[@]}"
       nginx_svc_patch_spec="{\"spec\": {\"ports\": [ ${joined%,} ] }}"
