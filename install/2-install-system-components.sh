@@ -156,6 +156,11 @@ function install_cert_manager()
     setup_cert_manager_crd
     kubectl apply -f "$TMP_DIR/00-crds.yaml" --validate=false
 
+    local EXTRA_CERT_MANAGER_ARGUMENTS=""
+    if [ "$CERT_ISSUER_TYPE" == "ca" ]; then
+      EXTRA_CERT_MANAGER_ARGUMENTS="--set clusterResourceNamespace=$(get_config_value ".certificates.ca.clusterResourceNamespace")"
+    fi
+
     helm upgrade cert-manager jetstack/cert-manager \
         --install \
         --namespace cert-manager \
@@ -168,7 +173,7 @@ function install_cert_manager()
         --set webhook.injectAPIServerCA=false \
         --set ingressShim.defaultIssuerName=verrazzano-cluster-issuer \
         --set ingressShim.defaultIssuerKind=ClusterIssuer \
-        --set clusterResourceNamespace=$(get_config_value ".certificates.clusterResourceNamespace") \
+        ${EXTRA_CERT_MANAGER_ARGUMENTS} \
         --wait
 
     setup_cluster_issuer

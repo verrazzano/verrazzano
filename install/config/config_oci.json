@@ -17,7 +17,6 @@
    },
    "certificates": {
       "issuerType": "acme",
-      "clusterResourceNamespace": "cert-manager",
       "acme": {
          "provider": "letsEncrypt"
       }

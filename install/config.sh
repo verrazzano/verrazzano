@@ -63,6 +63,34 @@ function get_config_array() {
   return 0
 }
 
+function validate_certificates_section() {
+  set -o pipefail
+  local jsonToValidate=$1
+  local issuerType=$(get_config_value '.certificates.issuerType') || fail "Could not get certificates issuer type from config"
+  if [ "$issuerType" == "ca" ]; then
+    # must have .certificates.ca.secretName
+    local secretName=$(get_config_value ".certificates.ca.secretName")
+    if [ -z "$secretName" ]; then
+      fail "The value .certificates.ca.secretName must be set to the tls Secret containing a signing key pair"
+    fi
+    local clusterResourceNamespace=$(get_config_value ".certificates.ca.clusterResourceNamespace")
+    if [ -z "$clusterResourceNamespace" ]; then
+      fail "The value .certificates.ca.clusterResourceNamespace must be set to the namespace where the secret named by 'secretName' is"
+    fi
+  elif [ "$issuerType" == "acme" ]; then
+    # must have .certificates.acme.provider
+    local provider=$(get_config_value ".certificates.acme.provider")
+    if [ -z "$provider" ]; then
+      fail "The value .certificates.acme.provider must be set"
+    fi
+    if [ "$provider" != "letsEncrypt" ]; then
+      fail "The only .certificates.acme.provider spported is letsEncrypt"
+    fi
+  else
+    fail "Unknown certificates issuer type $issuerType - valid values are ca and acme"
+  fi
+}
+
 function validate_dns_section {
   set -o pipefail
   local jsonToValidate=$1
@@ -152,6 +180,7 @@ function validate_config_json {
 
   validate_environment_name "$jsonToValidate"
   validate_dns_section "$jsonToValidate"
+  validate_certificates_section "$jsonToValidate"
 }
 
 function get_verrazzano_ingress_ip {

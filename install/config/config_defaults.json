@@ -5,9 +5,9 @@
    },
    "certificates": {
       "issuerType": "ca",
-      "clusterResourceNamespace": "cattle-system",
       "ca": {
-         "secretName": "tls-rancher"
+         "secretName": "tls-rancher",
+         "clusterResourceNamespace": "cattle-system"
       }
    },
    "ingress": {
