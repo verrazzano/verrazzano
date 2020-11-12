@@ -66,7 +66,7 @@ function create_secret {
 function install_istio()
 {
     log "Add istio helm repository"
-    helm repo add istio.io https://storage.googleapis.com/istio-release/releases/${ISTIO_VERSION}/charts || return $?
+    helm repo add istio.io https://storage.googleapis.com/istio-release/releases/${ISTIO_HELM_CHART_VERSION}/charts || return $?
 
     log "Fetch istio charts for istio and istio-init"
     helm fetch istio.io/istio --untar=true --untardir=$TMP_DIR || return $?
@@ -197,10 +197,6 @@ function check_helm_version {
         log "Helm major version is $majorVer, expected v3!"
         return 1
     fi
-    if [ "$minorVer" -gt 2 ]; then
-        log "Helm minor version is $minorVer, expected less than or equal to 2!"
-        return 1
-    fi
     return 0
 }
 
@@ -257,7 +253,7 @@ if [ "$DNS_TYPE" == "manual" ]; then
 fi
 
 action "Checking Kubernetes version" check_kube_version || exit 1
-action "Checking Helm version" check_helm_version || (error "Helm version must be v3.0.x, v.3.1.x or v3.2.x! Your Helm version is: $(helm version --short)"; exit 1)
+action "Checking Helm version" check_helm_version || (error "Helm version must be v3.x! Your Helm version is: $(helm version --short)"; exit 1)
 
 # Wait for all cluster nodes to exist, and then to be ready
 action "Waiting for all Kubernetes nodes to exist in cluster" wait_for_nodes_to_exist || exit 1
