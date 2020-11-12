@@ -23,7 +23,8 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           image: {{ .Values.verrazzanoOperator.imageName }}:{{ .Values.verrazzanoOperator.imageVersion }}
           args:
-            - --v=4
+            - --zap-log-level=info
+            - --zap-devel=false
             - --verrazzanoUri={{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
             - --enableMonitoringStorage={{ .Values.config.enableMonitoringStorage }}
             - --apiServerRealm={{ .Values.verrazzanoOperator.apiServerRealm }}
