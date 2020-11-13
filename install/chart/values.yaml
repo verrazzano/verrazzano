@@ -13,7 +13,7 @@ image:
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: ghcr.io/verrazzano/verrazzano-operator-jenkins
-  imageVersion: 0.5.0-20201113120716-322d96c
+  imageVersion: 0.5.0-20201113171326-a0569e0
   cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:0.5.0-20201112155855-709d712
   helidonMicroImage: ghcr.io/verrazzano/verrazzano-helidon-app-operator:0.5.0-20201112153844-e0e4790
   wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:0.5.0-20201112154348-48bbb61
