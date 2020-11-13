@@ -36,6 +36,12 @@ function install_nginx_ingress_controller()
       EXTRA_NGINX_ARGUMENTS=$(get_nginx_helm_args_from_config)
     fi #end if ingress_type is LoadBalancer
 
+    if [ "$DNS_TYPE" == "oci" ]; then
+      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.'external-dns\.alpha\.kubernetes\.io/ttl'=60"
+      local dns_zone=$(get_config_value ".dns.oci.dnsZoneName")
+      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.'external-dns\.alpha\.kubernetes\.io/hostname'=verrazzano-ingress.${NAME}.${dns_zone}"
+    fi
+
     helm upgrade ingress-controller stable/nginx-ingress --install \
       --set controller.image.repository=$NGINX_INGRESS_CONTROLLER_IMAGE \
       --set controller.image.tag=$NGINX_INGRESS_CONTROLLER_TAG \
@@ -50,6 +56,7 @@ function install_nginx_ingress_controller()
       --version $NGINX_INGRESS_CONTROLLER_VERSION \
       --set controller.service.type="${ingress_type}" \
       --set controller.publishService.enabled=true \
+      --set controller.service.enableHttp=false \
       ${EXTRA_NGINX_ARGUMENTS} \
       --timeout 15m0s \
       --wait \
