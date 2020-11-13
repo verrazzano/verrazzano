@@ -23,7 +23,8 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           image: {{ .Values.clusterOperator.imageName }}:{{ .Values.clusterOperator.imageVersion }}
           args:
-            - --v=4
+            - --zap-log-level=info
+            - --zap-devel=false
             - --rancherURL={{ .Values.clusterOperator.rancherURL }}
             - --rancherUserName={{ .Values.clusterOperator.rancherUserName }}
             - --rancherPassword={{ .Values.clusterOperator.rancherPassword }}

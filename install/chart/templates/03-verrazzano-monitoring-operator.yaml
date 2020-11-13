@@ -394,6 +394,8 @@ spec:
             successThreshold: 1
             timeoutSeconds: 5
           args:
+            - --zap-log-level=info
+            - --zap-devel=false
             - --namespace={{ .Release.Namespace }}
       serviceAccountName: {{ .Values.monitoringOperator.name }}
 ---
