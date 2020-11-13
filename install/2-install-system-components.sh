@@ -19,8 +19,8 @@ function install_nginx_ingress_controller()
         kubectl create namespace ingress-nginx
     fi
 
-    helm repo add stable https://charts.helm.sh/stable
-    helm repo update
+    helm repo add stable https://charts.helm.sh/stable || return $?
+    helm repo update || return $?
 
     local ingress_type=""
     ingress_type=$(get_config_value ".ingress.type")
@@ -52,7 +52,8 @@ function install_nginx_ingress_controller()
       --set controller.publishService.enabled=true \
       ${EXTRA_NGINX_ARGUMENTS} \
       --timeout 15m0s \
-      --wait
+      --wait \
+      || return $?
 
     # Handle any ports specified for Verrazzano Ingress - these must be patched after install
     local port_mappings=($(get_config_array ".ingress.verrazzano.ports[]"))
@@ -141,8 +142,8 @@ function install_cert_manager()
         kubectl create namespace cert-manager
     fi
 
-    helm repo add jetstack https://charts.jetstack.io
-    helm repo update
+    helm repo add jetstack https://charts.jetstack.io || return $?
+    helm repo update || return $?
 
     setup_cert_manager_crd
     kubectl apply -f "$TMP_DIR/00-crds.yaml" --validate=false
@@ -165,7 +166,8 @@ function install_cert_manager()
         --set ingressShim.defaultIssuerName=verrazzano-cluster-issuer \
         --set ingressShim.defaultIssuerKind=ClusterIssuer \
         ${EXTRA_CERT_MANAGER_ARGUMENTS} \
-        --wait
+        --wait \
+        || return $?
 
     setup_cluster_issuer
 
@@ -198,7 +200,8 @@ function install_external_dns()
         --set extraVolumes[0].secret.secretName=$OCI_DNS_CONFIG_SECRET \
         --set extraVolumeMounts[0].name=config \
         --set extraVolumeMounts[0].mountPath=/etc/kubernetes/ \
-        --wait
+        --wait \
+        || return $?
   fi
 }
 
@@ -210,10 +213,10 @@ function install_rancher()
     fi
 
     log "Add Rancher helm repository location"
-    helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
+    helm repo add rancher-stable https://releases.rancher.com/server-charts/stable || return $?
 
     log "Update helm repositoriess"
-    helm repo update
+    helm repo update || return $?
 
     local INGRESS_TLS_SOURCE=""
     local EXTRA_RANCHER_ARGUMENTS=""
@@ -239,7 +242,8 @@ function install_rancher()
       --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
       --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
       ${EXTRA_RANCHER_ARGUMENTS} \
-      --wait
+      --wait \
+      || return $?
 
     # CRI-O does not deliver MKNOD by default, until https://github.com/rancher/rancher/pull/27582 is merged we must add the capability
     # OLCNE uses CRI-O and needs this change, and it doesn't hurt other cases
