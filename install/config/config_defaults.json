@@ -17,7 +17,7 @@
          "ports": []
       },
       "application": {
-         "additionalExternalIPs": []
+         "istioInstallArgs": []
       }
    }
 }

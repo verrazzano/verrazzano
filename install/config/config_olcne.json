@@ -45,8 +45,13 @@
             }
          ]
       },
-      "application": { 
-         "additionalExternalIPs": [ "IP-address-of ingress-verrazzano.<env name>.<dns suffix>" ]
+      "application": {
+         "istioInstallArgs": [
+            {
+               "name": "gateways.istio-ingressgateway.externalIPs[0]",
+               "value": "10.55.66.77"
+            }
+         ]
       }
    }
 }

@@ -33,16 +33,7 @@ function install_nginx_ingress_controller()
     if [ "$ingress_type" == "LoadBalancer" ]; then
       # Handle any additional NGINX install args - since NGINX is for Verrazzano system Ingress,
       # these should be in .ingress.verrazzano.nginxInstallArgs[]
-      extra_install_args=($(get_config_array ".ingress.verrazzano.nginxInstallArgs[]")) || return 1
-      if [ ${#extra_install_args[@]} -ne 0 ]; then
-        for arg in "${extra_install_args[@]}"; do
-          param_name=$(echo "$arg" | jq -r '.name')
-          param_value=$(echo "$arg" | jq -r '.value')
-          if [ ! -z "$param_name" ] && [ ! -z "$param_value" ]; then
-            EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set $param_name=$param_value"
-          fi
-        done
-      fi
+      EXTRA_NGINX_ARGUMENTS=$(get_nginx_helm_args_from_config)
     fi #end if ingress_type is LoadBalancer
 
     helm upgrade ingress-controller stable/nginx-ingress --install \
