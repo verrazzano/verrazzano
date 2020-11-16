@@ -38,6 +38,9 @@
                "value": "verrazzano-ingress.myenv.my.dns.zone.name"
             }
          ]
+      },
+      "application": {
+         "istioInstallArgs": []
       }
    }
 }

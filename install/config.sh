@@ -226,6 +226,30 @@ function get_dns_suffix {
   echo ${dns_suffix}
 }
 
+function get_nginx_helm_args_from_config {
+  config_array_to_helm_args ".ingress.verrazzano.nginxInstallArgs[]"
+}
+
+function get_istio_helm_args_from_config {
+  config_array_to_helm_args ".ingress.application.istioInstallArgs[]"
+}
+
+function config_array_to_helm_args {
+  local install_args_config_name=$1
+  local extra_install_args=($(get_config_array $install_args_config_name)) || return 1
+  local helm_args=""
+  if [ ${#extra_install_args[@]} -ne 0 ]; then
+    for arg in "${extra_install_args[@]}"; do
+      param_name=$(echo "$arg" | jq -r '.name')
+      param_value=$(echo "$arg" | jq -r '.value')
+      if [ ! -z "$param_name" ] && [ ! -z "$param_value" ]; then
+        helm_args="$helm_args --set $param_name=$param_value"
+      fi
+    done
+  fi
+  echo $helm_args
+  return 0
+}
 log "Reading default installation config file $DEFAULT_CONFIG_FILE"
 DEFAULT_CONFIG_JSON="$(read_config $DEFAULT_CONFIG_FILE)"
 
