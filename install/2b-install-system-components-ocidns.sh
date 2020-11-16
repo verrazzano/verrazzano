@@ -68,7 +68,7 @@ function install_nginx_ingress_controller()
         kubectl create namespace ingress-nginx
     fi
 
-    helm repo add stable https://kubernetes-charts.storage.googleapis.com
+    helm repo add stable https://charts.helm.sh/stable
     helm repo update
 
     helm upgrade ingress-controller stable/nginx-ingress --install \
