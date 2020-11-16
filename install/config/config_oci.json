@@ -22,25 +22,6 @@
       }
    },
    "ingress": {
-      "type": "LoadBalancer",
-      "verrazzano": {
-         "nginxInstallArgs": [
-            {
-               "name": "controller.service.enableHttp",
-               "value": "false"
-            },
-            {
-               "name": "controller.service.annotations.'external-dns\\.alpha\\.kubernetes\\.io/ttl'",
-               "value": "60"
-            },
-            {
-               "name": "controller.service.annotations.'external-dns\\.alpha\\.kubernetes\\.io/hostname'",
-               "value": "verrazzano-ingress.myenv.my.dns.zone.name"
-            }
-         ]
-      },
-      "application": {
-         "istioInstallArgs": []
-      }
+      "type": "LoadBalancer"
    }
 }

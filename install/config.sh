@@ -258,13 +258,14 @@ if [ -z "$INSTALL_CONFIG_FILE" ]; then
   CONFIG_JSON=$DEFAULT_CONFIG_JSON
 else
   log "Reading installation config file $INSTALL_CONFIG_FILE"
+  if [ ! -f "$INSTALL_CONFIG_FILE" ]; then
+    fail "The file $INSTALL_CONFIG_FILE does not exist"
+  fi
   CONFIG_JSON="$(read_config $INSTALL_CONFIG_FILE)"
 fi
 
 validate_config_json "$CONFIG_JSON" || fail "Installation config is invalid"
 validate_config_json "$DEFAULT_CONFIG_JSON" || fail "Default installation config is invalid"
-echo env name is $(get_config_value ".environmentName")
-echo dns type is $(get_config_value ".dns.type")
 ## Test cases - TODO remove before merging
 #ENV_NAME=$(get_config_value ".environmentName")
 #log "got environmentName value ${ENV_NAME}"
