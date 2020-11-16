@@ -148,6 +148,8 @@ spec:
 
 function install_external_dns()
 {
+    helm repo add stable https://charts.helm.sh/stable
+    helm repo update
     helm upgrade external-dns stable/external-dns \
         --install \
         --namespace cert-manager \
