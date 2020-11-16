@@ -13,7 +13,7 @@ image:
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: ghcr.io/verrazzano/verrazzano-operator
-  imageVersion: 0.5.0-20201110144418-3e6048a
+  imageVersion: 0.5.0-20201113214945-6105e62
   cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:0.5.0-20201112155855-709d712
   helidonMicroImage: ghcr.io/verrazzano/verrazzano-helidon-app-operator:0.5.0-20201112153844-e0e4790
   wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:0.5.0-20201112154348-48bbb61
@@ -61,7 +61,7 @@ monitoringOperator:
 clusterOperator:
   name: verrazzano-cluster-operator
   imageName: ghcr.io/verrazzano/verrazzano-cluster-operator
-  imageVersion: 0.5.0-20201105145819-199162a
+  imageVersion: 0.5.0-20201113214457-cf62537
   rancherURL:
   rancherUserName:
   rancherPassword:
@@ -72,7 +72,7 @@ verrazzanoAdmissionController:
   name: verrazzano-validation
   controllerName: verrazzano-admission-controller
   imageName: ghcr.io/verrazzano/verrazzano-admission-controller
-  imageVersion: 0.5.0-20201110144350-cbeed27
+  imageVersion: 0.5.0-20201113214810-3312700
   caBundle:
   RequestMemory: 15Mi
 
