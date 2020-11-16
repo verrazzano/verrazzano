@@ -92,7 +92,7 @@ spec:
                                 connection
                               properties:
                                 match:
-                                  description: See  verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3/virtual_service.go     https://github.com/istio/api/blob/master/networking/v1alpha3/virtual_service.gen.json     (istio.io/api/networking/v1alpha3/virtual_service.json)
+                                  description: List of http match rules
                                   items:
                                     description: MatchRequest specifies a http match
                                       rule
@@ -376,7 +376,7 @@ spec:
                                 connection
                               properties:
                                 match:
-                                  description: See  verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3/virtual_service.go     https://github.com/istio/api/blob/master/networking/v1alpha3/virtual_service.gen.json     (istio.io/api/networking/v1alpha3/virtual_service.json)
+                                  description: List of http match rules
                                   items:
                                     description: MatchRequest specifies a http match
                                       rule
@@ -6509,7 +6509,7 @@ spec:
                                 connection
                               properties:
                                 match:
-                                  description: See  verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3/virtual_service.go     https://github.com/istio/api/blob/master/networking/v1alpha3/virtual_service.gen.json     (istio.io/api/networking/v1alpha3/virtual_service.json)
+                                  description: List of http match rules
                                   items:
                                     description: MatchRequest specifies a http match
                                       rule
@@ -6785,7 +6785,7 @@ spec:
                                 connection
                               properties:
                                 match:
-                                  description: See  verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3/virtual_service.go     https://github.com/istio/api/blob/master/networking/v1alpha3/virtual_service.gen.json     (istio.io/api/networking/v1alpha3/virtual_service.json)
+                                  description: List of http match rules
                                   items:
                                     description: MatchRequest specifies a http match
                                       rule
