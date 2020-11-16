@@ -86,17 +86,12 @@ function install_istio()
         > ${TMP_DIR}/istio-crds.yaml || return $?
 
     log "Generate cluster specific configuration"
-    EXTRA_HELM_ARGUMENTS=""
+    local EXTRA_HELM_ARGUMENTS=""
     if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
       EXTRA_HELM_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
 
-    ADDITIONAL_EXTERNAL_IPS=($(get_config_array ".ingress.application.additionalExternalIPs[]"))
-    ADDITIONAL_EXTERNAL_IPS_LEN=${#ADDITIONAL_EXTERNAL_IPS[@]}
-    if [ $ADDITIONAL_EXTERNAL_IPS_LEN -ne 0 ]; then
-      printf -v joined '%s,' "${ADDITIONAL_EXTERNAL_IPS[@]}"
-      EXTRA_HELM_ARGUMENTS=$EXTRA_HELM_ARGUMENTS" --set gateways.istio-ingressgateway.externalIPs={"${joined%,}"}"
-    fi
+    EXTRA_HELM_ARGUMENTS="$EXTRA_HELM_ARGUMENTS $(get_istio_helm_args_from_config)"
 
     log "Create helm template for installing istio proper"
     helm template istio ${TMP_DIR}/istio \
