@@ -6,6 +6,13 @@
          "suffix": "my.domain.suffix"
       }
    },
+   "certificates": {
+      "issuerType": "ca",
+      "ca": {
+         "secretName": "tls-rancher",
+         "clusterResourceNamespace": "cattle-system"
+      }
+   },
    "ingress": {
       "type": "LoadBalancer",
       "verrazzano": {
