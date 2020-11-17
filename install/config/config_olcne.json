@@ -29,10 +29,12 @@
          ],
          "ports": [
             {
+               "name": "http",
                "port": 80,
                "nodePort": 30080
             },
             {
+               "name": "https",
                "port": 443,
                "nodePort": 30443
             },
