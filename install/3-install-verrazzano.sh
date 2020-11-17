@@ -153,7 +153,20 @@ function install_verrazzano()
     EXTRA_V8O_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
   fi
 
-  log "Installing verrazzano from Helm chart"
+  # If INSTALL_PROFILE is specified we use that to form the values file for the profile, otherwise
+  # we default to the prod profile
+  PROFILE_VALUES_OVERRIDE=""
+  if [ ! -z "$INSTALL_PROFILE" ] ; then
+    PROFILE_VALUES="${SCRIPT_DIR}/chart/values.${INSTALL_PROFILE}.yaml"
+    if [ ! -f "$PROFILE_VALUES" ] ; then
+      error "ERROR: Did not find profile values file to apply: ${PROFILE_VALUES}, please check the value of INSTALL_PROFILE"
+    fi
+    PROFILE_VALUES_OVERRIDE=" -f ${PROFILE_VALUES}"
+    log "Installing verrazzano from Helm chart for ${INSTALL_PROFILE}"
+  else
+    log "Installing verrazzano from Helm chart for prod"
+  fi
+
   helm \
       upgrade --install verrazzano \
       ${SCRIPT_DIR}/chart \
@@ -167,6 +180,7 @@ function install_verrazzano()
       --set clusterOperator.rancherPassword="${token_array[1]}" \
       --set clusterOperator.rancherHostname=${RANCHER_HOSTNAME} \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)" \
+      ${PROFILE_VALUES_OVERRIDE} \
       ${EXTRA_V8O_ARGUMENTS} || return $?
 
   log "Verifying that needed secrets are created"

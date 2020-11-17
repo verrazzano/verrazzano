@@ -41,7 +41,7 @@ function install_mysql {
   sed -e "s|MYSQL_IMAGE_TAG|${MYSQL_IMAGE_TAG}|g" \
       -e "s|MYSQL_USERNAME|${MYSQL_USERNAME}|g" \
       $SCRIPT_DIR/config/mysql-values-template.yaml > ${TMP_DIR}/mysql-values-sed.yaml
-  
+
   log "Install MySQL helm chart"
   helm upgrade mysql stable/mysql \
       --install \
@@ -79,7 +79,7 @@ function install_keycloak {
 
   # Add keycloak helm repo
   helm repo add codecentric https://codecentric.github.io/helm-charts
-  
+
   if ! kubectl get secret --namespace ${KEYCLOAK_NS} mysql ; then
     error "ERROR installing mysql. Please rerun this script."
     exit 1
