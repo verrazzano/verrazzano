@@ -43,8 +43,6 @@ function install_mysql {
       $SCRIPT_DIR/config/mysql-values-template.yaml > ${TMP_DIR}/mysql-values-sed.yaml
 
   log "Install MySQL helm chart"
-  helm repo add stable https://charts.helm.sh/stable
-  helm repo update
   helm upgrade mysql stable/mysql \
       --install \
       --namespace ${KEYCLOAK_NS} \
