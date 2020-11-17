@@ -240,6 +240,7 @@ function install_rancher()
     fi
 
     log "Install Rancher"
+    # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
     helm upgrade rancher rancher-stable/rancher \
       --install --namespace cattle-system \
       --version $RANCHER_VERSION  \
@@ -248,9 +249,7 @@ function install_rancher()
       --set rancherImageTag=$RANCHER_TAG \
       --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
       --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
-      ${EXTRA_RANCHER_ARGUMENTS} \
-      --wait \
-      || return $?
+      ${EXTRA_RANCHER_ARGUMENTS}
 
     # CRI-O does not deliver MKNOD by default, until https://github.com/rancher/rancher/pull/27582 is merged we must add the capability
     # OLCNE uses CRI-O and needs this change, and it doesn't hurt other cases
