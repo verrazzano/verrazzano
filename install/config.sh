@@ -97,7 +97,10 @@ function validate_dns_section {
   local dnsType=$(get_config_value '.dns.type') || fail "Could not get dns type from config"
   if [ "$dnsType" == "external" ]; then
     #there should be an "external" section containing a suffix
-    echo "$dnsJson" | jq '.external.suffix' || fail "For dns type external, a suffix is expected in section .dns.external.suffix of the config file"
+    local suffix=$(get_config_value ".dns.external.suffix")
+    if [ -z "$suffix" ]; then
+      fail "For dns type external, a suffix is expected in section .dns.external.suffix of the config file"
+    fi
   elif [ "$dnsType" == "oci" ]; then
     CHECK_VALUES=false
     value=$(get_config_value '.dns.oci.region')
