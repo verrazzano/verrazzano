@@ -1,5 +1,6 @@
 {
    "environmentName": "myenv",
+   "profile": "prod",
    "dns": {
       "type": "oci",
       "oci": {

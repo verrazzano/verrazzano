@@ -152,15 +152,8 @@ function install_verrazzano()
     EXTRA_V8O_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
   fi
 
-  # If INSTALL_PROFILE is specified we use that to form the values file for the profile, otherwise
-  # we default to the prod profile
-  INSTALL_PROFILE=${INSTALL_PROFILE:-"prod"}
-  PROFILE_VALUES="${SCRIPT_DIR}/chart/values.${INSTALL_PROFILE}.yaml"
-  if [ ! -f "$PROFILE_VALUES" ] ; then
-    error "ERROR: Did not find profile values file to apply: ${PROFILE_VALUES}, please check the value of INSTALL_PROFILE"
-  fi
-  PROFILE_VALUES_OVERRIDE=" -f ${PROFILE_VALUES}"
-  log "Installing verrazzano from Helm chart for ${INSTALL_PROFILE}"
+  local profile=$(get_config_value '.profile')
+  local PROFILE_VALUES_OVERRIDE=" -f "${SCRIPT_DIR}/chart/values.${profile}.yaml""
 
   helm \
       upgrade --install verrazzano \
