@@ -14,7 +14,7 @@ verrazzanoOperator:
   name: verrazzano-operator
   useSystemVMI: false
   imageName: ghcr.io/verrazzano/verrazzano-operator-jenkins
-  imageVersion: 0.5.0-20201118040650-2fc7f77
+  imageVersion: 0.5.0-20201118042329-43fa23e
   cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:0.5.0-20201112155855-709d712
   helidonMicroImage: ghcr.io/verrazzano/verrazzano-helidon-app-operator:0.5.0-20201112153844-e0e4790
   wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:0.5.0-20201112154348-48bbb61
@@ -45,7 +45,7 @@ verrazzanoOperator:
 monitoringOperator:
   name: verrazzano-monitoring-operator
   imageName: ghcr.io/verrazzano/verrazzano-monitoring-operator-jenkins
-  imageVersion: 0.5.0-20201118013231-ee25a57
+  imageVersion: 0.5.0-20201118020227-9711756
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
