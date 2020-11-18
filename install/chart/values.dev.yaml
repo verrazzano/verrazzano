@@ -4,3 +4,13 @@ name: verrazzano
 
 global:
   installProfile: dev
+
+verrazzanoOperator:
+  useSystemVMI: true
+  prometheusDataStorageSize: 50Gi
+  grafanaDataStorageSize: 50Gi
+  esMasterNodeRequestMemory: 1Gi
+  esMasterNodeReplicas: 1
+  esDataNodeReplicas: 0
+  esIngestNodeReplicas: 0
+  esDataStorageSize: ""

@@ -32,8 +32,8 @@ spec:
             requests:
               memory: {{ .Values.verrazzanoOperator.RequestMemory }}
           env:
-            - name: INSTALL_PROFILE
-              value: {{ .Values.global.installProfile }}
+            - name: USE_SYSTEM_VMI
+              value: {{ .Values.verrazzanoOperator.useSystemVMI }}
             - name: COH_MICRO_IMAGE
               value: {{ .Values.verrazzanoOperator.cohMicroImage }}
             - name: HELIDON_MICRO_IMAGE
@@ -66,12 +66,22 @@ spec:
               value: {{ .Values.verrazzanoOperator.esDataNodeRequestMemory }}
             - name: GRAFANA_REQUEST_MEMORY
               value: {{ .Values.verrazzanoOperator.grafanaRequestMemory }}
+            - name: GRAFANA_DATA_STORAGE
+              value: {{ .Values.verrazzanoOperator.grafanaDataStorageSize }}
             - name: PROMETHEUS_REQUEST_MEMORY
               value: {{ .Values.verrazzanoOperator.prometheusRequestMemory }}
+            - name: PROMETHEUS_DATA_STORAGE
+              value: {{ .Values.verrazzanoOperator.prometheusDataStorageSize }}
             - name: KIBANA_REQUEST_MEMORY
               value: {{ .Values.verrazzanoOperator.kibanaRequestMemory }}
             - name: ES_MASTER_NODE_REPLICAS
-              value: "{{ .Values.verrazzanoOperator.esMasterNodeReplicas }}"
+              value: {{ .Values.verrazzanoOperator.esMasterNodeReplicas }}
+            - name: ES_DATA_NODE_REPLICAS
+              value: {{ .Values.verrazzanoOperator.esDataNodeReplicas }}
+            - name: ES_INGEST_NODE_REPLICAS
+              value: {{ .Values.verrazzanoOperator.esIngestNodeReplicas }}
+            - name: ES_DATA_STORAGE
+              value: {{ .Values.verrazzanoOperator.esDataStorageSize }}
       serviceAccount: {{ .Values.verrazzanoOperator.name }}
 ---
 kind: Service

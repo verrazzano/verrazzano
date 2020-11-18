@@ -12,8 +12,9 @@ image:
 
 verrazzanoOperator:
   name: verrazzano-operator
-  imageName: ghcr.io/verrazzano/verrazzano-operator
-  imageVersion: 0.5.0-20201113214945-6105e62
+  useSystemVMI: false
+  imageName: ghcr.io/verrazzano/verrazzano-operator-jenkins
+  imageVersion: 0.5.0-20201118013236-85be4c8
   cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:0.5.0-20201112155855-709d712
   helidonMicroImage: ghcr.io/verrazzano/verrazzano-helidon-app-operator:0.5.0-20201112153844-e0e4790
   wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:0.5.0-20201112154348-48bbb61
@@ -31,15 +32,20 @@ verrazzanoOperator:
   esMasterNodeRequestMemory: 1.4Gi
   esIngestNodeRequestMemory: 2.5Gi
   esDataNodeRequestMemory: 4.8Gi
-  grafanaRequestMemory: 48Mi
-  prometheusRequestMemory: 128Mi
-  kibanaRequestMemory: 192Mi
   esMasterNodeReplicas: 3
+  esDataNodeReplicas: 2
+  esIngestNodeReplicas: 1
+  esDataStorageSize: 50Gi
+  grafanaRequestMemory: 48Mi
+  grafanaDataStorageSize: 50Gi
+  prometheusRequestMemory: 128Mi
+  prometheusDataStorageSize: 50Gi
+  kibanaRequestMemory: 192Mi
 
 monitoringOperator:
   name: verrazzano-monitoring-operator
-  imageName: ghcr.io/verrazzano/verrazzano-monitoring-operator
-  imageVersion: 0.5.0-20201110193854-32e100c
+  imageName: ghcr.io/verrazzano/verrazzano-monitoring-operator-jenkins
+  imageVersion: 0.5.0-20201118013231-ee25a57
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
