@@ -86,7 +86,8 @@ spec:
           image: {{ .Values.verrazzanoAdmissionController.imageName }}:{{ .Values.verrazzanoAdmissionController.imageVersion }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - --v=4
+            - --zap-log-level=info
+            - --zap-devel=false
             - --verrazzanoUri={{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
           resources:
             requests:

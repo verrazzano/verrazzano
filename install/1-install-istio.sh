@@ -66,7 +66,7 @@ function create_secret {
 function install_istio()
 {
     log "Add istio helm repository"
-    helm repo add istio.io https://storage.googleapis.com/istio-release/releases/${ISTIO_VERSION}/charts || return $?
+    helm repo add istio.io https://storage.googleapis.com/istio-release/releases/${ISTIO_HELM_CHART_VERSION}/charts || return $?
 
     log "Fetch istio charts for istio and istio-init"
     helm fetch istio.io/istio --untar=true --untardir=$TMP_DIR || return $?
@@ -132,8 +132,7 @@ function install_istio()
     log "Wait for istio CRD creation jobs to complete"
     if ! kubectl -n istio-system wait --for=condition=complete job --all --timeout=300s ; then
       stat=$?
-      consoleerr "ERROR: Istio CRD creation failed - dumping jobs into log file"
-      dump_jobs "istio-system"
+      consoleerr "ERROR: Istio CRD creation failed"
       return $stat
     fi
 
@@ -174,12 +173,12 @@ function check_kube_version {
     local major=$(echo $kubeVer | jq -r '.serverVersion.major')
     local minor=$(echo $kubeVer | jq -r '.serverVersion.minor')
     local patch=$(echo $servVer | cut -d'.' -f 3)
-    VER_ERROR_MSG="Kubernetes serverVersion $servVer must be greater than or equal to v1.16.8 and less than or equal to v1.18"
+    VER_ERROR_MSG="Kubernetes serverVersion $servVer must be greater than or equal to v1.16.8 and less than or equal to v1.17.*"
     if [ "$major" -ne 1 ] ; then
       log $VER_ERROR_MSG
       return 1
     fi
-    if [ "$minor" -lt 16 ] || [ "$minor" -gt 18  ]; then
+    if [ "$minor" -lt 16 ] || [ "$minor" -gt 17  ]; then
       log $VER_ERROR_MSG
       return 1
     fi
@@ -196,10 +195,6 @@ function check_helm_version {
     local minorVer=$(echo $helmVer | cut -d'.' -f2)
     if [ "$majorVer" != "v3" ]; then
         log "Helm major version is $majorVer, expected v3!"
-        return 1
-    fi
-    if [ "$minorVer" -gt 2 ]; then
-        log "Helm minor version is $minorVer, expected less than or equal to 2!"
         return 1
     fi
     return 0
@@ -258,7 +253,7 @@ if [ "$DNS_TYPE" == "manual" ]; then
 fi
 
 action "Checking Kubernetes version" check_kube_version || exit 1
-action "Checking Helm version" check_helm_version || (error "Helm version must be v3.0.x, v.3.1.x or v3.2.x!"; exit 1)
+action "Checking Helm version" check_helm_version || (error "Helm version must be v3.x! Your Helm version is: $(helm version --short)"; exit 1)
 
 # Wait for all cluster nodes to exist, and then to be ready
 action "Waiting for all Kubernetes nodes to exist in cluster" wait_for_nodes_to_exist || exit 1

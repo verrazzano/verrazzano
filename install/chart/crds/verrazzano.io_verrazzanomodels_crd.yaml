@@ -92,7 +92,7 @@ spec:
                                 connection
                               properties:
                                 match:
-                                  description: See  verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3/virtual_service.go     https://github.com/istio/api/blob/master/networking/v1alpha3/virtual_service.gen.json     (istio.io/api/networking/v1alpha3/virtual_service.json)
+                                  description: List of http match rules
                                   items:
                                     description: MatchRequest specifies a http match
                                       rule
@@ -178,9 +178,7 @@ spec:
                           description: The interval to scrape metrics
                           type: string
                       required:
-                      - authSecret
                       - endpoint
-                      - interval
                       type: object
                     name:
                       description: The name of the coherence cluster
@@ -378,7 +376,7 @@ spec:
                                 connection
                               properties:
                                 match:
-                                  description: See  verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3/virtual_service.go     https://github.com/istio/api/blob/master/networking/v1alpha3/virtual_service.gen.json     (istio.io/api/networking/v1alpha3/virtual_service.json)
+                                  description: List of http match rules
                                   items:
                                     description: MatchRequest specifies a http match
                                       rule
@@ -6429,6 +6427,22 @@ spec:
                         for scraping the applications log. By default, Fluentd is
                         enabled.
                       type: boolean
+                    metrics:
+                      description: Metrics configuration
+                      properties:
+                        authSecret:
+                          description: The name of the secret containing the credentials
+                            to access the metrics endpoint
+                          type: string
+                        endpoint:
+                          description: The metrics endpoint (to be scraped)
+                          type: string
+                        interval:
+                          description: The interval to scrape metrics
+                          type: string
+                      required:
+                      - endpoint
+                      type: object
                     name:
                       description: The name of the Generic Component
                       type: string
@@ -6495,7 +6509,7 @@ spec:
                                 connection
                               properties:
                                 match:
-                                  description: See  verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3/virtual_service.go     https://github.com/istio/api/blob/master/networking/v1alpha3/virtual_service.gen.json     (istio.io/api/networking/v1alpha3/virtual_service.json)
+                                  description: List of http match rules
                                   items:
                                     description: MatchRequest specifies a http match
                                       rule
@@ -6697,9 +6711,7 @@ spec:
                           description: The interval to scrape metrics
                           type: string
                       required:
-                      - authSecret
                       - endpoint
-                      - interval
                       type: object
                     name:
                       description: The name of the Helidon application
@@ -6773,7 +6785,7 @@ spec:
                                 connection
                               properties:
                                 match:
-                                  description: See  verrazzano-crd-generator/pkg/apis/networking.istio.io/v1alpha3/virtual_service.go     https://github.com/istio/api/blob/master/networking/v1alpha3/virtual_service.gen.json     (istio.io/api/networking/v1alpha3/virtual_service.json)
+                                  description: List of http match rules
                                   items:
                                     description: MatchRequest specifies a http match
                                       rule
@@ -29104,9 +29116,7 @@ spec:
                           description: The interval to scrape metrics
                           type: string
                       required:
-                      - authSecret
                       - endpoint
-                      - interval
                       type: object
                     name:
                       description: The WebLogic domain name

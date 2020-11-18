@@ -355,6 +355,8 @@ spec:
             requests:
               memory: {{ .Values.monitoringOperator.RequestMemory }}
           env:
+            - name: INSTALL_PROFILE
+              value: {{ .Values.global.installProfile }}
             - name: GRAFANA_IMAGE
               value: {{ .Values.monitoringOperator.grafanaImage }}
             - name: PROMETHEUS_IMAGE
@@ -392,7 +394,8 @@ spec:
             successThreshold: 1
             timeoutSeconds: 5
           args:
-            - --v=4
+            - --zap-log-level=info
+            - --zap-devel=false
             - --namespace={{ .Release.Namespace }}
       serviceAccountName: {{ .Values.monitoringOperator.name }}
 ---
