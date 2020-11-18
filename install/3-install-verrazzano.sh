@@ -153,6 +153,14 @@ function install_verrazzano()
   fi
 
   local profile=$(get_config_value '.profile')
+  if [ -z "$profile" ]; then
+    error "The value .profile must be set in the config file"
+    exit 1
+  fi
+  if [ ! -f "${SCRIPT_DIR}/chart/values.${profile}.yaml" ]; then
+    error "The file ${SCRIPT_DIR}/chart/values.${profile}.yaml doesn't exist"
+    exit 1
+  fi
   local PROFILE_VALUES_OVERRIDE=" -f "${SCRIPT_DIR}/chart/values.${profile}.yaml""
 
   helm \

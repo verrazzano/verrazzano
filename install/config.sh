@@ -175,18 +175,6 @@ function validate_environment_name {
   fi
 }
 
-function validate_profile {
-  set -o pipefail
-  local jsonToValidate=$1
-  local profile=$(get_config_value '.profile') || fail "Could not get profile from config"
-  if [ -z "$profile" ]; then
-    fail "The value .profile must be set"
-  fi
-  if [ ! -f "${SCRIPT_DIR}/chart/values.${profile}.yaml" ]; then
-    fail "The file ${SCRIPT_DIR}/chart/values.${profile}.yaml doesn't exist"
-  fi
-}
-
 # Make sure CONFIG_JSON and DEFAULT_CONFIG_JSON contain valid JSON
 function validate_config_json {
   set -o pipefail
@@ -194,7 +182,6 @@ function validate_config_json {
   echo "$jsonToValidate" | jq . > /dev/null || fail "Failed to read installation config file contents. Make sure it is valid JSON"
 
   validate_environment_name "$jsonToValidate"
-  validate_profile "$jsonToValidate"
   validate_dns_section "$jsonToValidate"
   validate_certificates_section "$jsonToValidate"
 }
