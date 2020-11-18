@@ -2,13 +2,10 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 name: verrazzano
 
-global:
-  installProfile: dev
-
 verrazzanoOperator:
   useSystemVMI: true
-  prometheusDataStorageSize: 50Gi
-  grafanaDataStorageSize: 50Gi
+  prometheusDataStorageSize: ""
+  grafanaDataStorageSize: ""
   esMasterNodeRequestMemory: 1Gi
   esMasterNodeReplicas: 1
   esDataNodeReplicas: 0
