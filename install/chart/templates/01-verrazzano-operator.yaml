@@ -33,7 +33,7 @@ spec:
               memory: {{ .Values.verrazzanoOperator.RequestMemory }}
           env:
             - name: USE_SYSTEM_VMI
-              value: {{ .Values.verrazzanoOperator.useSystemVMI }}
+              value: {{ .Values.verrazzanoOperator.useSystemVMI | quote }}
             - name: COH_MICRO_IMAGE
               value: {{ .Values.verrazzanoOperator.cohMicroImage }}
             - name: HELIDON_MICRO_IMAGE
@@ -75,11 +75,11 @@ spec:
             - name: KIBANA_REQUEST_MEMORY
               value: {{ .Values.verrazzanoOperator.kibanaRequestMemory }}
             - name: ES_MASTER_NODE_REPLICAS
-              value: {{ .Values.verrazzanoOperator.esMasterNodeReplicas }}
+              value: {{ .Values.verrazzanoOperator.esMasterNodeReplicas | quote }}
             - name: ES_DATA_NODE_REPLICAS
-              value: {{ .Values.verrazzanoOperator.esDataNodeReplicas }}
+              value: {{ .Values.verrazzanoOperator.esDataNodeReplicas | quote }}
             - name: ES_INGEST_NODE_REPLICAS
-              value: {{ .Values.verrazzanoOperator.esIngestNodeReplicas }}
+              value: {{ .Values.verrazzanoOperator.esIngestNodeReplicas | quote }}
             - name: ES_DATA_STORAGE
               value: {{ .Values.verrazzanoOperator.esDataStorageSize }}
       serviceAccount: {{ .Values.verrazzanoOperator.name }}

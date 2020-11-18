@@ -14,7 +14,7 @@ verrazzanoOperator:
   name: verrazzano-operator
   useSystemVMI: false
   imageName: ghcr.io/verrazzano/verrazzano-operator-jenkins
-  imageVersion: 0.5.0-20201118013236-85be4c8
+  imageVersion: 0.5.0-20201118040650-2fc7f77
   cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:0.5.0-20201112155855-709d712
   helidonMicroImage: ghcr.io/verrazzano/verrazzano-helidon-app-operator:0.5.0-20201112153844-e0e4790
   wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:0.5.0-20201112154348-48bbb61
