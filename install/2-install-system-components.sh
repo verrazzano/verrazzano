@@ -90,7 +90,7 @@ function setup_cluster_issuer() {
     local OCI_COMPARTMENT_OCID=$(get_config_value ".dns.oci.dnsZoneCompartmentOcid")
     local OCI_FINGERPRINT=$(get_config_value ".dns.oci.fingerprint")
     local OCI_PRIVATE_KEY_FILE=$(get_config_value ".dns.oci.privateKeyFile")
-    local EMAIL_ADDRESS=$(get_config_value ".dns.oci.emailAddress")
+    local EMAIL_ADDRESS=$(get_config_value ".certificates.acme.emailAddress")
     local OCI_DNS_ZONE_OCID=$(get_config_value ".dns.oci.dnsZoneOcid")
     local OCI_DNS_ZONE_NAME=$(get_config_value ".dns.oci.dnsZoneName")
 
@@ -223,7 +223,7 @@ function install_rancher()
     local RANCHER_PATCH_DATA=""
     if [ "$CERT_ISSUER_TYPE" == "acme" ]; then
       INGRESS_TLS_SOURCE="letsEncrypt"
-      EXTRA_RANCHER_ARGUMENTS="--set letsEncrypt.ingress.class=rancher --set letsEncrypt.email=$EMAIL_ADDRESS --set letsEncrypt.environment=production"
+      EXTRA_RANCHER_ARGUMENTS="--set letsEncrypt.ingress.class=rancher --set letsEncrypt.email=$(get_config_value ".certificates.acme.emailAddress") --set letsEncrypt.environment=$(get_acme_environment)"
       RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${DNS_SUFFIX} auth\",\"external-dns.alpha.kubernetes.io/target\":\"verrazzano-ingress.${NAME}.${DNS_SUFFIX}\",\"cert-manager.io/issuer\":null,\"external-dns.alpha.kubernetes.io/ttl\":\"60\"}}}"
     elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
       INGRESS_TLS_SOURCE="rancher"

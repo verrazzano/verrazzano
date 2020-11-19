@@ -11,7 +11,6 @@
          "fingerprint": "fingerprint",
          "privateKeyFile": "privateKeyFile",
          "privateKeyPassphrase": "privateKeyPassphrase",
-         "emailAddress": "emailAddress",
          "dnsZoneOcid": "dnsZoneOcid",
          "dnsZoneName": "my.dns.zone.name"
       }
@@ -19,7 +18,9 @@
    "certificates": {
       "issuerType": "acme",
       "acme": {
-         "provider": "letsEncrypt"
+         "provider": "letsEncrypt",
+         "emailAddress": "emailAddress",
+         "environment": "production"
       }
    },
    "ingress": {

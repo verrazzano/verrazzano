@@ -80,6 +80,11 @@ function validate_certificates_section() {
     if [ "$provider" != "letsEncrypt" ]; then
       fail "The only .certificates.acme.provider spported is letsEncrypt"
     fi
+    local email=$(get_config_value ".certificates.acme.emailAddress")
+    if [ -z "$email" ]; then
+        echo "For acme, the value .certificates.acme.emailAddress must be set to your email address"
+        CHECK_VALUES=true
+    fi
   else
     fail "Unknown certificates issuer type $issuerType - valid values are ca and acme"
   fi
@@ -130,12 +135,6 @@ function validate_dns_section {
     value=$(get_config_value ".dns.oci.privateKeyFile")
     if [ -z "$value" ]; then
         echo "For dns type oci, the value .dns.oci.privateKeyFile must be set to the OCI Private Key File"
-        CHECK_VALUES=true
-    fi
-
-    value=$(get_config_value ".dns.oci.emailAddress")
-    if [ -z "$value" ]; then
-        echo "For dns type oci, the value .dns.oci.emailAddress must be set to your email address"
         CHECK_VALUES=true
     fi
 
@@ -263,6 +262,14 @@ function get_verrazzano_ports_spec() {
     fi
   fi
   echo $ports_spec
+}
+
+function get_acme_environment() {
+  if [ -z "$(get_config_value ".certificates.acme.environment")" ]; then
+    echo "production"
+  else
+    get_config_value ".certificates.acme.environment"
+  fi
 }
 
 if [ -z "$INSTALL_CONFIG_FILE" ]; then
