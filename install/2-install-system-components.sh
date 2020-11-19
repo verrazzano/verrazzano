@@ -63,14 +63,7 @@ function install_nginx_ingress_controller()
       || return $?
 
     # Handle any ports specified for Verrazzano Ingress - these must be patched after install
-    local port_mappings=($(get_config_array ".ingress.verrazzano.ports[]"))
-    local port_mappings_len=${#port_mappings[@]}
-    local nginx_svc_patch_spec=""
-    if [ $port_mappings_len -ne 0 ]; then
-      printf -v joined '%s,' "${port_mappings[@]}"
-      nginx_svc_patch_spec="{\"spec\": {\"ports\": [ ${joined%,} ] }}"
-    fi
-
+    local nginx_svc_patch_spec=$(get_verrazzano_ports_spec)
     if [ ! -z "${nginx_svc_patch_spec}" ]; then
       log "Patching NGINX service with: ${nginx_svc_patch_spec}"
       kubectl patch service -n ingress-nginx ingress-controller-nginx-ingress-controller -p "${nginx_svc_patch_spec}"
