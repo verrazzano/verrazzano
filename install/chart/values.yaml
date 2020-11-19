@@ -4,17 +4,33 @@ name: verrazzano
 
 global:
   imagePullSecrets: []
-  installProfile: prod
 
 image:
   pullPolicy: Always
   terminationGracePeriodSeconds: 60
 
+appBinding:
+  useSystemVMI: false
+
+elasticSearch:
+  nodes:
+    master:
+      replicas: 3
+      requests:
+        memory: 1.4Gi
+    data:
+      replicas: 2
+      requests:
+        memory: 4.8Gi
+    ingest:
+      replicas: 1
+      requests:
+        memory: 2.5Gi
+
 verrazzanoOperator:
   name: verrazzano-operator
-  useSystemVMI: false
-  imageName: ghcr.io/verrazzano/verrazzano-operator-jenkins
-  imageVersion: 0.5.0-20201118195828-7d0e822
+  imageName: ghcr.io/verrazzano/verrazzano-operator
+  imageVersion: 0.6.0-20201119220826-8319453
   cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:0.5.0-20201112155855-709d712
   helidonMicroImage: ghcr.io/verrazzano/verrazzano-helidon-app-operator:0.5.0-20201112153844-e0e4790
   wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:0.5.0-20201112154348-48bbb61
@@ -29,12 +45,6 @@ verrazzanoOperator:
   cohMicroRequestMemory: 28Mi
   helidonMicroRequestMemory: 24Mi
   wlsMicroRequestMemory: 32Mi
-  esMasterNodeRequestMemory: 1.4Gi
-  esIngestNodeRequestMemory: 2.5Gi
-  esDataNodeRequestMemory: 4.8Gi
-  esMasterNodeReplicas: 3
-  esDataNodeReplicas: 2
-  esIngestNodeReplicas: 1
   esDataStorageSize: 50Gi
   grafanaRequestMemory: 48Mi
   grafanaDataStorageSize: 50Gi
@@ -44,8 +54,8 @@ verrazzanoOperator:
 
 monitoringOperator:
   name: verrazzano-monitoring-operator
-  imageName: ghcr.io/verrazzano/verrazzano-monitoring-operator-jenkins
-  imageVersion: 0.5.0-20201118222217-4b417a0
+  imageName: ghcr.io/verrazzano/verrazzano-monitoring-operator
+  imageVersion: 0.6.0-20201119214106-c34f49b
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
@@ -56,7 +66,7 @@ monitoringOperator:
   alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
   esImage: ghcr.io/verrazzano/elasticsearch:7.6.1-20201016211502-0412e78
-  esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait-jenkins:0.5.0-20201118222217-4b417a0
+  esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:0.6.0-20201119214106-c34f49b
   esInitImage: container-registry.oracle.com/os/oraclelinux:7.8
   kibanaImage: ghcr.io/verrazzano/kibana:7.6.1-20201016212846-5eab01c
   monitoringInstanceApiImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-api:0.5.0-20201112155857-82662f1

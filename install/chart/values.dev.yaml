@@ -2,12 +2,25 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 name: verrazzano
 
+# Development profile
+# - single-node ES cluster
+# - with no persistent storage for ES, Prometheus, or Grafana
+
 verrazzanoOperator:
-  useSystemVMI: true
   prometheusDataStorageSize: ""
   grafanaDataStorageSize: ""
-  esMasterNodeRequestMemory: 1Gi
-  esMasterNodeReplicas: 1
-  esDataNodeReplicas: 0
-  esIngestNodeReplicas: 0
   esDataStorageSize: ""
+
+appBinding:
+  useSystemVMI: true
+
+elasticSearch:
+  nodes:
+    master:
+      replicas: 1
+      requests:
+        memory: 1Gi
+    data:
+      replicas: 0
+    ingest:
+      replicas: 0
