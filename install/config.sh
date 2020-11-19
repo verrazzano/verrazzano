@@ -3,10 +3,10 @@
 # Copyright (c) 2020, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
-SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
-. $SCRIPT_DIR/logging.sh
+CONFIG_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+. $CONFIG_SCRIPT_DIR/logging.sh
 
-DEFAULT_CONFIG_FILE="$SCRIPT_DIR/config/config_defaults.json"
+DEFAULT_CONFIG_FILE="$CONFIG_SCRIPT_DIR/config/config_defaults.json"
 
 # The max length of the environment name passed in by the user.
 ENV_NAME_LENGTH_LIMIT=10
