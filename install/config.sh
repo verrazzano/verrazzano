@@ -25,9 +25,6 @@ function get_config_value() {
   set -o pipefail
   local jq_expr="$1"
   local config_val=$(echo "$CONFIG_JSON" | jq -r "$jq_expr")
-  if [ $? -ne 0 ] || [ -z "$config_val" ] || [ "$config_val" == "null" ]; then
-    config_val=$(echo "$DEFAULT_CONFIG_JSON" | jq -r "$jq_expr")
-  fi
   if [ $? -ne 0 ]; then
     log "Error reading $jq_expr from config files"
     return 1
@@ -49,9 +46,6 @@ function get_config_array() {
   set -o pipefail
   local jq_expr="$1"
   local config_array=($(echo $CONFIG_JSON | jq -rc $jq_expr | tr "\n" " "))
-  if [ $? -ne 0 ] || [ ${#config_array[@]} -eq 0 ]; then
-    config_array=($(echo $DEFAULT_CONFIG_JSON | jq -rc $jq_expr | tr "\n" " "))
-  fi
   if [ $? -ne 0 ]; then
     log "Error reading $jq_expr from config files"
     return 1
@@ -175,7 +169,7 @@ function validate_environment_name {
   fi
 }
 
-# Make sure CONFIG_JSON and DEFAULT_CONFIG_JSON contain valid JSON
+# Make sure CONFIG_JSON contain valid JSON
 function validate_config_json {
   set -o pipefail
   local jsonToValidate=$1
@@ -230,11 +224,19 @@ function get_dns_suffix {
 }
 
 function get_nginx_helm_args_from_config {
-  config_array_to_helm_args ".ingress.verrazzano.nginxInstallArgs[]"
+  if [ -z "$(get_config_value ".ingress.verrazzano")" ]; then
+    return 0
+  else
+    config_array_to_helm_args ".ingress.verrazzano.nginxInstallArgs[]" || return 1
+  fi
 }
 
 function get_istio_helm_args_from_config {
-  config_array_to_helm_args ".ingress.application.istioInstallArgs[]"
+  if [ -z "$(get_config_value ".ingress.application")" ]; then
+    return 0
+  else
+    config_array_to_helm_args ".ingress.application.istioInstallArgs[]" || return 1
+  fi
 }
 
 function config_array_to_helm_args {
@@ -253,26 +255,25 @@ function config_array_to_helm_args {
   echo $helm_args
   return 0
 }
-log "Reading default installation config file $DEFAULT_CONFIG_FILE"
-DEFAULT_CONFIG_JSON="$(read_config $DEFAULT_CONFIG_FILE)"
 
 if [ -z "$INSTALL_CONFIG_FILE" ]; then
   INSTALL_CONFIG_FILE=$DEFAULT_CONFIG_FILE
-  CONFIG_JSON=$DEFAULT_CONFIG_JSON
-else
-  log "Reading installation config file $INSTALL_CONFIG_FILE"
-  if [ ! -f "$INSTALL_CONFIG_FILE" ]; then
-    fail "The file $INSTALL_CONFIG_FILE does not exist"
-  fi
-  CONFIG_JSON="$(read_config $INSTALL_CONFIG_FILE)"
 fi
+log "Reading installation config file $INSTALL_CONFIG_FILE"
+if [ ! -f "$INSTALL_CONFIG_FILE" ]; then
+  fail "The file $INSTALL_CONFIG_FILE does not exist"
+fi
+CONFIG_JSON="$(read_config $INSTALL_CONFIG_FILE)"
 
 validate_config_json "$CONFIG_JSON" || fail "Installation config is invalid"
-validate_config_json "$DEFAULT_CONFIG_JSON" || fail "Default installation config is invalid"
 ## Test cases - TODO remove before merging
-#ENV_NAME=$(get_config_value ".environmentName")
-#log "got environmentName value ${ENV_NAME}"
-#EXTRA_ARG0=$(get_config_value ".ingress.verrazzano.nginxInstallArgs[0]")
-#log "status $? and got 0th extra argument value ${EXTRA_ARG0}"
-#EXTRA_ARGS_ARR=($(get_config_array ".ingress.verrazzano.nginxInstallArgs[]"))
-#echo "status $? and got array [ ${EXTRA_ARGS_ARR[@]} ] containing ${EXTRA_ARGS_ARR[0]} and ${EXTRA_ARGS_ARR[1]}"
+#log "got environmentName value $(get_config_value ".environmentName")"
+#log "got profile value $(get_config_value ".profile")"
+#log "got dns type value $(get_config_value ".dns.type")"
+#log "got certificates issuerType value $(get_config_value ".certificates.issuerType")"
+#log "got ingress type value $(get_config_value ".ingress.type")"
+#log "got nginx ingress ip $(get_verrazzano_ingress_ip)"
+#log "got nginx suffix $(get_dns_suffix $(get_verrazzano_ingress_ip))"
+#log "got istio ingress ip $(get_application_ingress_ip)"
+#log "got nginx helm args $(get_nginx_helm_args_from_config)"
+#log "got istio helm args $(get_istio_helm_args_from_config)"
