@@ -155,17 +155,13 @@ function install_verrazzano()
 
   # If INSTALL_PROFILE is specified we use that to form the values file for the profile, otherwise
   # we default to the prod profile
-  PROFILE_VALUES_OVERRIDE=""
-  if [ ! -z "$INSTALL_PROFILE" ] ; then
-    PROFILE_VALUES="${SCRIPT_DIR}/chart/values.${INSTALL_PROFILE}.yaml"
-    if [ ! -f "$PROFILE_VALUES" ] ; then
-      error "ERROR: Did not find profile values file to apply: ${PROFILE_VALUES}, please check the value of INSTALL_PROFILE"
-    fi
-    PROFILE_VALUES_OVERRIDE=" -f ${PROFILE_VALUES}"
-    log "Installing verrazzano from Helm chart for ${INSTALL_PROFILE}"
-  else
-    log "Installing verrazzano from Helm chart for prod"
+  INSTALL_PROFILE=${INSTALL_PROFILE:-"prod"}
+  PROFILE_VALUES="${SCRIPT_DIR}/chart/values.${INSTALL_PROFILE}.yaml"
+  if [ ! -f "$PROFILE_VALUES" ] ; then
+    error "ERROR: Did not find profile values file to apply: ${PROFILE_VALUES}, please check the value of INSTALL_PROFILE"
   fi
+  PROFILE_VALUES_OVERRIDE=" -f ${PROFILE_VALUES}"
+  log "Installing verrazzano from Helm chart for ${INSTALL_PROFILE}"
 
   helm \
       upgrade --install verrazzano \
