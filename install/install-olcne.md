@@ -272,11 +272,11 @@ If load balancers are desired, then they should be created now even though the a
       * Backends: Kubernetes Worker Nodes, Port 30443, Distribution Policy Weighted Round Robin
 
 ##### DNS
-When using the `manual` DNS type, the installer searches the DNS zone you provide for two specific A records.
+When using the `external` DNS type, the installer searches the DNS zone you provide for two specific A records.
 These are used to configure the cluster and should refer to external addresses of the load balancers in the previous step.
 The A records will need to be created manually.
 
-**NOTE:** At this time, the only supported deployment for Oracle Linux Cloud Native Environment is the manual DNS type.
+**NOTE:** At this time, the only supported deployment for Oracle Linux Cloud Native Environment is the external DNS type.
 
 |Record             | Use                                                                                              |
 |-------------------|--------------------------------------------------------------------------------------------------|
@@ -340,26 +340,33 @@ If required, use the following commands to install `git`.
 ```
 sudo yum install -y git
 ```
+Edit the `config/config_olcne.json` configuration file and provide the configuration settings for
+your OLCNE environment as follows.
+
+- The value for `environmentName` is a unique DNS subdomain for the cluster (for example, `myenv` in `myenv.mydomain.com`).
+- The value for `dns.external.suffix` is the remainder of the DNS domain (for example, `mydomain.com` in `myenv.mydomain.com`).
+- Under `ingress.verrazzano.nginxInstallArgs`, the value for `controller.service.externalIPs[0]` is the IP address of `ingress-mgmt.<myenv>.<mydomain.com>` configured during DNS set up.
+- Under  `ingress.application.istioInstallArgs`, the value for `gateways.istio-ingressgateway.externalIPs[0]`
+is the IP address of `ingress-verrazzano.<myenv>.<mydomain.com>` configured during DNS set up.
+
+You will install Verrazzano using the `external` DNS type (In the configuration file, the value for 
+`dns.type` is already set to `"external"`)
 
 Set the following environment variables:
 
 The value for `<path to valid Kubernetes config>` is typically `${HOME}/.kube/config`
 ```
-export CLUSTER_TYPE=OLCNE
 export VERRAZZANO_KUBECONFIG=<path to valid Kubernetes config>
 export KUBECONFIG=$VERRAZZANO_KUBECONFIG
+export INSTALL_CONFIG_FILE=./config/config_olcne.json
 ```
-
-You will install Verrazzano using the `manual` DNS type.
-The value for `<env-name>` is a unique DNS subdomain for the cluster (for example, `myenv` in `myenv.mydomain.com`).
-The value for `<dns-suffix>` is the remainder of the DNS domain (for example, `mydomain.com` in `myenv.mydomain.com`).
 
 Run the following scripts in order:
 ```
-./1-install-istio.sh                       -d manual -n <env-name> -s <dns-suffix>
-./2a-install-system-components-magicdns.sh -d manual -n <env-name> -s <dns-suffix>
-./3-install-verrazzano.sh                  -d manual -n <env-name> -s <dns-suffix>
-./4-install-keycloak.sh                    -d manual -n <env-name> -s <dns-suffix>
+./1-install-istio.sh
+./2-install-system-components.sh
+./3-install-verrazzano.sh
+./4-install-keycloak.sh
 ```
 
 ### 5. Verify the Verrazzano install

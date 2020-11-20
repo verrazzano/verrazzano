@@ -32,7 +32,7 @@
             },
             {
                "name": "controller.service.externalIPs[0]",
-               "value": "10.20.30.40"
+               "value": "IP addr of ingress-mgmt.<environmentName>.<dnsSuffix>"
             }
          ],
          "ports": [
@@ -59,7 +59,7 @@
          "istioInstallArgs": [
             {
                "name": "gateways.istio-ingressgateway.externalIPs[0]",
-               "value": "10.55.66.77"
+               "value": "IP addr of ingress-verrazzano.<environmentName>.<dnsSuffix>"
             }
          ]
       }
