@@ -257,6 +257,12 @@ function install_rancher()
     log "Create Rancher secrets"
     RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- reset-password 2>/dev/null)
     ADMIN_PW=`echo $RANCHER_DATA | awk '{ print $NF }'`
+
+    if [ -z "$ADMIN_PW" ] ; then
+      error "ERROR: Failed to reset Rancher password"
+      return 1
+    fi
+
     kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
 }
 
