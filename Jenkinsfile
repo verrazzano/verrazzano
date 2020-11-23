@@ -68,9 +68,9 @@ pipeline {
 
                 sh """
                     echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                    rm -rf ${GO_REPO_PATH}/verrazzano-platform-operator
-                    mkdir -p ${GO_REPO_PATH}/verrazzano-platform-operator
-                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano-platform-operator/ ; tar xf -)
+                    rm -rf ${GO_REPO_PATH}/verrazzano
+                    mkdir -p ${GO_REPO_PATH}/verrazzano
+                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
                 """
 
                 script {
@@ -92,7 +92,7 @@ pipeline {
             }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano-platform-operator
+                    cd ${GO_REPO_PATH}/verrazzano
                     make docker-push DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
                    """
             }
@@ -102,7 +102,7 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano-platform-operator
+                    cd ${GO_REPO_PATH}/verrazzano
                     make go-fmt
                 """
             }
@@ -112,7 +112,7 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano-platform-operator
+                    cd ${GO_REPO_PATH}/verrazzano
                     make go-vet
                 """
             }
@@ -122,7 +122,7 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano-platform-operator
+                    cd ${GO_REPO_PATH}/verrazzano
                     make go-lint
                 """
             }
@@ -132,7 +132,7 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano-platform-operator
+                    cd ${GO_REPO_PATH}/verrazzano
                     make go-ineffassign
                 """
             }
@@ -171,7 +171,7 @@ pipeline {
             }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano-platform-operator
+                    cd ${GO_REPO_PATH}/verrazzano
                     make unit-test
                     make -B coverage
                     cp coverage.html ${WORKSPACE}
@@ -223,7 +223,7 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano-platform-operator
+                    cd ${GO_REPO_PATH}/verrazzano
                     make integ-test DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     build/scripts/copy-junit-output.sh ${WORKSPACE}
                 """
@@ -235,6 +235,25 @@ pipeline {
                 }
             }
         }
+
+        stage('Kick off MagicDNS Acceptance tests') {
+            when { expression { return !env.JOB_NAME.contains('scchen') } }
+            environment {
+                FULL_IMAGE_NAME = "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+            }
+            steps {
+                build job: 'verrazzano-in-cluster-oke-acceptance-test-suite/desagar_vz_1715_test', parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME), string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME), string(name: 'DNS_TYPE', value: 'xip.io')], wait: false
+            }
+        }
+
+        /*stage('Kick off OCI DNS Acceptance tests') {
+            environment {
+                FULL_IMAGE_NAME = "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+            }
+            steps {
+                build job: 'verrazzano-in-cluster-oke-acceptance-test-suite/desagar_vz_1715_test', parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME), string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME), string(name: 'DNS_TYPE', value: 'oci')], wait: false
+            }
+        }*/
     }
 
     post {

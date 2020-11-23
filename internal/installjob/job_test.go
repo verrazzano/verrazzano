@@ -4,7 +4,7 @@
 package installjob
 
 import (
-	installv1alpha1 "github.com/verrazzano/verrazzano-platform-operator/api/v1alpha1"
+	installv1alpha1 "github.com/verrazzano/verrazzano/api/v1alpha1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

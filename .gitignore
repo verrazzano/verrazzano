@@ -1,6 +1,29 @@
 # Copyright (c) 2020, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 .verrazzano/
-build/
+install/build/
+uninstall/build/
+uninstall/uninstall-steps/build/
+examples/**/build/
 .idea/
 *.iml
+build/_output
+build/deploy
+vendor
+.idea
+**/*.iml
+pkg/assets
+bin
+dist
+archive
+latest
+known_licenses.txt
+no_licenses.txt
+thirdparty_licenses
+index.yaml
+/coverage.cov
+/coverageTmp.cov
+/coverage.html
+/coverage.xml
+test/integ/integ*result.xml
+test/integ/integ.coverprofile

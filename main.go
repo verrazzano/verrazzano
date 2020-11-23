@@ -11,8 +11,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	installv1alpha1 "github.com/verrazzano/verrazzano-platform-operator/api/v1alpha1"
-	"github.com/verrazzano/verrazzano-platform-operator/controllers"
+	installv1alpha1 "github.com/verrazzano/verrazzano/api/v1alpha1"
+	"github.com/verrazzano/verrazzano/controllers"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"

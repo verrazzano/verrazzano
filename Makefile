@@ -41,7 +41,7 @@ CRD_PATH=config/crd/bases
 
 .PHONY: build
 build: generate
-	go build -o bin/manager main.go
+	go build -o bin/verrazzano-platform-operator main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 .PHONY: run
@@ -80,12 +80,12 @@ go-fmt:
 
 .PHONY: go-vet
 go-vet:
-	$(GO) vet $(shell go list ./... | grep -v github.com/verrazzano/verrazzano-platform-operator/pkg/assets)
+	$(GO) vet $(shell go list ./... | grep -v github.com/verrazzano/verrazzano/pkg/assets)
 
 .PHONY: go-lint
 go-lint:
 	$(GO) get -u golang.org/x/lint/golint
-	golint -set_exit_status $(shell go list ./... | grep -v github.com/verrazzano/verrazzano-platform-operator/pkg/assets)
+	golint -set_exit_status $(shell go list ./... | grep -v github.com/verrazzano/verrazzano/pkg/assets)
 
 .PHONY: go-ineffassign
 go-ineffassign:

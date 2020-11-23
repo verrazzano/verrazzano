@@ -6,7 +6,7 @@ package k8s
 import (
 	apixv1beta1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 
-	"github.com/verrazzano/verrazzano-platform-operator/test/integ/util"
+	"github.com/verrazzano/verrazzano/test/integ/util"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )

@@ -20,8 +20,8 @@ ENV GOPATH=/go
 ARG BUILDVERSION
 ARG BUILDDATE
 
-# Need to use specific WORKDIR to match verrazzano-platform-operator's source packages
-WORKDIR /root/go/src/github.com/verrazzano/verrazzano-platform-operator
+# Need to use specific WORKDIR to match verrazzano's source packages
+WORKDIR /root/go/src/github.com/verrazzano/verrazzano
 COPY . .
 
 ENV CGO_ENABLED 0
@@ -33,12 +33,6 @@ RUN GO111MODULE=on go build \
     -ldflags '-extldflags "-static"' \
     -ldflags "-X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}" \
     -o /usr/bin/verrazzano-platform-operator .
-
-# Clone the verrazzano repository from the "develop" branch to obtain the installation scripts
-WORKDIR /
-RUN git clone https://github.com/verrazzano/verrazzano.git \
-    && cd verrazzano \
-    && git checkout develop
 
 # Create the verrazzano-platform-operator image
 FROM container-registry.oracle.com/os/oraclelinux:7-slim@sha256:fcc6f54bb01fc83319990bf5fa1b79f1dec93cbb87db3c5a8884a5a44148e7bb
@@ -62,10 +56,10 @@ COPY --from=build_base /usr/bin/verrazzano-platform-operator /usr/local/bin/verr
 
 # Copy the Verrazzano install and uninstall scripts
 WORKDIR /verrazzano
-COPY --from=build_base /verrazzano/install ./install
-COPY --from=build_base /verrazzano/uninstall ./uninstall
-COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano-platform-operator/config/scripts/run.sh .
-COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano-platform-operator/config/scripts/kubeconfig-template ./config/kubeconfig-template
+COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/install ./install
+COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/uninstall ./uninstall
+COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/config/scripts/run.sh .
+COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/config/scripts/kubeconfig-template ./config/kubeconfig-template
 
 RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 verrazzano \
     && chown -R 1000:verrazzano /verrazzano \
@@ -81,13 +75,13 @@ RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 ver
     && chmod +x /verrazzano/uninstall/uninstall-steps/4-uninstall-keycloak.sh \
     && chmod +x /verrazzano/run.sh \
     && mkdir /home/verrazzano \
-    && mkdir -p go/src/github.com/verrazzano/verrazzano-platform-operator \
+    && mkdir -p go/src/github.com/verrazzano/verrazzano \
     && chown -R 1000:verrazzano /home/verrazzano \
     && chown 1000:verrazzano /usr/local/bin/verrazzano-platform-operator \
     && chmod 500 /usr/local/bin/verrazzano-platform-operator
 
 # Copy source tree to image
-COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano-platform-operator go/src/github.com/verrazzano/verrazzano-platform-operator
+COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano go/src/github.com/verrazzano/verrazzano
 
 USER 1000
 
