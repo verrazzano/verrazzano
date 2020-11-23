@@ -31,7 +31,6 @@ The following software must be installed on your system.
 * Set the following `ENV` vars:
 
 ```
-   export CLUSTER_TYPE=OKE
    export VERRAZZANO_KUBECONFIG=<path to valid Kubernetes config>
    export KUBECONFIG=$VERRAZZANO_KUBECONFIG
 ```
@@ -51,11 +50,11 @@ According to your DNS choice, install Verrazzano using one of the following meth
 Run the following scripts in order:
 ```
    ./1-install-istio.sh
-   ./2a-install-system-components-magicdns.sh
+   ./2-install-system-components.sh
    ./3-install-verrazzano.sh
    ./4-install-keycloak.sh
 ```
-
+This is the default configuration, and will automatically use the configuration file `config/config_defaults.json`
 
 #### Install using OCI DNS
 
@@ -72,31 +71,40 @@ For example, an appropriate zone name for parent domain `v8o.example.com` domain
 
 #### Installation
 
-Installing Verrazzano on OCI DNS requires the following environment variables to create DNS records.
+Installing Verrazzano on OCI DNS requires some configuration settings to create DNS records.
+The configuration file `config/config_oci.json` has a template of the required configuration
+information. Edit this file and provide values for the following configuration settings.
 
-Environment Variable | Required | Description
+Configuration setting | Required | Description
 --- | --- | --- |
-`EMAIL_ADDRESS` | Yes | Email address
-`OCI_COMPARTMENT_OCID` | Yes | OCI DNS compartment OCID
-`OCI_DNS_ZONE_NAME` | Yes | Name of OCI DNS zone
-`OCI_DNS_ZONE_OCID` | Yes | OCI DNS zone OCID
-`OCI_FINGERPRINT` | Yes | OCI fingerprint
-`OCI_PRIVATE_KEY_FILE` | Yes | OCI private key file
-`OCI_PRIVATE_KEY_PASSPHRASE` | No | OCI private key passphrase
-`OCI_REGION` | Yes | OCI region
-`OCI_TENANCY_OCID` | Yes | OCI tenancy OCID
-`OCI_USER_OCID` | Yes | OCI user OCID
+`certificates.acme.emailAddress` | Yes | Email address
+`dns.oci.dnsZoneCompartmentOcid` | Yes | OCI DNS compartment OCID
+`dns.oci.dnsZoneName` | Yes | Name of OCI DNS zone
+`dns.oci.dnsZoneOcid` | Yes | OCI DNS zone OCID
+`dns.oci.fingerprint` | Yes | OCI fingerprint
+`dns.oci.privateKeyFile` | Yes | OCI private key file
+`dns.oci.privateKeyPassphrase` | No | OCI private key passphrase
+`dns.oci.region` | Yes | OCI region
+`dns.oci.tenancyOcid` | Yes | OCI tenancy OCID
+`dns.oci.userOcid` | Yes | OCI user OCID
 
-When you use the OCI DNS installation, you need to provide a Verrazzano name (`env-name`) that will
-be used as part of the domain name used to access Verrazzano ingresses.  For example, you could use `sales` as an `env-name`,
-yielding `sales.us.v8o.example.com` as the sales-related domain (assuming the domain and zone names listed previously).
+When you use the OCI DNS installation, you need to provide a Verrazzano name in the configuration
+file (`environmentName`) that will be used as part of the domain name used to access Verrazzano
+ingresses.  For example, you could use `sales` as an `environmentName`, yielding
+`sales.us.v8o.example.com` as the sales-related domain (assuming the domain and zone names listed
+previously).
+
+Set the `INSTALL_CONFIG_FILE` environment variable to the edited OCI configuration file (e.g.)
+```
+export INSTALL_CONFIG_FILE=./config/config_oci.json
+```
 
 Run the following scripts in order:
 ```
    ./1-install-istio.sh
-   ./2b-install-system-components-ocidns.sh -n <env-name>
-   ./3-install-verrazzano.sh -n <env-name> -d oci -s <oci-dns-zone-name>
-   ./4-install-keycloak.sh -n <env-name> -d oci -s <oci-dns-zone-name>
+   ./2-install-system-components.sh
+   ./3-install-verrazzano.sh
+   ./4-install-keycloak.sh
 ```
 
 

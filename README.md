@@ -26,11 +26,10 @@ To install Verrazzano, follow these steps:
    - `git clone https://github.com/verrazzano/verrazzano`
    - `cd verrazzano`
 5. Run the following commands in the OCI Cloud Shell:
-   - `export CLUSTER_TYPE=OKE`
    - `export VERRAZZANO_KUBECONFIG=~/.kube/config`
    - `export KUBECONFIG=~/.kube/config`
    - `./install/1-install-istio.sh`
-   - `./install/2a-install-system-components-magicdns.sh`
+   - `./install/2-install-system-components.sh`
    - `./install/3-install-verrazzano.sh`
    - `./install/4-install-keycloak.sh`
 6. (Optional) Install some example applications - see [Deploy the example applications](#deploy-the-example-applications) for details.

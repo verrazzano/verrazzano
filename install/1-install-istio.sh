@@ -6,9 +6,9 @@
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
 . $SCRIPT_DIR/common.sh
+. $SCRIPT_DIR/config.sh
 
-
-INGRESS_TYPE=LoadBalancer #this is true for both OKE and OLCNE clusters
+INGRESS_TYPE=$(get_config_value ".ingress.type")
 
 CONFIG_DIR=$SCRIPT_DIR/config
 TMP_DIR=$(mktemp -d)
@@ -86,19 +86,12 @@ function install_istio()
         > ${TMP_DIR}/istio-crds.yaml || return $?
 
     log "Generate cluster specific configuration"
-    EXTRA_HELM_ARGUMENTS=""
+    local EXTRA_HELM_ARGUMENTS=""
     if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
       EXTRA_HELM_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
-    if [ ${CLUSTER_TYPE} == "OLCNE" ] && [ $DNS_TYPE == "manual" ]; then
-      ISTIO_INGRESS_IP=$(dig +short ingress-verrazzano.${NAME}.${DNS_SUFFIX})
-      if [ -z ${ISTIO_INGRESS_IP} ]; then
-        consoleerr
-        consoleerr "Unable to identify an Ingress IP address. Check documentation and ensure the ingress-verrazzano DNS record exists"
-        exit 1
-      fi
-      EXTRA_HELM_ARGUMENTS=$EXTRA_HELM_ARGUMENTS" --set gateways.istio-ingressgateway.externalIPs={"${ISTIO_INGRESS_IP}"}"
-    fi
+
+    EXTRA_HELM_ARGUMENTS="$EXTRA_HELM_ARGUMENTS $(get_istio_helm_args_from_config)"
 
     log "Create helm template for installing istio proper"
     helm template istio ${TMP_DIR}/istio \
@@ -143,19 +136,18 @@ function install_istio()
 
 function update_coredns()
 {
-    if [ "${CLUSTER_TYPE}" == "OKE" ] || [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
-        local cluster_ip
-        cluster_ip=$(kubectl get svc -n istio-system istiocoredns -o jsonpath={.spec.clusterIP})
-        if [ $? -ne 0 ] ; then
-            return $?
-        fi
-
-        # Update coredns configmap to include global section in data.
-        # This update requires coredns be greater than 1.4.0
-        sed -e "s#@CLUSTER_IP@#${cluster_ip}#g" $CONFIG_DIR/coredns-template.yaml \
-           | kubectl apply -f - \
-           || return 1
+    local cluster_ip
+    cluster_ip=$(kubectl get svc -n istio-system istiocoredns -o jsonpath={.spec.clusterIP})
+    if [ $? -ne 0 ] ; then
+      return $?
     fi
+
+    # Update coredns configmap to include global section in data.
+    # This update requires coredns be greater than 1.4.0
+    sed -e "s#@CLUSTER_IP@#${cluster_ip}#g" $CONFIG_DIR/coredns-template.yaml \
+       | kubectl apply -f - \
+       || return 1
+
     return 0
 }
 
@@ -214,43 +206,6 @@ function wait_for_nodes_to_exist {
       return 1
     fi
 }
-
-function usage {
-    consoleerr
-    consoleerr "usage: $0 [-n name] [-d dns_type]"
-    consoleerr "  -n name        Environment Name. Optional.  Defaults to default."
-    consoleerr "  -d dns_type    DNS type [xip.io|manual|oci]. Optional.  Defaults to xip.io."
-    consoleerr "  -s dns_suffix  DNS suffix (e.g v8o.example.com). Optional. Not valid for dns_type xip.io. Required for dns-type manual"
-    consoleerr "  -h             Help"
-    consoleerr
-    exit 1
-}
-
-NAME="default"
-DNS_TYPE="xip.io"
-
-while getopts n:d:s:h flag
-do
-    case "${flag}" in
-        n) NAME=${OPTARG};;
-        d) DNS_TYPE=${OPTARG};;
-        s) DNS_SUFFIX=${OPTARG};;
-        h) usage;;
-        *) usage;;
-    esac
-done
-
-if [ $DNS_TYPE == "manual" ] && [ -z $DNS_SUFFIX ]; then
-  consoleerr
-  consoleerr "-s option is required for ${DNS_TYPE}"
-  usage
-fi
-
-if [ "$DNS_TYPE" == "manual" ]; then
-  command -v dig >/dev/null 2>&1 || {
-      fail "dig is required for dns_type $DNS_TYPE but cannot be found on the path. Aborting."
-  }
-fi
 
 action "Checking Kubernetes version" check_kube_version || exit 1
 action "Checking Helm version" check_helm_version || (error "Helm version must be v3.x! Your Helm version is: $(helm version --short)"; exit 1)

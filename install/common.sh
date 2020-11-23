@@ -9,8 +9,6 @@ SOURCE_DIR=$(cd $(dirname $BASH_SOURCE); pwd -P)
 SCRIPT_DIR=${SCRIPT_DIR:-$(cd $(dirname ${BASH_SOURCE[${#BASH_SOURCE[@]} - 1]}); pwd -P)}
 # The directory where any generated artifacts should be stored.
 BUILD_DIR="${SCRIPT_DIR}/build"
-# The max length of the environment name passed in by the user.
-ENV_NAME_LENGTH_LIMIT=10
 
 . ${SOURCE_DIR}/logging.sh
 
@@ -123,16 +121,6 @@ function dump_rancher_ingress {
   echo "########  end rancher ingress details ##########"
 }
 
-function validate_environment_name {
-  local env_name=$1
-  # check environment name length
-  if [ ${#env_name} -gt $ENV_NAME_LENGTH_LIMIT ]; then
-    log "The environment name "${env_name}" is too long!  The maximum length is "${ENV_NAME_LENGTH_LIMIT} "."
-    return 1
-  fi
-  return 0
-}
-
 # Check if the optional global registry secret exists
 function check_registry_secret_exists() {
   local result
@@ -197,11 +185,6 @@ function call_curl {
 
 
 VERRAZZANO_DIR=${SCRIPT_DIR}/.verrazzano
-
-CLUSTER_TYPE="${CLUSTER_TYPE:-}"
-if [ "${CLUSTER_TYPE}" != "OKE" ] && [ "${CLUSTER_TYPE}" != "OLCNE" ]; then
-  fail "CLUSTER_TYPE environment variable must be set to OKE or OLCNE"
-fi
 
 VERRAZZANO_KUBECONFIG="${VERRAZZANO_KUBECONFIG:-}"
 if [ -z "${VERRAZZANO_KUBECONFIG}" ] ; then
