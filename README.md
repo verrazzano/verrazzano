@@ -1,3 +1,5 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/verrazzano/verrazzano)](https://goreportcard.com/report/github.com/verrazzano/verrazzano)
+
 # Verrazzano
 > **NOTE**: This is an early alpha release of Verrazzano. It is suitable for investigation and education usage. It is not suitable for production use.
 
@@ -13,7 +15,7 @@ Verrazzano Enterprise Container Platform includes the following capabilities:
 - Integrated security
 - DevOps and GitOps enablement
 
-This repository contains installation scripts and example applications for use with Verrazzano.
+This repository contains a Kubernetes operator for installing Verrazzano and example applications for use with Verrazzano.
 
 > **NOTE**: This is an early alpha release of Verrazzano. Some features are still in development.
 
@@ -26,12 +28,11 @@ To install Verrazzano, follow these steps:
    - `git clone https://github.com/verrazzano/verrazzano`
    - `cd verrazzano`
 5. Run the following commands in the OCI Cloud Shell:
-   - `export VERRAZZANO_KUBECONFIG=~/.kube/config`
    - `export KUBECONFIG=~/.kube/config`
-   - `./install/1-install-istio.sh`
-   - `./install/2-install-system-components.sh`
-   - `./install/3-install-verrazzano.sh`
-   - `./install/4-install-keycloak.sh`
+   - `kubectl apply -f deploy/operator.yaml`
+   - `kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano`
+7. (Optional) Run the following command in the OCI Cloud Shell to monitor the installation log:
+    - `kubectl logs -f $(kubectl get pod -l job-name=verrazzano-install-my-verrazzano -o jsonpath="{.items[0].metadata.name}")`
 6. (Optional) Install some example applications - see [Deploy the example applications](#deploy-the-example-applications) for details.
 
 
@@ -50,12 +51,12 @@ To deploy the example applications, please see the following instructions:
 
 ## Verrazzano Helm Chart
 
-The `chart` directory contains a Helm chart for Verrazzano that packages together the core elements that will be installed into the Verrazzano Management Cluster - micro operators,
+The `install/chart` directory contains a Helm chart for Verrazzano that packages together the core elements that will be installed into the Verrazzano Management Cluster - micro operators,
 verrazzano-operator, verrazzano-monitoring-operator, and such - into a single Helm chart.
 
 ### Chart Parameters
 
-See the `./chart/values.yaml` file for the full list of configurable parameters that can be set using
+See the `./install/chart/values.yaml` file for the full list of configurable parameters that can be set using
 `--set parameter=value` when installing the Helm chart.
 
 

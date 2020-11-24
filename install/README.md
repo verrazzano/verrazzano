@@ -14,12 +14,7 @@ This README describes installing Verrazzano in an OKE cluster. For instructions 
 ## Software requirements
 
 The following software must be installed on your system.  
-* curl
-* helm (version 3.0.x, 3.1.x or 3.2.x)
-* jq
 * kubectl
-* openssl
-* patch (for OCI DNS installation)
 
 
 ### 1. Prepare for installation
@@ -31,8 +26,7 @@ The following software must be installed on your system.
 * Set the following `ENV` vars:
 
 ```
-   export VERRAZZANO_KUBECONFIG=<path to valid Kubernetes config>
-   export KUBECONFIG=$VERRAZZANO_KUBECONFIG
+   export KUBECONFIG=<path to valid Kubernetes config>
 ```
 
 * Create the optional `imagePullSecret` named `verrazzano-container-registry`.  This step is required when one or more of the Docker images installed by Verrazzano are private.  For example, while testing a change to the `verrazzano-operator`, you may be using a Docker image that requires credentials to access it.
