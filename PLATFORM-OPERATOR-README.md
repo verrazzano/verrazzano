@@ -2,6 +2,8 @@
 
 # verrazzano-platform-operator
 
+THIS IS A TEMPORARY README WHILE WE COMPLETE THE TRANSITION OF THE VERRAZZANO-PLATFORM-OPERATOR CODE INTO THE VERRAZZANO REPOSITORY
+
 ## Prerequisites
 * kustomize v3.1.0+
 * kubebuilder 2.3.1+
