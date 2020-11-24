@@ -241,8 +241,7 @@ pipeline {
             }
         }
 
-        stage('Kick off MagicDNS Acceptance tests') {
-            when { expression { return !env.JOB_NAME.contains('scchen') } }
+        /*stage('Kick off MagicDNS Acceptance tests') {
             environment {
                 FULL_IMAGE_NAME = "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
             }
@@ -251,7 +250,7 @@ pipeline {
             }
         }
 
-        /*stage('Kick off OCI DNS Acceptance tests') {
+        stage('Kick off OCI DNS Acceptance tests') {
             environment {
                 FULL_IMAGE_NAME = "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
             }
