@@ -37,6 +37,11 @@ pipeline {
                 'When the branch being built is master then release will always be created when RELEASE_BRANCH has the default value - master.\n'+
                 'When the branch being built is any non-master branch - release can be created by setting RELEASE_BRANCH to same value as non-master branch, else it is skipped.\n',
                 trim: true)
+        string (name: 'ACCEPTANCE_TESTS_BRANCH',
+                defaultValue: 'master',
+                description: 'Branch or tag of verrazzano acceptance tests, on which to kick off the tests',
+                trim: true
+        )
     }
 
     environment {
@@ -242,7 +247,7 @@ pipeline {
                 FULL_IMAGE_NAME = "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
             }
             steps {
-                build job: 'verrazzano-in-cluster-oke-acceptance-test-suite/desagar_vz_1715_test', parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME), string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME), string(name: 'DNS_TYPE', value: 'xip.io')], wait: false
+                build job: "verrazzano-in-cluster-oke-acceptance-test-suite/${params.ACCEPTANCE_TESTS_BRANCH}", parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME), string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME), string(name: 'DNS_TYPE', value: 'xip.io')], wait: false
             }
         }
 
@@ -251,7 +256,7 @@ pipeline {
                 FULL_IMAGE_NAME = "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
             }
             steps {
-                build job: 'verrazzano-in-cluster-oke-acceptance-test-suite/desagar_vz_1715_test', parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME), string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME), string(name: 'DNS_TYPE', value: 'oci')], wait: false
+                build job: 'verrazzano-in-cluster-oke-acceptance-test-suite/${params.ACCEPTANCE_TESTS_BRANCH}', parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME), string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME), string(name: 'DNS_TYPE', value: 'oci')], wait: false
             }
         }*/
     }
