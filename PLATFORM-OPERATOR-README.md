@@ -1,4 +1,4 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/verrazzano/verrazzano-platform-operator)](https://goreportcard.com/report/github.com/verrazzano/verrazzano-platform-operator)
+[![Go Report Card](https://goreportcard.com/badge/github.com/verrazzano/verrazzano)](https://goreportcard.com/report/github.com/verrazzano/verrazzano)
 
 # verrazzano-platform-operator
 
