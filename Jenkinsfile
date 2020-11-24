@@ -241,16 +241,21 @@ pipeline {
             }
         }
 
-        /*stage('Kick off MagicDNS Acceptance tests') {
+        stage('Kick off MagicDNS Acceptance tests') {
             environment {
                 FULL_IMAGE_NAME = "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
             }
             steps {
-                build job: "verrazzano-in-cluster-oke-acceptance-test-suite/${params.ACCEPTANCE_TESTS_BRANCH}", parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME), string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME), string(name: 'DNS_TYPE', value: 'xip.io')], wait: false
+                build job: "verrazzano-in-cluster-oke-acceptance-test-suite/${params.ACCEPTANCE_TESTS_BRANCH}",
+                        parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME),
+                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME),
+                                     string(name: 'DNS_TYPE', value: 'xip.io')],
+                        wait: true,
+                        propagate: true
             }
         }
 
-        stage('Kick off OCI DNS Acceptance tests') {
+        /*stage('Kick off OCI DNS Acceptance tests') {
             environment {
                 FULL_IMAGE_NAME = "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
             }
