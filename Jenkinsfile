@@ -99,7 +99,9 @@ pipeline {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
                     echo "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                   """
+                    git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
+                    git config --global user.name $DOCKER_CREDS_USR
+                    git config --global user.email "70212020+verrazzanobot@users.noreply.github.com"                   """
             }
         }
 
