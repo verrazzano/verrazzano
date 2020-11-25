@@ -30,22 +30,21 @@ type PrivateKeyPassphraseSecretRef struct {
 	Key string `json:"key"`
 }
 
+// OciPrivateKeyFileName is the private key file name
+const OciPrivateKeyFileName = "oci_api_key.pem"
+
 // OciPrivateKeyFilePath is the private key mount path
-const OciPrivateKeyFilePath = "/oci"
+const OciPrivateKeyFilePath = "/config/" + OciPrivateKeyFileName
+
+// OciConfigSecretFile is the name of the OCI configuration yaml file
+const OciConfigSecretFile = "oci-config.yaml"
 
 // OCI DNS type
 type OCI struct {
-	Region                   string `json:"region"`
-	TenancyOCID              string `json:"tenancyOCID"`
-	UserOCID                 string `json:"userOCID"`
-	DNSZoneCompartmentOCID   string `json:"dnsZoneCompartmentOCID"`
-	Fingerprint              string `json:"fingerprint"`
-	PrivateKeyFileSecretName string `json:"privateKeyFileSecretName"`
-	PrivateKeyFileName       string `json:"privateKeyFileName"`
-	// +optional
-	PrivateKeyPassphraseSecretRef PrivateKeyPassphraseSecretRef `json:"privateKeyPassphraseSecretRef,omitempty"`
-	DNSZoneOCID                   string                        `json:"dnsZoneOCID"`
-	DNSZoneName                   string                        `json:"dnsZoneName"`
+	OCIConfigSecret        string `json:"ociConfigSecret"`
+	DNSZoneCompartmentOCID string `json:"dnsZoneCompartmentOCID"`
+	DNSZoneOCID            string `json:"dnsZoneOCID"`
+	DNSZoneName            string `json:"dnsZoneName"`
 }
 
 // External DNS type

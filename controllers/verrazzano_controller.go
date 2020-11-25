@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sigs.k8s.io/yaml"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -94,12 +95,12 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		return reconcile.Result{}, err
 	}
 
-	installConfigMap, err := r.createConfigMap(ctx, log, vz)
+	err := r.createConfigMap(ctx, log, vz)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	if err := r.createInstallJob(ctx, log, vz, installConfigMap.Name); err != nil {
+	if err := r.createInstallJob(ctx, log, vz, getConfigMapName(vz.Name)); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -157,48 +158,58 @@ func (r *VerrazzanoReconciler) createClusterRoleBinding(ctx context.Context, log
 }
 
 // createConfigMap creates a required config map for installation
-func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log logr.Logger, vz *installv1alpha1.Verrazzano) (*corev1.ConfigMap, error) {
+func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log logr.Logger, vz *installv1alpha1.Verrazzano) error {
 	// Create the configmap resource that will contain installation configuration options
 	configMap := installjob.NewConfigMap(vz.Namespace, getConfigMapName(vz.Name), vz.Labels)
 
 	// Set the verrazzano resource as the owner and controller of the configmap
 	err := controllerutil.SetControllerReference(vz, configMap, r.Scheme)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Check if the ConfigMap exists for running the install
 	configMapFound := &corev1.ConfigMap{}
 	log.Info(fmt.Sprintf("Checking if install ConfigMap %s exist", configMap.Name))
+
+	var dnsAuth *installjob.DNSAuth
 	err = r.Get(ctx, types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}, configMapFound)
 	if err != nil && errors.IsNotFound(err) {
 		// Convert to json and insert into the configmap.
-		config, err := installjob.GetInstallConfig(vz, r.Client)
+		dnsAuth, err = getDNSAuth(r, vz.Spec.DNS)
 		if err != nil {
-			return nil, err
+			return err
+		}
+		config, err := installjob.GetInstallConfig(vz, dnsAuth)
+		if err != nil {
+			return err
 		}
 		jsonEncoding, err := json.MarshalIndent(config, "", "  ")
 		if err != nil {
-			return nil, err
+			return err
 		}
-		configMap.Data = map[string]string{"config.json": string(jsonEncoding)}
+		if dnsAuth != nil {
+			configMap.Data = map[string]string{"config.json": string(jsonEncoding), installv1alpha1.OciPrivateKeyFileName: dnsAuth.PrivateKeyAuth.Key}
+		} else {
+			configMap.Data = map[string]string{"config.json": string(jsonEncoding)}
+		}
 
 		log.Info(fmt.Sprintf("Creating install ConfigMap %s", configMap.Name))
 		err = r.Create(ctx, configMap)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	} else if err != nil {
-		return nil, err
+		return err
 	}
 
-	return configMapFound, nil
+	return nil
 }
 
 // createInstallJob creates the installation job
 func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log logr.Logger, vz *installv1alpha1.Verrazzano, configMapName string) error {
 	// Define a new install job resource
-	job := installjob.NewJob(vz.Namespace, getInstallJobName(vz.Name), vz.Labels, configMapName, getServiceAccountName(vz.Name), os.Getenv("VZ_INSTALL_IMAGE"), vz.Spec.DNS)
+	job := installjob.NewJob(vz.Namespace, getInstallJobName(vz.Name), vz.Labels, configMapName, getServiceAccountName(vz.Name), os.Getenv("VZ_INSTALL_IMAGE"))
 
 	// Set verrazzano resource as the owner and controller of the job resource.
 	// This reference will result in the job resource being deleted when the verrazzano CR is deleted.
@@ -238,6 +249,24 @@ func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log logr.Lo
 	err = r.setInstallCondition(log, jobFound, vz)
 
 	return err
+}
+
+func getDNSAuth(r *VerrazzanoReconciler, dns installv1alpha1.DNS) (*installjob.DNSAuth, error) {
+	if dns.OCI != (installv1alpha1.OCI{}) {
+		secret := &corev1.Secret{}
+		err := r.Get(context.TODO(), types.NamespacedName{Name: dns.OCI.OCIConfigSecret, Namespace: "default"}, secret)
+		if err != nil {
+			return nil, err
+		}
+		dnsAuth := installjob.DNSAuth{}
+
+		err = yaml.Unmarshal(secret.Data[installv1alpha1.OciConfigSecretFile], &dnsAuth)
+		if err != nil {
+			return nil, err
+		}
+		return &dnsAuth, nil
+	}
+	return nil, nil
 }
 
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found
