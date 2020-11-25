@@ -243,7 +243,7 @@ spec:
 
 | Configuration setting | Required | Description
 | --- | --- | --- |
-| spec.environmentName | Yes | Name of the installation.  This name is part of the endpoint access URL's that are generated. |
+| spec.environmentName | No | Name of the installation.  This name is part of the endpoint access URL's that are generated. The default value is `default`. |
 | spec.profile | No | The installation profile to select.  Valid values are `prod` (production) and `dev` (development).  The default is `prod`. |
 | spec.dns.oci | No | This portion of the configuration is specified when using OCI DNS.  This configuration cannot be specified in conjunction with spec.dns.external.  |
 | spec.dns.oci.region | Yes | Name of OCI region. |
@@ -257,8 +257,9 @@ spec:
 | spec.ingress.type | No | The ingress type.  Valid values are `LoadBalancer` and `NodePort`.  The default value is `LoadBalancer`. |
 | spec.ingress.verrazzano | No | This portion of the configuration defines the ingress for the Verrazzano infrastructure endpoints. |
 | spec.ingress.verrazzano.nginxInstallArgs | No | A list of Nginx helm chart arguments and values to apply during the installation of Nginx.  Each argument is specified as either a `name/value` or `name/valueList` pair. |
-| spec.ingress.verrazzano.ports | No | The list of ports for the ingress. |
-| spec.ingress.verrazzano.ports.
+| spec.ingress.verrazzano.ports | No | The list of ports for the ingress. Each port definition is of type [ServicePort](https://godoc.org/k8s.io/api/core/v1#ServicePort). |
+| spec.ingress.application | No | This portion of the configuration defines the ingress for the application endpoints. |
+| spec.ingress.application.istioInstallArgs | No | A list of Istio helm chart arguments and values to apply during the installation of Istio.  Each argument is specified as either a `name/value` or `name/valueList` pair. |
 
 `certificates.acme.emailAddress` | Yes | Email address
 `dns.oci.dnsZoneCompartmentOcid` | Yes | 
@@ -268,8 +269,6 @@ spec:
 `dns.oci.privateKeyPassphrase` | No | OCI private key passphrase
 `dns.oci.userOcid` | Yes | 
 
-
-Where to explain the difference between dev and prod profile values?
 
 ### Known Issues
 #### OKE Missing Security List Ingress Rules
