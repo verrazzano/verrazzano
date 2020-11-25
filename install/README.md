@@ -38,7 +38,7 @@ The following software must be installed on your system.
 * Install the installation operator.
 
 ```
-    `kubectl apply -f deploy/operator.yaml`
+    kubectl apply -f deploy/operator.yaml
 ```
 
 ### 2. Do the install
@@ -47,14 +47,15 @@ According to your DNS choice, install Verrazzano using one of the following meth
 
 
 #### Install using xip.io
-Run the following scripts in order:
+Run the following commands:
 ```
-   ./1-install-istio.sh
-   ./2-install-system-components.sh
-   ./3-install-verrazzano.sh
-   ./4-install-keycloak.sh
+    kubectl apply -f config/samples/install-default.yaml
+    kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
 ```
-This is the default configuration, and will automatically use the configuration file `config/config_defaults.json`
+Run the following command to monitor the console log output of the installation:
+```
+    kubectl logs -f $(kubectl get pod -l job-name=verrazzano-install-my-verrazzano -o jsonpath="{.items[0].metadata.name}")
+```
 
 #### Install using OCI DNS
 
@@ -72,7 +73,7 @@ For example, an appropriate zone name for parent domain `v8o.example.com` domain
 #### Installation
 
 Installing Verrazzano on OCI DNS requires some configuration settings to create DNS records.
-The configuration file `config/config_oci.json` has a template of the required configuration
+The configuration file `config/samples/install-oci.yaml` has a template of the required configuration
 information. Edit this file and provide values for the following configuration settings.
 
 Configuration setting | Required | Description
@@ -94,17 +95,14 @@ ingresses.  For example, you could use `sales` as an `environmentName`, yielding
 `sales.us.v8o.example.com` as the sales-related domain (assuming the domain and zone names listed
 previously).
 
-Set the `INSTALL_CONFIG_FILE` environment variable to the edited OCI configuration file (e.g.)
+Run the following commands:
 ```
-export INSTALL_CONFIG_FILE=./config/config_oci.json
+    kubectl apply -f config/samples/install-oci.yaml
+    kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
 ```
-
-Run the following scripts in order:
+Run the following command to monitor the console log output of the installation:
 ```
-   ./1-install-istio.sh
-   ./2-install-system-components.sh
-   ./3-install-verrazzano.sh
-   ./4-install-keycloak.sh
+    kubectl logs -f $(kubectl get pod -l job-name=verrazzano-install-my-verrazzano -o jsonpath="{.items[0].metadata.name}")
 ```
 
 
@@ -190,6 +188,53 @@ Run the following command to get the password:
 ### 6. (Optional) Install the example applications
 Example applications are located in the `examples` directory.
 
+### 7. Verrazzano Custom Resource
+The Verrazzano custom resource contains the configuration information to perform an installation.
+
+The general format of the yaml to define a Verrazzano custom resource:
+```yaml
+apiVersion: install.verrazzano.io/v1alpha1
+kind: Verrazzano
+metadata:
+  name: <kubenetes object name>
+spec:
+  environmentName: <environment name>
+  profile: <installation profile>
+  dns:
+    external:
+      suffix: <dns suffix>
+  ingress:
+    type: <load balancer type>
+    verrazzano:
+      nginxInstallArgs:
+        - name: <name of nginx helm parameter>
+          value: <value of nging helm parameter>
+        - name: <name of nginx helm parameter>
+          valueList:
+            - <list of values for nginx helm parameter>
+      ports:
+        - name: <name of port>
+          port: <port number>
+          nodePort: <node port number>
+          protocol: <protocol>
+          targetPort: <target port number>
+    application:
+      istioInstallArgs:
+        - name: <name of Istio helm parameter>
+          value: <value of Istio helm parameter>
+        - name: <name of Istio helm parameter>
+          valueList:
+            - <list of values for Istio helm parameter>
+```
+
+| Configuration setting | Required | Description
+| --- | --- | --- |
+| spec.environmentName | Yes | Name of the installation.  This name is part of the endpoint access URL's that are generated. |
+| spec.profile | No | The installation profile to select.  Valid values are `prod` and `dev`.  The default is `prod`. |
+| spec.dns.suffix | No | 
+
+
+Where to explain the difference between dev and prod profile values?
 
 ### Known Issues
 #### OKE Missing Security List Ingress Rules
