@@ -13,18 +13,19 @@ import (
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/api/v1alpha1"
 	"github.com/verrazzano/verrazzano/controllers"
-	"go.uber.org/zap/zapcore"
+	"github.com/verrazzano/verrazzano/internal/util/log"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	// +kubebuilder:scaffold:imports
 )
 
 var (
 	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("operator").WithName("setup")
+	setupLog = zap.S().Named("operator").Named("setup")
 )
 
 func init() {
@@ -43,12 +44,12 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 
 	// Add the zap logger flag set to the CLI.
-	opts := zap.Options{}
+	opts := kzap.Options{}
 	opts.BindFlags(flag.CommandLine)
 
 	flag.Parse()
-
-	initStructuredLogging(zap.UseFlagOptions(&opts))
+	kzap.UseFlagOptions(&opts)
+	log.InitLogs(opts)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
@@ -65,7 +66,7 @@ func main() {
 	// Setup the reconciler
 	reconciler := controllers.VerrazzanoReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("operator"),
+		Log:    zap.S().Named("operator"),
 		Scheme: mgr.GetScheme(),
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
@@ -87,21 +88,4 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
-}
-
-// Initialize the logging configuration
-func initStructuredLogging(options zap.Opts) {
-	config := zapcore.EncoderConfig{
-		MessageKey:   "message",
-		CallerKey:    "caller",
-		NameKey:      "name",
-		LevelKey:     "level",
-		EncodeLevel:  zapcore.LowercaseLevelEncoder,
-		TimeKey:      "time",
-		EncodeTime:   zapcore.RFC3339TimeEncoder,
-		EncodeCaller: zapcore.FullCallerEncoder,
-	}
-	encoder := zapcore.NewJSONEncoder(config)
-
-	ctrl.SetLogger(zap.New(options, zap.Encoder(encoder)))
 }

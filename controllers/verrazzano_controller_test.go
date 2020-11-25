@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/internal/installjob"
 	"github.com/verrazzano/verrazzano/internal/uninstalljob"
 	"github.com/verrazzano/verrazzano/mocks"
+	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -1190,7 +1191,7 @@ func newRequest(namespace string, name string) ctrl.Request {
 // newVerrazzanoReconciler creates a new reconciler for testing
 // c - The Kerberos client to inject into the reconciler
 func newVerrazzanoReconciler(c client.Client) VerrazzanoReconciler {
-	log := ctrl.Log.WithName("test")
+	log := zap.S().Named("test")
 	scheme := newScheme()
 	reconciler := VerrazzanoReconciler{
 		Client: c,
