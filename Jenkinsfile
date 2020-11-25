@@ -88,6 +88,23 @@ pipeline {
             }
         }
 
+        stage('Generate operator.yaml') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    equals expected: false, actual: skipBuild
+                }
+            }
+            steps {
+                sh """
+                    echo ${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+                    git config --global credential.helper "!f() { echo username=\\$GIT_AUTH_USR; echo password=\\$GIT_AUTH_PSW; }; f"
+                    git config --global user.name $GIT_AUTH_USR
+                    git config --global user.email "70212020+verrazzanobot@users.noreply.github.com"
+                   """
+            }
+        }
+
         stage('Build') {
             when {
                 allOf {
