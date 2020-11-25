@@ -201,6 +201,20 @@ spec:
   environmentName: <environment name>
   profile: <installation profile>
   dns:
+    oci:
+      region: <name of OCI region>
+      tenancyOCID: <tenancy OCID>
+      userOCID: <user OCID>
+      dnsZoneCompartmentOCID: <DNS compartment OCID>
+      fingerprint: <fingerprint>
+      privateKeyFileSecretName: privateKeyFileSecretName
+      privateKeyFileName: privateKeyFileName
+      privateKeyPassphraseSecretRef:
+        name: secretName
+        key: passphrase
+      emailAddress: emailAddress
+      dnsZoneOCID: dnsZoneOcid
+      dnsZoneName: my.dns.zone.name
     external:
       suffix: <dns suffix>
   ingress:
@@ -230,8 +244,29 @@ spec:
 | Configuration setting | Required | Description
 | --- | --- | --- |
 | spec.environmentName | Yes | Name of the installation.  This name is part of the endpoint access URL's that are generated. |
-| spec.profile | No | The installation profile to select.  Valid values are `prod` and `dev`.  The default is `prod`. |
-| spec.dns.suffix | No | 
+| spec.profile | No | The installation profile to select.  Valid values are `prod` (production) and `dev` (development).  The default is `prod`. |
+| spec.dns.oci | No | This portion of the configuration is specified when using OCI DNS.  This configuration cannot be specified in conjunction with spec.dns.external.  |
+| spec.dns.oci.region | Yes | Name of OCI region. |
+| spec.dns.oci.tenancyOCID | Yes | The OCI tenancy OCID. |
+| spec.dns.oci.userOCID | Yes | The OCI user OCID. |
+| spec.dns.oci.dnsZoneCompartmentOCID | Yes | The OCI DNS compartment OCID. |
+| spec.dns.oci.fingerprint | Yes | The OCI fingerprint. |
+| spec.dns.external | No | This portion of the configuration is specified when using OLCNE.  This configuration cannot be specified in conjunction with spec.dns.oci. |
+| spec.dns.external.suffix | Yes | The suffix for DNS names. |
+| spec.ingress | No | This portion of the configuration defines the ingress. |
+| spec.ingress.type | No | The ingress type.  Valid values are `LoadBalancer` and `NodePort`.  The default value is `LoadBalancer`. |
+| spec.ingress.verrazzano | No | This portion of the configuration defines the ingress for the Verrazzano infrastructure endpoints. |
+| spec.ingress.verrazzano.nginxInstallArgs | No | A list of Nginx helm chart arguments and values to apply during the installation of Nginx.  Each argument is specified as either a `name/value` or `name/valueList` pair. |
+| spec.ingress.verrazzano.ports | No | The list of ports for the ingress. |
+| spec.ingress.verrazzano.ports.
+
+`certificates.acme.emailAddress` | Yes | Email address
+`dns.oci.dnsZoneCompartmentOcid` | Yes | 
+`dns.oci.dnsZoneName` | Yes | Name of OCI DNS zone
+`dns.oci.dnsZoneOcid` | Yes | OCI DNS zone OCID
+`dns.oci.privateKeyFile` | Yes | OCI private key file
+`dns.oci.privateKeyPassphrase` | No | OCI private key passphrase
+`dns.oci.userOcid` | Yes | 
 
 
 Where to explain the difference between dev and prod profile values?
