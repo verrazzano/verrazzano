@@ -37,26 +37,26 @@ EXTRA_PARAMS=
 INTEG_RUN_ID=
 ENV_NAME=verrazzano-platform-operator
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
-CRD_PATH=config/crd/bases
+CRD_PATH=operator/config/crd/bases
 
 .PHONY: build
-build: generate
-	go build -o bin/verrazzano-platform-operator main.go
+build: manifests generate go-mod
+	go build -o bin/verrazzano-platform-operator operator/main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 .PHONY: run
 run:
-	$(GO) run main.go --kubeconfig=${KUBECONFIG} --zap-log-level=debug
+	$(GO) run operator/main.go --kubeconfig=${KUBECONFIG} --zap-log-level=debug
 
 # Install CRDs into a cluster
 .PHONY: install-crds
 install-crds: manifests
-	kustomize build config/crd | kubectl apply -f -
+	kustomize build operator/config/crd | kubectl apply -f -
 
 # Uninstall CRDs from a cluster
 .PHONY: uninstall-crds
 uninstall-crds: manifests
-	kustomize build config/crd | kubectl delete -f -
+	kustomize build operator/config/crd | kubectl delete -f -
 
 .PHONY: check
 check: go-fmt go-vet go-ineffassign go-lint
@@ -65,12 +65,12 @@ check: go-fmt go-vet go-ineffassign go-lint
 # Go build related tasks
 #
 .PHONY: go-install
-go-install: go-mod
-	$(GO) install
+go-install: manifests generate go-mod
+	$(GO) install ./operator/...
 
 .PHONY: go-fmt
 go-fmt:
-	gofmt -s -e -d $(shell find . -name "*.go" | grep -v /vendor/ | grep -v /pkg/assets/) > error.txt
+	gofmt -s -e -d $(shell find . -name "*.go" | grep -v /vendor/) > error.txt
 	if [ -s error.txt ]; then\
 		cat error.txt;\
 		rm error.txt;\
@@ -80,17 +80,17 @@ go-fmt:
 
 .PHONY: go-vet
 go-vet:
-	$(GO) vet $(shell go list ./... | grep -v github.com/verrazzano/verrazzano/pkg/assets)
+	$(GO) vet $(shell go list ./...)
 
 .PHONY: go-lint
 go-lint:
 	$(GO) get -u golang.org/x/lint/golint
-	golint -set_exit_status $(shell go list ./... | grep -v github.com/verrazzano/verrazzano/pkg/assets)
+	golint -set_exit_status $(shell go list ./...)
 
 .PHONY: go-ineffassign
 go-ineffassign:
 	$(GO) get -u github.com/gordonklaus/ineffassign
-	ineffassign $(shell find . -name "*.go" | grep -v /vendor/ | grep -v /pkg/assets/)
+	ineffassign $(shell find . -name "*.go" | grep -v /vendor/)
 
 .PHONY: go-mod
 go-mod:
@@ -100,18 +100,18 @@ go-mod:
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: manifests
 manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./operator/..." output:crd:artifacts:config=operator/config/crd/bases
 	# Add copyright headers to the kubebuildr generated CRDs
-	./hack/add-crd-header.sh
+	./operator/hack/add-crd-header.sh
 
 	# Re-generate operator.yaml
-	cp config/deploy/verrazzano-platform-operator.yaml deploy/operator.yaml
-	cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
+	cp operator/config/deploy/verrazzano-platform-operator.yaml operator/deploy/operator.yaml
+	cat operator/config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> operator/deploy/operator.yaml
 
 # Generate code
 .PHONY: generate
 generate: controller-gen
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	$(CONTROLLER_GEN) object:headerFile="operator/hack/boilerplate.go.txt" paths="./operator/..."
 
 # find or download controller-gen
 # download controller-gen if necessary
@@ -140,7 +140,7 @@ docker-clean:
 
 .PHONY: docker-build
 docker-build: manifests generate go-mod
-	docker build --pull \
+	docker build --pull -f operator/Dockerfile \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
 .PHONY: docker-push
@@ -158,11 +158,11 @@ docker-push: docker-build
 #
 .PHONY: unit-test
 unit-test: go-install
-	$(GO) test -v  ./internal/... ./controllers/...
+	$(GO) test -v  ./operator/internal/... ./operator/controllers/...
 
 .PHONY: coverage
 coverage: unit-test
-	./build/scripts/coverage.sh html
+	./operator/build/scripts/coverage.sh html
 
 #
 # Test-related tasks
@@ -180,22 +180,22 @@ integ-test: create-cluster
 
 	echo 'Deploy verrazzano platform operator ...'
 	mkdir -p build/deploy
-	cat deploy/operator.yaml | sed -e "s|IMAGE_NAME|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > ${BUILD-DEPLOY}/operator.yaml
+	cat operator/deploy/operator.yaml | sed -e "s|IMAGE_NAME|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > ${BUILD-DEPLOY}/operator.yaml
 	kubectl apply -f ${BUILD-DEPLOY}/operator.yaml
 
 	echo 'Run tests...'
-	ginkgo -v --keepGoing -cover test/integ/... || IGNORE=FAILURE
+	ginkgo -v --keepGoing -cover operator/test/integ/... || IGNORE=FAILURE
 
 .PHONY: create-cluster
 create-cluster:
 ifdef JENKINS_URL
-	./build/scripts/cleanup.sh ${CLUSTER_NAME}
+	./operator/build/scripts/cleanup.sh ${CLUSTER_NAME}
 endif
 	echo 'Create cluster...'
 	HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster \
 		--name ${CLUSTER_NAME} \
 		--wait 5m \
-		--config=test/kind-config.yaml
+		--config=operator/test/kind-config.yaml
 	kubectl config set-context kind-${CLUSTER_NAME}
 ifdef JENKINS_URL
 	# Get the ip address of the container running the kube apiserver

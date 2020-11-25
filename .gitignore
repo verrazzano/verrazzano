@@ -23,9 +23,9 @@ known_licenses.txt
 no_licenses.txt
 thirdparty_licenses
 index.yaml
-operator/coverage.cov
-operator/coverageTmp.cov
-operator/coverage.html
-operator/coverage.xml
+coverage.cov
+coverageTmp.cov
+coverage.html
+coverage.xml
 operator/test/integ/integ*result.xml
 operator/test/integ/integ.coverprofile
