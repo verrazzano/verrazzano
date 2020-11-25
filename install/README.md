@@ -234,6 +234,9 @@ spec:
       provider: <name of certificate issuer>
       emailAddress: <email address>
       environment: <name of environment>
+    ca:
+      secretName: <name of the secret>
+      clusterResourceNamespace: <namespace of the secret>
 ```
 
 | Configuration setting | Required | Description
@@ -259,6 +262,9 @@ spec:
 | spec.certificate.acme.provider | Yes | The certificate issuer provider. |
 | spec.certificate.acme.emailAddress | No | Email address. |
 | spec.certificate.acme.environment | No | The name of the environment. |
+| spec.certificate.ca | No | Define a certificate issued by `ca`. |
+| spec.certificate.ca.secretName | Yes | Name of the secret. |
+| spec.certificate.ca.clusterResourceNamespace | Yes | The namespace of the secret. |
 
 DESCRIBE THE OCI CONFIGURATION SECRET
 
