@@ -98,10 +98,13 @@ pipeline {
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
-                    echo "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                     git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
                     git config --global user.name $DOCKER_CREDS_USR
-                    git config --global user.email "70212020+verrazzanobot@users.noreply.github.com"                   """
+                    git config --global user.email "70212020+verrazzanobot@users.noreply.github.com"
+                    cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > /deploy/operator.yaml
+                    cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
+                    cat deploy/operator.yaml
+                   """
             }
         }
 
