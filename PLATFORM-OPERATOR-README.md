@@ -33,7 +33,7 @@ kubectl apply -f /tmp/operator.yaml
 kubectl get pods -n verrazzano-install
 
 # Initiate a Verrazzano install for xip.io
-kubectl apply -f config/samples/install_v1alpha1_verrazzano.yaml
+kubectl apply -f config/samples/install-default.yaml
 
 # Monitor the install
 kubectl logs -f $(kubectl get pod -l job-name=verrazzano-install-my-verrazzano -o jsonpath="{.items[0].metadata.name}")
@@ -46,7 +46,7 @@ To uninstall Verrazzano with the verrazzano-platform-operator follow these steps
 
 ```
 # Initiate a Verrazzano uninstall
-kubectl delete -f config/samples/install_v1alpha1_verrazzano.yaml
+kubectl delete -f config/samples/install-default.yaml
 
 # Monitor the uninstall
 kubectl logs -f $(kubectl get pod -l job-name=verrazzano-uninstall-my-verrazzano -o jsonpath="{.items[0].metadata.name}")
@@ -97,13 +97,13 @@ You’ll need a Kubernetes cluster to run against.
 * Create a custom resource.  You will notice that messages are logged to the operator
 when the custom resource is applied. 
     ```
-    kubectl apply -f config/samples/install_v1alpha1_verrazzano.yaml
+    kubectl apply -f config/samples/install-default.yaml
     ```
 
 * Delete the custom resource.  You will notice that messages are logged to the operator
 when the custom resource is deleted.
     ```
-    kubectl delete -f config/samples/install_v1alpha1_verrazzano.yaml
+    kubectl delete -f config/samples/install-default.yaml
     ```
 * Uninstall the CRDs from the cluster:
     ```
