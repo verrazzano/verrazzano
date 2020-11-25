@@ -35,6 +35,12 @@ The following software must be installed on your system.
     kubectl create secret docker-registry verrazzano-container-registry --docker-username=<username> --docker-password=<password> --docker-server=<docker server>
 ```
 
+* Install the installation operator.
+
+```
+    `kubectl apply -f deploy/operator.yaml`
+```
+
 ### 2. Do the install
 
 According to your DNS choice, install Verrazzano using one of the following methods.

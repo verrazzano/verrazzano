@@ -30,6 +30,7 @@ To install Verrazzano, follow these steps:
 5. Run the following commands in the OCI Cloud Shell:
    - `export KUBECONFIG=~/.kube/config`
    - `kubectl apply -f deploy/operator.yaml`
+   - `kubectl apply -f config/samples/install-default.yaml`
    - `kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano`
 7. (Optional) Run the following command in the OCI Cloud Shell to monitor the installation log:
     - `kubectl logs -f $(kubectl get pod -l job-name=verrazzano-install-my-verrazzano -o jsonpath="{.items[0].metadata.name}")`
