@@ -160,42 +160,13 @@ spec:
                       type: string
                     dnsZoneOCID:
                       type: string
-                    fingerprint:
-                      type: string
-                    privateKeyFileName:
-                      type: string
-                    privateKeyFileSecretName:
-                      type: string
-                    privateKeyPassphraseSecretRef:
-                      description: PrivateKeyPassphraseSecretRef identifies the private
-                        key passphrase needed for an OCI DNS install
-                      properties:
-                        key:
-                          description: Key for value in secret
-                          type: string
-                        name:
-                          description: Name of secret
-                          type: string
-                      required:
-                      - key
-                      - name
-                      type: object
-                    region:
-                      type: string
-                    tenancyOCID:
-                      type: string
-                    userOCID:
+                    ociConfigSecret:
                       type: string
                   required:
                   - dnsZoneCompartmentOCID
                   - dnsZoneName
                   - dnsZoneOCID
-                  - fingerprint
-                  - privateKeyFileName
-                  - privateKeyFileSecretName
-                  - region
-                  - tenancyOCID
-                  - userOCID
+                  - ociConfigSecret
                   type: object
                 xip.io:
                   description: DNS type of xio.io.  This is the default.

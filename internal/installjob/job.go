@@ -4,7 +4,6 @@
 package installjob
 
 import (
-	installv1alpha1 "github.com/verrazzano/verrazzano/api/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,7 +15,7 @@ import (
 // labels - labels of verrazzano resource
 // saName - service account name
 // image - docker image
-func NewJob(namespace string, jobName string, labels map[string]string, configMapName string, saName string, image string, dns installv1alpha1.DNS) *batchv1.Job {
+func NewJob(namespace string, jobName string, labels map[string]string, configMapName string, saName string, image string) *batchv1.Job {
 	var backOffLimit int32 = 0
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -82,27 +81,6 @@ func NewJob(namespace string, jobName string, labels map[string]string, configMa
 			},
 		},
 	}
-	if dns.OCI != (installv1alpha1.OCI{}) {
-		mountPrivateKeyFile(job, dns)
-	}
 
 	return job
-}
-
-func mountPrivateKeyFile(job *batchv1.Job, dns installv1alpha1.DNS) {
-	// need to attach the secret as a volume
-	job.Spec.Template.Spec.Volumes = append(job.Spec.Template.Spec.Volumes, corev1.Volume{
-		Name: "oci-private-key",
-		VolumeSource: corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName: dns.OCI.PrivateKeyFileSecretName,
-			},
-		},
-	})
-	job.Spec.Template.Spec.Containers[0].VolumeMounts = append(
-		job.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
-			Name:      "oci-private-key",
-			ReadOnly:  true,
-			MountPath: installv1alpha1.OciPrivateKeyFilePath,
-		})
 }
