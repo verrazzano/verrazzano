@@ -374,7 +374,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 
 	// Expect a call to get the DNS config secret and return it
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "default", Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			data := make(map[string][]byte)
 			data["passphrase"] = []byte("passphraseValue")
@@ -1299,7 +1299,7 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 
 	// Expect a call to get the DNS config secret but return a not found error
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "default", Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil())).
 		Return(errors.NewBadRequest("failed to get Secret"))
 
 	// Create and make the request
