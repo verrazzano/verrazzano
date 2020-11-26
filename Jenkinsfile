@@ -63,6 +63,7 @@ pipeline {
     stages {
         stage('Clean workspace and checkout') {
             steps {
+                scmSkip(deleteBuild: true, skipPattern:'.*\\[ci skip\\].*')
                 script {
                     checkout scm
                 }
@@ -105,7 +106,7 @@ pipeline {
                     cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
                     cat deploy/operator.yaml
                     git checkout ${env.BRANCH_NAME}
-                    git commit -a -m "update operator image"
+                    git commit -a -m "update operator image [ci skip]"
                     git push origin ${env.BRANCH_NAME}
                    """
             }
