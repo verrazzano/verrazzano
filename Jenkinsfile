@@ -63,10 +63,10 @@ pipeline {
     stages {
         stage('Clean workspace and checkout') {
             steps {
-                scmSkip(deleteBuild: true, skipPattern:'.*\\[ci skip\\].*')
                 script {
                     checkout scm
                 }
+                scmSkip(deleteBuild: true, skipPattern:'.*\\[ci skip\\].*')
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
