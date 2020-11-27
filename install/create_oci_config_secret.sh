@@ -74,17 +74,17 @@ do
     esac
 done
 
-KEY_FILE=$(read_config $OCI_CONFIG_FILE $SECTION key_file)
+SECTION_PROPS=$(read_config $OCI_CONFIG_FILE $SECTION *)
+eval $SECTION_PROPS
 
 #create the yaml file
 echo "privateKeyAuth:" > $OUTPUT_FILE
-echo "  region: $(read_config $OCI_CONFIG_FILE $SECTION region)" >> $OUTPUT_FILE
-echo "  tenancy: $(read_config $OCI_CONFIG_FILE $SECTION tenancy)" >> $OUTPUT_FILE
-echo "  user: $(read_config $OCI_CONFIG_FILE $SECTION user)" >> $OUTPUT_FILE
+echo "  region: $region" >> $OUTPUT_FILE
+echo "  tenancy: $tenancy" >> $OUTPUT_FILE
+echo "  user: $user" >> $OUTPUT_FILE
 echo "  key: |" >> $OUTPUT_FILE
-cat $KEY_FILE | sed 's/^/    /' >> $OUTPUT_FILE
-echo "  fingerprint: $(read_config $OCI_CONFIG_FILE $SECTION fingerprint)" >> $OUTPUT_FILE
-pass_phrase=$(read_config $OCI_CONFIG_FILE $SECTION pass_phrase)
+cat $key_file | sed 's/^/    /' >> $OUTPUT_FILE
+echo "  fingerprint: $fingerprint" >> $OUTPUT_FILE
 if [[ ! -z "$pass_phrase" ]]; then
   echo "  passphrase: $pass_phrase" >> $OUTPUT_FILE
 fi
