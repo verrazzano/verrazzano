@@ -340,14 +340,13 @@ If required, use the following commands to install `git`.
 ```
 sudo yum install -y git
 ```
-Edit the `config/config_olcne.json` configuration file and provide the configuration settings for
+Edit the [install-olcne.yaml](../config/samples/install-olcne.yaml) configuration file and provide the configuration settings for
 your OLCNE environment as follows.
 
-- The value for `environmentName` is a unique DNS subdomain for the cluster (for example, `myenv` in `myenv.mydomain.com`).
-- The value for `dns.external.suffix` is the remainder of the DNS domain (for example, `mydomain.com` in `myenv.mydomain.com`).
-- Under `ingress.verrazzano.nginxInstallArgs`, the value for `controller.service.externalIPs[0]` is the IP address of `ingress-mgmt.<myenv>.<mydomain.com>` configured during DNS set up.
-- Under  `ingress.application.istioInstallArgs`, the value for `gateways.istio-ingressgateway.externalIPs[0]`
-is the IP address of `ingress-verrazzano.<myenv>.<mydomain.com>` configured during DNS set up.
+- The value for `spec.environmentName` is a unique DNS subdomain for the cluster (for example, `myenv` in `myenv.mydomain.com`).
+- The value for `spec.dns.external.suffix` is the remainder of the DNS domain (for example, `mydomain.com` in `myenv.mydomain.com`).
+- Under `spec.ingress.verrazzano.nginxInstallArgs`, the value for `controller.service.externalIPs[0]` is the IP address of `ingress-mgmt.<myenv>.<mydomain.com>` configured during DNS set up.
+- Under  `spec.ingress.application.istioInstallArgs`, the value for `gateways.istio-ingressgateway.externalIPs` is the IP address of `ingress-verrazzano.<myenv>.<mydomain.com>` configured during DNS set up.
 
 You will install Verrazzano using the `external` DNS type (In the configuration file, the value for 
 `dns.type` is already set to `"external"`)
@@ -356,17 +355,19 @@ Set the following environment variables:
 
 The value for `<path to valid Kubernetes config>` is typically `${HOME}/.kube/config`
 ```
-export VERRAZZANO_KUBECONFIG=<path to valid Kubernetes config>
 export KUBECONFIG=$VERRAZZANO_KUBECONFIG
-export INSTALL_CONFIG_FILE=./config/config_olcne.json
 ```
 
-Run the following scripts in order:
+Run the following commands:
 ```
-./1-install-istio.sh
-./2-install-system-components.sh
-./3-install-verrazzano.sh
-./4-install-keycloak.sh
+kubectl apply -f ../deploy/operator.yaml
+kubectl apply -f ../config/samples/install-olcne.yaml
+kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
+```
+
+Run the following command to monitor the console log output of the installation:
+```
+    kubectl logs -f $(kubectl get pod -l job-name=verrazzano-install-my-verrazzano -o jsonpath="{.items[0].metadata.name}")
 ```
 
 ### 5. Verify the Verrazzano install

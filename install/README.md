@@ -38,7 +38,7 @@ The following software must be installed on your system.
 * Install the installation operator.
 
 ```
-    kubectl apply -f deploy/operator.yaml
+    kubectl apply -f ../deploy/operator.yaml
 ```
 
 ### 2. Do the install
