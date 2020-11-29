@@ -49,7 +49,7 @@ See [Verrazzano Custom Resource](README.md#7-verrazzano-custom-resource) for a c
 
 
 #### Install using xip.io
-The configuration file [install-default.yaml](../config/samples/install-default.yaml) has a template of the required configuration information for a default xip.io installation.
+The file [install-default.yaml](../config/samples/install-default.yaml) is a template of a Verrazzano custom resource to perform a default xip.io installation.
 
 Run the following commands:
 ```
@@ -77,20 +77,16 @@ For example, an appropriate zone name for parent domain `v8o.example.com` domain
 #### Installation
 
 Installing Verrazzano on OCI DNS requires some configuration settings to create DNS records.
-The configuration file [install-oci.yaml](../config/samples/install-oci.yaml) has a template of the required configuration information. Edit this file and provide values for the following configuration settings.
+The file [install-oci.yaml](../config/samples/install-oci.yaml) is a template of a Verrazzano custom resource to perform an OCI DNS installation. Edit this custom resource and provide values for the following configuration settings.
 
-Configuration setting | Required | Description
---- | --- | --- |
-`certificates.acme.emailAddress` | Yes | Email address
-`dns.oci.dnsZoneCompartmentOcid` | Yes | OCI DNS compartment OCID
-`dns.oci.dnsZoneName` | Yes | Name of OCI DNS zone
-`dns.oci.dnsZoneOcid` | Yes | OCI DNS zone OCID
-`dns.oci.fingerprint` | Yes | OCI fingerprint
-`dns.oci.privateKeyFile` | Yes | OCI private key file
-`dns.oci.privateKeyPassphrase` | No | OCI private key passphrase
-`dns.oci.region` | Yes | OCI region
-`dns.oci.tenancyOcid` | Yes | OCI tenancy OCID
-`dns.oci.userOcid` | Yes | OCI user OCID
+* `environmentName`
+* `certificate.acme.emailAddress`
+* `dns.oci.ociConfigSecret`
+* `dns.oci.dnsZoneCompartmentOCID`
+* `dns.oci.dnsZoneOCID`
+* `dns.oci.dnsZoneName`
+
+See the table [Verrazzano Custom Resource Definition](README.md#table-verrazzano-custom-resource-definition) for a description of the Verrazzano custom resource inputs.
 
 When you use the OCI DNS installation, you need to provide a Verrazzano name in the configuration
 file (`environmentName`) that will be used as part of the domain name used to access Verrazzano
@@ -239,6 +235,7 @@ spec:
       clusterResourceNamespace: <namespace of the secret>
 ```
 
+#### Table: Verrazzano Custom Resource Definition
 | Configuration setting | Required | Description
 | --- | --- | --- |
 | spec.environmentName | No | Name of the installation.  This name is part of the endpoint access URL's that are generated. The default value is `default`. |
