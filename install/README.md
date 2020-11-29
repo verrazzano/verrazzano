@@ -241,7 +241,7 @@ spec:
 | spec.environmentName | No | Name of the installation.  This name is part of the endpoint access URL's that are generated. The default value is `default`. |
 | spec.profile | No | The installation profile to select.  Valid values are `prod` (production) and `dev` (development).  The default is `prod`. |
 | spec.dns.oci | No | This portion of the configuration is specified when using OCI DNS.  This configuration cannot be specified in conjunction with spec.dns.external.  |
-| spec.dns.oci.ociConfigSecret | Yes | Name of the OCI configuration secret. |
+| spec.dns.oci.ociConfigSecret | Yes | Name of the OCI configuration secret.  Generate a secret named "oci-config" based on the OCI configuration profile you wish to leverage.  You can specify a profile other than DEFAULT and a different secret name if you wish.  See instructions by executing ./install/create_oci_config_secret.sh.|
 | spec.dns.oci.dnsZoneCompartmentOCID | Yes | The OCI DNS compartment OCID. |
 | spec.dns.oci.dnsZoneOCID | Yes | The OCI DNS zone OCID. |
 | spec.dns.oci.dnsZoneName | Yes | Name of OCI DNS zone. |
@@ -262,8 +262,6 @@ spec:
 | spec.certificate.ca | No | Define a certificate issued by `ca`. |
 | spec.certificate.ca.secretName | Yes | Name of the secret. |
 | spec.certificate.ca.clusterResourceNamespace | Yes | The namespace of the secret. |
-
-DESCRIBE THE OCI CONFIGURATION SECRET
 
 
 ### Known Issues
