@@ -79,12 +79,12 @@ For example, an appropriate zone name for parent domain `v8o.example.com` domain
 Installing Verrazzano on OCI DNS requires some configuration settings to create DNS records.
 The file [install-oci.yaml](../config/samples/install-oci.yaml) is a template of a Verrazzano custom resource to perform an OCI DNS installation. Edit this custom resource and provide values for the following configuration settings.
 
-* `environmentName`
-* `certificate.acme.emailAddress`
-* `dns.oci.ociConfigSecret`
-* `dns.oci.dnsZoneCompartmentOCID`
-* `dns.oci.dnsZoneOCID`
-* `dns.oci.dnsZoneName`
+* `spec.environmentName`
+* `spec.certificate.acme.emailAddress`
+* `spec.dns.oci.ociConfigSecret`
+* `spec.dns.oci.dnsZoneCompartmentOCID`
+* `spec.dns.oci.dnsZoneOCID`
+* `spec.dns.oci.dnsZoneName`
 
 See the table [Verrazzano Custom Resource Definition](README.md#table-verrazzano-custom-resource-definition) for a description of the Verrazzano custom resource inputs.
 
