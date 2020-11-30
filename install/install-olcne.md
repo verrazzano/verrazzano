@@ -340,7 +340,7 @@ If required, use the following commands to install `git`.
 ```
 sudo yum install -y git
 ```
-Edit the sample verrazzano custom resource [install-olcne.yaml](../config/samples/install-olcne.yaml) and provide the configuration settings for your OLCNE environment as follows.
+Edit the sample Verrazzano custom resource [install-olcne.yaml](../config/samples/install-olcne.yaml) file and provide the configuration settings for your OLCNE environment as follows:
 
 - The value for `spec.environmentName` is a unique DNS subdomain for the cluster (for example, `myenv` in `myenv.mydomain.com`).
 - The value for `spec.dns.external.suffix` is the remainder of the DNS domain (for example, `mydomain.com` in `myenv.mydomain.com`).
