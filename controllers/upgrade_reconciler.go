@@ -13,8 +13,12 @@ import (
 
 // Reconcile upgrade will upgrade the components as required
 func (r *VerrazzanoReconciler) reconcileUpgrade(log logr.Logger, req ctrl.Request, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
-	// TODO - Check if this is a valid version upgrade
 	targetVersion := cr.Spec.Version
+	err := validateVersion(targetVersion)
+	if err != nil {
+		log.Error(err,"Invalid upgrade version")
+		return ctrl.Result{}, nil
+	}
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
 	for _, comp := range component.GetComponents() {
@@ -32,4 +36,10 @@ func (r *VerrazzanoReconciler) reconcileUpgrade(log logr.Logger, req ctrl.Reques
 	cr.Status.Version = targetVersion
 	r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete)
 	return ctrl.Result{}, nil
+}
+
+// Validate the target version
+func validateVersion(version string) error {
+	// todo - do this in webhook and check that version matches chart version
+	return nil
 }
