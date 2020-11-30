@@ -61,13 +61,13 @@ monitoringOperator:
   defaultPrometheusReplicas: 1
   grafanaImage: container-registry.oracle.com/olcne/grafana:v6.4.4
   prometheusImage: container-registry.oracle.com/olcne/prometheus:v2.13.1
-  prometheusInitImage: container-registry.oracle.com/os/oraclelinux:7-slim
+  prometheusInitImage: ghcr.io/oracle/oraclelinux:7-slim
   prometheusGatewayImage: ghcr.io/verrazzano/prometheus-pushgateway:1.2.0-20201016205229-164dd8b
   alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
   esImage: ghcr.io/verrazzano/elasticsearch:7.6.1-20201016211502-0412e78
   esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:0.6.0-20201119214106-c34f49b
-  esInitImage: container-registry.oracle.com/os/oraclelinux:7.8
+  esInitImage: ghcr.io/oracle/oraclelinux:7.8
   kibanaImage: ghcr.io/verrazzano/kibana:7.6.1-20201016212846-5eab01c
   monitoringInstanceApiImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-api:0.5.0-20201112155857-82662f1
   configReloaderImage: ghcr.io/verrazzano/configmap-reload:0.3-20201016205243-4f24a0e
