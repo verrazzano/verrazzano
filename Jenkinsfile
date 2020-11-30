@@ -272,7 +272,7 @@ pipeline {
             }
         }
 
-        stage('Generate operator.yaml') {
+        stage('Update operator.yaml') {
             when {
                 allOf {
                     not { buildingTag() }
@@ -281,7 +281,7 @@ pipeline {
             }
             steps {
                 sh """
-                    git clone -b ${env.BRANCH_NAME} https://github.com/verrazzano
+                    git clone -b ${env.BRANCH_NAME} https://github.com/verrazzano/verrazzano
                     cd verrazzano
                     git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
                     git config --global user.name $DOCKER_CREDS_USR
