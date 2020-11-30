@@ -3,7 +3,6 @@
 
 def DOCKER_IMAGE_TAG
 def skipBuild = false
-def updateOperatorYaml = false
 
 pipeline {
     options {
@@ -74,10 +73,7 @@ pipeline {
                         currentBuild.description = "[ci skip] found in commit message. Build skipped."
                         sh "exit 0"
                     }
-                    if (env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'master') {
-                        updateOperatorYaml = true
-                    }
-                }
+               }
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
@@ -278,30 +274,6 @@ pipeline {
             }
         }
 
-        stage('Update operator.yaml') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    equals expected: false, actual: skipBuild
-                    equals expected: true, actual: updateOperatorYaml
-                }
-            }
-            steps {
-                sh """
-                    git clone -b ${env.BRANCH_NAME} https://github.com/verrazzano/verrazzano
-                    cd verrazzano
-                    git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
-                    git config --global user.name $DOCKER_CREDS_USR
-                    git config --global user.email "70212020+verrazzanobot@users.noreply.github.com"
-                    cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > deploy/operator.yaml
-                    cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
-                    git add deploy/operator.yaml
-                    git commit -m "[ci skip] update operator image"
-                    git push
-                   """
-            }
-        }
-
         stage('Kick off MagicDNS Acceptance tests') {
             when {
                 allOf {
@@ -336,6 +308,30 @@ pipeline {
                 build job: 'verrazzano-in-cluster-oke-acceptance-test-suite/${params.ACCEPTANCE_TESTS_BRANCH}', parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME), string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME), string(name: 'DNS_TYPE', value: 'oci')], wait: false
             }
         }*/
+
+        stage('Update operator.yaml') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    equals expected: false, actual: skipBuild
+                    anyOf { branch 'master'; branch 'develop' } }
+                }
+            }
+            steps {
+                sh """
+                    git clone -b ${env.BRANCH_NAME} https://github.com/verrazzano/verrazzano
+                    cd verrazzano
+                    git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
+                    git config --global user.name $DOCKER_CREDS_USR
+                    git config --global user.email "70212020+verrazzanobot@users.noreply.github.com"
+                    cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > deploy/operator.yaml
+                    cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
+                    git add deploy/operator.yaml
+                    git commit -m "[ci skip] update operator image"
+                    git push
+                   """
+            }
+        }
     }
 
     post {
