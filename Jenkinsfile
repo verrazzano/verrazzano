@@ -65,6 +65,7 @@ pipeline {
             steps {
                 script {
                     checkout scm
+                    // Check if commit message contains "[ci skip]"
                     result = sh (script: "git log -1 | grep '.*\\[ci skip\\].*'", returnStatus: true)
                     if (result == 0) {
                         echo ("'ci skip' spotted in git commit. No further stages will be executed.")
