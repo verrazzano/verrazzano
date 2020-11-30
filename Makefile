@@ -104,7 +104,7 @@ manifests: controller-gen
 	# Add copyright headers to the kubebuildr generated CRDs
 	./hack/add-crd-header.sh
 
-	# Re-generate operator.yaml
+	# Re-generate operator.yaml using template yaml file
 	cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|$(shell grep "image:" deploy/operator.yaml | awk '{ print $$2 }')|g" > deploy/operator.yaml
 	cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
 
