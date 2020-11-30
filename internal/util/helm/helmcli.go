@@ -4,7 +4,8 @@
 package helm
 
 import (
-	vz_os "github.com/verrazzano/verrazzano-platform-operator/internal/util/os"
+	"fmt"
+	vz_os "github.com/verrazzano/verrazzano/internal/util/os"
 	"os"
 	"os/exec"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -14,7 +15,6 @@ import (
 func Upgrade(releaseName string, namespace string, chartDir string) error {
 	var log = ctrl.Log.WithName("helm")
 
-//	args := []string{"upgrade", releaseName, chartDir, "--dry-run"}
 	args := []string{"upgrade", releaseName, chartDir}
 	if namespace != "" {
 		args = append(args, "--namespace")
@@ -34,11 +34,11 @@ func Upgrade(releaseName string, namespace string, chartDir string) error {
 	cmd.Env = append(os.Environ(), "KUBECONFIG="+configPath)
 	stdout, stderr, err := vz_os.RunCommand(cmd)
 	if err != nil {
-		log.Error(err, string(stderr))
+		log.Error(err, fmt.Sprintf("Verrazzano helm upgrade failed with stderr: %s\n", string(stderr)))
 		return err
 	}
 
-	// Temp log upgrade output
-	log.Info(string(stdout))
+	//  Log upgrade output
+	log.Info(fmt.Sprintf("Verrazzano helm upgrade succeeded with stdout: %s\n", string(stdout)))
 	return nil
 }

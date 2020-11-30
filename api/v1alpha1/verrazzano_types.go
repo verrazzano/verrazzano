@@ -162,7 +162,7 @@ type Certificate struct {
 // VerrazzanoSpec defines the desired state of Verrazzano
 type VerrazzanoSpec struct {
 	// Version is the Verrazzano version
-	Version string  `json:"version,omitempty"`
+	Version string `json:"version,omitempty"`
 	// Profile is the name of the profile to install.  Default is "prod".
 	// +optional
 	Profile ProfileType `json:"profile,omitempty"`
@@ -201,6 +201,12 @@ const (
 
 	// UninstallFailed means the uninstall job has failed during execution.
 	UninstallFailed ConditionType = "UninstallFailed"
+
+	// UpgradeFailed means the upgrade has failed during execution.
+	UpgradeFailed ConditionType = "UpgradeFailed"
+
+	// UpgradeComplete means the upgrade has completed successfully
+	UpgradeComplete ConditionType = "UpgradeComplete"
 )
 
 // Condition describes current state of an install.
@@ -219,6 +225,8 @@ type Condition struct {
 
 // VerrazzanoStatus defines the observed state of Verrazzano
 type VerrazzanoStatus struct {
+	// The version of Verrazzano that is installed
+	Version string `json:"version,omitempty"`
 	// The latest available observations of an object's current state.
 	Conditions []Condition `json:"conditions,omitempty"`
 }

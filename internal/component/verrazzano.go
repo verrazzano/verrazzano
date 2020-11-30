@@ -4,9 +4,9 @@
 package component
 
 import (
-	installv1alpha1 "github.com/verrazzano/verrazzano-platform-operator/api/v1alpha1"
-	"github.com/verrazzano/verrazzano-platform-operator/internal/helm"
-	vz_os "github.com/verrazzano/verrazzano-platform-operator/internal/util/os"
+	installv1alpha1 "github.com/verrazzano/verrazzano/api/v1alpha1"
+	"github.com/verrazzano/verrazzano/internal/util/helm"
+	vz_os "github.com/verrazzano/verrazzano/internal/util/os"
 	"path/filepath"
 )
 
@@ -28,7 +28,7 @@ func (v Verrazzano) Name() string {
 
 // Upgrade upgrades the component
 func (v Verrazzano) Upgrade(cr *installv1alpha1.Verrazzano) error {
-	absChartDir := filepath.Join(vz_os.VzRootDir(),charDir)
+	absChartDir := filepath.Join(vz_os.VzRootDir(), charDir)
 	err := helm.Upgrade(vzReleaseName, resolveNamespace(cr.Namespace), absChartDir)
 	return err
 }
@@ -36,7 +36,7 @@ func (v Verrazzano) Upgrade(cr *installv1alpha1.Verrazzano) error {
 // resolveNamesapce will return the default verrzzano system namespace unless the namespace
 // is explicity specified
 func resolveNamespace(ns string) string {
-	if len(ns) > 0  && ns != "default" {
+	if len(ns) > 0 && ns != "default" {
 		return ns
 	}
 	return vzDefaultNamespace

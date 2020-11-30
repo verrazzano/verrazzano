@@ -4,10 +4,8 @@
 package component
 
 import (
-	installv1alpha1 "github.com/verrazzano/verrazzano-platform-operator/api/v1alpha1"
+	installv1alpha1 "github.com/verrazzano/verrazzano/api/v1alpha1"
 )
-
-const NotImplemented = "Not Implemented"
 
 // Component interface defines the methods implemented by components
 type Component interface {
@@ -15,7 +13,8 @@ type Component interface {
 	Upgrade(cr *installv1alpha1.Verrazzano) error
 }
 
-// GetComponents returns the list of components that are installable and upgradeable
+// GetComponents returns the list of components that are installable and upgradeable.
+// The components will be processed in the order items in the array
 func GetComponents() []Component {
 	return []Component{Verrazzano{}}
 }
