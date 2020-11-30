@@ -9,7 +9,7 @@ import (
 	"os/exec"
 )
 
-// RunCommand executes an external comamnd
+// RunCommand executes an external command
 func RunCommand(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	stdoutBuffer := &bytes.Buffer{}
 	stderrBuffer := &bytes.Buffer{}
