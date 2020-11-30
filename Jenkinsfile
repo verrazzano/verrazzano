@@ -314,7 +314,7 @@ pipeline {
                 allOf {
                     not { buildingTag() }
                     equals expected: false, actual: skipBuild
-                    anyOf { branch 'master'; branch 'develop' } }
+                    anyOf { branch 'master'; branch 'develop' }
                 }
             }
             steps {
