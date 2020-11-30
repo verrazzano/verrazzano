@@ -33,7 +33,20 @@ kubectl apply -f /tmp/operator.yaml
 kubectl get pods -n verrazzano-install
 
 # Initiate a Verrazzano install for xip.io
-kubectl apply -f config/samples/install_v1alpha1_verrazzano.yaml
+kubectl apply -f config/samples/install-default.yaml
+
+# NOTE:  If you chose to deploy a cluster that makes use of OCI DNS perform the following instead of the xip.io
+# cluster deployment command:
+
+# generate a secret named "oci-config" based on the OCI configuration profile you wish to leverage.  You
+# can specify a profile other than DEFAULT and a different secret name if you wish.  See instruction by executing
+# ./install/create_oci_config_secret.sh
+./install/create_oci_config_secret.sh
+
+# copy the config/samples/install-oci.yaml file
+cp config/samples/install-oci.yaml /tmp
+
+# edit the file and provide the DNS ZONE name, OCID, and compartment OCID, and secret name
 
 # Monitor the install
 kubectl logs -f $(kubectl get pod -l job-name=verrazzano-install-my-verrazzano -o jsonpath="{.items[0].metadata.name}")
@@ -46,7 +59,7 @@ To uninstall Verrazzano with the verrazzano-platform-operator follow these steps
 
 ```
 # Initiate a Verrazzano uninstall
-kubectl delete -f config/samples/install_v1alpha1_verrazzano.yaml
+kubectl delete -f config/samples/install-default.yaml
 
 # Monitor the uninstall
 kubectl logs -f $(kubectl get pod -l job-name=verrazzano-uninstall-my-verrazzano -o jsonpath="{.items[0].metadata.name}")
@@ -97,13 +110,13 @@ You’ll need a Kubernetes cluster to run against.
 * Create a custom resource.  You will notice that messages are logged to the operator
 when the custom resource is applied. 
     ```
-    kubectl apply -f config/samples/install_v1alpha1_verrazzano.yaml
+    kubectl apply -f config/samples/install-default.yaml
     ```
 
 * Delete the custom resource.  You will notice that messages are logged to the operator
 when the custom resource is deleted.
     ```
-    kubectl delete -f config/samples/install_v1alpha1_verrazzano.yaml
+    kubectl delete -f config/samples/install-default.yaml
     ```
 * Uninstall the CRDs from the cluster:
     ```

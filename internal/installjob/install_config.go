@@ -7,12 +7,8 @@
 package installjob
 
 import (
-	"context"
 	"fmt"
 	"strconv"
-
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -110,6 +106,21 @@ type ExternalDNS struct {
 	Suffix string `json:"suffix"`
 }
 
+// OCIConfigAuth defines the OCI authentication fields
+type OCIConfigAuth struct {
+	Region      string `yaml:"region"`
+	Tenancy     string `yaml:"tenancy"`
+	User        string `yaml:"user"`
+	Key         string `yaml:"key"`
+	Fingerprint string `yaml:"fingerprint"`
+	Passphrase  string `yaml:"passphrase"`
+}
+
+// DNSAuth provides the authentication structures for external DNS
+type DNSAuth struct {
+	PrivateKeyAuth OCIConfigAuth `yaml:"privateKeyAuth"`
+}
+
 // DNSOCI configuration
 type DNSOCI struct {
 	Region                 string `json:"region"`
@@ -152,43 +163,32 @@ type InstallConfiguration struct {
 
 // GetInstallConfig returns an install configuration in the json format required by the
 // bash installer scripts.
-func GetInstallConfig(vz *installv1alpha1.Verrazzano, client client.Client) (*InstallConfiguration, error) {
+func GetInstallConfig(vz *installv1alpha1.Verrazzano, auth *DNSAuth) (*InstallConfiguration, error) {
 	if vz.Spec.DNS.External != (installv1alpha1.External{}) {
 		return newExternalDNSInstallConfig(vz), nil
 	}
 
 	if vz.Spec.DNS.OCI != (installv1alpha1.OCI{}) {
-		return newOCIDNSInstallConfig(vz, client)
+		return newOCIDNSInstallConfig(vz, auth)
 	}
 
 	return newXipIoInstallConfig(vz), nil
 }
 
-func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, client client.Client) (*InstallConfiguration, error) {
-	var passphrase string
-	var secret *corev1.Secret
-	var err error
-	if vz.Spec.DNS.OCI.PrivateKeyPassphraseSecretRef != (installv1alpha1.PrivateKeyPassphraseSecretRef{}) {
-		if secret, err = retrieveSecret(client, vz.Spec.DNS.OCI.PrivateKeyPassphraseSecretRef.Name); err != nil {
-			return nil, err
-		}
-		if passphrase, err = getPassphraseFromSecret(secret, vz.Spec.DNS.OCI.PrivateKeyPassphraseSecretRef.Key); err != nil {
-			return nil, err
-		}
-	}
+func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, auth *DNSAuth) (*InstallConfiguration, error) {
 	return &InstallConfiguration{
 		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
 		DNS: DNS{
 			Type: DNSTypeOci,
 			Oci: &DNSOCI{
-				Region:                 vz.Spec.DNS.OCI.Region,
-				TenancyOcid:            vz.Spec.DNS.OCI.TenancyOCID,
-				UserOcid:               vz.Spec.DNS.OCI.UserOCID,
+				Region:                 auth.PrivateKeyAuth.Region,
+				TenancyOcid:            auth.PrivateKeyAuth.Tenancy,
+				UserOcid:               auth.PrivateKeyAuth.User,
 				DNSZoneCompartmentOcid: vz.Spec.DNS.OCI.DNSZoneCompartmentOCID,
-				Fingerprint:            vz.Spec.DNS.OCI.Fingerprint,
-				PrivateKeyFile:         getPrivateKeyFilePath(vz),
-				PrivateKeyPassphrase:   passphrase,
+				Fingerprint:            auth.PrivateKeyAuth.Fingerprint,
+				PrivateKeyFile:         installv1alpha1.OciPrivateKeyFilePath,
+				PrivateKeyPassphrase:   auth.PrivateKeyAuth.Passphrase,
 				DNSZoneOcid:            vz.Spec.DNS.OCI.DNSZoneOCID,
 				DNSZoneName:            vz.Spec.DNS.OCI.DNSZoneName,
 			},
@@ -212,34 +212,6 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, client client.Client
 			},
 		},
 	}, nil
-}
-
-func retrieveSecret(c client.Client, name string) (*corev1.Secret, error) {
-	secret := &corev1.Secret{}
-	err := c.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: "default"}, secret)
-	if err != nil {
-		return nil, err
-	}
-	return secret, nil
-}
-
-func getPrivateKeyFilePath(vz *installv1alpha1.Verrazzano) string {
-	if len(vz.Spec.DNS.OCI.PrivateKeyFileName) > 0 {
-		return fmt.Sprintf("%s/%s", installv1alpha1.OciPrivateKeyFilePath, vz.Spec.DNS.OCI.PrivateKeyFileName)
-	}
-	return ""
-}
-
-func getPassphraseFromSecret(secret *corev1.Secret, key string) (string, error) {
-	if secret != nil {
-		passphrase := string(secret.Data[key])
-		if len(passphrase) > 0 {
-			return passphrase, nil
-		}
-		return "", fmt.Errorf("%s passphrase not found in secret %s", key, secret.Name)
-	}
-
-	return "", nil
 }
 
 // newXipIoInstallConfig returns an install configuration for a xip.io install in the

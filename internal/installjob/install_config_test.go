@@ -7,10 +7,6 @@ import (
 	"fmt"
 	"testing"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/stretchr/testify/assert"
@@ -228,19 +224,10 @@ func TestOCIDNSInstall(t *testing.T) {
 			EnvironmentName: "oci",
 			DNS: installv1alpha1.DNS{
 				OCI: installv1alpha1.OCI{
-					Region:                   "test-region",
-					TenancyOCID:              "test-tenancy-ocid",
-					UserOCID:                 "test-user-ocid",
-					DNSZoneCompartmentOCID:   "test-dns-zone-compartment-ocid",
-					Fingerprint:              "test-fingerprint",
-					PrivateKeyFileSecretName: "test-private-key-file-secret-name",
-					PrivateKeyFileName:       "test-private-key-file-name",
-					PrivateKeyPassphraseSecretRef: installv1alpha1.PrivateKeyPassphraseSecretRef{
-						Name: "private-key",
-						Key:  "passphrase",
-					},
-					DNSZoneOCID: "test-dns-zone-ocid",
-					DNSZoneName: "test-dns-zone-name",
+					OCIConfigSecret:        "oci-config-secret",
+					DNSZoneCompartmentOCID: "test-dns-zone-compartment-ocid",
+					DNSZoneOCID:            "test-dns-zone-ocid",
+					DNSZoneName:            "test-dns-zone-name",
 				},
 			},
 			Ingress: installv1alpha1.Ingress{
@@ -280,7 +267,18 @@ func TestOCIDNSInstall(t *testing.T) {
 		},
 	}
 
-	config, _ := GetInstallConfig(&vz, fake.NewFakeClientWithScheme(newScheme(), getSecret()))
+	dnsAuth := DNSAuth{
+		PrivateKeyAuth: OCIConfigAuth{
+			Region:      "test-region",
+			Tenancy:     "test-tenancy-ocid",
+			User:        "test-user-ocid",
+			Key:         "privateKeyData",
+			Fingerprint: "test-fingerprint",
+			Passphrase:  "passphraseValue",
+		},
+	}
+
+	config, _ := GetInstallConfig(&vz, &dnsAuth)
 	assert.Equalf(t, "oci", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileProd, config.Profile, "Expected profile did not match")
 
@@ -292,7 +290,7 @@ func TestOCIDNSInstall(t *testing.T) {
 	assert.Equalf(t, "test-fingerprint", config.DNS.Oci.Fingerprint, "Expected fingerprint did not match")
 	assert.Equalf(t, "test-dns-zone-ocid", config.DNS.Oci.DNSZoneOcid, "Expected dns zone ocid did not match")
 	assert.Equalf(t, "test-dns-zone-name", config.DNS.Oci.DNSZoneName, "Expected dns zone name did not match")
-	assert.Equalf(t, "/oci/test-private-key-file-name", config.DNS.Oci.PrivateKeyFile, "Expected private key file name did not match")
+	assert.Equalf(t, installv1alpha1.OciPrivateKeyFilePath, config.DNS.Oci.PrivateKeyFile, "Expected private key file name did not match")
 	assert.Equalf(t, "passphraseValue", config.DNS.Oci.PrivateKeyPassphrase, "Expected passphrase did not match")
 
 	assert.Equalf(t, IngressTypeNodePort, config.Ingress.Type, "Expected Ingress type did not match")
@@ -312,59 +310,4 @@ func TestOCIDNSInstall(t *testing.T) {
 	assert.Equalf(t, CertIssuerTypeAcme, config.Certificates.IssuerType, "Expected certification issuer type did not match")
 	assert.Equalf(t, "LetsEncrypt", config.Certificates.ACME.Provider, "Expected cert provider did not match")
 	assert.Equalf(t, "someguy@foo.com", config.Certificates.ACME.EmailAddress, "Expected email address did not match")
-}
-
-func TestGetPassphraseFromSecret(t *testing.T) {
-	secretObj := getSecret()
-
-	passphrase, _ := getPassphraseFromSecret(secretObj, "passphrase")
-	assert.Equalf(t, "passphraseValue", passphrase, "Expected passphrase value did not match")
-}
-
-func getSecret() *corev1.Secret {
-	data := make(map[string][]byte)
-	data["passphrase"] = []byte("passphraseValue")
-	secretObj := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "private-key",
-			Namespace: "default",
-			Labels:    nil,
-		},
-		Data: data,
-		Type: corev1.SecretTypeOpaque,
-	}
-	return secretObj
-}
-
-func TestRetrieveSecret(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(newScheme(), getSecret())
-	foundSecret, err := retrieveSecret(client, "private-key")
-	assert.Nil(t, err, "Unexpected error")
-	assert.Equalf(t, getSecret().Name, foundSecret.Name, "Expected secret name did not match")
-	assert.Equalf(t, getSecret().Data["passphrase"], foundSecret.Data["passphrase"], "Expected secret value did not match")
-}
-
-func TestSecretNotFound(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(newScheme(), getSecret())
-	foundSecret, err := retrieveSecret(client, "private-key-that-does-not-exist")
-	assert.Nil(t, foundSecret, "Secret should not be returned")
-	assert.NotNil(t, err, "Error should be returned")
-}
-
-func TestPassphraseNotFound(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(newScheme(), getSecret())
-	foundSecret, err := retrieveSecret(client, "private-key")
-	assert.Nil(t, err, "secret should be returned")
-	passphrase, err := getPassphraseFromSecret(foundSecret, "wrong-key")
-	assert.Empty(t, passphrase, "Passphrase should not be found")
-	assert.Errorf(t, err, "wrong-key passphrase not found in secret private-key")
-}
-
-// newScheme creates a new scheme that includes this package's object to use for testing
-func newScheme() *runtime.Scheme {
-	scheme := runtime.NewScheme()
-	//_ = clientgoscheme.AddToScheme(scheme)
-	//_ = core.AddToScheme(scheme)
-	corev1.AddToScheme(scheme)
-	return scheme
 }
