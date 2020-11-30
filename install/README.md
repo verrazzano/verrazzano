@@ -44,7 +44,7 @@ The following software must be installed on your system.
 ### 2. Do the install
 
 According to your DNS choice, install Verrazzano using one of the following methods.
-For a complete description of Verrazzano configuration options, see [Verrazzano Custom Resource](README.md#7-verrazzano-custom-resource).
+For a complete description of Verrazzano configuration options, see [Verrazzano Custom Resource](README.md#verrazzano-custom-resource).
 
 
 #### Install using xip.io
@@ -85,9 +85,9 @@ The [install-oci.yaml](../config/samples/install-oci.yaml) file provides a templ
 * `spec.dns.oci.dnsZoneOCID`
 * `spec.dns.oci.dnsZoneName`
 
-See the table [Verrazzano Custom Resource Definition](README.md#table-verrazzano-custom-resource-definition) for a description of the Verrazzano custom resource inputs.
+See the [Verrazzano Custom Resource Definition](README.md#table-verrazzano-custom-resource-definition) table for a description of the Verrazzano custom resource.
 
-When you use the OCI DNS installation, you need to provide a Verrazzano name in the verrazzano custom resource
+When you use the OCI DNS installation, you need to provide a Verrazzano name in the Verrazzano custom resource
  (`spec.environmentName`) that will be used as part of the domain name used to access Verrazzano
 ingresses.  For example, you could use `sales` as an `environmentName`, yielding
 `sales.us.v8o.example.com` as the sales-related domain (assuming the domain and zone names listed
@@ -98,7 +98,7 @@ Run the following commands:
     kubectl apply -f ../config/samples/install-oci.yaml
     kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
 ```
-Run the following command is you want to monitor the console log output of the installation:
+Run the following command if you want to monitor the console log output of the installation:
 ```
     kubectl logs -f $(kubectl get pod -l job-name=verrazzano-install-my-verrazzano -o jsonpath="{.items[0].metadata.name}")
 ```
@@ -186,10 +186,10 @@ Run the following command to get the password:
 ### 6. (Optional) Install the example applications
 Example applications are located in the `examples` directory.
 
-### 7. Verrazzano Custom Resource
-The Verrazzano custom resource contains the configuration information to perform an installation.
+### Verrazzano Custom Resource
+The Verrazzano custom resource contains the configuration information for an installation.
 
-#### General format of Verrazzano custom resource
+#### General format of the Verrazzano custom resource
 ```yaml
 apiVersion: install.verrazzano.io/v1alpha1
 kind: Verrazzano
@@ -237,30 +237,30 @@ spec:
 #### Table: Verrazzano Custom Resource Definition
 | Configuration setting | Required | Description
 | --- | --- | --- |
-| spec.environmentName | No | Name of the installation.  This name is part of the endpoint access URL's that are generated. The default value is `default`. |
-| spec.profile | No | The installation profile to select.  Valid values are `prod` (production) and `dev` (development).  The default is `prod`. |
-| spec.dns.oci | No | This portion of the configuration is specified when using OCI DNS.  This configuration cannot be specified in conjunction with spec.dns.external.  |
-| spec.dns.oci.ociConfigSecret | Yes | Name of the OCI configuration secret.  Generate a secret named "oci-config" based on the OCI configuration profile you want to use.  You can specify a profile other than DEFAULT and a different secret.  See instructions by executing `./install/create_oci_config_secret.sh`.|
-| spec.dns.oci.dnsZoneCompartmentOCID | Yes | The OCI DNS compartment OCID. |
-| spec.dns.oci.dnsZoneOCID | Yes | The OCI DNS zone OCID. |
-| spec.dns.oci.dnsZoneName | Yes | Name of OCI DNS zone. |
-| spec.dns.external | No | This portion of the configuration is specified when using OLCNE.  This configuration cannot be specified in conjunction with `spec.dns.oci`. |
-| spec.dns.external.suffix | Yes | The suffix for DNS names. |
-| spec.ingress | No | This portion of the configuration defines the ingress. |
-| spec.ingress.type | No | The ingress type.  Valid values are `LoadBalancer` and `NodePort`.  The default value is `LoadBalancer`. |
-| spec.ingress.verrazzano | No | This portion of the configuration defines the ingress for the Verrazzano infrastructure endpoints. |
-| spec.ingress.verrazzano.nginxInstallArgs | No | A list of Nginx Helm chart arguments and values to apply during the installation of Nginx.  Each argument is specified as either a `name/value` or `name/valueList` pair. |
-| spec.ingress.verrazzano.ports | No | The list of ports for the ingress. Each port definition is of type [ServicePort](https://godoc.org/k8s.io/api/core/v1#ServicePort). |
-| spec.ingress.application | No | This portion of the configuration defines the ingress for the application endpoints. |
-| spec.ingress.application.istioInstallArgs | No | A list of Istio Helm chart arguments and values to apply during the installation of Istio.  Each argument is specified as either a `name/value` or `name/valueList` pair. |
-| spec.certificate | No | This portion of the configuration defines the certificate information. |
-| spec.certificate.acme | No | Define a certificate issued by `acme`. |
-| spec.certificate.acme.provider | Yes | The certificate issuer provider. |
-| spec.certificate.acme.emailAddress | No | Email address. |
-| spec.certificate.acme.environment | No | The name of the environment. |
-| spec.certificate.ca | No | Define a certificate issued by `ca`. |
-| spec.certificate.ca.secretName | Yes | Name of the secret. |
-| spec.certificate.ca.clusterResourceNamespace | Yes | The namespace of the secret. |
+| `spec.environmentName` | No | Name of the installation.  This name is part of the endpoint access URLs that are generated. The default value is `default`. |
+| `spec.profile` | No | The installation profile to select.  Valid values are `prod` (production) and `dev` (development).  The default is `prod`. |
+| `spec.dns.oci` | No | This portion of the configuration is specified when using OCI DNS.  This configuration cannot be specified in conjunction with `spec.dns.external`.  |
+| `spec.dns.oci.ociConfigSecret` | Yes | Name of the OCI configuration secret.  Generate a secret named "oci-config" based on the OCI configuration profile you want to use.  You can specify a profile other than DEFAULT and a different secret.  See instructions by running `./install/create_oci_config_secret.sh`.|
+| `spec.dns.oci.dnsZoneCompartmentOCID` | Yes | The OCI DNS compartment OCID. |
+| `spec.dns.oci.dnsZoneOCID` | Yes | The OCI DNS zone OCID. |
+| `spec.dns.oci.dnsZoneName` | Yes | Name of OCI DNS zone. |
+| `spec.dns.external` | No | This portion of the configuration is specified when using OLCNE.  This configuration cannot be specified in conjunction with `spec.dns.oci`. |
+| `spec.dns.external.suffix` | Yes | The suffix for DNS names. |
+| `spec.ingress` | No | This portion of the configuration defines the ingress. |
+| `spec.ingress.type` | No | The ingress type.  Valid values are `LoadBalancer` and `NodePort`.  The default value is `LoadBalancer`. |
+| `spec.ingress.verrazzano` | No | This portion of the configuration defines the ingress for the Verrazzano infrastructure endpoints. |
+| `spec.ingress.verrazzano.nginxInstallArgs` | No | A list of Nginx Helm chart arguments and values to apply during the installation of Nginx.  Each argument is specified as either a `name/value` or `name/valueList` pair. |
+| `spec.ingress.verrazzano.ports` | No | The list of ports for the ingress. Each port definition is of type [ServicePort](https://godoc.org/k8s.io/api/core/v1#ServicePort). |
+| `spec.ingress.application` | No | This portion of the configuration defines the ingress for the application endpoints. |
+| `spec.ingress.application.istioInstallArgs` | No | A list of Istio Helm chart arguments and values to apply during the installation of Istio.  Each argument is specified as either a `name/value` or `name/valueList` pair. |
+| `spec.certificate` | No | This portion of the configuration defines the certificate information. |
+| `spec.certificate.acme` | No | Define a certificate issued by `acme`. |
+| `spec.certificate.acme.provider` | Yes | The certificate issuer provider. |
+| `spec.certificate.acme.emailAddress` | No | Email address. |
+| `spec.certificate.acme.environment` | No | The name of the environment. |
+| `spec.certificate.ca` | No | Define a certificate issued by `ca`. |
+| `spec.certificate.ca.secretName` | Yes | Name of the secret. |
+| `spec.certificate.ca.clusterResourceNamespace` | Yes | The namespace of the secret. |
 
 
 ### Known Issues
