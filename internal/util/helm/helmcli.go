@@ -15,6 +15,8 @@ import (
 func Upgrade(releaseName string, namespace string, chartDir string) error {
 	var log = ctrl.Log.WithName("helm")
 
+	// Helm upgrade command will apply the new chart, but use all the existing
+	// overrides that we used during the install. 
 	args := []string{"upgrade", releaseName, chartDir}
 	if namespace != "" {
 		args = append(args, "--namespace")
