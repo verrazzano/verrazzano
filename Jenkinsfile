@@ -106,7 +106,7 @@ pipeline {
                     cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
                     cat deploy/operator.yaml
                     git checkout ${env.BRANCH_NAME}
-                    git commit -a -m "update operator image [ci skip]"
+                    git commit -a -m "[ci skip] update operator image"
                     git push origin ${env.BRANCH_NAME}
                    """
             }
