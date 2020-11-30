@@ -161,6 +161,8 @@ type Certificate struct {
 
 // VerrazzanoSpec defines the desired state of Verrazzano
 type VerrazzanoSpec struct {
+	// Version is the Verrazzano version
+	Version string  `json:"version,omitempty"`
 	// Profile is the name of the profile to install.  Default is "prod".
 	// +optional
 	Profile ProfileType `json:"profile,omitempty"`
