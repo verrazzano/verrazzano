@@ -145,7 +145,7 @@ func TestSuccessfulInstall(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getInstallJobName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
-			newJob := installjob.NewJob(name.Namespace, name.Name, labels, getConfigMapName(name.Name), getServiceAccountName(name.Name), "image", vzapi.DNS{})
+			newJob := installjob.NewJob(name.Namespace, name.Name, labels, getConfigMapName(name.Name), getServiceAccountName(name.Name), "image")
 			job.ObjectMeta = newJob.ObjectMeta
 			job.Spec = newJob.Spec
 			job.Status = batchv1.JobStatus{
@@ -250,6 +250,155 @@ func TestCreateVerrazzano(t *testing.T) {
 			asserts.Equalf(namespace, configMap.Namespace, "ConfigMap namespace did not match")
 			asserts.Equalf(getConfigMapName(name), configMap.Name, "ConfigMap name did not match")
 			asserts.Equalf(labels, configMap.Labels, "ConfigMap labels did not match")
+			return nil
+		})
+
+	// Expect a call to get the Job - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getInstallJobName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Job"}, getInstallJobName(name)))
+
+	// Expect a call to create the Job - return success
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, job *batchv1.Job, opts ...client.CreateOption) error {
+			asserts.Equalf(namespace, job.Namespace, "Job namespace did not match")
+			asserts.Equalf(getInstallJobName(name), job.Name, "Job name did not match")
+			asserts.Equalf(labels, job.Labels, "Job labels did not match")
+			return nil
+		})
+
+	// Expect a call to update the Verrazzano resource
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+
+	// Expect a call to get a stale uninstall job resource
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getUninstallJobName(name)}, gomock.Any()).Return(nil)
+
+	// Expect a call to delete a stale uninstall job resource
+	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+	// Expect a call to get the status writer and return a mock.
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			asserts.Len(verrazzano.Status.Conditions, 1)
+			return nil
+		})
+
+	// Create and make the request
+	request := newRequest(namespace, name)
+	reconciler := newVerrazzanoReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestCreateVerrazzanoWithOCIDNS tests the Reconcile method for the following use case
+// GIVEN a request to reconcile an verrazzano resource with OCI DNS configured
+// WHEN a verrazzano resource has been created
+// THEN ensure all the objects are created
+func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
+	namespace := "verrazzano"
+	name := "test"
+	labels := map[string]string{"label1": "test1"}
+
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	// Expect a call to get the verrazzano resource.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
+			verrazzano.TypeMeta = metav1.TypeMeta{
+				APIVersion: "install.verrazzano.io/v1alpha1",
+				Kind:       "Verrazzano"}
+			verrazzano.ObjectMeta = metav1.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name,
+				Labels:    labels}
+			verrazzano.Spec.DNS.OCI = vzapi.OCI{
+				OCIConfigSecret:        "test-oci-config-secret",
+				DNSZoneCompartmentOCID: "test-dns-zone-ocid",
+				DNSZoneOCID:            "test-dns-zone-ocid",
+				DNSZoneName:            "test-dns-zone-name",
+			}
+			return nil
+		})
+
+	// Expect a call to get the ServiceAccount - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getServiceAccountName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ServiceAccount"}, getServiceAccountName(name)))
+
+	// Expect a call to create the ServiceAccount - return success
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, serviceAccount *corev1.ServiceAccount, opts ...client.CreateOption) error {
+			asserts.Equalf(namespace, serviceAccount.Namespace, "ServiceAccount namespace did not match")
+			asserts.Equalf(getServiceAccountName(name), serviceAccount.Name, "ServiceAccount name did not match")
+			asserts.Equalf(labels, serviceAccount.Labels, "ServiceAccount labels did not match")
+			return nil
+		})
+
+	// Expect a call to get the ClusterRoleBinding - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: getClusterRoleBindingName(namespace, name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ClusterRoleBinding"}, getClusterRoleBindingName(namespace, name)))
+
+	// Expect a call to create the ClusterRoleBinding - return success
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, clusterRoleBinding *rbacv1.ClusterRoleBinding, opts ...client.CreateOption) error {
+			asserts.Equalf("", clusterRoleBinding.Namespace, "ClusterRoleBinding namespace did not match")
+			asserts.Equalf(getClusterRoleBindingName(namespace, name), clusterRoleBinding.Name, "ClusterRoleBinding name did not match")
+			asserts.Equalf(labels, clusterRoleBinding.Labels, "ClusterRoleBinding labels did not match")
+			asserts.Equalf(getServiceAccountName(name), clusterRoleBinding.Subjects[0].Name, "ClusterRoleBinding Subjects name did not match")
+			asserts.Equalf(namespace, clusterRoleBinding.Subjects[0].Namespace, "ClusterRoleBinding Subjects namespace did not match")
+			return nil
+		})
+
+	// Expect a call to get the ConfigMap - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getConfigMapName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ConfigMap"}, getServiceAccountName(name)))
+
+	// Expect a call to get the DNS config secret and return it
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			data := make(map[string][]byte)
+			data["passphrase"] = []byte("passphraseValue")
+			secret.ObjectMeta = metav1.ObjectMeta{
+				Name:      "private-key",
+				Namespace: "default",
+				Labels:    nil,
+			}
+			data = make(map[string][]byte)
+			data[vzapi.OciConfigSecretFile] = []byte("privateKeyAuth:\n  region: us-phoenix-1\n  tenancy: ocid1.tenancy.ocid\n  user: ocid1.user.ocid\n  key: |\n    -----BEGIN RSA PRIVATE KEY-----\n    someencodeddata\n    -----END RSA PRIVATE KEY-----\n  fingerprint: theFingerprint\n  passphrase: passphraseValue")
+			secret.Data = data
+			secret.Type = corev1.SecretTypeOpaque
+			return nil
+		})
+
+	// Expect a call to create the ConfigMap - return success
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
+			asserts.Equalf(namespace, configMap.Namespace, "ConfigMap namespace did not match")
+			asserts.Equalf(getConfigMapName(name), configMap.Name, "ConfigMap name did not match")
+			asserts.Equalf(labels, configMap.Labels, "ConfigMap labels did not match")
+			asserts.NotNil(configMap.Data["config.json"], "Configuration entry not found")
+			asserts.NotNil(configMap.Data[vzapi.OciPrivateKeyFileName], "OCI Config entry not found")
 			return nil
 		})
 
@@ -1083,6 +1232,84 @@ func TestJobGetError(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.EqualError(err, "failed to get Job")
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestGetOCIConfigSecretError tests the Reconcile method for the following use case
+// GIVEN a request to reconcile an verrazzano resource
+// WHEN a there is an error getting the OCI Config secret
+// THEN return error
+func TestGetOCIConfigSecretError(t *testing.T) {
+	namespace := "verrazzano"
+	name := "test"
+	labels := map[string]string{"label1": "test"}
+	var savedVerrazzano *vzapi.Verrazzano
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	// Expect a call to get the verrazzano resource.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
+			verrazzano.TypeMeta = metav1.TypeMeta{
+				APIVersion: "install.verrazzano.io/v1alpha1",
+				Kind:       "Verrazzano"}
+			verrazzano.ObjectMeta = metav1.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name,
+				Labels:    labels}
+			verrazzano.Spec.DNS.OCI = vzapi.OCI{
+				OCIConfigSecret:        "test-oci-config-secret",
+				DNSZoneCompartmentOCID: "test-dns-zone-ocid",
+				DNSZoneOCID:            "test-dns-zone-ocid",
+				DNSZoneName:            "test-dns-zone-name",
+			}
+			savedVerrazzano = verrazzano
+			return nil
+		})
+
+	// Expect a call to get the ServiceAccount - return that it exists
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getServiceAccountName(name)}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
+			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, "", labels)
+			serviceAccount.ObjectMeta = newSA.ObjectMeta
+			return nil
+		})
+
+	// Expect a call to get the ClusterRoleBinding - return that it exists
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: getClusterRoleBindingName(namespace, name)}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, clusterRoleBinding *rbacv1.ClusterRoleBinding) error {
+			crb := installjob.NewClusterRoleBinding(savedVerrazzano, name.Name, getServiceAccountName(name.Name))
+			clusterRoleBinding.ObjectMeta = crb.ObjectMeta
+			clusterRoleBinding.RoleRef = crb.RoleRef
+			clusterRoleBinding.Subjects = crb.Subjects
+			return nil
+		})
+
+	// Expect a call to get the ConfigMap - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getConfigMapName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ConfigMap"}, getServiceAccountName(name)))
+
+	// Expect a call to get the DNS config secret but return a not found error
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil())).
+		Return(errors.NewBadRequest("failed to get Secret"))
+
+	// Create and make the request
+	request := newRequest(namespace, name)
+	reconciler := newVerrazzanoReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.EqualError(err, "failed to get Secret")
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }

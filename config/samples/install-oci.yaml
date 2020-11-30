@@ -10,17 +10,8 @@ spec:
   profile: prod
   dns:
     oci:
-      region: region
-      tenancyOCID: tenancyOcid
-      userOCID: userOcid
+      ociConfigSecret: ociConfigSecret
       dnsZoneCompartmentOCID: dnsZoneCompartmentOcid
-      fingerprint: fingerprint
-      privateKeyFileSecretName: privateKeyFileSecretName
-      privateKeyFileName: privateKeyFileName
-      privateKeyPassphraseSecretRef:
-        name: secretName
-        key: passphrase
-      emailAddress: emailAddress
       dnsZoneOCID: dnsZoneOcid
       dnsZoneName: my.dns.zone.name
   ingress:
