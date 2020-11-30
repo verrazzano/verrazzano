@@ -3,6 +3,7 @@
 
 def DOCKER_IMAGE_TAG
 def skipBuild = false
+def updateOperatorYaml = false
 
 pipeline {
     options {
@@ -68,11 +69,15 @@ pipeline {
                     // Check if commit message contains "[ci skip]"
                     result = sh (script: "git log -1 | grep '.*\\[ci skip\\].*'", returnStatus: true)
                     if (result == 0) {
-                        echo ("'ci skip' spotted in git commit. No further stages will be executed.")
+                        echo ("'[ci skip]' spotted in git commit. No further stages will be executed.")
                         skipBuild = true
-                        currentBuild.description = "[ci skip] Build Skipped."
+                        currentBuild.description = "[ci skip] found in commit message. Build skipped."
                         sh "exit 0"
-                    }                }
+                    }
+                    if (env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'master') {
+                        updateOperatorYaml = true
+                    }
+                }
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
@@ -278,6 +283,7 @@ pipeline {
                 allOf {
                     not { buildingTag() }
                     equals expected: false, actual: skipBuild
+                    equals expected: true, actual: updateOperatorYaml
                 }
             }
             steps {
