@@ -281,7 +281,8 @@ pipeline {
             }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano
+                    git clone -b ${env.BRANCH_NAME} https://github.com/verrazzano
+                    cd verrazzano
                     git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
                     git config --global user.name $DOCKER_CREDS_USR
                     git config --global user.email "70212020+verrazzanobot@users.noreply.github.com"
@@ -289,7 +290,7 @@ pipeline {
                     cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
                     git add deploy/operator.yaml
                     git commit -m "[ci skip] update operator image"
-                    git push origin ${env.BRANCH_NAME}
+                    git push
                    """
             }
         }
