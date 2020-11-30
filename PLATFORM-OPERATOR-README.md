@@ -2,7 +2,7 @@
 
 # verrazzano-platform-operator
 
-THIS IS A TEMPORARY README WHILE WE COMPLETE THE TRANSITION OF THE VERRAZZANO-PLATFORM-OPERATOR CODE INTO THE VERRAZZANO REPOSITORY
+THIS IS A TEMPORARY README WHILE WE COMPLETE THE TRANSITION OF THE VERRAZZANO-PLATFORM-OPERATOR CODE INTO THE VERRAZZANO REPOSITORY.  SOME OF THE CONTENT OF THIS FILE WILL BE MOVED TO OPERATOR/README.MD AFTER THE DIRECTORY RESTRUCTURING IS COMPLETED.
 
 ## Prerequisites
 * kustomize v3.1.0+
@@ -100,6 +100,10 @@ You’ll need a Kubernetes cluster to run against.
 * Install the CRDs into the cluster:
     ```
     make install-crds
+    ```
+* Set the environment variable of the docker image to use when running an installation or uninstall job:
+    ```
+    export VZ_INSTALL_IMAGE="<verrazzano-platform-operator image name>:<image tag>"
     ```
 
 * Run the operator (this will run in the foreground, so switch to a new terminal if you want to leave it running):

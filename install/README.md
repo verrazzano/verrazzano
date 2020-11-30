@@ -35,7 +35,7 @@ The following software must be installed on your system.
     kubectl create secret docker-registry verrazzano-container-registry --docker-username=<username> --docker-password=<password> --docker-server=<docker server>
 ```
 
-* Install the installation operator.
+* Deploy the verrazzano-platform-operator.
 
 ```
     kubectl apply -f ../deploy/operator.yaml
@@ -88,8 +88,8 @@ The file [install-oci.yaml](../config/samples/install-oci.yaml) is a template of
 
 See the table [Verrazzano Custom Resource Definition](README.md#table-verrazzano-custom-resource-definition) for a description of the Verrazzano custom resource inputs.
 
-When you use the OCI DNS installation, you need to provide a Verrazzano name in the configuration
-file (`environmentName`) that will be used as part of the domain name used to access Verrazzano
+When you use the OCI DNS installation, you need to provide a Verrazzano name in the verrazzano custom resource
+ (`spec.environmentName`) that will be used as part of the domain name used to access Verrazzano
 ingresses.  For example, you could use `sales` as an `environmentName`, yielding
 `sales.us.v8o.example.com` as the sales-related domain (assuming the domain and zone names listed
 previously).
@@ -99,7 +99,7 @@ Run the following commands:
     kubectl apply -f ../config/samples/install-oci.yaml
     kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
 ```
-Run the following command to monitor the console log output of the installation:
+Run the following command is you want to monitor the console log output of the installation:
 ```
     kubectl logs -f $(kubectl get pod -l job-name=verrazzano-install-my-verrazzano -o jsonpath="{.items[0].metadata.name}")
 ```
@@ -190,7 +190,7 @@ Example applications are located in the `examples` directory.
 ### 7. Verrazzano Custom Resource
 The Verrazzano custom resource contains the configuration information to perform an installation.
 
-The general format of the yaml to define a Verrazzano custom resource:
+#### General format of Verrazzano custom resource
 ```yaml
 apiVersion: install.verrazzano.io/v1alpha1
 kind: Verrazzano
@@ -201,7 +201,7 @@ spec:
   profile: <installation profile>
   dns:
     oci:
-      ociConfigSecret: ociConfigSecret
+      ociConfigSecret: <OCI configuration secret>
       dnsZoneCompartmentOCID: <DNS compartment OCID>
       dnsZoneOCID: <DNS zone OCID>
       dnsZoneName: <DNS zone name>
