@@ -71,6 +71,7 @@ pipeline {
                         echo ("'[ci skip]' spotted in git commit. No further stages will be executed.")
                         skipBuild = true
                         currentBuild.description = "[ci skip] found in commit message. Build skipped."
+                        currentBuild.result = 'NOT_BUILT'
                         sh "exit 0"
                     }
                }
