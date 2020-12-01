@@ -9,20 +9,24 @@ import (
 	"os/exec"
 )
 
+// CmdRunner defines the interface to run an external command
 type CmdRunner interface {
 	Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error)
 }
-// Runner is used to run an external command
-type DefaultRunner struct{
+
+// DefaultRunner is used to run an external command
+type DefaultRunner struct {
 }
 
 // Verify that Verrazzano implements Component
 var _ CmdRunner = DefaultRunner{}
 
-// needed for unit test
+// neecmdRunFunc is needed ded for unit test
 var cmdRunFunc func(cmd *exec.Cmd) error
 
-func (r DefaultRunner) Run (cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+// Run runs an external command.  The caller is expected to initialize the
+// cmd name and args, for example using exec.Command(...)
+func (r DefaultRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	stdoutBuffer := &bytes.Buffer{}
 	stderrBuffer := &bytes.Buffer{}
 	cmd.Stdout = stdoutBuffer
@@ -37,4 +41,3 @@ func (r DefaultRunner) Run (cmd *exec.Cmd) (stdout []byte, stderr []byte, err er
 	}
 	return stdoutBuffer.Bytes(), stderrBuffer.Bytes(), nil
 }
-

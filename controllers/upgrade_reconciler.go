@@ -22,7 +22,7 @@ func (r *VerrazzanoReconciler) reconcileUpgrade(log logr.Logger, req ctrl.Reques
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
 	for _, comp := range component.GetComponents() {
-		err := comp.Upgrade(cr)
+		err := comp.Upgrade(cr.Namespace)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to upgrade component %s", comp.Name()))
 			msg := fmt.Sprintf("Error upgrading component %s.  Error is %s", comp.Name(), err.Error())

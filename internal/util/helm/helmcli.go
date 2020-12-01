@@ -48,7 +48,7 @@ func Upgrade(releaseName string, namespace string, chartDir string) (stdout []by
 	return stdout, stderr, nil
 }
 
-// Set the command runner as needed by unit tests
+// SetCmdRunner sets the command runner as needed by unit tests
 func SetCmdRunner(r vz_os.CmdRunner) {
 	runner = r
 }
