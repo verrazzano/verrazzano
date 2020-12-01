@@ -210,7 +210,7 @@ pipeline {
                     make -B coverage
                     cp coverage.html ${WORKSPACE}
                     cp coverage.xml ${WORKSPACE}
-                    build/scripts/copy-junit-output.sh ${WORKSPACE}
+                    operator/build/scripts/copy-junit-output.sh ${WORKSPACE}
                 """
             }
             post {
@@ -264,7 +264,7 @@ pipeline {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
                     make integ-test DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
-                    build/scripts/copy-junit-output.sh ${WORKSPACE}
+                    operator/build/scripts/copy-junit-output.sh ${WORKSPACE}
                 """
             }
             post {
@@ -275,7 +275,7 @@ pipeline {
             }
         }
 
-        stage('Kick off MagicDNS Acceptance tests') {
+/*        stage('Kick off MagicDNS Acceptance tests') {
             when {
                 allOf {
                     not { buildingTag() }
@@ -294,7 +294,7 @@ pipeline {
                         propagate: true
             }
         }
-
+*/
         /*stage('Kick off OCI DNS Acceptance tests') {
             when {
                 allOf {
@@ -315,12 +315,12 @@ pipeline {
                 allOf {
                     not { buildingTag() }
                     equals expected: false, actual: skipBuild
-                    anyOf { branch 'master'; branch 'develop' }
+//                    anyOf { branch 'master'; branch 'develop' }
                 }
             }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano
+                    cd ${GO_REPO_PATH}/verrazzano/operator
                     git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
                     git config --global user.name $DOCKER_CREDS_USR
                     git config --global user.email "70212020+verrazzanobot@users.noreply.github.com"
