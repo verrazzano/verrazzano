@@ -40,7 +40,7 @@ GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 CRD_PATH=operator/config/crd/bases
 
 .PHONY: build
-build: manifests generate go-mod
+build: go-mod
 	go build -o bin/verrazzano-platform-operator operator/main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
@@ -65,7 +65,7 @@ check: go-fmt go-vet go-ineffassign go-lint
 # Go build related tasks
 #
 .PHONY: go-install
-go-install: manifests generate go-mod
+go-install: go-mod
 	$(GO) install ./operator/...
 
 .PHONY: go-fmt
