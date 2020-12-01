@@ -275,7 +275,7 @@ pipeline {
             }
         }
 
-/*        stage('Kick off MagicDNS Acceptance tests') {
+        stage('Kick off MagicDNS Acceptance tests') {
             when {
                 allOf {
                     not { buildingTag() }
@@ -294,7 +294,7 @@ pipeline {
                         propagate: true
             }
         }
-*/
+
         /*stage('Kick off OCI DNS Acceptance tests') {
             when {
                 allOf {
@@ -315,7 +315,7 @@ pipeline {
                 allOf {
                     not { buildingTag() }
                     equals expected: false, actual: skipBuild
-//                    anyOf { branch 'master'; branch 'develop' }
+                    anyOf { branch 'master'; branch 'develop' }
                 }
             }
             steps {
