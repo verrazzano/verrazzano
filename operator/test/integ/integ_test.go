@@ -8,7 +8,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/test/integ/k8s"
+	"github.com/verrazzano/verrazzano/operator/test/integ/k8s"
 )
 
 const clusterAdmin = "cluster-admin"

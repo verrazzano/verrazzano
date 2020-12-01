@@ -32,7 +32,7 @@ RUN GO111MODULE=on go build \
     -mod=vendor \
     -ldflags '-extldflags "-static"' \
     -ldflags "-X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}" \
-    -o /usr/bin/verrazzano-platform-operator .
+    -o /usr/bin/verrazzano-platform-operator operator/main.go
 
 # Create the verrazzano-platform-operator image
 FROM container-registry.oracle.com/os/oraclelinux:7-slim@sha256:fcc6f54bb01fc83319990bf5fa1b79f1dec93cbb87db3c5a8884a5a44148e7bb
@@ -56,10 +56,10 @@ COPY --from=build_base /usr/bin/verrazzano-platform-operator /usr/local/bin/verr
 
 # Copy the Verrazzano install and uninstall scripts
 WORKDIR /verrazzano
-COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/install ./install
-COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/uninstall ./uninstall
-COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/config/scripts/run.sh .
-COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/config/scripts/kubeconfig-template ./config/kubeconfig-template
+COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/operator/scripts/install ./install
+COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/operator/scripts/uninstall ./uninstall
+COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/operator/config/scripts/run.sh .
+COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/operator/config/scripts/kubeconfig-template ./config/kubeconfig-template
 
 RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 verrazzano \
     && chown -R 1000:verrazzano /verrazzano \

@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/stretchr/testify/assert"
-	installv1alpha1 "github.com/verrazzano/verrazzano/api/v1alpha1"
+	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 )
 

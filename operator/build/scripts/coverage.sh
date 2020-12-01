@@ -5,7 +5,7 @@
 #
 # Code coverage generation
 # Excludes test utility packages and the test directory
-go test -coverprofile ./coverage.cov $(go list ./... | grep -Ev github.com/verrazzano/verrazzano/test)
+go test -coverprofile ./coverage.cov $(go list ./... | grep -Ev github.com/verrazzano/verrazzano/operator/test)
 
 # Display the global code coverage.  This generates the total number the badge uses
 go tool cover -func=coverage.cov

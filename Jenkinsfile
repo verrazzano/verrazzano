@@ -181,7 +181,7 @@ pipeline {
                     make -B coverage
                     cp coverage.html ${WORKSPACE}
                     cp coverage.xml ${WORKSPACE}
-                    build/scripts/copy-junit-output.sh ${WORKSPACE}
+                    operator/build/scripts/copy-junit-output.sh ${WORKSPACE}
                 """
             }
             post {
@@ -230,7 +230,7 @@ pipeline {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
                     make integ-test DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
-                    build/scripts/copy-junit-output.sh ${WORKSPACE}
+                    operator/build/scripts/copy-junit-output.sh ${WORKSPACE}
                 """
             }
             post {
