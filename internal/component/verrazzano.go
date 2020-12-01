@@ -4,7 +4,6 @@
 package component
 
 import (
-	installv1alpha1 "github.com/verrazzano/verrazzano/api/v1alpha1"
 	"github.com/verrazzano/verrazzano/internal/util/helm"
 	vz_os "github.com/verrazzano/verrazzano/internal/util/os"
 	"path/filepath"
@@ -14,7 +13,7 @@ const vzReleaseName = "verrazzano"
 const vzDefaultNamespace = "verrazzano-system"
 const charDir = "install/chart"
 
-// Verrazzano struct
+// Verrazzano struct needed to implement interface
 type Verrazzano struct {
 }
 
@@ -26,10 +25,21 @@ func (v Verrazzano) Name() string {
 	return "verrazzano"
 }
 
-// Upgrade upgrades the component
-func (v Verrazzano) Upgrade(cr *installv1alpha1.Verrazzano) error {
+// Upgrade upgrades all of the Verrazzano home-grown components including the following:
+//  Verrazzano operator
+//  Verrazzano WLS micro-operator
+//  Verrazzano COH micro-operator
+//  Verrazzano Helidon micro-operator
+//  Verrazzano Cluster micro-operator
+//  Verrazzano VMO operator
+//  Verrazzano admission controller
+//
+// Upgrade is done by using the helm chart upgrade command.   This command will apply the latest chart
+// that is included in the operator image, while retaining any helm value overrides that were applied during
+// install.
+func (v Verrazzano) Upgrade(namespace string) error {
 	absChartDir := filepath.Join(vz_os.VzRootDir(), charDir)
-	err := helm.Upgrade(vzReleaseName, resolveNamespace(cr.Namespace), absChartDir)
+	_, _, err := helm.Upgrade(vzReleaseName, resolveNamespace(namespace), absChartDir)
 	return err
 }
 

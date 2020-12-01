@@ -11,8 +11,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+// cmdRunner needed for unit tests
+var runner vz_os.CmdRunner = vz_os.DefaultRunner{}
+
 // Upgrade will upgrade a Helm release with the specificed charts.
-func Upgrade(releaseName string, namespace string, chartDir string) error {
+func Upgrade(releaseName string, namespace string, chartDir string) (stdout []byte, stderr []byte, err error) {
 	var log = ctrl.Log.WithName("helm")
 
 	// Helm upgrade command will apply the new chart, but use all the existing
@@ -34,13 +37,18 @@ func Upgrade(releaseName string, namespace string, chartDir string) error {
 
 	cmd := exec.Command("helm", args...)
 	cmd.Env = append(os.Environ(), "KUBECONFIG="+configPath)
-	stdout, stderr, err := vz_os.RunCommand(cmd)
+	stdout, stderr, err = runner.Run(cmd)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Verrazzano helm upgrade failed with stderr: %s\n", string(stderr)))
-		return err
+		return stdout, stderr, err
 	}
 
 	//  Log upgrade output
 	log.Info(fmt.Sprintf("Verrazzano helm upgrade succeeded with stdout: %s\n", string(stdout)))
-	return nil
+	return stdout, stderr, nil
+}
+
+// Set the command runner as needed by unit tests
+func SetCmdRunner(r vz_os.CmdRunner) {
+	runner = r
 }

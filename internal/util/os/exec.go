@@ -9,15 +9,32 @@ import (
 	"os/exec"
 )
 
-// RunCommand executes an external command
-func RunCommand(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+type CmdRunner interface {
+	Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error)
+}
+// Runner is used to run an external command
+type DefaultRunner struct{
+}
+
+// Verify that Verrazzano implements Component
+var _ CmdRunner = DefaultRunner{}
+
+// needed for unit test
+var cmdRunFunc func(cmd *exec.Cmd) error
+
+func (r DefaultRunner) Run (cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	stdoutBuffer := &bytes.Buffer{}
 	stderrBuffer := &bytes.Buffer{}
 	cmd.Stdout = stdoutBuffer
 	cmd.Stderr = stderrBuffer
-	err = cmd.Run()
+	if cmdRunFunc != nil {
+		err = cmdRunFunc(cmd)
+	} else {
+		err = cmd.Run()
+	}
 	if err != nil {
 		return stdoutBuffer.Bytes(), stderrBuffer.Bytes(), fmt.Errorf("failed to run '%s :  Error %s", cmd, err)
 	}
 	return stdoutBuffer.Bytes(), stderrBuffer.Bytes(), nil
 }
+

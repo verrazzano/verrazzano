@@ -3,17 +3,13 @@
 
 package component
 
-import (
-	installv1alpha1 "github.com/verrazzano/verrazzano/api/v1alpha1"
-)
-
 // Component interface defines the methods implemented by components
 type Component interface {
 	// Name returns the name of the Verrazzano component
 	Name() string
 
 	// Upgrade will upgrade the Verrazzano component specified in the CR.Version field
-	Upgrade(cr *installv1alpha1.Verrazzano) error
+	Upgrade(namespace string) error
 }
 
 // GetComponents returns the list of components that are installable and upgradeable.
