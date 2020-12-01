@@ -32,9 +32,9 @@ To install Verrazzano, follow these steps:
    - `kubectl apply -f deploy/operator.yaml`
    - `kubectl apply -f config/samples/install-default.yaml`
    - `kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano`
-7. (Optional) Run the following command in the OCI Cloud Shell to monitor the installation log:
+6. (Optional) Run the following command in the OCI Cloud Shell to monitor the installation log:
     - `kubectl logs -f $(kubectl get pod -l job-name=verrazzano-install-my-verrazzano -o jsonpath="{.items[0].metadata.name}")`
-6. (Optional) Install some example applications - see [Deploy the example applications](#deploy-the-example-applications) for details.
+7. (Optional) Install some example applications - see [Deploy the example applications](#deploy-the-example-applications) for details.
 
 
 > **NOTE**: This alpha release of Verrazzano is intended for installation in a single OKE or Oracle Linux Cloud Native Environment (OLCNE) cluster. You should only install Verrazzano in a cluster that can be safely deleted when your evaluation is complete.
