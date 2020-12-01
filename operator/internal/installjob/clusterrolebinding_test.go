@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	installv1alpha1 "github.com/verrazzano/verrazzano/api/v1alpha1"
+	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
