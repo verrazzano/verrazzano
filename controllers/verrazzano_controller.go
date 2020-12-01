@@ -88,7 +88,7 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 
 	// If the version is specified then see if upgrade is needed
 	if len(vz.Spec.Version) > 0 {
-		if (vz.Spec.Version != vz.Status.Version) {
+		if vz.Spec.Version != vz.Status.Version {
 			return r.reconcileUpgrade(log, req, vz)
 		}
 		// nothing to do, installation already at target version

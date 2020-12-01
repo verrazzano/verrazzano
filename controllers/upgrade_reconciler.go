@@ -16,7 +16,7 @@ func (r *VerrazzanoReconciler) reconcileUpgrade(log logr.Logger, req ctrl.Reques
 	targetVersion := cr.Spec.Version
 	err := validateVersion(targetVersion)
 	if err != nil {
-		log.Error(err,"Invalid upgrade version")
+		log.Error(err, "Invalid upgrade version")
 		return ctrl.Result{}, nil
 	}
 

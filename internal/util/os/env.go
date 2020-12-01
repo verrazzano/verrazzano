@@ -18,4 +18,3 @@ func VzRootDir() string {
 	}
 	return "/verrazzano"
 }
-
