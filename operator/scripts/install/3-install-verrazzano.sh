@@ -60,7 +60,7 @@ function check_ingress_ports() {
         log "Port $PORT is accessible on ingress address $INGRESS_IP.  Note that '404 page not found' is an expected response."
       else
         log "ERROR: Port $PORT is NOT accessible on ingress address $INGRESS_IP!  Check that security lists include an ingress rule for the node port $NODEPORT."
-        log "See install README for details(https://github.com/verrazzano/verrazzano/blob/master/install/README.md#1-oke-missing-security-list-ingress-rules)."
+        log "See install README for details(https://github.com/verrazzano/verrazzano/operator/blob/master/install/README.md#1-oke-missing-security-list-ingress-rules)."
         exitvalue=1
       fi
     done

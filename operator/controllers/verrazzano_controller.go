@@ -11,9 +11,9 @@ import (
 	"sigs.k8s.io/yaml"
 	"time"
 
-	installv1alpha1 "github.com/verrazzano/verrazzano/api/v1alpha1"
-	"github.com/verrazzano/verrazzano/internal/installjob"
-	"github.com/verrazzano/verrazzano/internal/uninstalljob"
+	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
+	"github.com/verrazzano/verrazzano/operator/internal/installjob"
+	"github.com/verrazzano/verrazzano/operator/internal/uninstalljob"
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
