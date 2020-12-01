@@ -2,6 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
+def skipBuild = false
 
 pipeline {
     options {
@@ -68,6 +69,7 @@ pipeline {
                     result = sh (script: "git log -1 | grep '.*\\[ci skip\\].*'", returnStatus: true)
                     if (result == 0) {
                         echo ("'[ci skip]' spotted in git commit. No further stages will be executed.")
+                        skipBuild = true
                         currentBuild.description = "[ci skip] found in commit message. Build skipped."
                         currentBuild.result = 'NOT_BUILT'
                         sh "exit 0"
@@ -99,6 +101,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
+                    equals expected: false, actual: skipBuild
                 }
             }
             steps {
@@ -113,6 +116,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
+                    equals expected: false, actual: skipBuild
                 }
             }
             steps {
@@ -127,6 +131,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
+                    equals expected: false, actual: skipBuild
                 }
             }
             steps {
@@ -141,6 +146,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
+                    equals expected: false, actual: skipBuild
                 }
             }
             steps {
@@ -155,6 +161,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
+                    equals expected: false, actual: skipBuild
                 }
             }
             steps {
@@ -169,6 +176,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
+                    equals expected: false, actual: skipBuild
                 }
             }
             steps {
@@ -180,6 +188,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
+                    equals expected: false, actual: skipBuild
                 }
             }
             steps {
@@ -191,6 +200,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
+                    equals expected: false, actual: skipBuild
                 }
             }
             steps {
@@ -228,6 +238,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
+                    equals expected: false, actual: skipBuild
                 }
             }
             steps {
@@ -246,6 +257,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
+                    equals expected: false, actual: skipBuild
                 }
             }
             steps {
@@ -267,6 +279,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
+                    equals expected: false, actual: skipBuild
                 }
             }
             environment {
@@ -286,6 +299,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
+                    equals expected: false, actual: skipBuild
                 }
             }
             environment {
@@ -300,6 +314,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
+                    equals expected: false, actual: skipBuild
                     anyOf { branch 'master'; branch 'develop' }
                 }
             }
