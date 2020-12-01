@@ -65,7 +65,16 @@ pipeline {
             steps {
                 script {
                     checkout scm
-                }
+                    // Check if commit message contains "[ci skip]"
+                    result = sh (script: "git log -1 | grep '.*\\[ci skip\\].*'", returnStatus: true)
+                    if (result == 0) {
+                        echo ("'[ci skip]' spotted in git commit. No further stages will be executed.")
+                        skipBuild = true
+                        currentBuild.description = "[ci skip] found in commit message. Build skipped."
+                        currentBuild.result = 'NOT_BUILT'
+                        sh "exit 0"
+                    }
+               }
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
@@ -104,7 +113,12 @@ pipeline {
         }
 
         stage('gofmt Check') {
-            when { not { buildingTag() } }
+            when {
+                allOf {
+                    not { buildingTag() }
+                    equals expected: false, actual: skipBuild
+                }
+            }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
@@ -114,7 +128,12 @@ pipeline {
         }
 
         stage('go vet Check') {
-            when { not { buildingTag() } }
+            when {
+                allOf {
+                    not { buildingTag() }
+                    equals expected: false, actual: skipBuild
+                }
+            }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
@@ -124,7 +143,12 @@ pipeline {
         }
 
         stage('golint Check') {
-            when { not { buildingTag() } }
+            when {
+                allOf {
+                    not { buildingTag() }
+                    equals expected: false, actual: skipBuild
+                }
+            }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
@@ -134,7 +158,12 @@ pipeline {
         }
 
         stage('ineffassign Check') {
-            when { not { buildingTag() } }
+            when {
+                allOf {
+                    not { buildingTag() }
+                    equals expected: false, actual: skipBuild
+                }
+            }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
@@ -225,7 +254,12 @@ pipeline {
         }
 
         stage('Integration Tests') {
-            when { not { buildingTag() } }
+            when {
+                allOf {
+                    not { buildingTag() }
+                    equals expected: false, actual: skipBuild
+                }
+            }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
@@ -242,6 +276,12 @@ pipeline {
         }
 
         stage('Kick off MagicDNS Acceptance tests') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    equals expected: false, actual: skipBuild
+                }
+            }
             environment {
                 FULL_IMAGE_NAME = "${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
             }
@@ -256,6 +296,12 @@ pipeline {
         }
 
         /*stage('Kick off OCI DNS Acceptance tests') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    equals expected: false, actual: skipBuild
+                }
+            }
             environment {
                 FULL_IMAGE_NAME = "${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
             }
@@ -263,6 +309,30 @@ pipeline {
                 build job: 'verrazzano-in-cluster-oke-acceptance-test-suite/${params.ACCEPTANCE_TESTS_BRANCH}', parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME), string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME), string(name: 'DNS_TYPE', value: 'oci')], wait: false
             }
         }*/
+
+        stage('Update operator.yaml') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    equals expected: false, actual: skipBuild
+                    anyOf { branch 'master'; branch 'develop' }
+                }
+            }
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
+                    git config --global user.name $DOCKER_CREDS_USR
+                    git config --global user.email "70212020+verrazzanobot@users.noreply.github.com"
+                    git checkout -b ${env.BRANCH_NAME}
+                    cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > deploy/operator.yaml
+                    cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
+                    git add deploy/operator.yaml
+                    git commit -m "[ci skip] update operator image"
+                    git push origin ${env.BRANCH_NAME}
+                   """
+            }
+        }
     }
 
     post {
