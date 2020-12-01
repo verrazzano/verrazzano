@@ -4,7 +4,7 @@
 package component
 
 import (
-	"github.com/verrazzano/verrazzano/internal/util/helm"
+	"github.com/verrazzano/verrazzano/operator/internal/util/helm"
 	"os/exec"
 
 	"github.com/stretchr/testify/assert"

@@ -5,7 +5,7 @@ package helm
 
 import (
 	"fmt"
-	vz_os "github.com/verrazzano/verrazzano/internal/util/os"
+	vz_os "github.com/verrazzano/verrazzano/operator/internal/util/os"
 	"os"
 	"os/exec"
 	ctrl "sigs.k8s.io/controller-runtime"

@@ -4,8 +4,8 @@
 package component
 
 import (
-	"github.com/verrazzano/verrazzano/internal/util/helm"
-	vz_os "github.com/verrazzano/verrazzano/internal/util/os"
+	"github.com/verrazzano/verrazzano/operator/internal/util/helm"
+	vz_os "github.com/verrazzano/verrazzano/operator/internal/util/os"
 	"path/filepath"
 )
 

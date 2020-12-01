@@ -6,8 +6,8 @@ package controllers
 import (
 	"fmt"
 	"github.com/go-logr/logr"
-	installv1alpha1 "github.com/verrazzano/verrazzano/api/v1alpha1"
-	"github.com/verrazzano/verrazzano/internal/component"
+	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
+	"github.com/verrazzano/verrazzano/operator/internal/component"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
