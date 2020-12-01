@@ -13,8 +13,8 @@ import (
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/controllers"
-    "github.com/verrazzano/verrazzano/operator/internal/util/log"
-    "go.uber.org/zap"
+	"github.com/verrazzano/verrazzano/operator/internal/util/log"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
