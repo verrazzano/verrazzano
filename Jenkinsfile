@@ -64,7 +64,7 @@ pipeline {
             steps {
                 script {
                     checkout scm
-               }
+                }
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
@@ -215,7 +215,7 @@ pipeline {
             }
         }
 
-
+/*
         stage('Kick off MagicDNS Acceptance tests') {
             when { not { buildingTag() } }
             environment {
@@ -230,7 +230,7 @@ pipeline {
                         propagate: true
             }
         }
-
+*/
         /*stage('Kick off OCI DNS Acceptance tests') {
             when { not { buildingTag() } }
             environment {
@@ -245,7 +245,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
-                    anyOf { branch 'master'; branch 'develop' }
+//                    anyOf { branch 'master'; branch 'develop' }
                 }
             }
             steps {
