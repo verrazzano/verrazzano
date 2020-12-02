@@ -26,10 +26,11 @@ func TestInitLogsDefaultInfo(t *testing.T) {
 	assert.Nil(t, zap.L().Check(zapcore.DebugLevel, msg), msg)
 }
 
-func TestInitLogsDevelopment(t *testing.T) {
-	InitLogs(kzap.Options{
-		Development: true,
-	})
+func TestInitLogsNonDefaultInfo(t *testing.T) {
+	testOpts := kzap.Options{}
+	testOpts.Development = true
+	testOpts.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+	InitLogs(testOpts)
 	zap.S().Errorf("greeting %v", "hello")
 	zap.S().Infof("greeting %v", "hello")
 	zap.S().Debugf("greeting %v", "hello")
