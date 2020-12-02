@@ -186,6 +186,25 @@ Run the following command to get the password:
 ### 6. (Optional) Install the example applications
 Example applications are located in the `examples` directory.
 
+### 7. Uninstall Verrazzano
+
+Run the following commands to delete a Verrazzano installation:
+
+```
+# Get the name of the Verrazzano custom resource
+kubectl get verrazzano
+
+# Delete the Verrazzano custom resource
+kubectl delete verrazzano <name of custom resource>
+```
+
+Run the following command to monitor the console log of the uninstall:
+
+```
+kubectl logs -f $(kubectl get pod -l job-name=verrazzano-uninstall-my-verrazzano -o jsonpath="{.items[0].metadata.name}")
+```
+
+
 ### Verrazzano Custom Resource
 The Verrazzano custom resource contains the configuration information for an installation.
 
