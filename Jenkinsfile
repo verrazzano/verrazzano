@@ -225,7 +225,7 @@ pipeline {
                 FULL_IMAGE_NAME = "${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
             }
             steps {
-                build job: "verrazzano-in-cluster-oke-acceptance-test-suite/${params.ACCEPTANCE_TESTS_BRANCH}",
+                build job: "verrazzano-magic-dns-acceptance-tests/${env.BRANCH_NAME.replace("/", "%2F")}",
                         parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME),
                                      string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME),
                                      string(name: 'OKE_CLUSTER_REGION', value: params.ACCEPTANCE_TESTS_OKE_REGION),
@@ -234,16 +234,6 @@ pipeline {
                         propagate: true
             }
         }
-
-        /*stage('Kick off OCI DNS Acceptance tests') {
-            when { not { buildingTag() } }
-            environment {
-                FULL_IMAGE_NAME = "${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-            }
-            steps {
-                build job: 'verrazzano-in-cluster-oke-acceptance-test-suite/${params.ACCEPTANCE_TESTS_BRANCH}', parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME), string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME), string(name: 'DNS_TYPE', value: 'oci')], wait: false
-            }
-        }*/
 
         stage('Update operator.yaml') {
             when {
