@@ -133,6 +133,9 @@ spec:
                           name:
                             description: Name of install argument
                             type: string
+                          setString:
+                            description: If the Value is a literal string
+                            type: string
                           value:
                             description: Value for named install argument
                             type: string
@@ -161,6 +164,9 @@ spec:
                         properties:
                           name:
                             description: Name of install argument
+                            type: string
+                          setString:
+                            description: If the Value is a literal string
                             type: string
                           value:
                             description: Value for named install argument
