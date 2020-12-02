@@ -32,7 +32,7 @@ func (r *VerrazzanoReconciler) reconcileUpgrade(log logr.Logger, req ctrl.Reques
 			return ctrl.Result{}, nil
 		}
 	}
-	msg := fmt.Sprintf("Successfully upgraded Verrazzano to version %s", cr.Spec.Version)
+	msg := fmt.Sprintf("Verrazzano upgraded to version %s successfully", cr.Spec.Version)
 	cr.Status.Version = targetVersion
 	r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete)
 	return ctrl.Result{}, nil
