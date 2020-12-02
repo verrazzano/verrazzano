@@ -4,12 +4,17 @@
 package uninstalljob
 
 import (
+	"github.com/verrazzano/verrazzano/operator/internal"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 )
 
+// TestNewJob tests the creation of an uninstall job
+// GIVEN a request to create a job
+// WHEN dryRun==false
+// THEN a job is created with the appropriate items uninstall a VZ installation in UNINSTALL mode
 func TestNewJob(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test-job"
@@ -17,7 +22,16 @@ func TestNewJob(t *testing.T) {
 	serviceAccount := "job"
 	image := "docker-image"
 
-	job := NewJob(namespace, name, labels, serviceAccount, image)
+	job := NewJob(&JobConfig{
+		JobConfigCommon: internal.JobConfigCommon{
+			JobName:            name,
+			Namespace:          namespace,
+			Labels:             labels,
+			ServiceAccountName: serviceAccount,
+			JobImage:           image,
+			DryRun:             false,
+		},
+	})
 
 	assert.Equalf(t, namespace, job.Namespace, "Expected namespace did not match")
 	assert.Equalf(t, name, job.Name, "Expected job name did not match")
@@ -40,4 +54,32 @@ func TestNewJob(t *testing.T) {
 	assert.Equal(t, "/home/verrazzano/kubeconfig", job.Spec.Template.Spec.Containers[0].Env[2].Value, "Expected env value did not match")
 	assert.Equal(t, "DEBUG", job.Spec.Template.Spec.Containers[0].Env[3].Name, "Expected env name did not match")
 	assert.Equal(t, "1", job.Spec.Template.Spec.Containers[0].Env[3].Value, "Expected env value did not match")
+	assert.Equal(t, "false", job.Annotations["dry-run"])
+}
+
+// TestNewJobDryRun tests the creation of an uninstall job in dryRun mode
+// GIVEN a request to create a job
+// WHEN dryRun==true
+// THEN an uninstall job is created with in MODE=NOOP
+func TestNewJobDryRun(t *testing.T) {
+	namespace := "verrazzano"
+	name := "test-job"
+	labels := map[string]string{"label1": "test", "label2": "test2"}
+	serviceAccount := "job"
+	image := "docker-image"
+
+	job := NewJob(&JobConfig{
+		JobConfigCommon: internal.JobConfigCommon{
+			JobName:            name,
+			Namespace:          namespace,
+			Labels:             labels,
+			ServiceAccountName: serviceAccount,
+			JobImage:           image,
+			DryRun:             true,
+		},
+	})
+
+	assert.Equal(t, "MODE", job.Spec.Template.Spec.Containers[0].Env[0].Name, "Expected env name did not match")
+	assert.Equal(t, "NOOP", job.Spec.Template.Spec.Containers[0].Env[0].Value, "Expected env value did not match")
+	assert.Equal(t, "true", job.Annotations["dry-run"])
 }

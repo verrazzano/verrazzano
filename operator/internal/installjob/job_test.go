@@ -4,6 +4,7 @@
 package installjob
 
 import (
+	"github.com/verrazzano/verrazzano/operator/internal"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,7 +13,7 @@ import (
 // TestNewJob tests the creation of a job with xip.io DNS specified
 // GIVEN a request to create a job
 // WHEN xip.io DNS has been specified
-// THEN a job is created with the appropriate items to support an xip.io DNS based installation
+// THEN a job is created with the appropriate items to support an xip.io DNS based installation in INSTALL mode
 func TestNewJob(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test-job"
@@ -21,7 +22,17 @@ func TestNewJob(t *testing.T) {
 	serviceAccount := "job"
 	image := "docker-image"
 
-	job := NewJob(namespace, name, labels, configMapName, serviceAccount, image)
+	job := NewJob(&JobConfig{
+		JobConfigCommon: internal.JobConfigCommon{
+			JobName:            name,
+			Namespace:          namespace,
+			Labels:             labels,
+			ServiceAccountName: serviceAccount,
+			JobImage:           image,
+			DryRun:             false,
+		},
+		ConfigMapName: configMapName,
+	})
 
 	assert.Equalf(t, namespace, job.Namespace, "Expected namespace did not match")
 	assert.Equalf(t, name, job.Name, "Expected job name did not match")
@@ -29,4 +40,37 @@ func TestNewJob(t *testing.T) {
 	assert.Equalf(t, configMapName, job.Spec.Template.Spec.Volumes[0].ConfigMap.Name, "Expected configmap name did not match")
 	assert.Equalf(t, serviceAccount, job.Spec.Template.Spec.ServiceAccountName, "Expected service account name did not match")
 	assert.Equalf(t, image, job.Spec.Template.Spec.Containers[0].Image, "Expected service account name did not match")
+
+	assert.Equal(t, "MODE", job.Spec.Template.Spec.Containers[0].Env[0].Name)
+	assert.Equal(t, "INSTALL", job.Spec.Template.Spec.Containers[0].Env[0].Value)
+	assert.Equal(t, "false", job.Annotations["dry-run"])
+}
+
+// TestNewJobDryRun tests the creation of a job with dryRun=true, that the MODE env var is NOOP
+// GIVEN a request to create a job
+// WHEN dryRun==true
+// THEN a job is created with the env var MODE=NOOP
+func TestNewJobDryRun(t *testing.T) {
+	namespace := "verrazzano"
+	name := "test-job"
+	labels := map[string]string{"label1": "test", "label2": "test2"}
+	configMapName := "test-config"
+	serviceAccount := "job"
+	image := "docker-image"
+
+	job := NewJob(&JobConfig{
+		JobConfigCommon: internal.JobConfigCommon{
+			JobName:            name,
+			Namespace:          namespace,
+			Labels:             labels,
+			ServiceAccountName: serviceAccount,
+			JobImage:           image,
+			DryRun:             true,
+		},
+		ConfigMapName: configMapName,
+	})
+
+	assert.Equal(t, "MODE", job.Spec.Template.Spec.Containers[0].Env[0].Name)
+	assert.Equal(t, "NOOP", job.Spec.Template.Spec.Containers[0].Env[0].Value)
+	assert.Equal(t, "true", job.Annotations["dry-run"])
 }

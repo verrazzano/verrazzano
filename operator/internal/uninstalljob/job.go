@@ -4,42 +4,55 @@
 package uninstalljob
 
 import (
+	"github.com/verrazzano/verrazzano/operator/internal"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strconv"
 )
 
+// JobConfig Defines the parameters for an uninstall job
+type JobConfig struct {
+	internal.JobConfigCommon
+}
+
+// uninstallMode value for MODE variable for uninstall jobs
+const uninstallMode = "UNINSTALL"
+
 // NewJob returns a job resource for uninstalling Verrazzano
-// namespace - namespace of verrazzano resource
-// name - name of job resource
-// labels - labels of verrazzano resource
-// serviceAccount - name of service account for job
-// image - docker image containing uninstall scripts
-func NewJob(namespace string, name string, labels map[string]string, serviceAccount string, image string) *batchv1.Job {
+func NewJob(jobConfig *JobConfig) *batchv1.Job {
 	var backOffLimit int32 = 0
+	mode := uninstallMode
+	if jobConfig.DryRun {
+		mode = internal.NoOpMode
+	}
+	annotations := make(map[string]string, 1)
+	annotations[internal.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-			Labels:    labels,
+			Name:        jobConfig.JobName,
+			Namespace:   jobConfig.Namespace,
+			Labels:      jobConfig.Labels,
+			Annotations: annotations,
 		},
 		Spec: batchv1.JobSpec{
 			BackoffLimit: &backOffLimit,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
-					Labels:    labels,
+					Name:        jobConfig.JobName,
+					Namespace:   jobConfig.Namespace,
+					Labels:      jobConfig.Labels,
+					Annotations: annotations,
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
 						Name:            "uninstall",
-						Image:           image,
+						Image:           jobConfig.JobImage,
 						ImagePullPolicy: corev1.PullIfNotPresent,
 						Env: []corev1.EnvVar{
 							{
 								Name:  "MODE",
-								Value: "UNINSTALL",
+								Value: mode,
 							},
 							{
 								Name:  "CLUSTER_TYPE",
@@ -58,11 +71,10 @@ func NewJob(namespace string, name string, labels map[string]string, serviceAcco
 						},
 					}},
 					RestartPolicy:      corev1.RestartPolicyNever,
-					ServiceAccountName: serviceAccount,
+					ServiceAccountName: jobConfig.ServiceAccountName,
 				},
 			},
 		},
 	}
-
 	return job
 }
