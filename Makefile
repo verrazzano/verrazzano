@@ -180,6 +180,7 @@ integ-test: create-cluster
 
 	echo 'Deploy verrazzano platform operator ...'
 ifdef JENKINS_URL
+	cat operator/deploy/operator.yaml
 	kubectl apply -f operator/deploy/operator.yaml
 else
 	mkdir -p build/deploy
