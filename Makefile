@@ -179,10 +179,14 @@ integ-test: create-cluster
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 	echo 'Deploy verrazzano platform operator ...'
+ifdef JENKINS_URL
+	kubectl apply -f operator/deploy/operator.yaml
+else
 	mkdir -p build/deploy
 	cat operator/config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > ${BUILD-DEPLOY}/operator.yaml
 	cat operator/config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> ${BUILD-DEPLOY}/operator.yaml
 	kubectl apply -f ${BUILD-DEPLOY}/operator.yaml
+endif
 
 	echo 'Run tests...'
 	ginkgo -v --keepGoing -cover operator/test/integ/... || IGNORE=FAILURE
