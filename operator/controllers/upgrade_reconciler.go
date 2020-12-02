@@ -20,6 +20,9 @@ func (r *VerrazzanoReconciler) reconcileUpgrade(log logr.Logger, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
+	r.updateStatus(log, cr, fmt.Sprintf("Verrazzano upgrade to version %s in progress", cr.Spec.Version),
+		installv1alpha1.UpgradeStarted)
+
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
 	for _, comp := range component.GetComponents() {
 		err := comp.Upgrade(cr.Namespace)

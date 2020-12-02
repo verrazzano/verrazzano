@@ -202,6 +202,9 @@ const (
 	// UninstallFailed means the uninstall job has failed during execution.
 	UninstallFailed ConditionType = "UninstallFailed"
 
+	// UpgradeStarted means that a Verraazzano upgrade has been started.
+	UpgradeStarted ConditionType = "UpgradeStarted"
+
 	// UpgradeFailed means the upgrade has failed during execution.
 	UpgradeFailed ConditionType = "UpgradeFailed"
 
