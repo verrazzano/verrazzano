@@ -25,3 +25,18 @@ func TestInitLogsDefaultInfo(t *testing.T) {
 	msg = "DebugLevel is disabled"
 	assert.Nil(t, zap.L().Check(zapcore.DebugLevel, msg), msg)
 }
+
+func TestInitLogsDevelopment(t *testing.T) {
+	InitLogs(kzap.Options{
+		Development: true,
+	})
+	zap.S().Errorf("greeting %v", "hello")
+	zap.S().Infof("greeting %v", "hello")
+	zap.S().Debugf("greeting %v", "hello")
+	msg := "InfoLevel is enabled"
+	assert.NotNil(t, zap.L().Check(zapcore.InfoLevel, msg), msg)
+	msg = "ErrorLevel is enabled"
+	assert.NotNil(t, zap.L().Check(zapcore.ErrorLevel, msg), msg)
+	msg = "DebugLevel is disabled"
+	assert.Nil(t, zap.L().Check(zapcore.DebugLevel, msg), msg)
+}
