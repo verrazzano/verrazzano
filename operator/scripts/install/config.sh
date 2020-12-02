@@ -242,8 +242,13 @@ function config_array_to_helm_args {
     for arg in "${extra_install_args[@]}"; do
       param_name=$(echo "$arg" | jq -r '.name')
       param_value=$(echo "$arg" | jq -r '.value')
+      param_set_string=$(echo "$arg" | jq -r '.setString')
       if [ ! -z "$param_name" ] && [ ! -z "$param_value" ]; then
-        helm_args="$helm_args --set $param_name=$param_value"
+        if [ "$param_set_string" == "true" ]; then
+          helm_args="$helm_args --set-string $param_name=$param_value"
+        else
+          helm_args="$helm_args --set $param_name=$param_value"
+        fi
       fi
     done
   fi
