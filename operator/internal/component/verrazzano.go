@@ -11,7 +11,7 @@ import (
 
 const vzReleaseName = "verrazzano"
 const vzDefaultNamespace = "verrazzano-system"
-const charDir = "install/chart"
+const charDir = "operator/scripts/install/chart"
 
 // Verrazzano struct needed to implement interface
 type Verrazzano struct {

@@ -86,9 +86,11 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		return reconcile.Result{}, nil
 	}
 
-	// If the version is specified then see if upgrade is needed
-	if len(vz.Spec.Version) > 0 {
-		if vz.Spec.Version != vz.Status.Version {
+	// If Verrazzano is installed see if upgrade is needed
+	if isInstalled(vz.Status) {
+		// If the version is specified and different than the current version of the installation
+		// then proceed with upgrade
+		if len(vz.Spec.Version) > 0 && vz.Spec.Version != vz.Status.Version {
 			return r.reconcileUpgrade(log, req, vz)
 		}
 		// nothing to do, installation already at target version
@@ -485,4 +487,14 @@ func removeString(slice []string, s string) (result []string) {
 		result = append(result, item)
 	}
 	return
+}
+
+// Return true if verrazzano is installed
+func isInstalled(st installv1alpha1.VerrazzanoStatus) bool {
+	for _, cond := range st.Conditions {
+		if cond.Type == installv1alpha1.InstallComplete {
+			return true
+		}
+	}
+	return false
 }
