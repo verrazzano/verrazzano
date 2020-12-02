@@ -14,12 +14,7 @@ This README describes installing Verrazzano in an OKE cluster. For instructions 
 ## Software requirements
 
 The following software must be installed on your system.  
-* curl
-* helm (version 3.0.x, 3.1.x or 3.2.x)
-* jq
 * kubectl
-* openssl
-* patch (for OCI DNS installation)
 
 
 ### 1. Prepare for installation
@@ -31,8 +26,7 @@ The following software must be installed on your system.
 * Set the following `ENV` vars:
 
 ```
-   export VERRAZZANO_KUBECONFIG=<path to valid Kubernetes config>
-   export KUBECONFIG=$VERRAZZANO_KUBECONFIG
+   export KUBECONFIG=<path to valid Kubernetes config>
 ```
 
 * Create the optional `imagePullSecret` named `verrazzano-container-registry`.  This step is required when one or more of the Docker images installed by Verrazzano are private.  For example, while testing a change to the `verrazzano-operator`, you may be using a Docker image that requires credentials to access it.
@@ -41,20 +35,30 @@ The following software must be installed on your system.
     kubectl create secret docker-registry verrazzano-container-registry --docker-username=<username> --docker-password=<password> --docker-server=<docker server>
 ```
 
+* Deploy the verrazzano-platform-operator.
+
+```
+    kubectl apply -f ../deploy/operator.yaml
+```
+
 ### 2. Do the install
 
 According to your DNS choice, install Verrazzano using one of the following methods.
+For a complete description of Verrazzano configuration options, see [Verrazzano Custom Resource](README.md#verrazzano-custom-resource).
 
 
 #### Install using xip.io
-Run the following scripts in order:
+The [install-default.yaml](../../config/samples/install-default.yaml) file provides a template for a default xip.io installation.
+
+Run the following commands:
 ```
-   ./1-install-istio.sh
-   ./2-install-system-components.sh
-   ./3-install-verrazzano.sh
-   ./4-install-keycloak.sh
+    kubectl apply -f ../config/samples/install-default.yaml
+    kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
 ```
-This is the default configuration, and will automatically use the configuration file `config/config_defaults.json`
+Run the following command to monitor the console log output of the installation:
+```
+    kubectl logs -f $(kubectl get pod -l job-name=verrazzano-install-my-verrazzano -o jsonpath="{.items[0].metadata.name}")
+```
 
 #### Install using OCI DNS
 
@@ -72,39 +76,31 @@ For example, an appropriate zone name for parent domain `v8o.example.com` domain
 #### Installation
 
 Installing Verrazzano on OCI DNS requires some configuration settings to create DNS records.
-The configuration file `config/config_oci.json` has a template of the required configuration
-information. Edit this file and provide values for the following configuration settings.
+The [install-oci.yaml](../../config/samples/install-oci.yaml) file provides a template of a Verrazzano custom resource for an OCI DNS installation. Edit this custom resource and provide values for the following configuration settings:
 
-Configuration setting | Required | Description
---- | --- | --- |
-`certificates.acme.emailAddress` | Yes | Email address
-`dns.oci.dnsZoneCompartmentOcid` | Yes | OCI DNS compartment OCID
-`dns.oci.dnsZoneName` | Yes | Name of OCI DNS zone
-`dns.oci.dnsZoneOcid` | Yes | OCI DNS zone OCID
-`dns.oci.fingerprint` | Yes | OCI fingerprint
-`dns.oci.privateKeyFile` | Yes | OCI private key file
-`dns.oci.privateKeyPassphrase` | No | OCI private key passphrase
-`dns.oci.region` | Yes | OCI region
-`dns.oci.tenancyOcid` | Yes | OCI tenancy OCID
-`dns.oci.userOcid` | Yes | OCI user OCID
+* `spec.environmentName`
+* `spec.certificate.acme.emailAddress`
+* `spec.dns.oci.ociConfigSecret`
+* `spec.dns.oci.dnsZoneCompartmentOCID`
+* `spec.dns.oci.dnsZoneOCID`
+* `spec.dns.oci.dnsZoneName`
 
-When you use the OCI DNS installation, you need to provide a Verrazzano name in the configuration
-file (`environmentName`) that will be used as part of the domain name used to access Verrazzano
+See the [Verrazzano Custom Resource Definition](README.md#table-verrazzano-custom-resource-definition) table for a description of the Verrazzano custom resource.
+
+When you use the OCI DNS installation, you need to provide a Verrazzano name in the Verrazzano custom resource
+ (`spec.environmentName`) that will be used as part of the domain name used to access Verrazzano
 ingresses.  For example, you could use `sales` as an `environmentName`, yielding
 `sales.us.v8o.example.com` as the sales-related domain (assuming the domain and zone names listed
 previously).
 
-Set the `INSTALL_CONFIG_FILE` environment variable to the edited OCI configuration file (e.g.)
+Run the following commands:
 ```
-export INSTALL_CONFIG_FILE=./config/config_oci.json
+    kubectl apply -f ../config/samples/install-oci.yaml
+    kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
 ```
-
-Run the following scripts in order:
+Run the following command if you want to monitor the console log output of the installation:
 ```
-   ./1-install-istio.sh
-   ./2-install-system-components.sh
-   ./3-install-verrazzano.sh
-   ./4-install-keycloak.sh
+    kubectl logs -f $(kubectl get pod -l job-name=verrazzano-install-my-verrazzano -o jsonpath="{.items[0].metadata.name}")
 ```
 
 
@@ -189,6 +185,85 @@ Run the following command to get the password:
 
 ### 6. (Optional) Install the example applications
 Example applications are located in the `examples` directory.
+
+### Verrazzano Custom Resource
+The Verrazzano custom resource contains the configuration information for an installation.
+
+#### General format of the Verrazzano custom resource
+```yaml
+apiVersion: install.verrazzano.io/v1alpha1
+kind: Verrazzano
+metadata:
+  name: <kubenetes object name>
+spec:
+  environmentName: <environment name>
+  profile: <installation profile>
+  dns:
+    oci:
+      ociConfigSecret: <OCI configuration secret>
+      dnsZoneCompartmentOCID: <DNS compartment OCID>
+      dnsZoneOCID: <DNS zone OCID>
+      dnsZoneName: <DNS zone name>
+    external:
+      suffix: <dns suffix>
+  ingress:
+    type: <load balancer type>
+    verrazzano:
+      nginxInstallArgs:
+        - name: <name of nginx helm parameter>
+          value: <value of nging helm parameter>
+        - name: <name of nginx helm parameter>
+          valueList:
+            - <list of values for nginx helm parameter>
+      ports:
+        - <service port definition>
+    application:
+      istioInstallArgs:
+        - name: <name of Istio helm parameter>
+          value: <value of Istio helm parameter>
+        - name: <name of Istio helm parameter>
+          valueList:
+            - <list of values for Istio helm parameter>
+  certificate:
+    acme:
+      provider: <name of certificate issuer>
+      emailAddress: <email address>
+      environment: <name of environment>
+    ca:
+      secretName: <name of the secret>
+      clusterResourceNamespace: <namespace of the secret>
+```
+
+#### Table: Verrazzano Custom Resource Definition
+Following is a table that describes the `spec` portion of the Verrazzano custom resource:
+
+| Configuration setting | Required | Description
+| --- | --- | --- |
+| `environmentName` | No | Name of the installation.  This name is part of the endpoint access URLs that are generated. The default value is `default`. |
+| `profile` | No | The installation profile to select.  Valid values are `prod` (production) and `dev` (development).  The default is `prod`. |
+| `dns.oci` | No | This portion of the configuration is specified when using OCI DNS.  This configuration cannot be specified in conjunction with `dns.external` or `dns.xip.io`.  |
+| `dns.oci.ociConfigSecret` | Yes | Name of the OCI configuration secret.  Generate a secret named "oci-config" based on the OCI configuration profile you want to use.  You can specify a profile other than DEFAULT and a different secret name.  See instructions by running `./install/create_oci_config_secret.sh`.|
+| `dns.oci.dnsZoneCompartmentOCID` | Yes | The OCI DNS compartment OCID. |
+| `dns.oci.dnsZoneOCID` | Yes | The OCI DNS zone OCID. |
+| `dns.oci.dnsZoneName` | Yes | Name of OCI DNS zone. |
+| `dns.external` | No | This portion of the configuration is specified when using OLCNE.  This configuration cannot be specified in conjunction with `dns.oci` or `dns.xip.io`. |
+| `dns.external.suffix` | Yes | The suffix for DNS names. |
+| `dns.xip.io` | No | This portion of the configuration is specified when using xip.io.  This configuration cannot be specified in conjunction with `dns.oci` or `dns.external`. This is the default DNS configuration. |
+| `ingress` | No | This portion of the configuration defines the ingress. |
+| `ingress.type` | No | The ingress type.  Valid values are `LoadBalancer` and `NodePort`.  The default value is `LoadBalancer`. |
+| `ingress.verrazzano` | No | This portion of the configuration defines the ingress for the Verrazzano infrastructure endpoints. |
+| `ingress.verrazzano.nginxInstallArgs` | No | A list of Nginx Helm chart arguments and values to apply during the installation of Nginx.  Each argument is specified as either a `name/value` or `name/valueList` pair. |
+| `ingress.verrazzano.ports` | No | The list of ports for the ingress. Each port definition is of type [ServicePort](https://godoc.org/k8s.io/api/core/v1#ServicePort). |
+| `ingress.application` | No | This portion of the configuration defines the ingress for the application endpoints. |
+| `ingress.application.istioInstallArgs` | No | A list of Istio Helm chart arguments and values to apply during the installation of Istio.  Each argument is specified as either a `name/value` or `name/valueList` pair. |
+| `certificate` | No | This portion of the configuration defines the certificate information. |
+| `certificate.acme` | No | Define a certificate issued by `acme`. |
+| `certificate.acme.provider` | Yes | The certificate issuer provider. |
+| `certificate.acme.emailAddress` | No | Email address. |
+| `certificate.acme.environment` | No | The name of the environment. |
+| `certificate.ca` | No | Define a certificate issued by `ca`. |
+| `certificate.ca.secretName` | Yes | Name of the secret. |
+| `certificate.ca.clusterResourceNamespace` | Yes | The namespace of the secret. |
 
 
 ### Known Issues
