@@ -11,9 +11,9 @@ THIS IS A TEMPORARY README WHILE WE COMPLETE THE TRANSITION OF THE VERRAZZANO-PL
 * docker
 * kubectl
 
-## Performing a build and Verrazzano install
+## Performing a Verrazzano install
 
-To build and then install Verrazzano with the verrazzano-platform-operator follow these steps.
+To install Verrazzano with the verrazzano-platform-operator follow these steps.
 
 ```
 # Create the verrazzano-platform-operator image.  For now, the image needs public access.
@@ -24,8 +24,7 @@ make docker-push
 
 # Create the verrrazzano-platform-operator deployment yaml file.
 # Replace <verrazzano-image> with the verrazzano-platform-operator image you created with 'make docker-push'.
-cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|<verrazzano-image>|g" > /tmp/operator.yaml
-cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> /tmp/operator.yaml
+cat deploy/operator.yaml | sed -e "s|IMAGE_NAME|<verrazzano-image>|g" > /tmp/operator.yaml
 
 # Deploy the verrazzano-platform-operator
 kubectl apply -f /tmp/operator.yaml
