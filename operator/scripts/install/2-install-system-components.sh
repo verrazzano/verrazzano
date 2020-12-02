@@ -22,19 +22,11 @@ function install_nginx_ingress_controller()
     helm repo add stable https://charts.helm.sh/stable || return $?
     helm repo update || return $?
 
-    local ingress_type=""
-    ingress_type=$(get_config_value ".ingress.type")
+    local ingress_type=$(get_config_value ".ingress.type")
 
-    local EXTRA_NGINX_ARGUMENTS=""
-    local extra_install_args=""
-    local extra_install_args_len=0
-    local param_name=""
-    local param_value=""
-    if [ "$ingress_type" == "LoadBalancer" ]; then
-      # Handle any additional NGINX install args - since NGINX is for Verrazzano system Ingress,
-      # these should be in .ingress.verrazzano.nginxInstallArgs[]
-      EXTRA_NGINX_ARGUMENTS=$(get_nginx_helm_args_from_config)
-    fi #end if ingress_type is LoadBalancer
+    # Handle any additional NGINX install args - since NGINX is for Verrazzano system Ingress,
+    # these should be in .ingress.verrazzano.nginxInstallArgs[]
+    local EXTRA_NGINX_ARGUMENTS=$(get_nginx_helm_args_from_config)
 
     if [ "$DNS_TYPE" == "oci" ]; then
       EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.'external-dns\.alpha\.kubernetes\.io/ttl'=60"

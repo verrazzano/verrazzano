@@ -28,10 +28,10 @@ To install Verrazzano, follow these steps:
 5. Run the following commands in the OCI Cloud Shell:
    - `export VERRAZZANO_KUBECONFIG=~/.kube/config`
    - `export KUBECONFIG=~/.kube/config`
-   - `./install/1-install-istio.sh`
-   - `./install/2-install-system-components.sh`
-   - `./install/3-install-verrazzano.sh`
-   - `./install/4-install-keycloak.sh`
+   - `./operator/scripts/install/1-install-istio.sh`
+   - `./operator/scripts/install/2-install-system-components.sh`
+   - `./operator/scripts/install/3-install-verrazzano.sh`
+   - `./operator/scripts/install/4-install-keycloak.sh`
 6. (Optional) Install some example applications - see [Deploy the example applications](#deploy-the-example-applications) for details.
 
 
@@ -61,4 +61,4 @@ See the `./chart/values.yaml` file for the full list of configurable parameters 
 
 ## More Information
 
-For more detailed [installation instructions](./install/README.md), see the `install` directory.
+For more detailed [installation instructions](./operator/scripts/install/README.md), see the `install` directory.

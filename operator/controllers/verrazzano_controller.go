@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	installv1alpha1 "github.com/verrazzano/verrazzano/api/v1alpha1"
-	"github.com/verrazzano/verrazzano/internal/installjob"
-	"github.com/verrazzano/verrazzano/internal/uninstalljob"
+	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
+	"github.com/verrazzano/verrazzano/operator/internal/installjob"
+	"github.com/verrazzano/verrazzano/operator/internal/uninstalljob"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
