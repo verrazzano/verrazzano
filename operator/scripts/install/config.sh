@@ -223,13 +223,13 @@ function get_dns_suffix {
 }
 
 function get_nginx_helm_args_from_config {
-  if [ ! -z "$(get_config_value ".ingress.verrazzano")" ]; then
+  if [ ! -z "$(get_config_value ".ingress.verrazzano")" ] && [ ! -z "$(get_config_value '.ingress.verrazzano.nginxInstallArgs')" ]; then
     config_array_to_helm_args ".ingress.verrazzano.nginxInstallArgs[]" || return 1
   fi
 }
 
 function get_istio_helm_args_from_config {
-  if [ ! -z "$(get_config_value ".ingress.application")" ]; then
+  if [ ! -z "$(get_config_value ".ingress.application")" ] && [ ! -z "$(get_config_value '.ingress.application.istioInstallArgs')" ]; then
     config_array_to_helm_args ".ingress.application.istioInstallArgs[]" || return 1
   fi
 }
@@ -258,7 +258,7 @@ function config_array_to_helm_args {
 
 function get_verrazzano_ports_spec() {
   local ports_spec=""
-  if [ ! -z "$(get_config_value ".ingress.verrazzano")" ]; then
+  if [ ! -z "$(get_config_value ".ingress.verrazzano")" ] && [ ! -z "$(get_config_value '.ingress.verrazzano.ports')" ]; then
     local port_mappings=($(get_config_array ".ingress.verrazzano.ports[]"))
     local port_mappings_len=${#port_mappings[@]}
     if [ $port_mappings_len -ne 0 ]; then
@@ -296,6 +296,6 @@ validate_config_json "$CONFIG_JSON" || fail "Installation config is invalid"
 #log "got nginx ingress ip $(get_verrazzano_ingress_ip)"
 #log "got nginx suffix $(get_dns_suffix $(get_verrazzano_ingress_ip))"
 #log "got istio ingress ip $(get_application_ingress_ip)"
-#log "got verrazzano ports spec $(get_verrazzano_ports_spec)"
+log "got verrazzano ports spec $(get_verrazzano_ports_spec)"
 #log "got nginx helm args $(get_nginx_helm_args_from_config)"
 #log "got istio helm args $(get_istio_helm_args_from_config)"
