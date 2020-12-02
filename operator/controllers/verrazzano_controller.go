@@ -11,10 +11,10 @@ import (
 	"sigs.k8s.io/yaml"
 	"time"
 
-	"github.com/go-logr/logr"
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/internal/installjob"
 	"github.com/verrazzano/verrazzano/operator/internal/uninstalljob"
+	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -32,7 +32,7 @@ import (
 // VerrazzanoReconciler reconciles a Verrazzano object
 type VerrazzanoReconciler struct {
 	client.Client
-	Log        logr.Logger
+	Log        *zap.SugaredLogger
 	Scheme     *runtime.Scheme
 	Controller controller.Controller
 }
@@ -46,7 +46,7 @@ const finalizerName = "install.verrazzano.io"
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
 func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.TODO()
-	log := r.Log.WithValues("resource", fmt.Sprintf("%s:%s", req.Namespace, req.Name)).WithName("reconcile")
+	log := zap.S().With("resource", fmt.Sprintf("%s:%s", req.Namespace, req.Name))
 
 	log.Info("Reconciler called")
 
@@ -75,7 +75,7 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 			// Remove the finalizer and update the verrazzano resource if the uninstall has finished.
 			for _, condition := range vz.Status.Conditions {
 				if condition.Type == installv1alpha1.UninstallComplete || condition.Type == installv1alpha1.UninstallFailed {
-					log.Info(fmt.Sprintf("Removing finalizer %s", finalizerName))
+					log.Infof("Removing finalizer %s", finalizerName)
 					vz.ObjectMeta.Finalizers = removeString(vz.ObjectMeta.Finalizers, finalizerName)
 					if err := r.Update(ctx, vz); err != nil {
 						return reconcile.Result{}, err
@@ -108,7 +108,7 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 }
 
 // createServiceAccount creates a required service account
-func (r *VerrazzanoReconciler) createServiceAccount(ctx context.Context, log logr.Logger, vz *installv1alpha1.Verrazzano) error {
+func (r *VerrazzanoReconciler) createServiceAccount(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Define a new service account resource
 	serviceAccount := installjob.NewServiceAccount(vz.Namespace, getServiceAccountName(vz.Name), os.Getenv("IMAGE_PULL_SECRET"), vz.Labels)
 
@@ -120,10 +120,10 @@ func (r *VerrazzanoReconciler) createServiceAccount(ctx context.Context, log log
 
 	// Check if the service account for running the scripts exist
 	serviceAccountFound := &corev1.ServiceAccount{}
-	log.Info(fmt.Sprintf("Checking if install service account %s exist", getServiceAccountName(vz.Name)))
+	log.Infof("Checking if install service account %s exist", getServiceAccountName(vz.Name))
 	err := r.Get(ctx, types.NamespacedName{Name: getServiceAccountName(vz.Name), Namespace: vz.Namespace}, serviceAccountFound)
 	if err != nil && errors.IsNotFound(err) {
-		log.Info(fmt.Sprintf("Creating install service account %s", getServiceAccountName(vz.Name)))
+		log.Infof("Creating install service account %s", getServiceAccountName(vz.Name))
 		err = r.Create(ctx, serviceAccount)
 		if err != nil {
 			return err
@@ -136,16 +136,16 @@ func (r *VerrazzanoReconciler) createServiceAccount(ctx context.Context, log log
 }
 
 // createClusterRoleBinding creates a required cluster role binding
-func (r *VerrazzanoReconciler) createClusterRoleBinding(ctx context.Context, log logr.Logger, vz *installv1alpha1.Verrazzano) error {
+func (r *VerrazzanoReconciler) createClusterRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Define a new cluster role binding resource
 	clusterRoleBinding := installjob.NewClusterRoleBinding(vz, getClusterRoleBindingName(vz.Namespace, vz.Name), getServiceAccountName(vz.Name))
 
 	// Check if the cluster role binding for running the install scripts exist
 	clusterRoleBindingFound := &rbacv1.ClusterRoleBinding{}
-	log.Info(fmt.Sprintf("Checking if install cluster role binding %s exist", clusterRoleBinding.Name))
+	log.Infof("Checking if install cluster role binding %s exist", clusterRoleBinding.Name)
 	err := r.Get(ctx, types.NamespacedName{Name: clusterRoleBinding.Name, Namespace: clusterRoleBinding.Namespace}, clusterRoleBindingFound)
 	if err != nil && errors.IsNotFound(err) {
-		log.Info(fmt.Sprintf("Creating install cluster role binding %s", clusterRoleBinding.Name))
+		log.Infof("Creating install cluster role binding %s", clusterRoleBinding.Name)
 		err = r.Create(ctx, clusterRoleBinding)
 		if err != nil {
 			return err
@@ -158,7 +158,7 @@ func (r *VerrazzanoReconciler) createClusterRoleBinding(ctx context.Context, log
 }
 
 // createConfigMap creates a required config map for installation
-func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log logr.Logger, vz *installv1alpha1.Verrazzano) error {
+func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Create the configmap resource that will contain installation configuration options
 	configMap := installjob.NewConfigMap(vz.Namespace, getConfigMapName(vz.Name), vz.Labels)
 
@@ -170,7 +170,7 @@ func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log logr.Log
 
 	// Check if the ConfigMap exists for running the install
 	configMapFound := &corev1.ConfigMap{}
-	log.Info(fmt.Sprintf("Checking if install ConfigMap %s exist", configMap.Name))
+	log.Infof("Checking if install ConfigMap %s exist", configMap.Name)
 
 	var dnsAuth *installjob.DNSAuth
 	err = r.Get(ctx, types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}, configMapFound)
@@ -194,7 +194,7 @@ func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log logr.Log
 			configMap.Data = map[string]string{"config.json": string(jsonEncoding)}
 		}
 
-		log.Info(fmt.Sprintf("Creating install ConfigMap %s", configMap.Name))
+		log.Infof("Creating install ConfigMap %s", configMap.Name)
 		err = r.Create(ctx, configMap)
 		if err != nil {
 			return err
@@ -207,7 +207,7 @@ func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log logr.Log
 }
 
 // createInstallJob creates the installation job
-func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log logr.Logger, vz *installv1alpha1.Verrazzano, configMapName string) error {
+func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, configMapName string) error {
 	// Define a new install job resource
 	job := installjob.NewJob(vz.Namespace, getInstallJobName(vz.Name), vz.Labels, configMapName, getServiceAccountName(vz.Name), os.Getenv("VZ_INSTALL_IMAGE"))
 
@@ -218,10 +218,10 @@ func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log logr.Lo
 	}
 	// Check if the job for running the install scripts exist
 	jobFound := &batchv1.Job{}
-	log.Info(fmt.Sprintf("Checking if install job %s exist", getInstallJobName(vz.Name)))
+	log.Infof("Checking if install job %s exist", getInstallJobName(vz.Name))
 	err := r.Get(ctx, types.NamespacedName{Name: getInstallJobName(vz.Name), Namespace: vz.Namespace}, jobFound)
 	if err != nil && errors.IsNotFound(err) {
-		log.Info(fmt.Sprintf("Creating install job %s", getInstallJobName(vz.Name)))
+		log.Infof("Creating install job %s", getInstallJobName(vz.Name))
 		err = r.Create(ctx, job)
 		if err != nil {
 			return err
@@ -229,7 +229,7 @@ func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log logr.Lo
 
 		// Add our finalizer if not already added
 		if !containsString(vz.ObjectMeta.Finalizers, finalizerName) {
-			log.Info(fmt.Sprintf("Adding finalizer %s", finalizerName))
+			log.Infof("Adding finalizer %s", finalizerName)
 			vz.ObjectMeta.Finalizers = append(vz.ObjectMeta.Finalizers, finalizerName)
 			if err := r.Update(ctx, vz); err != nil {
 				return err
@@ -270,13 +270,13 @@ func getDNSAuth(r *VerrazzanoReconciler, dns installv1alpha1.DNS, namespace stri
 }
 
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found
-func (r *VerrazzanoReconciler) cleanupUninstallJob(jobName string, namespace string, log logr.Logger) error {
+func (r *VerrazzanoReconciler) cleanupUninstallJob(jobName string, namespace string, log *zap.SugaredLogger) error {
 	// Check if the job for running the uninstall scripts exist
 	jobFound := &batchv1.Job{}
-	log.Info(fmt.Sprintf("Checking if stale uninstall job %s exists", jobName))
+	log.Infof("Checking if stale uninstall job %s exists", jobName)
 	err := r.Get(context.TODO(), types.NamespacedName{Name: jobName, Namespace: namespace}, jobFound)
 	if err == nil {
-		log.Info(fmt.Sprintf("Deleting stale uninstall job %s", jobName))
+		log.Infof("Deleting stale uninstall job %s", jobName)
 		propagationPolicy := metav1.DeletePropagationBackground
 		deleteOptions := &client.DeleteOptions{PropagationPolicy: &propagationPolicy}
 		err = r.Delete(context.TODO(), jobFound, deleteOptions)
@@ -297,7 +297,7 @@ func (r *VerrazzanoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return err
 }
 
-func (r *VerrazzanoReconciler) createUninstallJob(log logr.Logger, vz *installv1alpha1.Verrazzano) error {
+func (r *VerrazzanoReconciler) createUninstallJob(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Define a new uninstall job resource
 	job := uninstalljob.NewJob(vz.Namespace, getUninstallJobName(vz.Name), vz.Labels, getServiceAccountName(vz.Name), os.Getenv("VZ_INSTALL_IMAGE"))
 
@@ -308,10 +308,10 @@ func (r *VerrazzanoReconciler) createUninstallJob(log logr.Logger, vz *installv1
 
 	// Check if the job for running the uninstall scripts exist
 	jobFound := &batchv1.Job{}
-	log.Info(fmt.Sprintf("Checking if uninstall job %s exist", getUninstallJobName(vz.Name)))
+	log.Infof("Checking if uninstall job %s exist", getUninstallJobName(vz.Name))
 	err := r.Get(context.TODO(), types.NamespacedName{Name: getUninstallJobName(vz.Name), Namespace: vz.Namespace}, jobFound)
 	if err != nil && errors.IsNotFound(err) {
-		log.Info(fmt.Sprintf("Creating uninstall job %s", getUninstallJobName(vz.Name)))
+		log.Infof("Creating uninstall job %s", getUninstallJobName(vz.Name))
 		err = r.Create(context.TODO(), job)
 		if err != nil {
 			return err
@@ -362,7 +362,7 @@ func getConfigMapName(name string) string {
 }
 
 // updateStatus updates the status in the verrazzano CR
-func (r *VerrazzanoReconciler) updateStatus(log logr.Logger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType) error {
+func (r *VerrazzanoReconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType) error {
 	t := time.Now().UTC()
 	condition := installv1alpha1.Condition{
 		Type:    conditionType,
@@ -374,7 +374,7 @@ func (r *VerrazzanoReconciler) updateStatus(log logr.Logger, cr *installv1alpha1
 	}
 
 	cr.Status.Conditions = append(cr.Status.Conditions, condition)
-	log.Info(fmt.Sprintf("Setting verrazzano resource condition type/status: %v/%v", condition.Type, condition.Status))
+	log.Infof("Setting verrazzano resource condition type/status: %v/%v", condition.Type, condition.Status)
 
 	// Update the status
 	err := r.Status().Update(context.TODO(), cr)
@@ -386,7 +386,7 @@ func (r *VerrazzanoReconciler) updateStatus(log logr.Logger, cr *installv1alpha1
 }
 
 // setInstallCondition sets the verrazzano resource condition in status for install
-func (r *VerrazzanoReconciler) setInstallCondition(log logr.Logger, job *batchv1.Job, vz *installv1alpha1.Verrazzano) (err error) {
+func (r *VerrazzanoReconciler) setInstallCondition(log *zap.SugaredLogger, job *batchv1.Job, vz *installv1alpha1.Verrazzano) (err error) {
 	// If the job has succeeded or failed add the appropriate condition
 	if job.Status.Succeeded != 0 || job.Status.Failed != 0 {
 		for _, condition := range vz.Status.Conditions {
@@ -417,7 +417,7 @@ func (r *VerrazzanoReconciler) setInstallCondition(log logr.Logger, job *batchv1
 }
 
 // setUninstallCondition sets the verrazzano resource condition in status for uninstall
-func (r *VerrazzanoReconciler) setUninstallCondition(log logr.Logger, job *batchv1.Job, vz *installv1alpha1.Verrazzano) (err error) {
+func (r *VerrazzanoReconciler) setUninstallCondition(log *zap.SugaredLogger, job *batchv1.Job, vz *installv1alpha1.Verrazzano) (err error) {
 	// If the job has succeeded or failed add the appropriate condition
 	if job.Status.Succeeded != 0 || job.Status.Failed != 0 {
 		for _, condition := range vz.Status.Conditions {
