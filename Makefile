@@ -104,8 +104,8 @@ manifests: controller-gen
 	# Add copyright headers to the kubebuildr generated CRDs
 	./operator/hack/add-crd-header.sh
 
-	# Re-generate operator.yaml
-	cp operator/config/deploy/verrazzano-platform-operator.yaml operator/deploy/operator.yaml
+	# Re-generate operator.yaml using template yaml file
+	cat operator/config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|$(shell grep "image:" operator/deploy/operator.yaml | awk '{ print $$2 }')|g" > operator/deploy/operator.yaml
 	cat operator/config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> operator/deploy/operator.yaml
 
 # Generate code
@@ -180,7 +180,8 @@ integ-test: create-cluster
 
 	echo 'Deploy verrazzano platform operator ...'
 	mkdir -p build/deploy
-	cat operator/deploy/operator.yaml | sed -e "s|IMAGE_NAME|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > ${BUILD-DEPLOY}/operator.yaml
+	cat operator/config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > ${BUILD-DEPLOY}/operator.yaml
+	cat operator/config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> ${BUILD-DEPLOY}/operator.yaml
 	kubectl apply -f ${BUILD-DEPLOY}/operator.yaml
 
 	echo 'Run tests...'
