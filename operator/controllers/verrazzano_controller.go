@@ -498,3 +498,24 @@ func isInstalled(st installv1alpha1.VerrazzanoStatus) bool {
 	}
 	return false
 }
+
+// Return true if the last condition matches the condition type
+func isLastCondition(st installv1alpha1.VerrazzanoStatus, conditionType installv1alpha1.ConditionType) bool {
+	l := len(st.Conditions)
+	if l == 0 {
+		return false
+	}
+	return st.Conditions[l-1].Type == conditionType
+}
+
+// Get the number of times an upgrade failed since last installation or successful upgrade
+func upgradeFailureCount(st installv1alpha1.VerrazzanoStatus) int {
+	var c int
+	for _, cond := range st.Conditions {
+		switch cond.Type {
+		case installv1alpha1.UpgradeComplete: c = 0
+		case installv1alpha1.UpgradeFailed: c++
+		}
+	}
+	return c
+}

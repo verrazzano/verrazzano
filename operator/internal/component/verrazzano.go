@@ -4,14 +4,12 @@
 package component
 
 import (
+	"github.com/verrazzano/verrazzano/operator/internal/util/env"
 	"github.com/verrazzano/verrazzano/operator/internal/util/helm"
-	vz_os "github.com/verrazzano/verrazzano/operator/internal/util/os"
-	"path/filepath"
 )
 
 const vzReleaseName = "verrazzano"
 const vzDefaultNamespace = "verrazzano-system"
-const charDir = "operator/scripts/install/chart"
 
 // Verrazzano struct needed to implement interface
 type Verrazzano struct {
@@ -38,8 +36,7 @@ func (v Verrazzano) Name() string {
 // that is included in the operator image, while retaining any helm value overrides that were applied during
 // install.
 func (v Verrazzano) Upgrade(namespace string) error {
-	absChartDir := filepath.Join(vz_os.VzRootDir(), charDir)
-	_, _, err := helm.Upgrade(vzReleaseName, resolveNamespace(namespace), absChartDir)
+	_, _, err := helm.Upgrade(vzReleaseName, resolveNamespace(namespace), env.VzChartDir())
 	return err
 }
 
