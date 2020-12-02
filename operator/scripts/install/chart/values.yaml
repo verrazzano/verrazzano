@@ -65,10 +65,10 @@ monitoringOperator:
   prometheusGatewayImage: ghcr.io/verrazzano/prometheus-pushgateway:1.2.0-20201016205229-164dd8b
   alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
-  esImage: ghcr.io/verrazzano/elasticsearch:7.6.1-20201016211502-0412e78
+  esImage: ghcr.io/verrazzano/elasticsearch:7.6.1-20201130145440-5c76ab1
   esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:0.6.0-20201119214106-c34f49b
   esInitImage: ghcr.io/oracle/oraclelinux:7.8
-  kibanaImage: ghcr.io/verrazzano/kibana:7.6.1-20201016212846-5eab01c
+  kibanaImage: ghcr.io/verrazzano/kibana:7.6.1-20201130145840-7717e73
   monitoringInstanceApiImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-api:0.5.0-20201112155857-82662f1
   configReloaderImage: ghcr.io/verrazzano/configmap-reload:0.3-20201016205243-4f24a0e
   nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
