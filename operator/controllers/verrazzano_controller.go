@@ -46,7 +46,7 @@ const finalizerName = "install.verrazzano.io"
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
 func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.TODO()
-	log := zap.S().With("resource", fmt.Sprintf("%s:%s", req.Namespace, req.Name)).Named("reconcile")
+	log := zap.S().With("resource", fmt.Sprintf("%s:%s", req.Namespace, req.Name))
 
 	log.Info("Reconciler called")
 
@@ -75,7 +75,7 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 			// Remove the finalizer and update the verrazzano resource if the uninstall has finished.
 			for _, condition := range vz.Status.Conditions {
 				if condition.Type == installv1alpha1.UninstallComplete || condition.Type == installv1alpha1.UninstallFailed {
-					log.Info("Removing finalizer %s", finalizerName)
+					log.Infof("Removing finalizer %s", finalizerName)
 					vz.ObjectMeta.Finalizers = removeString(vz.ObjectMeta.Finalizers, finalizerName)
 					if err := r.Update(ctx, vz); err != nil {
 						return reconcile.Result{}, err
