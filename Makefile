@@ -10,7 +10,7 @@ DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)
 
 CREATE_LATEST_TAG=0
 
-CRD_OPTIONS ?= "crd:trivialVersions=true"
+CRD_OPTIONS ?= "crd:crdVersions=v1"
 
 ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),docker-push push-tag))
 ifndef DOCKER_REPO
