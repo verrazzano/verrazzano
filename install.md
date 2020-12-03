@@ -231,6 +231,7 @@ spec:
       nginxInstallArgs:
         - name: <name of nginx helm parameter>
           value: <value of nging helm parameter>
+          setString: <whether value is a literal string>
         - name: <name of nginx helm parameter>
           valueList:
             - <list of values for nginx helm parameter>
@@ -240,6 +241,7 @@ spec:
       istioInstallArgs:
         - name: <name of Istio helm parameter>
           value: <value of Istio helm parameter>
+          setString: <whether value is a literal string>
         - name: <name of Istio helm parameter>
           valueList:
             - <list of values for Istio helm parameter>
