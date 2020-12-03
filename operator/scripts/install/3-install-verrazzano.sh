@@ -122,6 +122,37 @@ function create_admission_controller_cert()
   fi
 }
 
+function install_oam {
+  log "Create oam-system namespace"
+  kubectl create namespace oam-system
+  if [ $? -ne 0 ]; then
+    error "Failed to create oam-system namespace."
+    return 1
+  fi
+
+  log "Add OAM helm repository"
+  helm repo add crossplane-master https://charts.crossplane.io/master/
+  if [ $? -ne 0 ]; then
+    error "Failed add OAM helm repository."
+    return 1
+  fi
+
+  log "Install OAM"
+  helm install oam --namespace oam-system crossplane-master/oam-kubernetes-runtime --devel
+  if [ $? -ne 0 ]; then
+    error "Failed to OAM helm install."
+    return 1
+  fi
+
+  log "Setup OAM roles"
+  kubectl create clusterrolebinding cluster-admin-binding-oam --clusterrole cluster-admin --user system:serviceaccount:oam-system:oam-kubernetes-runtime-oam
+  if [ $? -ne 0 ]; then
+    error "Failed to setup OAM roles."
+    return 1
+  fi
+}
+
+
 function install_verrazzano()
 {
   local RANCHER_HOSTNAME=rancher.${ENV_NAME}.${DNS_SUFFIX}
@@ -194,6 +225,36 @@ function install_verrazzano()
   log "Verrazzano install completed"
 }
 
+function install_wls_operator {
+  log "Add Weblogic Operator helm repository"
+  helm repo add weblogic-operator https://oracle.github.io/weblogic-kubernetes-operator/charts
+  if [ $? -ne 0 ]; then
+    error "Failed add OAM helm repository."
+    return 1
+  fi
+
+  log "Create weblogic-operator namespace"
+  kubectl create namespace weblogic-operator
+  if [ $? -ne 0 ]; then
+    error "Failed to create weblogic-operator namespace."
+    return 1
+  fi
+
+  log "Create weblogic-operator serviceaccount"
+  kubectl create serviceaccount -n weblogic-operator weblogic-operator-sa
+  if [ $? -ne 0 ]; then
+    error "Failed to create weblogic-operator serviceaccount."
+    return 1
+  fi
+
+  log "Install WebLogic Kubernetes operator"
+  helm install weblogic-operator weblogic-operator/weblogic-operator --namespace weblogic-operator --set image=oracle/weblogic-kubernetes-operator:3.1.0 --set serviceAccount=weblogic-operator-sa --set domainNamespaceSelectionStrategy=LabelSelector --set domainNamespaceLabelSelector=verrazzano-domain --set enableClusterRoleBinding=true --wait
+  if [ $? -ne 0 ]; then
+    error "Failed to install WebLogic Kubernetes operator."
+    return 1
+  fi
+}
+
 # Set environment variable for checking if optional imagePullSecret was provided
 REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 
@@ -209,4 +270,6 @@ if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
 fi
 
 action "Creating admission controller cert" create_admission_controller_cert || exit 1
+action "Installing OAM runtime" install_oam || exit 1
 action "Installing Verrazzano system components" install_verrazzano || exit 1
+action "Installing WebLogic Kubernetes operator" install_wls_operator || exit 1

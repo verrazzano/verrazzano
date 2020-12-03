@@ -1,0 +1,59 @@
+# Copyright (C) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: verrazzano-application
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: verrazzano-application-operator
+  namespace: verrazzano-application
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: verrazzano-application-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: verrazzano-application-operator
+    namespace: verrazzano-application
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verrazzano-application-operator
+  namespace: verrazzano-application
+  labels:
+    app: verrazzano-application-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: verrazzano-application-operator
+  template:
+    metadata:
+      labels:
+        app: verrazzano-application-operator
+    spec:
+      imagePullSecrets:
+        - name: github-packages
+      containers:
+        - name: verrazzano-application-operator
+          imagePullPolicy: IfNotPresent
+          image: iad.ocir.io/weblogicondocker/verrazzano-application-operator-dev:local-e626d89
+          env:
+            - name: CLUSTER_TYPE
+              value: OKE
+            - name: VERRAZZANO_KUBECONFIG
+              value: /home/verrazzano/kubeconfig
+          resources:
+            requests:
+              memory: 72Mi
+      serviceAccountName: verrazzano-application-operator

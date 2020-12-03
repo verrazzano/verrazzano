@@ -12,6 +12,20 @@ UNINSTALL_DIR=$SCRIPT_DIR/..
 
 set -o pipefail
 
+# This makes an attempt to uninstall the WebLogic Kubernetes operator, ignoring errors so that this can work
+# in the case where there is a partial installation
+
+function uninstall_weblogic_operator {
+  log "Uninstalling WebLogic Kubernetes operator"
+  helm delete weblogic-operator --namespace weblogic-operator
+
+  log "Delete weblogic-operator namespace"
+  kubectl delete ns weblogic-operator
+
+  return 0
+}
+
+
 function delete_verrazzano() {
   # delete helm installation of Verrazzano
   log "Deleting Verrazzano"
@@ -59,4 +73,27 @@ function delete_verrazzano() {
     || return $? # return on pipefail
 }
 
+# This makes an attempt to uninstall OAM, ignoring errors so that this can work
+# in the case where there is a partial installation
+function uninstall_oam {
+
+  log "Uninstall OAM"
+  helm delete oam --namespace oam-system crossplane-master/oam-kubernetes-runtime
+
+  log "Delete OAM roles"
+  kubectl delete clusterrole oam-kubernetes-runtime-oam:system:aggregate-to-controller
+  kubectl delete clusterrolebinding oam-kubernetes-runtime-oam:system:aggregate-to-controller
+  kubectl delete clusterrolebinding cluster-admin-binding-oam
+  kubectl delete ScopeDefinition healthscopes.core.oam.dev
+  kubectl delete TraitDefinition manualscalertraits.core.oam.dev
+  kubectl delete WorkloadDefinition containerizedworkloads.core.oam.dev
+
+  log "Delete oam-system namespace"
+  kubectl delete namespace oam-system
+
+}
+
+action "Uninstalling WebLogic Kubernetes operator " uninstall_weblogic_operator || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1
+action "Uninstalling OAM runtime" uninstall_oam || exit 1
+
