@@ -230,7 +230,7 @@ pipeline {
                 }
             }
         }
-
+/*
         stage('Kick off MagicDNS Acceptance tests') {
             when { not { buildingTag() } }
             environment {
@@ -246,7 +246,7 @@ pipeline {
                         propagate: true
             }
         }
-
+*/
         /*stage('Kick off OCI DNS Acceptance tests') {
             when { not { buildingTag() } }
             environment {
@@ -261,7 +261,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
-                    anyOf { branch 'master'; branch 'develop' }
+//                    anyOf { branch 'master'; branch 'develop' }
                 }
             }
             steps {
@@ -272,7 +272,7 @@ pipeline {
                     git config --global user.email "70212020+verrazzanobot@users.noreply.github.com"
                     git checkout -b ${env.BRANCH_NAME}
                     git add deploy/operator.yaml
-                    git commit -m "Jenkins update to operator image in operator.yaml"
+                    git commit -m "[verrazzanobot] Update verrazzano-platform-operator image version to ${DOCKER_IMAGE_TAG} in operator.yaml"
                     git push origin ${env.BRANCH_NAME}
                    """
             }
