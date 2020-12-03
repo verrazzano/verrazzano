@@ -2,7 +2,7 @@
 
 # verrazzano-platform-operator
 
-THIS IS A TEMPORARY README WHILE WE COMPLETE THE TRANSITION OF THE VERRAZZANO-PLATFORM-OPERATOR CODE INTO THE VERRAZZANO REPOSITORY
+This document contains instructions for building and testing the verrazzano-platform-operator.
 
 ## Prerequisites
 * kustomize v3.1.0+
