@@ -38,7 +38,7 @@ The following software must be installed on your system.
 * Deploy the verrazzano-platform-operator.
 
 ```
-    kubectl apply -f ../deploy/operator.yaml
+    kubectl apply -f operator/deploy/operator.yaml
 ```
 
 ### 2. Do the install
@@ -48,11 +48,11 @@ For a complete description of Verrazzano configuration options, see [Verrazzano 
 
 
 #### Install using xip.io
-The [install-default.yaml](../../config/samples/install-default.yaml) file provides a template for a default xip.io installation.
+The [install-default.yaml](operator/config/samples/install-default.yaml) file provides a template for a default xip.io installation.
 
 Run the following commands:
 ```
-    kubectl apply -f ../config/samples/install-default.yaml
+    kubectl apply -f operator/config/samples/install-default.yaml
     kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
 ```
 Run the following command to monitor the console log output of the installation:
@@ -76,7 +76,7 @@ For example, an appropriate zone name for parent domain `v8o.example.com` domain
 #### Installation
 
 Installing Verrazzano on OCI DNS requires some configuration settings to create DNS records.
-The [install-oci.yaml](../../config/samples/install-oci.yaml) file provides a template of a Verrazzano custom resource for an OCI DNS installation. Edit this custom resource and provide values for the following configuration settings:
+The [install-oci.yaml](operator/config/samples/install-oci.yaml) file provides a template of a Verrazzano custom resource for an OCI DNS installation. Edit this custom resource and provide values for the following configuration settings:
 
 * `spec.environmentName`
 * `spec.certificate.acme.emailAddress`
@@ -95,7 +95,7 @@ previously).
 
 Run the following commands:
 ```
-    kubectl apply -f ../config/samples/install-oci.yaml
+    kubectl apply -f operator/config/samples/install-oci.yaml
     kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
 ```
 Run the following command if you want to monitor the console log output of the installation:

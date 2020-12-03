@@ -2,6 +2,8 @@
 
 # verrazzano-platform-operator
 
+This document contains instructions for building and testing the verrazzano-platform-operator.
+
 ## Prerequisites
 * kustomize v3.1.0+
 * kubebuilder 2.3.1+
