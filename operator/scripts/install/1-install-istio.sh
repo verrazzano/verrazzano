@@ -124,9 +124,8 @@ function install_istio()
 
     log "Wait for istio CRD creation jobs to complete"
     if ! kubectl -n istio-system wait --for=condition=complete job --all --timeout=300s ; then
-      stat=$?
       consoleerr "ERROR: Istio CRD creation failed"
-      return $stat
+      return 1
     fi
 
     log "Change to use the OLCNE image for kubectl then install istio proper"
@@ -139,7 +138,7 @@ function update_coredns()
     local cluster_ip
     cluster_ip=$(kubectl get svc -n istio-system istiocoredns -o jsonpath={.spec.clusterIP})
     if [ $? -ne 0 ] ; then
-      return $?
+      return 1
     fi
 
     # Update coredns configmap to include global section in data.
