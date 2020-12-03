@@ -1,0 +1,50 @@
+{
+   "environmentName": "default",
+   "profile": "dev",
+   "dns": {
+      "type": "xip.io"
+   },
+   "certificates": {
+      "issuerType": "ca",
+      "ca": {
+         "secretName": "tls-rancher",
+         "clusterResourceNamespace": "cattle-system"
+      }
+   },
+   "ingress": {
+      "type": "NodePort",
+      "nodePort": {
+         "ingressIp": "ingress_ip"
+      },
+      "verrazzano": {
+         "nginxInstallArgs": [
+            {
+               "name": "controller.kind",
+               "value": "DaemonSet"
+            },
+            {
+               "name": "controller.daemonset.useHostPort",
+               "value": "true"
+            },
+            {
+               "name": "controller.nodeSelector.ingress-ready",
+               "value": "true",
+               "setString": "true"
+            },
+            {
+               "name": "controller.tolerations[0].key",
+               "value": "node-role.kubernetes.io/master"
+            },
+            {
+               "name": "controller.tolerations[0].operator",
+               "value": "Equal"
+            },
+            {
+               "name": "controller.tolerations[0].effect",
+               "value": "NoSchedule"
+            }
+         ]
+      }
+   }
+}
+
