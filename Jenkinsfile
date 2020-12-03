@@ -41,6 +41,11 @@ pipeline {
                 description: 'Branch or tag of verrazzano acceptance tests, on which to kick off the tests',
                 trim: true
         )
+        choice (description: 'OCI region to launch acceptance tests OKE clusters in', name: 'ACCEPTANCE_TESTS_OKE_REGION',
+                // 1st choice is the default value
+                choices: [ "us-ashburn-1", "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
+                           "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
+                           "sa-saopaulo-1", "uk-london-1", "us-ashburn-1", "us-phoenix-1", "us-sanjose-1" ])
     }
 
     environment {
@@ -224,6 +229,7 @@ pipeline {
                 build job: "verrazzano-in-cluster-oke-acceptance-test-suite/${params.ACCEPTANCE_TESTS_BRANCH}",
                         parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME),
                                      string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME),
+                                     string(name: 'OKE_CLUSTER_REGION', value: params.ACCEPTANCE_TESTS_OKE_REGION),
                                      string(name: 'DNS_TYPE', value: 'xip.io')],
                         wait: true,
                         propagate: true
@@ -269,6 +275,12 @@ pipeline {
             mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
             subject: "Verrazzano: ${env.JOB_NAME} - Failed",
             body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
+            script {
+                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME == "verrazzano/develop") {
+                    pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+                    slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
+                }
+            }
         }
     }
 }
