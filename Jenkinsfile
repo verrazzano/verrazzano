@@ -6,7 +6,6 @@ def DOCKER_IMAGE_TAG
 pipeline {
     options {
         skipDefaultCheckout true
-        disableConcurrentBuilds()
     }
 
     agent {
