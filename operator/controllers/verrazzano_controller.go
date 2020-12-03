@@ -83,8 +83,18 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 				}
 			}
 		}
-
 		return reconcile.Result{}, nil
+	}
+
+	// If Verrazzano is installed see if upgrade is needed
+	if isInstalled(vz.Status) {
+		// If the version is specified and different than the current version of the installation
+		// then proceed with upgrade
+		if len(vz.Spec.Version) > 0 && vz.Spec.Version != vz.Status.Version {
+			return r.reconcileUpgrade(log, req, vz)
+		}
+		// nothing to do, installation already at target version
+		return ctrl.Result{}, nil
 	}
 
 	if err := r.createServiceAccount(ctx, log, vz); err != nil {

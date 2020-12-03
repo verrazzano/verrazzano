@@ -45,14 +45,14 @@ spec:
       containers:
         - name: verrazzano-platform-operator
           imagePullPolicy: IfNotPresent
-          image: ghcr.io/verrazzano/verrazzano-platform-operator-jenkins:0.6.0-20201202040331-bb5177c
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.6.0-20201203181325-10321d4
           args:
             - --zap-log-level=info
           env:
             - name: MODE
               value: RUN_OPERATOR
             - name: VZ_INSTALL_IMAGE
-              value: ghcr.io/verrazzano/verrazzano-platform-operator-jenkins:0.6.0-20201202040331-bb5177c
+              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.6.0-20201203181325-10321d4
           resources:
             requests:
               memory: 72Mi
@@ -309,6 +309,9 @@ spec:
               description: Profile is the name of the profile to install.  Default
                 is "prod".
               type: string
+            version:
+              description: Version is the Verrazzano version
+              type: string
           type: object
         status:
           description: VerrazzanoStatus defines the observed state of Verrazzano
@@ -338,6 +341,9 @@ spec:
                 - type
                 type: object
               type: array
+            version:
+              description: The version of Verrazzano that is installed
+              type: string
           type: object
       type: object
   version: v1alpha1

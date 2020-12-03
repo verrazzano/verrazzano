@@ -132,6 +132,22 @@ type Certificate struct {
 	CA CA `json:"ca,omitempty"`
 }
 
+// VerrazzanoSpec defines the desired state of Verrazzano
+type VerrazzanoSpec struct {
+	// Version is the Verrazzano version
+	// +optional
+	Version string `json:"version,omitempty"`
+	// Profile is the name of the profile to install.  Default is "prod".
+	// +optional
+	Profile ProfileType `json:"profile,omitempty"`
+	// Core specifies core Verrazzano configuration
+	// +optional
+	Core VerrazzanoCore `json:"core,omitempty"`
+	// Components specify the optional component overrides
+	// +optional
+	Components ComponentSpec `json:"components,omitempty"`
+}
+
 // ConditionType identifies the condition of the install/uninstall which can be checked with kubectl wait
 type ConditionType string
 
@@ -153,6 +169,15 @@ const (
 
 	// UninstallFailed means the uninstall job has failed during execution.
 	UninstallFailed ConditionType = "UninstallFailed"
+
+	// UpgradeStarted means that a Verraazzano upgrade has been started.
+	UpgradeStarted ConditionType = "UpgradeStarted"
+
+	// UpgradeFailed means the upgrade has failed during execution.
+	UpgradeFailed ConditionType = "UpgradeFailed"
+
+	// UpgradeComplete means the upgrade has completed successfully
+	UpgradeComplete ConditionType = "UpgradeComplete"
 )
 
 // Condition describes current state of an install.
@@ -171,6 +196,8 @@ type Condition struct {
 
 // VerrazzanoStatus defines the observed state of Verrazzano
 type VerrazzanoStatus struct {
+	// The version of Verrazzano that is installed
+	Version string `json:"version,omitempty"`
 	// The latest available observations of an object's current state.
 	Conditions []Condition `json:"conditions,omitempty"`
 }
@@ -188,19 +215,6 @@ type Verrazzano struct {
 
 	Spec   VerrazzanoSpec   `json:"spec,omitempty"`
 	Status VerrazzanoStatus `json:"status,omitempty"`
-}
-
-// VerrazzanoSpec defines the desired state of Verrazzano
-type VerrazzanoSpec struct {
-	// Profile is the name of the profile to install.  Default is "prod".
-	// +optional
-	Profile ProfileType `json:"profile,omitempty"`
-	// Core specifies core Verrazzano configuration
-	// +optional
-	Core VerrazzanoCore `json:"core,omitempty"`
-	// Components specify the optional component overrides
-	// +optional
-	Components ComponentSpec `json:"components,omitempty"`
 }
 
 // +kubebuilder:object:root=true
