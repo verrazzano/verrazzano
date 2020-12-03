@@ -165,11 +165,11 @@ type InstallConfiguration struct {
 // GetInstallConfig returns an install configuration in the json format required by the
 // bash installer scripts.
 func GetInstallConfig(vz *installv1alpha1.Verrazzano, auth *DNSAuth) (*InstallConfiguration, error) {
-	if vz.Spec.DNS.External != (installv1alpha1.External{}) {
+	if vz.Spec.Components.DNS.External != (installv1alpha1.External{}) {
 		return newExternalDNSInstallConfig(vz), nil
 	}
 
-	if vz.Spec.DNS.OCI != (installv1alpha1.OCI{}) {
+	if vz.Spec.Components.DNS.OCI != (installv1alpha1.OCI{}) {
 		return newOCIDNSInstallConfig(vz, auth)
 	}
 
@@ -178,7 +178,7 @@ func GetInstallConfig(vz *installv1alpha1.Verrazzano, auth *DNSAuth) (*InstallCo
 
 func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, auth *DNSAuth) (*InstallConfiguration, error) {
 	return &InstallConfiguration{
-		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
+		EnvironmentName: getEnvironmentName(vz.Spec.Core.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
 		DNS: DNS{
 			Type: DNSTypeOci,
@@ -186,30 +186,30 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, auth *DNSAuth) (*Ins
 				Region:                 auth.PrivateKeyAuth.Region,
 				TenancyOcid:            auth.PrivateKeyAuth.Tenancy,
 				UserOcid:               auth.PrivateKeyAuth.User,
-				DNSZoneCompartmentOcid: vz.Spec.DNS.OCI.DNSZoneCompartmentOCID,
+				DNSZoneCompartmentOcid: vz.Spec.Components.DNS.OCI.DNSZoneCompartmentOCID,
 				Fingerprint:            auth.PrivateKeyAuth.Fingerprint,
 				PrivateKeyFile:         installv1alpha1.OciPrivateKeyFilePath,
 				PrivateKeyPassphrase:   auth.PrivateKeyAuth.Passphrase,
-				DNSZoneOcid:            vz.Spec.DNS.OCI.DNSZoneOCID,
-				DNSZoneName:            vz.Spec.DNS.OCI.DNSZoneName,
+				DNSZoneOcid:            vz.Spec.Components.DNS.OCI.DNSZoneOCID,
+				DNSZoneName:            vz.Spec.Components.DNS.OCI.DNSZoneName,
 			},
 		},
 		Ingress: Ingress{
-			Type: getIngressType(vz.Spec.Ingress.Type),
+			Type: getIngressType(vz.Spec.Components.Ingress.Type),
 			Verrazzano: Verrazzano{
-				NginxInstallArgs: getIngressArgs(vz.Spec.Ingress.Verrazzano.NGINXInstallArgs),
-				Ports:            getIngressPorts(vz.Spec.Ingress.Verrazzano.Ports),
+				NginxInstallArgs: getIngressArgs(vz.Spec.Components.Ingress.Verrazzano.NGINXInstallArgs),
+				Ports:            getIngressPorts(vz.Spec.Components.Ingress.Verrazzano.Ports),
 			},
 			Application: Application{
-				IstioInstallArgs: getIngressArgs(vz.Spec.Ingress.Application.IstioInstallArgs),
+				IstioInstallArgs: getIngressArgs(vz.Spec.Components.Ingress.Application.IstioInstallArgs),
 			},
 		},
 		Certificates: Certificate{
 			IssuerType: CertIssuerTypeAcme,
 			ACME: &CertificateACME{
-				Provider:     string(vz.Spec.Certificate.Acme.Provider),
-				EmailAddress: vz.Spec.Certificate.Acme.EmailAddress,
-				Environment:  vz.Spec.Certificate.Acme.Environment,
+				Provider:     string(vz.Spec.Core.Certificate.Acme.Provider),
+				EmailAddress: vz.Spec.Core.Certificate.Acme.EmailAddress,
+				Environment:  vz.Spec.Core.Certificate.Acme.Environment,
 			},
 		},
 	}, nil
@@ -219,19 +219,19 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, auth *DNSAuth) (*Ins
 // json format required by the bash installer scripts.
 func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration {
 	return &InstallConfiguration{
-		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
+		EnvironmentName: getEnvironmentName(vz.Spec.Core.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
 		DNS: DNS{
 			Type: DNSTypeXip,
 		},
 		Ingress: Ingress{
-			Type: getIngressType(vz.Spec.Ingress.Type),
+			Type: getIngressType(vz.Spec.Components.Ingress.Type),
 			Verrazzano: Verrazzano{
-				NginxInstallArgs: getIngressArgs(vz.Spec.Ingress.Verrazzano.NGINXInstallArgs),
-				Ports:            getIngressPorts(vz.Spec.Ingress.Verrazzano.Ports),
+				NginxInstallArgs: getIngressArgs(vz.Spec.Components.Ingress.Verrazzano.NGINXInstallArgs),
+				Ports:            getIngressPorts(vz.Spec.Components.Ingress.Verrazzano.Ports),
 			},
 			Application: Application{
-				IstioInstallArgs: getIngressArgs(vz.Spec.Ingress.Application.IstioInstallArgs),
+				IstioInstallArgs: getIngressArgs(vz.Spec.Components.Ingress.Application.IstioInstallArgs),
 			},
 		},
 		Certificates: Certificate{
@@ -249,22 +249,22 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration
 // This type of install configuration would be used for an OLCNE install.
 func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration {
 	return &InstallConfiguration{
-		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
+		EnvironmentName: getEnvironmentName(vz.Spec.Core.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
 		DNS: DNS{
 			Type: DNSTypeExternal,
 			External: &ExternalDNS{
-				Suffix: vz.Spec.DNS.External.Suffix,
+				Suffix: vz.Spec.Components.DNS.External.Suffix,
 			},
 		},
 		Ingress: Ingress{
-			Type: getIngressType(vz.Spec.Ingress.Type),
+			Type: getIngressType(vz.Spec.Components.Ingress.Type),
 			Verrazzano: Verrazzano{
-				NginxInstallArgs: getIngressArgs(vz.Spec.Ingress.Verrazzano.NGINXInstallArgs),
-				Ports:            getIngressPorts(vz.Spec.Ingress.Verrazzano.Ports),
+				NginxInstallArgs: getIngressArgs(vz.Spec.Components.Ingress.Verrazzano.NGINXInstallArgs),
+				Ports:            getIngressPorts(vz.Spec.Components.Ingress.Verrazzano.Ports),
 			},
 			Application: Application{
-				IstioInstallArgs: getIngressArgs(vz.Spec.Ingress.Application.IstioInstallArgs),
+				IstioInstallArgs: getIngressArgs(vz.Spec.Components.Ingress.Application.IstioInstallArgs),
 			},
 		},
 		Certificates: Certificate{

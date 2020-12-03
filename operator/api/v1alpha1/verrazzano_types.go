@@ -53,20 +53,6 @@ type External struct {
 	Suffix string `json:"suffix"`
 }
 
-// DNS Represents the type of DNS for an install.
-// Only one of its members may be specified.
-type DNS struct {
-	// DNS type of xio.io.  This is the default.
-	// +optional
-	XIPIO XIPIO `json:"xip.io,omitempty"`
-	// DNS type of OCI (Oracle Cloud Infrastructure)
-	// +optional
-	OCI OCI `json:"oci,omitempty"`
-	// DNS type of external. For example, OLCNE uses this type.
-	// +optional
-	External External `json:"external,omitempty"`
-}
-
 // IngressType is the type of ingress.
 type IngressType string
 
@@ -107,19 +93,6 @@ type ApplicationInstall struct {
 	IstioInstallArgs []InstallArgs `json:"istioInstallArgs,omitempty"`
 }
 
-// Ingress identifies the ingress configuration.
-type Ingress struct {
-	// Type of ingress.  Default is LoadBalancer
-	// +optional
-	Type IngressType `json:"type,omitempty"`
-	// Verrazzano infrastructure install options
-	// +optional
-	Verrazzano VerrazzanoInstall `json:"verrazzano,omitempty"`
-	// Non-Verrazzano infrastructure install options
-	// +optional
-	Application ApplicationInstall `json:"application,omitempty"`
-}
-
 // ProviderType identifies Acme provider type.
 type ProviderType string
 
@@ -157,25 +130,6 @@ type Certificate struct {
 	// CA cert issuer
 	// +optional
 	CA CA `json:"ca,omitempty"`
-}
-
-// VerrazzanoSpec defines the desired state of Verrazzano
-type VerrazzanoSpec struct {
-	// Profile is the name of the profile to install.  Default is "prod".
-	// +optional
-	Profile ProfileType `json:"profile,omitempty"`
-	// Short name to identify install environment.  Default environment name is "default".
-	// +optional
-	EnvironmentName string `json:"environmentName,omitempty"`
-	// Type of DNS for an install
-	// +optional
-	DNS DNS `json:"dns,omitempty"`
-	// Type of Ingress for an install
-	// +optional
-	Ingress Ingress `json:"ingress,omitempty"`
-	// Type of cert issuer for an install
-	// +optional
-	Certificate Certificate `json:"certificate,omitempty"`
 }
 
 // ConditionType identifies the condition of the install/uninstall which can be checked with kubectl wait
@@ -236,6 +190,19 @@ type Verrazzano struct {
 	Status VerrazzanoStatus `json:"status,omitempty"`
 }
 
+// VerrazzanoSpec defines the desired state of Verrazzano
+type VerrazzanoSpec struct {
+	// Profile is the name of the profile to install.  Default is "prod".
+	// +optional
+	Profile ProfileType `json:"profile,omitempty"`
+	// Verrazzano specifies Verrazzano specific configuration
+	// +optional
+	Core VerrazzanoCore `json:"core,omitempty"`
+	// Components specify the optional component overrides
+	// +optional
+	Components ComponentSpec `json:"components,omitempty"`
+}
+
 // +kubebuilder:object:root=true
 
 // VerrazzanoList contains a list of Verrazzano
@@ -243,6 +210,73 @@ type VerrazzanoList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Verrazzano `json:"items"`
+}
+
+// VerrazzanoCore specifies the core Verrazzano config.  It cannot be disabled
+type VerrazzanoCore struct {
+	// Short name to identify install environment.  Default environment name is "default".
+	// +optional
+	EnvironmentName string `json:"environmentName,omitempty"`
+	// Type of Ingress for an install
+	// +optional
+	Certificate Certificate `json:"certificate,omitempty"`
+}
+
+// ComponentSpec contains a set of components used by Verrazzano
+type ComponentSpec struct {
+	Coherence    CoherenceComponent    `json:"coherence,omitempty"`
+	DNS          DnsComponent          `json:"dns,omitempty"`
+	Ingress      IngressNginxComponent `json:"ingress,omitempty"`
+	Istio        IstioComponent        `json:"istio,omitempty"`
+	Keycloak     KeycloakComponent     `json:"keycloak,omitempty"`
+	WebLogic     WebLogicComponent     `json:"weblogic,omitempty"`
+}
+
+type CoherenceComponent struct {
+	Enabled bool `json:"enabled,omitempty"`
+}
+
+type DnsComponent struct {
+	// Enabled determines if a component is enagbled.  Default is true
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
+	// DNS type of xio.io.  This is the default.
+	// +optional
+	XIPIO XIPIO `json:"xip.io,omitempty"`
+	// DNS type of OCI (Oracle Cloud Infrastructure)
+	// +optional
+	OCI OCI `json:"oci,omitempty"`
+	// DNS type of external. For example, OLCNE uses this type.
+	// +optional
+	External External `json:"external,omitempty"`
+}
+
+// Ingress identifies the ingress configuration.
+type IngressNginxComponent struct {
+	// Enabled determines if a component is enagbled.  Default is true
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
+	// Type of ingress.  Default is LoadBalancer
+	// +optional
+	Type IngressType `json:"type,omitempty"`
+	// Non-Verrazzano infrastructure install options
+	// +optional
+	Application ApplicationInstall `json:"application,omitempty"`
+	// Verrazzano infrastructure install options
+	// +optional
+	Verrazzano VerrazzanoInstall `json:"verrazzano,omitempty"`
+}
+
+type IstioComponent struct {
+	Enabled bool `json:"enabled,omitempty"`
+}
+
+type KeycloakComponent struct {
+	Enabled bool `json:"enabled,omitempty"`
+}
+
+type WebLogicComponent struct {
+	Enabled bool `json:"enabled,omitempty"`
 }
 
 func init() {
