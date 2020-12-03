@@ -195,7 +195,7 @@ type VerrazzanoSpec struct {
 	// Profile is the name of the profile to install.  Default is "prod".
 	// +optional
 	Profile ProfileType `json:"profile,omitempty"`
-	// Verrazzano specifies Verrazzano specific configuration
+	// Core specifies core Verrazzano configuration
 	// +optional
 	Core VerrazzanoCore `json:"core,omitempty"`
 	// Components specify the optional component overrides
@@ -217,29 +217,23 @@ type VerrazzanoCore struct {
 	// Short name to identify install environment.  Default environment name is "default".
 	// +optional
 	EnvironmentName string `json:"environmentName,omitempty"`
-	// Type of Ingress for an install
+	// Certificate used for an install
 	// +optional
 	Certificate Certificate `json:"certificate,omitempty"`
 }
 
 // ComponentSpec contains a set of components used by Verrazzano
 type ComponentSpec struct {
-	Coherence    CoherenceComponent    `json:"coherence,omitempty"`
-	DNS          DnsComponent          `json:"dns,omitempty"`
-	Ingress      IngressNginxComponent `json:"ingress,omitempty"`
-	Istio        IstioComponent        `json:"istio,omitempty"`
-	Keycloak     KeycloakComponent     `json:"keycloak,omitempty"`
-	WebLogic     WebLogicComponent     `json:"weblogic,omitempty"`
-}
-
-type CoherenceComponent struct {
-	Enabled bool `json:"enabled,omitempty"`
-}
-
-type DnsComponent struct {
-	// Enabled determines if a component is enagbled.  Default is true
+	// DNS contains the DNS component configuration
 	// +optional
-	Enabled bool `json:"enabled,omitempty"`
+	DNS DNSComponent `json:"dns,omitempty"`
+	// +optional
+	// Ingress contains the ingress-nginx component configuration
+	Ingress IngressNginxComponent `json:"ingress,omitempty"`
+}
+
+// DNSComponent specifies the DNS configuration
+type DNSComponent struct {
 	// DNS type of xio.io.  This is the default.
 	// +optional
 	XIPIO XIPIO `json:"xip.io,omitempty"`
@@ -251,11 +245,8 @@ type DnsComponent struct {
 	External External `json:"external,omitempty"`
 }
 
-// Ingress identifies the ingress configuration.
+// IngressNginxComponent identifies the ingress-nginx configuration
 type IngressNginxComponent struct {
-	// Enabled determines if a component is enagbled.  Default is true
-	// +optional
-	Enabled bool `json:"enabled,omitempty"`
 	// Type of ingress.  Default is LoadBalancer
 	// +optional
 	Type IngressType `json:"type,omitempty"`
@@ -265,18 +256,6 @@ type IngressNginxComponent struct {
 	// Verrazzano infrastructure install options
 	// +optional
 	Verrazzano VerrazzanoInstall `json:"verrazzano,omitempty"`
-}
-
-type IstioComponent struct {
-	Enabled bool `json:"enabled,omitempty"`
-}
-
-type KeycloakComponent struct {
-	Enabled bool `json:"enabled,omitempty"`
-}
-
-type WebLogicComponent struct {
-	Enabled bool `json:"enabled,omitempty"`
 }
 
 func init() {

@@ -87,10 +87,6 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		return reconcile.Result{}, nil
 	}
 
-	// mackin - testing remove this
-	return reconcile.Result{}, nil
-
-
 	if err := r.createServiceAccount(ctx, log, vz); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -255,7 +251,7 @@ func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log *zap.Su
 	return err
 }
 
-func getDNSAuth(r *VerrazzanoReconciler, dns installv1alpha1.DnsComponent, namespace string) (*installjob.DNSAuth, error) {
+func getDNSAuth(r *VerrazzanoReconciler, dns installv1alpha1.DNSComponent, namespace string) (*installjob.DNSAuth, error) {
 	if dns.OCI != (installv1alpha1.OCI{}) {
 		secret := &corev1.Secret{}
 		err := r.Get(context.TODO(), types.NamespacedName{Name: dns.OCI.OCIConfigSecret, Namespace: namespace}, secret)

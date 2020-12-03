@@ -43,8 +43,7 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 				Certificate:     installv1alpha1.Certificate{},
 			},
 			Components: installv1alpha1.ComponentSpec{
-				Coherence: installv1alpha1.CoherenceComponent{},
-				DNS: installv1alpha1.DnsComponent{
+				DNS: installv1alpha1.DNSComponent{
 					XIPIO: installv1alpha1.XIPIO{},
 				},
 				Ingress: installv1alpha1.IngressNginxComponent{
@@ -75,9 +74,6 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 						},
 					},
 				},
-				Istio:    installv1alpha1.IstioComponent{},
-				Keycloak: installv1alpha1.KeycloakComponent{},
-				WebLogic: installv1alpha1.WebLogicComponent{},
 			},
 		},
 	}
@@ -118,7 +114,7 @@ func TestExternalInstall(t *testing.T) {
 				EnvironmentName: "external",
 			},
 			Components: installv1alpha1.ComponentSpec{
-				DNS: installv1alpha1.DnsComponent{
+				DNS: installv1alpha1.DNSComponent{
 					External: installv1alpha1.External{
 						Suffix: "abc.def.com",
 					},
@@ -179,15 +175,6 @@ func TestExternalInstall(t *testing.T) {
 							},
 						},
 					},
-				},
-				Istio: installv1alpha1.IstioComponent{
-					Enabled: false,
-				},
-				Keycloak: installv1alpha1.KeycloakComponent{
-					Enabled: false,
-				},
-				WebLogic: installv1alpha1.WebLogicComponent{
-					Enabled: false,
 				},
 			},
 		},
@@ -253,8 +240,7 @@ func TestOCIDNSInstall(t *testing.T) {
 				},
 			},
 			Components: installv1alpha1.ComponentSpec{
-				Coherence: installv1alpha1.CoherenceComponent{},
-				DNS: installv1alpha1.DnsComponent{
+				DNS: installv1alpha1.DNSComponent{
 					OCI: installv1alpha1.OCI{
 						OCIConfigSecret:        "oci-config-secret",
 						DNSZoneCompartmentOCID: "test-dns-zone-compartment-ocid",
@@ -290,9 +276,6 @@ func TestOCIDNSInstall(t *testing.T) {
 						},
 					},
 				},
-				Istio:    installv1alpha1.IstioComponent{},
-				Keycloak: installv1alpha1.KeycloakComponent{},
-				WebLogic: installv1alpha1.WebLogicComponent{},
 			},
 		},
 	}

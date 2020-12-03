@@ -49,17 +49,9 @@ spec:
             components:
               description: Components specify the optional component overrides
               properties:
-                coherence:
-                  properties:
-                    enabled:
-                      type: boolean
-                  type: object
                 dns:
+                  description: DNS contains the DNS component configuration
                   properties:
-                    enabled:
-                      description: Enabled determines if a component is enagbled.  Default
-                        is true
-                      type: boolean
                     external:
                       description: DNS type of external. For example, OLCNE uses this
                         type.
@@ -93,7 +85,7 @@ spec:
                       type: object
                   type: object
                 ingress:
-                  description: Ingress identifies the ingress configuration.
+                  description: Ingress contains the ingress-nginx component configuration
                   properties:
                     application:
                       description: Non-Verrazzano infrastructure install options
@@ -121,10 +113,6 @@ spec:
                             type: object
                           type: array
                       type: object
-                    enabled:
-                      description: Enabled determines if a component is enagbled.  Default
-                        is true
-                      type: boolean
                     type:
                       description: Type of ingress.  Default is LoadBalancer
                       type: string
@@ -216,27 +204,12 @@ spec:
                           type: array
                       type: object
                   type: object
-                istio:
-                  properties:
-                    enabled:
-                      type: boolean
-                  type: object
-                keycloak:
-                  properties:
-                    enabled:
-                      type: boolean
-                  type: object
-                weblogic:
-                  properties:
-                    enabled:
-                      type: boolean
-                  type: object
               type: object
             core:
-              description: Verrazzano specifies Verrazzano specific configuration
+              description: Core specifies core Verrazzano configuration
               properties:
                 certificate:
-                  description: Type of Ingress for an install
+                  description: Certificate used for an install
                   properties:
                     acme:
                       description: ACME cert issuer
