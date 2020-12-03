@@ -45,6 +45,7 @@ pipeline {
                 choices: [ "us-ashburn-1", "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
                            "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
                            "sa-saopaulo-1", "uk-london-1", "us-ashburn-1", "us-phoenix-1", "us-sanjose-1" ])
+        booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: false)
     }
 
     environment {
@@ -220,7 +221,16 @@ pipeline {
         }
 
         stage('Kick off MagicDNS Acceptance tests') {
-            when { not { buildingTag() } }
+            when {
+                allOf {
+                    not { buildingTag() }
+                    anyOf {
+                        branch 'master';
+                        branch 'develop';
+                        expression { return params.RUN_ACCEPTANCE_TESTS == true }
+                    }
+                }
+            }
             environment {
                 FULL_IMAGE_NAME = "${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
             }
