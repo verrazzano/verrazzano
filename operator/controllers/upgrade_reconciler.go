@@ -5,9 +5,9 @@ package controllers
 
 import (
 	"fmt"
-	"github.com/go-logr/logr"
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/internal/component"
+	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -15,7 +15,7 @@ import (
 const failedUpgradeLimit = 2
 
 // Reconcile upgrade will upgrade the components as required
-func (r *VerrazzanoReconciler) reconcileUpgrade(log logr.Logger, req ctrl.Request, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	targetVersion := cr.Spec.Version
 	err := validateVersion(targetVersion)
 	if err != nil {
