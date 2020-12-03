@@ -4,6 +4,7 @@
 package os
 
 import (
+	"errors"
 	"github.com/stretchr/testify/assert"
 	"os/exec"
 	"testing"
@@ -17,7 +18,7 @@ func TestRun(t *testing.T) {
 	assert := assert.New(t)
 
 	// override cmd.Run function
-	cmdRunFunc = fakeCmdRunner
+	cmdRunFunc = goodCmdRunner
 	cmd := exec.Command("helm", "arg1", "arg2", "arg3")
 	stdout, stderr, err := DefaultRunner{}.Run(cmd)
 	assert.NoError(err, "Error should not be returned from exec")
@@ -31,8 +32,30 @@ func TestRun(t *testing.T) {
 	assert.Contains(cmd.Args[3], "arg3", "exec arg should equal arg3 ")
 }
 
-func fakeCmdRunner(cmd *exec.Cmd) error {
+// TestRunError tests the exec Run error condition
+// GIVEN a command and a fake runner that returns an error
+//  WHEN I call Run
+//  THEN the value returned will have and error status and the correct stdout and stderr
+func TestRunError(t *testing.T) {
+	assert := assert.New(t)
+
+	// override cmd.Run function
+	cmdRunFunc = badCmdRunner
+	cmd := exec.Command("helm", "arg1", "arg2", "arg3")
+	stdout, stderr, err := DefaultRunner{}.Run(cmd)
+	assert.Error(err, "Error should be returned from exec")
+	assert.Len(stdout, 0, "stdout is incorrect")
+	assert.Equal("err", string(stderr), "stderr is incorrect")
+}
+
+func goodCmdRunner(cmd *exec.Cmd) error {
 	cmd.Stdout.Write([]byte("success"))
 	cmd.Stderr.Write([]byte(""))
 	return nil
+}
+
+func badCmdRunner(cmd *exec.Cmd) error {
+	cmd.Stdout.Write([]byte(""))
+	cmd.Stderr.Write([]byte("err"))
+	return errors.New("error")
 }

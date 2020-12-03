@@ -4,6 +4,7 @@
 package helm
 
 import (
+	"errors"
 	"github.com/stretchr/testify/assert"
 	"os/exec"
 	"testing"
@@ -15,6 +16,11 @@ const release = "my_release"
 
 // goodRunner is used to test helm without actually running an OS exec command
 type goodRunner struct {
+	t *testing.T
+}
+
+// badRunner is used to test helm errors without actually running an OS exec command
+type badRunner struct {
 	t *testing.T
 }
 
@@ -30,7 +36,20 @@ func TestUpgrade(t *testing.T) {
 	assert.NoError(err, "Upgrade returned an error")
 	assert.Len(stderr, 0, "Upgrade stderr should be empty")
 	assert.NotZero(stdout, "Upgrade stdout should not be empty")
+}
 
+// TestUpgradeFail tests the Helm upgrade command
+// GIVEN a set of upgrade parameters and a fake runner that fails
+//  WHEN I call Upgrade
+//  THEN the Helm upgrade returns an error
+func TestUpgradeFail(t *testing.T) {
+	assert := assert.New(t)
+	SetCmdRunner(badRunner{t: t})
+
+	stdout, stderr, err := Upgrade(release, ns, chartdir)
+	assert.Error(err, "Upgrade should have returned an error")
+	assert.Len(stdout, 0, "Upgrade stderr should be empty")
+	assert.NotZero(stderr, "Upgrade stdout should not be empty")
 }
 
 // RunCommand should assert that the cmd contains the correct data
@@ -43,4 +62,9 @@ func (r goodRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error)
 	assert.Contains(cmd.Args[3], chartdir, "exec args should contain chart dir ")
 
 	return []byte("success"), []byte(""), nil
+}
+
+// RunCommand should assert that the cmd contains the correct data
+func (r badRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	return []byte(""), []byte("error"), errors.New("error")
 }

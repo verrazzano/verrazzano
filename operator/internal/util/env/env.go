@@ -29,5 +29,5 @@ func VzChartDir() string {
 	if len(home) > 0 {
 		return filepath.Join(home + "/operator/scripts/install/chart")
 	}
-	return " /verrazzano/install/chart"
+	return "/verrazzano/install/chart"
 }
