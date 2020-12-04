@@ -74,6 +74,7 @@ type VerrazzanoStatus struct {
 
 // ConditionType identifies the condition of the install/uninstall which can be checked with kubectl wait
 type ConditionType string
+
 const (
 	// InstallStarted is state when an install is in progress.
 	InstallStarted ConditionType = "InstallStarted"
@@ -195,6 +196,7 @@ type InstallArgs struct {
 
 // ProviderType identifies Acme provider type.
 type ProviderType string
+
 const (
 	// LetsEncrypt is a Let's Encrypt provider
 	LetsEncrypt ProviderType = "LetsEncrypt"
