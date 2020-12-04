@@ -4,56 +4,55 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: verrazzano-application
+  name: {{ .Values.verrazzanoApplicationOperator.namespace }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: verrazzano-application-operator
-  namespace: verrazzano-application
+  name: {{ .Values.verrazzanoApplicationOperator.name }}
+  namespace: {{ .Values.verrazzanoApplicationOperator.namespace }}
+  {{- if .Values.global.imagePullSecrets }}
+imagePullSecrets:
+  {{- range .Values.global.imagePullSecrets }}
+  - name: {{ . }}
+  {{- end }}
+  {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: verrazzano-application-operator
+  name: {{ .Values.verrazzanoApplicationOperator.name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: cluster-admin
 subjects:
   - kind: ServiceAccount
-    name: verrazzano-application-operator
-    namespace: verrazzano-application
+    name: {{ .Values.verrazzanoApplicationOperator.name }}
+    namespace: {{ .Values.verrazzanoApplicationOperator.namespace }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: verrazzano-application-operator
-  namespace: verrazzano-application
+  name: {{ .Values.verrazzanoApplicationOperator.name }}
+  namespace: {{ .Values.verrazzanoApplicationOperator.namespace }}
   labels:
-    app: verrazzano-application-operator
+    app: {{ .Values.verrazzanoApplicationOperator.name }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: verrazzano-application-operator
+      app: {{ .Values.verrazzanoApplicationOperator.name }}
   template:
     metadata:
       labels:
-        app: verrazzano-application-operator
+        app: {{ .Values.verrazzanoApplicationOperator.name }}
     spec:
-      imagePullSecrets:
-        - name: github-packages
       containers:
-        - name: verrazzano-application-operator
-          imagePullPolicy: IfNotPresent
-          image: iad.ocir.io/weblogicondocker/verrazzano-application-operator-dev:local-e626d89
-          env:
-            - name: CLUSTER_TYPE
-              value: OKE
-            - name: VERRAZZANO_KUBECONFIG
-              value: /home/verrazzano/kubeconfig
+        - name: {{ .Values.verrazzanoApplicationOperator.name }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: {{ .Values.verrazzanoApplicationOperator.imageName }}:{{ .Values.verrazzanoApplicationOperator.imageVersion }}
           resources:
             requests:
-              memory: 72Mi
-      serviceAccountName: verrazzano-application-operator
+              memory: {{ .Values.verrazzanoApplicationOperator.RequestMemory }}
+      serviceAccountName: {{ .Values.verrazzanoApplicationOperator.name }}

@@ -92,6 +92,13 @@ verrazzanoAdmissionController:
   caBundle:
   RequestMemory: 15Mi
 
+verrazzanoApplicationOperator:
+  name: verrazzano-application-operator
+  namespace: verrazzano-application
+  imageName: iad.ocir.io/weblogicondocker/verrazzano-application-operator-dev
+  imageVersion: local-e626d89
+  RequestMemory: 72Mi
+
 # OCI-related values
 oci:
   region: ""
