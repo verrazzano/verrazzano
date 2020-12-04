@@ -162,6 +162,14 @@ function install_cert_manager()
 function install_external_dns()
 {
   if [ "$DNS_TYPE" == "oci" ]; then
+    if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n cert-manager ; then
+      # secret does not exist, so copy the configured oci config secret from default namespace.
+      # Operator has already checked for existence of secret in default namespace
+      kubectl get secret ${OCI_DNS_CONFIG_SECRET} -n default -o yaml \
+          | sed "s|namespace: default|namespace: cert-manager|" \
+          | kubectl apply -n cert-manager -f -
+    fi
+
     helm upgrade external-dns stable/external-dns \
         --install \
         --namespace cert-manager \
