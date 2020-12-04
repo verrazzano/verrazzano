@@ -37,40 +37,35 @@ func TestXipIoInstallDefaults(t *testing.T) {
 func TestXipIoInstallNonDefaults(t *testing.T) {
 	vz := installv1alpha1.Verrazzano{
 		Spec: installv1alpha1.VerrazzanoSpec{
-			Profile: "dev",
-			Core: installv1alpha1.VerrazzanoCore{
-				EnvironmentName: "testEnv",
-				Certificate:     installv1alpha1.Certificate{},
-			},
+			Profile:         "dev",
+			EnvironmentName: "testEnv",
 			Components: installv1alpha1.ComponentSpec{
 				DNS: installv1alpha1.DNSComponent{
 					XIPIO: installv1alpha1.XIPIO{},
 				},
 				Ingress: installv1alpha1.IngressNginxComponent{
 					Type: installv1alpha1.LoadBalancer,
-					Verrazzano: installv1alpha1.VerrazzanoInstall{
-						NGINXInstallArgs: []installv1alpha1.InstallArgs{
-							{
-								Name:  "name1",
-								Value: "value1",
-							},
-						},
-						Ports: []corev1.ServicePort{
-							{
-								Name:       "port1",
-								Protocol:   corev1.ProtocolTCP,
-								Port:       8000,
-								TargetPort: intstr.FromInt(8000),
-								NodePort:   30500,
-							},
+					NGINXInstallArgs: []installv1alpha1.InstallArgs{
+						{
+							Name:  "name1",
+							Value: "value1",
 						},
 					},
-					Application: installv1alpha1.ApplicationInstall{
-						IstioInstallArgs: []installv1alpha1.InstallArgs{
-							{
-								Name:  "name2",
-								Value: "value2",
-							},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "port1",
+							Protocol:   corev1.ProtocolTCP,
+							Port:       8000,
+							TargetPort: intstr.FromInt(8000),
+							NodePort:   30500,
+						},
+					},
+				},
+				Istio: installv1alpha1.IstioComponent{
+					IstioInstallArgs: []installv1alpha1.InstallArgs{
+						{
+							Name:  "name2",
+							Value: "value2",
 						},
 					},
 				},
@@ -109,10 +104,8 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 func TestExternalInstall(t *testing.T) {
 	vz := installv1alpha1.Verrazzano{
 		Spec: installv1alpha1.VerrazzanoSpec{
-			Profile: "prod",
-			Core: installv1alpha1.VerrazzanoCore{
-				EnvironmentName: "external",
-			},
+			Profile:         "prod",
+			EnvironmentName: "external",
 			Components: installv1alpha1.ComponentSpec{
 				DNS: installv1alpha1.DNSComponent{
 					External: installv1alpha1.External{
@@ -121,57 +114,55 @@ func TestExternalInstall(t *testing.T) {
 				},
 				Ingress: installv1alpha1.IngressNginxComponent{
 					Type: installv1alpha1.LoadBalancer,
-					Verrazzano: installv1alpha1.VerrazzanoInstall{
-						NGINXInstallArgs: []installv1alpha1.InstallArgs{
-							{
-								Name:  "name1",
-								Value: "value1",
-							},
-							{
-								Name:  "name2",
-								Value: "value2",
-							},
-							{
-								Name: "name3",
-								ValueList: []string{
-									"valueList3-1",
-									"valueList3-2",
-								},
-							},
+					NGINXInstallArgs: []installv1alpha1.InstallArgs{
+						{
+							Name:  "name1",
+							Value: "value1",
 						},
-						Ports: []corev1.ServicePort{
-							{
-								Name:       "port1",
-								Protocol:   corev1.ProtocolTCP,
-								Port:       8000,
-								TargetPort: intstr.FromInt(8000),
-								NodePort:   30500,
-							},
-							{
-								Name:       "port2",
-								Protocol:   corev1.ProtocolUDP,
-								Port:       8010,
-								TargetPort: intstr.FromString("8011"),
-							},
-							{
-								Name:     "port3",
-								Protocol: corev1.ProtocolSCTP,
-								Port:     8020,
-								NodePort: 30600,
+						{
+							Name:  "name2",
+							Value: "value2",
+						},
+						{
+							Name: "name3",
+							ValueList: []string{
+								"valueList3-1",
+								"valueList3-2",
 							},
 						},
 					},
-					Application: installv1alpha1.ApplicationInstall{
-						IstioInstallArgs: []installv1alpha1.InstallArgs{
-							{
-								Name:  "name4",
-								Value: "value4",
-							},
-							{
-								Name: "name5",
-								ValueList: []string{
-									"valueList5-1",
-								},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "port1",
+							Protocol:   corev1.ProtocolTCP,
+							Port:       8000,
+							TargetPort: intstr.FromInt(8000),
+							NodePort:   30500,
+						},
+						{
+							Name:       "port2",
+							Protocol:   corev1.ProtocolUDP,
+							Port:       8010,
+							TargetPort: intstr.FromString("8011"),
+						},
+						{
+							Name:     "port3",
+							Protocol: corev1.ProtocolSCTP,
+							Port:     8020,
+							NodePort: 30600,
+						},
+					},
+				},
+				Istio: installv1alpha1.IstioComponent{
+					IstioInstallArgs: []installv1alpha1.InstallArgs{
+						{
+							Name:  "name4",
+							Value: "value4",
+						},
+						{
+							Name: "name5",
+							ValueList: []string{
+								"valueList5-1",
 							},
 						},
 					},
@@ -229,17 +220,17 @@ func TestExternalInstall(t *testing.T) {
 func TestOCIDNSInstall(t *testing.T) {
 	vz := installv1alpha1.Verrazzano{
 		Spec: installv1alpha1.VerrazzanoSpec{
-			Profile: "prod",
-			Core: installv1alpha1.VerrazzanoCore{
-				EnvironmentName: "oci",
-				Certificate: installv1alpha1.Certificate{
-					Acme: installv1alpha1.Acme{
-						Provider:     installv1alpha1.LetsEncrypt,
-						EmailAddress: "someguy@foo.com",
+			Profile:         "prod",
+			EnvironmentName: "oci",
+			Components: installv1alpha1.ComponentSpec{
+				CertManager: installv1alpha1.CertManager{
+					Certificate: installv1alpha1.Certificate{
+						Acme: installv1alpha1.Acme{
+							Provider:     installv1alpha1.LetsEncrypt,
+							EmailAddress: "someguy@foo.com",
+						},
 					},
 				},
-			},
-			Components: installv1alpha1.ComponentSpec{
 				DNS: installv1alpha1.DNSComponent{
 					OCI: installv1alpha1.OCI{
 						OCIConfigSecret:        "oci-config-secret",
@@ -250,29 +241,27 @@ func TestOCIDNSInstall(t *testing.T) {
 				},
 				Ingress: installv1alpha1.IngressNginxComponent{
 					Type: installv1alpha1.NodePort,
-					Verrazzano: installv1alpha1.VerrazzanoInstall{
-						NGINXInstallArgs: []installv1alpha1.InstallArgs{
-							{
-								Name:  "name1",
-								Value: "value1",
-							},
-						},
-						Ports: []corev1.ServicePort{
-							{
-								Name:       "port1",
-								Protocol:   corev1.ProtocolTCP,
-								Port:       8000,
-								TargetPort: intstr.FromInt(8000),
-								NodePort:   30500,
-							},
+					NGINXInstallArgs: []installv1alpha1.InstallArgs{
+						{
+							Name:  "name1",
+							Value: "value1",
 						},
 					},
-					Application: installv1alpha1.ApplicationInstall{
-						IstioInstallArgs: []installv1alpha1.InstallArgs{
-							{
-								Name:  "name2",
-								Value: "value2",
-							},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "port1",
+							Protocol:   corev1.ProtocolTCP,
+							Port:       8000,
+							TargetPort: intstr.FromInt(8000),
+							NodePort:   30500,
+						},
+					},
+				},
+				Istio: installv1alpha1.IstioComponent{
+					IstioInstallArgs: []installv1alpha1.InstallArgs{
+						{
+							Name:  "name2",
+							Value: "value2",
 						},
 					},
 				},

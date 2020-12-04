@@ -178,7 +178,7 @@ func GetInstallConfig(vz *installv1alpha1.Verrazzano, auth *DNSAuth) (*InstallCo
 
 func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, auth *DNSAuth) (*InstallConfiguration, error) {
 	return &InstallConfiguration{
-		EnvironmentName: getEnvironmentName(vz.Spec.Core.EnvironmentName),
+		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
 		DNS: DNS{
 			Type: DNSTypeOci,
@@ -197,19 +197,19 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, auth *DNSAuth) (*Ins
 		Ingress: Ingress{
 			Type: getIngressType(vz.Spec.Components.Ingress.Type),
 			Verrazzano: Verrazzano{
-				NginxInstallArgs: getIngressArgs(vz.Spec.Components.Ingress.Verrazzano.NGINXInstallArgs),
-				Ports:            getIngressPorts(vz.Spec.Components.Ingress.Verrazzano.Ports),
+				NginxInstallArgs: getIngressArgs(vz.Spec.Components.Ingress.NGINXInstallArgs),
+				Ports:            getIngressPorts(vz.Spec.Components.Ingress.Ports),
 			},
 			Application: Application{
-				IstioInstallArgs: getIngressArgs(vz.Spec.Components.Ingress.Application.IstioInstallArgs),
+				IstioInstallArgs: getIngressArgs(vz.Spec.Components.Istio.IstioInstallArgs),
 			},
 		},
 		Certificates: Certificate{
 			IssuerType: CertIssuerTypeAcme,
 			ACME: &CertificateACME{
-				Provider:     string(vz.Spec.Core.Certificate.Acme.Provider),
-				EmailAddress: vz.Spec.Core.Certificate.Acme.EmailAddress,
-				Environment:  vz.Spec.Core.Certificate.Acme.Environment,
+				Provider:     string(vz.Spec.Components.CertManager.Certificate.Acme.Provider),
+				EmailAddress: vz.Spec.Components.CertManager.Certificate.Acme.EmailAddress,
+				Environment:  vz.Spec.Components.CertManager.Certificate.Acme.Environment,
 			},
 		},
 	}, nil
@@ -219,7 +219,7 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, auth *DNSAuth) (*Ins
 // json format required by the bash installer scripts.
 func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration {
 	return &InstallConfiguration{
-		EnvironmentName: getEnvironmentName(vz.Spec.Core.EnvironmentName),
+		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
 		DNS: DNS{
 			Type: DNSTypeXip,
@@ -227,11 +227,11 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration
 		Ingress: Ingress{
 			Type: getIngressType(vz.Spec.Components.Ingress.Type),
 			Verrazzano: Verrazzano{
-				NginxInstallArgs: getIngressArgs(vz.Spec.Components.Ingress.Verrazzano.NGINXInstallArgs),
-				Ports:            getIngressPorts(vz.Spec.Components.Ingress.Verrazzano.Ports),
+				NginxInstallArgs: getIngressArgs(vz.Spec.Components.Ingress.NGINXInstallArgs),
+				Ports:            getIngressPorts(vz.Spec.Components.Ingress.Ports),
 			},
 			Application: Application{
-				IstioInstallArgs: getIngressArgs(vz.Spec.Components.Ingress.Application.IstioInstallArgs),
+				IstioInstallArgs: getIngressArgs(vz.Spec.Components.Istio.IstioInstallArgs),
 			},
 		},
 		Certificates: Certificate{
@@ -249,7 +249,7 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration
 // This type of install configuration would be used for an OLCNE install.
 func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration {
 	return &InstallConfiguration{
-		EnvironmentName: getEnvironmentName(vz.Spec.Core.EnvironmentName),
+		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
 		DNS: DNS{
 			Type: DNSTypeExternal,
@@ -260,11 +260,11 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfigu
 		Ingress: Ingress{
 			Type: getIngressType(vz.Spec.Components.Ingress.Type),
 			Verrazzano: Verrazzano{
-				NginxInstallArgs: getIngressArgs(vz.Spec.Components.Ingress.Verrazzano.NGINXInstallArgs),
-				Ports:            getIngressPorts(vz.Spec.Components.Ingress.Verrazzano.Ports),
+				NginxInstallArgs: getIngressArgs(vz.Spec.Components.Ingress.NGINXInstallArgs),
+				Ports:            getIngressPorts(vz.Spec.Components.Ingress.Ports),
 			},
 			Application: Application{
-				IstioInstallArgs: getIngressArgs(vz.Spec.Components.Ingress.Application.IstioInstallArgs),
+				IstioInstallArgs: getIngressArgs(vz.Spec.Components.Istio.IstioInstallArgs),
 			},
 		},
 		Certificates: Certificate{

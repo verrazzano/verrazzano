@@ -6,14 +6,14 @@ kind: Verrazzano
 metadata:
   name: my-verrazzano
 spec:
+  environmentName: env
   profile: prod
-  core:
-    environmentName: env
-    certificate:
-      acme:
-        provider: letsEncrypt
-        emailAddress: emailAddress@domain.com
   components:
+    cert-manager:
+      certificate:
+        acme:
+          provider: letsEncrypt
+          emailAddress: emailAddress@domain.com
     dns:
       oci:
         ociConfigSecret: ociConfigSecret
@@ -22,4 +22,3 @@ spec:
         dnsZoneName: my.dns.zone.name
     ingress:
       type: LoadBalancer
-

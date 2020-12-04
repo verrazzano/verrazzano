@@ -17,45 +17,6 @@ const (
 	// Prod identifies the production install profile
 	Prod ProfileType = "prod"
 )
-
-// XIPIO is xip.io DNS type
-type XIPIO struct {
-}
-
-// PrivateKeyPassphraseSecretRef identifies the private key passphrase needed for an OCI DNS install
-type PrivateKeyPassphraseSecretRef struct {
-	// Name of secret
-	Name string `json:"name"`
-	// Key for value in secret
-	Key string `json:"key"`
-}
-
-// OciPrivateKeyFileName is the private key file name
-const OciPrivateKeyFileName = "oci_api_key.pem"
-
-// OciPrivateKeyFilePath is the private key mount path
-const OciPrivateKeyFilePath = "/config/" + OciPrivateKeyFileName
-
-// OciConfigSecretFile is the name of the OCI configuration yaml file
-const OciConfigSecretFile = "oci-config.yaml"
-
-// OCI DNS type
-type OCI struct {
-	OCIConfigSecret        string `json:"ociConfigSecret"`
-	DNSZoneCompartmentOCID string `json:"dnsZoneCompartmentOCID"`
-	DNSZoneOCID            string `json:"dnsZoneOCID"`
-	DNSZoneName            string `json:"dnsZoneName"`
-}
-
-// External DNS type
-type External struct {
-	// DNS suffix appended to EnviromentName to form DNS name
-	Suffix string `json:"suffix"`
-}
-
-// IngressType is the type of ingress.
-type IngressType string
-
 const (
 	// LoadBalancer is an ingress type of LoadBalancer.  This is the default value.
 	LoadBalancer IngressType = "LoadBalancer"
@@ -63,73 +24,28 @@ const (
 	NodePort IngressType = "NodePort"
 )
 
-// InstallArgs identifies a name/value or name/value list needed for install.
-// Value and ValueList cannot both be specified.
-type InstallArgs struct {
-	// Name of install argument
-	Name string `json:"name"`
-	// Value for named install argument
-	// +optional
-	Value string `json:"value,omitempty"`
-	// List of values for named install argument
-	// +optional
-	ValueList []string `json:"valueList,omitempty"`
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=verrazzanos
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:shortName=vz;vzs
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[-1:].type",description="The current status of the install/uninstall"
+
+// Verrazzano is the Schema for the verrazzanos API
+type Verrazzano struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   VerrazzanoSpec   `json:"spec,omitempty"`
+	Status VerrazzanoStatus `json:"status,omitempty"`
 }
 
-// VerrazzanoInstall identifies the Verrazzano infrastructure install options.
-type VerrazzanoInstall struct {
-	// Arguments for installing nginx
-	// +optional
-	NGINXInstallArgs []InstallArgs `json:"nginxInstallArgs,omitempty"`
-	// Ports to be used for nginx
-	// +optional
-	Ports []corev1.ServicePort `json:"ports,omitempty"`
-}
+// +kubebuilder:object:root=true
 
-// ApplicationInstall identifies non-Verrazzano infrastructure install options.
-type ApplicationInstall struct {
-	// Arguments for installing istio
-	// +optional
-	IstioInstallArgs []InstallArgs `json:"istioInstallArgs,omitempty"`
-}
-
-// ProviderType identifies Acme provider type.
-type ProviderType string
-
-const (
-	// LetsEncrypt is a Let's Encrypt provider
-	LetsEncrypt ProviderType = "LetsEncrypt"
-)
-
-// Acme identifies the ACME cert issuer.
-type Acme struct {
-	// Type of provider for ACME cert issuer.
-	Provider ProviderType `json:"provider"`
-	// email address
-	// +optional
-	EmailAddress string `json:"emailAddress,omitempty"`
-	// environment
-	// +optional
-	Environment string `json:"environment,omitempty"`
-}
-
-// CA identifies the CA cert issuer.
-type CA struct {
-	// Name of secret for CA cert issuer
-	SecretName string `json:"secretName"`
-	// Namespace where secret is located for CA cert issuer
-	ClusterResourceNamespace string `json:"clusterResourceNamespace"`
-}
-
-// Certificate represents the type of cert issuer for an install
-// Only one of its members may be specified.
-type Certificate struct {
-	// ACME cert issuer
-	// +optional
-	Acme Acme `json:"acme,omitempty"`
-	// CA cert issuer
-	// +optional
-	CA CA `json:"ca,omitempty"`
+// VerrazzanoList contains a list of Verrazzano
+type VerrazzanoList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Verrazzano `json:"items"`
 }
 
 // VerrazzanoSpec defines the desired state of Verrazzano
@@ -140,17 +56,24 @@ type VerrazzanoSpec struct {
 	// Profile is the name of the profile to install.  Default is "prod".
 	// +optional
 	Profile ProfileType `json:"profile,omitempty"`
-	// Core specifies core Verrazzano configuration
+	// EnvironmentName identifies install environment.  Default environment name is "default".
 	// +optional
-	Core VerrazzanoCore `json:"core,omitempty"`
-	// Components specify the optional component overrides
+	EnvironmentName string `json:"environmentName,omitempty"`
+	// Core specifies core Verrazzano configuration
 	// +optional
 	Components ComponentSpec `json:"components,omitempty"`
 }
 
+// VerrazzanoStatus defines the observed state of Verrazzano
+type VerrazzanoStatus struct {
+	// The version of Verrazzano that is installed
+	Version string `json:"version,omitempty"`
+	// The latest available observations of an object's current state.
+	Conditions []Condition `json:"conditions,omitempty"`
+}
+
 // ConditionType identifies the condition of the install/uninstall which can be checked with kubectl wait
 type ConditionType string
-
 const (
 	// InstallStarted is state when an install is in progress.
 	InstallStarted ConditionType = "InstallStarted"
@@ -194,56 +117,34 @@ type Condition struct {
 	Message string `json:"message,omitempty"`
 }
 
-// VerrazzanoStatus defines the observed state of Verrazzano
-type VerrazzanoStatus struct {
-	// The version of Verrazzano that is installed
-	Version string `json:"version,omitempty"`
-	// The latest available observations of an object's current state.
-	Conditions []Condition `json:"conditions,omitempty"`
-}
-
-// +kubebuilder:object:root=true
-// +kubebuilder:resource:path=verrazzanos
-// +kubebuilder:subresource:status
-// +kubebuilder:resource:shortName=vz;vzs
-// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[-1:].type",description="The current status of the install/uninstall"
-
-// Verrazzano is the Schema for the verrazzanos API
-type Verrazzano struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   VerrazzanoSpec   `json:"spec,omitempty"`
-	Status VerrazzanoStatus `json:"status,omitempty"`
-}
-
-// +kubebuilder:object:root=true
-
-// VerrazzanoList contains a list of Verrazzano
-type VerrazzanoList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Verrazzano `json:"items"`
-}
-
-// VerrazzanoCore specifies the core Verrazzano config.  It cannot be disabled
-type VerrazzanoCore struct {
-	// Short name to identify install environment.  Default environment name is "default".
-	// +optional
-	EnvironmentName string `json:"environmentName,omitempty"`
-	// Certificate used for an install
-	// +optional
-	Certificate Certificate `json:"certificate,omitempty"`
-}
-
 // ComponentSpec contains a set of components used by Verrazzano
 type ComponentSpec struct {
+	// Verrazzano contains the Verrazzano component configuration
+	// +optional
+	Verrazzano VerrazzanoComponent `json:"verrazzano,omitempty"`
+	// CertManager contains the CertManager component configuration
+	// +optional
+	CertManager CertManager `json:"cert-manager,omitempty"`
 	// DNS contains the DNS component configuration
 	// +optional
 	DNS DNSComponent `json:"dns,omitempty"`
-	// +optional
 	// Ingress contains the ingress-nginx component configuration
+	// +optional
 	Ingress IngressNginxComponent `json:"ingress,omitempty"`
+	// Istio contains the istio component configuration
+	// +optional
+	Istio IstioComponent `json:"istio,omitempty"`
+}
+
+// VerrazzanoComponent specifies the core Verrazzano config.  It cannot be disabled
+type VerrazzanoComponent struct {
+}
+
+// CertManager specifies the core CertManager config.
+type CertManager struct {
+	// Certificate used for an install
+	// +optional
+	Certificate Certificate `json:"certificate,omitempty"`
 }
 
 // DNSComponent specifies the DNS configuration
@@ -259,18 +160,114 @@ type DNSComponent struct {
 	External External `json:"external,omitempty"`
 }
 
-// IngressNginxComponent identifies the ingress-nginx configuration
+// IngressNginxComponent specifies the ingress-nginx configuration
 type IngressNginxComponent struct {
 	// Type of ingress.  Default is LoadBalancer
 	// +optional
 	Type IngressType `json:"type,omitempty"`
-	// Non-Verrazzano infrastructure install options
+	// Arguments for installing nginx
 	// +optional
-	Application ApplicationInstall `json:"application,omitempty"`
-	// Verrazzano infrastructure install options
+	NGINXInstallArgs []InstallArgs `json:"nginxInstallArgs,omitempty"`
+	// Ports to be used for nginx
 	// +optional
-	Verrazzano VerrazzanoInstall `json:"verrazzano,omitempty"`
+	Ports []corev1.ServicePort `json:"ports,omitempty"`
 }
+
+// IstioComponent specifies the istio configuration
+type IstioComponent struct {
+	// Arguments for installing istio
+	// +optional
+	IstioInstallArgs []InstallArgs `json:"istioInstallArgs,omitempty"`
+}
+
+// InstallArgs identifies a name/value or name/value list needed for install.
+// Value and ValueList cannot both be specified.
+type InstallArgs struct {
+	// Name of install argument
+	Name string `json:"name"`
+	// Value for named install argument
+	// +optional
+	Value string `json:"value,omitempty"`
+	// List of values for named install argument
+	// +optional
+	ValueList []string `json:"valueList,omitempty"`
+}
+
+// ProviderType identifies Acme provider type.
+type ProviderType string
+const (
+	// LetsEncrypt is a Let's Encrypt provider
+	LetsEncrypt ProviderType = "LetsEncrypt"
+)
+
+// Acme identifies the ACME cert issuer.
+type Acme struct {
+	// Type of provider for ACME cert issuer.
+	Provider ProviderType `json:"provider"`
+	// email address
+	// +optional
+	EmailAddress string `json:"emailAddress,omitempty"`
+	// environment
+	// +optional
+	Environment string `json:"environment,omitempty"`
+}
+
+// CA identifies the CA cert issuer.
+type CA struct {
+	// Name of secret for CA cert issuer
+	SecretName string `json:"secretName"`
+	// Namespace where secret is located for CA cert issuer
+	ClusterResourceNamespace string `json:"clusterResourceNamespace"`
+}
+
+// Certificate represents the type of cert issuer for an install
+// Only one of its members may be specified.
+type Certificate struct {
+	// ACME cert issuer
+	// +optional
+	Acme Acme `json:"acme,omitempty"`
+	// CA cert issuer
+	// +optional
+	CA CA `json:"ca,omitempty"`
+}
+
+// XIPIO is xip.io DNS type
+type XIPIO struct {
+}
+
+// PrivateKeyPassphraseSecretRef identifies the private key passphrase needed for an OCI DNS install
+type PrivateKeyPassphraseSecretRef struct {
+	// Name of secret
+	Name string `json:"name"`
+	// Key for value in secret
+	Key string `json:"key"`
+}
+
+// OciPrivateKeyFileName is the private key file name
+const OciPrivateKeyFileName = "oci_api_key.pem"
+
+// OciPrivateKeyFilePath is the private key mount path
+const OciPrivateKeyFilePath = "/config/" + OciPrivateKeyFileName
+
+// OciConfigSecretFile is the name of the OCI configuration yaml file
+const OciConfigSecretFile = "oci-config.yaml"
+
+// OCI DNS type
+type OCI struct {
+	OCIConfigSecret        string `json:"ociConfigSecret"`
+	DNSZoneCompartmentOCID string `json:"dnsZoneCompartmentOCID"`
+	DNSZoneOCID            string `json:"dnsZoneOCID"`
+	DNSZoneName            string `json:"dnsZoneName"`
+}
+
+// External DNS type
+type External struct {
+	// DNS suffix appended to EnviromentName to form DNS name
+	Suffix string `json:"suffix"`
+}
+
+// IngressType is the type of ingress.
+type IngressType string
 
 func init() {
 	SchemeBuilder.Register(&Verrazzano{}, &VerrazzanoList{})
