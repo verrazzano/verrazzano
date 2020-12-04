@@ -299,6 +299,9 @@ spec:
                 description: Profile is the name of the profile to install.  Default
                   is "prod".
                 type: string
+              version:
+                description: Version is the Verrazzano version
+                type: string
             type: object
           status:
             description: VerrazzanoStatus defines the observed state of Verrazzano
@@ -328,6 +331,9 @@ spec:
                   - type
                   type: object
                 type: array
+              version:
+                description: The version of Verrazzano that is installed
+                type: string
             type: object
         type: object
     served: true
