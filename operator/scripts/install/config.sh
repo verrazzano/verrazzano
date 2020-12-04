@@ -182,7 +182,7 @@ function validate_config_json {
 function get_verrazzano_ingress_ip {
   local ingress_type=$(get_config_value ".ingress.type")
   if [ ${ingress_type} == "NodePort" ]; then
-    ingress_ip=$(get_config_value ".ingress.nodePort.ingressIp")
+    ingress_ip=$(kubectl -n ingress-nginx get pods --selector app=nginx-ingress,component=controller -o jsonpath='{.items[0].status.hostIP}')
   elif [ ${ingress_type} == "LoadBalancer" ]; then
     # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
     ingress_ip=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
@@ -197,7 +197,7 @@ function get_verrazzano_ingress_ip {
 function get_application_ingress_ip {
   local ingress_type=$(get_config_value ".ingress.type")
   if [ ${ingress_type} == "NodePort" ]; then
-    ingress_ip=$(get_config_value ".ingress.nodePort.ingressIp")
+    ingress_ip=$(kubectl -n istio-system get pods --selector app=istio-ingressgateway,istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}')
   elif [ ${ingress_type} == "LoadBalancer" ]; then
     # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
     ingress_ip=$(kubectl get svc istio-ingressgateway -n istio-system -o json | jq -r '.status.loadBalancer.ingress[0].ip')
