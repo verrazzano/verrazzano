@@ -4,13 +4,8 @@
    "dns": {
       "type": "oci",
       "oci": {
-         "region": "region",
-         "tenancyOcid": "tenancyOcid",
-         "userOcid": "userOcid",
+         "ociConfigSecret": "oci-config",
          "dnsZoneCompartmentOcid": "dnsZoneCompartmentOcid",
-         "fingerprint": "fingerprint",
-         "privateKeyFile": "privateKeyFile",
-         "privateKeyPassphrase": "privateKeyPassphrase",
          "dnsZoneOcid": "dnsZoneOcid",
          "dnsZoneName": "my.dns.zone.name"
       }

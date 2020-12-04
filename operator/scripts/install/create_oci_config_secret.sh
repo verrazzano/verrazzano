@@ -78,7 +78,7 @@ SECTION_PROPS=$(read_config $OCI_CONFIG_FILE $SECTION *)
 eval $SECTION_PROPS
 
 #create the yaml file
-echo "privateKeyAuth:" > $OUTPUT_FILE
+echo "auth:" > $OUTPUT_FILE
 echo "  region: $region" >> $OUTPUT_FILE
 echo "  tenancy: $tenancy" >> $OUTPUT_FILE
 echo "  user: $user" >> $OUTPUT_FILE

@@ -368,11 +368,6 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 			return nil
 		})
 
-	// Expect a call to get the ConfigMap - return that it does not exist
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getConfigMapName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ConfigMap"}, getServiceAccountName(name)))
-
 	// Expect a call to get the DNS config secret and return it
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil())).
@@ -390,6 +385,11 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 			secret.Type = corev1.SecretTypeOpaque
 			return nil
 		})
+
+	// Expect a call to get the ConfigMap - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getConfigMapName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ConfigMap"}, getServiceAccountName(name)))
 
 	// Expect a call to create the ConfigMap - return success
 	mock.EXPECT().
@@ -1292,11 +1292,6 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 			clusterRoleBinding.Subjects = crb.Subjects
 			return nil
 		})
-
-	// Expect a call to get the ConfigMap - return that it does not exist
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getConfigMapName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ConfigMap"}, getServiceAccountName(name)))
 
 	// Expect a call to get the DNS config secret but return a not found error
 	mock.EXPECT().

@@ -20,7 +20,7 @@ import (
 //  THEN the xip.io install configuration is created and verified
 func TestXipIoInstallDefaults(t *testing.T) {
 	vz := installv1alpha1.Verrazzano{}
-	config, _ := GetInstallConfig(&vz, nil)
+	config, _ := GetInstallConfig(&vz)
 	assert.Equalf(t, "default", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileProd, config.Profile, "Expected profile did not match")
 	assert.Equalf(t, DNSTypeXip, config.DNS.Type, "Expected DNS type did not match")
@@ -73,7 +73,7 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 		},
 	}
 
-	config, _ := GetInstallConfig(&vz, nil)
+	config, _ := GetInstallConfig(&vz)
 	assert.Equalf(t, "testEnv", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileDev, config.Profile, "Expected profile did not match")
 	assert.Equalf(t, DNSTypeXip, config.DNS.Type, "Expected DNS type did not match")
@@ -171,7 +171,7 @@ func TestExternalInstall(t *testing.T) {
 		},
 	}
 
-	config, _ := GetInstallConfig(&vz, nil)
+	config, _ := GetInstallConfig(&vz)
 	assert.Equalf(t, "external", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileProd, config.Profile, "Expected profile did not match")
 
@@ -267,31 +267,14 @@ func TestOCIDNSInstall(t *testing.T) {
 		},
 	}
 
-	dnsAuth := DNSAuth{
-		PrivateKeyAuth: OCIConfigAuth{
-			Region:      "test-region",
-			Tenancy:     "test-tenancy-ocid",
-			User:        "test-user-ocid",
-			Key:         "privateKeyData",
-			Fingerprint: "test-fingerprint",
-			Passphrase:  "passphraseValue",
-		},
-	}
-
-	config, _ := GetInstallConfig(&vz, &dnsAuth)
+	config, _ := GetInstallConfig(&vz)
 	assert.Equalf(t, "oci", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileProd, config.Profile, "Expected profile did not match")
 
 	assert.Equalf(t, DNSTypeOci, config.DNS.Type, "Expected DNS type did not match")
-	assert.Equalf(t, "test-region", config.DNS.Oci.Region, "Expected region did not match")
-	assert.Equalf(t, "test-tenancy-ocid", config.DNS.Oci.TenancyOcid, "Expected tenancy ocid did not match")
-	assert.Equalf(t, "test-user-ocid", config.DNS.Oci.UserOcid, "Expected user ocid did not match")
 	assert.Equalf(t, "test-dns-zone-compartment-ocid", config.DNS.Oci.DNSZoneCompartmentOcid, "Expected dns zone compartment ocid did not match")
-	assert.Equalf(t, "test-fingerprint", config.DNS.Oci.Fingerprint, "Expected fingerprint did not match")
 	assert.Equalf(t, "test-dns-zone-ocid", config.DNS.Oci.DNSZoneOcid, "Expected dns zone ocid did not match")
 	assert.Equalf(t, "test-dns-zone-name", config.DNS.Oci.DNSZoneName, "Expected dns zone name did not match")
-	assert.Equalf(t, installv1alpha1.OciPrivateKeyFilePath, config.DNS.Oci.PrivateKeyFile, "Expected private key file name did not match")
-	assert.Equalf(t, "passphraseValue", config.DNS.Oci.PrivateKeyPassphrase, "Expected passphrase did not match")
 
 	assert.Equalf(t, IngressTypeNodePort, config.Ingress.Type, "Expected Ingress type did not match")
 	assert.Equalf(t, 1, len(config.Ingress.Verrazzano.NginxInstallArgs), "Expected nginxInstallArgs length did not match")

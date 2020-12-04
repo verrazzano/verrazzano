@@ -102,39 +102,15 @@ function validate_dns_section {
     fi
   elif [ "$dnsType" == "oci" ]; then
     CHECK_VALUES=false
-    value=$(get_config_value '.dns.oci.region')
+    value=$(get_config_value '.dns.oci.ociConfigSecret')
     if [ -z "$value" ]; then
-        echo "For dns type oci, the value .dns.oci.region must be set to the OCI Region"
-        CHECK_VALUES=true
-    fi
-
-    value=$(get_config_value '.dns.oci.tenancyOcid')
-    if [ -z "$value" ]; then
-        echo "For dns type oci, the value .dns.oci.tenancyOcid must be set to the OCI Tenancy OCID"
-        CHECK_VALUES=true
-    fi
-
-    value=$(get_config_value ".dns.oci.userOcid")
-    if [ -z "$value" ]; then
-        echo "For dns type oci, the value .dns.oci.userOcid must be set to the OCI User OCID"
+        echo "For dns type oci, the value .dns.oci.ociConfigSecret must be set to the OCI Configuration secret name"
         CHECK_VALUES=true
     fi
 
     value=$(get_config_value ".dns.oci.dnsZoneCompartmentOcid")
     if [ -z "$value" ]; then
         echo "For dns type oci, the value .dns.oci.dnsZoneCompartmentOcid must be set to the OCI Compartment OCID"
-        CHECK_VALUES=true
-    fi
-
-    value=$(get_config_value ".dns.oci.fingerprint")
-    if [ -z "$value" ]; then
-        echo "For dns type oci, the value .dns.oci.fingerprint must be set to the OCI Fingerprint"
-        CHECK_VALUES=true
-    fi
-
-    value=$(get_config_value ".dns.oci.privateKeyFile")
-    if [ -z "$value" ]; then
-        echo "For dns type oci, the value .dns.oci.privateKeyFile must be set to the OCI Private Key File"
         CHECK_VALUES=true
     fi
 
