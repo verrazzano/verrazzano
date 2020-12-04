@@ -87,7 +87,7 @@ type InstallArgs struct {
 	Value string `json:"value,omitempty"`
 	// If the Value is a literal string
 	// +optional
-	SetString string `json:"setString,omitempty"`
+	SetString bool `json:"setString,omitempty"`
 	// List of values for named install argument
 	// +optional
 	ValueList []string `json:"valueList,omitempty"`

@@ -136,7 +136,7 @@ spec:
                               type: string
                             setString:
                               description: If the Value is a literal string
-                              type: string
+                              type: boolean
                             value:
                               description: Value for named install argument
                               type: string
@@ -168,7 +168,7 @@ spec:
                               type: string
                             setString:
                               description: If the Value is a literal string
-                              type: string
+                              type: boolean
                             value:
                               description: Value for named install argument
                               type: string
