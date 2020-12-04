@@ -41,8 +41,8 @@ kubectl apply -f config/samples/install-default.yaml
 
 # generate a secret named "oci-config" based on the OCI configuration profile you wish to leverage.  You
 # can specify a profile other than DEFAULT and a different secret name if you wish.  See instruction by executing
-# ./install/create_oci_config_secret.sh
-./install/create_oci_config_secret.sh
+# ./scripts/install/create_oci_config_secret.sh
+./scripts/install/create_oci_config_secret.sh
 
 # copy the config/samples/install-oci.yaml file
 cp config/samples/install-oci.yaml /tmp

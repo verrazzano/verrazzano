@@ -261,7 +261,7 @@ Following is a table that describes the `spec` portion of the Verrazzano custom 
 | `environmentName` | No | Name of the installation.  This name is part of the endpoint access URLs that are generated. The default value is `default`. |
 | `profile` | No | The installation profile to select.  Valid values are `prod` (production) and `dev` (development).  The default is `prod`. |
 | `dns.oci` | No | This portion of the configuration is specified when using OCI DNS.  This configuration cannot be specified in conjunction with `dns.external` or `dns.xip.io`.  |
-| `dns.oci.ociConfigSecret` | Yes | Name of the OCI configuration secret.  Generate a secret named "oci-config" based on the OCI configuration profile you want to use.  You can specify a profile other than DEFAULT and a different secret name.  See instructions by running `./install/create_oci_config_secret.sh`.|
+| `dns.oci.ociConfigSecret` | Yes | Name of the OCI configuration secret.  Generate a secret named "oci-config" based on the OCI configuration profile you want to use.  You can specify a profile other than DEFAULT and a different secret name.  See instructions by running `./operator/scripts/install/create_oci_config_secret.sh`.|
 | `dns.oci.dnsZoneCompartmentOCID` | Yes | The OCI DNS compartment OCID. |
 | `dns.oci.dnsZoneOCID` | Yes | The OCI DNS zone OCID. |
 | `dns.oci.dnsZoneName` | Yes | Name of OCI DNS zone. |
