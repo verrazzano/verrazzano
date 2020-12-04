@@ -203,12 +203,24 @@ pipeline {
             }
         }
 
+        stage('Generate operator.yaml') {
+            when { not { buildingTag() } }
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > deploy/operator.yaml
+                    cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
+                    cat deploy/operator.yaml
+                   """
+            }
+        }
+
         stage('Integration Tests') {
             when { not { buildingTag() } }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
-                    make integ-test DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+                    make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     operator/build/scripts/copy-junit-output.sh ${WORKSPACE}
                 """
             }
@@ -259,10 +271,8 @@ pipeline {
                     git config --global user.name $DOCKER_CREDS_USR
                     git config --global user.email "70212020+verrazzanobot@users.noreply.github.com"
                     git checkout -b ${env.BRANCH_NAME}
-                    cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > deploy/operator.yaml
-                    cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
                     git add deploy/operator.yaml
-                    git commit -m "Jenkins update to operator image in operator.yaml"
+                    git commit -m "[verrazzanobot] Update verrazzano-platform-operator image version to ${DOCKER_IMAGE_TAG} in operator.yaml"
                     git push origin ${env.BRANCH_NAME}
                    """
             }
