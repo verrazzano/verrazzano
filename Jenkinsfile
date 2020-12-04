@@ -249,6 +249,7 @@ pipeline {
             steps {
                 build job: "verrazzano-magic-dns-acceptance-tests/${env.BRANCH_NAME.replace("/", "%2F")}",
                         parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME),
+                                     string(name: 'ACCEPTANCE_TESTS_BRANCH', value: params.ACCEPTANCE_TESTS_BRANCH),
                                      string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME),
                                      string(name: 'OKE_CLUSTER_REGION', value: params.ACCEPTANCE_TESTS_OKE_REGION),
                                      string(name: 'DNS_TYPE', value: 'xip.io')],
