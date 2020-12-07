@@ -338,7 +338,7 @@ func TestNodePortInstall(t *testing.T) {
 		},
 	}
 
-	config, _ := GetInstallConfig(&vz, nil)
+	config, _ := GetInstallConfig(&vz)
 	assert.Equalf(t, "kind", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileDev, config.Profile, "Expected profile did not match")
 
