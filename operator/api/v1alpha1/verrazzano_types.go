@@ -37,7 +37,7 @@ const OciPrivateKeyFileName = "oci_api_key.pem"
 const OciPrivateKeyFilePath = "/config/" + OciPrivateKeyFileName
 
 // OciConfigSecretFile is the name of the OCI configuration yaml file
-const OciConfigSecretFile = "oci-config.yaml"
+const OciConfigSecretFile = "oci.yaml"
 
 // OCI DNS type
 type OCI struct {

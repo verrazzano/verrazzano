@@ -4,7 +4,7 @@
    "dns": {
       "type": "oci",
       "oci": {
-         "ociConfigSecret": "oci-config",
+         "ociConfigSecret": "oci",
          "dnsZoneCompartmentOcid": "dnsZoneCompartmentOcid",
          "dnsZoneOcid": "dnsZoneOcid",
          "dnsZoneName": "my.dns.zone.name"

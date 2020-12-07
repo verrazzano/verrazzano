@@ -57,11 +57,11 @@ function usage {
     exit 1
 }
 
-OUTPUT_FILE=$TMP_DIR/oci-config.yaml
+OUTPUT_FILE=$TMP_DIR/oci.yaml
 
 OCI_CONFIG_FILE=~/.oci/config
 SECTION=DEFAULT
-KUBE_KEY_NAME=oci-config
+KUBE_KEY_NAME=oci
 
 while getopts o:s:h flag
 do

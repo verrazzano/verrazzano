@@ -102,7 +102,7 @@ spec:
             useInstancePrincipals: false
             serviceAccountSecretRef:
               name: $OCI_DNS_CONFIG_SECRET
-              key: "oci.yaml"
+              key: "$OCI_DNS_CONFIG_SECRET.yaml"
             ocizonename: $DNS_SUFFIX
 ")
   elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
