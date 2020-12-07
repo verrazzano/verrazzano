@@ -70,6 +70,12 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 					},
 				},
 			},
+			Certificate: installv1alpha1.Certificate{
+				CA: installv1alpha1.CA{
+					SecretName:               "customSecret",
+					ClusterResourceNamespace: "customNamespace",
+				},
+			},
 		},
 	}
 
@@ -93,8 +99,8 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 	assert.Equalf(t, "value2", config.Ingress.Application.IstioInstallArgs[0].Value, "Expected istioInstallArg name did not match")
 
 	assert.Equalf(t, CertIssuerTypeCA, config.Certificates.IssuerType, "Expected certification issuer type did not match")
-	assert.Equalf(t, "cattle-system", config.Certificates.CA.ClusterResourceNamespace, "Expected namespace did not match")
-	assert.Equalf(t, "tls-rancher", config.Certificates.CA.SecretName, "Expected CA secret name did not match")
+	assert.Equalf(t, "customNamespace", config.Certificates.CA.ClusterResourceNamespace, "Expected namespace did not match")
+	assert.Equalf(t, "customSecret", config.Certificates.CA.SecretName, "Expected CA secret name did not match")
 }
 
 // TestExternalInstall tests the creation of an external install configuration
