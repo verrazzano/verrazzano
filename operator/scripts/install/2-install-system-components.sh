@@ -76,7 +76,6 @@ function setup_cert_manager_crd() {
 function setup_cluster_issuer() {
   if [ "$CERT_ISSUER_TYPE" == "acme" ]; then
     local OCI_DNS_CONFIG_SECRET=$(get_config_value ".dns.oci.ociConfigSecret")
-    local OCI_COMPARTMENT_OCID=$(get_config_value ".dns.oci.dnsZoneCompartmentOcid")
     local EMAIL_ADDRESS=$(get_config_value ".certificates.acme.emailAddress")
     local OCI_DNS_ZONE_OCID=$(get_config_value ".dns.oci.dnsZoneOcid")
     local OCI_DNS_ZONE_NAME=$(get_config_value ".dns.oci.dnsZoneName")
@@ -165,8 +164,10 @@ function install_external_dns()
     if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n cert-manager ; then
       # secret does not exist, so copy the configured oci config secret from default namespace.
       # Operator has already checked for existence of secret in default namespace
-      kubectl get secret ${OCI_DNS_CONFIG_SECRET} -n default -o yaml \
-          | sed "s|namespace: default|namespace: cert-manager|" \
+      # The DNS zone compartment will get appended to secret generated for cert external dns
+      local dns_compartment=$(get_config_value ".dns.oci.dnsZoneCompartmentOcid")
+      kubectl get secret ${OCI_DNS_CONFIG_SECRET} -o go-template='{{range $k,$v := .data}}{{if not $v}}{{$v}}{{else}}{{$v | base64decode}}{{end}}{{"\n"}}{{end}}' \
+          | sed '/^$/d' && echo "compartment: $dns_compartment"\
           | kubectl apply -n cert-manager -f -
     fi
 
