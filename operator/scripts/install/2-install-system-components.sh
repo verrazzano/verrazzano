@@ -101,7 +101,7 @@ spec:
             useInstancePrincipals: false
             serviceAccountSecretRef:
               name: $OCI_DNS_CONFIG_SECRET
-              key: "$OCI_DNS_CONFIG_SECRET.yaml"
+              key: "oci.yaml"
             ocizonename: $DNS_SUFFIX
 ")
   elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
@@ -169,7 +169,7 @@ function install_external_dns()
       kubectl get secret ${OCI_DNS_CONFIG_SECRET} -o go-template='{{range $k,$v := .data}}{{if not $v}}{{$v}}{{else}}{{$v | base64decode}}{{end}}{{"\n"}}{{end}}' \
           | sed '/^$/d' > $TMP_DIR/oci.yaml
       echo "compartment: $dns_compartment" >> $TMP_DIR/oci.yaml
-      kubectl create secret generic $OCI_DNS_CONFIG_SECRET --from-file=$TMP_DIR/oci.yaml
+      kubectl create secret generic $OCI_DNS_CONFIG_SECRET --from-file=$TMP_DIR/oci.yaml -n cert-manager
     fi
 
     helm upgrade external-dns stable/external-dns \
