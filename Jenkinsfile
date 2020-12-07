@@ -281,6 +281,9 @@ pipeline {
     }
 
     post {
+        always {
+            deleteDir()
+        }
         failure {
             mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
             subject: "Verrazzano: ${env.JOB_NAME} - Failed",
