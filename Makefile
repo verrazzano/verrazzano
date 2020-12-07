@@ -10,7 +10,7 @@ DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)
 
 CREATE_LATEST_TAG=0
 
-CRD_OPTIONS ?= "crd:trivialVersions=true"
+CRD_OPTIONS ?= "crd:crdVersions=v1"
 
 ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),docker-push push-tag))
 ifndef DOCKER_REPO
@@ -176,13 +176,18 @@ OPERATOR_SETUP = test/operatorsetup
 .PHONY: integ-test
 integ-test: create-cluster
 	echo 'Load docker image for the verrazzano-platform-operator...'
-	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 	echo 'Deploy verrazzano platform operator ...'
+ifdef JENKINS_URL
+	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+	kubectl apply -f operator/deploy/operator.yaml
+else
+	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	mkdir -p build/deploy
 	cat operator/config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > ${BUILD-DEPLOY}/operator.yaml
 	cat operator/config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> ${BUILD-DEPLOY}/operator.yaml
 	kubectl apply -f ${BUILD-DEPLOY}/operator.yaml
+endif
 
 	echo 'Run tests...'
 	ginkgo -v --keepGoing -cover operator/test/integ/... || IGNORE=FAILURE

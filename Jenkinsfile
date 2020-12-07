@@ -6,7 +6,6 @@ def DOCKER_IMAGE_TAG
 pipeline {
     options {
         skipDefaultCheckout true
-        disableConcurrentBuilds()
     }
 
     agent {
@@ -41,6 +40,12 @@ pipeline {
                 description: 'Branch or tag of verrazzano acceptance tests, on which to kick off the tests',
                 trim: true
         )
+        choice (description: 'OCI region to launch acceptance tests OKE clusters in', name: 'ACCEPTANCE_TESTS_OKE_REGION',
+                // 1st choice is the default value
+                choices: [ "us-ashburn-1", "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
+                           "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
+                           "sa-saopaulo-1", "uk-london-1", "us-ashburn-1", "us-phoenix-1", "us-sanjose-1" ])
+        booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: false)
     }
 
     environment {
@@ -166,6 +171,7 @@ pipeline {
             post {
                 always {
                     archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
                     cobertura(coberturaReportFile: 'coverage.xml',
                       enableNewApi: true,
                       autoUpdateHealth: true,
@@ -179,7 +185,6 @@ pipeline {
                       lineCoverageTargets: '80, 0, 0',
                       packageCoverageTargets: '80, 0, 0',
                     )
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
         }
@@ -198,12 +203,24 @@ pipeline {
             }
         }
 
+        stage('Generate operator.yaml') {
+            when { not { buildingTag() } }
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > deploy/operator.yaml
+                    cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
+                    cat deploy/operator.yaml
+                   """
+            }
+        }
+
         stage('Integration Tests') {
             when { not { buildingTag() } }
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
-                    make integ-test DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+                    make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     operator/build/scripts/copy-junit-output.sh ${WORKSPACE}
                 """
             }
@@ -216,29 +233,30 @@ pipeline {
         }
 
         stage('Kick off MagicDNS Acceptance tests') {
-            when { not { buildingTag() } }
+            when {
+                allOf {
+                    not { buildingTag() }
+                    anyOf {
+                        branch 'master';
+                        branch 'develop';
+                        expression { return params.RUN_ACCEPTANCE_TESTS == true }
+                    }
+                }
+            }
             environment {
                 FULL_IMAGE_NAME = "${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
             }
             steps {
-                build job: "verrazzano-in-cluster-oke-acceptance-test-suite/${params.ACCEPTANCE_TESTS_BRANCH}",
+                build job: "verrazzano-magic-dns-acceptance-tests/${env.BRANCH_NAME.replace("/", "%2F")}",
                         parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME),
+                                     string(name: 'ACCEPTANCE_TESTS_BRANCH', value: params.ACCEPTANCE_TESTS_BRANCH),
                                      string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME),
+                                     string(name: 'OKE_CLUSTER_REGION', value: params.ACCEPTANCE_TESTS_OKE_REGION),
                                      string(name: 'DNS_TYPE', value: 'xip.io')],
                         wait: true,
                         propagate: true
             }
         }
-
-        /*stage('Kick off OCI DNS Acceptance tests') {
-            when { not { buildingTag() } }
-            environment {
-                FULL_IMAGE_NAME = "${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-            }
-            steps {
-                build job: 'verrazzano-in-cluster-oke-acceptance-test-suite/${params.ACCEPTANCE_TESTS_BRANCH}', parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME), string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME), string(name: 'DNS_TYPE', value: 'oci')], wait: false
-            }
-        }*/
 
         stage('Update operator.yaml') {
             when {
@@ -254,10 +272,8 @@ pipeline {
                     git config --global user.name $DOCKER_CREDS_USR
                     git config --global user.email "70212020+verrazzanobot@users.noreply.github.com"
                     git checkout -b ${env.BRANCH_NAME}
-                    cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > deploy/operator.yaml
-                    cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
                     git add deploy/operator.yaml
-                    git commit -m "Jenkins update to operator image in operator.yaml"
+                    git commit -m "[verrazzanobot] Update verrazzano-platform-operator image version to ${DOCKER_IMAGE_TAG} in operator.yaml"
                     git push origin ${env.BRANCH_NAME}
                    """
             }
@@ -265,6 +281,9 @@ pipeline {
     }
 
     post {
+        always {
+            deleteDir()
+        }
         failure {
             mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
             subject: "Verrazzano: ${env.JOB_NAME} - Failed",
@@ -274,7 +293,7 @@ pipeline {
                     pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }
-           }
+            }
         }
     }
 }

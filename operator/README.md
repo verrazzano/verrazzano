@@ -2,7 +2,7 @@
 
 # verrazzano-platform-operator
 
-THIS IS A TEMPORARY README WHILE WE COMPLETE THE TRANSITION OF THE VERRAZZANO-PLATFORM-OPERATOR CODE INTO THE VERRAZZANO REPOSITORY
+This document contains instructions for building and testing the verrazzano-platform-operator.
 
 ## Prerequisites
 * kustomize v3.1.0+
@@ -41,8 +41,8 @@ kubectl apply -f config/samples/install-default.yaml
 
 # generate a secret named "oci" based on the OCI configuration profile you wish to leverage.  You
 # can specify a profile other than DEFAULT and a different secret name if you wish.  See instruction by executing
-# ./install/create_oci_config_secret.sh
-./install/create_oci_config_secret.sh
+# ./scripts/install/create_oci_config_secret.sh
+./scripts/install/create_oci_config_secret.sh
 
 # copy the config/samples/install-oci.yaml file
 cp config/samples/install-oci.yaml /tmp

@@ -44,17 +44,18 @@ function dump-uninstall-logs {
 # The same docker image is shared between the verrazzano-platform-operator and
 # the installation jobs that the operator creates.  The default mode is to run
 # the verrazzano-platform-operator.
+
+# Create a kubeconfig
+create-kubeconfig
 if [ ${MODE} == "INSTALL" ]; then
-  # Create a kubeconfig and run the installation
-  create-kubeconfig
+  # Run the installation
   ./install/1-install-istio.sh || dump-install-logs 1
   ./install/2-install-system-components.sh || dump-install-logs 1
   ./install/3-install-verrazzano.sh || dump-install-logs 1
   ./install/4-install-keycloak.sh || dump-install-logs 1
   dump-install-logs 0
 elif [ ${MODE} == "UNINSTALL" ]; then
-  # Create a kubeconfig and run the uninstall
-  create-kubeconfig
+  # Run the uninstall
   ./uninstall/uninstall-verrazzano.sh -f || dump-uninstall-logs 1
   dump-uninstall-logs 0
 else

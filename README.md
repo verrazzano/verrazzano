@@ -1,5 +1,5 @@
 # Verrazzano
-> **NOTE**: This is an early alpha release of Verrazzano. It is suitable for investigation and education usage. It is not suitable for production use.
+> **NOTE**: This is a developer preview release of Verrazzano. It is intended for installation in a single cluster on Oracle Cloud Infrastructure Container Engine for Kubernetes (OKE) or Oracle Linux Cloud Native Environment (OLCNE). You should install Verrazzano only in a cluster that can be safely deleted when your evaluation is complete.
 
 ## Introduction
 Verrazzano is an end-to-end Enterprise Container Platform for deploying cloud-native and traditional applications in multi-cloud and hybrid environments. It is made up of a curated set of open source components – many that you may already use and trust, and some that were written specifically to pull together all of the pieces to make this a cohesive and easy to use platform.
@@ -13,7 +13,7 @@ Verrazzano Enterprise Container Platform includes the following capabilities:
 - Integrated security
 - DevOps and GitOps enablement
 
-This repository contains installation scripts and example applications for use with Verrazzano.
+This repository contains a Kubernetes operator for installing Verrazzano and example applications for use with Verrazzano.
 
 > **NOTE**: This is an early alpha release of Verrazzano. Some features are still in development.
 
@@ -26,13 +26,13 @@ To install Verrazzano, follow these steps:
    - `git clone https://github.com/verrazzano/verrazzano`
    - `cd verrazzano`
 5. Run the following commands in the OCI Cloud Shell:
-   - `export VERRAZZANO_KUBECONFIG=~/.kube/config`
    - `export KUBECONFIG=~/.kube/config`
-   - `./operator/scripts/install/1-install-istio.sh`
-   - `./operator/scripts/install/2-install-system-components.sh`
-   - `./operator/scripts/install/3-install-verrazzano.sh`
-   - `./operator/scripts/install/4-install-keycloak.sh`
-6. (Optional) Install some example applications - see [Deploy the example applications](#deploy-the-example-applications) for details.
+   - `kubectl apply -f operator/deploy/operator.yaml`
+   - `kubectl apply -f operator/config/samples/install-default.yaml`
+   - `kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano`
+6. (Optional) Run the following command in the OCI Cloud Shell to monitor the installation log:
+    - `kubectl logs -f $(kubectl get pod -l job-name=verrazzano-install-my-verrazzano -o jsonpath="{.items[0].metadata.name}")`
+7. (Optional) Install some example applications - see [Deploy the example applications](#deploy-the-example-applications) for details.
 
 
 > **NOTE**: This alpha release of Verrazzano is intended for installation in a single OKE or Oracle Linux Cloud Native Environment (OLCNE) cluster. You should only install Verrazzano in a cluster that can be safely deleted when your evaluation is complete.
@@ -50,15 +50,15 @@ To deploy the example applications, please see the following instructions:
 
 ## Verrazzano Helm Chart
 
-The `chart` directory contains a Helm chart for Verrazzano that packages together the core elements that will be installed into the Verrazzano Management Cluster - micro operators,
+The `operator/scripts/install/chart` directory contains a Helm chart for Verrazzano that packages together the core elements that will be installed into the Verrazzano Management Cluster - micro operators,
 verrazzano-operator, verrazzano-monitoring-operator, and such - into a single Helm chart.
 
 ### Chart Parameters
 
-See the `./chart/values.yaml` file for the full list of configurable parameters that can be set using
+See the `./operator/scripts/install/chart/values.yaml` file for the full list of configurable parameters that can be set using
 `--set parameter=value` when installing the Helm chart.
 
 
 ## More Information
 
-For more detailed [installation instructions](./operator/scripts/install/README.md), see the `install` directory.
+For more details see [installation instructions](install.md).

@@ -158,7 +158,7 @@ function validate_config_json {
 function get_verrazzano_ingress_ip {
   local ingress_type=$(get_config_value ".ingress.type")
   if [ ${ingress_type} == "NodePort" ]; then
-    ingress_ip=$(get_config_value ".ingress.nodePort.ingressIp")
+    ingress_ip=$(kubectl -n ingress-nginx get pods --selector app=nginx-ingress,component=controller -o jsonpath='{.items[0].status.hostIP}')
   elif [ ${ingress_type} == "LoadBalancer" ]; then
     # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
     ingress_ip=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
@@ -173,7 +173,7 @@ function get_verrazzano_ingress_ip {
 function get_application_ingress_ip {
   local ingress_type=$(get_config_value ".ingress.type")
   if [ ${ingress_type} == "NodePort" ]; then
-    ingress_ip=$(get_config_value ".ingress.nodePort.ingressIp")
+    ingress_ip=$(kubectl -n istio-system get pods --selector app=istio-ingressgateway,istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}')
   elif [ ${ingress_type} == "LoadBalancer" ]; then
     # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
     ingress_ip=$(kubectl get svc istio-ingressgateway -n istio-system -o json | jq -r '.status.loadBalancer.ingress[0].ip')
@@ -199,13 +199,13 @@ function get_dns_suffix {
 }
 
 function get_nginx_helm_args_from_config {
-  if [ ! -z "$(get_config_value ".ingress.verrazzano")" ]; then
+  if [ ! -z "$(get_config_value ".ingress.verrazzano")" ] && [ ! -z "$(get_config_value '.ingress.verrazzano.nginxInstallArgs')" ]; then
     config_array_to_helm_args ".ingress.verrazzano.nginxInstallArgs[]" || return 1
   fi
 }
 
 function get_istio_helm_args_from_config {
-  if [ ! -z "$(get_config_value ".ingress.application")" ]; then
+  if [ ! -z "$(get_config_value ".ingress.application")" ] && [ ! -z "$(get_config_value '.ingress.application.istioInstallArgs')" ]; then
     config_array_to_helm_args ".ingress.application.istioInstallArgs[]" || return 1
   fi
 }
@@ -234,7 +234,7 @@ function config_array_to_helm_args {
 
 function get_verrazzano_ports_spec() {
   local ports_spec=""
-  if [ ! -z "$(get_config_value ".ingress.verrazzano")" ]; then
+  if [ ! -z "$(get_config_value ".ingress.verrazzano")" ] && [ ! -z "$(get_config_value '.ingress.verrazzano.ports')" ]; then
     local port_mappings=($(get_config_array ".ingress.verrazzano.ports[]"))
     local port_mappings_len=${#port_mappings[@]}
     if [ $port_mappings_len -ne 0 ]; then
