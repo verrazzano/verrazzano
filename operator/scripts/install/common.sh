@@ -246,6 +246,7 @@ KEYCLOAK_CHART_VERSION=8.2.2
 
 KEYCLOAK_THEME_IMAGE=ghcr.io/verrazzano/keycloak-oracle-theme:0.4.0-20201026173040-347277a
 
+MYSQL_IMAGE=ghcr.io/verrazzano/mysql
 MYSQL_IMAGE_TAG=8.0.20
 
 NGINX_INGRESS_CONTROLLER_IMAGE=ghcr.io/verrazzano/nginx-ingress-controller
