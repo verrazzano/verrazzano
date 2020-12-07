@@ -167,8 +167,9 @@ function install_external_dns()
       # The DNS zone compartment will get appended to secret generated for cert external dns
       local dns_compartment=$(get_config_value ".dns.oci.dnsZoneCompartmentOcid")
       kubectl get secret ${OCI_DNS_CONFIG_SECRET} -o go-template='{{range $k,$v := .data}}{{if not $v}}{{$v}}{{else}}{{$v | base64decode}}{{end}}{{"\n"}}{{end}}' \
-          | sed '/^$/d' && echo "compartment: $dns_compartment"\
-          | kubectl apply -n cert-manager -f -
+          | sed '/^$/d' > $TMP_DIR/oci.yaml
+      echo "compartment: $dns_compartment" >> $TMP_DIR/oci.yaml
+      kubectl apply -n cert-manager -f $TMP_DIR/oci.yaml
     fi
 
     helm upgrade external-dns stable/external-dns \
