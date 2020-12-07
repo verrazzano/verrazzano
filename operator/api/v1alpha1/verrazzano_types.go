@@ -120,12 +120,9 @@ type Condition struct {
 
 // ComponentSpec contains a set of components used by Verrazzano
 type ComponentSpec struct {
-	// Verrazzano contains the Verrazzano component configuration
-	// +optional
-	Verrazzano VerrazzanoComponent `json:"verrazzano,omitempty"`
 	// CertManager contains the CertManager component configuration
 	// +optional
-	CertManager CertManager `json:"cert-manager,omitempty"`
+	CertManager CertManagerComponent `json:"certManager,omitempty"`
 	// DNS contains the DNS component configuration
 	// +optional
 	DNS DNSComponent `json:"dns,omitempty"`
@@ -137,12 +134,8 @@ type ComponentSpec struct {
 	Istio IstioComponent `json:"istio,omitempty"`
 }
 
-// VerrazzanoComponent specifies the core Verrazzano config.  It cannot be disabled
-type VerrazzanoComponent struct {
-}
-
-// CertManager specifies the core CertManager config.
-type CertManager struct {
+// CertManagerComponent specifies the core CertManagerComponent config.
+type CertManagerComponent struct {
 	// Certificate used for an install
 	// +optional
 	Certificate Certificate `json:"certificate,omitempty"`

@@ -9,7 +9,7 @@ spec:
   environmentName: env
   profile: prod
   components:
-    cert-manager:
+    certManager:
       certificate:
         acme:
           provider: letsEncrypt

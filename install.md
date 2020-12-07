@@ -256,17 +256,19 @@ spec:
 #### Table: Verrazzano Custom Resource Definition
 Following is a table that describes the `spec` portion of the Verrazzano custom resource:
 
-| Configuration setting | Required | Description
-| --- | --- | --- |
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| `environmentName` | string | Name of the installation.  This name is part of the endpoint access URLs that are generated. The default value is `default`. | No  
+| `profile` | string | The installation profile to select.  Valid values are `prod` (production) and `dev` (development).  The default is `prod`. | No |
+| `components` | [Components](#Components) | The Verrazzano Components.  | No  |
+
+
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
 | `environmentName` | No | Name of the installation.  This name is part of the endpoint access URLs that are generated. The default value is `default`. |
 | `profile` | No | The installation profile to select.  Valid values are `prod` (production) and `dev` (development).  The default is `prod`. |
 | `dns.oci` | No | This portion of the configuration is specified when using OCI DNS.  This configuration cannot be specified in conjunction with `dns.external` or `dns.xip.io`.  |
-| `dns.oci.ociConfigSecret` | Yes | Name of the OCI configuration secret.  Generate a secret named "oci-config" based on the OCI configuration profile you want to use.  You can specify a profile other than DEFAULT and a different secret name.  See instructions by running `./install/create_oci_config_secret.sh`.|
-| `dns.oci.dnsZoneCompartmentOCID` | Yes | The OCI DNS compartment OCID. |
-| `dns.oci.dnsZoneOCID` | Yes | The OCI DNS zone OCID. |
-| `dns.oci.dnsZoneName` | Yes | Name of OCI DNS zone. |
 | `dns.external` | No | This portion of the configuration is specified when using OLCNE.  This configuration cannot be specified in conjunction with `dns.oci` or `dns.xip.io`. |
-| `dns.external.suffix` | Yes | The suffix for DNS names. |
 | `dns.xip.io` | No | This portion of the configuration is specified when using xip.io.  This configuration cannot be specified in conjunction with `dns.oci` or `dns.external`. This is the default DNS configuration. |
 | `ingress` | No | This portion of the configuration defines the ingress. |
 | `ingress.type` | No | The ingress type.  Valid values are `LoadBalancer` and `NodePort`.  The default value is `LoadBalancer`. |
@@ -284,6 +286,29 @@ Following is a table that describes the `spec` portion of the Verrazzano custom 
 | `certificate.ca.secretName` | Yes | Name of the secret. |
 | `certificate.ca.clusterResourceNamespace` | Yes | The namespace of the secret. |
 
+
+##### Components
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| dns | [DNSComponent](#dns-component) | The Verrazzano Components.  | No | 
+| ingress | [IngressComponent](#ingress-component) | The Verrazzano Components. | No | 
+
+##### DNS Components
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| oci | [DNS-OCI](#dns-oci) | OCI DNS configuration | No |
+| external | [DNS-External](#dns-external) | External DNS configuration  | No | 
+
+##### DNS OCI
+| Field | Type | Required | Description
+| `dns.oci.ociConfigSecret` | Name of the OCI configuration secret.  Generate a secret named "oci-config" based on the OCI configuration profile you want to use.  You can specify a profile other than DEFAULT and a different secret name.  See instructions by running `./install/create_oci_config_secret.sh`.| Yes | 
+| `dns.oci.dnsZoneCompartmentOCID` | The OCI DNS compartment OCID. |  Yes | 
+| `dns.oci.dnsZoneOCID` | The OCI DNS zone OCID. |  Yes | 
+| `dns.oci.dnsZoneName` | Name of OCI DNS zone. |  Yes | 
+
+##### DNS External
+| Field | Type | Required | Description
+| `dns.external.suffix` | string | The suffix for DNS names. |  Yes | 
 
 ### Known Issues
 #### OKE Missing Security List Ingress Rules

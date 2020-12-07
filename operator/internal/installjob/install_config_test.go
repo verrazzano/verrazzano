@@ -223,7 +223,7 @@ func TestOCIDNSInstall(t *testing.T) {
 			Profile:         "prod",
 			EnvironmentName: "oci",
 			Components: installv1alpha1.ComponentSpec{
-				CertManager: installv1alpha1.CertManager{
+				CertManager: installv1alpha1.CertManagerComponent{
 					Certificate: installv1alpha1.Certificate{
 						Acme: installv1alpha1.Acme{
 							Provider:     installv1alpha1.LetsEncrypt,
