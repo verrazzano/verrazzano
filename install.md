@@ -293,6 +293,11 @@ Following is a table that describes the `spec` portion of the Verrazzano custom 
 | dns | [DNSComponent](#dns-component) | The Verrazzano Components.  | No | 
 | ingress | [IngressComponent](#ingress-component) | The Verrazzano Components. | No | 
 
+##### CertManager Component
+| Field | Type | Required | Description
+| --- | --- | --- | --- |
+| `external.suffix` | string | The suffix for DNS names. |  Yes | 
+
 ##### DNS Component
 | Field | Type | Description | Required
 | --- | --- | --- | --- |
@@ -300,17 +305,30 @@ Following is a table that describes the `spec` portion of the Verrazzano custom 
 | external | [DNS-External](#dns-external) | External DNS configuration  | No | 
 
 ##### DNS OCI
+| Field | Type | Description | Required
 | --- | --- | --- | --- |
-| Field | Type | Required | Description
 | `ociConfigSecret` | string | Name of the OCI configuration secret.  Generate a secret named "oci-config" based on the OCI configuration profile you want to use.  You can specify a profile other than DEFAULT and a different secret name.  See instructions by running `./install/create_oci_config_secret.sh`.| Yes | 
 | `dnsZoneCompartmentOCID` | string | The OCI DNS compartment OCID. |  Yes | 
 | `dnsZoneOCID` | string | The OCI DNS zone OCID. |  Yes | 
 | `dnsZoneName` | string | Name of OCI DNS zone. |  Yes | 
 
 ##### DNS External
+| Field | Type | Description | Required
 | --- | --- | --- | --- |
-| Field | Type | Required | Description
-| `dns.external.suffix` | string | The suffix for DNS names. |  Yes | 
+| `external.suffix` | string | The suffix for DNS names. |  Yes | 
+
+##### Ingress Component
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| `type` | string | The ingress type |  Yes | 
+
+
+##### Istio Component
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| `istioInstallArgs` | A list of Istio Helm chart arguments and values to apply during the installation of Istio.  Each argument is specified as either a `name/value` or `name/valueList` pair. |  No | 
+
+
 
 ### Known Issues
 #### OKE Missing Security List Ingress Rules
