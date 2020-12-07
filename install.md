@@ -293,20 +293,22 @@ Following is a table that describes the `spec` portion of the Verrazzano custom 
 | dns | [DNSComponent](#dns-component) | The Verrazzano Components.  | No | 
 | ingress | [IngressComponent](#ingress-component) | The Verrazzano Components. | No | 
 
-##### DNS Components
+##### DNS Component
 | Field | Type | Description | Required
 | --- | --- | --- | --- |
 | oci | [DNS-OCI](#dns-oci) | OCI DNS configuration | No |
 | external | [DNS-External](#dns-external) | External DNS configuration  | No | 
 
 ##### DNS OCI
+| --- | --- | --- | --- |
 | Field | Type | Required | Description
-| `dns.oci.ociConfigSecret` | Name of the OCI configuration secret.  Generate a secret named "oci-config" based on the OCI configuration profile you want to use.  You can specify a profile other than DEFAULT and a different secret name.  See instructions by running `./install/create_oci_config_secret.sh`.| Yes | 
-| `dns.oci.dnsZoneCompartmentOCID` | The OCI DNS compartment OCID. |  Yes | 
-| `dns.oci.dnsZoneOCID` | The OCI DNS zone OCID. |  Yes | 
-| `dns.oci.dnsZoneName` | Name of OCI DNS zone. |  Yes | 
+| `ociConfigSecret` | string | Name of the OCI configuration secret.  Generate a secret named "oci-config" based on the OCI configuration profile you want to use.  You can specify a profile other than DEFAULT and a different secret name.  See instructions by running `./install/create_oci_config_secret.sh`.| Yes | 
+| `dnsZoneCompartmentOCID` | string | The OCI DNS compartment OCID. |  Yes | 
+| `dnsZoneOCID` | string | The OCI DNS zone OCID. |  Yes | 
+| `dnsZoneName` | string | Name of OCI DNS zone. |  Yes | 
 
 ##### DNS External
+| --- | --- | --- | --- |
 | Field | Type | Required | Description
 | `dns.external.suffix` | string | The suffix for DNS names. |  Yes | 
 
