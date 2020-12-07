@@ -6,7 +6,7 @@ For more information and the code of this application, see the [Verrazzano examp
 
 ## Deploy the example application
 
-1. Prerequisites: Install Verrazzano following the [installation instructions](../../install/README.md).
+1. Prerequisites: Install Verrazzano following the [installation instructions](../../README.md).
    The Hello World Helidon example application model and binding files are contained in the Verrazzano project located at `<VERRAZZANO_HOME>/examples/hello-helidon`, where `VERRAZZANO_HOME` is the root of the Verrazzano project.
 
    **NOTE:** All paths in this document are relative to `<VERRAZZANO_HOME>/examples/hello-helidon`.

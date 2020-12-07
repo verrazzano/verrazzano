@@ -4,7 +4,7 @@ The Bob's Books is a book store demo application which contains WebLogic, Helido
 
 ## Deploy the example application
 
-1. Prerequisites: Install Verrazzano following the [installation instructions](../../install/README.md).
+1. Prerequisites: Install Verrazzano following the [installation instructions](../../README.md).
    The Bob's Books example application model and binding files are contained in the Verrazzano project located at `<VERRAZZANO_HOME>/examples/bobs-books`, where `VERRAZZANO_HOME` is the root of the Verrazzano project.
 
    **NOTE:** All files and paths in this document are relative to `<VERRAZZANO_HOME>/examples/bobs-books`.
