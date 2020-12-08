@@ -208,52 +208,37 @@ kubectl logs -f $(kubectl get pod -l job-name=verrazzano-uninstall-my-verrazzano
 ### Verrazzano Custom Resource
 The Verrazzano custom resource contains the configuration information for an installation.
 
-#### General format of the Verrazzano custom resource
-```yaml
+#### General format of the Verrazzano custom resource for OCI DNS
+
+Below a sample Verrazzano custom resource file that uses OCI DNS.  See other examples in
+`./operator/config/samples/create_oci_config_secret.sh`
+
+```
 apiVersion: install.verrazzano.io/v1alpha1
 kind: Verrazzano
 metadata:
-  name: <kubenetes object name>
+  name: my-verrazzano
 spec:
-  environmentName: <environment name>
-  profile: <installation profile>
-  dns:
-    oci:
-      ociConfigSecret: <OCI configuration secret>
-      dnsZoneCompartmentOCID: <DNS compartment OCID>
-      dnsZoneOCID: <DNS zone OCID>
-      dnsZoneName: <DNS zone name>
-    external:
-      suffix: <dns suffix>
-  ingress:
-    type: <load balancer type>
-    verrazzano:
-      nginxInstallArgs:
-        - name: <name of nginx helm parameter>
-          value: <value of nging helm parameter>
-        - name: <name of nginx helm parameter>
-          valueList:
-            - <list of values for nginx helm parameter>
-      ports:
-        - <service port definition>
-    application:
-      istioInstallArgs:
-        - name: <name of Istio helm parameter>
-          value: <value of Istio helm parameter>
-        - name: <name of Istio helm parameter>
-          valueList:
-            - <list of values for Istio helm parameter>
-  certificate:
-    acme:
-      provider: <name of certificate issuer>
-      emailAddress: <email address>
-      environment: <name of environment>
-    ca:
-      secretName: <name of the secret>
-      clusterResourceNamespace: <namespace of the secret>
+  environmentName: env
+  profile: prod
+  components:
+    certManager:
+      certificate:
+        acme:
+          provider: letsEncrypt
+          emailAddress: emailAddress@domain.com
+    dns:
+      oci:
+        ociConfigSecret: ociConfigSecret
+        dnsZoneCompartmentOCID: dnsZoneCompartmentOcid
+        dnsZoneOCID: dnsZoneOcid
+        dnsZoneName: my.dns.zone.name
+    ingress:
+      type: LoadBalancer
+
 ```
 
-#### Table: Verrazzano Custom Resource Definition
+### Verrazzano Custom Resource Definition
 Following is a table that describes the `spec` portion of the Verrazzano custom resource:
 
 | Field | Type | Description | Required
@@ -263,46 +248,42 @@ Following is a table that describes the `spec` portion of the Verrazzano custom 
 | `components` | [Components](#Components) | The Verrazzano Components.  | No  |
 
 
-| Field | Type | Description | Required
-| --- | --- | --- | --- |
-| `environmentName` | No | Name of the installation.  This name is part of the endpoint access URLs that are generated. The default value is `default`. |
-| `profile` | No | The installation profile to select.  Valid values are `prod` (production) and `dev` (development).  The default is `prod`. |
-| `dns.oci` | No | This portion of the configuration is specified when using OCI DNS.  This configuration cannot be specified in conjunction with `dns.external` or `dns.xip.io`.  |
-| `dns.external` | No | This portion of the configuration is specified when using OLCNE.  This configuration cannot be specified in conjunction with `dns.oci` or `dns.xip.io`. |
-| `dns.xip.io` | No | This portion of the configuration is specified when using xip.io.  This configuration cannot be specified in conjunction with `dns.oci` or `dns.external`. This is the default DNS configuration. |
-| `ingress` | No | This portion of the configuration defines the ingress. |
-| `ingress.type` | No | The ingress type.  Valid values are `LoadBalancer` and `NodePort`.  The default value is `LoadBalancer`. |
-| `ingress.verrazzano` | No | This portion of the configuration defines the ingress for the Verrazzano infrastructure endpoints. |
-| `ingress.verrazzano.nginxInstallArgs` | No | A list of Nginx Helm chart arguments and values to apply during the installation of Nginx.  Each argument is specified as either a `name/value` or `name/valueList` pair. |
-| `ingress.verrazzano.ports` | No | The list of ports for the ingress. Each port definition is of type [ServicePort](https://godoc.org/k8s.io/api/core/v1#ServicePort). |
-| `ingress.application` | No | This portion of the configuration defines the ingress for the application endpoints. |
-| `ingress.application.istioInstallArgs` | No | A list of Istio Helm chart arguments and values to apply during the installation of Istio.  Each argument is specified as either a `name/value` or `name/valueList` pair. |
-| `certificate` | No | This portion of the configuration defines the certificate information. |
-| `certificate.acme` | No | Define a certificate issued by `acme`. |
-| `certificate.acme.provider` | Yes | The certificate issuer provider. |
-| `certificate.acme.emailAddress` | No | Email address. |
-| `certificate.acme.environment` | No | The name of the environment. |
-| `certificate.ca` | No | Define a certificate issued by `ca`. |
-| `certificate.ca.secretName` | Yes | Name of the secret. |
-| `certificate.ca.clusterResourceNamespace` | Yes | The namespace of the secret. |
-
-
 ##### Components
 | Field | Type | Description | Required
 | --- | --- | --- | --- |
-| dns | [DNSComponent](#dns-component) | The Verrazzano Components.  | No | 
-| ingress | [IngressComponent](#ingress-component) | The Verrazzano Components. | No | 
+| certManager | [CertManagerComponent](#cert-manager-component) | The cert-manager component  | No | 
+| dns | [DNSComponent](#dns-component) | The DNS component  | No | 
+| ingress | [IngressComponent](#ingress-component) | The ingress component | No | 
+| istio | [IstioComponent](#istio-component) | The isiot component | No | 
 
 ##### CertManager Component
 | Field | Type | Required | Description
 | --- | --- | --- | --- |
-| `external.suffix` | string | The suffix for DNS names. |  Yes | 
+| certificate | [Certificate](#certificate) | The certificate config | No |
+
+##### Certificate
+| Field | Type | Required | Description
+| --- | --- | --- | --- |
+| acme | [Acme](#acme) | The Acme config.  Either `acme` or `ca` must be specified | No |
+| ca | [CertificateAuthority](#CertificateAuthority) | The certificate authority config.  Either `acme` or `ca` must be specified | No |
+
+##### Acme
+| Field | Type | Required | Description
+| --- | --- | --- | --- |
+| `provider` | string | Name of the Acme provider |  Yes | 
+| `emailAddress` | string | Email address of the user |  Yes | 
+
+##### CertificateAuthority
+| Field | Type | Required | Description
+| --- | --- | --- | --- |
+| `secretName` | string | Name of the secret. |  Yes | 
+| `clusterResourceNamespace` | string | The namespace of the secret. |  Yes | 
 
 ##### DNS Component
 | Field | Type | Description | Required
 | --- | --- | --- | --- |
-| oci | [DNS-OCI](#dns-oci) | OCI DNS configuration | No |
-| external | [DNS-External](#dns-external) | External DNS configuration  | No | 
+| oci | [DNS-OCI](#dns-oci) | OCI DNS configuration.  Either `oci` or `external` must be specified | No |
+| external | [DNS-External](#dns-external) | Either `oci` or `external` must be specified   | No | 
 
 ##### DNS OCI
 | Field | Type | Description | Required
@@ -320,13 +301,42 @@ Following is a table that describes the `spec` portion of the Verrazzano custom 
 ##### Ingress Component
 | Field | Type | Description | Required
 | --- | --- | --- | --- |
-| `type` | string | The ingress type |  Yes | 
+| `type` | string | The ingress type.  Valid values are `LoadBalancer` and `NodePort`.  The default value is `LoadBalancer`.  |  Yes | 
+| `ingressNginxArgs` | [IngressNginxArgs](#ingress-nginx-args) | the ingress nginx args | No |
+| `ingressNginxArgs` | [IngressNginxArgs](#ingress-nginx-args) | the ingress nginx args | No |
+
+##### Ingress Nginx Args
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| (list) | [PortConfig](#port-config) list | A list port configs used by the ingress. | No |
+| (list) | [NameValue](#name-value) list | A list of arg names and values. | No |
+
+##### Port Config
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| `name` | string | The port name |  No | 
+| `port` | string | The port value |  Yes | 
+| `targetPort` | string | The target port value. The default is same as port value |  Yes | 
+| `protocol` | string | The protocol used by the port.  TCP is default |  No | 
+| `nodePort` | string | The nodePort value |  No | 
+        
+##### NameValue
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| `name` | string | The arg name |  Yes | 
+| `value` | string | The arg value. Either `value` or `valueList` must be specifed. |  No | 
+| `valueList` | string list | The list of arg values. Either `value` or `valueList` must be specifed.   |  No | 
 
 
 ##### Istio Component
 | Field | Type | Description | Required
 | --- | --- | --- | --- |
-| `istioInstallArgs` | A list of Istio Helm chart arguments and values to apply during the installation of Istio.  Each argument is specified as either a `name/value` or `name/valueList` pair. |  No | 
+| istioInstallArgs | [istioArgs](#istio-arguments) | A list of Istio Helm chart arguments and values to apply during the installation of Istio.  Each argument is specified as either a `name/value` or `name/valueList` pair. | No |
+
+##### Istio Args
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| (list) | [NameValue](#name-value) list | A list of arg names and values. | No |
 
 
 
