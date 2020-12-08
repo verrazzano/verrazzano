@@ -13,9 +13,6 @@
    },
    "ingress": {
       "type": "NodePort",
-      "nodePort": {
-         "ingressIp": "ingress_ip"
-      },
       "verrazzano": {
          "nginxInstallArgs": [
             {
