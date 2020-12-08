@@ -23,7 +23,7 @@ spec:
         value: "2"
       - name: controller.service.externalIPs
         valueList:
-        - 152.67.140.131
+        - 11.22.33.44
       ports:
       - name: http
         port: 80
@@ -40,4 +40,4 @@ spec:
       istioInstallArgs:
       - name: gateways.istio-ingressgateway.externalIPs
         valueList:
-        - 140.238.95.166
+        - 11.22.33.55
