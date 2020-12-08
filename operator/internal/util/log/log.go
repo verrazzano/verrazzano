@@ -23,13 +23,9 @@ func InitLogs(opts kzap.Options) {
 	} else {
 		config.Level.SetLevel(zapcore.InfoLevel)
 	}
-	config.EncoderConfig.CallerKey = "caller"
-	config.EncoderConfig.NameKey = "name"
-	config.EncoderConfig.LevelKey = "level"
 	config.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
 	config.EncoderConfig.TimeKey = "@timestamp"
 	config.EncoderConfig.MessageKey = "message"
-	config.EncoderConfig.EncodeCaller = zapcore.FullCallerEncoder
 	logger, err := config.Build()
 	if err != nil {
 		zap.S().Errorf("Error creating logger %v", err)
