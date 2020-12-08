@@ -275,24 +275,24 @@ Following is a table that describes the `spec` portion of the Verrazzano custom 
 | istio | [IstioComponent](#istio-component) | The Istio component config. | No | 
 
 ## CertManager Component
-| Field | Type | Required | Description
+| Field | Type | Description | Required
 | --- | --- | --- | --- |
 | certificate | [Certificate](#certificate) | The certificate config. | No |
 
 ## Certificate
-| Field | Type | Required | Description
+| Field | Type | Description | Required
 | --- | --- | --- | --- |
 | acme | [Acme](#acme) | The Acme config.  Either `acme` or `ca` must be specified. | No |
 | ca | [CertificateAuthority](#CertificateAuthority) | The certificate authority config.  Either `acme` or `ca` must be specified. | No |
 
 ## Acme
-| Field | Type | Required | Description
+| Field | Type | Description | Required
 | --- | --- | --- | --- |
 | `provider` | string | Name of the Acme provider. |  Yes | 
 | `emailAddress` | string | Email address of the user. |  Yes | 
 
 ## CertificateAuthority
-| Field | Type | Required | Description
+| Field | Type | Description | Required
 | --- | --- | --- | --- |
 | `secretName` | string | The secret name/ |  Yes | 
 | `clusterResourceNamespace` | string | The secrete namespace. |  Yes | 
