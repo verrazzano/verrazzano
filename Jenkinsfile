@@ -56,6 +56,7 @@ pipeline {
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_EMAIL = credentials('github-packages-email')
         DOCKER_REPO = 'ghcr.io'
         DOCKER_NAMESPACE = 'verrazzano'
         NETRC_FILE = credentials('netrc')
@@ -270,10 +271,10 @@ pipeline {
                     cd ${GO_REPO_PATH}/verrazzano/operator
                     git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
                     git config --global user.name $DOCKER_CREDS_USR
-                    git config --global user.email "70212020+verrazzanobot@users.noreply.github.com"
+                    git config --global user.email "${DOCKER_EMAIL}"
                     git checkout -b ${env.BRANCH_NAME}
                     git add deploy/operator.yaml
-                    git commit -m "[verrazzanobot] Update verrazzano-platform-operator image version to ${DOCKER_IMAGE_TAG} in operator.yaml"
+                    git commit -m "[verrazzano] Update verrazzano-platform-operator image version to ${DOCKER_IMAGE_TAG} in operator.yaml"
                     git push origin ${env.BRANCH_NAME}
                    """
             }
