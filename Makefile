@@ -179,6 +179,7 @@ integ-test: create-cluster
 
 	echo 'Deploy verrazzano platform operator ...'
 ifdef JENKINS_URL
+	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	kubectl apply -f operator/deploy/operator.yaml
 else
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
