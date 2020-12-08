@@ -327,7 +327,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Labels:    labels}
-			verrazzano.Spec.DNS.OCI = vzapi.OCI{
+			verrazzano.Spec.Components.DNS.OCI = vzapi.OCI{
 				OCIConfigSecret:        "test-oci-config-secret",
 				DNSZoneCompartmentOCID: "test-dns-zone-ocid",
 				DNSZoneOCID:            "test-dns-zone-ocid",
@@ -1263,7 +1263,7 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Labels:    labels}
-			verrazzano.Spec.DNS.OCI = vzapi.OCI{
+			verrazzano.Spec.Components.DNS.OCI = vzapi.OCI{
 				OCIConfigSecret:        "test-oci-config-secret",
 				DNSZoneCompartmentOCID: "test-dns-zone-ocid",
 				DNSZoneOCID:            "test-dns-zone-ocid",

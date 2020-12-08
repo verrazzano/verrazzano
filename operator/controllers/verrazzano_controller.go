@@ -186,7 +186,7 @@ func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log *zap.Sug
 	err = r.Get(ctx, types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}, configMapFound)
 	if err != nil && errors.IsNotFound(err) {
 		// Convert to json and insert into the configmap.
-		dnsAuth, err = getDNSAuth(r, vz.Spec.DNS, vz.Namespace)
+		dnsAuth, err = getDNSAuth(r, vz.Spec.Components.DNS, vz.Namespace)
 		if err != nil {
 			return err
 		}
@@ -261,7 +261,7 @@ func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log *zap.Su
 	return err
 }
 
-func getDNSAuth(r *VerrazzanoReconciler, dns installv1alpha1.DNS, namespace string) (*installjob.DNSAuth, error) {
+func getDNSAuth(r *VerrazzanoReconciler, dns installv1alpha1.DNSComponent, namespace string) (*installjob.DNSAuth, error) {
 	if dns.OCI != (installv1alpha1.OCI{}) {
 		secret := &corev1.Secret{}
 		err := r.Get(context.TODO(), types.NamespacedName{Name: dns.OCI.OCIConfigSecret, Namespace: namespace}, secret)
