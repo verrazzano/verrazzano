@@ -251,7 +251,7 @@ Following is a table that describes the `spec` portion of the Verrazzano custom 
 ##### Components
 | Field | Type | Description | Required
 | --- | --- | --- | --- |
-| certManager | [CertManagerComponent](#cert-manager-component) | The cert-manager component  | No | 
+| certManager | [CertManagerComponent](#certmanager-component) | The cert-manager component  | No | 
 | dns | [DNSComponent](#dns-component) | The DNS component  | No | 
 | ingress | [IngressComponent](#ingress-component) | The ingress component | No | 
 | istio | [IstioComponent](#istio-component) | The isiot component | No | 
@@ -331,7 +331,7 @@ Following is a table that describes the `spec` portion of the Verrazzano custom 
 ##### Istio Component
 | Field | Type | Description | Required
 | --- | --- | --- | --- |
-| istioInstallArgs | [istioArgs](#istio-arguments) | A list of Istio Helm chart arguments and values to apply during the installation of Istio.  Each argument is specified as either a `name/value` or `name/valueList` pair. | No |
+| istioInstallArgs | [istioArgs](#istio-args) | A list of Istio Helm chart arguments and values to apply during the installation of Istio.  Each argument is specified as either a `name/value` or `name/valueList` pair. | No |
 
 ##### Istio Args
 | Field | Type | Description | Required
