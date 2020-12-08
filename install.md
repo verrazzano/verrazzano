@@ -238,94 +238,6 @@ spec:
 
 ```
 
-### Verrazzano Custom Resource Definition
-Following is a table that describes the `spec` portion of the Verrazzano custom resource:
-
-| Field | Type | Description | Required
-| --- | --- | --- | --- |
-| `environmentName` | string | Name of the installation.  This name is part of the endpoint access URLs that are generated. The default value is `default`. | No  
-| `profile` | string | The installation profile to select.  Valid values are `prod` (production) and `dev` (development).  The default is `prod`. | No |
-| `components` | [Components](#Components) | The Verrazzano Components.  | No  |
-
-
-##### Components
-| Field | Type | Description | Required
-| --- | --- | --- | --- |
-| certManager | [CertManagerComponent](#certmanager-component) | The cert-manager component  | No | 
-| dns | [DNSComponent](#dns-component) | The DNS component  | No | 
-| ingress | [IngressComponent](#ingress-component) | The ingress component | No | 
-| istio | [IstioComponent](#istio-component) | The isiot component | No | 
-
-##### CertManager Component
-| Field | Type | Required | Description
-| --- | --- | --- | --- |
-| certificate | [Certificate](#certificate) | The certificate config | No |
-
-##### Certificate
-| Field | Type | Required | Description
-| --- | --- | --- | --- |
-| acme | [Acme](#acme) | The Acme config.  Either `acme` or `ca` must be specified | No |
-| ca | [CertificateAuthority](#CertificateAuthority) | The certificate authority config.  Either `acme` or `ca` must be specified | No |
-
-##### Acme
-| Field | Type | Required | Description
-| --- | --- | --- | --- |
-| `provider` | string | Name of the Acme provider |  Yes | 
-| `emailAddress` | string | Email address of the user |  Yes | 
-
-##### CertificateAuthority
-| Field | Type | Required | Description
-| --- | --- | --- | --- |
-| `secretName` | string | Name of the secret. |  Yes | 
-| `clusterResourceNamespace` | string | The namespace of the secret. |  Yes | 
-
-##### DNS Component
-| Field | Type | Description | Required
-| --- | --- | --- | --- |
-| oci | [DNS-OCI](#dns-oci) | OCI DNS configuration.  Either `oci` or `external` must be specified | No |
-| external | [DNS-External](#dns-external) | Either `oci` or `external` must be specified   | No | 
-
-##### DNS OCI
-| Field | Type | Description | Required
-| --- | --- | --- | --- |
-| `ociConfigSecret` | string | Name of the OCI configuration secret.  Generate a secret named "oci-config" based on the OCI configuration profile you want to use.  You can specify a profile other than DEFAULT and a different secret name.  See instructions by running `./install/create_oci_config_secret.sh`.| Yes | 
-| `dnsZoneCompartmentOCID` | string | The OCI DNS compartment OCID. |  Yes | 
-| `dnsZoneOCID` | string | The OCI DNS zone OCID. |  Yes | 
-| `dnsZoneName` | string | Name of OCI DNS zone. |  Yes | 
-
-##### DNS External
-| Field | Type | Description | Required
-| --- | --- | --- | --- |
-| `external.suffix` | string | The suffix for DNS names. |  Yes | 
-
-##### Ingress Component
-| Field | Type | Description | Required
-| --- | --- | --- | --- |
-| `type` | string | The ingress type.  Valid values are `LoadBalancer` and `NodePort`.  The default value is `LoadBalancer`.  |  Yes | 
-| `ingressNginxArgs` |  [NameValue](#name-value) list | A list of arg names and values. | No |
-| `ports` | [PortConfig](#port-config) list | A list port configs used by the ingress. | No |
-
-##### Port Config
-| Field | Type | Description | Required
-| --- | --- | --- | --- |
-| `name` | string | The port name |  No | 
-| `port` | string | The port value |  Yes | 
-| `targetPort` | string | The target port value. The default is same as port value |  Yes | 
-| `protocol` | string | The protocol used by the port.  TCP is default |  No | 
-| `nodePort` | string | The nodePort value |  No | 
-        
-##### Name Value
-| Field | Type | Description | Required
-| --- | --- | --- | --- |
-| `name` | string | The arg name |  Yes | 
-| `value` | string | The arg value. Either `value` or `valueList` must be specifed. |  No | 
-| `valueList` | string list | The list of arg values. Either `value` or `valueList` must be specifed.   |  No | 
-
-##### Istio Component
-| Field | Type | Description | Required
-| --- | --- | --- | --- |
-| istioInstallArgs | [NameValue](#name-value) list | A list of Istio Helm chart arguments and values to apply during the installation of Istio.  Each argument is specified as either a `name/value` or `name/valueList` pair. | No |
-
 
 ### Known Issues
 #### OKE Missing Security List Ingress Rules
@@ -345,3 +257,92 @@ On an OKE install, this may indicate that there is a missing ingress rule or rul
      * Select the security list named `oke-wkr-...`.
      * Check the ingress rules for the security list.  There should be one rule for each of the destination ports named in the LoadBalancer services.  In the above example, the destination ports are `31541` & `31739`. We would expect the ingress rule for `31739` to be missing because it was named in the ERROR output.
      * If a rule is missing, then add it by clicking `Add Ingress Rules` and filling in the source CIDR and destination port range (missing port).  Use the existing rules as a guide.
+
+# Verrazzano Custom Resource Definition
+Following is a table that describes the `spec` portion of the Verrazzano custom resource:
+
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| `environmentName` | string | Name of the installation.  This name is part of the endpoint access URLs that are generated. The default value is `default`. | No  
+| `profile` | string | The installation profile to select.  Valid values are `prod` (production) and `dev` (development).  The default is `prod`. | No |
+| `components` | [Components](#Components) | The Verrazzano Components.  | No  |
+
+
+## Components
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| certManager | [CertManagerComponent](#certmanager-component) | The cert-manager component  | No | 
+| dns | [DNSComponent](#dns-component) | The DNS component  | No | 
+| ingress | [IngressComponent](#ingress-component) | The ingress component | No | 
+| istio | [IstioComponent](#istio-component) | The isiot component | No | 
+
+## CertManager Component
+| Field | Type | Required | Description
+| --- | --- | --- | --- |
+| certificate | [Certificate](#certificate) | The certificate config | No |
+
+## Certificate
+| Field | Type | Required | Description
+| --- | --- | --- | --- |
+| acme | [Acme](#acme) | The Acme config.  Either `acme` or `ca` must be specified | No |
+| ca | [CertificateAuthority](#CertificateAuthority) | The certificate authority config.  Either `acme` or `ca` must be specified | No |
+
+## Acme
+| Field | Type | Required | Description
+| --- | --- | --- | --- |
+| `provider` | string | Name of the Acme provider |  Yes | 
+| `emailAddress` | string | Email address of the user |  Yes | 
+
+## CertificateAuthority
+| Field | Type | Required | Description
+| --- | --- | --- | --- |
+| `secretName` | string | Name of the secret. |  Yes | 
+| `clusterResourceNamespace` | string | The namespace of the secret. |  Yes | 
+
+## DNS Component
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| oci | [DNS-OCI](#dns-oci) | OCI DNS configuration.  Either `oci` or `external` must be specified | No |
+| external | [DNS-External](#dns-external) | Either `oci` or `external` must be specified   | No | 
+
+## DNS OCI
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| `ociConfigSecret` | string | Name of the OCI configuration secret.  Generate a secret named "oci-config" based on the OCI configuration profile you want to use.  You can specify a profile other than DEFAULT and a different secret name.  See instructions by running `./install/create_oci_config_secret.sh`.| Yes | 
+| `dnsZoneCompartmentOCID` | string | The OCI DNS compartment OCID. |  Yes | 
+| `dnsZoneOCID` | string | The OCI DNS zone OCID. |  Yes | 
+| `dnsZoneName` | string | Name of OCI DNS zone. |  Yes | 
+
+## DNS External
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| `external.suffix` | string | The suffix for DNS names. |  Yes | 
+
+## Ingress Component
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| `type` | string | The ingress type.  Valid values are `LoadBalancer` and `NodePort`.  The default value is `LoadBalancer`.  |  Yes | 
+| `ingressNginxArgs` |  [NameValue](#name-value) list | A list of arg names and values. | No |
+| `ports` | [PortConfig](#port-config) list | A list port configs used by the ingress. | No |
+
+## Port Config
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| `name` | string | The port name |  No | 
+| `port` | string | The port value |  Yes | 
+| `targetPort` | string | The target port value. The default is same as port value |  Yes | 
+| `protocol` | string | The protocol used by the port.  TCP is default |  No | 
+| `nodePort` | string | The nodePort value |  No | 
+        
+## Name Value
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| `name` | string | The arg name |  Yes | 
+| `value` | string | The arg value. Either `value` or `valueList` must be specifed. |  No | 
+| `valueList` | string list | The list of arg values. Either `value` or `valueList` must be specifed.   |  No | 
+
+## Istio Component
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| istioInstallArgs | [NameValue](#name-value) list | A list of Istio Helm chart arguments and values to apply during the installation of Istio.  Each argument is specified as either a `name/value` or `name/valueList` pair. | No |
+
