@@ -16,6 +16,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+const (
+	defaultCAClusterResourceName string = "cattle-system"
+	defaultCASecretNamne         string = "tls-rancher"
+)
+
 // DNSType identifies the DNS type
 type DNSType string
 
@@ -238,8 +243,8 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration
 		Certificates: Certificate{
 			IssuerType: CertIssuerTypeCA,
 			CA: &CertificateCA{
-				ClusterResourceNamespace: "cattle-system",
-				SecretName:               "tls-rancher",
+				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager.Certificate.CA),
+				SecretName:                getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
 			},
 		},
 	}
@@ -344,6 +349,26 @@ func getIngressType(ingressType installv1alpha1.IngressType) IngressType {
 	}
 
 	return IngressTypeNodePort
+}
+
+// getCAClusterResourceNamespace returns the cluster resource name for a CA certificate
+func getCAClusterResourceNamespace(ca installv1alpha1.CA) string {
+	// Use default value if not specified
+	if ca.ClusterResourceNamespace == "" {
+		return defaultCAClusterResourceName
+	}
+
+	return ca.ClusterResourceNamespace
+}
+
+// getCASecretName returns the secret name for a CA certificate
+func getCASecretName(ca installv1alpha1.CA) string {
+	// Use default value if not specified
+	if ca.SecretName == "" {
+		return defaultCASecretNamne
+	}
+
+	return ca.SecretName
 }
 
 // getEnvironmentName returns the install environment name
