@@ -271,39 +271,39 @@ Following is a table that describes the `spec` portion of the Verrazzano custom 
 ## Components
 | Field | Type | Description | Required
 | --- | --- | --- | --- |
-| certManager | [CertManagerComponent](#certmanager-component) | The cert-manager component  | No | 
-| dns | [DNSComponent](#dns-component) | The DNS component  | No | 
-| ingress | [IngressComponent](#ingress-component) | The ingress component | No | 
-| istio | [IstioComponent](#istio-component) | The isiot component | No | 
+| certManager | [CertManagerComponent](#certmanager-component) | The cert-manager component config.  | No | 
+| dns | [DNSComponent](#dns-component) | The DNS component config.  | No | 
+| ingress | [IngressComponent](#ingress-component) | The ingress component config. | No | 
+| istio | [IstioComponent](#istio-component) | The Istio component config. | No | 
 
 ## CertManager Component
 | Field | Type | Required | Description
 | --- | --- | --- | --- |
-| certificate | [Certificate](#certificate) | The certificate config | No |
+| certificate | [Certificate](#certificate) | The certificate config. | No |
 
 ## Certificate
 | Field | Type | Required | Description
 | --- | --- | --- | --- |
-| acme | [Acme](#acme) | The Acme config.  Either `acme` or `ca` must be specified | No |
-| ca | [CertificateAuthority](#CertificateAuthority) | The certificate authority config.  Either `acme` or `ca` must be specified | No |
+| acme | [Acme](#acme) | The Acme config.  Either `acme` or `ca` must be specified. | No |
+| ca | [CertificateAuthority](#CertificateAuthority) | The certificate authority config.  Either `acme` or `ca` must be specified. | No |
 
 ## Acme
 | Field | Type | Required | Description
 | --- | --- | --- | --- |
-| `provider` | string | Name of the Acme provider |  Yes | 
-| `emailAddress` | string | Email address of the user |  Yes | 
+| `provider` | string | Name of the Acme provider. |  Yes | 
+| `emailAddress` | string | Email address of the user. |  Yes | 
 
 ## CertificateAuthority
 | Field | Type | Required | Description
 | --- | --- | --- | --- |
-| `secretName` | string | Name of the secret. |  Yes | 
-| `clusterResourceNamespace` | string | The namespace of the secret. |  Yes | 
+| `secretName` | string | The secret name/ |  Yes | 
+| `clusterResourceNamespace` | string | The secrete namespace. |  Yes | 
 
 ## DNS Component
 | Field | Type | Description | Required
 | --- | --- | --- | --- |
-| oci | [DNS-OCI](#dns-oci) | OCI DNS configuration.  Either `oci` or `external` must be specified | No |
-| external | [DNS-External](#dns-external) | Either `oci` or `external` must be specified   | No | 
+| oci | [DNS-OCI](#dns-oci) | OCI DNS config.  Either `oci` or `external` must be specified. | No |
+| external | [DNS-External](#dns-external) | Extern DNS config. Either `oci` or `external` must be specified.   | No | 
 
 ## DNS OCI
 | Field | Type | Description | Required
@@ -322,22 +322,22 @@ Following is a table that describes the `spec` portion of the Verrazzano custom 
 | Field | Type | Description | Required
 | --- | --- | --- | --- |
 | `type` | string | The ingress type.  Valid values are `LoadBalancer` and `NodePort`.  The default value is `LoadBalancer`.  |  Yes | 
-| `ingressNginxArgs` |  [NameValue](#name-value) list | A list of arg names and values. | No |
-| `ports` | [PortConfig](#port-config) list | A list port configs used by the ingress. | No |
+| `ingressNginxArgs` |  [NameValue](#name-value) list | The list of arg names and values. | No |
+| `ports` | [PortConfig](#port-config) list | The list port configs used by the ingress. | No |
 
 ## Port Config
 | Field | Type | Description | Required
 | --- | --- | --- | --- |
-| `name` | string | The port name |  No | 
-| `port` | string | The port value |  Yes | 
-| `targetPort` | string | The target port value. The default is same as port value |  Yes | 
-| `protocol` | string | The protocol used by the port.  TCP is default |  No | 
-| `nodePort` | string | The nodePort value |  No | 
+| `name` | string | The port name.|  No | 
+| `port` | string | The port value. |  Yes | 
+| `targetPort` | string | The target port value. The default is same as port value. |  Yes | 
+| `protocol` | string | The protocol used by the port.  TCP is default. |  No | 
+| `nodePort` | string | The nodePort value. |  No | 
         
 ## Name Value
 | Field | Type | Description | Required
 | --- | --- | --- | --- |
-| `name` | string | The arg name |  Yes | 
+| `name` | string | The arg name. |  Yes | 
 | `value` | string | The arg value. Either `value` or `valueList` must be specifed. |  No | 
 | `valueList` | string list | The list of arg values. Either `value` or `valueList` must be specifed.   |  No | 
 
