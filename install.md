@@ -302,14 +302,8 @@ Following is a table that describes the `spec` portion of the Verrazzano custom 
 | Field | Type | Description | Required
 | --- | --- | --- | --- |
 | `type` | string | The ingress type.  Valid values are `LoadBalancer` and `NodePort`.  The default value is `LoadBalancer`.  |  Yes | 
-| `ingressNginxArgs` | [IngressNginxArgs](#ingress-nginx-args) | the ingress nginx args | No |
-| `ingressNginxArgs` | [IngressNginxArgs](#ingress-nginx-args) | the ingress nginx args | No |
-
-##### Ingress Nginx Args
-| Field | Type | Description | Required
-| --- | --- | --- | --- |
-| (list) | [PortConfig](#port-config) list | A list port configs used by the ingress. | No |
-| (list) | [NameValue](#name-value) list | A list of arg names and values. | No |
+| `ingressNginxArgs` |  [NameValue](#name-value) list | A list of arg names and values. | No |
+| `ports` | [PortConfig](#port-config) list | A list port configs used by the ingress. | No |
 
 ##### Port Config
 | Field | Type | Description | Required
@@ -320,24 +314,17 @@ Following is a table that describes the `spec` portion of the Verrazzano custom 
 | `protocol` | string | The protocol used by the port.  TCP is default |  No | 
 | `nodePort` | string | The nodePort value |  No | 
         
-##### NameValue
+##### Name Value
 | Field | Type | Description | Required
 | --- | --- | --- | --- |
 | `name` | string | The arg name |  Yes | 
 | `value` | string | The arg value. Either `value` or `valueList` must be specifed. |  No | 
 | `valueList` | string list | The list of arg values. Either `value` or `valueList` must be specifed.   |  No | 
 
-
 ##### Istio Component
 | Field | Type | Description | Required
 | --- | --- | --- | --- |
-| istioInstallArgs | [istioArgs](#istio-args) | A list of Istio Helm chart arguments and values to apply during the installation of Istio.  Each argument is specified as either a `name/value` or `name/valueList` pair. | No |
-
-##### Istio Args
-| Field | Type | Description | Required
-| --- | --- | --- | --- |
-| (list) | [NameValue](#name-value) list | A list of arg names and values. | No |
-
+| istioInstallArgs | [NameValue](#name-value) list | A list of Istio Helm chart arguments and values to apply during the installation of Istio.  Each argument is specified as either a `name/value` or `name/valueList` pair. | No |
 
 
 ### Known Issues
