@@ -11,9 +11,13 @@ import (
 	"strconv"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+)
+
+const (
+	defaultCAClusterResourceName string = "cattle-system"
+	defaultCASecretNamne         string = "tls-rancher"
 )
 
 // DNSType identifies the DNS type
@@ -220,8 +224,8 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration
 		Certificates: Certificate{
 			IssuerType: CertIssuerTypeCA,
 			CA: &CertificateCA{
-				ClusterResourceNamespace: "cattle-system",
-				SecretName:               "tls-rancher",
+				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Certificate.CA),
+				SecretName:               getCASecretName(vz.Spec.Certificate.CA),
 			},
 		},
 	}
@@ -244,8 +248,8 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfigu
 		Certificates: Certificate{
 			IssuerType: CertIssuerTypeCA,
 			CA: &CertificateCA{
-				ClusterResourceNamespace: "cattle-system",
-				SecretName:               "tls-rancher",
+				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Certificate.CA),
+				SecretName:               getCASecretName(vz.Spec.Certificate.CA),
 			},
 		},
 	}
@@ -319,6 +323,7 @@ func getIngressType(ingressType installv1alpha1.IngressType) IngressType {
 	return IngressTypeNodePort
 }
 
+// getIngress returns the json representation for the ingress
 func getIngress(ingress installv1alpha1.Ingress) Ingress {
 	return Ingress{
 		Type: getIngressType(ingress.Type),
@@ -350,4 +355,24 @@ func getProfile(profileType installv1alpha1.ProfileType) InstallProfile {
 	}
 
 	return InstallProfileDev
+}
+
+// getCAClusterResourceNamespace returns the cluster resource name for a CA certificate
+func getCAClusterResourceNamespace(ca installv1alpha1.CA) string {
+	// Use default value if not specified
+	if ca.ClusterResourceNamespace == "" {
+		return defaultCAClusterResourceName
+	}
+
+	return ca.ClusterResourceNamespace
+}
+
+// getCASecretName returns the secret name for a CA certificate
+func getCASecretName(ca installv1alpha1.CA) string {
+	// Use default value if not specified
+	if ca.SecretName == "" {
+		return defaultCASecretNamne
+	}
+
+	return ca.SecretName
 }
