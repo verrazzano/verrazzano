@@ -338,6 +338,7 @@ Following is a table that describes the `spec` portion of the Verrazzano custom 
 | `name` | string | The arg name. |  Yes | 
 | `value` | string | The arg value. Either `value` or `valueList` must be specifed. |  No | 
 | `valueList` | string list | The list of arg values. Either `value` or `valueList` must be specifed.   |  No | 
+| `setString` | boolean | Specifies if the value is a string |  No | 
 
 ## Istio Component
 | Field | Type | Description | Required

@@ -80,8 +80,9 @@ type IngressPort struct {
 
 // IngressArg configuration
 type IngressArg struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
+	Name      string `json:"name"`
+	Value     string `json:"value"`
+	SetString bool   `json:"setString,omitempty"`
 }
 
 // Application configuration
@@ -318,6 +319,9 @@ func getIngressArgs(args []installv1alpha1.InstallArgs) []IngressArg {
 		if arg.Value != "" {
 			ingressArg.Name = arg.Name
 			ingressArg.Value = arg.Value
+			if arg.SetString {
+				ingressArg.SetString = arg.SetString
+			}
 			ingressArgs = append(ingressArgs, ingressArg)
 			continue
 		}

@@ -69,11 +69,13 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 						},
 					},
 				},
-			},
-			Certificate: installv1alpha1.Certificate{
-				CA: installv1alpha1.CA{
-					SecretName:               "customSecret",
-					ClusterResourceNamespace: "customNamespace",
+				CertManager: installv1alpha1.CertManagerComponent{
+					Certificate: installv1alpha1.Certificate{
+						CA: installv1alpha1.CA{
+							SecretName:               "customSecret",
+							ClusterResourceNamespace: "customNamespace",
+						},
+					},
 				},
 			},
 		},
@@ -329,12 +331,13 @@ func TestNodePortInstall(t *testing.T) {
 		Spec: installv1alpha1.VerrazzanoSpec{
 			Profile:         "dev",
 			EnvironmentName: "kind",
-			DNS: installv1alpha1.DNS{
-				XIPIO: installv1alpha1.XIPIO{},
-			},
-			Ingress: installv1alpha1.Ingress{
-				Type: installv1alpha1.NodePort,
-				Verrazzano: installv1alpha1.VerrazzanoInstall{
+			Components: installv1alpha1.ComponentSpec{
+				CertManager: installv1alpha1.CertManagerComponent{},
+				DNS: installv1alpha1.DNSComponent{
+					XIPIO: installv1alpha1.XIPIO{},
+				},
+				Ingress: installv1alpha1.IngressNginxComponent{
+					Type: installv1alpha1.NodePort,
 					NGINXInstallArgs: []installv1alpha1.InstallArgs{
 						{
 							Name:      "name1",
@@ -359,6 +362,7 @@ func TestNodePortInstall(t *testing.T) {
 						},
 					},
 				},
+				Istio: installv1alpha1.IstioComponent{},
 			},
 		},
 	}
