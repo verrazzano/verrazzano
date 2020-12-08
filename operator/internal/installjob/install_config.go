@@ -244,7 +244,7 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration
 			IssuerType: CertIssuerTypeCA,
 			CA: &CertificateCA{
 				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager.Certificate.CA),
-				SecretName:                getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
+				SecretName:               getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
 			},
 		},
 	}
