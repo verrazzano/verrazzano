@@ -54,7 +54,8 @@ func TestNewJob(t *testing.T) {
 	assert.Equal(t, "/home/verrazzano/kubeconfig", job.Spec.Template.Spec.Containers[0].Env[2].Value, "Expected env value did not match")
 	assert.Equal(t, "DEBUG", job.Spec.Template.Spec.Containers[0].Env[3].Name, "Expected env name did not match")
 	assert.Equal(t, "1", job.Spec.Template.Spec.Containers[0].Env[3].Value, "Expected env value did not match")
-	assert.Equal(t, "false", job.Annotations["dry-run"])
+	_, ok := job.Annotations["dry-run"]
+	assert.False(t, ok)
 }
 
 // TestNewJobDryRun tests the creation of an uninstall job in dryRun mode
@@ -81,5 +82,8 @@ func TestNewJobDryRun(t *testing.T) {
 
 	assert.Equal(t, "MODE", job.Spec.Template.Spec.Containers[0].Env[0].Name, "Expected env name did not match")
 	assert.Equal(t, "NOOP", job.Spec.Template.Spec.Containers[0].Env[0].Value, "Expected env value did not match")
-	assert.Equal(t, "true", job.Annotations["dry-run"])
+
+	dryRun, ok := job.Annotations["dry-run"]
+	assert.True(t, ok)
+	assert.Equal(t, "true", dryRun)
 }

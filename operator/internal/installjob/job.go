@@ -28,8 +28,11 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 	if jobConfig.DryRun {
 		mode = internal.NoOpMode
 	}
-	annotations := make(map[string]string, 1)
-	annotations[internal.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
+	var annotations map[string]string = nil
+	if jobConfig.DryRun {
+		annotations = make(map[string]string, 1)
+		annotations[internal.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
+	}
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        jobConfig.JobName,

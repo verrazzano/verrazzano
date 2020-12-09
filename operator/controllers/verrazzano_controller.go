@@ -511,8 +511,8 @@ func (r *VerrazzanoReconciler) setUninstallCondition(log *zap.SugaredLogger, job
 // saveInstallSpec Saves the install spec in a configmap to use with upgrade/updates later on
 func (r *VerrazzanoReconciler) saveVerrazzanoSpec(ctx context.Context, vz *installv1alpha1.Verrazzano) (err error) {
 	installSpecBytes, err := yaml.Marshal(vz.Spec)
-	installSpec := base64.StdEncoding.EncodeToString(installSpecBytes)
 	if err == nil {
+		installSpec := base64.StdEncoding.EncodeToString(installSpecBytes)
 		var installConfig *corev1.ConfigMap
 		installConfig, err = r.getInternalConfigMap(ctx, vz)
 		if err == nil {

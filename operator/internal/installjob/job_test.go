@@ -43,7 +43,8 @@ func TestNewJob(t *testing.T) {
 
 	assert.Equal(t, "MODE", job.Spec.Template.Spec.Containers[0].Env[0].Name)
 	assert.Equal(t, "INSTALL", job.Spec.Template.Spec.Containers[0].Env[0].Value)
-	assert.Equal(t, "false", job.Annotations["dry-run"])
+	_, ok := job.Annotations["dry-run"]
+	assert.False(t, ok)
 }
 
 // TestNewJobDryRun tests the creation of a job with dryRun=true, that the MODE env var is NOOP
@@ -72,5 +73,8 @@ func TestNewJobDryRun(t *testing.T) {
 
 	assert.Equal(t, "MODE", job.Spec.Template.Spec.Containers[0].Env[0].Name)
 	assert.Equal(t, "NOOP", job.Spec.Template.Spec.Containers[0].Env[0].Value)
-	assert.Equal(t, "true", job.Annotations["dry-run"])
+
+	dryRun, ok := job.Annotations["dry-run"]
+	assert.True(t, ok)
+	assert.Equal(t, "true", dryRun)
 }
