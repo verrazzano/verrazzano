@@ -85,12 +85,16 @@ metadata:
   name: verrazzano-platform-operator
 webhooks:
   - name: install.verrazzano.io
+    admissionReviewVersions:
+      - v1beta1
     clientConfig:
       service:
         name: verrazzano-platform-operator
         namespace: verrazzano-install
         path: /validate
         port: 443
+      # caBundle will be set by the verrazzano-platform_operator after certs are created
+      caBundle: ""
     rules:
       - apiGroups:
           - install.verrazzano.io
