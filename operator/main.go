@@ -51,6 +51,8 @@ func main() {
 	kzap.UseFlagOptions(&opts)
 	log.InitLogs(opts)
 
+	//	certificates.CreateCertificates()
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
