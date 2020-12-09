@@ -59,7 +59,7 @@ spec:
           resources:
             requests:
               memory: 72Mi
-        volumes:
-          - name: webhook-certs
-            emptyDir: {}
-        serviceAccountName: verrazzano-platform-operator
+      serviceAccountName: verrazzano-platform-operator
+      volumes:
+        - name: webhook-certs
+          emptyDir: {}

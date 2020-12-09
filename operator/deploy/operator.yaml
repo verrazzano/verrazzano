@@ -59,10 +59,10 @@ spec:
           resources:
             requests:
               memory: 72Mi
-        volumes:
-          - name: webhook-certs
-            emptyDir: {}
-        serviceAccountName: verrazzano-platform-operator
+      serviceAccountName: verrazzano-platform-operator
+      volumes:
+        - name: webhook-certs
+          emptyDir: {}
 # Copyright (c) 2020, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 

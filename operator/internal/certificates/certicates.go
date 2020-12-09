@@ -16,6 +16,7 @@ import (
 )
 
 func CreateCertificates() {
+	log.Info("Creating certificates for webhook")
 	var caPEM, serverCertPEM, serverPrivKeyPEM *bytes.Buffer
 	// CA config
 	ca := &x509.Certificate{

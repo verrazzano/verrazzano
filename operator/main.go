@@ -7,6 +7,8 @@ import (
 	"flag"
 	"os"
 
+	"github.com/verrazzano/verrazzano/operator/internal/certificates"
+
 	batchv1 "k8s.io/api/batch/v1"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -51,7 +53,7 @@ func main() {
 	kzap.UseFlagOptions(&opts)
 	log.InitLogs(opts)
 
-	//	certificates.CreateCertificates()
+	certificates.CreateCertificates()
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
