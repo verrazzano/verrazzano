@@ -53,10 +53,16 @@ spec:
               value: RUN_OPERATOR
             - name: VZ_INSTALL_IMAGE
               value: ghcr.io/verrazzano/verrazzano-platform-operator:0.6.0-20201209125239-eac9b72
+          volumeMounts:
+            - mountPath: /etc/webhook/certs
+              name: webhook-certs
           resources:
             requests:
               memory: 72Mi
-      serviceAccountName: verrazzano-platform-operator
+        volumes:
+          - name: webhook-certs
+            emptyDir: {}
+        serviceAccountName: verrazzano-platform-operator
 # Copyright (c) 2020, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 

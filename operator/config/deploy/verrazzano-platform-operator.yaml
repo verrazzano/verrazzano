@@ -53,7 +53,13 @@ spec:
               value: RUN_OPERATOR
             - name: VZ_INSTALL_IMAGE
               value: IMAGE_NAME
+          volumeMounts:
+            - mountPath: /etc/webhook/certs
+              name: webhook-certs
           resources:
             requests:
               memory: 72Mi
-      serviceAccountName: verrazzano-platform-operator
+        volumes:
+          - name: webhook-certs
+            emptyDir: {}
+        serviceAccountName: verrazzano-platform-operator
