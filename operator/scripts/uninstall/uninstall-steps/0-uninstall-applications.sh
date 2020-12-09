@@ -30,24 +30,26 @@ function initializing_uninstall {
     log "Updating ${rancher_cluster_url}"
     status=$(curl -o /dev/null -s -w "%{http_code}\n" -X DELETE -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")
     if [ "$status" != 200 ] && [ "$status" != 404 ] ; then
-      return 1
+      echo "Error removing cluster: ${status}"
+    else
+      local max_retries=30
+      local retries=0
+      while true ; do
+        still_exists="$(curl -s -X GET -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")"
+        state="$(echo "$still_exists" | jq -r ".state" )"
+        if [ "$state" != "active" ] && [ "$state" != "removing" ] ; then
+          break
+        else
+          log "Rancher cluster is still in state: ${state}"
+          sleep 10
+        fi
+        ((retries+=1))
+        if [ "$retries" -ge "$max_retries" ] ; then
+          log "WARNING: Timed out waiting for Rancher cluster to be removed, continuing with uninstall"
+          break
+        fi
+      done
     fi
-    local max_retries=30
-    local retries=0
-    while true ; do
-      still_exists="$(curl -s -X GET -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")"
-      state="$(echo "$still_exists" | jq -r ".state" )"
-      if [ "$state" != "active" ] && [ "$state" != "removing" ] ; then
-        break
-      else
-        log "Rancher cluster is still in state: ${state}"
-        sleep 10
-      fi
-      ((retries+=1))
-      if [ "$retries" -ge "$max_retries" ] ; then
-        return 1
-      fi
-    done
   fi
 }
 
@@ -68,3 +70,4 @@ function delete_models {
 action "Initializing Uninstall" initializing_uninstall || exit 1
 action "Deleting Verrazzano Bindings" delete_bindings || exit 1
 action "Deleting Verrazzano Models" delete_models || exit 1
+
