@@ -198,6 +198,36 @@ function get_dns_suffix {
   echo ${dns_suffix}
 }
 
+function get_verrazzano_ingress_https_port {
+  local ingress_type=$(get_config_value ".ingress.type")
+  if [ ${ingress_type} == "NodePort" ]; then
+    https_port=$(kubectl -n ingress-nginx get service ingress-controller-nginx-ingress-controller -o json | jq '.spec.ports[] | select(.port == 443) | .nodePort')
+  elif [ ${ingress_type} == "LoadBalancer" ]; then
+    https_port=443
+  fi
+  echo ${https_port}
+}
+
+function get_application_ingress_http_port {
+  local ingress_type=$(get_config_value ".ingress.type")
+  if [ ${ingress_type} == "NodePort" ]; then
+    http_port=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq '.spec.ports[] | select(.port == 80) | .nodePort')
+  elif [ ${ingress_type} == "LoadBalancer" ]; then
+    http_port=80
+  fi
+  echo ${http_port}
+}
+
+function get_application_ingress_https_port {
+  local ingress_type=$(get_config_value ".ingress.type")
+  if [ ${ingress_type} == "NodePort" ]; then
+    https_port=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq '.spec.ports[] | select(.port == 443) | .nodePort')
+  elif [ ${ingress_type} == "LoadBalancer" ]; then
+    https_port=443
+  fi
+  echo ${https_port}
+}
+
 function get_nginx_helm_args_from_config {
   if [ ! -z "$(get_config_value ".ingress.verrazzano")" ] && [ ! -z "$(get_config_value '.ingress.verrazzano.nginxInstallArgs')" ]; then
     config_array_to_helm_args ".ingress.verrazzano.nginxInstallArgs[]" || return 1
@@ -272,6 +302,9 @@ validate_config_json "$CONFIG_JSON" || fail "Installation config is invalid"
 #log "got nginx ingress ip $(get_verrazzano_ingress_ip)"
 #log "got nginx suffix $(get_dns_suffix $(get_verrazzano_ingress_ip))"
 #log "got istio ingress ip $(get_application_ingress_ip)"
+#log "got nginx https $(get_verrazzano_ingress_https_port)"
+#log "got istio http $(get_application_ingress_http_port)"
+#log "got istio https $(get_application_ingress_https_port)"
 #log "got verrazzano ports spec $(get_verrazzano_ports_spec)"
 #log "got nginx helm args $(get_nginx_helm_args_from_config)"
 #log "got istio helm args $(get_istio_helm_args_from_config)"
