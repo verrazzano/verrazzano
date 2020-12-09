@@ -63,6 +63,46 @@ spec:
       volumes:
         - name: webhook-certs
           emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: verrazzano-platform-operator
+  namespace: verrazzano-install
+  labels:
+    app: verrazzano-platform-operator
+spec:
+  ports:
+    - name: webhook
+      port: 443
+      targetPort: 8443
+  selector:
+    name: verrazzano-platform-operator
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: verrazzano-platform-operator
+webhooks:
+  - name: install.verrazzano.io
+    clientConfig:
+      service:
+        name: verrazzano-platform-operator
+        namespace: verrazzano-install
+        path: /validate
+        port: 443
+    rules:
+      - apiGroups:
+          - install.verrazzano.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - verrazzanos
+    sideEffects: None
+    failurePolicy: Fail
 # Copyright (c) 2020, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 

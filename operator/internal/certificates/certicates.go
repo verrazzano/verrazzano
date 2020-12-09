@@ -2,6 +2,7 @@ package certificates
 
 import (
 	"bytes"
+	"context"
 	cryptorand "crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -12,7 +13,12 @@ import (
 	"os"
 	"time"
 
+	v1 "k8s.io/api/admissionregistration/v1"
+
 	log "github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func CreateCertificates() {
@@ -99,20 +105,21 @@ func CreateCertificates() {
 	if err != nil {
 		log.Panic(err)
 	}
-	err = WriteFile("/etc/webhook/certs/tls.crt", serverCertPEM)
+	err = writeFile("/etc/webhook/certs/tls.crt", serverCertPEM)
 	if err != nil {
 		log.Panic(err)
 	}
 
-	err = WriteFile("/etc/webhook/certs/tls.key", serverPrivKeyPEM)
+	err = writeFile("/etc/webhook/certs/tls.key", serverPrivKeyPEM)
 	if err != nil {
 		log.Panic(err)
 	}
 
+	updateValidationWebhook(caPEM)
 }
 
-// WriteFile writes data in the file at the given path
-func WriteFile(filepath string, sCert *bytes.Buffer) error {
+// writeFile writes data in the file at the given path
+func writeFile(filepath string, sCert *bytes.Buffer) error {
 	f, err := os.Create(filepath)
 	if err != nil {
 		return err
@@ -124,4 +131,25 @@ func WriteFile(filepath string, sCert *bytes.Buffer) error {
 		return err
 	}
 	return nil
+}
+
+func updateValidationWebhook(caCert *bytes.Buffer) {
+
+	config := ctrl.GetConfigOrDie()
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Panic("failed to set go -client")
+	}
+
+	var validatingWebhook *v1.ValidatingWebhookConfiguration
+	validatingWebhook, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), "verrazzano-platform-operator", metav1.GetOptions{})
+	if err != nil {
+		log.Panic(err)
+	}
+
+	validatingWebhook.Webhooks[0].ClientConfig.CABundle = caCert.Bytes()
+	kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
+	if err != nil {
+		log.Panic(err)
+	}
 }
