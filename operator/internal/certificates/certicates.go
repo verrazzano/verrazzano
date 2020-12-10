@@ -91,7 +91,7 @@ func SetupCertificates() {
 		fmt.Println(err)
 	}
 
-	// PEM encode the  server cert and key
+	// PEM encode the server cert and key
 	serverCertPEM = new(bytes.Buffer)
 	_ = pem.Encode(serverCertPEM, &pem.Block{
 		Type:  "CERTIFICATE",
@@ -118,7 +118,7 @@ func SetupCertificates() {
 		log.Panic(err)
 	}
 
-	updateValidationWebhook(caBytes)
+	updateValidationWebhook(caPEM)
 }
 
 // writeFile writes data in the file at the given path
@@ -136,7 +136,7 @@ func writeFile(filepath string, sCert *bytes.Buffer) error {
 	return nil
 }
 
-func updateValidationWebhook(caCert []byte) {
+func updateValidationWebhook(caCert *bytes.Buffer) {
 
 	config := ctrl.GetConfigOrDie()
 	kubeClient, err := kubernetes.NewForConfig(config)
@@ -150,7 +150,7 @@ func updateValidationWebhook(caCert []byte) {
 		log.Panic(err)
 	}
 
-	validatingWebhook.Webhooks[0].ClientConfig.CABundle = caCert
+	validatingWebhook.Webhooks[0].ClientConfig.CABundle = caCert.Bytes()
 	kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
 	if err != nil {
 		log.Panic(err)
