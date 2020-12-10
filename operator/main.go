@@ -25,10 +25,7 @@ import (
 	// +kubebuilder:scaffold:imports
 )
 
-var (
-	scheme   = runtime.NewScheme()
-	setupLog = zap.S().Named("operator").Named("setup")
-)
+var scheme = runtime.NewScheme()
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
@@ -52,6 +49,8 @@ func main() {
 	flag.Parse()
 	kzap.UseFlagOptions(&opts)
 	log.InitLogs(opts)
+
+	setupLog := zap.S().Named("operator").Named("setup")
 
 	certificates.CreateCertificates()
 

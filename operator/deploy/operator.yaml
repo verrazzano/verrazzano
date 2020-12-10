@@ -56,7 +56,7 @@ spec:
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
-           resources:
+          resources:
             requests:
               memory: 72Mi
       volumes:
@@ -75,7 +75,7 @@ spec:
   ports:
     - name: webhook
       port: 443
-      targetPort: 8080
+      targetPort: 9443
   selector:
     name: verrazzano-platform-operator
 ---
@@ -91,7 +91,7 @@ webhooks:
       service:
         name: verrazzano-platform-operator
         namespace: verrazzano-install
-        path: "/validate"
+        path: /validate
       # caBundle will be set by the verrazzano-platform_operator after certs are created
       caBundle: ""
     rules:
