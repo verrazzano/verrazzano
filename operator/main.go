@@ -85,6 +85,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Setup the validation webhook
+	if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create validation webhook")
+		os.Exit(1)
+	}
+
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")

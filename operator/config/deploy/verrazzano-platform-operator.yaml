@@ -54,15 +54,15 @@ spec:
             - name: VZ_INSTALL_IMAGE
               value: IMAGE_NAME
           volumeMounts:
-            - mountPath: /etc/webhook/certs
-              name: webhook-certs
-          resources:
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
+           resources:
             requests:
               memory: 72Mi
-      serviceAccountName: verrazzano-platform-operator
       volumes:
         - name: webhook-certs
           emptyDir: {}
+      serviceAccountName: verrazzano-platform-operator
 ---
 apiVersion: v1
 kind: Service
@@ -75,7 +75,7 @@ spec:
   ports:
     - name: webhook
       port: 443
-      targetPort: 8443
+      targetPort: 8080
   selector:
     name: verrazzano-platform-operator
 ---
@@ -91,8 +91,7 @@ webhooks:
       service:
         name: verrazzano-platform-operator
         namespace: verrazzano-install
-        path: /validate
-        port: 443
+        path: "/validate"
       # caBundle will be set by the verrazzano-platform_operator after certs are created
       caBundle: ""
     rules:
