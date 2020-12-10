@@ -37,10 +37,16 @@ func init() {
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
+	var certDir string
+	var enableWebhooks bool
+
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.StringVar(&certDir, "cert-dir", "/etc/webhook/certs/", "The directory containing tls.crt and tls.key.")
+	flag.BoolVar(&enableWebhooks, "enable-webhooks", true,
+		"Enable webhooks for the operator")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
@@ -85,9 +91,14 @@ func main() {
 	}
 
 	// Setup the validation webhook
-	if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create validation webhook")
-		os.Exit(1)
+	if enableWebhooks {
+		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create validation webhook")
+			os.Exit(1)
+		}
+
+		mgr.GetWebhookServer().CertDir = certDir
+		//		mgr.GetWebhookServer().Register("/validate", &webhook.Admission{Handler: &webhooks.CompomentDefaulter{Log: setupLog}})
 	}
 
 	// +kubebuilder:scaffold:builder
