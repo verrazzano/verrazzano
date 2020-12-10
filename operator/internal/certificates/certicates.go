@@ -23,12 +23,14 @@ import (
 
 func SetupCertificates() {
 	log.Info("Creating certificates for webhook")
+	commonName := "verrazzano-platform-operator.verrazzano-install.svc"
 	var caPEM, serverCertPEM, serverPrivKeyPEM *bytes.Buffer
 	// CA config
 	ca := &x509.Certificate{
-		SerialNumber: big.NewInt(2020),
+		SerialNumber: big.NewInt(2020), //TODO:
 		Subject: pkix.Name{
-			Organization: []string{"oracle.com"},
+			CommonName: commonName,
+			//			Organization: []string{"oracle.com"},
 		},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(1, 0, 0),
@@ -62,15 +64,14 @@ func SetupCertificates() {
 		"verrazzano-platform-operator.verrazzano-install",
 		"verrazzano-platform-operator.verrazzano-install.svc",
 	}
-	commonName := "verrazzano-platform-operator.verrazzano-install.svc"
 
 	// server cert config
 	cert := &x509.Certificate{
 		DNSNames:     dnsNames,
 		SerialNumber: big.NewInt(1658),
 		Subject: pkix.Name{
-			CommonName:   commonName,
-			Organization: []string{"oracle.com"},
+			CommonName: commonName,
+			//			Organization: []string{"oracle.com"},
 		},
 		NotBefore:    time.Now(),
 		NotAfter:     time.Now().AddDate(1, 0, 0),
@@ -118,7 +119,7 @@ func SetupCertificates() {
 		log.Panic(err)
 	}
 
-	updateValidationWebhook(caPEM)
+	updateValidationWebhook(serverCertPEM)
 }
 
 // writeFile writes data in the file at the given path
