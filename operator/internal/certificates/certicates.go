@@ -119,7 +119,7 @@ func SetupCertificates() {
 		log.Panic(err)
 	}
 
-	updateValidationWebhook(serverCertPEM)
+	updateValidationWebhook(caPEM)
 }
 
 // writeFile writes data in the file at the given path
