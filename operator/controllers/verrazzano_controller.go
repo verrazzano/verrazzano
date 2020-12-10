@@ -7,8 +7,11 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	goerrors "errors"
 	"fmt"
 	"os"
+	"reflect"
+	"sigs.k8s.io/yaml"
 	"time"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
@@ -96,7 +99,15 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		// If the version is specified and different than the current version of the installation
 		// then proceed with upgrade
 		if len(vz.Spec.Version) > 0 && vz.Spec.Version != vz.Status.Version {
-			return r.reconcileUpgrade(log, req, vz)
+			updated, err := r.installSpecUpdated(ctx, vz)
+			if err != nil {
+				return reconcile.Result{}, err
+			} else if updated {
+				err = goerrors.New(fmt.Sprintf("Install spec for %s has changed, upgrade not allowed", vz.Name))
+				return reconcile.Result{}, err
+			} else {
+				return r.reconcileUpgrade(log, req, vz)
+			}
 		}
 		// nothing to do, installation already at target version
 		return ctrl.Result{}, nil
@@ -534,6 +545,43 @@ func (r *VerrazzanoReconciler) saveVerrazzanoSpec(ctx context.Context, log *zap.
 		}
 	}
 	return nil
+}
+
+// installSpecUpdated Returns true if the current Spec field of the Verrazzano resource does not match what was saved in the internal ConfigMap
+func (r *VerrazzanoReconciler) installSpecUpdated(ctx context.Context, vz *installv1alpha1.Verrazzano) (bool, error) {
+	storedSpec, err := r.getSavedInstallSpec(ctx, vz)
+	if err != nil {
+		return false, err
+	}
+	newSpec := vz.Spec
+	if newSpec.Profile != storedSpec.Profile ||
+		newSpec.EnvironmentName != storedSpec.EnvironmentName ||
+		!reflect.DeepEqual(newSpec.Components, storedSpec.Components) {
+		return false, nil
+	}
+	return true, nil
+}
+
+// getSavedInstallSpec Returns the saved Verrazzano resource Spec field from the internal ConfigMap, or an error if it can't be restored
+func (r *VerrazzanoReconciler) getSavedInstallSpec(ctx context.Context, vz *installv1alpha1.Verrazzano) (*installv1alpha1.VerrazzanoSpec, error) {
+	configMap, err := r.getInternalConfigMap(ctx, vz)
+	if err != nil {
+		r.Log.Warnf("No saved configuration found for install spec for %s", vz.Name)
+		return nil, err
+	}
+	storedSpec := &installv1alpha1.VerrazzanoSpec{}
+	if specData, ok := configMap.Data[configDataKey]; ok {
+		decodeBytes, err := base64.StdEncoding.DecodeString(specData)
+		if err != nil {
+			r.Log.Errorf("Error decoding saved install spec for %s", vz.Name)
+			return nil, err
+		}
+		if err := yaml.Unmarshal(decodeBytes, storedSpec); err != nil {
+			r.Log.Errorf("Error unmarshalling saved install spec for %s", vz.Name)
+			return nil, err
+		}
+	}
+	return storedSpec, nil
 }
 
 // getInternalConfigMap Convenience method for getting the saved install ConfigMap
