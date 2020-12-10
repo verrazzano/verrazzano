@@ -118,7 +118,7 @@ func SetupCertificates() {
 		log.Panic(err)
 	}
 
-	updateValidationWebhook(serverCertPEM)
+	updateValidationWebhook(caBytes)
 }
 
 // writeFile writes data in the file at the given path
@@ -136,7 +136,7 @@ func writeFile(filepath string, sCert *bytes.Buffer) error {
 	return nil
 }
 
-func updateValidationWebhook(caCert *bytes.Buffer) {
+func updateValidationWebhook(caCert []byte) {
 
 	config := ctrl.GetConfigOrDie()
 	kubeClient, err := kubernetes.NewForConfig(config)
@@ -150,7 +150,7 @@ func updateValidationWebhook(caCert *bytes.Buffer) {
 		log.Panic(err)
 	}
 
-	validatingWebhook.Webhooks[0].ClientConfig.CABundle = caCert.Bytes()
+	validatingWebhook.Webhooks[0].ClientConfig.CABundle = caCert
 	kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
 	if err != nil {
 		log.Panic(err)

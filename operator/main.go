@@ -58,8 +58,6 @@ func main() {
 
 	setupLog := zap.S().Named("operator").Named("setup")
 
-	certificates.SetupCertificates()
-
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
@@ -92,6 +90,7 @@ func main() {
 
 	// Setup the validation webhook
 	if enableWebhooks {
+		certificates.SetupCertificates()
 		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create validation webhook")
 			os.Exit(1)

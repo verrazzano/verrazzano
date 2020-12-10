@@ -79,7 +79,7 @@ spec:
   selector:
     name: verrazzano-platform-operator
 ---
-apiVersion: admissionregistration.k8s.io/v1
+apiVersion: admissionregistration.k8s.io/v1beta1
 kind: ValidatingWebhookConfiguration
 metadata:
   name: verrazzano-platform-operator
@@ -87,9 +87,6 @@ metadata:
     app: verrazzano-platform-operator
 webhooks:
   - name: install.verrazzano.io
-    admissionReviewVersions:
-      - v1
-      - v1beta1
     clientConfig:
       service:
         name: verrazzano-platform-operator

@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sigs.k8s.io/yaml"
 	"time"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
@@ -27,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/yaml"
 )
 
 // VerrazzanoReconciler reconciles a Verrazzano object
