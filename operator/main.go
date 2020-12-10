@@ -45,7 +45,7 @@ func main() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&certDir, "cert-dir", "/etc/webhook/certs/", "The directory containing tls.crt and tls.key.")
-	flag.BoolVar(&enableWebhooks, "enable-webhooks", true,
+	flag.BoolVar(&enableWebhooks, "enable-webhooks", false,
 		"Enable webhooks for the operator")
 
 	// Add the zap logger flag set to the CLI.
