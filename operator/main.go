@@ -90,7 +90,9 @@ func main() {
 
 	// Setup the validation webhook
 	if enableWebhooks {
-		certificates.SetupCertificates()
+		if err = certificates.SetupCertificates(); err != nil {
+			os.Exit(1)
+		}
 		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create validation webhook")
 			os.Exit(1)
