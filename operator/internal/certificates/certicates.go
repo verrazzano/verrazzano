@@ -21,14 +21,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func CreateCertificates() {
+func SetupCertificates() {
 	log.Info("Creating certificates for webhook")
 	var caPEM, serverCertPEM, serverPrivKeyPEM *bytes.Buffer
 	// CA config
 	ca := &x509.Certificate{
 		SerialNumber: big.NewInt(2020),
 		Subject: pkix.Name{
-			Organization: []string{"velotio.com"},
+			Organization: []string{"oracle.com"},
 		},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(1, 0, 0),
@@ -57,9 +57,12 @@ func CreateCertificates() {
 		Bytes: caBytes,
 	})
 
-	dnsNames := []string{"webhook-service",
-		"webhook-service.default", "webhook-service.default.svc"}
-	commonName := "webhook-service.default.svc"
+	dnsNames := []string{
+		"verrazzano-platform-operator",
+		"verrazzano-platform-operator.verrazzano-install",
+		"verrazzano-platform-operator.verrazzano-install.svc",
+	}
+	commonName := "verrazzano-platform-operator.verrazzano-install.svc"
 
 	// server cert config
 	cert := &x509.Certificate{
@@ -67,7 +70,7 @@ func CreateCertificates() {
 		SerialNumber: big.NewInt(1658),
 		Subject: pkix.Name{
 			CommonName:   commonName,
-			Organization: []string{"velotio.com"},
+			Organization: []string{"oracle.com"},
 		},
 		NotBefore:    time.Now(),
 		NotAfter:     time.Now().AddDate(1, 0, 0),

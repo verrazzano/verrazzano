@@ -58,7 +58,7 @@ func main() {
 
 	setupLog := zap.S().Named("operator").Named("setup")
 
-	certificates.CreateCertificates()
+	certificates.SetupCertificates()
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
@@ -98,7 +98,6 @@ func main() {
 		}
 
 		mgr.GetWebhookServer().CertDir = certDir
-		//		mgr.GetWebhookServer().Register("/validate", &webhook.Admission{Handler: &webhooks.CompomentDefaulter{Log: setupLog}})
 	}
 
 	// +kubebuilder:scaffold:builder
