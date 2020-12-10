@@ -45,14 +45,14 @@ spec:
       containers:
         - name: verrazzano-platform-operator
           imagePullPolicy: IfNotPresent
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.7.0-20201210193358-676f891
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.7.0-20201210211859-270c0ea
           args:
             - --zap-log-level=info
           env:
             - name: MODE
               value: RUN_OPERATOR
             - name: VZ_INSTALL_IMAGE
-              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.7.0-20201210193358-676f891
+              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.7.0-20201210211859-270c0ea
           resources:
             requests:
               memory: 72Mi
