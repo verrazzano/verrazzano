@@ -13,7 +13,7 @@ import (
 	"os"
 	"time"
 
-	v1 "k8s.io/api/admissionregistration/v1"
+	v1beta1 "k8s.io/api/admissionregistration/v1beta1"
 
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -145,14 +145,14 @@ func updateValidationWebhook(caCert *bytes.Buffer) {
 		log.Panic("failed to set go -client")
 	}
 
-	var validatingWebhook *v1.ValidatingWebhookConfiguration
-	validatingWebhook, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), "verrazzano-platform-operator", metav1.GetOptions{})
+	var validatingWebhook *v1beta1.ValidatingWebhookConfiguration
+	validatingWebhook, err = kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(context.TODO(), "verrazzano-platform-operator", metav1.GetOptions{})
 	if err != nil {
 		log.Panic(err)
 	}
 
 	validatingWebhook.Webhooks[0].ClientConfig.CABundle = caCert.Bytes()
-	kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
+	kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
 	if err != nil {
 		log.Panic(err)
 	}
