@@ -5,8 +5,10 @@ package controllers
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/operator/internal"
 	"os"
 	"sigs.k8s.io/yaml"
 	"time"
@@ -35,10 +37,14 @@ type VerrazzanoReconciler struct {
 	Log        *zap.SugaredLogger
 	Scheme     *runtime.Scheme
 	Controller controller.Controller
+	DryRun     bool
 }
 
-// Name of finializer
+// Name of finalizer
 const finalizerName = "install.verrazzano.io"
+
+// Key into ConfigMap data for stored install Spec, the data for which will be used for update/upgrade purposes
+const configDataKey = "spec"
 
 // Reconcile will reconcile the CR
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos,verbs=get;list;watch;create;update;patch;delete
@@ -110,7 +116,12 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		return reconcile.Result{}, err
 	}
 
-	if err := r.createInstallJob(ctx, log, vz, getConfigMapName(vz.Name)); err != nil {
+	if err := r.createInstallJob(ctx, log, vz, buildConfigMapName(vz.Name)); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// Create/update a configmap from spec for future comparison on update/upgrade
+	if err := r.saveVerrazzanoSpec(ctx, vz); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -120,7 +131,7 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 // createServiceAccount creates a required service account
 func (r *VerrazzanoReconciler) createServiceAccount(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Define a new service account resource
-	serviceAccount := installjob.NewServiceAccount(vz.Namespace, getServiceAccountName(vz.Name), os.Getenv("IMAGE_PULL_SECRET"), vz.Labels)
+	serviceAccount := installjob.NewServiceAccount(vz.Namespace, buildServiceAccountName(vz.Name), os.Getenv("IMAGE_PULL_SECRET"), vz.Labels)
 
 	// Set verrazzano resource as the owner and controller of the service account resource.
 	// This reference will result in the service account resource being deleted when the verrazzano CR is deleted.
@@ -130,10 +141,10 @@ func (r *VerrazzanoReconciler) createServiceAccount(ctx context.Context, log *za
 
 	// Check if the service account for running the scripts exist
 	serviceAccountFound := &corev1.ServiceAccount{}
-	log.Infof("Checking if install service account %s exist", getServiceAccountName(vz.Name))
-	err := r.Get(ctx, types.NamespacedName{Name: getServiceAccountName(vz.Name), Namespace: vz.Namespace}, serviceAccountFound)
+	log.Infof("Checking if install service account %s exist", buildServiceAccountName(vz.Name))
+	err := r.Get(ctx, types.NamespacedName{Name: buildServiceAccountName(vz.Name), Namespace: vz.Namespace}, serviceAccountFound)
 	if err != nil && errors.IsNotFound(err) {
-		log.Infof("Creating install service account %s", getServiceAccountName(vz.Name))
+		log.Infof("Creating install service account %s", buildServiceAccountName(vz.Name))
 		err = r.Create(ctx, serviceAccount)
 		if err != nil {
 			return err
@@ -148,7 +159,7 @@ func (r *VerrazzanoReconciler) createServiceAccount(ctx context.Context, log *za
 // createClusterRoleBinding creates a required cluster role binding
 func (r *VerrazzanoReconciler) createClusterRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Define a new cluster role binding resource
-	clusterRoleBinding := installjob.NewClusterRoleBinding(vz, getClusterRoleBindingName(vz.Namespace, vz.Name), getServiceAccountName(vz.Name))
+	clusterRoleBinding := installjob.NewClusterRoleBinding(vz, buildClusterRoleBindingName(vz.Namespace, vz.Name), buildServiceAccountName(vz.Name))
 
 	// Check if the cluster role binding for running the install scripts exist
 	clusterRoleBindingFound := &rbacv1.ClusterRoleBinding{}
@@ -170,7 +181,7 @@ func (r *VerrazzanoReconciler) createClusterRoleBinding(ctx context.Context, log
 // createConfigMap creates a required config map for installation
 func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Create the configmap resource that will contain installation configuration options
-	configMap := installjob.NewConfigMap(vz.Namespace, getConfigMapName(vz.Name), vz.Labels)
+	configMap := installjob.NewConfigMap(vz.Namespace, buildConfigMapName(vz.Name), vz.Labels)
 
 	// Set the verrazzano resource as the owner and controller of the configmap
 	err := controllerutil.SetControllerReference(vz, configMap, r.Scheme)
@@ -219,7 +230,19 @@ func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log *zap.Sug
 // createInstallJob creates the installation job
 func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, configMapName string) error {
 	// Define a new install job resource
-	job := installjob.NewJob(vz.Namespace, getInstallJobName(vz.Name), vz.Labels, configMapName, getServiceAccountName(vz.Name), os.Getenv("VZ_INSTALL_IMAGE"))
+	r.Log.Infof("Creating install job for %s, dry-run=%v", vz.Name, r.DryRun)
+	job := installjob.NewJob(
+		&installjob.JobConfig{
+			JobConfigCommon: internal.JobConfigCommon{
+				JobName:            buildInstallJobName(vz.Name),
+				Namespace:          vz.Namespace,
+				Labels:             vz.Labels,
+				ServiceAccountName: buildServiceAccountName(vz.Name),
+				JobImage:           os.Getenv("VZ_INSTALL_IMAGE"),
+				DryRun:             r.DryRun,
+			},
+			ConfigMapName: configMapName,
+		})
 
 	// Set verrazzano resource as the owner and controller of the job resource.
 	// This reference will result in the job resource being deleted when the verrazzano CR is deleted.
@@ -228,10 +251,10 @@ func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log *zap.Su
 	}
 	// Check if the job for running the install scripts exist
 	jobFound := &batchv1.Job{}
-	log.Infof("Checking if install job %s exist", getInstallJobName(vz.Name))
-	err := r.Get(ctx, types.NamespacedName{Name: getInstallJobName(vz.Name), Namespace: vz.Namespace}, jobFound)
+	log.Infof("Checking if install job %s exist", buildInstallJobName(vz.Name))
+	err := r.Get(ctx, types.NamespacedName{Name: buildInstallJobName(vz.Name), Namespace: vz.Namespace}, jobFound)
 	if err != nil && errors.IsNotFound(err) {
-		log.Infof("Creating install job %s", getInstallJobName(vz.Name))
+		log.Infof("Creating install job %s", buildInstallJobName(vz.Name))
 		err = r.Create(ctx, job)
 		if err != nil {
 			return err
@@ -247,7 +270,7 @@ func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log *zap.Su
 		}
 
 		// Delete leftover uninstall job if we find one.
-		err = r.cleanupUninstallJob(getUninstallJobName(vz.Name), vz.Namespace, log)
+		err = r.cleanupUninstallJob(buildUninstallJobName(vz.Name), vz.Namespace, log)
 		if err != nil {
 			return err
 		}
@@ -309,7 +332,19 @@ func (r *VerrazzanoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *VerrazzanoReconciler) createUninstallJob(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Define a new uninstall job resource
-	job := uninstalljob.NewJob(vz.Namespace, getUninstallJobName(vz.Name), vz.Labels, getServiceAccountName(vz.Name), os.Getenv("VZ_INSTALL_IMAGE"))
+	r.Log.Infof("Creating uninstall job for %s, dry-run=%v", vz.Name, r.DryRun)
+	job := uninstalljob.NewJob(
+		&uninstalljob.JobConfig{
+			JobConfigCommon: internal.JobConfigCommon{
+				JobName:            buildUninstallJobName(vz.Name),
+				Namespace:          vz.Namespace,
+				Labels:             vz.Labels,
+				ServiceAccountName: buildServiceAccountName(vz.Name),
+				JobImage:           os.Getenv("VZ_INSTALL_IMAGE"),
+				DryRun:             r.DryRun,
+			},
+		},
+	)
 
 	// Set verrazzano resource as the owner and controller of the uninstall job resource.
 	if err := controllerutil.SetControllerReference(vz, job, r.Scheme); err != nil {
@@ -318,10 +353,10 @@ func (r *VerrazzanoReconciler) createUninstallJob(log *zap.SugaredLogger, vz *in
 
 	// Check if the job for running the uninstall scripts exist
 	jobFound := &batchv1.Job{}
-	log.Infof("Checking if uninstall job %s exist", getUninstallJobName(vz.Name))
-	err := r.Get(context.TODO(), types.NamespacedName{Name: getUninstallJobName(vz.Name), Namespace: vz.Namespace}, jobFound)
+	log.Infof("Checking if uninstall job %s exist", buildUninstallJobName(vz.Name))
+	err := r.Get(context.TODO(), types.NamespacedName{Name: buildUninstallJobName(vz.Name), Namespace: vz.Namespace}, jobFound)
 	if err != nil && errors.IsNotFound(err) {
-		log.Infof("Creating uninstall job %s", getUninstallJobName(vz.Name))
+		log.Infof("Creating uninstall job %s", buildUninstallJobName(vz.Name))
 		err = r.Create(context.TODO(), job)
 		if err != nil {
 			return err
@@ -346,29 +381,34 @@ func (r *VerrazzanoReconciler) createUninstallJob(log *zap.SugaredLogger, vz *in
 	return nil
 }
 
-// getInstallJobName returns the name of an install job based on verrazzano resource name.
-func getInstallJobName(name string) string {
+// buildInstallJobName returns the name of an install job based on verrazzano resource name.
+func buildInstallJobName(name string) string {
 	return fmt.Sprintf("verrazzano-install-%s", name)
 }
 
-// getUninstallJobName returns the name of an uninstall job based on verrazzano resource name.
-func getUninstallJobName(name string) string {
+// buildUninstallJobName returns the name of an uninstall job based on verrazzano resource name.
+func buildUninstallJobName(name string) string {
 	return fmt.Sprintf("verrazzano-uninstall-%s", name)
 }
 
-// getServiceAccountName returns the service account name for jobs based on verrazzano resource name.
-func getServiceAccountName(name string) string {
+// buildServiceAccountName returns the service account name for jobs based on verrazzano resource name.
+func buildServiceAccountName(name string) string {
 	return fmt.Sprintf("verrazzano-install-%s", name)
 }
 
-// getClusterRoleBindingName returns the clusterrolebinding name for jobs based on verrazzano resource name.
-func getClusterRoleBindingName(namespace string, name string) string {
+// buildClusterRoleBindingName returns the clusterrolebinding name for jobs based on verrazzano resource name.
+func buildClusterRoleBindingName(namespace string, name string) string {
 	return fmt.Sprintf("verrazzano-install-%s-%s", namespace, name)
 }
 
-// getConfigMapName returns the name of a config map for an install job based on verrazzano resource name.
-func getConfigMapName(name string) string {
+// buildConfigMapName returns the name of a config map for an install job based on verrazzano resource name.
+func buildConfigMapName(name string) string {
 	return fmt.Sprintf("verrazzano-install-%s", name)
+}
+
+// buildInternalConfigMapName returns the name of the internal configmap associated with an install resource.
+func buildInternalConfigMapName(name string) string {
+	return fmt.Sprintf("verrazzano-install-%s-internal", name)
 }
 
 // updateStatus updates the status in the verrazzano CR
@@ -466,6 +506,59 @@ func (r *VerrazzanoReconciler) setUninstallCondition(log *zap.SugaredLogger, job
 	}
 
 	return r.updateStatus(log, vz, "Verrazzano uninstall in progress", installv1alpha1.UninstallStarted)
+}
+
+// saveInstallSpec Saves the install spec in a configmap to use with upgrade/updates later on
+func (r *VerrazzanoReconciler) saveVerrazzanoSpec(ctx context.Context, vz *installv1alpha1.Verrazzano) (err error) {
+	installSpecBytes, err := yaml.Marshal(vz.Spec)
+	if err == nil {
+		installSpec := base64.StdEncoding.EncodeToString(installSpecBytes)
+		var installConfig *corev1.ConfigMap
+		installConfig, err = r.getInternalConfigMap(ctx, vz)
+		if err == nil {
+			// Update the configmap if the data has changed
+			currentConfigData := installConfig.Data[configDataKey]
+			if currentConfigData != installSpec {
+				installConfig.Data[configDataKey] = installSpec
+				return r.Update(ctx, installConfig)
+			}
+		} else if errors.IsNotFound(err) {
+			configMapName := buildInternalConfigMapName(vz.Name)
+			configData := make(map[string]string)
+			configData[configDataKey] = installSpec
+			// Create the configmap and set the owner reference to the VZ installer resource for garbage collection
+			installConfig = &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      configMapName,
+					Namespace: vz.Namespace,
+					OwnerReferences: []metav1.OwnerReference{{
+						APIVersion: vz.APIVersion,
+						Kind:       vz.Kind,
+						Name:       vz.Name,
+						UID:        vz.UID,
+					}},
+				},
+				Data: configData,
+			}
+			err = r.Create(ctx, installConfig)
+			if err != nil {
+				r.Log.Errorf("Unable to create installer config map %s: %v", configMapName, err)
+				return err
+			}
+		}
+	}
+	return err
+}
+
+// getInternalConfigMap Convenience method for getting the saved install ConfigMap
+func (r *VerrazzanoReconciler) getInternalConfigMap(ctx context.Context, vz *installv1alpha1.Verrazzano) (installConfig *corev1.ConfigMap, err error) {
+	key := client.ObjectKey{
+		Namespace: vz.Namespace,
+		Name:      buildInternalConfigMapName(vz.Name),
+	}
+	installConfig = &corev1.ConfigMap{}
+	err = r.Get(ctx, key, installConfig)
+	return installConfig, err
 }
 
 // containsString checks for a string in a slice of strings
