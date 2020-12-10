@@ -18,11 +18,12 @@ func InitLogs(opts kzap.Options) {
 	} else {
 		config = zap.NewProductionConfig()
 	}
-	if opts.Level != nil {
-		config.Level = opts.Level.(zap.AtomicLevel)
-	} else {
-		config.Level.SetLevel(zapcore.InfoLevel)
-	}
+	//		if opts.Level != nil {
+	//			config.Level = opts.Level.(zap.AtomicLevel)
+	//		} else {
+	//		config.Level.SetLevel(zapcore.InfoLevel)
+	//	}
+	config.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 	config.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
 	config.EncoderConfig.TimeKey = "@timestamp"
 	config.EncoderConfig.MessageKey = "message"
