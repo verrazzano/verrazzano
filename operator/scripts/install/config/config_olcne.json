@@ -1,0 +1,67 @@
+{
+   "environmentName": "default",
+   "profile": "prod",
+   "dns": {
+      "type": "external", 
+      "external": {
+         "suffix": "my.domain.suffix"
+      }
+   },
+   "certificates": {
+      "issuerType": "ca",
+      "ca": {
+         "secretName": "tls-rancher",
+         "clusterResourceNamespace": "cattle-system"
+      }
+   },
+   "ingress": {
+      "type": "LoadBalancer",
+      "verrazzano": {
+         "nginxInstallArgs": [
+            {
+               "name": "controller.service.externalTrafficPolicy",
+               "value": "Local"
+            },
+            {
+               "name": "controller.autoscaling.enabled",
+               "value": "true"
+            },
+            {
+               "name": "controller.autoscaling.minReplicas",
+               "value": 2
+            },
+            {
+               "name": "controller.service.externalIPs[0]",
+               "value": "IP addr of ingress-mgmt.<environmentName>.<dnsSuffix>"
+            }
+         ],
+         "ports": [
+            {
+               "name": "http",
+               "port": 80,
+               "nodePort": 30080
+            },
+            {
+               "name": "https",
+               "port": 443,
+               "nodePort": 30443
+            },
+            {
+               "name": "healthz",
+               "port": 30254,
+               "nodePort": 30254,
+               "protocol": "TCP",
+               "targetPort": 10254
+            }
+         ]
+      },
+      "application": {
+         "istioInstallArgs": [
+            {
+               "name": "gateways.istio-ingressgateway.externalIPs[0]",
+               "value": "IP addr of ingress-verrazzano.<environmentName>.<dnsSuffix>"
+            }
+         ]
+      }
+   }
+}

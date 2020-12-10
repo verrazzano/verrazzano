@@ -1,0 +1,25 @@
+{
+   "environmentName": "default",
+   "profile": "prod",
+   "dns": {
+      "type": "xip.io"
+   },
+   "certificates": {
+      "issuerType": "ca",
+      "ca": {
+         "secretName": "tls-rancher",
+         "clusterResourceNamespace": "cattle-system"
+      }
+   },
+   "ingress": {
+      "type": "LoadBalancer",
+      "verrazzano": {
+         "nginxInstallArgs": [],
+         "ports": []
+      },
+      "application": {
+         "istioInstallArgs": []
+      }
+   }
+}
+

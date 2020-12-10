@@ -1,0 +1,29 @@
+{
+   "environmentName": "myenv",
+   "profile": "prod",
+   "dns": {
+      "type": "oci",
+      "oci": {
+         "region": "region",
+         "tenancyOcid": "tenancyOcid",
+         "userOcid": "userOcid",
+         "dnsZoneCompartmentOcid": "dnsZoneCompartmentOcid",
+         "fingerprint": "fingerprint",
+         "privateKeyFile": "privateKeyFile",
+         "privateKeyPassphrase": "privateKeyPassphrase",
+         "dnsZoneOcid": "dnsZoneOcid",
+         "dnsZoneName": "my.dns.zone.name"
+      }
+   },
+   "certificates": {
+      "issuerType": "acme",
+      "acme": {
+         "provider": "letsEncrypt",
+         "emailAddress": "emailAddress",
+         "environment": "production"
+      }
+   },
+   "ingress": {
+      "type": "LoadBalancer"
+   }
+}

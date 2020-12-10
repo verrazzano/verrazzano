@@ -4,6 +4,8 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname $0); pwd -P)
+. $SCRIPT_DIR/../../operator/scripts/install/logging.sh
+. $SCRIPT_DIR/../../operator/scripts/install/config.sh
 
 set -euo pipefail
 
@@ -60,17 +62,8 @@ while true; do
 done
 
 echo "Determine application endpoint."
-CLUSTER_TYPE=${CLUSTER_TYPE:=OKE}
-if [ "${CLUSTER_TYPE}" == "OKE" ]; then
-  SERVER=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq -r '.status.loadBalancer.ingress[0].ip')
-  PORT=80
-elif [ "${CLUSTER_TYPE}" == "OLCNE" ]; then
-  SERVER=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq -r '.status.loadBalancer.ingress[0].ip')
-  if [ "${SERVER}" == "null" ]; then
-      SERVER=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq -r '.spec.externalIPs[0]')
-  fi
-  PORT=80
-fi
+SERVER=$(get_application_ingress_ip)
+PORT=80
 
 url="http://${SERVER}:${PORT}/greet"
 expect="Hello World"

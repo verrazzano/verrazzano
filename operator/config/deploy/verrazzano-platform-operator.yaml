@@ -1,0 +1,59 @@
+# Copyright (C) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: verrazzano-install
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: verrazzano-platform-operator
+  namespace: verrazzano-install
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: verrazzano-platform-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: verrazzano-platform-operator
+    namespace: verrazzano-install
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verrazzano-platform-operator
+  namespace: verrazzano-install
+  labels:
+    app: verrazzano-platform-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: verrazzano-platform-operator
+  template:
+    metadata:
+      labels:
+        app: verrazzano-platform-operator
+    spec:
+      containers:
+        - name: verrazzano-platform-operator
+          imagePullPolicy: IfNotPresent
+          image: IMAGE_NAME
+          args:
+            - --zap-log-level=info
+          env:
+            - name: MODE
+              value: RUN_OPERATOR
+            - name: VZ_INSTALL_IMAGE
+              value: IMAGE_NAME
+          resources:
+            requests:
+              memory: 72Mi
+      serviceAccountName: verrazzano-platform-operator

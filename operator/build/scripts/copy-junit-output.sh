@@ -1,7 +1,6 @@
+#!/bin/bash
+#
 # Copyright (c) 2020, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-operator/scripts/install/config/images
-operator/scripts/install/config/00-crds.patch
-operator/scripts/install/chart/NOTES.txt
-LICENSES-OLCNE.pdf
-coverage.xml
+#
+find . -name \*test-result.xml -exec cp {} $1 \;

@@ -1,0 +1,414 @@
+# Copyright (c) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: vmo-oci-config
+  namespace: {{ .Release.Namespace }}
+data:
+  {{ if ne .Values.oci.objectStore.namespace "" }}
+  namespace: {{ .Values.oci.objectStore.namespace | b64enc }}
+  {{ end }}
+  {{ if ne .Values.oci.objectStore.bucketName "" }}
+  bucket_name: {{ .Values.oci.objectStore.bucketName | b64enc }}
+  {{ end }}
+  {{ if ne .Values.oci.userOcid "" }}
+  user_ocid: {{ .Values.oci.userOcid | b64enc }}
+  {{ end }}
+  {{ if ne .Values.oci.region "" }}
+  region: {{ .Values.oci.region | b64enc }}
+  {{ end }}
+  {{ if ne .Values.oci.tenancyOcid "" }}
+  tenancy_ocid: {{ .Values.oci.tenancyOcid | b64enc }}
+  {{ end }}
+  {{ if ne .Values.oci.fingerprint "" }}
+  fingerprint: {{ .Values.oci.fingerprint | b64enc }}
+  {{ end }}
+  {{ if ne .Values.oci.privateKey "" }}
+  private_key: {{ .Values.oci.privateKey | b64enc }}
+  {{ end }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.monitoringOperator.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    k8s-app: {{ .Values.monitoringOperator.name }}
+{{- if .Values.global.imagePullSecrets }}
+imagePullSecrets:
+{{- range .Values.global.imagePullSecrets }}
+- name: {{ . }}
+{{- end }}
+{{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    k8s-app: {{ .Values.monitoringOperator.name }}
+  name: {{ .Values.monitoringOperator.name }}-cluster-role
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+      - nodes/proxy
+      - persistentvolumeclaims
+      - services
+      - configmaps
+      - secrets
+      - namespaces
+      - endpoints
+      - pods
+      - serviceaccounts
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - create
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - patch
+  # Following rule required to allow operator to grant API "create" verb on "pods/exec"
+  - apiGroups:
+      - ""
+    resources:
+      - pods/exec
+    verbs:
+      - create
+  # Following rule required to allow operator to grant API "get" verb on "pods/log"
+  - apiGroups:
+      - ""
+    resources:
+      - pods/log
+    verbs:
+      - get
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - delete
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - statefulsets
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - delete
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - rolebindings
+      - clusterrolebindings
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - create
+      - delete
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+      - roles
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - extensions
+    resources:
+      - ingresses
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - delete
+  - apiGroups:
+      - extensions
+    resources:
+      - jobs
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - delete
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+      - cronjobs
+    verbs:
+      - create
+      - get
+      - patch
+      - update
+      - delete
+      - list
+      - watch
+  - apiGroups:
+      - storage.k8s.io
+    resources:
+      - storageclasses
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - verrazzano.io
+    resources:
+      - verrazzanomonitoringinstances
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+  - nonResourceURLs: ["/metrics"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    k8s-app: {{ .Values.monitoringOperator.name }}
+  name: {{ .Values.monitoringOperator.name }}-cluster-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.monitoringOperator.name }}-cluster-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.monitoringOperator.name }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    k8s-app: {{ .Values.monitoringOperator.name }}
+  name: {{ .Values.monitoringOperator.name }}-cluster-role-default-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.monitoringOperator.name }}-cluster-role
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: vmi-cluster-role-default
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - create
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+      - delete
+  # Following rule required to grant Cirith "create" verb on "pods/exec"
+  - apiGroups:
+      - ""
+    resources:
+      - pods/exec
+    verbs:
+      - create
+  - apiGroups:
+      - ""
+    resources:
+      - pods/log
+    verbs:
+      - get
+  - apiGroups:
+      - "batch"
+      - "extensions"
+    resources:
+      - jobs
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - create
+      - delete
+  - apiGroups:
+      - verrazzano.io
+    resources:
+      - verrazzanomonitoringinstances
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.monitoringOperator.name }}-get-nodes
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - list
+---
+# grants role allowing permission to list nodes to all system:serviceaccounts (pods).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.monitoringOperator.name }}-get-nodes
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.monitoringOperator.name }}-get-nodes
+subjects:
+  - kind: Group
+    name: system:serviceaccounts
+    apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.monitoringOperator.name }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.monitoringOperator.name }}
+data:
+  config: |
+    metricsPort: {{ .Values.monitoringOperator.metricsPort }}
+    defaultSimpleCompReplicas: {{ .Values.monitoringOperator.defaultSimpleCompReplicas }}
+    defaultPrometheusReplicas: {{ .Values.monitoringOperator.defaultPrometheusReplicas }}
+    defaultIngressTargetDNSName: {{ .Values.config.envName }}-verrazzano-ingress.{{ .Values.config.dnsSuffix }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.monitoringOperator.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    k8s-app: {{ .Values.monitoringOperator.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: {{ .Values.monitoringOperator.name }}
+  template:
+    metadata:
+      labels:
+        k8s-app: {{ .Values.monitoringOperator.name }}
+    spec:
+      containers:
+        - name: {{ .Values.monitoringOperator.name }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: {{ .Values.monitoringOperator.imageName }}:{{ .Values.monitoringOperator.imageVersion }}
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+            - containerPort: {{ .Values.monitoringOperator.metricsPort }}
+              name: metrics
+              protocol: TCP
+          resources:
+            requests:
+              memory: {{ .Values.monitoringOperator.RequestMemory }}
+          env:
+            - name: GRAFANA_IMAGE
+              value: {{ .Values.monitoringOperator.grafanaImage }}
+            - name: PROMETHEUS_IMAGE
+              value: {{ .Values.monitoringOperator.prometheusImage }}
+            - name: PROMETHEUS_INIT_IMAGE
+              value: {{ .Values.monitoringOperator.prometheusInitImage }}
+            - name: PROMETHEUS_GATEWAY_IMAGE
+              value: {{ .Values.monitoringOperator.prometheusGatewayImage }}
+            - name: ALERT_MANAGER_IMAGE
+              value: {{ .Values.monitoringOperator.alertManagerImage }}
+            - name: ELASTICSEARCH_WAIT_IMAGE
+              value: {{ .Values.monitoringOperator.esWaitImage }}
+            - name: ELASTICSEARCH_IMAGE
+              value: {{ .Values.monitoringOperator.esImage }}
+            - name: ELASTICSEARCH_INIT_IMAGE
+              value: {{ .Values.monitoringOperator.esInitImage }}
+            - name: KIBANA_IMAGE
+              value: {{ .Values.monitoringOperator.kibanaImage }}
+            - name: ELASTICSEARCH_WAIT_TARGET_VERSION
+              value: {{ .Values.monitoringOperator.esWaitTargetVersion }}
+            - name: VERRAZZANO_MONITORING_INSTANCE_API_IMAGE
+              value: {{ .Values.monitoringOperator.monitoringInstanceApiImage }}
+            - name: CONFIG_RELOADER_IMAGE
+              value: {{ .Values.monitoringOperator.configReloaderImage }}
+            - name: NODE_EXPORTER_IMAGE
+              value: {{ .Values.monitoringOperator.nodeExporterImage }}
+          livenessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /health
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          args:
+            - --zap-log-level=info
+            - --zap-devel=false
+            - --namespace={{ .Release.Namespace }}
+      serviceAccountName: {{ .Values.monitoringOperator.name }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.monitoringOperator.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    k8s-app: {{ .Values.monitoringOperator.name }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.monitoringOperator.metricsPort }}
+      targetPort: {{ .Values.monitoringOperator.metricsPort }}
+      name: metrics
+  selector:
+    k8s-app: {{ .Values.monitoringOperator.name }}
