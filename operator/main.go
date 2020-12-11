@@ -73,10 +73,12 @@ func main() {
 	}
 
 	// Setup the reconciler
+	_, dryRun := os.LookupEnv("VZ_DRY_RUN") // If this var is set, the install jobs are no-ops
 	reconciler := controllers.VerrazzanoReconciler{
 		Client: mgr.GetClient(),
 		Log:    zap.S().Named("operator"),
 		Scheme: mgr.GetScheme(),
+		DryRun: dryRun,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller")
