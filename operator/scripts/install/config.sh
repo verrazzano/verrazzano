@@ -158,7 +158,9 @@ function validate_config_json {
 function get_verrazzano_ingress_ip {
   local ingress_type=$(get_config_value ".ingress.type")
   if [ ${ingress_type} == "NodePort" ]; then
-    ingress_ip=$(kubectl -n ingress-nginx get pods --selector app=nginx-ingress,component=controller -o jsonpath='{.items[0].status.hostIP}')
+    # on MAC and Windows, container IP is not accessible.  Port forwarding is required.
+    # ingress_ip=$(kubectl -n ingress-nginx get pods --selector app=nginx-ingress,component=controller -o jsonpath='{.items[0].status.hostIP}')
+    ingress_ip="127.0.0.1"
   elif [ ${ingress_type} == "LoadBalancer" ]; then
     # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
     ingress_ip=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
@@ -173,7 +175,9 @@ function get_verrazzano_ingress_ip {
 function get_application_ingress_ip {
   local ingress_type=$(get_config_value ".ingress.type")
   if [ ${ingress_type} == "NodePort" ]; then
-    ingress_ip=$(kubectl -n istio-system get pods --selector app=istio-ingressgateway,istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}')
+    # on MAC and Windows, container IP is not accessible.  Port forwarding is required.
+    # ingress_ip=$(kubectl -n istio-system get pods --selector app=istio-ingressgateway,istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}')
+    ingress_ip="127.0.0.1"
   elif [ ${ingress_type} == "LoadBalancer" ]; then
     # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
     ingress_ip=$(kubectl get svc istio-ingressgateway -n istio-system -o json | jq -r '.status.loadBalancer.ingress[0].ip')
@@ -281,6 +285,33 @@ function get_acme_environment() {
   else
     get_config_value ".certificates.acme.environment"
   fi
+}
+
+# rancher needs to be accessed by the scripts running in-cluster
+# in case of NodePort, 127.0.0.1 is not accessible
+# on MAC/Windows, --resolve 127.0.0.1:host.docker.internal
+# on linux, --resolve 127.0.0.1:nginx_container_ip
+function get_rancher_resolve() {
+  local rancher_hostname=$1
+  local rancher_in_cluster_host=$(get_rancher_in_cluster_host ${rancher_hostname})
+  local resolve=""
+  if [ ${rancher_hostname} != ${rancher_in_cluster_host} ]; then
+    resolve="--resolve ${rancher_hostname}:443:${rancher_in_cluster_host}"
+  fi
+  echo ${resolve}
+}
+
+function get_rancher_in_cluster_host() {
+  local rancher_hostname=$1
+  local rancher_in_cluster_host=${rancher_hostname}
+  if [ $(get_config_value ".ingress.type") == "NodePort" ]; then
+    rancher_in_cluster_host="host.docker.internal"
+    ping -q -c1 ${rancher_in_cluster_host} > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+      rancher_in_cluster_host=$(kubectl -n ingress-nginx get pods --selector app=nginx-ingress,component=controller -o jsonpath='{.items[0].status.hostIP}')
+    fi
+  fi
+  echo ${rancher_in_cluster_host}
 }
 
 if [ -z "$INSTALL_CONFIG_FILE" ]; then
