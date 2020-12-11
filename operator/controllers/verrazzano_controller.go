@@ -505,29 +505,28 @@ func (r *VerrazzanoReconciler) saveVerrazzanoSpec(ctx context.Context, log *zap.
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return err
-		} else {
-			configMapName := buildInternalConfigMapName(vz.Name)
-			configData := make(map[string]string)
-			configData[configDataKey] = installSpec
-			// Create the configmap and set the owner reference to the VZ installer resource for garbage collection
-			installConfig = &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      configMapName,
-					Namespace: vz.Namespace,
-					OwnerReferences: []metav1.OwnerReference{{
-						APIVersion: vz.APIVersion,
-						Kind:       vz.Kind,
-						Name:       vz.Name,
-						UID:        vz.UID,
-					}},
-				},
-				Data: configData,
-			}
-			err := r.Create(ctx, installConfig)
-			if err != nil {
-				log.Errorf("Unable to create installer config map %s: %v", configMapName, err)
-				return err
-			}
+		}
+		configMapName := buildInternalConfigMapName(vz.Name)
+		configData := make(map[string]string)
+		configData[configDataKey] = installSpec
+		// Create the configmap and set the owner reference to the VZ installer resource for garbage collection
+		installConfig = &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      configMapName,
+				Namespace: vz.Namespace,
+				OwnerReferences: []metav1.OwnerReference{{
+					APIVersion: vz.APIVersion,
+					Kind:       vz.Kind,
+					Name:       vz.Name,
+					UID:        vz.UID,
+				}},
+			},
+			Data: configData,
+		}
+		err := r.Create(ctx, installConfig)
+		if err != nil {
+			log.Errorf("Unable to create installer config map %s: %v", configMapName, err)
+			return err
 		}
 	} else {
 		// Update the configmap if the data has changed

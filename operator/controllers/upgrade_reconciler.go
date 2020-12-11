@@ -11,7 +11,6 @@ import (
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/internal/component"
 	"go.uber.org/zap"
-	"golang.org/x/mod/semver"
 	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -106,22 +105,26 @@ func upgradeFailureCount(st installv1alpha1.VerrazzanoStatus) int {
 }
 
 // isValidUpgradeRequest Returns true if the current Spec field of the Verrazzano resource does not match what was saved in the internal ConfigMap
-func (r *VerrazzanoReconciler) isValidUpgradeRequest(vz *installv1alpha1.Verrazzano) (error) {
+func (r *VerrazzanoReconciler) isValidUpgradeRequest(cr *installv1alpha1.Verrazzano) error {
 	// Validate the requested version
-	if err := validateVersion(vz.Spec.Version); err != nil {
-		return errors.New(fmt.Sprintf("Version field for %s is not valid: %s", vz.Name, vz.Spec.Version))
+	if err := validateVersion(cr.Spec.Version); err != nil {
+		return fmt.Errorf("Version field for %s is not valid: %s", cr.Name, cr.Spec.Version)
 	}
 	// Look up the saved install spec for this resource
-	storedSpec, err := r.getSavedInstallSpec(context.TODO(), vz)
+	storedSpec, err := r.getSavedInstallSpec(context.TODO(), cr)
 	if err != nil {
 		return err
 	}
-	newSpec := vz.Spec
+	newSpec := cr.Spec
 	// Verify that the new version request is > than the currently stored version
 	// - new dependency, not sure if we'll be allowed??  Seems to be a standard Google golang license?
 	// - also, not sure if we want their impl, but largely a stake in the ground at this point
-	if semver.Compare(storedSpec.Version, newSpec.Version) <= 0 {
-		return errors.New(fmt.Sprintf("Requested version %s is not greater than current version %s", newSpec.Version, storedSpec.Version))
+	versionCompareResult, err := compareVersions(storedSpec.Version, newSpec.Version)
+	if err != nil {
+		return err
+	}
+	if versionCompareResult <= 0 {
+		return fmt.Errorf("Requested version %s is not greater than current version %s", newSpec.Version, storedSpec.Version)
 	}
 	// If any other field has changed from the stored spec return false
 	if newSpec.Profile != storedSpec.Profile ||
@@ -129,5 +132,18 @@ func (r *VerrazzanoReconciler) isValidUpgradeRequest(vz *installv1alpha1.Verrazz
 		!reflect.DeepEqual(newSpec.Components, storedSpec.Components) {
 		return errors.New("Configuration updates now allowed during upgrade between Verrazzano versions")
 	}
-	return  nil
+	return nil
+}
+
+// compareVersions Compare semantic version strings, returns < 0 if LHS is greater, 0 if identical, and > 1 if RHS greater
+func compareVersions(currentVer string, newVer string) (result int, err error) {
+	var currentVersion, newVersion *SemVersion
+	if currentVersion, err = NewSemVersion(currentVer); err != nil {
+		return 0, err
+	}
+	if newVersion, err = NewSemVersion(currentVer); err != nil {
+		return 0, err
+	}
+	// Placeholder for now
+	return currentVersion.Compare(newVersion), nil
 }
