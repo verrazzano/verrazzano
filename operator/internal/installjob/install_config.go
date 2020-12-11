@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -170,11 +171,11 @@ type InstallConfiguration struct {
 // GetInstallConfig returns an install configuration in the json format required by the
 // bash installer scripts.
 func GetInstallConfig(vz *installv1alpha1.Verrazzano, auth *DNSAuth) (*InstallConfiguration, error) {
-	if vz.Spec.DNS.External != (installv1alpha1.External{}) {
+	if vz.Spec.Components.DNS.External != (installv1alpha1.External{}) {
 		return newExternalDNSInstallConfig(vz), nil
 	}
 
-	if vz.Spec.DNS.OCI != (installv1alpha1.OCI{}) {
+	if vz.Spec.Components.DNS.OCI != (installv1alpha1.OCI{}) {
 		return newOCIDNSInstallConfig(vz, auth)
 	}
 
@@ -191,21 +192,21 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, auth *DNSAuth) (*Ins
 				Region:                 auth.PrivateKeyAuth.Region,
 				TenancyOcid:            auth.PrivateKeyAuth.Tenancy,
 				UserOcid:               auth.PrivateKeyAuth.User,
-				DNSZoneCompartmentOcid: vz.Spec.DNS.OCI.DNSZoneCompartmentOCID,
+				DNSZoneCompartmentOcid: vz.Spec.Components.DNS.OCI.DNSZoneCompartmentOCID,
 				Fingerprint:            auth.PrivateKeyAuth.Fingerprint,
 				PrivateKeyFile:         installv1alpha1.OciPrivateKeyFilePath,
 				PrivateKeyPassphrase:   auth.PrivateKeyAuth.Passphrase,
-				DNSZoneOcid:            vz.Spec.DNS.OCI.DNSZoneOCID,
-				DNSZoneName:            vz.Spec.DNS.OCI.DNSZoneName,
+				DNSZoneOcid:            vz.Spec.Components.DNS.OCI.DNSZoneOCID,
+				DNSZoneName:            vz.Spec.Components.DNS.OCI.DNSZoneName,
 			},
 		},
-		Ingress: getIngress(vz.Spec.Ingress),
+		Ingress: getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
 		Certificates: Certificate{
 			IssuerType: CertIssuerTypeAcme,
 			ACME: &CertificateACME{
-				Provider:     string(vz.Spec.Certificate.Acme.Provider),
-				EmailAddress: vz.Spec.Certificate.Acme.EmailAddress,
-				Environment:  vz.Spec.Certificate.Acme.Environment,
+				Provider:     string(vz.Spec.Components.CertManager.Certificate.Acme.Provider),
+				EmailAddress: vz.Spec.Components.CertManager.Certificate.Acme.EmailAddress,
+				Environment:  vz.Spec.Components.CertManager.Certificate.Acme.Environment,
 			},
 		},
 	}, nil
@@ -220,12 +221,12 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration
 		DNS: DNS{
 			Type: DNSTypeXip,
 		},
-		Ingress: getIngress(vz.Spec.Ingress),
+		Ingress: getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
 		Certificates: Certificate{
 			IssuerType: CertIssuerTypeCA,
 			CA: &CertificateCA{
-				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Certificate.CA),
-				SecretName:               getCASecretName(vz.Spec.Certificate.CA),
+				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager.Certificate.CA),
+				SecretName:               getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
 			},
 		},
 	}
@@ -241,15 +242,15 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfigu
 		DNS: DNS{
 			Type: DNSTypeExternal,
 			External: &ExternalDNS{
-				Suffix: vz.Spec.DNS.External.Suffix,
+				Suffix: vz.Spec.Components.DNS.External.Suffix,
 			},
 		},
-		Ingress: getIngress(vz.Spec.Ingress),
+		Ingress: getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
 		Certificates: Certificate{
 			IssuerType: CertIssuerTypeCA,
 			CA: &CertificateCA{
-				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Certificate.CA),
-				SecretName:               getCASecretName(vz.Spec.Certificate.CA),
+				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager.Certificate.CA),
+				SecretName:               getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
 			},
 		},
 	}
@@ -313,6 +314,20 @@ func getIngressArgs(args []installv1alpha1.InstallArgs) []IngressArg {
 	return ingressArgs
 }
 
+// getIngress returns the json representation for the ingress
+func getIngress(ingress installv1alpha1.IngressNginxComponent, istio installv1alpha1.IstioComponent) Ingress {
+	return Ingress{
+		Type: getIngressType(ingress.Type),
+		Verrazzano: Verrazzano{
+			NginxInstallArgs: getIngressArgs(ingress.NGINXInstallArgs),
+			Ports:            getIngressPorts(ingress.Ports),
+		},
+		Application: Application{
+			IstioInstallArgs: getIngressArgs(istio.IstioInstallArgs),
+		},
+	}
+}
+
 // getIngressType returns the install ingress type
 func getIngressType(ingressType installv1alpha1.IngressType) IngressType {
 	// Use ingress type of LoadBalancer if not specified
@@ -321,40 +336,6 @@ func getIngressType(ingressType installv1alpha1.IngressType) IngressType {
 	}
 
 	return IngressTypeNodePort
-}
-
-// getIngress returns the json representation for the ingress
-func getIngress(ingress installv1alpha1.Ingress) Ingress {
-	return Ingress{
-		Type: getIngressType(ingress.Type),
-		Verrazzano: Verrazzano{
-			NginxInstallArgs: getIngressArgs(ingress.Verrazzano.NGINXInstallArgs),
-			Ports:            getIngressPorts(ingress.Verrazzano.Ports),
-		},
-		Application: Application{
-			IstioInstallArgs: getIngressArgs(ingress.Application.IstioInstallArgs),
-		},
-	}
-}
-
-// getEnvironmentName returns the install environment name
-func getEnvironmentName(envName string) string {
-	// Use env name of default if not specified
-	if envName == "" {
-		return "default"
-	}
-
-	return envName
-}
-
-// getProfile returns the install profile name
-func getProfile(profileType installv1alpha1.ProfileType) InstallProfile {
-	// Use the prod install profile if not specified
-	if profileType == "" || profileType == installv1alpha1.Prod {
-		return InstallProfileProd
-	}
-
-	return InstallProfileDev
 }
 
 // getCAClusterResourceNamespace returns the cluster resource name for a CA certificate
@@ -375,4 +356,24 @@ func getCASecretName(ca installv1alpha1.CA) string {
 	}
 
 	return ca.SecretName
+}
+
+// getEnvironmentName returns the install environment name
+func getEnvironmentName(envName string) string {
+	// Use env name of default if not specified
+	if envName == "" {
+		return "default"
+	}
+
+	return envName
+}
+
+// getProfile returns the install profile name
+func getProfile(profileType installv1alpha1.ProfileType) InstallProfile {
+	// Use the prod install profile if not specified
+	if profileType == "" || profileType == installv1alpha1.Prod {
+		return InstallProfileProd
+	}
+
+	return InstallProfileDev
 }

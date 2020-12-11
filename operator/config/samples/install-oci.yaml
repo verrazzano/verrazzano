@@ -8,15 +8,17 @@ metadata:
 spec:
   environmentName: env
   profile: prod
-  dns:
-    oci:
-      ociConfigSecret: ociConfigSecret
-      dnsZoneCompartmentOCID: dnsZoneCompartmentOcid
-      dnsZoneOCID: dnsZoneOcid
-      dnsZoneName: my.dns.zone.name
-  ingress:
-    type: LoadBalancer
-  certificate:
-    acme:
-      provider: letsEncrypt
-      emailAddress: emailAddress@domain.com
+  components:
+    certManager:
+      certificate:
+        acme:
+          provider: letsEncrypt
+          emailAddress: emailAddress@domain.com
+    dns:
+      oci:
+        ociConfigSecret: ociConfigSecret
+        dnsZoneCompartmentOCID: dnsZoneCompartmentOcid
+        dnsZoneOCID: dnsZoneOcid
+        dnsZoneName: my.dns.zone.name
+    ingress:
+      type: LoadBalancer

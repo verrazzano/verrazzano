@@ -47,7 +47,12 @@ function dump-uninstall-logs {
 
 # Create a kubeconfig
 create-kubeconfig
-if [ ${MODE} == "INSTALL" ]; then
+if [ ${MODE} == "NOOP" ]; then
+  echo "*************************************************************"
+  echo " Running in NOOP mode, exiting                               "
+  echo "*************************************************************"
+  exit 0
+elif [ ${MODE} == "INSTALL" ]; then
   # Run the installation
   ./install/1-install-istio.sh || dump-install-logs 1
   ./install/2-install-system-components.sh || dump-install-logs 1

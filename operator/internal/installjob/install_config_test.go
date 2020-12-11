@@ -39,12 +39,12 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 		Spec: installv1alpha1.VerrazzanoSpec{
 			Profile:         "dev",
 			EnvironmentName: "testEnv",
-			DNS: installv1alpha1.DNS{
-				XIPIO: installv1alpha1.XIPIO{},
-			},
-			Ingress: installv1alpha1.Ingress{
-				Type: installv1alpha1.LoadBalancer,
-				Verrazzano: installv1alpha1.VerrazzanoInstall{
+			Components: installv1alpha1.ComponentSpec{
+				DNS: installv1alpha1.DNSComponent{
+					XIPIO: installv1alpha1.XIPIO{},
+				},
+				Ingress: installv1alpha1.IngressNginxComponent{
+					Type: installv1alpha1.LoadBalancer,
 					NGINXInstallArgs: []installv1alpha1.InstallArgs{
 						{
 							Name:  "name1",
@@ -61,7 +61,7 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 						},
 					},
 				},
-				Application: installv1alpha1.ApplicationInstall{
+				Istio: installv1alpha1.IstioComponent{
 					IstioInstallArgs: []installv1alpha1.InstallArgs{
 						{
 							Name:  "name2",
@@ -69,11 +69,13 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 						},
 					},
 				},
-			},
-			Certificate: installv1alpha1.Certificate{
-				CA: installv1alpha1.CA{
-					SecretName:               "customSecret",
-					ClusterResourceNamespace: "customNamespace",
+				CertManager: installv1alpha1.CertManagerComponent{
+					Certificate: installv1alpha1.Certificate{
+						CA: installv1alpha1.CA{
+							SecretName:               "customSecret",
+							ClusterResourceNamespace: "customNamespace",
+						},
+					},
 				},
 			},
 		},
@@ -112,14 +114,14 @@ func TestExternalInstall(t *testing.T) {
 		Spec: installv1alpha1.VerrazzanoSpec{
 			Profile:         "prod",
 			EnvironmentName: "external",
-			DNS: installv1alpha1.DNS{
-				External: installv1alpha1.External{
-					Suffix: "abc.def.com",
+			Components: installv1alpha1.ComponentSpec{
+				DNS: installv1alpha1.DNSComponent{
+					External: installv1alpha1.External{
+						Suffix: "abc.def.com",
+					},
 				},
-			},
-			Ingress: installv1alpha1.Ingress{
-				Type: installv1alpha1.LoadBalancer,
-				Verrazzano: installv1alpha1.VerrazzanoInstall{
+				Ingress: installv1alpha1.IngressNginxComponent{
+					Type: installv1alpha1.LoadBalancer,
 					NGINXInstallArgs: []installv1alpha1.InstallArgs{
 						{
 							Name:  "name1",
@@ -159,7 +161,7 @@ func TestExternalInstall(t *testing.T) {
 						},
 					},
 				},
-				Application: installv1alpha1.ApplicationInstall{
+				Istio: installv1alpha1.IstioComponent{
 					IstioInstallArgs: []installv1alpha1.InstallArgs{
 						{
 							Name:  "name4",
@@ -228,17 +230,25 @@ func TestOCIDNSInstall(t *testing.T) {
 		Spec: installv1alpha1.VerrazzanoSpec{
 			Profile:         "prod",
 			EnvironmentName: "oci",
-			DNS: installv1alpha1.DNS{
-				OCI: installv1alpha1.OCI{
-					OCIConfigSecret:        "oci-config-secret",
-					DNSZoneCompartmentOCID: "test-dns-zone-compartment-ocid",
-					DNSZoneOCID:            "test-dns-zone-ocid",
-					DNSZoneName:            "test-dns-zone-name",
+			Components: installv1alpha1.ComponentSpec{
+				CertManager: installv1alpha1.CertManagerComponent{
+					Certificate: installv1alpha1.Certificate{
+						Acme: installv1alpha1.Acme{
+							Provider:     installv1alpha1.LetsEncrypt,
+							EmailAddress: "someguy@foo.com",
+						},
+					},
 				},
-			},
-			Ingress: installv1alpha1.Ingress{
-				Type: installv1alpha1.NodePort,
-				Verrazzano: installv1alpha1.VerrazzanoInstall{
+				DNS: installv1alpha1.DNSComponent{
+					OCI: installv1alpha1.OCI{
+						OCIConfigSecret:        "oci-config-secret",
+						DNSZoneCompartmentOCID: "test-dns-zone-compartment-ocid",
+						DNSZoneOCID:            "test-dns-zone-ocid",
+						DNSZoneName:            "test-dns-zone-name",
+					},
+				},
+				Ingress: installv1alpha1.IngressNginxComponent{
+					Type: installv1alpha1.NodePort,
 					NGINXInstallArgs: []installv1alpha1.InstallArgs{
 						{
 							Name:  "name1",
@@ -255,19 +265,13 @@ func TestOCIDNSInstall(t *testing.T) {
 						},
 					},
 				},
-				Application: installv1alpha1.ApplicationInstall{
+				Istio: installv1alpha1.IstioComponent{
 					IstioInstallArgs: []installv1alpha1.InstallArgs{
 						{
 							Name:  "name2",
 							Value: "value2",
 						},
 					},
-				},
-			},
-			Certificate: installv1alpha1.Certificate{
-				Acme: installv1alpha1.Acme{
-					Provider:     installv1alpha1.LetsEncrypt,
-					EmailAddress: "someguy@foo.com",
 				},
 			},
 		},
@@ -327,12 +331,13 @@ func TestNodePortInstall(t *testing.T) {
 		Spec: installv1alpha1.VerrazzanoSpec{
 			Profile:         "dev",
 			EnvironmentName: "kind",
-			DNS: installv1alpha1.DNS{
-				XIPIO: installv1alpha1.XIPIO{},
-			},
-			Ingress: installv1alpha1.Ingress{
-				Type: installv1alpha1.NodePort,
-				Verrazzano: installv1alpha1.VerrazzanoInstall{
+			Components: installv1alpha1.ComponentSpec{
+				CertManager: installv1alpha1.CertManagerComponent{},
+				DNS: installv1alpha1.DNSComponent{
+					XIPIO: installv1alpha1.XIPIO{},
+				},
+				Ingress: installv1alpha1.IngressNginxComponent{
+					Type: installv1alpha1.NodePort,
 					NGINXInstallArgs: []installv1alpha1.InstallArgs{
 						{
 							Name:      "name1",
@@ -357,6 +362,7 @@ func TestNodePortInstall(t *testing.T) {
 						},
 					},
 				},
+				Istio: installv1alpha1.IstioComponent{},
 			},
 		},
 	}
