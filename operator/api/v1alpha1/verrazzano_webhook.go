@@ -10,6 +10,7 @@ import (
 // logger for webhook code
 var log = zap.S().Named("operator").Named("webhook")
 
+// SetupWebhookWithManager is used to let the controller manager know about the webhook
 func (r *Verrazzano) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).

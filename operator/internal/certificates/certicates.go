@@ -18,6 +18,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+// SetupCertificates creates the needed certificates for the validating webhook
 func SetupCertificates() error {
 	commonName := "verrazzano-platform-operator.verrazzano-install.svc"
 	var caPEM, serverCertPEM, serverPrivKeyPEM *bytes.Buffer
