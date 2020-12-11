@@ -106,7 +106,6 @@ func main() {
 		}
 
 		mgr.GetWebhookServer().CertDir = certDir
-		setupLog.Infof("WEBHOOK SERVER: %v", mgr.GetWebhookServer())
 	}
 
 	// +kubebuilder:scaffold:builder
