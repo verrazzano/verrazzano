@@ -12,18 +12,13 @@ import (
 	"os"
 	"time"
 
-	"go.uber.org/zap"
-
 	v1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-var log = zap.S().Named("operator").Named("certificates")
-
 func SetupCertificates() error {
-	log.Info("Creating certificates for webhook")
 	commonName := "verrazzano-platform-operator.verrazzano-install.svc"
 	var caPEM, serverCertPEM, serverPrivKeyPEM *bytes.Buffer
 	// CA config
@@ -44,14 +39,12 @@ func SetupCertificates() error {
 	// CA private key
 	caPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
 	if err != nil {
-		log.Panic(err)
 		return err
 	}
 
 	// Self signed CA certificate
 	caBytes, err := x509.CreateCertificate(cryptorand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
 	if err != nil {
-		log.Panic(err)
 		return err
 	}
 
@@ -86,14 +79,12 @@ func SetupCertificates() error {
 	// server private key
 	serverPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
 	if err != nil {
-		log.Panic(err)
 		return err
 	}
 
 	// sign the server cert
 	serverCertBytes, err := x509.CreateCertificate(cryptorand.Reader, cert, ca, &serverPrivKey.PublicKey, caPrivKey)
 	if err != nil {
-		log.Panic(err)
 		return err
 	}
 
@@ -112,18 +103,15 @@ func SetupCertificates() error {
 
 	err = os.MkdirAll("/etc/webhook/certs/", 0666)
 	if err != nil {
-		log.Panic(err)
 		return err
 	}
 	err = writeFile("/etc/webhook/certs/tls.crt", serverCertPEM)
 	if err != nil {
-		log.Panic(err)
 		return err
 	}
 
 	err = writeFile("/etc/webhook/certs/tls.key", serverPrivKeyPEM)
 	if err != nil {
-		log.Panic(err)
 		return err
 	}
 
@@ -134,14 +122,12 @@ func SetupCertificates() error {
 func writeFile(filepath string, sCert *bytes.Buffer) error {
 	f, err := os.Create(filepath)
 	if err != nil {
-		log.Panic(err)
 		return err
 	}
 	defer f.Close()
 
 	_, err = f.Write(sCert.Bytes())
 	if err != nil {
-		log.Panic(err)
 		return err
 	}
 
@@ -153,21 +139,18 @@ func updateValidationWebhook(caCert *bytes.Buffer) error {
 	config := ctrl.GetConfigOrDie()
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		log.Panic(err)
 		return err
 	}
 
 	var validatingWebhook *v1beta1.ValidatingWebhookConfiguration
 	validatingWebhook, err = kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(context.TODO(), "verrazzano-platform-operator", metav1.GetOptions{})
 	if err != nil {
-		log.Panic(err)
 		return err
 	}
 
 	validatingWebhook.Webhooks[0].ClientConfig.CABundle = caCert.Bytes()
 	kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
 	if err != nil {
-		log.Panic(err)
 		return err
 	}
 

@@ -47,7 +47,7 @@ spec:
           imagePullPolicy: IfNotPresent
           image: ghcr.io/verrazzano/verrazzano-platform-operator:0.6.0-20201209125239-eac9b72
           args:
-            - --zap-log-level=info
+            - --zap-log-level=debug
           env:
             - name: MODE
               value: RUN_OPERATOR

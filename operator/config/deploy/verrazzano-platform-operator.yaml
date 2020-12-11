@@ -47,7 +47,7 @@ spec:
           imagePullPolicy: IfNotPresent
           image: IMAGE_NAME
           args:
-            - --zap-log-level=debug
+            - --zap-log-level=info
           env:
             - name: MODE
               value: RUN_OPERATOR
