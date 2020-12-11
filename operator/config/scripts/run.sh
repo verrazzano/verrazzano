@@ -60,5 +60,5 @@ elif [ ${MODE} == "UNINSTALL" ]; then
   dump-uninstall-logs 0
 else
   # Run the operator
-  /usr/local/bin/verrazzano-platform-operator
+  /usr/local/bin/verrazzano-platform-operator $*
 fi

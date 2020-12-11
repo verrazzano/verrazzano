@@ -22,9 +22,15 @@ import (
 func SetupCertificates() error {
 	commonName := "verrazzano-platform-operator.verrazzano-install.svc"
 	var caPEM, serverCertPEM, serverPrivKeyPEM *bytes.Buffer
+
+	serialNumber, err := newSerialNumber()
+	if err != nil {
+		return err
+	}
+
 	// CA config
 	ca := &x509.Certificate{
-		SerialNumber: big.NewInt(2020), //TODO:
+		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			CommonName: commonName,
 			//			Organization: []string{"oracle.com"},
@@ -56,22 +62,21 @@ func SetupCertificates() error {
 		Bytes: caBytes,
 	})
 
-	dnsNames := []string{
-		"verrazzano-platform-operator",
-		"verrazzano-platform-operator.verrazzano-install",
-		"verrazzano-platform-operator.verrazzano-install.svc",
+	serialNumber, err = newSerialNumber()
+	if err != nil {
+		return err
 	}
 
 	// server cert config
 	cert := &x509.Certificate{
-		DNSNames:     dnsNames,
-		SerialNumber: big.NewInt(1658),
+		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			CommonName: commonName,
 			//			Organization: []string{"oracle.com"},
 		},
 		NotBefore:    time.Now(),
 		NotAfter:     time.Now().AddDate(1, 0, 0),
+		IsCA:         true,
 		SubjectKeyId: []byte{1, 2, 3, 4, 6},
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		KeyUsage:     x509.KeyUsageDigitalSignature,
@@ -117,6 +122,16 @@ func SetupCertificates() error {
 	}
 
 	return updateValidationWebhook(caPEM)
+}
+
+// newSerialNumber returns a new random serial number suitable for use in a certificate.
+func newSerialNumber() (*big.Int, error) {
+	// A serial number can be up to 20 octets in size.
+	serialNumber, err := cryptorand.Int(cryptorand.Reader, new(big.Int).Lsh(big.NewInt(1), 8*20))
+	if err != nil {
+		return nil, err
+	}
+	return serialNumber, nil
 }
 
 // writeFile writes data in the file at the given path

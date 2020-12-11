@@ -81,7 +81,7 @@ spec:
       port: 443
       targetPort: 9443
   selector:
-    name: verrazzano-platform-operator
+    app: verrazzano-platform-operator
 ---
 apiVersion: admissionregistration.k8s.io/v1beta1
 kind: ValidatingWebhookConfiguration
