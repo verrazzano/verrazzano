@@ -4,11 +4,15 @@
 package controllers
 
 import (
+	"context"
+	"errors"
 	"fmt"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/internal/component"
 	"go.uber.org/zap"
+	"golang.org/x/mod/semver"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -17,12 +21,20 @@ const failedUpgradeLimit = 2
 
 // Reconcile upgrade will upgrade the components as required
 func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
-	targetVersion := cr.Spec.Version
-	err := validateVersion(targetVersion)
+
+	// Validate that only the version field in the Spec changed
+	err := r.isValidUpgradeRequest(cr)
 	if err != nil {
-		log.Error(err, "Invalid upgrade version")
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
+
+	// Upgrade is valid, attempt upgrade
+	targetVersion := cr.Spec.Version
+	//err = validateVersion(targetVersion)
+	//if err != nil {
+	//	log.Error(err, "Invalid upgrade version")
+	//	return ctrl.Result{}, nil
+	//}
 
 	// Only allow upgrade to retry a certain amount of times during any upgrade attempt.
 	if upgradeFailureCount(cr.Status) > failedUpgradeLimit {
@@ -31,6 +43,7 @@ func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl
 	}
 
 	// Only write the upgrade started message once
+	// TODO: should we move this up before the validation check?  i.e., if the upgrade is already in progress, no need to validate it
 	if !isLastCondition(cr.Status, installv1alpha1.UpgradeStarted) {
 		r.updateStatus(log, cr, fmt.Sprintf("Verrazzano upgrade to version %s in progress", cr.Spec.Version),
 			installv1alpha1.UpgradeStarted)
@@ -90,4 +103,31 @@ func upgradeFailureCount(st installv1alpha1.VerrazzanoStatus) int {
 		}
 	}
 	return c
+}
+
+// isValidUpgradeRequest Returns true if the current Spec field of the Verrazzano resource does not match what was saved in the internal ConfigMap
+func (r *VerrazzanoReconciler) isValidUpgradeRequest(vz *installv1alpha1.Verrazzano) (error) {
+	// Validate the requested version
+	if err := validateVersion(vz.Spec.Version); err != nil {
+		return errors.New(fmt.Sprintf("Version field for %s is not valid: %s", vz.Name, vz.Spec.Version))
+	}
+	// Look up the saved install spec for this resource
+	storedSpec, err := r.getSavedInstallSpec(context.TODO(), vz)
+	if err != nil {
+		return err
+	}
+	newSpec := vz.Spec
+	// Verify that the new version request is > than the currently stored version
+	// - new dependency, not sure if we'll be allowed??  Seems to be a standard Google golang license?
+	// - also, not sure if we want their impl, but largely a stake in the ground at this point
+	if semver.Compare(storedSpec.Version, newSpec.Version) <= 0 {
+		return errors.New(fmt.Sprintf("Requested version %s is not greater than current version %s", newSpec.Version, storedSpec.Version))
+	}
+	// If any other field has changed from the stored spec return false
+	if newSpec.Profile != storedSpec.Profile ||
+		newSpec.EnvironmentName != storedSpec.EnvironmentName ||
+		!reflect.DeepEqual(newSpec.Components, storedSpec.Components) {
+		return errors.New("Configuration updates now allowed during upgrade between Verrazzano versions")
+	}
+	return  nil
 }

@@ -7,11 +7,8 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	goerrors "errors"
 	"fmt"
 	"os"
-	"reflect"
-	"sigs.k8s.io/yaml"
 	"time"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
@@ -99,15 +96,7 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		// If the version is specified and different than the current version of the installation
 		// then proceed with upgrade
 		if len(vz.Spec.Version) > 0 && vz.Spec.Version != vz.Status.Version {
-			updated, err := r.installSpecUpdated(ctx, vz)
-			if err != nil {
-				return reconcile.Result{}, err
-			} else if updated {
-				err = goerrors.New(fmt.Sprintf("Install spec for %s has changed, upgrade not allowed", vz.Name))
-				return reconcile.Result{}, err
-			} else {
-				return r.reconcileUpgrade(log, req, vz)
-			}
+			return r.reconcileUpgrade(log, req, vz)
 		}
 		// nothing to do, installation already at target version
 		return ctrl.Result{}, nil
@@ -513,53 +502,42 @@ func (r *VerrazzanoReconciler) saveVerrazzanoSpec(ctx context.Context, log *zap.
 	}
 	installSpec := base64.StdEncoding.EncodeToString(installSpecBytes)
 	installConfig, err := r.getInternalConfigMap(ctx, vz)
-	if err == nil {
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		} else {
+			configMapName := buildInternalConfigMapName(vz.Name)
+			configData := make(map[string]string)
+			configData[configDataKey] = installSpec
+			// Create the configmap and set the owner reference to the VZ installer resource for garbage collection
+			installConfig = &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      configMapName,
+					Namespace: vz.Namespace,
+					OwnerReferences: []metav1.OwnerReference{{
+						APIVersion: vz.APIVersion,
+						Kind:       vz.Kind,
+						Name:       vz.Name,
+						UID:        vz.UID,
+					}},
+				},
+				Data: configData,
+			}
+			err := r.Create(ctx, installConfig)
+			if err != nil {
+				log.Errorf("Unable to create installer config map %s: %v", configMapName, err)
+				return err
+			}
+		}
+	} else {
 		// Update the configmap if the data has changed
 		currentConfigData := installConfig.Data[configDataKey]
 		if currentConfigData != installSpec {
 			installConfig.Data[configDataKey] = installSpec
 			return r.Update(ctx, installConfig)
 		}
-	} else if errors.IsNotFound(err) {
-		configMapName := buildInternalConfigMapName(vz.Name)
-		configData := make(map[string]string)
-		configData[configDataKey] = installSpec
-		// Create the configmap and set the owner reference to the VZ installer resource for garbage collection
-		installConfig = &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      configMapName,
-				Namespace: vz.Namespace,
-				OwnerReferences: []metav1.OwnerReference{{
-					APIVersion: vz.APIVersion,
-					Kind:       vz.Kind,
-					Name:       vz.Name,
-					UID:        vz.UID,
-				}},
-			},
-			Data: configData,
-		}
-		err := r.Create(ctx, installConfig)
-		if err != nil {
-			log.Errorf("Unable to create installer config map %s: %v", configMapName, err)
-			return err
-		}
 	}
 	return nil
-}
-
-// installSpecUpdated Returns true if the current Spec field of the Verrazzano resource does not match what was saved in the internal ConfigMap
-func (r *VerrazzanoReconciler) installSpecUpdated(ctx context.Context, vz *installv1alpha1.Verrazzano) (bool, error) {
-	storedSpec, err := r.getSavedInstallSpec(ctx, vz)
-	if err != nil {
-		return false, err
-	}
-	newSpec := vz.Spec
-	if newSpec.Profile != storedSpec.Profile ||
-		newSpec.EnvironmentName != storedSpec.EnvironmentName ||
-		!reflect.DeepEqual(newSpec.Components, storedSpec.Components) {
-		return false, nil
-	}
-	return true, nil
 }
 
 // getSavedInstallSpec Returns the saved Verrazzano resource Spec field from the internal ConfigMap, or an error if it can't be restored
