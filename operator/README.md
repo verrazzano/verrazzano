@@ -23,9 +23,11 @@ export DOCKER_NAMESPACE=<namespace for image>
 make docker-push
 
 # Create the verrrazzano-platform-operator deployment yaml file.
-# Replace <verrazzano-image> with the verrazzano-platform-operator image you created with 'make docker-push'.
-cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|<verrazzano-image>|g" > /tmp/operator.yaml
-cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> /tmp/operator.yaml
+# Define the VZ_DEV_IMAGE env variable and call the create-test-deploy target
+# - Replace <verrazzano-image> with the verrazzano-platform-operator image you created with 'make docker-push'
+# - creates a valid deployment yaml file in /tmp/operator.yaml
+export VZ_DEV_IMAGE=<verrazzano-image>
+make create-test-deploy
 
 # Deploy the verrazzano-platform-operator
 kubectl apply -f /tmp/operator.yaml

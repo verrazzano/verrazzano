@@ -221,3 +221,13 @@ push-tag:
 	docker pull "${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}"; \
 	docker tag "${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}" "${DOCKER_IMAGE_FULLNAME}:$$PUBLISH_TAG"; \
 	docker push "${DOCKER_IMAGE_FULLNAME}:$$PUBLISH_TAG"
+
+.PHONY: create-test-deploy
+create-test-deploy:
+	if [ -n "${VZ_DEV_IMAGE}" ]; then \
+		echo "Building local operator deployment resource file in /tmp/operator.yaml, VZ_DEV_IMAGE=${VZ_DEV_IMAGE}"; \
+		cat operator/config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${VZ_DEV_IMAGE}|g" > /tmp/operator.yaml; \
+		cat operator/config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> /tmp/operator.yaml; \
+	else \
+		echo "VZ_DEV_IMAGE not defined, please set it to a valid image name/tag"; \
+	fi
