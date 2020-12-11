@@ -56,6 +56,8 @@ func main() {
 	kzap.UseFlagOptions(&opts)
 	log.InitLogs(opts)
 
+	ctrl.SetLogger(kzap.New(kzap.UseDevMode(true)))
+
 	setupLog := zap.S().Named("operator").Named("setup")
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -90,12 +92,14 @@ func main() {
 
 	// Setup the validation webhook
 	if enableWebhooks {
+		setupLog.Info("Setting up certificates for webhook")
 		if err = certificates.SetupCertificates(); err != nil {
 			setupLog.Error(err, "unable to setup certificates for webhook")
 			os.Exit(1)
 		}
+		setupLog.Info("Setting up webhook with manager")
 		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create validation webhook")
+			setupLog.Error(err, "unable to setup webhook with manager")
 			os.Exit(1)
 		}
 

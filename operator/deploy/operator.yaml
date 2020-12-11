@@ -46,8 +46,12 @@ spec:
         - name: verrazzano-platform-operator
           imagePullPolicy: IfNotPresent
           image: ghcr.io/verrazzano/verrazzano-platform-operator:0.6.0-20201209125239-eac9b72
+          ports:
+            - containerPort: 9443
+              name: webhook
+              protocol: TCP
           args:
-            - --zap-log-level=debug
+            - --zap-log-level=info
           env:
             - name: MODE
               value: RUN_OPERATOR

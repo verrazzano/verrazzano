@@ -46,6 +46,10 @@ spec:
         - name: verrazzano-platform-operator
           imagePullPolicy: IfNotPresent
           image: IMAGE_NAME
+          ports:
+            - containerPort: 9443
+              name: webhook
+              protocol: TCP
           args:
             - --zap-log-level=info
           env:
