@@ -113,7 +113,7 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 
 	// if an OCI DNS installation, make sure the secret required exists before proceeding
 	if vz.Spec.Components.DNS.OCI != (installv1alpha1.OCI{}) {
-		err := doesOCIDNSConfigSecretExist(r, vz)
+		err := r.doesOCIDNSConfigSecretExist(vz)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -135,7 +135,7 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	return ctrl.Result{}, err
 }
 
-func doesOCIDNSConfigSecretExist(r *VerrazzanoReconciler, vz *installv1alpha1.Verrazzano) error {
+func (r *VerrazzanoReconciler) doesOCIDNSConfigSecretExist(vz *installv1alpha1.Verrazzano) error {
 	// ensure the secret exists before proceeding
 	secret := &corev1.Secret{}
 	err := r.Get(context.TODO(), types.NamespacedName{Name: vz.Spec.Components.DNS.OCI.OCIConfigSecret, Namespace: vz.Namespace}, secret)
