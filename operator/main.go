@@ -44,7 +44,7 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&certDir, "cert-dir", "/etc/webhook/certs/", "The directory containing tls.crt and tls.key.")
+	flag.StringVar(&certDir, "cert-dir", "/etc/webhook/certs", "The directory containing tls.crt and tls.key.")
 	flag.BoolVar(&enableWebhooks, "enable-webhooks", true,
 		"Enable webhooks for the operator")
 
@@ -95,10 +95,19 @@ func main() {
 	// Setup the validation webhook
 	if enableWebhooks {
 		setupLog.Info("Setting up certificates for webhook")
-		if err = certificates.SetupCertificates(); err != nil {
+		caCert, err := certificates.SetupCertificates(certDir)
+		if err != nil {
 			setupLog.Error(err, "unable to setup certificates for webhook")
 			os.Exit(1)
 		}
+
+		setupLog.Info("Updating webhook configuration")
+		err = certificates.UpdateValidatingnWebhookConfiguration(caCert)
+		if err != nil {
+			setupLog.Error(err, "unable to update validation webhook configuration")
+			os.Exit(1)
+		}
+
 		setupLog.Info("Setting up webhook with manager")
 		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to setup webhook with manager")

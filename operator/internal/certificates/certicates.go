@@ -11,6 +11,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"math/big"
 	"os"
 	"time"
@@ -21,14 +22,19 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+const (
+	operatorName      = "verrazzano-platform-operator"
+	operatorNamespace = "verrazzano-install"
+)
+
 // SetupCertificates creates the needed certificates for the validating webhook
-func SetupCertificates() error {
-	commonName := "verrazzano-platform-operator.verrazzano-install.svc"
+func SetupCertificates(certDir string) (*bytes.Buffer, error) {
+	commonName := fmt.Sprintf("%s.%s.svc", operatorName, operatorNamespace)
 	var caPEM, serverCertPEM, serverPrivKeyPEM *bytes.Buffer
 
 	serialNumber, err := newSerialNumber()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// CA config
@@ -49,13 +55,13 @@ func SetupCertificates() error {
 	// CA private key
 	caPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Self signed CA certificate
 	caBytes, err := x509.CreateCertificate(cryptorand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// PEM encode CA cert
@@ -67,7 +73,7 @@ func SetupCertificates() error {
 
 	serialNumber, err = newSerialNumber()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// server cert config
@@ -88,13 +94,13 @@ func SetupCertificates() error {
 	// server private key
 	serverPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// sign the server cert
 	serverCertBytes, err := x509.CreateCertificate(cryptorand.Reader, cert, ca, &serverPrivKey.PublicKey, caPrivKey)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// PEM encode the server cert and key
@@ -110,21 +116,21 @@ func SetupCertificates() error {
 		Bytes: x509.MarshalPKCS1PrivateKey(serverPrivKey),
 	})
 
-	err = os.MkdirAll("/etc/webhook/certs/", 0666)
+	err = os.MkdirAll(certDir, 0666)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	err = writeFile("/etc/webhook/certs/tls.crt", serverCertPEM)
+	err = writeFile(fmt.Sprintf("%s/tls.crt", certDir), serverCertPEM)
 	if err != nil {
-		return err
-	}
-
-	err = writeFile("/etc/webhook/certs/tls.key", serverPrivKeyPEM)
-	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return updateValidationWebhook(caPEM)
+	err = writeFile(fmt.Sprintf("%s/tls.key", certDir), serverPrivKeyPEM)
+	if err != nil {
+		return nil, err
+	}
+
+	return caPEM, nil
 }
 
 // newSerialNumber returns a new random serial number suitable for use in a certificate.
@@ -138,14 +144,14 @@ func newSerialNumber() (*big.Int, error) {
 }
 
 // writeFile writes data in the file at the given path
-func writeFile(filepath string, sCert *bytes.Buffer) error {
+func writeFile(filepath string, pem *bytes.Buffer) error {
 	f, err := os.Create(filepath)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	_, err = f.Write(sCert.Bytes())
+	_, err = f.Write(pem.Bytes())
 	if err != nil {
 		return err
 	}
@@ -153,16 +159,20 @@ func writeFile(filepath string, sCert *bytes.Buffer) error {
 	return nil
 }
 
-func updateValidationWebhook(caCert *bytes.Buffer) error {
+func UpdateValidatingnWebhookConfiguration(caCert *bytes.Buffer) error {
 
-	config := ctrl.GetConfigOrDie()
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		return err
+	}
+
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return err
 	}
 
 	var validatingWebhook *v1beta1.ValidatingWebhookConfiguration
-	validatingWebhook, err = kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(context.TODO(), "verrazzano-platform-operator", metav1.GetOptions{})
+	validatingWebhook, err = kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(context.TODO(), operatorName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
