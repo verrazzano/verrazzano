@@ -95,7 +95,7 @@ go-ineffassign:
 
 .PHONY: go-mod
 go-mod:
-	#$(GO) mod tidy
+	$(GO) mod tidy
 	$(GO) mod vendor
 
 	# go mod vendor only copies the .go files.  Also need
