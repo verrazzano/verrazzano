@@ -154,7 +154,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build: manifests generate go-mod
+docker-build: go-mod manifests generate
 	docker build --pull -f operator/Dockerfile \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
