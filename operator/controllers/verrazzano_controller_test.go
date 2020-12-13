@@ -1471,7 +1471,7 @@ func TestCreateInternalConfigMapReturnsError(t *testing.T) {
 		Get(gomock.Any(), client.ObjectKey{Name: buildInternalConfigMapName(name), Namespace: namespace}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name client.ObjectKey, configMap *corev1.ConfigMap) error {
 			return errors.NewNotFound(schema.GroupResource{
-				Group:    vzapi.GroupVersion.Group,
+				Group:    vzapi.SchemeGroupVersion.Group,
 				Resource: "configmap",
 			}, "configmap")
 		})
@@ -1581,7 +1581,7 @@ func setupInstallInternalConfigMapExpectations(mock *mocks.MockClient, name stri
 		Get(gomock.Any(), client.ObjectKey{Name: buildInternalConfigMapName(name), Namespace: namespace}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name client.ObjectKey, configMap *corev1.ConfigMap) error {
 			return errors.NewNotFound(schema.GroupResource{
-				Group:    vzapi.GroupVersion.Group,
+				Group:    vzapi.SchemeGroupVersion.Group,
 				Resource: "configmap",
 			}, "configmap")
 		})
