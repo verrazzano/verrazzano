@@ -6,14 +6,15 @@ package controllers
 import (
 	"context"
 	"encoding/base64"
-	"github.com/verrazzano/verrazzano/operator/internal"
-	"sigs.k8s.io/yaml"
 	"testing"
 	"time"
 
+	"github.com/verrazzano/verrazzano/operator/internal"
+	"sigs.k8s.io/yaml"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	vzapi "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/internal/installjob"
 	"github.com/verrazzano/verrazzano/operator/mocks"
 	"go.uber.org/zap"

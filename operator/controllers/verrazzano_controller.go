@@ -8,12 +8,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/operator/internal"
 	"os"
-	"sigs.k8s.io/yaml"
 	"time"
 
-	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
+	"github.com/verrazzano/verrazzano/operator/internal"
+	"sigs.k8s.io/yaml"
+
+	installv1alpha1 "github.com/verrazzano/verrazzano/operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/internal/installjob"
 	"github.com/verrazzano/verrazzano/operator/internal/uninstalljob"
 	"go.uber.org/zap"

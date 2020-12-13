@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
+	installv1alpha1 "github.com/verrazzano/verrazzano/operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/controllers"
 	"github.com/verrazzano/verrazzano/operator/internal/util/log"
 	"go.uber.org/zap"
