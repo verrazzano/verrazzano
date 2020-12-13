@@ -58,7 +58,7 @@ func main() {
 
 	ctrl.SetLogger(kzap.New(kzap.UseDevMode(true)))
 
-	setupLog := zap.S().Named("operator").Named("setup")
+	setupLog := zap.S()
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,

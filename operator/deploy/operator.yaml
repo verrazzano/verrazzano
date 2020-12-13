@@ -96,8 +96,6 @@ webhooks:
         name: verrazzano-platform-operator
         namespace: verrazzano-install
         path: /validate-install-verrazzano-io-v1alpha1-verrazzano
-      # caBundle will be set by the verrazzano-platform_operator after certs are created
-      caBundle: ""
     rules:
       - apiGroups:
           - install.verrazzano.io
