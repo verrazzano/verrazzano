@@ -10,15 +10,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verrazzano/verrazzano/operator/internal/util/helm"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/operator/internal/util/helm"
 	"github.com/verrazzano/verrazzano/operator/mocks"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // goodRunner is used to test helm success without actually running an OS exec command

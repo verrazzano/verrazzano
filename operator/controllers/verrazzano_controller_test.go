@@ -9,12 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verrazzano/verrazzano/operator/internal"
-	"sigs.k8s.io/yaml"
-
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/operator/internal"
 	"github.com/verrazzano/verrazzano/operator/internal/installjob"
 	"github.com/verrazzano/verrazzano/operator/mocks"
 	"go.uber.org/zap"
@@ -28,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 // Generate mocs for the Kerberos Client and StatusWriter interfaces for use in tests.

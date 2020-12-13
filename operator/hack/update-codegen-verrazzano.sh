@@ -23,4 +23,4 @@ ${CODEGEN_PKG}/generate-groups.sh "client" \
   github.com/verrazzano/verrazzano/operator/client github.com/verrazzano/verrazzano/operator/apis \
   verrazzano:v1alpha1 \
   --output-base "${GOPATH}/src" \
-  --go-header-file ${SCRIPT_ROOT}/hack/custom-header.txt
+  --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.go.txt
