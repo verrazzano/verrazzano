@@ -103,6 +103,7 @@ manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./operator/..." output:crd:artifacts:config=operator/config/crd/bases
 	# Add copyright headers to the kubebuildr generated CRDs
 	./operator/hack/add-crd-header.sh
+	./operator/hack/update-codegen-verrazzano.sh
 
 	# Re-generate operator.yaml using template yaml file
 	cat operator/config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|$(shell grep "image:" operator/deploy/operator.yaml | awk '{ print $$2 }')|g" > operator/deploy/operator.yaml
