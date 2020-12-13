@@ -159,8 +159,8 @@ func writeFile(filepath string, pem *bytes.Buffer) error {
 	return nil
 }
 
+// UpdateValidatingnWebhookConfiguration sets the CABundle
 func UpdateValidatingnWebhookConfiguration(caCert *bytes.Buffer) error {
-
 	config, err := ctrl.GetConfig()
 	if err != nil {
 		return err
