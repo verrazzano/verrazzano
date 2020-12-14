@@ -17,7 +17,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-// TestSetupCertificates tests that the needed certificates needed for webhooks are created
+// TestSetupCertificates tests that the certificates needed for webhooks are created
 // GIVEN an output directory for certificates
 //  WHEN I call SetupCertificates
 //  THEN all the needed certificate artifacts are created
@@ -34,6 +34,17 @@ func TestSetupCertificates(t *testing.T) {
 	assert.NotNil(caBundle, "CA bundle should be returned")
 	assert.FileExists(fmt.Sprintf("%s/%s", dir, "tls.crt"), "expected tls.crt file not found")
 	assert.FileExists(fmt.Sprintf("%s/%s", dir, "tls.key"), "expected tls.key file not found")
+}
+
+// TestSetupCertificatesFail tests that the certificates needed for webhooks are not created
+// GIVEN an invalid output directory for certificates
+//  WHEN I call SetupCertificates
+//  THEN all the needed certificate artifacts are not created
+func TestSetupCertificatesFail(t *testing.T) {
+	assert := assert.New(t)
+
+	_, err := SetupCertificates("bad-dir")
+	assert.Error(err, "error should be returned setting up certificates")
 }
 
 // TestUpdateValidatingnWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-platform-operator
@@ -79,9 +90,9 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 	assert.Equal(caCert.Bytes(), updatedWebhook.Webhooks[0].ClientConfig.CABundle, "Expected CA bundle name did not match")
 }
 
-// TestUpdateValidatingnWebhookConfigurationFail tests that the CA Bundle is updated in the verrazzano-platform-operator
-// validatingWebhookConfiguration resource.
-// GIVEN a validatingWebhookConfiguration resource with the CA Bundle set
+// TestUpdateValidatingnWebhookConfigurationFail tests that the CA Bundle is not updated in the
+// verrazzano-platform-operator validatingWebhookConfiguration resource.
+// GIVEN an invalid validatingWebhookConfiguration resource with the CA Bundle set
 //  WHEN I call UpdateValidatingnWebhookConfiguration
 //  THEN the validatingWebhookConfiguration resource will fail to be updated
 func TestUpdateValidatingnWebhookConfigurationFail(t *testing.T) {
