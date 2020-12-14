@@ -3,12 +3,12 @@
 This document describes installing [Verrazzano](https://verrazzano.io/) on [Oracle Linux Cloud Native Environment (OLCNE)](https://docs.oracle.com/en/operating-systems/olcne/)
 cluster.
 
-> **NOTE**: You should only install this alpha release of Verrazzano in a cluster that can be safely deleted when your evaluation is complete.
+> **NOTE**: You should install this alpha release of Verrazzano only in a cluster that can be safely deleted when your evaluation is complete.
 
 ## Prerequisites
-* Verrazzano requires Oracle Linux Cloud Native Environment version 1.1 or later.
-* Verrazzano installation requires that the following software be installed on the system used to install Verrazzano.
-  The Oracle Linux Cloud Native Environment operator node is typically used to install Verrazzano.  
+* Oracle Linux Cloud Native Environment version 1.1 or later.
+* The Oracle Linux Cloud Native Environment operator node is typically used to install Verrazzano. Verrazzano installation requires that the following software be installed on the system used to install Verrazzano:
+
   * curl
   * helm (version 3.0.x, 3.1.x or 3.2.x)
   * jq
@@ -194,7 +194,7 @@ The value for `name` may be customized but will need to match the `PersistentVol
   ```
 * Create the required number of `PersistentVolume` resources.
   The Verrazzano system requires five persistent volumes for itself.
-  Each deployed Verrazzano binding requires an additional four persistent volumes.
+  Each deployed Verrazzano Binding requires an additional four persistent volumes.
   The following command creates nine persistent volumes, which is enough for one deployed binding.
   The value for `storageClassName` must match the above `StorageClass` name.
   The values for `name` may be customized.
@@ -289,7 +289,7 @@ For example:
 203.0.113.10                                    A       ingress-verrazzano.myenv.mydomain.com.
 ```
 
-Verrazzano installation will result in a number of management services that need to point to the ingress-mgmt address.
+Verrazzano installation will result in a number of management services that need to point to the `ingress-mgmt` address.
 ```
 keycloak.myenv.mydomain.com                      CNAME   ingress-mgmt.myenv.mydomain.com.
 rancher.myenv.mydomain.com                       CNAME   ingress-mgmt.myenv.mydomain.com.
@@ -300,7 +300,7 @@ kibana.vmi.system.myenv.mydomain.com             CNAME   ingress-mgmt.myenv.mydo
 elasticsearch.vmi.system.myenv.mydomain.com      CNAME   ingress-mgmt.myenv.mydomain.com.
 ```
 
-Deployment of applications as a VerrazzanoBinding will create four more services in the form:
+Deployment of applications as a Verrazzano Binding will create four more services in the form:
 * grafana.vmi.**mybinding**.myenv.mydomain.com
 * prometheus.vmi.**mybinding**.myenv.mydomain.com
 * kibana.vmi.**mybinding**.myenv.mydomain.com
@@ -363,13 +363,13 @@ kubectl apply -f operator/config/samples/install-olcne.yaml
 kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
 ```
 
-Run the following command to monitor the console log output of the installation:
+To monitor the console log output of the installation, run the following command:
 ```
     kubectl logs -f $(kubectl get pod -l job-name=verrazzano-install-my-verrazzano -o jsonpath="{.items[0].metadata.name}")
 ```
 
 ### 5. Verify the Verrazzano install
-Verrazzano installs multiple objects in multiple namespaces.  All the pods in the `verrazzano-system` namespaces in the `Running` state does not guarantee, but likely indicates that Verrazzano is up and running.
+Verrazzano installs multiple objects in multiple namespaces.  All the pods in the `verrazzano-system` namespaces in the `Running` state, does not guarantee, but likely indicates that Verrazzano is up and running.
 ```
 kubectl get pods -n verrazzano-system
 verrazzano-admission-controller-84d6bc647c-7b8tl   1/1     Running   0          5m13s
@@ -395,10 +395,10 @@ You can get the ingress for the consoles with the following command:
 
 `kubectl get ingress -A`
 
-Prefix `https://` to the host name returned to get the URL.
+To get the URL, prefix `https://` to the host name returned.
 For example, `https://rancher.myenv.mydomain.com`
 
-Following is an example of the ingresses:
+The following is an example of the ingresses:
 ```
 NAMESPACE           NAME                               HOSTS                                          ADDRESS          PORTS     AGE
 cattle-system       rancher                            rancher.myenv.mydomain.com                     128.234.33.198   80, 443   93m
@@ -423,7 +423,7 @@ You will need the credentials to access the various consoles installed by Verraz
 
 **User:** `verrazzano`
 
-Run the following command to get the password:
+To get the password, run the following command:
 ```
 kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
 ```
@@ -431,7 +431,7 @@ kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.p
 #### The Keycloak admin console
 **User:** `keycloakadmin`
 
-Run the following command to get the password:
+To get the password, run the following command:
 ```
 kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo
 ```
@@ -439,7 +439,7 @@ kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.passwor
 #### The Rancher console
 **User:** `admin`
 
-Run the following command to get the password:
+To get the password, run the following command:
 ```
 kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo
 ```
