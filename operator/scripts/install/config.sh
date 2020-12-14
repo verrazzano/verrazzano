@@ -289,8 +289,7 @@ function get_acme_environment() {
 
 # rancher needs to be accessed by the scripts running in-cluster
 # in case of NodePort, 127.0.0.1 is not accessible
-# on MAC/Windows, --resolve 127.0.0.1:host.docker.internal
-# on linux, --resolve 127.0.0.1:nginx_container_ip
+# --resolve 127.0.0.1:nginx_container_ip
 function get_rancher_resolve() {
   local rancher_hostname=$1
   local rancher_in_cluster_host=$(get_rancher_in_cluster_host ${rancher_hostname})
@@ -305,11 +304,7 @@ function get_rancher_in_cluster_host() {
   local rancher_hostname=$1
   local rancher_in_cluster_host=${rancher_hostname}
   if [ $(get_config_value ".ingress.type") == "NodePort" ]; then
-    rancher_in_cluster_host="host.docker.internal"
-    ping -q -c1 ${rancher_in_cluster_host} > /dev/null 2>&1
-    if [ $? -ne 0 ]; then
-      rancher_in_cluster_host=$(kubectl -n ingress-nginx get pods --selector app=nginx-ingress,component=controller -o jsonpath='{.items[0].status.hostIP}')
-    fi
+    rancher_in_cluster_host=$(kubectl -n ingress-nginx get pods --selector app=nginx-ingress,component=controller -o jsonpath='{.items[0].status.hostIP}')
   fi
   echo ${rancher_in_cluster_host}
 }
