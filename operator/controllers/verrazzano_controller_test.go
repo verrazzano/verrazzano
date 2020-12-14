@@ -6,14 +6,13 @@ package controllers
 import (
 	"context"
 	"encoding/base64"
-	"github.com/verrazzano/verrazzano/operator/internal"
-	"sigs.k8s.io/yaml"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
+	"github.com/verrazzano/verrazzano/operator/internal"
 	"github.com/verrazzano/verrazzano/operator/internal/installjob"
 	"github.com/verrazzano/verrazzano/operator/mocks"
 	"go.uber.org/zap"
@@ -27,9 +26,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
-// Generate mocs for the Kerberos Client and StatusWriter interfaces for use in tests.
+// Generate mocks for the Kerberos Client and StatusWriter interfaces for use in tests.
 //go:generate mockgen -destination=../mocks/controller_mock.go -package=mocks -copyright_file=../hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
 
 const installPrefix = "verrazzano-install-"
@@ -1483,7 +1483,7 @@ func TestCreateInternalConfigMapReturnsError(t *testing.T) {
 		})
 
 	reconciler := newVerrazzanoReconciler(mock)
-	err := reconciler.saveVerrazzanoSpec(context.TODO(), vz)
+	err := reconciler.saveVerrazzanoSpec(context.TODO(), zap.S(), vz)
 
 	// Validate the results
 	mocker.Finish()
@@ -1536,7 +1536,7 @@ func TestUpdateInternalConfigMap(t *testing.T) {
 		})
 
 	reconciler := newVerrazzanoReconciler(mock)
-	err = reconciler.saveVerrazzanoSpec(context.TODO(), vz)
+	err = reconciler.saveVerrazzanoSpec(context.TODO(), zap.S(), vz)
 
 	// Validate the results
 	mocker.Finish()
@@ -1565,11 +1565,9 @@ func newRequest(namespace string, name string) ctrl.Request {
 // newVerrazzanoReconciler creates a new reconciler for testing
 // c - The Kerberos client to inject into the reconciler
 func newVerrazzanoReconciler(c client.Client) VerrazzanoReconciler {
-	log := zap.S().Named("test")
 	scheme := newScheme()
 	reconciler := VerrazzanoReconciler{
 		Client: c,
-		Log:    log,
 		Scheme: scheme}
 	return reconciler
 }
