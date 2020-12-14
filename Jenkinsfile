@@ -186,7 +186,7 @@ pipeline {
                       failNoReports: true,
                       onlyStable: false,
                       fileCoverageTargets: '100, 0, 0',
-                      lineCoverageTargets: '91, 91, 91',
+                      lineCoverageTargets: '90, 90, 90',
                       packageCoverageTargets: '100, 0, 0',
                     )
                 }
