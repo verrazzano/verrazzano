@@ -3,17 +3,19 @@
 This document describes installing [Verrazzano](https://verrazzano.io/) on [Oracle Linux Cloud Native Environment (OLCNE)](https://docs.oracle.com/en/operating-systems/olcne/)
 cluster.
 
-> **NOTE**: You should only install this alpha release of Verrazzano in a cluster that can be safely deleted when your evaluation is complete.
+> **NOTE**: You should install this alpha release of Verrazzano only in a cluster that can be safely deleted when your evaluation is complete.
 
 ## Prerequisites
-* Verrazzano requires Oracle Linux Cloud Native Environment version 1.1 or later.
-* Verrazzano installation requires that the following software be installed on the system used to install Verrazzano.
-  The Oracle Linux Cloud Native Environment operator node is typically used to install Verrazzano.  
+* Oracle Linux Cloud Native Environment version 1.1 or later.
+* The following software installed on the system used to install Verrazzano:
+
   * curl
   * helm (version 3.0.x, 3.1.x or 3.2.x)
   * jq
   * kubectl
   * openssl
+
+  The Oracle Linux Cloud Native Environment operator node is typically used to install Verrazzano.
 
   If you are using Oracle Linux 7, then these requirements can be installed as shown:
   ```
@@ -363,13 +365,13 @@ kubectl apply -f operator/config/samples/install-olcne.yaml
 kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
 ```
 
-Run the following command to monitor the console log output of the installation:
+To monitor the console log output of the installation, run the following command:
 ```
     kubectl logs -f $(kubectl get pod -l job-name=verrazzano-install-my-verrazzano -o jsonpath="{.items[0].metadata.name}")
 ```
 
 ### 5. Verify the Verrazzano install
-Verrazzano installs multiple objects in multiple namespaces.  All the pods in the `verrazzano-system` namespaces in the `Running` state does not guarantee, but likely indicates that Verrazzano is up and running.
+Verrazzano installs multiple objects in multiple namespaces.  All the pods in the `verrazzano-system` namespaces in the `Running` state, does not guarantee, but likely indicates that Verrazzano is up and running.
 ```
 kubectl get pods -n verrazzano-system
 verrazzano-admission-controller-84d6bc647c-7b8tl   1/1     Running   0          5m13s
@@ -423,7 +425,7 @@ You will need the credentials to access the various consoles installed by Verraz
 
 **User:** `verrazzano`
 
-Run the following command to get the password:
+To get the password, run the following command:
 ```
 kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
 ```
@@ -431,7 +433,7 @@ kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.p
 #### The Keycloak admin console
 **User:** `keycloakadmin`
 
-Run the following command to get the password:
+To get the password, run the following command:
 ```
 kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo
 ```
@@ -439,7 +441,7 @@ kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.passwor
 #### The Rancher console
 **User:** `admin`
 
-Run the following command to get the password:
+To get the password, run the following command:
 ```
 kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo
 ```

@@ -21,21 +21,24 @@ The following software must be installed on your system.
 
 * Create the OKE cluster using the OCI Console or some other means.  
 * For `KUBERNETES VERSION`, select `v1.16.8`.
-* For `SHAPE`, an OKE cluster with 3 nodes of `VM.Standard2.4` [OCI Compute instance shape](https://www.oracle.com/cloud/compute/virtual-machines.html) has proven sufficient to install Verrazzano and deploy the Bob's Books example application.
+* For `SHAPE`, an OKE cluster with 3 nodes of `VM.Standard2.4` [OCI compute instance shape](https://www.oracle.com/cloud/compute/virtual-machines.html) has proven sufficient to install Verrazzano and deploy the Bob's Books example application.
 
 * Set the following `ENV` vars:
 
 ```
-   export KUBECONFIG=<path to valid Kubernetes config>
+    export KUBECONFIG=<path to valid Kubernetes config>
 ```
 
 * Create the optional `imagePullSecret` named `verrazzano-container-registry`.  This step is required when one or more of the Docker images installed by Verrazzano are private.  For example, while testing a change to the `verrazzano-operator`, you may be using a Docker image that requires credentials to access it.
 
 ```
-    kubectl create secret docker-registry verrazzano-container-registry --docker-username=<username> --docker-password=<password> --docker-server=<docker server>
+    kubectl create secret docker-registry verrazzano-container-registry \
+    --docker-username=<username> \
+    --docker-password=<password> \
+    --docker-server=<docker server>
 ```
 
-* Deploy the verrazzano-platform-operator.
+* Deploy the Verrazzano platform operator.
 
 ```
     kubectl apply -f operator/deploy/operator.yaml
@@ -44,7 +47,7 @@ The following software must be installed on your system.
 ### 2. Do the install
 
 According to your DNS choice, install Verrazzano using one of the following methods.
-For a complete description of Verrazzano configuration options, see [Verrazzano Custom Resource](README.md#verrazzano-custom-resource).
+For a complete description of Verrazzano configuration options, see [Verrazzano Custom Resource](#verrazzano-custom-resource).
 
 
 #### Install using xip.io
@@ -55,7 +58,7 @@ Run the following commands:
     kubectl apply -f operator/config/samples/install-default.yaml
     kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
 ```
-Run the following command to monitor the console log output of the installation:
+To monitor the console log output of the installation, run the following command:
 ```
     kubectl logs -f $(kubectl get pod -l job-name=verrazzano-install-my-verrazzano -o jsonpath="{.items[0].metadata.name}")
 ```
@@ -85,7 +88,7 @@ The [install-oci.yaml](operator/config/samples/install-oci.yaml) file provides a
 * `spec.dns.oci.dnsZoneOCID`
 * `spec.dns.oci.dnsZoneName`
 
-See the [Verrazzano Custom Resource Definition](README.md#table-verrazzano-custom-resource-definition) table for a description of the Verrazzano custom resource.
+See the [Verrazzano Custom Resource Definition](#table-verrazzano-custom-resource-definition) table for a description of the Verrazzano custom resource.
 
 When you use the OCI DNS installation, you need to provide a Verrazzano name in the Verrazzano custom resource
  (`spec.environmentName`) that will be used as part of the domain name used to access Verrazzano
@@ -98,7 +101,7 @@ Run the following commands:
     kubectl apply -f operator/config/samples/install-oci.yaml
     kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
 ```
-Run the following command if you want to monitor the console log output of the installation:
+If you want to monitor the console log output of the installation, run the following command:
 ```
     kubectl logs -f $(kubectl get pod -l job-name=verrazzano-install-my-verrazzano -o jsonpath="{.items[0].metadata.name}")
 ```
@@ -106,7 +109,7 @@ Run the following command if you want to monitor the console log output of the i
 
 ### 3. Verify the install
 
-Verrazzano installs multiple objects in multiple namespaces. In the `verrazzano-system` namespaces, all the pods in the `Running` state does not guarantee, but likely indicates that Verrazzano is up and running.
+Verrazzano installs multiple objects in multiple namespaces. In the `verrazzano-system` namespaces, all the pods in the `Running` state, does not guarantee, but likely indicates that Verrazzano is up and running.
 ```
 kubectl get pods -n verrazzano-system
 verrazzano-admission-controller-84d6bc647c-7b8tl   1/1     Running   0          5m13s
@@ -131,7 +134,7 @@ Verrazzano installs several consoles.  You can get the ingress for the consoles 
 
 `kubectl get ingress -A`
 
-Simply prefix `https://` to the host name to get the URL.  For example `https://rancher.myenv.mydomain.com`
+To get the URL, simply prefix `https://` to the host name.  For example `https://rancher.myenv.mydomain.com`
 
 Following is an example of the ingresses:
 ```
@@ -160,7 +163,7 @@ You will need the credentials to access the various consoles installed by Verraz
 
 **User:**  `verrazzano`
 
-Run the following command to get the password:
+To get the password, run the following command:
 
 `kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo`
 
@@ -169,7 +172,7 @@ Run the following command to get the password:
 
 **User:** `keycloakadmin`
 
-Run the following command to get the password:  
+To get the password, run the following command:  
 
 `kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo`
 
@@ -178,7 +181,7 @@ Run the following command to get the password:
 
 **User:** `admin`
 
-Run the following command to get the password:  
+To get the password, run the following command:  
 
 `kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo`
 
@@ -188,7 +191,7 @@ Example applications are located in the `examples` directory.
 
 ### 7. Uninstall Verrazzano
 
-Run the following commands to delete a Verrazzano installation:
+To delete a Verrazzano installation, run the following commands:
 
 ```
 # Get the name of the Verrazzano custom resource
@@ -198,7 +201,7 @@ kubectl get verrazzano
 kubectl delete verrazzano <name of custom resource>
 ```
 
-Run the following command to monitor the console log of the uninstall:
+To monitor the console log of the uninstall, run the following command:
 
 ```
 kubectl logs -f $(kubectl get pod -l job-name=verrazzano-uninstall-my-verrazzano -o jsonpath="{.items[0].metadata.name}")
@@ -256,14 +259,14 @@ spec:
 ```
 
 #### Table: Verrazzano Custom Resource Definition
-Following is a table that describes the `spec` portion of the Verrazzano custom resource:
+The following table describes the `spec` portion of the Verrazzano custom resource.
 
 | Configuration setting | Required | Description
 | --- | --- | --- |
 | `environmentName` | No | Name of the installation.  This name is part of the endpoint access URLs that are generated. The default value is `default`. |
 | `profile` | No | The installation profile to select.  Valid values are `prod` (production) and `dev` (development).  The default is `prod`. |
 | `dns.oci` | No | This portion of the configuration is specified when using OCI DNS.  This configuration cannot be specified in conjunction with `dns.external` or `dns.xip.io`.  |
-| `dns.oci.ociConfigSecret` | Yes | Name of the OCI configuration secret.  Generate a secret named "oci-config" based on the OCI configuration profile you want to use.  You can specify a profile other than DEFAULT and a different secret name.  See instructions by running `./operator/scripts/install/create_oci_config_secret.sh`.|
+| `dns.oci.ociConfigSecret` | Yes | Name of the OCI configuration secret.  Generate a secret named "oci-config" based on the OCI configuration profile you want to use.  You can specify a profile other than `DEFAULT` and a different secret name.  See the instructions by running `./operator/scripts/install/create_oci_config_secret.sh`.|
 | `dns.oci.dnsZoneCompartmentOCID` | Yes | The OCI DNS compartment OCID. |
 | `dns.oci.dnsZoneOCID` | Yes | The OCI DNS zone OCID. |
 | `dns.oci.dnsZoneName` | Yes | Name of OCI DNS zone. |
@@ -295,13 +298,13 @@ The install scripts perform a check, which attempts access through the ingress p
 `ERROR: Port 443 is NOT accessible on ingress(132.145.66.80)!  Check that security lists include an ingress rule for the node port 31739.`
 
 On an OKE install, this may indicate that there is a missing ingress rule or rules.  To verify and fix the issue, do the following:
-  1. Get the ports for the LoadBalancer services.
+  1. Get the ports for the `LoadBalancer` services.
      * Run `kubectl get services -A`.
-     * Note the ports for the LoadBalancer type services.  For example `80:31541/TCP,443:31739/TCP`.
+     * Note the ports for the `LoadBalancer` type services.  For example `80:31541/TCP,443:31739/TCP`.
   2. Check the security lists in the OCI Console.
      * Go to `Networking/Virtual Cloud Networks`.
      * Select the related VCN.
      * Go to the `Security Lists` for the VCN.
      * Select the security list named `oke-wkr-...`.
-     * Check the ingress rules for the security list.  There should be one rule for each of the destination ports named in the LoadBalancer services.  In the above example, the destination ports are `31541` & `31739`. We would expect the ingress rule for `31739` to be missing because it was named in the ERROR output.
+     * Check the ingress rules for the security list.  There should be one rule for each of the destination ports named in the `LoadBalancer` services.  In the above example, the destination ports are `31541` & `31739`. We would expect the ingress rule for `31739` to be missing because it was named in the `ERROR` output.
      * If a rule is missing, then add it by clicking `Add Ingress Rules` and filling in the source CIDR and destination port range (missing port).  Use the existing rules as a guide.
