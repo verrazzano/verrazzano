@@ -30,7 +30,7 @@ elasticSearch:
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: ghcr.io/verrazzano/verrazzano-operator
-  imageVersion: 0.7.0-20201216051920-ed3845e
+  imageVersion: 0.7.0-20201216140520-38bc99b
   cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:0.7.0-20201210184344-940208a
   helidonMicroImage: ghcr.io/verrazzano/verrazzano-helidon-app-operator:0.7.0-20201214161307-501df7f
   wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:0.7.0-20201210185726-82d0a2b
@@ -78,10 +78,6 @@ clusterOperator:
   name: verrazzano-cluster-operator
   imageName: ghcr.io/verrazzano/verrazzano-cluster-operator
   imageVersion: 0.7.0-20201216051850-22c943b
-  rancherURL:
-  rancherUserName:
-  rancherPassword:
-  rancherHostname:
   RequestMemory: 27Mi
 
 verrazzanoAdmissionController:
@@ -96,6 +92,12 @@ console:
   name: verrazzano-console
   imageName: ghcr.io/verrazzano/console
   imageVersion: 0.7.0-20201210220726-8a8ab27
+
+rancher:
+  rancherURL:
+  rancherUserName:
+  rancherPassword:
+  rancherHostname:
 
 # OCI-related values
 oci:
