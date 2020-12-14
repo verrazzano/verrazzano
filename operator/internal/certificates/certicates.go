@@ -22,15 +22,17 @@ import (
 )
 
 const (
-	operatorName      = "verrazzano-platform-operator"
-	operatorNamespace = "verrazzano-install"
+	// OperatorName is the resource name for the Verrazzano platform operator
+	OperatorName = "verrazzano-platform-operator"
+	// OperatorNamespace is the resource namespace for the Verrazzano platform operator
+	OperatorNamespace = "verrazzano-install"
 )
 
 // SetupCertificates creates the needed certificates for the validating webhook
 func SetupCertificates(certDir string) (*bytes.Buffer, error) {
 	var caPEM, serverCertPEM, serverPrivKeyPEM *bytes.Buffer
 
-	commonName := fmt.Sprintf("%s.%s.svc", operatorName, operatorNamespace)
+	commonName := fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace)
 	serialNumber, err := newSerialNumber()
 	if err != nil {
 		return nil, err
@@ -41,7 +43,6 @@ func SetupCertificates(certDir string) (*bytes.Buffer, error) {
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			CommonName: commonName,
-			//			Organization: []string{"oracle.com"},
 		},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(1, 0, 0),
@@ -80,7 +81,6 @@ func SetupCertificates(certDir string) (*bytes.Buffer, error) {
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			CommonName: commonName,
-			//			Organization: []string{"oracle.com"},
 		},
 		NotBefore:    time.Now(),
 		NotAfter:     time.Now().AddDate(1, 0, 0),
@@ -119,6 +119,7 @@ func SetupCertificates(certDir string) (*bytes.Buffer, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	err = writeFile(fmt.Sprintf("%s/tls.crt", certDir), serverCertPEM)
 	if err != nil {
 		return nil, err
@@ -135,11 +136,7 @@ func SetupCertificates(certDir string) (*bytes.Buffer, error) {
 // newSerialNumber returns a new random serial number suitable for use in a certificate.
 func newSerialNumber() (*big.Int, error) {
 	// A serial number can be up to 20 octets in size.
-	serialNumber, err := cryptorand.Int(cryptorand.Reader, new(big.Int).Lsh(big.NewInt(1), 8*20))
-	if err != nil {
-		return nil, err
-	}
-	return serialNumber, nil
+	return cryptorand.Int(cryptorand.Reader, new(big.Int).Lsh(big.NewInt(1), 8*20))
 }
 
 // writeFile writes data in the file at the given path
@@ -159,9 +156,9 @@ func writeFile(filepath string, pem *bytes.Buffer) error {
 }
 
 // UpdateValidatingnWebhookConfiguration sets the CABundle
-func UpdateValidatingnWebhookConfiguration(kubeClient *kubernetes.Clientset, caCert *bytes.Buffer) error {
+func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer) error {
 	var validatingWebhook *adminv1beta1.ValidatingWebhookConfiguration
-	validatingWebhook, err := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(context.TODO(), operatorName, metav1.GetOptions{})
+	validatingWebhook, err := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(context.TODO(), OperatorName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

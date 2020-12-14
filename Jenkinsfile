@@ -185,10 +185,10 @@ pipeline {
                       failUnhealthy: true,
                       failNoReports: true,
                       onlyStable: false,
-                      conditionalCoverageTargets: '80, 0, 0',
-                      fileCoverageTargets: '80, 0, 0',
-                      lineCoverageTargets: '80, 0, 0',
-                      packageCoverageTargets: '80, 0, 0',
+                      conditionalCoverageTargets: '80, 85, 85',
+                      fileCoverageTargets: '85, 85, 85,
+                      lineCoverageTargets: '85, 85, 85',
+                      packageCoverageTargets: '85, 85, 85',
                     )
                 }
             }
