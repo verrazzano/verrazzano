@@ -111,6 +111,13 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		return reconcile.Result{}, err
 	}
 
+	// if an OCI DNS installation, make sure the secret required exists before proceeding
+	if vz.Spec.Components.DNS.OCI != (installv1alpha1.OCI{}) {
+		err := r.doesOCIDNSConfigSecretExist(vz)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	}
 	err := r.createConfigMap(ctx, log, vz)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -126,6 +133,16 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	}
 
 	return ctrl.Result{}, err
+}
+
+func (r *VerrazzanoReconciler) doesOCIDNSConfigSecretExist(vz *installv1alpha1.Verrazzano) error {
+	// ensure the secret exists before proceeding
+	secret := &corev1.Secret{}
+	err := r.Get(context.TODO(), types.NamespacedName{Name: vz.Spec.Components.DNS.OCI.OCIConfigSecret, Namespace: "default"}, secret)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // createServiceAccount creates a required service account
@@ -193,15 +210,9 @@ func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log *zap.Sug
 	configMapFound := &corev1.ConfigMap{}
 	log.Infof("Checking if install ConfigMap %s exist", configMap.Name)
 
-	var dnsAuth *installjob.DNSAuth
 	err = r.Get(ctx, types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}, configMapFound)
 	if err != nil && errors.IsNotFound(err) {
-		// Convert to json and insert into the configmap.
-		dnsAuth, err = getDNSAuth(r, vz.Spec.Components.DNS, vz.Namespace)
-		if err != nil {
-			return err
-		}
-		config, err := installjob.GetInstallConfig(vz, dnsAuth)
+		config, err := installjob.GetInstallConfig(vz)
 		if err != nil {
 			return err
 		}
@@ -209,11 +220,7 @@ func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log *zap.Sug
 		if err != nil {
 			return err
 		}
-		if dnsAuth != nil {
-			configMap.Data = map[string]string{"config.json": string(jsonEncoding), installv1alpha1.OciPrivateKeyFileName: dnsAuth.PrivateKeyAuth.Key}
-		} else {
-			configMap.Data = map[string]string{"config.json": string(jsonEncoding)}
-		}
+		configMap.Data = map[string]string{"config.json": string(jsonEncoding)}
 
 		log.Infof("Creating install ConfigMap %s", configMap.Name)
 		err = r.Create(ctx, configMap)
@@ -282,24 +289,6 @@ func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log *zap.Su
 	err = r.setInstallCondition(log, jobFound, vz)
 
 	return err
-}
-
-func getDNSAuth(r *VerrazzanoReconciler, dns installv1alpha1.DNSComponent, namespace string) (*installjob.DNSAuth, error) {
-	if dns.OCI != (installv1alpha1.OCI{}) {
-		secret := &corev1.Secret{}
-		err := r.Get(context.TODO(), types.NamespacedName{Name: dns.OCI.OCIConfigSecret, Namespace: namespace}, secret)
-		if err != nil {
-			return nil, err
-		}
-		dnsAuth := installjob.DNSAuth{}
-
-		err = yaml.Unmarshal(secret.Data[installv1alpha1.OciConfigSecretFile], &dnsAuth)
-		if err != nil {
-			return nil, err
-		}
-		return &dnsAuth, nil
-	}
-	return nil, nil
 }
 
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found

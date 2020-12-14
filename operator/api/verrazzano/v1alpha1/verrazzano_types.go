@@ -230,18 +230,6 @@ type Certificate struct {
 	CA CA `json:"ca,omitempty"`
 }
 
-// XIPIO is xip.io DNS type
-type XIPIO struct {
-}
-
-// PrivateKeyPassphraseSecretRef identifies the private key passphrase needed for an OCI DNS install
-type PrivateKeyPassphraseSecretRef struct {
-	// Name of secret
-	Name string `json:"name"`
-	// Key for value in secret
-	Key string `json:"key"`
-}
-
 // OciPrivateKeyFileName is the private key file name
 const OciPrivateKeyFileName = "oci_api_key.pem"
 
@@ -249,7 +237,11 @@ const OciPrivateKeyFileName = "oci_api_key.pem"
 const OciPrivateKeyFilePath = "/config/" + OciPrivateKeyFileName
 
 // OciConfigSecretFile is the name of the OCI configuration yaml file
-const OciConfigSecretFile = "oci-config.yaml"
+const OciConfigSecretFile = "oci.yaml"
+
+// XIPIO is xip.io DNS type
+type XIPIO struct {
+}
 
 // OCI DNS type
 type OCI struct {

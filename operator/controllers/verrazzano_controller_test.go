@@ -384,14 +384,9 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 			return nil
 		})
 
-	// Expect a call to get the ConfigMap - return that it does not exist
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildConfigMapName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ConfigMap"}, buildServiceAccountName(name)))
-
 	// Expect a call to get the DNS config secret and return it
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: "default", Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			data := make(map[string][]byte)
 			data["passphrase"] = []byte("passphraseValue")
@@ -401,11 +396,16 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 				Labels:    nil,
 			}
 			data = make(map[string][]byte)
-			data[vzapi.OciConfigSecretFile] = []byte("privateKeyAuth:\n  region: us-phoenix-1\n  tenancy: ocid1.tenancy.ocid\n  user: ocid1.user.ocid\n  key: |\n    -----BEGIN RSA PRIVATE KEY-----\n    someencodeddata\n    -----END RSA PRIVATE KEY-----\n  fingerprint: theFingerprint\n  passphrase: passphraseValue")
+			data[vzapi.OciConfigSecretFile] = []byte("auth:\n  region: us-phoenix-1\n  tenancy: ocid1.tenancy.ocid\n  user: ocid1.user.ocid\n  key: |\n    -----BEGIN RSA PRIVATE KEY-----\n    someencodeddata\n    -----END RSA PRIVATE KEY-----\n  fingerprint: theFingerprint\n  passphrase: passphraseValue")
 			secret.Data = data
 			secret.Type = corev1.SecretTypeOpaque
 			return nil
 		})
+
+	// Expect a call to get the ConfigMap - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildConfigMapName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ConfigMap"}, buildServiceAccountName(name)))
 
 	// Expect a call to create the ConfigMap - return success
 	mock.EXPECT().
@@ -1341,14 +1341,9 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 			return nil
 		})
 
-	// Expect a call to get the ConfigMap - return that it does not exist
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildConfigMapName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ConfigMap"}, buildServiceAccountName(name)))
-
 	// Expect a call to get the DNS config secret but return a not found error
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: "default", Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil())).
 		Return(errors.NewBadRequest("failed to get Secret"))
 
 	// Create and make the request
