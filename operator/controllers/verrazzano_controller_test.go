@@ -6,14 +6,13 @@ package controllers
 import (
 	"context"
 	"encoding/base64"
-	"github.com/verrazzano/verrazzano/operator/internal"
-	"sigs.k8s.io/yaml"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	vzapi "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/operator/internal"
 	"github.com/verrazzano/verrazzano/operator/internal/installjob"
 	"github.com/verrazzano/verrazzano/operator/mocks"
 	"go.uber.org/zap"
@@ -27,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 // Generate mocs for the Kerberos Client and StatusWriter interfaces for use in tests.
@@ -1465,7 +1465,7 @@ func TestCreateInternalConfigMapReturnsError(t *testing.T) {
 		Get(gomock.Any(), client.ObjectKey{Name: buildInternalConfigMapName(name), Namespace: namespace}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name client.ObjectKey, configMap *corev1.ConfigMap) error {
 			return errors.NewNotFound(schema.GroupResource{
-				Group:    vzapi.GroupVersion.Group,
+				Group:    vzapi.SchemeGroupVersion.Group,
 				Resource: "configmap",
 			}, "configmap")
 		})
@@ -1575,7 +1575,7 @@ func setupInstallInternalConfigMapExpectations(mock *mocks.MockClient, name stri
 		Get(gomock.Any(), client.ObjectKey{Name: buildInternalConfigMapName(name), Namespace: namespace}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name client.ObjectKey, configMap *corev1.ConfigMap) error {
 			return errors.NewNotFound(schema.GroupResource{
-				Group:    vzapi.GroupVersion.Group,
+				Group:    vzapi.SchemeGroupVersion.Group,
 				Resource: "configmap",
 			}, "configmap")
 		})
