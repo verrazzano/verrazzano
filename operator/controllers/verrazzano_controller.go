@@ -8,11 +8,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/operator/internal"
 	"os"
 	"time"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
+	"github.com/verrazzano/verrazzano/operator/internal"
 	"github.com/verrazzano/verrazzano/operator/internal/installjob"
 	"github.com/verrazzano/verrazzano/operator/internal/uninstalljob"
 	"go.uber.org/zap"
@@ -34,7 +34,6 @@ import (
 // VerrazzanoReconciler reconciles a Verrazzano object
 type VerrazzanoReconciler struct {
 	client.Client
-	Log        *zap.SugaredLogger
 	Scheme     *runtime.Scheme
 	Controller controller.Controller
 	DryRun     bool
@@ -121,7 +120,7 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	}
 
 	// Create/update a configmap from spec for future comparison on update/upgrade
-	if err := r.saveVerrazzanoSpec(ctx, vz); err != nil {
+	if err := r.saveVerrazzanoSpec(ctx, log, vz); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -230,7 +229,6 @@ func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log *zap.Sug
 // createInstallJob creates the installation job
 func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, configMapName string) error {
 	// Define a new install job resource
-	r.Log.Infof("Creating install job for %s, dry-run=%v", vz.Name, r.DryRun)
 	job := installjob.NewJob(
 		&installjob.JobConfig{
 			JobConfigCommon: internal.JobConfigCommon{
@@ -254,7 +252,7 @@ func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log *zap.Su
 	log.Infof("Checking if install job %s exist", buildInstallJobName(vz.Name))
 	err := r.Get(ctx, types.NamespacedName{Name: buildInstallJobName(vz.Name), Namespace: vz.Namespace}, jobFound)
 	if err != nil && errors.IsNotFound(err) {
-		log.Infof("Creating install job %s", buildInstallJobName(vz.Name))
+		log.Infof("Creating install job %s, dry-run=%v", buildInstallJobName(vz.Name), r.DryRun)
 		err = r.Create(ctx, job)
 		if err != nil {
 			return err
@@ -332,7 +330,6 @@ func (r *VerrazzanoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *VerrazzanoReconciler) createUninstallJob(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Define a new uninstall job resource
-	r.Log.Infof("Creating uninstall job for %s, dry-run=%v", vz.Name, r.DryRun)
 	job := uninstalljob.NewJob(
 		&uninstalljob.JobConfig{
 			JobConfigCommon: internal.JobConfigCommon{
@@ -356,7 +353,7 @@ func (r *VerrazzanoReconciler) createUninstallJob(log *zap.SugaredLogger, vz *in
 	log.Infof("Checking if uninstall job %s exist", buildUninstallJobName(vz.Name))
 	err := r.Get(context.TODO(), types.NamespacedName{Name: buildUninstallJobName(vz.Name), Namespace: vz.Namespace}, jobFound)
 	if err != nil && errors.IsNotFound(err) {
-		log.Infof("Creating uninstall job %s", buildUninstallJobName(vz.Name))
+		log.Infof("Creating uninstall job %s, dry-run=%v", buildUninstallJobName(vz.Name), r.DryRun)
 		err = r.Create(context.TODO(), job)
 		if err != nil {
 			return err
@@ -509,7 +506,7 @@ func (r *VerrazzanoReconciler) setUninstallCondition(log *zap.SugaredLogger, job
 }
 
 // saveInstallSpec Saves the install spec in a configmap to use with upgrade/updates later on
-func (r *VerrazzanoReconciler) saveVerrazzanoSpec(ctx context.Context, vz *installv1alpha1.Verrazzano) (err error) {
+func (r *VerrazzanoReconciler) saveVerrazzanoSpec(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (err error) {
 	installSpecBytes, err := yaml.Marshal(vz.Spec)
 	if err == nil {
 		installSpec := base64.StdEncoding.EncodeToString(installSpecBytes)
@@ -542,7 +539,7 @@ func (r *VerrazzanoReconciler) saveVerrazzanoSpec(ctx context.Context, vz *insta
 			}
 			err = r.Create(ctx, installConfig)
 			if err != nil {
-				r.Log.Errorf("Unable to create installer config map %s: %v", configMapName, err)
+				log.Errorf("Unable to create installer config map %s: %v", configMapName, err)
 				return err
 			}
 		}

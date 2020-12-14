@@ -16,10 +16,9 @@ import (
 	"os"
 	"time"
 
-	v1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	adminv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
@@ -29,9 +28,9 @@ const (
 
 // SetupCertificates creates the needed certificates for the validating webhook
 func SetupCertificates(certDir string) (*bytes.Buffer, error) {
-	commonName := fmt.Sprintf("%s.%s.svc", operatorName, operatorNamespace)
 	var caPEM, serverCertPEM, serverPrivKeyPEM *bytes.Buffer
 
+	commonName := fmt.Sprintf("%s.%s.svc", operatorName, operatorNamespace)
 	serialNumber, err := newSerialNumber()
 	if err != nil {
 		return nil, err
@@ -160,25 +159,15 @@ func writeFile(filepath string, pem *bytes.Buffer) error {
 }
 
 // UpdateValidatingnWebhookConfiguration sets the CABundle
-func UpdateValidatingnWebhookConfiguration(caCert *bytes.Buffer) error {
-	config, err := ctrl.GetConfig()
-	if err != nil {
-		return err
-	}
-
-	kubeClient, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return err
-	}
-
-	var validatingWebhook *v1beta1.ValidatingWebhookConfiguration
-	validatingWebhook, err = kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(context.TODO(), operatorName, metav1.GetOptions{})
+func UpdateValidatingnWebhookConfiguration(kubeClient *kubernetes.Clientset, caCert *bytes.Buffer) error {
+	var validatingWebhook *adminv1beta1.ValidatingWebhookConfiguration
+	validatingWebhook, err := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(context.TODO(), operatorName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
 	validatingWebhook.Webhooks[0].ClientConfig.CABundle = caCert.Bytes()
-	kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
+	_, err = kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}

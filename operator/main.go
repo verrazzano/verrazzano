@@ -7,21 +7,20 @@ import (
 	"flag"
 	"os"
 
-	"github.com/verrazzano/verrazzano/operator/internal/certificates"
-
-	batchv1 "k8s.io/api/batch/v1"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/controllers"
+	"github.com/verrazzano/verrazzano/operator/internal/certificates"
 	"github.com/verrazzano/verrazzano/operator/internal/util/log"
 	"go.uber.org/zap"
+	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -56,8 +55,6 @@ func main() {
 	kzap.UseFlagOptions(&opts)
 	log.InitLogs(opts)
 
-	ctrl.SetLogger(kzap.New(kzap.UseDevMode(true)))
-
 	setupLog := zap.S()
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -76,7 +73,6 @@ func main() {
 	_, dryRun := os.LookupEnv("VZ_DRY_RUN") // If this var is set, the install jobs are no-ops
 	reconciler := controllers.VerrazzanoReconciler{
 		Client: mgr.GetClient(),
-		Log:    zap.S().Named("operator"),
 		Scheme: mgr.GetScheme(),
 		DryRun: dryRun,
 	}
@@ -101,8 +97,20 @@ func main() {
 			os.Exit(1)
 		}
 
+		config, err := ctrl.GetConfig()
+		if err != nil {
+			setupLog.Error(err, "unable to get kubeconfig")
+			os.Exit(1)
+		}
+
+		kubeClient, err := kubernetes.NewForConfig(config)
+		if err != nil {
+			setupLog.Error(err, "unable to get clientset")
+			os.Exit(1)
+		}
+
 		setupLog.Info("Updating webhook configuration")
-		err = certificates.UpdateValidatingnWebhookConfiguration(caCert)
+		err = certificates.UpdateValidatingnWebhookConfiguration(kubeClient, caCert)
 		if err != nil {
 			setupLog.Error(err, "unable to update validation webhook configuration")
 			os.Exit(1)
