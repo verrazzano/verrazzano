@@ -6,7 +6,7 @@
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/verrazzano/verrazzano/operator/apis/verrazzano/v1alpha1"
+	v1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/client/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )

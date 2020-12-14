@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"strconv"
 
-	installv1alpha1 "github.com/verrazzano/verrazzano/operator/apis/verrazzano/v1alpha1"
+	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"

@@ -20,7 +20,7 @@ rm -rf $GENERATED_CLIENT_DIR
 #                  k8s.io/kubernetes. The output-base is needed for the generators to output into the vendor dir
 #                  instead of the $GOPATH directly. For normal projects this can be dropped.
 ${CODEGEN_PKG}/generate-groups.sh "client" \
-  github.com/verrazzano/verrazzano/operator/client github.com/verrazzano/verrazzano/operator/apis \
+  github.com/verrazzano/verrazzano/operator/client github.com/verrazzano/verrazzano/operator/api \
   verrazzano:v1alpha1 \
   --output-base "${GOPATH}/src" \
   --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.go.txt

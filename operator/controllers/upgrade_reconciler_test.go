@@ -12,7 +12,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	vzapi "github.com/verrazzano/verrazzano/operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/internal/util/helm"
 	"github.com/verrazzano/verrazzano/operator/mocks"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
