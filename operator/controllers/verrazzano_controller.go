@@ -540,21 +540,21 @@ func (r *VerrazzanoReconciler) saveVerrazzanoSpec(ctx context.Context, log *zap.
 }
 
 // getSavedInstallSpec Returns the saved Verrazzano resource Spec field from the internal ConfigMap, or an error if it can't be restored
-func (r *VerrazzanoReconciler) getSavedInstallSpec(ctx context.Context, vz *installv1alpha1.Verrazzano) (*installv1alpha1.VerrazzanoSpec, error) {
+func (r *VerrazzanoReconciler) getSavedInstallSpec(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (*installv1alpha1.VerrazzanoSpec, error) {
 	configMap, err := r.getInternalConfigMap(ctx, vz)
 	if err != nil {
-		r.Log.Warnf("No saved configuration found for install spec for %s", vz.Name)
+		log.Warnf("No saved configuration found for install spec for %s", vz.Name)
 		return nil, err
 	}
 	storedSpec := &installv1alpha1.VerrazzanoSpec{}
 	if specData, ok := configMap.Data[configDataKey]; ok {
 		decodeBytes, err := base64.StdEncoding.DecodeString(specData)
 		if err != nil {
-			r.Log.Errorf("Error decoding saved install spec for %s", vz.Name)
+			log.Errorf("Error decoding saved install spec for %s", vz.Name)
 			return nil, err
 		}
 		if err := yaml.Unmarshal(decodeBytes, storedSpec); err != nil {
-			r.Log.Errorf("Error unmarshalling saved install spec for %s", vz.Name)
+			log.Errorf("Error unmarshalling saved install spec for %s", vz.Name)
 			return nil, err
 		}
 	}

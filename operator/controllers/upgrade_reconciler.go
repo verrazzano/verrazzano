@@ -22,7 +22,7 @@ const failedUpgradeLimit = 2
 func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 
 	// Validate that only the version field in the Spec changed
-	err := r.isValidUpgradeRequest(cr)
+	err := r.isValidUpgradeRequest(log, cr)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -105,13 +105,13 @@ func upgradeFailureCount(st installv1alpha1.VerrazzanoStatus) int {
 }
 
 // isValidUpgradeRequest Returns true if the current Spec field of the Verrazzano resource does not match what was saved in the internal ConfigMap
-func (r *VerrazzanoReconciler) isValidUpgradeRequest(cr *installv1alpha1.Verrazzano) error {
+func (r *VerrazzanoReconciler) isValidUpgradeRequest(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) error {
 	// Validate the requested version
 	if err := validateVersion(cr.Spec.Version); err != nil {
 		return fmt.Errorf("Version field for %s is not valid: %s", cr.Name, cr.Spec.Version)
 	}
 	// Look up the saved install spec for this resource
-	storedSpec, err := r.getSavedInstallSpec(context.TODO(), cr)
+	storedSpec, err := r.getSavedInstallSpec(context.TODO(), log, cr)
 	if err != nil {
 		return err
 	}
