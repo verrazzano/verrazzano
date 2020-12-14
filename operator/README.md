@@ -86,6 +86,11 @@ kubectl logs -f $(kubectl get pod -l job-name=verrazzano-uninstall-my-verrazzano
     make manifests
     ```
 
+* To generate code (e.g. zz_generated.deepcopy.go)
+    ```
+    make generate
+    ```
+
 * To do all the source code checks, such as fmt, lint, etc
     ```
     make check
