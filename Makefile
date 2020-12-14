@@ -51,12 +51,12 @@ run:
 
 # Install CRDs into a cluster
 .PHONY: install-crds
-install-crds: manifests
+install-crds:
 	kustomize build operator/config/crd | kubectl apply -f -
 
 # Uninstall CRDs from a cluster
 .PHONY: uninstall-crds
-uninstall-crds: manifests
+uninstall-crds:
 	kustomize build operator/config/crd | kubectl delete -f -
 
 .PHONY: check
@@ -154,7 +154,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build: go-mod manifests generate
+docker-build: go-mod
 	docker build --pull -f operator/Dockerfile \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
