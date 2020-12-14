@@ -7,7 +7,7 @@ import (
 	"flag"
 	"os"
 
-	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
+	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/controllers"
 	"github.com/verrazzano/verrazzano/operator/internal/certificates"
 	"github.com/verrazzano/verrazzano/operator/internal/util/log"

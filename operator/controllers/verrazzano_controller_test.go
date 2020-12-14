@@ -11,7 +11,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	vzapi "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/internal"
 	"github.com/verrazzano/verrazzano/operator/internal/installjob"
 	"github.com/verrazzano/verrazzano/operator/mocks"
@@ -1470,7 +1470,7 @@ func TestCreateInternalConfigMapReturnsError(t *testing.T) {
 		Get(gomock.Any(), client.ObjectKey{Name: buildInternalConfigMapName(name), Namespace: namespace}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name client.ObjectKey, configMap *corev1.ConfigMap) error {
 			return errors.NewNotFound(schema.GroupResource{
-				Group:    vzapi.GroupVersion.Group,
+				Group:    vzapi.SchemeGroupVersion.Group,
 				Resource: "configmap",
 			}, "configmap")
 		})
@@ -1578,7 +1578,7 @@ func setupInstallInternalConfigMapExpectations(mock *mocks.MockClient, name stri
 		Get(gomock.Any(), client.ObjectKey{Name: buildInternalConfigMapName(name), Namespace: namespace}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name client.ObjectKey, configMap *corev1.ConfigMap) error {
 			return errors.NewNotFound(schema.GroupResource{
-				Group:    vzapi.GroupVersion.Group,
+				Group:    vzapi.SchemeGroupVersion.Group,
 				Resource: "configmap",
 			}, "configmap")
 		})

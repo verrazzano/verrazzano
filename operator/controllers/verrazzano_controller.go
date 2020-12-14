@@ -11,7 +11,7 @@ import (
 	"os"
 	"time"
 
-	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
+	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/internal"
 	"github.com/verrazzano/verrazzano/operator/internal/installjob"
 	"github.com/verrazzano/verrazzano/operator/internal/uninstalljob"
