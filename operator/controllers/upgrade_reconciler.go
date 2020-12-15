@@ -5,13 +5,10 @@ package controllers
 
 import (
 	"context"
-	"errors"
 	"fmt"
-
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/internal/component"
 	"go.uber.org/zap"
-	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -22,18 +19,14 @@ const failedUpgradeLimit = 2
 func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 
 	// Validate that only the version field in the Spec changed
-	err := r.isValidUpgradeRequest(log, cr)
+	err := ValidateVersion(cr.Spec.Version)
+	//err := r.isValidUpgradeRequest(log, cr)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// Upgrade is valid, attempt upgrade
 	targetVersion := cr.Spec.Version
-	//err = validateVersion(targetVersion)
-	//if err != nil {
-	//	log.Error(err, "Invalid upgrade version")
-	//	return ctrl.Result{}, nil
-	//}
 
 	// Only allow upgrade to retry a certain amount of times during any upgrade attempt.
 	if upgradeFailureCount(cr.Status) > failedUpgradeLimit {
@@ -65,11 +58,11 @@ func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl
 	return ctrl.Result{}, err
 }
 
-// Validate the target version
-func validateVersion(version string) error {
-	// todo - do this in webhook and check that version matches chart version
-	return nil
-}
+//// Validate the target version
+//func validateVersion(version string) error {
+//	// todo - do this in webhook and check that version matches chart version
+//	return nil
+//}
 
 // Return true if verrazzano is installed
 func isInstalled(st installv1alpha1.VerrazzanoStatus) bool {
@@ -106,44 +99,10 @@ func upgradeFailureCount(st installv1alpha1.VerrazzanoStatus) int {
 
 // isValidUpgradeRequest Returns true if the current Spec field of the Verrazzano resource does not match what was saved in the internal ConfigMap
 func (r *VerrazzanoReconciler) isValidUpgradeRequest(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) error {
-	// Validate the requested version
-	if err := validateVersion(cr.Spec.Version); err != nil {
-		return fmt.Errorf("Version field for %s is not valid: %s", cr.Name, cr.Spec.Version)
-	}
-	// Look up the saved install spec for this resource
+	//Look up the saved install spec for this resource
 	storedSpec, err := r.getSavedInstallSpec(context.TODO(), log, cr)
 	if err != nil {
 		return err
 	}
-	newSpec := cr.Spec
-	// Verify that the new version request is > than the currently stored version
-	// - new dependency, not sure if we'll be allowed??  Seems to be a standard Google golang license?
-	// - also, not sure if we want their impl, but largely a stake in the ground at this point
-	versionCompareResult, err := compareVersions(storedSpec.Version, newSpec.Version)
-	if err != nil {
-		return err
-	}
-	if versionCompareResult <= 0 {
-		return fmt.Errorf("Requested version %s is not greater than current version %s", newSpec.Version, storedSpec.Version)
-	}
-	// If any other field has changed from the stored spec return false
-	if newSpec.Profile != storedSpec.Profile ||
-		newSpec.EnvironmentName != storedSpec.EnvironmentName ||
-		!reflect.DeepEqual(newSpec.Components, storedSpec.Components) {
-		return errors.New("Configuration updates now allowed during upgrade between Verrazzano versions")
-	}
-	return nil
-}
-
-// compareVersions Compare semantic version strings, returns < 0 if LHS is greater, 0 if identical, and > 1 if RHS greater
-func compareVersions(currentVer string, newVer string) (result int, err error) {
-	var currentVersion, newVersion *SemVersion
-	if currentVersion, err = NewSemVersion(currentVer); err != nil {
-		return 0, err
-	}
-	if newVersion, err = NewSemVersion(currentVer); err != nil {
-		return 0, err
-	}
-	// Placeholder for now
-	return currentVersion.Compare(newVersion), nil
+	return IsValidUpgradeRequest(storedSpec, &cr.Spec)
 }

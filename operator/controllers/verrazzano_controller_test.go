@@ -115,8 +115,6 @@ func TestSuccessfulInstall(t *testing.T) {
 			return nil
 		})
 
-	setupInstallInternalConfigMapExpectations(mock, name, namespace)
-
 	// Expect a call to get the ServiceAccount - return that it exists
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
@@ -179,6 +177,8 @@ func TestSuccessfulInstall(t *testing.T) {
 			asserts.Len(verrazzano.Status.Conditions, 1)
 			return nil
 		})
+
+	setupInstallInternalConfigMapExpectations(mock, name, namespace)
 
 	// Create and make the request
 	request := newRequest(namespace, name)
