@@ -62,8 +62,8 @@ func ValidateVersion(requestedVersion string) error {
 	return nil
 }
 
-// CheckValidateUpgradeRequest Ensure that for the upgrade case only the version field has changed
-func CheckValidateUpgradeRequest(currentSpec *VerrazzanoSpec, newSpec *VerrazzanoSpec) error {
+// ValidateUpgradeRequest Ensures that for the upgrade case only the version field has changed
+func ValidateUpgradeRequest(currentSpec *VerrazzanoSpec, newSpec *VerrazzanoSpec) error {
 	// Short-circuit if the version strings are the same
 	if currentSpec.Version == newSpec.Version {
 		return nil

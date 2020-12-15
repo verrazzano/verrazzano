@@ -97,4 +97,12 @@ func TestCompareTo(t *testing.T) {
 	assert.Equal(t, 1, v020.CompareTo(v011))
 	assert.Equal(t, -1, v020.CompareTo(v100))
 	assert.Equal(t, 1, v100.CompareTo(v020))
+
+	v0_0_9, _ := NewSemVersion("v0.0.9")
+	v0_0_10, _ := NewSemVersion("v0.0.10")
+	assert.Equal(t, 1, v0_0_10.CompareTo(v0_0_9))
+
+	V100, err := NewSemVersion("V1.0.0")
+	assert.Nil(t, err)
+	assert.Equal(t, 0, V100.CompareTo(v100))
 }

@@ -23,7 +23,7 @@ appVersion: 0.7.0
 // TestValidUpgradeRequestNoCurrentVersion Tests the SemVersion parser for valid version strings
 // GIVEN an edit to update a Verrazzano spec to a new version
 // WHEN the new version is valid and the current version is not specified
-// THEN ensure no error is returned from CheckValidateUpgradeRequest
+// THEN ensure no error is returned from ValidateUpgradeRequest
 func TestValidUpgradeRequestNoCurrentVersion(t *testing.T) {
 	chartYaml := validChartYAML
 	readFileFunction = func(string) ([]byte, error) {
@@ -39,13 +39,13 @@ func TestValidUpgradeRequestNoCurrentVersion(t *testing.T) {
 		Version: "v0.7.0",
 		Profile: "dev",
 	}
-	assert.Nil(t, CheckValidateUpgradeRequest(currentSpec, newSpec))
+	assert.Nil(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidUpgradeRequestCurrentVersionExists Tests the SemVersion parser for valid version strings
 // GIVEN an edit to update a Verrazzano spec to a new version
 // WHEN the new version is valid and the current version is less than the current version
-// THEN ensure no error is returned from CheckValidateUpgradeRequest
+// THEN ensure no error is returned from ValidateUpgradeRequest
 func TestValidUpgradeRequestCurrentVersionExists(t *testing.T) {
 	chartYaml := validChartYAML
 	readFileFunction = func(string) ([]byte, error) {
@@ -62,13 +62,13 @@ func TestValidUpgradeRequestCurrentVersionExists(t *testing.T) {
 		Version: "v0.7.0",
 		Profile: "dev",
 	}
-	assert.Nil(t, CheckValidateUpgradeRequest(currentSpec, newSpec))
+	assert.Nil(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidUpgradeRequestCurrentVersionExists Tests the SemVersion parser for valid version strings
 // GIVEN an edit to update a Verrazzano spec to a new version
 // WHEN the new version and the current version are at the latest version
-// THEN ensure no error is returned from CheckValidateUpgradeRequest
+// THEN ensure no error is returned from ValidateUpgradeRequest
 func TestValidUpgradeNotNecessary(t *testing.T) {
 	chartYaml := validChartYAML
 	readFileFunction = func(string) ([]byte, error) {
@@ -85,13 +85,13 @@ func TestValidUpgradeNotNecessary(t *testing.T) {
 		Version: "v0.7.0",
 		Profile: "dev",
 	}
-	assert.Nil(t, CheckValidateUpgradeRequest(currentSpec, newSpec))
+	assert.Nil(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestNoVersionsSpecified Tests the validate passes if no versions are specified in either spec
 // GIVEN an edit to update a Verrazzano spec
 // WHEN the new version and the current version are not specified
-// THEN ensure no error is returned from CheckValidateUpgradeRequest
+// THEN ensure no error is returned from ValidateUpgradeRequest
 func TestNoVersionsSpecified(t *testing.T) {
 	chartYaml := validChartYAML
 	readFileFunction = func(string) ([]byte, error) {
@@ -106,13 +106,13 @@ func TestNoVersionsSpecified(t *testing.T) {
 	newSpec := &VerrazzanoSpec{
 		Profile: "dev",
 	}
-	assert.Nil(t, CheckValidateUpgradeRequest(currentSpec, newSpec))
+	assert.Nil(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidValidVersionWithProfileChange Tests the validate fails if the upgrade version is OK but the profile is changed
 // GIVEN an edit to update a Verrazzano spec to a new version
 // WHEN the new version is valid and the profile field is changed
-// THEN an error is returned from CheckValidateUpgradeRequest
+// THEN an error is returned from ValidateUpgradeRequest
 func TestValidVersionWithProfileChange(t *testing.T) {
 	chartYaml := validChartYAML
 	readFileFunction = func(string) ([]byte, error) {
@@ -128,13 +128,13 @@ func TestValidVersionWithProfileChange(t *testing.T) {
 		Version: "v0.7.0",
 		Profile: "prod",
 	}
-	assert.NotNil(t, CheckValidateUpgradeRequest(currentSpec, newSpec))
+	assert.NotNil(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestProfileChangeOnlyNoVersions Tests the validate fails if no versions specified but the profile is changed
 // GIVEN an edit to update a Verrazzano spec to change a profile value
 // WHEN the no version strings are specified
-// THEN no error is returned from CheckValidateUpgradeRequest
+// THEN no error is returned from ValidateUpgradeRequest
 func TestProfileChangeOnlyNoVersions(t *testing.T) {
 	chartYaml := validChartYAML
 	readFileFunction = func(string) ([]byte, error) {
@@ -149,13 +149,13 @@ func TestProfileChangeOnlyNoVersions(t *testing.T) {
 	newSpec := &VerrazzanoSpec{
 		Profile: "prod",
 	}
-	assert.Nil(t, CheckValidateUpgradeRequest(currentSpec, newSpec))
+	assert.Nil(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidVersionWithEnvNameChange Tests the validate fails if the upgrade version is OK but the EnvironmentName is changed
 // GIVEN an edit to update a Verrazzano spec to a new version
 // WHEN the new version is valid and the EnvironmentName field is changed
-// THEN an error is returned from CheckValidateUpgradeRequest
+// THEN an error is returned from ValidateUpgradeRequest
 func TestValidVersionWithEnvNameChange(t *testing.T) {
 	chartYaml := validChartYAML
 	readFileFunction = func(string) ([]byte, error) {
@@ -172,13 +172,13 @@ func TestValidVersionWithEnvNameChange(t *testing.T) {
 		Profile:         "dev",
 		EnvironmentName: "newEnv",
 	}
-	assert.NotNil(t, CheckValidateUpgradeRequest(currentSpec, newSpec))
+	assert.NotNil(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidVersionWithEnvNameChange Tests the validate fails if the upgrade version is OK but the EnvironmentName is changed
 // GIVEN an edit to update a Verrazzano spec to a new version
 // WHEN the new version is valid and the EnvironmentName field is changed
-// THEN an error is returned from CheckValidateUpgradeRequest
+// THEN an error is returned from ValidateUpgradeRequest
 func TestValidVersionWithCertManagerChange(t *testing.T) {
 	chartYaml := validChartYAML
 	readFileFunction = func(string) ([]byte, error) {
@@ -216,13 +216,13 @@ func TestValidVersionWithCertManagerChange(t *testing.T) {
 			},
 		},
 	}
-	assert.NotNil(t, CheckValidateUpgradeRequest(currentSpec, newSpec))
+	assert.NotNil(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidVersionWithNewDNS Tests the validate fails if the upgrade version is OK but the DNS component is added
 // GIVEN an edit to update a Verrazzano spec to a new version
 // WHEN the new version is valid and the DNS component is added
-// THEN an error is returned from CheckValidateUpgradeRequest
+// THEN an error is returned from ValidateUpgradeRequest
 func TestValidVersionWithNewDNS(t *testing.T) {
 	chartYaml := validChartYAML
 	readFileFunction = func(string) ([]byte, error) {
@@ -268,13 +268,13 @@ func TestValidVersionWithNewDNS(t *testing.T) {
 			},
 		},
 	}
-	assert.NotNil(t, CheckValidateUpgradeRequest(currentSpec, newSpec))
+	assert.NotNil(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidVersionWithIngressChange Tests the validate fails if the upgrade version is OK but the Ingress component is changed
 // GIVEN an edit to update a Verrazzano spec to a new version
 // WHEN the new version is valid and the Ingress component is changed
-// THEN an error is returned from CheckValidateUpgradeRequest
+// THEN an error is returned from ValidateUpgradeRequest
 func TestValidVersionWithIngressChange(t *testing.T) {
 	chartYaml := validChartYAML
 	readFileFunction = func(string) ([]byte, error) {
@@ -333,5 +333,5 @@ func TestValidVersionWithIngressChange(t *testing.T) {
 			},
 		},
 	}
-	assert.NotNil(t, CheckValidateUpgradeRequest(currentSpec, newSpec))
+	assert.NotNil(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
