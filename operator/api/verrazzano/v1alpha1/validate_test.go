@@ -25,18 +25,18 @@ appVersion: 0.7.0
 // THEN ensure no error is returned from ValidateUpgradeRequest
 func TestValidUpgradeRequestNoCurrentVersion(t *testing.T) {
 	chartYaml := validChartYAML
-	readFileFunction = func (string) ([]byte, error) {
+	readFileFunction = func(string) ([]byte, error) {
 		return []byte(chartYaml), nil
 	}
 	defer func() {
 		readFileFunction = ioutil.ReadFile
 	}()
 	currentSpec := &VerrazzanoSpec{
-		Profile:         "dev",
+		Profile: "dev",
 	}
 	newSpec := &VerrazzanoSpec{
-		Version:         "v0.7.0",
-		Profile:         "dev",
+		Version: "v0.7.0",
+		Profile: "dev",
 	}
 	assert.Nil(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
@@ -47,7 +47,7 @@ func TestValidUpgradeRequestNoCurrentVersion(t *testing.T) {
 // THEN ensure no error is returned from ValidateUpgradeRequest
 func TestValidUpgradeRequestCurrentVersionExists(t *testing.T) {
 	chartYaml := validChartYAML
-	readFileFunction = func (string) ([]byte, error) {
+	readFileFunction = func(string) ([]byte, error) {
 		return []byte(chartYaml), nil
 	}
 	defer func() {
@@ -70,7 +70,7 @@ func TestValidUpgradeRequestCurrentVersionExists(t *testing.T) {
 // THEN ensure no error is returned from ValidateUpgradeRequest
 func TestValidUpgradeNotNecessary(t *testing.T) {
 	chartYaml := validChartYAML
-	readFileFunction = func (string) ([]byte, error) {
+	readFileFunction = func(string) ([]byte, error) {
 		return []byte(chartYaml), nil
 	}
 	defer func() {
@@ -87,14 +87,13 @@ func TestValidUpgradeNotNecessary(t *testing.T) {
 	assert.Nil(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
-
 // TestNoVersionsSpecified Tests the SemVersion parser for valid version strings
 // GIVEN an edit to update a Verrazzano spec
 // WHEN the new version and the current version are not specified
 // THEN ensure no error is returned from ValidateUpgradeRequest
 func TestNoVersionsSpecified(t *testing.T) {
 	chartYaml := validChartYAML
-	readFileFunction = func (string) ([]byte, error) {
+	readFileFunction = func(string) ([]byte, error) {
 		return []byte(chartYaml), nil
 	}
 	defer func() {

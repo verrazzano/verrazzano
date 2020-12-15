@@ -10,6 +10,8 @@ import (
 
 const vzRootDir = "VZ_ROOT_DIR"
 
+const checkVersion = "VZ_CHECK_VERSION"
+
 var getEnvFunc func(string) string = os.Getenv
 
 // VzRootDir returns the root directory of the verrazzano files on the docker image.
@@ -34,5 +36,5 @@ func VzChartDir() string {
 
 // IsCheckVersionRequired If true, perform version checks on upgrade
 func IsCheckVersionRequired() bool {
-	return getEnvFunc("VZ_CHECK_VERSION") != "false"
+	return getEnvFunc(checkVersion) != "false"
 }

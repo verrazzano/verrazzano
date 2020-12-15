@@ -13,7 +13,7 @@ import (
 // TestValidSemver Tests the SemVersion parser for valid version strings
 func TestValidSemver(t *testing.T) {
 	testVersions := [][]string{
-		{"0","0","4"},
+		{"0", "0", "4"},
 		{"1", "2", "3"},
 		{"10", "20", "30"},
 		{"1", "1", "2", "prerelease", "meta"},
@@ -22,7 +22,7 @@ func TestValidSemver(t *testing.T) {
 		{"1", "0", "0", "alpha", ""},
 		{"1", "0", "0", "beta", ""},
 		{"1", "0", "0", "alpha.beta", ""},
-		{"1", "0", "0", "alpha-a.b-c-somethinglong","build.1-aef.1-its-okay"},
+		{"1", "0", "0", "alpha-a.b-c-somethinglong", "build.1-aef.1-its-okay"},
 	}
 	for _, verComponents := range testVersions {
 		verString := fmt.Sprintf("v%s.%s.%s", verComponents[0], verComponents[1], verComponents[2])

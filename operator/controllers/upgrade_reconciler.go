@@ -4,7 +4,6 @@
 package controllers
 
 import (
-	"context"
 	"fmt"
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/internal/component"
@@ -19,9 +18,7 @@ const failedUpgradeLimit = 2
 func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 
 	// Validate that only the version field in the Spec changed
-	err := installv1alpha1.ValidateVersion(cr.Spec.Version)
-	//err := r.isValidUpgradeRequest(log, cr)
-	if err != nil {
+	if err := installv1alpha1.ValidateVersion(cr.Spec.Version); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -35,7 +32,6 @@ func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl
 	}
 
 	// Only write the upgrade started message once
-	// TODO: should we move this up before the validation check?  i.e., if the upgrade is already in progress, no need to validate it
 	if !isLastCondition(cr.Status, installv1alpha1.UpgradeStarted) {
 		r.updateStatus(log, cr, fmt.Sprintf("Verrazzano upgrade to version %s in progress", cr.Spec.Version),
 			installv1alpha1.UpgradeStarted)
@@ -59,7 +55,7 @@ func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl
 	}
 	msg := fmt.Sprintf("Verrazzano upgraded to version %s successfully", cr.Spec.Version)
 	cr.Status.Version = targetVersion
-	err = r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete)
+	err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete)
 	return ctrl.Result{}, err
 }
 
@@ -94,14 +90,4 @@ func upgradeFailureCount(st installv1alpha1.VerrazzanoStatus) int {
 		}
 	}
 	return c
-}
-
-// isValidUpgradeRequest Returns true if the current Spec field of the Verrazzano resource does not match what was saved in the internal ConfigMap
-func (r *VerrazzanoReconciler) isValidUpgradeRequest(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) error {
-	//Look up the saved install spec for this resource
-	storedSpec, err := r.getSavedInstallSpec(context.TODO(), log, cr)
-	if err != nil {
-		return err
-	}
-	return installv1alpha1.ValidateUpgradeRequest(storedSpec, &cr.Spec)
 }
