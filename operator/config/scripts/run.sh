@@ -52,7 +52,6 @@ if [ ${MODE} == "NOOP" ]; then
   exit 0
 elif [ ${MODE} == "INSTALL" ]; then
   # Create a kubeconfig and run the installation
-  create-kubeconfig
   ./install/1-install-istio.sh || dump-install-logs 1
   ./install/2-install-system-components.sh || dump-install-logs 1
   ./install/3-install-verrazzano.sh || dump-install-logs 1
@@ -65,5 +64,6 @@ elif [ ${MODE} == "UNINSTALL" ]; then
   dump-uninstall-logs 0
 else
   # Run the operator
+  create-kubeconfig
   /usr/local/bin/verrazzano-platform-operator $*
 fi
