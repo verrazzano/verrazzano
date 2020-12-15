@@ -115,7 +115,7 @@ func SetupCertificates(certDir string) (*bytes.Buffer, error) {
 		Bytes: x509.MarshalPKCS1PrivateKey(serverPrivKey),
 	})
 
-	err = os.MkdirAll(certDir, 0666)
+	err = os.MkdirAll(certDir, 0755)
 	if err != nil {
 		return nil, err
 	}

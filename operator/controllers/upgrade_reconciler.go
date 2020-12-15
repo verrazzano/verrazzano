@@ -19,7 +19,7 @@ const failedUpgradeLimit = 2
 func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 
 	// Validate that only the version field in the Spec changed
-	err := ValidateVersion(cr.Spec.Version)
+	err := installv1alpha1.ValidateVersion(cr.Spec.Version)
 	//err := r.isValidUpgradeRequest(log, cr)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -44,6 +44,11 @@ func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
 	for _, comp := range component.GetComponents() {
+		if r.DryRun {
+			// Eventually, pass this down through Component.Upgrade() and into the helm command
+			log.Info("Dry run enabled, skipping upgrade")
+			break
+		}
 		err := comp.Upgrade(cr.Namespace)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Error upgrading component %s", comp.Name()))
@@ -57,12 +62,6 @@ func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl
 	err = r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete)
 	return ctrl.Result{}, err
 }
-
-//// Validate the target version
-//func validateVersion(version string) error {
-//	// todo - do this in webhook and check that version matches chart version
-//	return nil
-//}
 
 // Return true if verrazzano is installed
 func isInstalled(st installv1alpha1.VerrazzanoStatus) bool {
@@ -104,5 +103,5 @@ func (r *VerrazzanoReconciler) isValidUpgradeRequest(log *zap.SugaredLogger, cr 
 	if err != nil {
 		return err
 	}
-	return IsValidUpgradeRequest(storedSpec, &cr.Spec)
+	return installv1alpha1.ValidateUpgradeRequest(storedSpec, &cr.Spec)
 }

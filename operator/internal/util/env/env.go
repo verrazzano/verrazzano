@@ -31,3 +31,8 @@ func VzChartDir() string {
 	}
 	return "/verrazzano/install/chart"
 }
+
+// IsCheckVersionRequired If true, perform version checks on upgrade
+func IsCheckVersionRequired() bool {
+	return getEnvFunc("VZ_CHECK_VERSION") != "false"
+}

@@ -4,6 +4,7 @@
 package v1alpha1
 
 import (
+	"fmt"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -21,23 +22,36 @@ var _ webhook.Validator = &Verrazzano{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Verrazzano) ValidateCreate() error {
-	zap.S().Info("validate create")
+	log := zap.S().With("source", "webhook", "resource", fmt.Sprintf("%s:%s", r.Namespace, r.Name))
+	log.Info("Validate create")
 
-	// TODO(user): fill in your validation logic upon object creation.
+	if err := ValidateVersion(r.Spec.Version); err != nil {
+		return err
+	}
 	return nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Verrazzano) ValidateUpdate(old runtime.Object) error {
-	zap.S().Info("validate update")
+	log := zap.S().With("source", "webhook", "resource", fmt.Sprintf("%s:%s", r.Namespace, r.Name))
+	log.Info("Validate update")
 
-	// TODO(user): fill in your validation logic upon object update.
+	from := old.(*Verrazzano)
+	log.Infof("from Annotations: %v, Finalizers: %v, Spec: %v", from.Annotations, from.Finalizers, from.Spec)
+	log.Infof("to Annotations: %v, Finalizers: %v, Spec: %v", r.Annotations, r.Finalizers, r.Spec)
+
+	err := ValidateUpgradeRequest(&from.Spec, &r.Spec)
+	if err != nil {
+		log.Error("Invalid upgrade request: %s", err.Error())
+		return err
+	}
 	return nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *Verrazzano) ValidateDelete() error {
-	zap.S().Info("validate delete")
+	log := zap.S().With("source", "webhook", "resource", fmt.Sprintf("%s:%s", r.Namespace, r.Name))
+	log.Info("Validate delete")
 
 	// TODO(user): fill in your validation logic upon object deletion.
 	return nil
