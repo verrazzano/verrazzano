@@ -72,3 +72,29 @@ func TestInValidSemver(t *testing.T) {
 		assert.NotNil(t, err)
 	}
 }
+
+// TestCompareVersion Tests comparisons of version field values
+func TestCompareVersion(t *testing.T) {
+	assert.Equal(t, -1, compareVersion(2, 1))
+	assert.Equal(t, 1, compareVersion(1, 2))
+	assert.Equal(t, 0, compareVersion(2, 2))
+}
+
+// TestCompareTo Tests comparisons between SemVersion instances
+func TestCompareTo(t *testing.T) {
+
+	v010, _ := NewSemVersion("v0.1.0")
+	v010_2, _ := NewSemVersion("v0.1.0")
+	v011, _ := NewSemVersion("v0.1.1")
+
+	v020, _ := NewSemVersion("v0.2.0")
+	v100, _ := NewSemVersion("v1.0.0")
+
+	assert.Equal(t, 0, v010.CompareTo(v010_2))
+	assert.Equal(t, -1, v010.CompareTo(v011))
+	assert.Equal(t, -1, v010.CompareTo(v020))
+	assert.Equal(t, 1, v020.CompareTo(v010))
+	assert.Equal(t, 1, v020.CompareTo(v011))
+	assert.Equal(t, -1, v020.CompareTo(v100))
+	assert.Equal(t, 1, v100.CompareTo(v020))
+}

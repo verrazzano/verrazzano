@@ -12,35 +12,41 @@ import (
 )
 
 // SetupWebhookWithManager is used to let the controller manager know about the webhook
-func (r *Verrazzano) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (newResource *Verrazzano) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+		For(newResource).
 		Complete()
 }
 
 var _ webhook.Validator = &Verrazzano{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Verrazzano) ValidateCreate() error {
-	log := zap.S().With("source", "webhook", "resource", fmt.Sprintf("%s:%s", r.Namespace, r.Name))
+func (newResource *Verrazzano) ValidateCreate() error {
+	log := zap.S().With("source", "webhook", "resource", fmt.Sprintf("%s:%s", newResource.Namespace, newResource.Name))
 	log.Info("Validate create")
 
-	if err := ValidateVersion(r.Spec.Version); err != nil {
+	if err := ValidateVersion(newResource.Spec.Version); err != nil {
 		return err
 	}
 	return nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Verrazzano) ValidateUpdate(old runtime.Object) error {
-	log := zap.S().With("source", "webhook", "resource", fmt.Sprintf("%s:%s", r.Namespace, r.Name))
+func (newResource *Verrazzano) ValidateUpdate(old runtime.Object) error {
+	log := zap.S().With("source", "webhook", "resource", fmt.Sprintf("%s:%s", newResource.Namespace, newResource.Name))
 	log.Info("Validate update")
 
-	from := old.(*Verrazzano)
-	log.Infof("from Annotations: %v, Finalizers: %v, Spec: %v", from.Annotations, from.Finalizers, from.Spec)
-	log.Infof("to Annotations: %v, Finalizers: %v, Spec: %v", r.Annotations, r.Finalizers, r.Spec)
+	oldResource := old.(*Verrazzano)
+	log.Infof("oldResource Annotations: %v, Finalizers: %v, Spec: %v", oldResource.Annotations, oldResource.Finalizers, oldResource.Spec)
+	log.Infof("to Annotations: %v, Finalizers: %v, Spec: %v", newResource.Annotations, newResource.Finalizers, newResource.Spec)
 
-	err := ValidateUpgradeRequest(&from.Spec, &r.Spec)
+	// The profile field is immutable
+	if oldResource.Spec.Profile != newResource.Spec.Profile {
+		return fmt.Errorf("Profile change is not allowed oldResource %s to %s", oldResource.Spec.Profile, newResource.Spec.Profile)
+	}
+
+	// Check to see if the update is an upgrade request, and if it is valid and allowable
+	err := CheckValidateUpgradeRequest(&oldResource.Spec, &newResource.Spec)
 	if err != nil {
 		log.Error("Invalid upgrade request: %s", err.Error())
 		return err
@@ -49,8 +55,8 @@ func (r *Verrazzano) ValidateUpdate(old runtime.Object) error {
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Verrazzano) ValidateDelete() error {
-	log := zap.S().With("source", "webhook", "resource", fmt.Sprintf("%s:%s", r.Namespace, r.Name))
+func (newResource *Verrazzano) ValidateDelete() error {
+	log := zap.S().With("source", "webhook", "resource", fmt.Sprintf("%s:%s", newResource.Namespace, newResource.Name))
 	log.Info("Validate delete")
 
 	// TODO(user): fill in your validation logic upon object deletion.
