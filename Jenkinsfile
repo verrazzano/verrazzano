@@ -65,6 +65,8 @@ pipeline {
         GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
         GITHUB_RELEASE_USERID = credentials('github-userid-release')
         GITHUB_RELEASE_EMAIL = credentials('github-email-release')
+        SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
+
     }
 
     stages {
