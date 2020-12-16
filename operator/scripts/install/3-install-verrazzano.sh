@@ -171,10 +171,10 @@ function install_verrazzano()
       --set config.envName=${ENV_NAME} \
       --set config.dnsSuffix=${DNS_SUFFIX} \
       --set config.enableMonitoringStorage=true \
-      --set clusterOperator.rancherURL=https://${RANCHER_HOSTNAME} \
-      --set clusterOperator.rancherUserName="${token_array[0]}" \
-      --set clusterOperator.rancherPassword="${token_array[1]}" \
-      --set clusterOperator.rancherHostname=${RANCHER_HOSTNAME} \
+      --set rancher.rancherURL=https://${RANCHER_HOSTNAME} \
+      --set rancher.rancherUserName="${token_array[0]}" \
+      --set rancher.rancherPassword="${token_array[1]}" \
+      --set rancher.rancherHostname=${RANCHER_HOSTNAME} \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)" \
       ${PROFILE_VALUES_OVERRIDE} \
       ${EXTRA_V8O_ARGUMENTS} || return $?
