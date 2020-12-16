@@ -179,8 +179,8 @@ pipeline {
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                     cobertura(coberturaReportFile: 'coverage.xml',
                       enableNewApi: true,
-                      autoUpdateHealth: true,
-                      autoUpdateStability: true,
+                      autoUpdateHealth: false,
+                      autoUpdateStability: false,
                       failUnstable: true,
                       failUnhealthy: true,
                       failNoReports: true,
