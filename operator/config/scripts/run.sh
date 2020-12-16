@@ -65,5 +65,6 @@ elif [ ${MODE} == "UNINSTALL" ]; then
   dump-uninstall-logs 0
 else
   # Run the operator
+    create-kubeconfig
   /usr/local/bin/verrazzano-platform-operator $*
 fi
