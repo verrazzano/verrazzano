@@ -11,8 +11,6 @@ import (
 )
 
 const validChartYAML = `
-# Copyright (c) 2020, Oracle and/or its affiliates.
-# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: v1
 description: A Helm chart for Verrazzano
 name: verrazzano
@@ -39,7 +37,7 @@ func TestValidUpgradeRequestNoCurrentVersion(t *testing.T) {
 		Version: "v0.7.0",
 		Profile: "dev",
 	}
-	assert.Nil(t, ValidateUpgradeRequest(currentSpec, newSpec))
+	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidUpgradeRequestCurrentVersionExists Tests the SemVersion parser for valid version strings
@@ -62,7 +60,7 @@ func TestValidUpgradeRequestCurrentVersionExists(t *testing.T) {
 		Version: "v0.7.0",
 		Profile: "dev",
 	}
-	assert.Nil(t, ValidateUpgradeRequest(currentSpec, newSpec))
+	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidUpgradeRequestCurrentVersionExists Tests the SemVersion parser for valid version strings
@@ -85,7 +83,7 @@ func TestValidUpgradeNotNecessary(t *testing.T) {
 		Version: "v0.7.0",
 		Profile: "dev",
 	}
-	assert.Nil(t, ValidateUpgradeRequest(currentSpec, newSpec))
+	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestNoVersionsSpecified Tests the validate passes if no versions are specified in either spec
@@ -106,7 +104,7 @@ func TestNoVersionsSpecified(t *testing.T) {
 	newSpec := &VerrazzanoSpec{
 		Profile: "dev",
 	}
-	assert.Nil(t, ValidateUpgradeRequest(currentSpec, newSpec))
+	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidValidVersionWithProfileChange Tests the validate fails if the upgrade version is OK but the profile is changed
@@ -128,7 +126,7 @@ func TestValidVersionWithProfileChange(t *testing.T) {
 		Version: "v0.7.0",
 		Profile: "prod",
 	}
-	assert.NotNil(t, ValidateUpgradeRequest(currentSpec, newSpec))
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestProfileChangeOnlyNoVersions Tests the validate fails if no versions specified but the profile is changed
@@ -149,7 +147,7 @@ func TestProfileChangeOnlyNoVersions(t *testing.T) {
 	newSpec := &VerrazzanoSpec{
 		Profile: "prod",
 	}
-	assert.Nil(t, ValidateUpgradeRequest(currentSpec, newSpec))
+	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidVersionWithEnvNameChange Tests the validate fails if the upgrade version is OK but the EnvironmentName is changed
@@ -172,7 +170,7 @@ func TestValidVersionWithEnvNameChange(t *testing.T) {
 		Profile:         "dev",
 		EnvironmentName: "newEnv",
 	}
-	assert.NotNil(t, ValidateUpgradeRequest(currentSpec, newSpec))
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidVersionWithEnvNameChange Tests the validate fails if the upgrade version is OK but the EnvironmentName is changed
@@ -216,7 +214,7 @@ func TestValidVersionWithCertManagerChange(t *testing.T) {
 			},
 		},
 	}
-	assert.NotNil(t, ValidateUpgradeRequest(currentSpec, newSpec))
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidVersionWithNewDNS Tests the validate fails if the upgrade version is OK but the DNS component is added
@@ -268,7 +266,7 @@ func TestValidVersionWithNewDNS(t *testing.T) {
 			},
 		},
 	}
-	assert.NotNil(t, ValidateUpgradeRequest(currentSpec, newSpec))
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
 // TestValidVersionWithIngressChange Tests the validate fails if the upgrade version is OK but the Ingress component is changed
@@ -333,5 +331,5 @@ func TestValidVersionWithIngressChange(t *testing.T) {
 			},
 		},
 	}
-	assert.NotNil(t, ValidateUpgradeRequest(currentSpec, newSpec))
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }

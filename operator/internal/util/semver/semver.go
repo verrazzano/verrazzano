@@ -9,7 +9,6 @@ import (
 	"go.uber.org/zap"
 	"regexp"
 	"strconv"
-	"sync"
 )
 
 const semverRegex = "^[v|V](0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
@@ -24,30 +23,30 @@ type SemVersion struct {
 	VersionString string
 }
 
-var _regex *regexp.Regexp = nil
-var _initRegEx sync.Mutex
+var compiledRegEx *regexp.Regexp = nil
 
-func getRegex() *regexp.Regexp {
-	if _regex != nil {
-		return _regex
+func getRegex() (*regexp.Regexp, error) {
+	if compiledRegEx != nil {
+		return compiledRegEx, nil
 	}
-	_initRegEx.Lock()
-	defer _initRegEx.Unlock()
 	var err error
-	_regex, err = regexp.Compile(semverRegex)
+	compiledRegEx, err = regexp.Compile(semverRegex)
 	if err != nil {
-		panic(fmt.Sprintf("Error compiling semver regex: %v", err))
+		return nil, err
 	}
-	return _regex
+	return compiledRegEx, nil
 }
 
 // NewSemVersion Create an instance of a SemVersion
 func NewSemVersion(version string) (*SemVersion, error) {
 	if len(version) == 0 {
-		return nil, errors.New("SemVersion string can not be empty")
+		return nil, errors.New("SemVersion string cannot be empty")
 	}
 
-	regex := getRegex()
+	regex, err := getRegex()
+	if err != nil {
+		return nil, err
+	}
 
 	allMatches := regex.FindAllStringSubmatch(version, -1)
 	zap.S().Debugf("allMatches: %v", allMatches)

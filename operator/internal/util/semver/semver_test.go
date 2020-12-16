@@ -36,7 +36,7 @@ func TestValidSemver(t *testing.T) {
 		}
 
 		version, err := NewSemVersion(verString)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.NotNil(t, version)
 		assert.Equal(t, verString, version.VersionString)
 		expectedMajor, _ := strconv.ParseInt(verComponents[0], 10, 64)
@@ -69,7 +69,7 @@ func TestInValidSemver(t *testing.T) {
 	}
 	for _, verString := range invalidVersions {
 		_, err := NewSemVersion(verString)
-		assert.NotNil(t, err)
+		assert.Error(t, err)
 	}
 }
 
@@ -103,6 +103,6 @@ func TestCompareTo(t *testing.T) {
 	assert.Equal(t, 1, v0_0_10.CompareTo(v0_0_9))
 
 	V100, err := NewSemVersion("V1.0.0")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 0, V100.CompareTo(v100))
 }

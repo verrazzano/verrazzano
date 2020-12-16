@@ -10,8 +10,6 @@ import (
 )
 
 const webhookTestValidChartYAML = `
-# Copyright (c) 2020, Oracle and/or its affiliates.
-# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: v1
 description: A Helm chart for Verrazzano
 name: verrazzano
@@ -34,7 +32,7 @@ func TestCreateCallbackSuccessWithVersion(t *testing.T) {
 			Profile: "dev",
 		},
 	}
-	assert.Nil(t, currentSpec.ValidateCreate())
+	assert.NoError(t, currentSpec.ValidateCreate())
 }
 
 // TestCreateCallbackSuccessWithoutVersion Tests the create callback with no spec version
@@ -51,7 +49,7 @@ func TestCreateCallbackSuccessWithoutVersion(t *testing.T) {
 			Profile: "dev",
 		},
 	}
-	assert.Nil(t, currentSpec.ValidateCreate())
+	assert.NoError(t, currentSpec.ValidateCreate())
 }
 
 // TestCreateCallbackFailsWithInvalidVersion Tests the create callback with invalid spec version
@@ -69,7 +67,7 @@ func TestCreateCallbackFailsWithInvalidVersion(t *testing.T) {
 			Profile: "dev",
 		},
 	}
-	assert.NotNil(t, currentSpec.ValidateCreate())
+	assert.Error(t, currentSpec.ValidateCreate())
 }
 
 // TestUpdateCallbackSuccessWithNewVersion Tests the create callback with valid spec version
@@ -92,7 +90,7 @@ func TestUpdateCallbackSuccessWithNewVersion(t *testing.T) {
 			Profile: "dev",
 		},
 	}
-	assert.Nil(t, newSpec.ValidateUpdate(oldSpec))
+	assert.NoError(t, newSpec.ValidateUpdate(oldSpec))
 }
 
 // TestUpdateCallbackSuccessWithNewVersion Tests the create callback with valid spec versions in both
@@ -116,7 +114,7 @@ func TestUpdateCallbackSuccessWithOldAndNewVersion(t *testing.T) {
 			Profile: "dev",
 		},
 	}
-	assert.Nil(t, newSpec.ValidateUpdate(oldSpec))
+	assert.NoError(t, newSpec.ValidateUpdate(oldSpec))
 }
 
 // TestUpdateCallbackFailsWithOldGreaterThanNewVersion Tests the create callback with old version > new
@@ -140,7 +138,7 @@ func TestUpdateCallbackFailsWithOldGreaterThanNewVersion(t *testing.T) {
 			Profile: "dev",
 		},
 	}
-	assert.NotNil(t, newSpec.ValidateUpdate(oldSpec))
+	assert.Error(t, newSpec.ValidateUpdate(oldSpec))
 }
 
 // TestUpdateCallbackFailsWithInvalidNewVersion Tests the create callback with invalid new version
@@ -163,7 +161,7 @@ func TestUpdateCallbackFailsWithInvalidNewVersion(t *testing.T) {
 			Profile: "dev",
 		},
 	}
-	assert.NotNil(t, newSpec.ValidateUpdate(oldSpec))
+	assert.Error(t, newSpec.ValidateUpdate(oldSpec))
 }
 
 // TestUpdateCallbackFailsChangeProfile Tests the create callback with a changed profile
@@ -185,7 +183,7 @@ func TestUpdateCallbackFailsChangeProfile(t *testing.T) {
 			Profile: "prod",
 		},
 	}
-	assert.NotNil(t, newSpec.ValidateUpdate(oldSpec))
+	assert.Error(t, newSpec.ValidateUpdate(oldSpec))
 }
 
 // TestDeleteCallbackSuccess Tests the create callback with valid spec version
@@ -196,5 +194,5 @@ func TestDeleteCallbackSuccess(t *testing.T) {
 			Profile: "dev",
 		},
 	}
-	assert.Nil(t, oldSpec.ValidateDelete())
+	assert.NoError(t, oldSpec.ValidateDelete())
 }
