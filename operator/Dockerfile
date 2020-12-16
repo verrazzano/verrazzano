@@ -37,8 +37,13 @@ RUN GO111MODULE=on go build \
 # Create the verrazzano-platform-operator image
 FROM ghcr.io/oracle/oraclelinux:7-slim@sha256:fcc6f54bb01fc83319990bf5fa1b79f1dec93cbb87db3c5a8884a5a44148e7bb
 
+# Install specific versions of device-mapper, device-mapper-libs and dracut as a temporary workaround
+# by default yum tries to install a version that is non-existent on the OEL 7 yum mirrors
 RUN yum update -y \
     && yum-config-manager --enable ol7_optional_latest \
+    && yum install -y device-mapper-1.02.170-6.0.3.el7.x86_64 \
+    && yum install -y device-mapper-libs-1.02.170-6.0.3.el7.x86_64 \
+    && yum install -y dracut-033-572.0.1.el7.x86_64 \
     && yum-config-manager --enable ol7_addons \
     && yum install -y oracle-golang-release-el7 \
     && yum-config-manager --enable ol7_developer_golang113 \
