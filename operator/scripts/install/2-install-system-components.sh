@@ -261,6 +261,88 @@ function install_rancher()
     kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
 }
 
+function set_rancher_server_url
+{
+    local rancher_server_url="https://${RANCHER_HOSTNAME}"
+    echo "Get Rancher admin password."
+    rancher_admin_password=$(kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password})
+    if [ $? -ne 0 ]; then
+      echo "Failed to get Rancher admin password. Continuing without setting Rancher server URL."
+      return 0
+    fi
+    rancher_admin_password=$(echo ${rancher_admin_password} | base64 --decode)
+    if [ $? -ne 0 ]; then
+      echo "Failed to decode Rancher admin password. Continuing without setting Rancher server URL."
+      return 0
+    fi
+    echo "Get Rancher access token."
+    get_rancher_access_token "${RANCHER_HOSTNAME}" "${rancher_admin_password}"
+    if [ $? -ne 0 ] ; then
+      echo "Failed to get Rancher access token. Continuing without setting Rancher server URL."
+      return 0
+    fi
+
+    if [ -z "${RANCHER_ACCESS_TOKEN}" ]; then
+      echo "Failed to get valid Rancher access token. Continuing without setting Rancher server URL."
+      return 0
+    fi
+    echo "Set Rancher server URL to ${rancher_server_url}"
+    curl_args=("${rancher_server_url}/v3/settings/server-url" $(get_rancher_resolve ${RANCHER_HOSTNAME}) \
+          -H 'content-type: application/json' \
+          -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" \
+          -X PUT \
+          --data-binary '{"name":"server-url","value":"'${rancher_server_url}'"}' \
+          --insecure)
+    call_curl 200 http_response http_status curl_args || true
+    if [ ${http_status:--1} -ne 200 ]; then
+      echo "Failed to set Rancher server URL. Continuing without setting Rancher server URL."
+      return 0
+    else
+      echo "Successfully set Rancher server URL."
+    fi
+}
+
+function wait_for_rancher_agent_to_exist {
+    retries=0
+    until kubectl -n cattle-system get deploy | grep cattle-cluster-agent; do
+      retries=$(($retries+1))
+      sleep 2
+      if [ "$retries" -ge 30 ] ; then
+        break
+      fi
+    done
+}
+
+function patch_rancher_agents() {
+    local rancher_in_cluster_host=$(get_rancher_in_cluster_host ${RANCHER_HOSTNAME})
+
+    if [ ${RANCHER_HOSTNAME} != ${rancher_in_cluster_host} ]; then
+        local patch_data='{"spec":{"template":{"spec":{"hostAliases":[{"hostnames":["'"${RANCHER_HOSTNAME}"'"],"ip":"'"${rancher_in_cluster_host}"'"}]}}}}'
+
+        wait_for_rancher_agent_to_exist
+
+        # only when cattle-cluster-agent is deployed
+        kubectl -n cattle-system get deploy/cattle-cluster-agent
+        if [ $? -eq 0 ]; then
+            echo "cattle-cluster-agent is deployed.  Continue with patching cattle-cluster-agent."
+            kubectl -n cattle-system patch deployments cattle-cluster-agent --patch ${patch_data}
+        else
+            echo "cattle-cluster-agent is not deployed.  Skip patching."
+        fi
+
+        # only when cattle-node-agent is deployed
+        kubectl -n cattle-system get daemonset/cattle-node-agent
+        if [ $? -eq 0 ]; then
+            echo "cattle-node-agent is deployed.  Continue with patching cattle-node-agent."
+            kubectl -n cattle-system patch daemonsets cattle-node-agent --patch ${patch_data}
+        else
+            echo "cattle-node-agent is not deployed.  Skip patching."
+        fi
+    else
+        echo "Rancher host is the same from inside and outside the cluster.  No need to patch agents."
+    fi
+}
+
 OCI_DNS_CONFIG_SECRET=$(get_config_value ".dns.oci.ociConfigSecret")
 NAME=$(get_config_value ".environmentName")
 DNS_TYPE=$(get_config_value ".dns.type")
@@ -274,6 +356,10 @@ INGRESS_IP=$(get_verrazzano_ingress_ip)
 # DNS_SUFFIX is only used by install_rancher
 DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
+RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
+
 action "Installing cert manager" install_cert_manager || exit 1
 action "Installing external DNS" install_external_dns || exit 1
 action "Installing Rancher" install_rancher || exit 1
+action "Setting Rancher Server URL" set_rancher_server_url || true
+action "Patching Rancher Agents" patch_rancher_agents || true
