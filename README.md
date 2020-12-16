@@ -1,5 +1,5 @@
 # Verrazzano
-> **NOTE**: This is an early alpha release of Verrazzano. It is suitable for investigation and education usage. It is not suitable for production use.
+> **NOTE**: This is a developer preview release of Verrazzano. It is intended for installation in a single cluster on Oracle Cloud Infrastructure Container Engine for Kubernetes (OKE) or Oracle Linux Cloud Native Environment (OLCNE). You should install Verrazzano only in a cluster that can be safely deleted when your evaluation is complete.
 
 ## Introduction
 Verrazzano is an end-to-end Enterprise Container Platform for deploying cloud-native and traditional applications in multi-cloud and hybrid environments. It is made up of a curated set of open source components – many that you may already use and trust, and some that were written specifically to pull together all of the pieces to make this a cohesive and easy to use platform.

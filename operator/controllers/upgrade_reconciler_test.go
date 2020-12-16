@@ -6,18 +6,18 @@ package controllers
 import (
 	"context"
 	"errors"
-	"github.com/verrazzano/verrazzano/operator/internal/util/helm"
 	"os/exec"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	vzapi "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/operator/internal/util/helm"
 	"github.com/verrazzano/verrazzano/operator/mocks"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // goodRunner is used to test helm success without actually running an OS exec command

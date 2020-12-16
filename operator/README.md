@@ -23,9 +23,11 @@ export DOCKER_NAMESPACE=<namespace for image>
 make docker-push
 
 # Create the verrrazzano-platform-operator deployment yaml file.
-# Replace <verrazzano-image> with the verrazzano-platform-operator image you created with 'make docker-push'.
-cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|<verrazzano-image>|g" > /tmp/operator.yaml
-cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> /tmp/operator.yaml
+# Define the VZ_DEV_IMAGE env variable and call the create-test-deploy target
+# - Replace <verrazzano-image> with the verrazzano-platform-operator image you created with 'make docker-push'
+# - creates a valid deployment yaml file in /tmp/operator.yaml
+export VZ_DEV_IMAGE=<verrazzano-image>
+make create-test-deploy
 
 # Deploy the verrazzano-platform-operator
 kubectl apply -f /tmp/operator.yaml
@@ -39,10 +41,10 @@ kubectl apply -f config/samples/install-default.yaml
 # NOTE:  If you chose to deploy a cluster that makes use of OCI DNS perform the following instead of the xip.io
 # cluster deployment command:
 
-# generate a secret named "oci-config" based on the OCI configuration profile you wish to leverage.  You
+# generate a secret named "oci" based on the OCI configuration profile you wish to leverage.  You
 # can specify a profile other than DEFAULT and a different secret name if you wish.  See instruction by executing
-# ./install/create_oci_config_secret.sh
-./install/create_oci_config_secret.sh
+# ./scripts/install/create_oci_config_secret.sh
+./scripts/install/create_oci_config_secret.sh
 
 # copy the config/samples/install-oci.yaml file
 cp config/samples/install-oci.yaml /tmp
@@ -82,6 +84,11 @@ kubectl logs -f $(kubectl get pod -l job-name=verrazzano-uninstall-my-verrazzano
 * To generate manifests (e.g. deploy/operator.yaml, CRD, RBAC etc.)
     ```
     make manifests
+    ```
+
+* To generate code (e.g. zz_generated.deepcopy.go)
+    ```
+    make generate
     ```
 
 * To do all the source code checks, such as fmt, lint, etc

@@ -75,22 +75,14 @@ function setup_cert_manager_crd() {
 
 function setup_cluster_issuer() {
   if [ "$CERT_ISSUER_TYPE" == "acme" ]; then
-    local OCI_PRIVATE_KEY_PASSPHRASE=$(get_config_value ".dns.oci.privateKeyPassphrase")
-    local OCI_REGION=$(get_config_value ".dns.oci.region")
-    local OCI_TENANCY_OCID=$(get_config_value ".dns.oci.tenancyOcid")
-    local OCI_USER_OCID=$(get_config_value ".dns.oci.userOcid")
-    local OCI_COMPARTMENT_OCID=$(get_config_value ".dns.oci.dnsZoneCompartmentOcid")
-    local OCI_FINGERPRINT=$(get_config_value ".dns.oci.fingerprint")
-    local OCI_PRIVATE_KEY_FILE=$(get_config_value ".dns.oci.privateKeyFile")
+    local OCI_DNS_CONFIG_SECRET=$(get_config_value ".dns.oci.ociConfigSecret")
     local EMAIL_ADDRESS=$(get_config_value ".certificates.acme.emailAddress")
     local OCI_DNS_ZONE_OCID=$(get_config_value ".dns.oci.dnsZoneOcid")
     local OCI_DNS_ZONE_NAME=$(get_config_value ".dns.oci.dnsZoneName")
 
-    [ ! -f $OCI_PRIVATE_KEY_FILE ] && { fail $OCI_PRIVATE_KEY_FILE does not exist; }
-
-    source /dev/stdin <<<"$(echo 'cat <<EOF >$TMP_DIR/oci.yaml'; cat $SCRIPT_DIR/config/oci.yaml; echo EOF;)"
-
-    kubectl create secret generic -n cert-manager $OCI_DNS_CONFIG_SECRET --from-file=$TMP_DIR/oci.yaml
+    if ! kubectl get secret $OCI_DNS_CONFIG_SECRET ; then
+        fail "The OCI Configuration Secret $OCI_DNS_CONFIG_SECRET does not exist"
+    fi
 
     kubectl apply -f <(echo "
 apiVersion: cert-manager.io/v1alpha2
@@ -169,6 +161,17 @@ function install_cert_manager()
 function install_external_dns()
 {
   if [ "$DNS_TYPE" == "oci" ]; then
+    if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n cert-manager ; then
+      # secret does not exist, so copy the configured oci config secret from default namespace.
+      # Operator has already checked for existence of secret in default namespace
+      # The DNS zone compartment will get appended to secret generated for cert external dns
+      local dns_compartment=$(get_config_value ".dns.oci.dnsZoneCompartmentOcid")
+      kubectl get secret ${OCI_DNS_CONFIG_SECRET} -o go-template='{{range $k,$v := .data}}{{if not $v}}{{$v}}{{else}}{{$v | base64decode}}{{end}}{{"\n"}}{{end}}' \
+          | sed '/^$/d' > $TMP_DIR/oci.yaml
+      echo "compartment: $dns_compartment" >> $TMP_DIR/oci.yaml
+      kubectl create secret generic $OCI_DNS_CONFIG_SECRET --from-file=$TMP_DIR/oci.yaml -n cert-manager
+    fi
+
     helm upgrade external-dns stable/external-dns \
         --install \
         --namespace cert-manager \
@@ -258,7 +261,7 @@ function install_rancher()
     kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
 }
 
-OCI_DNS_CONFIG_SECRET="verrazzano-oci-dns-config"
+OCI_DNS_CONFIG_SECRET=$(get_config_value ".dns.oci.ociConfigSecret")
 NAME=$(get_config_value ".environmentName")
 DNS_TYPE=$(get_config_value ".dns.type")
 CERT_ISSUER_TYPE=$(get_config_value ".certificates.issuerType")

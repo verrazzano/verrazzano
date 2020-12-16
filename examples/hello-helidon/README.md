@@ -6,25 +6,10 @@ For more information and the code of this application, see the [Verrazzano examp
 
 ## Deploy the example application
 
-1. Prerequisites: Install Verrazzano following the [installation instructions](../../install/README.md).
+1. Prerequisites: Install Verrazzano following the [installation instructions](../../README.md).
    The Hello World Helidon example application model and binding files are contained in the Verrazzano project located at `<VERRAZZANO_HOME>/examples/hello-helidon`, where `VERRAZZANO_HOME` is the root of the Verrazzano project.
 
    **NOTE:** All paths in this document are relative to `<VERRAZZANO_HOME>/examples/hello-helidon`.
-
-1. Create a `docker-registry` secret to enable pulling images from the Oracle Container
-   Registry.  This is needed to pull `hello-helidon` example images.  Note that you
-   may have already created this secret when installing Verrazzano.
-
-   ```
-   kubectl create secret docker-registry ocr \
-           --docker-server=container-registry.oracle.com \
-           --docker-username=YOUR_USERNAME \
-           --docker-password=YOUR_PASSWORD \
-           --docker-email=YOUR_EMAIL
-   ```
-
-    Replace `YOUR_USERNAME`, `YOUR_PASSWORD` and `YOUR_EMAIL` with the values that you
-   use to access the Oracle Container Registry.
 
 1. Deploy the Verrazzano Application Model and Verrazzano Application Binding for the example application.
 

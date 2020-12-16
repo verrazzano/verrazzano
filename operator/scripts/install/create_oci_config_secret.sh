@@ -57,18 +57,18 @@ function usage {
     exit 1
 }
 
-OUTPUT_FILE=$TMP_DIR/oci-config.yaml
+OUTPUT_FILE=$TMP_DIR/oci.yaml
 
 OCI_CONFIG_FILE=~/.oci/config
 SECTION=DEFAULT
-KUBE_KEY_NAME=oci-config
+OCI_CONFIG_SECRET_NAME=oci
 
 while getopts o:s:h flag
 do
     case "${flag}" in
         o) OCI_CONFIG_FILE=${OPTARG};;
         s) SECTION=${OPTARG};;
-        k) KUBE_KEY_NAME=${OPTARG};;
+        k) OCI_CONFIG_SECRET_NAME=${OPTARG};;
         h) usage;;
         *) usage;;
     esac
@@ -78,7 +78,7 @@ SECTION_PROPS=$(read_config $OCI_CONFIG_FILE $SECTION *)
 eval $SECTION_PROPS
 
 #create the yaml file
-echo "privateKeyAuth:" > $OUTPUT_FILE
+echo "auth:" > $OUTPUT_FILE
 echo "  region: $region" >> $OUTPUT_FILE
 echo "  tenancy: $tenancy" >> $OUTPUT_FILE
 echo "  user: $user" >> $OUTPUT_FILE
@@ -92,13 +92,13 @@ fi
 # create the secret in default namespace
 create_secret=true
 
-kubectl get secret $KUBE_KEY_NAME -n default > /dev/null 2>&1
+kubectl get secret $OCI_CONFIG_SECRET_NAME -n default > /dev/null 2>&1
 if [ $? -eq 0 ]; then
   # secret exists
-  echo "Secret $KUBE_KEY_NAME already exists.  Please delete then try again."
+  echo "Secret $OCI_CONFIG_SECRET_NAME already exists.  Please delete then try again."
   exit 1
 fi
-kubectl create secret generic $KUBE_KEY_NAME --from-file=$OUTPUT_FILE
+kubectl create secret generic $OCI_CONFIG_SECRET_NAME --from-file=$OUTPUT_FILE
 
 
 
