@@ -5,7 +5,6 @@ package controllers
 
 import (
 	"fmt"
-
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/internal/component"
 	"go.uber.org/zap"
@@ -17,12 +16,14 @@ const failedUpgradeLimit = 2
 
 // Reconcile upgrade will upgrade the components as required
 func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
-	targetVersion := cr.Spec.Version
-	err := validateVersion(targetVersion)
-	if err != nil {
-		log.Error(err, "Invalid upgrade version")
-		return ctrl.Result{}, nil
+
+	// Validate that only the version field in the Spec changed
+	if err := installv1alpha1.ValidateVersion(cr.Spec.Version); err != nil {
+		return ctrl.Result{}, err
 	}
+
+	// Upgrade is valid, attempt upgrade
+	targetVersion := cr.Spec.Version
 
 	// Only allow upgrade to retry a certain amount of times during any upgrade attempt.
 	if upgradeFailureCount(cr.Status) > failedUpgradeLimit {
@@ -39,6 +40,11 @@ func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
 	for _, comp := range component.GetComponents() {
+		if r.DryRun {
+			// Eventually, pass this down through Component.Upgrade() and into the helm command
+			log.Info("Dry run enabled, skipping upgrade")
+			break
+		}
 		err := comp.Upgrade(cr.Namespace)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Error upgrading component %s", comp.Name()))
@@ -49,14 +55,8 @@ func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl
 	}
 	msg := fmt.Sprintf("Verrazzano upgraded to version %s successfully", cr.Spec.Version)
 	cr.Status.Version = targetVersion
-	err = r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete)
+	err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete)
 	return ctrl.Result{}, err
-}
-
-// Validate the target version
-func validateVersion(version string) error {
-	// todo - do this in webhook and check that version matches chart version
-	return nil
 }
 
 // Return true if verrazzano is installed

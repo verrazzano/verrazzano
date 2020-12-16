@@ -24,12 +24,10 @@ const installMode = "INSTALL"
 // NewJob returns a job resource for installing Verrazzano
 func NewJob(jobConfig *JobConfig) *batchv1.Job {
 	var backOffLimit int32 = 0
+	var annotations map[string]string = nil
 	mode := installMode
 	if jobConfig.DryRun {
 		mode = internal.NoOpMode
-	}
-	var annotations map[string]string = nil
-	if jobConfig.DryRun {
 		annotations = make(map[string]string, 1)
 		annotations[internal.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
 	}
