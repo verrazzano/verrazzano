@@ -34,7 +34,6 @@ import (
 // VerrazzanoReconciler reconciles a Verrazzano object
 type VerrazzanoReconciler struct {
 	client.Client
-	Log        *zap.SugaredLogger
 	Scheme     *runtime.Scheme
 	Controller controller.Controller
 	DryRun     bool
@@ -111,6 +110,13 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		return reconcile.Result{}, err
 	}
 
+	// if an OCI DNS installation, make sure the secret required exists before proceeding
+	if vz.Spec.Components.DNS.OCI != (installv1alpha1.OCI{}) {
+		err := r.doesOCIDNSConfigSecretExist(vz)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	}
 	err := r.createConfigMap(ctx, log, vz)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -121,11 +127,21 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	}
 
 	// Create/update a configmap from spec for future comparison on update/upgrade
-	if err := r.saveVerrazzanoSpec(ctx, vz); err != nil {
+	if err := r.saveVerrazzanoSpec(ctx, log, vz); err != nil {
 		return reconcile.Result{}, err
 	}
 
 	return ctrl.Result{}, err
+}
+
+func (r *VerrazzanoReconciler) doesOCIDNSConfigSecretExist(vz *installv1alpha1.Verrazzano) error {
+	// ensure the secret exists before proceeding
+	secret := &corev1.Secret{}
+	err := r.Get(context.TODO(), types.NamespacedName{Name: vz.Spec.Components.DNS.OCI.OCIConfigSecret, Namespace: "default"}, secret)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // createServiceAccount creates a required service account
@@ -193,15 +209,9 @@ func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log *zap.Sug
 	configMapFound := &corev1.ConfigMap{}
 	log.Infof("Checking if install ConfigMap %s exist", configMap.Name)
 
-	var dnsAuth *installjob.DNSAuth
 	err = r.Get(ctx, types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}, configMapFound)
 	if err != nil && errors.IsNotFound(err) {
-		// Convert to json and insert into the configmap.
-		dnsAuth, err = getDNSAuth(r, vz.Spec.Components.DNS, vz.Namespace)
-		if err != nil {
-			return err
-		}
-		config, err := installjob.GetInstallConfig(vz, dnsAuth)
+		config, err := installjob.GetInstallConfig(vz)
 		if err != nil {
 			return err
 		}
@@ -209,11 +219,7 @@ func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log *zap.Sug
 		if err != nil {
 			return err
 		}
-		if dnsAuth != nil {
-			configMap.Data = map[string]string{"config.json": string(jsonEncoding), installv1alpha1.OciPrivateKeyFileName: dnsAuth.PrivateKeyAuth.Key}
-		} else {
-			configMap.Data = map[string]string{"config.json": string(jsonEncoding)}
-		}
+		configMap.Data = map[string]string{"config.json": string(jsonEncoding)}
 
 		log.Infof("Creating install ConfigMap %s", configMap.Name)
 		err = r.Create(ctx, configMap)
@@ -230,7 +236,6 @@ func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log *zap.Sug
 // createInstallJob creates the installation job
 func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, configMapName string) error {
 	// Define a new install job resource
-	r.Log.Infof("Creating install job for %s, dry-run=%v", vz.Name, r.DryRun)
 	job := installjob.NewJob(
 		&installjob.JobConfig{
 			JobConfigCommon: internal.JobConfigCommon{
@@ -254,7 +259,7 @@ func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log *zap.Su
 	log.Infof("Checking if install job %s exist", buildInstallJobName(vz.Name))
 	err := r.Get(ctx, types.NamespacedName{Name: buildInstallJobName(vz.Name), Namespace: vz.Namespace}, jobFound)
 	if err != nil && errors.IsNotFound(err) {
-		log.Infof("Creating install job %s", buildInstallJobName(vz.Name))
+		log.Infof("Creating install job %s, dry-run=%v", buildInstallJobName(vz.Name), r.DryRun)
 		err = r.Create(ctx, job)
 		if err != nil {
 			return err
@@ -282,24 +287,6 @@ func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log *zap.Su
 	err = r.setInstallCondition(log, jobFound, vz)
 
 	return err
-}
-
-func getDNSAuth(r *VerrazzanoReconciler, dns installv1alpha1.DNSComponent, namespace string) (*installjob.DNSAuth, error) {
-	if dns.OCI != (installv1alpha1.OCI{}) {
-		secret := &corev1.Secret{}
-		err := r.Get(context.TODO(), types.NamespacedName{Name: dns.OCI.OCIConfigSecret, Namespace: namespace}, secret)
-		if err != nil {
-			return nil, err
-		}
-		dnsAuth := installjob.DNSAuth{}
-
-		err = yaml.Unmarshal(secret.Data[installv1alpha1.OciConfigSecretFile], &dnsAuth)
-		if err != nil {
-			return nil, err
-		}
-		return &dnsAuth, nil
-	}
-	return nil, nil
 }
 
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found
@@ -332,7 +319,6 @@ func (r *VerrazzanoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *VerrazzanoReconciler) createUninstallJob(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Define a new uninstall job resource
-	r.Log.Infof("Creating uninstall job for %s, dry-run=%v", vz.Name, r.DryRun)
 	job := uninstalljob.NewJob(
 		&uninstalljob.JobConfig{
 			JobConfigCommon: internal.JobConfigCommon{
@@ -356,7 +342,7 @@ func (r *VerrazzanoReconciler) createUninstallJob(log *zap.SugaredLogger, vz *in
 	log.Infof("Checking if uninstall job %s exist", buildUninstallJobName(vz.Name))
 	err := r.Get(context.TODO(), types.NamespacedName{Name: buildUninstallJobName(vz.Name), Namespace: vz.Namespace}, jobFound)
 	if err != nil && errors.IsNotFound(err) {
-		log.Infof("Creating uninstall job %s", buildUninstallJobName(vz.Name))
+		log.Infof("Creating uninstall job %s, dry-run=%v", buildUninstallJobName(vz.Name), r.DryRun)
 		err = r.Create(context.TODO(), job)
 		if err != nil {
 			return err
@@ -509,45 +495,70 @@ func (r *VerrazzanoReconciler) setUninstallCondition(log *zap.SugaredLogger, job
 }
 
 // saveInstallSpec Saves the install spec in a configmap to use with upgrade/updates later on
-func (r *VerrazzanoReconciler) saveVerrazzanoSpec(ctx context.Context, vz *installv1alpha1.Verrazzano) (err error) {
+func (r *VerrazzanoReconciler) saveVerrazzanoSpec(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (err error) {
 	installSpecBytes, err := yaml.Marshal(vz.Spec)
-	if err == nil {
-		installSpec := base64.StdEncoding.EncodeToString(installSpecBytes)
-		var installConfig *corev1.ConfigMap
-		installConfig, err = r.getInternalConfigMap(ctx, vz)
-		if err == nil {
-			// Update the configmap if the data has changed
-			currentConfigData := installConfig.Data[configDataKey]
-			if currentConfigData != installSpec {
-				installConfig.Data[configDataKey] = installSpec
-				return r.Update(ctx, installConfig)
-			}
-		} else if errors.IsNotFound(err) {
-			configMapName := buildInternalConfigMapName(vz.Name)
-			configData := make(map[string]string)
-			configData[configDataKey] = installSpec
-			// Create the configmap and set the owner reference to the VZ installer resource for garbage collection
-			installConfig = &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      configMapName,
-					Namespace: vz.Namespace,
-					OwnerReferences: []metav1.OwnerReference{{
-						APIVersion: vz.APIVersion,
-						Kind:       vz.Kind,
-						Name:       vz.Name,
-						UID:        vz.UID,
-					}},
-				},
-				Data: configData,
-			}
-			err = r.Create(ctx, installConfig)
-			if err != nil {
-				r.Log.Errorf("Unable to create installer config map %s: %v", configMapName, err)
-				return err
-			}
+	if err != nil {
+		return err
+	}
+	installSpec := base64.StdEncoding.EncodeToString(installSpecBytes)
+	installConfig, err := r.getInternalConfigMap(ctx, vz)
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		}
+		configMapName := buildInternalConfigMapName(vz.Name)
+		configData := make(map[string]string)
+		configData[configDataKey] = installSpec
+		// Create the configmap and set the owner reference to the VZ installer resource for garbage collection
+		installConfig = &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      configMapName,
+				Namespace: vz.Namespace,
+				OwnerReferences: []metav1.OwnerReference{{
+					APIVersion: vz.APIVersion,
+					Kind:       vz.Kind,
+					Name:       vz.Name,
+					UID:        vz.UID,
+				}},
+			},
+			Data: configData,
+		}
+		err := r.Create(ctx, installConfig)
+		if err != nil {
+			log.Errorf("Unable to create installer config map %s: %v", configMapName, err)
+			return err
+		}
+	} else {
+		// Update the configmap if the data has changed
+		currentConfigData := installConfig.Data[configDataKey]
+		if currentConfigData != installSpec {
+			installConfig.Data[configDataKey] = installSpec
+			return r.Update(ctx, installConfig)
 		}
 	}
-	return err
+	return nil
+}
+
+// getSavedInstallSpec Returns the saved Verrazzano resource Spec field from the internal ConfigMap, or an error if it can't be restored
+func (r *VerrazzanoReconciler) getSavedInstallSpec(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (*installv1alpha1.VerrazzanoSpec, error) {
+	configMap, err := r.getInternalConfigMap(ctx, vz)
+	if err != nil {
+		log.Warnf("No saved configuration found for install spec for %s", vz.Name)
+		return nil, err
+	}
+	storedSpec := &installv1alpha1.VerrazzanoSpec{}
+	if specData, ok := configMap.Data[configDataKey]; ok {
+		decodeBytes, err := base64.StdEncoding.DecodeString(specData)
+		if err != nil {
+			log.Errorf("Error decoding saved install spec for %s", vz.Name)
+			return nil, err
+		}
+		if err := yaml.Unmarshal(decodeBytes, storedSpec); err != nil {
+			log.Errorf("Error unmarshalling saved install spec for %s", vz.Name)
+			return nil, err
+		}
+	}
+	return storedSpec, nil
 }
 
 // getInternalConfigMap Convenience method for getting the saved install ConfigMap

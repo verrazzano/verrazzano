@@ -45,18 +45,69 @@ spec:
       containers:
         - name: verrazzano-platform-operator
           imagePullPolicy: IfNotPresent
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.7.0-20201214160508-d6e0363
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.7.0-20201216004235-793f1f8
+          ports:
+            - containerPort: 9443
+              name: webhook
+              protocol: TCP
           args:
             - --zap-log-level=info
           env:
             - name: MODE
               value: RUN_OPERATOR
             - name: VZ_INSTALL_IMAGE
-              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.7.0-20201214160508-d6e0363
+              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.7.0-20201216004235-793f1f8
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
           resources:
             requests:
               memory: 72Mi
+      volumes:
+        - name: webhook-certs
+          emptyDir: {}
       serviceAccountName: verrazzano-platform-operator
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: verrazzano-platform-operator
+  namespace: verrazzano-install
+  labels:
+    app: verrazzano-platform-operator
+spec:
+  ports:
+    - name: webhook
+      port: 443
+      targetPort: 9443
+  selector:
+    app: verrazzano-platform-operator
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: verrazzano-platform-operator
+  labels:
+    app: verrazzano-platform-operator
+webhooks:
+  - name: install.verrazzano.io
+    clientConfig:
+      service:
+        name: verrazzano-platform-operator
+        namespace: verrazzano-install
+        path: /validate-install-verrazzano-io-v1alpha1-verrazzano
+    rules:
+      - apiGroups:
+          - install.verrazzano.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - verrazzanos
+    sideEffects: None
+    failurePolicy: Fail
 # Copyright (c) 2020, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 

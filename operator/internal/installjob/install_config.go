@@ -125,18 +125,13 @@ type OCIConfigAuth struct {
 
 // DNSAuth provides the authentication structures for external DNS
 type DNSAuth struct {
-	PrivateKeyAuth OCIConfigAuth `yaml:"privateKeyAuth"`
+	PrivateKeyAuth OCIConfigAuth `yaml:"auth"`
 }
 
 // DNSOCI configuration
 type DNSOCI struct {
-	Region                 string `json:"region"`
-	TenancyOcid            string `json:"tenancyOcid"`
-	UserOcid               string `json:"userOcid"`
+	OCIConfigSecret        string `json:"ociConfigSecret"`
 	DNSZoneCompartmentOcid string `json:"dnsZoneCompartmentOcid"`
-	Fingerprint            string `json:"fingerprint"`
-	PrivateKeyFile         string `json:"privateKeyFile"`
-	PrivateKeyPassphrase   string `json:"privateKeyPassphrase,omitempty"`
 	DNSZoneOcid            string `json:"dnsZoneOcid"`
 	DNSZoneName            string `json:"dnsZoneName"`
 }
@@ -170,32 +165,27 @@ type InstallConfiguration struct {
 
 // GetInstallConfig returns an install configuration in the json format required by the
 // bash installer scripts.
-func GetInstallConfig(vz *installv1alpha1.Verrazzano, auth *DNSAuth) (*InstallConfiguration, error) {
+func GetInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
 	if vz.Spec.Components.DNS.External != (installv1alpha1.External{}) {
 		return newExternalDNSInstallConfig(vz), nil
 	}
 
 	if vz.Spec.Components.DNS.OCI != (installv1alpha1.OCI{}) {
-		return newOCIDNSInstallConfig(vz, auth)
+		return newOCIDNSInstallConfig(vz)
 	}
 
 	return newXipIoInstallConfig(vz), nil
 }
 
-func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, auth *DNSAuth) (*InstallConfiguration, error) {
+func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
 	return &InstallConfiguration{
 		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
 		DNS: DNS{
 			Type: DNSTypeOci,
 			Oci: &DNSOCI{
-				Region:                 auth.PrivateKeyAuth.Region,
-				TenancyOcid:            auth.PrivateKeyAuth.Tenancy,
-				UserOcid:               auth.PrivateKeyAuth.User,
+				OCIConfigSecret:        vz.Spec.Components.DNS.OCI.OCIConfigSecret,
 				DNSZoneCompartmentOcid: vz.Spec.Components.DNS.OCI.DNSZoneCompartmentOCID,
-				Fingerprint:            auth.PrivateKeyAuth.Fingerprint,
-				PrivateKeyFile:         installv1alpha1.OciPrivateKeyFilePath,
-				PrivateKeyPassphrase:   auth.PrivateKeyAuth.Passphrase,
 				DNSZoneOcid:            vz.Spec.Components.DNS.OCI.DNSZoneOCID,
 				DNSZoneName:            vz.Spec.Components.DNS.OCI.DNSZoneName,
 			},

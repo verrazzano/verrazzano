@@ -4,7 +4,7 @@
 def DOCKER_IMAGE_TAG
 def availableRegions = [ "us-ashburn-1", "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
                           "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
-                          "sa-saopaulo-1", "uk-london-1", "us-phoenix-1", "us-sanjose-1" ]
+                          "sa-saopaulo-1", "uk-london-1", "us-phoenix-1" ]
 Collections.shuffle(availableRegions)
 
 pipeline {
@@ -65,6 +65,8 @@ pipeline {
         GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
         GITHUB_RELEASE_USERID = credentials('github-userid-release')
         GITHUB_RELEASE_EMAIL = credentials('github-email-release')
+        SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
+
     }
 
     stages {
@@ -179,16 +181,15 @@ pipeline {
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                     cobertura(coberturaReportFile: 'coverage.xml',
                       enableNewApi: true,
-                      autoUpdateHealth: true,
-                      autoUpdateStability: true,
+                      autoUpdateHealth: false,
+                      autoUpdateStability: false,
                       failUnstable: true,
                       failUnhealthy: true,
                       failNoReports: true,
                       onlyStable: false,
-                      conditionalCoverageTargets: '80, 0, 0',
-                      fileCoverageTargets: '80, 0, 0',
-                      lineCoverageTargets: '80, 0, 0',
-                      packageCoverageTargets: '80, 0, 0',
+                      fileCoverageTargets: '100, 0, 0',
+                      lineCoverageTargets: '85, 85, 85',
+                      packageCoverageTargets: '100, 0, 0',
                     )
                 }
             }

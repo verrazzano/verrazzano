@@ -34,6 +34,7 @@ To install Verrazzano:
 ```
     export KUBECONFIG=~/.kube/config
     kubectl apply -f operator/deploy/operator.yaml
+    kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
     kubectl apply -f operator/config/samples/install-default.yaml
     kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
 ```

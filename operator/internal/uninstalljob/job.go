@@ -22,12 +22,10 @@ const uninstallMode = "UNINSTALL"
 // NewJob returns a job resource for uninstalling Verrazzano
 func NewJob(jobConfig *JobConfig) *batchv1.Job {
 	var backOffLimit int32 = 0
+	var annotations map[string]string = nil
 	mode := uninstallMode
 	if jobConfig.DryRun {
 		mode = internal.NoOpMode
-	}
-	var annotations map[string]string = nil
-	if jobConfig.DryRun {
 		annotations = make(map[string]string, 1)
 		annotations[internal.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
 	}
