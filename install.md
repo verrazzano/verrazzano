@@ -39,6 +39,7 @@ The following software must be installed on your system.
 
 ```
     kubectl apply -f operator/deploy/operator.yaml
+    kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
 ```
 
 ### 2. Do the install
