@@ -32,6 +32,10 @@ spec:
             requests:
               memory: {{ .Values.verrazzanoOperator.RequestMemory }}
           env:
+            - name: rancherURL
+              value: {{ .Values.rancher.rancherURL }}
+            - name: rancherHost
+              value: {{ .Values.rancher.rancherHostname }}
             - name: USE_SYSTEM_VMI
               value: {{ .Values.appBinding.useSystemVMI | quote }}
             - name: COH_MICRO_IMAGE
