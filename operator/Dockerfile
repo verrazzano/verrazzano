@@ -32,7 +32,10 @@ RUN GO111MODULE=on go build \
     -ldflags "-X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}" \
     -o /usr/bin/verrazzano-platform-operator operator/main.go
 
-RUN chmod 500 /usr/bin/verrazzano-platform-operator
+RUN chmod 500 /usr/bin/verrazzano-platform-operator \
+    && chmod +x operator/scripts/install/*.sh \
+    && chmod +x operator/scripts/uninstall/*.sh \
+    && chmod +x operator/scripts/uninstall/uninstall-steps/*.sh
 
 # Create the verrazzano-platform-operator image
 FROM ghcr.io/oracle/oraclelinux:7-slim@sha256:fcc6f54bb01fc83319990bf5fa1b79f1dec93cbb87db3c5a8884a5a44148e7bb
