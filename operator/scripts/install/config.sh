@@ -158,8 +158,7 @@ function validate_config_json {
 function get_verrazzano_ingress_ip {
   local ingress_type=$(get_config_value ".ingress.type")
   if [ ${ingress_type} == "NodePort" ]; then
-    # on MAC and Windows, container IP is not accessible.  Port forwarding is required.
-    # ingress_ip=$(kubectl -n ingress-nginx get pods --selector app=nginx-ingress,component=controller -o jsonpath='{.items[0].status.hostIP}')
+    # on MAC and Windows, container IP is not accessible.  Port forwarding from 127.0.0.1 to container IP is needed.
     ingress_ip="127.0.0.1"
   elif [ ${ingress_type} == "LoadBalancer" ]; then
     # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
@@ -175,9 +174,8 @@ function get_verrazzano_ingress_ip {
 function get_application_ingress_ip {
   local ingress_type=$(get_config_value ".ingress.type")
   if [ ${ingress_type} == "NodePort" ]; then
-    # on MAC and Windows, container IP is not accessible.  Port forwarding is required.
-    # ingress_ip=$(kubectl -n istio-system get pods --selector app=istio-ingressgateway,istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}')
-    ingress_ip="127.0.0.1"
+    # on MAC and Windows, container IP is not accessible.  Port forwarding is needed, https://jira.oraclecorp.com/jira/browse/VZ-1902
+    ingress_ip=$(kubectl -n istio-system get pods --selector app=istio-ingressgateway,istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}')
   elif [ ${ingress_type} == "LoadBalancer" ]; then
     # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
     ingress_ip=$(kubectl get svc istio-ingressgateway -n istio-system -o json | jq -r '.status.loadBalancer.ingress[0].ip')
@@ -202,20 +200,10 @@ function get_dns_suffix {
   echo ${dns_suffix}
 }
 
-function get_verrazzano_ingress_https_port {
-  local ingress_type=$(get_config_value ".ingress.type")
-  if [ ${ingress_type} == "NodePort" ]; then
-    https_port=$(kubectl -n ingress-nginx get service ingress-controller-nginx-ingress-controller -o json | jq '.spec.ports[] | select(.port == 443) | .nodePort')
-  elif [ ${ingress_type} == "LoadBalancer" ]; then
-    https_port=443
-  fi
-  echo ${https_port}
-}
-
 function get_application_ingress_http_port {
   local ingress_type=$(get_config_value ".ingress.type")
   if [ ${ingress_type} == "NodePort" ]; then
-    http_port=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq '.spec.ports[] | select(.port == 80) | .nodePort')
+    http_port=$(kubectl get service -n istio-system istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}')
   elif [ ${ingress_type} == "LoadBalancer" ]; then
     http_port=80
   fi
@@ -225,7 +213,7 @@ function get_application_ingress_http_port {
 function get_application_ingress_https_port {
   local ingress_type=$(get_config_value ".ingress.type")
   if [ ${ingress_type} == "NodePort" ]; then
-    https_port=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq '.spec.ports[] | select(.port == 443) | .nodePort')
+    https_port=$(kubectl get service -n istio-system istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}')
   elif [ ${ingress_type} == "LoadBalancer" ]; then
     https_port=443
   fi
@@ -289,7 +277,7 @@ function get_acme_environment() {
 
 # rancher needs to be accessed by the scripts running in-cluster
 # in case of NodePort, 127.0.0.1 is not accessible
-# --resolve 127.0.0.1:nginx_container_ip
+# --resolve rancher.my-env.127.0.0.1.xip.io:443:nginx_container_ip
 function get_rancher_resolve() {
   local rancher_hostname=$1
   local rancher_in_cluster_host=$(get_rancher_in_cluster_host ${rancher_hostname})
@@ -328,7 +316,6 @@ validate_config_json "$CONFIG_JSON" || fail "Installation config is invalid"
 #log "got nginx ingress ip $(get_verrazzano_ingress_ip)"
 #log "got nginx suffix $(get_dns_suffix $(get_verrazzano_ingress_ip))"
 #log "got istio ingress ip $(get_application_ingress_ip)"
-#log "got nginx https $(get_verrazzano_ingress_https_port)"
 #log "got istio http $(get_application_ingress_http_port)"
 #log "got istio https $(get_application_ingress_https_port)"
 #log "got verrazzano ports spec $(get_verrazzano_ports_spec)"
