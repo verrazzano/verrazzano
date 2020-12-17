@@ -174,7 +174,7 @@ function get_verrazzano_ingress_ip {
 function get_application_ingress_ip {
   local ingress_type=$(get_config_value ".ingress.type")
   if [ ${ingress_type} == "NodePort" ]; then
-    # on MAC and Windows, container IP is not accessible.  Port forwarding is needed, VZ-1902.
+    # on MAC and Windows, container IP is not accessible.  Port forwarding will be needed.
     ingress_ip=$(kubectl -n istio-system get pods --selector app=istio-ingressgateway,istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}')
   elif [ ${ingress_type} == "LoadBalancer" ]; then
     # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
