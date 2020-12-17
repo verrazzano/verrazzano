@@ -39,12 +39,22 @@ func TestVzChartDir(t *testing.T) {
 	assert.Equal("/testdir/operator/scripts/install/chart", VzChartDir(), "The chart directory is incorrect")
 }
 
-func TestIsCheckVersionRequired(t *testing.T) {
+func TestIsCheckVersionDisabled(t *testing.T) {
 	defer func() { getEnvFunc = os.Getenv }()
 	getEnvFunc = func(string) string { return "false" }
-	assert.False(t, IsCheckVersionRequired())
+	assert.False(t, IsCheckVersionDisabled())
 	getEnvFunc = func(string) string { return "" }
-	assert.True(t, IsCheckVersionRequired())
+	assert.False(t, IsCheckVersionDisabled())
 	getEnvFunc = func(string) string { return "true" }
-	assert.True(t, IsCheckVersionRequired())
+	assert.True(t, IsCheckVersionDisabled())
+}
+
+func TestIsValidationDisabled(t *testing.T) {
+	defer func() { getEnvFunc = os.Getenv }()
+	getEnvFunc = func(string) string { return "false" }
+	assert.False(t, IsValidationDisabled())
+	getEnvFunc = func(string) string { return "" }
+	assert.False(t, IsValidationDisabled())
+	getEnvFunc = func(string) string { return "true" }
+	assert.True(t, IsValidationDisabled())
 }

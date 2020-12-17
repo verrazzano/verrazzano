@@ -5,7 +5,9 @@ package v1alpha1
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/operator/internal/util/env"
 	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -54,6 +56,18 @@ func TestCreateCallbackSuccessWithoutVersion(t *testing.T) {
 
 // TestCreateCallbackFailsWithInvalidVersion Tests the create callback with invalid spec version
 func TestCreateCallbackFailsWithInvalidVersion(t *testing.T) {
+	assert.Error(t, runCreateCallbackWithInvalidVersion(t))
+}
+
+// TestCreateCallbackWithInvalidVersionValidationDisabled Tests the create callback with invalid spec version passes with validation disabled
+func TestCreateCallbackWithInvalidVersionValidationDisabled(t *testing.T) {
+	os.Setenv(env.DisableWebHookValidation, "true")
+	defer os.Unsetenv(env.DisableWebHookValidation)
+	assert.NoError(t, runCreateCallbackWithInvalidVersion(t))
+}
+
+// runCreateCallbackWithInvalidVersion Shared test impl for cases with/without validation enbabled
+func runCreateCallbackWithInvalidVersion(t *testing.T) error {
 	chartYaml := webhookTestValidChartYAML
 	readFileFunction = func(string) ([]byte, error) {
 		return []byte(chartYaml), nil
@@ -67,7 +81,8 @@ func TestCreateCallbackFailsWithInvalidVersion(t *testing.T) {
 			Profile: "dev",
 		},
 	}
-	assert.Error(t, currentSpec.ValidateCreate())
+	err := currentSpec.ValidateCreate()
+	return err
 }
 
 // TestUpdateCallbackSuccessWithNewVersion Tests the create callback with valid spec version
@@ -143,6 +158,18 @@ func TestUpdateCallbackFailsWithOldGreaterThanNewVersion(t *testing.T) {
 
 // TestUpdateCallbackFailsWithInvalidNewVersion Tests the create callback with invalid new version
 func TestUpdateCallbackFailsWithInvalidNewVersion(t *testing.T) {
+	assert.Error(t, runUpdateWithInvalidVersionTest(t))
+}
+
+// TestUpdateCallbackFailsWithInvalidNewVersion Tests the create callback with invalid new version fails
+func TestUpdateCallbackWithInvalidNewVersionValidationDisabled(t *testing.T) {
+	os.Setenv(env.DisableWebHookValidation, "true")
+	defer os.Unsetenv(env.DisableWebHookValidation)
+	assert.NoError(t, runUpdateWithInvalidVersionTest(t))
+}
+
+// runUpdateWithInvalidVersionTest Shared test logic for update with invalid version
+func runUpdateWithInvalidVersionTest(t *testing.T) error {
 	chartYaml := webhookTestValidChartYAML
 	readFileFunction = func(string) ([]byte, error) {
 		return []byte(chartYaml), nil
@@ -161,11 +188,23 @@ func TestUpdateCallbackFailsWithInvalidNewVersion(t *testing.T) {
 			Profile: "dev",
 		},
 	}
-	assert.Error(t, newSpec.ValidateUpdate(oldSpec))
+	return newSpec.ValidateUpdate(oldSpec)
 }
 
 // TestUpdateCallbackFailsChangeProfile Tests the create callback with a changed profile
 func TestUpdateCallbackFailsChangeProfile(t *testing.T) {
+	assert.Error(t, runUpdateCallbackChangedProfileTest())
+}
+
+// TestUpdateCallbackChangeProfileValidationDisabled Tests the create callback with a changed profile passes with validation disabled
+func TestUpdateCallbackChangeProfileValidationDisabled(t *testing.T) {
+	os.Setenv(env.DisableWebHookValidation, "true")
+	defer os.Unsetenv(env.DisableWebHookValidation)
+	assert.NoError(t, runUpdateCallbackChangedProfileTest())
+}
+
+// runUpdateCallbackChangedProfileTest Shared test logic for update with changed profile
+func runUpdateCallbackChangedProfileTest() error {
 	chartYaml := webhookTestValidChartYAML
 	readFileFunction = func(string) ([]byte, error) {
 		return []byte(chartYaml), nil
@@ -183,16 +222,28 @@ func TestUpdateCallbackFailsChangeProfile(t *testing.T) {
 			Profile: "prod",
 		},
 	}
-	assert.Error(t, newSpec.ValidateUpdate(oldSpec))
+	err := newSpec.ValidateUpdate(oldSpec)
+	return err
 }
 
 // TestDeleteCallbackSuccess Tests the create callback with valid spec version
 func TestDeleteCallbackSuccess(t *testing.T) {
-	oldSpec := &Verrazzano{
+	assert.NoError(t, runDeleteCallbackTest())
+}
+
+// TestDeleteCallbackDisabled Tests the create callback with valid spec version; largely for code coverage right now
+func TestDeleteCallbackDisabled(t *testing.T) {
+	os.Setenv(env.DisableWebHookValidation, "true")
+	defer os.Unsetenv(env.DisableWebHookValidation)
+	assert.NoError(t, runDeleteCallbackTest())
+}
+
+func runDeleteCallbackTest() error {
+	deletedSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version: "v0.6.0",
 			Profile: "dev",
 		},
 	}
-	assert.NoError(t, oldSpec.ValidateDelete())
+	return deletedSpec.ValidateDelete()
 }

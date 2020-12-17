@@ -4,9 +4,13 @@
 package v1alpha1
 
 import (
+	"errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/operator/internal/util/env"
+	"github.com/verrazzano/verrazzano/operator/internal/util/semver"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
+	"os"
 	"testing"
 )
 
@@ -86,6 +90,44 @@ func TestValidUpgradeNotNecessary(t *testing.T) {
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
+func TestValidateUpgradeBadOldVersion(t *testing.T) {
+	chartYaml := validChartYAML
+	readFileFunction = func(string) ([]byte, error) {
+		return []byte(chartYaml), nil
+	}
+	defer func() {
+		readFileFunction = ioutil.ReadFile
+	}()
+	currentSpec := &VerrazzanoSpec{
+		Version: "blah",
+		Profile: "dev",
+	}
+	newSpec := &VerrazzanoSpec{
+		Version: "v0.7.0",
+		Profile: "dev",
+	}
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
+}
+
+func TestValidateUpgradeBadNewVersion(t *testing.T) {
+	chartYaml := validChartYAML
+	readFileFunction = func(string) ([]byte, error) {
+		return []byte(chartYaml), nil
+	}
+	defer func() {
+		readFileFunction = ioutil.ReadFile
+	}()
+	currentSpec := &VerrazzanoSpec{
+		Version: "v0.6.0",
+		Profile: "dev",
+	}
+	newSpec := &VerrazzanoSpec{
+		Version: "blah",
+		Profile: "dev",
+	}
+	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
+}
+
 // TestNoVersionsSpecified Tests the validate passes if no versions are specified in either spec
 // GIVEN an edit to update a Verrazzano spec
 // WHEN the new version and the current version are not specified
@@ -148,6 +190,30 @@ func TestProfileChangeOnlyNoVersions(t *testing.T) {
 		Profile: "prod",
 	}
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
+}
+
+// TestProfileChangeOnlyNoNewVersionString Tests the validate fails if the old spec has a version but the new one doesn't
+// GIVEN an edit to update a Verrazzano spec to change a profile value
+// WHEN the old spec specifies a version but the new one does not
+// THEN an error is returned from ValidateUpgradeRequest
+func TestProfileChangeOnlyNoNewVersionString(t *testing.T) {
+	chartYaml := validChartYAML
+	readFileFunction = func(string) ([]byte, error) {
+		return []byte(chartYaml), nil
+	}
+	defer func() {
+		readFileFunction = ioutil.ReadFile
+	}()
+	currentSpec := &VerrazzanoSpec{
+		Profile: "dev",
+		Version: "v0.6.0",
+	}
+	newSpec := &VerrazzanoSpec{
+		Profile: "prod",
+	}
+	err := ValidateUpgradeRequest(currentSpec, newSpec)
+	assert.Error(t, err)
+	assert.Equal(t, "Requested version is not specified", err.Error())
 }
 
 // TestValidVersionWithEnvNameChange Tests the validate fails if the upgrade version is OK but the EnvironmentName is changed
@@ -274,6 +340,21 @@ func TestValidVersionWithNewDNS(t *testing.T) {
 // WHEN the new version is valid and the Ingress component is changed
 // THEN an error is returned from ValidateUpgradeRequest
 func TestValidVersionWithIngressChange(t *testing.T) {
+	assert.Error(t, runValidateWithIngressChangeTest())
+}
+
+// TestValidVersionWithIngressChangeVersionCheckDisabled Tests the validate passes for component change with version check disabled
+// GIVEN an edit to update a Verrazzano spec to a new version
+// WHEN the new version is valid and the Ingress component is changed, but version checking is disabled
+// THEN no error is returned from ValidateUpgradeRequest
+func TestValidVersionWithIngressChangeVersionCheckDisabled(t *testing.T) {
+	os.Setenv(env.CheckVersionDisabled, "true")
+	defer os.Unsetenv(env.CheckVersionDisabled)
+	assert.NoError(t, runValidateWithIngressChangeTest())
+}
+
+// runValidateWithIngressChangeTest Shared test logic for ingress change validation
+func runValidateWithIngressChangeTest() error {
 	chartYaml := validChartYAML
 	readFileFunction = func(string) ([]byte, error) {
 		return []byte(chartYaml), nil
@@ -331,5 +412,72 @@ func TestValidVersionWithIngressChange(t *testing.T) {
 			},
 		},
 	}
-	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
+	err := ValidateUpgradeRequest(currentSpec, newSpec)
+	return err
 }
+
+func TestGetCurrentChartVersion(t *testing.T) {
+	chartYaml := validChartYAML
+	readFileFunction = func(string) ([]byte, error) {
+		return []byte(chartYaml), nil
+	}
+	defer func() {
+		readFileFunction = ioutil.ReadFile
+	}()
+	expectedVersion, err := semver.NewSemVersion("v0.7.0")
+	assert.NoError(t, err)
+
+	version, err := getCurrentChartVersion()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedVersion, version)
+}
+
+func TestGetCurrentChartVersionFileReadError(t *testing.T) {
+	readFileFunction = func(string) ([]byte, error) {
+		return []byte{}, errors.New("Unexpected file read error")
+	}
+	defer func() {
+		readFileFunction = ioutil.ReadFile
+	}()
+	version, err := getCurrentChartVersion()
+	assert.Error(t, err)
+	assert.Nil(t, version)
+}
+
+func TestGetCurrentChartVersionBadYAML(t *testing.T) {
+	const invalidChartYAML = "{"
+	readFileFunction = func(string) ([]byte, error) {
+		return []byte(invalidChartYAML), nil
+	}
+	defer func() {
+		readFileFunction = ioutil.ReadFile
+	}()
+	version, err := getCurrentChartVersion()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error converting YAML to JSON")
+	assert.Nil(t, version)
+}
+
+func TestValidateVersionInvalidVersionCheckingDisabled(t *testing.T) {
+	os.Setenv(env.CheckVersionDisabled, "true")
+	defer os.Unsetenv(env.CheckVersionDisabled)
+	assert.NoError(t, ValidateVersion("blah"))
+}
+
+func TestValidateVersionInvalidVersion(t *testing.T) {
+	assert.Error(t, ValidateVersion("blah"))
+}
+
+func TestValidateVersionBadChartYAML(t *testing.T) {
+	const invalidChartYAML = "{"
+	readFileFunction = func(string) ([]byte, error) {
+		return []byte(invalidChartYAML), nil
+	}
+	defer func() {
+		readFileFunction = ioutil.ReadFile
+	}()
+	err := ValidateVersion("v0.7.0")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error converting YAML to JSON")
+}
+
