@@ -21,7 +21,6 @@ spec:
         webLogicCredentialsSecret:
           name: bobbys-front-end-weblogic-credentials
         imagePullSecrets:
-          - name: github-packages
           - name: ocr
         clusters:
           - clusterName: cluster-1
