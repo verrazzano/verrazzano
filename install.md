@@ -93,7 +93,7 @@ The [install-oci.yaml](operator/config/samples/install-oci.yaml) file provides a
 * `spec.dns.oci.dnsZoneOCID`
 * `spec.dns.oci.dnsZoneName`
 
-See the [Verrazzano Custom Resource Definition](#table-verrazzano-custom-resource-definition) table for a description of the Verrazzano custom resource.
+See the [Verrazzano Custom Resource Definition](#verrazzano-custom-resource-definition) table for a description of the Verrazzano custom resource.
 
 When you use the OCI DNS installation, you need to provide a Verrazzano name in the Verrazzano custom resource
  (`spec.environmentName`) that will be used as part of the domain name used to access Verrazzano
