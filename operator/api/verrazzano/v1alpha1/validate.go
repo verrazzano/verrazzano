@@ -23,7 +23,7 @@ type chartVersion struct {
 }
 
 // For unit test purposes
-var readFileFunction func(string) ([]byte, error) = ioutil.ReadFile
+var readFileFunction = ioutil.ReadFile
 
 // getCurrentChartVersion Load the current Chart.yaml into a chartVersion struct
 func getCurrentChartVersion() (*semver.SemVersion, error) {
