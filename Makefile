@@ -38,6 +38,7 @@ INTEG_RUN_ID=
 ENV_NAME=verrazzano-platform-operator
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 CRD_PATH=operator/config/crd/bases
+CODEGEN_PATH = k8s.io/code-generator
 
 .PHONY: build
 build: go-mod
@@ -50,12 +51,12 @@ run:
 
 # Install CRDs into a cluster
 .PHONY: install-crds
-install-crds: manifests
+install-crds:
 	kustomize build operator/config/crd | kubectl apply -f -
 
 # Uninstall CRDs from a cluster
 .PHONY: uninstall-crds
-uninstall-crds: manifests
+uninstall-crds:
 	kustomize build operator/config/crd | kubectl delete -f -
 
 .PHONY: check
@@ -97,12 +98,26 @@ go-mod:
 	$(GO) mod tidy
 	$(GO) mod vendor
 
+	# go mod vendor only copies the .go files.  Also need
+	# to populate the k8s.io/code-generator folder with the
+	# scripts for generating informer/lister code
+
+	# Obtain k8s.io/code-generator version
+	$(eval codeGenVer=$(shell grep "code-generator" go.mod | awk '{print $$2}'))
+
+	# Add the required files into the vendor folder
+	cp ${GOPATH}/pkg/mod/${CODEGEN_PATH}@${codeGenVer}/generate-groups.sh vendor/${CODEGEN_PATH}/generate-groups.sh
+	chmod +x vendor/${CODEGEN_PATH}/generate-groups.sh
+	cp -R ${GOPATH}/pkg/mod/${CODEGEN_PATH}@${codeGenVer}/cmd/defaulter-gen vendor/${CODEGEN_PATH}/cmd/defaulter-gen
+	chmod -R +w vendor/${CODEGEN_PATH}/cmd/defaulter-gen
+
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: manifests
 manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./operator/..." output:crd:artifacts:config=operator/config/crd/bases
 	# Add copyright headers to the kubebuildr generated CRDs
 	./operator/hack/add-crd-header.sh
+	./operator/hack/update-codegen-verrazzano.sh
 
 	# Re-generate operator.yaml using template yaml file
 	cat operator/config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|$(shell grep "image:" operator/deploy/operator.yaml | awk '{ print $$2 }')|g" > operator/deploy/operator.yaml
@@ -139,7 +154,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build: manifests generate go-mod
+docker-build: go-mod
 	docker build --pull -f operator/Dockerfile \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
@@ -221,3 +236,13 @@ push-tag:
 	docker pull "${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}"; \
 	docker tag "${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}" "${DOCKER_IMAGE_FULLNAME}:$$PUBLISH_TAG"; \
 	docker push "${DOCKER_IMAGE_FULLNAME}:$$PUBLISH_TAG"
+
+.PHONY: create-test-deploy
+create-test-deploy:
+	if [ -n "${VZ_DEV_IMAGE}" ]; then \
+		echo "Building local operator deployment resource file in /tmp/operator.yaml, VZ_DEV_IMAGE=${VZ_DEV_IMAGE}"; \
+		cat operator/config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${VZ_DEV_IMAGE}|g" > /tmp/operator.yaml; \
+		cat operator/config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> /tmp/operator.yaml; \
+	else \
+		echo "VZ_DEV_IMAGE not defined, please set it to a valid image name/tag"; \
+	fi

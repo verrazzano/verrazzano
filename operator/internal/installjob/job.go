@@ -4,42 +4,58 @@
 package installjob
 
 import (
+	"github.com/verrazzano/verrazzano/operator/internal"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strconv"
 )
 
+// JobConfig Defines the parameters for an install job
+type JobConfig struct {
+	internal.JobConfigCommon // Extending the base job config
+
+	ConfigMapName string // Name of the install configmap used by the scripts
+}
+
+// installMode value for MODE variable for install jobs
+const installMode = "INSTALL"
+
 // NewJob returns a job resource for installing Verrazzano
-// namespace - namespace of verrazzano resource
-// jobNname - name of verrazzano resource
-// labels - labels of verrazzano resource
-// saName - service account name
-// image - docker image
-func NewJob(namespace string, jobName string, labels map[string]string, configMapName string, saName string, image string) *batchv1.Job {
+func NewJob(jobConfig *JobConfig) *batchv1.Job {
 	var backOffLimit int32 = 0
+	var annotations map[string]string = nil
+	mode := installMode
+	if jobConfig.DryRun {
+		mode = internal.NoOpMode
+		annotations = make(map[string]string, 1)
+		annotations[internal.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
+	}
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      jobName,
-			Namespace: namespace,
-			Labels:    labels,
+			Name:        jobConfig.JobName,
+			Namespace:   jobConfig.Namespace,
+			Labels:      jobConfig.Labels,
+			Annotations: annotations,
 		},
 		Spec: batchv1.JobSpec{
 			BackoffLimit: &backOffLimit,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      jobName,
-					Namespace: namespace,
-					Labels:    labels,
+					Name:        jobConfig.JobName,
+					Namespace:   jobConfig.Namespace,
+					Labels:      jobConfig.Labels,
+					Annotations: annotations,
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
 						Name:            "install",
-						Image:           image,
+						Image:           jobConfig.JobImage,
 						ImagePullPolicy: corev1.PullIfNotPresent,
 						Env: []corev1.EnvVar{
 							{
 								Name:  "MODE",
-								Value: "INSTALL",
+								Value: mode,
 							},
 							{
 								Name:  "INSTALL_CONFIG_FILE",
@@ -64,14 +80,14 @@ func NewJob(namespace string, jobName string, labels map[string]string, configMa
 						},
 					}},
 					RestartPolicy:      corev1.RestartPolicyNever,
-					ServiceAccountName: saName,
+					ServiceAccountName: jobConfig.ServiceAccountName,
 					Volumes: []corev1.Volume{
 						{
 							Name: "config-volume",
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: configMapName,
+										Name: jobConfig.ConfigMapName,
 									},
 								},
 							},

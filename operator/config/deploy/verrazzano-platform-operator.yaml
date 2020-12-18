@@ -46,6 +46,10 @@ spec:
         - name: verrazzano-platform-operator
           imagePullPolicy: IfNotPresent
           image: IMAGE_NAME
+          ports:
+            - containerPort: 9443
+              name: webhook
+              protocol: TCP
           args:
             - --zap-log-level=info
           env:
@@ -53,7 +57,54 @@ spec:
               value: RUN_OPERATOR
             - name: VZ_INSTALL_IMAGE
               value: IMAGE_NAME
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
           resources:
             requests:
               memory: 72Mi
+      volumes:
+        - name: webhook-certs
+          emptyDir: {}
       serviceAccountName: verrazzano-platform-operator
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: verrazzano-platform-operator
+  namespace: verrazzano-install
+  labels:
+    app: verrazzano-platform-operator
+spec:
+  ports:
+    - name: webhook
+      port: 443
+      targetPort: 9443
+  selector:
+    app: verrazzano-platform-operator
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: verrazzano-platform-operator
+  labels:
+    app: verrazzano-platform-operator
+webhooks:
+  - name: install.verrazzano.io
+    clientConfig:
+      service:
+        name: verrazzano-platform-operator
+        namespace: verrazzano-install
+        path: /validate-install-verrazzano-io-v1alpha1-verrazzano
+    rules:
+      - apiGroups:
+          - install.verrazzano.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - verrazzanos
+    sideEffects: None
+    failurePolicy: Fail

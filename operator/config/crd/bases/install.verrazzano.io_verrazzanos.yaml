@@ -46,115 +46,83 @@ spec:
           spec:
             description: VerrazzanoSpec defines the desired state of Verrazzano
             properties:
-              certificate:
-                description: Type of cert issuer for an install
+              components:
+                description: Core specifies core Verrazzano configuration
                 properties:
-                  acme:
-                    description: ACME cert issuer
+                  certManager:
+                    description: CertManager contains the CertManager component configuration
                     properties:
-                      emailAddress:
-                        description: email address
-                        type: string
-                      environment:
-                        description: environment
-                        type: string
-                      provider:
-                        description: Type of provider for ACME cert issuer.
-                        type: string
-                    required:
-                    - provider
-                    type: object
-                  ca:
-                    description: CA cert issuer
-                    properties:
-                      clusterResourceNamespace:
-                        description: Namespace where secret is located for CA cert
-                          issuer
-                        type: string
-                      secretName:
-                        description: Name of secret for CA cert issuer
-                        type: string
-                    required:
-                    - clusterResourceNamespace
-                    - secretName
-                    type: object
-                type: object
-              dns:
-                description: Type of DNS for an install
-                properties:
-                  external:
-                    description: DNS type of external. For example, OLCNE uses this
-                      type.
-                    properties:
-                      suffix:
-                        description: DNS suffix appended to EnviromentName to form
-                          DNS name
-                        type: string
-                    required:
-                    - suffix
-                    type: object
-                  oci:
-                    description: DNS type of OCI (Oracle Cloud Infrastructure)
-                    properties:
-                      dnsZoneCompartmentOCID:
-                        type: string
-                      dnsZoneName:
-                        type: string
-                      dnsZoneOCID:
-                        type: string
-                      ociConfigSecret:
-                        type: string
-                    required:
-                    - dnsZoneCompartmentOCID
-                    - dnsZoneName
-                    - dnsZoneOCID
-                    - ociConfigSecret
-                    type: object
-                  xip.io:
-                    description: DNS type of xio.io.  This is the default.
-                    type: object
-                type: object
-              environmentName:
-                description: Short name to identify install environment.  Default
-                  environment name is "default".
-                type: string
-              ingress:
-                description: Type of Ingress for an install
-                properties:
-                  application:
-                    description: Non-Verrazzano infrastructure install options
-                    properties:
-                      istioInstallArgs:
-                        description: Arguments for installing istio
-                        items:
-                          description: InstallArgs identifies a name/value or name/value
-                            list needed for install. Value and ValueList cannot both
-                            be specified.
-                          properties:
-                            name:
-                              description: Name of install argument
-                              type: string
-                            setString:
-                              description: If the Value is a literal string
-                              type: boolean
-                            value:
-                              description: Value for named install argument
-                              type: string
-                            valueList:
-                              description: List of values for named install argument
-                              items:
+                      certificate:
+                        description: Certificate used for an install
+                        properties:
+                          acme:
+                            description: ACME cert issuer
+                            properties:
+                              emailAddress:
+                                description: email address
                                 type: string
-                              type: array
-                          required:
-                          - name
-                          type: object
-                        type: array
+                              environment:
+                                description: environment
+                                type: string
+                              provider:
+                                description: Type of provider for ACME cert issuer.
+                                type: string
+                            required:
+                            - provider
+                            type: object
+                          ca:
+                            description: CA cert issuer
+                            properties:
+                              clusterResourceNamespace:
+                                description: Namespace where secret is located for
+                                  CA cert issuer
+                                type: string
+                              secretName:
+                                description: Name of secret for CA cert issuer
+                                type: string
+                            required:
+                            - clusterResourceNamespace
+                            - secretName
+                            type: object
+                        type: object
                     type: object
-                  type:
-                    description: Type of ingress.  Default is LoadBalancer
-                    type: string
-                  verrazzano:
-                    description: Verrazzano infrastructure install options
+                  dns:
+                    description: DNS contains the DNS component configuration
+                    properties:
+                      external:
+                        description: DNS type of external. For example, OLCNE uses
+                          this type.
+                        properties:
+                          suffix:
+                            description: DNS suffix appended to EnviromentName to
+                              form DNS name
+                            type: string
+                        required:
+                        - suffix
+                        type: object
+                      oci:
+                        description: DNS type of OCI (Oracle Cloud Infrastructure)
+                        properties:
+                          dnsZoneCompartmentOCID:
+                            type: string
+                          dnsZoneName:
+                            type: string
+                          dnsZoneOCID:
+                            type: string
+                          ociConfigSecret:
+                            type: string
+                        required:
+                        - dnsZoneCompartmentOCID
+                        - dnsZoneName
+                        - dnsZoneOCID
+                        - ociConfigSecret
+                        type: object
+                      xip.io:
+                        description: DNS type of xio.io.  This is the default.
+                        type: object
+                    type: object
+                  ingress:
+                    description: Ingress contains the ingress-nginx component configuration
                     properties:
                       nginxInstallArgs:
                         description: Arguments for installing nginx
@@ -240,8 +208,44 @@ spec:
                           - port
                           type: object
                         type: array
+                      type:
+                        description: Type of ingress.  Default is LoadBalancer
+                        type: string
+                    type: object
+                  istio:
+                    description: Istio contains the istio component configuration
+                    properties:
+                      istioInstallArgs:
+                        description: Arguments for installing istio
+                        items:
+                          description: InstallArgs identifies a name/value or name/value
+                            list needed for install. Value and ValueList cannot both
+                            be specified.
+                          properties:
+                            name:
+                              description: Name of install argument
+                              type: string
+                            setString:
+                              description: If the Value is a literal string
+                              type: boolean
+                            value:
+                              description: Value for named install argument
+                              type: string
+                            valueList:
+                              description: List of values for named install argument
+                              items:
+                                type: string
+                              type: array
+                          required:
+                          - name
+                          type: object
+                        type: array
                     type: object
                 type: object
+              environmentName:
+                description: EnvironmentName identifies install environment.  Default
+                  environment name is "default".
+                type: string
               profile:
                 description: Profile is the name of the profile to install.  Default
                   is "prod".

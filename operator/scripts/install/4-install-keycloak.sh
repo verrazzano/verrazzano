@@ -38,6 +38,7 @@ function install_mysql {
 
   log "Update MySQL configuration template"
   sed -e "s|MYSQL_IMAGE_TAG|${MYSQL_IMAGE_TAG}|g" \
+      -e "s|MYSQL_IMAGE|${MYSQL_IMAGE}|g" \
       -e "s|MYSQL_USERNAME|${MYSQL_USERNAME}|g" \
       $SCRIPT_DIR/config/mysql-values-template.yaml > ${TMP_DIR}/mysql-values-sed.yaml
 
@@ -178,6 +179,7 @@ consoleout "Grafana - https://grafana.vmi.system.${ENV_NAME}.${DNS_SUFFIX}"
 consoleout "Prometheus - https://prometheus.vmi.system.${ENV_NAME}.${DNS_SUFFIX}"
 consoleout "Kibana - https://kibana.vmi.system.${ENV_NAME}.${DNS_SUFFIX}"
 consoleout "Elasticsearch - https://elasticsearch.vmi.system.${ENV_NAME}.${DNS_SUFFIX}"
+consoleout "Verrazzano Console - https://verrazzano.${ENV_NAME}.${DNS_SUFFIX}"
 consoleout
 consoleout "You will need the credentials to access the preceding user interfaces.  They are all accessed by the same username/password."
 consoleout "User: verrazzano"

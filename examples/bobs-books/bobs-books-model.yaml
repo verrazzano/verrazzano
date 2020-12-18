@@ -116,7 +116,7 @@ spec:
     - name: "bobbys-coherence"
       image: "container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.10-3-20201016220428-56fb4d4"
       imagePullSecrets:
-        - name: ocr  # secret to pull bobbys-coherence and container-registry.oracle.com/middleware/coherence:12.2.1.4.0
+        - name: ocr
       cacheConfig: "bobbys-cache-config.xml"
       pofConfig: "bobbys-pof-config.xml"
       ports:
@@ -125,7 +125,7 @@ spec:
     - name: "roberts-coherence"
       image: "container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.10-3-20201016220428-56fb4d4"
       imagePullSecrets:
-        - name: ocr  # secret to pull roberts-coherence and container-registry.oracle.com/middleware/coherence:12.2.1.4.0
+        - name: ocr
       cacheConfig: "books-cache-config.xml"
       pofConfig: "books-pof-config.xml"
       ports:

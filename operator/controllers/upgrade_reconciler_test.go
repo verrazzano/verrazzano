@@ -6,18 +6,19 @@ package controllers
 import (
 	"context"
 	"errors"
-	"github.com/verrazzano/verrazzano/operator/internal/util/helm"
+	"os"
 	"os/exec"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	vzapi "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/operator/internal/util/helm"
 	"github.com/verrazzano/verrazzano/operator/mocks"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // goodRunner is used to test helm success without actually running an OS exec command
@@ -142,6 +143,9 @@ func TestUpgradeStarted(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	os.Setenv("VZ_CHECK_VERSION", "false")
+	defer os.Unsetenv("VZ_CHECK_VERSION")
+
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
@@ -203,6 +207,9 @@ func TestUpgradeTooManyFailures(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	os.Setenv("VZ_CHECK_VERSION", "false")
+	defer os.Unsetenv("VZ_CHECK_VERSION")
+
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
@@ -260,6 +267,9 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
+
+	os.Setenv("VZ_CHECK_VERSION", "false")
+	defer os.Unsetenv("VZ_CHECK_VERSION")
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -337,6 +347,9 @@ func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	os.Setenv("VZ_CHECK_VERSION", "false")
+	defer os.Unsetenv("VZ_CHECK_VERSION")
+
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
@@ -404,6 +417,9 @@ func TestUpgradeCompleted(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	os.Setenv("VZ_CHECK_VERSION", "false")
+	defer os.Unsetenv("VZ_CHECK_VERSION")
+
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
@@ -470,6 +486,9 @@ func TestUpgradeHelmError(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
+
+	os.Setenv("VZ_CHECK_VERSION", "false")
+	defer os.Unsetenv("VZ_CHECK_VERSION")
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().

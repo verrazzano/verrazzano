@@ -10,10 +10,15 @@ import (
 	"fmt"
 	"strconv"
 
-	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/v1alpha1"
+	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+)
+
+const (
+	defaultCAClusterResourceName string = "cattle-system"
+	defaultCASecretNamne         string = "tls-rancher"
 )
 
 // DNSType identifies the DNS type
@@ -120,18 +125,13 @@ type OCIConfigAuth struct {
 
 // DNSAuth provides the authentication structures for external DNS
 type DNSAuth struct {
-	PrivateKeyAuth OCIConfigAuth `yaml:"privateKeyAuth"`
+	PrivateKeyAuth OCIConfigAuth `yaml:"auth"`
 }
 
 // DNSOCI configuration
 type DNSOCI struct {
-	Region                 string `json:"region"`
-	TenancyOcid            string `json:"tenancyOcid"`
-	UserOcid               string `json:"userOcid"`
+	OCIConfigSecret        string `json:"ociConfigSecret"`
 	DNSZoneCompartmentOcid string `json:"dnsZoneCompartmentOcid"`
-	Fingerprint            string `json:"fingerprint"`
-	PrivateKeyFile         string `json:"privateKeyFile"`
-	PrivateKeyPassphrase   string `json:"privateKeyPassphrase,omitempty"`
 	DNSZoneOcid            string `json:"dnsZoneOcid"`
 	DNSZoneName            string `json:"dnsZoneName"`
 }
@@ -165,43 +165,38 @@ type InstallConfiguration struct {
 
 // GetInstallConfig returns an install configuration in the json format required by the
 // bash installer scripts.
-func GetInstallConfig(vz *installv1alpha1.Verrazzano, auth *DNSAuth) (*InstallConfiguration, error) {
-	if vz.Spec.DNS.External != (installv1alpha1.External{}) {
+func GetInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
+	if vz.Spec.Components.DNS.External != (installv1alpha1.External{}) {
 		return newExternalDNSInstallConfig(vz), nil
 	}
 
-	if vz.Spec.DNS.OCI != (installv1alpha1.OCI{}) {
-		return newOCIDNSInstallConfig(vz, auth)
+	if vz.Spec.Components.DNS.OCI != (installv1alpha1.OCI{}) {
+		return newOCIDNSInstallConfig(vz)
 	}
 
 	return newXipIoInstallConfig(vz), nil
 }
 
-func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, auth *DNSAuth) (*InstallConfiguration, error) {
+func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
 	return &InstallConfiguration{
 		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
 		DNS: DNS{
 			Type: DNSTypeOci,
 			Oci: &DNSOCI{
-				Region:                 auth.PrivateKeyAuth.Region,
-				TenancyOcid:            auth.PrivateKeyAuth.Tenancy,
-				UserOcid:               auth.PrivateKeyAuth.User,
-				DNSZoneCompartmentOcid: vz.Spec.DNS.OCI.DNSZoneCompartmentOCID,
-				Fingerprint:            auth.PrivateKeyAuth.Fingerprint,
-				PrivateKeyFile:         installv1alpha1.OciPrivateKeyFilePath,
-				PrivateKeyPassphrase:   auth.PrivateKeyAuth.Passphrase,
-				DNSZoneOcid:            vz.Spec.DNS.OCI.DNSZoneOCID,
-				DNSZoneName:            vz.Spec.DNS.OCI.DNSZoneName,
+				OCIConfigSecret:        vz.Spec.Components.DNS.OCI.OCIConfigSecret,
+				DNSZoneCompartmentOcid: vz.Spec.Components.DNS.OCI.DNSZoneCompartmentOCID,
+				DNSZoneOcid:            vz.Spec.Components.DNS.OCI.DNSZoneOCID,
+				DNSZoneName:            vz.Spec.Components.DNS.OCI.DNSZoneName,
 			},
 		},
-		Ingress: getIngress(vz.Spec.Ingress),
+		Ingress: getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
 		Certificates: Certificate{
 			IssuerType: CertIssuerTypeAcme,
 			ACME: &CertificateACME{
-				Provider:     string(vz.Spec.Certificate.Acme.Provider),
-				EmailAddress: vz.Spec.Certificate.Acme.EmailAddress,
-				Environment:  vz.Spec.Certificate.Acme.Environment,
+				Provider:     string(vz.Spec.Components.CertManager.Certificate.Acme.Provider),
+				EmailAddress: vz.Spec.Components.CertManager.Certificate.Acme.EmailAddress,
+				Environment:  vz.Spec.Components.CertManager.Certificate.Acme.Environment,
 			},
 		},
 	}, nil
@@ -216,12 +211,12 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration
 		DNS: DNS{
 			Type: DNSTypeXip,
 		},
-		Ingress: getIngress(vz.Spec.Ingress),
+		Ingress: getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
 		Certificates: Certificate{
 			IssuerType: CertIssuerTypeCA,
 			CA: &CertificateCA{
-				ClusterResourceNamespace: "cattle-system",
-				SecretName:               "tls-rancher",
+				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager.Certificate.CA),
+				SecretName:               getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
 			},
 		},
 	}
@@ -237,15 +232,15 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfigu
 		DNS: DNS{
 			Type: DNSTypeExternal,
 			External: &ExternalDNS{
-				Suffix: vz.Spec.DNS.External.Suffix,
+				Suffix: vz.Spec.Components.DNS.External.Suffix,
 			},
 		},
-		Ingress: getIngress(vz.Spec.Ingress),
+		Ingress: getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
 		Certificates: Certificate{
 			IssuerType: CertIssuerTypeCA,
 			CA: &CertificateCA{
-				ClusterResourceNamespace: "cattle-system",
-				SecretName:               "tls-rancher",
+				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager.Certificate.CA),
+				SecretName:               getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
 			},
 		},
 	}
@@ -309,6 +304,20 @@ func getIngressArgs(args []installv1alpha1.InstallArgs) []IngressArg {
 	return ingressArgs
 }
 
+// getIngress returns the json representation for the ingress
+func getIngress(ingress installv1alpha1.IngressNginxComponent, istio installv1alpha1.IstioComponent) Ingress {
+	return Ingress{
+		Type: getIngressType(ingress.Type),
+		Verrazzano: Verrazzano{
+			NginxInstallArgs: getIngressArgs(ingress.NGINXInstallArgs),
+			Ports:            getIngressPorts(ingress.Ports),
+		},
+		Application: Application{
+			IstioInstallArgs: getIngressArgs(istio.IstioInstallArgs),
+		},
+	}
+}
+
 // getIngressType returns the install ingress type
 func getIngressType(ingressType installv1alpha1.IngressType) IngressType {
 	// Use ingress type of LoadBalancer if not specified
@@ -319,17 +328,24 @@ func getIngressType(ingressType installv1alpha1.IngressType) IngressType {
 	return IngressTypeNodePort
 }
 
-func getIngress(ingress installv1alpha1.Ingress) Ingress {
-	return Ingress{
-		Type: getIngressType(ingress.Type),
-		Verrazzano: Verrazzano{
-			NginxInstallArgs: getIngressArgs(ingress.Verrazzano.NGINXInstallArgs),
-			Ports:            getIngressPorts(ingress.Verrazzano.Ports),
-		},
-		Application: Application{
-			IstioInstallArgs: getIngressArgs(ingress.Application.IstioInstallArgs),
-		},
+// getCAClusterResourceNamespace returns the cluster resource name for a CA certificate
+func getCAClusterResourceNamespace(ca installv1alpha1.CA) string {
+	// Use default value if not specified
+	if ca.ClusterResourceNamespace == "" {
+		return defaultCAClusterResourceName
 	}
+
+	return ca.ClusterResourceNamespace
+}
+
+// getCASecretName returns the secret name for a CA certificate
+func getCASecretName(ca installv1alpha1.CA) string {
+	// Use default value if not specified
+	if ca.SecretName == "" {
+		return defaultCASecretNamne
+	}
+
+	return ca.SecretName
 }
 
 // getEnvironmentName returns the install environment name
