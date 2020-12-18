@@ -45,7 +45,7 @@ spec:
       containers:
         - name: verrazzano-platform-operator
           imagePullPolicy: IfNotPresent
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.7.0-20201217190422-ddb7e10
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.7.0-20201218034858-5348703
           ports:
             - containerPort: 9443
               name: webhook
@@ -56,7 +56,7 @@ spec:
             - name: MODE
               value: RUN_OPERATOR
             - name: VZ_INSTALL_IMAGE
-              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.7.0-20201217190422-ddb7e10
+              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.7.0-20201218034858-5348703
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
