@@ -63,7 +63,7 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 							},
 							{
 								Name:  "VERRAZZANO_KUBECONFIG",
-								Value: "/verrazzano/kubeconfig",
+								Value: "/home/verrazzano/kubeconfig",
 							},
 							{
 								// DEBUG property set to value 1 will direct more detailed output to stdout and
