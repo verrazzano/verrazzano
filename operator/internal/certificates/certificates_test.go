@@ -17,11 +17,11 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-// TestSetupCertificates tests that the certificates needed for webhooks are created
+// TestCreateCertificates tests that the certificates needed for webhooks are created
 // GIVEN an output directory for certificates
-//  WHEN I call SetupCertificates
+//  WHEN I call CreateCertificates
 //  THEN all the needed certificate artifacts are created
-func TestSetupCertificates(t *testing.T) {
+func TestCreateCertificates(t *testing.T) {
 	assert := assert.New(t)
 
 	dir, err := ioutil.TempDir("", "certs")
@@ -29,21 +29,21 @@ func TestSetupCertificates(t *testing.T) {
 		assert.Nil(err, "error should not be returned creating temporary directory")
 	}
 	defer os.RemoveAll(dir)
-	caBundle, err := SetupCertificates(dir)
+	caBundle, err := CreateCertificates(dir)
 	assert.Nil(err, "error should not be returned setting up certificates")
 	assert.NotNil(caBundle, "CA bundle should be returned")
 	assert.FileExists(fmt.Sprintf("%s/%s", dir, "tls.crt"), "expected tls.crt file not found")
 	assert.FileExists(fmt.Sprintf("%s/%s", dir, "tls.key"), "expected tls.key file not found")
 }
 
-// TestSetupCertificatesFail tests that the certificates needed for webhooks are not created
+// TestCreateCertificatesFail tests that the certificates needed for webhooks are not created
 // GIVEN an invalid output directory for certificates
-//  WHEN I call SetupCertificates
+//  WHEN I call CreateCertificates
 //  THEN all the needed certificate artifacts are not created
-func TestSetupCertificatesFail(t *testing.T) {
+func TestCreateCertificatesFail(t *testing.T) {
 	assert := assert.New(t)
 
-	_, err := SetupCertificates("bad-dir")
+	_, err := CreateCertificates("bad-dir")
 	assert.Error(err, "error should be returned setting up certificates")
 }
 
