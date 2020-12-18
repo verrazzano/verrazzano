@@ -112,6 +112,21 @@ func (to *SemVersion) CompareTo(from *SemVersion) int {
 	return result
 }
 
+// IsEqualTo Returns true if to == from
+func (to *SemVersion) IsEqualTo(from *SemVersion) bool {
+	return to.CompareTo(from) == 0
+}
+
+// IsGreatherThan Returns true if to > from
+func (to *SemVersion) IsGreatherThan(from *SemVersion) bool {
+	return to.CompareTo(from) > 0
+}
+
+// IsLessThan Returns true if to < from
+func (to *SemVersion) IsLessThan(from *SemVersion) bool {
+	return to.CompareTo(from) < 0
+}
+
 // Returns
 // - 1 if v2 > v1
 // - -1 if v1 > v2

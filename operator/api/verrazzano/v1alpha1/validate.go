@@ -57,7 +57,7 @@ func ValidateVersion(requestedVersion string) error {
 	if err != nil {
 		return err
 	}
-	if requestedSemVer.CompareTo(chartSemVer) != 0 {
+	if !requestedSemVer.IsEqualTo(chartSemVer) {
 		return fmt.Errorf("Requested version %s does not match chart version %s", requestedSemVer.VersionString, chartSemVer.VersionString)
 	}
 	return nil
@@ -95,7 +95,7 @@ func ValidateUpgradeRequest(currentSpec *VerrazzanoSpec, newSpec *VerrazzanoSpec
 			// Unable to parse the current spec version; this should never happen
 			return err
 		}
-		if requestedSemVer.CompareTo(currentSemVer) < 0 {
+		if requestedSemVer.IsLessThan(currentSemVer) {
 			return fmt.Errorf("Requested version %s is not newer than current version %s", requestedSemVer.VersionString, currentSemVer.VersionString)
 		}
 	}
