@@ -4,10 +4,11 @@
 package v1alpha1
 
 import (
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
-	corev1 "k8s.io/api/core/v1"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 )
 
 const validChartYAML = `

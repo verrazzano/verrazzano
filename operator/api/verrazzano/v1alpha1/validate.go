@@ -4,13 +4,16 @@
 package v1alpha1
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"reflect"
+
 	"github.com/verrazzano/verrazzano/operator/internal/util/env"
 	"github.com/verrazzano/verrazzano/operator/internal/util/semver"
 	"go.uber.org/zap"
-	"io/ioutil"
-	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
@@ -101,5 +104,21 @@ func ValidateUpgradeRequest(currentSpec *VerrazzanoSpec, newSpec *VerrazzanoSpec
 		!reflect.DeepEqual(newSpec.Components, currentSpec.Components) {
 		return errors.New("Configuration updates not allowed during upgrade between Verrazzano versions")
 	}
+	return nil
+}
+
+// ValidateSingleInstall enforces that only one install of Verrazzano is allowed.
+func ValidateSingleInstall(client client.Client) error {
+	vzList := &VerrazzanoList{}
+
+	err := client.List(context.Background(), vzList)
+	if err != nil {
+		return err
+	}
+
+	if len(vzList.Items) != 0 {
+		return fmt.Errorf("Only one install of Verrazzano is allowed")
+	}
+
 	return nil
 }
