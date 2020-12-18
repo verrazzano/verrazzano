@@ -10,8 +10,10 @@ import (
 
 const vzRootDir = "VZ_ROOT_DIR"
 
+// CheckVersionDisabled Disable version checking
 const CheckVersionDisabled = "VZ_DISABLE_VERSION_CHECK"
 
+// DisableWebHookValidation Disable webhook validation without removing the webhook itself
 const DisableWebHookValidation = "VZ_DISABLE_VALIDATIONS"
 
 var getEnvFunc func(string) string = os.Getenv

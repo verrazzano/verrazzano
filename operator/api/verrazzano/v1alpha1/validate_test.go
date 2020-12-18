@@ -22,7 +22,7 @@ version: 0.7.0
 appVersion: 0.7.0
 `
 
-// TestValidUpgradeRequestNoCurrentVersion Tests the SemVersion parser for valid version strings
+// TestValidUpgradeRequestNoCurrentVersion Tests the condition for valid upgrade where the version is not specified in the current spec
 // GIVEN an edit to update a Verrazzano spec to a new version
 // WHEN the new version is valid and the current version is not specified
 // THEN ensure no error is returned from ValidateUpgradeRequest
@@ -44,7 +44,7 @@ func TestValidUpgradeRequestNoCurrentVersion(t *testing.T) {
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
-// TestValidUpgradeRequestCurrentVersionExists Tests the SemVersion parser for valid version strings
+// TestValidUpgradeRequestCurrentVersionExists Tests the condition for valid upgrade where versions are specified in both specs
 // GIVEN an edit to update a Verrazzano spec to a new version
 // WHEN the new version is valid and the current version is less than the current version
 // THEN ensure no error is returned from ValidateUpgradeRequest
@@ -67,7 +67,7 @@ func TestValidUpgradeRequestCurrentVersionExists(t *testing.T) {
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
-// TestValidUpgradeRequestCurrentVersionExists Tests the SemVersion parser for valid version strings
+// TestValidUpgradeRequestCurrentVersionExists Tests the condition where both specs are at the same version
 // GIVEN an edit to update a Verrazzano spec to a new version
 // WHEN the new version and the current version are at the latest version
 // THEN ensure no error is returned from ValidateUpgradeRequest
@@ -90,6 +90,10 @@ func TestValidUpgradeNotNecessary(t *testing.T) {
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
+// TestValidateUpgradeBadOldVersion Tests scenario where there is an invalid version string in the old spec (should never happen, but...code coverage)
+// GIVEN an edit to update a Verrazzano spec to a new version
+// WHEN the current version is not valid but the new version is
+// THEN ensure an error is returned from ValidateUpgradeRequest
 func TestValidateUpgradeBadOldVersion(t *testing.T) {
 	chartYaml := validChartYAML
 	readFileFunction = func(string) ([]byte, error) {
@@ -109,6 +113,10 @@ func TestValidateUpgradeBadOldVersion(t *testing.T) {
 	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
+// TestValidateUpgradeBadOldVersion Tests scenario where there is an invalid version string in the new spec
+// GIVEN an edit to update a Verrazzano spec to a new version
+// WHEN the current version is there and valid valid but the new version is not
+// THEN ensure an error is returned from ValidateUpgradeRequest
 func TestValidateUpgradeBadNewVersion(t *testing.T) {
 	chartYaml := validChartYAML
 	readFileFunction = func(string) ([]byte, error) {
@@ -172,8 +180,8 @@ func TestValidVersionWithProfileChange(t *testing.T) {
 }
 
 // TestProfileChangeOnlyNoVersions Tests the validate fails if no versions specified but the profile is changed
-// GIVEN an edit to update a Verrazzano spec to change a profile value
-// WHEN the no version strings are specified
+// GIVEN an edit to update a Verrazzano spec
+// WHEN only the profile has changed
 // THEN no error is returned from ValidateUpgradeRequest
 func TestProfileChangeOnlyNoVersions(t *testing.T) {
 	chartYaml := validChartYAML
@@ -239,9 +247,9 @@ func TestValidVersionWithEnvNameChange(t *testing.T) {
 	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
 }
 
-// TestValidVersionWithEnvNameChange Tests the validate fails if the upgrade version is OK but the EnvironmentName is changed
+// TestValidVersionWithCertManagerChange Tests the validate fails if the upgrade version is OK but the CertManagerComponent is changed
 // GIVEN an edit to update a Verrazzano spec to a new version
-// WHEN the new version is valid and the EnvironmentName field is changed
+// WHEN the new version is valid and the CertManagerComponent field is changed
 // THEN an error is returned from ValidateUpgradeRequest
 func TestValidVersionWithCertManagerChange(t *testing.T) {
 	chartYaml := validChartYAML
@@ -416,6 +424,10 @@ func runValidateWithIngressChangeTest() error {
 	return err
 }
 
+// TestGetCurrentChartVersion Tests basic getChartVersion() happy path
+// GIVEN a request for the current VZ Chart version
+// WHEN the version in the chart is available
+// THEN no error is returned and a valid SemVersion representing the Chart version is returned
 func TestGetCurrentChartVersion(t *testing.T) {
 	chartYaml := validChartYAML
 	readFileFunction = func(string) ([]byte, error) {
@@ -432,6 +444,10 @@ func TestGetCurrentChartVersion(t *testing.T) {
 	assert.Equal(t, expectedVersion, version)
 }
 
+// TestGetCurrentChartVersionFileReadError Tests  getChartVersion() when there is an error reading the Chart YAML
+// GIVEN a request for the current VZ Chart version
+// WHEN an error occurs reading the Chart.yaml file from the filesystem
+// THEN an error is returned and nil is returned for the chart SemVersion
 func TestGetCurrentChartVersionFileReadError(t *testing.T) {
 	readFileFunction = func(string) ([]byte, error) {
 		return []byte{}, errors.New("Unexpected file read error")
@@ -444,6 +460,10 @@ func TestGetCurrentChartVersionFileReadError(t *testing.T) {
 	assert.Nil(t, version)
 }
 
+// TestGetCurrentChartVersionBadYAML Tests  getChartVersion() when the Chart YAML is invalid
+// GIVEN a request for the current VZ Chart version
+// WHEN an error occurs unmarshalling the Chart.yaml bytes
+// THEN an error is returned and nil is returned for the chart SemVersion
 func TestGetCurrentChartVersionBadYAML(t *testing.T) {
 	const invalidChartYAML = "{"
 	readFileFunction = func(string) ([]byte, error) {
@@ -458,16 +478,28 @@ func TestGetCurrentChartVersionBadYAML(t *testing.T) {
 	assert.Nil(t, version)
 }
 
+// TestValidateVersionInvalidVersionCheckingDisabled Tests  ValidateVersion() when version checking is disabled
+// GIVEN a request for the current VZ Chart version
+// WHEN the version provided is not valid version and checking is disabled
+// THEN no error is returned
 func TestValidateVersionInvalidVersionCheckingDisabled(t *testing.T) {
 	os.Setenv(env.CheckVersionDisabled, "true")
 	defer os.Unsetenv(env.CheckVersionDisabled)
 	assert.NoError(t, ValidateVersion("blah"))
 }
 
+// TestValidateVersionInvalidVersion Tests  ValidateVersion() for invalid version
+// GIVEN a request for the current VZ Chart version
+// WHEN the version provided is not valid version
+// THEN an error is returned
 func TestValidateVersionInvalidVersion(t *testing.T) {
 	assert.Error(t, ValidateVersion("blah"))
 }
 
+// TestValidateVersionBadChartYAML Tests  ValidateVersion() the chart YAML is bad
+// GIVEN a request for the current VZ Chart version
+// WHEN the version provided is not valid version
+// THEN a YAML parsing error is returned
 func TestValidateVersionBadChartYAML(t *testing.T) {
 	const invalidChartYAML = "{"
 	readFileFunction = func(string) ([]byte, error) {
@@ -480,4 +512,3 @@ func TestValidateVersionBadChartYAML(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "error converting YAML to JSON")
 }
-
