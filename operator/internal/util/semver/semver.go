@@ -20,7 +20,6 @@ type SemVersion struct {
 	Patch         int64
 	Prerelease    string
 	Build         string
-	VersionString string
 }
 
 var compiledRegEx *regexp.Regexp = nil
@@ -92,7 +91,6 @@ func NewSemVersion(version string) (*SemVersion, error) {
 		Patch:         patchVer,
 		Prerelease:    prereleaseVer,
 		Build:         buildVer,
-		VersionString: version,
 	}
 	return &semVersion, nil
 }
@@ -101,11 +99,11 @@ func NewSemVersion(version string) (*SemVersion, error) {
 // - if from > this, -1 is returned
 // - if from < this, 1 is returned
 // - if they are equal, 0 is returned
-func (to *SemVersion) CompareTo(from *SemVersion) int {
+func (v *SemVersion) CompareTo(from *SemVersion) int {
 	var result int
-	if result = compareVersion(from.Major, to.Major); result == 0 {
-		if result = compareVersion(from.Minor, to.Minor); result == 0 {
-			result = compareVersion(from.Patch, to.Patch)
+	if result = compareVersion(from.Major, v.Major); result == 0 {
+		if result = compareVersion(from.Minor, v.Minor); result == 0 {
+			result = compareVersion(from.Patch, v.Patch)
 			// Ignore pre-release/buildver fields for now
 		}
 	}
@@ -113,18 +111,22 @@ func (to *SemVersion) CompareTo(from *SemVersion) int {
 }
 
 // IsEqualTo Returns true if to == from
-func (to *SemVersion) IsEqualTo(from *SemVersion) bool {
-	return to.CompareTo(from) == 0
+func (v *SemVersion) IsEqualTo(from *SemVersion) bool {
+	return v.CompareTo(from) == 0
 }
 
 // IsGreatherThan Returns true if to > from
-func (to *SemVersion) IsGreatherThan(from *SemVersion) bool {
-	return to.CompareTo(from) > 0
+func (v *SemVersion) IsGreatherThan(from *SemVersion) bool {
+	return v.CompareTo(from) > 0
 }
 
 // IsLessThan Returns true if to < from
-func (to *SemVersion) IsLessThan(from *SemVersion) bool {
-	return to.CompareTo(from) < 0
+func (v *SemVersion) IsLessThan(from *SemVersion) bool {
+	return v.CompareTo(from) < 0
+}
+
+func (v *SemVersion) ToString() string {
+	return fmt.Sprintf("%v.%v.%v", v.Major, v.Minor, v.Patch)
 }
 
 // Returns
@@ -140,3 +142,4 @@ func compareVersion(v1 int64, v2 int64) int {
 	}
 	return 0
 }
+

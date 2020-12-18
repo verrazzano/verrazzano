@@ -41,7 +41,7 @@ func TestValidSemver(t *testing.T) {
 		version, err := NewSemVersion(verString)
 		assert.NoError(t, err)
 		assert.NotNil(t, version)
-		assert.Equal(t, verString, version.VersionString)
+		assert.Equal(t, fmt.Sprintf("%s.%s.%s", verComponents[0], verComponents[1], verComponents[2]), version.ToString())
 		expectedMajor, _ := strconv.ParseInt(verComponents[0], 10, 64)
 		assert.Equal(t, expectedMajor, version.Major)
 		expectedMinor, _ := strconv.ParseInt(verComponents[1], 10, 64)
