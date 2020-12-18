@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const webhookTestValidChartYAML = `
@@ -27,6 +29,12 @@ func TestCreateCallbackSuccessWithVersion(t *testing.T) {
 	defer func() {
 		readFileFunction = ioutil.ReadFile
 	}()
+
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme()), nil
+	}
+	defer func() { getControllerRuntimeClient = getClient }()
+
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version: "v0.6.0",
@@ -45,6 +53,12 @@ func TestCreateCallbackSuccessWithoutVersion(t *testing.T) {
 	defer func() {
 		readFileFunction = ioutil.ReadFile
 	}()
+
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme()), nil
+	}
+	defer func() { getControllerRuntimeClient = getClient }()
+
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Profile: "dev",
@@ -62,6 +76,12 @@ func TestCreateCallbackFailsWithInvalidVersion(t *testing.T) {
 	defer func() {
 		readFileFunction = ioutil.ReadFile
 	}()
+
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme()), nil
+	}
+	defer func() { getControllerRuntimeClient = getClient }()
+
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version: "v0.7.0",
@@ -196,4 +216,13 @@ func TestDeleteCallbackSuccess(t *testing.T) {
 		},
 	}
 	assert.NoError(t, oldSpec.ValidateDelete())
+}
+
+// TestGetClient checks that we can get a controller runtime client
+// GIVEN a controller runtime
+// THEN ensure an error is not returned when getting a controller runtime client
+func TestGetClient(t *testing.T) {
+	client, err := getClient()
+	assert.NotNil(t, client)
+	assert.NoError(t, err)
 }

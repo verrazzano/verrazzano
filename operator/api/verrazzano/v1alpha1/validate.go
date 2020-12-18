@@ -107,8 +107,8 @@ func ValidateUpgradeRequest(currentSpec *VerrazzanoSpec, newSpec *VerrazzanoSpec
 	return nil
 }
 
-// ValidateSingleInstall enforces that only one install of Verrazzano is allowed.
-func ValidateSingleInstall(client client.Client) error {
+// ValidateActiveInstall enforces that only one install of Verrazzano is allowed.
+func ValidateActiveInstall(client client.Client) error {
 	vzList := &VerrazzanoList{}
 
 	err := client.List(context.Background(), vzList)
@@ -118,6 +118,15 @@ func ValidateSingleInstall(client client.Client) error {
 
 	if len(vzList.Items) != 0 {
 		return fmt.Errorf("Only one install of Verrazzano is allowed")
+	}
+
+	return nil
+}
+
+// ValidateInProgress makes sure there is not an install or upgrade in progress
+func ValidateInProgress(state StateType) error {
+	if state == Installing || state == Upgrading {
+		return fmt.Errorf("Updates to resource not allowed while install or an upgrade is in in progress")
 	}
 
 	return nil

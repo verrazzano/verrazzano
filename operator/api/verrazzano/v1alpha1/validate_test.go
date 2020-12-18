@@ -4,11 +4,14 @@
 package v1alpha1
 
 import (
+	"context"
 	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const validChartYAML = `
@@ -333,4 +336,48 @@ func TestValidVersionWithIngressChange(t *testing.T) {
 		},
 	}
 	assert.Error(t, ValidateUpgradeRequest(currentSpec, newSpec))
+}
+
+// TestValidateActiveInstall tests that there is no Verrazzano installs active
+// GIVEN a client for accessing Verrazzano resources
+// WHEN no Verrazzano resources are found
+// THEN ensure no error is returned from ValidateActiveInstall
+func TestValidateActiveInstall(t *testing.T) {
+	client := fake.NewFakeClientWithScheme(newScheme())
+	assert.NoError(t, ValidateActiveInstall(client))
+}
+
+// TestValidateActiveInstallFail tests that there are active Verrazzano installs
+// GIVEN a client for accessing Verrazzano resources
+// WHEN a Verrazzano resources is found
+// THEN ensure an error is returned from ValidateActiveInstall
+func TestValidateActiveInstallFail(t *testing.T) {
+	vz := &Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "test-namespace",
+			Name:      "test-resource",
+		},
+		Spec: VerrazzanoSpec{},
+	}
+	client := fake.NewFakeClientWithScheme(newScheme())
+	assert.NoError(t, client.Create(context.TODO(), vz))
+	err := ValidateActiveInstall(client)
+	if assert.Error(t, err) {
+		assert.Equal(t, "Only one install of Verrazzano is allowed", err.Error())
+	}
+}
+
+// TestValidateInProgress tests that an install or upgrade is not in progress
+// GIVEN various Verrrazzano resource states
+// THEN ensure TestValidateInProgress returns correctly
+func TestValidateInProgress(t *testing.T) {
+	assert.NoError(t, ValidateInProgress(Ready))
+	err := ValidateInProgress(Installing)
+	if assert.Error(t, err) {
+		assert.Equal(t, "Updates to resource not allowed while install or an upgrade is in in progress", err.Error())
+	}
+	err = ValidateInProgress(Upgrading)
+	if assert.Error(t, err) {
+		assert.Equal(t, "Updates to resource not allowed while install or an upgrade is in in progress", err.Error())
+	}
 }

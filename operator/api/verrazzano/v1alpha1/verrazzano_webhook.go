@@ -13,6 +13,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
+var getControllerRuntimeClient = getClient
+
 // SetupWebhookWithManager is used to let the controller manager know about the webhook
 func (newResource *Verrazzano) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -27,13 +29,13 @@ func (newResource *Verrazzano) ValidateCreate() error {
 	log := zap.S().With("source", "webhook", "resource", fmt.Sprintf("%s:%s", newResource.Namespace, newResource.Name))
 	log.Info("Validate create")
 
-	client, err := getClient()
+	client, err := getControllerRuntimeClient()
 	if err != nil {
 		return err
 	}
 
 	// Validate that only one install is allowed.
-	if err := ValidateSingleInstall(client); err != nil {
+	if err := ValidateActiveInstall(client); err != nil {
 		return err
 	}
 
@@ -53,8 +55,8 @@ func (newResource *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	log.Infof("to Annotations: %v, Finalizers: %v, Spec: %v", newResource.Annotations, newResource.Finalizers, newResource.Spec)
 
 	// Updates are not allowed when an install or an upgrade is in in progress
-	if oldResource.Status.State == Installing || oldResource.Status.State == Upgrading {
-		return fmt.Errorf("Updates to resource not allowed while install or an upgrade is in in progress")
+	if err := ValidateInProgress(oldResource.Status.State); err != nil {
+		return err
 	}
 
 	// The profile field is immutable
@@ -78,7 +80,7 @@ func (newResource *Verrazzano) ValidateDelete() error {
 	return nil
 }
 
-// getClient returns the client set for the Verrazzano resource
+// getClient returns a controller runtime client for the Verrazzano resource
 func getClient() (client.Client, error) {
 
 	config, err := ctrl.GetConfig()
