@@ -50,7 +50,8 @@ RUN yum update -y \
     && yum clean all \
     && rm -rf /var/cache/yum
 
-RUN groupadd -r verrazzano && useradd --no-log-init -r -d /verrazzano -g verrazzano -u 1000 verrazzano
+RUN groupadd -r verrazzano \
+    && useradd --no-log-init -r -m -d /verrazzano -g verrazzano -u 1000 verrazzano
 
 # Copy the operator binary
 COPY --from=build_base --chown=verrazzano:verrazzano /usr/bin/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
