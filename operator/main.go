@@ -38,6 +38,7 @@ func main() {
 	var enableLeaderElection bool
 	var certDir string
 	var enableWebhooks bool
+	var initWebhooks bool
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
@@ -46,6 +47,8 @@ func main() {
 	flag.StringVar(&certDir, "cert-dir", "/etc/webhook/certs", "The directory containing tls.crt and tls.key.")
 	flag.BoolVar(&enableWebhooks, "enable-webhooks", true,
 		"Enable webhooks for the operator")
+	flag.BoolVar(&initWebhooks, "init-webhooks", false,
+		"Initialize webhooks for the operator")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
@@ -56,6 +59,38 @@ func main() {
 	log.InitLogs(opts)
 
 	setupLog := zap.S()
+
+	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the
+	// validatingWebhookConfiguration resource before the operator container runs.
+	if initWebhooks {
+		setupLog.Info("Setting up certificates for webhook")
+		caCert, err := certificates.CreateWebhookCertificates(certDir)
+		if err != nil {
+			setupLog.Error(err, "unable to setup certificates for webhook")
+			os.Exit(1)
+		}
+
+		config, err := ctrl.GetConfig()
+		if err != nil {
+			setupLog.Error(err, "unable to get kubeconfig")
+			os.Exit(1)
+		}
+
+		kubeClient, err := kubernetes.NewForConfig(config)
+		if err != nil {
+			setupLog.Error(err, "unable to get clientset")
+			os.Exit(1)
+		}
+
+		setupLog.Info("Updating webhook configuration")
+		err = certificates.UpdateValidatingnWebhookConfiguration(kubeClient, caCert)
+		if err != nil {
+			setupLog.Error(err, "unable to update validation webhook configuration")
+			os.Exit(1)
+		}
+
+		return
+	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
@@ -90,32 +125,6 @@ func main() {
 
 	// Setup the validation webhook
 	if enableWebhooks {
-		setupLog.Info("Setting up certificates for webhook")
-		caCert, err := certificates.SetupCertificates(certDir)
-		if err != nil {
-			setupLog.Error(err, "unable to setup certificates for webhook")
-			os.Exit(1)
-		}
-
-		config, err := ctrl.GetConfig()
-		if err != nil {
-			setupLog.Error(err, "unable to get kubeconfig")
-			os.Exit(1)
-		}
-
-		kubeClient, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			setupLog.Error(err, "unable to get clientset")
-			os.Exit(1)
-		}
-
-		setupLog.Info("Updating webhook configuration")
-		err = certificates.UpdateValidatingnWebhookConfiguration(kubeClient, caCert)
-		if err != nil {
-			setupLog.Error(err, "unable to update validation webhook configuration")
-			os.Exit(1)
-		}
-
 		setupLog.Info("Setting up webhook with manager")
 		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to setup webhook with manager")
