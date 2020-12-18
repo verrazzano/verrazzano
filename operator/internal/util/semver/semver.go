@@ -15,11 +15,11 @@ const semverRegex = "^[v|V](0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:
 
 // SemVersion Implements a basic notion a semantic version (see https://semver.org/, test page: https://regex101.com/r/vkijKf/1/)
 type SemVersion struct {
-	Major         int64
-	Minor         int64
-	Patch         int64
-	Prerelease    string
-	Build         string
+	Major      int64
+	Minor      int64
+	Patch      int64
+	Prerelease string
+	Build      string
 }
 
 var compiledRegEx *regexp.Regexp = nil
@@ -86,11 +86,11 @@ func NewSemVersion(version string) (*SemVersion, error) {
 		buildVer = versionComponents[5]
 	}
 	semVersion := SemVersion{
-		Major:         majorVer,
-		Minor:         minorVer,
-		Patch:         patchVer,
-		Prerelease:    prereleaseVer,
-		Build:         buildVer,
+		Major:      majorVer,
+		Minor:      minorVer,
+		Patch:      patchVer,
+		Prerelease: prereleaseVer,
+		Build:      buildVer,
 	}
 	return &semVersion, nil
 }
@@ -125,6 +125,7 @@ func (v *SemVersion) IsLessThan(from *SemVersion) bool {
 	return v.CompareTo(from) < 0
 }
 
+// ToString Convert to a valid semver string representation
 func (v *SemVersion) ToString() string {
 	return fmt.Sprintf("%v.%v.%v", v.Major, v.Minor, v.Patch)
 }
@@ -142,4 +143,3 @@ func compareVersion(v1 int64, v2 int64) int {
 	}
 	return 0
 }
-

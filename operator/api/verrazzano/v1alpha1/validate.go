@@ -42,7 +42,7 @@ func getCurrentChartVersion() (*semver.SemVersion, error) {
 
 // ValidateVersion check that requestedVersion matches chart requestedVersion
 func ValidateVersion(requestedVersion string) error {
-	if env.IsCheckVersionDisabled() {
+	if !env.IsVersionCheckEnabled() {
 		zap.S().Infof("Version validation disabled")
 		return nil
 	}
@@ -65,7 +65,7 @@ func ValidateVersion(requestedVersion string) error {
 
 // ValidateUpgradeRequest Ensures that for the upgrade case only the version field has changed
 func ValidateUpgradeRequest(currentSpec *VerrazzanoSpec, newSpec *VerrazzanoSpec) error {
-	if env.IsCheckVersionDisabled() {
+	if !env.IsVersionCheckEnabled() {
 		zap.S().Infof("Version validation disabled")
 		return nil
 	}

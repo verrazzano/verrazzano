@@ -73,8 +73,8 @@ func TestCreateCallbackFailsWithInvalidVersion(t *testing.T) {
 // WHEN an invalid version is provided and webhook validation is disabled
 // THEN no error is returned
 func TestCreateCallbackWithInvalidVersionValidationDisabled(t *testing.T) {
-	os.Setenv(env.DisableWebHookValidation, "true")
-	defer os.Unsetenv(env.DisableWebHookValidation)
+	os.Setenv(env.WebHookValidationEnabled, "false")
+	defer os.Unsetenv(env.WebHookValidationEnabled)
 	assert.NoError(t, runCreateCallbackWithInvalidVersion(t))
 }
 
@@ -190,8 +190,8 @@ func TestUpdateCallbackFailsWithInvalidNewVersion(t *testing.T) {
 // WHEN an invalid version is provided and webhook validation is disabled
 // THEN no error is returned
 func TestUpdateCallbackWithInvalidNewVersionValidationDisabled(t *testing.T) {
-	os.Setenv(env.DisableWebHookValidation, "true")
-	defer os.Unsetenv(env.DisableWebHookValidation)
+	os.Setenv(env.WebHookValidationEnabled, "false")
+	defer os.Unsetenv(env.WebHookValidationEnabled)
 	assert.NoError(t, runUpdateWithInvalidVersionTest(t))
 }
 
@@ -231,8 +231,8 @@ func TestUpdateCallbackFailsChangeProfile(t *testing.T) {
 // WHEN the profile is changed and webhook validation is disabled
 // THEN no error is returned
 func TestUpdateCallbackChangeProfileValidationDisabled(t *testing.T) {
-	os.Setenv(env.DisableWebHookValidation, "true")
-	defer os.Unsetenv(env.DisableWebHookValidation)
+	os.Setenv(env.WebHookValidationEnabled, "false")
+	defer os.Unsetenv(env.WebHookValidationEnabled)
 	assert.NoError(t, runUpdateCallbackChangedProfileTest())
 }
 
@@ -272,8 +272,8 @@ func TestDeleteCallbackSuccess(t *testing.T) {
 // WHEN webhook validation is disabled
 // THEN no error is returned
 func TestDeleteCallbackDisabled(t *testing.T) {
-	os.Setenv(env.DisableWebHookValidation, "true")
-	defer os.Unsetenv(env.DisableWebHookValidation)
+	os.Setenv(env.WebHookValidationEnabled, "false")
+	defer os.Unsetenv(env.WebHookValidationEnabled)
 	assert.NoError(t, runDeleteCallbackTest())
 }
 

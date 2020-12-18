@@ -356,8 +356,8 @@ func TestValidVersionWithIngressChange(t *testing.T) {
 // WHEN the new version is valid and the Ingress component is changed, but version checking is disabled
 // THEN no error is returned from ValidateUpgradeRequest
 func TestValidVersionWithIngressChangeVersionCheckDisabled(t *testing.T) {
-	os.Setenv(env.CheckVersionDisabled, "true")
-	defer os.Unsetenv(env.CheckVersionDisabled)
+	os.Setenv(env.CheckVersionEnabled, "false")
+	defer os.Unsetenv(env.CheckVersionEnabled)
 	assert.NoError(t, runValidateWithIngressChangeTest())
 }
 
@@ -483,8 +483,8 @@ func TestGetCurrentChartVersionBadYAML(t *testing.T) {
 // WHEN the version provided is not valid version and checking is disabled
 // THEN no error is returned
 func TestValidateVersionInvalidVersionCheckingDisabled(t *testing.T) {
-	os.Setenv(env.CheckVersionDisabled, "true")
-	defer os.Unsetenv(env.CheckVersionDisabled)
+	os.Setenv(env.CheckVersionEnabled, "false")
+	defer os.Unsetenv(env.CheckVersionEnabled)
 	assert.NoError(t, ValidateVersion("blah"))
 }
 

@@ -26,7 +26,7 @@ func (v *Verrazzano) ValidateCreate() error {
 	log := zap.S().With("source", "webhook", "operation", "create", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
 	log.Info("Validate create")
 
-	if env.IsValidationDisabled() {
+	if !env.IsValidationEnabled() {
 		log.Info("Validation disabled, skipping")
 		return nil
 	}
@@ -43,7 +43,7 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	log := zap.S().With("source", "webhook", "operation", "update", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
 	log.Info("Validate update")
 
-	if env.IsValidationDisabled() {
+	if !env.IsValidationEnabled() {
 		log.Info("Validation disabled, skipping")
 		return nil
 	}
@@ -71,7 +71,7 @@ func (v *Verrazzano) ValidateDelete() error {
 	log := zap.S().With("source", "webhook", "operation", "delete", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
 	log.Info("Validate delete")
 
-	if env.IsValidationDisabled() {
+	if !env.IsValidationEnabled() {
 		log.Info("Validation disabled, skipping")
 		return nil
 	}
