@@ -9,7 +9,7 @@ import (
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/controllers"
-	"github.com/verrazzano/verrazzano/operator/internal/certificates"
+	"github.com/verrazzano/verrazzano/operator/internal/certificate"
 	"github.com/verrazzano/verrazzano/operator/internal/util/log"
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
@@ -91,7 +91,7 @@ func main() {
 	// Setup the validation webhook
 	if enableWebhooks {
 		setupLog.Info("Setting up certificates for webhook")
-		caCert, err := certificates.SetupCertificates(certDir)
+		caCert, err := certificate.SetupCertificates(certDir)
 		if err != nil {
 			setupLog.Error(err, "unable to setup certificates for webhook")
 			os.Exit(1)
@@ -110,7 +110,7 @@ func main() {
 		}
 
 		setupLog.Info("Updating webhook configuration")
-		err = certificates.UpdateValidatingnWebhookConfiguration(kubeClient, caCert)
+		err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, caCert)
 		if err != nil {
 			setupLog.Error(err, "unable to update validation webhook configuration")
 			os.Exit(1)
