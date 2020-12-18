@@ -79,7 +79,7 @@ spec:
               key: password
         - name: MYSQL_DATABASE
           value: books
-        image: "mysql:8.0.20"
+        image: "ghcr.io/verrazzano/mysql:8.0.20"
         imagePullPolicy: IfNotPresent
         name: mysql
         ports:
@@ -93,8 +93,6 @@ spec:
         - mountPath: /docker-entrypoint-initdb.d
           name: mysql-initdb
       dnsPolicy: ClusterFirst
-      imagePullSecrets:
-      - name: ocr
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext: {}

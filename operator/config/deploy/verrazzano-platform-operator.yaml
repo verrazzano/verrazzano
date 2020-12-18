@@ -42,6 +42,19 @@ spec:
       labels:
         app: verrazzano-platform-operator
     spec:
+      initContainers:
+        - name: webhook-init
+          image: IMAGE_NAME
+          imagePullPolicy: IfNotPresent
+          args:
+            - --zap-log-level=info
+            - --init-webhooks=true
+          env:
+            - name: MODE
+              value: RUN_OPERATOR
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
       containers:
         - name: verrazzano-platform-operator
           imagePullPolicy: IfNotPresent
@@ -60,6 +73,7 @@ spec:
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
+              readOnly: true
           resources:
             requests:
               memory: 72Mi

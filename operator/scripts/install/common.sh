@@ -55,7 +55,7 @@ function get_rancher_access_token {
   # the scenarios we want (e.g. connection errors)
   until [ $retries -ge 10 ]
   do
-    ARGS=(-k --connect-timeout 30 \
+    ARGS=(-k --connect-timeout 30 $(get_rancher_resolve ${rancher_hostname}) \
     -d '{"Username":"admin", "Password":"'$rancher_password'"}' \
     -H "Content-Type: application/json" \
     -X POST https://$rancher_hostname/v3-public/localProviders/local?action=login)
@@ -85,7 +85,7 @@ function get_rancher_access_token {
   local retries=0
   until [ "$retries" -ge 10 ]
   do
-    ARGS=(-k --connect-timeout 30 \
+    ARGS=(-k --connect-timeout 30 $(get_rancher_resolve ${rancher_hostname}) \
     -d '{"type":"token", "description":"automation"}' \
     -H "Content-Type: application/json"
     -H "Authorization: Bearer ${rancher_admin_token}" \
@@ -246,6 +246,7 @@ KEYCLOAK_CHART_VERSION=8.2.2
 
 KEYCLOAK_THEME_IMAGE=ghcr.io/verrazzano/keycloak-oracle-theme:0.7.0-20201210185422-c4ff48c
 
+MYSQL_IMAGE=ghcr.io/verrazzano/mysql
 MYSQL_IMAGE_TAG=8.0.20
 
 NGINX_INGRESS_CONTROLLER_IMAGE=ghcr.io/verrazzano/nginx-ingress-controller

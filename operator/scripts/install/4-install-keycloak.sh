@@ -38,6 +38,7 @@ function install_mysql {
 
   log "Update MySQL configuration template"
   sed -e "s|MYSQL_IMAGE_TAG|${MYSQL_IMAGE_TAG}|g" \
+      -e "s|MYSQL_IMAGE|${MYSQL_IMAGE}|g" \
       -e "s|MYSQL_USERNAME|${MYSQL_USERNAME}|g" \
       $SCRIPT_DIR/config/mysql-values-template.yaml > ${TMP_DIR}/mysql-values-sed.yaml
 
@@ -110,48 +111,6 @@ function install_keycloak {
   kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
 }
 
-function set_rancher_server_url
-{
-    local rancher_host_name="rancher.${ENV_NAME}.${DNS_SUFFIX}"
-    local rancher_server_url="https://${rancher_host_name}"
-    echo "Get Rancher admin password."
-    rancher_admin_password=$(kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password})
-    if [ $? -ne 0 ]; then
-      echo "Failed to get Rancher admin password. Continuing without setting Rancher server URL."
-      return 0
-    fi
-    rancher_admin_password=$(echo ${rancher_admin_password} | base64 --decode)
-    if [ $? -ne 0 ]; then
-      echo "Failed to decode Rancher admin password. Continuing without setting Rancher server URL."
-      return 0
-    fi
-    echo "Get Rancher access token."
-    get_rancher_access_token "${rancher_host_name}" "${rancher_admin_password}"
-    if [ $? -ne 0 ] ; then
-      echo "Failed to get Rancher access token. Continuing without setting Rancher server URL."
-      return 0
-    fi
-
-    if [ -z "${RANCHER_ACCESS_TOKEN}" ]; then
-      echo "Failed to get valid Rancher access token. Continuing without setting Rancher server URL."
-      return 0
-    fi
-    echo "Set Rancher server URL to ${rancher_server_url}"
-    curl_args=("${rancher_server_url}/v3/settings/server-url" \
-          -H 'content-type: application/json' \
-          -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" \
-          -X PUT \
-          --data-binary '{"name":"server-url","value":"'${rancher_server_url}'"}' \
-          --insecure)
-    call_curl 200 http_response http_status curl_args || true
-    if [ ${http_status:--1} -ne 200 ]; then
-      echo "Failed to set Rancher server URL. Continuing without setting Rancher server URL."
-      return 0
-    else
-      echo "Successfully set Rancher server URL."
-    fi
-}
-
 DNS_TARGET_NAME=verrazzano-ingress.${ENV_NAME}.${DNS_SUFFIX}
 REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 
@@ -165,7 +124,6 @@ action "Installing MySQL" install_mysql
   fi
 
 action "Installing Keycloak" install_keycloak || exit 1
-action "Setting Rancher Server URL" set_rancher_server_url || true
 
 rm -rf $TMP_DIR
 

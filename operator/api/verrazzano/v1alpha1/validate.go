@@ -126,7 +126,7 @@ func ValidateActiveInstall(client client.Client) error {
 // ValidateInProgress makes sure there is not an install or upgrade in progress
 func ValidateInProgress(state StateType) error {
 	if state == Installing || state == Upgrading {
-		return fmt.Errorf("Updates to resource not allowed while install or an upgrade is in in progress")
+		return fmt.Errorf("Updates to resource not allowed while install or an upgrade is in progress")
 	}
 
 	return nil
