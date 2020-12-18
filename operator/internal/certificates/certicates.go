@@ -28,8 +28,8 @@ const (
 	OperatorNamespace = "verrazzano-install"
 )
 
-// CreateCertificates creates the needed certificates for the validating webhook
-func CreateCertificates(certDir string) (*bytes.Buffer, error) {
+// CreateWebhookCertificates creates the needed certificates for the validating webhook
+func CreateWebhookCertificates(certDir string) (*bytes.Buffer, error) {
 	var caPEM, serverCertPEM, serverPrivKeyPEM *bytes.Buffer
 
 	commonName := fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace)
