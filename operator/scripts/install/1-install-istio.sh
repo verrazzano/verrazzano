@@ -104,7 +104,7 @@ function install_istio()
         --set grafana.image.repository=$GRAFANA_REPO \
         --set grafana.image.tag=$GRAFANA_TAG \
         --set prometheus.hub=$GLOBAL_HUB_REPO \
-        --set prometheus.tag=v2.13.1 \
+        --set prometheus.tag=$PROMETHEUS_TAG \
         --set istiocoredns.coreDNSImage=$ISTIO_CORE_DNS_IMAGE \
         --set istiocoredns.coreDNSTag=$ISTIO_CORE_DNS_TAG \
         --set istiocoredns.coreDNSPluginImage=$ISTIO_CORE_DNS_PLUGIN_IMAGE:$ISTIO_CORE_DNS_PLUGIN_TAG \
@@ -119,7 +119,7 @@ function install_istio()
         ${EXTRA_HELM_ARGUMENTS} \
         > ${TMP_DIR}/istio.yaml || return $?
 
-    log "Change to use the OLCNE image for kubectl then install the istio CRDs"
+    log "Change to use the Istio image for kubectl then install the istio CRDs"
     sed "s|/kubectl:|/istio_kubectl:|g" ${TMP_DIR}/istio-crds.yaml | kubectl apply -f - || return $?
 
     log "Wait for istio CRD creation jobs to complete"
@@ -128,7 +128,7 @@ function install_istio()
       return 1
     fi
 
-    log "Change to use the OLCNE image for kubectl then install istio proper"
+    log "Change to use the Istio image for kubectl then install istio proper"
     sed "s|/kubectl:|/istio_kubectl:|g" ${TMP_DIR}/istio.yaml | kubectl apply -f - || return $?
 
 }
