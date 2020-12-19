@@ -86,7 +86,7 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (newResource *Verrazzano) ValidateDelete() error {
+func (v *Verrazzano) ValidateDelete() error {
 
 	// Webhook is not configured for deletes so function will not be called.
 	return nil
