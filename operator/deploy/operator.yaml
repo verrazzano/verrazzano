@@ -63,14 +63,6 @@ spec:
             - containerPort: 9443
               name: webhook
               protocol: TCP
-          readinessProbe:
-            httpGet:
-              path: /validate-install-verrazzano-io-v1alpha1-verrazzano
-              port: webhook
-              scheme: HTTPS
-              httpHeaders:
-                - name: Content-Type
-                  value: application/json
           startupProbe:
             httpGet:
               path: /validate-install-verrazzano-io-v1alpha1-verrazzano
