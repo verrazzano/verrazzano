@@ -30,6 +30,11 @@ func (v *Verrazzano) ValidateCreate() error {
 	log := zap.S().With("source", "webhook", "operation", "create", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
 	log.Info("Validate create")
 
+	if !env.IsValidationEnabled() {
+		log.Info("Validation disabled, skipping")
+		return nil
+	}
+
 	client, err := getControllerRuntimeClient()
 	if err != nil {
 		return err
@@ -38,11 +43,6 @@ func (v *Verrazzano) ValidateCreate() error {
 	// Validate that only one install is allowed.
 	if err := ValidateActiveInstall(client); err != nil {
 		return err
-	}
-
-	if !env.IsValidationEnabled() {
-		log.Info("Validation disabled, skipping")
-		return nil
 	}
 
 	if err := ValidateVersion(v.Spec.Version); err != nil {

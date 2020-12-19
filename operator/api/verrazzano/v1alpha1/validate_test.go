@@ -546,17 +546,21 @@ func TestValidateActiveInstallFail(t *testing.T) {
 	}
 }
 
-// TestValidateInProgress tests that an install or upgrade is not in progress
+// TestValidateInProgress tests that an install, uninstall or upgrade is not in progress
 // GIVEN various Verrrazzano resource states
 // THEN ensure TestValidateInProgress returns correctly
 func TestValidateInProgress(t *testing.T) {
 	assert.NoError(t, ValidateInProgress(Ready))
 	err := ValidateInProgress(Installing)
 	if assert.Error(t, err) {
-		assert.Equal(t, "Updates to resource not allowed while install or an upgrade is in progress", err.Error())
+		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
+	}
+	err = ValidateInProgress(Uninstalling)
+	if assert.Error(t, err) {
+		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
 	}
 	err = ValidateInProgress(Upgrading)
 	if assert.Error(t, err) {
-		assert.Equal(t, "Updates to resource not allowed while install or an upgrade is in progress", err.Error())
+		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
 	}
 }
