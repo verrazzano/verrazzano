@@ -4,11 +4,14 @@
 package v1alpha1
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/operator/internal/util/env"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/operator/internal/util/env"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const webhookTestValidChartYAML = `
@@ -31,6 +34,12 @@ func TestCreateCallbackSuccessWithVersion(t *testing.T) {
 	defer func() {
 		readFileFunction = ioutil.ReadFile
 	}()
+
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme()), nil
+	}
+	defer func() { getControllerRuntimeClient = getClient }()
+
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version: "v0.6.0",
@@ -52,6 +61,12 @@ func TestCreateCallbackSuccessWithoutVersion(t *testing.T) {
 	defer func() {
 		readFileFunction = ioutil.ReadFile
 	}()
+
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme()), nil
+	}
+	defer func() { getControllerRuntimeClient = getClient }()
+
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Profile: "dev",
@@ -87,6 +102,12 @@ func runCreateCallbackWithInvalidVersion(t *testing.T) error {
 	defer func() {
 		readFileFunction = ioutil.ReadFile
 	}()
+
+	getControllerRuntimeClient = func() (client.Client, error) {
+		return fake.NewFakeClientWithScheme(newScheme()), nil
+	}
+	defer func() { getControllerRuntimeClient = getClient }()
+
 	currentSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{
 			Version: "v0.7.0",

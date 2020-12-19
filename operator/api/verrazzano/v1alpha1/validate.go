@@ -4,13 +4,16 @@
 package v1alpha1
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"reflect"
+
 	"github.com/verrazzano/verrazzano/operator/internal/util/env"
 	"github.com/verrazzano/verrazzano/operator/internal/util/semver"
 	"go.uber.org/zap"
-	"io/ioutil"
-	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
@@ -106,5 +109,30 @@ func ValidateUpgradeRequest(currentSpec *VerrazzanoSpec, newSpec *VerrazzanoSpec
 		!reflect.DeepEqual(newSpec.Components, currentSpec.Components) {
 		return errors.New("Configuration updates not allowed during upgrade between Verrazzano versions")
 	}
+	return nil
+}
+
+// ValidateActiveInstall enforces that only one install of Verrazzano is allowed.
+func ValidateActiveInstall(client client.Client) error {
+	vzList := &VerrazzanoList{}
+
+	err := client.List(context.Background(), vzList)
+	if err != nil {
+		return err
+	}
+
+	if len(vzList.Items) != 0 {
+		return fmt.Errorf("Only one install of Verrazzano is allowed")
+	}
+
+	return nil
+}
+
+// ValidateInProgress makes sure there is not an install, uninstall or upgrade in progress
+func ValidateInProgress(state StateType) error {
+	if state == Installing || state == Uninstalling || state == Upgrading {
+		return fmt.Errorf("Updates to resource not allowed while install, uninstall or upgrade is in progress")
+	}
+
 	return nil
 }

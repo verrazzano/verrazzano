@@ -406,6 +406,9 @@ spec:
                   - type
                   type: object
                 type: array
+              state:
+                description: State of the Verrazzano custom resource
+                type: string
               version:
                 description: The version of Verrazzano that is installed
                 type: string

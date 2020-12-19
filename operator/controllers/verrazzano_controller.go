@@ -408,9 +408,22 @@ func (r *VerrazzanoReconciler) updateStatus(log *zap.SugaredLogger, cr *installv
 			t.Year(), t.Month(), t.Day(),
 			t.Hour(), t.Minute(), t.Second()),
 	}
-
 	cr.Status.Conditions = append(cr.Status.Conditions, condition)
-	log.Infof("Setting verrazzano resource condition type/status: %v/%v", condition.Type, condition.Status)
+
+	// Set the state of resource
+	switch conditionType {
+	case installv1alpha1.InstallStarted:
+		cr.Status.State = installv1alpha1.Installing
+	case installv1alpha1.UninstallStarted:
+		cr.Status.State = installv1alpha1.Uninstalling
+	case installv1alpha1.UpgradeStarted:
+		cr.Status.State = installv1alpha1.Upgrading
+	case installv1alpha1.InstallComplete, installv1alpha1.UninstallComplete, installv1alpha1.UpgradeComplete:
+		cr.Status.State = installv1alpha1.Ready
+	case installv1alpha1.InstallFailed, installv1alpha1.UpgradeFailed, installv1alpha1.UninstallFailed:
+		cr.Status.State = installv1alpha1.Failed
+	}
+	log.Infof("Setting verrazzano resource condition and state: %v/%v", condition.Type, cr.Status.State)
 
 	// Update the status
 	err := r.Status().Update(context.TODO(), cr)
