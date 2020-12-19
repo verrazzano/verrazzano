@@ -2,7 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def availableRegions = [ “us-ashburn-1”, “eu-frankfurt-1", “uk-london-1”, “us-phoenix-1" ] 
+def availableRegions = [ “us-ashburn-1”, “eu-frankfurt-1", “uk-london-1”, “us-phoenix-1" ]
 Collections.shuffle(availableRegions)
 
 pipeline {
