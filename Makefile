@@ -173,7 +173,7 @@ docker-push: docker-build
 #
 .PHONY: unit-test
 unit-test: go-install
-	$(GO) test -v  ./operator/internal/... ./operator/controllers/...
+	$(GO) test -v  ./operator/internal/... ./operator/controllers/... ./operator/api/...
 
 .PHONY: coverage
 coverage: unit-test

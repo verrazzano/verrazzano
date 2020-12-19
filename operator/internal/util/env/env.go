@@ -10,7 +10,11 @@ import (
 
 const vzRootDir = "VZ_ROOT_DIR"
 
-const checkVersion = "VZ_CHECK_VERSION"
+// CheckVersionEnabled Disable version checking
+const CheckVersionEnabled = "VZ_CHECK_VERSION"
+
+// WebHookValidationEnabled Disable webhook validation without removing the webhook itself
+const WebHookValidationEnabled = "VZ_VALIDATION_ENABLED"
 
 var getEnvFunc func(string) string = os.Getenv
 
@@ -34,7 +38,12 @@ func VzChartDir() string {
 	return "/verrazzano/install/chart"
 }
 
-// IsCheckVersionRequired If true, perform version checks on upgrade
-func IsCheckVersionRequired() bool {
-	return getEnvFunc(checkVersion) != "false"
+// IsVersionCheckEnabled If true, perform version checks on upgrade
+func IsVersionCheckEnabled() bool {
+	return getEnvFunc(CheckVersionEnabled) != "false"
+}
+
+// IsValidationEnabled If true, enable the webhook validation logic
+func IsValidationEnabled() bool {
+	return getEnvFunc(WebHookValidationEnabled) != "false"
 }

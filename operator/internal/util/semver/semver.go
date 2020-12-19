@@ -15,12 +15,11 @@ const semverRegex = "^[v|V](0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:
 
 // SemVersion Implements a basic notion a semantic version (see https://semver.org/, test page: https://regex101.com/r/vkijKf/1/)
 type SemVersion struct {
-	Major         int64
-	Minor         int64
-	Patch         int64
-	Prerelease    string
-	Build         string
-	VersionString string
+	Major      int64
+	Minor      int64
+	Patch      int64
+	Prerelease string
+	Build      string
 }
 
 var compiledRegEx *regexp.Regexp = nil
@@ -87,12 +86,11 @@ func NewSemVersion(version string) (*SemVersion, error) {
 		buildVer = versionComponents[5]
 	}
 	semVersion := SemVersion{
-		Major:         majorVer,
-		Minor:         minorVer,
-		Patch:         patchVer,
-		Prerelease:    prereleaseVer,
-		Build:         buildVer,
-		VersionString: version,
+		Major:      majorVer,
+		Minor:      minorVer,
+		Patch:      patchVer,
+		Prerelease: prereleaseVer,
+		Build:      buildVer,
 	}
 	return &semVersion, nil
 }
@@ -101,15 +99,35 @@ func NewSemVersion(version string) (*SemVersion, error) {
 // - if from > this, -1 is returned
 // - if from < this, 1 is returned
 // - if they are equal, 0 is returned
-func (to *SemVersion) CompareTo(from *SemVersion) int {
+func (v *SemVersion) CompareTo(from *SemVersion) int {
 	var result int
-	if result = compareVersion(from.Major, to.Major); result == 0 {
-		if result = compareVersion(from.Minor, to.Minor); result == 0 {
-			result = compareVersion(from.Patch, to.Patch)
+	if result = compareVersion(from.Major, v.Major); result == 0 {
+		if result = compareVersion(from.Minor, v.Minor); result == 0 {
+			result = compareVersion(from.Patch, v.Patch)
 			// Ignore pre-release/buildver fields for now
 		}
 	}
 	return result
+}
+
+// IsEqualTo Returns true if to == from
+func (v *SemVersion) IsEqualTo(from *SemVersion) bool {
+	return v.CompareTo(from) == 0
+}
+
+// IsGreatherThan Returns true if to > from
+func (v *SemVersion) IsGreatherThan(from *SemVersion) bool {
+	return v.CompareTo(from) > 0
+}
+
+// IsLessThan Returns true if to < from
+func (v *SemVersion) IsLessThan(from *SemVersion) bool {
+	return v.CompareTo(from) < 0
+}
+
+// ToString Convert to a valid semver string representation
+func (v *SemVersion) ToString() string {
+	return fmt.Sprintf("%v.%v.%v", v.Major, v.Minor, v.Patch)
 }
 
 // Returns
