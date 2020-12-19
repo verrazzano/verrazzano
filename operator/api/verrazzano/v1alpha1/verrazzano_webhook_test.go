@@ -308,17 +308,3 @@ func runDeleteCallbackTest() error {
 	}
 	return deletedSpec.ValidateDelete()
 }
-
-// TestGetClient checks that we can get a controller runtime client
-// GIVEN a controller runtime
-// THEN ensure an error is not returned when getting a controller runtime client
-func TestGetClient(t *testing.T) {
-	getControllerRuntimeClient = func() (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme()), nil
-	}
-	defer func() { getControllerRuntimeClient = getClient }()
-
-	client, err := getClient()
-	assert.NotNil(t, client)
-	assert.NoError(t, err)
-}
