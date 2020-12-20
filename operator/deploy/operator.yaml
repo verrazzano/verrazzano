@@ -44,7 +44,7 @@ spec:
     spec:
       initContainers:
         - name: webhook-init
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20201218235233-48c1ede
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20201219230222-ba1a1f9
           imagePullPolicy: IfNotPresent
           args:
             - --zap-log-level=info
@@ -58,7 +58,7 @@ spec:
       containers:
         - name: verrazzano-platform-operator
           imagePullPolicy: IfNotPresent
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20201218235233-48c1ede
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20201219230222-ba1a1f9
           ports:
             - containerPort: 9443
               name: webhook
@@ -77,7 +77,7 @@ spec:
             - name: MODE
               value: RUN_OPERATOR
             - name: VZ_INSTALL_IMAGE
-              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20201218235233-48c1ede
+              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20201219230222-ba1a1f9
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
@@ -414,6 +414,9 @@ spec:
                   - type
                   type: object
                 type: array
+              state:
+                description: State of the Verrazzano custom resource
+                type: string
               version:
                 description: The version of Verrazzano that is installed
                 type: string

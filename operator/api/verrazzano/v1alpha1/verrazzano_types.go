@@ -71,13 +71,15 @@ type VerrazzanoStatus struct {
 	Version string `json:"version,omitempty"`
 	// The latest available observations of an object's current state.
 	Conditions []Condition `json:"conditions,omitempty"`
+	// State of the Verrazzano custom resource
+	State StateType `json:"state,omitempty"`
 }
 
-// ConditionType identifies the condition of the install/uninstall which can be checked with kubectl wait
+// ConditionType identifies the condition of the install/uninstall/upgrade which can be checked with kubectl wait
 type ConditionType string
 
 const (
-	// InstallStarted is state when an install is in progress.
+	// InstallStarted means an install is in progress.
 	InstallStarted ConditionType = "InstallStarted"
 
 	// InstallComplete means the install job has completed its execution successfully
@@ -86,7 +88,7 @@ const (
 	// InstallFailed means the install job has failed during execution.
 	InstallFailed ConditionType = "InstallFailed"
 
-	// UninstallStarted is state when an uninstall is in progress.
+	// UninstallStarted means an uninstall is in progress.
 	UninstallStarted ConditionType = "UninstallStarted"
 
 	// UninstallComplete means the uninstall job has completed its execution successfully
@@ -95,7 +97,7 @@ const (
 	// UninstallFailed means the uninstall job has failed during execution.
 	UninstallFailed ConditionType = "UninstallFailed"
 
-	// UpgradeStarted means that a Verraazzano upgrade has been started.
+	// UpgradeStarted means that an upgrade has been started.
 	UpgradeStarted ConditionType = "UpgradeStarted"
 
 	// UpgradeFailed means the upgrade has failed during execution.
@@ -118,6 +120,26 @@ type Condition struct {
 	// +optional
 	Message string `json:"message,omitempty"`
 }
+
+// StateType identifies the state of an install/uninstall/upgrade
+type StateType string
+
+const (
+	// Installing is the state when an install is in progress
+	Installing StateType = "Installing"
+
+	// Uninstalling is the state when an uninstall is in progress
+	Uninstalling StateType = "Uninstalling"
+
+	// Upgrading is the state when an upgrade is in progress
+	Upgrading StateType = "Upgrading"
+
+	// Ready is the state when a Verrazzano resource can perform an uninstall or upgrade
+	Ready StateType = "Ready"
+
+	// Failed is the state when an install/uninstall/upgrade has failed
+	Failed StateType = "Failed"
+)
 
 // ComponentSpec contains a set of components used by Verrazzano
 type ComponentSpec struct {

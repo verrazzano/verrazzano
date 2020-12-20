@@ -1,7 +1,7 @@
 // Copyright (c) 2020, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package certificates
+package certificate
 
 import (
 	"bytes"
@@ -43,7 +43,7 @@ func TestCreateWebhookCertificates(t *testing.T) {
 func TestCreateWebhookCertificatesFail(t *testing.T) {
 	assert := assert.New(t)
 
-	_, err := CreateWebhookCertificates("bad-dir")
+	_, err := CreateWebhookCertificates("/bad-dir")
 	assert.Error(err, "error should be returned setting up certificates")
 }
 

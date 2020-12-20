@@ -5,12 +5,16 @@ package v1alpha1
 
 import (
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/operator/internal/util/env"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
+
+var getControllerRuntimeClient = getClient
 
 // SetupWebhookWithManager is used to let the controller manager know about the webhook
 func (v *Verrazzano) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -29,6 +33,16 @@ func (v *Verrazzano) ValidateCreate() error {
 	if !env.IsValidationEnabled() {
 		log.Info("Validation disabled, skipping")
 		return nil
+	}
+
+	client, err := getControllerRuntimeClient()
+	if err != nil {
+		return err
+	}
+
+	// Validate that only one install is allowed.
+	if err := ValidateActiveInstall(client); err != nil {
+		return err
 	}
 
 	if err := ValidateVersion(v.Spec.Version); err != nil {
@@ -52,6 +66,11 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	log.Debugf("oldResource: %v", oldResource)
 	log.Debugf("v: %v", v)
 
+	// Updates are not allowed when an install or an upgrade is in in progress
+	if err := ValidateInProgress(oldResource.Status.State); err != nil {
+		return err
+	}
+
 	// The profile field is immutable
 	if oldResource.Spec.Profile != v.Spec.Profile {
 		return fmt.Errorf("Profile change is not allowed oldResource %s to %s", oldResource.Spec.Profile, v.Spec.Profile)
@@ -68,13 +87,25 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (v *Verrazzano) ValidateDelete() error {
-	log := zap.S().With("source", "webhook", "operation", "delete", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
-	log.Info("Validate delete")
 
-	if !env.IsValidationEnabled() {
-		log.Info("Validation disabled, skipping")
-		return nil
+	// Webhook is not configured for deletes so function will not be called.
+	return nil
+}
+
+// getClient returns a controller runtime client for the Verrazzano resource
+func getClient() (client.Client, error) {
+
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	return client.New(config, client.Options{Scheme: newScheme()})
+}
+
+// newScheme creates a new scheme that includes this package's object for use by client
+func newScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	AddToScheme(scheme)
+	return scheme
 }
