@@ -16,7 +16,7 @@ helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
 helm fetch rancher-stable/rancher --untar=true --version=v2.4.3
 
 helm repo add stable https://charts.helm.sh/stable
-helm fetch stable/mysql --untar=true --version=
+helm fetch stable/mysql --untar=true --version=1.6.9
 
 helm repo add codecentric https://codecentric.github.io/helm-charts
 helm fetch codecentric/keycloak --untar=true --version=8.2.2
