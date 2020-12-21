@@ -71,6 +71,9 @@ spec:
               httpHeaders:
                 - name: Content-Type
                   value: application/json
+              periodSeconds: 5 
+              timeoutSeconds: 3
+              failureThreshold: 15
           args:
             - --zap-log-level=info
           env:
