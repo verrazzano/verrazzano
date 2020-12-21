@@ -91,7 +91,7 @@ verrazzanoAdmissionController:
 console:
   name: verrazzano-console
   imageName: ghcr.io/verrazzano/console-jenkins
-  imageVersion: 0.8.0-20201221061627-008b64d
+  imageVersion: 0.8.0-20201221074355-bfb53f3
 
 rancher:
   rancherURL:
