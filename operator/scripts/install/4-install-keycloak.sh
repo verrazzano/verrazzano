@@ -30,6 +30,8 @@ fi
 DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
 function install_mysql {
+  MYSQL_CHART_DIR=${SCRIPT_DIR}/charts/mysql
+
   log "Check for Keycloak namespace"
   if ! kubectl get namespace ${KEYCLOAK_NS} 2> /dev/null ; then
     log "Create Keycloak namespace"
@@ -46,7 +48,7 @@ function install_mysql {
   local EXTRA_MYSQL_ARGUMENTS=$(get_mysql_helm_args_from_config)
 
   log "Install MySQL helm chart"
-  helm upgrade mysql stable/mysql \
+  helm upgrade mysql ${MYSQL_CHART_DIR} \
       --install \
       --namespace ${KEYCLOAK_NS} \
       --timeout 10m \
@@ -56,6 +58,8 @@ function install_mysql {
 }
 
 function install_keycloak {
+  KEYCLOAK_CHART_DIR=${SCRIPT_DIR}/charts/keycloak
+
   if ! kubectl get secret --namespace ${VERRAZZANO_NS} verrazzano ; then
     error "ERROR: Must run 3-install-verrazzano.sh and then rerun this script."
     exit 1
@@ -80,10 +84,6 @@ function install_keycloak {
     fi
   fi
 
-
-  # Add keycloak helm repo
-  helm repo add codecentric https://codecentric.github.io/helm-charts
-
   if ! kubectl get secret --namespace ${KEYCLOAK_NS} mysql ; then
     error "ERROR installing mysql. Please rerun this script."
     exit 1
@@ -100,7 +100,7 @@ function install_keycloak {
   local EXTRA_KEYCLOAK_ARGUMENTS=$(get_keycloak_helm_args_from_config)
 
   # Install keycloak helm chart
-  helm upgrade keycloak codecentric/keycloak \
+  helm upgrade keycloak ${KEYCLOAK_CHART_DIR} \
       --install \
       --namespace ${KEYCLOAK_NS} \
       --version ${KEYCLOAK_CHART_VERSION} \

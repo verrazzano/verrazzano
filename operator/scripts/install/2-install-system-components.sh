@@ -14,7 +14,7 @@ set -eu
 
 function install_nginx_ingress_controller()
 {
-    NGINX_INGRESS_DIR=${SCRIPT_DIR}/charts/nginx-ingress
+    NGINX_INGRESS_CHART_DIR=${SCRIPT_DIR}/charts/nginx-ingress
 
     # Create the namespace for nginx
     if ! kubectl get namespace ingress-nginx ; then
@@ -33,7 +33,7 @@ function install_nginx_ingress_controller()
       EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.'external-dns\.alpha\.kubernetes\.io/hostname'=verrazzano-ingress.${NAME}.${dns_zone}"
     fi
 
-    helm upgrade ingress-controller ${NGINX_INGRESS_DIR} --install \
+    helm upgrade ingress-controller ${NGINX_INGRESS_CHART_DIR} --install \
       --set controller.image.repository=$NGINX_INGRESS_CONTROLLER_IMAGE \
       --set controller.image.tag=$NGINX_INGRESS_CONTROLLER_TAG \
       --set controller.config.client-body-buffer-size=64k \
@@ -120,7 +120,7 @@ spec:
 
 function install_cert_manager()
 {
-    CERT_MANAGER_DIR=${SCRIPT_DIR}/charts/cert-manager
+    CERT_MANAGER_CHART_DIR=${SCRIPT_DIR}/charts/cert-manager
 
     # Create the namespace for cert-manager
     if ! kubectl get namespace cert-manager ; then
@@ -135,7 +135,7 @@ function install_cert_manager()
       EXTRA_CERT_MANAGER_ARGUMENTS="--set clusterResourceNamespace=$(get_config_value ".certificates.ca.clusterResourceNamespace")"
     fi
 
-    helm upgrade cert-manager ${CERT_MANAGER_DIR} \
+    helm upgrade cert-manager ${CERT_MANAGER_CHART_DIR} \
         --install \
         --namespace cert-manager \
         --version $CERT_MANAGER_HELM_CHART_VERSION \
@@ -200,7 +200,7 @@ function install_external_dns()
 
 function install_rancher()
 {
-    RANCHER_DIR=${SCRIPT_DIR}/charts/rancher
+    RANCHER_CHART_DIR=${SCRIPT_DIR}/charts/rancher
 
     log "Create Rancher namespace (if required)"
     if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
@@ -223,7 +223,7 @@ function install_rancher()
 
     log "Install Rancher"
     # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
-    helm upgrade rancher ${RANCHER_DIR} \
+    helm upgrade rancher ${RANCHER_CHART_DIR} \
       --install --namespace cattle-system \
       --version $RANCHER_VERSION  \
       --set systemDefaultRegistry=ghcr.io/verrazzano \

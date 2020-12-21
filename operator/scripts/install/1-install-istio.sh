@@ -65,8 +65,8 @@ function create_secret {
 
 function install_istio()
 {
-    ISTIO_INIT_DIR=${SCRIPT_DIR}/charts/istio-init
-    ISTIO_DIR=${SCRIPT_DIR}/charts/istio
+    ISTIO_INIT_CHART_DIR=${SCRIPT_DIR}/charts/istio-init
+    ISTIO_CHART_DIR=${SCRIPT_DIR}/charts/istio
 
     EXTRA_ISTIO_ARGUMENTS=""
     if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
@@ -74,7 +74,7 @@ function install_istio()
     fi
 
     log "Create helm template for installing istio CRDs"
-    helm template istio-init ${ISTIO_INIT_DIR} \
+    helm template istio-init ${ISTIO_INIT_CHART_DIR} \
         --namespace istio-system \
         --set global.hub=$GLOBAL_HUB_REPO \
         --set global.tag=$ISTIO_VERSION \
@@ -90,7 +90,7 @@ function install_istio()
     EXTRA_HELM_ARGUMENTS="$EXTRA_HELM_ARGUMENTS $(get_istio_helm_args_from_config)"
 
     log "Create helm template for installing istio proper"
-    helm template istio ${ISTIO_DIR} \
+    helm template istio ${ISTIO_CHART_DIR} \
         --namespace istio-system \
         --set global.hub=$GLOBAL_HUB_REPO \
         --set global.tag=$ISTIO_VERSION \
@@ -111,7 +111,7 @@ function install_istio()
         --set gateways.istio-ingressgateway.ports[1].port=443 \
         --set gateways.istio-ingressgateway.ports[1].name=https \
         --set gateways.istio-ingressgateway.ports[1].nodePort=31390 \
-        --values ${ISTIO_DIR}/example-values/values-istio-multicluster-gateways.yaml \
+        --values ${ISTIO_CHART_DIR}/example-values/values-istio-multicluster-gateways.yaml \
         ${EXTRA_HELM_ARGUMENTS} \
         > ${TMP_DIR}/istio.yaml || return $?
 
