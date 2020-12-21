@@ -66,26 +66,26 @@ func main() {
 		setupLog.Info("Setting up certificates for webhook")
 		caCert, err := certificate.CreateWebhookCertificates(certDir)
 		if err != nil {
-			setupLog.Error(err, "unable to setup certificates for webhook")
+			setupLog.Errorf("unable to setup certificates for webhook: %v", err)
 			os.Exit(1)
 		}
 
 		config, err := ctrl.GetConfig()
 		if err != nil {
-			setupLog.Error(err, "unable to get kubeconfig")
+			setupLog.Errorf("unable to get kubeconfig: %v", err)
 			os.Exit(1)
 		}
 
 		kubeClient, err := kubernetes.NewForConfig(config)
 		if err != nil {
-			setupLog.Error(err, "unable to get clientset")
+			setupLog.Errorf("unable to get client: %v", err)
 			os.Exit(1)
 		}
 
 		setupLog.Info("Updating webhook configuration")
 		err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, caCert)
 		if err != nil {
-			setupLog.Error(err, "unable to update validation webhook configuration")
+			setupLog.Errorf("unable to update validation webhook configuration: %v", err)
 			os.Exit(1)
 		}
 
@@ -100,7 +100,7 @@ func main() {
 		LeaderElectionID:   "3ec4d290.verrazzano.io",
 	})
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
+		setupLog.Errorf("unable to start manager: %v", err)
 		os.Exit(1)
 	}
 
@@ -112,14 +112,14 @@ func main() {
 		DryRun: dryRun,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller")
+		setupLog.Errorf("unable to create controller: %v", err)
 		os.Exit(1)
 	}
 
 	// Watch for the secondary resource (Job).
 	if err := reconciler.Controller.Watch(&source.Kind{Type: &batchv1.Job{}},
 		&handler.EnqueueRequestForOwner{OwnerType: &installv1alpha1.Verrazzano{}, IsController: true}); err != nil {
-		setupLog.Error(err, "unable to set watch for Job resource")
+		setupLog.Errorf("unable to set watch for Job resource: %v", err)
 		os.Exit(1)
 	}
 
@@ -127,7 +127,7 @@ func main() {
 	if enableWebhooks {
 		setupLog.Info("Setting up webhook with manager")
 		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to setup webhook with manager")
+			setupLog.Errorf("unable to setup webhook with manager: %v", err)
 			os.Exit(1)
 		}
 
@@ -138,7 +138,7 @@ func main() {
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
+		setupLog.Errorf("problem running manager: %v", err)
 		os.Exit(1)
 	}
 }
