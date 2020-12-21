@@ -215,7 +215,7 @@ command -v curl >/dev/null 2>&1 || {
 ##################################################
 ####Constants for Docker images, versions, tags
 ##################################################
-GLOBAL_HUB_REPO=container-registry.oracle.com/olcne
+GLOBAL_HUB_REPO=ghcr.io/verrazzano
 GLOBAL_IMAGE_PULL_SECRET=verrazzano-container-registry
 
 CERT_MANAGER_IMAGE=ghcr.io/verrazzano/cert-manager-controller
@@ -230,12 +230,14 @@ EXTERNAL_DNS_VERSION=2.20.0
 EXTERNAL_DNS_TAG=v0.7.1-20201016205338-516bc8b2
 EXTERNAL_DNS_REGISTRY=ghcr.io
 
-GRAFANA_REPO=container-registry.oracle.com/olcne/grafana
+GRAFANA_REPO=ghcr.io/verrazzano/grafana
 GRAFANA_TAG=v6.4.4
+
+PROMETHEUS_TAG=v2.13.1
 
 ISTIO_CORE_DNS_PLUGIN_IMAGE=ghcr.io/verrazzano/istio-coredns-plugin
 ISTIO_CORE_DNS_PLUGIN_TAG=0.2-20201016204812-23723dcb
-ISTIO_CORE_DNS_IMAGE=container-registry.oracle.com/olcne/coredns
+ISTIO_CORE_DNS_IMAGE=ghcr.io/verrazzano/coredns
 ISTIO_CORE_DNS_TAG=1.6.2
 ISTIO_VERSION=1.4.6
 ISTIO_HELM_CHART_VERSION=1.4.10

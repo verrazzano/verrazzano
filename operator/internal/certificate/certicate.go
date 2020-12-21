@@ -1,7 +1,7 @@
 // Copyright (c) 2020, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package certificates
+package certificate
 
 import (
 	"bytes"
@@ -28,8 +28,8 @@ const (
 	OperatorNamespace = "verrazzano-install"
 )
 
-// SetupCertificates creates the needed certificates for the validating webhook
-func SetupCertificates(certDir string) (*bytes.Buffer, error) {
+// CreateWebhookCertificates creates the needed certificates for the validating webhook
+func CreateWebhookCertificates(certDir string) (*bytes.Buffer, error) {
 	var caPEM, serverCertPEM, serverPrivKeyPEM *bytes.Buffer
 
 	commonName := fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace)

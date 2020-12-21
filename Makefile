@@ -120,7 +120,7 @@ manifests: controller-gen
 	./operator/hack/update-codegen-verrazzano.sh
 
 	# Re-generate operator.yaml using template yaml file
-	cat operator/config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|$(shell grep "image:" operator/deploy/operator.yaml | awk '{ print $$2 }')|g" > operator/deploy/operator.yaml
+	cat operator/config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|$(shell grep --max-count=1 "image:" operator/deploy/operator.yaml | awk '{ print $$2 }')|g" > operator/deploy/operator.yaml
 	cat operator/config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> operator/deploy/operator.yaml
 
 # Generate code
@@ -173,7 +173,7 @@ docker-push: docker-build
 #
 .PHONY: unit-test
 unit-test: go-install
-	$(GO) test -v  ./operator/internal/... ./operator/controllers/...
+	$(GO) test -v  ./operator/internal/... ./operator/controllers/... ./operator/api/...
 
 .PHONY: coverage
 coverage: unit-test

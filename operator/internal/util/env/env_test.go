@@ -39,12 +39,30 @@ func TestVzChartDir(t *testing.T) {
 	assert.Equal("/testdir/operator/scripts/install/chart", VzChartDir(), "The chart directory is incorrect")
 }
 
-func TestIsCheckVersionRequired(t *testing.T) {
+// TestIsCheckVersionEnabled tests that when
+// GIVEN env variable VZ_CHECK_VERSION != "false", this function returns true
+//  WHEN I call IsVersionCheckEnabled
+//  THEN the value returned is true if VZ_CHECK_VERSION != "false", otherwise return false
+func TestIsCheckVersionEnabled(t *testing.T) {
 	defer func() { getEnvFunc = os.Getenv }()
 	getEnvFunc = func(string) string { return "false" }
-	assert.False(t, IsCheckVersionRequired())
+	assert.False(t, IsVersionCheckEnabled())
 	getEnvFunc = func(string) string { return "" }
-	assert.True(t, IsCheckVersionRequired())
+	assert.True(t, IsVersionCheckEnabled())
 	getEnvFunc = func(string) string { return "true" }
-	assert.True(t, IsCheckVersionRequired())
+	assert.True(t, IsVersionCheckEnabled())
+}
+
+// TestIsValidationEnabled tests that when
+// GIVEN env variable VZ_VALIDATION_ENABLED != "false", this function returns true
+//  WHEN I call IsVersionCheckEnabled
+//  THEN the value returned is true if VZ_VALIDATION_ENABLED != "false", otherwise return false
+func TestIsValidationEnabled(t *testing.T) {
+	defer func() { getEnvFunc = os.Getenv }()
+	getEnvFunc = func(string) string { return "false" }
+	assert.False(t, IsValidationEnabled())
+	getEnvFunc = func(string) string { return "" }
+	assert.True(t, IsValidationEnabled())
+	getEnvFunc = func(string) string { return "true" }
+	assert.True(t, IsValidationEnabled())
 }
