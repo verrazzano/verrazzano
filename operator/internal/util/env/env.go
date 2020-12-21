@@ -13,9 +13,6 @@ const vzRootDir = "VZ_ROOT_DIR"
 // CheckVersionEnabled Disable version checking
 const CheckVersionEnabled = "VZ_CHECK_VERSION"
 
-// WebHookValidationEnabled Disable webhook validation without removing the webhook itself
-const WebHookValidationEnabled = "VZ_VALIDATION_ENABLED"
-
 var getEnvFunc func(string) string = os.Getenv
 
 // VzRootDir returns the root directory of the verrazzano files on the docker image.

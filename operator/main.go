@@ -8,6 +8,7 @@ import (
 	"os"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
+	config "github.com/verrazzano/verrazzano/operator/config"
 	"github.com/verrazzano/verrazzano/operator/controllers"
 	"github.com/verrazzano/verrazzano/operator/internal/certificate"
 	"github.com/verrazzano/verrazzano/operator/internal/util/log"
@@ -34,20 +35,19 @@ func init() {
 }
 
 func main() {
-	var metricsAddr string
-	var enableLeaderElection bool
-	var certDir string
-	var enableWebhooks bool
-	var initWebhooks bool
 
-	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
+	config := config.Instance()
+
+	flag.StringVar(&config.MetricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	flag.BoolVar(&config.EnableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&certDir, "cert-dir", "/etc/webhook/certs", "The directory containing tls.crt and tls.key.")
-	flag.BoolVar(&enableWebhooks, "enable-webhooks", true,
+	flag.StringVar(&config.CertDir, "cert-dir", "/etc/webhook/certs", "The directory containing tls.crt and tls.key.")
+	flag.BoolVar(&config.EnableWebhooks, "enable-webhooks", true,
 		"Enable webhooks for the operator")
-	flag.BoolVar(&initWebhooks, "init-webhooks", false,
+	flag.BoolVar(&config.EnableWebhookValidation, "enable-webhook-validation", true,
+		"Enable webhooks validation for the operator")
+	flag.BoolVar(&config.InitWebhooks, "init-webhooks", false,
 		"Initialize webhooks for the operator")
 
 	// Add the zap logger flag set to the CLI.
@@ -62,9 +62,9 @@ func main() {
 
 	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the
 	// validatingWebhookConfiguration resource before the operator container runs.
-	if initWebhooks {
+	if config.InitWebhooks {
 		setupLog.Info("Setting up certificates for webhook")
-		caCert, err := certificate.CreateWebhookCertificates(certDir)
+		caCert, err := certificate.CreateWebhookCertificates(config.CertDir)
 		if err != nil {
 			setupLog.Errorf("unable to setup certificates for webhook: %v", err)
 			os.Exit(1)
@@ -94,9 +94,9 @@ func main() {
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
+		MetricsBindAddress: config.MetricsAddr,
 		Port:               9443,
-		LeaderElection:     enableLeaderElection,
+		LeaderElection:     config.EnableLeaderElection,
 		LeaderElectionID:   "3ec4d290.verrazzano.io",
 	})
 	if err != nil {
@@ -124,14 +124,14 @@ func main() {
 	}
 
 	// Setup the validation webhook
-	if enableWebhooks {
+	if config.EnableWebhooks {
 		setupLog.Info("Setting up webhook with manager")
 		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Errorf("unable to setup webhook with manager: %v", err)
 			os.Exit(1)
 		}
 
-		mgr.GetWebhookServer().CertDir = certDir
+		mgr.GetWebhookServer().CertDir = config.CertDir
 	}
 
 	// +kubebuilder:scaffold:builder
