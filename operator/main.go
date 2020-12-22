@@ -50,8 +50,8 @@ func main() {
 		"Enable webhooks validation for the operator")
 	flag.BoolVar(&config.InitWebhooks, "init-webhooks", config.InitWebhooks,
 		"Initialize webhooks for the operator")
-	flag.StringVar(&config.VerrazzanoRootDir, "vz-root-dir", config.VerrazzanoRootDir,
-		"Specify the root directory of verrazzano for dev purposes")
+	flag.StringVar(&config.VerrazzanoInstallDir, "vz-install-dir", config.VerrazzanoInstallDir,
+		"Specify the install directory of verrazzano (used for development)")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}

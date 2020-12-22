@@ -53,9 +53,6 @@ func resolveNamespace(ns string) string {
 // VzChartDir returns the chart directory of the verrazzano helm chart on the docker image.
 // This can be set by developer to run the operator in development outside of kubernetes
 func VzChartDir() string {
-	home := config2.Get().VerrazzanoRootDir
-	if len(home) > 0 {
-		return filepath.Join(home + "/operator/scripts/install/chart")
-	}
-	return "/verrazzano/install/chart"
+	dir := config2.Get().VerrazzanoInstallDir
+	return filepath.Join(dir + "/chart")
 }

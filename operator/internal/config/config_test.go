@@ -23,7 +23,7 @@ func TestConfigDefaults(t *testing.T) {
 	asserts.True(conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
 	asserts.True(conf.WebhooksEnabled, "WebhooksEnabled is incorrect")
 	asserts.True(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
-	asserts.Equal("/verrazzano", conf.VerrazzanoRootDir, "VerrazzanoRootDir is incorrect")
+	asserts.Equal("/verrazzano/install", conf.VerrazzanoInstallDir, "VerrazzanoInstallDir is incorrect")
 }
 
 // TestSetConfig tests setting config values
@@ -41,7 +41,7 @@ func TestSetConfig(t *testing.T) {
 		VersionCheckEnabled:      false,
 		WebhooksEnabled:          false,
 		WebhookValidationEnabled: false,
-		VerrazzanoRootDir:        "/test/vz",
+		VerrazzanoInstallDir:     "/test/vz",
 	})
 
 	conf := Get()
@@ -53,5 +53,5 @@ func TestSetConfig(t *testing.T) {
 	asserts.False(conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
 	asserts.False(conf.WebhooksEnabled, "WebhooksEnabled is incorrect")
 	asserts.False(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
-	asserts.Equal("/test/vz", conf.VerrazzanoRootDir, "VerrazzanoRootDir is incorrect")
+	asserts.Equal("/test/vz", conf.VerrazzanoInstallDir, "VerrazzanoInstallDir is incorrect")
 }

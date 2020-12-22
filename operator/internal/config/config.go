@@ -27,8 +27,8 @@ type OperatorConfig struct {
 	// WebhookValidationEnabled enables/disables webhook validation without removing the webhook itself
 	WebhookValidationEnabled bool
 
-	// The root directory of the verrazzano files in the image
-	VerrazzanoRootDir string
+	// VerrazzanoInstallDir is the directory in the image that contains the helm charts and installation scripts
+	VerrazzanoInstallDir string
 }
 
 // The singleton instance of the operator config
@@ -40,7 +40,7 @@ var instance OperatorConfig = OperatorConfig{
 	VersionCheckEnabled:      true,
 	WebhooksEnabled:          true,
 	WebhookValidationEnabled: true,
-	VerrazzanoRootDir:        "/verrazzano",
+	VerrazzanoInstallDir:     "/verrazzano/install",
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests
