@@ -6,7 +6,6 @@ package helm
 import (
 	"fmt"
 	vz_os "github.com/verrazzano/verrazzano/operator/internal/util/os"
-	"os"
 	"os/exec"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -26,17 +25,7 @@ func Upgrade(releaseName string, namespace string, chartDir string) (stdout []by
 		args = append(args, namespace)
 	}
 
-	// todo inject kubeconfig
-	configPath := os.Getenv("VERRAZZANO_KUBECONFIG")
-	if len(configPath) == 0 {
-		configPath = os.Getenv("KUBECONFIG")
-	}
-	if len(configPath) == 0 {
-		configPath = "/home/verrazzano/kubeconfig"
-	}
-
 	cmd := exec.Command("helm", args...)
-	cmd.Env = append(os.Environ(), "KUBECONFIG="+configPath)
 	stdout, stderr, err = runner.Run(cmd)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Verrazzano helm upgrade failed with stderr: %s\n", string(stderr)))
