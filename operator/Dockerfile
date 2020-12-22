@@ -60,8 +60,9 @@ COPY --from=build_base --chown=verrazzano:verrazzano /usr/bin/verrazzano-platfor
 
 # Copy the Verrazzano install and uninstall scripts
 WORKDIR /verrazzano
-COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/scripts/install ./install
-COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/scripts/uninstall ./uninstall
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/charts ./charts
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/scripts/install ./operator/scripts/install
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/scripts/uninstall ./operator/scripts/uninstall
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/config/scripts/run.sh .
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/config/scripts/kubeconfig-template ./config/kubeconfig-template
 

@@ -14,7 +14,7 @@ set -eu
 
 function install_nginx_ingress_controller()
 {
-    NGINX_INGRESS_CHART_DIR=${SCRIPT_DIR}/charts/nginx-ingress
+    NGINX_INGRESS_CHART_DIR=${CHARTS_DIR}/nginx-ingress
 
     # Create the namespace for nginx
     if ! kubectl get namespace ingress-nginx ; then
@@ -120,7 +120,7 @@ spec:
 
 function install_cert_manager()
 {
-    CERT_MANAGER_CHART_DIR=${SCRIPT_DIR}/charts/cert-manager
+    CERT_MANAGER_CHART_DIR=${CHARTS_DIR}/cert-manager
 
     # Create the namespace for cert-manager
     if ! kubectl get namespace cert-manager ; then
@@ -200,7 +200,7 @@ function install_external_dns()
 
 function install_rancher()
 {
-    RANCHER_CHART_DIR=${SCRIPT_DIR}/charts/rancher
+    RANCHER_CHART_DIR=${CHARTS_DIR}/rancher
 
     log "Create Rancher namespace (if required)"
     if ! kubectl get namespace cattle-system > /dev/null 2>&1; then

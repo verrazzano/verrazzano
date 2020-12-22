@@ -30,7 +30,7 @@ fi
 DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
 function install_mysql {
-  MYSQL_CHART_DIR=${SCRIPT_DIR}/charts/mysql
+  MYSQL_CHART_DIR=${CHARTS_DIR}/mysql
 
   log "Check for Keycloak namespace"
   if ! kubectl get namespace ${KEYCLOAK_NS} 2> /dev/null ; then
@@ -58,7 +58,7 @@ function install_mysql {
 }
 
 function install_keycloak {
-  KEYCLOAK_CHART_DIR=${SCRIPT_DIR}/charts/keycloak
+  KEYCLOAK_CHART_DIR=${CHARTS_DIR}/keycloak
 
   if ! kubectl get secret --namespace ${VERRAZZANO_NS} verrazzano ; then
     error "ERROR: Must run 3-install-verrazzano.sh and then rerun this script."

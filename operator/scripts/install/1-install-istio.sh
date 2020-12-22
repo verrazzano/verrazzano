@@ -65,8 +65,8 @@ function create_secret {
 
 function install_istio()
 {
-    ISTIO_INIT_CHART_DIR=${SCRIPT_DIR}/charts/istio-init
-    ISTIO_CHART_DIR=${SCRIPT_DIR}/charts/istio
+    ISTIO_INIT_CHART_DIR=${CHARTS_DIR}/istio-init
+    ISTIO_CHART_DIR=${CHARTS_DIR}/istio
 
     EXTRA_ISTIO_ARGUMENTS=""
     if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then

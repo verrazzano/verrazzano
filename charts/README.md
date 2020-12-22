@@ -1,6 +1,6 @@
 # Helm Charts
 
-This folder contains the Helm charts used in a Verrazzano installation.
+The Helm charts used by Verrazzano.
 
 ```
 helm fetch istio.io/istio --untar=true --version=1.4.6
