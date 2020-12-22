@@ -138,7 +138,6 @@ function install_cert_manager()
     helm upgrade cert-manager ${CERT_MANAGER_CHART_DIR} \
         --install \
         --namespace cert-manager \
-        --version $CERT_MANAGER_HELM_CHART_VERSION \
         --set image.repository=$CERT_MANAGER_IMAGE \
         --set image.tag=$CERT_MANAGER_TAG \
         --set extraArgs[0]=--acme-http01-solver-image=$CERT_MANAGER_SOLVER_IMAGE:$CERT_MANAGER_SOLVER_TAG \
@@ -175,7 +174,6 @@ function install_external_dns()
     helm upgrade external-dns ${EXTERNAL_DNS_CHART_DIR} \
         --install \
         --namespace cert-manager \
-        --version $EXTERNAL_DNS_VERSION \
         --set image.registry=$EXTERNAL_DNS_REGISTRY \
         --set image.repository=$EXTERNAL_DNS_REPO \
         --set image.tag=$EXTERNAL_DNS_TAG \
@@ -227,7 +225,6 @@ function install_rancher()
     # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
     helm upgrade rancher ${RANCHER_CHART_DIR} \
       --install --namespace cattle-system \
-      --version $RANCHER_VERSION  \
       --set systemDefaultRegistry=ghcr.io/verrazzano \
       --set rancherImage=$RANCHER_IMAGE \
       --set rancherImageTag=$RANCHER_TAG \

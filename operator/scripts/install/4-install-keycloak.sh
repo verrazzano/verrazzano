@@ -103,7 +103,6 @@ function install_keycloak {
   helm upgrade keycloak ${KEYCLOAK_CHART_DIR} \
       --install \
       --namespace ${KEYCLOAK_NS} \
-      --version ${KEYCLOAK_CHART_VERSION} \
       ${EXTRA_HELM_ARGUMENTS} \
       ${EXTRA_KEYCLOAK_ARGUMENTS} \
       --wait \
