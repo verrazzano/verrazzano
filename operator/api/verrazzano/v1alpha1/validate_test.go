@@ -6,12 +6,11 @@ package v1alpha1
 import (
 	"context"
 	"errors"
+	vzconf "github.com/verrazzano/verrazzano/operator/config"
 	"io/ioutil"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/operator/internal/util/env"
 	"github.com/verrazzano/verrazzano/operator/internal/util/semver"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -360,8 +359,8 @@ func TestValidVersionWithIngressChange(t *testing.T) {
 // WHEN the new version is valid and the Ingress component is changed, but version checking is disabled
 // THEN no error is returned from ValidateUpgradeRequest
 func TestValidVersionWithIngressChangeVersionCheckDisabled(t *testing.T) {
-	os.Setenv(env.CheckVersionEnabled, "false")
-	defer os.Unsetenv(env.CheckVersionEnabled)
+	defer vzconf.Set(vzconf.Get())
+	vzconf.Set(vzconf.OperatorConfig{VersionCheckEnabled: false})
 	assert.NoError(t, runValidateWithIngressChangeTest())
 }
 
@@ -487,8 +486,8 @@ func TestGetCurrentChartVersionBadYAML(t *testing.T) {
 // WHEN the version provided is not valid version and checking is disabled
 // THEN no error is returned
 func TestValidateVersionInvalidVersionCheckingDisabled(t *testing.T) {
-	os.Setenv(env.CheckVersionEnabled, "false")
-	defer os.Unsetenv(env.CheckVersionEnabled)
+	defer vzconf.Set(vzconf.Get())
+	vzconf.Set(vzconf.OperatorConfig{VersionCheckEnabled: false})
 	assert.NoError(t, ValidateVersion("blah"))
 }
 

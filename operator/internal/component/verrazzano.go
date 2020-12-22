@@ -4,8 +4,9 @@
 package component
 
 import (
-	"github.com/verrazzano/verrazzano/operator/internal/util/env"
+	"github.com/verrazzano/verrazzano/operator/config"
 	"github.com/verrazzano/verrazzano/operator/internal/util/helm"
+	"path/filepath"
 )
 
 const vzReleaseName = "verrazzano"
@@ -36,7 +37,7 @@ func (v Verrazzano) Name() string {
 // that is included in the operator image, while retaining any helm value overrides that were applied during
 // install.
 func (v Verrazzano) Upgrade(namespace string) error {
-	_, _, err := helm.Upgrade(vzReleaseName, resolveNamespace(namespace), env.VzChartDir())
+	_, _, err := helm.Upgrade(vzReleaseName, resolveNamespace(namespace), VzChartDir())
 	return err
 }
 
@@ -48,3 +49,14 @@ func resolveNamespace(ns string) string {
 	}
 	return vzDefaultNamespace
 }
+
+// VzChartDir returns the chart directory of the verrazzano helm chart on the docker image.
+// This can be set by developer to run the operator in development outside of kubernetes
+func VzChartDir() string {
+	home := config.Get().VerrazzanoRootDir
+	if len(home) > 0 {
+		return filepath.Join(home + "/operator/scripts/install/chart")
+	}
+	return "/verrazzano/install/chart"
+}
+

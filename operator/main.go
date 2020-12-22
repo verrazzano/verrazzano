@@ -8,7 +8,7 @@ import (
 	"os"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
-	config "github.com/verrazzano/verrazzano/operator/config"
+	vzconf "github.com/verrazzano/verrazzano/operator/config"
 	"github.com/verrazzano/verrazzano/operator/controllers"
 	"github.com/verrazzano/verrazzano/operator/internal/certificate"
 	"github.com/verrazzano/verrazzano/operator/internal/util/log"
@@ -36,19 +36,22 @@ func init() {
 
 func main() {
 
-	config := config.Instance()
+	// config will hold the entire operator config
+	config := vzconf.Get()
 
-	flag.StringVar(&config.MetricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.BoolVar(&config.EnableLeaderElection, "enable-leader-election", false,
+	flag.StringVar(&config.MetricsAddr, "metrics-addr", config.MetricsAddr, "The address the metric endpoint binds to.")
+	flag.BoolVar(&config.LeaderElectionEnabled, "enable-leader-election", config.LeaderElectionEnabled,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&config.CertDir, "cert-dir", "/etc/webhook/certs", "The directory containing tls.crt and tls.key.")
-	flag.BoolVar(&config.EnableWebhooks, "enable-webhooks", true,
+	flag.StringVar(&config.CertDir, "cert-dir", config.CertDir, "The directory containing tls.crt and tls.key.")
+	flag.BoolVar(&config.WebhooksEnabled, "enable-webhooks", config.WebhooksEnabled,
 		"Enable webhooks for the operator")
-	flag.BoolVar(&config.EnableWebhookValidation, "enable-webhook-validation", true,
+	flag.BoolVar(&config.WebhookValidationEnabled, "enable-webhook-validation", config.WebhookValidationEnabled,
 		"Enable webhooks validation for the operator")
-	flag.BoolVar(&config.InitWebhooks, "init-webhooks", false,
+	flag.BoolVar(&config.InitWebhooks, "init-webhooks", config.InitWebhooks,
 		"Initialize webhooks for the operator")
+	flag.StringVar(&config.VerrazzanoRootDir, "vz-root-dir", config.VerrazzanoRootDir,
+		"Specify the root directory of verrazzano for dev purposes")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
@@ -57,6 +60,9 @@ func main() {
 	flag.Parse()
 	kzap.UseFlagOptions(&opts)
 	log.InitLogs(opts)
+
+	// Save the config as immutable from this point on.
+	vzconf.Set(config)
 
 	setupLog := zap.S()
 
@@ -96,7 +102,7 @@ func main() {
 		Scheme:             scheme,
 		MetricsBindAddress: config.MetricsAddr,
 		Port:               9443,
-		LeaderElection:     config.EnableLeaderElection,
+		LeaderElection:     config.LeaderElectionEnabled,
 		LeaderElectionID:   "3ec4d290.verrazzano.io",
 	})
 	if err != nil {
@@ -124,7 +130,7 @@ func main() {
 	}
 
 	// Setup the validation webhook
-	if config.EnableWebhooks {
+	if config.WebhooksEnabled {
 		setupLog.Info("Setting up webhook with manager")
 		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Errorf("unable to setup webhook with manager: %v", err)
