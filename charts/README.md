@@ -2,28 +2,75 @@
 
 The Helm charts used by Verrazzano.
 
+## Istio
+
+The `istio` and `istio-init` folders were created by running the following commands:
+
 ```
-helm fetch istio.io/istio --untar=true --version=1.4.6
-helm fetch istio.io/istio-init --untar=true --version=1.4.6
+export ISTIO_HELM_CHART_VERSION=1.4.6
+helm repo add istio.io https://storage.googleapis.com/istio-release/releases/${ISTIO_HELM_CHART_VERSION}/charts
+helm fetch istio.io/istio --untar=true --version=${ISTIO_HELM_CHART_VERSION}
+helm fetch istio.io/istio-init --untar=true --version=${ISTIO_HELM_CHART_VERSION}
+```
 
+## Nginx
+
+The `nginx-ingress` folder was created by running the following commands:
+
+```
+export NGINX_HELM_CHART_VERSION=1.27.0
 helm repo add stable https://charts.helm.sh/stable
-helm fetch stable/nginx-ingress --untar=true --version=1.27.0
+helm fetch stable/nginx-ingress --untar=true --version=${NGINX_HELM_CHART_VERSION}
+```
 
+## Cert-Manager
+
+The `cert-manager` folder was created by running the following commands:
+
+```
+export CERT_MANAGER_CHART_VERSION=v0.13.1
 helm repo add jetstack https://charts.jetstack.io
-helm fetch jetstack/cert-manager --untar=true --version=v0.13.1
+helm fetch jetstack/cert-manager --untar=true --version=${CERT_MANAGER_CHART_VERSION}
+```
 
+## Rancher
+
+The `rancher` folder was created by running the following commands:
+
+```
+export RANCHER_CHART_VERSION=v2.4.3
 helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
-helm fetch rancher-stable/rancher --untar=true --version=v2.4.3
+helm fetch rancher-stable/rancher --untar=true --version=${RANCHER_CHART_VERSION}
+```
 
+## Mysql
+
+The `mysql` folder was created by running the following commands:
+
+```
+export MYSQL_CHART_VERSION=1.6.9
 helm repo add stable https://charts.helm.sh/stable
-helm fetch stable/mysql --untar=true --version=1.6.9
+helm fetch stable/mysql --untar=true --version=${MYSQL_CHART_VERSION}
+```
 
+## KeyCloak
+
+The `keycloak` folder was created by running the following commands:
+
+```
+export KEYCLOAK_CHART_VERSION=8.2.2
 helm repo add codecentric https://codecentric.github.io/helm-charts
-helm fetch codecentric/keycloak --untar=true --version=8.2.2
+helm fetch codecentric/keycloak --untar=true --version=${KEYCLOAK_CHART_VERSION}
+```
+
+## External DNS
+
+The `external-dns` folder was created by running the following commands:
 
 
-
-helm pull stable/external-dns --untar=true --version=2.20.0
-
+```
+export EXTERNAL_DNS_CHART_VERSION=2.20.0
+helm repo add stable https://charts.helm.sh/stable
+helm pull stable/external-dns --untar=true --version=${EXTERNAL_DNS_CHART_VERSION}
 ```
 
