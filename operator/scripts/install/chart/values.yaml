@@ -29,8 +29,8 @@ elasticSearch:
 
 verrazzanoOperator:
   name: verrazzano-operator
-  imageName: ghcr.io/verrazzano/verrazzano-operator-jenkins
-  imageVersion: 0.8.0-20201221053307-514d3f5
+  imageName: ghcr.io/verrazzano/verrazzano-operator
+  imageVersion: 0.8.0-20201222141732-6910964
   cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:0.7.0-20201210184344-940208a
   helidonMicroImage: ghcr.io/verrazzano/verrazzano-helidon-app-operator:0.7.0-20201214161307-501df7f
   wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:0.7.0-20201210185726-82d0a2b
@@ -90,8 +90,8 @@ verrazzanoAdmissionController:
 
 console:
   name: verrazzano-console
-  imageName: ghcr.io/verrazzano/console-jenkins
-  imageVersion: 0.8.0-20201221074355-bfb53f3
+  imageName: ghcr.io/verrazzano/console
+  imageVersion: 0.8.0-20201222142451-75c551d
 
 rancher:
   rancherURL:
