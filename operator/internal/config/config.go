@@ -34,7 +34,7 @@ type OperatorConfig struct {
 // The singleton instance of the operator config
 var instance OperatorConfig = OperatorConfig{
 	CertDir:                  "/etc/webhook/certs",
-	InitWebhooks:             true,
+	InitWebhooks:             false,
 	MetricsAddr:              ":8080",
 	LeaderElectionEnabled:    false,
 	VersionCheckEnabled:      true,

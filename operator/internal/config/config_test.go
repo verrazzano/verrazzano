@@ -17,7 +17,7 @@ func TestConfigDefaults(t *testing.T) {
 	conf := Get()
 
 	asserts.Equal("/etc/webhook/certs", conf.CertDir, "CertDir is incorrect")
-	asserts.True(conf.InitWebhooks, "InitWebhooks is incorrect")
+	asserts.False(conf.InitWebhooks, "InitWebhooks is incorrect")
 	asserts.False(conf.LeaderElectionEnabled, "LeaderElectionEnabled is incorrect")
 	asserts.Equal(":8080", conf.MetricsAddr, "MetricsAddr is incorrect")
 	asserts.True(conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
@@ -35,7 +35,7 @@ func TestSetConfig(t *testing.T) {
 
 	Set(OperatorConfig{
 		CertDir:                  "/test/certs",
-		InitWebhooks:             false,
+		InitWebhooks:             true,
 		MetricsAddr:              "1111",
 		LeaderElectionEnabled:    true,
 		VersionCheckEnabled:      false,
@@ -47,7 +47,7 @@ func TestSetConfig(t *testing.T) {
 	conf := Get()
 
 	asserts.Equal("/test/certs", conf.CertDir, "CertDir is incorrect")
-	asserts.False(conf.InitWebhooks, "InitWebhooks is incorrect")
+	asserts.True(conf.InitWebhooks, "InitWebhooks is incorrect")
 	asserts.True(conf.LeaderElectionEnabled, "LeaderElectionEnabled is incorrect")
 	asserts.Equal("1111", conf.MetricsAddr, "MetricsAddr is incorrect")
 	asserts.False(conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
