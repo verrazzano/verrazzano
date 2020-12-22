@@ -207,14 +207,14 @@ type KeycloakComponent struct {
 	KeycloakInstallArgs []InstallArgs `json:"keycloakInstallArgs,omitempty"`
 	// MySql contains the MySQL component configuration needed for keycloak
 	// +optional
-	MySql MySqlComponent `json:"mysql,omitempty"`
+	MySQL MySQLComponent `json:"mysql,omitempty"`
 }
 
-// MySqlComponent specifies the MySQL configuration
-type MySqlComponent struct {
+// MySQLComponent specifies the MySQL configuration
+type MySQLComponent struct {
 	// Arguments for installing MySQL
 	// +optional
-	MySqlInstallArgs []InstallArgs `json:"mysqlInstallArgs,omitempty"`
+	MySQLInstallArgs []InstallArgs `json:"mysqlInstallArgs,omitempty"`
 }
 
 // InstallArgs identifies a name/value or name/value list needed for install.

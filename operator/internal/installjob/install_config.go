@@ -157,12 +157,12 @@ const (
 // Keycloak configuration
 type Keycloak struct {
 	KeycloakInstallArgs []InstallArg `json:"keycloakInstallArgs,omitempty"`
-	MySql               MySql        `json:"mysql,omitempty"`
+	MySQL               MySQL        `json:"mysql,omitempty"`
 }
 
-// MySql configuration
-type MySql struct {
-	MySqlInstallArgs []InstallArg `json:"mySqlInstallArgs,omitempty"`
+// MySQL configuration
+type MySQL struct {
+	MySQLInstallArgs []InstallArg `json:"mySqlInstallArgs,omitempty"`
 }
 
 // InstallConfiguration - Verrazzano installation configuration options
@@ -323,8 +323,8 @@ func getInstallArgs(args []installv1alpha1.InstallArgs) []InstallArg {
 func getKeycloak(keycloak installv1alpha1.KeycloakComponent) Keycloak {
 	return Keycloak{
 		KeycloakInstallArgs: getInstallArgs(keycloak.KeycloakInstallArgs),
-		MySql: MySql{
-			MySqlInstallArgs: getInstallArgs(keycloak.MySql.MySqlInstallArgs),
+		MySQL: MySQL{
+			MySQLInstallArgs: getInstallArgs(keycloak.MySQL.MySQLInstallArgs),
 		},
 	}
 }

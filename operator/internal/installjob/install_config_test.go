@@ -20,7 +20,7 @@ import (
 //  THEN the xip.io install configuration is created and verified
 func TestXipIoInstallDefaults(t *testing.T) {
 	vz := installv1alpha1.Verrazzano{}
-	config, _ := GetInstallConfig(&vz)
+	config := GetInstallConfig(&vz)
 	assert.Equalf(t, "default", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileProd, config.Profile, "Expected profile did not match")
 	assert.Equalf(t, DNSTypeXip, config.DNS.Type, "Expected DNS type did not match")
@@ -81,7 +81,7 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 		},
 	}
 
-	config, _ := GetInstallConfig(&vz)
+	config := GetInstallConfig(&vz)
 	assert.Equalf(t, "testEnv", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileDev, config.Profile, "Expected profile did not match")
 	assert.Equalf(t, DNSTypeXip, config.DNS.Type, "Expected DNS type did not match")
@@ -179,7 +179,7 @@ func TestExternalInstall(t *testing.T) {
 		},
 	}
 
-	config, _ := GetInstallConfig(&vz)
+	config := GetInstallConfig(&vz)
 	assert.Equalf(t, "external", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileProd, config.Profile, "Expected profile did not match")
 
@@ -277,7 +277,7 @@ func TestOCIDNSInstall(t *testing.T) {
 		},
 	}
 
-	config, _ := GetInstallConfig(&vz)
+	config := GetInstallConfig(&vz)
 	assert.Equalf(t, "oci", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileProd, config.Profile, "Expected profile did not match")
 
@@ -350,7 +350,7 @@ func TestNodePortInstall(t *testing.T) {
 		},
 	}
 
-	config, _ := GetInstallConfig(&vz)
+	config := GetInstallConfig(&vz)
 	assert.Equalf(t, "kind", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileDev, config.Profile, "Expected profile did not match")
 
