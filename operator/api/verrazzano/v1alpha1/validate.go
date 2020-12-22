@@ -7,11 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/operator/internal/config"
 	"io/ioutil"
 	"reflect"
 
-	vzcomp "github.com/verrazzano/verrazzano/operator/internal/component"
+	"github.com/verrazzano/verrazzano/operator/internal/util/env"
 	"github.com/verrazzano/verrazzano/operator/internal/util/semver"
 	"go.uber.org/zap"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,7 +30,7 @@ var readFileFunction = ioutil.ReadFile
 
 // getCurrentChartVersion Load the current Chart.yaml into a chartVersion struct
 func getCurrentChartVersion() (*semver.SemVersion, error) {
-	chartDir := vzcomp.VzChartDir()
+	chartDir := env.VzChartDir()
 	chartBytes, err := readFileFunction(chartDir + "/Chart.yaml")
 	if err != nil {
 		return nil, err
@@ -46,7 +45,7 @@ func getCurrentChartVersion() (*semver.SemVersion, error) {
 
 // ValidateVersion check that requestedVersion matches chart requestedVersion
 func ValidateVersion(requestedVersion string) error {
-	if !config.Get().VersionCheckEnabled {
+	if !env.IsVersionCheckEnabled() {
 		zap.S().Infof("Version validation disabled")
 		return nil
 	}
@@ -69,7 +68,7 @@ func ValidateVersion(requestedVersion string) error {
 
 // ValidateUpgradeRequest Ensures that for the upgrade case only the version field has changed
 func ValidateUpgradeRequest(currentSpec *VerrazzanoSpec, newSpec *VerrazzanoSpec) error {
-	if !config.Get().VersionCheckEnabled {
+	if !env.IsVersionCheckEnabled() {
 		zap.S().Infof("Version validation disabled")
 		return nil
 	}
