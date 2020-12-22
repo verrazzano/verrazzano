@@ -67,7 +67,6 @@ helm fetch codecentric/keycloak --untar=true --version=${KEYCLOAK_CHART_VERSION}
 
 The `external-dns` folder was created by running the following commands:
 
-
 ```
 export EXTERNAL_DNS_CHART_VERSION=2.20.0
 helm repo add stable https://charts.helm.sh/stable
