@@ -16,30 +16,18 @@ func TestConfigDefaults(t *testing.T) {
 	asserts := assert.New(t)
 	conf := Get()
 
-	// The singleton instance of the operator config
-	//var instance OperatorConfig = OperatorConfig{
-	//	CertDir:                  "/etc/webhook/certs",
-	//	InitWebhooks:             true,
-	//	MetricsAddr:              ":8080",
-	//	LeaderElectionEnabled:    false,
-	//	VersionCheckEnabled:      true,
-	//	WebhooksEnabled:          true,
-	//	WebhookValidationEnabled: true,
-	//	VerrazzanoRootDir:        "/verrazzano",
-	//}
-
 	asserts.Equal("/etc/webhook/certs", conf.CertDir, "CertDir is incorrect")
-	asserts.True( conf.InitWebhooks, "InitWebhooks is incorrect")
-	asserts.False( conf.LeaderElectionEnabled, "LeaderElectionEnabled is incorrect")
+	asserts.True(conf.InitWebhooks, "InitWebhooks is incorrect")
+	asserts.False(conf.LeaderElectionEnabled, "LeaderElectionEnabled is incorrect")
 	asserts.Equal(":8080", conf.MetricsAddr, "MetricsAddr is incorrect")
-	asserts.True( conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
-	asserts.True( conf.WebhooksEnabled, "WebhooksEnabled is incorrect")
-	asserts.True( conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
+	asserts.True(conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
+	asserts.True(conf.WebhooksEnabled, "WebhooksEnabled is incorrect")
+	asserts.True(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
 	asserts.Equal("/verrazzano", conf.VerrazzanoRootDir, "VerrazzanoRootDir is incorrect")
 }
 
 // TestSetConfig tests setting config values
-// GIVEN a OperatorConfig object with non-default values
+// GIVEN an OperatorConfig object with non-default values
 //  WHEN I call Set
 //  THEN Get returns the correct values
 func TestSetConfig(t *testing.T) {
@@ -59,11 +47,11 @@ func TestSetConfig(t *testing.T) {
 	conf := Get()
 
 	asserts.Equal("/test/certs", conf.CertDir, "CertDir is incorrect")
-	asserts.False( conf.InitWebhooks, "InitWebhooks is incorrect")
-	asserts.True( conf.LeaderElectionEnabled, "LeaderElectionEnabled is incorrect")
+	asserts.False(conf.InitWebhooks, "InitWebhooks is incorrect")
+	asserts.True(conf.LeaderElectionEnabled, "LeaderElectionEnabled is incorrect")
 	asserts.Equal("1111", conf.MetricsAddr, "MetricsAddr is incorrect")
-	asserts.False( conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
-	asserts.False( conf.WebhooksEnabled, "WebhooksEnabled is incorrect")
-	asserts.False( conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
+	asserts.False(conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
+	asserts.False(conf.WebhooksEnabled, "WebhooksEnabled is incorrect")
+	asserts.False(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
 	asserts.Equal("/test/vz", conf.VerrazzanoRootDir, "VerrazzanoRootDir is incorrect")
 }

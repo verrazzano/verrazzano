@@ -10,8 +10,8 @@ import (
 	"io/ioutil"
 	"reflect"
 
-	vzcomp "github.com/verrazzano/verrazzano/operator/internal/component"
 	vzconf "github.com/verrazzano/verrazzano/operator/config"
+	vzcomp "github.com/verrazzano/verrazzano/operator/internal/component"
 	"github.com/verrazzano/verrazzano/operator/internal/util/semver"
 	"go.uber.org/zap"
 	"sigs.k8s.io/controller-runtime/pkg/client"

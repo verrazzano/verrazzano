@@ -59,4 +59,3 @@ func VzChartDir() string {
 	}
 	return "/verrazzano/install/chart"
 }
-

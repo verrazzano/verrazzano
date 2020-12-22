@@ -3,7 +3,7 @@
 
 package config
 
-// Config specfies the Verrazzano Platform Operator Config
+// OperatorConfig specfies the Verrazzano Platform Operator Config
 type OperatorConfig struct {
 
 	// The CertDir directory containing tls.crt and tls.key
