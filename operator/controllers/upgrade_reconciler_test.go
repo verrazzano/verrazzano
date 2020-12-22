@@ -6,7 +6,8 @@ package controllers
 import (
 	"context"
 	"errors"
-	"github.com/verrazzano/verrazzano/operator/internal/config"
+	"github.com/verrazzano/verrazzano/operator/internal/util/env"
+	"os"
 	"os/exec"
 	"testing"
 	"time"
@@ -143,8 +144,8 @@ func TestUpgradeStarted(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+	os.Setenv(env.CheckVersionEnabled, "false")
+	defer os.Unsetenv(env.CheckVersionEnabled)
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -207,8 +208,8 @@ func TestUpgradeTooManyFailures(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+	os.Setenv(env.CheckVersionEnabled, "false")
+	defer os.Unsetenv(env.CheckVersionEnabled)
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -268,8 +269,8 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+	os.Setenv(env.CheckVersionEnabled, "false")
+	defer os.Unsetenv(env.CheckVersionEnabled)
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -347,8 +348,8 @@ func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+	os.Setenv(env.CheckVersionEnabled, "false")
+	defer os.Unsetenv(env.CheckVersionEnabled)
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -417,8 +418,8 @@ func TestUpgradeCompleted(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+	os.Setenv(env.CheckVersionEnabled, "false")
+	defer os.Unsetenv(env.CheckVersionEnabled)
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -487,8 +488,8 @@ func TestUpgradeHelmError(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+	os.Setenv(env.CheckVersionEnabled, "false")
+	defer os.Unsetenv(env.CheckVersionEnabled)
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
