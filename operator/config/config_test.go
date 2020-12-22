@@ -3,61 +3,67 @@
 
 package config
 
-//// TestVzRootDir tests the env variable VZ_ROOT_DIR
-//// GIVEN a env variable VZ_ROOT_DIR
-////  WHEN I call VzRootDir
-////  THEN the value returned is either the contents of VZ_ROOT_DIR or default
-//func TestVzRootDir(t *testing.T) {
-//	defer func() { getEnvFunc = os.Getenv }()
-//	assert := assert.New(t)
-//	getEnvFunc = os.Getenv
-//	assert.Equal("/verrazzano", VzRootDir(), "The VZ_ROOT_DIR is incorrect")
-//
-//	// override env.go function to get env var
-//	getEnvFunc = func(string) string { return "testdir" }
-//	assert.Equal("testdir", VzRootDir(), "The VZ_ROOT_DIR is incorrect")
-//}
-//
-//// TestVzChartDir tests getting the chart directory
-//// GIVEN a env variable VZ_ROOT_DIR
-////  WHEN I call VzChartDir
-////  THEN the value returned is either based on VZ_ROOT_DIR or default
-//func TestVzChartDir(t *testing.T) {
-//	defer func() { getEnvFunc = os.Getenv }()
-//	assert := assert.New(t)
-//	getEnvFunc = os.Getenv
-//	assert.Equal("/verrazzano/install/chart", VzChartDir(), "The chart directory is incorrect")
-//
-//	// override env.go function to get env var
-//	getEnvFunc = func(string) string { return "/testdir" }
-//	assert.Equal("/testdir/operator/scripts/install/chart", VzChartDir(), "The chart directory is incorrect")
-//}
-//
-//// TestIsCheckVersionEnabled tests that when
-//// GIVEN env variable VZ_CHECK_VERSION != "false", this function returns true
-////  WHEN I call IsVersionCheckEnabled
-////  THEN the value returned is true if VZ_CHECK_VERSION != "false", otherwise return false
-//func TestIsCheckVersionEnabled(t *testing.T) {
-//	defer func() { getEnvFunc = os.Getenv }()
-//	getEnvFunc = func(string) string { return "false" }
-//	assert.False(t, IsVersionCheckEnabled())
-//	getEnvFunc = func(string) string { return "" }
-//	assert.True(t, IsVersionCheckEnabled())
-//	getEnvFunc = func(string) string { return "true" }
-//	assert.True(t, IsVersionCheckEnabled())
-//}
-//
-//// TestIsValidationEnabled tests that when
-//// GIVEN env variable VZ_VALIDATION_ENABLED != "false", this function returns true
-////  WHEN I call IsVersionCheckEnabled
-////  THEN the value returned is true if VZ_VALIDATION_ENABLED != "false", otherwise return false
-//func TestIsValidationEnabled(t *testing.T) {
-//	defer func() { getEnvFunc = os.Getenv }()
-//	getEnvFunc = func(string) string { return "false" }
-//	assert.False(t, IsValidationEnabled())
-//	getEnvFunc = func(string) string { return "" }
-//	assert.True(t, IsValidationEnabled())
-//	getEnvFunc = func(string) string { return "true" }
-//	assert.True(t, IsValidationEnabled())
-//}
-//
+import (
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
+
+// TestConfigDefaults tests the config default values
+// GIVEN a new OperatorConfig object
+//  WHEN I call New
+//  THEN the value returned are correct defaults
+func TestConfigDefaults(t *testing.T) {
+	asserts := assert.New(t)
+	conf := Get()
+
+	// The singleton instance of the operator config
+	//var instance OperatorConfig = OperatorConfig{
+	//	CertDir:                  "/etc/webhook/certs",
+	//	InitWebhooks:             true,
+	//	MetricsAddr:              ":8080",
+	//	LeaderElectionEnabled:    false,
+	//	VersionCheckEnabled:      true,
+	//	WebhooksEnabled:          true,
+	//	WebhookValidationEnabled: true,
+	//	VerrazzanoRootDir:        "/verrazzano",
+	//}
+
+	asserts.Equal("/etc/webhook/certs", conf.CertDir, "CertDir is incorrect")
+	asserts.True( conf.InitWebhooks, "InitWebhooks is incorrect")
+	asserts.False( conf.LeaderElectionEnabled, "LeaderElectionEnabled is incorrect")
+	asserts.Equal(":8080", conf.MetricsAddr, "MetricsAddr is incorrect")
+	asserts.True( conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
+	asserts.True( conf.WebhooksEnabled, "WebhooksEnabled is incorrect")
+	asserts.True( conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
+	asserts.Equal("/verrazzano", conf.VerrazzanoRootDir, "VerrazzanoRootDir is incorrect")
+}
+
+// TestSetConfig tests setting config values
+// GIVEN a OperatorConfig object with non-default values
+//  WHEN I call Set
+//  THEN Get returns the correct values
+func TestSetConfig(t *testing.T) {
+	asserts := assert.New(t)
+
+	Set(OperatorConfig{
+		CertDir:                  "/test/certs",
+		InitWebhooks:             false,
+		MetricsAddr:              "1111",
+		LeaderElectionEnabled:    true,
+		VersionCheckEnabled:      false,
+		WebhooksEnabled:          false,
+		WebhookValidationEnabled: false,
+		VerrazzanoRootDir:        "/test/vz",
+	})
+
+	conf := Get()
+
+	asserts.Equal("/test/certs", conf.CertDir, "CertDir is incorrect")
+	asserts.False( conf.InitWebhooks, "InitWebhooks is incorrect")
+	asserts.True( conf.LeaderElectionEnabled, "LeaderElectionEnabled is incorrect")
+	asserts.Equal("1111", conf.MetricsAddr, "MetricsAddr is incorrect")
+	asserts.False( conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
+	asserts.False( conf.WebhooksEnabled, "WebhooksEnabled is incorrect")
+	asserts.False( conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
+	asserts.Equal("/test/vz", conf.VerrazzanoRootDir, "VerrazzanoRootDir is incorrect")
+}
