@@ -42,12 +42,16 @@ function install_mysql {
       -e "s|MYSQL_USERNAME|${MYSQL_USERNAME}|g" \
       $SCRIPT_DIR/config/mysql-values-template.yaml > ${TMP_DIR}/mysql-values-sed.yaml
 
+  # Handle any additional MySQL install args
+  local EXTRA_MYSQL_ARGUMENTS=$(get_mysql_helm_args_from_config)
+
   log "Install MySQL helm chart"
   helm upgrade mysql stable/mysql \
       --install \
       --namespace ${KEYCLOAK_NS} \
       --timeout 10m \
       --wait \
+      ${EXTRA_MYSQL_ARGUMENTS} \
       -f ${TMP_DIR}/mysql-values-sed.yaml
 }
 
@@ -92,12 +96,16 @@ function install_keycloak {
       -e "s|KEYCLOAK_IMAGE|$KEYCLOAK_IMAGE|g;s|KEYCLOAK_THEME_IMAGE|$KEYCLOAK_THEME_IMAGE|g" \
       $SCRIPT_DIR/config/keycloak-values-template.yaml > ${TMP_DIR}/keycloak-values-sed.yaml
 
+  # Handle any additional Keycloak install args
+  local EXTRA_KEYCLOAK_ARGUMENTS=$(get_keycloak_helm_args_from_config)
+
   # Install keycloak helm chart
   helm upgrade keycloak codecentric/keycloak \
       --install \
       --namespace ${KEYCLOAK_NS} \
       --version ${KEYCLOAK_CHART_VERSION} \
       ${EXTRA_HELM_ARGUMENTS} \
+      ${EXTRA_KEYCLOAK_ARGUMENTS} \
       --wait \
       -f ${TMP_DIR}/keycloak-values-sed.yaml
 
