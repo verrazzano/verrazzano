@@ -44,7 +44,6 @@ function install_nginx_ingress_controller()
       --set controller.podAnnotations.'prometheus\.io/port'=10254 \
       --set controller.podAnnotations.'prometheus\.io/scrape'=true \
       --set controller.podAnnotations.'system\.io/scrape'=true \
-      --version $NGINX_INGRESS_CONTROLLER_VERSION \
       --set controller.service.type="${ingress_type}" \
       --set controller.publishService.enabled=true \
       --set controller.service.enableHttp=false \
