@@ -365,6 +365,65 @@ spec:
                           type: object
                         type: array
                     type: object
+                  keycloak:
+                    description: Keycloak contains the keycloak component configuration
+                    properties:
+                      keycloakInstallArgs:
+                        description: Arguments for installing keycloak
+                        items:
+                          description: InstallArgs identifies a name/value or name/value
+                            list needed for install. Value and ValueList cannot both
+                            be specified.
+                          properties:
+                            name:
+                              description: Name of install argument
+                              type: string
+                            setString:
+                              description: If the Value is a literal string
+                              type: boolean
+                            value:
+                              description: Value for named install argument
+                              type: string
+                            valueList:
+                              description: List of values for named install argument
+                              items:
+                                type: string
+                              type: array
+                          required:
+                          - name
+                          type: object
+                        type: array
+                      mysql:
+                        description: MySql contains the MySQL component configuration
+                          needed for keycloak
+                        properties:
+                          mysqlInstallArgs:
+                            description: Arguments for installing MySQL
+                            items:
+                              description: InstallArgs identifies a name/value or
+                                name/value list needed for install. Value and ValueList
+                                cannot both be specified.
+                              properties:
+                                name:
+                                  description: Name of install argument
+                                  type: string
+                                setString:
+                                  description: If the Value is a literal string
+                                  type: boolean
+                                value:
+                                  description: Value for named install argument
+                                  type: string
+                                valueList:
+                                  description: List of values for named install argument
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - name
+                              type: object
+                            type: array
+                        type: object
+                    type: object
                 type: object
               environmentName:
                 description: EnvironmentName identifies install environment.  Default
