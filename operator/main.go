@@ -5,10 +5,10 @@ package main
 
 import (
 	"flag"
+	config2 "github.com/verrazzano/verrazzano/operator/internal/config"
 	"os"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
-	vzconf "github.com/verrazzano/verrazzano/operator/config"
 	"github.com/verrazzano/verrazzano/operator/controllers"
 	"github.com/verrazzano/verrazzano/operator/internal/certificate"
 	"github.com/verrazzano/verrazzano/operator/internal/util/log"
@@ -37,7 +37,7 @@ func init() {
 func main() {
 
 	// config will hold the entire operator config
-	config := vzconf.Get()
+	config := config2.Get()
 
 	flag.StringVar(&config.MetricsAddr, "metrics-addr", config.MetricsAddr, "The address the metric endpoint binds to.")
 	flag.BoolVar(&config.LeaderElectionEnabled, "enable-leader-election", config.LeaderElectionEnabled,
@@ -62,7 +62,7 @@ func main() {
 	log.InitLogs(opts)
 
 	// Save the config as immutable from this point on.
-	vzconf.Set(config)
+	config2.Set(config)
 
 	setupLog := zap.S()
 

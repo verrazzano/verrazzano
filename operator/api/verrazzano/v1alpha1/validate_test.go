@@ -6,7 +6,7 @@ package v1alpha1
 import (
 	"context"
 	"errors"
-	vzconf "github.com/verrazzano/verrazzano/operator/config"
+	"github.com/verrazzano/verrazzano/operator/internal/config"
 	"io/ioutil"
 	"testing"
 
@@ -359,8 +359,8 @@ func TestValidVersionWithIngressChange(t *testing.T) {
 // WHEN the new version is valid and the Ingress component is changed, but version checking is disabled
 // THEN no error is returned from ValidateUpgradeRequest
 func TestValidVersionWithIngressChangeVersionCheckDisabled(t *testing.T) {
-	defer vzconf.Set(vzconf.Get())
-	vzconf.Set(vzconf.OperatorConfig{VersionCheckEnabled: false})
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 	assert.NoError(t, runValidateWithIngressChangeTest())
 }
 
@@ -486,8 +486,8 @@ func TestGetCurrentChartVersionBadYAML(t *testing.T) {
 // WHEN the version provided is not valid version and checking is disabled
 // THEN no error is returned
 func TestValidateVersionInvalidVersionCheckingDisabled(t *testing.T) {
-	defer vzconf.Set(vzconf.Get())
-	vzconf.Set(vzconf.OperatorConfig{VersionCheckEnabled: false})
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 	assert.NoError(t, ValidateVersion("blah"))
 }
 

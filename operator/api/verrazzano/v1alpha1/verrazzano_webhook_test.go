@@ -4,11 +4,11 @@
 package v1alpha1
 
 import (
+	"github.com/verrazzano/verrazzano/operator/internal/config"
 	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	vzconf "github.com/verrazzano/verrazzano/operator/config"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -87,8 +87,8 @@ func TestCreateCallbackFailsWithInvalidVersion(t *testing.T) {
 // WHEN an invalid version is provided and webhook validation is disabled
 // THEN no error is returned
 func TestCreateCallbackWithInvalidVersionValidationDisabled(t *testing.T) {
-	defer vzconf.Set(vzconf.Get())
-	vzconf.Set(vzconf.OperatorConfig{WebhookValidationEnabled: false})
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{WebhookValidationEnabled: false})
 	assert.NoError(t, runCreateCallbackWithInvalidVersion(t))
 }
 
@@ -210,8 +210,8 @@ func TestUpdateCallbackFailsWithInvalidNewVersion(t *testing.T) {
 // WHEN an invalid version is provided and webhook validation is disabled
 // THEN no error is returned
 func TestUpdateCallbackWithInvalidNewVersionValidationDisabled(t *testing.T) {
-	defer vzconf.Set(vzconf.Get())
-	vzconf.Set(vzconf.OperatorConfig{WebhookValidationEnabled: false})
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{WebhookValidationEnabled: false})
 	assert.NoError(t, runUpdateWithInvalidVersionTest(t))
 }
 
@@ -251,8 +251,8 @@ func TestUpdateCallbackFailsChangeProfile(t *testing.T) {
 // WHEN the profile is changed and webhook validation is disabled
 // THEN no error is returned
 func TestUpdateCallbackChangeProfileValidationDisabled(t *testing.T) {
-	defer vzconf.Set(vzconf.Get())
-	vzconf.Set(vzconf.OperatorConfig{WebhookValidationEnabled: false})
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{WebhookValidationEnabled: false})
 	assert.NoError(t, runUpdateCallbackChangedProfileTest())
 }
 
@@ -292,8 +292,8 @@ func TestDeleteCallbackSuccess(t *testing.T) {
 // WHEN webhook validation is disabled
 // THEN no error is returned
 func TestDeleteCallbackDisabled(t *testing.T) {
-	defer vzconf.Set(vzconf.Get())
-	vzconf.Set(vzconf.OperatorConfig{WebhookValidationEnabled: false})
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{WebhookValidationEnabled: false})
 	assert.NoError(t, runDeleteCallbackTest())
 }
 

@@ -7,10 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/operator/internal/config"
 	"io/ioutil"
 	"reflect"
 
-	vzconf "github.com/verrazzano/verrazzano/operator/config"
 	vzcomp "github.com/verrazzano/verrazzano/operator/internal/component"
 	"github.com/verrazzano/verrazzano/operator/internal/util/semver"
 	"go.uber.org/zap"
@@ -46,7 +46,7 @@ func getCurrentChartVersion() (*semver.SemVersion, error) {
 
 // ValidateVersion check that requestedVersion matches chart requestedVersion
 func ValidateVersion(requestedVersion string) error {
-	if !vzconf.Get().VersionCheckEnabled {
+	if !config.Get().VersionCheckEnabled {
 		zap.S().Infof("Version validation disabled")
 		return nil
 	}
@@ -69,7 +69,7 @@ func ValidateVersion(requestedVersion string) error {
 
 // ValidateUpgradeRequest Ensures that for the upgrade case only the version field has changed
 func ValidateUpgradeRequest(currentSpec *VerrazzanoSpec, newSpec *VerrazzanoSpec) error {
-	if !vzconf.Get().VersionCheckEnabled {
+	if !config.Get().VersionCheckEnabled {
 		zap.S().Infof("Version validation disabled")
 		return nil
 	}

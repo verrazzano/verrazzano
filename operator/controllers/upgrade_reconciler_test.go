@@ -6,7 +6,7 @@ package controllers
 import (
 	"context"
 	"errors"
-	vzconf "github.com/verrazzano/verrazzano/operator/config"
+	"github.com/verrazzano/verrazzano/operator/internal/config"
 	"os/exec"
 	"testing"
 	"time"
@@ -143,8 +143,8 @@ func TestUpgradeStarted(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	defer vzconf.Set(vzconf.Get())
-	vzconf.Set(vzconf.OperatorConfig{VersionCheckEnabled: false})
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -207,8 +207,8 @@ func TestUpgradeTooManyFailures(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	defer vzconf.Set(vzconf.Get())
-	vzconf.Set(vzconf.OperatorConfig{VersionCheckEnabled: false})
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -268,8 +268,8 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	defer vzconf.Set(vzconf.Get())
-	vzconf.Set(vzconf.OperatorConfig{VersionCheckEnabled: false})
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -347,8 +347,8 @@ func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	defer vzconf.Set(vzconf.Get())
-	vzconf.Set(vzconf.OperatorConfig{VersionCheckEnabled: false})
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -417,8 +417,8 @@ func TestUpgradeCompleted(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	defer vzconf.Set(vzconf.Get())
-	vzconf.Set(vzconf.OperatorConfig{VersionCheckEnabled: false})
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -487,8 +487,8 @@ func TestUpgradeHelmError(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	defer vzconf.Set(vzconf.Get())
-	vzconf.Set(vzconf.OperatorConfig{VersionCheckEnabled: false})
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().

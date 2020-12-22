@@ -5,7 +5,7 @@ package v1alpha1
 
 import (
 	"fmt"
-	vzconf "github.com/verrazzano/verrazzano/operator/config"
+	"github.com/verrazzano/verrazzano/operator/internal/config"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -29,7 +29,7 @@ func (v *Verrazzano) ValidateCreate() error {
 	log := zap.S().With("source", "webhook", "operation", "create", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
 	log.Info("Validate create")
 
-	if !vzconf.Get().WebhookValidationEnabled {
+	if !config.Get().WebhookValidationEnabled {
 		log.Info("Validation disabled, skipping")
 		return nil
 	}
@@ -56,7 +56,7 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	log := zap.S().With("source", "webhook", "operation", "update", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
 	log.Info("Validate update")
 
-	if !vzconf.Get().WebhookValidationEnabled {
+	if !config.Get().WebhookValidationEnabled {
 		log.Info("Validation disabled, skipping")
 		return nil
 	}
