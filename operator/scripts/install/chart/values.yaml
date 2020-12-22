@@ -31,9 +31,9 @@ verrazzanoOperator:
   name: verrazzano-operator
   imageName: ghcr.io/verrazzano/verrazzano-operator
   imageVersion: 0.8.0-20201222141732-6910964
-  cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:0.7.0-20201210184344-940208a
-  helidonMicroImage: ghcr.io/verrazzano/verrazzano-helidon-app-operator:0.7.0-20201214161307-501df7f
-  wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:0.7.0-20201210185726-82d0a2b
+  cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:0.8.0-20201218184638-ae25fcc
+  helidonMicroImage: ghcr.io/verrazzano/verrazzano-helidon-app-operator:0.8.0-20201218185017-e613ee2
+  wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:0.8.0-20201218184908-e3e3dd3
   prometheusPusherImage: ghcr.io/verrazzano/prometheus-pusher:1.0.1-20201016212958-5b64612
   nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
   filebeatImage: ghcr.io/verrazzano/filebeat:6.8.3-20201016212236-05eabe44b
@@ -55,7 +55,7 @@ verrazzanoOperator:
 monitoringOperator:
   name: verrazzano-monitoring-operator
   imageName: ghcr.io/verrazzano/verrazzano-monitoring-operator
-  imageVersion: 0.7.0-20201210185706-c4d3a23
+  imageVersion: 0.8.0-20201221212648-684fe83
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
@@ -66,10 +66,10 @@ monitoringOperator:
   alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
   esImage: ghcr.io/verrazzano/elasticsearch:7.6.1-20201130145440-5c76ab1
-  esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:0.7.0-20201210185706-c4d3a23
+  esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:0.8.0-20201221212648-684fe83
   esInitImage: ghcr.io/oracle/oraclelinux:7.8
   kibanaImage: ghcr.io/verrazzano/kibana:7.6.1-20201130145840-7717e73
-  monitoringInstanceApiImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-api:0.7.0-20201210185702-26267a3
+  monitoringInstanceApiImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-api:0.8.0-20201221212735-92a3413
   configReloaderImage: ghcr.io/verrazzano/configmap-reload:0.3-20201016205243-4f24a0e
   nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
   RequestMemory: 48Mi
@@ -77,14 +77,14 @@ monitoringOperator:
 clusterOperator:
   name: verrazzano-cluster-operator
   imageName: ghcr.io/verrazzano/verrazzano-cluster-operator
-  imageVersion: 0.7.0-20201216051850-22c943b
+  imageVersion: 0.8.0-20201218185017-5e9c62f
   RequestMemory: 27Mi
 
 verrazzanoAdmissionController:
   name: verrazzano-validation
   controllerName: verrazzano-admission-controller
   imageName: ghcr.io/verrazzano/verrazzano-admission-controller
-  imageVersion: 0.7.0-20201216052052-d4a3a4e
+  imageVersion: 0.8.0-20201221221835-6c6f18e
   caBundle:
   RequestMemory: 15Mi
 
