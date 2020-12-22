@@ -3,6 +3,5 @@
 operator/scripts/install/config/images
 operator/scripts/install/config/00-crds.patch
 operator/scripts/install/chart/NOTES.txt
-operator/scripts/install/charts
 LICENSES-OLCNE.pdf
 coverage.xml

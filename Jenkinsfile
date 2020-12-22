@@ -156,12 +156,12 @@ pipeline {
             }
         }
 
-//        stage('Copyright Compliance Check') {
-//            when { not { buildingTag() } }
-//            steps {
-//                copyrightScan "${WORKSPACE}"
-//            }
-//        }
+        stage('Copyright Compliance Check') {
+            when { not { buildingTag() } }
+            steps {
+                copyrightScan "${WORKSPACE}"
+            }
+        }
 
         stage('Unit Tests') {
             when { not { buildingTag() } }
