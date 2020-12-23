@@ -159,7 +159,7 @@ pipeline {
         stage('Copyright Compliance Check') {
             when { not { buildingTag() } }
             steps {
-                copyrightScanDeva "${WORKSPACE}"
+                copyrightScan "${WORKSPACE}"
             }
         }
 
