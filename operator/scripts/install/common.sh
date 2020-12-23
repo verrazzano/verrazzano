@@ -10,6 +10,7 @@ SCRIPT_DIR=${SCRIPT_DIR:-$(cd $(dirname ${BASH_SOURCE[${#BASH_SOURCE[@]} - 1]});
 # The directory where any generated artifacts should be stored.
 BUILD_DIR="${SCRIPT_DIR}/build"
 CHARTS_DIR=$(cd $SCRIPT_DIR/../../../charts; pwd -P)
+MANIFESTS_DIR=$(cd $SCRIPT_DIR/../../../manifests; pwd -P)
 
 . ${SOURCE_DIR}/logging.sh
 
@@ -221,7 +222,6 @@ GLOBAL_IMAGE_PULL_SECRET=verrazzano-container-registry
 
 CERT_MANAGER_IMAGE=ghcr.io/verrazzano/cert-manager-controller
 CERT_MANAGER_TAG=0.13.1-20201016205232-4c8f3fe38
-CERT_MANAGER_RELEASE=0.13
 CERT_MANAGER_SOLVER_IMAGE=ghcr.io/verrazzano/cert-manager-acmesolver
 CERT_MANAGER_SOLVER_TAG=0.13.1-20201016205234-4c8f3fe38
 
