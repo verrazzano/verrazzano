@@ -361,4 +361,4 @@ The following table describes the `spec` portion of the Verrazzano custom resour
 ### MySQL Component
 | Field | Type | Description | Required
 | --- | --- | --- | --- |
-| `mysqlInstallArgs` | [NameValue](#name-value) list | A list of MySQL Helm chart arguments and values to apply during the installation of Keycloak.  Each argument is specified as either a `name/value` or `name/valueList` pair. | No |
+| `mysqlInstallArgs` | [NameValue](#name-value) list | A list of MySQL Helm chart arguments and values to apply during the installation of MySQL.  MySQL is the database store being used by Keycloak. Each argument is specified as either a `name/value` or `name/valueList` pair. | No |
