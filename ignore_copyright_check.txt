@@ -5,3 +5,5 @@ operator/scripts/install/config/00-crds.patch
 operator/scripts/install/chart/NOTES.txt
 LICENSES-OLCNE.pdf
 coverage.xml
+# The charts directory contains external (3rd party) Helm charts
+charts
