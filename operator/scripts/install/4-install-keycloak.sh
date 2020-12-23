@@ -108,7 +108,7 @@ function install_keycloak {
       --wait \
       -f ${TMP_DIR}/keycloak-values-sed.yaml
 
-  kubectl -it exec keycloak-0 \
+  kubectl -i exec keycloak-0 \
     -n ${KEYCLOAK_NS} \
     -c keycloak \
     -- bash -c \
