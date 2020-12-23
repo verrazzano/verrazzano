@@ -155,6 +155,9 @@ type ComponentSpec struct {
 	// Istio contains the istio component configuration
 	// +optional
 	Istio IstioComponent `json:"istio,omitempty"`
+	// Keycloak contains the keycloak component configuration
+	// +optional
+	Keycloak KeycloakComponent `json:"keycloak,omitempty"`
 }
 
 // CertManagerComponent specifies the core CertManagerComponent config.
@@ -195,6 +198,23 @@ type IstioComponent struct {
 	// Arguments for installing istio
 	// +optional
 	IstioInstallArgs []InstallArgs `json:"istioInstallArgs,omitempty"`
+}
+
+// KeycloakComponent specifies the keycloak configuration
+type KeycloakComponent struct {
+	// Arguments for installing keycloak
+	// +optional
+	KeycloakInstallArgs []InstallArgs `json:"keycloakInstallArgs,omitempty"`
+	// MySql contains the MySQL component configuration needed for keycloak
+	// +optional
+	MySQL MySQLComponent `json:"mysql,omitempty"`
+}
+
+// MySQLComponent specifies the MySQL configuration
+type MySQLComponent struct {
+	// Arguments for installing MySQL
+	// +optional
+	MySQLInstallArgs []InstallArgs `json:"mysqlInstallArgs,omitempty"`
 }
 
 // InstallArgs identifies a name/value or name/value list needed for install.

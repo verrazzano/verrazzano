@@ -232,6 +232,18 @@ function get_istio_helm_args_from_config {
   fi
 }
 
+function get_keycloak_helm_args_from_config {
+  if [ ! -z "$(get_config_value ".keycloak")" ] && [ ! -z "$(get_config_value '.keycloak.keycloakInstallArgs')" ]; then
+    config_array_to_helm_args ".keycloak.keycloakInstallArgs[]" || return 1
+  fi
+}
+
+function get_mysql_helm_args_from_config {
+  if [ ! -z "$(get_config_value ".keycloak.mysql")" ] && [ ! -z "$(get_config_value '.keycloak.mysql.mySqlInstallArgs')" ]; then
+    config_array_to_helm_args ".keycloak.mysql.mySqlInstallArgs[]" || return 1
+  fi
+}
+
 function config_array_to_helm_args {
   local install_args_config_name=$1
   local extra_install_args=($(get_config_array $install_args_config_name)) || return 1

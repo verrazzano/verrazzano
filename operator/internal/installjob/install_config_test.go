@@ -20,7 +20,7 @@ import (
 //  THEN the xip.io install configuration is created and verified
 func TestXipIoInstallDefaults(t *testing.T) {
 	vz := installv1alpha1.Verrazzano{}
-	config, _ := GetInstallConfig(&vz)
+	config := GetInstallConfig(&vz)
 	assert.Equalf(t, "default", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileProd, config.Profile, "Expected profile did not match")
 	assert.Equalf(t, DNSTypeXip, config.DNS.Type, "Expected DNS type did not match")
@@ -28,6 +28,8 @@ func TestXipIoInstallDefaults(t *testing.T) {
 	assert.Equalf(t, CertIssuerTypeCA, config.Certificates.IssuerType, "Expected certification issuer type did not match")
 	assert.Equalf(t, "cattle-system", config.Certificates.CA.ClusterResourceNamespace, "Expected namespace did not match")
 	assert.Equalf(t, "tls-rancher", config.Certificates.CA.SecretName, "Expected CA secret name did not match")
+	assert.Equalf(t, 0, len(config.Keycloak.KeycloakInstallArgs), "Expected keycloakInstallArgs length did not match")
+	assert.Equalf(t, 0, len(config.Keycloak.MySQL.MySQLInstallArgs), "Expected mySqlInstallArgs length did not match")
 }
 
 // TestXipIoInstallNonDefaults tests the creation of an xip.io install non-default configuration
@@ -77,11 +79,27 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 						},
 					},
 				},
+				Keycloak: installv1alpha1.KeycloakComponent{
+					KeycloakInstallArgs: []installv1alpha1.InstallArgs{
+						{
+							Name:  "keycloak-name",
+							Value: "keycloak-value",
+						},
+					},
+					MySQL: installv1alpha1.MySQLComponent{
+						MySQLInstallArgs: []installv1alpha1.InstallArgs{
+							{
+								Name:  "mysql-name",
+								Value: "mysql-value",
+							},
+						},
+					},
+				},
 			},
 		},
 	}
 
-	config, _ := GetInstallConfig(&vz)
+	config := GetInstallConfig(&vz)
 	assert.Equalf(t, "testEnv", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileDev, config.Profile, "Expected profile did not match")
 	assert.Equalf(t, DNSTypeXip, config.DNS.Type, "Expected DNS type did not match")
@@ -103,6 +121,13 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 	assert.Equalf(t, CertIssuerTypeCA, config.Certificates.IssuerType, "Expected certification issuer type did not match")
 	assert.Equalf(t, "customNamespace", config.Certificates.CA.ClusterResourceNamespace, "Expected namespace did not match")
 	assert.Equalf(t, "customSecret", config.Certificates.CA.SecretName, "Expected CA secret name did not match")
+
+	assert.Equalf(t, 1, len(config.Keycloak.KeycloakInstallArgs), "Expected keycloakInstallArgs length did not match")
+	assert.Equalf(t, "keycloak-name", config.Keycloak.KeycloakInstallArgs[0].Name, "Expected keycloakInstallArgs name did not match")
+	assert.Equalf(t, "keycloak-value", config.Keycloak.KeycloakInstallArgs[0].Value, "Expected keycloakInstallArgs value did not match")
+	assert.Equalf(t, 1, len(config.Keycloak.MySQL.MySQLInstallArgs), "Expected mysqlInstallArgs length did not match")
+	assert.Equalf(t, "mysql-name", config.Keycloak.MySQL.MySQLInstallArgs[0].Name, "Expected mysqlInstallArgs name did not match")
+	assert.Equalf(t, "mysql-value", config.Keycloak.MySQL.MySQLInstallArgs[0].Value, "Expected mysqlInstallArgs value did not match")
 }
 
 // TestExternalInstall tests the creation of an external install configuration
@@ -179,7 +204,7 @@ func TestExternalInstall(t *testing.T) {
 		},
 	}
 
-	config, _ := GetInstallConfig(&vz)
+	config := GetInstallConfig(&vz)
 	assert.Equalf(t, "external", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileProd, config.Profile, "Expected profile did not match")
 
@@ -277,7 +302,7 @@ func TestOCIDNSInstall(t *testing.T) {
 		},
 	}
 
-	config, _ := GetInstallConfig(&vz)
+	config := GetInstallConfig(&vz)
 	assert.Equalf(t, "oci", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileProd, config.Profile, "Expected profile did not match")
 
@@ -350,7 +375,7 @@ func TestNodePortInstall(t *testing.T) {
 		},
 	}
 
-	config, _ := GetInstallConfig(&vz)
+	config := GetInstallConfig(&vz)
 	assert.Equalf(t, "kind", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileDev, config.Profile, "Expected profile did not match")
 
