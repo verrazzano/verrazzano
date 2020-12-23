@@ -279,6 +279,7 @@ The following table describes the `spec` portion of the Verrazzano custom resour
 | `dns` | [DNSComponent](#dns-component) | The DNS component configuration.  | No |
 | `ingress` | [IngressComponent](#ingress-component) | The ingress component configuration. | No |
 | `istio` | [IstioComponent](#istio-component) | The Istio component configuration. | No |
+| `keycloak` | [KeycloakComponent](#keycloak-component) | The Keycloak component configuration. | No |
 
 ### CertManager Component
 | Field | Type | Description | Required
@@ -350,3 +351,14 @@ The following table describes the `spec` portion of the Verrazzano custom resour
 | Field | Type | Description | Required
 | --- | --- | --- | --- |
 | `istioInstallArgs` | [NameValue](#name-value) list | A list of Istio Helm chart arguments and values to apply during the installation of Istio.  Each argument is specified as either a `name/value` or `name/valueList` pair. | No |
+
+### Keycloak Component
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| `keycloakInstallArgs` | [NameValue](#name-value) list | A list of Keycloak Helm chart arguments and values to apply during the installation of Keycloak.  Each argument is specified as either a `name/value` or `name/valueList` pair. | No |
+| `mysql` | [MySQLComponent](#mysql-component) | The MySQL component configuration used by Keycloak. | No |
+
+### MySQL Component
+| Field | Type | Description | Required
+| --- | --- | --- | --- |
+| `mysqlInstallArgs` | [NameValue](#name-value) list | A list of MySQL Helm chart arguments and values to apply during the installation of Keycloak.  Each argument is specified as either a `name/value` or `name/valueList` pair. | No |
