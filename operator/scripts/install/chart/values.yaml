@@ -30,7 +30,7 @@ elasticSearch:
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: ghcr.io/verrazzano/verrazzano-operator
-  imageVersion: 0.8.0-20201222141732-6910964
+  imageVersion: 0.8.0-20201223143759-ba517ea
   cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:0.8.0-20201218184638-ae25fcc
   helidonMicroImage: ghcr.io/verrazzano/verrazzano-helidon-app-operator:0.8.0-20201218185017-e613ee2
   wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:0.8.0-20201218184908-e3e3dd3
