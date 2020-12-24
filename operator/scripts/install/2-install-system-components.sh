@@ -14,7 +14,7 @@ set -eu
 
 function install_nginx_ingress_controller()
 {
-    NGINX_INGRESS_CHART_DIR=${CHARTS_DIR}/nginx-ingress
+    local NGINX_INGRESS_CHART_DIR=${CHARTS_DIR}/nginx-ingress
 
     # Create the namespace for nginx
     if ! kubectl get namespace ingress-nginx ; then
@@ -61,8 +61,8 @@ function install_nginx_ingress_controller()
 }
 
 function setup_cert_manager_crd() {
-  curl -L -o "$TMP_DIR/00-crds.yaml" \
-    "https://raw.githubusercontent.com/jetstack/cert-manager/release-${CERT_MANAGER_RELEASE}/deploy/manifests/00-crds.yaml"
+  local CERT_MANAGER_MANIFEST_DIR=${MANIFESTS_DIR}/cert-manager
+  cp "$CERT_MANAGER_MANIFEST_DIR/00-crds.yaml" "$TMP_DIR/00-crds.yaml"
   if [ "$DNS_TYPE" == "oci" ]; then
     command -v patch >/dev/null 2>&1 || {
       fail "patch is required but cannot be found on the path. Aborting.";
@@ -119,7 +119,7 @@ spec:
 
 function install_cert_manager()
 {
-    CERT_MANAGER_CHART_DIR=${CHARTS_DIR}/cert-manager
+    local CERT_MANAGER_CHART_DIR=${CHARTS_DIR}/cert-manager
 
     # Create the namespace for cert-manager
     if ! kubectl get namespace cert-manager ; then
@@ -156,7 +156,7 @@ function install_cert_manager()
 
 function install_external_dns()
 {
-  EXTERNAL_DNS_CHART_DIR=${CHARTS_DIR}/external-dns
+  local EXTERNAL_DNS_CHART_DIR=${CHARTS_DIR}/external-dns
 
   if [ "$DNS_TYPE" == "oci" ]; then
     if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n cert-manager ; then
@@ -199,7 +199,7 @@ function install_external_dns()
 
 function install_rancher()
 {
-    RANCHER_CHART_DIR=${CHARTS_DIR}/rancher
+    local RANCHER_CHART_DIR=${CHARTS_DIR}/rancher
 
     log "Create Rancher namespace (if required)"
     if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
