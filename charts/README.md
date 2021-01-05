@@ -88,3 +88,19 @@ helm repo update
 helm fetch stable/external-dns --untar=true --version=${EXTERNAL_DNS_CHART_VERSION}
 ```
 
+## OAM Runtime
+
+The `oam-kubernetes-runtime` folder was created by running the following commands:
+
+```
+export OAM_RUNTIME_CHART_REPO=https://charts.crossplane.io/master/
+export OAM_RUNTIME_CHART_VERSION=0.3.0
+rm -rf oam-kubernetes-runtime
+helm repo add crossplane-master ${OAM_RUNTIME_CHART_REPO}
+helm repo update
+helm fetch crossplane-master/oam-kubernetes-runtime --untar=true --version=${OAM_RUNTIME_CHART_VERSION}
+```
+
+### Verrazzano Application Operator
+
+The `verrazzano-application-operator` folder was created manually.

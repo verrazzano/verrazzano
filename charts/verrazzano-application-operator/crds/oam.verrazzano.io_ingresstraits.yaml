@@ -1,0 +1,166 @@
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: ingresstraits.oam.verrazzano.io
+spec:
+  group: oam.verrazzano.io
+  names:
+    kind: IngressTrait
+    listKind: IngressTraitList
+    plural: ingresstraits
+    singular: ingresstrait
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: IngressTrait is the Schema for the ingresstraits API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: IngressTraitSpec defines the desired state of IngressTrait
+            properties:
+              rules:
+                description: A set of rules to configure the IngressTrait.
+                items:
+                  description: IngressRule defines hosts and paths to be exposed for
+                    ingress
+                  properties:
+                    hosts:
+                      items:
+                        type: string
+                      type: array
+                    paths:
+                      items:
+                        description: IngressPath defines a specific path to be exposed
+                          for ingress
+                        properties:
+                          path:
+                            type: string
+                          pathType:
+                            type: string
+                        type: object
+                      type: array
+                  type: object
+                type: array
+              workloadRef:
+                description: WorkloadReference to the workload this trait applies
+                  to. This value is populated by the OAM runtime when a ApplicationConfiguration
+                  resource is processed.  When the ApplicationConfiguration is processed
+                  a trait and a workload resource are created from the content of
+                  the ApplicationConfiguration. The WorkloadReference is provided
+                  in the trait by OAM to ensure the trait controller can find the
+                  workload associated with the component containing the trait within
+                  the original ApplicationConfiguration.
+                properties:
+                  apiVersion:
+                    description: APIVersion of the referenced object.
+                    type: string
+                  kind:
+                    description: Kind of the referenced object.
+                    type: string
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                  uid:
+                    description: UID of the referenced object.
+                    type: string
+                required:
+                - apiVersion
+                - kind
+                - name
+                type: object
+            required:
+            - workloadRef
+            type: object
+          status:
+            description: IngressTraitStatus defines the observed state of IngressTrait
+            properties:
+              conditions:
+                description: Conditions of the resource.
+                items:
+                  description: A Condition that may apply to a resource.
+                  properties:
+                    lastTransitionTime:
+                      description: LastTransitionTime is the last time this condition
+                        transitioned from one status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A Message containing details about this condition's
+                        last transition from one status to another, if any.
+                      type: string
+                    reason:
+                      description: A Reason for this condition's last transition from
+                        one status to another.
+                      type: string
+                    status:
+                      description: Status of this condition; is it currently True,
+                        False, or Unknown?
+                      type: string
+                    type:
+                      description: Type of this condition. At most one of each condition
+                        type may apply to a resource at any point in time.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              resources:
+                description: Resources managed by this trait
+                items:
+                  description: A TypedReference refers to an object by Name, Kind,
+                    and APIVersion. It is commonly used to reference cluster-scoped
+                    objects or objects where the namespace is already known.
+                  properties:
+                    apiVersion:
+                      description: APIVersion of the referenced object.
+                      type: string
+                    kind:
+                      description: Kind of the referenced object.
+                      type: string
+                    name:
+                      description: Name of the referenced object.
+                      type: string
+                    uid:
+                      description: UID of the referenced object.
+                      type: string
+                  required:
+                  - apiVersion
+                  - kind
+                  - name
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
