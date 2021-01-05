@@ -435,6 +435,13 @@ spec:
                             type: array
                         type: object
                     type: object
+                  oam:
+                    description: OAM contains the OAM component configuration
+                    properties:
+                      enabled:
+                        description: Argument to enable installation of OAM components
+                        type: boolean
+                    type: object
                 type: object
               environmentName:
                 description: EnvironmentName identifies install environment.  Default

@@ -158,7 +158,9 @@ type ComponentSpec struct {
 	// Keycloak contains the keycloak component configuration
 	// +optional
 	Keycloak KeycloakComponent `json:"keycloak,omitempty"`
-}
+	// OAM contains the OAM component configuration
+	// +optional
+	OAM OAMComponent `json:"oam,omitempty"`}
 
 // CertManagerComponent specifies the core CertManagerComponent config.
 type CertManagerComponent struct {
@@ -215,6 +217,13 @@ type MySQLComponent struct {
 	// Arguments for installing MySQL
 	// +optional
 	MySQLInstallArgs []InstallArgs `json:"mysqlInstallArgs,omitempty"`
+}
+
+// OAMComponent specifies the OAM configuration
+type OAMComponent struct {
+	// Argument to enable installation of OAM components
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
 }
 
 // InstallArgs identifies a name/value or name/value list needed for install.
