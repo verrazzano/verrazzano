@@ -22,8 +22,6 @@ function install_nginx_ingress_controller()
     helm repo add stable https://charts.helm.sh/stable || return $?
     helm repo update || return $?
 
-    local ingress_type=$(get_config_value ".ingress.type")
-
     # Handle any additional NGINX install args - since NGINX is for Verrazzano system Ingress,
     # these should be in .ingress.verrazzano.nginxInstallArgs[]
     local EXTRA_NGINX_ARGUMENTS=$(get_nginx_helm_args_from_config)
@@ -34,21 +32,13 @@ function install_nginx_ingress_controller()
       EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.'external-dns\.alpha\.kubernetes\.io/hostname'=verrazzano-ingress.${NAME}.${dns_zone}"
     fi
 
+    local ingress_type=$(get_config_value ".ingress.type")
+    EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.type=${ingress_type}"
+
     helm upgrade ingress-controller stable/nginx-ingress --install \
-      --set controller.image.repository=$NGINX_INGRESS_CONTROLLER_IMAGE \
-      --set controller.image.tag=$NGINX_INGRESS_CONTROLLER_TAG \
-      --set controller.config.client-body-buffer-size=64k \
-      --set defaultBackend.image.repository=$NGINX_DEFAULT_BACKEND_IMAGE \
-      --set defaultBackend.image.tag=$NGINX_DEFAULT_BACKEND_TAG \
       --namespace ingress-nginx \
-      --set controller.metrics.enabled=true \
-      --set controller.podAnnotations.'prometheus\.io/port'=10254 \
-      --set controller.podAnnotations.'prometheus\.io/scrape'=true \
-      --set controller.podAnnotations.'system\.io/scrape'=true \
       --version $NGINX_INGRESS_CONTROLLER_VERSION \
-      --set controller.service.type="${ingress_type}" \
-      --set controller.publishService.enabled=true \
-      --set controller.service.enableHttp=false \
+      -f $SCRIPT_DIR/config/components/nginx-ingress-controller-values.yaml \
       ${EXTRA_NGINX_ARGUMENTS} \
       --timeout 15m0s \
       --wait \
