@@ -99,6 +99,9 @@ function install_keycloak {
   # Handle any additional Keycloak install args
   local EXTRA_KEYCLOAK_ARGUMENTS=$(get_keycloak_helm_args_from_config)
 
+  # DEBUG - sleep 30 minutes to allow time to inspect the test cluster
+  sleep 1800
+
   # Install keycloak helm chart
   helm upgrade keycloak ${KEYCLOAK_CHART_DIR} \
       --install \
