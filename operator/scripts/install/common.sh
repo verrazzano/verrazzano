@@ -9,8 +9,8 @@ SOURCE_DIR=$(cd $(dirname $BASH_SOURCE); pwd -P)
 SCRIPT_DIR=${SCRIPT_DIR:-$(cd $(dirname ${BASH_SOURCE[${#BASH_SOURCE[@]} - 1]}); pwd -P)}
 # The directory where any generated artifacts should be stored.
 BUILD_DIR="${SCRIPT_DIR}/build"
-CHARTS_DIR=$(cd $SCRIPT_DIR/../../../charts; pwd -P)
-MANIFESTS_DIR=$(cd $SCRIPT_DIR/../../../manifests; pwd -P)
+CHARTS_DIR=$(cd $SCRIPT_DIR/../../../thirdparty/charts; pwd -P)
+MANIFESTS_DIR=$(cd $SCRIPT_DIR/../../../thirdparty/manifests; pwd -P)
 
 . ${SOURCE_DIR}/logging.sh
 

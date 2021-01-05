@@ -6,5 +6,5 @@ operator/scripts/install/chart/NOTES.txt
 LICENSES-OLCNE.pdf
 coverage.xml
 # The charts and manifests directories contains external (3rd party) Helm charts and manifests
-charts
-manifests
+thirdparty
+
