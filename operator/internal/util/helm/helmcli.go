@@ -26,9 +26,8 @@ func Upgrade(releaseName string, namespace string, chartDir string, overwriteYam
 		args = append(args, namespace)
 	}
 
-	args = append(args, "--reuse-values")
-
 	if overwriteYaml != "" {
+		args = append(args, "--reuse-values")
 		args = append(args, "-f")
 		args = append(args, overwriteYaml)
 	}
