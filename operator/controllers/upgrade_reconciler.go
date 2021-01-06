@@ -17,13 +17,7 @@ const failedUpgradeLimit = 2
 
 // Reconcile upgrade will upgrade the components as required
 func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
-
-	// Validate that only the version field in the Spec changed
-	if err := installv1alpha1.ValidateVersion(cr.Spec.Version); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// Upgrade is valid, attempt upgrade
+	// Upgrade version was validated in webhook, see ValidateVersion
 	targetVersion := cr.Spec.Version
 
 	// Only allow upgrade to retry a certain amount of times during any upgrade attempt.
