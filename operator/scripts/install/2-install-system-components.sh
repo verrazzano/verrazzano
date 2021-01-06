@@ -19,7 +19,7 @@ function install_nginx_ingress_controller()
         kubectl create namespace ingress-nginx
     fi
 
-    helm repo add stable https://charts.helm.sh/stable || return $?
+    helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx|| return $?
     helm repo update || return $?
 
     # Handle any additional NGINX install args - since NGINX is for Verrazzano system Ingress,
@@ -35,7 +35,7 @@ function install_nginx_ingress_controller()
     local ingress_type=$(get_config_value ".ingress.type")
     EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.type=${ingress_type}"
 
-    helm upgrade ingress-controller stable/nginx-ingress --install \
+    helm upgrade ingress-controller ingress-nginx/ingress-nginx --install \
       --namespace ingress-nginx \
       --version $NGINX_INGRESS_CONTROLLER_VERSION \
       -f $SCRIPT_DIR/config/components/nginx-ingress-controller-values.yaml \
@@ -48,7 +48,7 @@ function install_nginx_ingress_controller()
     local nginx_svc_patch_spec=$(get_verrazzano_ports_spec)
     if [ ! -z "${nginx_svc_patch_spec}" ]; then
       log "Patching NGINX service with: ${nginx_svc_patch_spec}"
-      kubectl patch service -n ingress-nginx ingress-controller-nginx-ingress-controller -p "${nginx_svc_patch_spec}"
+      kubectl patch service -n ingress-nginx ingress-controller-ingress-nginx-controller -p "${nginx_svc_patch_spec}"
     fi
 }
 

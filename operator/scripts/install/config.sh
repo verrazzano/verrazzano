@@ -162,10 +162,10 @@ function get_verrazzano_ingress_ip {
     ingress_ip="127.0.0.1"
   elif [ ${ingress_type} == "LoadBalancer" ]; then
     # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
-    ingress_ip=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
+    ingress_ip=$(kubectl get svc ingress-controller-ingress-nginx-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
     # In case of OLCNE, it would return null
     if [ ${ingress_ip} == "null" ]; then
-      ingress_ip=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json  | jq -r '.spec.externalIPs[0]')
+      ingress_ip=$(kubectl get svc ingress-controller-ingress-nginx-controller -n ingress-nginx -o json  | jq -r '.spec.externalIPs[0]')
     fi
   fi
   echo ${ingress_ip}

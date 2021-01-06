@@ -3,10 +3,8 @@
 
 controller:
   image:
-    repository: quay.io/kubernetes-ingress-controller/nginx-ingress-controller
-    tag: "0.26.2"
-#    repository: ghcr.io/verrazzano/nginx-ingress-controller
-#    tag: 0.32-20201016205412-8580ea0ef
+    repository: ghcr.io/verrazzano/nginx-ingress-controller
+    tag: 0.32-20201016205412-8580ea0ef
   config:
     client-body-buffer-size: 64k
   metrics:
@@ -16,12 +14,10 @@ controller:
   service:
     enableHttp: false
   podAnnotations:
-    prometheus.io/port: 10254
-    prometheus.io/scrape: true
-    system.io/scrape: true
+    prometheus.io/port: "10254"
+    prometheus.io/scrape: "true"
+    system.io/scrape: "true"
 defaultBackend:
   image:
-    repository: k8s.gcr.io/defaultbackend-amd64
-    tag: "1.5"
-#    repository: ghcr.io/verrazzano/nginx-ingress-default-backend
-#    tag: 0.32-20201016205412-8580ea0ef
+    repository: ghcr.io/verrazzano/nginx-ingress-default-backend
+    tag: 0.32-20201016205412-8580ea0ef
