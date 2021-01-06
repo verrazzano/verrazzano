@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -65,12 +65,8 @@ function create_secret {
 
 function install_istio()
 {
-    log "Add istio helm repository"
-    helm repo add istio.io https://storage.googleapis.com/istio-release/releases/${ISTIO_HELM_CHART_VERSION}/charts || return $?
-
-    log "Fetch istio charts for istio and istio-init"
-    helm fetch istio.io/istio --untar=true --untardir=$TMP_DIR || return $?
-    helm fetch istio.io/istio-init --untar=true --untardir=$TMP_DIR || return $?
+    ISTIO_INIT_CHART_DIR=${CHARTS_DIR}/istio-init
+    ISTIO_CHART_DIR=${CHARTS_DIR}/istio
 
     EXTRA_ISTIO_ARGUMENTS=""
     if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
@@ -78,7 +74,7 @@ function install_istio()
     fi
 
     log "Create helm template for installing istio CRDs"
-    helm template istio-init ${TMP_DIR}/istio-init \
+    helm template istio-init ${ISTIO_INIT_CHART_DIR} \
         --namespace istio-system \
         --set global.hub=$GLOBAL_HUB_REPO \
         --set global.tag=$ISTIO_VERSION \
@@ -94,7 +90,7 @@ function install_istio()
     EXTRA_HELM_ARGUMENTS="$EXTRA_HELM_ARGUMENTS $(get_istio_helm_args_from_config)"
 
     log "Create helm template for installing istio proper"
-    helm template istio ${TMP_DIR}/istio \
+    helm template istio ${ISTIO_CHART_DIR} \
         --namespace istio-system \
         --set global.hub=$GLOBAL_HUB_REPO \
         --set global.tag=$ISTIO_VERSION \
@@ -115,7 +111,7 @@ function install_istio()
         --set gateways.istio-ingressgateway.ports[1].port=443 \
         --set gateways.istio-ingressgateway.ports[1].name=https \
         --set gateways.istio-ingressgateway.ports[1].nodePort=31390 \
-        --values ${TMP_DIR}/istio/example-values/values-istio-multicluster-gateways.yaml \
+        --values ${ISTIO_CHART_DIR}/example-values/values-istio-multicluster-gateways.yaml \
         ${EXTRA_HELM_ARGUMENTS} \
         > ${TMP_DIR}/istio.yaml || return $?
 
