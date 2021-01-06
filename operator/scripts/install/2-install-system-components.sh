@@ -14,13 +14,12 @@ set -eu
 
 function install_nginx_ingress_controller()
 {
+    local NGINX_INGRESS_CHART_DIR=${CHARTS_DIR}/ingress-nginx
+
     # Create the namespace for nginx
     if ! kubectl get namespace ingress-nginx ; then
         kubectl create namespace ingress-nginx
     fi
-
-    helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx|| return $?
-    helm repo update || return $?
 
     # Handle any additional NGINX install args - since NGINX is for Verrazzano system Ingress,
     # these should be in .ingress.verrazzano.nginxInstallArgs[]
@@ -35,9 +34,8 @@ function install_nginx_ingress_controller()
     local ingress_type=$(get_config_value ".ingress.type")
     EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.type=${ingress_type}"
 
-    helm upgrade ingress-controller ingress-nginx/ingress-nginx --install \
+    helm upgrade ingress-controller ${NGINX_INGRESS_CHART_DIR} --install \
       --namespace ingress-nginx \
-      --version $NGINX_INGRESS_CONTROLLER_VERSION \
       -f $SCRIPT_DIR/config/components/nginx-ingress-controller-values.yaml \
       ${EXTRA_NGINX_ARGUMENTS} \
       --timeout 15m0s \
@@ -53,8 +51,8 @@ function install_nginx_ingress_controller()
 }
 
 function setup_cert_manager_crd() {
-  curl -L -o "$TMP_DIR/00-crds.yaml" \
-    "https://raw.githubusercontent.com/jetstack/cert-manager/release-${CERT_MANAGER_RELEASE}/deploy/manifests/00-crds.yaml"
+  local CERT_MANAGER_MANIFEST_DIR=${MANIFESTS_DIR}/cert-manager
+  cp "$CERT_MANAGER_MANIFEST_DIR/00-crds.yaml" "$TMP_DIR/00-crds.yaml"
   if [ "$DNS_TYPE" == "oci" ]; then
     command -v patch >/dev/null 2>&1 || {
       fail "patch is required but cannot be found on the path. Aborting.";
@@ -111,13 +109,12 @@ spec:
 
 function install_cert_manager()
 {
+    local CERT_MANAGER_CHART_DIR=${CHARTS_DIR}/cert-manager
+
     # Create the namespace for cert-manager
     if ! kubectl get namespace cert-manager ; then
         kubectl create namespace cert-manager
     fi
-
-    helm repo add jetstack https://charts.jetstack.io || return $?
-    helm repo update || return $?
 
     setup_cert_manager_crd
     kubectl apply -f "$TMP_DIR/00-crds.yaml" --validate=false
@@ -127,10 +124,9 @@ function install_cert_manager()
       EXTRA_CERT_MANAGER_ARGUMENTS="--set clusterResourceNamespace=$(get_config_value ".certificates.ca.clusterResourceNamespace")"
     fi
 
-    helm upgrade cert-manager jetstack/cert-manager \
+    helm upgrade cert-manager ${CERT_MANAGER_CHART_DIR} \
         --install \
         --namespace cert-manager \
-        --version $CERT_MANAGER_HELM_CHART_VERSION \
         --set image.repository=$CERT_MANAGER_IMAGE \
         --set image.tag=$CERT_MANAGER_TAG \
         --set extraArgs[0]=--acme-http01-solver-image=$CERT_MANAGER_SOLVER_IMAGE:$CERT_MANAGER_SOLVER_TAG \
@@ -150,6 +146,8 @@ function install_cert_manager()
 
 function install_external_dns()
 {
+  local EXTERNAL_DNS_CHART_DIR=${CHARTS_DIR}/external-dns
+
   if [ "$DNS_TYPE" == "oci" ]; then
     if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n cert-manager ; then
       # secret does not exist, so copy the configured oci config secret from default namespace.
@@ -162,10 +160,9 @@ function install_external_dns()
       kubectl create secret generic $OCI_DNS_CONFIG_SECRET --from-file=$TMP_DIR/oci.yaml -n cert-manager
     fi
 
-    helm upgrade external-dns stable/external-dns \
+    helm upgrade external-dns ${EXTERNAL_DNS_CHART_DIR} \
         --install \
         --namespace cert-manager \
-        --version $EXTERNAL_DNS_VERSION \
         --set image.registry=$EXTERNAL_DNS_REGISTRY \
         --set image.repository=$EXTERNAL_DNS_REPO \
         --set image.tag=$EXTERNAL_DNS_TAG \
@@ -192,16 +189,12 @@ function install_external_dns()
 
 function install_rancher()
 {
+    local RANCHER_CHART_DIR=${CHARTS_DIR}/rancher
+
     log "Create Rancher namespace (if required)"
     if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
         kubectl create namespace cattle-system
     fi
-
-    log "Add Rancher helm repository location"
-    helm repo add rancher-stable https://releases.rancher.com/server-charts/stable || return $?
-
-    log "Update helm repositoriess"
-    helm repo update || return $?
 
     local INGRESS_TLS_SOURCE=""
     local EXTRA_RANCHER_ARGUMENTS=""
@@ -219,9 +212,8 @@ function install_rancher()
 
     log "Install Rancher"
     # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
-    helm upgrade rancher rancher-stable/rancher \
+    helm upgrade rancher ${RANCHER_CHART_DIR} \
       --install --namespace cattle-system \
-      --version $RANCHER_VERSION  \
       --set systemDefaultRegistry=ghcr.io/verrazzano \
       --set rancherImage=$RANCHER_IMAGE \
       --set rancherImageTag=$RANCHER_TAG \
