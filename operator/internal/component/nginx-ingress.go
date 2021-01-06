@@ -45,8 +45,7 @@ func nginxNamespace(ns string) string {
 
 // nginxChartDir returns the chart directory of the NGINX ingress controller helm chart.
 func nginxChartDir() string {
-	dir := config2.Get().VerrazzanoInstallDir
-	return filepath.Join(dir + "/verrazzano/thirdparty/charts/ingress-nginx")
+	return "/verrazzano/thirdparty/charts/ingress-nginx"
 }
 
 // nginxOverrideYamlFile returns the override yaml file to be used with the NGINX ingress controller helm chart.

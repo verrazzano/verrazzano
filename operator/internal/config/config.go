@@ -40,7 +40,7 @@ var instance OperatorConfig = OperatorConfig{
 	VersionCheckEnabled:      true,
 	WebhooksEnabled:          true,
 	WebhookValidationEnabled: true,
-	VerrazzanoInstallDir:     "/verrazzano/install",
+	VerrazzanoInstallDir:     "/verrazzano/operator/scripts/install",
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests
