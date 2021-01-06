@@ -173,7 +173,6 @@ function install_external_dns()
     helm upgrade external-dns ${EXTERNAL_DNS_CHART_DIR} \
         --install \
         --namespace cert-manager \
-        --version $EXTERNAL_DNS_VERSION \
         -f $SCRIPT_DIR/components/external-dns-values.yaml \
         --set domainFilters[0]=${DNS_SUFFIX} \
         --set zoneIdFilters[0]=$(get_config_value ".dns.oci.dnsZoneOcid") \
