@@ -3,6 +3,7 @@ github.com/verrazzano/verrazzano
 Copyright (c) 2020 Oracle America, Inc. and its affiliates. 
 Copyright (C) 2020, Oracle and/or its affiliates.
 Copyright (c) 2020, Oracle and/or its affiliates.
+Copyright 2018 Istio Authors
 
 -------- License
 Copyright (c) 2020 Oracle America, Inc. and its affiliates. 
