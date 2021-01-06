@@ -243,7 +243,6 @@ pipeline {
                 allOf {
                     not { buildingTag() }
                     anyOf {
-                        expression { }
                         branch 'master';
                         branch 'develop';
                         expression { return params.RUN_ACCEPTANCE_TESTS == true }
