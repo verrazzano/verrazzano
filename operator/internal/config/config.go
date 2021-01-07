@@ -31,7 +31,7 @@ type OperatorConfig struct {
 	VerrazzanoInstallDir string
 
 	// ThirdpartyChartsDir is the directory in the image that contains the thirdparty helm charts.
-	// For example, nginx-ingress, cert-manager, etc.
+	// For example, ingress-nginx, cert-manager, etc.
 	ThirdpartyChartsDir string
 }
 

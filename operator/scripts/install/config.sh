@@ -304,7 +304,7 @@ function get_rancher_in_cluster_host() {
   local rancher_hostname=$1
   local rancher_in_cluster_host=${rancher_hostname}
   if [ $(get_config_value ".ingress.type") == "NodePort" ]; then
-    rancher_in_cluster_host=$(kubectl -n ingress-nginx get pods --selector app=nginx-ingress,component=controller -o jsonpath='{.items[0].status.hostIP}')
+    rancher_in_cluster_host=$(kubectl -n ingress-nginx get pods --selector app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller -o jsonpath='{.items[0].status.hostIP}')
   fi
   echo ${rancher_in_cluster_host}
 }
