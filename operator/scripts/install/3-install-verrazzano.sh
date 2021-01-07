@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -171,10 +171,10 @@ function install_verrazzano()
       --set config.envName=${ENV_NAME} \
       --set config.dnsSuffix=${DNS_SUFFIX} \
       --set config.enableMonitoringStorage=true \
-      --set rancher.rancherURL=https://${RANCHER_HOSTNAME} \
-      --set rancher.rancherUserName="${token_array[0]}" \
-      --set rancher.rancherPassword="${token_array[1]}" \
-      --set rancher.rancherHostname=$(get_rancher_in_cluster_host ${RANCHER_HOSTNAME}) \
+      --set clusterOperator.rancherURL=https://${RANCHER_HOSTNAME} \
+      --set clusterOperator.rancherUserName="${token_array[0]}" \
+      --set clusterOperator.rancherPassword="${token_array[1]}" \
+      --set clusterOperator.rancherHostname=$(get_rancher_in_cluster_host ${RANCHER_HOSTNAME}) \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)" \
       ${PROFILE_VALUES_OVERRIDE} \
       ${EXTRA_V8O_ARGUMENTS} || return $?

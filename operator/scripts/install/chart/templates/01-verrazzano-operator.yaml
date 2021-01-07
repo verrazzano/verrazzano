@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ---
 apiVersion: apps/v1
@@ -33,9 +33,9 @@ spec:
               memory: {{ .Values.verrazzanoOperator.RequestMemory }}
           env:
             - name: rancherURL
-              value: {{ .Values.rancher.rancherURL }}
+              value: {{ .Values.clusterOperator.rancherURL }}
             - name: rancherHost
-              value: {{ .Values.rancher.rancherHostname }}
+              value: {{ .Values.clusterOperator.rancherHostname }}
             - name: USE_SYSTEM_VMI
               value: {{ .Values.appBinding.useSystemVMI | quote }}
             - name: COH_MICRO_IMAGE
