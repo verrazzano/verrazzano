@@ -165,9 +165,13 @@ pipeline {
         stage('Third Party License Check') {
             when { not { buildingTag() } }
             steps {
+                sh """
                 cd ${GO_REPO_PATH}/verrazzano/operator
+                """
                 thirdpartyCheck()
+                sh """
                 cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
+                """
                 thirdpartyCheck()
             }
         }
