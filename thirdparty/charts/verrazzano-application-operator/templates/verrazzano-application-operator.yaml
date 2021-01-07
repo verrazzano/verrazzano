@@ -6,12 +6,12 @@ kind: ServiceAccount
 metadata:
   name: {{ .Values.name }}
   namespace: {{ .Values.namespace }}
-  {{- if .Values.imagePullSecrets }}
+{{- if .Values.global.imagePullSecrets }}
 imagePullSecrets:
-  {{- range .Values.imagePullSecrets }}
-  - name: {{ . }}
-  {{- end }}
-  {{- end }}
+  {{- range .Values.global.imagePullSecrets }}
+- name: {{ . }}
+{{- end }}
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -58,16 +58,10 @@ spec:
       labels:
         app: {{ .Values.name }}
     spec:
-      {{- if .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- range .Values.imagePullSecrets }}
-        - name: {{ . }}
-        {{- end }}
-      {{- end }}
       containers:
         - name: {{ .Values.name }}
+          image: {{ .Values.image }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
-          image: {{ .Values.imageName }}:{{ .Values.imageVersion }}
           resources:
             requests:
               memory: {{ .Values.requestMemory }}
@@ -82,12 +76,12 @@ spec:
 apiVersion: admissionregistration.k8s.io/v1beta1
 kind: MutatingWebhookConfiguration
 metadata:
-  name: {{ .Values.name }}-appconfig-defaulter
+  name: verrazzano-application-appconfig-defaulter
   namespace: {{ .Values.namespace }}
   labels:
     app: {{ .Values.name }}
 webhooks:
-  - name: {{ .Values.name }}-appconfig-defaulter.oracle.com
+  - name: verrazzano-application-appconfig-defaulter.oracle.com
     clientConfig:
       service:
         name: {{ .Values.name }}
@@ -101,20 +95,21 @@ webhooks:
         operations:
           - CREATE
           - UPDATE
+          - DELETE
         resources:
           - applicationconfigurations
-    sideEffects: None
+    sideEffects: NoneOnDryRun
     failurePolicy: Fail
 ---
 apiVersion: admissionregistration.k8s.io/v1beta1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: {{ .Values.name }}-ingresstrait-validator
+  name: verrazzano-application-ingresstrait-validator
   namespace: {{ .Values.namespace }}
   labels:
     app: {{ .Values.name }}
 webhooks:
-  - name: {{ .Values.name }}-ingresstrait-validator.oracle.com
+  - name: verrazzano-application-ingresstrait-validator.oracle.com
     clientConfig:
       service:
         name: {{ .Values.name }}

@@ -2,9 +2,12 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 name: verrazzano-application-operator
 namespace: verrazzano-system
-imageName: ghcr.io/verrazzano/verrazzano-application-operator
-imageVersion: 0.5.0-20201218192145-6954bf6
+
+global:
+  imagePullSecrets: []
+
+image: ghcr.io/verrazzano/verrazzano-application-operator:0.5.0-20201218192145-6954bf6
 imagePullPolicy: Always
-imagePullSecrets: []
+
 requestMemory: 72Mi
 

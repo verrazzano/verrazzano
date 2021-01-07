@@ -165,6 +165,11 @@ type MySQL struct {
 	MySQLInstallArgs []InstallArg `json:"mySqlInstallArgs,omitempty"`
 }
 
+// OAM configuration for a Verrazzano installation
+type OAM struct {
+	Enabled bool `json:"enabled"`
+}
+
 // InstallConfiguration - Verrazzano installation configuration options
 type InstallConfiguration struct {
 	EnvironmentName string         `json:"environmentName"`
@@ -173,6 +178,7 @@ type InstallConfiguration struct {
 	Ingress         Ingress        `json:"ingress"`
 	Certificates    Certificate    `json:"certificates"`
 	Keycloak        Keycloak       `json:"keycloak"`
+	OAM             OAM            `json:"oam"`
 }
 
 // GetInstallConfig returns an install configuration in the json format required by the
@@ -212,6 +218,7 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguratio
 			},
 		},
 		Keycloak: getKeycloak(vz.Spec.Components.Keycloak),
+		OAM: getOAM(vz.Spec.Components.OAM),
 	}
 }
 
@@ -233,6 +240,7 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration
 			},
 		},
 		Keycloak: getKeycloak(vz.Spec.Components.Keycloak),
+		OAM: getOAM(vz.Spec.Components.OAM),
 	}
 }
 
@@ -258,6 +266,7 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfigu
 			},
 		},
 		Keycloak: getKeycloak(vz.Spec.Components.Keycloak),
+		OAM: getOAM(vz.Spec.Components.OAM),
 	}
 }
 
@@ -392,3 +401,10 @@ func getProfile(profileType installv1alpha1.ProfileType) InstallProfile {
 
 	return InstallProfileDev
 }
+
+// getOAM returns the install config for OAM
+func getOAM(oam installv1alpha1.OAMComponent) OAM {
+	config := OAM{Enabled: oam.Enabled}
+	return config
+}
+

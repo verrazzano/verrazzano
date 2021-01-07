@@ -199,18 +199,20 @@ function install_verrazzano()
 function install_oam_operator {
 
   log "Setup OAM Kubernetes operator roles"
-  kubectl create clusterrolebinding cluster-admin-binding-oam --clusterrole cluster-admin --user "system:serviceaccount:${VERRAZZANO_NS}:oam-kubernetes-runtime-oam"
+  kubectl delete clusterrolebinding cluster-admin-binding-oam || true
+  kubectl create clusterrolebinding cluster-admin-binding-oam --clusterrole cluster-admin --user "system:serviceaccount:${VERRAZZANO_NS}:oam-kubernetes-runtime" || return $?
   if [ $? -ne 0 ]; then
     error "Failed to create OAM Kubernetes operator roles."
     return 1
   fi
 
   log "Install OAM Kubernetes operator"
-  helm install oam ${CHARTS_DIR}/oam-kubernetes-runtime \
+  helm upgrade --install --wait oam-kubernetes-runtime \
+    ${CHARTS_DIR}/oam-kubernetes-runtime \
     --namespace "${VERRAZZANO_NS}" \
     --set image.repository="${OAM_OPERATOR_IMAGE_REPO}" \
     --set image.tag="${OAM_OPERATOR_IMAGE_TAG}" \
-    --wait
+    || return $?
   if [ $? -ne 0 ]; then
     error "Failed to install OAM Kubernetes operator."
     return 1
@@ -220,11 +222,11 @@ function install_oam_operator {
 function install_application_operator {
 
   log "Install Verrazzano Kubernetes application operator"
-  helm upgrade --install ${CHARTS_DIR}/verrazzano-application-operator \
+  helm upgrade --install --wait verrazzano-application-operator \
+    ${CHARTS_DIR}/verrazzano-application-operator \
     --namespace "${VERRAZZANO_NS}" \
-    --set imageName="${OAM_OPERATOR_IMAGE_REPO}" \
-    --set imageVersion="${OAM_OPERATOR_IMAGE_TAG}" \
-    --wait
+    --set image="${VERRAZZANO_APPLICATION_OPERATOR_IMAGE_REPO}:${VERRAZZANO_APPLICATION_OPERATOR_IMAGE_TAG}" \
+    ${EXTRA_V8O_ARGUMENTS} || return $?
   if [ $? -ne 0 ]; then
     error "Failed to install Verrazzano Kubernetes application operator."
     return 1
@@ -241,14 +243,15 @@ function install_weblogic_operator {
   fi
 
   log "Install WebLogic Kubernetes operator"
-  helm upgrade --install weblogic-operator ${CHARTS_DIR}/weblogic-operator \
+  helm upgrade --install --wait weblogic-operator \
+    ${CHARTS_DIR}/weblogic-operator \
     --namespace "${VERRAZZANO_NS}" \
     --set image="${WEBLOGIC_OPERATOR_IMAGE_REPO}:${WEBLOGIC_OPERATOR_IMAGE_TAG}" \
     --set serviceAccount=weblogic-operator-sa \
     --set domainNamespaceSelectionStrategy=LabelSelector \
     --set domainNamespaceLabelSelector=verrazzano-domain \
     --set enableClusterRoleBinding=true \
-    --wait
+    || return $?
   if [ $? -ne 0 ]; then
     error "Failed to install WebLogic Kubernetes operator."
     return 1
@@ -258,10 +261,11 @@ function install_weblogic_operator {
 function install_coherence_operator {
 
   log "Install the Coherence Kubernetes operator"
-  helm upgrade --install --namespace "${VERRAZZANO_NS}" coherence coherence/coherence-operator \
-    --version "${COHERENCE_OPERATOR_CHART_VERSION}" \
-    --set image="${COHERENCE_OPERATOR_IMAGE_REPO}:${COHERENCE_OPERATOR_IMAGE_TAG}"
-    --wait
+  helm upgrade --install --wait coherence-operator \
+    ${CHARTS_DIR}/coherence-operator \
+    --namespace "${VERRAZZANO_NS}" \
+    --set image="${COHERENCE_OPERATOR_IMAGE_REPO}:${COHERENCE_OPERATOR_IMAGE_TAG}" \
+    || return $?
   if [ $? -ne 0 ]; then
     error "Failed to install the Coherence Kubernetes operator."
     return 1
@@ -287,6 +291,6 @@ action "Installing Verrazzano system components" install_verrazzano || exit 1
 if [ "${OAM_ENABLED}" == "true" ]; then
   action "Installing Coherence Kubernetes operator" install_coherence_operator || exit 1
   action "Installing WebLogic Kubernetes operator" install_weblogic_operator || exit 1
-  action "Installing OAM Kubernetes operator" install_oam_operator || exit 1
   action "Installing Verrazzano Application Kubernetes operator" install_application_operator || exit 1
+  action "Installing OAM Kubernetes operator" install_oam_operator || exit 1
 fi
