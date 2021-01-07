@@ -130,7 +130,7 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano
+                    cd ${GO_REPO_PATH}/verrazzano/operator
                     make go-vet
                     cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
                     make go-vet
@@ -142,7 +142,7 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano
+                    cd ${GO_REPO_PATH}/verrazzano/operator
                     make go-lint
                     cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
                     make go-lint
@@ -154,7 +154,7 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano
+                    cd ${GO_REPO_PATH}/verrazzano/operator
                     make go-ineffassign
                     cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
                     make go-ineffassign
