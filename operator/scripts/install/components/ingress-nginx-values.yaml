@@ -13,6 +13,8 @@ controller:
     enabled: true
   service:
     enableHttp: false
+  admissionWebhooks:
+    enabled: false
   podAnnotations:
     prometheus.io/port: "10254"
     prometheus.io/scrape: "true"
@@ -21,3 +23,5 @@ defaultBackend:
   image:
     repository: ghcr.io/verrazzano/nginx-ingress-default-backend
     tag: 0.32-20201016205412-8580ea0ef
+  enabled:
+    true
