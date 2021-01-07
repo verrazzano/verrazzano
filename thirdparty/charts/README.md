@@ -130,3 +130,4 @@ helm fetch crossplane-master/oam-kubernetes-runtime --untar=true --version=${OAM
 ### Verrazzano Application Operator
 
 The `verrazzano-application-operator` folder was created manually.
+

@@ -45,10 +45,6 @@ function dump-uninstall-logs {
 # the installation jobs that the operator creates.  The default mode is to run
 # the verrazzano-platform-operator.
 
-echo "################################################################################"
-echo "Running kevin's code."
-echo "################################################################################"
-
 if [ ${MODE} == "NOOP" ]; then
   echo "*************************************************************"
   echo " Running in NOOP mode, exiting                               "

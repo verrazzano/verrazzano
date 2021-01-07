@@ -10,4 +10,3 @@ image: ghcr.io/verrazzano/verrazzano-application-operator:0.5.0-20201218192145-6
 imagePullPolicy: Always
 
 requestMemory: 72Mi
-

@@ -407,4 +407,3 @@ func getOAM(oam installv1alpha1.OAMComponent) OAM {
 	config := OAM{Enabled: oam.Enabled}
 	return config
 }
-
