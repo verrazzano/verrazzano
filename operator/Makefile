@@ -41,7 +41,7 @@ CRD_PATH=config/crd/bases
 CODEGEN_PATH = k8s.io/code-generator
 
 .PHONY: build
-build: go-mod
+build:
 	go build -o bin/verrazzano-platform-operator main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
@@ -66,7 +66,7 @@ check: go-fmt go-vet go-ineffassign go-lint
 # Go build related tasks
 #
 .PHONY: go-install
-go-install: go-mod
+go-install:
 	$(GO) install ./...
 
 .PHONY: go-fmt
@@ -92,24 +92,6 @@ go-lint:
 go-ineffassign:
 	$(GO) get -u github.com/gordonklaus/ineffassign
 	ineffassign $(shell go list ./...)
-
-.PHONY: go-mod
-go-mod:
-	$(GO) mod tidy
-	$(GO) mod vendor
-
-	# go mod vendor only copies the .go files.  Also need
-	# to populate the k8s.io/code-generator folder with the
-	# scripts for generating informer/lister code
-
-	# Obtain k8s.io/code-generator version
-	$(eval codeGenVer=$(shell grep "code-generator" go.mod | awk '{print $$2}'))
-
-	# Add the required files into the vendor folder
-	cp ${GOPATH}/pkg/mod/${CODEGEN_PATH}@${codeGenVer}/generate-groups.sh vendor/${CODEGEN_PATH}/generate-groups.sh
-	chmod +x vendor/${CODEGEN_PATH}/generate-groups.sh
-	cp -R ${GOPATH}/pkg/mod/${CODEGEN_PATH}@${codeGenVer}/cmd/defaulter-gen vendor/${CODEGEN_PATH}/cmd/defaulter-gen
-	chmod -R +w vendor/${CODEGEN_PATH}/cmd/defaulter-gen
 
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: manifests
@@ -154,7 +136,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build: go-mod
+docker-build:
 	docker build --pull -f Dockerfile \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
