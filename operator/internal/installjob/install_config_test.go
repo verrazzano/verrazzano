@@ -444,13 +444,13 @@ func TestOAMEnabledInstall(t *testing.T) {
 	}
 
 	config := GetInstallConfig(&vz)
-	assert.Equal(t, false, config.OAM.Enabled, "Expected OAM to be explicitly enabled.")
+	assert.Equal(t, true, config.OAM.Enabled, "Expected OAM to be explicitly enabled.")
 
 	jsonBytes, err := json.Marshal(config)
 	assert.NoError(t, err, "Expected resource to marshal to json.")
 
 	jsonString := string(jsonBytes)
-	assert.Contains(t, jsonString, "\"oam\":{\"enabled\":false}", "Expected json to show OAM enabled.")
+	assert.Contains(t, jsonString, "\"oam\":{\"enabled\":true}", "Expected json to show OAM enabled.")
 }
 
 // TestOAMDisabledInstall tests the creation of a install with OAM is disabled in the CR
