@@ -36,7 +36,7 @@ function install_nginx_ingress_controller()
 
     helm upgrade ingress-controller ${NGINX_INGRESS_CHART_DIR} --install \
       --namespace ingress-nginx \
-      -f $SCRIPT_DIR/config/components/nginx-ingress-controller-values.yaml \
+      -f $SCRIPT_DIR/components/nginx-ingress-controller-values.yaml \
       ${EXTRA_NGINX_ARGUMENTS} \
       --timeout 15m0s \
       --wait \
