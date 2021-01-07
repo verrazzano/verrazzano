@@ -1,0 +1,23 @@
+# Copyright (c) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+# permissions for end users to view loggingscopes.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: loggingscope-viewer-role
+rules:
+- apiGroups:
+  - oam.verrazzano.io
+  resources:
+  - loggingscopes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - oam.verrazzano.io
+  resources:
+  - loggingscopes/status
+  verbs:
+  - get

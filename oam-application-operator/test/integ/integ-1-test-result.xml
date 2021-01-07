@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+  <testsuite name="Integration Test Suite" tests="22" failures="22" errors="0" time="0">
+      <testcase name="BeforeSuite" classname="Integration Test Suite" time="0.000423638">
+          <failure type="Failure">/Users/ddrechse/go/src/github.com/verrazzano/verrazzano/oam-application-operator/test/integ/integ_test.go:33&#xA;Error creating Kubernetes client to access Verrazzano API objects: stat /Users/ddrechse/.kube/config: no such file or directory&#xA;/Users/ddrechse/go/src/github.com/verrazzano/verrazzano/oam-application-operator/test/integ/integ_test.go:37</failure>
+      </testcase>
+  </testsuite>

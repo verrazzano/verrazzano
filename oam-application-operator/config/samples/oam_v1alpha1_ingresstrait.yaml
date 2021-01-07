@@ -1,0 +1,10 @@
+# Copyright (c) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: oam.verrazzano.io/v1alpha1
+kind: IngressTrait
+metadata:
+  name: ingresstrait-sample
+spec:
+  # Add fields here
+  foo: bar
