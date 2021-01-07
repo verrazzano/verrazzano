@@ -41,7 +41,7 @@ CRD_PATH=operator/config/crd/bases
 CODEGEN_PATH = k8s.io/code-generator
 
 .PHONY: build
-build: go-mod
+build:
 	go build -o bin/verrazzano-platform-operator operator/main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
@@ -66,7 +66,7 @@ check: go-fmt go-vet go-ineffassign go-lint
 # Go build related tasks
 #
 .PHONY: go-install
-go-install: go-mod
+go-install:
 	$(GO) install ./operator/...
 
 .PHONY: go-fmt
@@ -154,7 +154,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build: go-mod
+docker-build:
 	docker build --pull -f operator/Dockerfile \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
