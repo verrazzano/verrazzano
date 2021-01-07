@@ -87,17 +87,15 @@ verrazzanoAdmissionController:
   imageVersion: 0.8.0-20201221221835-6c6f18e
   caBundle:
   RequestMemory: 15Mi
+  rancherURL:
+  rancherUserName:
+  rancherPassword:
+  rancherHostname:
 
 console:
   name: verrazzano-console
   imageName: ghcr.io/verrazzano/console
   imageVersion: 0.8.0-20201222142451-75c551d
-
-rancher:
-  rancherURL:
-  rancherUserName:
-  rancherPassword:
-  rancherHostname:
 
 # OCI-related values
 oci:
