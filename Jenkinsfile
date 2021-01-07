@@ -166,7 +166,8 @@ pipeline {
             when { not { buildingTag() } }
             steps {
             sh "pwd"
-            dir(operator){
+            sh "ls -la"
+            dir('operator'){
                 sh "pwd"
                 thirdpartyCheck()
             }
