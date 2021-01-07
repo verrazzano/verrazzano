@@ -50,7 +50,7 @@ spec:
       domainCRValues:
         domainUID: bobs-bookstore
         domainHome: /u01/oracle/user_projects/domains/bobs-bookstore
-        image: "ghcr.io/verrazzano/example-bobs-bookstore-order-manager:0.1.10-3-20201016220428-56fb4d4"
+        image: "ghcr.io/verrazzano/example-bobs-bookstore-order-manager:20210106191119-cbf6309"
         logHome: /u01/oracle/bobs-bookstore/logs
         logHomeEnabled: false
         includeServerOutInPodLog: true
@@ -101,7 +101,7 @@ spec:
               environmentVariableForHost: "BACKEND_HOSTNAME"
               environmentVariableForPort: "BACKEND_PORT"
     - name: "roberts-helidon-stock-application"
-      image: "ghcr.io/verrazzano/example-roberts-helidon-stock-application:0.1.10-3-20201016220428-56fb4d4"
+      image: "ghcr.io/verrazzano/example-roberts-helidon-stock-application:20210106191119-cbf6309"
       imagePullSecrets:
         - name: github-packages
         - name: ocr
