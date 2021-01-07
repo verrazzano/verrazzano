@@ -218,7 +218,7 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguratio
 			},
 		},
 		Keycloak: getKeycloak(vz.Spec.Components.Keycloak),
-		OAM: getOAM(vz.Spec.Components.OAM),
+		OAM:      getOAM(vz.Spec.Components.OAM),
 	}
 }
 
@@ -240,7 +240,7 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration
 			},
 		},
 		Keycloak: getKeycloak(vz.Spec.Components.Keycloak),
-		OAM: getOAM(vz.Spec.Components.OAM),
+		OAM:      getOAM(vz.Spec.Components.OAM),
 	}
 }
 
@@ -266,7 +266,7 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfigu
 			},
 		},
 		Keycloak: getKeycloak(vz.Spec.Components.Keycloak),
-		OAM: getOAM(vz.Spec.Components.OAM),
+		OAM:      getOAM(vz.Spec.Components.OAM),
 	}
 }
 

@@ -414,7 +414,7 @@ func TestOAMDefaultInstall(t *testing.T) {
 		Spec: installv1alpha1.VerrazzanoSpec{
 			Profile:         "dev",
 			EnvironmentName: "test-env",
-			Components: installv1alpha1.ComponentSpec{},
+			Components:      installv1alpha1.ComponentSpec{},
 		},
 	}
 

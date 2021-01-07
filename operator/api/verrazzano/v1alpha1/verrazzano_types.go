@@ -160,7 +160,8 @@ type ComponentSpec struct {
 	Keycloak KeycloakComponent `json:"keycloak,omitempty"`
 	// OAM contains the OAM component configuration
 	// +optional
-	OAM OAMComponent `json:"oam,omitempty"`}
+	OAM OAMComponent `json:"oam,omitempty"`
+}
 
 // CertManagerComponent specifies the core CertManagerComponent config.
 type CertManagerComponent struct {
