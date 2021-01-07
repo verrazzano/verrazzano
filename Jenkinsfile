@@ -165,14 +165,15 @@ pipeline {
         stage('Third Party License Check') {
             when { not { buildingTag() } }
             steps {
-                sh "pwd"
-                sh "ls -la"
                 dir('operator'){
-                    sh "echo \"In Operator\" "
-                    sh "pwd"
+                    echo "In Operator"
+                    echo sh "pwd"
                     thirdpartyCheck()
                 }
-                sh "pwd"
+                dir('oam-application-operator'){
+                    echo "In OAM Operator"
+                    thirdpartyCheck()
+                }
             }
         }
 
