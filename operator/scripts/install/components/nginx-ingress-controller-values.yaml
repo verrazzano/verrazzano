@@ -8,9 +8,9 @@ controller:
   config:
     client-body-buffer-size: 64k
   metrics:
-      enabled: true
+    enabled: true
   publishService:
-      enabled: true
+    enabled: true
   service:
     enableHttp: false
   podAnnotations:

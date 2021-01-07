@@ -1,11 +1,12 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package config
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // TestConfigDefaults tests the config default values
@@ -23,7 +24,8 @@ func TestConfigDefaults(t *testing.T) {
 	asserts.True(conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
 	asserts.True(conf.WebhooksEnabled, "WebhooksEnabled is incorrect")
 	asserts.True(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
-	asserts.Equal("/verrazzano/install", conf.VerrazzanoInstallDir, "VerrazzanoInstallDir is incorrect")
+	asserts.Equal("/verrazzano/operator/scripts/install", conf.VerrazzanoInstallDir, "VerrazzanoInstallDir is incorrect")
+	asserts.Equal("/verrazzano/thirdparty/charts", conf.ThirdpartyChartsDir, "ThirdpartyChartsDir is incorrect")
 }
 
 // TestSetConfig tests setting config values
@@ -42,6 +44,7 @@ func TestSetConfig(t *testing.T) {
 		WebhooksEnabled:          false,
 		WebhookValidationEnabled: false,
 		VerrazzanoInstallDir:     "/test/vz",
+		ThirdpartyChartsDir:      "/test/thirdparty",
 	})
 
 	conf := Get()
@@ -54,4 +57,5 @@ func TestSetConfig(t *testing.T) {
 	asserts.False(conf.WebhooksEnabled, "WebhooksEnabled is incorrect")
 	asserts.False(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
 	asserts.Equal("/test/vz", conf.VerrazzanoInstallDir, "VerrazzanoInstallDir is incorrect")
+	asserts.Equal("/test/thirdparty", conf.ThirdpartyChartsDir, "ThirdpartyChartsDir is incorrect")
 }

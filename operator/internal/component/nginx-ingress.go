@@ -22,7 +22,7 @@ var _ Component = Nginx{}
 
 // Name returns the component name
 func (v Nginx) Name() string {
-	return "nginx-ingress-controller"
+	return "nginx-ingress"
 }
 
 // Upgrade upgrades the NGINX ingress controller.
@@ -45,7 +45,8 @@ func nginxNamespace(ns string) string {
 
 // nginxChartDir returns the chart directory of the NGINX ingress controller helm chart.
 func nginxChartDir() string {
-	return "/verrazzano/thirdparty/charts/ingress-nginx"
+	dir := config2.Get().ThirdpartyChartsDir
+	return filepath.Join(dir + "/ingress-nginx")
 }
 
 // nginxOverrideYamlFile returns the override yaml file to be used with the NGINX ingress controller helm chart.
