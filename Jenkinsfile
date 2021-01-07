@@ -167,7 +167,6 @@ pipeline {
             steps {
                 dir('operator'){
                     echo "In Operator"
-                    echo sh "pwd"
                     thirdpartyCheck()
                 }
                 dir('oam-application-operator'){
