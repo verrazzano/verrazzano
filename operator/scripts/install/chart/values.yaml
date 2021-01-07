@@ -10,7 +10,7 @@ image:
   terminationGracePeriodSeconds: 60
 
 appBinding:
-  useSystemVMI: false
+  useSystemVMI: true
 
 elasticSearch:
   nodes:
