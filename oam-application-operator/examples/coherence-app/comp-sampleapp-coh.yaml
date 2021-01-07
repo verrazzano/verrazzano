@@ -1,0 +1,111 @@
+# Copyright (C) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+#
+# Example 3
+# Adds a separate application node running helidon app
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: coherence-app-cluster
+  namespace: coherence-example
+spec:
+  workload:
+    apiVersion: coherence.oracle.com/v1
+    kind: Coherence
+    metadata:
+      name: example-cluster-storage
+    spec:
+      cluster: example-cluster
+      jvm:
+        memory:
+          heapSize: 512m
+        args:
+          - "-Dcoherence.metrics.legacy.names=false"
+      ports:
+        - name: metrics
+          port: 9612
+          serviceMonitor:
+            enabled: true
+      coherence:
+        cacheConfig: storage-cache-config.xml
+        metrics:
+          enabled: true
+      image: phx.ocir.io/stevengreenberginc/tvlatas/deployment-example:3.1.1
+      imagePullSecrets:
+        - name: ocir
+      imagePullPolicy: Always
+      replicas: 3
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: coherence-app-proxy
+  namespace: coherence-example
+spec:
+  workload:
+    apiVersion: coherence.oracle.com/v1
+    kind: Coherence
+    metadata:
+      name: example-cluster-proxy
+    spec:
+      cluster: example-cluster
+      jvm:
+        memory:
+          heapSize: 512m
+        args:
+          - "-Dcoherence.metrics.legacy.names=false"
+      ports:
+        - name: metrics
+          port: 9612
+          serviceMonitor:
+            enabled: true
+        - name: proxy
+          port: 20000
+      coherence:
+        cacheConfig: proxy-cache-config.xml
+        storageEnabled: false
+        metrics:
+          enabled: true
+      image: phx.ocir.io/stevengreenberginc/tvlatas/deployment-example:3.1.1
+      imagePullSecrets:
+        - name: ocir
+      imagePullPolicy: Always
+      replicas: 1
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: coherence-app-rest
+  namespace: coherence-example
+spec:
+  workload:
+    apiVersion: coherence.oracle.com/v1
+    kind: Coherence
+    metadata:
+      name: example-cluster-rest
+    spec:
+      cluster: example-cluster
+      jvm:
+        memory:
+          heapSize: 512m
+        args:
+          - "-Dcoherence.metrics.legacy.names=false"
+      ports:
+        - name: metrics
+          port: 9612
+          serviceMonitor:
+            enabled: true
+        - name: http
+          port: 8080
+      coherence:
+        cacheConfig: storage-cache-config.xml
+        storageEnabled: false
+        metrics:
+          enabled: true
+      image: phx.ocir.io/stevengreenberginc/tvlatas/deployment-example:3.1.1
+      imagePullSecrets:
+        - name: ocir
+      imagePullPolicy: Always
+      application:
+        main: com.oracle.coherence.examples.Main
+      replicas: 1

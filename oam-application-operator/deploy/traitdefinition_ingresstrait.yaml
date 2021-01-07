@@ -1,0 +1,14 @@
+# Copyright (C) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: TraitDefinition
+metadata:
+  name: ingresstraits.oam.verrazzano.io
+spec:
+  appliesToWorkloads:
+    - core.oam.dev/v1alpha2.ContainerizedWorkload
+    - weblogic.oracle/v8.Domain
+  definitionRef:
+    name: ingresstraits.oam.verrazzano.io
+  workloadRefPath: spec.workloadRef
