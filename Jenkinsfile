@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -238,7 +238,7 @@ pipeline {
             }
         }
 
-        stage('Kick off MagicDNS Acceptance tests') {
+        stage('Kick off KinD Acceptance tests') {
             when {
                 allOf {
                     not { buildingTag() }
@@ -253,12 +253,12 @@ pipeline {
                 FULL_IMAGE_NAME = "${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
             }
             steps {
-                build job: "verrazzano-magic-dns-acceptance-tests/${env.BRANCH_NAME.replace("/", "%2F")}",
+                build job: "verrazzano-kind-acceptance-tests/${env.BRANCH_NAME.replace("/", "%2F")}",
                         parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME),
                                      string(name: 'ACCEPTANCE_TESTS_BRANCH', value: params.ACCEPTANCE_TESTS_BRANCH),
                                      string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME),
-                                     string(name: 'OKE_CLUSTER_REGION', value: params.ACCEPTANCE_TESTS_OKE_REGION),
-                                     string(name: 'DNS_TYPE', value: 'xip.io')],
+                                     string(name: 'TEST_ENV', value: 'kind'),
+                                     string(name: 'INSTALL_PROFILE', value: 'dev')],
                         wait: true,
                         propagate: true
             }

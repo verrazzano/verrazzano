@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 name: verrazzano
 
@@ -79,6 +79,10 @@ clusterOperator:
   imageName: ghcr.io/verrazzano/verrazzano-cluster-operator
   imageVersion: 0.8.0-20201218185017-5e9c62f
   RequestMemory: 27Mi
+  rancherURL:
+  rancherUserName:
+  rancherPassword:
+  rancherHostname:
 
 verrazzanoAdmissionController:
   name: verrazzano-validation
@@ -92,12 +96,6 @@ console:
   name: verrazzano-console
   imageName: ghcr.io/verrazzano/console
   imageVersion: 0.8.0-20201222142451-75c551d
-
-rancher:
-  rancherURL:
-  rancherUserName:
-  rancherPassword:
-  rancherHostname:
 
 # OCI-related values
 oci:
