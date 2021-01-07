@@ -13,7 +13,7 @@ spec:
       domainCRValues:
         domainUID: bobbys-front-end
         domainHome: /u01/oracle/user_projects/domains/bobbys-front-end
-        image: "ghcr.io/verrazzano/example-bobbys-front-end:0.1.10-3-20201016220428-56fb4d4"
+        image: "container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.10-3-20201016220428-56fb4d4"
         logHome: /u01/oracle/user_projects/domains/bobbys-front-end/logs
         logHomeEnabled: false
         includeServerOutInPodLog: true
@@ -21,7 +21,6 @@ spec:
         webLogicCredentialsSecret:
           name: bobbys-front-end-weblogic-credentials
         imagePullSecrets:
-          - name: github-packages
           - name: ocr
         clusters:
           - clusterName: cluster-1
@@ -50,7 +49,7 @@ spec:
       domainCRValues:
         domainUID: bobs-bookstore
         domainHome: /u01/oracle/user_projects/domains/bobs-bookstore
-        image: "ghcr.io/verrazzano/example-bobs-bookstore-order-manager:0.1.10-3-20201016220428-56fb4d4"
+        image: "container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.10-3-20201016220428-56fb4d4"
         logHome: /u01/oracle/bobs-bookstore/logs
         logHomeEnabled: false
         includeServerOutInPodLog: true
@@ -58,7 +57,6 @@ spec:
         webLogicCredentialsSecret:
           name: bobs-bookstore-weblogic-credentials
         imagePullSecrets:
-          - name: github-packages
           - name: ocr
         clusters:
           - clusterName: cluster-1
@@ -83,10 +81,9 @@ spec:
               datasourceName: books
   helidonApplications:
     - name: "bobbys-helidon-stock-application"
-      image: "ghcr.io/verrazzano/example-bobbys-helidon-stock-application:0.1.10-3-20201016220428-56fb4d4"
+      image: "container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.10-3-20201016220428-56fb4d4"
       imagePullSecrets:
         - name: ocr
-        - name: github-packages
       env:
         - name: COH_CACHE_CONFIG
           value: bobbys-helidon-cache-config.xml
@@ -101,9 +98,8 @@ spec:
               environmentVariableForHost: "BACKEND_HOSTNAME"
               environmentVariableForPort: "BACKEND_PORT"
     - name: "roberts-helidon-stock-application"
-      image: "ghcr.io/verrazzano/example-roberts-helidon-stock-application:0.1.10-3-20201016220428-56fb4d4"
+      image: "container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.10-3-20201016220428-56fb4d4"
       imagePullSecrets:
-        - name: github-packages
         - name: ocr
       env:
         - name: COH_CACHE_CONFIG
@@ -118,9 +114,8 @@ spec:
               address: "roberts-coherence-wka"
   coherenceClusters:
     - name: "bobbys-coherence"
-      image: "ghcr.io/verrazzano/example-bobbys-coherence:0.1.10-3-20201016220428-56fb4d4"
+      image: "container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.10-3-20201016220428-56fb4d4"
       imagePullSecrets:
-        - name: github-packages
         - name: ocr  # secret to pull bobbys-coherence and container-registry.oracle.com/middleware/coherence:12.2.1.4.0
       cacheConfig: "bobbys-cache-config.xml"
       pofConfig: "bobbys-pof-config.xml"
@@ -128,9 +123,8 @@ spec:
         - name: extend
           port: 9000
     - name: "roberts-coherence"
-      image: "ghcr.io/verrazzano/example-roberts-coherence:0.1.10-3-20201016220428-56fb4d4"
+      image: "container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.10-3-20201016220428-56fb4d4"
       imagePullSecrets:
-        - name: github-packages
         - name: ocr  # secret to pull roberts-coherence and container-registry.oracle.com/middleware/coherence:12.2.1.4.0
       cacheConfig: "books-cache-config.xml"
       pofConfig: "books-pof-config.xml"

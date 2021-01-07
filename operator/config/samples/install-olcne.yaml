@@ -8,36 +8,36 @@ metadata:
 spec:
   environmentName: uni
   profile: dev
-  components:
-    dns:
-      external:
-        suffix: abc.def.xyz.com
-    ingress:
-      type: LoadBalancer
+  dns:
+    external:
+      suffix: abc.def.xyz.com
+  ingress:
+    type: LoadBalancer
+    verrazzano:
       nginxInstallArgs:
-      - name: controller.service.externalTrafficPolicy
-        value: Local
-      - name: controller.autoscaling.enabled
-        value: "true"
-      - name: controller.autoscaling.minReplicas
-        value: "2"
-      - name: controller.service.externalIPs
-        valueList:
-        - 11.22.33.44
+        - name: controller.service.externalTrafficPolicy
+          value: Local
+        - name: controller.autoscaling.enabled
+          value: "true"
+        - name: controller.autoscaling.minReplicas
+          value: "2"
+        - name: controller.service.externalIPs
+          valueList:
+            - 11.22.33.44
       ports:
-      - name: http
-        port: 80
-        nodePort: 30080
-      - name: https
-        port: 443
-        nodePort: 30443
-      - name: healthz
-        port: 30254
-        nodePort: 30254
-        protocol: TCP
-        targetPort: 10254
-    istio:
+        - name: http
+          port: 80
+          nodePort: 30080
+        - name: https
+          port: 443
+          nodePort: 30443
+        - name: healthz
+          port: 30254
+          nodePort: 30254
+          protocol: TCP
+          targetPort: 10254
+    application:
       istioInstallArgs:
-      - name: gateways.istio-ingressgateway.externalIPs
-        valueList:
-        - 11.22.33.55
+        - name: gateways.istio-ingressgateway.externalIPs
+          valueList:
+            - 11.22.33.55
