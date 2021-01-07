@@ -15,6 +15,9 @@ type helmComponent struct {
 	chartDir string
 	// The namespace passed to the helm command
 	chartNamespace string
+	// The namespaceHardcoded bool indicates that a component has a hardcoded namespace
+	// and ignores the namespace param passed to Upgrade
+	namespaceHardcoded bool
 }
 
 // Verify that helmComponent implements Component
@@ -28,9 +31,11 @@ func (h helmComponent) Name() string {
 // Upgrade is done by using the helm chart upgrade command.   This command will apply the latest chart
 // that is included in the operator image, while retaining any helm value overrides that were applied during
 // install.
-func (h helmComponent) Upgrade(namespace string) error {
-	_, _, err := helm.Upgrade(vzReleaseName, namespace, h.chartDir)
+func (h helmComponent) Upgrade(ns string) error {
+	namespace := ns
+	if h.namespaceHardcoded {
+		namespace = h.chartNamespace
+	}
+	_, _, err := helm.Upgrade(h.releaseName, namespace, h.chartDir)
 	return err
 }
-
-
