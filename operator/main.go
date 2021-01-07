@@ -52,6 +52,8 @@ func main() {
 		"Initialize webhooks for the operator")
 	flag.StringVar(&config.VerrazzanoInstallDir, "vz-install-dir", config.VerrazzanoInstallDir,
 		"Specify the install directory of verrazzano (used for development)")
+	flag.StringVar(&config.ThirdpartyChartsDir, "thirdparty-charts-dir", config.ThirdpartyChartsDir,
+		"Specify the thirdparty helm charts directory (used for development)")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}

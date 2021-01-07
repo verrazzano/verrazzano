@@ -29,6 +29,10 @@ type OperatorConfig struct {
 
 	// VerrazzanoInstallDir is the directory in the image that contains the helm charts and installation scripts
 	VerrazzanoInstallDir string
+
+	// ThirdpartyChartsDir is the directory in the image that contains the thirdparty helm charts.
+	// For example, ingress-nginx, cert-manager, etc.
+	ThirdpartyChartsDir string
 }
 
 // The singleton instance of the operator config
@@ -41,6 +45,7 @@ var instance OperatorConfig = OperatorConfig{
 	WebhooksEnabled:          true,
 	WebhookValidationEnabled: true,
 	VerrazzanoInstallDir:     "/verrazzano/operator/scripts/install",
+	ThirdpartyChartsDir:      "/verrazzano/thirdparty/charts",
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests

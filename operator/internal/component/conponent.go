@@ -3,6 +3,11 @@
 
 package component
 
+import
+(
+	config2 "github.com/verrazzano/verrazzano/operator/internal/config"
+)
+
 // Component interface defines the methods implemented by components
 type Component interface {
 	// Name returns the name of the Verrazzano component
@@ -15,5 +20,12 @@ type Component interface {
 // GetComponents returns the list of components that are installable and upgradeable.
 // The components will be processed in the order items in the array
 func GetComponents() []Component {
-	return []Component{Verrazzano{}}
+	return []Component{
+		Verrazzano{},
+		helmComponent{
+			releaseName:    "external-dns",
+			chartDir:       config2.Get().ThirdpartyChartsDir,
+			chartNamespace: "cert-manager",
+		},
+	}
 }
