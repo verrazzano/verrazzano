@@ -162,7 +162,7 @@ pipeline {
             }
         }
 
-        stage('Third Party License Check') {
+/*        stage('Third Party License Check') {
             when { not { buildingTag() } }
             steps {
                 dir('operator'){
@@ -182,7 +182,7 @@ pipeline {
                 copyrightScan "${WORKSPACE}"
             }
         }
-
+*/
         stage('Unit Tests') {
             when { not { buildingTag() } }
             steps {
