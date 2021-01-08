@@ -26,9 +26,9 @@ function install_nginx_ingress_controller()
     local EXTRA_NGINX_ARGUMENTS=$(get_nginx_helm_args_from_config)
 
     if [ "$DNS_TYPE" == "oci" ]; then
-      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.'external-dns\.alpha\.kubernetes\.io/ttl'=\"60\""
+      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations."external-dns\.alpha\.kubernetes\.io/ttl"=\"60\""
       local dns_zone=$(get_config_value ".dns.oci.dnsZoneName")
-      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.'external-dns\.alpha\.kubernetes\.io/hostname'=verrazzano-ingress.${NAME}.${dns_zone}"
+      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=verrazzano-ingress.${NAME}.${dns_zone}"
     fi
 
     local ingress_type=$(get_config_value ".ingress.type")
@@ -36,7 +36,7 @@ function install_nginx_ingress_controller()
 
     log "Extra Nginx arguments: ${EXTRA_NGINX_ARGUMENTS}"
 
-    helm upgrade ingress-controller ${NGINX_INGRESS_CHART_DIR} --install \
+    helm upgrade ingress-controller ${NGINX_INGRESS_CHART_DIR} --install --debug \
       --namespace ingress-nginx \
       -f $SCRIPT_DIR/components/ingress-nginx-values.yaml \
       ${EXTRA_NGINX_ARGUMENTS} \
