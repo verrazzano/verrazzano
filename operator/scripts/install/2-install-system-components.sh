@@ -28,7 +28,7 @@ function install_nginx_ingress_controller()
     if [ "$DNS_TYPE" == "oci" ]; then
       EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.'external-dns\.alpha\.kubernetes\.io/ttl'=\"60\""
       local dns_zone=$(get_config_value ".dns.oci.dnsZoneName")
-      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.'external-dns\.alpha\.kubernetes\.io/hostname'=verrazzano-ingress.${NAME}.${dns_zone}"
+      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.'external-dns\.alpha\.kubernetes\.io/hostname'=\"verrazzano-ingress.${NAME}.${dns_zone}\""
     fi
 
     local ingress_type=$(get_config_value ".ingress.type")
