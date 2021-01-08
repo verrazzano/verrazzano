@@ -192,7 +192,7 @@ pipeline {
                     make -B coverage
                     cp coverage.html ${WORKSPACE}
                     cp coverage.xml ${WORKSPACE}
-                    operator/build/scripts/copy-junit-output.sh ${WORKSPACE}
+                    build/scripts/copy-junit-output.sh ${WORKSPACE}
                     cd ${GO_REPO_PATH}/verrazzano/oam-operator
                     make unit-test
                     make -B coverage
