@@ -29,6 +29,11 @@ type helmComponent struct {
 // Verify that helmComponent implements Component
 var _ Component = helmComponent{}
 
+// upgradeFuncSig is needed for unit test override
+type upgradeFuncSig func(releaseName string, namespace string, chartDir string, overwriteYaml string) (stdout []byte, stderr []byte, err error)
+
+var upgradeFunc upgradeFuncSig = helm.Upgrade
+
 // Name returns the component name
 func (h helmComponent) Name() string {
 	return h.releaseName
@@ -42,6 +47,14 @@ func (h helmComponent) Upgrade(ns string) error {
 	if h.namespaceHardcoded {
 		namespace = h.chartNamespace
 	}
-	_, _, err := helm.Upgrade(h.releaseName, namespace, h.chartDir, h.valuesFile)
+	_, _, err := upgradeFunc(h.releaseName, namespace, h.chartDir, h.valuesFile)
 	return err
+}
+
+func setUpgradeFunc(f upgradeFuncSig) {
+	upgradeFunc = f
+}
+
+func setDefaultUpgradeFunc() {
+	upgradeFunc = helm.Upgrade
 }
