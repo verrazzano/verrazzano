@@ -18,14 +18,13 @@ type helmFakeRunner struct {
 type testComponent struct {
 }
 
-
 // TestGetName tests the component name
 // GIVEN a Verrazzano component
 //  WHEN I call Name
 //  THEN the correct verrazzano name is returned
 func TestGetName(t *testing.T) {
-	comp:= helmComponent{
-		releaseName:        "release1",
+	comp := helmComponent{
+		releaseName: "release1",
 	}
 
 	assert := assert.New(t)
@@ -40,7 +39,7 @@ func TestUpgrade(t *testing.T) {
 	const defNs = "verrazzano-system"
 	assert := assert.New(t)
 
-	comp:= helmComponent{
+	comp := helmComponent{
 		releaseName:        "release1",
 		chartDir:           "chartDir",
 		chartNamespace:     "chartNS",
@@ -58,16 +57,16 @@ func TestUpgrade(t *testing.T) {
 
 func fakeUpgrade(releaseName string, namespace string, chartDir string, overwriteYaml string) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "release1" {
-		return  []byte("error"), []byte(""), errors.New("Invalid release name")
+		return []byte("error"), []byte(""), errors.New("Invalid release name")
 	}
 	if chartDir != "chartDir" {
-		return  []byte("error"), []byte(""), errors.New("Invalid chart directory name")
+		return []byte("error"), []byte(""), errors.New("Invalid chart directory name")
 	}
 	if namespace != "chartNS" {
-		return  []byte("error"), []byte(""), errors.New("Invalid chart namespace")
+		return []byte("error"), []byte(""), errors.New("Invalid chart namespace")
 	}
 	if overwriteYaml != "valuesFile" {
-		return  []byte("error"), []byte(""), errors.New("Invalid values file")
+		return []byte("error"), []byte(""), errors.New("Invalid values file")
 	}
 	return []byte("success"), []byte(""), nil
 }

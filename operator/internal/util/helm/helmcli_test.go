@@ -33,8 +33,8 @@ type badRunner struct {
 func TestUpgrade(t *testing.T) {
 	assert := assert.New(t)
 	SetCmdRunner(goodRunner{t: t})
-    defer SetDefaultRunner()
-	
+	defer SetDefaultRunner()
+
 	stdout, stderr, err := Upgrade(release, ns, chartdir, overrideYaml)
 	assert.NoError(err, "Upgrade returned an error")
 	assert.Len(stderr, 0, "Upgrade stderr should be empty")
