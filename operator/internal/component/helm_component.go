@@ -7,22 +7,22 @@ import (
 	"github.com/verrazzano/verrazzano/operator/internal/util/helm"
 )
 
-// Verrazzano struct needed to implement interface
+// helmComponent struct needed to implement a component
 type helmComponent struct {
-	// The helm chart release name
+	// releaseName is the helm chart release name
 	releaseName string
 
-	// The helm chart directory
+	// chartDir is the helm chart directory
 	chartDir string
 
-	// The namespace passed to the helm command
+	// chartNamespace is the namespace passed to the helm command
 	chartNamespace string
 
-	// The namespaceHardcoded bool indicates that a component has a hardcoded namespace
+	// namespaceHardcoded bool indicates that a component has a hardcoded namespace
 	// and ignores the namespace param passed to Upgrade
 	namespaceHardcoded bool
 
-	// The helm chart values override file
+	// valuesFile is the helm chart values override file
 	valuesFile string
 }
 
@@ -32,6 +32,7 @@ var _ Component = helmComponent{}
 // upgradeFuncSig is needed for unit test override
 type upgradeFuncSig func(releaseName string, namespace string, chartDir string, overwriteYaml string) (stdout []byte, stderr []byte, err error)
 
+// upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
 
 // Name returns the component name

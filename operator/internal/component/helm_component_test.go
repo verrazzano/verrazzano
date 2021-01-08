@@ -11,11 +11,8 @@ import (
 	"testing"
 )
 
-// fakeRunner is used to test helm without actually running an OS exec command
+// helmFakeRunner is used to test helm without actually running an OS exec command
 type helmFakeRunner struct {
-}
-
-type testComponent struct {
 }
 
 // TestGetName tests the component name
@@ -34,9 +31,8 @@ func TestGetName(t *testing.T) {
 // TestUpgrade tests the component upgrade
 // GIVEN a component
 //  WHEN I call Upgrade
-//  THEN the upgrade returns success and passes the correct values to the runner
+//  THEN the upgrade returns success and passes the correct values to the upgrade function
 func TestUpgrade(t *testing.T) {
-	const defNs = "verrazzano-system"
 	assert := assert.New(t)
 
 	comp := helmComponent{
@@ -55,6 +51,7 @@ func TestUpgrade(t *testing.T) {
 	assert.NoError(err, "Upgrade returned an error")
 }
 
+// fakeUpgrade verifies that the correct parameter values are passed to upgrade
 func fakeUpgrade(releaseName string, namespace string, chartDir string, overwriteYaml string) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "release1" {
 		return []byte("error"), []byte(""), errors.New("Invalid release name")
@@ -71,6 +68,7 @@ func fakeUpgrade(releaseName string, namespace string, chartDir string, overwrit
 	return []byte("success"), []byte(""), nil
 }
 
+// helmFakeRunner overrides the helm run command
 func (r helmFakeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	return []byte("success"), []byte(""), nil
 }
