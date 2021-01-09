@@ -6,11 +6,10 @@ package component
 import (
 	"os/exec"
 
-	"github.com/verrazzano/verrazzano/operator/internal/util/helm"
-
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/operator/internal/util/helm"
 )
 
 // nginxFakeRunner is used to test helm without actually running an OS exec command
@@ -27,7 +26,7 @@ func TestNginxName(t *testing.T) {
 	assert.Equal("ingress-nginx", comp.Name(), "Wrong component name for ingress-nginx")
 }
 
-// TestNginxUpgrade tests the ingress-nginx component name
+// TestNginxUpgrade tests the ingress-nginx component upgrade
 // GIVEN a ingress-nginx component
 //  WHEN I call Upgrade
 //  THEN the ingress-nginx upgrade returns success
@@ -40,7 +39,7 @@ func TestNginxUpgrade(t *testing.T) {
 	assert.NoError(err, "Upgrade returned an error")
 }
 
-// TestNginxResolveNamespace tests the ingress-nginx component name
+// TestNginxResolveNamespace tests the ingress-nginx component namespace
 // GIVEN a ingress-nginx component
 //  WHEN I call resolveNamespace
 //  THEN the ingress-nginx namespace name is correctly resolved

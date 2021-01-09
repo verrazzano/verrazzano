@@ -34,7 +34,7 @@ func (v Nginx) Upgrade(namespace string) error {
 	return err
 }
 
-// nginxNamespace will return the default NGINX namespace unless the namespace
+// nginxNamespace will return the default Nginx namespace unless the namespace
 // is explicitly specified
 func nginxNamespace(ns string) string {
 	if len(ns) > 0 && ns != "default" {
@@ -43,13 +43,13 @@ func nginxNamespace(ns string) string {
 	return nginxDefaultNamespace
 }
 
-// nginxChartDir returns the chart directory of the NGINX ingress controller helm chart.
+// nginxChartDir returns the chart directory of the Nginx ingress controller helm chart.
 func nginxChartDir() string {
 	dir := config2.Get().ThirdpartyChartsDir
 	return filepath.Join(dir + "/ingress-nginx")
 }
 
-// nginxOverrideYamlFile returns the override yaml file to be used with the NGINX ingress controller helm chart.
+// nginxOverrideYamlFile returns the override yaml file to be used with the Nginx ingress controller helm chart.
 func nginxOverrideYamlFile() string {
 	dir := config2.Get().VerrazzanoInstallDir
 	return filepath.Join(dir + "/components/ingress-nginx-values.yaml")
