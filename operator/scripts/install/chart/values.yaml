@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 name: verrazzano
 
@@ -10,7 +10,7 @@ image:
   terminationGracePeriodSeconds: 60
 
 appBinding:
-  useSystemVMI: false
+  useSystemVMI: true
 
 elasticSearch:
   nodes:
@@ -55,7 +55,7 @@ verrazzanoOperator:
 monitoringOperator:
   name: verrazzano-monitoring-operator
   imageName: ghcr.io/verrazzano/verrazzano-monitoring-operator
-  imageVersion: 0.8.0-20201221212648-684fe83
+  imageVersion: 0.8.0-20210108130006-b5a6f97
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
@@ -79,6 +79,10 @@ clusterOperator:
   imageName: ghcr.io/verrazzano/verrazzano-cluster-operator
   imageVersion: 0.8.0-20201218185017-5e9c62f
   RequestMemory: 27Mi
+  rancherURL:
+  rancherUserName:
+  rancherPassword:
+  rancherHostname:
 
 verrazzanoAdmissionController:
   name: verrazzano-validation
@@ -92,12 +96,6 @@ console:
   name: verrazzano-console
   imageName: ghcr.io/verrazzano/console
   imageVersion: 0.8.0-20201222142451-75c551d
-
-rancher:
-  rancherURL:
-  rancherUserName:
-  rancherPassword:
-  rancherHostname:
 
 # OCI-related values
 oci:

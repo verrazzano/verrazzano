@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ---
 apiVersion: apps/v1
@@ -25,10 +25,10 @@ spec:
           args:
             - --zap-log-level=info
             - --zap-devel=false
-            - --rancherURL={{ .Values.rancher.rancherURL }}
-            - --rancherUserName={{ .Values.rancher.rancherUserName }}
-            - --rancherPassword={{ .Values.rancher.rancherPassword }}
-            - --rancherHost={{ .Values.rancher.rancherHostname }}
+            - --rancherURL={{ .Values.clusterOperator.rancherURL }}
+            - --rancherUserName={{ .Values.clusterOperator.rancherUserName }}
+            - --rancherPassword={{ .Values.clusterOperator.rancherPassword }}
+            - --rancherHost={{ .Values.clusterOperator.rancherHostname }}
           resources:
             requests:
               memory: {{ .Values.clusterOperator.RequestMemory }}
