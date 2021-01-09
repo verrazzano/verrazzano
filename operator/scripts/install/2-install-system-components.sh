@@ -34,7 +34,7 @@ function install_nginx_ingress_controller()
     local ingress_type=$(get_config_value ".ingress.type")
     EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.type=${ingress_type}"
 
-    log "Extra Nginx arguments: ${EXTRA_NGINX_ARGUMENTS}"
+    log "Extra NGINX arguments: ${EXTRA_NGINX_ARGUMENTS}"
 
     helm upgrade ingress-controller ${NGINX_INGRESS_CHART_DIR} --install --debug \
       --namespace ingress-nginx \
@@ -332,7 +332,7 @@ NAME=$(get_config_value ".environmentName")
 DNS_TYPE=$(get_config_value ".dns.type")
 CERT_ISSUER_TYPE=$(get_config_value ".certificates.issuerType")
 
-action "Installing Nginx Ingress Controller" install_nginx_ingress_controller || exit 1
+action "Installing NGINX Ingress Controller" install_nginx_ingress_controller || exit 1
 
 # We can only know the ingress IP after installing nginx ingress controller
 INGRESS_IP=$(get_verrazzano_ingress_ip)

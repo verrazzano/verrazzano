@@ -147,5 +147,5 @@ function delete_rancher() {
 
 action "Deleting Rancher Components" delete_rancher || exit 1
 action "Deleting External DNS Components" delete_external_dns || exit 1
-action "Deleting Nginx Components" delete_nginx || exit 1
+action "Deleting NGINX Components" delete_nginx || exit 1
 action "Deleting Cert Manager Components" delete_cert_manager || exit 1
