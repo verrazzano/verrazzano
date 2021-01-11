@@ -36,11 +36,11 @@ func TestUpgrade(t *testing.T) {
 	assert := assert.New(t)
 
 	comp := helmComponent{
-		releaseName:        "release1",
-		chartDir:           "chartDir",
-		chartNamespace:     "chartNS",
-		namespaceHardcoded: true,
-		valuesFile:         "valuesFile",
+		releaseName:             "release1",
+		chartDir:                "chartDir",
+		chartNamespace:          "chartNS",
+		allowsNamespaceOverride: true,
+		valuesFile:              "valuesFile",
 	}
 
 	helm.SetCmdRunner(helmFakeRunner{})

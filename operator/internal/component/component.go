@@ -26,11 +26,11 @@ func GetComponents() []Component {
 		Verrazzano{},
 		Nginx{},
 		helmComponent{
-			releaseName:        "external-dns",
-			chartDir:           filepath.Join(config2.Get().ThirdpartyChartsDir, "external-dns"),
-			chartNamespace:     "cert-manager",
-			namespaceHardcoded: true,
-			valuesFile:         filepath.Join(componentDir, "external-dns-values.yaml"),
+			releaseName:             "external-dns",
+			chartDir:                filepath.Join(config2.Get().ThirdpartyChartsDir, "external-dns"),
+			chartNamespace:          "cert-manager",
+			allowsNamespaceOverride: true,
+			valuesFile:              filepath.Join(componentDir, "external-dns-values.yaml"),
 		},
 	}
 }
