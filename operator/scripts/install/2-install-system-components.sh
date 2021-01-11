@@ -34,9 +34,7 @@ function install_nginx_ingress_controller()
     local ingress_type=$(get_config_value ".ingress.type")
     EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.type=${ingress_type}"
 
-    log "Extra NGINX arguments: ${EXTRA_NGINX_ARGUMENTS}"
-
-    helm upgrade ingress-controller ${NGINX_INGRESS_CHART_DIR} --install --debug \
+    helm upgrade ingress-controller ${NGINX_INGRESS_CHART_DIR} --install \
       --namespace ingress-nginx \
       -f $SCRIPT_DIR/components/ingress-nginx-values.yaml \
       ${EXTRA_NGINX_ARGUMENTS} \
