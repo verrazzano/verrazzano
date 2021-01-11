@@ -1,0 +1,46 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+#local EXTRA_CERT_MANAGER_ARGUMENTS=""
+#if [ "$CERT_ISSUER_TYPE" == "ca" ]; then
+#EXTRA_CERT_MANAGER_ARGUMENTS="--set clusterResourceNamespace=$(get_config_value ".certificates.ca.clusterResourceNamespace")"
+#fi
+#
+#helm upgrade cert-manager ${CERT_MANAGER_CHART_DIR} \
+#--install \
+#--namespace cert-manager \
+#--set image.repository=$CERT_MANAGER_IMAGE \
+#--set image.tag=$CERT_MANAGER_TAG \
+#--set extraArgs[0]=--acme-http01-solver-image=$CERT_MANAGER_SOLVER_IMAGE:$CERT_MANAGER_SOLVER_TAG \
+#--set cainjector.enabled=false \
+#--set webhook.enabled=false \
+#--set webhook.injectAPIServerCA=false \
+#--set ingressShim.defaultIssuerName=verrazzano-cluster-issuer \
+#--set ingressShim.defaultIssuerKind=ClusterIssuer \
+#${EXTRA_CERT_MANAGER_ARGUMENTS} \
+#--wait \
+#|| return $?
+#
+
+#  CERT_MANAGER_IMAGE=ghcr.io/verrazzano/cert-manager-controller
+#  CERT_MANAGER_TAG=0.13.1-20201016205232-4c8f3fe38
+#  CERT_MANAGER_SOLVER_IMAGE=ghcr.io/verrazzano/cert-manager-acmesolver
+#  CERT_MANAGER_SOLVER_TAG=0.13.1-20201016205234-4c8f3fe38
+
+image:
+  repository: ghcr.io/verrazzano/cert-manager-controller
+  tag: 0.13.1-20201016205232-4c8f3fe38
+
+webhook:
+  enabled: false
+  injectAPIServerCA: false
+
+cainjector:
+  enabled: false
+
+ingressShim:
+  defaultIssuerName: verrazzano-cluster-issuer
+  defaultIssuerKind: ClusterIssuer
+
+extraArgs:
+  - --acme-http01-solver-image=ghcr.io/verrazzano/cert-manager-acmesolver:0.13.1-20201016205234-4c8f3fe38
