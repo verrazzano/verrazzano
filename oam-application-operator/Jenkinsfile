@@ -228,7 +228,7 @@ pipeline {
                     # Create the kind cluster
                     make create-cluster
 
-                    # Create image pull secret for Verrazzano docker images
+                    # Create image pull secret for Verrazzano Docker images
                     cd ${GO_REPO_PATH}/verrazzano-application-operator
                     build/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
 

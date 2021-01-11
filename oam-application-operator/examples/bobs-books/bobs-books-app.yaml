@@ -8,7 +8,7 @@ metadata:
   namespace: bobs-books
   annotations:
     version: v1.0.0
-    description: "Robert"
+    description: "Robert's Books"
 spec:
   components:
     - componentName: robert-helidon
@@ -62,7 +62,7 @@ metadata:
   namespace: bobs-books
   annotations:
     version: v1.0.0
-    description: "Bob's order manager wls"
+    description: "Bob's Order Manager WebLogic"
 spec:
   components:
     - componentName: bobs-orders-wls
