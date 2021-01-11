@@ -48,3 +48,8 @@ func Upgrade(releaseName string, namespace string, chartDir string, overwriteYam
 func SetCmdRunner(r vz_os.CmdRunner) {
 	runner = r
 }
+
+// SetDefaultRunner sets the command runner to default
+func SetDefaultRunner() {
+	runner = vz_os.DefaultRunner{}
+}

@@ -165,21 +165,11 @@ function install_external_dns()
     helm upgrade external-dns ${EXTERNAL_DNS_CHART_DIR} \
         --install \
         --namespace cert-manager \
-        --set image.registry=$EXTERNAL_DNS_REGISTRY \
-        --set image.repository=$EXTERNAL_DNS_REPO \
-        --set image.tag=$EXTERNAL_DNS_TAG \
-        --set provider=oci \
-        --set logLevel=debug \
-        --set registry=txt \
-        --set sources[0]=ingress \
-        --set sources[1]=service \
+        -f $SCRIPT_DIR/components/external-dns-values.yaml \
         --set domainFilters[0]=${DNS_SUFFIX} \
         --set zoneIdFilters[0]=$(get_config_value ".dns.oci.dnsZoneOcid") \
         --set txtOwnerId=v8o-local-${NAME} \
         --set txtPrefix=_v8o-local-${NAME}_ \
-        --set policy=sync \
-        --set interval=24h \
-        --set triggerLoopOnEvent=true \
         --set extraVolumes[0].name=config \
         --set extraVolumes[0].secret.secretName=$OCI_DNS_CONFIG_SECRET \
         --set extraVolumeMounts[0].name=config \

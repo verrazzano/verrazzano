@@ -43,7 +43,7 @@ func (v Verrazzano) Upgrade(namespace string) error {
 }
 
 // resolveNamesapce will return the default verrzzano system namespace unless the namespace
-// is explicity specified
+// is specified
 func resolveNamespace(ns string) string {
 	if len(ns) > 0 && ns != "default" {
 		return ns
