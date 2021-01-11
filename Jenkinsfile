@@ -167,11 +167,11 @@ pipeline {
             steps {
                 dir('operator'){
                     echo "In Operator"
- //                   thirdpartyCheck()
+                    thirdpartyCheck()
                 }
                 dir('oam-application-operator'){
                     echo "In OAM Operator"
- //                   thirdpartyCheck()
+                    thirdpartyCheck()
                 }
             }
         }
