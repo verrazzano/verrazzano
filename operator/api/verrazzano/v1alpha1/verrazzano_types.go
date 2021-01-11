@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -185,10 +185,10 @@ type IngressNginxComponent struct {
 	// Type of ingress.  Default is LoadBalancer
 	// +optional
 	Type IngressType `json:"type,omitempty"`
-	// Arguments for installing nginx
+	// Arguments for installing NGINX
 	// +optional
 	NGINXInstallArgs []InstallArgs `json:"nginxInstallArgs,omitempty"`
-	// Ports to be used for nginx
+	// Ports to be used for NGINX
 	// +optional
 	Ports []corev1.ServicePort `json:"ports,omitempty"`
 }

@@ -1,18 +1,20 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helm
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"os/exec"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const ns = "my_namespace"
 const chartdir = "my_charts"
 const release = "my_release"
+const overrideYaml = "my-override.yaml"
 
 // goodRunner is used to test helm without actually running an OS exec command
 type goodRunner struct {
@@ -32,7 +34,7 @@ func TestUpgrade(t *testing.T) {
 	assert := assert.New(t)
 	SetCmdRunner(goodRunner{t: t})
 
-	stdout, stderr, err := Upgrade(release, ns, chartdir)
+	stdout, stderr, err := Upgrade(release, ns, chartdir, overrideYaml)
 	assert.NoError(err, "Upgrade returned an error")
 	assert.Len(stderr, 0, "Upgrade stderr should be empty")
 	assert.NotZero(stdout, "Upgrade stdout should not be empty")
@@ -46,10 +48,10 @@ func TestUpgradeFail(t *testing.T) {
 	assert := assert.New(t)
 	SetCmdRunner(badRunner{t: t})
 
-	stdout, stderr, err := Upgrade(release, ns, chartdir)
+	stdout, stderr, err := Upgrade(release, ns, "", "")
 	assert.Error(err, "Upgrade should have returned an error")
-	assert.Len(stdout, 0, "Upgrade stderr should be empty")
-	assert.NotZero(stderr, "Upgrade stdout should not be empty")
+	assert.Len(stdout, 0, "Upgrade stdout should be empty")
+	assert.NotZero(stderr, "Upgrade stderr should not be empty")
 }
 
 // RunCommand should assert that the cmd contains the correct data

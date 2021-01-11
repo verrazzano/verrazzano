@@ -240,8 +240,8 @@ Specific steps will differ for each load balancer provider, but a generic config
 |--------------|-----------------------------------------------|------|-------------------------|-------------|
 | Application  | `istio-ingressgateway`                        | TCP  | 80                      | 31380       |
 | Application  | `istio-ingressgateway`                        | TCP  | 443                     | 31390       |
-| Management   | `ingress-controller-nginx-ingress-controller` | TCP  | 80                      | 30080       |
-| Management   | `ingress-controller-nginx-ingress-controller` | TCP  | 443                     | 30443       |
+| Management   | `ingress-controller-ingress-nginx-controller` | TCP  | 80                      | 30080       |
+| Management   | `ingress-controller-ingress-nginx-controller` | TCP  | 443                     | 30443       |
 
 ##### OCI Example
 The following details can be used to create OCI load balancers for accessing application and management user interfaces, respectively.
@@ -280,7 +280,7 @@ The A records will need to be created manually.
 
 |Record             | Use                                                                                              |
 |-------------------|--------------------------------------------------------------------------------------------------|
-|ingress-mgmt       | Set as the `.spec.externalIPs` value of the `ingress-controller-nginx-ingress-controller` service|
+|ingress-mgmt       | Set as the `.spec.externalIPs` value of the `ingress-controller-ingress-nginx-controller` service|
 |ingress-verrazzano | Set as the `.spec.externalIPs` value of the `istio-ingressgateway` service                       |
 
 For example:
