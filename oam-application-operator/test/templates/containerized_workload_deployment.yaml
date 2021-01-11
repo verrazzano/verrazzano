@@ -1,4 +1,4 @@
-# Copyright (C) 2020, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: apps/v1
 kind: Deployment
@@ -58,7 +58,7 @@ spec:
         containerizedworkload.oam.crossplane.io: 2164eb12-5f15-4b74-bcc8-9a854ec9e92d
     spec:
       containers:
-        - image: ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4
+        - image: fake-image
           imagePullPolicy: IfNotPresent
           name: ##OAM_COMP_NAME##-container
           ports:

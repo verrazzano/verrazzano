@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -8,15 +8,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// IngressTraitSpec defines the desired state of IngressTrait
+// IngressTraitSpec specifies the desired state of an ingress trait.
 type IngressTraitSpec struct {
-	// A set of rules to configure the IngressTrait.
+	// Rules specifies a list of ingress rules to for an ingress trait.
 	Rules []IngressRule `json:"rules,omitempty"`
 
-	// WorkloadReference to the workload this trait applies to.
+	// The WorkloadReference to the workload to which this trait applies.
 	// This value is populated by the OAM runtime when a ApplicationConfiguration
 	// resource is processed.  When the ApplicationConfiguration is processed a trait and
 	// a workload resource are created from the content of the ApplicationConfiguration.
@@ -26,30 +25,30 @@ type IngressTraitSpec struct {
 	WorkloadReference oamrt.TypedReference `json:"workloadRef"`
 }
 
-// IngressRule defines hosts and paths to be exposed for ingress
+// IngressRule specifies the hosts and paths to be exposed for an ingress trait.
 type IngressRule struct {
 	Hosts []string      `json:"hosts,omitempty"`
 	Paths []IngressPath `json:"paths,omitempty"`
 }
 
-// IngressPath defines a specific path to be exposed for ingress
+// IngressPath specifies a specific path to be exposed for an ingress trait.
 type IngressPath struct {
 	Path     string `json:"path,omitempty"`
 	PathType string `json:"pathType,omitempty"`
 }
 
-// IngressTraitStatus defines the observed state of IngressTrait
+// IngressTraitStatus specifies the observed state of an ingress trait and related resources.
 type IngressTraitStatus struct {
-	// Reconcile status of this trait
+	// The reconcile status of this ingress trait
 	oamrt.ConditionedStatus `json:",inline"`
-	// Resources managed by this trait
+	// The resources managed by this ingress trait
 	Resources []oamrt.TypedReference `json:"resources,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// IngressTrait is the Schema for the ingresstraits API
+// IngressTrait specifies the ingress traits API
 type IngressTrait struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

@@ -1,4 +1,4 @@
-# Copyright (C) 2020, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: v1
 data:
@@ -351,8 +351,8 @@ data:
         - name
         target_label: webapp
     - basic_auth:
-        password: welcome1
-        username: weblogic
+        password: fake-password
+        username: fake-username
       job_name: bobs-books-binding_local_bobby_weblogic_bobbys-front-end
       kubernetes_sd_configs:
       - namespaces:
@@ -391,8 +391,8 @@ data:
         - name
         target_label: webapp
     - basic_auth:
-        password: welcome1
-        username: weblogic
+        password: fake-password
+        username: fake-username
       job_name: bobs-books-binding_local_bob_weblogic_bobs-bookstore
       kubernetes_sd_configs:
       - namespaces:
@@ -689,8 +689,8 @@ data:
         - name
         target_label: webapp
     - basic_auth:
-        password: welcome1
-        username: weblogic
+        password: fake-password
+        username: fake-username
       job_name: todo_default_todo_todo-wls
       kubernetes_sd_configs:
       - namespaces:

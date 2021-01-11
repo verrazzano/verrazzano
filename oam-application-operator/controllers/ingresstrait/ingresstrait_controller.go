@@ -40,7 +40,7 @@ const (
 	clusterIPNone            = "None"
 )
 
-// Reconciler is used to reconcile a IngressTrait object
+// Reconciler is used to reconcile an IngressTrait object
 type Reconciler struct {
 	client.Client
 	Log    logr.Logger
@@ -54,9 +54,8 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// Reconcile reconciles a IngressTrait to an Ingress object.
-// This results in a related Ingress object being created or updated.
-// This also results in the Status of the IngressTrait resource being updated.
+// Reconcile reconciles an IngressTrait with other related resources required for ingress.
+// This also results in the status of the ingress trait resource being updated.
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=ingresstraits,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=ingresstraits/status,verbs=get;update;patch
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {

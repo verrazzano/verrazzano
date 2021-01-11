@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -8,25 +8,25 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 )
 
-// Ensure that IngressTrait adheres to Trait interface.
+// Enforce that IngressTrait adheres to Trait interface.
 var _ oam.Trait = &IngressTrait{}
 
-// GetCondition of this IngressTrait.
+// GetCondition gets the status condition of this ingress trait.
 func (in *IngressTrait) GetCondition(ct oamrt.ConditionType) oamrt.Condition {
 	return in.Status.GetCondition(ct)
 }
 
-// SetConditions of this IngressTrait.
+// SetConditions sets the status condition of this ingress trait.
 func (in *IngressTrait) SetConditions(c ...oamrt.Condition) {
 	in.Status.SetConditions(c...)
 }
 
-// GetWorkloadReference of this IngressTrait.
+// GetWorkloadReference gets the workload reference of this ingress trait.
 func (in *IngressTrait) GetWorkloadReference() oamrt.TypedReference {
 	return in.Spec.WorkloadReference
 }
 
-// SetWorkloadReference of this IngressTrait.
+// SetWorkloadReference sets the workload reference of this ingress trait.
 func (in *IngressTrait) SetWorkloadReference(r oamrt.TypedReference) {
 	in.Spec.WorkloadReference = r
 }

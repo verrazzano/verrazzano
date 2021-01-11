@@ -18,19 +18,19 @@ GHCR_SECRET="github-packages"
 OCR_SECRET="ocr"
 
 if [ -z "${GHCR_USER}" ]; then
-  echo "ERROR: Github container registry username required as first argument or GHCR_USER environment variable."
+  echo "ERROR: GitHub Container Registry username required as first argument or GHCR_USER environment variable."
   exit 1
 fi
 if [ -z "${GHCR_PASS}" ]; then
-  echo "ERROR: Github container registry password required as second argument or GHCR_PASS environment variable."
+  echo "ERROR: GitHub Container Registry password required as second argument or GHCR_PASS environment variable."
   exit 1
 fi
 if [ -z "${OCR_USER}" ]; then
-  echo "ERROR: Oracle container registry username required as third argument or OCR_USER environment variable."
+  echo "ERROR: Oracle Container Registry username required as third argument or OCR_USER environment variable."
   exit 1
 fi
 if [ -z "${OCR_PASS}" ]; then
-  echo "ERROR: Oracle container registry password required as fourth argument or OCR_PASS environment variable."
+  echo "ERROR: Oracle Container Registry password required as fourth argument or OCR_PASS environment variable."
   exit 1
 fi
 

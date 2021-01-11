@@ -1,4 +1,4 @@
-# Copyright (C) 2020, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: v1
 kind: Pod
@@ -63,7 +63,7 @@ spec:
     - args:
         - --storage.tsdb.retention=6h
         - --config.file=/etc/prometheus/prometheus.yml
-      image: container-registry.oracle.com/olcne/prometheus:v2.13.1
+      image: fake-image
       imagePullPolicy: IfNotPresent
       livenessProbe:
         failureThreshold: 3
@@ -103,7 +103,7 @@ spec:
           readOnly: true
   dnsPolicy: ClusterFirst
   enableServiceLinks: true
-  nodeName: 10.0.10.3
+  nodeName: 1.2.3.4
   priority: 0
   restartPolicy: Always
   schedulerName: default-scheduler
@@ -153,8 +153,8 @@ status:
       type: PodScheduled
   containerStatuses:
     - containerID: docker://98042d4c09cfdd8aaf5b286707d9727c541a4c1c73bf4c7c546de5a630ed05be
-      image: container-registry.oracle.com/olcne/prometheus:v2.13.1
-      imageID: docker-pullable://container-registry.oracle.com/olcne/prometheus@sha256:9ab3ebca1f037ba7d99bac1b776285b1ebec38f72b41d243e5d4872705f43a63
+      image: fake-image
+      imageID: fake-image-id
       lastState: {}
       name: prometheus
       ready: true
@@ -163,10 +163,10 @@ status:
       state:
         running:
           startedAt: "2020-12-07T16:55:58Z"
-  hostIP: 10.0.10.3
+  hostIP: 1.2.3.4
   phase: Running
-  podIP: 10.244.0.68
+  podIP: 2.3.4.5
   podIPs:
-    - ip: 10.244.0.68
+    - ip: 2.3.4.5
   qosClass: Burstable
   startTime: "2020-12-07T16:55:56Z"

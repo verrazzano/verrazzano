@@ -1,4 +1,4 @@
-# Copyright (C) 2020, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: v1
 kind: Pod
@@ -81,7 +81,7 @@ spec:
           value: "false"
         - name: DYNAMIC_CONFIG_OVERRIDE
           value: "true"
-      image: ghcr.io/verrazzano/example-bobbys-front-end:0.1.10-3-20201016220428-56fb4d4
+      image: fake-image
       imagePullPolicy: IfNotPresent
       lifecycle:
         preStop:
@@ -135,7 +135,7 @@ spec:
   enableServiceLinks: true
   imagePullSecrets:
     - name: ocir
-  nodeName: 10.0.10.3
+  nodeName: 10.11.12.13
   priority: 0
   restartPolicy: Always
   schedulerName: default-scheduler
@@ -194,8 +194,8 @@ status:
       type: PodScheduled
   containerStatuses:
     - containerID: docker://ddf023c419954731a4114cbc4034837b5b6dcdcb117e9abb0e8037450e59ec5d
-      image: ghcr.io/verrazzano/example-bobbys-front-end:0.1.10-3-20201016220428-56fb4d4
-      imageID: docker-pullable://ghcr.io/verrazzano/example-bobbys-front-end@sha256:1d8b662345df035b8d769384a2baca8a0f23b8b5340d3a152ec4e9d693ebd5f5
+      image: fake-image
+      imageID: fake-image-id
       lastState: {}
       name: weblogic-server
       ready: true
@@ -204,10 +204,10 @@ status:
       state:
         running:
           startedAt: "2020-12-07T17:11:42Z"
-  hostIP: 10.0.10.3
+  hostIP: 10.11.12.13
   phase: Running
-  podIP: 10.244.0.70
+  podIP: 10.12.13.14
   podIPs:
-    - ip: 10.244.0.70
+    - ip: 10.12.13.14
   qosClass: BestEffort
   startTime: "2020-12-07T17:11:39Z"

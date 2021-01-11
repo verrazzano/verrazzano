@@ -6,7 +6,7 @@
 * kustomize v3.1.0+
 * kubebuilder 2.3.1+
 * go version v1.13+
-* docker
+* Docker
 * kubectl
 
 ## Building the Operator
@@ -70,13 +70,13 @@ when the custom resource is deleted.
     make uninstall-crds
     ```
 
-## Building and pushing docker images
+## Building and pushing Docker images
 
-* To build the docker image:
+* To build the Docker image:
     ```
     make docker-build
 
-* To push the docker image:
+* To push the Docker image:
     ```
     make docker-push
     ```  
@@ -104,7 +104,7 @@ kubectl create secret -n verrazzano-system  docker-registry github-packages --do
 
 To install, set the env var for the application operator image, then run the install script.  For example:
 ```
-export VERRAZZANO_APP_OP_IMAGE=ghcr.io/verrazzano/verrazzano-application-operator-jenkins:0.5.0-20201030125421-f7e021b
+export VERRAZZANO_APP_OP_IMAGE=<docker-image-name>:<docker-image-tag>
 ./installer/install.sh
 ```
 

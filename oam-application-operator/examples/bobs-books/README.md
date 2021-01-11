@@ -16,9 +16,9 @@ You will need to fulfill the following prerequisites prior to running the exampl
 
     You will not be able to pull these images until you have accepted the licenses.
 
-## Deply the Example Applications
+## Deploy the Example Applications
 
-Run the `install-bobs-books.sh` script to create all of the necessary resources and install the example applications. You need to provide credentials for both the Oracle Container Registry and Github Container Registry.
+Run the `install-bobs-books.sh` script to create all of the necessary resources and install the example applications. You need to provide credentials for both the Oracle Container Registry and GitHub Container Registry.
 ```
 ./install-bobs-books.sh <ghcr username> <ghcr password> <ocr username> <ocr password>
 ```
@@ -37,7 +37,7 @@ Alternatively, you can specify the credentials in environment variables: `GHCR_U
     kubectl create secret docker-registry ocr --docker-server=container-registry.oracle.com --docker-username='<sso-username>' --docker-password='<sso-pw>' -n bobs-books
     ```
 
-1. Create a secret for Github Container Registry.
+1. Create a secret for GitHub Container Registry.
     ```
     kubectl create secret docker-registry github-packages --docker-username=<username> --docker-password=<password> --docker-server=ghcr.io -n bobs-books
     ```
