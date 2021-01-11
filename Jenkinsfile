@@ -102,7 +102,7 @@ pipeline {
             }
         }
 
-        stage('Build') {
+/*        stage('Build') {
             when { not { buildingTag() } }
             steps {
                 sh """
@@ -161,28 +161,28 @@ pipeline {
                 """
             }
         }
-
-/*        stage('Third Party License Check') {
+*/
+        stage('Third Party License Check') {
             when { not { buildingTag() } }
             steps {
                 dir('operator'){
                     echo "In Operator"
-                    thirdpartyCheck()
+ //                   thirdpartyCheck()
                 }
                 dir('oam-application-operator'){
                     echo "In OAM Operator"
-                    thirdpartyCheck()
+ //                   thirdpartyCheck()
                 }
             }
         }
-
+/*
         stage('Copyright Compliance Check') {
             when { not { buildingTag() } }
             steps {
                 copyrightScan "${WORKSPACE}"
             }
         }
-*/
+
         stage('Unit Tests') {
             when { not { buildingTag() } }
             steps {
@@ -317,7 +317,7 @@ pipeline {
             }
         }
     }
-
+*/
     post {
         always {
             deleteDir()
