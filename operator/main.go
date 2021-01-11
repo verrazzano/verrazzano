@@ -5,8 +5,9 @@ package main
 
 import (
 	"flag"
-	config2 "github.com/verrazzano/verrazzano/operator/internal/config"
 	"os"
+
+	config2 "github.com/verrazzano/verrazzano/operator/internal/config"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/controllers"

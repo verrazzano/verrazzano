@@ -52,8 +52,8 @@ func TestUpgradeFail(t *testing.T) {
 
 	stdout, stderr, err := Upgrade(release, ns, "", "")
 	assert.Error(err, "Upgrade should have returned an error")
-	assert.Len(stdout, 0, "Upgrade stderr should be empty")
-	assert.NotZero(stderr, "Upgrade stdout should not be empty")
+	assert.Len(stdout, 0, "Upgrade stdout should be empty")
+	assert.NotZero(stderr, "Upgrade stderr should not be empty")
 }
 
 // RunCommand should assert that the cmd contains the correct data

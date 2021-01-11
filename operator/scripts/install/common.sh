@@ -244,11 +244,5 @@ KEYCLOAK_THEME_IMAGE=ghcr.io/verrazzano/keycloak-oracle-theme:0.8.0-202012212029
 MYSQL_IMAGE=ghcr.io/verrazzano/mysql
 MYSQL_IMAGE_TAG=8.0.20
 
-NGINX_INGRESS_CONTROLLER_IMAGE=ghcr.io/verrazzano/nginx-ingress-controller
-NGINX_INGRESS_CONTROLLER_TAG=0.32-20201016205412-8580ea0ef
-
-NGINX_DEFAULT_BACKEND_IMAGE=ghcr.io/verrazzano/nginx-ingress-default-backend
-NGINX_DEFAULT_BACKEND_TAG=0.32-20201016205412-8580ea0ef
-
 RANCHER_IMAGE=ghcr.io/verrazzano/rancher
 RANCHER_TAG=v2.4.3-20201016205256-4988df094

@@ -35,8 +35,8 @@ function delete_nginx() {
 
   # delete the nginx clusterrole and clusterrolebinding
   log "Deleting ClusterRoles and ClusterRoleBindings for ingress-nginx"
-  kubectl delete clusterrole ingress-controller-nginx-ingress --ignore-not-found=true || err_return $? "Could not delete ClusterRole ingress-controller-nginx-ingress" || return $?
-  kubectl delete clusterrolebinding ingress-controller-nginx-ingress --ignore-not-found=true || err_return $? "Could not delete ClusterRoleBinding ingress-controller-nginx-ingress" || return $?
+  kubectl delete clusterrole ingress-controller-ingress-nginx --ignore-not-found=true || err_return $? "Could not delete ClusterRole ingress-controller-ingress-nginx" || return $?
+  kubectl delete clusterrolebinding ingress-controller-ingress-nginx --ignore-not-found=true || err_return $? "Could not delete ClusterRoleBinding ingress-controller-ingress-nginx" || return $?
 
   # delete ingress-nginx namespace
   log "Deleting ingress-nginx namespace finalizers"
@@ -147,5 +147,5 @@ function delete_rancher() {
 
 action "Deleting Rancher Components" delete_rancher || exit 1
 action "Deleting External DNS Components" delete_external_dns || exit 1
-action "Deleting Nginx Components" delete_nginx || exit 1
+action "Deleting NGINX Components" delete_nginx || exit 1
 action "Deleting Cert Manager Components" delete_cert_manager || exit 1

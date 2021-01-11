@@ -20,10 +20,12 @@ type Component interface {
 // GetComponents returns the list of components that are installable and upgradeable.
 // The components will be processed in the order items in the array
 func GetComponents() []Component {
+<<<<<<< HEAD
 	componentDir := filepath.Join(config2.Get().VerrazzanoInstallDir, "components")
 
 	return []Component{
 		Verrazzano{},
+		return []Component{Verrazzano{}, Nginx{}},
 		helmComponent{
 			releaseName:        "external-dns",
 			chartDir:           filepath.Join(config2.Get().ThirdpartyChartsDir, "external-dns"),
