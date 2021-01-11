@@ -32,5 +32,12 @@ func GetComponents() []Component {
 			allowsNamespaceOverride: true,
 			valuesFile:              filepath.Join(componentDir, "external-dns-values.yaml"),
 		},
+		helmComponent{
+			releaseName:             "rancher",
+			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "rancher"),
+			chartNamespace:          "cattle-system",
+			allowsNamespaceOverride: true,
+			valuesFile:              filepath.Join(componentDir, "rancher-values.yaml"),
+		},
 	}
 }

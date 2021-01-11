@@ -206,9 +206,7 @@ function install_rancher()
     # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
     helm upgrade rancher ${RANCHER_CHART_DIR} \
       --install --namespace cattle-system \
-      --set systemDefaultRegistry=ghcr.io/verrazzano \
-      --set rancherImage=$RANCHER_IMAGE \
-      --set rancherImageTag=$RANCHER_TAG \
+      -f $SCRIPT_DIR/components/rancher-values.yaml \
       --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
       --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
       ${EXTRA_RANCHER_ARGUMENTS}

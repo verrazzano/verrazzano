@@ -243,6 +243,3 @@ KEYCLOAK_THEME_IMAGE=ghcr.io/verrazzano/keycloak-oracle-theme:0.8.0-202012212029
 
 MYSQL_IMAGE=ghcr.io/verrazzano/mysql
 MYSQL_IMAGE_TAG=8.0.20
-
-RANCHER_IMAGE=ghcr.io/verrazzano/rancher
-RANCHER_TAG=v2.4.3-20201016205256-4988df094
