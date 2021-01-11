@@ -5,7 +5,7 @@
 #
 # Code coverage generation
 # Excludes test utility packages and the test directory
-go test -coverprofile ./coverage.cov $(go list ./... | grep -Ev gitlab-odx.oracledx.com/verrazzano/verrazzano-application-operator/test/integ | grep -Ev gitlab-odx.oracledx.com/verrazzano/verrazzano-application-operator/mocks | grep -Ev gitlab-odx.oracledx.com/verrazzano/verrazzano-application-operator/api)
+go test -coverprofile ./coverage.cov $(go list ./... | grep -Ev github.com/verrazzano/verrazzano/oam-application-operator/test/integ | grep -Ev github.com/verrazzano/verrazzano/oam-application-operator/mocks)
 
 # Display the global code coverage.  This generates the total number the badge uses
 go tool cover -func=coverage.cov
