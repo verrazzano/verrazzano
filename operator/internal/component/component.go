@@ -25,7 +25,7 @@ func GetComponents() []Component {
 
 	return []Component{
 		Verrazzano{},
-		return []Component{Verrazzano{}, Nginx{}},
+		Nginx{},
 		helmComponent{
 			releaseName:        "external-dns",
 			chartDir:           filepath.Join(config2.Get().ThirdpartyChartsDir, "external-dns"),
