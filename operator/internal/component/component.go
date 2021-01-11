@@ -32,5 +32,12 @@ func GetComponents() []Component {
 			allowsNamespaceOverride: true,
 			valuesFile:              filepath.Join(componentDir, "external-dns-values.yaml"),
 		},
+		helmComponent{
+			releaseName:             "istio",
+			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "istio"),
+			chartNamespace:          "istio",
+			allowsNamespaceOverride: true,
+			valuesFile:              filepath.Join(componentDir, "external-dns-values.yaml"),
+		},
 	}
 }

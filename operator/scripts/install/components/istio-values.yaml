@@ -1,0 +1,29 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+global:
+  hub: ghcr.io/verrazzano
+  tag: 1.4.6
+gateways:
+  istio-ingressgateway:
+    ports:
+    - port: 80
+      targetPort: 80
+      name: http2
+      nodePort: 31380
+    - port: 443
+      name: https
+      nodePort: 31390
+sidecarInjectorWebhook:
+  rewriteAppHTTPProbe: true
+grafana:
+  enabled: true
+  imagerepository: ghcr.io/verrazzano/grafana
+  image.tag: v6.4.4
+prometheus:
+  hub: ghcr.io/verrazzano
+  tag: verrazzano-container-registry
+istiocoredns:
+  coreDNSImage: ghcr.io/verrazzano/coredns
+  coreDNSTag: 1.6.2
+  coreDNSPluginImage: ghcr.io/verrazzano/istio-coredns-plugin:0.2-20201016204812-23723dcb

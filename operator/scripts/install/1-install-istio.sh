@@ -92,25 +92,8 @@ function install_istio()
     log "Create helm template for installing istio proper"
     helm template istio ${ISTIO_CHART_DIR} \
         --namespace istio-system \
-        --set global.hub=$GLOBAL_HUB_REPO \
-        --set global.tag=$ISTIO_VERSION \
+        -f $SCRIPT_DIR/components/istio-values.yaml \
         --set gateways.istio-ingressgateway.type="${INGRESS_TYPE}" \
-        --set sidecarInjectorWebhook.rewriteAppHTTPProbe=true \
-        --set grafana.enabled=true \
-        --set grafana.image.repository=$GRAFANA_REPO \
-        --set grafana.image.tag=$GRAFANA_TAG \
-        --set prometheus.hub=$GLOBAL_HUB_REPO \
-        --set prometheus.tag=$PROMETHEUS_TAG \
-        --set istiocoredns.coreDNSImage=$ISTIO_CORE_DNS_IMAGE \
-        --set istiocoredns.coreDNSTag=$ISTIO_CORE_DNS_TAG \
-        --set istiocoredns.coreDNSPluginImage=$ISTIO_CORE_DNS_PLUGIN_IMAGE:$ISTIO_CORE_DNS_PLUGIN_TAG \
-        --set gateways.istio-ingressgateway.ports[0].port=80 \
-        --set gateways.istio-ingressgateway.ports[0].targetPort=80 \
-        --set gateways.istio-ingressgateway.ports[0].name=http2 \
-        --set gateways.istio-ingressgateway.ports[0].nodePort=31380 \
-        --set gateways.istio-ingressgateway.ports[1].port=443 \
-        --set gateways.istio-ingressgateway.ports[1].name=https \
-        --set gateways.istio-ingressgateway.ports[1].nodePort=31390 \
         --values ${ISTIO_CHART_DIR}/example-values/values-istio-multicluster-gateways.yaml \
         ${EXTRA_HELM_ARGUMENTS} \
         > ${TMP_DIR}/istio.yaml || return $?
