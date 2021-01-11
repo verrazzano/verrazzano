@@ -4,7 +4,7 @@
 package component
 
 import (
-	config2 "github.com/verrazzano/verrazzano/operator/internal/config"
+	"github.com/verrazzano/verrazzano/operator/internal/config"
 	"path/filepath"
 )
 
@@ -20,14 +20,14 @@ type Component interface {
 // GetComponents returns the list of components that are installable and upgradeable.
 // The components will be processed in the order items in the array
 func GetComponents() []Component {
-	componentDir := filepath.Join(config2.Get().VerrazzanoInstallDir, "components")
+	componentDir := filepath.Join(config.Get().VerrazzanoInstallDir, "components")
 
 	return []Component{
 		Verrazzano{},
 		Nginx{},
 		helmComponent{
 			releaseName:             "external-dns",
-			chartDir:                filepath.Join(config2.Get().ThirdpartyChartsDir, "external-dns"),
+			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "external-dns"),
 			chartNamespace:          "cert-manager",
 			allowsNamespaceOverride: true,
 			valuesFile:              filepath.Join(componentDir, "external-dns-values.yaml"),
