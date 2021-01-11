@@ -1,4 +1,4 @@
-# Copyright (C) 2020, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: apps/v1
 kind: Deployment
@@ -6,7 +6,7 @@ metadata:
   annotations:
     deployment.kubernetes.io/revision: "1"
     kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app":"prometheus","chart":"prometheus","heritage":"Helm","release":"istio"},"name":"prometheus","namespace":"istio-system"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"prometheus"}},"template":{"metadata":{"annotations":{"sidecar.istio.io/inject":"false"},"labels":{"app":"prometheus","chart":"prometheus","heritage":"Helm","release":"istio"}},"spec":{"affinity":{"nodeAffinity":{"preferredDuringSchedulingIgnoredDuringExecution":[{"preference":{"matchExpressions":[{"key":"beta.kubernetes.io/arch","operator":"In","values":["amd64"]}]},"weight":2},{"preference":{"matchExpressions":[{"key":"beta.kubernetes.io/arch","operator":"In","values":["ppc64le"]}]},"weight":2},{"preference":{"matchExpressions":[{"key":"beta.kubernetes.io/arch","operator":"In","values":["s390x"]}]},"weight":2}],"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"beta.kubernetes.io/arch","operator":"In","values":["amd64","ppc64le","s390x"]}]}]}}},"containers":[{"args":["--storage.tsdb.retention=6h","--config.file=/etc/prometheus/prometheus.yml"],"image":"container-registry.oracle.com/olcne/prometheus:v2.13.1","imagePullPolicy":"IfNotPresent","livenessProbe":{"httpGet":{"path":"/-/healthy","port":9090}},"name":"prometheus","ports":[{"containerPort":9090,"name":"http"}],"readinessProbe":{"httpGet":{"path":"/-/ready","port":9090}},"resources":{"requests":{"cpu":"10m"}},"volumeMounts":[{"mountPath":"/etc/prometheus","name":"config-volume"},{"mountPath":"/etc/istio-certs","name":"istio-certs"}]}],"serviceAccountName":"prometheus","volumes":[{"configMap":{"name":"prometheus"},"name":"config-volume"},{"name":"istio-certs","secret":{"defaultMode":420,"secretName":"istio.default"}}]}}}}
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app":"prometheus","chart":"prometheus","heritage":"Helm","release":"istio"},"name":"prometheus","namespace":"istio-system"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"prometheus"}},"template":{"metadata":{"annotations":{"sidecar.istio.io/inject":"false"},"labels":{"app":"prometheus","chart":"prometheus","heritage":"Helm","release":"istio"}},"spec":{"affinity":{"nodeAffinity":{"preferredDuringSchedulingIgnoredDuringExecution":[{"preference":{"matchExpressions":[{"key":"beta.kubernetes.io/arch","operator":"In","values":["amd64"]}]},"weight":2},{"preference":{"matchExpressions":[{"key":"beta.kubernetes.io/arch","operator":"In","values":["ppc64le"]}]},"weight":2},{"preference":{"matchExpressions":[{"key":"beta.kubernetes.io/arch","operator":"In","values":["s390x"]}]},"weight":2}],"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"beta.kubernetes.io/arch","operator":"In","values":["amd64","ppc64le","s390x"]}]}]}}},"containers":[{"args":["--storage.tsdb.retention=6h","--config.file=/etc/prometheus/prometheus.yml"],"image":"fake-image","imagePullPolicy":"IfNotPresent","livenessProbe":{"httpGet":{"path":"/-/healthy","port":9090}},"name":"prometheus","ports":[{"containerPort":9090,"name":"http"}],"readinessProbe":{"httpGet":{"path":"/-/ready","port":9090}},"resources":{"requests":{"cpu":"10m"}},"volumeMounts":[{"mountPath":"/etc/prometheus","name":"config-volume"},{"mountPath":"/etc/istio-certs","name":"istio-certs"}]}],"serviceAccountName":"prometheus","volumes":[{"configMap":{"name":"prometheus"},"name":"config-volume"},{"name":"istio-certs","secret":{"defaultMode":420,"secretName":"istio.default"}}]}}}}
   creationTimestamp: "2020-11-23T15:12:08Z"
   generation: 1
   labels:
@@ -79,7 +79,7 @@ spec:
         - args:
             - --storage.tsdb.retention=6h
             - --config.file=/etc/prometheus/prometheus.yml
-          image: container-registry.oracle.com/olcne/prometheus:v2.13.1
+          image: fake-image
           imagePullPolicy: IfNotPresent
           livenessProbe:
             failureThreshold: 3

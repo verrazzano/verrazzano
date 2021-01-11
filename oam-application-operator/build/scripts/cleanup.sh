@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
-# Cleanup Kind cluster and docker containers
+# Cleanup Kind cluster and Docker containers
 # delete kind cluster if it exists
 echo "Doing cleanup of KIND clusters and Docker containers"
 kind delete cluster --name "$1"

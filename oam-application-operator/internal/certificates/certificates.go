@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package certificates
@@ -48,6 +48,7 @@ func SetupCertificates(certDir string) (*bytes.Buffer, error) {
 		Subject: pkix.Name{
 			CommonName: commonName,
 		},
+		DNSNames:              []string{commonName},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(1, 0, 0),
 		IsCA:                  true,

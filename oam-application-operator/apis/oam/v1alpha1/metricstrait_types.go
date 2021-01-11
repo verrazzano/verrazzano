@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -15,7 +15,7 @@ func init() {
 	SchemeBuilder.Register(&MetricsTrait{}, &MetricsTraitList{})
 }
 
-// MetricsTraitList contains a list of MetricsTrait
+// MetricsTraitList contains a list of metrics traits.
 // +kubebuilder:object:root=true
 type MetricsTraitList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -23,7 +23,7 @@ type MetricsTraitList struct {
 	Items           []MetricsTrait `json:"items"`
 }
 
-// MetricsTrait is the Schema for the metricstraits API
+// MetricsTrait specifies the metrics trait API
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 type MetricsTrait struct {
@@ -34,7 +34,7 @@ type MetricsTrait struct {
 	Status MetricsTraitStatus `json:"status,omitempty"`
 }
 
-// MetricsTraitSpec defines the desired state of the MetricsTrait
+// MetricsTraitSpec specifies the desired state of a metrics trait.
 type MetricsTraitSpec struct {
 	// The HTTP port for the related metrics endpoint. Defaults to 8080.
 	Port *int `json:"port,omitempty"`
@@ -53,14 +53,13 @@ type MetricsTraitSpec struct {
 	WorkloadReference oamrt.TypedReference `json:"workloadRef"`
 }
 
-// MetricsTraitStatus defines the observed state of MetricsTrait
+// MetricsTraitStatus defines the observed state of MetricsTrait and related resources.
 type MetricsTraitStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Important: Run code generation after modifying this file.
 
-	// Reconcile status of this trait
+	// The reconcile status of this metrics trait
 	oamrt.ConditionedStatus `json:",inline"`
 
-	// Related resources affected by this trait
+	// Related resources affected by this metrics trait
 	Resources []QualifiedResourceRelation `json:"resources,omitempty"`
 }

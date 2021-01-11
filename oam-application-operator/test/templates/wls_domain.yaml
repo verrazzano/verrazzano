@@ -1,4 +1,4 @@
-# Copyright (C) 2020, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: weblogic.oracle/v8
 kind: Domain
@@ -43,7 +43,7 @@ spec:
   domainHome: /u01/oracle/user_projects/domains/tododomain
   domainHomeSourceType: FromModel
   domainUID: tododomain
-  image: ghcr.io/verrazzano/example-bobbys-front-end:0.1.10-3-20201016220428-56fb4d4
+  image: fake-image
   imagePullSecrets:
     - name: ocir
   includeServerOutInPodLog: true
@@ -89,7 +89,7 @@ status:
         subsystems:
           - subsystemName: ServerRuntime
             symptoms: []
-      nodeName: 10.0.10.3
+      nodeName: 10.11.12.13
       serverName: AdminServer
       state: RUNNING
     - clusterName: cluster-1
@@ -100,7 +100,7 @@ status:
         subsystems:
           - subsystemName: ServerRuntime
             symptoms: []
-      nodeName: 10.0.10.3
+      nodeName: 10.11.12.13
       serverName: managed-server1
       state: RUNNING
     - clusterName: cluster-1

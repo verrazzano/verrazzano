@@ -8,7 +8,6 @@ TODO: This assumes that you have built the Coherence example app image separatel
 
 ## Deploy the example application
 1. Install verrazzano-application-operator by following the [installation instructions](../../install/README.md).  
-(TODO:  Note that it is assumed that Istio is already installed through the Verrazzano installation.  Will we install Istio here?)
 
 1. Create a namespace for the Coherence example.
    ```
@@ -75,8 +74,8 @@ TODO: This assumes that you have built the Coherence example app image separatel
 1. Get the external IP of the istio-ingressgateway service.
    ```
    kubectl get service istio-ingressgateway -n istio-system
-   NAME                   TYPE           CLUSTER-IP    EXTERNAL-IP     PORT(S)                      AGE
-   istio-ingressgateway   LoadBalancer   10.96.113.1   193.123.36.78   80:31380/TCP,443:31390/TCP   16h
+   NAME                   TYPE           CLUSTER-IP    EXTERNAL-IP      PORT(S)                      AGE
+   istio-ingressgateway   LoadBalancer   10.11.12.13   193.194.195.196  80:31380/TCP,443:31390/TCP   16h
    ```   
 
 1.  Access the custom `/query` endpoint
@@ -84,30 +83,30 @@ TODO: This assumes that you have built the Coherence example app image separatel
     Use the various `CohQL` commands via the `/query` endpoint to access, and mutate data in the Coherence cluster.
 
     ```
-    curl -i -w '\n' -X PUT http://193.123.36.78/query -d '{"query":"create cache foo"}'
+    curl -i -w '\n' -X PUT http://193.194.195.196/query -d '{"query":"create cache foo"}'
 
     HTTP/1.1 200 OK
-    Via: 1.1 10.197.160.116 (McAfee Web Gateway 7.7.2.16.0.26564)
+    Via: 1.1 10.12.13.14 (McAfee Web Gateway 7.7.2.16.0.26564)
     date: Wed, 16 Dec 2020 12:37:42 GMT
     server: istio-envoy
     Connection: Keep-Alive
     Transfer-Encoding: chunked
     x-envoy-upstream-service-time: 272
 
-    curl -i -w '\n' -X PUT http://193.123.36.78/query -d '{"query":"insert into foo key(\"foo\") value(\"bar\")"}'
+    curl -i -w '\n' -X PUT http://193.194.195.196/query -d '{"query":"insert into foo key(\"foo\") value(\"bar\")"}'
 
     HTTP/1.1 200 OK
-    Via: 1.1 10.197.160.116 (McAfee Web Gateway 7.7.2.16.0.26564)
+    Via: 1.1 10.12.13.14 (McAfee Web Gateway 7.7.2.16.0.26564)
     date: Wed, 16 Dec 2020 12:39:17 GMT
     server: istio-envoy
     Connection: Keep-Alive
     Transfer-Encoding: chunked
     x-envoy-upstream-service-time: 33
 
-    curl -i -w '\n' -X PUT http://193.123.36.78/query -d '{"query":"select key(),value() from foo"}'
+    curl -i -w '\n' -X PUT http://193.194.195.196/query -d '{"query":"select key(),value() from foo"}'
 
     HTTP/1.1 200 OK
-    Via: 1.1 10.197.160.116 (McAfee Web Gateway 7.7.2.16.0.26564)
+    Via: 1.1 10.12.13.14 (McAfee Web Gateway 7.7.2.16.0.26564)
     date: Wed, 16 Dec 2020 12:39:55 GMT
     server: istio-envoy
     Connection: Keep-Alive
@@ -117,20 +116,20 @@ TODO: This assumes that you have built the Coherence example app image separatel
 
     {"result":"{foo=[foo, bar]}"}
 
-    curl -i -w '\n' -X PUT http://193.123.36.78/query -d '{"query":"create cache test"}'
+    curl -i -w '\n' -X PUT http://193.194.195.196/query -d '{"query":"create cache test"}'
 
     HTTP/1.1 200 OK
-    Via: 1.1 10.197.160.116 (McAfee Web Gateway 7.7.2.16.0.26564)
+    Via: 1.1 10.12.13.14 (McAfee Web Gateway 7.7.2.16.0.26564)
     date: Wed, 16 Dec 2020 12:40:46 GMT
     server: istio-envoy
     Connection: Keep-Alive
     Transfer-Encoding: chunked
     x-envoy-upstream-service-time: 41
 
-    curl -i -w '\n' -X PUT http://193.123.36.78/query -d '{"query":"select count() from test"}'
+    curl -i -w '\n' -X PUT http://193.194.195.196/query -d '{"query":"select count() from test"}'
 
     HTTP/1.1 200 OK
-    Via: 1.1 10.197.160.116 (McAfee Web Gateway 7.7.2.16.0.26564)
+    Via: 1.1 10.12.13.14 (McAfee Web Gateway 7.7.2.16.0.26564)
     date: Wed, 16 Dec 2020 12:41:20 GMT
     server: istio-envoy
     Connection: Keep-Alive

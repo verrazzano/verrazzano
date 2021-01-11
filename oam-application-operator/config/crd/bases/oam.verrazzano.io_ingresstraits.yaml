@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 ---
@@ -21,7 +21,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: IngressTrait is the Schema for the ingresstraits API
+        description: IngressTrait specifies the ingress traits API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -36,13 +36,15 @@ spec:
           metadata:
             type: object
           spec:
-            description: IngressTraitSpec defines the desired state of IngressTrait
+            description: IngressTraitSpec specifies the desired state of an ingress
+              trait.
             properties:
               rules:
-                description: A set of rules to configure the IngressTrait.
+                description: Rules specifies a list of ingress rules to for an ingress
+                  trait.
                 items:
-                  description: IngressRule defines hosts and paths to be exposed for
-                    ingress
+                  description: IngressRule specifies the hosts and paths to be exposed
+                    for an ingress trait.
                   properties:
                     hosts:
                       items:
@@ -50,8 +52,8 @@ spec:
                       type: array
                     paths:
                       items:
-                        description: IngressPath defines a specific path to be exposed
-                          for ingress
+                        description: IngressPath specifies a specific path to be exposed
+                          for an ingress trait.
                         properties:
                           path:
                             type: string
@@ -62,8 +64,8 @@ spec:
                   type: object
                 type: array
               workloadRef:
-                description: WorkloadReference to the workload this trait applies
-                  to. This value is populated by the OAM runtime when a ApplicationConfiguration
+                description: The WorkloadReference to the workload to which this trait
+                  applies. This value is populated by the OAM runtime when a ApplicationConfiguration
                   resource is processed.  When the ApplicationConfiguration is processed
                   a trait and a workload resource are created from the content of
                   the ApplicationConfiguration. The WorkloadReference is provided
@@ -92,7 +94,8 @@ spec:
             - workloadRef
             type: object
           status:
-            description: IngressTraitStatus defines the observed state of IngressTrait
+            description: IngressTraitStatus specifies the observed state of an ingress
+              trait and related resources.
             properties:
               conditions:
                 description: Conditions of the resource.
@@ -128,7 +131,7 @@ spec:
                   type: object
                 type: array
               resources:
-                description: Resources managed by this trait
+                description: The resources managed by this ingress trait
                 items:
                   description: A TypedReference refers to an object by Name, Kind,
                     and APIVersion. It is commonly used to reference cluster-scoped

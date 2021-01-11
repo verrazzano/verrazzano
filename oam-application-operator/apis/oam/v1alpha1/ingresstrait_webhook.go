@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -34,7 +34,7 @@ func (r *IngressTrait) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 var _ webhook.Validator = &IngressTrait{}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for ingress trait type creation.
 func (r *IngressTrait) ValidateCreate() error {
 	log.Info("validate create", "name", r.Name)
 	allIngressTraits, err := getAllIngressTraits(r.Namespace)
@@ -44,7 +44,7 @@ func (r *IngressTrait) ValidateCreate() error {
 	return r.validateIngressTrait(allIngressTraits.Items)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for ingress trait type update.
 func (r *IngressTrait) ValidateUpdate(old runtime.Object) error {
 	log.Info("validate update", "name", r.Name)
 
@@ -65,7 +65,7 @@ func (r *IngressTrait) ValidateUpdate(old runtime.Object) error {
 	return r.validateIngressTrait(allIngressTraits)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for ingress trait type deletion.
 func (r *IngressTrait) ValidateDelete() error {
 	log.Info("validate delete", "name", r.Name)
 
@@ -73,12 +73,12 @@ func (r *IngressTrait) ValidateDelete() error {
 	return nil
 }
 
-// validateIngressTrait validates a new or updated IngressTrait
+// validateIngressTrait validates a new or updated ingress trait.
 func (r *IngressTrait) validateIngressTrait(existingTraits []IngressTrait) error {
 	// validation rules
-	// For "exact" hosts such as "foo.oracle.com"
+	// For "exact" hosts such as "foo.example.com"
 	// - ensure that no other ingressTrait exists with the same host and path
-	// - For "prefix" hosts such as "*.oracle.com"
+	// - For "prefix" hosts such as "*.example.com"
 	// - These don't conflict with ingressTrait's with "exact" hosts as the exact host takes precedence because it is more specific
 	// - Only conflict with other "prefix" ingressTraits with matching host string and path
 	// For empty or * host
@@ -121,7 +121,7 @@ func (r *IngressTrait) validateIngressTrait(existingTraits []IngressTrait) error
 	return nil
 }
 
-// createIngressTraitMap creates a map of IngressTrait's with hosts mapped to associated paths.
+// createIngressTraitMap creates a map of ingress traits with hosts mapped to associated paths.
 func (r *IngressTrait) createIngressTraitMap() (map[string]map[string]struct{}, error) {
 	hostPathMap := make(map[string]map[string]struct{})
 	for _, rule := range r.Spec.Rules {

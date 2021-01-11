@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -19,17 +19,17 @@ function install_oam {
     fi
   fi
 
-  log "Add OAM helm repository"
+  log "Add OAM Helm repository"
   helm repo add crossplane-master https://charts.crossplane.io/master/
   if [ $? -ne 0 ]; then
-    error "Failed add OAM helm repository."
+    error "Failed add OAM Helm repository."
     return 1
   fi
 
   log "Install OAM"
   helm install oam --namespace "${NAMESPACE}" crossplane-master/oam-kubernetes-runtime --devel
   if [ $? -ne 0 ]; then
-    error "Failed to OAM helm install."
+    error "Failed to OAM Helm install."
     return 1
   fi
 

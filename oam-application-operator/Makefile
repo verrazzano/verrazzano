@@ -14,10 +14,10 @@ CRD_OPTIONS ?= "crd:crdVersions=v1"
 
 ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),docker-push push-tag))
 	ifndef DOCKER_REPO
-		$(error DOCKER_REPO must be defined as the name of the docker repository where image will be pushed)
+		$(error DOCKER_REPO must be defined as the name of the Docker repository where image will be pushed)
 	endif
 	ifndef DOCKER_NAMESPACE
-		$(error DOCKER_NAMESPACE must be defined as the name of the docker namespace where image will be pushed)
+		$(error DOCKER_NAMESPACE must be defined as the name of the Docker namespace where image will be pushed)
 	endif
 	DOCKER_IMAGE_FULLNAME = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}
 endif
@@ -185,15 +185,15 @@ export VERRAZZANO_APP_OP_IMAGE=${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 .PHONY: integ-test
 integ-test:
-	echo 'Load docker image for the OAM runtime...'
+	echo 'Load Docker image for the OAM runtime...'
 	docker pull ${OAM_RUNTIME_IMAGE}
 	kind load docker-image --name ${CLUSTER_NAME} ${OAM_RUNTIME_IMAGE}
 
-	echo 'Load docker image for the fake hello app...'
+	echo 'Load Docker image for the fake hello app...'
 	docker pull container-registry.oracle.com/os/oraclelinux:7-slim
 	kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/os/oraclelinux:7-slim
 
-	echo 'Load docker image for the Verrazzano application operator...'
+	echo 'Load Docker image for the Verrazzano application operator...'
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 	echo 'Install OAM runtime and Verrazzano application operator...'

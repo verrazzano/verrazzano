@@ -1,4 +1,4 @@
-# Copyright (C) 2020, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: apps/v1
 kind: ReplicaSet
@@ -82,7 +82,7 @@ spec:
         - args:
             - --storage.tsdb.retention=6h
             - --config.file=/etc/prometheus/prometheus.yml
-          image: container-registry.oracle.com/olcne/prometheus:v2.13.1
+          image: fake-image
           imagePullPolicy: IfNotPresent
           livenessProbe:
             failureThreshold: 3
