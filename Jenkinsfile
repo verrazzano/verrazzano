@@ -167,11 +167,11 @@ pipeline {
             steps {
                 dir('operator'){
                     echo "In Operator"
- //                   thirdpartyCheck()
+                    thirdpartyCheck()
                 }
                 dir('oam-application-operator'){
                     echo "In OAM Operator"
- //                   thirdpartyCheck()
+                    thirdpartyCheck()
                 }
             }
         }
@@ -277,7 +277,6 @@ pipeline {
                     anyOf {
                         branch 'master';
                         branch 'develop';
-                        branch 'ddrechse/vz1864'
                         expression { return params.RUN_ACCEPTANCE_TESTS == true }
                     }
                 }
