@@ -182,8 +182,8 @@ pipeline {
                 copyrightScan "${WORKSPACE}"
             }
         }
-
-        stage('Unit Tests') {
+*/
+/*        stage('Unit Tests') {
             when { not { buildingTag() } }
             steps {
                 sh """
@@ -197,46 +197,47 @@ pipeline {
                     make unit-test
                     make -B coverage
                 """
+*/
                 // NEED To See how these files can be merged
                 //                    cp coverage.html ${WORKSPACE}
                 //                    cp coverage.xml ${WORKSPACE}
                 //                    oam-application-operator/build/scripts/copy-junit-output.sh ${WORKSPACE}
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                    cobertura(coberturaReportFile: 'coverage.xml',
-                      enableNewApi: true,
-                      autoUpdateHealth: false,
-                      autoUpdateStability: false,
-                      failUnstable: true,
-                      failUnhealthy: true,
-                      failNoReports: true,
-                      onlyStable: false,
-                      fileCoverageTargets: '100, 0, 0',
-                      lineCoverageTargets: '85, 85, 85',
-                      packageCoverageTargets: '100, 0, 0',
-                    )
-                }
-            }
-        }
+//            }
+//            post {
+//                always {
+//                    archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
+//                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+//                    cobertura(coberturaReportFile: 'coverage.xml',
+//                      enableNewApi: true,
+//                      autoUpdateHealth: false,
+//                      autoUpdateStability: false,
+//                      failUnstable: true,
+//                      failUnhealthy: true,
+//                      failNoReports: true,
+//                      onlyStable: false,
+//                      fileCoverageTargets: '100, 0, 0',
+//                      lineCoverageTargets: '85, 85, 85',
+//                      packageCoverageTargets: '100, 0, 0',
+//                    )
+//                }
+//            }
+//        }
 
-        stage('Scan Image') {
+/*        stage('Scan Image') {
             when { not { buildingTag() } }
             steps {
                 script {
                     clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                     clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                 }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
-                }
-            }
-        }
-
+            } */
+//            post {
+//                always {
+//                    archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
+//                }
+//            }
+//        }
+/*
         stage('Generate operator.yaml') {
             when { not { buildingTag() } }
             steps {
@@ -260,15 +261,15 @@ pipeline {
                     make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     build/scripts/copy-junit-output.sh ${WORKSPACE}
                 """
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-            }
-        }
-
+            }  */
+//            post {
+//                always {
+//                    archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
+//                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+//                }
+//            }
+//        }
+/*
         stage('Kick off KinD Acceptance tests') {
             when {
                 allOf {
