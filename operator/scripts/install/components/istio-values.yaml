@@ -22,7 +22,7 @@ grafana:
   image.tag: v6.4.4
 prometheus:
   hub: ghcr.io/verrazzano
-  tag: verrazzano-container-registry
+  tag: v2.13.1
 istiocoredns:
   coreDNSImage: ghcr.io/verrazzano/coredns
   coreDNSTag: 1.6.2

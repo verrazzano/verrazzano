@@ -68,38 +68,19 @@ function install_istio()
     ISTIO_INIT_CHART_DIR=${CHARTS_DIR}/istio-init
     ISTIO_CHART_DIR=${CHARTS_DIR}/istio
 
+    # Install istio CRDs  using helm
     EXTRA_ISTIO_ARGUMENTS=""
     if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
       EXTRA_ISTIO_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
 
-    log "Create helm template for installing istio CRDs"
-    helm template istio-init ${ISTIO_INIT_CHART_DIR} \
-        --namespace istio-system \
-        --set global.hub=$GLOBAL_HUB_REPO \
-        --set global.tag=$ISTIO_VERSION \
-        ${EXTRA_ISTIO_ARGUMENTS} \
-        > ${TMP_DIR}/istio-crds.yaml || return $?
-
-    log "Generate cluster specific configuration"
-    local EXTRA_HELM_ARGUMENTS=""
-    if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
-      EXTRA_HELM_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
-    fi
-
-    EXTRA_HELM_ARGUMENTS="$EXTRA_HELM_ARGUMENTS $(get_istio_helm_args_from_config)"
-
-    log "Create helm template for installing istio proper"
-    helm template istio ${ISTIO_CHART_DIR} \
+    log "Installing istio CRDs"
+    helm install istio-init ${ISTIO_INIT_CHART_DIR} \
         --namespace istio-system \
         -f $SCRIPT_DIR/components/istio-values.yaml \
-        --set gateways.istio-ingressgateway.type="${INGRESS_TYPE}" \
-        --values ${ISTIO_CHART_DIR}/example-values/values-istio-multicluster-gateways.yaml \
-        ${EXTRA_HELM_ARGUMENTS} \
-        > ${TMP_DIR}/istio.yaml || return $?
-
-    log "Change to use the Istio image for kubectl then install the istio CRDs"
-    sed "s|/kubectl:|/istio_kubectl:|g" ${TMP_DIR}/istio-crds.yaml | kubectl apply -f - || return $?
+        ${EXTRA_ISTIO_ARGUMENTS} \
+        --wait \
+        || return $?
 
     log "Wait for istio CRD creation jobs to complete"
     if ! kubectl -n istio-system wait --for=condition=complete job --all --timeout=300s ; then
@@ -107,9 +88,23 @@ function install_istio()
       return 1
     fi
 
-    log "Change to use the Istio image for kubectl then install istio proper"
-    sed "s|/kubectl:|/istio_kubectl:|g" ${TMP_DIR}/istio.yaml | kubectl apply -f - || return $?
+    # Install istio using helm
+    log "Generate istio cluster specific configuration"
+    local EXTRA_HELM_ARGUMENTS=""
+    if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
+      EXTRA_HELM_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+    fi
+    EXTRA_HELM_ARGUMENTS="$EXTRA_HELM_ARGUMENTS $(get_istio_helm_args_from_config)"
 
+    log "installing istio"
+    helm install istio ${ISTIO_CHART_DIR} \
+        --namespace istio-system \
+        -f $SCRIPT_DIR/components/istio-values.yaml \
+        --set gateways.istio-ingressgateway.type="${INGRESS_TYPE}" \
+        --values ${ISTIO_CHART_DIR}/example-values/values-istio-multicluster-gateways.yaml \
+        ${EXTRA_HELM_ARGUMENTS} \
+        --wait \
+        || return $?
 }
 
 function update_coredns()

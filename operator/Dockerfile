@@ -66,6 +66,10 @@ COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/ver
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/config/scripts/run.sh .
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/config/scripts/kubeconfig-template ./config/kubeconfig-template
 
+# Update the Istio charts, replacing kubectl with istio_kubectl
+RUN find /verrazzano/thirdparty/charts/istio -type f -name "*.yaml" | xargs sed -i"" "s|/kubectl:|/istio_kubectl:|g"
+RUN find /verrazzano/thirdparty/charts/istio-init -type f -name "*.yaml" | xargs sed -i"" "s|/kubectl:|/istio_kubectl:|g"
+
 # Copy source tree to image
 COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/THIRD_PARTY_LICENSES.txt /licenses
 

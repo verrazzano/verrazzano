@@ -16,8 +16,9 @@ import (
 func TestGetComponents(t *testing.T) {
 	assert := assert.New(t)
 	comps := GetComponents()
-	assert.Len(comps, 3, "Wrong number of components")
+	assert.Len(comps, 4, "Wrong number of components")
 	assert.Equal(comps[0].Name(), "verrazzano")
 	assert.Equal(comps[1].Name(), "ingress-nginx")
 	assert.Equal(comps[2].Name(), "external-dns")
+	assert.Equal(comps[3].Name(), "istio")
 }
