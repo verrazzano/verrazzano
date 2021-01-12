@@ -277,7 +277,6 @@ pipeline {
                     anyOf {
                         branch 'master';
                         branch 'develop';
-                        branch 'ddrechse/vz1864';
                         expression { return params.RUN_ACCEPTANCE_TESTS == true }
                     }
                 }
