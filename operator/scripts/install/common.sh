@@ -220,11 +220,6 @@ command -v curl >/dev/null 2>&1 || {
 GLOBAL_HUB_REPO=ghcr.io/verrazzano
 GLOBAL_IMAGE_PULL_SECRET=verrazzano-container-registry
 
-CERT_MANAGER_IMAGE=ghcr.io/verrazzano/cert-manager-controller
-CERT_MANAGER_TAG=0.13.1-20201016205232-4c8f3fe38
-CERT_MANAGER_SOLVER_IMAGE=ghcr.io/verrazzano/cert-manager-acmesolver
-CERT_MANAGER_SOLVER_TAG=0.13.1-20201016205234-4c8f3fe38
-
 GRAFANA_REPO=ghcr.io/verrazzano/grafana
 GRAFANA_TAG=v6.4.4
 
