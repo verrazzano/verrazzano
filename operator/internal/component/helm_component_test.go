@@ -39,7 +39,7 @@ func TestUpgrade(t *testing.T) {
 		releaseName:             "release1",
 		chartDir:                "chartDir",
 		chartNamespace:          "chartNS",
-		allowsNamespaceOverride: true,
+		ignoreNamespaceOverride: true,
 		valuesFile:              "valuesFile",
 	}
 
