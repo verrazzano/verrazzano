@@ -90,30 +90,15 @@ function install_keycloak {
   fi
 
   KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.username=${KCADMIN_USERNAME}"
-#  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.annotations=external-dns\.alpha\.kubernetes\.io/target=${DNS_TARGET_NAME}"
-#  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.annotations=kubernetes\.io/ingress.class=nginx"
-#  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.annotations=kubernetes\.io/tls-acme=\"true\""
-#  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.annotations=external-dns\.alpha\.kubernetes\.io/ttl=\"60\""
+  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.ingress.annotations.external-dns\.alpha\.kubernetes\.io/target=${DNS_TARGET_NAME}"
   KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
   KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.tls[0].hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
   KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.tls[0].secretName=${ENV_NAME}-secret"
   KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbPassword=$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)"
   KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbUser=${MYSQL_USERNAME}"
 
-  # sed keycloak-values-template.yaml file
-#  sed -e "s|ENV_NAME|${ENV_NAME}|g;s|DNS_SUFFIX|${DNS_SUFFIX}|g" \
-#      -e "s|KEYCLOAK_IMAGE_TAG|${KEYCLOAK_IMAGE_TAG}|g;s|KCADMIN_USERNAME|${KCADMIN_USERNAME}|g" \
-#      -e "s|DNS_TARGET_NAME|${DNS_TARGET_NAME}|g;s|MYSQL_USERNAME|${MYSQL_USERNAME}|g" \
-#      -e "s|MYSQL_PASSWORD|$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)|g" \
-#      -e "s|KEYCLOAK_IMAGE|$KEYCLOAK_IMAGE|g;s|KEYCLOAK_THEME_IMAGE|$KEYCLOAK_THEME_IMAGE|g" \
-#      $SCRIPT_DIR/config/keycloak-values-template.yaml > ${TMP_DIR}/keycloak-values-sed.yaml
-
   # Handle any additional Keycloak install args
-#  local KEYCLOAK_ARGUMENTS=$(get_keycloak_helm_args_from_config)
-
   KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS $(get_keycloak_helm_args_from_config)"
-
-  log "Extra Keycloak args: ${KEYCLOAK_ARGUMENTS}"
 
   # Install keycloak helm chart
   helm upgrade keycloak ${KEYCLOAK_CHART_DIR} \
@@ -121,8 +106,7 @@ function install_keycloak {
       --namespace ${KEYCLOAK_NS} \
       -f $SCRIPT_DIR/components/keycloak-values.yaml \
       ${KEYCLOAK_ARGUMENTS} \
-      --wait \
-      || return $?
+      --wait
 
   kubectl exec keycloak-0 \
     -n ${KEYCLOAK_NS} \
