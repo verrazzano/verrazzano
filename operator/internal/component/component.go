@@ -4,8 +4,9 @@
 package component
 
 import (
-	"github.com/verrazzano/verrazzano/operator/internal/config"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/operator/internal/config"
 )
 
 // Component interface defines the methods implemented by components
@@ -31,6 +32,13 @@ func GetComponents() []Component {
 			chartNamespace:          "cert-manager",
 			allowsNamespaceOverride: true,
 			valuesFile:              filepath.Join(componentDir, "external-dns-values.yaml"),
+		},
+		helmComponent{
+			releaseName:             "keycloak",
+			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "keycloak"),
+			chartNamespace:          "keycloak",
+			allowsNamespaceOverride: true,
+			valuesFile:              filepath.Join(componentDir, "keycloak-values.yaml"),
 		},
 	}
 }
