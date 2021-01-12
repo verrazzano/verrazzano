@@ -184,7 +184,7 @@ export VERRAZZANO_KUBECONFIG=${HOME}/.kube/config
 export VERRAZZANO_APP_OP_IMAGE=${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 .PHONY: integ-test
-integ-test:
+integ-test: create-cluster
 	echo 'Load Docker image for the OAM runtime...'
 	docker pull ${OAM_RUNTIME_IMAGE}
 	kind load docker-image --name ${CLUSTER_NAME} ${OAM_RUNTIME_IMAGE}
