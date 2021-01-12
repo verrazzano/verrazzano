@@ -24,7 +24,7 @@ WEBLOGIC_PASS=welcome1 MYSQL_PASS=WebLogic1234 ./install-bobs-books.sh <ghcr use
 ```
 **NOTE:** You should use more secure passwords.
 
-Alternatively, you can specify the credentials in environment variables: `GHCR_USER`, `GHCR_PASS`, `OCR_USER` and `OCR_PASS`. When the installation completes, the script will output URLs you can use to access the applications.
+Alternatively, you can specify the credentials in environment variables: `GHCR_USER`, `GHCR_PASS`, `OCR_USER` and `OCR_PASS`. When the installation completes, the script will print out URLs that you can use to access the applications.
 
 ## Detailed Steps Description
 
@@ -34,12 +34,12 @@ Alternatively, you can specify the credentials in environment variables: `GHCR_U
     kubectl label namespaces bobs-books verrazzano-domain=true
     ```
 
-1. Create a secret for Oracle Container Registry using your credentials.
+1. Create a secret for the Oracle Container Registry using your credentials.
     ```
     kubectl create secret docker-registry ocr --docker-server=container-registry.oracle.com --docker-username='<sso-username>' --docker-password='<sso-pw>' -n bobs-books
     ```
 
-1. Create a secret for GitHub Container Registry.
+1. Create a secret for the GitHub Container Registry.
     ```
     kubectl create secret docker-registry github-packages --docker-username=<username> --docker-password=<password> --docker-server=ghcr.io -n bobs-books
     ```
@@ -90,29 +90,29 @@ Alternatively, you can specify the credentials in environment variables: `GHCR_U
     kubectl expose pod bobs-bookstore-managed-server1 -n bobs-books --port=8011 --target-port=8001 --type=LoadBalancer --name=bobs-orders-lb
     ```
 
-1. Locate the external IP.
+1. Locate the external IP address.
     ```
     kubectl get service -n "istio-system" "istio-ingressgateway" -o jsonpath={.status.loadBalancer.ingress[0].ip}
 
     129.146.194.248
     ```
 
-1. Access the applications.
+1. Access the applications. In the following examples, replace the IP address with the external IP address assigned to your gateway.
 
-    1. Open a browser and navigate to Robert's UI at `http://129.146.194.248/` (replace the IP address with the external IP address assigned to your gateway).
+    a. Open a browser and navigate to the Robert's Books UI at `http://129.146.194.248/`.
 
-    1. Navigate to Bobby's UI at `http://129.146.194.248/bobbys-front-end` (replace the IP address with the external IP address assigned to your gateway).
+    b. Navigate to the Bobby's Books UI at `http://129.146.194.248/bobbys-front-end`.
 
-    1. Navigate to Bob's order manager  UI at `http://129.146.194.248/bobs-bookstore-order-manager/orders` (replace the IP address with the external IP address assigned to your gateway).
+    c. Navigate to the Bob's order manager  UI at `http://129.146.194.248/bobs-bookstore-order-manager/orders`.
 
-### Robert Application Details
+### Robert's Books Application Details
 
-The Robert application consists of a Helidon component and a Coherence cluster component.  The Helidon component also contains the statically compiled React UI.
+The Robert's Books application consists of a Helidon component and a Coherence cluster component.  The Helidon component also contains the statically compiled React UI.
 
-Creating and deploying the Robert application demonstrates three type of OAM resources:
+Creating and deploying the Robert's Books application demonstrates three types of OAM resources:
 
 - A WorkloadDefinition YAML file needed to register the Coherence CRDs.
-- OAM component definitions for each Robert component, one for Helidon and one for Coherence.
+- OAM component definitions for the Helidon and Coherence cluster components of the Robert's Books application.
 - An OAM application for the overall application deployment.
 
 #### Workload Definition
@@ -131,7 +131,7 @@ The workload definition is simple; it just specifies the CRD that you want to us
 
 #### Component Definition
 
-The component definition has the component CRD fields followed by the Workload CR fields.  You can put any Workload CR, such as Service or ContainerizedWorkload in the component.  If you registered a CRD with a WorkloadDefinition, then you can use the YAML file for that resource.  See the `bobs-books-comp.yaml` file for all of the component definitions.
+The component definition has the component CRD fields followed by the Workload CR fields.  You can put any Workload CR, such as Service or ContainerizedWorkload, in the component.  If you registered a CRD with a WorkloadDefinition, then you can use the YAML file for that resource.  See the `bobs-books-comp.yaml` file for all of the component definitions.
 
   ```
   apiVersion: core.oam.dev/v1alpha2
@@ -168,20 +168,20 @@ You can optionally use traits and scopes which will tailor the application as ne
 
 #### Notes on the Coherence Component
 
-The Coherence YAML file is slightly different from Verrazzano Bob's model.  The YAML file used for OAM has to specify 
+The Coherence YAML file is slightly different from Verrazzano Bob's Books model.  The YAML file used for OAM has to specify
 the Coherence cluster elements for the cluster itself.  It also specifies the application section, which has
 the name of the image containing the code to load the cache with books. In Verrazzano, only the application
 section is needed because the Verrazzano operator builds up the full Coherence YAML file. 
 
-### Bobby Application Details
+### Bobby's Books Application Details
 
-The Bobby application has four components: a WebLogic domain, a Helidon service, a Helidon pod, and a Coherence cluster.  
+The Bobby's Books application has four components: a WebLogic domain, a Helidon service, a Helidon pod, and a Coherence cluster.
 
 The WebLogic component provides the UI and calls the Helidon REST API to get books. The Helidon service is needed so that the WebLogic UI can reach the Helidon component. The Helidon component gets the books out of the Coherence cache.
 
-The WebLogic YAML file is essentially identical to the YAML file in Bob's Books demo-model.yaml file, except for the top section.
-The difference is that OAM Bobby places the WebLogic CR YAML file after the `workload` element, whereas Verrazzano demo-model 
-puts it after the `domainCRValues` element.  The Helidon and Coherence components are the same as Robert, except the names
+The WebLogic YAML for OAM is essentially identical to that in the Verrazzano model file `bobs-books-model.yaml`, except for the top section.
+The difference is that the OAM component places the WebLogic CR YAML file after the `workload` element, whereas the Verrazzano model
+puts it after the `domainCRValues` element.  The Helidon and Coherence components are the same as in the Robert's Books application, except the names
 and images are different.  The Helidon service is a common pattern used by pods to communicate within the Kubernetes cluster.
 As mentioned previously, the Coherence YAML file differs the most from the demo-model YAML file.
 
