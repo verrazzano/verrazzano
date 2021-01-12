@@ -38,7 +38,7 @@ if [ -z "${WEBLOGIC_PASS}" ]; then
   exit 1
 fi
 if [ -z "${MYSQL_PASS}" ]; then
-  echo "ERROR: Oracle container registry password required as MYSQL_PASS environment variable."
+  echo "ERROR: MySQL password required as MYSQL_PASS environment variable."
   exit 1
 fi
 

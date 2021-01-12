@@ -22,6 +22,7 @@ Run the `install-bobs-books.sh` script to create all of the necessary resources 
 ```
 WEBLOGIC_PASS=welcome1 MYSQL_PASS=WebLogic1234 ./install-bobs-books.sh <ghcr username> <ghcr password> <ocr username> <ocr password>
 ```
+**NOTE:** You should use more secure passwords.
 
 Alternatively, you can specify the credentials in environment variables: `GHCR_USER`, `GHCR_PASS`, `OCR_USER` and `OCR_PASS`. When the installation completes, the script will output URLs you can use to access the applications.
 
@@ -61,6 +62,7 @@ Alternatively, you can specify the credentials in environment variables: `GHCR_U
         --from-literal=url=jdbc:mysql://mysql.bobs-books.svc.cluster.local:3306/books \
         -n bobs-books
     ```
+    **NOTE:** You should use more secure passwords.
 
 1. Install Coherence.
     ```
