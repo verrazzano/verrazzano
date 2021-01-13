@@ -40,7 +40,7 @@ GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 CRD_PATH=config/crd/bases
 
 .PHONY: build
-build: generate go-fmt go-vet
+build: go-fmt go-vet
 	go build -o bin/manager main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
@@ -64,7 +64,7 @@ check: go-fmt go-vet go-ineffassign go-lint
 
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: manifests
-manifests: controller-gen
+manifests: go-mod controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	# Add copyright headers to the kubebuildr generated CRDs
 	./hack/add-crd-header.sh
@@ -104,7 +104,7 @@ mock-gen:
 # Go build related tasks
 #
 .PHONY: go-install
-go-install: go-mod
+go-install:
 	$(GO) install
 
 .PHONY: go-fmt
@@ -144,7 +144,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build: manifests generate go-mod
+docker-build:
 	docker build --pull \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
