@@ -5,8 +5,6 @@
 #
 SCRIPT_DIR=$(cd $(dirname $0); pwd -P)
 
-set -u
-
 DOCKER_SVR="${1:-$OCIR_PHX_REPO}"
 DOCKER_USR="${2:-$OCIR_CREDS_USR}"
 DOCKER_PWD="${3:-$OCIR_CREDS_PSW}"
@@ -27,6 +25,12 @@ if [ -z "${DOCKER_PWD}" ]; then
   echo "ERROR: Container registry username required as second argument or OCIR_CREDS_PSW environment variable."
   exit 1
 fi
+if [ -z "${WEBLOGIC_PSW}" ]; then
+  echo "ERROR: WebLogic administration password required as WEBLOGIC_PSW environment variable."
+  exit 1
+fi
+
+set -u
 
 echo "Installing Todo OAM application."
 
@@ -105,11 +109,11 @@ function create_and_label_generic_secret() {
   fi
 }
 
-echo "Create weblogic secrets."
+echo "Create WebLogic secrets."
 if [ "${skip_secrets:-false}" != "true" ]; then
-  create_and_label_generic_secret tododomain-weblogic-credentials weblogic welcome1 weblogic.domainUID=tododomain
-  create_and_label_generic_secret tododomain-jdbc-tododb derek welcome1 weblogic.domainUID=tododomain
-  create_and_label_generic_secret tododomain-runtime-encrypt-secret "" welcome1 weblogic.domainUID=tododomain
+  create_and_label_generic_secret tododomain-weblogic-credentials weblogic ${WEBLOGIC_PSW} weblogic.domainUID=tododomain
+  create_and_label_generic_secret tododomain-jdbc-tododb derek ${WEBLOGIC_PSW} weblogic.domainUID=tododomain
+  create_and_label_generic_secret tododomain-runtime-encrypt-secret "" ${WEBLOGIC_PSW} weblogic.domainUID=tododomain
 fi
 
 echo "Apply application configuration."
