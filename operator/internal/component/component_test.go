@@ -26,4 +26,3 @@ func TestGetComponents(t *testing.T) {
 	assert.Equal(comps[5].Name(), "rancher")
 	assert.Equal(comps[6].Name(), "istio")
 }
-
