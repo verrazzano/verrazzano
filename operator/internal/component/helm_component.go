@@ -4,7 +4,9 @@
 package component
 
 import (
+	"fmt"
 	"github.com/verrazzano/verrazzano/operator/internal/util/helm"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // helmComponent struct needed to implement a component
@@ -44,11 +46,24 @@ func (h helmComponent) Name() string {
 // that is included in the operator image, while retaining any helm value overrides that were applied during
 // install.
 func (h helmComponent) Upgrade(ns string) error {
+	var log = ctrl.Log.WithName("upgrade")
+
 	namespace := ns
 	if h.allowsNamespaceOverride {
 		namespace = h.chartNamespace
 	}
-	_, _, err := upgradeFunc(h.releaseName, namespace, h.chartDir, h.valuesFile)
+	// Check if the component is installed before trying to upgrade
+	found, err := helm.IsReleaseInstalled(h.releaseName, namespace)
+	if err != nil {
+		return err
+	}
+	if !found {
+		log.Info(fmt.Sprintf("Skipping upgrade of component %s since it is not installed", h.releaseName))
+		return nil
+	}
+
+	// Do the upgrade
+	_, _, err = upgradeFunc(h.releaseName, namespace, h.chartDir, h.valuesFile)
 	return err
 }
 
