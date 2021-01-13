@@ -20,9 +20,9 @@ type helmComponent struct {
 	// chartNamespace is the namespace passed to the helm command
 	chartNamespace string
 
-	// allowsNamespaceOverride bool indicates that the namespace can be overridden
+	// ignoreNamespaceOverride bool indicates that the namespace can be overridden
 	// by the namespace param passed to Upgrade
-	allowsNamespaceOverride bool
+	ignoreNamespaceOverride bool
 
 	// valuesFile is the helm chart values override file
 	valuesFile string
@@ -49,7 +49,7 @@ func (h helmComponent) Upgrade(ns string) error {
 	var log = ctrl.Log.WithName("upgrade")
 
 	namespace := ns
-	if h.allowsNamespaceOverride {
+	if h.ignoreNamespaceOverride {
 		namespace = h.chartNamespace
 	}
 	// Check if the component is installed before trying to upgrade
