@@ -19,7 +19,7 @@ ARG BUILDVERSION
 ARG BUILDDATE
 
 # Need to use specific WORKDIR to match verrazzano's source packages
-WORKDIR /root/go/src/github.com/verrazzano/verrazzano
+WORKDIR /root/go/src/github.com/verrazzano/verrazzano/operator
 COPY . .
 
 ENV CGO_ENABLED 0
@@ -29,12 +29,12 @@ RUN go env
 RUN GO111MODULE=on go build \
     -ldflags '-extldflags "-static"' \
     -ldflags "-X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}" \
-    -o /usr/bin/verrazzano-platform-operator operator/main.go
+    -o /usr/bin/verrazzano-platform-operator main.go
 
 RUN chmod 500 /usr/bin/verrazzano-platform-operator \
-    && chmod +x operator/scripts/install/*.sh \
-    && chmod +x operator/scripts/uninstall/*.sh \
-    && chmod +x operator/scripts/uninstall/uninstall-steps/*.sh
+    && chmod +x scripts/install/*.sh \
+    && chmod +x scripts/uninstall/*.sh \
+    && chmod +x scripts/uninstall/uninstall-steps/*.sh
 
 # Create the verrazzano-platform-operator image
 FROM ghcr.io/oracle/oraclelinux:7-slim@sha256:fcc6f54bb01fc83319990bf5fa1b79f1dec93cbb87db3c5a8884a5a44148e7bb
@@ -59,14 +59,14 @@ COPY --from=build_base --chown=verrazzano:verrazzano /usr/bin/verrazzano-platfor
 
 # Copy the Verrazzano install and uninstall scripts
 WORKDIR /verrazzano
-COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/thirdparty ./thirdparty
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/thirdparty ./thirdparty
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/scripts/install ./operator/scripts/install
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/scripts/uninstall ./operator/scripts/uninstall
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/config/scripts/run.sh .
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/config/scripts/kubeconfig-template ./config/kubeconfig-template
 
 # Copy source tree to image
-COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/THIRD_PARTY_LICENSES.txt /licenses
+COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/operator/THIRD_PARTY_LICENSES.txt /licenses
 
 USER 1000
 

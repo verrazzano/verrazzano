@@ -1,0 +1,746 @@
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: v1
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+    scrape_configs:
+    - job_name: istio-mesh
+      kubernetes_sd_configs:
+      - namespaces:
+          names:
+          - istio-system
+        role: endpoints
+      relabel_configs:
+      - action: keep
+        regex: istio-telemetry;prometheus
+        source_labels:
+        - __meta_kubernetes_service_name
+        - __meta_kubernetes_endpoint_port_name
+    - job_name: envoy-stats
+      kubernetes_sd_configs:
+      - role: pod
+      metrics_path: /stats/prometheus
+      relabel_configs:
+      - action: keep
+        regex: .*-envoy-prom
+        source_labels:
+        - __meta_kubernetes_pod_container_port_name
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:15090
+        source_labels:
+        - __address__
+        - __meta_kubernetes_pod_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: namespace
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod_name
+    - job_name: istio-policy
+      kubernetes_sd_configs:
+      - namespaces:
+          names:
+          - istio-system
+        role: endpoints
+      relabel_configs:
+      - action: keep
+        regex: istio-policy;http-monitoring
+        source_labels:
+        - __meta_kubernetes_service_name
+        - __meta_kubernetes_endpoint_port_name
+    - job_name: istio-telemetry
+      kubernetes_sd_configs:
+      - namespaces:
+          names:
+          - istio-system
+        role: endpoints
+      relabel_configs:
+      - action: keep
+        regex: istio-telemetry;http-monitoring
+        source_labels:
+        - __meta_kubernetes_service_name
+        - __meta_kubernetes_endpoint_port_name
+    - job_name: pilot
+      kubernetes_sd_configs:
+      - namespaces:
+          names:
+          - istio-system
+        role: endpoints
+      relabel_configs:
+      - action: keep
+        regex: istio-pilot;http-monitoring
+        source_labels:
+        - __meta_kubernetes_service_name
+        - __meta_kubernetes_endpoint_port_name
+    - job_name: galley
+      kubernetes_sd_configs:
+      - namespaces:
+          names:
+          - istio-system
+        role: endpoints
+      relabel_configs:
+      - action: keep
+        regex: istio-galley;http-monitoring
+        source_labels:
+        - __meta_kubernetes_service_name
+        - __meta_kubernetes_endpoint_port_name
+    - job_name: citadel
+      kubernetes_sd_configs:
+      - namespaces:
+          names:
+          - istio-system
+        role: endpoints
+      relabel_configs:
+      - action: keep
+        regex: istio-citadel;http-monitoring
+        source_labels:
+        - __meta_kubernetes_service_name
+        - __meta_kubernetes_endpoint_port_name
+    - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      job_name: kubernetes-apiservers
+      kubernetes_sd_configs:
+      - namespaces:
+          names:
+          - default
+        role: endpoints
+      relabel_configs:
+      - action: keep
+        regex: kubernetes;https
+        source_labels:
+        - __meta_kubernetes_service_name
+        - __meta_kubernetes_endpoint_port_name
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      job_name: kubernetes-nodes
+      kubernetes_sd_configs:
+      - role: node
+      relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+      - replacement: kubernetes.default.svc:443
+        target_label: __address__
+      - regex: (.+)
+        replacement: /api/v1/nodes/${1}/proxy/metrics
+        source_labels:
+        - __meta_kubernetes_node_name
+        target_label: __metrics_path__
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      job_name: kubernetes-cadvisor
+      kubernetes_sd_configs:
+      - role: node
+      relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+      - replacement: kubernetes.default.svc:443
+        target_label: __address__
+      - regex: (.+)
+        replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+        source_labels:
+        - __meta_kubernetes_node_name
+        target_label: __metrics_path__
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    - job_name: kubernetes-service-endpoints
+      kubernetes_sd_configs:
+      - role: endpoints
+      relabel_configs:
+      - action: keep
+        regex: true
+        source_labels:
+        - __meta_kubernetes_service_annotation_prometheus_io_scrape
+      - action: replace
+        regex: (https?)
+        source_labels:
+        - __meta_kubernetes_service_annotation_prometheus_io_scheme
+        target_label: __scheme__
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_service_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_service_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_service_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: kubernetes_namespace
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_service_name
+        target_label: kubernetes_name
+    - job_name: kubernetes-pods
+      kubernetes_sd_configs:
+      - role: pod
+      relabel_configs:
+      - action: keep
+        regex: true
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_scrape
+      - action: keep
+        regex: ((;.*)|(.*;http))
+        source_labels:
+        - __meta_kubernetes_pod_annotation_sidecar_istio_io_status
+        - __meta_kubernetes_pod_annotation_prometheus_io_scheme
+      - action: drop
+        regex: (true)
+        source_labels:
+        - __meta_kubernetes_pod_annotation_istio_mtls
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_pod_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: namespace
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod_name
+    - job_name: kubernetes-pods-istio-secure
+      kubernetes_sd_configs:
+      - role: pod
+      relabel_configs:
+      - action: keep
+        regex: true
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_scrape
+      - action: keep
+        regex: (([^;]+);([^;]*))|(([^;]*);(true))
+        source_labels:
+        - __meta_kubernetes_pod_annotation_sidecar_istio_io_status
+        - __meta_kubernetes_pod_annotation_istio_mtls
+      - action: drop
+        regex: (http)
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_scheme
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: keep
+        regex: ([^:]+):(\d+)
+        source_labels:
+        - __address__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_pod_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: namespace
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod_name
+      scheme: https
+      tls_config:
+        ca_file: /etc/istio-certs/root-cert.pem
+        cert_file: /etc/istio-certs/cert-chain.pem
+        insecure_skip_verify: true
+        key_file: /etc/istio-certs/key.pem
+    - job_name: system-node-exporter
+      kubernetes_sd_configs:
+      - namespaces:
+          names:
+          - monitoring
+        role: pod
+      relabel_configs:
+      - action: keep
+        regex: node-exporter
+        source_labels:
+        - __meta_kubernetes_pod_label_app
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_pod_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod_name
+      - action: labeldrop
+        regex: (controller_revision_hash)
+      - regex: .*/(.*)$
+        replacement: $1
+        source_labels:
+        - name
+        target_label: webapp
+    - job_name: hello-world-binding_local_greet_helidon_hello-world-application
+      kubernetes_sd_configs:
+      - namespaces:
+          names:
+          - greet
+        role: pod
+      relabel_configs:
+      - action: keep
+        regex: true;hello-world-application
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_scrape
+        - __meta_kubernetes_pod_label_app
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_pod_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod_name
+      - action: labeldrop
+        regex: (controller_revision_hash)
+      - regex: .*/(.*)$
+        replacement: $1
+        source_labels:
+        - name
+        target_label: webapp
+    - basic_auth:
+        password: fake-password
+        username: fake-username
+      job_name: bobs-books-binding_local_bobby_weblogic_bobbys-front-end
+      kubernetes_sd_configs:
+      - namespaces:
+          names:
+          - bobby
+        role: pod
+      relabel_configs:
+      - action: keep
+        regex: true;bobbys-front-end
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_scrape
+        - __meta_kubernetes_pod_label_weblogic_domainName
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_pod_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod_name
+      - action: labeldrop
+        regex: (controller_revision_hash)
+      - regex: .*/(.*)$
+        replacement: $1
+        source_labels:
+        - name
+        target_label: webapp
+    - basic_auth:
+        password: fake-password
+        username: fake-username
+      job_name: bobs-books-binding_local_bob_weblogic_bobs-bookstore
+      kubernetes_sd_configs:
+      - namespaces:
+          names:
+          - bob
+        role: pod
+      relabel_configs:
+      - action: keep
+        regex: true;bobs-bookstore
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_scrape
+        - __meta_kubernetes_pod_label_weblogic_domainName
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_pod_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod_name
+      - action: labeldrop
+        regex: (controller_revision_hash)
+      - regex: .*/(.*)$
+        replacement: $1
+        source_labels:
+        - name
+        target_label: webapp
+    - job_name: bobs-books-binding_local_weblogic-operator
+      kubernetes_sd_configs:
+      - namespaces:
+          names:
+          - verrazzano-bobs-books-binding
+        role: pod
+      relabel_configs:
+      - action: keep
+        regex: weblogic-operator
+        source_labels:
+        - __meta_kubernetes_pod_label_app
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_pod_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod_name
+      - action: labeldrop
+        regex: (controller_revision_hash)
+      - regex: .*/(.*)$
+        replacement: $1
+        source_labels:
+        - name
+        target_label: webapp
+    - job_name: bobs-books-binding_local_bobby_coherence_bobbys-coherence
+      kubernetes_sd_configs:
+      - namespaces:
+          names:
+          - bobby
+        role: pod
+      relabel_configs:
+      - action: keep
+        regex: true;bobbys-coherence
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_scrape
+        - __meta_kubernetes_pod_label_coherenceCluster
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_pod_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod_name
+      - action: labeldrop
+        regex: (controller_revision_hash)
+      - regex: .*/(.*)$
+        replacement: $1
+        source_labels:
+        - name
+        target_label: webapp
+    - job_name: bobs-books-binding_local_robert_coherence_roberts-coherence
+      kubernetes_sd_configs:
+      - namespaces:
+          names:
+          - robert
+        role: pod
+      relabel_configs:
+      - action: keep
+        regex: true;roberts-coherence
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_scrape
+        - __meta_kubernetes_pod_label_coherenceCluster
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_pod_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod_name
+      - action: labeldrop
+        regex: (controller_revision_hash)
+      - regex: .*/(.*)$
+        replacement: $1
+        source_labels:
+        - name
+        target_label: webapp
+    - job_name: bobs-books-binding_local_bobby_coherence-operator
+      kubernetes_sd_configs:
+      - namespaces:
+          names:
+          - bobby
+        role: pod
+      relabel_configs:
+      - action: keep
+        regex: coherence-operator;(metrics|oper-metrics)
+        source_labels:
+        - __meta_kubernetes_pod_label_app
+        - __meta_kubernetes_pod_container_port_name
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_pod_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod_name
+      - action: labeldrop
+        regex: (controller_revision_hash)
+      - regex: .*/(.*)$
+        replacement: $1
+        source_labels:
+        - name
+        target_label: webapp
+    - job_name: bobs-books-binding_local_robert_coherence-operator
+      kubernetes_sd_configs:
+      - namespaces:
+          names:
+          - robert
+        role: pod
+      relabel_configs:
+      - action: keep
+        regex: coherence-operator;(metrics|oper-metrics)
+        source_labels:
+        - __meta_kubernetes_pod_label_app
+        - __meta_kubernetes_pod_container_port_name
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_pod_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod_name
+      - action: labeldrop
+        regex: (controller_revision_hash)
+      - regex: .*/(.*)$
+        replacement: $1
+        source_labels:
+        - name
+        target_label: webapp
+    - job_name: bobs-books-binding_local_bobby_helidon_bobbys-helidon-stock-application
+      kubernetes_sd_configs:
+      - namespaces:
+          names:
+          - bobby
+        role: pod
+      relabel_configs:
+      - action: keep
+        regex: true;bobbys-helidon-stock-application
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_scrape
+        - __meta_kubernetes_pod_label_app
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_pod_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod_name
+      - action: labeldrop
+        regex: (controller_revision_hash)
+      - regex: .*/(.*)$
+        replacement: $1
+        source_labels:
+        - name
+        target_label: webapp
+    - job_name: bobs-books-binding_local_robert_helidon_roberts-helidon-stock-application
+      kubernetes_sd_configs:
+      - namespaces:
+          names:
+          - robert
+        role: pod
+      relabel_configs:
+      - action: keep
+        regex: true;roberts-helidon-stock-application
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_scrape
+        - __meta_kubernetes_pod_label_app
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_pod_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod_name
+      - action: labeldrop
+        regex: (controller_revision_hash)
+      - regex: .*/(.*)$
+        replacement: $1
+        source_labels:
+        - name
+        target_label: webapp
+    - basic_auth:
+        password: fake-password
+        username: fake-username
+      job_name: todo_default_todo_todo-wls
+      kubernetes_sd_configs:
+      - namespaces:
+          names:
+          - todo
+        role: pod
+      relabel_configs:
+      - action: keep
+        regex: true;todo;todo-wls
+        source_labels:
+        - __meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled
+        - __meta_kubernetes_pod_label_app_oam_dev_name
+        - __meta_kubernetes_pod_label_app_oam_dev_component
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_pod_annotation_verrazzano_io_metricsPath
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_pod_annotation_verrazzano_io_metricsPort
+        target_label: __address__
+      - action: replace
+        regex: (.*)
+        replacement: $1
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: namespace
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod_name
+      - action: labeldrop
+        regex: (controller_revision_hash)
+      - action: replace
+        regex: .*/(.*)$
+        replacement: $1
+        source_labels:
+        - name
+        target_label: webapp
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2020-11-23T15:11:41Z"
+  name: ##PROMETHEUS_NAME##
+  namespace: ##PROMETHEUS_NAMESPACE##
+  resourceVersion: "6798577"
+  selfLink: /api/v1/namespaces/istio-system/configmaps/prometheus
+  uid: c4ef404a-b409-42a2-94e8-f88c3008fda0
