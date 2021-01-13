@@ -1,0 +1,130 @@
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: verrazzano-application-operator
+  namespace: verrazzano-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: verrazzano-application-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: verrazzano-application-operator
+    namespace: verrazzano-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: verrazzano-application-operator
+  namespace: verrazzano-system
+  labels:
+    app: verrazzano-application-operator
+spec:
+  ports:
+    - name: webhook
+      port: 443
+      targetPort: 9443
+  selector:
+    app: verrazzano-application-operator
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verrazzano-application-operator
+  namespace: verrazzano-system
+  labels:
+    app: verrazzano-application-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: verrazzano-application-operator
+  template:
+    metadata:
+      labels:
+        app: verrazzano-application-operator
+    spec:
+      imagePullSecrets:
+        - name: github-packages
+      containers:
+        - name: verrazzano-application-operator
+          imagePullPolicy: IfNotPresent
+          image: IMAGE_NAME
+          # args:
+            # - --metrics-scraper=verrazzano-system/vmi-system-prometheus-0
+          env:
+            - name: VERRAZZANO_KUBECONFIG
+              value: /home/verrazzano/kubeconfig
+          resources:
+            requests:
+              memory: 72Mi
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/certs
+      volumes:
+        - name: webhook-certs
+          emptyDir: {}
+      serviceAccount: verrazzano-application-operator
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: verrazzano-application-appconfig-defaulter
+  namespace: verrazzano-system
+  labels:
+    app: verrazzano-application-operator
+webhooks:
+  - name: verrazzano-application-appconfig-defaulter.oracle.com
+    clientConfig:
+      service:
+        name: verrazzano-application-operator
+        namespace: verrazzano-system
+        path: "/appconfig-defaulter"
+    rules:
+      - apiGroups:
+          - core.oam.dev
+        apiVersions:
+          - v1alpha2
+        operations:
+          - CREATE
+          - UPDATE
+          - DELETE
+        resources:
+          - applicationconfigurations
+    sideEffects: NoneOnDryRun
+    failurePolicy: Fail
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: verrazzano-application-ingresstrait-validator
+  namespace: verrazzano-system
+  labels:
+    app: verrazzano-application-operator
+webhooks:
+  - name: verrazzano-application-ingresstrait-validator.oracle.com
+    clientConfig:
+      service:
+        name: verrazzano-application-operator
+        namespace: verrazzano-system
+        path: "/validate-oam-verrazzano-io-v1alpha1-ingresstrait"
+    rules:
+      - apiGroups:
+          - oam.verrazzano.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - ingresstraits
+    sideEffects: None
+    failurePolicy: Fail

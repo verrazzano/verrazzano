@@ -51,9 +51,12 @@ pipeline {
     }
 
     environment {
-        DOCKER_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
-        DOCKER_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
-        DOCKER_IMAGE_NAME = "${env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'master' ? env.DOCKER_PUBLISH_IMAGE_NAME : env.DOCKER_CI_IMAGE_NAME}"
+        DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
+        DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
+        DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
+        DOCKER_OAM_CI_IMAGE_NAME = 'verrazzano-oam-operator-jenkins'
+        DOCKER_OAM_PUBLISH_IMAGE_NAME = 'verrazzano-oam-operator'
+        DOCKER_OAM_IMAGE_NAME = "${env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'master' ? env.DOCKER_OAM_PUBLISH_IMAGE_NAME : env.DOCKER_OAM_CI_IMAGE_NAME}"
         CREATE_LATEST_TAG = "${env.BRANCH_NAME == 'master' ? '1' : '0'}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
@@ -103,8 +106,10 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                    make docker-push DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
+                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    make docker-push DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
+                    cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
+                    make docker-push DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
                    """
             }
         }
@@ -113,7 +118,9 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano
+                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    make go-fmt
+                    cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
                     make go-fmt
                 """
             }
@@ -123,7 +130,9 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano
+                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    make go-vet
+                    cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
                     make go-vet
                 """
             }
@@ -133,7 +142,9 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano
+                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    make go-lint
+                    cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
                     make go-lint
                 """
             }
@@ -143,7 +154,9 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano
+                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    make go-ineffassign
+                    cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
                     make go-ineffassign
                 """
             }
@@ -152,7 +165,14 @@ pipeline {
         stage('Third Party License Check') {
             when { not { buildingTag() } }
             steps {
-                thirdpartyCheck()
+                dir('operator'){
+                    echo "In Operator"
+                    thirdpartyCheck()
+                }
+                dir('oam-application-operator'){
+                    echo "In OAM Operator"
+                    thirdpartyCheck()
+                }
             }
         }
 
@@ -167,13 +187,21 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano
+                    cd ${GO_REPO_PATH}/verrazzano/operator
                     make unit-test
                     make -B coverage
                     cp coverage.html ${WORKSPACE}
                     cp coverage.xml ${WORKSPACE}
-                    operator/build/scripts/copy-junit-output.sh ${WORKSPACE}
+                    build/scripts/copy-junit-output.sh ${WORKSPACE}
+                    cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
+                    make unit-test
+                    make -B coverage
                 """
+
+                // NEED To See how these files can be merged
+                //                    cp coverage.html ${WORKSPACE}
+                //                    cp coverage.xml ${WORKSPACE}
+                //                    oam-application-operator/build/scripts/copy-junit-output.sh ${WORKSPACE}
             }
             post {
                 always {
@@ -199,7 +227,8 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 script {
-                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                 }
             }
             post {
@@ -214,7 +243,7 @@ pipeline {
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano/operator
-                    cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > deploy/operator.yaml
+                    cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > deploy/operator.yaml
                     cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
                     cat deploy/operator.yaml
                    """
@@ -225,9 +254,12 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                    make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
-                    operator/build/scripts/copy-junit-output.sh ${WORKSPACE}
+                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+                    build/scripts/copy-junit-output.sh ${WORKSPACE}
+                    cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
+                    make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+                    build/scripts/copy-junit-output.sh ${WORKSPACE}
                 """
             }
             post {
@@ -250,7 +282,7 @@ pipeline {
                 }
             }
             environment {
-                FULL_IMAGE_NAME = "${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                FULL_IMAGE_NAME = "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
             }
             steps {
                 build job: "verrazzano-merge-tests/${env.BRANCH_NAME.replace("/", "%2F")}",

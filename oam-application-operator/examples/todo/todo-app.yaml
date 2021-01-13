@@ -1,0 +1,35 @@
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: core.oam.dev/v1alpha2
+kind: ApplicationConfiguration
+metadata:
+  name: todo-appconf
+  namespace: todo
+  annotations:
+    version: v1.0.0
+    description: "ToDo example application"
+spec:
+  components:
+    - componentName: todo-component
+      traits:
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: MetricsTrait
+            spec:
+                scraper: verrazzano-system/vmi-system-prometheus-0
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: IngressTrait
+            spec:
+              rules:
+                - hosts:
+                    - "*"
+                  paths:
+                    - path: "/todo"
+                      pathType: Prefix
+      scopes:
+        - scopeRef:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: LoggingScope
+            name: logging-scope
