@@ -2,7 +2,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -17,9 +17,9 @@ spec:
     plural: loggingscopes
     singular: loggingscope
   scope: Namespaced
-  subresources:
-    status: {}
-  validation:
+  versions:
+  - name: v1alpha1
+    schema:
     openAPIV3Schema:
       description: LoggingScope is the Schema for the loggingscopes API
       properties:
@@ -123,7 +123,9 @@ spec:
             resources:
               description: Related resources affected by this trait
               items:
-                description: 'todo: Use v1alpha1 version of this once Kevin merges'
+                  description: QualifiedResourceRelation identifies a specific related
+                    resource (both APIVersion/Kind and namespace name) along this
+                    the role of the resource in the relationship.
                 properties:
                   apiversion:
                     type: string
@@ -145,11 +147,10 @@ spec:
               type: array
           type: object
       type: object
-  version: v1alpha1
-  versions:
-  - name: v1alpha1
     served: true
     storage: true
+    subresources:
+      status: {}
 status:
   acceptedNames:
     kind: ""
