@@ -10,7 +10,7 @@ image:
   terminationGracePeriodSeconds: 60
 
 appBinding:
-  useSystemVMI: false
+  useSystemVMI: true
 
 elasticSearch:
   nodes:
@@ -30,7 +30,7 @@ elasticSearch:
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: ghcr.io/verrazzano/verrazzano-operator
-  imageVersion: 0.8.0-20201223143759-ba517ea
+  imageVersion: 0.8.0-20210112141335-3e71377
   cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:0.8.0-20201218184638-ae25fcc
   helidonMicroImage: ghcr.io/verrazzano/verrazzano-helidon-app-operator:0.8.0-20201218185017-e613ee2
   wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:0.8.0-20201218184908-e3e3dd3
@@ -55,7 +55,7 @@ verrazzanoOperator:
 monitoringOperator:
   name: verrazzano-monitoring-operator
   imageName: ghcr.io/verrazzano/verrazzano-monitoring-operator
-  imageVersion: 0.8.0-20201221212648-684fe83
+  imageVersion: 0.8.0-20210108130006-b5a6f97
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1

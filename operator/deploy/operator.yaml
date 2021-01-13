@@ -44,7 +44,7 @@ spec:
     spec:
       initContainers:
         - name: webhook-init
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20210107153734-8167d5a
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20210113133539-721becd
           imagePullPolicy: IfNotPresent
           args:
             - --zap-log-level=info
@@ -58,7 +58,7 @@ spec:
       containers:
         - name: verrazzano-platform-operator
           imagePullPolicy: IfNotPresent
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20210107153734-8167d5a
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20210113133539-721becd
           ports:
             - containerPort: 9443
               name: webhook
@@ -80,7 +80,7 @@ spec:
             - name: MODE
               value: RUN_OPERATOR
             - name: VZ_INSTALL_IMAGE
-              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20210107153734-8167d5a
+              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20210113133539-721becd
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
@@ -133,7 +133,7 @@ webhooks:
           - verrazzanos
     sideEffects: None
     failurePolicy: Fail
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 ---
@@ -260,7 +260,7 @@ spec:
                     description: Ingress contains the ingress-nginx component configuration
                     properties:
                       nginxInstallArgs:
-                        description: Arguments for installing nginx
+                        description: Arguments for installing NGINX
                         items:
                           description: InstallArgs identifies a name/value or name/value
                             list needed for install. Value and ValueList cannot both
@@ -285,7 +285,7 @@ spec:
                           type: object
                         type: array
                       ports:
-                        description: Ports to be used for nginx
+                        description: Ports to be used for NGINX
                         items:
                           description: ServicePort contains information on service's
                             port.

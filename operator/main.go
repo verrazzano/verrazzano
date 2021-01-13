@@ -1,12 +1,13 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package main
 
 import (
 	"flag"
-	config2 "github.com/verrazzano/verrazzano/operator/internal/config"
 	"os"
+
+	config2 "github.com/verrazzano/verrazzano/operator/internal/config"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/controllers"
@@ -52,6 +53,8 @@ func main() {
 		"Initialize webhooks for the operator")
 	flag.StringVar(&config.VerrazzanoInstallDir, "vz-install-dir", config.VerrazzanoInstallDir,
 		"Specify the install directory of verrazzano (used for development)")
+	flag.StringVar(&config.ThirdpartyChartsDir, "thirdparty-charts-dir", config.ThirdpartyChartsDir,
+		"Specify the thirdparty helm charts directory (used for development)")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}

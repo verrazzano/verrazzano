@@ -14,39 +14,29 @@ set -eu
 
 function install_nginx_ingress_controller()
 {
-    local NGINX_INGRESS_CHART_DIR=${CHARTS_DIR}/nginx-ingress
+    local NGINX_INGRESS_CHART_DIR=${CHARTS_DIR}/ingress-nginx
 
     # Create the namespace for nginx
     if ! kubectl get namespace ingress-nginx ; then
         kubectl create namespace ingress-nginx
     fi
 
-    local ingress_type=$(get_config_value ".ingress.type")
-
     # Handle any additional NGINX install args - since NGINX is for Verrazzano system Ingress,
     # these should be in .ingress.verrazzano.nginxInstallArgs[]
     local EXTRA_NGINX_ARGUMENTS=$(get_nginx_helm_args_from_config)
 
     if [ "$DNS_TYPE" == "oci" ]; then
-      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.'external-dns\.alpha\.kubernetes\.io/ttl'=60"
+      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.external-dns\.alpha\.kubernetes\.io/ttl=\"60\""
       local dns_zone=$(get_config_value ".dns.oci.dnsZoneName")
-      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.'external-dns\.alpha\.kubernetes\.io/hostname'=verrazzano-ingress.${NAME}.${dns_zone}"
+      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.external-dns\.alpha\.kubernetes\.io/hostname=verrazzano-ingress.${NAME}.${dns_zone}"
     fi
 
+    local ingress_type=$(get_config_value ".ingress.type")
+    EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.type=${ingress_type}"
+
     helm upgrade ingress-controller ${NGINX_INGRESS_CHART_DIR} --install \
-      --set controller.image.repository=$NGINX_INGRESS_CONTROLLER_IMAGE \
-      --set controller.image.tag=$NGINX_INGRESS_CONTROLLER_TAG \
-      --set controller.config.client-body-buffer-size=64k \
-      --set defaultBackend.image.repository=$NGINX_DEFAULT_BACKEND_IMAGE \
-      --set defaultBackend.image.tag=$NGINX_DEFAULT_BACKEND_TAG \
       --namespace ingress-nginx \
-      --set controller.metrics.enabled=true \
-      --set controller.podAnnotations.'prometheus\.io/port'=10254 \
-      --set controller.podAnnotations.'prometheus\.io/scrape'=true \
-      --set controller.podAnnotations.'system\.io/scrape'=true \
-      --set controller.service.type="${ingress_type}" \
-      --set controller.publishService.enabled=true \
-      --set controller.service.enableHttp=false \
+      -f $SCRIPT_DIR/components/ingress-nginx-values.yaml \
       ${EXTRA_NGINX_ARGUMENTS} \
       --timeout 15m0s \
       --wait \
@@ -56,7 +46,7 @@ function install_nginx_ingress_controller()
     local nginx_svc_patch_spec=$(get_verrazzano_ports_spec)
     if [ ! -z "${nginx_svc_patch_spec}" ]; then
       log "Patching NGINX service with: ${nginx_svc_patch_spec}"
-      kubectl patch service -n ingress-nginx ingress-controller-nginx-ingress-controller -p "${nginx_svc_patch_spec}"
+      kubectl patch service -n ingress-nginx ingress-controller-ingress-nginx-controller -p "${nginx_svc_patch_spec}"
     fi
 }
 
@@ -137,14 +127,7 @@ function install_cert_manager()
     helm upgrade cert-manager ${CERT_MANAGER_CHART_DIR} \
         --install \
         --namespace cert-manager \
-        --set image.repository=$CERT_MANAGER_IMAGE \
-        --set image.tag=$CERT_MANAGER_TAG \
-        --set extraArgs[0]=--acme-http01-solver-image=$CERT_MANAGER_SOLVER_IMAGE:$CERT_MANAGER_SOLVER_TAG \
-        --set cainjector.enabled=false \
-        --set webhook.enabled=false \
-        --set webhook.injectAPIServerCA=false \
-        --set ingressShim.defaultIssuerName=verrazzano-cluster-issuer \
-        --set ingressShim.defaultIssuerKind=ClusterIssuer \
+        -f $SCRIPT_DIR/components/cert-manager-values.yaml \
         ${EXTRA_CERT_MANAGER_ARGUMENTS} \
         --wait \
         || return $?
@@ -173,21 +156,11 @@ function install_external_dns()
     helm upgrade external-dns ${EXTERNAL_DNS_CHART_DIR} \
         --install \
         --namespace cert-manager \
-        --set image.registry=$EXTERNAL_DNS_REGISTRY \
-        --set image.repository=$EXTERNAL_DNS_REPO \
-        --set image.tag=$EXTERNAL_DNS_TAG \
-        --set provider=oci \
-        --set logLevel=debug \
-        --set registry=txt \
-        --set sources[0]=ingress \
-        --set sources[1]=service \
+        -f $SCRIPT_DIR/components/external-dns-values.yaml \
         --set domainFilters[0]=${DNS_SUFFIX} \
         --set zoneIdFilters[0]=$(get_config_value ".dns.oci.dnsZoneOcid") \
         --set txtOwnerId=v8o-local-${NAME} \
         --set txtPrefix=_v8o-local-${NAME}_ \
-        --set policy=sync \
-        --set interval=24h \
-        --set triggerLoopOnEvent=true \
         --set extraVolumes[0].name=config \
         --set extraVolumes[0].secret.secretName=$OCI_DNS_CONFIG_SECRET \
         --set extraVolumeMounts[0].name=config \
@@ -340,7 +313,7 @@ NAME=$(get_config_value ".environmentName")
 DNS_TYPE=$(get_config_value ".dns.type")
 CERT_ISSUER_TYPE=$(get_config_value ".certificates.issuerType")
 
-action "Installing Nginx Ingress Controller" install_nginx_ingress_controller || exit 1
+action "Installing NGINX Ingress Controller" install_nginx_ingress_controller || exit 1
 
 # We can only know the ingress IP after installing nginx ingress controller
 INGRESS_IP=$(get_verrazzano_ingress_ip)

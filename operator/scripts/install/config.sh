@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 CONFIG_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -162,10 +162,10 @@ function get_verrazzano_ingress_ip {
     ingress_ip="127.0.0.1"
   elif [ ${ingress_type} == "LoadBalancer" ]; then
     # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
-    ingress_ip=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
+    ingress_ip=$(kubectl get svc ingress-controller-ingress-nginx-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
     # In case of OLCNE, it would return null
     if [ ${ingress_ip} == "null" ]; then
-      ingress_ip=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json  | jq -r '.spec.externalIPs[0]')
+      ingress_ip=$(kubectl get svc ingress-controller-ingress-nginx-controller -n ingress-nginx -o json  | jq -r '.spec.externalIPs[0]')
     fi
   fi
   echo ${ingress_ip}
@@ -304,7 +304,7 @@ function get_rancher_in_cluster_host() {
   local rancher_hostname=$1
   local rancher_in_cluster_host=${rancher_hostname}
   if [ $(get_config_value ".ingress.type") == "NodePort" ]; then
-    rancher_in_cluster_host=$(kubectl -n ingress-nginx get pods --selector app=nginx-ingress,component=controller -o jsonpath='{.items[0].status.hostIP}')
+    rancher_in_cluster_host=$(kubectl -n ingress-nginx get pods --selector app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller -o jsonpath='{.items[0].status.hostIP}')
   fi
   echo ${rancher_in_cluster_host}
 }

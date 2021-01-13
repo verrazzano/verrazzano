@@ -1,12 +1,13 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package component
 
 import (
+	"path/filepath"
+
 	config2 "github.com/verrazzano/verrazzano/operator/internal/config"
 	"github.com/verrazzano/verrazzano/operator/internal/util/helm"
-	"path/filepath"
 )
 
 const vzReleaseName = "verrazzano"
@@ -37,12 +38,12 @@ func (v Verrazzano) Name() string {
 // that is included in the operator image, while retaining any helm value overrides that were applied during
 // install.
 func (v Verrazzano) Upgrade(namespace string) error {
-	_, _, err := helm.Upgrade(vzReleaseName, resolveNamespace(namespace), VzChartDir())
+	_, _, err := helm.Upgrade(vzReleaseName, resolveNamespace(namespace), VzChartDir(), "")
 	return err
 }
 
 // resolveNamesapce will return the default verrzzano system namespace unless the namespace
-// is explicity specified
+// is specified
 func resolveNamespace(ns string) string {
 	if len(ns) > 0 && ns != "default" {
 		return ns

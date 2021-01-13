@@ -191,7 +191,7 @@ type IngressNginxComponent struct {
 	// Arguments for installing NGINX
 	// +optional
 	NGINXInstallArgs []InstallArgs `json:"nginxInstallArgs,omitempty"`
-	// Ports to be used for nginx
+	// Ports to be used for NGINX
 	// +optional
 	Ports []corev1.ServicePort `json:"ports,omitempty"`
 }
