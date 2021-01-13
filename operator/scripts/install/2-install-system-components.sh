@@ -129,14 +129,7 @@ function install_cert_manager()
     helm upgrade cert-manager ${CERT_MANAGER_CHART_DIR} \
         --install \
         --namespace cert-manager \
-        --set image.repository=$CERT_MANAGER_IMAGE \
-        --set image.tag=$CERT_MANAGER_TAG \
-        --set extraArgs[0]=--acme-http01-solver-image=$CERT_MANAGER_SOLVER_IMAGE:$CERT_MANAGER_SOLVER_TAG \
-        --set cainjector.enabled=false \
-        --set webhook.enabled=false \
-        --set webhook.injectAPIServerCA=false \
-        --set ingressShim.defaultIssuerName=verrazzano-cluster-issuer \
-        --set ingressShim.defaultIssuerKind=ClusterIssuer \
+        -f $SCRIPT_DIR/components/cert-manager-values.yaml \
         ${EXTRA_CERT_MANAGER_ARGUMENTS} \
         --wait \
         || return $?
