@@ -76,6 +76,7 @@ spec:
             failureThreshold: 15
           args:
             - --zap-log-level=info
+            - --enable-webhook-validation=true
           env:
             - name: MODE
               value: RUN_OPERATOR
