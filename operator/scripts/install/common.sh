@@ -237,7 +237,7 @@ MYSQL_IMAGE_TAG=8.0.20
 RANCHER_IMAGE=ghcr.io/verrazzano/rancher
 RANCHER_TAG=v2.4.3-20201016205256-4988df094
 
-OAM_OPERATOR_IMAGE_REPO=crossplane/oam-kubernetes-runtime
+OAM_OPERATOR_IMAGE_REPO=ghcr.io/verrazzano/oam-kubernetes-runtime
 OAM_OPERATOR_IMAGE_TAG=v0.3.0
 
 WEBLOGIC_OPERATOR_IMAGE_REPO=oracle/weblogic-kubernetes-operator
