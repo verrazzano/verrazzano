@@ -183,7 +183,7 @@ pipeline {
             }
         }
 
-        stage('Operator Unit Tests') {
+        stage('Unit Tests') {
             when { not { buildingTag() } }
             steps {
                 sh """
@@ -193,37 +193,6 @@ pipeline {
                     cp coverage.html ${WORKSPACE}
                     cp coverage.xml ${WORKSPACE}
                     build/scripts/copy-junit-output.sh ${WORKSPACE}
-                """
-
-                // NEED To See how these files can be merged
-                //                    cp coverage.html ${WORKSPACE}
-                //                    cp coverage.xml ${WORKSPACE}
-                //                    oam-application-operator/build/scripts/copy-junit-output.sh ${WORKSPACE}
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                    cobertura(coberturaReportFile: 'coverage.xml',
-                      enableNewApi: true,
-                      autoUpdateHealth: false,
-                      autoUpdateStability: false,
-                      failUnstable: true,
-                      failUnhealthy: true,
-                      failNoReports: true,
-                      onlyStable: false,
-                      fileCoverageTargets: '100, 0, 0',
-                      lineCoverageTargets: '85, 85, 85',
-                      packageCoverageTargets: '100, 0, 0',
-                    )
-                }
-            }
-        }
-
-        stage('OAM Unit Tests') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
                     cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
                     make unit-test
                     make -B coverage
@@ -253,7 +222,6 @@ pipeline {
                 }
             }
         }
-
 
         stage('Scan Image') {
             when { not { buildingTag() } }
@@ -288,6 +256,9 @@ pipeline {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano/operator
                     make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+                    build/scripts/copy-junit-output.sh ${WORKSPACE}
+                    cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
+                    make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     build/scripts/copy-junit-output.sh ${WORKSPACE}
                 """
             }
