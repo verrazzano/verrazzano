@@ -19,7 +19,7 @@ ARG BUILDVERSION
 ARG BUILDDATE
 
 # Need to use specific WORKDIR to match verrazzano's source packages
-WORKDIR /root/go/src/github.com/verrazzano/verrazzano
+WORKDIR /root/go/src/github.com/verrazzano/verrazzano/operator
 COPY . .
 
 ENV CGO_ENABLED 0
@@ -59,14 +59,14 @@ COPY --from=build_base --chown=verrazzano:verrazzano /usr/bin/verrazzano-platfor
 
 # Copy the Verrazzano install and uninstall scripts
 WORKDIR /verrazzano
-COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/thirdparty ./thirdparty
-COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/scripts/install ./install
-COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/scripts/uninstall ./uninstall
-COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/config/scripts/run.sh .
-COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/config/scripts/kubeconfig-template ./config/kubeconfig-template
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/thirdparty ./thirdparty
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/scripts/install ./operator/scripts/install
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/scripts/uninstall ./operator/scripts/uninstall
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/config/scripts/run.sh .
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/config/scripts/kubeconfig-template ./config/kubeconfig-template
 
 # Copy source tree to image
-COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/THIRD_PARTY_LICENSES.txt /licenses
+COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/operator/THIRD_PARTY_LICENSES.txt /licenses
 
 USER 1000
 
