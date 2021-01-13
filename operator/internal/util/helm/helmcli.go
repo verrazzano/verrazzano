@@ -6,6 +6,7 @@ package helm
 import (
 	"fmt"
 	"os/exec"
+	"strings"
 
 	vz_os "github.com/verrazzano/verrazzano/operator/internal/util/os"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -42,6 +43,27 @@ func Upgrade(releaseName string, namespace string, chartDir string, overwriteYam
 	//  Log upgrade output
 	log.Info(fmt.Sprintf("Verrazzano helm upgrade succeeded with stdout: %s\n", string(stdout)))
 	return stdout, stderr, nil
+}
+
+// IsReleaseInstalled returns true if the release is installed
+func IsReleaseInstalled(releaseName string, namespace string) (found bool, err error) {
+	var log = ctrl.Log.WithName("helm")
+
+	args := []string{"status", releaseName}
+	if namespace != "" {
+		args = append(args, "--namespace")
+		args = append(args, namespace)
+	}
+	cmd := exec.Command("helm", args...)
+	_, stderr, err := runner.Run(cmd)
+	if err == nil {
+		return true, nil
+	}
+	if strings.Contains(string(stderr), "not found") {
+		return false, nil
+	}
+	log.Error(err, fmt.Sprintf("Verrazzano helm status failed with stderr: %s\n", string(stderr)))
+	return false, err
 }
 
 // SetCmdRunner sets the command runner as needed by unit tests
