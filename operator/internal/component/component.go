@@ -27,10 +27,17 @@ func GetComponents() []Component {
 		Verrazzano{},
 		Nginx{},
 		helmComponent{
+			releaseName:             "cert-manager",
+			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "cert-manager"),
+			chartNamespace:          "cert-manager",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(componentDir, "cert-manager-values.yaml"),
+		},
+		helmComponent{
 			releaseName:             "keycloak",
 			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "keycloak"),
 			chartNamespace:          "keycloak",
-			allowsNamespaceOverride: true,
+			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(componentDir, "keycloak-values.yaml"),
 		},
 		helmComponent{
@@ -39,13 +46,6 @@ func GetComponents() []Component {
 			chartNamespace:          "cert-manager",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(componentDir, "external-dns-values.yaml"),
-		},
-		helmComponent{
-			releaseName:             "cert-manager",
-			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "cert-manager"),
-			chartNamespace:          "cert-manager",
-			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(componentDir, "cert-manager-values.yaml"),
 		},
 	}
 }
