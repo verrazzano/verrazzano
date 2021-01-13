@@ -47,5 +47,12 @@ func GetComponents() []Component {
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(componentDir, "keycloak-values.yaml"),
 		},
+		helmComponent{
+			releaseName:             "rancher",
+			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "rancher"),
+			chartNamespace:          "cattle-system",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(componentDir, "rancher-values.yaml"),
+		},
 	}
 }
