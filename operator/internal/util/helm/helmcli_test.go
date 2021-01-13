@@ -107,11 +107,11 @@ func TestIsReleaseInstalledFailed(t *testing.T) {
 // Run should assert the command parameters are correct then return a success with stdout contents
 func (r goodRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	assert := assert.New(r.t)
-	assert.Contains(cmd.Path, "helm", "exec command should contain helm")
-	assert.Contains(cmd.Args[0], "helm", "exec args should contain helm")
-	assert.Contains(cmd.Args[1], "upgrade", "exec args should contain upgrade")
-	assert.Contains(cmd.Args[2], release, "exec args should contain release name")
-	assert.Contains(cmd.Args[3], chartdir, "exec args should contain chart dir ")
+	assert.Contains(cmd.Path, "helm", "command should contain helm")
+	assert.Contains(cmd.Args[0], "helm", "args should contain helm")
+	assert.Contains(cmd.Args[1], "upgrade", "args should contain upgrade")
+	assert.Contains(cmd.Args[2], release, "args should contain release name")
+	assert.Contains(cmd.Args[3], chartdir, "args should contain chart dir ")
 
 	return []byte("success"), []byte(""), nil
 }
@@ -124,9 +124,9 @@ func (r badRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) 
 // Run should assert the command parameters are correct then return a success or error depending on release name
 func (r foundRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	assert := assert.New(r.t)
-	assert.Contains(cmd.Path, "helm", "exec command should contain helm")
-	assert.Contains(cmd.Args[0], "helm", "exec args should contain helm")
-	assert.Contains(cmd.Args[1], "status", "exec args should contain status")
+	assert.Contains(cmd.Path, "helm", "command should contain helm")
+	assert.Contains(cmd.Args[0], "helm", "args should contain helm")
+	assert.Contains(cmd.Args[1], "status", "args should contain status")
 
 	if cmd.Args[2] == release {
 		return []byte(""), []byte(""), nil

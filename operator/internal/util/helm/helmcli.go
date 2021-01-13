@@ -36,12 +36,12 @@ func Upgrade(releaseName string, namespace string, chartDir string, overwriteYam
 	cmd := exec.Command("helm", args...)
 	stdout, stderr, err = runner.Run(cmd)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Verrazzano helm upgrade failed with stderr: %s\n", string(stderr)))
+		log.Error(err, fmt.Sprintf(" helm upgrade for release %s failed with stderr: %s\n", releaseName, string(stderr)))
 		return stdout, stderr, err
 	}
 
 	//  Log upgrade output
-	log.Info(fmt.Sprintf("Verrazzano helm upgrade succeeded with stdout: %s\n", string(stdout)))
+	log.Info("helm upgrade for release %s succeeded with stdout: %s\n", releaseName, string(stdout))
 	return stdout, stderr, nil
 }
 
@@ -62,7 +62,7 @@ func IsReleaseInstalled(releaseName string, namespace string) (found bool, err e
 	if strings.Contains(string(stderr), "not found") {
 		return false, nil
 	}
-	log.Error(err, fmt.Sprintf("Verrazzano helm status failed with stderr: %s\n", string(stderr)))
+	log.Error(err, fmt.Sprintf("helm status for release %s failed with stderr: %s\n", releaseName, string(stderr)))
 	return false, err
 }
 
