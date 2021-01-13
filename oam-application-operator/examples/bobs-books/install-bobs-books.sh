@@ -33,6 +33,14 @@ if [ -z "${OCR_PASS}" ]; then
   echo "ERROR: Oracle Container Registry password required as fourth argument or OCR_PASS environment variable."
   exit 1
 fi
+if [ -z "${WEBLOGIC_PASS}" ]; then
+  echo "ERROR: WebLogic administration password required as WEBLOGIC_PASS environment variable."
+  exit 1
+fi
+if [ -z "${MYSQL_PASS}" ]; then
+  echo "ERROR: MySQL password required as MYSQL_PASS environment variable."
+  exit 1
+fi
 
 echo "Installing Bob's Books OAM application."
 
@@ -110,11 +118,11 @@ _create_generic_secret() {
   fi
 }
 
-_create_generic_secret bobbys-front-end-weblogic-credentials "--from-literal=password=welcome1 --from-literal=username=weblogic"
-_create_generic_secret bobbys-front-end-runtime-encrypt-secret "--from-literal=password=welcome1" "weblogic.domainUID=bobbys-front-end"
-_create_generic_secret bobs-bookstore-weblogic-credentials "--from-literal=password=welcome1 --from-literal=username=weblogic"
-_create_generic_secret bobs-bookstore-runtime-encrypt-secret "--from-literal=password=welcome1" "weblogic.domainUID=bobs-bookstore"
-_create_generic_secret mysql-credentials "--from-literal=username=books --from-literal=password=WebLogic1234 --from-literal=url=jdbc:mysql://mysql.${NAMESPACE}.svc.cluster.local:3306/books"
+_create_generic_secret bobbys-front-end-weblogic-credentials "--from-literal=password=${WEBLOGIC_PASS} --from-literal=username=weblogic"
+_create_generic_secret bobbys-front-end-runtime-encrypt-secret "--from-literal=password=${WEBLOGIC_PASS}" "weblogic.domainUID=bobbys-front-end"
+_create_generic_secret bobs-bookstore-weblogic-credentials "--from-literal=password=${WEBLOGIC_PASS} --from-literal=username=weblogic"
+_create_generic_secret bobs-bookstore-runtime-encrypt-secret "--from-literal=password=${WEBLOGIC_PASS}" "weblogic.domainUID=bobs-bookstore"
+_create_generic_secret mysql-credentials "--from-literal=username=books --from-literal=password=${MYSQL_PASS} --from-literal=url=jdbc:mysql://mysql.${NAMESPACE}.svc.cluster.local:3306/books"
 
 helm repo add coherence https://oracle.github.io/coherence-operator/charts
 helm repo update
