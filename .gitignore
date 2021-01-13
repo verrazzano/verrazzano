@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 .verrazzano/
 build/
@@ -23,6 +23,11 @@ known_licenses.txt
 no_licenses.txt
 thirdparty_licenses
 index.yaml
-coverage*.*
+coverage.cov
+coverageTmp.cov
+coverage.html
+coverage.xml
 operator/test/integ/integ*result.xml
 operator/test/integ/integ.coverprofile
+oam-application-operator/test/integ/integ*result.xml
+oam-application-operator/test/integ/integ.coverprofile
