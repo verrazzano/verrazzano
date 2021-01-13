@@ -176,7 +176,7 @@ CLUSTER_NAME = verrazzano
 VERRAZZANO_NS = verrazzano-system
 DEPLOY = deploy
 OPERATOR_SETUP = test/operatorsetup
-OAM_RUNTIME_IMAGE="crossplane/oam-kubernetes-runtime:v0.3.0"
+OAM_RUNTIME_IMAGE="ghcr.io/verrazzano/oam-kubernetes-runtime:v0.3.0"
 
 # These exports are needed for the install.sh
 export KUBECONFIG=${HOME}/.kube/config
@@ -188,10 +188,6 @@ integ-test: create-cluster
 	echo 'Load Docker image for the OAM runtime...'
 	docker pull ${OAM_RUNTIME_IMAGE}
 	kind load docker-image --name ${CLUSTER_NAME} ${OAM_RUNTIME_IMAGE}
-
-	echo 'Load Docker image for the fake hello app...'
-	docker pull container-registry.oracle.com/os/oraclelinux:7-slim
-	kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/os/oraclelinux:7-slim
 
 	echo 'Load Docker image for the Verrazzano application operator...'
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}

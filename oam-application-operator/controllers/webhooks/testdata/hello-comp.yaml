@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: hello
-        image: container-registry.oracle.com/os/oraclelinux:7-slim
+        image: ghcr.io/oracle/oraclelinux:7-slim
         args:
           - /bin/sh
           - -c
