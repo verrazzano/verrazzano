@@ -6,7 +6,7 @@ REPO_NAME:=verrazzano-application-operator
 
 
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
-DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)-cdd
+DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)
 
 CREATE_LATEST_TAG=0
 
