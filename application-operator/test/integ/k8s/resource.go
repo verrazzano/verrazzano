@@ -72,6 +72,25 @@ func (c Client) DoesPodExist(name string, namespace string) bool {
 	return (c.getPod(name, namespace) != nil)
 }
 
+// DoesContainerExist returns true if a container with the given name exists in the pod
+func (c Client) DoesContainerExist(namespace, podName, containerName string) bool {
+	pods, err := c.clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		ginkgo.Fail("Could not get list of pods" + err.Error())
+		return false
+	}
+	for _, pod := range pods.Items {
+		if strings.HasPrefix(pod.Name, podName) {
+			for _, container := range pod.Status.ContainerStatuses {
+				if container.Name == containerName {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 // IsPodRunning returns true if a Pod with the given prefix is running
 func (c Client) IsPodRunning(name string, namespace string) bool {
 	pod := c.getPod(name, namespace)
