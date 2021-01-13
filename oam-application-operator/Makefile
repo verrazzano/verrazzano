@@ -179,8 +179,8 @@ OPERATOR_SETUP = test/operatorsetup
 OAM_RUNTIME_IMAGE="crossplane/oam-kubernetes-runtime:v0.3.0"
 
 # These exports are needed for the install.sh
-export KUBECONFIG=${HOME}/.kube/config
-export VERRAZZANO_KUBECONFIG=${HOME}/.kube/config
+# export KUBECONFIG=${HOME}/.kube/config
+# export VERRAZZANO_KUBECONFIG=${HOME}/.kube/config
 export VERRAZZANO_APP_OP_IMAGE=${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 .PHONY: integ-test
