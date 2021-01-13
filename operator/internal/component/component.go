@@ -34,18 +34,18 @@ func GetComponents() []Component {
 			valuesFile:              filepath.Join(componentDir, "cert-manager-values.yaml"),
 		},
 		helmComponent{
-			releaseName:             "keycloak",
-			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "keycloak"),
-			chartNamespace:          "keycloak",
-			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(componentDir, "keycloak-values.yaml"),
-		},
-		helmComponent{
 			releaseName:             "external-dns",
 			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "external-dns"),
 			chartNamespace:          "cert-manager",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(componentDir, "external-dns-values.yaml"),
+		},
+		helmComponent{
+			releaseName:             "keycloak",
+			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "keycloak"),
+			chartNamespace:          "keycloak",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(componentDir, "keycloak-values.yaml"),
 		},
 	}
 }

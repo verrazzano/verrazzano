@@ -20,6 +20,6 @@ func TestGetComponents(t *testing.T) {
 	assert.Equal(comps[0].Name(), "verrazzano")
 	assert.Equal(comps[1].Name(), "ingress-nginx")
 	assert.Equal(comps[2].Name(), "cert-manager")
-	assert.Equal(comps[3].Name(), "keycloak")
-	assert.Equal(comps[4].Name(), "external-dns")
+	assert.Equal(comps[3].Name(), "external-dns")
+	assert.Equal(comps[4].Name(), "keycloak")
 }
