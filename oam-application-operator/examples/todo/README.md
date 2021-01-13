@@ -6,6 +6,8 @@ To-Do List is a demo application which contains a WebLogic component and an Ingr
 1. Install verrazzano-application-operator by following the [installation instructions](../../install/README.md).  
 (TODO:  Note that it is assumed that Istio is already installed through the Verrazzano installation.  Will we install Istio here?)
 
+1. Create a Docker image for the To-Do list example app from source code. Detailed instructions on how to do this can be found in the main [To-Do List example application page](https://github.com/verrazzano/examples/tree/master/todo-list).
+
 1. Create a namespace for the To-Do example.  Mark it as a domain namespace for the WebLogic operator that was deployed in the verrazzano-application-operator install above.
    ```
    kubectl create namespace todo
@@ -50,6 +52,8 @@ To-Do List is a demo application which contains a WebLogic component and an Ingr
    Docker images for the example application.  The source code for the example
    applications is ...  
    (TODO: move To-Do example image and source and update the above)
+
+1. Edit the component configuration file `todo-comp.yaml`, and replace the pattern `%TODO_APP_IMAGE%` with the Docker image you built for the To-Do List application.
 
 1. Apply the component and application configuration for the To-Do example.
    ```

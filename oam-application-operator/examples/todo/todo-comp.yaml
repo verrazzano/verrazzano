@@ -16,7 +16,7 @@ spec:
     spec:
       domainUID: tododomain
       domainHome: /u01/oracle/user_projects/domains/tododomain
-      image: phx.ocir.io/stevengreenberginc/rdonat/todo:5
+      image: %TODO_APP_IMAGE%
       imagePullSecrets:
         - name: ocir
       logHomeEnabled: false

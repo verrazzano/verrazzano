@@ -12,6 +12,7 @@ DOCKER_PWD="${3:-$OCIR_CREDS_PSW}"
 NAMESPACE="todo"
 SECRET="ocir"
 WLS_DOMAIN="tododomain"
+TODO_COMPONENT_FILE="${SCRIPT_DIR}/todo-comp.yaml"
 
 if [ -z "${DOCKER_SVR}" ]; then
   echo "ERROR: Container registry required as first argument or OCIR_PHX_REPO environment variable."
@@ -27,6 +28,10 @@ if [ -z "${DOCKER_PWD}" ]; then
 fi
 if [ -z "${WEBLOGIC_PSW}" ]; then
   echo "ERROR: WebLogic administration password required as WEBLOGIC_PSW environment variable."
+  exit 1
+fi
+if [ -z "${TODO_APP_IMAGE}" ]; then
+  echo "ERROR: The image for the To-Do List application is required as TODO_APP_IMAGE environment variable."
   exit 1
 fi
 
@@ -115,6 +120,9 @@ if [ "${skip_secrets:-false}" != "true" ]; then
   create_and_label_generic_secret tododomain-jdbc-tododb derek ${WEBLOGIC_PSW} weblogic.domainUID=tododomain
   create_and_label_generic_secret tododomain-runtime-encrypt-secret "" ${WEBLOGIC_PSW} weblogic.domainUID=tododomain
 fi
+
+echo "Substitute image name template in ${TODO_COMPONENT_FILE} as ${TODO_APP_IMAGE}"
+sed -i '' -e "s|%TODO_APP_IMAGE%|${TODO_APP_IMAGE}|" ${TODO_COMPONENT_FILE}
 
 echo "Apply application configuration."
 kubectl apply -f ${SCRIPT_DIR}/
