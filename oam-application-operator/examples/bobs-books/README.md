@@ -7,7 +7,7 @@ The Bob's Books example is a set of three applications based on WebLogic, Helido
 You will need to fulfill the following prerequisites prior to running the example:
 
 1. Create a Kubernetes cluster. A single node OKE cluster with VM Standard 1.4 is recommended.
-1. Install the [Verrazzano Application Operator](https://gitlab-odx.oracledx.com/verrazzano/verrazzano-application-operator/-/tree/master#installing-the-oam-runtine-and-the-verrazzano-application-operator).
+1. Install the Verrazzano Application Operator.
 1. Accept the license agreements for the images. In a web browser, navigate to the [Oracle Container Registry](https://container-registry.oracle.com):
 
     - Select **Middleware**, review, and _Sign in_ to accept the licenses for the WebLogic and Coherence images.

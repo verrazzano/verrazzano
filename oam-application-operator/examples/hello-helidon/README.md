@@ -8,7 +8,7 @@ You will need to fulfill the following prerequisites prior to running the exampl
 
 1. Create a Kubernetes cluster. A single node OKE cluster using the VM Standard 1.4 shape is recommended.
 1. Install [Verrazzano](https://github.com/verrazzano/verrazzano#install-verrazzano).
-1. Install the [Verrazzano Application Operator](https://gitlab-odx.oracledx.com/verrazzano/verrazzano-application-operator/-/tree/master#installing-the-oam-runtine-and-the-verrazzano-application-operator).
+1. Install the Verrazzano Application Operator.
 
 # Deploy and Run the Example Application
 
