@@ -34,9 +34,7 @@ function install_nginx_ingress_controller()
     local ingress_type=$(get_config_value ".ingress.type")
     EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.type=${ingress_type}"
 
-    log "Extra NGINX arguments: ${EXTRA_NGINX_ARGUMENTS}"
-
-    helm upgrade ingress-controller ${NGINX_INGRESS_CHART_DIR} --install --debug \
+    helm upgrade ingress-controller ${NGINX_INGRESS_CHART_DIR} --install \
       --namespace ingress-nginx \
       -f $SCRIPT_DIR/components/ingress-nginx-values.yaml \
       ${EXTRA_NGINX_ARGUMENTS} \
@@ -199,9 +197,7 @@ function install_rancher()
     # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
     helm upgrade rancher ${RANCHER_CHART_DIR} \
       --install --namespace cattle-system \
-      --set systemDefaultRegistry=ghcr.io/verrazzano \
-      --set rancherImage=$RANCHER_IMAGE \
-      --set rancherImageTag=$RANCHER_TAG \
+      -f $SCRIPT_DIR/components/rancher-values.yaml \
       --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
       --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
       ${EXTRA_RANCHER_ARGUMENTS}

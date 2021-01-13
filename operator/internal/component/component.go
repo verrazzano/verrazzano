@@ -4,8 +4,9 @@
 package component
 
 import (
-	"github.com/verrazzano/verrazzano/operator/internal/config"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/operator/internal/config"
 )
 
 // Component interface defines the methods implemented by components
@@ -26,6 +27,13 @@ func GetComponents() []Component {
 		Verrazzano{},
 		Nginx{},
 		helmComponent{
+			releaseName:             "cert-manager",
+			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "cert-manager"),
+			chartNamespace:          "cert-manager",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(componentDir, "cert-manager-values.yaml"),
+		},
+		helmComponent{
 			releaseName:             "external-dns",
 			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "external-dns"),
 			chartNamespace:          "cert-manager",
@@ -33,11 +41,18 @@ func GetComponents() []Component {
 			valuesFile:              filepath.Join(componentDir, "external-dns-values.yaml"),
 		},
 		helmComponent{
-			releaseName:             "cert-manager",
-			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "cert-manager"),
-			chartNamespace:          "cert-manager",
+			releaseName:             "keycloak",
+			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "keycloak"),
+			chartNamespace:          "keycloak",
 			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(componentDir, "cert-manager-values.yaml"),
+			valuesFile:              filepath.Join(componentDir, "keycloak-values.yaml"),
+		},
+		helmComponent{
+			releaseName:             "rancher",
+			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "rancher"),
+			chartNamespace:          "cattle-system",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(componentDir, "rancher-values.yaml"),
 		},
 		helmComponent{
 			releaseName:             "istio",

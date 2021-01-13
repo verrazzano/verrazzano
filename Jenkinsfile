@@ -238,7 +238,7 @@ pipeline {
             }
         }
 
-        stage('Kick off KinD Acceptance tests') {
+        stage('Kick off KinD Merge Acceptance tests') {
             when {
                 allOf {
                     not { buildingTag() }
@@ -253,7 +253,7 @@ pipeline {
                 FULL_IMAGE_NAME = "${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
             }
             steps {
-                build job: "verrazzano-kind-acceptance-tests/${env.BRANCH_NAME.replace("/", "%2F")}",
+                build job: "verrazzano-merge-tests/${env.BRANCH_NAME.replace("/", "%2F")}",
                         parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME),
                                      string(name: 'ACCEPTANCE_TESTS_BRANCH', value: params.ACCEPTANCE_TESTS_BRANCH),
                                      string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME),

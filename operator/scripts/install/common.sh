@@ -231,13 +231,5 @@ ISTIO_CORE_DNS_IMAGE=ghcr.io/verrazzano/coredns
 ISTIO_CORE_DNS_TAG=1.6.2
 ISTIO_VERSION=1.4.6
 
-KEYCLOAK_IMAGE=ghcr.io/verrazzano/keycloak
-KEYCLOAK_IMAGE_TAG=10.0.1-20201016212759-30d98b0
-
-KEYCLOAK_THEME_IMAGE=ghcr.io/verrazzano/keycloak-oracle-theme:0.8.0-20201221202936-ce32b86
-
 MYSQL_IMAGE=ghcr.io/verrazzano/mysql
 MYSQL_IMAGE_TAG=8.0.20
-
-RANCHER_IMAGE=ghcr.io/verrazzano/rancher
-RANCHER_TAG=v2.4.3-20201016205256-4988df094
