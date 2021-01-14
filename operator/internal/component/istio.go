@@ -22,7 +22,7 @@ func PreUpgrade(client clipkg.Client, _ string, namespace string, chartDir strin
 
 	chart, err := helm.GetChartInfo(chartDir)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Unable to get the chart version from %s", chartDir))
+		log.Error(err, fmt.Sprintf("Unable to get the chart from %s", chartDir))
 		return err
 	}
 	jobName := "istio-security-post-install-" + chart.Version
