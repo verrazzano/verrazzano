@@ -221,7 +221,7 @@ func TestUpgradeTooManyFailures(t *testing.T) {
 			verrazzano.ObjectMeta = metav1.ObjectMeta{
 				Namespace:  name.Namespace,
 				Name:       name.Name,
-				Generation:  1,
+				Generation: 1,
 				Finalizers: []string{finalizerName}}
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
@@ -231,15 +231,15 @@ func TestUpgradeTooManyFailures(t *testing.T) {
 						Type: vzapi.InstallComplete,
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
 						Message: "Upgrade failed generation:1",
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
 						Message: "Upgrade failed generation:1",
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
 						Message: "Upgrade failed generation:1",
 					},
 				},
@@ -296,26 +296,26 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 						Type: vzapi.InstallComplete,
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
 						Message: "Upgrade failed generation:1",
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
 						Message: "Upgrade failed generation:1",
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
 						Message: "Upgrade failed generation:1",
 					},
 					{
 						Type: vzapi.UpgradeComplete,
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
 						Message: "Upgrade failed generation:2",
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
 						Message: "Upgrade failed generation:2",
 					},
 				},
@@ -384,26 +384,26 @@ func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
 						Type: vzapi.InstallComplete,
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
 						Message: "Upgrade failed generation:1",
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
 						Message: "Upgrade failed generation:1",
 					},
 					{
 						Type: vzapi.UpgradeComplete,
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
 						Message: "Upgrade failed generation:2",
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
 						Message: "Upgrade failed generation:2",
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
 						Message: "Upgrade failed generation:2",
 					},
 				},
