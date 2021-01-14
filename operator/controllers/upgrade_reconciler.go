@@ -5,11 +5,12 @@ package controllers
 
 import (
 	"fmt"
-
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/internal/component"
 	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"strconv"
+	"strings"
 )
 
 // The max upgrade failures for a given upgrade attempt is 2
@@ -21,7 +22,7 @@ func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl
 	targetVersion := cr.Spec.Version
 
 	// Only allow upgrade to retry a certain amount of times during any upgrade attempt.
-	if upgradeFailureCount(cr.Status) > failedUpgradeLimit {
+	if upgradeFailureCount(cr.Status, cr.Generation) > failedUpgradeLimit {
 		log.Info("Upgrade failure limit reached, upgrade will not be attempted")
 		return ctrl.Result{}, nil
 	}
@@ -43,7 +44,8 @@ func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl
 		err := comp.Upgrade(r, cr.Namespace)
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Error upgrading component %s", comp.Name()))
-			msg := fmt.Sprintf("Error upgrading component %s.  Error is %s", comp.Name(), err.Error())
+			msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", comp.Name(),
+				fmtGeneration(cr.Generation), err.Error())
 			err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeFailed)
 			return ctrl.Result{}, err
 		}
@@ -73,16 +75,22 @@ func isLastCondition(st installv1alpha1.VerrazzanoStatus, conditionType installv
 	return st.Conditions[l-1].Type == conditionType
 }
 
-// Get the number of times an upgrade failed since last installation or successful upgrade
-func upgradeFailureCount(st installv1alpha1.VerrazzanoStatus) int {
+// Get the number of times an upgrade failed for this specified
+// generation, meaning the last time the CR spec was modified by the user
+func upgradeFailureCount(st installv1alpha1.VerrazzanoStatus, generation int64) int {
 	var c int
 	for _, cond := range st.Conditions {
 		switch cond.Type {
-		case installv1alpha1.UpgradeComplete:
-			c = 0
 		case installv1alpha1.UpgradeFailed:
-			c++
+			if strings.Contains(cond.Message, fmtGeneration(generation)) {
+				c++
+			}
 		}
 	}
 	return c
+}
+
+func fmtGeneration(gen int64) string {
+	s := strconv.FormatInt(gen, 10)
+	return "generation: " + s
 }
