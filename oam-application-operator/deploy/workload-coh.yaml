@@ -8,7 +8,7 @@ metadata:
 spec:
   childResourceKinds:
     - apiVersion: apps/v1
-      kind: Deployment
+      kind: StatefulSet
     - apiVersion: v1
       kind: Service
   definitionRef:

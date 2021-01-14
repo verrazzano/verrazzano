@@ -114,7 +114,7 @@ generate: controller-gen
 # download controller-gen if necessary
 .PHONY: controller-gen
 controller-gen:
-ifeq (, $(shell which controller-gen))
+ifeq (, $(shell command -v controller-gen))
 	@{ \
 	set -e ;\
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
@@ -125,7 +125,7 @@ ifeq (, $(shell which controller-gen))
 	}
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
-CONTROLLER_GEN=$(shell which controller-gen)
+CONTROLLER_GEN=$(shell command -v controller-gen)
 endif
 
 #

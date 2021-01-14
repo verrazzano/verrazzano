@@ -264,7 +264,7 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
