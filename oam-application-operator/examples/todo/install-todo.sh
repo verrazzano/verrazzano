@@ -126,7 +126,7 @@ echo "Create WebLogic secrets."
 if [ "${skip_secrets:-false}" != "true" ]; then
   create_and_label_generic_secret tododomain-weblogic-credentials weblogic "${WEBLOGIC_PSW}" weblogic.domainUID=tododomain
   create_and_label_generic_secret tododomain-jdbc-tododb derek "${DATABASE_PSW}" weblogic.domainUID=tododomain
-  create_and_label_generic_secret tododomain-runtime-encrypt-secret "" "$(dd if=/dev/random bs=48 count=1 | base64)" weblogic.domainUID=tododomain
+  create_and_label_generic_secret tododomain-runtime-encrypt-secret "" "$(dd if=/dev/urandom bs=48 count=1 | base64)" weblogic.domainUID=tododomain
 fi
 
 echo "Substitute image name template in ${TODO_COMPONENT_FILE} as ${TODO_APP_IMAGE}"
