@@ -37,6 +37,7 @@ EXTRA_PARAMS=
 INTEG_RUN_ID=
 ENV_NAME=verrazzano-application-operator
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
+GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 CRD_PATH=config/crd/bases
 
 .PHONY: build
@@ -105,6 +106,20 @@ mock-gen:
 #
 # Go build related tasks
 #
+.PHONY: go-build
+go-build:
+	$(GO) build \
+		-ldflags "${GO_LDFLAGS}" \
+		-o out/$(shell uname)_$(shell uname -m)/verrazzano-application-operator \
+		main.go
+
+.PHONY: go-build-linux
+go-build-linux:
+	GOOS=linux GOARCH=amd64 $(GO) build \
+		-ldflags "${GO_LDFLAGS}" \
+		-o out/linux_amd64/verrazzano-application-operator \
+		main.go
+
 .PHONY: go-install
 go-install:
 	$(GO) install
@@ -146,7 +161,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build:
+docker-build: go-build-linux
 	docker build --pull \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
