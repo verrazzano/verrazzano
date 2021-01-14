@@ -305,6 +305,7 @@ pipeline {
                 """
             }
         }
+
         stage("Create Image Pull Secrets") {
             steps {
                 sh """
@@ -317,7 +318,7 @@ pipeline {
             }
         }
 
-        stage("install-platform-operator") {
+        stage("Install Platform Operator") {
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
@@ -378,6 +379,7 @@ pipeline {
                 }
             }
         }
+
         stage('Run Acceptance Tests') {
             parallel {
                 stage('verify-install') {
