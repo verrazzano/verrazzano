@@ -15,17 +15,8 @@ RUN chmod 500 /usr/local/bin/verrazzano-application-operator
 FROM ghcr.io/oracle/oraclelinux:7-slim
 
 RUN yum update -y \
-    && yum-config-manager --enable ol7_optional_latest \
-    && yum-config-manager --enable ol7_addons \
-    && yum-config-manager --save --setopt=ol7_ociyum_config.skip_if_unavailable=true \
-    && yum install -y openssl jq \
-    && yum install -y oracle-olcne-release-el7 \
-    && yum-config-manager --enable ol7_olcne11 \
-    && yum install -y kubectl-1.17.9-1.0.5.el7.x86_64 \
-    && yum install -y helm-3.1.1-1.0.2.el7.x86_64 \
     && yum clean all \
     && rm -rf /var/cache/yum
-
 
 # Copy the operator binary
 WORKDIR /
