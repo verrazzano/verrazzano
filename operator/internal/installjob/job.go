@@ -4,7 +4,7 @@
 package installjob
 
 import (
-	"github.com/verrazzano/verrazzano/operator/internal"
+	"github.com/verrazzano/verrazzano/operator/internal/k8s"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,7 +13,7 @@ import (
 
 // JobConfig Defines the parameters for an install job
 type JobConfig struct {
-	internal.JobConfigCommon // Extending the base job config
+	k8s.JobConfigCommon // Extending the base job config
 
 	ConfigMapName string // Name of the install configmap used by the scripts
 }
@@ -27,9 +27,9 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 	var annotations map[string]string = nil
 	mode := installMode
 	if jobConfig.DryRun {
-		mode = internal.NoOpMode
+		mode = k8s.NoOpMode
 		annotations = make(map[string]string, 1)
-		annotations[internal.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
+		annotations[k8s.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
 	}
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{

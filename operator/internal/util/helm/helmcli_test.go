@@ -17,12 +17,12 @@ const release = "my_release"
 const missingRelease = "no_release"
 const overrideYaml = "my-override.yaml"
 
-// goodRunner is used to test helm without actually running an OS exec command
+// goodRunner is used to test Helm without actually running an OS exec command
 type goodRunner struct {
 	t *testing.T
 }
 
-// badRunner is used to test helm errors without actually running an OS exec command
+// badRunner is used to test Helm errors without actually running an OS exec command
 type badRunner struct {
 	t *testing.T
 }
@@ -62,7 +62,7 @@ func TestUpgradeFail(t *testing.T) {
 	assert.NotZero(stderr, "Upgrade stderr should not be empty")
 }
 
-// TestIsReleaseInstalled tests checking if a helm release is installed
+// TestIsReleaseInstalled tests checking if a Helm release is installed
 // GIVEN a release name and namespace
 //  WHEN I call IsReleaseInstalled
 //  THEN the function returns success and found equal true
@@ -76,7 +76,7 @@ func TestIsReleaseInstalled(t *testing.T) {
 	assert.True(found, "Release not found")
 }
 
-// TestIsReleaseNotInstalled tests checking if a helm release is not installed
+// TestIsReleaseNotInstalled tests checking if a Helm release is not installed
 // GIVEN a release name and namespace
 //  WHEN I call IsReleaseInstalled
 //  THEN the function returns success and the correct found status
@@ -90,7 +90,7 @@ func TestIsReleaseNotInstalled(t *testing.T) {
 	assert.False(found, "Release should not be found")
 }
 
-// TestIsReleaseInstalledFailed tests failure when checking if a helm release is installed
+// TestIsReleaseInstalledFailed tests failure when checking if a Helm release is installed
 // GIVEN a bad release name and namespace
 //  WHEN I call IsReleaseInstalled
 //  THEN the function returns a failure
@@ -134,6 +134,6 @@ func (r foundRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error
 	if cmd.Args[2] == missingRelease {
 		return []byte(""), []byte("not found"), errors.New("not found error")
 	}
-	// simulate a helm error
+	// simulate a Helm error
 	return []byte(""), []byte("error"), errors.New("helm error")
 }

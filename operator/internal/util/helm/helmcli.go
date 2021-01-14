@@ -15,7 +15,7 @@ import (
 // cmdRunner needed for unit tests
 var runner vz_os.CmdRunner = vz_os.DefaultRunner{}
 
-// Upgrade will upgrade a Helm release with the specificed charts.
+// Upgrade will upgrade a Helm release with the specified charts.
 func Upgrade(releaseName string, namespace string, chartDir string, overwriteYaml string) (stdout []byte, stderr []byte, err error) {
 	var log = ctrl.Log.WithName("helm")
 

@@ -35,7 +35,7 @@ func TestNginxUpgrade(t *testing.T) {
 	assert := assert.New(t)
 	comp := Nginx{}
 	helm.SetCmdRunner(nginxFakeRunner{})
-	err := comp.Upgrade("")
+	err := comp.Upgrade(nil, "")
 	assert.NoError(err, "Upgrade returned an error")
 }
 

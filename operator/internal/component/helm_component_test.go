@@ -5,9 +5,11 @@ package component
 
 import (
 	"errors"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/operator/internal/util/helm"
 	"os/exec"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 )
 
@@ -41,13 +43,14 @@ func TestUpgrade(t *testing.T) {
 		chartNamespace:          "chartNS",
 		ignoreNamespaceOverride: true,
 		valuesFile:              "valuesFile",
+		preUpgradeFunc:          fakePreUpgrade,
 	}
 
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 	setUpgradeFunc(fakeUpgrade)
 	defer setDefaultUpgradeFunc()
-	err := comp.Upgrade("")
+	err := comp.Upgrade(nil, "")
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -71,4 +74,18 @@ func fakeUpgrade(releaseName string, namespace string, chartDir string, overwrit
 // helmFakeRunner overrides the helm run command
 func (r helmFakeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	return []byte("success"), []byte(""), nil
+}
+
+func fakePreUpgrade(client clipkg.Client, release string, namespace string, chartDir string) error {
+	if release != "release1" {
+		return errors.New(fmt.Sprintf("Incorrect release name %s", release))
+	}
+	if chartDir != "chartDir" {
+		return errors.New(fmt.Sprintf("Incorrect chart directory %s", chartDir))
+	}
+	if namespace != "chartNS" {
+		return errors.New(fmt.Sprintf("Incorrect namespace %s", namespace))
+	}
+
+	return nil
 }

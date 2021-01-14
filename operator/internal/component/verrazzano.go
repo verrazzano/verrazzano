@@ -5,6 +5,7 @@ package component
 
 import (
 	"path/filepath"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 
 	config2 "github.com/verrazzano/verrazzano/operator/internal/config"
 	"github.com/verrazzano/verrazzano/operator/internal/util/helm"
@@ -37,7 +38,7 @@ func (v Verrazzano) Name() string {
 // Upgrade is done by using the helm chart upgrade command.   This command will apply the latest chart
 // that is included in the operator image, while retaining any helm value overrides that were applied during
 // install.
-func (v Verrazzano) Upgrade(namespace string) error {
+func (v Verrazzano) Upgrade(_ clipkg.Client, namespace string) error {
 	_, _, err := helm.Upgrade(vzReleaseName, resolveNamespace(namespace), VzChartDir(), "")
 	return err
 }

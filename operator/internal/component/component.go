@@ -4,9 +4,10 @@
 package component
 
 import (
-	"path/filepath"
-
+	"github.com/verrazzano/verrazzano/operator/internal/component/istio"
 	"github.com/verrazzano/verrazzano/operator/internal/config"
+	"path/filepath"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Component interface defines the methods implemented by components
@@ -15,7 +16,7 @@ type Component interface {
 	Name() string
 
 	// Upgrade will upgrade the Verrazzano component specified in the CR.Version field
-	Upgrade(namespace string) error
+	Upgrade(client clipkg.Client, namespace string) error
 }
 
 // GetComponents returns the list of components that are installable and upgradeable.
@@ -60,6 +61,7 @@ func GetComponents() []Component {
 			chartNamespace:          "istio-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(componentDir, "istio-values.yaml"),
+			preUpgradeFunc:          istio.IstioPreUpgrade,
 		},
 	}
 }

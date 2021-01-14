@@ -4,7 +4,7 @@
 package installjob
 
 import (
-	"github.com/verrazzano/verrazzano/operator/internal"
+	"github.com/verrazzano/verrazzano/operator/internal/k8s"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +23,7 @@ func TestNewJob(t *testing.T) {
 	image := "docker-image"
 
 	job := NewJob(&JobConfig{
-		JobConfigCommon: internal.JobConfigCommon{
+		JobConfigCommon: k8s.JobConfigCommon{
 			JobName:            name,
 			Namespace:          namespace,
 			Labels:             labels,
@@ -60,7 +60,7 @@ func TestNewJobDryRun(t *testing.T) {
 	image := "docker-image"
 
 	job := NewJob(&JobConfig{
-		JobConfigCommon: internal.JobConfigCommon{
+		JobConfigCommon: k8s.JobConfigCommon{
 			JobName:            name,
 			Namespace:          namespace,
 			Labels:             labels,
