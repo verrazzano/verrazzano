@@ -121,7 +121,7 @@ function create_and_label_generic_secret() {
   fi
 }
 
-echo "Create weblogic secrets."
+echo "Create WebLogic secrets."
 if [ "${skip_secrets:-false}" != "true" ]; then
   create_and_label_generic_secret tododomain-weblogic-credentials weblogic "${WEBLOGIC_PSW}" weblogic.domainUID=tododomain
   create_and_label_generic_secret tododomain-jdbc-tododb derek "${WEBLOGIC_PSW}" weblogic.domainUID=tododomain
