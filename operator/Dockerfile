@@ -12,7 +12,7 @@ COPY out/linux_amd64/verrazzano-platform-operator /usr/local/bin/verrazzano-plat
 RUN sed -i.bak \
         -e "s|__VERRAZZANO_APPLICATION_OPERATOR_IMAGE__|${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}|g" \
         scripts/install/common.sh \
-    && chmod 500 /usr/bin/verrazzano-platform-operator \
+    && chmod 500 /usr/local/bin/verrazzano-platform-operator \
     && chmod +x scripts/install/*.sh \
     && chmod +x scripts/uninstall/*.sh \
     && chmod +x scripts/uninstall/uninstall-steps/*.sh
