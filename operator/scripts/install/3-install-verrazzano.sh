@@ -223,7 +223,7 @@ function install_application_operator {
 
   log "Install Verrazzano Kubernetes application operator"
   helm upgrade --install --wait verrazzano-application-operator \
-    ${CHARTS_DIR}/verrazzano-application-operator \
+    ${CHARTS_DIR}/oam-application-operator \
     --namespace "${VERRAZZANO_NS}" \
     --set image="${VERRAZZANO_APPLICATION_OPERATOR_IMAGE_REPO}:${VERRAZZANO_APPLICATION_OPERATOR_IMAGE_TAG}" \
     ${EXTRA_V8O_ARGUMENTS} || return $?
@@ -291,6 +291,6 @@ action "Installing Verrazzano system components" install_verrazzano || exit 1
 if [ "${OAM_ENABLED}" == "true" ]; then
   action "Installing Coherence Kubernetes operator" install_coherence_operator || exit 1
   action "Installing WebLogic Kubernetes operator" install_weblogic_operator || exit 1
-  action "Installing Verrazzano Application Kubernetes operator" install_application_operator || exit 1
   action "Installing OAM Kubernetes operator" install_oam_operator || exit 1
+  action "Installing Verrazzano Application Kubernetes operator" install_application_operator || exit 1
 fi

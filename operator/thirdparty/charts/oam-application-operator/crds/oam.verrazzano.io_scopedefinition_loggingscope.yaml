@@ -5,9 +5,6 @@ apiVersion: core.oam.dev/v1alpha2
 kind: ScopeDefinition
 metadata:
   name: loggingscopes.oam.verrazzano.io
-  annotations:
-    version: 0.5.0
-    description: "logging scope"
 spec:
   workloadRefsPath: spec.workloadRefs
   allowComponentOverlap: false

@@ -5,8 +5,9 @@ NAME:=verrazzano-application-operator
 REPO_NAME:=verrazzano-application-operator
 
 
+TIMESTAMP := $(shell date -u +%Y%m%d%H%M%S)
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
-DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)
+DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)-${TIMESTAMP}
 
 CREATE_LATEST_TAG=0
 
@@ -40,7 +41,7 @@ GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 CRD_PATH=config/crd/bases
 
 .PHONY: build
-build: generate go-fmt go-vet
+build:
 	go build -o bin/manager main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
@@ -144,7 +145,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build: manifests generate go-mod
+docker-build:
 	docker build --pull \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 

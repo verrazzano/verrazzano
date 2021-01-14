@@ -106,8 +106,8 @@ function delete_coherence_operator {
 }
 
 if [ "${OAM_ENABLED}" == "true" ]; then
-  action "Deleting OAM Kubernetes operator" delete_oam_operator || exit 1
   action "Deleting Verrazzano Application Kubernetes operator" delete_application_operator || exit 1
+  action "Deleting OAM Kubernetes operator" delete_oam_operator || exit 1
   action "Deleting Coherence Kubernetes operator" delete_coherence_operator || exit 1
   action "Deleting WebLogic Kubernetes operator" delete_weblogic_operator || exit 1
 fi

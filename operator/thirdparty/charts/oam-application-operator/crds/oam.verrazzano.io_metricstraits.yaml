@@ -21,7 +21,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: MetricsTrait is the Schema for the metricstraits API
+        description: MetricsTrait specifies the metrics trait API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -36,7 +36,8 @@ spec:
           metadata:
             type: object
           spec:
-            description: MetricsTraitSpec defines the desired state of the MetricsTrait
+            description: MetricsTraitSpec specifies the desired state of a metrics
+              trait.
             properties:
               path:
                 description: The HTTP path for the related metrics endpoint. Defaults
@@ -80,6 +81,7 @@ spec:
             type: object
           status:
             description: MetricsTraitStatus defines the observed state of MetricsTrait
+              and related resources.
             properties:
               conditions:
                 description: Conditions of the resource.
@@ -115,7 +117,7 @@ spec:
                   type: object
                 type: array
               resources:
-                description: Related resources affected by this trait
+                description: Related resources affected by this metrics trait
                 items:
                   description: QualifiedResourceRelation identifies a specific related
                     resource (both APIVersion/Kind and namespace name) along this

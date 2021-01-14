@@ -4,9 +4,9 @@
 NAME:=verrazzano-platform-operator
 REPO_NAME:=verrazzano-platform-operator
 
-
+TIMESTAMP := $(shell date -u +%Y%m%d%H%M%S)
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
-DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)-cdd
+DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)-${TIMESTAMP}
 
 CREATE_LATEST_TAG=0
 

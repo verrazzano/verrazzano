@@ -6,7 +6,6 @@ kind: Verrazzano
 metadata:
   name: my-verrazzano
 spec:
-  environmentName: env
   profile: dev
   components:
     oam:
