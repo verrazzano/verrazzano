@@ -10,8 +10,10 @@ import (
 	"github.com/verrazzano/verrazzano/oam-application-operator/internal/certificates"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
+	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	vzapi "github.com/verrazzano/verrazzano/oam-application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/oam-application-operator/controllers/ingresstrait"
+	"github.com/verrazzano/verrazzano/oam-application-operator/controllers/loggingscope"
 	"github.com/verrazzano/verrazzano/oam-application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/oam-application-operator/controllers/webhooks"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -39,23 +41,25 @@ func init() {
 	// Add ingress trait to scheme
 	_ = vzapi.AddToScheme(scheme)
 	_ = istioclinet.AddToScheme(scheme)
+	_ = wls.AddToScheme(scheme)
 
 	// +kubebuilder:scaffold:scheme
 }
 
-const defaultScraperName = "istio-system/prometheus"
+const defaultScraperName = "verrazzano-system/vmi-system-prometheus-0"
 
 var (
-	metricsAddr          string
-	metricsScraper       string
-	certDir              string
-	enableLeaderElection bool
-	enableWebhooks       bool
+	metricsAddr           string
+	defaultMetricsScraper string
+	certDir               string
+	enableLeaderElection  bool
+	enableWebhooks        bool
 )
 
 func main() {
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&metricsScraper, "metrics-scraper", defaultScraperName, "The metrics scraper")
+	flag.StringVar(&defaultMetricsScraper, "default-metrics-scraper", defaultScraperName,
+		"The namespace/deploymentName of the prometheus deployment to be used as the default metrics scraper")
 	flag.StringVar(&certDir, "cert-dir", "/etc/certs/", "The directory containing tls.crt and tls.key.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
@@ -90,7 +94,7 @@ func main() {
 		Client:  mgr.GetClient(),
 		Log:     ctrl.Log.WithName("controllers").WithName("MetricsTrait"),
 		Scheme:  mgr.GetScheme(),
-		Scraper: metricsScraper,
+		Scraper: defaultMetricsScraper,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MetricsTrait")
 		os.Exit(1)
@@ -139,7 +143,16 @@ func main() {
 		mgr.GetWebhookServer().Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})
 
 	}
+	reconciler := loggingscope.NewReconciler(
+		mgr.GetClient(),
+		ctrl.Log.WithName("controllers").WithName("LoggingScope"),
+		mgr.GetScheme())
+	if err = reconciler.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "LoggingScope")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
+
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")

@@ -2,10 +2,6 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def availableRegions = [ "us-ashburn-1", "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
-                          "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
-                          "sa-saopaulo-1", "uk-london-1", "us-phoenix-1" ]
-Collections.shuffle(availableRegions)
 
 pipeline {
     options {
@@ -44,9 +40,6 @@ pipeline {
                 description: 'Branch or tag of verrazzano acceptance tests, on which to kick off the tests',
                 trim: true
         )
-        choice (description: 'OCI region to launch acceptance tests OKE clusters in', name: 'ACCEPTANCE_TESTS_OKE_REGION',
-                // 1st choice is the default value
-                choices: availableRegions )
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: false)
     }
 
@@ -69,7 +62,6 @@ pipeline {
         GITHUB_RELEASE_USERID = credentials('github-userid-release')
         GITHUB_RELEASE_EMAIL = credentials('github-email-release')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
-
     }
 
     stages {
@@ -97,8 +89,46 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                 }
+            }
+        }
 
-                println("${params.ACCEPTANCE_TESTS_OKE_REGION}")
+        stage('Generate operator.yaml') {
+            when { not { buildingTag() } }
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > deploy/operator.yaml
+                    cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
+                    cat deploy/operator.yaml
+                   """
+            }
+        }
+
+        stage('Update operator.yaml') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    anyOf { branch 'master'; branch 'develop' }
+                }
+            }
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
+                    git config --global user.name $DOCKER_CREDS_USR
+                    git config --global user.email "${DOCKER_EMAIL}"
+                    git checkout -b ${env.BRANCH_NAME}
+                    git add deploy/operator.yaml
+                    git commit -m "[verrazzano] Update verrazzano-platform-operator image version to ${DOCKER_IMAGE_TAG} in operator.yaml"
+                    git push origin ${env.BRANCH_NAME}
+                   """
+            }
+            post {
+                unsuccessful {
+                    script {
+                        currentBuild.description = "Git commit of operator.yaml failed"
+                    }
+                }
             }
         }
 
@@ -238,18 +268,6 @@ pipeline {
             }
         }
 
-        stage('Generate operator.yaml') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano/operator
-                    cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > deploy/operator.yaml
-                    cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
-                    cat deploy/operator.yaml
-                   """
-            }
-        }
-
         stage('Integration Tests') {
             when { not { buildingTag() } }
             steps {
@@ -296,26 +314,6 @@ pipeline {
             }
         }
 
-        stage('Update operator.yaml') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    anyOf { branch 'master'; branch 'develop' }
-                }
-            }
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano/operator
-                    git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
-                    git config --global user.name $DOCKER_CREDS_USR
-                    git config --global user.email "${DOCKER_EMAIL}"
-                    git checkout -b ${env.BRANCH_NAME}
-                    git add deploy/operator.yaml
-                    git commit -m "[verrazzano] Update verrazzano-platform-operator image version to ${DOCKER_IMAGE_TAG} in operator.yaml"
-                    git push origin ${env.BRANCH_NAME}
-                   """
-            }
-        }
     }
 
     post {

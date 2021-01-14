@@ -19,7 +19,7 @@ spec:
       image: %TODO_APP_IMAGE%
       imagePullSecrets:
         - name: tododomain-repo-credentials
-      logHomeEnabled: false
+      logHomeEnabled: true
       domainHomeSourceType: "FromModel"
       includeServerOutInPodLog: true
       replicas: 1

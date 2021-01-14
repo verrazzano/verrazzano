@@ -28,6 +28,7 @@ var fewSeconds = 2 * time.Second
 var tenSeconds = 10 * time.Second
 var thirtySeconds = 30 * time.Second
 var threeMins = 3 * time.Minute
+var fiveMins = 5 * time.Minute
 var K8sClient k8s.Client
 
 var _ = BeforeSuite(func() {
@@ -124,24 +125,19 @@ var _ = Describe("Testing hello app lifecycle", func() {
 	})
 
 	It("deleting app config", func() {
-		_, stderr := util.Kubectl("delete -f testdata/hello-app.yaml")
-		Expect(stderr).To(Equal(""))
-		//	Eventually(appBindingExists, fewSeconds).Should(BeFalse())
+		Eventually(canDeleteAppConfig, fiveMins).Should(BeTrue())
 	})
 	It("deleting app component", func() {
-		_, stderr := util.Kubectl("delete -f testdata/hello-comp.yaml")
-		Expect(stderr).To(Equal(""))
-		//	Eventually(appModelExists, fewSeconds).Should(BeFalse())
+		Eventually(canDeleteAppComponent, fiveMins).Should(BeTrue())
 	})
 	It("hello deployment should  not exist ", func() {
-		Eventually(appDeploymentExists, tenSeconds).Should(BeFalse())
+		Eventually(appDeploymentExists, fiveMins).Should(BeFalse())
 	})
 	It("hello pod should not exist ", func() {
-		Eventually(appPodExists, threeMins).Should(BeFalse())
+		Eventually(appPodExists, fiveMins).Should(BeFalse())
 	})
-	It("hello service should exist ", func() {
-		Expect(K8sClient.DoesServiceExist(appService, appNamespace)).To(BeFalse(),
-			"The hello service should exist")
+	It("hello service should not exist ", func() {
+		Eventually(doesServiceExist, fiveMins).Should(BeFalse())
 	})
 
 })
@@ -173,6 +169,20 @@ func appPodExists() bool {
 }
 
 func appServiceExists() bool {
+	return K8sClient.DoesServiceExist(appService, appNamespace)
+}
+
+func canDeleteAppConfig() bool {
+	_, stderr := util.Kubectl("delete -f testdata/hello-app.yaml")
+	return stderr == ""
+}
+
+func canDeleteAppComponent() bool {
+	_, stderr := util.Kubectl("delete -f testdata/hello-comp.yaml")
+	return stderr == ""
+}
+
+func doesServiceExist() bool {
 	return K8sClient.DoesServiceExist(appService, appNamespace)
 }
 

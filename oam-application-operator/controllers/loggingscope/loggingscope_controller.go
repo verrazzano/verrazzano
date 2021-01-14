@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package loggingscope
@@ -6,9 +6,12 @@ package loggingscope
 import (
 	"context"
 	"fmt"
+	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -20,11 +23,36 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/oam-application-operator/apis/oam/v1alpha1"
 )
 
+const (
+	configMapAPIVersion = "v1"
+	configMapKind       = "ConfigMap"
+)
+
+// Handler abstracts the FLUENTD integration for components
+type Handler interface {
+	Apply(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) error
+	Remove(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) (bool, error)
+}
+
 // Reconciler reconciles a LoggingScope object
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log      logr.Logger
+	Scheme   *runtime.Scheme
+	Handlers map[string]Handler
+}
+
+// NewReconciler creates a new Logging Scope reconciler
+func NewReconciler(client client.Client, log logr.Logger, scheme *runtime.Scheme) *Reconciler {
+	handlers := make(map[string]Handler)
+	handlers[wlsDomainKind] = &wlsHandler{Client: client, Log: log}
+
+	return &Reconciler{
+		Client:   client,
+		Log:      log,
+		Scheme:   scheme,
+		Handlers: handlers,
+	}
 }
 
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=loggingscopes,verbs=get;list;watch;create;update;patch;delete
@@ -38,14 +66,63 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Fetch the scope.
 	scope, err := r.fetchScope(ctx, req.NamespacedName)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	if scope != nil {
-		fmt.Printf("%s", scope.Name)
+	if scope == nil || err != nil {
+		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
-	return ctrl.Result{}, nil
+	var errors []string
+	var resources []vzapi.QualifiedResourceRelation
+	workloads, _ := fetchWorkloadsFromScope(ctx, r, r.Log, scope)
+	for _, workload := range workloads {
+		resource := toResource(workload)
+		resources = append(resources, resource)
+
+		handler := r.Handlers[resource.Kind]
+		if handler == nil {
+			log.Error(nil, "Unknown Resource Kind encountered in Logging Scope Controller: %v", resource)
+			continue
+		}
+		err = handler.Apply(ctx, resource, scope)
+		if err != nil {
+			errors = append(errors, err.Error())
+		}
+	}
+
+	// check for existing resources which aren't included in workloads
+	for _, existingResource := range scope.Status.Resources {
+		workloadFound := false
+		for _, workload := range workloads {
+			if existingResource.Kind == workload.GetKind() &&
+				existingResource.Name == workload.GetName() &&
+				existingResource.Namespace == workload.GetNamespace() &&
+				existingResource.APIVersion == workload.GetAPIVersion() {
+				workloadFound = true
+				break
+			}
+		}
+		if !workloadFound {
+			handler := r.Handlers[existingResource.Kind]
+			deleteConfirmed, err := handler.Remove(ctx, existingResource, scope)
+			if err != nil {
+				errors = append(errors, err.Error())
+			}
+
+			if !deleteConfirmed {
+				// Add the resource to the scope status until we confirm the remove
+				resources = append(resources, existingResource)
+			}
+		}
+	}
+	err = r.updateScopeStatus(ctx, resources, scope)
+	if err != nil {
+		log.Error(err, "Unable to persist resources to scope: %v", scope)
+	}
+
+	if errors != nil {
+		return ctrl.Result{}, fmt.Errorf(strings.Join(errors, "\n"))
+	}
+
+	return ctrl.Result{}, err
 }
 
 // fetchScope attempts to get a scope given a namespaced name.
@@ -61,7 +138,40 @@ func (r *Reconciler) fetchScope(ctx context.Context, name types.NamespacedName) 
 		r.Log.Info("Failed to fetch scope")
 		return nil, err
 	}
+
 	return &scope, nil
+}
+
+// fetchWorkloadsFromScope fetches workload resources using data from a scope resource.
+// The scope's workload references are populated by the OAM runtime when the scope resource
+// is created.  This provides a way for the scope's controller to locate the workload resources
+// that were generated from the common applicationconfiguration resource.
+func fetchWorkloadsFromScope(ctx context.Context, cli client.Reader, log logr.Logger, scope oam.Scope) ([]*unstructured.Unstructured, error) {
+	workloadLen := len(scope.GetWorkloadReferences())
+	if workloadLen == 0 {
+		return []*unstructured.Unstructured{}, nil
+	}
+
+	workloads := make([]*unstructured.Unstructured, workloadLen)
+	for i, workloadRef := range scope.GetWorkloadReferences() {
+		var workload unstructured.Unstructured
+		workload.SetAPIVersion(workloadRef.APIVersion)
+		workload.SetKind(workloadRef.Kind)
+		workloadKey := client.ObjectKey{Name: workloadRef.Name, Namespace: scope.GetNamespace()}
+		log.Info("Fetch workload", "workload", workloadKey)
+		if err := cli.Get(ctx, workloadKey, &workload); err != nil {
+			log.Error(err, "Failed to fetch workload", "workload", workloadKey)
+			return nil, err
+		}
+		workloads[i] = &workload
+	}
+	return workloads, nil
+}
+
+// updateScopeStatus the loging scope status with the provided resources
+func (r *Reconciler) updateScopeStatus(ctx context.Context, resources []vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) error {
+	scope.Status.Resources = resources
+	return r.Status().Update(ctx, scope)
 }
 
 // SetupWithManager creates a controller and adds it to the manager
@@ -69,4 +179,14 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&oamv1alpha1.LoggingScope{}).
 		Complete(r)
+}
+
+// toResource creates a QualifiedResourceRelation instance from a workload
+func toResource(workload *unstructured.Unstructured) vzapi.QualifiedResourceRelation {
+	return vzapi.QualifiedResourceRelation{
+		APIVersion: workload.GetAPIVersion(),
+		Name:       workload.GetName(),
+		Namespace:  workload.GetNamespace(),
+		Kind:       workload.GetKind(),
+	}
 }

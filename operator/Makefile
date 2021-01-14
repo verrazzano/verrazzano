@@ -6,7 +6,7 @@ REPO_NAME:=verrazzano-platform-operator
 
 
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
-DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)-cdd
+DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)
 
 CREATE_LATEST_TAG=0
 
@@ -37,12 +37,10 @@ EXTRA_PARAMS=
 INTEG_RUN_ID=
 ENV_NAME=verrazzano-platform-operator
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
+GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
+
 CRD_PATH=config/crd/bases
 CODEGEN_PATH = k8s.io/code-generator
-
-.PHONY: build
-build:
-	go build -o bin/verrazzano-platform-operator main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 .PHONY: run
@@ -65,6 +63,20 @@ check: go-fmt go-vet go-ineffassign go-lint
 #
 # Go build related tasks
 #
+.PHONY: go-build
+go-build:
+	$(GO) build \
+		-ldflags "${GO_LDFLAGS}" \
+		-o out/$(shell uname)_$(shell uname -m)/verrazzano-platform-operator \
+		main.go
+
+.PHONY: go-build-linux
+go-build-linux:
+	GOOS=linux GOARCH=amd64 $(GO) build \
+		-ldflags "${GO_LDFLAGS}" \
+		-o out/linux_amd64/verrazzano-platform-operator \
+		main.go
+
 .PHONY: go-install
 go-install:
 	$(GO) install ./...
@@ -136,7 +148,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build:
+docker-build: go-build-linux
 	docker build --pull -f Dockerfile \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
@@ -155,7 +167,7 @@ docker-push: docker-build
 #
 .PHONY: unit-test
 unit-test: go-install
-	$(GO) test -v  ./internal/... .controllers/... ./api/...
+	$(GO) test -v  ./internal/... ./controllers/... ./api/...
 
 .PHONY: coverage
 coverage: unit-test
@@ -181,7 +193,7 @@ ifdef JENKINS_URL
 else
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	mkdir -p build/deploy
-	catconfig/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > ${BUILD-DEPLOY}/operator.yaml
+	cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > ${BUILD-DEPLOY}/operator.yaml
 	cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> ${BUILD-DEPLOY}/operator.yaml
 	kubectl apply -f ${BUILD-DEPLOY}/operator.yaml
 endif
@@ -195,7 +207,7 @@ ifdef JENKINS_URL
 	./build/scripts/cleanup.sh ${CLUSTER_NAME}
 endif
 	echo 'Create cluster...'
-	HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster \
+	HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 \
 		--name ${CLUSTER_NAME} \
 		--wait 5m \
 		--config=test/kind-config.yaml

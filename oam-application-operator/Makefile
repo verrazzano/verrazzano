@@ -36,7 +36,8 @@ WATCH_NAMESPACE:=
 EXTRA_PARAMS=
 INTEG_RUN_ID=
 ENV_NAME=verrazzano-application-operator
-GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
+GO ?= CGO_ENABLED=0 GO111MODULE=on GOPRIVATE=github.com/verrazzano go
+GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 CRD_PATH=config/crd/bases
 
 .PHONY: build
@@ -99,10 +100,26 @@ endif
 mock-gen:
 	mockgen -destination=mocks/controller_client_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
 	mockgen -destination=mocks/controller_manager_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime Manager
+	mockgen -destination=mocks/logging_scope_handler_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt gitlab-odx.oracledx.com/verrazzano/verrazzano-application-operator/controllers/loggingscope Handler
+	mockgen -destination=controllers/loggingscope/fluentd_mock.go -package=loggingscope -copyright_file=hack/boilerplate.go.txt gitlab-odx.oracledx.com/verrazzano/verrazzano-application-operator/controllers/loggingscope FluentdManager
 
 #
 # Go build related tasks
 #
+.PHONY: go-build
+go-build:
+	$(GO) build \
+		-ldflags "${GO_LDFLAGS}" \
+		-o out/$(shell uname)_$(shell uname -m)/verrazzano-application-operator \
+		main.go
+
+.PHONY: go-build-linux
+go-build-linux:
+	GOOS=linux GOARCH=amd64 $(GO) build \
+		-ldflags "${GO_LDFLAGS}" \
+		-o out/linux_amd64/verrazzano-application-operator \
+		main.go
+
 .PHONY: go-install
 go-install:
 	$(GO) install
@@ -144,7 +161,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build:
+docker-build: go-build-linux
 	docker build --pull \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
@@ -204,7 +221,7 @@ ifdef JENKINS_URL
 	./build/scripts/cleanup.sh ${CLUSTER_NAME}
 endif
 	echo 'Create cluster...'
-	HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster \
+	HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 \
 		--name ${CLUSTER_NAME} \
 		--wait 5m \
 		--config=test/kind-config.yaml
