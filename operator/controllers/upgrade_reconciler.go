@@ -95,5 +95,5 @@ func upgradeFailureCount(st installv1alpha1.VerrazzanoStatus, generation int64) 
 
 func fmtGeneration(gen int64) string {
 	s := strconv.FormatInt(gen, 10)
-	return "generation: " + s
+	return "generation:" + s
 }
