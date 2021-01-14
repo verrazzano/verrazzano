@@ -1,43 +1,21 @@
 # Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-FROM ghcr.io/oracle/oraclelinux:7-slim@sha256:fcc6f54bb01fc83319990bf5fa1b79f1dec93cbb87db3c5a8884a5a44148e7bb AS build_base
-
-RUN yum update -y \
-    && yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/golang113/x86_64 \
-    && yum install -y git gcc make golang-1.13.3-1.el7 \
-    && yum clean all \
-    && go version
-
-# Compile to /usr/bin
-ENV GOBIN=/usr/bin
-
-# Set go path
-ENV GOPATH=/go
-
-ARG BUILDVERSION
-ARG BUILDDATE
+FROM ghcr.io/oracle/oraclelinux:7-slim AS build_base
 
 # Need to use specific WORKDIR to match verrazzano's source packages
-WORKDIR /root/go/src/github.com/verrazzano/verrazzano
+WORKDIR /root/go/src/github.com/verrazzano/verrazzano/operator
 COPY . .
 
-ENV CGO_ENABLED 0
-RUN go version
-RUN go env
+COPY out/linux_amd64/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
 
-RUN GO111MODULE=on go build \
-    -ldflags '-extldflags "-static"' \
-    -ldflags "-X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}" \
-    -o /usr/bin/verrazzano-platform-operator operator/main.go
-
-RUN chmod 500 /usr/bin/verrazzano-platform-operator \
-    && chmod +x operator/scripts/install/*.sh \
-    && chmod +x operator/scripts/uninstall/*.sh \
-    && chmod +x operator/scripts/uninstall/uninstall-steps/*.sh
+RUN chmod 500 /usr/local/bin/verrazzano-platform-operator \
+    && chmod +x scripts/install/*.sh \
+    && chmod +x scripts/uninstall/*.sh \
+    && chmod +x scripts/uninstall/uninstall-steps/*.sh
 
 # Create the verrazzano-platform-operator image
-FROM ghcr.io/oracle/oraclelinux:7-slim@sha256:fcc6f54bb01fc83319990bf5fa1b79f1dec93cbb87db3c5a8884a5a44148e7bb
+FROM ghcr.io/oracle/oraclelinux:7-slim
 
 # Install specific versions of device-mapper, device-mapper-libs and dracut as a temporary workaround
 # by default yum tries to install a version that is non-existent on the OEL 7 yum mirrors
@@ -55,11 +33,11 @@ RUN groupadd -r verrazzano \
     && chown -R 1000:verrazzano /home/verrazzano
 
 # Copy the operator binary
-COPY --from=build_base --chown=verrazzano:verrazzano /usr/bin/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
+COPY --from=build_base --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
 
 # Copy the Verrazzano install and uninstall scripts
 WORKDIR /verrazzano
-COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/thirdparty ./thirdparty
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/thirdparty ./thirdparty
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/scripts/install ./operator/scripts/install
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/scripts/uninstall ./operator/scripts/uninstall
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/config/scripts/run.sh .
@@ -70,7 +48,7 @@ RUN find /verrazzano/thirdparty/charts/istio -type f -name "*.yaml" | xargs sed 
 RUN find /verrazzano/thirdparty/charts/istio-init -type f -name "*.yaml" | xargs sed -i"" "s|/kubectl:|/istio_kubectl:|g"
 
 # Copy source tree to image
-COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/THIRD_PARTY_LICENSES.txt /licenses
+COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/operator/THIRD_PARTY_LICENSES.txt /licenses
 
 USER 1000
 

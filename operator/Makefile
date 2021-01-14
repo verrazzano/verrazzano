@@ -37,27 +37,25 @@ EXTRA_PARAMS=
 INTEG_RUN_ID=
 ENV_NAME=verrazzano-platform-operator
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
-CRD_PATH=operator/config/crd/bases
-CODEGEN_PATH = k8s.io/code-generator
+GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 
-.PHONY: build
-build:
-	go build -o bin/verrazzano-platform-operator operator/main.go
+CRD_PATH=config/crd/bases
+CODEGEN_PATH = k8s.io/code-generator
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 .PHONY: run
 run:
-	$(GO) run operator/main.go --kubeconfig=${KUBECONFIG} --zap-log-level=debug
+	$(GO) run main.go --kubeconfig=${KUBECONFIG} --zap-log-level=debug
 
 # Install CRDs into a cluster
 .PHONY: install-crds
 install-crds:
-	kustomize build operator/config/crd | kubectl apply -f -
+	kustomize build config/crd | kubectl apply -f -
 
 # Uninstall CRDs from a cluster
 .PHONY: uninstall-crds
 uninstall-crds:
-	kustomize build operator/config/crd | kubectl delete -f -
+	kustomize build config/crd | kubectl delete -f -
 
 .PHONY: check
 check: go-fmt go-vet go-ineffassign go-lint
@@ -65,9 +63,23 @@ check: go-fmt go-vet go-ineffassign go-lint
 #
 # Go build related tasks
 #
+.PHONY: go-build
+go-build:
+	$(GO) build \
+		-ldflags "${GO_LDFLAGS}" \
+		-o out/$(shell uname)_$(shell uname -m)/verrazzano-platform-operator \
+		main.go
+
+.PHONY: go-build-linux
+go-build-linux:
+	GOOS=linux GOARCH=amd64 $(GO) build \
+		-ldflags "${GO_LDFLAGS}" \
+		-o out/linux_amd64/verrazzano-platform-operator \
+		main.go
+
 .PHONY: go-install
 go-install:
-	$(GO) install ./operator/...
+	$(GO) install ./...
 
 .PHONY: go-fmt
 go-fmt:
@@ -96,25 +108,25 @@ go-ineffassign:
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: manifests
 manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./operator/..." output:crd:artifacts:config=operator/config/crd/bases
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	# Add copyright headers to the kubebuildr generated CRDs
-	./operator/hack/add-crd-header.sh
-	./operator/hack/update-codegen-verrazzano.sh
+	./hack/add-crd-header.sh
+	./hack/update-codegen-verrazzano.sh
 
 	# Re-generate operator.yaml using template yaml file
-	cat operator/config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|$(shell grep --max-count=1 "image:" operator/deploy/operator.yaml | awk '{ print $$2 }')|g" > operator/deploy/operator.yaml
-	cat operator/config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> operator/deploy/operator.yaml
+	cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|$(shell grep --max-count=1 "image:" deploy/operator.yaml | awk '{ print $$2 }')|g" > deploy/operator.yaml
+	cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
 
 # Generate code
 .PHONY: generate
 generate: controller-gen
-	$(CONTROLLER_GEN) object:headerFile="operator/hack/boilerplate.go.txt" paths="./operator/..."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 # find or download controller-gen
 # download controller-gen if necessary
 .PHONY: controller-gen
 controller-gen:
-ifeq (, $(shell which controller-gen))
+ifeq (, $(shell command -v controller-gen))
 	@{ \
 	set -e ;\
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
@@ -125,7 +137,7 @@ ifeq (, $(shell which controller-gen))
 	}
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
-CONTROLLER_GEN=$(shell which controller-gen)
+CONTROLLER_GEN=$(shell command -v controller-gen)
 endif
 
 #
@@ -136,8 +148,8 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build:
-	docker build --pull -f operator/Dockerfile \
+docker-build: go-build-linux
+	docker build --pull -f Dockerfile \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
 .PHONY: docker-push
@@ -155,11 +167,11 @@ docker-push: docker-build
 #
 .PHONY: unit-test
 unit-test: go-install
-	$(GO) test -v  ./operator/internal/... ./operator/controllers/... ./operator/api/...
+	$(GO) test -v  ./internal/... ./controllers/... ./api/...
 
 .PHONY: coverage
 coverage: unit-test
-	./operator/build/scripts/coverage.sh html
+	./build/scripts/coverage.sh html
 
 #
 # Test-related tasks
@@ -177,28 +189,28 @@ integ-test: create-cluster
 	echo 'Deploy verrazzano platform operator ...'
 ifdef JENKINS_URL
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
-	kubectl apply -f operator/deploy/operator.yaml
+	kubectl apply -f deploy/operator.yaml
 else
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	mkdir -p build/deploy
-	cat operator/config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > ${BUILD-DEPLOY}/operator.yaml
-	cat operator/config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> ${BUILD-DEPLOY}/operator.yaml
+	cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > ${BUILD-DEPLOY}/operator.yaml
+	cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> ${BUILD-DEPLOY}/operator.yaml
 	kubectl apply -f ${BUILD-DEPLOY}/operator.yaml
 endif
 
 	echo 'Run tests...'
-	ginkgo -v --keepGoing -cover operator/test/integ/... || IGNORE=FAILURE
+	ginkgo -v --keepGoing -cover test/integ/... || IGNORE=FAILURE
 
 .PHONY: create-cluster
 create-cluster:
 ifdef JENKINS_URL
-	./operator/build/scripts/cleanup.sh ${CLUSTER_NAME}
+	./build/scripts/cleanup.sh ${CLUSTER_NAME}
 endif
 	echo 'Create cluster...'
-	HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster \
+	HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 \
 		--name ${CLUSTER_NAME} \
 		--wait 5m \
-		--config=operator/test/kind-config.yaml
+		--config=test/kind-config.yaml
 	kubectl config set-context kind-${CLUSTER_NAME}
 ifdef JENKINS_URL
 	# Get the ip address of the container running the kube apiserver
@@ -223,8 +235,8 @@ push-tag:
 create-test-deploy:
 	if [ -n "${VZ_DEV_IMAGE}" ]; then \
 		echo "Building local operator deployment resource file in /tmp/operator.yaml, VZ_DEV_IMAGE=${VZ_DEV_IMAGE}"; \
-		cat operator/config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${VZ_DEV_IMAGE}|g" > /tmp/operator.yaml; \
-		cat operator/config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> /tmp/operator.yaml; \
+		cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${VZ_DEV_IMAGE}|g" > /tmp/operator.yaml; \
+		cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> /tmp/operator.yaml; \
 	else \
 		echo "VZ_DEV_IMAGE not defined, please set it to a valid image name/tag"; \
 	fi

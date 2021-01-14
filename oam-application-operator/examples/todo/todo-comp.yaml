@@ -1,0 +1,47 @@
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: todo-component
+  namespace: todo
+spec:
+  workload:
+    apiVersion: weblogic.oracle/v8
+    kind: Domain
+    metadata:
+      name: todo-domain
+      namespace: todo
+    spec:
+      domainUID: tododomain
+      domainHome: /u01/oracle/user_projects/domains/tododomain
+      image: %TODO_APP_IMAGE%
+      imagePullSecrets:
+        - name: ocir
+      logHomeEnabled: true
+      domainHomeSourceType: "FromModel"
+      includeServerOutInPodLog: true
+      replicas: 1
+      webLogicCredentialsSecret:
+        name: tododomain-weblogic-credentials
+      configuration:
+        istio:
+          enabled: false
+        introspectorJobActiveDeadlineSeconds: 900
+        model:
+          domainType: WLS
+          runtimeEncryptionSecret: tododomain-runtime-encrypt-secret
+        secrets:
+          - tododomain-jdbc-tododb
+      serverPod:
+        env:
+          - name: JAVA_OPTIONS
+            value: "-Dweblogic.StdoutDebugEnabled=false"
+          - name: USER_MEM_ARGS
+            value: "-Djava.security.egd=file:/dev/./urandom -Xms64m -Xmx256m "
+          - name: WL_HOME
+            value: /u01/oracle/wlserver
+          - name: MW_HOME
+            value: /u01/oracle
+
