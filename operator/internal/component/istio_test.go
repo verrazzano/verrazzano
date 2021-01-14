@@ -17,14 +17,14 @@ import (
 //  THEN the correct job hame is passed as a parameter
 func TestPreUpgrade(t *testing.T) {
 	assert := assert.New(t)
-	deleteJobFunc = fakeDeletJob
+	deleteJobFunc = fakeDeleteJob
 
 	chartDir, _ := filepath.Abs("./testdata")
 	err := PreUpgrade(nil, "", "ns", chartDir)
 	assert.NoError(err, "PreUpgrade returned an error")
 }
 
-func fakeDeletJob(_ clipkg.Client, jobName string, namespace string) error {
+func fakeDeleteJob(_ clipkg.Client, jobName string, namespace string) error {
 	if jobName != "istio-security-post-install-1.4.6" {
 		return fmt.Errorf("Incorrect job name %s", jobName)
 	}
