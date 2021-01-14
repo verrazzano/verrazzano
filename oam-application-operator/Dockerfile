@@ -21,7 +21,7 @@ ARG BUILDVERSION
 ARG BUILDDATE
 
 # Need to use specific WORKDIR to match verrazzano-application-operator's source packages
-WORKDIR /root/go/src/github.com/verrazzano/oam-application-operator
+WORKDIR /root/go/src/github.com/verrazzano/verrazzano/oam-application-operator
 COPY . .
 
 ENV CGO_ENABLED 0
@@ -52,8 +52,8 @@ RUN yum update -y \
     && rm -rf /var/cache/yum
 
 # Copy source tree to image
-RUN mkdir -p go/src/github.com/verrazzano/oam-application-operator
-COPY --from=build_base /root/go/src/github.com/verrazzano/oam-application-operator go/src/github.com/verrazzano/oam-application-operator
+RUN mkdir -p go/src/github.com/verrazzano/verrazzano/oam-application-operator
+COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/oam-application-operator go/src/github.comverrazzano/verrazzano/oam-application-operator
 
 # Copy the operator binary
 WORKDIR /
