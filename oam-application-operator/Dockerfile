@@ -52,7 +52,7 @@ RUN yum update -y \
     && rm -rf /var/cache/yum
 
 # Copy source tree to image
-RUN mkdir -p go/src/github.com/verrazzano/verrazzano-application-operator
+RUN mkdir -p go/src/github.com/verrazzano/oam-application-operator
 COPY --from=build_base /root/go/src/github.com/verrazzano/oam-application-operator go/src/github.com/verrazzano/oam-application-operator
 
 # Copy the operator binary
