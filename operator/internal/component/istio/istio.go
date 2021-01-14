@@ -14,10 +14,10 @@ import (
 // Needed for unit testing
 var deleteJobFunc = k8s.DeleteJob
 
-// The istioPreUpgrade function must delete the Istio Helm install job that may have been left over
+// PreUpgrade deletes the Istio Helm install job that may have been left over
 // from the previous install.  This must be done or the helm install will fail because the Istio
 // Helm post-hook won't be able to create the job
-func IstioPreUpgrade(client clipkg.Client, _ string, namespace string, chartDir string) error {
+func PreUpgrade(client clipkg.Client, _ string, namespace string, chartDir string) error {
 	var log = ctrl.Log.WithName("upgrade")
 
 	chartVersion, err := helm.GetChartVersion(chartDir)

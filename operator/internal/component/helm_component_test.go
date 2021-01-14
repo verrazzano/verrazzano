@@ -78,13 +78,13 @@ func (r helmFakeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err er
 
 func fakePreUpgrade(client clipkg.Client, release string, namespace string, chartDir string) error {
 	if release != "release1" {
-		return errors.New(fmt.Sprintf("Incorrect release name %s", release))
+		return fmt.Errorf("Incorrect release name %s", release)
 	}
 	if chartDir != "chartDir" {
-		return errors.New(fmt.Sprintf("Incorrect chart directory %s", chartDir))
+		return fmt.Errorf("Incorrect chart directory %s", chartDir)
 	}
 	if namespace != "chartNS" {
-		return errors.New(fmt.Sprintf("Incorrect namespace %s", namespace))
+		return fmt.Errorf("Incorrect namespace %s", namespace)
 	}
 
 	return nil

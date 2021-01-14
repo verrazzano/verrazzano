@@ -61,7 +61,7 @@ func GetComponents() []Component {
 			chartNamespace:          "istio-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(componentDir, "istio-values.yaml"),
-			preUpgradeFunc:          istio.IstioPreUpgrade,
+			preUpgradeFunc:          istio.PreUpgrade,
 		},
 	}
 }

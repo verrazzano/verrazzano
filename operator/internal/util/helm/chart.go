@@ -34,4 +34,3 @@ func GetChartVersion(chartDir string) (ChartVersion, error) {
 	}
 	return chartVersion, nil
 }
-

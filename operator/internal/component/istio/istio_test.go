@@ -4,7 +4,6 @@
 package istio
 
 import (
-	"errors"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"path/filepath"
@@ -12,25 +11,25 @@ import (
 	"testing"
 )
 
-// TestIstioPreUpgrade tests the Istio preUpgrade function
+// TestPreUpgrade tests the Istio preUpgrade function
 // GIVEN a chartDir
 //  WHEN I call istioPreUpgrade
 //  THEN the correct job hame is passed as a parameter
-func TestIstioPreUpgrade(t *testing.T) {
+func TestPreUpgrade(t *testing.T) {
 	assert := assert.New(t)
-	deleteJobFunc = istioFakeDeletJob
+	deleteJobFunc = fakeDeletJob
 
 	chartDir, _ := filepath.Abs("../../../../thirdparty/charts/istio")
-	err := IstioPreUpgrade(nil, "", "ns", chartDir)
-	assert.NoError(err, "IstioPreUpgrade returned an error")
+	err := PreUpgrade(nil, "", "ns", chartDir)
+	assert.NoError(err, "PreUpgrade returned an error")
 }
 
-func istioFakeDeletJob(_ clipkg.Client, jobName string, namespace string) error {
+func fakeDeletJob(_ clipkg.Client, jobName string, namespace string) error {
 	if jobName != "istio-security-post-install-1.4.6" {
-		return errors.New(fmt.Sprintf("Incorrect job name %s", jobName))
+		return fmt.Errorf("Incorrect job name %s", jobName)
 	}
 	if namespace != "ns" {
-		return errors.New(fmt.Sprintf("Incorrect namespace %s", namespace))
+		return fmt.Errorf("Incorrect namespace %s", namespace)
 	}
 	return nil
 }
