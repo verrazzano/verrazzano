@@ -155,7 +155,6 @@ docker-clean:
 
 .PHONY: docker-build
 docker-build: go-build-linux
-docker-build:
 	@echo Building verrazzano-platform-operator image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	@echo using verrazzano-application-operator image ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}
 	docker build --pull -f Dockerfile \
