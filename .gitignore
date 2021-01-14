@@ -32,3 +32,4 @@ operator/test/integ/integ*result.xml
 operator/test/integ/integ.coverprofile
 oam-application-operator/test/integ/integ*result.xml
 oam-application-operator/test/integ/integ.coverprofile
+out/
