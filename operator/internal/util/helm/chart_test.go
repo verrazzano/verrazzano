@@ -21,3 +21,13 @@ func TestGetChart(t *testing.T) {
 	assert.Equal(chart.Description, "Test Helm Chart", "incorrect chart description")
 	assert.Equal(chart.Name, "testChart", "incorrect chart name")
 }
+
+// TestGetChartNoFile tests getting the error handling of getting a chart when the file doesn't exist
+// GIVEN a chart directory with no chart file
+//  WHEN I call GetChart
+//  THEN an error is returned
+func TestGetChartNoFile(t *testing.T) {
+	assert := assert.New(t)
+	_, err := GetChartInfo("./")
+	assert.Error(err, "GetChartInfo should have returned an error")
+}
