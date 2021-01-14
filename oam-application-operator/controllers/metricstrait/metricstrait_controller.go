@@ -33,12 +33,14 @@ import (
 
 const (
 	// Kubernetes resource Kinds
-	configMapKind  = "ConfigMap"
-	deploymentKind = "Deployment"
-	podKind        = "Pod"
+	configMapKind   = "ConfigMap"
+	deploymentKind  = "Deployment"
+	statefulSetKind = "StatefulSet"
+	podKind         = "Pod"
 
 	// In code defaults for metrics trait configuration
 	defaultScrapePort    = 8080
+	defaultCohScrapePort = 9612
 	defaultScrapePath    = "/metrics"
 	defaultWLSScrapePath = "/wls-exporter/metrics"
 
@@ -246,6 +248,8 @@ func (r *Reconciler) createOrUpdateRelatedResources(ctx context.Context, trait *
 		switch child.GroupVersionKind() {
 		case k8sapps.SchemeGroupVersion.WithKind(deploymentKind):
 			status.RecordOutcome(r.updateRelatedDeployment(ctx, trait, workload, traitDefaults, child))
+		case k8sapps.SchemeGroupVersion.WithKind(statefulSetKind):
+			status.RecordOutcome(r.updateRelatedStatefulSet(ctx, trait, workload, traitDefaults, child))
 		case k8score.SchemeGroupVersion.WithKind(podKind):
 			status.RecordOutcome(r.updateRelatedPod(ctx, trait, workload, traitDefaults, child))
 		}
@@ -299,6 +303,8 @@ func (r *Reconciler) deleteOrUpdateMetricSourceResource(ctx context.Context, tra
 	switch rel.Kind {
 	case "Deployment":
 		return r.updateRelatedDeployment(ctx, trait, nil, nil, &child)
+	case "StatefulSet":
+		return r.updateRelatedStatefulSet(ctx, trait, nil, nil, &child)
 	case "Pod":
 		return r.updateRelatedPod(ctx, trait, nil, nil, &child)
 	default:
@@ -451,6 +457,26 @@ func (r *Reconciler) updateRelatedDeployment(ctx context.Context, trait *vzapi.M
 	return ref, res, err
 }
 
+// updateRelatedStatefulSet updates the labels and annotations of a related workload stateful set.
+// For example coherence workloads produce related stateful sets.
+func (r *Reconciler) updateRelatedStatefulSet(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, child *unstructured.Unstructured) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+	r.Log.Info("Update workload stateful set", "statefulSet", vznav.GetNamespacedNameFromUnstructured(child))
+	ref := vzapi.QualifiedResourceRelation{APIVersion: child.GetAPIVersion(), Kind: child.GetKind(), Namespace: child.GetNamespace(), Name: child.GetName(), Role: sourceRole}
+	statefulSet := &k8sapps.StatefulSet{
+		TypeMeta:   metav1.TypeMeta{APIVersion: child.GetAPIVersion(), Kind: child.GetKind()},
+		ObjectMeta: metav1.ObjectMeta{Namespace: child.GetNamespace(), Name: child.GetName()},
+	}
+	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, statefulSet, func() error {
+		statefulSet.Spec.Template.ObjectMeta.Annotations = mutateAnnotations(trait, workload, traitDefaults, statefulSet.Spec.Template.ObjectMeta.Annotations)
+		statefulSet.Spec.Template.ObjectMeta.Labels = mutateLabels(trait, workload, statefulSet.Spec.Template.ObjectMeta.Labels)
+		return nil
+	})
+	if err != nil {
+		r.Log.Error(err, "Failed to update workload stateful set")
+	}
+	return ref, res, err
+}
+
 // updateRelatedPod updates the labels and annotations of a related workload pod.
 // For example WLS workloads produce related pods.
 func (r *Reconciler) updateRelatedPod(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, child *unstructured.Unstructured) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
@@ -514,6 +540,48 @@ func (r *Reconciler) fetchWLSDomainCredentialsSecretName(ctx context.Context, wo
 	return &secretName, nil
 }
 
+// fetchCoherenceMetricsSpec fetches the metrics configuration from the Coherence workload resource spec.
+// These configuration values are used in the population of the prometheus scraper configuration.
+func (r *Reconciler) fetchCoherenceMetricsSpec(ctx context.Context, workload *unstructured.Unstructured) (*bool, *int, *string, error) {
+	// determine if metrics is enabled
+	enabled, found, err := unstructured.NestedBool(workload.Object, "spec", "coherence", "metrics", "enabled")
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	var e *bool
+	if found {
+		e = &enabled
+	}
+
+	// get the metrics port
+	port, found, err := unstructured.NestedInt64(workload.Object, "spec", "coherence", "metrics", "port")
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	var p *int
+	if found {
+		p2 := int(port)
+		p = &p2
+	}
+
+	// get the secret if ssl is enabled
+	enabled, found, err = unstructured.NestedBool(workload.Object, "spec", "coherence", "metrics", "ssl", "enabled")
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	var s *string
+	if found && enabled {
+		secret, found, err := unstructured.NestedString(workload.Object, "spec", "coherence", "metrics", "ssl", "secrets")
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		if found {
+			s = &secret
+		}
+	}
+	return e, p, s, nil
+}
+
 // fetchSourceCredentialsSecretIfRequired fetches the metrics endpoint authentication credentials if a secret is provided.
 func (r *Reconciler) fetchSourceCredentialsSecretIfRequired(ctx context.Context, trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, workload *unstructured.Unstructured) (*k8score.Secret, error) {
 	secretName := trait.Spec.Secret
@@ -554,6 +622,10 @@ func (r *Reconciler) fetchTraitDefaults(ctx context.Context, workload *unstructu
 	if matched, _ := regexp.MatchString("^weblogic.oracle/.*\\.Domain$", apiVerKind); matched {
 		return r.newTraitDefaultsForWLSDomainWorkload(ctx, workload)
 	}
+	// Match any version of APIVersion=coherence.oracle and Kind=Coherence
+	if matched, _ := regexp.MatchString("^coherence.oracle.com/.*\\.Coherence$", apiVerKind); matched {
+		return r.newTraitDefaultsForCOHWorkload(ctx, workload)
+	}
 	// Match any version of APIVersion=core.oam.dev and Kind=ContainerizedWorkload
 	if matched, _ := regexp.MatchString("^core.oam.dev/.*\\.ContainerizedWorkload$", apiVerKind); matched {
 		return r.newTraitDefaultsForOAMContainerizedWorkload()
@@ -570,6 +642,31 @@ func (r *Reconciler) newTraitDefaultsForWLSDomainWorkload(ctx context.Context, w
 	secret, err := r.fetchWLSDomainCredentialsSecretName(ctx, workload)
 	if err != nil {
 		return nil, err
+	}
+	return &vzapi.MetricsTraitSpec{
+		Port:    &port,
+		Path:    &path,
+		Secret:  secret,
+		Scraper: &r.Scraper}, nil
+}
+
+// newTraitDefaultsForCOHWorkload creates metrics trait default values for a Coherence workload.
+func (r *Reconciler) newTraitDefaultsForCOHWorkload(ctx context.Context, workload *unstructured.Unstructured) (*vzapi.MetricsTraitSpec, error) {
+	path := defaultScrapePath
+	port := defaultCohScrapePort
+	var secret *string = nil
+
+	enabled, p, s, err := r.fetchCoherenceMetricsSpec(ctx, workload)
+	if err != nil {
+		return nil, err
+	}
+	if enabled == nil || *enabled {
+		if p != nil {
+			port = *p
+		}
+		if s != nil {
+			secret = s
+		}
 	}
 	return &vzapi.MetricsTraitSpec{
 		Port:    &port,

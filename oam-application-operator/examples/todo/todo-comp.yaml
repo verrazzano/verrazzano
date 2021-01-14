@@ -19,7 +19,7 @@ spec:
       image: %TODO_APP_IMAGE%
       imagePullSecrets:
         - name: ocir
-      logHomeEnabled: false
+      logHomeEnabled: true
       domainHomeSourceType: "FromModel"
       includeServerOutInPodLog: true
       replicas: 1

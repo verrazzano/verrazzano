@@ -37,11 +37,12 @@ WATCH_NAMESPACE:=
 EXTRA_PARAMS=
 INTEG_RUN_ID=
 ENV_NAME=verrazzano-application-operator
-GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
+GO ?= CGO_ENABLED=0 GO111MODULE=on GOPRIVATE=github.com/verrazzano go
+GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 CRD_PATH=config/crd/bases
 
 .PHONY: build
-build:
+build: go-fmt go-vet
 	go build -o bin/manager main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
@@ -65,7 +66,7 @@ check: go-fmt go-vet go-ineffassign go-lint
 
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: manifests
-manifests: controller-gen
+manifests: go-mod controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	# Add copyright headers to the kubebuildr generated CRDs
 	./hack/add-crd-header.sh
@@ -81,7 +82,7 @@ generate: controller-gen
 # download controller-gen if necessary
 .PHONY: controller-gen
 controller-gen:
-ifeq (, $(shell which controller-gen))
+ifeq (, $(shell command -v controller-gen))
 	@{ \
 	set -e ;\
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
@@ -92,7 +93,7 @@ ifeq (, $(shell which controller-gen))
 	}
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
-CONTROLLER_GEN=$(shell which controller-gen)
+CONTROLLER_GEN=$(shell command -v controller-gen)
 endif
 
 # Generate mocks
@@ -100,12 +101,28 @@ endif
 mock-gen:
 	mockgen -destination=mocks/controller_client_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
 	mockgen -destination=mocks/controller_manager_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime Manager
+	mockgen -destination=mocks/logging_scope_handler_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt gitlab-odx.oracledx.com/verrazzano/verrazzano-application-operator/controllers/loggingscope Handler
+	mockgen -destination=controllers/loggingscope/fluentd_mock.go -package=loggingscope -copyright_file=hack/boilerplate.go.txt gitlab-odx.oracledx.com/verrazzano/verrazzano-application-operator/controllers/loggingscope FluentdManager
 
 #
 # Go build related tasks
 #
+.PHONY: go-build
+go-build:
+	$(GO) build \
+		-ldflags "${GO_LDFLAGS}" \
+		-o out/$(shell uname)_$(shell uname -m)/verrazzano-application-operator \
+		main.go
+
+.PHONY: go-build-linux
+go-build-linux:
+	GOOS=linux GOARCH=amd64 $(GO) build \
+		-ldflags "${GO_LDFLAGS}" \
+		-o out/linux_amd64/verrazzano-application-operator \
+		main.go
+
 .PHONY: go-install
-go-install: go-mod
+go-install:
 	$(GO) install
 
 .PHONY: go-fmt
@@ -145,7 +162,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build:
+docker-build: go-build-linux
 	docker build --pull \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
@@ -205,7 +222,7 @@ ifdef JENKINS_URL
 	./build/scripts/cleanup.sh ${CLUSTER_NAME}
 endif
 	echo 'Create cluster...'
-	HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster \
+	HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 \
 		--name ${CLUSTER_NAME} \
 		--wait 5m \
 		--config=test/kind-config.yaml

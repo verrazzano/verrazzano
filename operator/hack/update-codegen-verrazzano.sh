@@ -6,10 +6,17 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+CODEGEN_PATH=k8s.io/code-generator
+
 SCRIPT_ROOT=$(dirname $0)/..
 echo "script_root = ${SCRIPT_ROOT}"
-CODEGEN_PKG=${CODEGEN_PKG:-./vendor/k8s.io/code-generator}
+
+# Obtain k8s.io/code-generator version
+codeGenVer=$(grep "code-generator" go.mod | awk '{print $2}')
+
+CODEGEN_PKG=${CODEGEN_PKG:-${GOPATH}/pkg/mod/${CODEGEN_PATH}@${codeGenVer}}
 echo "codegen_pkg = ${CODEGEN_PKG}"
+chmod +x ${CODEGEN_PKG}/generate-groups.sh
 
 GENERATED_CLIENT_DIR=$SCRIPT_ROOT/client
 echo Remove $GENERATED_CLIENT_DIR dir if exist
