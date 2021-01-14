@@ -8,6 +8,9 @@
 echo "Doing cleanup of KIND clusters and Docker containers"
 kind delete cluster --name "$1"
 
+echo "Deleting the KUBECONFIG ..."
+rm ${KUBECONFIG}
+
 containers=$(docker ps -q --filter label=io.x-k8s.kind.cluster | wc -l)
 if [ "$containers" -gt 1 ]
 then
@@ -18,7 +21,4 @@ then
   echo "Deleting Kind Containers ..."
   # delete all Kind containers
   docker rm $(docker ps -aq --filter label=io.x-k8s.kind.cluster)
-
-  echo "Deleting the KUBECONFIG ..."
-  rm ${KUBECONFIG}
 fi
