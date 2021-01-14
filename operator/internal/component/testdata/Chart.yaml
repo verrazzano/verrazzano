@@ -1,0 +1,7 @@
+# Copyright (c) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: v1
+appVersion: 1.4.6
+description: Test Helm Chart
+name: istio
+version: 1.4.6

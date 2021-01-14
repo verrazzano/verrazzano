@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package istio
+package component
 
 import (
 	"fmt"
@@ -19,7 +19,7 @@ func TestPreUpgrade(t *testing.T) {
 	assert := assert.New(t)
 	deleteJobFunc = fakeDeletJob
 
-	chartDir, _ := filepath.Abs("../../../../thirdparty/charts/istio")
+	chartDir, _ := filepath.Abs("./testdata")
 	err := PreUpgrade(nil, "", "ns", chartDir)
 	assert.NoError(err, "PreUpgrade returned an error")
 }
