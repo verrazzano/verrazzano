@@ -49,6 +49,9 @@ func (h helmComponent) Name() string {
 	return h.releaseName
 }
 
+// UpgradePrehooksEnabled is needed so that higher level units tests can disable as needed
+var UpgradePrehooksEnabled = true
+
 // Upgrade is done by using the helm chart upgrade command.   This command will apply the latest chart
 // that is included in the operator image, while retaining any helm value overrides that were applied during
 // install.
@@ -70,7 +73,7 @@ func (h helmComponent) Upgrade(client clipkg.Client, ns string) error {
 	}
 
 	// Do the preUpgrade if the function is defined
-	if h.preUpgradeFunc != nil {
+	if h.preUpgradeFunc != nil && UpgradePrehooksEnabled {
 		err := h.preUpgradeFunc(client, h.releaseName, namespace, h.chartDir)
 		if err != nil {
 			return err

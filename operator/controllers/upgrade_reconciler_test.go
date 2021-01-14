@@ -6,6 +6,7 @@ package controllers
 import (
 	"context"
 	"errors"
+	"github.com/verrazzano/verrazzano/operator/internal/component"
 	"github.com/verrazzano/verrazzano/operator/internal/config"
 	"os/exec"
 	"testing"
@@ -460,6 +461,7 @@ func TestUpgradeCompleted(t *testing.T) {
 
 	// Inject a fake cmd runner to the real helm is not called
 	helm.SetCmdRunner(goodRunner{})
+	component.UpgradePrehooksEnabled = false
 
 	// Create and make the request
 	request := newRequest(namespace, name)
