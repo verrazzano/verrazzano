@@ -92,9 +92,10 @@ function install_istio()
     log "Generate istio cluster specific configuration"
     local EXTRA_HELM_ARGUMENTS=""
     if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
-      EXTRA_HELM_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}  --set gateways.istio-ingressgateway.type="${INGRESS_TYPE}"
+      EXTRA_HELM_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
     EXTRA_HELM_ARGUMENTS="$EXTRA_HELM_ARGUMENTS $(get_istio_helm_args_from_config)"
+    EXTRA_HELM_ARGUMENTS="$EXTRA_HELM_ARGUMENTS --set gateways.istio-ingressgateway.type=${INGRESS_TYPE}"
 
     log "installing istio"
     helm install istio ${ISTIO_CHART_DIR} \
