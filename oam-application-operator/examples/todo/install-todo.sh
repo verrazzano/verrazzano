@@ -10,9 +10,11 @@ DOCKER_USR="${2:-$OCIR_CREDS_USR}"
 DOCKER_PWD="${3:-$OCIR_CREDS_PSW}"
 
 NAMESPACE="todo"
-SECRET="ocir"
-WLS_DOMAIN="tododomain"
+SECRET="tododomain-repo-credentials"
 TODO_COMPONENT_FILE="${SCRIPT_DIR}/todo-comp.yaml"
+
+# WLS_DOMAIN can get out of sync with value specified for domain in todo-comp.yaml
+WLS_DOMAIN="tododomain"
 
 if [ -z "${DOCKER_SVR}" ]; then
   echo "ERROR: Container registry required as first argument or OCIR_PHX_REPO environment variable."
@@ -27,6 +29,9 @@ if [ -z "${DOCKER_PWD}" ]; then
   exit 1
 fi
 if [ -z "${WEBLOGIC_PSW}" ]; then
+  #
+  # WEBLOGIC_PSW also used as password for database/jdbc credentials
+  #
   echo "ERROR: WebLogic administration password required as WEBLOGIC_PSW environment variable."
   exit 1
 fi
@@ -92,12 +97,14 @@ function create_and_label_generic_secret() {
     kubectl delete secret "${_secret}" -n "${NAMESPACE}"
   fi
 
-  typeset _args="--from-literal=password='${_password}'"
-  if [[ -n ${_username} ]] ; then
-    _args="--from-literal=username='${_username}' $_args"
+  if [[ -z ${_username} ]] ; then
+    kubectl create secret generic "${_secret}" -n "${NAMESPACE}" \
+        --from-literal=password="$_password"
+  else
+    kubectl create secret generic "${_secret}" -n "${NAMESPACE}" \
+        --from-literal=password="$_password" --from-literal=username="${_username}"
   fi
 
-  kubectl create secret generic "${_secret}" -n "${NAMESPACE}" ${_args}
   if [ $? -ne 0 ]; then
       echo "ERROR: Failed to create secret. Listing secrets."
       kubectl get secret "${_secret}" -n "${NAMESPACE}"
@@ -114,11 +121,11 @@ function create_and_label_generic_secret() {
   fi
 }
 
-echo "Create WebLogic secrets."
+echo "Create weblogic secrets."
 if [ "${skip_secrets:-false}" != "true" ]; then
-  create_and_label_generic_secret tododomain-weblogic-credentials weblogic ${WEBLOGIC_PSW} weblogic.domainUID=tododomain
-  create_and_label_generic_secret tododomain-jdbc-tododb derek ${WEBLOGIC_PSW} weblogic.domainUID=tododomain
-  create_and_label_generic_secret tododomain-runtime-encrypt-secret "" ${WEBLOGIC_PSW} weblogic.domainUID=tododomain
+  create_and_label_generic_secret tododomain-weblogic-credentials weblogic "${WEBLOGIC_PSW}" weblogic.domainUID=tododomain
+  create_and_label_generic_secret tododomain-jdbc-tododb derek "${WEBLOGIC_PSW}" weblogic.domainUID=tododomain
+  create_and_label_generic_secret tododomain-runtime-encrypt-secret "" "${WEBLOGIC_PSW}" weblogic.domainUID=tododomain
 fi
 
 echo "Substitute image name template in ${TODO_COMPONENT_FILE} as ${TODO_APP_IMAGE}"

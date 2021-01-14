@@ -11,13 +11,13 @@ metadata:
     description: "ToDo example application"
 spec:
   components:
-    - componentName: todo-component
+    - componentName: todo-domain
       traits:
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: MetricsTrait
             spec:
-                scraper: verrazzano-system/vmi-system-prometheus-0
+              scraper: verrazzano-system/vmi-system-prometheus-0
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: IngressTrait
@@ -33,3 +33,7 @@ spec:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: LoggingScope
             name: logging-scope
+    - componentName: todo-jdbc-configmap
+    - componentName: todo-mysql-configmap
+    - componentName: todo-mysql-service
+    - componentName: todo-mysql-deployment
