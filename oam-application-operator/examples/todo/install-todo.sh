@@ -29,10 +29,11 @@ if [ -z "${DOCKER_PWD}" ]; then
   exit 1
 fi
 if [ -z "${WEBLOGIC_PSW}" ]; then
-  #
-  # WEBLOGIC_PSW also used as password for database/jdbc credentials
-  #
   echo "ERROR: WebLogic administration password required as WEBLOGIC_PSW environment variable."
+  exit 1
+fi
+if [ -z "${DATABASE_PSW}" ]; then
+  echo "ERROR: Database password required as DATABASE_PSW environment variable."
   exit 1
 fi
 if [ -z "${TODO_APP_IMAGE}" ]; then
@@ -124,8 +125,8 @@ function create_and_label_generic_secret() {
 echo "Create WebLogic secrets."
 if [ "${skip_secrets:-false}" != "true" ]; then
   create_and_label_generic_secret tododomain-weblogic-credentials weblogic "${WEBLOGIC_PSW}" weblogic.domainUID=tododomain
-  create_and_label_generic_secret tododomain-jdbc-tododb derek "${WEBLOGIC_PSW}" weblogic.domainUID=tododomain
-  create_and_label_generic_secret tododomain-runtime-encrypt-secret "" "${WEBLOGIC_PSW}" weblogic.domainUID=tododomain
+  create_and_label_generic_secret tododomain-jdbc-tododb derek "${DATABASE_PSW}" weblogic.domainUID=tododomain
+  create_and_label_generic_secret tododomain-runtime-encrypt-secret "" "$(dd if=/dev/random bs=48 count=1 | base64)" weblogic.domainUID=tododomain
 fi
 
 echo "Substitute image name template in ${TODO_COMPONENT_FILE} as ${TODO_APP_IMAGE}"
