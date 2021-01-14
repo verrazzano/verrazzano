@@ -9,8 +9,8 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// ChartVersion is a Helm chart version struct
-type ChartVersion struct {
+// ChartInfo contains Helm Chart.yaml data
+type ChartInfo struct {
 	APIVersion  string
 	Description string
 	Name        string
@@ -18,19 +18,16 @@ type ChartVersion struct {
 	AppVersion  string
 }
 
-// For unit test purposes
-var readFileFunction = ioutil.ReadFile
-
-// GetChartVersion loads the Chart.yaml from the specified chart dir into a ChartVersion struct
-func GetChartVersion(chartDir string) (ChartVersion, error) {
-	chartBytes, err := readFileFunction(filepath.Join(chartDir + "/Chart.yaml"))
+// GetChartInfo loads the Chart.yaml from the specified chart dir into a ChartInfo struct
+func GetChartInfo(chartDir string) (ChartInfo, error) {
+	chartBytes, err := ioutil.ReadFile(filepath.Join(chartDir + "/Chart.yaml"))
 	if err != nil {
-		return ChartVersion{}, err
+		return ChartInfo{}, err
 	}
-	chartVersion := ChartVersion{}
-	err = yaml.Unmarshal(chartBytes, &chartVersion)
+	chart := ChartInfo{}
+	err = yaml.Unmarshal(chartBytes, &chart)
 	if err != nil {
-		return ChartVersion{}, err
+		return ChartInfo{}, err
 	}
-	return chartVersion, nil
+	return chart, nil
 }

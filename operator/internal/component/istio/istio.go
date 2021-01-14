@@ -20,12 +20,12 @@ var deleteJobFunc = k8s.DeleteJob
 func PreUpgrade(client clipkg.Client, _ string, namespace string, chartDir string) error {
 	var log = ctrl.Log.WithName("upgrade")
 
-	chartVersion, err := helm.GetChartVersion(chartDir)
+	chart, err := helm.GetChartInfo(chartDir)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Unable to get the chart version from %s", chartDir))
 		return err
 	}
-	jobName := "istio-security-post-install-" + chartVersion.Version
+	jobName := "istio-security-post-install-" + chart.Version
 	log.Info(fmt.Sprintf("Deleting Istio Helm post-install job %s", jobName))
 	return deleteJobFunc(client, jobName, namespace)
 }
