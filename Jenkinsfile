@@ -302,12 +302,6 @@ pipeline {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano/operator
                     make create-cluster
-                    
-                    # Hack
-                    # OCIR images don't work with KIND.
-                    # Coherence image doesn't get pulled correctly in KIND.
-                    docker pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
-                    kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/middleware/coherence:12.2.1.4.0
                 """
             }
         }
@@ -390,6 +384,13 @@ pipeline {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             sh """
+                    
+                                # Hack
+                                # OCIR images don't work with KIND.
+                                # Coherence image doesn't get pulled correctly in KIND.
+                                docker pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
+                                kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/middleware/coherence:12.2.1.4.0
+
                                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                                 ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor verify-install/...
                             """
