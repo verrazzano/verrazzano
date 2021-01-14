@@ -27,6 +27,7 @@ coverage.cov
 coverageTmp.cov
 coverage.html
 coverage.xml
+coverage.raw.cov
 operator/test/integ/integ*result.xml
 operator/test/integ/integ.coverprofile
 oam-application-operator/test/integ/integ*result.xml
