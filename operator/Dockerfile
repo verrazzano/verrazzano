@@ -17,6 +17,7 @@ ENV GOPATH=/go
 
 ARG BUILDVERSION
 ARG BUILDDATE
+ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 
 # Need to use specific WORKDIR to match verrazzano's source packages
 WORKDIR /root/go/src/github.com/verrazzano/verrazzano/operator
@@ -31,7 +32,10 @@ RUN GO111MODULE=on go build \
     -ldflags "-X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}" \
     -o /usr/bin/verrazzano-platform-operator main.go
 
-RUN chmod 500 /usr/bin/verrazzano-platform-operator \
+RUN sed -i.bak \
+        -e "s|__VERRAZZANO_APPLICATION_OPERATOR_IMAGE__|${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}|g" \
+        scripts/install/common.sh \
+    && chmod 500 /usr/bin/verrazzano-platform-operator \
     && chmod +x scripts/install/*.sh \
     && chmod +x scripts/uninstall/*.sh \
     && chmod +x scripts/uninstall/uninstall-steps/*.sh

@@ -22,6 +22,12 @@ endif
 DOCKER_IMAGE_FULLNAME = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}
 endif
 
+ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),docker-build docker-push))
+ifndef VERRAZZANO_APPLICATION_OPERATOR_IMAGE
+    $(error VERRAZZANO_APPLICATION_OPERATOR_IMAGE must be defined as the application operator image that will be installed by the platform operator)
+endif
+endif
+
 OPERATOR_VERSION = ${DOCKER_IMAGE_TAG}
 ifdef RELEASE_VERSION
 	OPERATOR_VERSION = ${RELEASE_VERSION}
@@ -137,7 +143,10 @@ docker-clean:
 
 .PHONY: docker-build
 docker-build:
+	@echo Building verrazzano-platform-operator image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+	@echo using verrazzano-application-operator image ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}
 	docker build --pull -f Dockerfile \
+		--build-arg VERRAZZANO_APPLICATION_OPERATOR_IMAGE="${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}" \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
 .PHONY: docker-push
@@ -181,7 +190,7 @@ ifdef JENKINS_URL
 else
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	mkdir -p build/deploy
-	catconfig/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > ${BUILD-DEPLOY}/operator.yaml
+	cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > ${BUILD-DEPLOY}/operator.yaml
 	cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> ${BUILD-DEPLOY}/operator.yaml
 	kubectl apply -f ${BUILD-DEPLOY}/operator.yaml
 endif
