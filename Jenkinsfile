@@ -102,6 +102,46 @@ pipeline {
             }
         }
 
+        stage('Generate operator.yaml') {
+            when { not { buildingTag() } }
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > deploy/operator.yaml
+                    cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
+                    cat deploy/operator.yaml
+                   """
+            }
+        }
+
+        stage('Update operator.yaml') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    anyOf { branch 'master'; branch 'develop' }
+                }
+            }
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
+                    git config --global user.name $DOCKER_CREDS_USR
+                    git config --global user.email "${DOCKER_EMAIL}"
+                    git checkout -b ${env.BRANCH_NAME}
+                    git add deploy/operator.yaml
+                    git commit -m "[verrazzano] Update verrazzano-platform-operator image version to ${DOCKER_IMAGE_TAG} in operator.yaml"
+                    git push origin ${env.BRANCH_NAME}
+                   """
+            }
+            post {
+                unsuccessful {
+                    script {
+                        currentBuild.description = "Git commit of operator.yaml failed"
+                    }
+                }
+            }
+        }
+
         stage('Build') {
             when { not { buildingTag() } }
             steps {
@@ -238,18 +278,6 @@ pipeline {
             }
         }
 
-        stage('Generate operator.yaml') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano/operator
-                    cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > deploy/operator.yaml
-                    cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
-                    cat deploy/operator.yaml
-                   """
-            }
-        }
-
         stage('Integration Tests') {
             when { not { buildingTag() } }
             steps {
@@ -296,26 +324,6 @@ pipeline {
             }
         }
 
-        stage('Update operator.yaml') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    anyOf { branch 'master'; branch 'develop' }
-                }
-            }
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano/operator
-                    git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
-                    git config --global user.name $DOCKER_CREDS_USR
-                    git config --global user.email "${DOCKER_EMAIL}"
-                    git checkout -b ${env.BRANCH_NAME}
-                    git add deploy/operator.yaml
-                    git commit -m "[verrazzano] Update verrazzano-platform-operator image version to ${DOCKER_IMAGE_TAG} in operator.yaml"
-                    git push origin ${env.BRANCH_NAME}
-                   """
-            }
-        }
     }
 
     post {
