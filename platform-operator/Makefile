@@ -215,6 +215,7 @@ ifdef JENKINS_URL
 	./build/scripts/cleanup.sh ${CLUSTER_NAME}
 endif
 	echo 'Create cluster...'
+	echo 'KUBECONFIG=${KUBECONFIG}'
 	HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 \
 		--name ${CLUSTER_NAME} \
 		--wait 5m \
@@ -224,7 +225,7 @@ ifdef JENKINS_URL
 	# Get the ip address of the container running the kube apiserver
 	# and update the kubeconfig file to point to that address, instead of localhost
 	sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
-	cat ${HOME}/.kube/config | grep server
+	cat ${KUBECONFIG} | grep server
 endif
 
 .PHONY: delete-cluster
