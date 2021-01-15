@@ -284,9 +284,9 @@ pipeline {
                     cd ${GO_REPO_PATH}/verrazzano/operator
                     make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     build/scripts/copy-junit-output.sh ${WORKSPACE}
-                    #cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
-                    #make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
-                    #build/scripts/copy-junit-output.sh ${WORKSPACE}
+                    cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
+                    make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+                    build/scripts/copy-junit-output.sh ${WORKSPACE}
                 """
             }
             post {
@@ -306,7 +306,7 @@ pipeline {
             }
         }
 
-        stage("Create Image Pull Secrets") {
+        stage('Create Image Pull Secrets') {
             steps {
                 sh """
                     # Create image pull secret for Verrazzano docker images
@@ -318,7 +318,7 @@ pipeline {
             }
         }
 
-        stage("Install Platform Operator") {
+        stage('Install Platform Operator') {
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
@@ -335,10 +335,10 @@ pipeline {
                     # Install the verrazzano-platform-operator
                     cat /tmp/operator.yaml
                     kubectl apply -f /tmp/operator.yaml
-
+                    
                     # make sure ns exists
                     ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
-
+                    
                     # create secret in verrazzano-install ns
                     ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
@@ -351,7 +351,7 @@ pipeline {
             }
         }
 
-        stage("Install Verrazzano") {
+        stage('Install Verrazzano') {
             steps {
                 sh """
                     echo "Waiting for Operator to be ready"
