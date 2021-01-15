@@ -95,12 +95,12 @@ function install_istio()
       EXTRA_HELM_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
     EXTRA_HELM_ARGUMENTS="$EXTRA_HELM_ARGUMENTS $(get_istio_helm_args_from_config)"
-    EXTRA_HELM_ARGUMENTS="$EXTRA_HELM_ARGUMENTS --set gateways.istio-ingressgateway.type=${INGRESS_TYPE}"
 
     log "installing istio"
     helm install istio ${ISTIO_CHART_DIR} \
         --namespace istio-system \
         -f $SCRIPT_DIR/components/istio-values.yaml \
+        --set gateways.istio-ingressgateway.type="${INGRESS_TYPE}" \
         --values ${ISTIO_CHART_DIR}/example-values/values-istio-multicluster-gateways.yaml \
         ${EXTRA_HELM_ARGUMENTS} \
         --wait \
