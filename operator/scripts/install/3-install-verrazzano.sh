@@ -160,10 +160,10 @@ function install_verrazzano()
     exit 1
   fi
   if [ ! -f "${SCRIPT_DIR}/chart/values.${profile}.yaml" ]; then
-    error "The file ${SCRIPT_DIR}/chart/values.${profile}.yaml doesn't exist"
+    error "The file ${SCRIPT_DIR}/chart/values.${profile}.yaml does not exist"
     exit 1
   fi
-  local PROFILE_VALUES_OVERRIDE=" -f "${SCRIPT_DIR}/chart/values.${profile}.yaml""
+  local PROFILE_VALUES_OVERRIDE=" -f ${SCRIPT_DIR}/chart/values.${profile}.yaml"
 
   helm \
       upgrade --install verrazzano \
@@ -225,7 +225,7 @@ function install_application_operator {
   helm upgrade --install --wait verrazzano-application-operator \
     ${CHARTS_DIR}/oam-application-operator \
     --namespace "${VERRAZZANO_NS}" \
-    --set image="${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} \
+    --set image="${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}" \
     ${EXTRA_V8O_ARGUMENTS} || return $?
   if [ $? -ne 0 ]; then
     error "Failed to install Verrazzano Kubernetes application operator."
@@ -279,7 +279,7 @@ if ! kubectl get namespace ${VERRAZZANO_NS} ; then
   action "Creating ${VERRAZZANO_NS} namespace" kubectl create namespace ${VERRAZZANO_NS} || exit 1
 fi
 
-if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
+if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
   if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${VERRAZZANO_NS} > /dev/null 2>&1 ; then
     action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${VERRAZZANO_NS} namespace" \
         copy_registry_secret "${VERRAZZANO_NS}"

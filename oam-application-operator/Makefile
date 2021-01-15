@@ -7,7 +7,7 @@ REPO_NAME:=verrazzano-application-operator
 
 TIMESTAMP := $(shell date -u +%Y%m%d%H%M%S)
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
-DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)-${TIMESTAMP}
+DOCKER_IMAGE_TAG ?= local-${TIMESTAMP}-$(shell git rev-parse --short HEAD)
 
 CREATE_LATEST_TAG=0
 
