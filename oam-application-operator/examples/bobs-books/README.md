@@ -98,7 +98,7 @@ Alternatively, you can specify the credentials in environment variables: `GHCR_U
     ```
 
 1. Access the applications. To access the applications in a browser, you will need to do one of the following:
-    * **Option 1:** Temporarily modify the `/etc/hosts` file (on Mac or Linux) or `c:\Windows\System32\Drivers\etc\hosts` (on Windows 10), to add an entry mapping the hosts used by the applications to the external IP address assigned to your gateway. For example:
+    * **Option 1:** Temporarily modify the `/etc/hosts` file (on Mac or Linux) or `c:\Windows\System32\Drivers\etc\hosts` (on Windows 10), to add entries mapping the hosts used by the applications to the external IP address assigned to your gateway. For example:
       ```
       129.146.194.248 roberts-books.verrazzano.io
       129.146.194.248 bobbys-books.verrazzano.io
