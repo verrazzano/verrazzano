@@ -4,7 +4,7 @@
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
-  name: todo-component
+  name: todo-domain
   namespace: todo
 spec:
   workload:
@@ -15,10 +15,10 @@ spec:
       namespace: todo
     spec:
       domainUID: tododomain
-      domainHome: /u01/oracle/user_projects/domains/tododomain
+      domainHome: /u01/domains/tododomain
       image: %TODO_APP_IMAGE%
       imagePullSecrets:
-        - name: ocir
+        - name: tododomain-repo-credentials
       logHomeEnabled: true
       domainHomeSourceType: "FromModel"
       includeServerOutInPodLog: true
@@ -30,7 +30,9 @@ spec:
           enabled: false
         introspectorJobActiveDeadlineSeconds: 900
         model:
+          configMap: tododomain-jdbc-config
           domainType: WLS
+          modelHome: /u01/wdt/models
           runtimeEncryptionSecret: tododomain-runtime-encrypt-secret
         secrets:
           - tododomain-jdbc-tododb
@@ -44,4 +46,147 @@ spec:
             value: /u01/oracle/wlserver
           - name: MW_HOME
             value: /u01/oracle
-
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: todo-jdbc-configmap
+  namespace: todo
+spec:
+  workload:
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: tododomain-jdbc-config
+      namespace: todo
+    data:
+      wdt_jdbc.yaml: |
+        resources:
+          JDBCSystemResource:
+            'ToDo-Datasource':
+              Target: 'AdminServer'
+              JdbcResource:
+                DatasourceType: GENERIC
+                JDBCDataSourceParams:
+                  GlobalTransactionsProtocol: OnePhaseCommit
+                  JNDIName: jdbc/ToDoDB
+                JDBCDriverParams:
+                  # for MySQL, the last element in the URL is the database name, and must match the name inside the DB server
+                  URL: "jdbc:mysql://mysql.todo.svc.cluster.local:3306/tododb"
+                  PasswordEncrypted: '@@SECRET:tododomain-jdbc-tododb:password@@'
+                  DriverName: com.mysql.jdbc.Driver
+                  Properties:
+                    user:
+                      Value: '@@SECRET:tododomain-jdbc-tododb:username@@'
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: todo-mysql-configmap
+  namespace: todo
+spec:
+  workload:
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: mysql-initdb-config
+      namespace: todo
+    data:
+      initdb.sql: |
+        create table `ToDos` (
+            `taskId` int not null auto_increment,
+            `task` varchar(200) not null,
+            `completed` boolean,
+            constraint todo_pk primary key (`taskId`)
+        );
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: todo-mysql-service
+  namespace: todo
+spec:
+  workload:
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: mysql
+      namespace: todo
+    spec:
+      ports:
+        - port: 3306
+      selector:
+        app: mysql
+      clusterIP: None
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: todo-mysql-deployment
+  namespace: todo
+spec:
+  workload:
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: mysql
+      namespace: todo
+    spec:
+      progressDeadlineSeconds: 600
+      replicas: 1
+      revisionHistoryLimit: 10
+      selector:
+        matchLabels:
+          app: mysql
+      strategy:
+        type: Recreate
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            app: mysql
+        spec:
+          containers:
+            - env:
+                - name: MYSQL_ROOT_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: tododomain-jdbc-tododb
+                      key: password
+                - name: MYSQL_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: tododomain-jdbc-tododb
+                      key: username
+                - name: MYSQL_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: tododomain-jdbc-tododb
+                      key: password
+                - name: MYSQL_DATABASE
+                  value: tododb
+              image: "mysql:8.0.20"
+              imagePullPolicy: IfNotPresent
+              name: mysql
+              ports:
+                - containerPort: 3306
+                  name: mysql
+                  protocol: TCP
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+                - mountPath: /docker-entrypoint-initdb.d
+                  name: mysql-initdb
+          dnsPolicy: ClusterFirst
+          imagePullSecrets:
+            - name: ocr
+          restartPolicy: Always
+          schedulerName: default-scheduler
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+          volumes:
+            - configMap:
+                defaultMode: 420
+                name: mysql-initdb-config
+              name: mysql-initdb

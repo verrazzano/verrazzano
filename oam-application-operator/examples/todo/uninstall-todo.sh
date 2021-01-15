@@ -8,7 +8,7 @@ SCRIPT_DIR=$(cd $(dirname $0); pwd -P)
 set -u
 
 NAMESPACE="todo"
-SECRET="ocir"
+SECRET="tododomain-repo-credentials"
 
 echo "Removing Todo OAM application."
 
