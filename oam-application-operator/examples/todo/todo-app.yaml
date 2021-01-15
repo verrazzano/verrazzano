@@ -24,7 +24,7 @@ spec:
             spec:
               rules:
                 - hosts:
-                    - "*"
+                    - "todo.verrazzano.io"
                   paths:
                     - path: "/todo"
                       pathType: Prefix

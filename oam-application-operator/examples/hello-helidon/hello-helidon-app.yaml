@@ -25,7 +25,7 @@ spec:
             spec:
               rules:
                 - hosts:
-                    - "*"
+                    - "hello-helidon.verrazzano.io"
                   paths:
                     - path: "/greet"
                       pathType: Prefix

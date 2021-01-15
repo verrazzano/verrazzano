@@ -97,9 +97,20 @@ To-Do List is a demo application which contains a WebLogic component and an Ingr
    istio-ingressgateway   LoadBalancer   10.96.192.18   129.146.199.184   80:31380/TCP,443:31390/TCP   13d
    ```   
 
-1. Access the To-Do example application in a browser.  This should take you to a page titled 'Derek's To-Do List' with an edit field and an 'add' button that allows you to add things to a to-do list.
-   ```
-   http://129.146.199.184/todo/
-   ```
+1. Access the To-Do example application.
+   The application is deployed by default with a host value of `todo.verrazzano.io`.  There are several ways to access it:
+   * **Using the Command Line:** `curl -v -H "Host: todo.verrazzano.io" http://129.146.199.184/todo/`
+   * **Local Testing with a Browser:** If you are just experimenting with this application, you can:
+     * Temporarily modify the `/etc/hosts` file (on Mac or Linux) or `c:\Windows\System32\Drivers\etc\hosts` (on Windows 10), to add an entry mapping `todo.verrazzano.io` to the IP address looked up in the previous step. For example:
+       ```
+       129.146.199.184 todo.verrazzano.io
+       ```
+     * You can then access the application in a browser at `http://todo.verrazzano.io/todo`
+   * **Using External DNS:**
+     * Point your own DNS name to the Load Balancer's external IP address
+     * In this case, you would need to have edited the `todo-app.yaml` file to use the appropriate value under the `hosts` section (such as `yourhost.your.domain`), before deploying the To-Do application. 
+     * You can then use a browser to access the application at `http://<yourhost.your.domain>/todo/`
+
+   Accessing the application in a browser should take you to a page titled 'Derek's To-Do List' with an edit field and an 'add' button that allows you to add things to a to-do list.   
 
    TODO: Note that JDBC data source is not setup and so the example is only partially functional.
