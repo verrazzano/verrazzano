@@ -103,7 +103,6 @@ function install_istio()
         --set gateways.istio-ingressgateway.type="${INGRESS_TYPE}" \
         --values ${ISTIO_CHART_DIR}/example-values/values-istio-multicluster-gateways.yaml \
         ${EXTRA_HELM_ARGUMENTS} \
-        --wait \
         || return $?
 }
 
