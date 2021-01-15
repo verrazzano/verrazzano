@@ -12,6 +12,12 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
+// GetVerrazzanoPassword returns the password credential for the verrazzano secret
+func GetVerrazzanoPassword() string {
+	secret := GetSecret("verrazzano-system", "verrazzano")
+	return string(secret.Data["password"])
+}
+
 // Concurrently executes the given assertions in parallel and waits for them all to complete
 func Concurrently(assertions ...func()) {
 	number := len(assertions)

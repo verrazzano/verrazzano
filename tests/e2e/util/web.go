@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -18,17 +19,38 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
+	// EnvName - default environment name
+	EnvName = "default"
+
+	// DnsZone - default DNS zone
+	DnsZone = "127.0.0.1.xip.io"
+
 	// NumRetries - maximum number of retries
 	NumRetries = 7
+
 	// RetryWaitMin - minimum retry wait
 	RetryWaitMin = 1 * time.Second
+
 	// RetryWaitMax - maximum retry wait
 	RetryWaitMax = 30 * time.Second
+
+	username               = "verrazzano"
+	clientId               = "admin-cli"
+	realm                  = "verrazzano-system"
+	verrazzanoApiUriPrefix = "20210501"
 )
+
+// The HTTP response
+type HttpResponse struct {
+	StatusCode int
+	Body       []byte
+	BodyErr    error
+}
 
 // GetWebPageWithCABundle - same as GetWebPage, but with additional caData
 func GetWebPageWithCABundle(url string, hostHeader string) (int, string) {
@@ -72,6 +94,45 @@ func GetVerrazzanoHTTPClient() *retryablehttp.Client {
 	return newRetryableHTTPClient(rawClient)
 }
 
+// GetKeycloakHTTPClient returns the Keycloak Http client
+func GetKeycloakHTTPClient() *retryablehttp.Client {
+	keycloakRawClient := getHTTPClientWIthCABundle(getKeycloakCACert())
+	return newRetryableHTTPClient(keycloakRawClient)
+}
+
+// ExpectHttpStatusOk validates that this is no error and a that the status is 200
+func ExpectHttpOk(resp *HttpResponse, err error, msg string) {
+	ExpectHttpStatus(http.StatusOK, resp, err, msg)
+}
+
+// ExpectHttpStatus validates that this is no error and a that the status matchs
+func ExpectHttpStatus(status int, resp *HttpResponse, err error, msg string) {
+	gomega.Expect(err).To(gomega.BeNil(), msg)
+
+	if resp.StatusCode != status {
+		if len(resp.Body) > 0 {
+			msg = msg + "\n" + string(resp.Body)
+		}
+		gomega.Expect(resp.StatusCode).To(gomega.Equal(status), msg)
+	}
+}
+
+// postWithCLient
+func postWithCLient(url, contentType string, body io.Reader, httpClient *retryablehttp.Client) (int, string) {
+	resp, err := httpClient.Post(url, contentType, body)
+	if err != nil {
+		Log(Error, err.Error())
+		ginkgo.Fail("Could not POST " + url)
+	}
+	defer resp.Body.Close()
+	html, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		Log(Error, err.Error())
+		ginkgo.Fail("Could not read content of response body")
+	}
+	return resp.StatusCode, string(html)
+}
+
 func getHTTPClientWIthCABundle(caData []byte) *http.Client {
 	tr := &http.Transport{TLSClientConfig: &tls.Config{RootCAs: rootCertPool(caData)}}
 
@@ -102,7 +163,11 @@ func getHTTPClientWIthCABundle(caData []byte) *http.Client {
 }
 
 func getVerrazzanoCACert() []byte {
-	return doGetCACertFromSecret("default-secret", "verrazzano-system")
+	return doGetCACertFromSecret(EnvName+"-secret", "verrazzano-system")
+}
+
+func getKeycloakCACert() []byte {
+	return doGetCACertFromSecret(EnvName+"-secret", "keycloak")
 }
 
 func getProxyURL() string {
