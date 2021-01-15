@@ -4,9 +4,7 @@
 package component
 
 import (
-	"path/filepath"
-
-	"github.com/verrazzano/verrazzano/operator/internal/config"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Component interface defines the methods implemented by components
@@ -15,44 +13,5 @@ type Component interface {
 	Name() string
 
 	// Upgrade will upgrade the Verrazzano component specified in the CR.Version field
-	Upgrade(namespace string) error
-}
-
-// GetComponents returns the list of components that are installable and upgradeable.
-// The components will be processed in the order items in the array
-func GetComponents() []Component {
-	componentDir := filepath.Join(config.Get().VerrazzanoInstallDir, "components")
-
-	return []Component{
-		Verrazzano{},
-		Nginx{},
-		helmComponent{
-			releaseName:             "cert-manager",
-			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "cert-manager"),
-			chartNamespace:          "cert-manager",
-			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(componentDir, "cert-manager-values.yaml"),
-		},
-		helmComponent{
-			releaseName:             "external-dns",
-			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "external-dns"),
-			chartNamespace:          "cert-manager",
-			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(componentDir, "external-dns-values.yaml"),
-		},
-		helmComponent{
-			releaseName:             "keycloak",
-			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "keycloak"),
-			chartNamespace:          "keycloak",
-			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(componentDir, "keycloak-values.yaml"),
-		},
-		helmComponent{
-			releaseName:             "rancher",
-			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "rancher"),
-			chartNamespace:          "cattle-system",
-			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(componentDir, "rancher-values.yaml"),
-		},
-	}
+	Upgrade(client clipkg.Client, namespace string) error
 }

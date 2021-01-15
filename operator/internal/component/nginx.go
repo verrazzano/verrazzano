@@ -5,8 +5,9 @@ package component
 
 import (
 	"path/filepath"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 
-	config2 "github.com/verrazzano/verrazzano/operator/internal/config"
+	"github.com/verrazzano/verrazzano/operator/internal/config"
 	"github.com/verrazzano/verrazzano/operator/internal/util/helm"
 )
 
@@ -29,7 +30,7 @@ func (v Nginx) Name() string {
 // Upgrade is done by using the helm chart upgrade command.   This command will apply the latest chart
 // that is included in the operator image, while retaining any helm value overrides that were applied during
 // install.
-func (v Nginx) Upgrade(namespace string) error {
+func (v Nginx) Upgrade(_ clipkg.Client, namespace string) error {
 	_, _, err := helm.Upgrade(nginxReleaseName, nginxNamespace(namespace), nginxChartDir(), nginxOverrideYamlFile())
 	return err
 }
@@ -45,12 +46,12 @@ func nginxNamespace(ns string) string {
 
 // nginxChartDir returns the chart directory of the NGINX ingress controller helm chart.
 func nginxChartDir() string {
-	dir := config2.Get().ThirdpartyChartsDir
+	dir := config.Get().ThirdpartyChartsDir
 	return filepath.Join(dir + "/ingress-nginx")
 }
 
 // nginxOverrideYamlFile returns the override yaml file to be used with the NGINX ingress controller helm chart.
 func nginxOverrideYamlFile() string {
-	dir := config2.Get().VerrazzanoInstallDir
+	dir := config.Get().VerrazzanoInstallDir
 	return filepath.Join(dir + "/components/ingress-nginx-values.yaml")
 }

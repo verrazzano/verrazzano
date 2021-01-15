@@ -35,7 +35,7 @@ func TestVzUpgrade(t *testing.T) {
 	vz := Verrazzano{}
 	helm.SetCmdRunner(fakeRunner{})
 	defer helm.SetDefaultRunner()
-	err := vz.Upgrade("")
+	err := vz.Upgrade(nil, "")
 	assert.NoError(err, "Upgrade returned an error")
 }
 

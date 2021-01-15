@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package component
@@ -16,11 +16,13 @@ import (
 func TestGetComponents(t *testing.T) {
 	assert := assert.New(t)
 	comps := GetComponents()
-	assert.Len(comps, 6, "Wrong number of components")
+
+	assert.Len(comps, 7, "Wrong number of components")
 	assert.Equal(comps[0].Name(), "verrazzano")
 	assert.Equal(comps[1].Name(), "ingress-nginx")
 	assert.Equal(comps[2].Name(), "cert-manager")
 	assert.Equal(comps[3].Name(), "external-dns")
 	assert.Equal(comps[4].Name(), "keycloak")
 	assert.Equal(comps[5].Name(), "rancher")
+	assert.Equal(comps[6].Name(), "istio")
 }

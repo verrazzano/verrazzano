@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package controllers
@@ -8,11 +8,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/operator/internal/k8s"
 	"os"
 	"time"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/operator/internal"
 	"github.com/verrazzano/verrazzano/operator/internal/installjob"
 	"github.com/verrazzano/verrazzano/operator/internal/uninstalljob"
 	"go.uber.org/zap"
@@ -235,7 +235,7 @@ func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log *zap.Su
 	// Define a new install job resource
 	job := installjob.NewJob(
 		&installjob.JobConfig{
-			JobConfigCommon: internal.JobConfigCommon{
+			JobConfigCommon: k8s.JobConfigCommon{
 				JobName:            buildInstallJobName(vz.Name),
 				Namespace:          vz.Namespace,
 				Labels:             vz.Labels,
@@ -318,7 +318,7 @@ func (r *VerrazzanoReconciler) createUninstallJob(log *zap.SugaredLogger, vz *in
 	// Define a new uninstall job resource
 	job := uninstalljob.NewJob(
 		&uninstalljob.JobConfig{
-			JobConfigCommon: internal.JobConfigCommon{
+			JobConfigCommon: k8s.JobConfigCommon{
 				JobName:            buildUninstallJobName(vz.Name),
 				Namespace:          vz.Namespace,
 				Labels:             vz.Labels,
