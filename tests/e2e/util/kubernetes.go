@@ -142,6 +142,30 @@ func ListPods(namespace string) *corev1.PodList {
 	return pods
 }
 
+// ListSecrets returns the list of secrets in a given namespace for the cluster
+func ListSecrets(namespace string) *corev1.SecretList {
+	// Get the kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	secrets, err := clientset.CoreV1().Secrets(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to list secrets in namespace %s with error: %v", namespace, err))
+	}
+	return secrets
+}
+
+// GetSecret returns the a secret in a given namespace for the cluster
+func GetSecret(namespace string, name string) *corev1.Secret {
+	// Get the kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get secrets %s in namespace %s with error: %v", name, namespace, err))
+	}
+	return secret
+}
+
 // DoesPodExist returns whether a pod with the given name and namespace exists for the cluster
 func DoesPodExist(namespace string, name string) bool {
 	pods := ListPods(namespace)

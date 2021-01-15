@@ -11,7 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/util"
 )
 
-var serverUrl = "https://verrazzano.default.127.0.0.1.xip.io"
+var serverUrl = "https://verrazzano." + util.EnvName + "." + util.DnsZone
 
 var _ = ginkgo.Describe("Verrazzano Web UI",
 	func() {
