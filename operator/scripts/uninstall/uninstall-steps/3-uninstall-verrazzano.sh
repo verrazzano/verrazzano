@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -9,6 +9,8 @@ UNINSTALL_DIR=$SCRIPT_DIR/..
 
 . $INSTALL_DIR/common.sh
 . $UNINSTALL_DIR/uninstall-utils.sh
+
+OAM_ENABLED=$(get_config_value ".oam.enabled")
 
 set -o pipefail
 
@@ -59,4 +61,54 @@ function delete_verrazzano() {
     || return $? # return on pipefail
 }
 
+function delete_oam_operator {
+  log "Uninstall the OAM Kubernetes operator"
+  helm uninstall oam-kubernetes-runtime --namespace "${VERRAZZANO_NS}" || return $?
+  if [ $? -ne 0 ]; then
+    error "Failed to uninstall the OAM Kubernetes operator."
+  fi
+
+  log "Delete the OAM Kubernetes operator roles"
+  kubectl delete clusterrolebinding cluster-admin-binding-oam || return $?
+  if [ $? -ne 0 ]; then
+    error "Failed to delete the OAM Kubernetes operator roles."
+  fi
+}
+
+function delete_application_operator {
+  log "Uninstall the Verrazzano Kubernetes application operator"
+  helm uninstall verrazzano-application-operator --namespace "${VERRAZZANO_NS}" || return $?
+  if [ $? -ne 0 ]; then
+    error "Failed to uninstall the Verrazzano Kubernetes application operator."
+  fi
+}
+
+function delete_weblogic_operator {
+  log "Uninstall the WebLogic Kubernetes operator"
+  helm uninstall weblogic-operator --namespace "${VERRAZZANO_NS}" || return $?
+  if [ $? -ne 0 ]; then
+    error "Failed to uninstall the WebLogic Kubernetes operator."
+  fi
+
+  log "Delete the WebLogic Kubernetes operator service account"
+  kubectl delete serviceaccount -n "${VERRAZZANO_NS}" weblogic-operator-sa || return $?
+  if [ $? -ne 0 ]; then
+    error "Failed to delete the WebLogic Kubernetes operator service account."
+  fi
+}
+
+function delete_coherence_operator {
+  log "Uninstall the Coherence Kubernetes operator"
+  helm uninstall coherence-operator --namespace "${VERRAZZANO_NS}" || return $?
+  if [ $? -ne 0 ]; then
+    error "Failed to uninstall the Coherence Kubernetes operator."
+  fi
+}
+
+if [ "${OAM_ENABLED}" == "true" ]; then
+  action "Deleting Verrazzano Application Kubernetes operator" delete_application_operator || exit 1
+  action "Deleting OAM Kubernetes operator" delete_oam_operator || exit 1
+  action "Deleting Coherence Kubernetes operator" delete_coherence_operator || exit 1
+  action "Deleting WebLogic Kubernetes operator" delete_weblogic_operator || exit 1
+fi
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1

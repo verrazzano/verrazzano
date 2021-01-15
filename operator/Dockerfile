@@ -3,13 +3,18 @@
 
 FROM ghcr.io/oracle/oraclelinux:7-slim AS build_base
 
+ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
+
 # Need to use specific WORKDIR to match verrazzano's source packages
 WORKDIR /root/go/src/github.com/verrazzano/verrazzano/operator
 COPY . .
 
 COPY out/linux_amd64/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
 
-RUN chmod 500 /usr/local/bin/verrazzano-platform-operator \
+RUN sed -i.bak \
+        -e "s|__VERRAZZANO_APPLICATION_OPERATOR_IMAGE__|${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}|g" \
+        scripts/install/common.sh \
+    && chmod 500 /usr/local/bin/verrazzano-platform-operator \
     && chmod +x scripts/install/*.sh \
     && chmod +x scripts/uninstall/*.sh \
     && chmod +x scripts/uninstall/uninstall-steps/*.sh

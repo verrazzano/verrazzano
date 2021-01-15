@@ -1,9 +1,10 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package installjob
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -402,4 +403,77 @@ func TestNodePortInstall(t *testing.T) {
 	assert.Equalf(t, CertIssuerTypeCA, config.Certificates.IssuerType, "Expected certification issuer type did not match")
 	assert.Equalf(t, "cattle-system", config.Certificates.CA.ClusterResourceNamespace, "Expected namespace did not match")
 	assert.Equalf(t, "tls-rancher", config.Certificates.CA.SecretName, "Expected CA secret name did not match")
+}
+
+// TestOAMDefaultInstall tests the creation of a install with OAM config defaulted
+// GIVEN an install CR with OAM config defaulted
+// WHEN the install config is created an marshaled to json
+// THEN check that OAM is disabled in each
+func TestOAMDefaultInstall(t *testing.T) {
+	vz := installv1alpha1.Verrazzano{
+		Spec: installv1alpha1.VerrazzanoSpec{
+			Profile:         "dev",
+			EnvironmentName: "test-env",
+			Components:      installv1alpha1.ComponentSpec{},
+		},
+	}
+
+	config := GetInstallConfig(&vz)
+	assert.Equal(t, false, config.OAM.Enabled, "Expected OAM to be disabled by default.")
+
+	jsonBytes, err := json.Marshal(config)
+	assert.NoError(t, err, "Expected resource to marshal to json.")
+
+	jsonString := string(jsonBytes)
+	assert.Contains(t, jsonString, "\"oam\":{\"enabled\":false}", "Expected json to show OAM disabled.")
+}
+
+// TestOAMEnabledInstall tests the creation of a install with OAM is enabled in the CR
+// GIVEN an install CR with OAM explicitly enabled
+// WHEN the install config is created an marshaled to json
+// THEN check that OAM is enabled in each
+func TestOAMEnabledInstall(t *testing.T) {
+	vz := installv1alpha1.Verrazzano{
+		Spec: installv1alpha1.VerrazzanoSpec{
+			Profile:         "dev",
+			EnvironmentName: "test-env",
+			Components: installv1alpha1.ComponentSpec{
+				OAM: installv1alpha1.OAMComponent{Enabled: true},
+			},
+		},
+	}
+
+	config := GetInstallConfig(&vz)
+	assert.Equal(t, true, config.OAM.Enabled, "Expected OAM to be explicitly enabled.")
+
+	jsonBytes, err := json.Marshal(config)
+	assert.NoError(t, err, "Expected resource to marshal to json.")
+
+	jsonString := string(jsonBytes)
+	assert.Contains(t, jsonString, "\"oam\":{\"enabled\":true}", "Expected json to show OAM enabled.")
+}
+
+// TestOAMDisabledInstall tests the creation of a install with OAM is disabled in the CR
+// GIVEN an install CR with OAM explicitly disabled
+// WHEN the install config is created an marshaled to json
+// THEN check that OAM is disabled in each
+func TestOAMDisabledInstall(t *testing.T) {
+	vz := installv1alpha1.Verrazzano{
+		Spec: installv1alpha1.VerrazzanoSpec{
+			Profile:         "dev",
+			EnvironmentName: "test-env",
+			Components: installv1alpha1.ComponentSpec{
+				OAM: installv1alpha1.OAMComponent{Enabled: false},
+			},
+		},
+	}
+
+	config := GetInstallConfig(&vz)
+	assert.Equal(t, false, config.OAM.Enabled, "Expected OAM to be explicitly disabled.")
+
+	jsonBytes, err := json.Marshal(config)
+	assert.NoError(t, err, "Expected resource to marshal to json.")
+
+	jsonString := string(jsonBytes)
+	assert.Contains(t, jsonString, "\"oam\":{\"enabled\":false}", "Expected json to show OAM disabled.")
 }

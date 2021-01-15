@@ -79,7 +79,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 		handler := r.Handlers[resource.Kind]
 		if handler == nil {
-			log.Error(nil, "Unknown Resource Kind encountered in Logging Scope Controller: %v", resource)
+			log.Error(nil, "Unknown Resource Kind encountered in Logging Scope Controller", "resource", resource)
 			continue
 		}
 		err = handler.Apply(ctx, resource, scope)
@@ -115,7 +115,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	err = r.updateScopeStatus(ctx, resources, scope)
 	if err != nil {
-		log.Error(err, "Unable to persist resources to scope: %v", scope)
+		log.Error(err, "Unable to persist resources to scope", "scope", scope)
 	}
 
 	if errors != nil {
