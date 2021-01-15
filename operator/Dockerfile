@@ -3,6 +3,8 @@
 
 FROM ghcr.io/oracle/oraclelinux:7-slim AS build_base
 
+ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
+
 # Need to use specific WORKDIR to match verrazzano's source packages
 WORKDIR /root/go/src/github.com/verrazzano/verrazzano/operator
 COPY . .
