@@ -155,9 +155,12 @@ type ComponentSpec struct {
 	// Istio contains the istio component configuration
 	// +optional
 	Istio IstioComponent `json:"istio,omitempty"`
-	// Keycloak contains the keycloak component configuration
+	// Keycloak contains the Keycloak component configuration
 	// +optional
 	Keycloak KeycloakComponent `json:"keycloak,omitempty"`
+	// OAM contains the OAM component configuration
+	// +optional
+	OAM OAMComponent `json:"oam,omitempty"`
 }
 
 // CertManagerComponent specifies the core CertManagerComponent config.
@@ -169,7 +172,7 @@ type CertManagerComponent struct {
 
 // DNSComponent specifies the DNS configuration
 type DNSComponent struct {
-	// DNS type of xio.io.  This is the default.
+	// DNS type of xip.io.  This is the default.
 	// +optional
 	XIPIO XIPIO `json:"xip.io,omitempty"`
 	// DNS type of OCI (Oracle Cloud Infrastructure)
@@ -193,19 +196,19 @@ type IngressNginxComponent struct {
 	Ports []corev1.ServicePort `json:"ports,omitempty"`
 }
 
-// IstioComponent specifies the istio configuration
+// IstioComponent specifies the Istio configuration
 type IstioComponent struct {
-	// Arguments for installing istio
+	// Arguments for installing Istio
 	// +optional
 	IstioInstallArgs []InstallArgs `json:"istioInstallArgs,omitempty"`
 }
 
-// KeycloakComponent specifies the keycloak configuration
+// KeycloakComponent specifies the Keycloak configuration
 type KeycloakComponent struct {
-	// Arguments for installing keycloak
+	// Arguments for installing Keycloak
 	// +optional
 	KeycloakInstallArgs []InstallArgs `json:"keycloakInstallArgs,omitempty"`
-	// MySql contains the MySQL component configuration needed for keycloak
+	// MySQL contains the MySQL component configuration needed for Keycloak
 	// +optional
 	MySQL MySQLComponent `json:"mysql,omitempty"`
 }
@@ -215,6 +218,13 @@ type MySQLComponent struct {
 	// Arguments for installing MySQL
 	// +optional
 	MySQLInstallArgs []InstallArgs `json:"mysqlInstallArgs,omitempty"`
+}
+
+// OAMComponent specifies the OAM configuration
+type OAMComponent struct {
+	// Argument to enable installation of OAM components
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
 }
 
 // InstallArgs identifies a name/value or name/value list needed for install.

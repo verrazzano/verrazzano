@@ -1,10 +1,10 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package uninstalljob
 
 import (
-	"github.com/verrazzano/verrazzano/operator/internal"
+	"github.com/verrazzano/verrazzano/operator/internal/k8s"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,7 +13,7 @@ import (
 
 // JobConfig Defines the parameters for an uninstall job
 type JobConfig struct {
-	internal.JobConfigCommon
+	k8s.JobConfigCommon
 }
 
 // uninstallMode value for MODE variable for uninstall jobs
@@ -25,9 +25,9 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 	var annotations map[string]string = nil
 	mode := uninstallMode
 	if jobConfig.DryRun {
-		mode = internal.NoOpMode
+		mode = k8s.NoOpMode
 		annotations = make(map[string]string, 1)
-		annotations[internal.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
+		annotations[k8s.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
 	}
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{

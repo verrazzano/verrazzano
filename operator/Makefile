@@ -4,9 +4,9 @@
 NAME:=verrazzano-platform-operator
 REPO_NAME:=verrazzano-platform-operator
 
-
+TIMESTAMP := $(shell date -u +%Y%m%d%H%M%S)
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
-DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)
+DOCKER_IMAGE_TAG ?= local-${TIMESTAMP}-$(shell git rev-parse --short HEAD)
 
 CREATE_LATEST_TAG=0
 
@@ -20,6 +20,12 @@ ifndef DOCKER_NAMESPACE
     $(error DOCKER_NAMESPACE must be defined as the name of the docker namespace where image will be pushed)
 endif
 DOCKER_IMAGE_FULLNAME = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}
+endif
+
+ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),docker-build docker-push))
+ifndef VERRAZZANO_APPLICATION_OPERATOR_IMAGE
+    $(error VERRAZZANO_APPLICATION_OPERATOR_IMAGE must be defined as the application operator image that will be installed by the platform operator)
+endif
 endif
 
 OPERATOR_VERSION = ${DOCKER_IMAGE_TAG}
@@ -149,7 +155,10 @@ docker-clean:
 
 .PHONY: docker-build
 docker-build: go-build-linux
+	@echo Building verrazzano-platform-operator image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+	@echo using verrazzano-application-operator image ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}
 	docker build --pull -f Dockerfile \
+		--build-arg VERRAZZANO_APPLICATION_OPERATOR_IMAGE="${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}" \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
 .PHONY: docker-push

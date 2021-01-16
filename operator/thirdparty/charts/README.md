@@ -88,3 +88,46 @@ helm repo update
 helm fetch stable/external-dns --untar=true --version=${EXTERNAL_DNS_CHART_VERSION}
 ```
 
+### WLS Operator
+
+The `wls-operator` folder was created by running the following commands:
+
+```
+export WEBLOGIC_OPERATOR_CHART_REPO=https://oracle.github.io/weblogic-kubernetes-operator/charts
+export WEBLOGIC_OPERATOR_CHART_VERSION=3.1.0
+rm -rf weblogic-operator
+helm repo add weblogic-operator ${WEBLOGIC_OPERATOR_CHART_REPO}
+helm repo update
+helm fetch weblogic-operator/weblogic-operator --untar=true --version=${WEBLOGIC_OPERATOR_CHART_VERSION}
+```
+
+### Coherence Operator
+
+The `coherence-operator` folder was created by running the following commands:
+
+```
+export COHERENCE_OPERATOR_CHART_REPO=https://oracle.github.io/coherence-operator/charts
+export COHERENCE_OPERATOR_CHART_VERSION=3.1.1
+rm -rf coherence-operator
+helm repo add coherence ${COHERENCE_OPERATOR_CHART_REPO}
+helm repo update
+helm fetch coherence/coherence-operator --untar=true --version=${COHERENCE_OPERATOR_CHART_VERSION}
+```
+
+### OAM Runtime
+
+The `oam-kubernetes-runtime` folder was created by running the following commands:
+
+```
+export OAM_RUNTIME_CHART_REPO=https://charts.crossplane.io/master/
+export OAM_RUNTIME_CHART_VERSION=0.3.0
+rm -rf oam-kubernetes-runtime
+helm repo add crossplane-master ${OAM_RUNTIME_CHART_REPO}
+helm repo update
+helm fetch crossplane-master/oam-kubernetes-runtime --untar=true --version=${OAM_RUNTIME_CHART_VERSION}
+```
+
+### Verrazzano Application Operator
+
+The `verrazzano-application-operator` folder was created manually.
+

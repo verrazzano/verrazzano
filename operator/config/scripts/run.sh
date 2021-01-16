@@ -45,12 +45,12 @@ function dump-uninstall-logs {
 # the installation jobs that the operator creates.  The default mode is to run
 # the verrazzano-platform-operator.
 
-if [ ${MODE} == "NOOP" ]; then
+if [ "${MODE}" == "NOOP" ]; then
   echo "*************************************************************"
   echo " Running in NOOP mode, exiting                               "
   echo "*************************************************************"
   exit 0
-elif [ ${MODE} == "INSTALL" ]; then
+elif [ "${MODE}" == "INSTALL" ]; then
   # Create a kubeconfig and run the installation
   create-kubeconfig
   ./operator/scripts/install/1-install-istio.sh || dump-install-logs 1
@@ -58,7 +58,7 @@ elif [ ${MODE} == "INSTALL" ]; then
   ./operator/scripts/install/3-install-verrazzano.sh || dump-install-logs 1
   ./operator/scripts/install/4-install-keycloak.sh || dump-install-logs 1
   dump-install-logs 0
-elif [ ${MODE} == "UNINSTALL" ]; then
+elif [ "${MODE}" == "UNINSTALL" ]; then
   # Create a kubeconfig and run the installation
   create-kubeconfig
   ./operator/scripts/uninstall/uninstall-verrazzano.sh -f || dump-uninstall-logs 1

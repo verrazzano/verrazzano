@@ -68,55 +68,19 @@ function install_istio()
     ISTIO_INIT_CHART_DIR=${CHARTS_DIR}/istio-init
     ISTIO_CHART_DIR=${CHARTS_DIR}/istio
 
+    # Install istio CRDs  using helm
     EXTRA_ISTIO_ARGUMENTS=""
     if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
       EXTRA_ISTIO_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
 
-    log "Create helm template for installing istio CRDs"
-    helm template istio-init ${ISTIO_INIT_CHART_DIR} \
+    log "Installing istio CRDs"
+    helm install istio-init ${ISTIO_INIT_CHART_DIR} \
         --namespace istio-system \
-        --set global.hub=$GLOBAL_HUB_REPO \
-        --set global.tag=$ISTIO_VERSION \
+        -f $SCRIPT_DIR/components/istio-values.yaml \
         ${EXTRA_ISTIO_ARGUMENTS} \
-        > ${TMP_DIR}/istio-crds.yaml || return $?
-
-    log "Generate cluster specific configuration"
-    local EXTRA_HELM_ARGUMENTS=""
-    if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
-      EXTRA_HELM_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
-    fi
-
-    EXTRA_HELM_ARGUMENTS="$EXTRA_HELM_ARGUMENTS $(get_istio_helm_args_from_config)"
-
-    log "Create helm template for installing istio proper"
-    helm template istio ${ISTIO_CHART_DIR} \
-        --namespace istio-system \
-        --set global.hub=$GLOBAL_HUB_REPO \
-        --set global.tag=$ISTIO_VERSION \
-        --set gateways.istio-ingressgateway.type="${INGRESS_TYPE}" \
-        --set sidecarInjectorWebhook.rewriteAppHTTPProbe=true \
-        --set grafana.enabled=true \
-        --set grafana.image.repository=$GRAFANA_REPO \
-        --set grafana.image.tag=$GRAFANA_TAG \
-        --set prometheus.hub=$GLOBAL_HUB_REPO \
-        --set prometheus.tag=$PROMETHEUS_TAG \
-        --set istiocoredns.coreDNSImage=$ISTIO_CORE_DNS_IMAGE \
-        --set istiocoredns.coreDNSTag=$ISTIO_CORE_DNS_TAG \
-        --set istiocoredns.coreDNSPluginImage=$ISTIO_CORE_DNS_PLUGIN_IMAGE:$ISTIO_CORE_DNS_PLUGIN_TAG \
-        --set gateways.istio-ingressgateway.ports[0].port=80 \
-        --set gateways.istio-ingressgateway.ports[0].targetPort=80 \
-        --set gateways.istio-ingressgateway.ports[0].name=http2 \
-        --set gateways.istio-ingressgateway.ports[0].nodePort=31380 \
-        --set gateways.istio-ingressgateway.ports[1].port=443 \
-        --set gateways.istio-ingressgateway.ports[1].name=https \
-        --set gateways.istio-ingressgateway.ports[1].nodePort=31390 \
-        --values ${ISTIO_CHART_DIR}/example-values/values-istio-multicluster-gateways.yaml \
-        ${EXTRA_HELM_ARGUMENTS} \
-        > ${TMP_DIR}/istio.yaml || return $?
-
-    log "Change to use the Istio image for kubectl then install the istio CRDs"
-    sed "s|/kubectl:|/istio_kubectl:|g" ${TMP_DIR}/istio-crds.yaml | kubectl apply -f - || return $?
+        --wait \
+        || return $?
 
     log "Wait for istio CRD creation jobs to complete"
     if ! kubectl -n istio-system wait --for=condition=complete job --all --timeout=300s ; then
@@ -124,9 +88,22 @@ function install_istio()
       return 1
     fi
 
-    log "Change to use the Istio image for kubectl then install istio proper"
-    sed "s|/kubectl:|/istio_kubectl:|g" ${TMP_DIR}/istio.yaml | kubectl apply -f - || return $?
+    # Install istio using helm
+    log "Generate istio cluster specific configuration"
+    local EXTRA_HELM_ARGUMENTS=""
+    if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
+      EXTRA_HELM_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+    fi
+    EXTRA_HELM_ARGUMENTS="$EXTRA_HELM_ARGUMENTS $(get_istio_helm_args_from_config)"
 
+    log "installing istio"
+    helm install istio ${ISTIO_CHART_DIR} \
+        --namespace istio-system \
+        -f $SCRIPT_DIR/components/istio-values.yaml \
+        --set gateways.istio-ingressgateway.type="${INGRESS_TYPE}" \
+        --values ${ISTIO_CHART_DIR}/example-values/values-istio-multicluster-gateways.yaml \
+        ${EXTRA_HELM_ARGUMENTS} \
+        || return $?
 }
 
 function update_coredns()

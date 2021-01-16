@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package controllers
@@ -6,6 +6,7 @@ package controllers
 import (
 	"context"
 	"errors"
+	"github.com/verrazzano/verrazzano/operator/internal/component"
 	"github.com/verrazzano/verrazzano/operator/internal/config"
 	"os/exec"
 	"testing"
@@ -220,6 +221,7 @@ func TestUpgradeTooManyFailures(t *testing.T) {
 			verrazzano.ObjectMeta = metav1.ObjectMeta{
 				Namespace:  name.Namespace,
 				Name:       name.Name,
+				Generation: 1,
 				Finalizers: []string{finalizerName}}
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
@@ -229,13 +231,16 @@ func TestUpgradeTooManyFailures(t *testing.T) {
 						Type: vzapi.InstallComplete,
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
+						Message: "Upgrade failed generation:1",
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
+						Message: "Upgrade failed generation:1",
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
+						Message: "Upgrade failed generation:1",
 					},
 				},
 			}
@@ -281,6 +286,7 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 			verrazzano.ObjectMeta = metav1.ObjectMeta{
 				Namespace:  name.Namespace,
 				Name:       name.Name,
+				Generation: 2,
 				Finalizers: []string{finalizerName}}
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
@@ -290,19 +296,27 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 						Type: vzapi.InstallComplete,
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
+						Message: "Upgrade failed generation:1",
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
+						Message: "Upgrade failed generation:1",
+					},
+					{
+						Type:    vzapi.UpgradeFailed,
+						Message: "Upgrade failed generation:1",
 					},
 					{
 						Type: vzapi.UpgradeComplete,
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
+						Message: "Upgrade failed generation:2",
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
+						Message: "Upgrade failed generation:2",
 					},
 				},
 			}
@@ -316,8 +330,8 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Len(verrazzano.Status.Conditions, 7, "Incorrect number of conditions")
-			asserts.Equal(verrazzano.Status.Conditions[6].Type, vzapi.UpgradeStarted)
+			asserts.Len(verrazzano.Status.Conditions, 8, "Incorrect number of conditions")
+			asserts.Equal(verrazzano.Status.Conditions[7].Type, vzapi.UpgradeStarted)
 			return nil
 		})
 
@@ -360,6 +374,7 @@ func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
 			verrazzano.ObjectMeta = metav1.ObjectMeta{
 				Namespace:  name.Namespace,
 				Name:       name.Name,
+				Generation: 2,
 				Finalizers: []string{finalizerName}}
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
@@ -369,22 +384,27 @@ func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
 						Type: vzapi.InstallComplete,
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
+						Message: "Upgrade failed generation:1",
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
+						Message: "Upgrade failed generation:1",
 					},
 					{
 						Type: vzapi.UpgradeComplete,
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
+						Message: "Upgrade failed generation:2",
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
+						Message: "Upgrade failed generation:2",
 					},
 					{
-						Type: vzapi.UpgradeFailed,
+						Type:    vzapi.UpgradeFailed,
+						Message: "Upgrade failed generation:2",
 					},
 				},
 			}
@@ -460,6 +480,7 @@ func TestUpgradeCompleted(t *testing.T) {
 
 	// Inject a fake cmd runner to the real helm is not called
 	helm.SetCmdRunner(goodRunner{})
+	component.UpgradePrehooksEnabled = false
 
 	// Create and make the request
 	request := newRequest(namespace, name)
