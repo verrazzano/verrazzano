@@ -391,12 +391,12 @@ pipeline {
             parallel {
                 stage('verify-install') {
                     steps {
-                        runGinkgoRandomize('verify-install/...')
+                        runGinkgoRandomize('verify-install')
                     }
                 }
                 stage('verify-infra') {
                     steps {
-                        runGinkgoRandomize('verify-infra/...')
+                        runGinkgoRandomize('verify-infra')
                     }
                 }
             }
