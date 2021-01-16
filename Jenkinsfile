@@ -440,7 +440,7 @@ pipeline {
 def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
-            cd ${WORKSPACE}/verrazzano-acceptance-test-suite
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor ${testSuitePath}/...
         """
     }
