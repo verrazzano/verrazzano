@@ -9,7 +9,7 @@ import (
 	"net/http"
 
 	"github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/util"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
@@ -53,7 +53,7 @@ const TypeDocker = "docker-registry"
 var GenericSecretName = "testsecret-1" + uniq
 var DockerSecretName = "testsecret-2" + uniq
 
-var genericSecret Secret = Secret{
+var genericSecret = Secret{
 	Id:        "",
 	Cluster:   "local",
 	Type:      TypeGeneric,
@@ -67,7 +67,7 @@ var genericSecret Secret = Secret{
 	DockerRegistry: DockerRegistry{},
 }
 
-var genericSecretPatch Secret = Secret{
+var genericSecretPatch = Secret{
 	Id:        "",
 	Cluster:   "local",
 	Type:      TypeGeneric,
@@ -81,7 +81,7 @@ var genericSecretPatch Secret = Secret{
 	DockerRegistry: DockerRegistry{},
 }
 
-var dockerSecret Secret = Secret{
+var dockerSecret = Secret{
 	Id:        "",
 	Cluster:   "local",
 	Type:      TypeDocker,
@@ -97,7 +97,7 @@ var dockerSecret Secret = Secret{
 	},
 }
 
-var dockerSecretPatch Secret = Secret{
+var dockerSecretPatch = Secret{
 	Id:        "",
 	Cluster:   "local",
 	Type:      TypeDocker,
@@ -135,9 +135,9 @@ var _ = ginkgo.Describe("Secrets", func() {
 					var secrets []Secret
 					resp, err := api.GetSecrets()
 					util.ExpectHttpOk(resp, err, "Error calling Get Secrets REST API")
-					Expect(resp.BodyErr).To(BeNil(), "Error reading HTTP response body")
+					gomega.Expect(resp.BodyErr).To(gomega.BeNil(), "Error reading HTTP response body")
 					err = json.Unmarshal(resp.Body, &secrets)
-					Expect(err).To(BeNil(), "Error decoding HTTP JSON response %v", resp.Body)
+					gomega.Expect(err).To(gomega.BeNil(), "Error decoding HTTP JSON response %v", resp.Body)
 				})
 		})
 	ginkgo.Context("generic type",
@@ -215,14 +215,14 @@ var _ = ginkgo.Describe("Secrets", func() {
 
 // Check if the secret data returned from the server matches the expected values
 func expectSecretMatch(kSecret *v1.Secret, secret Secret) {
-	Expect(kSecret.Name).To(Equal(secret.Name))
+	gomega.Expect(kSecret.Name).To(gomega.Equal(secret.Name))
 	switch secret.Type {
 	case TypeGeneric:
-		Expect(secret.Data).To(HaveLen(len(kSecret.Data)), "The generic data size doesn't match")
+		gomega.Expect(secret.Data).To(gomega.HaveLen(len(kSecret.Data)), "The generic data size doesn't match")
 		for _, data := range secret.Data {
 			kDataVal, ok := kSecret.Data[data.Name]
-			Expect(ok).To(BeTrue(), "Generic key data missing map entry")
-			Expect(data.Value).To(Equal(string(kDataVal)), "Generic key data doesn't match")
+			gomega.Expect(ok).To(gomega.BeTrue(), "Generic key data missing map entry")
+			gomega.Expect(data.Value).To(gomega.Equal(string(kDataVal)), "Generic key data doesn't match")
 		}
 
 	case TypeDocker:
@@ -234,7 +234,7 @@ func expectSecretMatch(kSecret *v1.Secret, secret Secret) {
 			secret.DockerRegistry.Email)
 
 		kData := string((kSecret.Data)[".dockerconfigjson"])
-		Expect(dockerData).To(Equal(kData), "The docker data doesn't match")
+		gomega.Expect(dockerData).To(gomega.Equal(kData), "The docker data doesn't match")
 
 	default:
 		ginkgo.Fail("Invalid secret type returned from REST API " + secret.Type)
@@ -243,7 +243,7 @@ func expectSecretMatch(kSecret *v1.Secret, secret Secret) {
 
 // Get UID match and fail on error conditions
 func expectUID(uid string) {
-	Expect(uid).To(Not(BeEmpty()), "Skipping test since UID is invalid")
+	gomega.Expect(uid).To(gomega.Not(gomega.BeEmpty()), "Skipping test since UID is invalid")
 }
 
 // submit HTTP POST request and fail on error conditions
@@ -252,7 +252,7 @@ func expectCreateSecret(name string, payload string) (*v1.Secret, string, error)
 	util.ExpectHttpOk(resp, err, "Error calling CREATE REST API")
 
 	kSecret := util.GetSecret(DefaultNamespace, name)
-	Expect(err).To(BeNil(), "Error getting secret "+name)
+	gomega.Expect(kSecret).NotTo(gomega.BeNil(), "Error getting secret "+name)
 	return kSecret, string(kSecret.UID), nil
 }
 
@@ -267,7 +267,7 @@ func expectDeleteSecret(id string, name string) error {
 	util.ExpectHttpOk(resp, err, "Error calling DELETE REST API")
 
 	secret := util.GetSecret(DefaultNamespace, name)
-	if err == nil && secret != nil {
+	if secret != nil {
 		ginkgo.Fail(fmt.Sprintf("Secret %s still exists, should have been deleted", name))
 	}
 	return nil
