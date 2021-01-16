@@ -38,14 +38,15 @@ function install_mysql {
     kubectl create namespace ${KEYCLOAK_NS}
   fi
 
-  log "Update MySQL configuration template"
-  sed -e "s|MYSQL_IMAGE_TAG|${MYSQL_IMAGE_TAG}|g" \
-      -e "s|MYSQL_IMAGE|${MYSQL_IMAGE}|g" \
-      -e "s|MYSQL_USERNAME|${MYSQL_USERNAME}|g" \
-      $SCRIPT_DIR/config/mysql-values-template.yaml > ${TMP_DIR}/mysql-values-sed.yaml
-
-  # Handle any additional MySQL install args
+  # Handle any additional MySQL install args that cannot be in mysql-values.yaml
   local EXTRA_MYSQL_ARGUMENTS=$(get_mysql_helm_args_from_config)
+  EXTRA_MYSQL_ARGUMENTS="$EXTRA_MYSQL_ARGUMENTS --set mysqlUser=${MYSQL_USERNAME}"
+
+  echo "CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;" > ${TMP_DIR}/create-db.sql
+  echo "USE keycloak;" >> ${TMP_DIR}/create-db.sql
+  echo "GRANT ALL ON keycloak.* TO '${MYSQL_USERNAME}'@'%';" >> ${TMP_DIR}/create-db.sql
+  echo "FLUSH PRIVILEGES;" >> ${TMP_DIR}/create-db.sql
+  EXTRA_MYSQL_ARGUMENTS="$EXTRA_MYSQL_ARGUMENTS --set-file initializationFiles.create-db=${TMP_DIR}/create-db.sql"
 
   log "Install MySQL helm chart"
   helm upgrade mysql ${MYSQL_CHART_DIR} \
@@ -53,8 +54,8 @@ function install_mysql {
       --namespace ${KEYCLOAK_NS} \
       --timeout 10m \
       --wait \
-      ${EXTRA_MYSQL_ARGUMENTS} \
-      -f ${TMP_DIR}/mysql-values-sed.yaml
+      -f $SCRIPT_DIR/components/mysql-values.yaml \
+      ${EXTRA_MYSQL_ARGUMENTS}
 }
 
 function install_keycloak {
