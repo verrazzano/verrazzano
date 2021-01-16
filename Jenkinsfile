@@ -394,9 +394,9 @@ pipeline {
                         runGinkgoRandomize('verify-install')
                     }
                 }
-                stage('verify-infra') {
+                stage('restapi') {
                     steps {
-                        runGinkgoRandomize('verify-infra')
+                        runGinkgo('verify-infra/restapi')
                     }
                 }
             }
@@ -446,6 +446,14 @@ def runGinkgoRandomize(testSuitePath) {
     }
 }
 
+def runGinkgo(testSuitePath) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
+        """
+    }
+}
 
 
 def dumpVerrazzanoSystemPods() {
