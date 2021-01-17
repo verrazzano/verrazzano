@@ -4,8 +4,9 @@
 package component
 
 import (
-	"github.com/verrazzano/verrazzano/operator/internal/config"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/operator/internal/config"
 )
 
 // GetComponents returns the list of components that are installable and upgradeable.
@@ -14,7 +15,14 @@ func GetComponents() []Component {
 	componentDir := filepath.Join(config.Get().VerrazzanoInstallDir, "components")
 
 	return []Component{
-		Verrazzano{},
+		helmComponent{
+			releaseName:             "istio",
+			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "istio"),
+			chartNamespace:          "istio-system",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(componentDir, "istio-values.yaml"),
+			preUpgradeFunc:          PreUpgrade,
+		},
 		Nginx{},
 		helmComponent{
 			releaseName:             "cert-manager",
@@ -31,26 +39,26 @@ func GetComponents() []Component {
 			valuesFile:              filepath.Join(componentDir, "external-dns-values.yaml"),
 		},
 		helmComponent{
-			releaseName:             "keycloak",
-			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "keycloak"),
-			chartNamespace:          "keycloak",
-			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(componentDir, "keycloak-values.yaml"),
-		},
-		helmComponent{
 			releaseName:             "rancher",
 			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "rancher"),
 			chartNamespace:          "cattle-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(componentDir, "rancher-values.yaml"),
 		},
+		Verrazzano{},
 		helmComponent{
-			releaseName:             "istio",
-			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "istio"),
-			chartNamespace:          "istio-system",
+			releaseName:             "mysql",
+			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "mysql"),
+			chartNamespace:          "mysql",
 			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(componentDir, "istio-values.yaml"),
-			preUpgradeFunc:          PreUpgrade,
+			valuesFile:              filepath.Join(componentDir, "keycloak-values.yaml"),
+		},
+		helmComponent{
+			releaseName:             "keycloak",
+			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "keycloak"),
+			chartNamespace:          "keycloak",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(componentDir, "keycloak-values.yaml"),
 		},
 	}
 }
