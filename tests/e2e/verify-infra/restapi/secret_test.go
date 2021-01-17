@@ -253,7 +253,7 @@ func expectCreateSecret(name string, payload string) (*v1.Secret, string, error)
 	util.ExpectHttpOk(resp, err, "Error calling CREATE REST API")
 
 	kSecret, err := util.GetSecret(DefaultNamespace, name)
-	gomega.Expect(err).NotTo(gomega.BeNil(), "Error getting secret "+name)
+	gomega.Expect(err).To(gomega.BeNil(), "Error getting secret "+name)
 	return kSecret, string(kSecret.UID), nil
 }
 
