@@ -12,6 +12,7 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/util"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/uuid"
 )
 
@@ -153,7 +154,7 @@ var _ = ginkgo.Describe("Secrets", func() {
 					expectUID(curUID)
 					resp, err := expectPatchSecret(curUID, jsonGenericSecretPatch)
 					util.ExpectHttpOk(resp, err, "Error calling PATCH Secrets REST API")
-					kSecret := util.GetSecret(DefaultNamespace, GenericSecretName)
+					kSecret, _ := util.GetSecret(DefaultNamespace, GenericSecretName)
 					expectSecretMatch(kSecret, genericSecretPatch)
 				})
 			ginkgo.It("then deleted ",
@@ -175,7 +176,7 @@ var _ = ginkgo.Describe("Secrets", func() {
 					expectUID(curUID)
 					resp, err := expectPatchSecret(curUID, jsonDockerSecretPatch)
 					util.ExpectHttpOk(resp, err, "Error calling PATCH Secrets REST API")
-					kSecret := util.GetSecret(DefaultNamespace, DockerSecretName)
+					kSecret, _ := util.GetSecret(DefaultNamespace, DockerSecretName)
 					expectSecretMatch(kSecret, dockerSecretPatch)
 				})
 			ginkgo.It("then deleted ",
@@ -251,8 +252,8 @@ func expectCreateSecret(name string, payload string) (*v1.Secret, string, error)
 	resp, err := api.CreateSecret(payload)
 	util.ExpectHttpOk(resp, err, "Error calling CREATE REST API")
 
-	kSecret := util.GetSecret(DefaultNamespace, name)
-	gomega.Expect(kSecret).NotTo(gomega.BeNil(), "Error getting secret "+name)
+	kSecret, err := util.GetSecret(DefaultNamespace, name)
+	gomega.Expect(err).NotTo(gomega.BeNil(), "Error getting secret "+name)
 	return kSecret, string(kSecret.UID), nil
 }
 
@@ -266,8 +267,8 @@ func expectDeleteSecret(id string, name string) error {
 	resp, err := api.DeleteSecret(id)
 	util.ExpectHttpOk(resp, err, "Error calling DELETE REST API")
 
-	secret := util.GetSecret(DefaultNamespace, name)
-	if secret != nil {
+	_, err = util.GetSecret(DefaultNamespace, name)
+	if !errors.IsNotFound(err) {
 		ginkgo.Fail(fmt.Sprintf("Secret %s still exists, should have been deleted", name))
 	}
 	return nil

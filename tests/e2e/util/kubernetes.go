@@ -156,7 +156,7 @@ func ListSecrets(namespace string) *corev1.SecretList {
 }
 
 // GetSecret returns the a secret in a given namespace for the cluster
-func GetSecret(namespace string, name string) *corev1.Secret {
+func GetSecret(namespace string, name string) (*corev1.Secret, error) {
 	// Get the kubernetes clientset
 	clientset := GetKubernetesClientset()
 
@@ -164,7 +164,7 @@ func GetSecret(namespace string, name string) *corev1.Secret {
 	if err != nil && !errors.IsNotFound(err) {
 		ginkgo.Fail(fmt.Sprintf("Failed to get secrets %s in namespace %s with error: %v", name, namespace, err))
 	}
-	return secret
+	return secret, err
 }
 
 // DoesPodExist returns whether a pod with the given name and namespace exists for the cluster
