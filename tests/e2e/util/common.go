@@ -14,7 +14,7 @@ import (
 
 // GetVerrazzanoPassword returns the password credential for the verrazzano secret
 func GetVerrazzanoPassword() string {
-	secret := GetSecret("verrazzano-system", "verrazzano")
+	secret, _ := GetSecret("verrazzano-system", "verrazzano")
 	return string(secret.Data["password"])
 }
 
