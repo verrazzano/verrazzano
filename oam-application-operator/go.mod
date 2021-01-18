@@ -26,5 +26,4 @@ require (
 )
 
 replace gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
-
 replace k8s.io/client-go => k8s.io/client-go v0.18.6
