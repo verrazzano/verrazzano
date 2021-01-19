@@ -50,9 +50,9 @@ func GetComponents() []Component {
 		helmComponent{
 			releaseName:             "mysql",
 			chartDir:                filepath.Join(thirdpartyDir, "mysql"),
-			chartNamespace:          "mysql",
+			chartNamespace:          "keycloak",
 			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(componentDir, "keycloak-values.yaml"),
+			valuesFile:              filepath.Join(componentDir, "mysql-values.yaml"),
 		},
 		helmComponent{
 			releaseName:             "keycloak",
