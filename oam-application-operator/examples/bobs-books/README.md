@@ -114,7 +114,9 @@ Alternatively, you can specify the credentials in environment variables: `GHCR_U
       Then, you can use a browser to access each of the applications as shown below:
 
       a. Robert's Books UI at `http://<your-roberts-books-host.your.domain>/`
+
       b. Bobby's Books UI at `http://<your-bobbys-books-host.your.domain>/bobbys-front-end`
+
       a. Bob's order manager UI at `http://<your-bobs-orders-host.your.domain>/`
 
 ### Robert's Books Application Details
