@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"github.com/onsi/ginkgo"
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	vmoclient "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apixv1beta1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
@@ -167,6 +169,18 @@ func GetSecret(namespace string, name string) (*corev1.Secret, error) {
 	return secret, err
 }
 
+// GetVerrazzanoMonitoringInstance returns the a Verrazzano monitoring instance in a given namespace for the cluster
+func GetVerrazzanoMonitoringInstance(namespace string, name string) (*vmov1.VerrazzanoMonitoringInstance, error) {
+	// Get the kubernetes clientset
+	clientset := GetVMOClientset()
+
+	vmi, err := clientset.VerrazzanoV1().VerrazzanoMonitoringInstances(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		ginkgo.Fail(fmt.Sprintf("Failed to get Verrazzano monitoring instance %s in namespace %s with error: %v", name, namespace, err))
+	}
+	return vmi, err
+}
+
 // DoesPodExist returns whether a pod with the given name and namespace exists for the cluster
 func DoesPodExist(namespace string, name string) bool {
 	pods := ListPods(namespace)
@@ -187,6 +201,20 @@ func GetKubernetesClientset() *kubernetes.Clientset {
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		ginkgo.Fail("Could not get Kubernetes clientset")
+	}
+
+	return clientset
+}
+
+// GetVMOClientset returns the Kubernetes clienset for the Verrazzano Monitoring Operator
+func GetVMOClientset() *vmoclient.Clientset {
+	// use the current context in the kubeconfig
+	config := GetKubeConfig()
+
+	// create the clientset once and cache it
+	clientset, err := vmoclient.NewForConfig(config)
+	if err != nil {
+		ginkgo.Fail("Could not get Verrazzano Monitoring Operator clientset")
 	}
 
 	return clientset
