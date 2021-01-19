@@ -24,7 +24,7 @@ spec:
             spec:
               rules:
                 - hosts:
-                    - "roberts-books.verrazzano.io"
+                    - "roberts-books.example.com"
                   paths:
                     - path: "/"
                       pathType: Prefix
