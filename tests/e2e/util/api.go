@@ -75,6 +75,16 @@ func (api *ApiEndpoint) get(path string) (*HttpResponse, error) {
 	return api.request("GET", url, nil)
 }
 
+// Get
+func (api *ApiEndpoint) Get() (*HttpResponse, error) {
+	return api.get("")
+}
+
+// Get Instance
+func (api *ApiEndpoint) GetInstance() (*HttpResponse, error) {
+	return api.get("instance")
+}
+
 func (api *ApiEndpoint) request(method, url string, body io.Reader) (*HttpResponse, error) {
 	req, _ := retryablehttp.NewRequest(method, url, body)
 	if api.AccessToken != "" {
