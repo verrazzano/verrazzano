@@ -98,7 +98,7 @@ Alternatively, you can specify the credentials in environment variables: `GHCR_U
     ```
 
 1. Access the applications. To access the applications in a browser, you will need to do one of the following:
-    * **Option 1:** Temporarily modify the `/etc/hosts` file (on Mac or Linux) or `c:\Windows\System32\Drivers\etc\hosts` (on Windows 10), to add entries mapping the hosts used by the applications to the external IP address assigned to your gateway. For example:
+    * **Option 1:** Temporarily modify the `/etc/hosts` file (on Mac or Linux) or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10), to add entries mapping the hosts used by the applications to the external IP address assigned to your gateway. For example:
       ```
       11.22.33.44 roberts-books.example.com
       11.22.33.44 bobbys-books.example.com
@@ -110,8 +110,9 @@ Alternatively, you can specify the credentials in environment variables: `GHCR_U
 
       c. Navigate to the Bob's order manager  UI at `http://bobs-orders.example.com/bobs-bookstore-order-manager/orders`.
 
-    * **Option 2:** Alternatively, you can point your own DNS name to the Load Balancer's external IP address. In this case, you would need to have edited the `bobs-books-app.yaml` file to use the appropriate values under the `hosts` section for each app (such as `application-host.your.domain`, etc.), before deploying the applications.
-      You can then use a browser to access each of the applications as shown below:
+    * **Option 2:** Alternatively, point your own DNS name to the load balancer's external IP address. In this case, you would need to have edited the `bobs-books-app.yaml` file to use the appropriate values under the `hosts` section for each application (such as `application-host.your.domain`), before deploying the applications.
+      Then, you can use a browser to access each of the applications as shown below:
+
       a. Robert's Books UI at `http://<your-roberts-books-host.your.domain>/`
       b. Bobby's Books UI at `http://<your-bobbys-books-host.your.domain>/bobbys-front-end`
       a. Bob's order manager UI at `http://<your-bobs-orders-host.your.domain>/`
