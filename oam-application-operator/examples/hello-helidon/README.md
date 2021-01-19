@@ -46,7 +46,7 @@ The Helidon example installation script does the following:
     ```
 1. Use `curl` to make a request to the service.
     ```
-    curl -H "Host: hello-helidon.verrazzano.io" http://<public ip address>/greet
+    curl -H "Host: hello-helidon.example.com" http://<public ip address>/greet
     ```
 
 # Uninstall the Example

@@ -94,17 +94,17 @@ To-Do List is a demo application which contains a WebLogic component and an Ingr
    ```
    kubectl get service istio-ingressgateway -n istio-system
    NAME                   TYPE           CLUSTER-IP     EXTERNAL-IP       PORT(S)                      AGE
-   istio-ingressgateway   LoadBalancer   10.96.192.18   129.146.199.184   80:31380/TCP,443:31390/TCP   13d
+   istio-ingressgateway   LoadBalancer   10.96.97.98   11.22.33.44   80:31380/TCP,443:31390/TCP   13d
    ```   
 
 1. Access the To-Do example application.
-   The application is deployed by default with a host value of `todo.verrazzano.io`.  There are several ways to access it:
-   * **Using the Command Line:** `curl -v -H "Host: todo.verrazzano.io" http://129.146.199.184/todo/`
-   * **Local Testing with a Browser:** Temporarily modify the `/etc/hosts` file (on Mac or Linux) or `c:\Windows\System32\Drivers\etc\hosts` (on Windows 10), to add an entry mapping `todo.verrazzano.io` to the the ingress gateway's external IP address. For example:
+   The application is deployed by default with a host value of `todo.example.com`.  There are several ways to access it:
+   * **Using the Command Line:** `curl -v -H "Host: todo.example.com" http://11.22.33.44/todo/`
+   * **Local Testing with a Browser:** Temporarily modify the `/etc/hosts` file (on Mac or Linux) or `c:\Windows\System32\Drivers\etc\hosts` (on Windows 10), to add an entry mapping `todo.example.com` to the the ingress gateway's external IP address. For example:
        ```
-       129.146.199.184 todo.verrazzano.io
+       11.22.33.44 todo.example.com
        ```
-       You can then access the application in a browser at `http://todo.verrazzano.io/todo`
+       You can then access the application in a browser at `http://todo.example.com/todo`
    * **Using your own DNS Name:**
      * Point your own DNS name to the ingress gateway's external IP address
      * In this case, you would need to have edited the `todo-app.yaml` file to use the appropriate value under the `hosts` section (such as `yourhost.your.domain`), before deploying the To-Do application. 

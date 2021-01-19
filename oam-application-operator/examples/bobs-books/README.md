@@ -94,21 +94,21 @@ Alternatively, you can specify the credentials in environment variables: `GHCR_U
     ```
     kubectl get service -n "istio-system" "istio-ingressgateway" -o jsonpath={.status.loadBalancer.ingress[0].ip}
 
-    129.146.194.248
+    11.22.33.44
     ```
 
 1. Access the applications. To access the applications in a browser, you will need to do one of the following:
     * **Option 1:** Temporarily modify the `/etc/hosts` file (on Mac or Linux) or `c:\Windows\System32\Drivers\etc\hosts` (on Windows 10), to add entries mapping the hosts used by the applications to the external IP address assigned to your gateway. For example:
       ```
-      129.146.194.248 roberts-books.verrazzano.io
-      129.146.194.248 bobbys-books.verrazzano.io
-      129.146.194.248 bobs-orders.verrazzano.io
+      11.22.33.44 roberts-books.example.com
+      11.22.33.44 bobbys-books.example.com
+      11.22.33.44 bobs-orders.example.com
       ```
-      a. Open a browser and navigate to the Robert's Books UI at `http://roberts-books.verrazzano.io/`.
+      a. Open a browser and navigate to the Robert's Books UI at `http://roberts-books.example.com/`.
 
-      b. Navigate to the Bobby's Books UI at `http://bobbys-books.verrazzano.io/bobbys-front-end`.
+      b. Navigate to the Bobby's Books UI at `http://bobbys-books.example.com/bobbys-front-end`.
 
-      c. Navigate to the Bob's order manager  UI at `http://bobs-orders.verrazzano.io/bobs-bookstore-order-manager/orders`.
+      c. Navigate to the Bob's order manager  UI at `http://bobs-orders.example.com/bobs-bookstore-order-manager/orders`.
 
     * **Option 2:** Alternatively, you can point your own DNS name to the Load Balancer's external IP address. In this case, you would need to have edited the `bobs-books-app.yaml` file to use the appropriate values under the `hosts` section for each app (such as `application-host.your.domain`, etc.), before deploying the applications.
       You can then use a browser to access each of the applications as shown below:
