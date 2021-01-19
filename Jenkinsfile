@@ -47,8 +47,8 @@ pipeline {
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
         DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
-        DOCKER_OAM_CI_IMAGE_NAME = 'verrazzano-oam-operator-jenkins'
-        DOCKER_OAM_PUBLISH_IMAGE_NAME = 'verrazzano-oam-operator'
+        DOCKER_OAM_CI_IMAGE_NAME = 'verrazzano-application-operator-jenkins'
+        DOCKER_OAM_PUBLISH_IMAGE_NAME = 'verrazzano-application-operator'
         DOCKER_OAM_IMAGE_NAME = "${env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'master' ? env.DOCKER_OAM_PUBLISH_IMAGE_NAME : env.DOCKER_OAM_CI_IMAGE_NAME}"
         CREATE_LATEST_TAG = "${env.BRANCH_NAME == 'master' ? '1' : '0'}"
         GOPATH = '/home/opc/go'
