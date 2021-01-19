@@ -25,7 +25,7 @@ spec:
             spec:
               rules:
                 - hosts:
-                    - "*"
+                    - "hello-helidon.example.com"
                   paths:
                     - path: "/greet"
                       pathType: Prefix
