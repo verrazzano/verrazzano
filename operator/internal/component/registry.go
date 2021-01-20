@@ -18,10 +18,10 @@ func GetComponents() []Component {
 		Verrazzano{},
 		helmComponent{
 			releaseName:             "verrazzano-application-operator",
-			chartDir:                filepath.Join(helmConfigDir, "charts/application-operator"),
+			chartDir:                filepath.Join(helmConfigDir, "charts/verrazzano-application-operator"),
 			chartNamespace:          "verrazzano-system",
 			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(helmConfigDir, "overrides/application-operator"),
+			valuesFile:              filepath.Join(helmConfigDir, "overrides/verrazzano-application-operator.yaml"),
 		},
 		Nginx{},
 		helmComponent{
