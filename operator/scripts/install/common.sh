@@ -10,6 +10,8 @@ SCRIPT_DIR=${SCRIPT_DIR:-$(cd $(dirname ${BASH_SOURCE[${#BASH_SOURCE[@]} - 1]});
 # The directory where any generated artifacts should be stored.
 BUILD_DIR="${SCRIPT_DIR}/build"
 CHARTS_DIR=$(cd $SOURCE_DIR/../../../thirdparty/charts; pwd -P)
+HELM_CONFIG_DIR=$(cd $SOURCE_DIR/../../../helm_config; pwd -P)
+
 MANIFESTS_DIR=$(cd $SOURCE_DIR/../../../thirdparty/manifests; pwd -P)
 
 . ${SOURCE_DIR}/logging.sh

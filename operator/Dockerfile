@@ -3,6 +3,8 @@
 
 FROM ghcr.io/oracle/oraclelinux:7-slim AS build_base
 
+ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
+
 # Need to use specific WORKDIR to match verrazzano's source packages
 WORKDIR /root/go/src/github.com/verrazzano/verrazzano/operator
 COPY . .
@@ -42,6 +44,10 @@ COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/ver
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/scripts/uninstall ./operator/scripts/uninstall
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/config/scripts/run.sh .
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/config/scripts/kubeconfig-template ./config/kubeconfig-template
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/helm_config ./helm_config
+
+# Update the Verrazzano application operator image name in the chart override file
+sed -i"" -e "s|image:|image: ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}|g" /verrazzano/helm_config/overrides/application-operator-values.yaml
 
 # Update the Istio charts, replacing kubectl with istio_kubectl
 RUN find /verrazzano/thirdparty/charts/istio -type f -name "*.yaml" | xargs sed -i"" "s|/kubectl:|/istio_kubectl:|g"
