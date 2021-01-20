@@ -11,6 +11,7 @@ set -u
 
 KEYCLOAK_NS=keycloak
 KCADMIN_USERNAME=keycloakadmin
+KCADMIN_SECRET=keycloak-http
 MYSQL_USERNAME=keycloak
 VERRAZZANO_NS=verrazzano-system
 VZ_SYS_REALM=verrazzano-system
@@ -76,6 +77,18 @@ function install_keycloak {
       -n ${KEYCLOAK_NS} \
       --from-file=realm.json=${TMP_DIR}/keycloak-sed.json
 
+  # Create a random secret for the keycloakadmin user
+  kubectl apply -f <(echo "
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ${KCADMIN_SECRET}
+  namespace: ${KEYCLOAK_NS}
+type: Opaque
+data:
+  password: $(cat /dev/urandom | tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1 | base64)
+")
+
   # Check if using the optional imagePullSecret
   local KEYCLOAK_ARGUMENTS=""
   if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
@@ -113,7 +126,7 @@ function install_keycloak {
     -n ${KEYCLOAK_NS} \
     -c keycloak \
     -- bash -c \
-    "/opt/jboss/keycloak/bin/kcadm.sh update realms/master -s loginTheme=oracle --no-config --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --password \$(cat /etc/keycloak-http/password)"
+    "/opt/jboss/keycloak/bin/kcadm.sh update realms/master -s loginTheme=oracle --no-config --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --password \$(cat /etc/${KCADMIN_SECRET}/password)"
 
   # Wait for TLS cert from Cert Manager to go into a ready state
   kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
@@ -156,7 +169,7 @@ consoleout "Password: kubectl get secret --namespace cattle-system rancher-admin
 consoleout
 consoleout "Keycloak - https://keycloak.${ENV_NAME}.${DNS_SUFFIX}"
 consoleout "User: keycloakadmin"
-consoleout "Password: kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo"
+consoleout "Password: kubectl get secret --namespace keycloak ${KCADMIN_SECRET} -o jsonpath={.data.password} | base64 --decode; echo"
 if [ $(get_application_ingress_ip) == "null" ];
 then
   consoleout
