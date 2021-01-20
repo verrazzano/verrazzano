@@ -13,7 +13,7 @@ OCR_PASS="${4:-$OCR_PASS}"
 GHCR_SERVER="ghcr.io"
 OCR_SERVER="container-registry.oracle.com"
 NAMESPACE="bobs-books"
-NAMESPACE_LABEL="verrazzano-domain"
+NAMESPACE_LABEL="verrazzano-managed"
 GHCR_SECRET="github-packages"
 OCR_SECRET="ocr"
 

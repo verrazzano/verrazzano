@@ -249,7 +249,7 @@ function install_weblogic_operator {
     --set image="${WEBLOGIC_OPERATOR_IMAGE_REPO}:${WEBLOGIC_OPERATOR_IMAGE_TAG}" \
     --set serviceAccount=weblogic-operator-sa \
     --set domainNamespaceSelectionStrategy=LabelSelector \
-    --set domainNamespaceLabelSelector=verrazzano-domain \
+    --set domainNamespaceLabelSelector=verrazzano-managed \
     --set enableClusterRoleBinding=true \
     || return $?
   if [ $? -ne 0 ]; then

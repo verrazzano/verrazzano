@@ -28,10 +28,10 @@ Alternatively, you can specify the credentials in environment variables: `GHCR_U
 
 ## Detailed Steps Description
 
-1. Create the namespace and apply the `verrazzano-domain` label.
+1. Create the namespace and apply the `verrazzano-managed` label.
     ```
     kubectl create namespace bobs-books
-    kubectl label namespaces bobs-books verrazzano-domain=true
+    kubectl label namespaces bobs-books verrazzano-managed=true
     ```
 
 1. Create a secret for the Oracle Container Registry using your credentials.

@@ -11,7 +11,7 @@ ToDo List is a demo application which contains a WebLogic component and an Ingre
 1. Create a namespace for the ToDo example.  Mark it as a domain namespace for the WebLogic operator that was deployed in the verrazzano-application-operator install above.
    ```
    kubectl create namespace todo
-   kubectl label namespace todo verrazzano-domain=true
+   kubectl label namespace todo verrazzano-managed=true
    ```
 
 1. Create a `docker-registry` secret to enable pulling the ToDo example image.
