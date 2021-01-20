@@ -166,10 +166,10 @@ docker-push: docker-build
 	docker tag ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 	docker push ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 
-	if [ "${CREATE_LATEST_TAG}" == "1" ]; then \
-		docker tag ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} ${DOCKER_IMAGE_FULLNAME}:latest; \
-		docker push ${DOCKER_IMAGE_FULLNAME}:latest; \
-	fi
+ifeq ($(CREATE_LATEST_TAG), "1")
+	docker tag ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} ${DOCKER_IMAGE_FULLNAME}:latest;
+	docker push ${DOCKER_IMAGE_FULLNAME}:latest;
+endif
 
 #
 # Test-related tasks
