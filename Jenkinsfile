@@ -193,11 +193,11 @@ pipeline {
         stage('Third Party License Check') {
             when { not { buildingTag() } }
             steps {
-                dir('operator'){
+                dir('platform-operator'){
                     echo "In Operator"
                     thirdpartyCheck()
                 }
-                dir('oam-application-operator'){
+                dir('application-operator'){
                     echo "In OAM Operator"
                     thirdpartyCheck()
                 }
