@@ -96,7 +96,7 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > deploy/operator.yaml
                     cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
                     cat deploy/operator.yaml
@@ -113,7 +113,7 @@ pipeline {
             }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
                     git config --global user.name $DOCKER_CREDS_USR
                     git config --global user.email "${DOCKER_EMAIL}"
@@ -146,9 +146,9 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     make go-fmt
-                    cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
+                    cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make go-fmt
                 """
             }
@@ -158,9 +158,9 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     make go-vet
-                    cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
+                    cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make go-vet
                 """
             }
@@ -170,9 +170,9 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     make go-lint
-                    cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
+                    cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make go-lint
                 """
             }
@@ -182,9 +182,9 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     make go-ineffassign
-                    cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
+                    cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make go-ineffassign
                 """
             }
@@ -215,13 +215,13 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     make unit-test
                     make -B coverage
                     cp coverage.html ${WORKSPACE}
                     cp coverage.xml ${WORKSPACE}
                     build/scripts/copy-junit-output.sh ${WORKSPACE}
-                    cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
+                    cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make unit-test
                     make -B coverage
                 """
@@ -270,10 +270,10 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano/operator
+                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     build/scripts/copy-junit-output.sh ${WORKSPACE}
-                    cd ${GO_REPO_PATH}/verrazzano/oam-application-operator
+                    cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     build/scripts/copy-junit-output.sh ${WORKSPACE}
                 """
