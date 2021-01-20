@@ -132,13 +132,22 @@ fi
 echo "Substitute image name template in ${TODO_COMPONENT_FILE} as ${TODO_APP_IMAGE}"
 sed -i '' -e "s|%TODO_APP_IMAGE%|${TODO_APP_IMAGE}|" ${TODO_COMPONENT_FILE}
 
-echo "Apply application configuration."
-kubectl apply -f ${SCRIPT_DIR}/
-code=$?
-if [ ${code} -ne 0 ]; then
-  echo "ERROR: Applying application configuration failed: ${code}. Exiting."
-  exit ${code}
-fi
+applyAttempt=1
+while true; do
+  echo "Apply application configuration. Attempt ${applyAttempt}."
+  if kubectl apply -f ${SCRIPT_DIR}/; then
+    echo "Application configuration applied successfully on attempt ${applyAttempt}."
+    break
+  else
+    echo "ERROR: Applying application configuration failed."
+    if [ ${applyAttempt} -ge 60 ]; then
+      echo "ERROR: Exiting."
+      exit 1
+    fi
+    applyAttempt=$((applyAttempt+1))
+    sleep 20
+  fi
+done
 
 echo "Wait for at least one running workload pod."
 attempt=1
@@ -149,7 +158,7 @@ while true; do
     break
   elif [ ${attempt} -eq 1 ]; then
     echo "No application pods found ready on initial attempt. Retrying after delay."
-  elif [ ${attempt} -ge 60 ]; then
+  elif [ ${attempt} -ge 120 ]; then
     echo "ERROR: No application pod found ready after ${attempt} attempts. Listing pods."
     kubectl get pods -n "${NAMESPACE}"
     echo "ERROR: Exiting."
