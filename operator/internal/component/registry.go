@@ -52,5 +52,12 @@ func GetComponents() []Component {
 			valuesFile:              filepath.Join(componentDir, "istio-values.yaml"),
 			preUpgradeFunc:          PreUpgrade,
 		},
+		helmComponent{
+			releaseName:             "coherence-operator",
+			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "coherence-operator"),
+			chartNamespace:          "verrazzano-system",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(componentDir, "coherence-values.yaml"),
+		},
 	}
 }
