@@ -264,7 +264,7 @@ function install_coherence_operator {
   helm upgrade --install --wait coherence-operator \
     ${CHARTS_DIR}/coherence-operator \
     --namespace "${VERRAZZANO_NS}" \
-    --set image="${COHERENCE_OPERATOR_IMAGE_REPO}:${COHERENCE_OPERATOR_IMAGE_TAG}" \
+    -f $SCRIPT_DIR/components/coherence-values.yaml \
     || return $?
   if [ $? -ne 0 ]; then
     error "Failed to install the Coherence Kubernetes operator."

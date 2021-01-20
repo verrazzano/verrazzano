@@ -94,16 +94,30 @@ Alternatively, you can specify the credentials in environment variables: `GHCR_U
     ```
     kubectl get service -n "istio-system" "istio-ingressgateway" -o jsonpath={.status.loadBalancer.ingress[0].ip}
 
-    129.146.194.248
+    11.22.33.44
     ```
 
-1. Access the applications. In the following examples, replace the IP address with the external IP address assigned to your gateway.
+1. Access the applications. To access the applications in a browser, you will need to do one of the following:
+    * **Option 1:** Temporarily modify the `/etc/hosts` file (on Mac or Linux) or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10), to add entries mapping the hosts used by the applications to the external IP address assigned to your gateway. For example:
+      ```
+      11.22.33.44 roberts-books.example.com
+      11.22.33.44 bobbys-books.example.com
+      11.22.33.44 bobs-orders.example.com
+      ```
+      a. Open a browser and navigate to the Robert's Books UI at `http://roberts-books.example.com/`.
 
-    a. Open a browser and navigate to the Robert's Books UI at `http://129.146.194.248/`.
+      b. Navigate to the Bobby's Books UI at `http://bobbys-books.example.com/bobbys-front-end`.
 
-    b. Navigate to the Bobby's Books UI at `http://129.146.194.248/bobbys-front-end`.
+      c. Navigate to the Bob's order manager  UI at `http://bobs-orders.example.com/bobs-bookstore-order-manager/orders`.
 
-    c. Navigate to the Bob's order manager  UI at `http://129.146.194.248/bobs-bookstore-order-manager/orders`.
+    * **Option 2:** Alternatively, point your own DNS name to the load balancer's external IP address. In this case, you would need to have edited the `bobs-books-app.yaml` file to use the appropriate values under the `hosts` section for each application (such as `application-host.your.domain`), before deploying the applications.
+      Then, you can use a browser to access each of the applications as shown below:
+
+      a. Robert's Books UI at `http://<your-roberts-books-host.your.domain>/`
+
+      b. Bobby's Books UI at `http://<your-bobbys-books-host.your.domain>/bobbys-front-end`
+
+      a. Bob's order manager UI at `http://<your-bobs-orders-host.your.domain>/`
 
 ### Robert's Books Application Details
 

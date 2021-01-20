@@ -38,14 +38,15 @@ The Helidon example installation script does the following:
     ```
     The application references the single component and declares an `IngressTrait`.
 
-1. Fetches the public IP of the Istio ingress gateway.
+# Access the Example Application
+1. Get the public IP address of the Istio ingress gateway.
     ```
     kubectl get service -n "istio-system" "istio-ingressgateway" \
     -o jsonpath={.status.loadBalancer.ingress[0].ip}
     ```
-1. Uses `curl` to make a request to the service.
+1. Use `curl` to make a request to the service.
     ```
-    curl -s --connect-timeout 30 --retry 10 --retry-delay 30 -X GET http://<ip>/greet
+    curl -H "Host: hello-helidon.example.com" http://<public ip address>/greet
     ```
 
 # Uninstall the Example

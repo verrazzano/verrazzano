@@ -24,7 +24,7 @@ spec:
             spec:
               rules:
                 - hosts:
-                    - "*"
+                    - "roberts-books.example.com"
                   paths:
                     - path: "/"
                       pathType: Prefix
@@ -50,7 +50,7 @@ spec:
             spec:
               rules:
                 - hosts:
-                    - "*"
+                    - "bobbys-books.example.com"
                   paths:
                     - path: "/bobbys-front-end"
                       pathType: Prefix
@@ -73,7 +73,7 @@ spec:
             spec:
               rules:
                 - hosts:
-                    - "*"
+                    - "bobs-orders.example.com"
                   paths:
                     - path: "/bobs-bookstore-order-manager/orders"
                       pathType: Prefix
