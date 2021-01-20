@@ -12,7 +12,7 @@ import (
 // The components will be processed in the order items in the array
 func GetComponents() []Component {
 	componentDir := filepath.Join(config.Get().VerrazzanoInstallDir, "components")
-	helmConfigDir := filepath.Join(config.Get().HelmConfigDir, "components")
+	helmConfigDir := config.Get().HelmConfigDir
 
 	return []Component{
 		Verrazzano{},
@@ -21,7 +21,7 @@ func GetComponents() []Component {
 			chartDir:                filepath.Join(helmConfigDir, "charts/verrazzano-application-operator"),
 			chartNamespace:          "verrazzano-system",
 			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(helmConfigDir, "overrides/verrazzano-application-operator.yaml"),
+			valuesFile:              filepath.Join(helmConfigDir, "overrides/verrazzano-application-operator-values.yaml"),
 		},
 		Nginx{},
 		helmComponent{
