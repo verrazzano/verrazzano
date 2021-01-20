@@ -19,6 +19,8 @@ RUN chmod 500 /usr/local/bin/verrazzano-platform-operator \
 # Create the verrazzano-platform-operator image
 FROM ghcr.io/oracle/oraclelinux:7-slim
 
+ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
+
 # Install specific versions of device-mapper, device-mapper-libs and dracut as a temporary workaround
 # by default yum tries to install a version that is non-existent on the OEL 7 yum mirrors
 RUN yum update -y \
