@@ -225,7 +225,6 @@ function install_application_operator {
   helm upgrade --install --wait verrazzano-application-operator \
     ${CHARTS_DIR}/oam-application-operator \
     --namespace "${VERRAZZANO_NS}" \
-    --set image="${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}" \
     ${EXTRA_V8O_ARGUMENTS} || return $?
   if [ $? -ne 0 ]; then
     error "Failed to install Verrazzano Kubernetes application operator."

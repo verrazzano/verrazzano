@@ -15,6 +15,13 @@ func GetComponents() []Component {
 
 	return []Component{
 		Verrazzano{},
+		helmComponent{
+			releaseName:             "verrazzano-application-operator",
+			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "oam-application-operator"),
+			chartNamespace:          "verrazzano-system",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(config.Get().ThirdpartyChartsDir, "oam-application-operator"),
+		},
 		Nginx{},
 		helmComponent{
 			releaseName:             "cert-manager",
