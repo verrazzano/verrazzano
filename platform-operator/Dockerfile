@@ -6,7 +6,7 @@ FROM ghcr.io/oracle/oraclelinux:7-slim AS build_base
 ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 
 # Need to use specific WORKDIR to match verrazzano's source packages
-WORKDIR /root/go/src/github.com/verrazzano/verrazzano/operator
+WORKDIR /root/go/src/github.com/verrazzano/verrazzano/platform-operator
 COPY . .
 
 COPY out/linux_amd64/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
@@ -42,18 +42,18 @@ COPY --from=build_base --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-p
 
 # Copy the Verrazzano install and uninstall scripts
 WORKDIR /verrazzano
-COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/thirdparty ./thirdparty
-COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/scripts/install ./operator/scripts/install
-COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/scripts/uninstall ./operator/scripts/uninstall
-COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/config/scripts/run.sh .
-COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/operator/config/scripts/kubeconfig-template ./config/kubeconfig-template
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/thirdparty ./thirdparty
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/scripts/install ./operator/scripts/install
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/scripts/uninstall ./operator/scripts/uninstall
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/config/scripts/run.sh .
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/config/scripts/kubeconfig-template ./config/kubeconfig-template
 
 # Update the Istio charts, replacing kubectl with istio_kubectl
 RUN find /verrazzano/thirdparty/charts/istio -type f -name "*.yaml" | xargs sed -i"" "s|/kubectl:|/istio_kubectl:|g"
 RUN find /verrazzano/thirdparty/charts/istio-init -type f -name "*.yaml" | xargs sed -i"" "s|/kubectl:|/istio_kubectl:|g"
 
 # Copy source tree to image
-COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/operator/THIRD_PARTY_LICENSES.txt /licenses
+COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/platform-operator/THIRD_PARTY_LICENSES.txt /licenses
 
 USER 1000
 
