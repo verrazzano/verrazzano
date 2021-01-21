@@ -40,7 +40,7 @@ pipeline {
                 description: 'Branch or tag of verrazzano acceptance tests, on which to kick off the tests',
                 trim: true
         )
-        booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: false)
+        booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
     }
 
     environment {
@@ -280,6 +280,15 @@ pipeline {
                 always {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
+
+        stage('Skip acceptance tests if commit message contains skip-at') {
+            steps {
+                result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
+                if (result == 0) {
+                    params.RUN_ACCEPTANCE_TESTS = false
                 }
             }
         }
