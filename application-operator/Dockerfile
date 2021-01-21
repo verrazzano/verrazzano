@@ -4,7 +4,7 @@
 FROM ghcr.io/oracle/oraclelinux:7-slim AS build_base
 
 # Need to use specific WORKDIR to match verrazzano-application-operator's source packages
-WORKDIR /root/go/src/github.com/verrazzano/oam-application-operator
+WORKDIR /root/go/src/github.com/verrazzano/application-operator
 COPY . .
 
 COPY out/linux_amd64/verrazzano-application-operator /usr/local/bin/verrazzano-application-operator
@@ -28,7 +28,7 @@ RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 ver
 COPY --from=build_base --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-application-operator /usr/local/bin/verrazzano-application-operator
 
 # Copy source tree to image
-COPY --from=build_base /root/go/src/github.com/verrazzano/oam-application-operator/THIRD_PARTY_LICENSES.txt /licenses
+COPY --from=build_base /root/go/src/github.com/verrazzano/application-operator/THIRD_PARTY_LICENSES.txt /licenses
 
 USER 1000
 

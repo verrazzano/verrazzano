@@ -227,7 +227,7 @@ pipeline {
                 // NEED To See how these files can be merged
                 //                    cp coverage.html ${WORKSPACE}
                 //                    cp coverage.xml ${WORKSPACE}
-                //                    oam-application-operator/build/scripts/copy-junit-output.sh ${WORKSPACE}
+                //                    application-operator/build/scripts/copy-junit-output.sh ${WORKSPACE}
             }
             post {
                 always {

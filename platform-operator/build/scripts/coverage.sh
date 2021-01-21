@@ -5,7 +5,7 @@
 #
 # Code coverage generation
 # Excludes test utility packages and the test directory
-go test -coverprofile ./coverage.raw.cov $(go list ./... | grep -Ev github.com/verrazzano/verrazzano/operator/test)
+go test -coverprofile ./coverage.raw.cov $(go list ./... | grep -Ev github.com/verrazzano/verrazzano/platform-operator/test)
 
 grep -v "zz_generated.deepcopy" ./coverage.raw.cov > coverage.cov
 
