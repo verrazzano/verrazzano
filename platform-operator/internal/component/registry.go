@@ -13,13 +13,13 @@ import (
 // The components will be processed in the order items in the array
 func GetComponents() []Component {
 	overridesDir := filepath.Join(config.Get().HelmConfigDir, "overrides")
-	vzChartDir := filepath.Join(config.Get().HelmConfigDir, "charts")
-	thirdPartyChartDir := filepath.Join(config.Get().ThirdpartyChartsDir, "charts")
+	vzChartsDir := filepath.Join(config.Get().HelmConfigDir, "charts")
+	thirdPartyChartsDir := config.Get().ThirdpartyChartsDir
 
 	return []Component{
 		helmComponent{
 			releaseName:             "istio",
-			chartDir:                filepath.Join(thirdPartyChartDir, "istio"),
+			chartDir:                filepath.Join(thirdPartyChartsDir, "istio"),
 			chartNamespace:          "istio-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
@@ -28,21 +28,21 @@ func GetComponents() []Component {
 		Nginx{},
 		helmComponent{
 			releaseName:             "cert-manager",
-			chartDir:                filepath.Join(thirdPartyChartDir, "cert-manager"),
+			chartDir:                filepath.Join(thirdPartyChartsDir, "cert-manager"),
 			chartNamespace:          "cert-manager",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "cert-manager-values.yaml"),
 		},
 		helmComponent{
 			releaseName:             "external-dns",
-			chartDir:                filepath.Join(thirdPartyChartDir, "external-dns"),
+			chartDir:                filepath.Join(thirdPartyChartsDir, "external-dns"),
 			chartNamespace:          "cert-manager",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "external-dns-values.yaml"),
 		},
 		helmComponent{
 			releaseName:             "rancher",
-			chartDir:                filepath.Join(thirdPartyChartDir, "rancher"),
+			chartDir:                filepath.Join(thirdPartyChartsDir, "rancher"),
 			chartNamespace:          "cattle-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "rancher-values.yaml"),
@@ -50,35 +50,35 @@ func GetComponents() []Component {
 		Verrazzano{},
 		helmComponent{
 			releaseName:             "verrazzano-application-operator",
-			chartDir:                filepath.Join(vzChartDir, "verrazzano-application-operator"),
+			chartDir:                filepath.Join(vzChartsDir, "verrazzano-application-operator"),
 			chartNamespace:          "verrazzano-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "verrazzano-application-operator-values.yaml"),
 		},
 		helmComponent{
 			releaseName:             "coherence-operator",
-			chartDir:                filepath.Join(thirdPartyChartDir, "coherence-operator"),
+			chartDir:                filepath.Join(thirdPartyChartsDir, "coherence-operator"),
 			chartNamespace:          "verrazzano-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "coherence-values.yaml"),
 		},
 		helmComponent{
 			releaseName:             "weblogic-operator",
-			chartDir:                filepath.Join(thirdPartyChartDir, "weblogic-operator"),
+			chartDir:                filepath.Join(thirdPartyChartsDir, "weblogic-operator"),
 			chartNamespace:          "verrazzano-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "weblogic-values.yaml"),
 		},
 		helmComponent{
 			releaseName:             "mysql",
-			chartDir:                filepath.Join(thirdPartyChartDir, "mysql"),
+			chartDir:                filepath.Join(thirdPartyChartsDir, "mysql"),
 			chartNamespace:          "keycloak",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "mysql-values.yaml"),
 		},
 		helmComponent{
 			releaseName:             "keycloak",
-			chartDir:                filepath.Join(thirdPartyChartDir, "keycloak"),
+			chartDir:                filepath.Join(thirdPartyChartsDir, "keycloak"),
 			chartNamespace:          "keycloak",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "keycloak-values.yaml"),
