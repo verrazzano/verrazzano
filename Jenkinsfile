@@ -286,9 +286,11 @@ pipeline {
 
         stage('Skip acceptance tests if commit message contains skip-at') {
             steps {
-                result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
-                if (result == 0) {
-                    params.RUN_ACCEPTANCE_TESTS = false
+                step('Check commit message') {
+                    result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
+                    if (result == 0) {
+                        params.RUN_ACCEPTANCE_TESTS = false
+                    }
                 }
             }
         }
