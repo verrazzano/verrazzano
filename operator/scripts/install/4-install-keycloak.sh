@@ -55,7 +55,7 @@ function install_mysql {
       --namespace ${KEYCLOAK_NS} \
       --timeout 10m \
       --wait \
-      -f $SCRIPT_DIR/components/mysql-values.yaml \
+      -f $HELM_CONFIG_DIR/overrides/mysql-values.yaml \
       ${EXTRA_MYSQL_ARGUMENTS}
 }
 
@@ -118,7 +118,7 @@ data:
   helm upgrade keycloak ${KEYCLOAK_CHART_DIR} \
       --install \
       --namespace ${KEYCLOAK_NS} \
-      -f $SCRIPT_DIR/components/keycloak-values.yaml \
+      -f $HELM_CONFIG_DIR/overrides/keycloak-values.yaml \
       ${KEYCLOAK_ARGUMENTS} \
       --wait
 

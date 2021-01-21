@@ -223,7 +223,7 @@ function install_application_operator {
 
   log "Install Verrazzano Kubernetes application operator"
   helm upgrade --install --wait verrazzano-application-operator \
-    ${HELM_CONFIG_DIR}/charts/verrazzano-application-operator \
+    $HELM_CONFIG_DIR/charts/verrazzano-application-operator \
     --namespace "${VERRAZZANO_NS}" \
     -f $HELM_CONFIG_DIR/overrides/verrazzano-application-operator-values.yaml \
     ${EXTRA_V8O_ARGUMENTS} || return $?
@@ -264,7 +264,7 @@ function install_coherence_operator {
   helm upgrade --install --wait coherence-operator \
     ${CHARTS_DIR}/coherence-operator \
     --namespace "${VERRAZZANO_NS}" \
-    -f $SCRIPT_DIR/components/coherence-values.yaml \
+    -f $HELM_CONFIG_DIR/overrides/coherence-values.yaml \
     || return $?
   if [ $? -ne 0 ]; then
     error "Failed to install the Coherence Kubernetes operator."
