@@ -225,9 +225,6 @@ GRAFANA_TAG=v6.4.4
 
 PROMETHEUS_TAG=v2.13.1
 
-MYSQL_IMAGE=ghcr.io/verrazzano/mysql
-MYSQL_IMAGE_TAG=8.0.20
-
 OAM_OPERATOR_IMAGE_REPO=ghcr.io/verrazzano/oam-kubernetes-runtime
 OAM_OPERATOR_IMAGE_TAG=v0.3.0
 

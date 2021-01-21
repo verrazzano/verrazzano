@@ -11,6 +11,7 @@ set -u
 
 KEYCLOAK_NS=keycloak
 KCADMIN_USERNAME=keycloakadmin
+KCADMIN_SECRET=keycloak-http
 MYSQL_USERNAME=keycloak
 VERRAZZANO_NS=verrazzano-system
 VZ_SYS_REALM=verrazzano-system
@@ -38,14 +39,15 @@ function install_mysql {
     kubectl create namespace ${KEYCLOAK_NS}
   fi
 
-  log "Update MySQL configuration template"
-  sed -e "s|MYSQL_IMAGE_TAG|${MYSQL_IMAGE_TAG}|g" \
-      -e "s|MYSQL_IMAGE|${MYSQL_IMAGE}|g" \
-      -e "s|MYSQL_USERNAME|${MYSQL_USERNAME}|g" \
-      $SCRIPT_DIR/config/mysql-values-template.yaml > ${TMP_DIR}/mysql-values-sed.yaml
-
-  # Handle any additional MySQL install args
+  # Handle any additional MySQL install args that cannot be in mysql-values.yaml
   local EXTRA_MYSQL_ARGUMENTS=$(get_mysql_helm_args_from_config)
+  EXTRA_MYSQL_ARGUMENTS="$EXTRA_MYSQL_ARGUMENTS --set mysqlUser=${MYSQL_USERNAME}"
+
+  echo "CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;" > ${TMP_DIR}/create-db.sql
+  echo "USE keycloak;" >> ${TMP_DIR}/create-db.sql
+  echo "GRANT ALL ON keycloak.* TO '${MYSQL_USERNAME}'@'%';" >> ${TMP_DIR}/create-db.sql
+  echo "FLUSH PRIVILEGES;" >> ${TMP_DIR}/create-db.sql
+  EXTRA_MYSQL_ARGUMENTS="$EXTRA_MYSQL_ARGUMENTS --set-file initializationFiles.create-db=${TMP_DIR}/create-db.sql"
 
   log "Install MySQL helm chart"
   helm upgrade mysql ${MYSQL_CHART_DIR} \
@@ -53,8 +55,8 @@ function install_mysql {
       --namespace ${KEYCLOAK_NS} \
       --timeout 10m \
       --wait \
-      ${EXTRA_MYSQL_ARGUMENTS} \
-      -f ${TMP_DIR}/mysql-values-sed.yaml
+      -f $SCRIPT_DIR/components/mysql-values.yaml \
+      ${EXTRA_MYSQL_ARGUMENTS}
 }
 
 function install_keycloak {
@@ -74,6 +76,18 @@ function install_keycloak {
   kubectl create secret generic keycloak-realm-cacert \
       -n ${KEYCLOAK_NS} \
       --from-file=realm.json=${TMP_DIR}/keycloak-sed.json
+
+  # Create a random secret for the keycloakadmin user
+  kubectl apply -f <(echo "
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ${KCADMIN_SECRET}
+  namespace: ${KEYCLOAK_NS}
+type: Opaque
+data:
+  password: $(cat /dev/urandom | tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1 | base64)
+")
 
   # Check if using the optional imagePullSecret
   local KEYCLOAK_ARGUMENTS=""
@@ -112,7 +126,7 @@ function install_keycloak {
     -n ${KEYCLOAK_NS} \
     -c keycloak \
     -- bash -c \
-    "/opt/jboss/keycloak/bin/kcadm.sh update realms/master -s loginTheme=oracle --no-config --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --password \$(cat /etc/keycloak-http/password)"
+    "/opt/jboss/keycloak/bin/kcadm.sh update realms/master -s loginTheme=oracle --no-config --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --password \$(cat /etc/${KCADMIN_SECRET}/password)"
 
   # Wait for TLS cert from Cert Manager to go into a ready state
   kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
@@ -155,7 +169,7 @@ consoleout "Password: kubectl get secret --namespace cattle-system rancher-admin
 consoleout
 consoleout "Keycloak - https://keycloak.${ENV_NAME}.${DNS_SUFFIX}"
 consoleout "User: keycloakadmin"
-consoleout "Password: kubectl get secret --namespace keycloak keycloak-http -o jsonpath={.data.password} | base64 --decode; echo"
+consoleout "Password: kubectl get secret --namespace keycloak ${KCADMIN_SECRET} -o jsonpath={.data.password} | base64 --decode; echo"
 if [ $(get_application_ingress_ip) == "null" ];
 then
   consoleout
