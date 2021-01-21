@@ -62,6 +62,7 @@ pipeline {
         GITHUB_RELEASE_USERID = credentials('github-userid-release')
         GITHUB_RELEASE_EMAIL = credentials('github-email-release')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
+        SKIP_ACCEPTANCE_TESTS = false
     }
 
     stages {
@@ -289,7 +290,7 @@ pipeline {
                 script {
                     result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
                     if (result == 0) {
-                        params.RUN_ACCEPTANCE_TESTS = false
+                        env.SKIP_ACCEPTANCE_TESTS = false
                     }
                 }
             }
@@ -302,8 +303,9 @@ pipeline {
                     anyOf {
                         branch 'master';
                         branch 'develop';
-                        expression { return params.RUN_ACCEPTANCE_TESTS == true }
+                        expression { return params.RUN_ACCEPTANCE_TESTS == true };
                     }
+                    expression { return env.SKIP_ACCEPTANCE_TESTS == false };
                 }
             }
             environment {
