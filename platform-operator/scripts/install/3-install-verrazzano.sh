@@ -246,7 +246,7 @@ function install_weblogic_operator {
   helm upgrade --install --wait weblogic-operator \
     ${CHARTS_DIR}/weblogic-operator \
     --namespace "${VERRAZZANO_NS}" \
-    -f $SCRIPT_DIR/components/weblogic-values.yaml \
+    -f $VZ_OVERRIDES_DIR/weblogic-values.yaml \
     --set serviceAccount=weblogic-operator-sa \
     --set domainNamespaceSelectionStrategy=LabelSelector \
     --set domainNamespaceLabelSelector=verrazzano-managed \
