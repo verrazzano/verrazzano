@@ -17,7 +17,7 @@ func TestGetComponents(t *testing.T) {
 	assert := assert.New(t)
 	comps := GetComponents()
 
-	assert.Len(comps, 9, "Wrong number of components")
+	assert.Len(comps, 10, "Wrong number of components")
 	assert.Equal(comps[0].Name(), "istio")
 	assert.Equal(comps[1].Name(), "ingress-nginx")
 	assert.Equal(comps[2].Name(), "cert-manager")
@@ -25,6 +25,7 @@ func TestGetComponents(t *testing.T) {
 	assert.Equal(comps[4].Name(), "rancher")
 	assert.Equal(comps[5].Name(), "verrazzano")
 	assert.Equal(comps[6].Name(), "coherence-operator")
-	assert.Equal(comps[7].Name(), "mysql")
-	assert.Equal(comps[8].Name(), "keycloak")
+	assert.Equal(comps[7].Name(), "oam-kubernetes-runtime")
+	assert.Equal(comps[8].Name(), "mysql")
+	assert.Equal(comps[9].Name(), "keycloak")
 }

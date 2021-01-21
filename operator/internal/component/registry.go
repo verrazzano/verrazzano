@@ -49,10 +49,17 @@ func GetComponents() []Component {
 		Verrazzano{},
 		helmComponent{
 			releaseName:             "coherence-operator",
-			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "coherence-operator"),
+			chartDir:                filepath.Join(thirdpartyDir, "coherence-operator"),
 			chartNamespace:          "verrazzano-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(componentDir, "coherence-values.yaml"),
+		},
+		helmComponent{
+			releaseName:             "oam-kubernetes-runtime",
+			chartDir:                filepath.Join(thirdpartyDir, "oam-kubernetes-runtime"),
+			chartNamespace:          "verrazzano-system",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(componentDir, "oam-kubernetes-runtime-values.yaml"),
 		},
 		helmComponent{
 			releaseName:             "mysql",
