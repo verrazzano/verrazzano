@@ -12,61 +12,68 @@ import (
 // GetComponents returns the list of components that are installable and upgradeable.
 // The components will be processed in the order items in the array
 func GetComponents() []Component {
-	thirdpartyDir := config.Get().ThirdpartyChartsDir
-	componentDir := filepath.Join(config.Get().VerrazzanoInstallDir, "components")
+	overrideDir := filepath.Join(config.Get().HelmConfigDir, "overrides")
+	chartDir := filepath.Join(config.Get().HelmConfigDir, "charts")
 
 	return []Component{
 		helmComponent{
 			releaseName:             "istio",
-			chartDir:                filepath.Join(thirdpartyDir, "istio"),
+			chartDir:                filepath.Join(chartDir, "istio"),
 			chartNamespace:          "istio-system",
 			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(componentDir, "istio-values.yaml"),
+			valuesFile:              filepath.Join(overrideDir, "istio-values.yaml"),
 			preUpgradeFunc:          PreUpgrade,
 		},
 		Nginx{},
 		helmComponent{
 			releaseName:             "cert-manager",
-			chartDir:                filepath.Join(thirdpartyDir, "cert-manager"),
+			chartDir:                filepath.Join(chartDir, "cert-manager"),
 			chartNamespace:          "cert-manager",
 			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(componentDir, "cert-manager-values.yaml"),
+			valuesFile:              filepath.Join(overrideDir, "cert-manager-values.yaml"),
 		},
 		helmComponent{
 			releaseName:             "external-dns",
-			chartDir:                filepath.Join(thirdpartyDir, "external-dns"),
+			chartDir:                filepath.Join(chartDir, "external-dns"),
 			chartNamespace:          "cert-manager",
 			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(componentDir, "external-dns-values.yaml"),
+			valuesFile:              filepath.Join(overrideDir, "external-dns-values.yaml"),
 		},
 		helmComponent{
 			releaseName:             "rancher",
-			chartDir:                filepath.Join(thirdpartyDir, "rancher"),
+			chartDir:                filepath.Join(chartDir, "rancher"),
 			chartNamespace:          "cattle-system",
 			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(componentDir, "rancher-values.yaml"),
+			valuesFile:              filepath.Join(overrideDir, "rancher-values.yaml"),
 		},
 		Verrazzano{},
+		helmComponent{
+			releaseName:             "verrazzano-application-operator",
+			chartDir:                filepath.Join(chartDir, "verrazzano-application-operator"),
+			chartNamespace:          "verrazzano-system",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(overrideDir, "verrazzano-application-operator-values.yaml"),
+		},
 		helmComponent{
 			releaseName:             "coherence-operator",
 			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "coherence-operator"),
 			chartNamespace:          "verrazzano-system",
 			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(componentDir, "coherence-values.yaml"),
+			valuesFile:              filepath.Join(overrideDir, "coherence-values.yaml"),
 		},
 		helmComponent{
 			releaseName:             "mysql",
-			chartDir:                filepath.Join(thirdpartyDir, "mysql"),
+			chartDir:                filepath.Join(chartDir, "mysql"),
 			chartNamespace:          "keycloak",
 			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(componentDir, "mysql-values.yaml"),
+			valuesFile:              filepath.Join(overrideDir, "mysql-values.yaml"),
 		},
 		helmComponent{
 			releaseName:             "keycloak",
-			chartDir:                filepath.Join(thirdpartyDir, "keycloak"),
+			chartDir:                filepath.Join(chartDir, "keycloak"),
 			chartNamespace:          "keycloak",
 			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(componentDir, "keycloak-values.yaml"),
+			valuesFile:              filepath.Join(overrideDir, "keycloak-values.yaml"),
 		},
 	}
 }
