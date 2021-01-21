@@ -44,7 +44,7 @@ spec:
     spec:
       initContainers:
         - name: webhook-init
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20210121180617-c7f3e74
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20210121184935-2ebfed3
           imagePullPolicy: IfNotPresent
           args:
             - --zap-log-level=info
@@ -58,7 +58,7 @@ spec:
       containers:
         - name: verrazzano-platform-operator
           imagePullPolicy: IfNotPresent
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20210121180617-c7f3e74
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20210121184935-2ebfed3
           ports:
             - containerPort: 9443
               name: webhook
@@ -81,7 +81,7 @@ spec:
             - name: MODE
               value: RUN_OPERATOR
             - name: VZ_INSTALL_IMAGE
-              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20210121180617-c7f3e74
+              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20210121184935-2ebfed3
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
@@ -254,7 +254,7 @@ spec:
                         - ociConfigSecret
                         type: object
                       xip.io:
-                        description: DNS type of xio.io.  This is the default.
+                        description: DNS type of xip.io.  This is the default.
                         type: object
                     type: object
                   ingress:
@@ -352,7 +352,7 @@ spec:
                     description: Istio contains the istio component configuration
                     properties:
                       istioInstallArgs:
-                        description: Arguments for installing istio
+                        description: Arguments for installing Istio
                         items:
                           description: InstallArgs identifies a name/value or name/value
                             list needed for install. Value and ValueList cannot both
@@ -378,10 +378,10 @@ spec:
                         type: array
                     type: object
                   keycloak:
-                    description: Keycloak contains the keycloak component configuration
+                    description: Keycloak contains the Keycloak component configuration
                     properties:
                       keycloakInstallArgs:
-                        description: Arguments for installing keycloak
+                        description: Arguments for installing Keycloak
                         items:
                           description: InstallArgs identifies a name/value or name/value
                             list needed for install. Value and ValueList cannot both
@@ -406,8 +406,8 @@ spec:
                           type: object
                         type: array
                       mysql:
-                        description: MySql contains the MySQL component configuration
-                          needed for keycloak
+                        description: MySQL contains the MySQL component configuration
+                          needed for Keycloak
                         properties:
                           mysqlInstallArgs:
                             description: Arguments for installing MySQL
