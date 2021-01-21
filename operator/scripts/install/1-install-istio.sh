@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -65,62 +65,22 @@ function create_secret {
 
 function install_istio()
 {
-    log "Add istio helm repository"
-    helm repo add istio.io https://storage.googleapis.com/istio-release/releases/${ISTIO_HELM_CHART_VERSION}/charts || return $?
+    ISTIO_INIT_CHART_DIR=${CHARTS_DIR}/istio-init
+    ISTIO_CHART_DIR=${CHARTS_DIR}/istio
 
-    log "Fetch istio charts for istio and istio-init"
-    helm fetch istio.io/istio --untar=true --untardir=$TMP_DIR || return $?
-    helm fetch istio.io/istio-init --untar=true --untardir=$TMP_DIR || return $?
-
+    # Install istio CRDs  using helm
     EXTRA_ISTIO_ARGUMENTS=""
     if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
       EXTRA_ISTIO_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
 
-    log "Create helm template for installing istio CRDs"
-    helm template istio-init ${TMP_DIR}/istio-init \
+    log "Installing istio CRDs"
+    helm install istio-init ${ISTIO_INIT_CHART_DIR} \
         --namespace istio-system \
-        --set global.hub=$GLOBAL_HUB_REPO \
-        --set global.tag=$ISTIO_VERSION \
+        -f $SCRIPT_DIR/components/istio-values.yaml \
         ${EXTRA_ISTIO_ARGUMENTS} \
-        > ${TMP_DIR}/istio-crds.yaml || return $?
-
-    log "Generate cluster specific configuration"
-    local EXTRA_HELM_ARGUMENTS=""
-    if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
-      EXTRA_HELM_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
-    fi
-
-    EXTRA_HELM_ARGUMENTS="$EXTRA_HELM_ARGUMENTS $(get_istio_helm_args_from_config)"
-
-    log "Create helm template for installing istio proper"
-    helm template istio ${TMP_DIR}/istio \
-        --namespace istio-system \
-        --set global.hub=$GLOBAL_HUB_REPO \
-        --set global.tag=$ISTIO_VERSION \
-        --set gateways.istio-ingressgateway.type="${INGRESS_TYPE}" \
-        --set sidecarInjectorWebhook.rewriteAppHTTPProbe=true \
-        --set grafana.enabled=true \
-        --set grafana.image.repository=$GRAFANA_REPO \
-        --set grafana.image.tag=$GRAFANA_TAG \
-        --set prometheus.hub=$GLOBAL_HUB_REPO \
-        --set prometheus.tag=v2.13.1 \
-        --set istiocoredns.coreDNSImage=$ISTIO_CORE_DNS_IMAGE \
-        --set istiocoredns.coreDNSTag=$ISTIO_CORE_DNS_TAG \
-        --set istiocoredns.coreDNSPluginImage=$ISTIO_CORE_DNS_PLUGIN_IMAGE:$ISTIO_CORE_DNS_PLUGIN_TAG \
-        --set gateways.istio-ingressgateway.ports[0].port=80 \
-        --set gateways.istio-ingressgateway.ports[0].targetPort=80 \
-        --set gateways.istio-ingressgateway.ports[0].name=http2 \
-        --set gateways.istio-ingressgateway.ports[0].nodePort=31380 \
-        --set gateways.istio-ingressgateway.ports[1].port=443 \
-        --set gateways.istio-ingressgateway.ports[1].name=https \
-        --set gateways.istio-ingressgateway.ports[1].nodePort=31390 \
-        --values ${TMP_DIR}/istio/example-values/values-istio-multicluster-gateways.yaml \
-        ${EXTRA_HELM_ARGUMENTS} \
-        > ${TMP_DIR}/istio.yaml || return $?
-
-    log "Change to use the OLCNE image for kubectl then install the istio CRDs"
-    sed "s|/kubectl:|/istio_kubectl:|g" ${TMP_DIR}/istio-crds.yaml | kubectl apply -f - || return $?
+        --wait \
+        || return $?
 
     log "Wait for istio CRD creation jobs to complete"
     if ! kubectl -n istio-system wait --for=condition=complete job --all --timeout=300s ; then
@@ -128,9 +88,22 @@ function install_istio()
       return 1
     fi
 
-    log "Change to use the OLCNE image for kubectl then install istio proper"
-    sed "s|/kubectl:|/istio_kubectl:|g" ${TMP_DIR}/istio.yaml | kubectl apply -f - || return $?
+    # Install istio using helm
+    log "Generate istio cluster specific configuration"
+    local EXTRA_HELM_ARGUMENTS=""
+    if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
+      EXTRA_HELM_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+    fi
+    EXTRA_HELM_ARGUMENTS="$EXTRA_HELM_ARGUMENTS $(get_istio_helm_args_from_config)"
 
+    log "installing istio"
+    helm install istio ${ISTIO_CHART_DIR} \
+        --namespace istio-system \
+        -f $SCRIPT_DIR/components/istio-values.yaml \
+        --set gateways.istio-ingressgateway.type="${INGRESS_TYPE}" \
+        --values ${ISTIO_CHART_DIR}/example-values/values-istio-multicluster-gateways.yaml \
+        ${EXTRA_HELM_ARGUMENTS} \
+        || return $?
 }
 
 function update_coredns()
@@ -164,12 +137,12 @@ function check_kube_version {
     local major=$(echo $kubeVer | jq -r '.serverVersion.major')
     local minor=$(echo $kubeVer | jq -r '.serverVersion.minor')
     local patch=$(echo $servVer | cut -d'.' -f 3)
-    VER_ERROR_MSG="Kubernetes serverVersion $servVer must be greater than or equal to v1.16.8 and less than or equal to v1.17.*"
+    VER_ERROR_MSG="Kubernetes serverVersion $servVer must be greater than or equal to v1.16.8 and less than or equal to v1.18.*"
     if [ "$major" -ne 1 ] ; then
       log $VER_ERROR_MSG
       return 1
     fi
-    if [ "$minor" -lt 16 ] || [ "$minor" -gt 17  ]; then
+    if [ "$minor" -lt 16 ] || [ "$minor" -gt 18  ]; then
       log $VER_ERROR_MSG
       return 1
     fi

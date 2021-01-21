@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -26,19 +26,21 @@ fi
 DNS_TYPE=$(get_config_value ".dns.type")
 DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
+OAM_ENABLED=$(get_config_value ".oam.enabled")
+
 # Check if the nginx ingress ports are accessible
 function check_ingress_ports() {
   exitvalue=0
   if [ ${INGRESS_TYPE} == "LoadBalancer" ] && [ $DNS_TYPE != "external" ]; then
     # Get the ports from the ingress
-    PORTS=$(kubectl get services -n ingress-nginx ingress-controller-nginx-ingress-controller -o=custom-columns=PORT:.spec.ports[*].name --no-headers)
+    PORTS=$(kubectl get services -n ingress-nginx ingress-controller-ingress-nginx-controller -o=custom-columns=PORT:.spec.ports[*].name --no-headers)
     IFS=',' read -r -a port_array <<< "$PORTS"
 
     index=0
     for element in "${port_array[@]}"
     do
       # For each get the port, nodePort and targetPort
-      RESP=$(kubectl get services -n ingress-nginx ingress-controller-nginx-ingress-controller -o=custom-columns=PORT:.spec.ports[$index].port,NODEPORT:.spec.ports[$index].nodePort,TARGETPORT:.spec.ports[$index].targetPort --no-headers)
+      RESP=$(kubectl get services -n ingress-nginx ingress-controller-ingress-nginx-controller -o=custom-columns=PORT:.spec.ports[$index].port,NODEPORT:.spec.ports[$index].nodePort,TARGETPORT:.spec.ports[$index].targetPort --no-headers)
       ((index++))
 
       IFS=' ' read -r -a vals <<< "$RESP"
@@ -158,10 +160,10 @@ function install_verrazzano()
     exit 1
   fi
   if [ ! -f "${SCRIPT_DIR}/chart/values.${profile}.yaml" ]; then
-    error "The file ${SCRIPT_DIR}/chart/values.${profile}.yaml doesn't exist"
+    error "The file ${SCRIPT_DIR}/chart/values.${profile}.yaml does not exist"
     exit 1
   fi
-  local PROFILE_VALUES_OVERRIDE=" -f "${SCRIPT_DIR}/chart/values.${profile}.yaml""
+  local PROFILE_VALUES_OVERRIDE=" -f ${SCRIPT_DIR}/chart/values.${profile}.yaml"
 
   helm \
       upgrade --install verrazzano \
@@ -174,7 +176,7 @@ function install_verrazzano()
       --set clusterOperator.rancherURL=https://${RANCHER_HOSTNAME} \
       --set clusterOperator.rancherUserName="${token_array[0]}" \
       --set clusterOperator.rancherPassword="${token_array[1]}" \
-      --set clusterOperator.rancherHostname=${RANCHER_HOSTNAME} \
+      --set clusterOperator.rancherHostname=$(get_rancher_in_cluster_host ${RANCHER_HOSTNAME}) \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)" \
       ${PROFILE_VALUES_OVERRIDE} \
       ${EXTRA_V8O_ARGUMENTS} || return $?
@@ -194,6 +196,82 @@ function install_verrazzano()
   log "Verrazzano install completed"
 }
 
+function install_oam_operator {
+
+  log "Setup OAM Kubernetes operator roles"
+  kubectl delete clusterrolebinding cluster-admin-binding-oam || true
+  kubectl create clusterrolebinding cluster-admin-binding-oam --clusterrole cluster-admin --user "system:serviceaccount:${VERRAZZANO_NS}:oam-kubernetes-runtime" || return $?
+  if [ $? -ne 0 ]; then
+    error "Failed to create OAM Kubernetes operator roles."
+    return 1
+  fi
+
+  log "Install OAM Kubernetes operator"
+  helm upgrade --install --wait oam-kubernetes-runtime \
+    ${CHARTS_DIR}/oam-kubernetes-runtime \
+    --namespace "${VERRAZZANO_NS}" \
+    --set image.repository="${OAM_OPERATOR_IMAGE_REPO}" \
+    --set image.tag="${OAM_OPERATOR_IMAGE_TAG}" \
+    || return $?
+  if [ $? -ne 0 ]; then
+    error "Failed to install OAM Kubernetes operator."
+    return 1
+  fi
+}
+
+function install_application_operator {
+
+  log "Install Verrazzano Kubernetes application operator"
+  helm upgrade --install --wait verrazzano-application-operator \
+    ${CHARTS_DIR}/oam-application-operator \
+    --namespace "${VERRAZZANO_NS}" \
+    --set image="${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}" \
+    ${EXTRA_V8O_ARGUMENTS} || return $?
+  if [ $? -ne 0 ]; then
+    error "Failed to install Verrazzano Kubernetes application operator."
+    return 1
+  fi
+}
+
+function install_weblogic_operator {
+
+  log "Create WebLogic Kubernetes operator service account"
+  kubectl create serviceaccount -n "${VERRAZZANO_NS}" weblogic-operator-sa
+  if [ $? -ne 0 ]; then
+    error "Failed to create WebLogic Kubernetes operator service account."
+    return 1
+  fi
+
+  log "Install WebLogic Kubernetes operator"
+  helm upgrade --install --wait weblogic-operator \
+    ${CHARTS_DIR}/weblogic-operator \
+    --namespace "${VERRAZZANO_NS}" \
+    --set image="${WEBLOGIC_OPERATOR_IMAGE_REPO}:${WEBLOGIC_OPERATOR_IMAGE_TAG}" \
+    --set serviceAccount=weblogic-operator-sa \
+    --set domainNamespaceSelectionStrategy=LabelSelector \
+    --set domainNamespaceLabelSelector=verrazzano-domain \
+    --set enableClusterRoleBinding=true \
+    || return $?
+  if [ $? -ne 0 ]; then
+    error "Failed to install WebLogic Kubernetes operator."
+    return 1
+  fi
+}
+
+function install_coherence_operator {
+
+  log "Install the Coherence Kubernetes operator"
+  helm upgrade --install --wait coherence-operator \
+    ${CHARTS_DIR}/coherence-operator \
+    --namespace "${VERRAZZANO_NS}" \
+    --set image="${COHERENCE_OPERATOR_IMAGE_REPO}:${COHERENCE_OPERATOR_IMAGE_TAG}" \
+    || return $?
+  if [ $? -ne 0 ]; then
+    error "Failed to install the Coherence Kubernetes operator."
+    return 1
+  fi
+}
+
 # Set environment variable for checking if optional imagePullSecret was provided
 REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 
@@ -201,7 +279,7 @@ if ! kubectl get namespace ${VERRAZZANO_NS} ; then
   action "Creating ${VERRAZZANO_NS} namespace" kubectl create namespace ${VERRAZZANO_NS} || exit 1
 fi
 
-if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
+if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
   if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${VERRAZZANO_NS} > /dev/null 2>&1 ; then
     action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${VERRAZZANO_NS} namespace" \
         copy_registry_secret "${VERRAZZANO_NS}"
@@ -210,3 +288,9 @@ fi
 
 action "Creating admission controller cert" create_admission_controller_cert || exit 1
 action "Installing Verrazzano system components" install_verrazzano || exit 1
+if [ "${OAM_ENABLED}" == "true" ]; then
+  action "Installing Coherence Kubernetes operator" install_coherence_operator || exit 1
+  action "Installing WebLogic Kubernetes operator" install_weblogic_operator || exit 1
+  action "Installing OAM Kubernetes operator" install_oam_operator || exit 1
+  action "Installing Verrazzano Application Kubernetes operator" install_application_operator || exit 1
+fi

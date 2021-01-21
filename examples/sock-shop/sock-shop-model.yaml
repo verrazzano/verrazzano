@@ -12,7 +12,7 @@ spec:
     - name: "carts"
       port: 80
       targetPort: 7001
-      image: "helidonsockshop/carts-core:2.0.0"
+      image: "ghcr.io/helidon-sockshop/carts-core:2.2.0"
       connections:
         - ingress:
             - name: "carts-ingress"
@@ -22,7 +22,7 @@ spec:
     - name: "catalogue"
       port: 80
       targetPort: 7001
-      image: "helidonsockshop/catalog-core:2.0.0"
+      image: "ghcr.io/helidon-sockshop/catalog-core:2.2.0"
       connections:
         - ingress:
             - name: "catalogue-ingress"
@@ -32,7 +32,7 @@ spec:
     - name: "orders"
       port: 80
       targetPort: 7001
-      image: "helidonsockshop/orders-core:2.0.0"
+      image: "ghcr.io/helidon-sockshop/orders-core:2.2.0"
       connections:
         - ingress:
             - name: "orders-ingress"
@@ -42,7 +42,7 @@ spec:
     - name: "payment"
       port: 80
       targetPort: 7001
-      image: "helidonsockshop/payment-core:2.0.0"
+      image: "ghcr.io/helidon-sockshop/payment-core:2.2.0"
       connections:
         - ingress:
             - name: "payment-ingress"
@@ -52,7 +52,7 @@ spec:
     - name: "shipping"
       port: 80
       targetPort: 7001
-      image: "helidonsockshop/shipping-core:2.0.0"
+      image: "ghcr.io/helidon-sockshop/shipping-core:2.2.0"
       connections:
         - ingress:
             - name: "shipping-ingress"
@@ -62,7 +62,7 @@ spec:
     - name: "user"
       port: 80
       targetPort: 7001
-      image: "helidonsockshop/users-core:2.0.0"
+      image: "ghcr.io/helidon-sockshop/users-core:2.2.0"
       connections:
         - ingress:
             - name: "user-ingress"

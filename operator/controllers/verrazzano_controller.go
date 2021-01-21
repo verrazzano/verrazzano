@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package controllers
@@ -8,11 +8,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/operator/internal/k8s"
 	"os"
 	"time"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/operator/internal"
 	"github.com/verrazzano/verrazzano/operator/internal/installjob"
 	"github.com/verrazzano/verrazzano/operator/internal/uninstalljob"
 	"go.uber.org/zap"
@@ -211,10 +211,7 @@ func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log *zap.Sug
 
 	err = r.Get(ctx, types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}, configMapFound)
 	if err != nil && errors.IsNotFound(err) {
-		config, err := installjob.GetInstallConfig(vz)
-		if err != nil {
-			return err
-		}
+		config := installjob.GetInstallConfig(vz)
 		jsonEncoding, err := json.MarshalIndent(config, "", "  ")
 		if err != nil {
 			return err
@@ -238,7 +235,7 @@ func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log *zap.Su
 	// Define a new install job resource
 	job := installjob.NewJob(
 		&installjob.JobConfig{
-			JobConfigCommon: internal.JobConfigCommon{
+			JobConfigCommon: k8s.JobConfigCommon{
 				JobName:            buildInstallJobName(vz.Name),
 				Namespace:          vz.Namespace,
 				Labels:             vz.Labels,
@@ -321,7 +318,7 @@ func (r *VerrazzanoReconciler) createUninstallJob(log *zap.SugaredLogger, vz *in
 	// Define a new uninstall job resource
 	job := uninstalljob.NewJob(
 		&uninstalljob.JobConfig{
-			JobConfigCommon: internal.JobConfigCommon{
+			JobConfigCommon: k8s.JobConfigCommon{
 				JobName:            buildUninstallJobName(vz.Name),
 				Namespace:          vz.Namespace,
 				Labels:             vz.Labels,
@@ -408,9 +405,22 @@ func (r *VerrazzanoReconciler) updateStatus(log *zap.SugaredLogger, cr *installv
 			t.Year(), t.Month(), t.Day(),
 			t.Hour(), t.Minute(), t.Second()),
 	}
-
 	cr.Status.Conditions = append(cr.Status.Conditions, condition)
-	log.Infof("Setting verrazzano resource condition type/status: %v/%v", condition.Type, condition.Status)
+
+	// Set the state of resource
+	switch conditionType {
+	case installv1alpha1.InstallStarted:
+		cr.Status.State = installv1alpha1.Installing
+	case installv1alpha1.UninstallStarted:
+		cr.Status.State = installv1alpha1.Uninstalling
+	case installv1alpha1.UpgradeStarted:
+		cr.Status.State = installv1alpha1.Upgrading
+	case installv1alpha1.InstallComplete, installv1alpha1.UninstallComplete, installv1alpha1.UpgradeComplete:
+		cr.Status.State = installv1alpha1.Ready
+	case installv1alpha1.InstallFailed, installv1alpha1.UpgradeFailed, installv1alpha1.UninstallFailed:
+		cr.Status.State = installv1alpha1.Failed
+	}
+	log.Infof("Setting verrazzano resource condition and state: %v/%v", condition.Type, cr.Status.State)
 
 	// Update the status
 	err := r.Status().Update(context.TODO(), cr)

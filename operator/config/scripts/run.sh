@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -27,7 +27,7 @@ function dump-install-logs {
   echo "**************************************************************"
   echo " Dumping the installation logs contained in install/build/logs"
   echo "**************************************************************"
-  cat install/build/logs/*
+  cat operator/scripts/install/build/logs/*
   exit $exitStatus
 }
 
@@ -37,7 +37,7 @@ function dump-uninstall-logs {
   echo "*************************************************************"
   echo " Dumping the uninstall logs contained in uninstall/build/logs"
   echo "*************************************************************"
-  cat uninstall/build/logs/*
+  cat operator/scripts/uninstall/build/logs/*
   exit $exitStatus
 }
 
@@ -45,26 +45,25 @@ function dump-uninstall-logs {
 # the installation jobs that the operator creates.  The default mode is to run
 # the verrazzano-platform-operator.
 
-if [ ${MODE} == "NOOP" ]; then
+if [ "${MODE}" == "NOOP" ]; then
   echo "*************************************************************"
   echo " Running in NOOP mode, exiting                               "
   echo "*************************************************************"
   exit 0
-elif [ ${MODE} == "INSTALL" ]; then
+elif [ "${MODE}" == "INSTALL" ]; then
   # Create a kubeconfig and run the installation
   create-kubeconfig
-  ./install/1-install-istio.sh || dump-install-logs 1
-  ./install/2-install-system-components.sh || dump-install-logs 1
-  ./install/3-install-verrazzano.sh || dump-install-logs 1
-  ./install/4-install-keycloak.sh || dump-install-logs 1
+  ./operator/scripts/install/1-install-istio.sh || dump-install-logs 1
+  ./operator/scripts/install/2-install-system-components.sh || dump-install-logs 1
+  ./operator/scripts/install/3-install-verrazzano.sh || dump-install-logs 1
+  ./operator/scripts/install/4-install-keycloak.sh || dump-install-logs 1
   dump-install-logs 0
-elif [ ${MODE} == "UNINSTALL" ]; then
+elif [ "${MODE}" == "UNINSTALL" ]; then
   # Create a kubeconfig and run the installation
   create-kubeconfig
-  ./uninstall/uninstall-verrazzano.sh -f || dump-uninstall-logs 1
+  ./operator/scripts/uninstall/uninstall-verrazzano.sh -f || dump-uninstall-logs 1
   dump-uninstall-logs 0
 else
   # Run the operator
-    create-kubeconfig
   /usr/local/bin/verrazzano-platform-operator $*
 fi

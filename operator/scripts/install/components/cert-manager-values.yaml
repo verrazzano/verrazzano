@@ -1,0 +1,20 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+image:
+  repository: ghcr.io/verrazzano/cert-manager-controller
+  tag: 0.13.1-20201016205232-4c8f3fe38
+
+webhook:
+  enabled: false
+  injectAPIServerCA: false
+
+cainjector:
+  enabled: false
+
+ingressShim:
+  defaultIssuerName: verrazzano-cluster-issuer
+  defaultIssuerKind: ClusterIssuer
+
+extraArgs:
+  - --acme-http01-solver-image=ghcr.io/verrazzano/cert-manager-acmesolver:0.13.1-20201016205234-4c8f3fe38

@@ -1,0 +1,1 @@
+Verrazzano Application Operator Helm chart has been installed!

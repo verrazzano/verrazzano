@@ -1,0 +1,80 @@
+# Copyright 2020 Oracle Corporation and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at
+# http://oss.oracle.com/licenses/upl.
+
+# image is the Coherence Operator image
+image: "ghcr.io/oracle/coherence-operator:3.1.1"
+
+# defaultCoherenceImage is the default application image that will be used if a Coherence
+# resource does not specify an image name.
+defaultCoherenceImage: "oraclecoherence/coherence-ce:20.06.1"
+
+# defaultCoherenceUtilsImage is the Coherence Operator utils image that will be used when running
+# Coherence Pods. This image version should typically match the Operator version.
+defaultCoherenceUtilsImage: "ghcr.io/oracle/coherence-operator:3.1.1-utils"
+
+# watchNamespaces is the comma delimited list of namespaces that the operator should
+# manage Coherence resources in. The default is to manage all namespaces.
+watchNamespaces: ""
+
+# imagePullPolicy controls the K8s container spec's pull policy
+# If not set the pull policy is "IfNotPresent".
+imagePullPolicy:
+
+# imagePullSecrets provides support pulling images from private registries, the value references
+#   one or more secrets to be used when pulling images. Secrets must be manually created in the
+#   target namespace.
+#   ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+#
+#   For example, adding the pull secret "foo" would be:
+#
+#   imagePullSecrets:
+#   - name: "foo"
+#
+#   adding multiple pull secrets "foo" and "bar" would be
+#
+#   imagePullSecrets:
+#   - name: "foo"
+#   - name: "bar"
+imagePullSecrets:
+
+# ---------------------------------------------------------------------------
+# Pod scheduling values
+
+# affinity controls Pod scheduling preferences.
+#   ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+affinity:
+
+# nodeSelector is the Node labels for pod assignment
+# ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+nodeSelector:
+
+# tolerations is for nodes that have taints on them.
+#   Useful if you want to dedicate nodes to just run the coherence container
+#   For example:
+#   tolerations:
+#   - key: "key"
+#     operator: "Equal"
+#     value: "value"
+#     effect: "NoSchedule"
+#
+#   ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+tolerations:
+
+# webhookCertType sets how webhook certificates will be managed.
+# Valid values are "self-signed" "cert-manager" or "manual" the Operator will fail to start if
+# the value is invalid.
+# The default is "self-signed" where the operator will create self-signed certs for the webhook.
+# If set to "cert-manager" it is expected that cert-manager is installed and configured to
+# manage the certificates. https://cert-manager.io/docs/installation/kubernetes/
+# If set to "manual" the certificate Secret should be created and managed externally
+webhookCertType: self-signed
+
+# webhookCertSecret is the name of the Secret that will contain the certificates for the Coherence webhooks.
+webhookCertSecret: coherence-webhook-server-cert
+
+# siteLabel is the Kubernetes Node label used to set the site identity for Coherence Pods.
+siteLabel: topology.kubernetes.io/zone
+
+# rackLabel is the Kubernetes Node label used to set the rack identity for Coherence Pods.
+rackLabel: topology.kubernetes.io/zone

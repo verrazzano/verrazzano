@@ -5,60 +5,106 @@ package v1alpha1
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/operator/internal/config"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
+var getControllerRuntimeClient = getClient
+
 // SetupWebhookWithManager is used to let the controller manager know about the webhook
-func (newResource *Verrazzano) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (v *Verrazzano) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(newResource).
+		For(v).
 		Complete()
 }
 
 var _ webhook.Validator = &Verrazzano{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (newResource *Verrazzano) ValidateCreate() error {
-	log := zap.S().With("source", "webhook", "resource", fmt.Sprintf("%s:%s", newResource.Namespace, newResource.Name))
+func (v *Verrazzano) ValidateCreate() error {
+	log := zap.S().With("source", "webhook", "operation", "create", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
 	log.Info("Validate create")
 
-	if err := ValidateVersion(newResource.Spec.Version); err != nil {
+	if !config.Get().WebhookValidationEnabled {
+		log.Info("Validation disabled, skipping")
+		return nil
+	}
+
+	client, err := getControllerRuntimeClient()
+	if err != nil {
 		return err
 	}
+
+	// Validate that only one install is allowed.
+	if err := ValidateActiveInstall(client); err != nil {
+		return err
+	}
+
+	if err := ValidateVersion(v.Spec.Version); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (newResource *Verrazzano) ValidateUpdate(old runtime.Object) error {
-	log := zap.S().With("source", "webhook", "resource", fmt.Sprintf("%s:%s", newResource.Namespace, newResource.Name))
+func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
+	log := zap.S().With("source", "webhook", "operation", "update", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
 	log.Info("Validate update")
 
+	if !config.Get().WebhookValidationEnabled {
+		log.Info("Validation disabled, skipping")
+		return nil
+	}
+
 	oldResource := old.(*Verrazzano)
-	log.Infof("oldResource Annotations: %v, Finalizers: %v, Spec: %v", oldResource.Annotations, oldResource.Finalizers, oldResource.Spec)
-	log.Infof("to Annotations: %v, Finalizers: %v, Spec: %v", newResource.Annotations, newResource.Finalizers, newResource.Spec)
+	log.Debugf("oldResource: %v", oldResource)
+	log.Debugf("v: %v", v)
+
+	// Updates are not allowed when an install or an upgrade is in in progress
+	if err := ValidateInProgress(oldResource.Status.State); err != nil {
+		return err
+	}
 
 	// The profile field is immutable
-	if oldResource.Spec.Profile != newResource.Spec.Profile {
-		return fmt.Errorf("Profile change is not allowed oldResource %s to %s", oldResource.Spec.Profile, newResource.Spec.Profile)
+	if oldResource.Spec.Profile != v.Spec.Profile {
+		return fmt.Errorf("Profile change is not allowed oldResource %s to %s", oldResource.Spec.Profile, v.Spec.Profile)
 	}
 
 	// Check to see if the update is an upgrade request, and if it is valid and allowable
-	err := ValidateUpgradeRequest(&oldResource.Spec, &newResource.Spec)
+	err := ValidateUpgradeRequest(&oldResource.Spec, &v.Spec)
 	if err != nil {
-		log.Error("Invalid upgrade request: %s", err.Error())
+		log.Errorf("Invalid upgrade request: %s", err.Error())
 		return err
 	}
 	return nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (newResource *Verrazzano) ValidateDelete() error {
-	log := zap.S().With("source", "webhook", "resource", fmt.Sprintf("%s:%s", newResource.Namespace, newResource.Name))
-	log.Info("Validate delete")
+func (v *Verrazzano) ValidateDelete() error {
 
-	// TODO(user): fill in your validation logic upon object deletion.
+	// Webhook is not configured for deletes so function will not be called.
 	return nil
+}
+
+// getClient returns a controller runtime client for the Verrazzano resource
+func getClient() (client.Client, error) {
+
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return client.New(config, client.Options{Scheme: newScheme()})
+}
+
+// newScheme creates a new scheme that includes this package's object for use by client
+func newScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	AddToScheme(scheme)
+	return scheme
 }

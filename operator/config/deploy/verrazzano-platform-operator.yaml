@@ -42,6 +42,19 @@ spec:
       labels:
         app: verrazzano-platform-operator
     spec:
+      initContainers:
+        - name: webhook-init
+          image: IMAGE_NAME
+          imagePullPolicy: IfNotPresent
+          args:
+            - --zap-log-level=info
+            - --init-webhooks=true
+          env:
+            - name: MODE
+              value: RUN_OPERATOR
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
       containers:
         - name: verrazzano-platform-operator
           imagePullPolicy: IfNotPresent
@@ -50,8 +63,20 @@ spec:
             - containerPort: 9443
               name: webhook
               protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /validate-install-verrazzano-io-v1alpha1-verrazzano
+              port: webhook
+              scheme: HTTPS
+              httpHeaders:
+                - name: Content-Type
+                  value: application/json
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 15
           args:
             - --zap-log-level=info
+            - --enable-webhook-validation=true
           env:
             - name: MODE
               value: RUN_OPERATOR
@@ -60,6 +85,7 @@ spec:
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
+              readOnly: true
           resources:
             requests:
               memory: 72Mi

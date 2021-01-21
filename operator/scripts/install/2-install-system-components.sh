@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -14,41 +14,29 @@ set -eu
 
 function install_nginx_ingress_controller()
 {
+    local NGINX_INGRESS_CHART_DIR=${CHARTS_DIR}/ingress-nginx
+
     # Create the namespace for nginx
     if ! kubectl get namespace ingress-nginx ; then
         kubectl create namespace ingress-nginx
     fi
-
-    helm repo add stable https://charts.helm.sh/stable || return $?
-    helm repo update || return $?
-
-    local ingress_type=$(get_config_value ".ingress.type")
 
     # Handle any additional NGINX install args - since NGINX is for Verrazzano system Ingress,
     # these should be in .ingress.verrazzano.nginxInstallArgs[]
     local EXTRA_NGINX_ARGUMENTS=$(get_nginx_helm_args_from_config)
 
     if [ "$DNS_TYPE" == "oci" ]; then
-      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.'external-dns\.alpha\.kubernetes\.io/ttl'=60"
+      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.external-dns\.alpha\.kubernetes\.io/ttl=\"60\""
       local dns_zone=$(get_config_value ".dns.oci.dnsZoneName")
-      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.'external-dns\.alpha\.kubernetes\.io/hostname'=verrazzano-ingress.${NAME}.${dns_zone}"
+      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.external-dns\.alpha\.kubernetes\.io/hostname=verrazzano-ingress.${NAME}.${dns_zone}"
     fi
 
-    helm upgrade ingress-controller stable/nginx-ingress --install \
-      --set controller.image.repository=$NGINX_INGRESS_CONTROLLER_IMAGE \
-      --set controller.image.tag=$NGINX_INGRESS_CONTROLLER_TAG \
-      --set controller.config.client-body-buffer-size=64k \
-      --set defaultBackend.image.repository=$NGINX_DEFAULT_BACKEND_IMAGE \
-      --set defaultBackend.image.tag=$NGINX_DEFAULT_BACKEND_TAG \
+    local ingress_type=$(get_config_value ".ingress.type")
+    EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.type=${ingress_type}"
+
+    helm upgrade ingress-controller ${NGINX_INGRESS_CHART_DIR} --install \
       --namespace ingress-nginx \
-      --set controller.metrics.enabled=true \
-      --set controller.podAnnotations.'prometheus\.io/port'=10254 \
-      --set controller.podAnnotations.'prometheus\.io/scrape'=true \
-      --set controller.podAnnotations.'system\.io/scrape'=true \
-      --version $NGINX_INGRESS_CONTROLLER_VERSION \
-      --set controller.service.type="${ingress_type}" \
-      --set controller.publishService.enabled=true \
-      --set controller.service.enableHttp=false \
+      -f $SCRIPT_DIR/components/ingress-nginx-values.yaml \
       ${EXTRA_NGINX_ARGUMENTS} \
       --timeout 15m0s \
       --wait \
@@ -58,13 +46,13 @@ function install_nginx_ingress_controller()
     local nginx_svc_patch_spec=$(get_verrazzano_ports_spec)
     if [ ! -z "${nginx_svc_patch_spec}" ]; then
       log "Patching NGINX service with: ${nginx_svc_patch_spec}"
-      kubectl patch service -n ingress-nginx ingress-controller-nginx-ingress-controller -p "${nginx_svc_patch_spec}"
+      kubectl patch service -n ingress-nginx ingress-controller-ingress-nginx-controller -p "${nginx_svc_patch_spec}"
     fi
 }
 
 function setup_cert_manager_crd() {
-  curl -L -o "$TMP_DIR/00-crds.yaml" \
-    "https://raw.githubusercontent.com/jetstack/cert-manager/release-${CERT_MANAGER_RELEASE}/deploy/manifests/00-crds.yaml"
+  local CERT_MANAGER_MANIFEST_DIR=${MANIFESTS_DIR}/cert-manager
+  cp "$CERT_MANAGER_MANIFEST_DIR/00-crds.yaml" "$TMP_DIR/00-crds.yaml"
   if [ "$DNS_TYPE" == "oci" ]; then
     command -v patch >/dev/null 2>&1 || {
       fail "patch is required but cannot be found on the path. Aborting.";
@@ -121,13 +109,12 @@ spec:
 
 function install_cert_manager()
 {
+    local CERT_MANAGER_CHART_DIR=${CHARTS_DIR}/cert-manager
+
     # Create the namespace for cert-manager
     if ! kubectl get namespace cert-manager ; then
         kubectl create namespace cert-manager
     fi
-
-    helm repo add jetstack https://charts.jetstack.io || return $?
-    helm repo update || return $?
 
     setup_cert_manager_crd
     kubectl apply -f "$TMP_DIR/00-crds.yaml" --validate=false
@@ -137,18 +124,10 @@ function install_cert_manager()
       EXTRA_CERT_MANAGER_ARGUMENTS="--set clusterResourceNamespace=$(get_config_value ".certificates.ca.clusterResourceNamespace")"
     fi
 
-    helm upgrade cert-manager jetstack/cert-manager \
+    helm upgrade cert-manager ${CERT_MANAGER_CHART_DIR} \
         --install \
         --namespace cert-manager \
-        --version $CERT_MANAGER_HELM_CHART_VERSION \
-        --set image.repository=$CERT_MANAGER_IMAGE \
-        --set image.tag=$CERT_MANAGER_TAG \
-        --set extraArgs[0]=--acme-http01-solver-image=$CERT_MANAGER_SOLVER_IMAGE:$CERT_MANAGER_SOLVER_TAG \
-        --set cainjector.enabled=false \
-        --set webhook.enabled=false \
-        --set webhook.injectAPIServerCA=false \
-        --set ingressShim.defaultIssuerName=verrazzano-cluster-issuer \
-        --set ingressShim.defaultIssuerKind=ClusterIssuer \
+        -f $SCRIPT_DIR/components/cert-manager-values.yaml \
         ${EXTRA_CERT_MANAGER_ARGUMENTS} \
         --wait \
         || return $?
@@ -160,6 +139,8 @@ function install_cert_manager()
 
 function install_external_dns()
 {
+  local EXTERNAL_DNS_CHART_DIR=${CHARTS_DIR}/external-dns
+
   if [ "$DNS_TYPE" == "oci" ]; then
     if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n cert-manager ; then
       # secret does not exist, so copy the configured oci config secret from default namespace.
@@ -172,25 +153,14 @@ function install_external_dns()
       kubectl create secret generic $OCI_DNS_CONFIG_SECRET --from-file=$TMP_DIR/oci.yaml -n cert-manager
     fi
 
-    helm upgrade external-dns stable/external-dns \
+    helm upgrade external-dns ${EXTERNAL_DNS_CHART_DIR} \
         --install \
         --namespace cert-manager \
-        --version $EXTERNAL_DNS_VERSION \
-        --set image.registry=$EXTERNAL_DNS_REGISTRY \
-        --set image.repository=$EXTERNAL_DNS_REPO \
-        --set image.tag=$EXTERNAL_DNS_TAG \
-        --set provider=oci \
-        --set logLevel=debug \
-        --set registry=txt \
-        --set sources[0]=ingress \
-        --set sources[1]=service \
+        -f $SCRIPT_DIR/components/external-dns-values.yaml \
         --set domainFilters[0]=${DNS_SUFFIX} \
         --set zoneIdFilters[0]=$(get_config_value ".dns.oci.dnsZoneOcid") \
         --set txtOwnerId=v8o-local-${NAME} \
         --set txtPrefix=_v8o-local-${NAME}_ \
-        --set policy=sync \
-        --set interval=24h \
-        --set triggerLoopOnEvent=true \
         --set extraVolumes[0].name=config \
         --set extraVolumes[0].secret.secretName=$OCI_DNS_CONFIG_SECRET \
         --set extraVolumeMounts[0].name=config \
@@ -202,16 +172,12 @@ function install_external_dns()
 
 function install_rancher()
 {
+    local RANCHER_CHART_DIR=${CHARTS_DIR}/rancher
+
     log "Create Rancher namespace (if required)"
     if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
         kubectl create namespace cattle-system
     fi
-
-    log "Add Rancher helm repository location"
-    helm repo add rancher-stable https://releases.rancher.com/server-charts/stable || return $?
-
-    log "Update helm repositoriess"
-    helm repo update || return $?
 
     local INGRESS_TLS_SOURCE=""
     local EXTRA_RANCHER_ARGUMENTS=""
@@ -229,12 +195,9 @@ function install_rancher()
 
     log "Install Rancher"
     # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
-    helm upgrade rancher rancher-stable/rancher \
+    helm upgrade rancher ${RANCHER_CHART_DIR} \
       --install --namespace cattle-system \
-      --version $RANCHER_VERSION  \
-      --set systemDefaultRegistry=ghcr.io/verrazzano \
-      --set rancherImage=$RANCHER_IMAGE \
-      --set rancherImageTag=$RANCHER_TAG \
+      -f $SCRIPT_DIR/components/rancher-values.yaml \
       --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
       --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
       ${EXTRA_RANCHER_ARGUMENTS}
@@ -261,12 +224,94 @@ function install_rancher()
     kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
 }
 
+function set_rancher_server_url
+{
+    local rancher_server_url="https://${RANCHER_HOSTNAME}"
+    echo "Get Rancher admin password."
+    rancher_admin_password=$(kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password})
+    if [ $? -ne 0 ]; then
+      echo "Failed to get Rancher admin password. Continuing without setting Rancher server URL."
+      return 0
+    fi
+    rancher_admin_password=$(echo ${rancher_admin_password} | base64 --decode)
+    if [ $? -ne 0 ]; then
+      echo "Failed to decode Rancher admin password. Continuing without setting Rancher server URL."
+      return 0
+    fi
+    echo "Get Rancher access token."
+    get_rancher_access_token "${RANCHER_HOSTNAME}" "${rancher_admin_password}"
+    if [ $? -ne 0 ] ; then
+      echo "Failed to get Rancher access token. Continuing without setting Rancher server URL."
+      return 0
+    fi
+
+    if [ -z "${RANCHER_ACCESS_TOKEN}" ]; then
+      echo "Failed to get valid Rancher access token. Continuing without setting Rancher server URL."
+      return 0
+    fi
+    echo "Set Rancher server URL to ${rancher_server_url}"
+    curl_args=("${rancher_server_url}/v3/settings/server-url" $(get_rancher_resolve ${RANCHER_HOSTNAME}) \
+          -H 'content-type: application/json' \
+          -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" \
+          -X PUT \
+          --data-binary '{"name":"server-url","value":"'${rancher_server_url}'"}' \
+          --insecure)
+    call_curl 200 http_response http_status curl_args || true
+    if [ ${http_status:--1} -ne 200 ]; then
+      echo "Failed to set Rancher server URL. Continuing without setting Rancher server URL."
+      return 0
+    else
+      echo "Successfully set Rancher server URL."
+    fi
+}
+
+function wait_for_rancher_agent_to_exist {
+    retries=0
+    until kubectl -n cattle-system get deploy | grep cattle-cluster-agent; do
+      retries=$(($retries+1))
+      sleep 2
+      if [ "$retries" -ge 30 ] ; then
+        break
+      fi
+    done
+}
+
+function patch_rancher_agents() {
+    local rancher_in_cluster_host=$(get_rancher_in_cluster_host ${RANCHER_HOSTNAME})
+
+    if [ ${RANCHER_HOSTNAME} != ${rancher_in_cluster_host} ]; then
+        local patch_data='{"spec":{"template":{"spec":{"hostAliases":[{"hostnames":["'"${RANCHER_HOSTNAME}"'"],"ip":"'"${rancher_in_cluster_host}"'"}]}}}}'
+
+        wait_for_rancher_agent_to_exist
+
+        # only when cattle-cluster-agent is deployed
+        kubectl -n cattle-system get deploy/cattle-cluster-agent
+        if [ $? -eq 0 ]; then
+            echo "cattle-cluster-agent is deployed.  Continue with patching cattle-cluster-agent."
+            kubectl -n cattle-system patch deployments cattle-cluster-agent --patch ${patch_data}
+        else
+            echo "cattle-cluster-agent is not deployed.  Skip patching."
+        fi
+
+        # only when cattle-node-agent is deployed
+        kubectl -n cattle-system get daemonset/cattle-node-agent
+        if [ $? -eq 0 ]; then
+            echo "cattle-node-agent is deployed.  Continue with patching cattle-node-agent."
+            kubectl -n cattle-system patch daemonsets cattle-node-agent --patch ${patch_data}
+        else
+            echo "cattle-node-agent is not deployed.  Skip patching."
+        fi
+    else
+        echo "Rancher host is the same from inside and outside the cluster.  No need to patch agents."
+    fi
+}
+
 OCI_DNS_CONFIG_SECRET=$(get_config_value ".dns.oci.ociConfigSecret")
 NAME=$(get_config_value ".environmentName")
 DNS_TYPE=$(get_config_value ".dns.type")
 CERT_ISSUER_TYPE=$(get_config_value ".certificates.issuerType")
 
-action "Installing Nginx Ingress Controller" install_nginx_ingress_controller || exit 1
+action "Installing NGINX Ingress Controller" install_nginx_ingress_controller || exit 1
 
 # We can only know the ingress IP after installing nginx ingress controller
 INGRESS_IP=$(get_verrazzano_ingress_ip)
@@ -274,6 +319,10 @@ INGRESS_IP=$(get_verrazzano_ingress_ip)
 # DNS_SUFFIX is only used by install_rancher
 DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
+RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
+
 action "Installing cert manager" install_cert_manager || exit 1
 action "Installing external DNS" install_external_dns || exit 1
 action "Installing Rancher" install_rancher || exit 1
+action "Setting Rancher Server URL" set_rancher_server_url || true
+action "Patching Rancher Agents" patch_rancher_agents || true

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -30,6 +30,8 @@ fi
 DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
 function install_mysql {
+  MYSQL_CHART_DIR=${CHARTS_DIR}/mysql
+
   log "Check for Keycloak namespace"
   if ! kubectl get namespace ${KEYCLOAK_NS} 2> /dev/null ; then
     log "Create Keycloak namespace"
@@ -42,16 +44,22 @@ function install_mysql {
       -e "s|MYSQL_USERNAME|${MYSQL_USERNAME}|g" \
       $SCRIPT_DIR/config/mysql-values-template.yaml > ${TMP_DIR}/mysql-values-sed.yaml
 
+  # Handle any additional MySQL install args
+  local EXTRA_MYSQL_ARGUMENTS=$(get_mysql_helm_args_from_config)
+
   log "Install MySQL helm chart"
-  helm upgrade mysql stable/mysql \
+  helm upgrade mysql ${MYSQL_CHART_DIR} \
       --install \
       --namespace ${KEYCLOAK_NS} \
       --timeout 10m \
       --wait \
+      ${EXTRA_MYSQL_ARGUMENTS} \
       -f ${TMP_DIR}/mysql-values-sed.yaml
 }
 
 function install_keycloak {
+  KEYCLOAK_CHART_DIR=${CHARTS_DIR}/keycloak
+
   if ! kubectl get secret --namespace ${VERRAZZANO_NS} verrazzano ; then
     error "ERROR: Must run 3-install-verrazzano.sh and then rerun this script."
     exit 1
@@ -68,40 +76,39 @@ function install_keycloak {
       --from-file=realm.json=${TMP_DIR}/keycloak-sed.json
 
   # Check if using the optional imagePullSecret
-  EXTRA_HELM_ARGUMENTS=""
+  local KEYCLOAK_ARGUMENTS=""
   if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
     if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${KEYCLOAK_NS} > /dev/null 2>&1 ; then
         copy_registry_secret "${KEYCLOAK_NS}"
-        EXTRA_HELM_ARGUMENTS=" --set keycloak.image.pullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+        KEYCLOAK_ARGUMENTS=" --set keycloak.image.pullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
   fi
-
-
-  # Add keycloak helm repo
-  helm repo add codecentric https://codecentric.github.io/helm-charts
 
   if ! kubectl get secret --namespace ${KEYCLOAK_NS} mysql ; then
     error "ERROR installing mysql. Please rerun this script."
     exit 1
   fi
-  # sed keycloak-values-template.yaml file
-  sed -e "s|ENV_NAME|${ENV_NAME}|g;s|DNS_SUFFIX|${DNS_SUFFIX}|g" \
-      -e "s|KEYCLOAK_IMAGE_TAG|${KEYCLOAK_IMAGE_TAG}|g;s|KCADMIN_USERNAME|${KCADMIN_USERNAME}|g" \
-      -e "s|DNS_TARGET_NAME|${DNS_TARGET_NAME}|g;s|MYSQL_USERNAME|${MYSQL_USERNAME}|g" \
-      -e "s|MYSQL_PASSWORD|$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)|g" \
-      -e "s|KEYCLOAK_IMAGE|$KEYCLOAK_IMAGE|g;s|KEYCLOAK_THEME_IMAGE|$KEYCLOAK_THEME_IMAGE|g" \
-      $SCRIPT_DIR/config/keycloak-values-template.yaml > ${TMP_DIR}/keycloak-values-sed.yaml
+
+  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.username=${KCADMIN_USERNAME}"
+  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set-string keycloak.ingress.annotations.external-dns\.alpha\.kubernetes\.io/target=${DNS_TARGET_NAME}"
+  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
+  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.tls[0].hosts={keycloak.${ENV_NAME}.${DNS_SUFFIX}}"
+  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.ingress.tls[0].secretName=${ENV_NAME}-secret"
+  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbPassword=$(kubectl get secret --namespace ${KEYCLOAK_NS} mysql -o jsonpath="{.data.mysql-password}" | base64 --decode; echo)"
+  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS --set keycloak.persistence.dbUser=${MYSQL_USERNAME}"
+
+  # Handle any additional Keycloak install args
+  KEYCLOAK_ARGUMENTS="$KEYCLOAK_ARGUMENTS $(get_keycloak_helm_args_from_config)"
 
   # Install keycloak helm chart
-  helm upgrade keycloak codecentric/keycloak \
+  helm upgrade keycloak ${KEYCLOAK_CHART_DIR} \
       --install \
       --namespace ${KEYCLOAK_NS} \
-      --version ${KEYCLOAK_CHART_VERSION} \
-      ${EXTRA_HELM_ARGUMENTS} \
-      --wait \
-      -f ${TMP_DIR}/keycloak-values-sed.yaml
+      -f $SCRIPT_DIR/components/keycloak-values.yaml \
+      ${KEYCLOAK_ARGUMENTS} \
+      --wait
 
-  kubectl -it exec keycloak-0 \
+  kubectl exec keycloak-0 \
     -n ${KEYCLOAK_NS} \
     -c keycloak \
     -- bash -c \
@@ -109,48 +116,6 @@ function install_keycloak {
 
   # Wait for TLS cert from Cert Manager to go into a ready state
   kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
-}
-
-function set_rancher_server_url
-{
-    local rancher_host_name="rancher.${ENV_NAME}.${DNS_SUFFIX}"
-    local rancher_server_url="https://${rancher_host_name}"
-    echo "Get Rancher admin password."
-    rancher_admin_password=$(kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password})
-    if [ $? -ne 0 ]; then
-      echo "Failed to get Rancher admin password. Continuing without setting Rancher server URL."
-      return 0
-    fi
-    rancher_admin_password=$(echo ${rancher_admin_password} | base64 --decode)
-    if [ $? -ne 0 ]; then
-      echo "Failed to decode Rancher admin password. Continuing without setting Rancher server URL."
-      return 0
-    fi
-    echo "Get Rancher access token."
-    get_rancher_access_token "${rancher_host_name}" "${rancher_admin_password}"
-    if [ $? -ne 0 ] ; then
-      echo "Failed to get Rancher access token. Continuing without setting Rancher server URL."
-      return 0
-    fi
-
-    if [ -z "${RANCHER_ACCESS_TOKEN}" ]; then
-      echo "Failed to get valid Rancher access token. Continuing without setting Rancher server URL."
-      return 0
-    fi
-    echo "Set Rancher server URL to ${rancher_server_url}"
-    curl_args=("${rancher_server_url}/v3/settings/server-url" \
-          -H 'content-type: application/json' \
-          -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" \
-          -X PUT \
-          --data-binary '{"name":"server-url","value":"'${rancher_server_url}'"}' \
-          --insecure)
-    call_curl 200 http_response http_status curl_args || true
-    if [ ${http_status:--1} -ne 200 ]; then
-      echo "Failed to set Rancher server URL. Continuing without setting Rancher server URL."
-      return 0
-    else
-      echo "Successfully set Rancher server URL."
-    fi
 }
 
 DNS_TARGET_NAME=verrazzano-ingress.${ENV_NAME}.${DNS_SUFFIX}
@@ -166,7 +131,6 @@ action "Installing MySQL" install_mysql
   fi
 
 action "Installing Keycloak" install_keycloak || exit 1
-action "Setting Rancher Server URL" set_rancher_server_url || true
 
 rm -rf $TMP_DIR
 

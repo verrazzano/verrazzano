@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package main
@@ -7,9 +7,11 @@ import (
 	"flag"
 	"os"
 
+	config2 "github.com/verrazzano/verrazzano/operator/internal/config"
+
 	installv1alpha1 "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/operator/controllers"
-	"github.com/verrazzano/verrazzano/operator/internal/certificates"
+	"github.com/verrazzano/verrazzano/operator/internal/certificate"
 	"github.com/verrazzano/verrazzano/operator/internal/util/log"
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
@@ -34,18 +36,25 @@ func init() {
 }
 
 func main() {
-	var metricsAddr string
-	var enableLeaderElection bool
-	var certDir string
-	var enableWebhooks bool
 
-	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
+	// config will hold the entire operator config
+	config := config2.Get()
+
+	flag.StringVar(&config.MetricsAddr, "metrics-addr", config.MetricsAddr, "The address the metric endpoint binds to.")
+	flag.BoolVar(&config.LeaderElectionEnabled, "enable-leader-election", config.LeaderElectionEnabled,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&certDir, "cert-dir", "/etc/webhook/certs", "The directory containing tls.crt and tls.key.")
-	flag.BoolVar(&enableWebhooks, "enable-webhooks", true,
+	flag.StringVar(&config.CertDir, "cert-dir", config.CertDir, "The directory containing tls.crt and tls.key.")
+	flag.BoolVar(&config.WebhooksEnabled, "enable-webhooks", config.WebhooksEnabled,
 		"Enable webhooks for the operator")
+	flag.BoolVar(&config.WebhookValidationEnabled, "enable-webhook-validation", config.WebhookValidationEnabled,
+		"Enable webhooks validation for the operator")
+	flag.BoolVar(&config.InitWebhooks, "init-webhooks", config.InitWebhooks,
+		"Initialize webhooks for the operator")
+	flag.StringVar(&config.VerrazzanoInstallDir, "vz-install-dir", config.VerrazzanoInstallDir,
+		"Specify the install directory of verrazzano (used for development)")
+	flag.StringVar(&config.ThirdpartyChartsDir, "thirdparty-charts-dir", config.ThirdpartyChartsDir,
+		"Specify the thirdparty helm charts directory (used for development)")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
@@ -55,17 +64,52 @@ func main() {
 	kzap.UseFlagOptions(&opts)
 	log.InitLogs(opts)
 
+	// Save the config as immutable from this point on.
+	config2.Set(config)
+
 	setupLog := zap.S()
+
+	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the
+	// validatingWebhookConfiguration resource before the operator container runs.
+	if config.InitWebhooks {
+		setupLog.Info("Setting up certificates for webhook")
+		caCert, err := certificate.CreateWebhookCertificates(config.CertDir)
+		if err != nil {
+			setupLog.Errorf("unable to setup certificates for webhook: %v", err)
+			os.Exit(1)
+		}
+
+		config, err := ctrl.GetConfig()
+		if err != nil {
+			setupLog.Errorf("unable to get kubeconfig: %v", err)
+			os.Exit(1)
+		}
+
+		kubeClient, err := kubernetes.NewForConfig(config)
+		if err != nil {
+			setupLog.Errorf("unable to get client: %v", err)
+			os.Exit(1)
+		}
+
+		setupLog.Info("Updating webhook configuration")
+		err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, caCert)
+		if err != nil {
+			setupLog.Errorf("unable to update validation webhook configuration: %v", err)
+			os.Exit(1)
+		}
+
+		return
+	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
+		MetricsBindAddress: config.MetricsAddr,
 		Port:               9443,
-		LeaderElection:     enableLeaderElection,
+		LeaderElection:     config.LeaderElectionEnabled,
 		LeaderElectionID:   "3ec4d290.verrazzano.io",
 	})
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
+		setupLog.Errorf("unable to start manager: %v", err)
 		os.Exit(1)
 	}
 
@@ -77,59 +121,33 @@ func main() {
 		DryRun: dryRun,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller")
+		setupLog.Errorf("unable to create controller: %v", err)
 		os.Exit(1)
 	}
 
 	// Watch for the secondary resource (Job).
 	if err := reconciler.Controller.Watch(&source.Kind{Type: &batchv1.Job{}},
 		&handler.EnqueueRequestForOwner{OwnerType: &installv1alpha1.Verrazzano{}, IsController: true}); err != nil {
-		setupLog.Error(err, "unable to set watch for Job resource")
+		setupLog.Errorf("unable to set watch for Job resource: %v", err)
 		os.Exit(1)
 	}
 
 	// Setup the validation webhook
-	if enableWebhooks {
-		setupLog.Info("Setting up certificates for webhook")
-		caCert, err := certificates.SetupCertificates(certDir)
-		if err != nil {
-			setupLog.Error(err, "unable to setup certificates for webhook")
-			os.Exit(1)
-		}
-
-		config, err := ctrl.GetConfig()
-		if err != nil {
-			setupLog.Error(err, "unable to get kubeconfig")
-			os.Exit(1)
-		}
-
-		kubeClient, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			setupLog.Error(err, "unable to get clientset")
-			os.Exit(1)
-		}
-
-		setupLog.Info("Updating webhook configuration")
-		err = certificates.UpdateValidatingnWebhookConfiguration(kubeClient, caCert)
-		if err != nil {
-			setupLog.Error(err, "unable to update validation webhook configuration")
-			os.Exit(1)
-		}
-
+	if config.WebhooksEnabled {
 		setupLog.Info("Setting up webhook with manager")
 		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to setup webhook with manager")
+			setupLog.Errorf("unable to setup webhook with manager: %v", err)
 			os.Exit(1)
 		}
 
-		mgr.GetWebhookServer().CertDir = certDir
+		mgr.GetWebhookServer().CertDir = config.CertDir
 	}
 
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
+		setupLog.Errorf("problem running manager: %v", err)
 		os.Exit(1)
 	}
 }
