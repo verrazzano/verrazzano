@@ -77,7 +77,7 @@ function install_istio()
     log "Installing istio CRDs"
     helm install istio-init ${ISTIO_INIT_CHART_DIR} \
         --namespace istio-system \
-        -f $HELM_CONFIG_DIR/overrides/istio-values.yaml \
+        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
         ${EXTRA_ISTIO_ARGUMENTS} \
         --wait \
         || return $?
@@ -99,7 +99,7 @@ function install_istio()
     log "installing istio"
     helm install istio ${ISTIO_CHART_DIR} \
         --namespace istio-system \
-        -f $HELM_CONFIG_DIR/overrides/istio-values.yaml \
+        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
         --set gateways.istio-ingressgateway.type="${INGRESS_TYPE}" \
         --values ${ISTIO_CHART_DIR}/example-values/values-istio-multicluster-gateways.yaml \
         ${EXTRA_HELM_ARGUMENTS} \
