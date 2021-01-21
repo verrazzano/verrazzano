@@ -56,10 +56,17 @@ func GetComponents() []Component {
 		},
 		helmComponent{
 			releaseName:             "coherence-operator",
-			chartDir:                filepath.Join(config.Get().ThirdpartyChartsDir, "coherence-operator"),
+			chartDir:                filepath.Join(chartDir, "coherence-operator"),
 			chartNamespace:          "verrazzano-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overrideDir, "coherence-values.yaml"),
+		},
+		helmComponent{
+			releaseName:             "weblogic-operator",
+			chartDir:                filepath.Join(chartDir, "weblogic-operator"),
+			chartNamespace:          "verrazzano-system",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(overrideDir, "weblogic-values.yaml"),
 		},
 		helmComponent{
 			releaseName:             "mysql",

@@ -229,6 +229,3 @@ PROMETHEUS_TAG=v2.13.1
 
 OAM_OPERATOR_IMAGE_REPO=ghcr.io/verrazzano/oam-kubernetes-runtime
 OAM_OPERATOR_IMAGE_TAG=v0.3.0
-
-WEBLOGIC_OPERATOR_IMAGE_REPO=oracle/weblogic-kubernetes-operator
-WEBLOGIC_OPERATOR_IMAGE_TAG=3.1.0
