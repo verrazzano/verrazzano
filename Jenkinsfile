@@ -67,6 +67,10 @@ pipeline {
     stages {
         stage('Clean workspace and checkout') {
             steps {
+                sh """
+                    printenv
+                """
+
                 script {
                     checkout scm
                 }
