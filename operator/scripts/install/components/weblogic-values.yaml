@@ -1,4 +1,4 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-image: oracle/weblogic-kubernetes-operator:3.1.0
+image: ghcr.io/oracle/weblogic-kubernetes-operator:3.1.0
