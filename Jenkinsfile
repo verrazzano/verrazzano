@@ -68,7 +68,7 @@ pipeline {
         stage('Clean workspace and checkout') {
             steps {
                 sh """
-                    printenv
+                    echo "${NODE_LABELS}"v
                 """
 
                 script {
