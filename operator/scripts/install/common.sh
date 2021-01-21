@@ -11,7 +11,7 @@ SCRIPT_DIR=${SCRIPT_DIR:-$(cd $(dirname ${BASH_SOURCE[${#BASH_SOURCE[@]} - 1]});
 BUILD_DIR="${SCRIPT_DIR}/build"
 CHARTS_DIR=$(cd $SOURCE_DIR/../../../thirdparty/charts; pwd -P)
 VZ_CHARTS_DIR=$(cd $SOURCE_DIR/../../../helm_config/charts; pwd -P)
-VZ_OVERRIDE_DIR=$(cd $SOURCE_DIR/../../../helm_config/overrides; pwd -P)
+VZ_OVERRIDES_DIR=$(cd $SOURCE_DIR/../../../helm_config/overrides; pwd -P)
 
 MANIFESTS_DIR=$(cd $SOURCE_DIR/../../../thirdparty/manifests; pwd -P)
 
