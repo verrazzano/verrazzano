@@ -68,7 +68,7 @@ pipeline {
         stage('Clean workspace and checkout') {
             steps {
                 sh """
-                    echo "${NODE_LABELS}"v
+                    echo "${NODE_LABELS}"
                 """
 
                 script {
