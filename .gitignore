@@ -13,9 +13,9 @@ operator/build/deploy
 vendor
 .idea
 **/*.iml
-operator/pkg/assets
+platform-operator/pkg/assets
 bin
-operator/bin
+platform-operator/bin
 dist
 archive
 latest
@@ -28,8 +28,8 @@ coverageTmp.cov
 coverage.html
 coverage.xml
 coverage.raw.cov
-operator/test/integ/integ*result.xml
-operator/test/integ/integ.coverprofile
-oam-application-operator/test/integ/integ*result.xml
-oam-application-operator/test/integ/integ.coverprofile
+platform-operator/test/integ/integ*result.xml
+platform-operator/test/integ/integ.coverprofile
+application-operator/test/integ/integ*result.xml
+application-operator/test/integ/integ.coverprofile
 out/
