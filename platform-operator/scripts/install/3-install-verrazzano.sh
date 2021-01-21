@@ -62,7 +62,7 @@ function check_ingress_ports() {
         log "Port $PORT is accessible on ingress address $INGRESS_IP.  Note that '404 page not found' is an expected response."
       else
         log "ERROR: Port $PORT is NOT accessible on ingress address $INGRESS_IP!  Check that security lists include an ingress rule for the node port $NODEPORT."
-        log "See install README for details(https://github.com/verrazzano/verrazzano/platform-operator/blob/master/install/README.md#1-oke-missing-security-list-ingress-rules)."
+        log "See install README for details(https://github.com/verrazzano/verrazzano/operator/blob/master/install/README.md#1-oke-missing-security-list-ingress-rules)."
         exitvalue=1
       fi
     done
@@ -246,10 +246,10 @@ function install_weblogic_operator {
   helm upgrade --install --wait weblogic-operator \
     ${CHARTS_DIR}/weblogic-operator \
     --namespace "${VERRAZZANO_NS}" \
-    --set image="${WEBLOGIC_OPERATOR_IMAGE_REPO}:${WEBLOGIC_OPERATOR_IMAGE_TAG}" \
+    -f $SCRIPT_DIR/components/weblogic-values.yaml \
     --set serviceAccount=weblogic-operator-sa \
     --set domainNamespaceSelectionStrategy=LabelSelector \
-    --set domainNamespaceLabelSelector=verrazzano-domain \
+    --set domainNamespaceLabelSelector=verrazzano-managed \
     --set enableClusterRoleBinding=true \
     || return $?
   if [ $? -ne 0 ]; then
@@ -264,7 +264,7 @@ function install_coherence_operator {
   helm upgrade --install --wait coherence-operator \
     ${CHARTS_DIR}/coherence-operator \
     --namespace "${VERRAZZANO_NS}" \
-    --set image="${COHERENCE_OPERATOR_IMAGE_REPO}:${COHERENCE_OPERATOR_IMAGE_TAG}" \
+    -f $SCRIPT_DIR/components/coherence-values.yaml \
     || return $?
   if [ $? -ne 0 ]; then
     error "Failed to install the Coherence Kubernetes operator."

@@ -49,7 +49,7 @@ status=$(kubectl get namespace ${NAMESPACE} -o jsonpath="{.status.phase}" 2> /de
 if [ "${status}" == "Active" ]; then
   echo "Found namespace ${NAMESPACE}."
   echo "Ensuring namespace label exists."
-  kubectl label --overwrite namespace ${NAMESPACE} verrazzano-domain=true
+  kubectl label --overwrite namespace ${NAMESPACE} verrazzano-managed=true
   if [ $? -ne 0 ]; then
       echo "ERROR: Failed to label namespace ${NAMESPACE}, exiting."
       exit 1
@@ -61,7 +61,7 @@ else
       echo "ERROR: Failed to create namespace ${NAMESPACE}, exiting."
       exit 1
   fi
-  kubectl label namespace ${NAMESPACE} verrazzano-domain=true
+  kubectl label namespace ${NAMESPACE} verrazzano-managed=true
   if [ $? -ne 0 ]; then
       echo "ERROR: Failed to label namespace ${NAMESPACE}, exiting."
       exit 1
