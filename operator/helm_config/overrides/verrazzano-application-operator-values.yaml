@@ -1,5 +1,6 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-# NOTE: The image value gets set at docker build time using the ENV VAR VERRAZZANO_APPLICATION_OPERATOR_IMAGE
+# NOTE: The image value gets set in the override file verrazzano-application-operator-values.yaml
+# during the platform operator docker image build.
 image:
