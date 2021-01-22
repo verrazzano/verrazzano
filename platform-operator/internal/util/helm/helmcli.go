@@ -41,7 +41,7 @@ func Upgrade(releaseName string, namespace string, chartDir string, overwriteYam
 	}
 
 	//  Log upgrade output
-	log.Info("helm upgrade for release %s succeeded with stdout: %s\n", releaseName, string(stdout))
+	log.Info(fmt.Sprintf("helm upgrade for release %s succeeded with stdout: %s\n", releaseName, string(stdout)))
 	return stdout, stderr, nil
 }
 

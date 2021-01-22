@@ -25,7 +25,6 @@ func GetComponents() []Component {
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			preUpgradeFunc:          PreUpgrade,
 		},
-		Nginx{},
 		helmComponent{
 			releaseName:             "ingress-controller",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"),
