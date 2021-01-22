@@ -26,6 +26,7 @@ func TestConfigDefaults(t *testing.T) {
 	asserts.True(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
 	asserts.Equal("/verrazzano/operator/scripts/install", conf.VerrazzanoInstallDir, "VerrazzanoInstallDir is incorrect")
 	asserts.Equal("/verrazzano/thirdparty/charts", conf.ThirdpartyChartsDir, "ThirdpartyChartsDir is incorrect")
+	asserts.Equal("/verrazzano/helm_config", conf.HelmConfigDir, "HelmConfigdir is incorrect")
 }
 
 // TestSetConfig tests setting config values
@@ -45,6 +46,7 @@ func TestSetConfig(t *testing.T) {
 		WebhookValidationEnabled: false,
 		VerrazzanoInstallDir:     "/test/vz",
 		ThirdpartyChartsDir:      "/test/thirdparty",
+		HelmConfigDir:            "/test/helm_config",
 	})
 
 	conf := Get()
@@ -58,4 +60,5 @@ func TestSetConfig(t *testing.T) {
 	asserts.False(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
 	asserts.Equal("/test/vz", conf.VerrazzanoInstallDir, "VerrazzanoInstallDir is incorrect")
 	asserts.Equal("/test/thirdparty", conf.ThirdpartyChartsDir, "ThirdpartyChartsDir is incorrect")
+	asserts.Equal("/test/helm_config", conf.HelmConfigDir, "HelmConfigDir is incorrect")
 }

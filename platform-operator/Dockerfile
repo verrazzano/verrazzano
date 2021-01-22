@@ -11,16 +11,15 @@ COPY . .
 
 COPY out/linux_amd64/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
 
-RUN sed -i.bak \
-        -e "s|__VERRAZZANO_APPLICATION_OPERATOR_IMAGE__|${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}|g" \
-        scripts/install/common.sh \
-    && chmod 500 /usr/local/bin/verrazzano-platform-operator \
+RUN chmod 500 /usr/local/bin/verrazzano-platform-operator \
     && chmod +x scripts/install/*.sh \
     && chmod +x scripts/uninstall/*.sh \
     && chmod +x scripts/uninstall/uninstall-steps/*.sh
 
 # Create the verrazzano-platform-operator image
 FROM ghcr.io/oracle/oraclelinux:7-slim
+
+ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 
 # Install specific versions of device-mapper, device-mapper-libs and dracut as a temporary workaround
 # by default yum tries to install a version that is non-existent on the OEL 7 yum mirrors
@@ -47,6 +46,10 @@ COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/ver
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/scripts/uninstall ./operator/scripts/uninstall
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/config/scripts/run.sh .
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/config/scripts/kubeconfig-template ./config/kubeconfig-template
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/helm_config ./helm_config
+
+# Update the Verrazzano application operator image name in the chart override file
+RUN sed -i"" -e "s|image:|image: ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}|g" /verrazzano/helm_config/overrides/verrazzano-application-operator-values.yaml
 
 # Update the Istio charts, replacing kubectl with istio_kubectl
 RUN find /verrazzano/thirdparty/charts/istio -type f -name "*.yaml" | xargs sed -i"" "s|/kubectl:|/istio_kubectl:|g"

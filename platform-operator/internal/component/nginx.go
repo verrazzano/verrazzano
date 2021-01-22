@@ -52,6 +52,6 @@ func nginxChartDir() string {
 
 // nginxOverrideYamlFile returns the override yaml file to be used with the NGINX ingress controller helm chart.
 func nginxOverrideYamlFile() string {
-	dir := config.Get().VerrazzanoInstallDir
-	return filepath.Join(dir + "/components/ingress-nginx-values.yaml")
+	dir := config.Get().HelmConfigDir
+	return filepath.Join(dir + "/overrides/ingress-nginx-values.yaml")
 }
