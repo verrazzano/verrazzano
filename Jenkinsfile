@@ -62,6 +62,7 @@ pipeline {
         GITHUB_RELEASE_USERID = credentials('github-userid-release')
         GITHUB_RELEASE_EMAIL = credentials('github-email-release')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
+        RETRIES = 0
     }
 
     stages {
@@ -79,19 +80,22 @@ pipeline {
                     chmod 600 $HOME/.netrc
                 """
 
+                script {
+	            try {
+		        sh """
+                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+		        """
+		    } catch(error) {
+		        echo "docker login failed, retrying after sleep"
+		        retry(4) {
+			    sleep(30)
+			    sh """
+                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+			    """
+		        }
+		    }
+	        }
                 sh """
-                    retries=0
-                    until [ "$retries" -ge 5 ]
-                    do
-                       echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin && break
-                       let retries=${retries}+1
-                       echo "docker login failed, sleeping to retry"
-                       sleep 30
-                    done
-                    if [ "$retries" -ge 5]; then
-                       echo "docker login failed after retries"
-                       exit 1
-                    fi
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
                     tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
