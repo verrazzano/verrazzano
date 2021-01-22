@@ -288,12 +288,15 @@ pipeline {
         stage('Skip acceptance tests if commit message contains skip-at') {
             steps {
                 script {
-                    // if we are planning to run the AT's (which is the default)
                     // note that SKIP_ACCEPTANCE_TESTS will be false at this point (its default value)
+                    // so we are going to run the AT's unless this logic decideds to skip them...
+
+                    // if we are planning to run the AT's (which is the default)
                     if (params.RUN_ACCEPTANCE_TESTS == true) {
                         // check if the user has asked to skip AT using the commit message
                         result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
                         if (result == 0) {
+                            // found 'skip-at', so don't run them
                             env.SKIP_ACCEPTANCE_TESTS = true
                         }
                     }
