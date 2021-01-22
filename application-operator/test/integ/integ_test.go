@@ -6,6 +6,8 @@ package integ_test
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -103,7 +105,12 @@ var _ = Describe("verrazzano-application namespace resources ", func() {
 })
 
 var _ = Describe("Testing hello app lifecycle", func() {
-
+	//FLUENTD sidecar needs verrazzano secret
+	It("verrazzano secret is created in verrazzano-system namespace", func() {
+		command := fmt.Sprintf("create secret generic verrazzano -n verrazzano-system --from-literal=password=%s --from-literal=username=verrazzano", genPassword(10))
+		_, stderr := util.Kubectl(command)
+		Expect(stderr).To(Equal(""))
+	})
 	It("apply component should result in a component in default namespace", func() {
 		_, stderr := util.Kubectl("apply -f testdata/hello-comp.yaml")
 		Expect(stderr).To(Equal(""))
@@ -116,8 +123,8 @@ var _ = Describe("Testing hello app lifecycle", func() {
 	It("hello deployment should exist ", func() {
 		Eventually(appDeploymentExists, tenSeconds).Should(BeTrue())
 	})
-	It("hello pod should exist ", func() {
-		Eventually(appPodExists, threeMins).Should(BeTrue())
+	It("logging sidecar exists in app pod ", func() {
+		Eventually(fluentdSidecarExists, threeMins).Should(BeTrue())
 	})
 	It("hello service should exist ", func() {
 		Eventually(appServiceExists, tenSeconds).Should(BeTrue(),
@@ -129,6 +136,11 @@ var _ = Describe("Testing hello app lifecycle", func() {
 	})
 	It("deleting app component", func() {
 		Eventually(canDeleteAppComponent, fiveMins).Should(BeTrue())
+	})
+	It("deleting verrazzano secret", func() {
+		command := fmt.Sprintf("delete secret verrazzano -n verrazzano-system")
+		_, stderr := util.Kubectl(command)
+		Expect(stderr).To(Equal(""))
 	})
 	It("hello deployment should  not exist ", func() {
 		Eventually(appDeploymentExists, fiveMins).Should(BeFalse())
@@ -162,6 +174,10 @@ func createAppConfig() bool {
 
 func appDeploymentExists() bool {
 	return K8sClient.DoesDeploymentExist(appDeployment, appNamespace)
+}
+
+func fluentdSidecarExists() bool {
+	return K8sClient.DoesContainerExist(appNamespace, appPodPrefix, "fluentd")
 }
 
 func appPodExists() bool {
@@ -200,4 +216,15 @@ func appConfigExists() bool {
 		}
 	}
 	return false
+}
+
+var passwordChars = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func genPassword(passSize int) string {
+	rand.Seed(time.Now().UnixNano())
+	var b strings.Builder
+	for i := 0; i < passSize; i++ {
+		b.WriteRune(passwordChars[rand.Intn(len(passwordChars))])
+	}
+	return b.String()
 }

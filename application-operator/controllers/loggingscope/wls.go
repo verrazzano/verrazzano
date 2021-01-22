@@ -6,6 +6,7 @@ package loggingscope
 import (
 	"context"
 	"fmt"
+
 	"github.com/go-logr/logr"
 	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -16,6 +17,7 @@ import (
 
 const (
 	wlsDomainKind     = "Domain"
+	wlsWorkloadKey    = "weblogic.oracle/v8/Domain"
 	storageVolumeName = "weblogic-domain-storage-volume"
 )
 

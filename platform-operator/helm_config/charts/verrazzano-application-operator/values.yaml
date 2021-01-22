@@ -6,7 +6,9 @@ namespace: verrazzano-system
 global:
   imagePullSecrets: []
 
-image: ghcr.io/verrazzano/verrazzano-application-operator:0.5.0-20201218192145-6954bf6
+# NOTE: The image value gets set in the override file verrazzano-application-operator-values.yaml
+# during the platform operator docker image build.
+image:
 imagePullPolicy: Always
 
 requestMemory: 72Mi

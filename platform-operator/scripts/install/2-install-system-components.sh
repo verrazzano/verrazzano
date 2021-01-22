@@ -36,7 +36,7 @@ function install_nginx_ingress_controller()
 
     helm upgrade ingress-controller ${NGINX_INGRESS_CHART_DIR} --install \
       --namespace ingress-nginx \
-      -f $SCRIPT_DIR/components/ingress-nginx-values.yaml \
+      -f $VZ_OVERRIDES_DIR/ingress-nginx-values.yaml \
       ${EXTRA_NGINX_ARGUMENTS} \
       --timeout 15m0s \
       --wait \
@@ -127,7 +127,7 @@ function install_cert_manager()
     helm upgrade cert-manager ${CERT_MANAGER_CHART_DIR} \
         --install \
         --namespace cert-manager \
-        -f $SCRIPT_DIR/components/cert-manager-values.yaml \
+        -f $VZ_OVERRIDES_DIR/cert-manager-values.yaml \
         ${EXTRA_CERT_MANAGER_ARGUMENTS} \
         --wait \
         || return $?
@@ -156,7 +156,7 @@ function install_external_dns()
     helm upgrade external-dns ${EXTERNAL_DNS_CHART_DIR} \
         --install \
         --namespace cert-manager \
-        -f $SCRIPT_DIR/components/external-dns-values.yaml \
+        -f $VZ_OVERRIDES_DIR/external-dns-values.yaml \
         --set domainFilters[0]=${DNS_SUFFIX} \
         --set zoneIdFilters[0]=$(get_config_value ".dns.oci.dnsZoneOcid") \
         --set txtOwnerId=v8o-local-${NAME} \
@@ -197,7 +197,7 @@ function install_rancher()
     # Do not add --wait since helm install will not fully work in OLCNE until MKNOD is added in the next command
     helm upgrade rancher ${RANCHER_CHART_DIR} \
       --install --namespace cattle-system \
-      -f $SCRIPT_DIR/components/rancher-values.yaml \
+      -f $VZ_OVERRIDES_DIR/rancher-values.yaml \
       --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
       --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
       ${EXTRA_RANCHER_ARGUMENTS}
