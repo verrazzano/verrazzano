@@ -310,8 +310,6 @@ pipeline {
                     anyOf {
                         branch 'master';
                         branch 'develop';
-                    }
-                    allOf {
                         expression { return params.RUN_ACCEPTANCE_TESTS == true };
                         expression { return env.SKIP_ACCEPTANCE_TESTS == false };
                     }
