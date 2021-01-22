@@ -299,7 +299,7 @@ pipeline {
                             // found 'skip-at', so don't run them
                             SKIP_ACCEPTANCE_TESTS = "true"
                             echo "Skip acceptance tests based on opt-out in commit message [skip-at]"
-                            echo "SKIP_ACCEPTANCE_TESTS is ${env.SKIP_ACCEPTANCE_TESTS}"
+                            echo "SKIP_ACCEPTANCE_TESTS is ${SKIP_ACCEPTANCE_TESTS}"
                         }
                     }
                     sh """
@@ -318,7 +318,7 @@ pipeline {
                     anyOf {
                         branch 'master';
                         branch 'develop';
-                        expression { return SKIP_ACCEPTANCE_TESTS == "false" };
+                        return SKIP_ACCEPTANCE_TESTS == 'false';
                     }
                 }
             }
