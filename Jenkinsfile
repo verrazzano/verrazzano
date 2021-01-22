@@ -159,71 +159,46 @@ pipeline {
             }
         }
 
-        stage('gofmt Check') {
+        stage('Quality and Compliance Checks') {
             when { not { buildingTag() } }
             steps {
                 sh """
+                    echo "fmt"
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     make go-fmt
                     cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make go-fmt
-                """
-            }
-        }
 
-        stage('go vet Check') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
+                    echo "vet"
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     make go-vet
                     cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make go-vet
-                """
-            }
-        }
 
-        stage('golint Check') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
+                    echo "lint"
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     make go-lint
                     cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make go-lint
-                """
-            }
-        }
 
-        stage('ineffassign Check') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
+                    echo "ineffassign"
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     make go-ineffassign
                     cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make go-ineffassign
                 """
-            }
-        }
 
-        stage('Third Party License Check') {
-            when { not { buildingTag() } }
-            steps {
                 dir('platform-operator'){
-                    echo "In Operator"
+                    echo "Third party license check platform-operator"
                     thirdpartyCheck()
                 }
                 dir('application-operator'){
-                    echo "In OAM Operator"
+                    echo "Third party license check application-operator"
                     thirdpartyCheck()
                 }
-            }
-        }
-
-        stage('Copyright Compliance Check') {
-            when { not { buildingTag() } }
-            steps {
+                sh """
+                    echo "copyright"
+                """
                 copyrightScan "${WORKSPACE}"
             }
         }
@@ -472,7 +447,7 @@ pipeline {
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
             sh """
-                cd ${GO_REPO_PATH}/verrazzano/operator
+                cd ${GO_REPO_PATH}/verrazzano/platform-operator
                 make delete-cluster
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                   echo "Failures seen during dumping of artifacts, treat post as failed"
@@ -515,32 +490,32 @@ def runGinkgo(testSuitePath) {
 
 def dumpVerrazzanoSystemPods() {
     sh """
-        cd ${GO_REPO_PATH}/verrazzano/operator
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/operator/scripts/install/build/logs/verrazzano-system-pods.log"
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-pods.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/operator/scripts/install/build/logs/verrazzano-system-certs.log"
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-certs.log"
         ./scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/operator/scripts/install/build/logs/verrazzano-system-kibana.log"
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-kibana.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/operator/scripts/install/build/logs/verrazzano-system-es-master.log"
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-es-master.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
 def dumpCattleSystemPods() {
     sh """
-        cd ${GO_REPO_PATH}/verrazzano/operator
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/operator/scripts/install/build/logs/cattle-system-pods.log"
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cattle-system-pods.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/operator/scripts/install/build/logs/rancher.log"
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/rancher.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
 def dumpNginxIngressControllerLogs() {
     sh """
-        cd ${GO_REPO_PATH}/verrazzano/operator
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/operator/scripts/install/build/logs/nginx-ingress-controller.log"
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/nginx-ingress-controller.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
