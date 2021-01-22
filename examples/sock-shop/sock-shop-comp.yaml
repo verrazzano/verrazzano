@@ -1,0 +1,238 @@
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: carts
+  namespace: oam-sockshop
+spec:
+  workload:
+    apiVersion: coherence.oracle.com/v1
+    kind: Coherence
+    metadata:
+      name: carts-coh
+      namespace: oam-sockshop
+    spec:
+      cluster: SockShop
+      role: Carts
+      replicas: 1
+      image: ghcr.io/helidon-sockshop/carts-coherence:2.2.0
+      imagePullPolicy: Always
+      application:
+        type: helidon
+      jvm:
+        args:
+          - "-Dcoherence.k8s.operator.health.wait.dcs=false"
+        memory:
+          heapSize: 2g
+      coherence:
+        logLevel: 9
+        metrics:
+          enabled: true
+      ports:
+        - name: http
+          port: 7001
+          service:
+            name: carts
+            port: 80
+          serviceMonitor:
+            enabled: true
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: catalog
+  namespace: oam-sockshop
+spec:
+  workload:
+    apiVersion: coherence.oracle.com/v1
+    kind: Coherence
+    metadata:
+      name: catalog-coh
+      namespace: oam-sockshop
+    spec:
+      cluster: SockShop
+      role: Catalog
+      replicas: 1
+      image: ghcr.io/helidon-sockshop/catalog-coherence:2.2.0
+      imagePullPolicy: Always
+      application:
+        type: helidon
+      jvm:
+        args:
+          - "-Dcoherence.k8s.operator.health.wait.dcs=false"
+        memory:
+          heapSize: 2g
+      coherence:
+        logLevel: 9
+        metrics:
+          enabled: true
+      ports:
+        - name: http
+          port: 7001
+          service:
+            name: catalogue  # for compatibility with the existing front-end implementation
+            port: 80
+          serviceMonitor:
+            enabled: true
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: orders
+  namespace: oam-sockshop
+spec:
+  workload:
+    apiVersion: coherence.oracle.com/v1
+    kind: Coherence
+    metadata:
+      name: orders-coh
+      namespace: oam-sockshop
+    spec:
+      cluster: SockShop
+      role: Orders
+      replicas: 1
+      image: ghcr.io/helidon-sockshop/orders-coherence:2.2.0
+      imagePullPolicy: Always
+      application:
+        type: helidon
+      jvm:
+        args:
+          - "-Dcoherence.k8s.operator.health.wait.dcs=false"
+        memory:
+          heapSize: 2g
+      coherence:
+        logLevel: 9
+        metrics:
+          enabled: true
+      ports:
+        - name: http
+          port: 7001
+          service:
+            name: orders
+            port: 80
+          serviceMonitor:
+            enabled: true
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: payment
+  namespace: oam-sockshop
+spec:
+  workload:
+    apiVersion: coherence.oracle.com/v1
+    kind: Coherence
+    metadata:
+      name: payment-coh
+      namespace: oam-sockshop
+    spec:
+      cluster: SockShop
+      role: Payment
+      replicas: 1
+      image: ghcr.io/helidon-sockshop/payment-coherence:2.2.0
+      imagePullPolicy: Always
+      application:
+        type: helidon
+      jvm:
+        args:
+          - "-Dcoherence.k8s.operator.health.wait.dcs=false"
+        memory:
+          heapSize: 2g
+      coherence:
+        logLevel: 9
+        metrics:
+          enabled: true
+      ports:
+        - name: grpc
+          port: 1408
+          service:
+            name: payment
+        - name: http
+          port: 7001
+          service:
+            name: payment-http
+            port: 80
+          serviceMonitor:
+            enabled: true
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: shipping
+  namespace: oam-sockshop
+spec:
+  workload:
+    apiVersion: coherence.oracle.com/v1
+    kind: Coherence
+    metadata:
+      name: shipping-coh
+      namespace: oam-sockshop
+    spec:
+      cluster: SockShop
+      role: Shipping
+      replicas: 1
+      image: ghcr.io/helidon-sockshop/shipping-coherence:2.2.0
+      imagePullPolicy: Always
+      application:
+        type: helidon
+      jvm:
+        args:
+          - "-Dcoherence.k8s.operator.health.wait.dcs=false"
+        memory:
+          heapSize: 2g
+      coherence:
+        logLevel: 9
+        metrics:
+          enabled: true
+      ports:
+        - name: grpc
+          port: 1408
+          service:
+            name: shipping
+        - name: http
+          port: 7001
+          service:
+            name: shipping-http
+            port: 80
+          serviceMonitor:
+            enabled: true
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: users
+  namespace: oam-sockshop
+spec:
+  workload:
+    apiVersion: coherence.oracle.com/v1
+    kind: Coherence
+    metadata:
+      name: users-coh
+      namespace: oam-sockshop
+    spec:
+      cluster: SockShop
+      role: Users
+      replicas: 1
+      image: ghcr.io/helidon-sockshop/users-coherence:2.2.0
+      imagePullPolicy: Always
+      application:
+        type: helidon
+      jvm:
+        args:
+          - "-Dcoherence.k8s.operator.health.wait.dcs=false"
+        memory:
+          heapSize: 2g
+      coherence:
+        logLevel: 9
+        metrics:
+          enabled: true
+      ports:
+        - name: http
+          port: 7001
+          service:
+            name: user  # for compatibility with the existing front-end implementation
+            port: 80
+          serviceMonitor:
+            enabled: true
