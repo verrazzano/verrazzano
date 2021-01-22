@@ -6,12 +6,13 @@ package loggingscope
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"strings"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -44,9 +45,10 @@ type Reconciler struct {
 
 // NewReconciler creates a new Logging Scope reconciler
 func NewReconciler(client client.Client, log logr.Logger, scheme *runtime.Scheme) *Reconciler {
-	handlers := make(map[string]Handler)
-	handlers[wlsDomainKind] = &wlsHandler{Client: client, Log: log}
-
+	handlers := map[string]Handler{
+		wlsWorkloadKey:     &wlsHandler{Client: client, Log: log},
+		helidonWorkloadKey: &HelidonHandler{Client: client, Log: log},
+	}
 	return &Reconciler{
 		Client:   client,
 		Log:      log,
@@ -77,7 +79,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		resource := toResource(workload)
 		resources = append(resources, resource)
 
-		handler := r.Handlers[resource.Kind]
+		handler := r.Handlers[handlerKey(resource)]
 		if handler == nil {
 			log.Error(nil, "Unknown Resource Kind encountered in Logging Scope Controller", "resource", resource)
 			continue
@@ -101,7 +103,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			}
 		}
 		if !workloadFound {
-			handler := r.Handlers[existingResource.Kind]
+			handler := r.Handlers[handlerKey(existingResource)]
 			deleteConfirmed, err := handler.Remove(ctx, existingResource, scope)
 			if err != nil {
 				errors = append(errors, err.Error())
@@ -123,6 +125,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	return ctrl.Result{}, err
+}
+
+func handlerKey(workload vzapi.QualifiedResourceRelation) string {
+	return fmt.Sprintf("%s/%s", workload.APIVersion, workload.Kind)
 }
 
 // fetchScope attempts to get a scope given a namespaced name.
