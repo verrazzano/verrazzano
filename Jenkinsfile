@@ -62,7 +62,7 @@ pipeline {
         GITHUB_RELEASE_USERID = credentials('github-userid-release')
         GITHUB_RELEASE_EMAIL = credentials('github-email-release')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
-        SKIP_ACCEPTANCE_TESTS = false
+        SKIP_ACCEPTANCE_TESTS = "false"
     }
 
     stages {
@@ -297,7 +297,7 @@ pipeline {
                         result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
                         if (result == 0) {
                             // found 'skip-at', so don't run them
-                            env.SKIP_ACCEPTANCE_TESTS = true
+                            SKIP_ACCEPTANCE_TESTS = "true"
                             echo "Skip acceptance tests based on opt-out in commit message [skip-at]"
                         }
                     }
