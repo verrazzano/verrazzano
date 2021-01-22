@@ -21,6 +21,7 @@ var _ = ginkgo.Describe("Helidon Hello World Example Application", func() {
 		ginkgo.It("Pod should exist", func() {
 			gomega.Expect(util.DoesPodExist("hello-helidon", "helidon-hello-world")).To(gomega.BeTrue())
 		})
+		// and so on
 	})
 
 	ginkgo.Context("Monitoring", func() {
@@ -28,5 +29,9 @@ var _ = ginkgo.Describe("Helidon Hello World Example Application", func() {
 			// check for that
 		})
 	})
+	// and so on
+})
 
+var _ = ginkgo.AfterSuite(func() {
+	// undeploy the application here
 })
