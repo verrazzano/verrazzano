@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+  <testsuite name="ToDo List Example Test Suite" tests="2" failures="1" errors="0" time="21.552">
+      <testcase name="Verify ToDo List example application. Verify &#39;tododomain-adminserver&#39; pod is running" classname="ToDo List Example Test Suite" time="0.731681329">
+          <failure type="Failure">/Users/kminder/Projects/vz/src/github.com/verrazzano/verrazzano/tests/e2e/examples/todo_list/todo_list_test.go:43&#xA;Expected&#xA;    &lt;bool&gt;: false&#xA;to be true&#xA;/Users/kminder/Projects/vz/src/github.com/verrazzano/verrazzano/tests/e2e/examples/todo_list/todo_list_test.go:46</failure>
+          <system-out>[INFO] 22220-01-22 13:17:29.512911 Pods [tododomain-adminserver] were NOT running in todo&#xA;</system-out>
+      </testcase>
+  </testsuite>

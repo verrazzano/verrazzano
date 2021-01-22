@@ -16,7 +16,7 @@ spec:
     spec:
       domainUID: tododomain
       domainHome: /u01/domains/tododomain
-      image: %TODO_APP_IMAGE%
+      image: phx.ocir.io/stevengreenberginc/will.hopkins/todo-domain:1
       imagePullSecrets:
         - name: tododomain-repo-credentials
       logHomeEnabled: true
@@ -165,7 +165,7 @@ spec:
                       key: password
                 - name: MYSQL_DATABASE
                   value: tododb
-              image: "mysql:8.0.20"
+              image: ghcr.io/verrazzano/mysql:8.0.20
               imagePullPolicy: IfNotPresent
               name: mysql
               ports:
