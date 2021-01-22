@@ -291,6 +291,8 @@ pipeline {
                     result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
                     if (result == 0) {
                         env.SKIP_ACCEPTANCE_TESTS = false
+                    } else {
+                        env.SKIP_ACCEPTANCE_TESTS = true
                     }
                 }
             }
@@ -303,9 +305,11 @@ pipeline {
                     anyOf {
                         branch 'master';
                         branch 'develop';
-                        expression { return params.RUN_ACCEPTANCE_TESTS == true };
                     }
-                    expression { return env.SKIP_ACCEPTANCE_TESTS == false };
+                    allOf {
+                        expression { return params.RUN_ACCEPTANCE_TESTS == true };
+                        expression { return env.SKIP_ACCEPTANCE_TESTS == false };
+                    }
                 }
             }
             environment {
