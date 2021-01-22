@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 
-	config2 "github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 )
 
@@ -55,6 +55,5 @@ func resolveNamespace(ns string) string {
 // VzChartDir returns the chart directory of the verrazzano helm chart on the docker image.
 // This can be set by developer to run the operator in development outside of kubernetes
 func VzChartDir() string {
-	dir := config2.Get().VerrazzanoInstallDir
-	return filepath.Join(dir + "/chart")
+	return filepath.Join(config.Get().HelmConfigDir, "charts/verrazzano")
 }
