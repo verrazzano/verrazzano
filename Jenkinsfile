@@ -316,7 +316,7 @@ pipeline {
                     anyOf {
                         branch 'master';
                         branch 'develop';
-                        expression { return env.SKIP_ACCEPTANCE_TESTS == false };
+                        expression { return env.SKIP_ACCEPTANCE_TESTS == "false" };
                     }
                 }
             }
