@@ -298,6 +298,7 @@ pipeline {
                         if (result == 0) {
                             // found 'skip-at', so don't run them
                             env.SKIP_ACCEPTANCE_TESTS = true
+                            echo "Skip acceptance tests based on opt-out in commit message [skip-at]"
                         }
                     }
                     sh """
