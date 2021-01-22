@@ -2,6 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
+def SKIP_ACCEPTANCE_TESTS = false
 
 pipeline {
     options {
@@ -62,7 +63,6 @@ pipeline {
         GITHUB_RELEASE_USERID = credentials('github-userid-release')
         GITHUB_RELEASE_EMAIL = credentials('github-email-release')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
-        SKIP_ACCEPTANCE_TESTS = "false"
     }
 
     stages {
@@ -297,14 +297,14 @@ pipeline {
                         result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
                         if (result == 0) {
                             // found 'skip-at', so don't run them
-                            env.SKIP_ACCEPTANCE_TESTS = "true"
+                            SKIP_ACCEPTANCE_TESTS = "true"
                             echo "Skip acceptance tests based on opt-out in commit message [skip-at]"
                             echo "SKIP_ACCEPTANCE_TESTS is ${env.SKIP_ACCEPTANCE_TESTS}"
                         }
                     }
                     sh """
                         echo "MARK  DEBUGGING"
-                        echo "SKIP_ACCEPTANCE_TESTS is ${env.SKIP_ACCEPTANCE_TESTS}"
+                        echo "SKIP_ACCEPTANCE_TESTS is ${SKIP_ACCEPTANCE_TESTS}"
                         echo "RUN_ACCEPTANCE_TESTS is ${params.RUN_ACCEPTANCE_TESTS}"
                     """
                 }
@@ -318,7 +318,7 @@ pipeline {
                     anyOf {
                         branch 'master';
                         branch 'develop';
-                        expression { return env.SKIP_ACCEPTANCE_TESTS == "false" };
+                        expression { return SKIP_ACCEPTANCE_TESTS == "false" };
                     }
                 }
             }
