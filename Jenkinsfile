@@ -290,9 +290,9 @@ pipeline {
                 script {
                     result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
                     if (result == 0) {
-                        env.SKIP_ACCEPTANCE_TESTS = false
-                    } else {
                         env.SKIP_ACCEPTANCE_TESTS = true
+                    } else {
+                        env.SKIP_ACCEPTANCE_TESTS = false
                     }
                 }
             }
