@@ -38,7 +38,7 @@ verrazzanoOperator:
   nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
   filebeatImage: ghcr.io/verrazzano/filebeat:6.8.3-20201016212236-05eabe44b
   journalbeatImage: ghcr.io/verrazzano/journalbeat:6.8.3-20201016212623-05eabe44b
-  weblogicOperatorImage: oracle/weblogic-kubernetes-operator:3.0.2
+  weblogicOperatorImage: ghcr.io/oracle/weblogic-kubernetes-operator:3.1.0
   fluentdImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-20201016214205-7f37ac6
   apiServerRealm: verrazzano-system
   RequestMemory: 72Mi
