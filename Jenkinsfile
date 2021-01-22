@@ -442,16 +442,14 @@ pipeline {
                         }
 
                         stage('Run Acceptance Tests') {
-                            parallel {
-                                stage('verify-install') {
-                                    steps {
-                                        runGinkgoRandomize('verify-install')
-                                    }
+                            stage('verify-install') {
+                                steps {
+                                    runGinkgoRandomize('verify-install')
                                 }
-                                stage('restapi') {
-                                    steps {
-                                        runGinkgo('verify-infra/restapi')
-                                    }
+                            }
+                            stage('restapi') {
+                                steps {
+                                    runGinkgo('verify-infra/restapi')
                                 }
                             }
                         }
