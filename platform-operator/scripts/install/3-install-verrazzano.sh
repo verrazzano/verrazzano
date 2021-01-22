@@ -210,7 +210,7 @@ function install_oam_operator {
   helm upgrade --install --wait oam-kubernetes-runtime \
     ${CHARTS_DIR}/oam-kubernetes-runtime \
     --namespace "${VERRAZZANO_NS}" \
-    -f $SCRIPT_DIR/components/oam-kubernetes-runtime-values.yaml \
+    -f $VZ_OVERRIDES_DIR/oam-kubernetes-runtime-values.yaml \
     || return $?
   if [ $? -ne 0 ]; then
     error "Failed to install OAM Kubernetes operator."
