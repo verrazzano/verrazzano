@@ -159,15 +159,15 @@ function install_verrazzano()
     error "The value .profile must be set in the config file"
     exit 1
   fi
-  if [ ! -f "${SCRIPT_DIR}/chart/values.${profile}.yaml" ]; then
-    error "The file ${SCRIPT_DIR}/chart/values.${profile}.yaml does not exist"
+  if [ ! -f "${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml" ]; then
+    error "The file ${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml does not exist"
     exit 1
   fi
-  local PROFILE_VALUES_OVERRIDE=" -f ${SCRIPT_DIR}/chart/values.${profile}.yaml"
+  local PROFILE_VALUES_OVERRIDE=" -f ${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml"
 
   helm \
       upgrade --install verrazzano \
-      ${SCRIPT_DIR}/chart \
+      ${VZ_CHARTS_DIR}/verrazzano \
       --namespace ${VERRAZZANO_NS} \
       --set image.pullPolicy=IfNotPresent \
       --set config.envName=${ENV_NAME} \
