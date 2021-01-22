@@ -359,7 +359,7 @@ pipeline {
                                         cp platform-operator/deploy/operator.yaml /tmp/operator.yaml
                                     else
                                         echo "Generating operator.yaml based on image name provided: ${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                                        ./tests/e2e/config/scripts/process_operator_yaml.sh operator "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                                        ./tests/e2e/config/scripts/process_operator_yaml.sh platform-operator "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                                     fi
 
                                     # Install the verrazzano-platform-operator
