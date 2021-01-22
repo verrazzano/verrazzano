@@ -27,6 +27,13 @@ func GetComponents() []Component {
 		},
 		Nginx{},
 		helmComponent{
+			releaseName:             "ingress-controller",
+			chartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"),
+			chartNamespace:          "ingress-nginx",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(overridesDir, "ingress-nginx-values.yaml"),
+		},
+		helmComponent{
 			releaseName:             "cert-manager",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "cert-manager"),
 			chartNamespace:          "cert-manager",
