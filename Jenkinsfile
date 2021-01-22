@@ -322,7 +322,6 @@ pipeline {
                         propagate: true
             }
         }
-
     }
 
     post {
