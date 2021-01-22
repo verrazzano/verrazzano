@@ -307,10 +307,6 @@ pipeline {
                         echo "SKIP_ACCEPTANCE_TESTS is ${env.SKIP_ACCEPTANCE_TESTS}"
                         echo "RUN_ACCEPTANCE_TESTS is ${params.RUN_ACCEPTANCE_TESTS}"
                     """
-                    sh '''
-                        echo "SKIP_ACCEPTANCE_TESTS is ${env.SKIP_ACCEPTANCE_TESTS}"
-                        echo "RUN_ACCEPTANCE_TESTS is ${params.RUN_ACCEPTANCE_TESTS}"
-                    '''
                 }
             }
         }
