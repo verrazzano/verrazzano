@@ -355,7 +355,7 @@ pipeline {
                          stage('Create Kind Cluster for Test Suite') {
                             steps {
                                 sh """
-                                    cd ${GO_REPO_PATH}/verrazzano/operator
+                                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
                                     make create-cluster
                                 """
                             }
@@ -381,7 +381,7 @@ pipeline {
                                     # Configure the deployment file to use an image pull secret for branches that have private images
                                     if [ "${env.BRANCH_NAME}" == "master" ] || [ "${env.BRANCH_NAME}" == "develop" ]; then
                                         echo "Using operator.yaml from Verrazzano repo"
-                                        cp operator/deploy/operator.yaml /tmp/operator.yaml
+                                        cp platform-operator/deploy/operator.yaml /tmp/operator.yaml
                                     else
                                         echo "Generating operator.yaml based on image name provided: ${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                                         ./tests/e2e/config/scripts/process_operator_yaml.sh operator "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
@@ -430,9 +430,9 @@ pipeline {
                                 always {
                                     sh """
                                         ## dump out install logs
-                                        mkdir -p ${WORKSPACE}/verrazzano/operator/scripts/install/build/logs
-                                        kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/operator/scripts/install/build/logs/verrazzano-install.log --tail -1
-                                        kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+                                        mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
+                                        kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
+                                        kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
                                         echo "Verrazzano Installation logs dumped to verrazzano-install.log"
                                         echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
                                         echo "------------------------------------------"
