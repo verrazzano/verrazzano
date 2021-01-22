@@ -81,14 +81,14 @@ pipeline {
 
                 sh """
                     retries=0
-                    until [ "${retries}" -ge 5 ]
+                    until [ "$retries" -ge 5 ]
                     do
                        echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin && break
-                       retries=$((retries+1))
+                       let retries=${retries}+1
                        echo "docker login failed, sleeping to retry"
                        sleep 30
                     done
-                    if [ "${retries}" -ge 5]; then
+                    if [ "$retries" -ge 5]; then
                        echo "docker login failed after retries"
                        exit 1
                     fi
