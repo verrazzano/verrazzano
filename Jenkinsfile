@@ -2,6 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
+def SKIP_ACCEPTANCE_TESTS = false
 
 pipeline {
     options {
@@ -40,7 +41,7 @@ pipeline {
                 description: 'Branch or tag of verrazzano acceptance tests, on which to kick off the tests',
                 trim: true
         )
-        booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: false)
+        booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
     }
 
     environment {
@@ -303,6 +304,27 @@ pipeline {
             }
         }
 
+        stage('Skip acceptance tests if commit message contains skip-at') {
+            steps {
+                script {
+                    // note that SKIP_ACCEPTANCE_TESTS will be false at this point (its default value)
+                    // so we are going to run the AT's unless this logic decideds to skip them...
+
+                    // if we are planning to run the AT's (which is the default)
+                    if (params.RUN_ACCEPTANCE_TESTS == true) {
+                        // check if the user has asked to skip AT using the commit message
+                        result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
+                        if (result == 0) {
+                            // found 'skip-at', so don't run them
+                            SKIP_ACCEPTANCE_TESTS = true
+                            echo "Skip acceptance tests based on opt-out in commit message [skip-at]"
+                            echo "SKIP_ACCEPTANCE_TESTS is ${SKIP_ACCEPTANCE_TESTS}"
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Kick off KinD Merge Acceptance tests') {
             when {
                 allOf {
@@ -310,7 +332,7 @@ pipeline {
                     anyOf {
                         branch 'master';
                         branch 'develop';
-                        expression { return params.RUN_ACCEPTANCE_TESTS == true }
+                        expression {SKIP_ACCEPTANCE_TESTS == false};
                     }
                 }
             }
@@ -328,7 +350,6 @@ pipeline {
                         propagate: true
             }
         }
-
     }
 
     post {
