@@ -297,7 +297,7 @@ pipeline {
                         result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
                         if (result == 0) {
                             // found 'skip-at', so don't run them
-                            SKIP_ACCEPTANCE_TESTS = "true"
+                            env.SKIP_ACCEPTANCE_TESTS = "true"
                             echo "Skip acceptance tests based on opt-out in commit message [skip-at]"
                         }
                     }
