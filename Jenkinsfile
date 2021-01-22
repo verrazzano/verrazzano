@@ -294,6 +294,11 @@ pipeline {
                     } else {
                         env.SKIP_ACCEPTANCE_TESTS = false
                     }
+                    sh """
+                        echo "MARK DEBUGGING"
+                        echo "SKIP_ACCEPTANCE_TESTS is $env.SKIP_ACCEPTANCE_TESTS"
+                        echo "RUN_ACCEPTANCE_TESTS is $params.RUN_ACCEPTANCE_TESTS"
+                    """
                 }
             }
         }
