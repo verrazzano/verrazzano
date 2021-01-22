@@ -288,11 +288,14 @@ pipeline {
         stage('Skip acceptance tests if commit message contains skip-at') {
             steps {
                 script {
-                    result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
-                    if (result == 0) {
-                        env.SKIP_ACCEPTANCE_TESTS = true
-                    } else {
-                        env.SKIP_ACCEPTANCE_TESTS = false
+                    // if we are planning to run the AT's
+                    // note that SKIP_ACCEPTANCE_TESTS will be false at this point (its default value)
+                    if (parameters.RUN_ACCEPTANCE_TESTS == true) {
+                        // check if the user has asked to skip AT using the commit message
+                        result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
+                        if (result == 0) {
+                            env.SKIP_ACCEPTANCE_TESTS = true
+                        }
                     }
                     sh """
                         echo "MARK  DEBUGGING"
@@ -310,7 +313,6 @@ pipeline {
                     anyOf {
                         branch 'master';
                         branch 'develop';
-                        expression { return params.RUN_ACCEPTANCE_TESTS == true };
                         expression { return env.SKIP_ACCEPTANCE_TESTS == false };
                     }
                 }
