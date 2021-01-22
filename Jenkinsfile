@@ -297,7 +297,7 @@ pipeline {
                         result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
                         if (result == 0) {
                             // found 'skip-at', so don't run them
-                            SKIP_ACCEPTANCE_TESTS = "true"
+                            SKIP_ACCEPTANCE_TESTS = true
                             echo "Skip acceptance tests based on opt-out in commit message [skip-at]"
                             echo "SKIP_ACCEPTANCE_TESTS is ${SKIP_ACCEPTANCE_TESTS}"
                         }
@@ -318,7 +318,7 @@ pipeline {
                     anyOf {
                         branch 'master';
                         branch 'develop';
-                        return SKIP_ACCEPTANCE_TESTS == 'false';
+                        expression {SKIP_ACCEPTANCE_TESTS == false};
                     }
                 }
             }
