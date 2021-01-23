@@ -12,10 +12,10 @@ import (
 	"reflect"
 
 	vzcomp "github.com/verrazzano/verrazzano/platform-operator/internal/component"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/semver"
 	"go.uber.org/zap"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 )
 
 type chartVersion struct {
@@ -31,17 +31,11 @@ var readFileFunction = ioutil.ReadFile
 
 // getCurrentChartVersion Load the current Chart.yaml into a chartVersion struct
 func getCurrentChartVersion() (*semver.SemVersion, error) {
-	chartDir := vzcomp.VzChartDir()
-	chartBytes, err := readFileFunction(chartDir + "/Chart.yaml")
+	chart, err := helm.GetChartInfo(vzcomp.VzChartDir())
 	if err != nil {
 		return nil, err
 	}
-	chartVersion := &chartVersion{}
-	err = yaml.Unmarshal(chartBytes, chartVersion)
-	if err != nil {
-		return nil, err
-	}
-	return semver.NewSemVersion(fmt.Sprintf("v%s", chartVersion.Version))
+	return semver.NewSemVersion(fmt.Sprintf("v%s", chart.Version))
 }
 
 // ValidateVersion check that requestedVersion matches chart requestedVersion
