@@ -5,6 +5,10 @@ package loggingscope
 
 import (
 	"context"
+	"fmt"
+	"strconv"
+	"testing"
+
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
@@ -19,8 +23,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"strconv"
-	"testing"
 )
 
 const (
@@ -246,7 +248,7 @@ func createTestLoggingScopeRequest() ctrl.Request {
 // newTestReconciler creates a new test reconciler
 func newTestReconciler(client client.Client, scheme *runtime.Scheme, handler Handler) *Reconciler {
 	reconciler := NewReconciler(client, ctrl.Log.WithName("controllers").WithName("LoggingScope"), scheme)
-	reconciler.Handlers[testKind] = handler
+	reconciler.Handlers[fmt.Sprintf("%s/%s", testAPIVersion, testKind)] = handler
 
 	return reconciler
 }

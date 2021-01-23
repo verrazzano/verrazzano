@@ -2,6 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
+def SKIP_ACCEPTANCE_TESTS = false
 
 pipeline {
     options {
@@ -40,7 +41,7 @@ pipeline {
                 description: 'Branch or tag of verrazzano acceptance tests, on which to kick off the tests',
                 trim: true
         )
-        booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: false)
+        booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
     }
 
     environment {
@@ -62,6 +63,17 @@ pipeline {
         GITHUB_RELEASE_USERID = credentials('github-userid-release')
         GITHUB_RELEASE_EMAIL = credentials('github-email-release')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
+
+        CLUSTER_NAME = 'verrazzano'
+        POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
+        KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
+        VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
+        OCR_CREDS = credentials('ocr-pull-and-push-account')
+        OCR_REPO = 'container-registry.oracle.com'
+        IMAGE_PULL_SECRET = 'verrazzano-container-registry'
+        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
+        INSTALL_PROFILE = "dev"
+        VZ_ENVIRONMENT_NAME = "default"
     }
 
     stages {
@@ -81,6 +93,7 @@ pipeline {
 
                 sh """
                     echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                    echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin                    
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
                     tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
@@ -146,71 +159,46 @@ pipeline {
             }
         }
 
-        stage('gofmt Check') {
+        stage('Quality and Compliance Checks') {
             when { not { buildingTag() } }
             steps {
                 sh """
+                    echo "fmt"
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     make go-fmt
                     cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make go-fmt
-                """
-            }
-        }
 
-        stage('go vet Check') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
+                    echo "vet"
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     make go-vet
                     cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make go-vet
-                """
-            }
-        }
 
-        stage('golint Check') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
+                    echo "lint"
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     make go-lint
                     cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make go-lint
-                """
-            }
-        }
 
-        stage('ineffassign Check') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
+                    echo "ineffassign"
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     make go-ineffassign
                     cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make go-ineffassign
                 """
-            }
-        }
 
-        stage('Third Party License Check') {
-            when { not { buildingTag() } }
-            steps {
                 dir('platform-operator'){
-                    echo "In Operator"
+                    echo "Third party license check platform-operator"
                     thirdpartyCheck()
                 }
                 dir('application-operator'){
-                    echo "In OAM Operator"
+                    echo "Third party license check application-operator"
                     thirdpartyCheck()
                 }
-            }
-        }
-
-        stage('Copyright Compliance Check') {
-            when { not { buildingTag() } }
-            steps {
+                sh """
+                    echo "copyright"
+                """
                 copyrightScan "${WORKSPACE}"
             }
         }
@@ -288,36 +276,184 @@ pipeline {
             }
         }
 
-        stage('Kick off KinD Merge Acceptance tests') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    anyOf {
-                        branch 'master';
-                        branch 'develop';
-                        expression { return params.RUN_ACCEPTANCE_TESTS == true }
+        stage('Skip acceptance tests if commit message contains skip-at') {
+            steps {
+                script {
+                    // note that SKIP_ACCEPTANCE_TESTS will be false at this point (its default value)
+                    // so we are going to run the AT's unless this logic decideds to skip them...
+
+                    // if we are planning to run the AT's (which is the default)
+                    if (params.RUN_ACCEPTANCE_TESTS == true) {
+                        // check if the user has asked to skip AT using the commit message
+                        result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
+                        if (result == 0) {
+                            // found 'skip-at', so don't run them
+                            SKIP_ACCEPTANCE_TESTS = true
+                            echo "Skip acceptance tests based on opt-out in commit message [skip-at]"
+                            echo "SKIP_ACCEPTANCE_TESTS is ${SKIP_ACCEPTANCE_TESTS}"
+                        }
                     }
                 }
             }
-            environment {
-                FULL_IMAGE_NAME = "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-            }
-            steps {
-                build job: "verrazzano-merge-tests/${env.BRANCH_NAME.replace("/", "%2F")}",
-                        parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME),
-                                     string(name: 'ACCEPTANCE_TESTS_BRANCH', value: params.ACCEPTANCE_TESTS_BRANCH),
-                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME),
-                                     string(name: 'TEST_ENV', value: 'kind'),
-                                     string(name: 'INSTALL_PROFILE', value: 'dev')],
-                        wait: true,
-                        propagate: true
-            }
         }
 
+        stage('Acceptance Tests') {
+            parallel {
+                stage('Kick off KinD Merge Acceptance tests') {
+                    when {
+                        allOf {
+                            not { buildingTag() }
+                            anyOf {
+                                branch 'master';
+                                branch 'develop';
+                                expression {SKIP_ACCEPTANCE_TESTS == false};
+                            }
+                        }
+                    }
+                    environment {
+                        FULL_IMAGE_NAME = "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                    }
+                    steps {
+                        build job: "verrazzano-merge-tests/${env.BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME),
+                                             string(name: 'ACCEPTANCE_TESTS_BRANCH', value: params.ACCEPTANCE_TESTS_BRANCH),
+                                             string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME),
+                                             string(name: 'TEST_ENV', value: 'kind'),
+                                             string(name: 'INSTALL_PROFILE', value: 'dev')],
+                                wait: true,
+                                propagate: true
+                    }
+                }
+
+                stage('New Acceptance Tests') {
+                    stages {
+                         stage('Create Kind Cluster for Test Suite') {
+                            steps {
+                                sh """
+                                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                                    make create-cluster
+                                """
+                            }
+                        }
+
+                        stage('Create Image Pull Secrets') {
+                            steps {
+                                sh """
+                                    # Create image pull secret for Verrazzano docker images
+                                    cd ${GO_REPO_PATH}/verrazzano
+                                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                                    ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                                    ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+                                """
+                            }
+                        }
+
+                        stage('Install Platform Operator') {
+                            steps {
+                                sh """
+                                    cd ${GO_REPO_PATH}/verrazzano
+
+                                    # Configure the deployment file to use an image pull secret for branches that have private images
+                                    if [ "${env.BRANCH_NAME}" == "master" ] || [ "${env.BRANCH_NAME}" == "develop" ]; then
+                                        echo "Using operator.yaml from Verrazzano repo"
+                                        cp platform-operator/deploy/operator.yaml /tmp/operator.yaml
+                                    else
+                                        echo "Generating operator.yaml based on image name provided: ${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                                        ./tests/e2e/config/scripts/process_operator_yaml.sh platform-operator "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                                    fi
+
+                                    # Install the verrazzano-platform-operator
+                                    cat /tmp/operator.yaml
+                                    kubectl apply -f /tmp/operator.yaml
+
+                                    # make sure ns exists
+                                    ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+
+                                    # create secret in verrazzano-install ns
+                                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+
+                                    # Configure the custom resource to install verrazzano on Kind
+                                    echo "Installing yq"
+                                    GO111MODULE=on go get github.com/mikefarah/yq/v4
+                                    export PATH=${HOME}/go/bin:${PATH}
+                                    ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND}
+                                """
+                            }
+                        }
+
+                        stage('Install Verrazzano') {
+                            steps {
+                                sh """
+                                    echo "Waiting for Operator to be ready"
+                                    cd ${GO_REPO_PATH}/verrazzano
+                                    kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+
+                                    echo "Installing Verrazzano on Kind"
+                                    kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}
+
+                                    # wait for Verrazzano install to complete
+                                    ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+
+                                    # Hack
+                                    # OCIR images don't work with KIND.
+                                    # Coherence image doesn't get pulled correctly in KIND.
+                                    docker pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
+                                    kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/middleware/coherence:12.2.1.4.0
+                                """
+                            }
+                            post {
+                                always {
+                                    sh """
+                                        ## dump out install logs
+                                        mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
+                                        kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
+                                        kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+                                        echo "Verrazzano Installation logs dumped to verrazzano-install.log"
+                                        echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
+                                        echo "------------------------------------------"
+                                    """
+                                }
+                            }
+                        }
+
+                        stage('Run Acceptance Tests') {
+                            stages {
+                                stage('verify-install') {
+                                    steps {
+                                        runGinkgoRandomize('verify-install')
+                                    }
+                                }
+                                stage('restapi') {
+                                    steps {
+                                        runGinkgo('verify-infra/restapi')
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     post {
         always {
+            dumpVerrazzanoSystemPods()
+            dumpCattleSystemPods()
+            dumpNginxIngressControllerLogs()
+            dumpVerrazzanoPlatformOperatorLogs()
+
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt', allowEmptyArchive: true
+            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+
+            sh """
+                cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                make delete-cluster
+                if [ -f ${POST_DUMP_FAILED_FILE} ]; then
+                  echo "Failures seen during dumping of artifacts, treat post as failed"
+                  exit 1
+                fi
+            """
             deleteDir()
         }
         failure {
@@ -332,4 +468,66 @@ pipeline {
             }
         }
     }
+}
+
+def runGinkgoRandomize(testSuitePath) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor ${testSuitePath}/...
+        """
+    }
+}
+
+def runGinkgo(testSuitePath) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
+        """
+    }
+}
+
+def dumpVerrazzanoSystemPods() {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-pods.log"
+        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-certs.log"
+        ./scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-kibana.log"
+        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-es-master.log"
+        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def dumpCattleSystemPods() {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cattle-system-pods.log"
+        ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/rancher.log"
+        ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def dumpNginxIngressControllerLogs() {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/nginx-ingress-controller.log"
+        ./scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def dumpVerrazzanoPlatformOperatorLogs() {
+    sh """
+        ## dump out verrazzano-platform-operator logs
+        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
+        kubectl -n verrazzano-install logs --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        echo "verrazzano-platform-operator logs dumped to verrazzano-platform-operator-pod.log"
+        echo "verrazzano-platform-operator pod description dumped to verrazzano-platform-operator-pod.out"
+        echo "------------------------------------------"
+    """
 }

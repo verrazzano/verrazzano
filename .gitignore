@@ -33,3 +33,4 @@ platform-operator/test/integ/integ.coverprofile
 application-operator/test/integ/integ*result.xml
 application-operator/test/integ/integ.coverprofile
 out/
+**/*test-result.xml
