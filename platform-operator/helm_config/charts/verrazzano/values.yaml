@@ -31,7 +31,7 @@ verrazzanoOperator:
   name: verrazzano-operator
   imageName: ghcr.io/verrazzano/verrazzano-operator
   imageVersion: 0.9.0-20210122131328-3beb454
-  cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:0.9.0-20210121214950-18b5fd3
+  cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:0.9.0-20210123000113-545ad59
   helidonMicroImage: ghcr.io/verrazzano/verrazzano-helidon-app-operator:0.9.0-20210121210620-02233c2
   wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:0.9.0-20210121215245-5404ca7
   prometheusPusherImage: ghcr.io/verrazzano/prometheus-pusher:1.0.1-20201016212958-5b64612
