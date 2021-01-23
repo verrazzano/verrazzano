@@ -18,6 +18,7 @@ func TestGetChart(t *testing.T) {
 	assert.NoError(err, "GetChartInfo returned an error")
 	assert.Equal(chart.APIVersion, "v1", "incorrect API version")
 	assert.Equal(chart.Version, "0.8.0", "incorrect chart version")
+	assert.Equal(chart.AppVersion, "0.8.0-app", "incorrect chart app version")
 	assert.Equal(chart.Description, "Test Helm Chart", "incorrect chart description")
 	assert.Equal(chart.Name, "testChart", "incorrect chart name")
 }
