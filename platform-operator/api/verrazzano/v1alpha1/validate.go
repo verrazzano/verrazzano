@@ -19,7 +19,6 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-
 // For unit test purposes
 var readFileFunction = ioutil.ReadFile
 
