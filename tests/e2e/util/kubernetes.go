@@ -320,6 +320,14 @@ func DeleteSecret(namespace string, name string) error {
 	return clientset.CoreV1().Secrets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
 }
 
+// GetNamespace returns a namespace
+func GetNamespace(name string) (*corev1.Namespace, error) {
+	// Get the kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	return clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
+}
+
 // CreateNamespace creates a namespace
 func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, error) {
 	// Get the kubernetes clientset

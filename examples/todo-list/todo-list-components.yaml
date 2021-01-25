@@ -104,14 +104,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: todo-mysql-service
-  namespace: todo
+  namespace: todo-list
 spec:
   workload:
     apiVersion: v1
     kind: Service
     metadata:
       name: mysql
-      namespace: todo
+      namespace: todo-list
     spec:
       ports:
         - port: 3306
@@ -123,14 +123,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: todo-mysql-deployment
-  namespace: todo
+  namespace: todo-list
 spec:
   workload:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
       name: mysql
-      namespace: todo
+      namespace: todo-list
     spec:
       progressDeadlineSeconds: 600
       replicas: 1

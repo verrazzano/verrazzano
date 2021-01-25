@@ -1,15 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-  <testsuite name="ToDo List Example Test Suite" tests="3" failures="3" errors="0" time="405.438">
-      <testcase name="Verify ToDo List example application. Verify &#39;tododomain-adminserver&#39; pod is running" classname="ToDo List Example Test Suite" time="0.739172639">
-          <failure type="Failure">/Users/kminder/Projects/vz/src/github.com/verrazzano/verrazzano/tests/e2e/examples/todo_list/todo_list_test.go:54&#xA;Expected&#xA;    &lt;bool&gt;: false&#xA;to be true&#xA;/Users/kminder/Projects/vz/src/github.com/verrazzano/verrazzano/tests/e2e/examples/todo_list/todo_list_test.go:57</failure>
-          <system-out>[INFO] 22220-01-22 16:21:02.710909 Pods [tododomain-adminserver] were NOT running in todo&#xA;</system-out>
-      </testcase>
-      <testcase name="Verify ToDo List example application. Verify &#39;/todo&#39; UI endpoint is working." classname="ToDo List Example Test Suite" time="94.51460102">
-          <failure type="Failure">/Users/kminder/Projects/vz/src/github.com/verrazzano/verrazzano/tests/e2e/examples/todo_list/todo_list_test.go:61&#xA;Could not get web page http://132.145.66.167/todo&#xA;/Users/kminder/Projects/vz/src/github.com/verrazzano/verrazzano/tests/e2e/util/web.go:80</failure>
-          <system-out>[ERROR] 22220-01-22 16:22:37.226758 GET http://132.145.66.167/todo giving up after 8 attempt(s)&#xA;</system-out>
-      </testcase>
-      <testcase name="Verify ToDo List example application. Verify &#39;/todo/rest/items&#39; REST endpoint is working." classname="ToDo List Example Test Suite" time="94.361290318">
-          <failure type="Failure">/Users/kminder/Projects/vz/src/github.com/verrazzano/verrazzano/tests/e2e/examples/todo_list/todo_list_test.go:74&#xA;Could not get web page http://132.145.66.167/todo/rest/items&#xA;/Users/kminder/Projects/vz/src/github.com/verrazzano/verrazzano/tests/e2e/util/web.go:80</failure>
-          <system-out>[ERROR] 22220-01-22 16:24:11.589017 GET http://132.145.66.167/todo/rest/items giving up after 8 attempt(s)&#xA;</system-out>
-      </testcase>
+  <testsuite name="ToDo List Example Test Suite" tests="3" failures="0" errors="0" time="133.086">
+      <testcase name="Verify ToDo List example application. Verify &#39;tododomain-adminserver&#39; and &#39;mysql&#39; pod is running" classname="ToDo List Example Test Suite" time="120.540717094"></testcase>
+      <testcase name="Verify ToDo List example application. Verify &#39;/todo&#39; UI endpoint is working." classname="ToDo List Example Test Suite" time="0.706463241"></testcase>
+      <testcase name="Verify ToDo List example application. Verify &#39;/todo/rest/items&#39; REST endpoint is working." classname="ToDo List Example Test Suite" time="0.529439746"></testcase>
   </testsuite>
