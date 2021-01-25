@@ -42,6 +42,7 @@ pipeline {
                 trim: true
         )
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
+        booleanParam (description: 'Whether to run example tests', name: 'RUN_EXAMPLE_TESTS', defaultValue: true)
     }
 
     environment {
@@ -74,6 +75,11 @@ pipeline {
         INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
+
+        WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
+        DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
+        OCIR_CREDS = credentials('ocir-pull-and-push-account')
+        OCIR_PHX_REPO = 'phx.ocir.io'
     }
 
     stages {
@@ -269,40 +275,40 @@ pipeline {
             }
         }
 
-        stage('Scan Image') {
-            when { not { buildingTag() } }
-            steps {
-                script {
-                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
-                }
-            }
-        }
+//        stage('Scan Image') {
+//            when { not { buildingTag() } }
+//            steps {
+//                script {
+//                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+//                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+//                }
+//            }
+//            post {
+//                always {
+//                    archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
+//                }
+//            }
+//        }
 
-        stage('Integration Tests') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
-                    build/scripts/copy-junit-output.sh ${WORKSPACE}
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
-                    make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
-                    build/scripts/copy-junit-output.sh ${WORKSPACE}
-                """
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-            }
-        }
+//        stage('Integration Tests') {
+//            when { not { buildingTag() } }
+//            steps {
+//                sh """
+//                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+//                    make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+//                    build/scripts/copy-junit-output.sh ${WORKSPACE}
+//                    #cd ${GO_REPO_PATH}/verrazzano/application-operator
+//                    #make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+//                    #build/scripts/copy-junit-output.sh ${WORKSPACE}
+//                """
+//            }
+//            post {
+//                always {
+//                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+//                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+//                }
+//            }
+//        }
 
         stage('Skip acceptance tests if commit message contains skip-at') {
             steps {
@@ -457,8 +463,11 @@ pipeline {
 //                                    }
 //                                }
                                 stage('examples') {
+                                    when {
+                                        expression {params.RUN_EXAMPLE_TESTS == true}
+                                    }
                                     steps {
-                                        runGinkgo('examples')
+                                        runGinkgo('examples/todo_list')
                                     }
                                 }
                             }

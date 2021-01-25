@@ -39,6 +39,7 @@ func getEnvVar(name string) string {
 func deployToDoListExample() {
 	wlsUser := "weblogic"
 	wlsPass := getEnvVar("WEBLOGIC_PSW")
+	dbPass := getEnvVar("DATABASE_PSW")
 	regServ := getEnvVar("OCIR_PHX_REPO")
 	regUser := getEnvVar("OCIR_CREDS_USR")
 	regPass := getEnvVar("OCIR_CREDS_PSW")
@@ -55,7 +56,7 @@ func deployToDoListExample() {
 		Fail(fmt.Sprintf("Failed to create WebLogic credentials secret: %v", err))
 	}
 	fmt.Printf("Create database credentials secret\n")
-	if _, err := util.CreateCredentialsSecret("todo-list", "tododomain-jdbc-tododb", wlsUser, wlsPass, map[string]string{"weblogic.domainUID": "tododomain"}); err != nil {
+	if _, err := util.CreateCredentialsSecret("todo-list", "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "tododomain"}); err != nil {
 		Fail(fmt.Sprintf("Failed to create JDBC credentials secret: %v", err))
 	}
 	fmt.Printf("Create encryption credentials secret\n")
@@ -122,9 +123,11 @@ var _ = Describe("Verify ToDo List example application.", func() {
 
 	It("Verify '/todo' UI endpoint is working.", func() {
 		Eventually(func () WebResponse {
-			service := util.GetService("istio-system", "istio-ingressgateway")
-			ipAddress := service.Status.LoadBalancer.Ingress[0].IP
-			url := fmt.Sprintf("http://%s/todo", ipAddress)
+			ingress := util.GetKindIngress()
+			util.Log(util.Info, fmt.Sprintf("Ingress: %s", ingress))
+			//service := util.GetService("istio-system", "istio-ingressgateway")
+			//ipAddress := service.Status.LoadBalancer.Ingress[0].IP
+			url := fmt.Sprintf("http://%s/todo", ingress)
 			host := "todo.example.com"
 			status, content := util.GetWebPageWithCABundle(url, host)
 			return WebResponse{
@@ -136,9 +139,11 @@ var _ = Describe("Verify ToDo List example application.", func() {
 
 	It("Verify '/todo/rest/items' REST endpoint is working.", func() {
 		Eventually(func () WebResponse {
-			service := util.GetService("istio-system", "istio-ingressgateway")
-			ipAddress := service.Status.LoadBalancer.Ingress[0].IP
-			url := fmt.Sprintf("http://%s/todo/rest/items", ipAddress)
+			ingress := util.GetKindIngress()
+			util.Log(util.Info, fmt.Sprintf("Ingress: %s", ingress))
+			//service := util.GetService("istio-system", "istio-ingressgateway")
+			//ipAddress := service.Status.LoadBalancer.Ingress[0].IP
+			url := fmt.Sprintf("http://%s/todo/rest/items", ingress)
 			host := "todo.example.com"
 			status, content := util.GetWebPageWithCABundle(url, host)
 			return WebResponse{
