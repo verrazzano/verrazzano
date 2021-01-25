@@ -1,0 +1,5 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+image: ghcr.io/oracle/coherence-operator:3.1.1
+defaultCoherenceImage: ghcr.io/oracle/coherence-ce:20.06.1
