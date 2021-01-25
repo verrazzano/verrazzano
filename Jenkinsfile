@@ -193,49 +193,49 @@ pipeline {
             }
         }
 
-        stage('Quality and Compliance Checks') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
-                    echo "fmt"
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    make go-fmt
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
-                    make go-fmt
-
-                    echo "vet"
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    make go-vet
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
-                    make go-vet
-
-                    echo "lint"
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    make go-lint
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
-                    make go-lint
-
-                    echo "ineffassign"
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    make go-ineffassign
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
-                    make go-ineffassign
-                """
-
-                dir('platform-operator'){
-                    echo "Third party license check platform-operator"
-                    thirdpartyCheck()
-                }
-                dir('application-operator'){
-                    echo "Third party license check application-operator"
-                    thirdpartyCheck()
-                }
-                sh """
-                    echo "copyright"
-                """
-                copyrightScan "${WORKSPACE}"
-            }
-        }
+//        stage('Quality and Compliance Checks') {
+//            when { not { buildingTag() } }
+//            steps {
+//                sh """
+//                    echo "fmt"
+//                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+//                    make go-fmt
+//                    cd ${GO_REPO_PATH}/verrazzano/application-operator
+//                    make go-fmt
+//
+//                    echo "vet"
+//                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+//                    make go-vet
+//                    cd ${GO_REPO_PATH}/verrazzano/application-operator
+//                    make go-vet
+//
+//                    echo "lint"
+//                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+//                    make go-lint
+//                    cd ${GO_REPO_PATH}/verrazzano/application-operator
+//                    make go-lint
+//
+//                    echo "ineffassign"
+//                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+//                    make go-ineffassign
+//                    cd ${GO_REPO_PATH}/verrazzano/application-operator
+//                    make go-ineffassign
+//                """
+//
+//                dir('platform-operator'){
+//                    echo "Third party license check platform-operator"
+//                    thirdpartyCheck()
+//                }
+//                dir('application-operator'){
+//                    echo "Third party license check application-operator"
+//                    thirdpartyCheck()
+//                }
+//                sh """
+//                    echo "copyright"
+//                """
+//                copyrightScan "${WORKSPACE}"
+//            }
+//        }
 
         stage('Unit Tests') {
             when { not { buildingTag() } }
@@ -484,6 +484,8 @@ pipeline {
             dumpCattleSystemPods()
             dumpNginxIngressControllerLogs()
             dumpVerrazzanoPlatformOperatorLogs()
+            dumpVerrazzanoApplicationOperatorLogs()
+            dumpOamKubernetesRuntimeLogs()
 
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
@@ -570,6 +572,30 @@ def dumpVerrazzanoPlatformOperatorLogs() {
         kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
         echo "verrazzano-platform-operator logs dumped to verrazzano-platform-operator-pod.log"
         echo "verrazzano-platform-operator pod description dumped to verrazzano-platform-operator-pod.out"
+        echo "------------------------------------------"
+    """
+}
+
+def dumpVerrazzanoApplicationOperatorLogs() {
+    sh """
+        ## dump out verrazzano-application-operator logs
+        mkdir -p ${WORKSPACE}/verrazzano-application-operator/logs
+        kubectl -n verrazzano-system logs --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        echo "verrazzano-application-operator logs dumped to verrazzano-application-operator-pod.log"
+        echo "verrazzano-application-operator pod description dumped to verrazzano-application-operator-pod.out"
+        echo "------------------------------------------"
+    """
+}
+
+def dumpOamKubernetesRuntimeLogs() {
+    sh """
+        ## dump out oam-kubernetes-runtime logs
+        mkdir -p ${WORKSPACE}/oam-kubernetes-runtime/logs
+        kubectl -n verrazzano-system logs --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${WORKSPACE}/oam-kubernetes-runtime/logs/oam-kubernetes-runtime-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system describe pod --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${WORKSPACE}/verrazzano-application-operator/logs/oam-kubernetes-runtime-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        echo "verrazzano-application-operator logs dumped to oam-kubernetes-runtime-pod.log"
+        echo "verrazzano-application-operator pod description dumped to oam-kubernetes-runtime-pod.out"
         echo "------------------------------------------"
     """
 }
