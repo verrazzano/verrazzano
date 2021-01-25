@@ -13,8 +13,8 @@ import (
 	"time"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/api/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/installjob"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/uninstalljob"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/installjob"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/uninstalljob"
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"

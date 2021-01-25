@@ -6,7 +6,7 @@ package controllers
 import (
 	"context"
 	"errors"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/component"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/component"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"os/exec"
 	"testing"
