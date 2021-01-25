@@ -6,7 +6,6 @@
 SCRIPT_DIR=$(cd $(dirname $0); pwd -P)
 . $SCRIPT_DIR/../../platform-operator/scripts/install/logging.sh
 . $SCRIPT_DIR/../../platform-operator/scripts/install/config.sh
-pabhat/fix-path-examples
 
 set -euo pipefail
 
