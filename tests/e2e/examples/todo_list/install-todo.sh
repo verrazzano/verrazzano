@@ -12,7 +12,10 @@ DOCKER_USR="${2:-$OCIR_CREDS_USR}"
 DOCKER_PWD="${3:-$OCIR_CREDS_PSW}"
 
 NAMESPACE="todo"
-SECRET="ocir"
+SECRET="tododomain-repo-credentials"
+TODO_COMPONENT_FILE="${SCRIPT_DIR}/todo-comp.yaml"
+
+# WLS_DOMAIN can get out of sync with value specified for domain in todo-comp.yaml
 WLS_DOMAIN="tododomain"
 
 if [ -z "${DOCKER_SVR}" ]; then
@@ -27,6 +30,20 @@ if [ -z "${DOCKER_PWD}" ]; then
   echo "ERROR: Container registry username required as second argument or OCIR_CREDS_PSW environment variable."
   exit 1
 fi
+if [ -z "${WEBLOGIC_PSW}" ]; then
+  echo "ERROR: WebLogic administration password required as WEBLOGIC_PSW environment variable."
+  exit 1
+fi
+if [ -z "${DATABASE_PSW}" ]; then
+  echo "ERROR: Database password required as DATABASE_PSW environment variable."
+  exit 1
+fi
+if [ -z "${TODO_APP_IMAGE}" ]; then
+  echo "ERROR: The image for the To-Do List application is required as TODO_APP_IMAGE environment variable."
+  exit 1
+fi
+
+set -u
 
 echo "Installing Todo OAM application."
 
@@ -34,7 +51,7 @@ status=$(kubectl get namespace ${NAMESPACE} -o jsonpath="{.status.phase}" 2> /de
 if [ "${status}" == "Active" ]; then
   echo "Found namespace ${NAMESPACE}."
   echo "Ensuring namespace label exists."
-  kubectl label --overwrite namespace ${NAMESPACE} verrazzano-domain=true
+  kubectl label --overwrite namespace ${NAMESPACE} verrazzano-managed=true
   if [ $? -ne 0 ]; then
       echo "ERROR: Failed to label namespace ${NAMESPACE}, exiting."
       exit 1
@@ -46,7 +63,7 @@ else
       echo "ERROR: Failed to create namespace ${NAMESPACE}, exiting."
       exit 1
   fi
-  kubectl label namespace ${NAMESPACE} verrazzano-domain=true
+  kubectl label namespace ${NAMESPACE} verrazzano-managed=true
   if [ $? -ne 0 ]; then
       echo "ERROR: Failed to label namespace ${NAMESPACE}, exiting."
       exit 1
@@ -83,12 +100,14 @@ function create_and_label_generic_secret() {
     kubectl delete secret "${_secret}" -n "${NAMESPACE}"
   fi
 
-  typeset _args="--from-literal=password='${_password}'"
-  if [[ -n ${_username} ]] ; then
-    _args="--from-literal=username='${_username}' $_args"
+  if [[ -z ${_username} ]] ; then
+    kubectl create secret generic "${_secret}" -n "${NAMESPACE}" \
+        --from-literal=password="$_password"
+  else
+    kubectl create secret generic "${_secret}" -n "${NAMESPACE}" \
+        --from-literal=password="$_password" --from-literal=username="${_username}"
   fi
 
-  kubectl create secret generic "${_secret}" -n "${NAMESPACE}" ${_args}
   if [ $? -ne 0 ]; then
       echo "ERROR: Failed to create secret. Listing secrets."
       kubectl get secret "${_secret}" -n "${NAMESPACE}"
@@ -105,12 +124,15 @@ function create_and_label_generic_secret() {
   fi
 }
 
-echo "Create weblogic secrets."
+echo "Create WebLogic secrets."
 if [ "${skip_secrets:-false}" != "true" ]; then
-  create_and_label_generic_secret tododomain-weblogic-credentials weblogic welcome1 weblogic.domainUID=tododomain
-  create_and_label_generic_secret tododomain-jdbc-tododb derek welcome1 weblogic.domainUID=tododomain
-  create_and_label_generic_secret tododomain-runtime-encrypt-secret "" welcome1 weblogic.domainUID=tododomain
+  create_and_label_generic_secret tododomain-weblogic-credentials weblogic "${WEBLOGIC_PSW}" weblogic.domainUID=tododomain
+  create_and_label_generic_secret tododomain-jdbc-tododb derek "${DATABASE_PSW}" weblogic.domainUID=tododomain
+  create_and_label_generic_secret tododomain-runtime-encrypt-secret "" "$(dd if=/dev/urandom bs=48 count=1 | base64)" weblogic.domainUID=tododomain
 fi
+
+echo "Substitute image name template in ${TODO_COMPONENT_FILE} as ${TODO_APP_IMAGE}"
+sed -i '' -e "s|%TODO_APP_IMAGE%|${TODO_APP_IMAGE}|" ${TODO_COMPONENT_FILE}
 
 echo "Apply application configuration."
 kubectl apply -f ${SCRIPT_DIR}/

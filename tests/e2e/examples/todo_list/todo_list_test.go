@@ -2,7 +2,6 @@ package todo_list
 
 import (
 	"fmt"
-	"github.com/openshift/origin/Godeps/_workspace/src/github.com/onsi/ginkgo"
 	"os"
 	"time"
 
@@ -35,19 +34,35 @@ func getEnvVar(name string) string {
 }
 
 func deployToDoListExample() {
-	wlsUser := getEnvVar("TODO_LIST_WLS_USR")
-	wlsPass := getEnvVar("TODO_LIST_WLS_PWD")
-	regServ := getEnvVar("TODO_LIST_REG_SVR")
-	regUser := getEnvVar("TODO_LIST_REG_USR")
-	regPass := getEnvVar("TODO_LIST_REG_PSW")
-	util.CreateNamespace("todo-list", map[string]string{"verrazzano-managed": "true"})
-	util.CreateDockerSecret("todo-list", "tododomain-repo-credentials", regServ, regUser, regPass)
-	util.CreateCredentialsSecret("todo-list", "tododomain-weblogic-credentials", wlsUser, wlsPass, nil)
-	util.CreateCredentialsSecret("todo-list", "tododomain-jdbc-tododb", wlsUser, wlsPass, map[string]string{"weblogic.domainUID": "tododomain"})
-	util.CreatePasswordSecret("todo-list", "tododomain-runtime-encrypt-secret", wlsPass, map[string]string{"weblogic.domainUID": "tododomain"})
-	util.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-logging-scope.yaml")
-	util.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-components.yaml")
-	util.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-application.yaml")
+	wlsUser := "weblogic"
+	wlsPass := getEnvVar("WEBLOGIC_PSW")
+	regServ := getEnvVar("OCIR_PHX_REPO")
+	regUser := getEnvVar("OCIR_CREDS_USR")
+	regPass := getEnvVar("OCIR_CREDS_PSW")
+	if _, err := util.CreateNamespace("todo-list", map[string]string{"verrazzano-managed": "true"}); err != nil {
+		Fail(fmt.Sprintf("Failed to create namespace"))
+	}
+	if _, err := util.CreateDockerSecret("todo-list", "tododomain-repo-credentials", regServ, regUser, regPass); err != nil {
+		Fail(fmt.Sprintf("Failed to create Docker registry secret"))
+	}
+	if _, err := util.CreateCredentialsSecret("todo-list", "tododomain-weblogic-credentials", wlsUser, wlsPass, nil); err != nil {
+		Fail(fmt.Sprintf("Failed to create WebLogic credentials secret"))
+	}
+	if _, err := util.CreateCredentialsSecret("todo-list", "tododomain-jdbc-tododb", wlsUser, wlsPass, map[string]string{"weblogic.domainUID": "tododomain"}); err != nil {
+		Fail(fmt.Sprintf("Failed to create JDBC credentials secret"))
+	}
+	if _, err := util.CreatePasswordSecret("todo-list", "tododomain-runtime-encrypt-secret", wlsPass, map[string]string{"weblogic.domainUID": "tododomain"}); err != nil {
+		Fail(fmt.Sprintf("Failed to create encryption secret"))
+	}
+	if err := util.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-logging-scope.yaml"); err != nil {
+		Fail(fmt.Sprintf("Failed to create ToDo List logging scope resource"))
+	}
+	if err := util.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-components.yaml"); err != nil {
+		Fail(fmt.Sprintf("Failed to create ToDo List component resources"))
+	}
+	if err := util.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-application.yaml"); err != nil {
+		Fail(fmt.Sprintf("Failed to create ToDo List application resource"))
+	}
 }
 
 func undeployToDoListExample() {

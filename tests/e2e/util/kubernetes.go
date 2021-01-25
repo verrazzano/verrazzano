@@ -148,6 +148,81 @@ func ListPods(namespace string) *corev1.PodList {
 	return pods
 }
 
+// ListSecrets returns the list of secrets in a given namespace for the cluster
+func ListSecrets(namespace string) *corev1.SecretList {
+	// Get the kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	secrets, err := clientset.CoreV1().Secrets(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to list secrets in namespace %s with error: %v", namespace, err))
+	}
+	return secrets
+}
+
+// GetSecret returns the a secret in a given namespace for the cluster
+func GetSecret(namespace string, name string) (*corev1.Secret, error) {
+	// Get the kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		ginkgo.Fail(fmt.Sprintf("Failed to get secrets %s in namespace %s with error: %v", name, namespace, err))
+	}
+	return secret, err
+}
+
+// GetVerrazzanoMonitoringInstance returns the a Verrazzano monitoring instance in a given namespace for the cluster
+func GetVerrazzanoMonitoringInstance(namespace string, name string) (*vmov1.VerrazzanoMonitoringInstance, error) {
+	// Get the kubernetes clientset
+	clientset := GetVMOClientset()
+
+	vmi, err := clientset.VerrazzanoV1().VerrazzanoMonitoringInstances(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		ginkgo.Fail(fmt.Sprintf("Failed to get Verrazzano monitoring instance %s in namespace %s with error: %v", name, namespace, err))
+	}
+	return vmi, err
+}
+
+// DoesPodExist returns whether a pod with the given name and namespace exists for the cluster
+func DoesPodExist(namespace string, name string) bool {
+	pods := ListPods(namespace)
+	for i := range pods.Items {
+		if strings.HasPrefix(pods.Items[i].Name, name) {
+			return true
+		}
+	}
+	return false
+}
+
+// GetKubernetesClientset returns the Kubernetes clienset for the cluster
+func GetKubernetesClientset() *kubernetes.Clientset {
+	// use the current context in the kubeconfig
+	config := GetKubeConfig()
+
+	// create the clientset once and cache it
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		ginkgo.Fail("Could not get Kubernetes clientset")
+	}
+
+	return clientset
+}
+
+// GetVMOClientset returns the Kubernetes clienset for the Verrazzano Monitoring Operator
+func GetVMOClientset() *vmoclient.Clientset {
+	// use the current context in the kubeconfig
+	config := GetKubeConfig()
+
+	// create the clientset once and cache it
+	clientset, err := vmoclient.NewForConfig(config)
+	if err != nil {
+		ginkgo.Fail("Could not get Verrazzano Monitoring Operator clientset")
+	}
+
+	return clientset
+}
+
 // ListServices returns the list of services in a given namespace for the cluster
 func ListServices(namespace string) *corev1.ServiceList {
 	// Get the kubernetes clientset
@@ -173,30 +248,6 @@ func GetService(namespace string, name string) *corev1.Service {
 	}
 	ginkgo.Fail(fmt.Sprintf("No service %s in namespace %s", name, namespace))
 	return nil
-}
-
-// ListSecrets returns the list of secrets in a given namespace for the cluster
-func ListSecrets(namespace string) *corev1.SecretList {
-	// Get the kubernetes clientset
-	clientset := GetKubernetesClientset()
-
-	secrets, err := clientset.CoreV1().Secrets(namespace).List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to list secrets in namespace %s with error: %v", namespace, err))
-	}
-	return secrets
-}
-
-// GetSecret returns the a secret in a given namespace for the cluster
-func GetSecret(namespace string, name string) (*corev1.Secret, error) {
-	// Get the kubernetes clientset
-	clientset := GetKubernetesClientset()
-
-	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		ginkgo.Fail(fmt.Sprintf("Failed to get secrets %s in namespace %s with error: %v", name, namespace, err))
-	}
-	return secret, err
 }
 
 // CreateCredentialsSecret creates opaque secret
@@ -267,57 +318,6 @@ func DeleteSecret(namespace string, name string) error {
 	// Get the kubernetes clientset
 	clientset := GetKubernetesClientset()
 	return clientset.CoreV1().Secrets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
-}
-
-// GetVerrazzanoMonitoringInstance returns the a Verrazzano monitoring instance in a given namespace for the cluster
-func GetVerrazzanoMonitoringInstance(namespace string, name string) (*vmov1.VerrazzanoMonitoringInstance, error) {
-	// Get the kubernetes clientset
-	clientset := GetVMOClientset()
-
-	vmi, err := clientset.VerrazzanoV1().VerrazzanoMonitoringInstances(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		ginkgo.Fail(fmt.Sprintf("Failed to get Verrazzano monitoring instance %s in namespace %s with error: %v", name, namespace, err))
-	}
-	return vmi, err
-}
-
-// DoesPodExist returns whether a pod with the given name and namespace exists for the cluster
-func DoesPodExist(namespace string, name string) bool {
-	pods := ListPods(namespace)
-	for i := range pods.Items {
-		if strings.HasPrefix(pods.Items[i].Name, name) {
-			return true
-		}
-	}
-	return false
-}
-
-// GetKubernetesClientset returns the Kubernetes clienset for the cluster
-func GetKubernetesClientset() *kubernetes.Clientset {
-	// use the current context in the kubeconfig
-	config := GetKubeConfig()
-
-	// create the clientset once and cache it
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		ginkgo.Fail("Could not get Kubernetes clientset")
-	}
-
-	return clientset
-}
-
-// GetVMOClientset returns the Kubernetes clienset for the Verrazzano Monitoring Operator
-func GetVMOClientset() *vmoclient.Clientset {
-	// use the current context in the kubeconfig
-	config := GetKubeConfig()
-
-	// create the clientset once and cache it
-	clientset, err := vmoclient.NewForConfig(config)
-	if err != nil {
-		ginkgo.Fail("Could not get Verrazzano Monitoring Operator clientset")
-	}
-
-	return clientset
 }
 
 // CreateNamespace creates a namespace
