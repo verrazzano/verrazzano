@@ -159,15 +159,15 @@ function install_verrazzano()
     error "The value .profile must be set in the config file"
     exit 1
   fi
-  if [ ! -f "${SCRIPT_DIR}/chart/values.${profile}.yaml" ]; then
-    error "The file ${SCRIPT_DIR}/chart/values.${profile}.yaml does not exist"
+  if [ ! -f "${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml" ]; then
+    error "The file ${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml does not exist"
     exit 1
   fi
-  local PROFILE_VALUES_OVERRIDE=" -f ${SCRIPT_DIR}/chart/values.${profile}.yaml"
+  local PROFILE_VALUES_OVERRIDE=" -f ${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml"
 
   helm \
       upgrade --install verrazzano \
-      ${SCRIPT_DIR}/chart \
+      ${VZ_CHARTS_DIR}/verrazzano \
       --namespace ${VERRAZZANO_NS} \
       --set image.pullPolicy=IfNotPresent \
       --set config.envName=${ENV_NAME} \
@@ -210,8 +210,7 @@ function install_oam_operator {
   helm upgrade --install --wait oam-kubernetes-runtime \
     ${CHARTS_DIR}/oam-kubernetes-runtime \
     --namespace "${VERRAZZANO_NS}" \
-    --set image.repository="${OAM_OPERATOR_IMAGE_REPO}" \
-    --set image.tag="${OAM_OPERATOR_IMAGE_TAG}" \
+    -f $VZ_OVERRIDES_DIR/oam-kubernetes-runtime-values.yaml \
     || return $?
   if [ $? -ne 0 ]; then
     error "Failed to install OAM Kubernetes operator."

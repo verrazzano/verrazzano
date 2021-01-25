@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"io/ioutil"
 	"reflect"
 
@@ -17,14 +18,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
-
-type chartVersion struct {
-	APIVersion  string
-	Description string
-	Name        string
-	Version     string
-	AppVersion  string
-}
 
 // For unit test purposes
 var readFileFunction = ioutil.ReadFile
@@ -36,7 +29,7 @@ func getCurrentChartVersion() (*semver.SemVersion, error) {
 	if err != nil {
 		return nil, err
 	}
-	chartVersion := &chartVersion{}
+	chartVersion := &helm.ChartInfo{}
 	err = yaml.Unmarshal(chartBytes, chartVersion)
 	if err != nil {
 		return nil, err
