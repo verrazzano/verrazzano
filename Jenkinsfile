@@ -327,31 +327,31 @@ pipeline {
 
         stage('Acceptance Tests') {
             parallel {
-                stage('Kick off KinD Merge Acceptance tests') {
-                    when {
-                        allOf {
-                            not { buildingTag() }
-                            anyOf {
-                                branch 'master';
-                                branch 'develop';
-                                expression {SKIP_ACCEPTANCE_TESTS == false};
-                            }
-                        }
-                    }
-                    environment {
-                        FULL_IMAGE_NAME = "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    }
-                    steps {
-                        build job: "verrazzano-merge-tests/${env.BRANCH_NAME.replace("/", "%2F")}",
-                                parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME),
-                                             string(name: 'ACCEPTANCE_TESTS_BRANCH', value: params.ACCEPTANCE_TESTS_BRANCH),
-                                             string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME),
-                                             string(name: 'TEST_ENV', value: 'kind'),
-                                             string(name: 'INSTALL_PROFILE', value: 'dev')],
-                                wait: true,
-                                propagate: true
-                    }
-                }
+//                stage('Kick off KinD Merge Acceptance tests') {
+//                    when {
+//                        allOf {
+//                            not { buildingTag() }
+//                            anyOf {
+//                                branch 'master';
+//                                branch 'develop';
+//                                expression {SKIP_ACCEPTANCE_TESTS == false};
+//                            }
+//                        }
+//                    }
+//                    environment {
+//                        FULL_IMAGE_NAME = "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+//                    }
+//                    steps {
+//                        build job: "verrazzano-merge-tests/${env.BRANCH_NAME.replace("/", "%2F")}",
+//                                parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME),
+//                                             string(name: 'ACCEPTANCE_TESTS_BRANCH', value: params.ACCEPTANCE_TESTS_BRANCH),
+//                                             string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME),
+//                                             string(name: 'TEST_ENV', value: 'kind'),
+//                                             string(name: 'INSTALL_PROFILE', value: 'dev')],
+//                                wait: true,
+//                                propagate: true
+//                    }
+//                }
 
                 stage('New Acceptance Tests') {
                     stages {
@@ -451,9 +451,14 @@ pipeline {
                                         runGinkgoRandomize('verify-install')
                                     }
                                 }
-                                stage('restapi') {
+//                                stage('restapi') {
+//                                    steps {
+//                                        runGinkgo('verify-infra/restapi')
+//                                    }
+//                                }
+                                stage('examples') {
                                     steps {
-                                        runGinkgo('verify-infra/restapi')
+                                        runGinkgo('examples')
                                     }
                                 }
                             }

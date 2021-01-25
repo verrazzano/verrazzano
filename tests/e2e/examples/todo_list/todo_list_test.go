@@ -18,6 +18,7 @@ const (
 )
 
 var _ = BeforeSuite(func() {
+	util.Log(util.Info, "This is a test")
 	fmt.Printf("BeforeSuite: ToDoList\n")
 	deployToDoListExample()
 })
