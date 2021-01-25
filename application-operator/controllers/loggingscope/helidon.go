@@ -80,6 +80,7 @@ const HelidonFluentdConfiguration = `<label @FLUENT_LOG>
   @type record_transformer
   <record>
     applicationName "#{ENV['APPLICATION_NAME']}"
+    namespace "#{ENV['NAMESPACE']}"
   </record>
 </filter>
 <match **>
@@ -240,6 +241,10 @@ func CreateFluentdContainer(namespace, appName, containerName, fluentdImage, esS
 			{
 				Name:  "ELASTICSEARCH_APP_INDEX",
 				Value: fmt.Sprintf("%s_%s", namespace, appName),
+			},
+			{
+				Name:  "NAMESPACE",
+				Value: namespace,
 			},
 			{
 				Name:  "ELASTICSEARCH_HOST",
