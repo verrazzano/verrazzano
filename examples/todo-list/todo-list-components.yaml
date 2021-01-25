@@ -5,14 +5,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: todo-domain
-  namespace: todo
+  namespace: todo-list
 spec:
   workload:
     apiVersion: weblogic.oracle/v8
     kind: Domain
     metadata:
       name: todo-domain
-      namespace: todo
+      namespace: todo-list
     spec:
       domainUID: tododomain
       domainHome: /u01/domains/tododomain
@@ -51,14 +51,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: todo-jdbc-configmap
-  namespace: todo
+  namespace: todo-list
 spec:
   workload:
     apiVersion: v1
     kind: ConfigMap
     metadata:
       name: tododomain-jdbc-config
-      namespace: todo
+      namespace: todo-list
     data:
       wdt_jdbc.yaml: |
         resources:
@@ -83,14 +83,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: todo-mysql-configmap
-  namespace: todo
+  namespace: todo-list
 spec:
   workload:
     apiVersion: v1
     kind: ConfigMap
     metadata:
       name: mysql-initdb-config
-      namespace: todo
+      namespace: todo-list
     data:
       initdb.sql: |
         create table `ToDos` (

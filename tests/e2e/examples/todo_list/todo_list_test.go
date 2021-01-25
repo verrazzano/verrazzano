@@ -1,23 +1,9 @@
 package todo_list
 
 import (
-	"bufio"
-	"bytes"
-	"context"
 	"fmt"
-	"io"
-	"io/ioutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/client-go/discovery"
-	memory "k8s.io/client-go/discovery/cached"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/restmapper"
+	"github.com/openshift/origin/Godeps/_workspace/src/github.com/onsi/ginkgo"
 	"os"
-	"sigs.k8s.io/yaml"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -31,19 +17,45 @@ const (
 )
 
 var _ = BeforeSuite(func() {
-	util.Log(util.Info, "BeforeSuite: ToDoList")
 	fmt.Printf("BeforeSuite: ToDoList\n")
-	wd, _ := os.Getwd()
-	fmt.Printf( "PWD=%v\n", wd)
-	applyYAMLFile("/Users/kminder/Projects/vz/src/github.com/verrazzano/verrazzano/examples/todo-list/scope-logging.yaml")
-	//applyYAMLFile("examples/todo-list/todo-list-components.yaml")
-	//applyYAMLFile("examples/todo-list/todo-list-application.yaml")
+	deployToDoListExample()
 })
 
 var _ = AfterSuite(func () {
-	util.Log(util.Info, "AfterSuite: ToDoList")
 	fmt.Printf("AfterSuite: ToDoList\n")
+	undeployToDoListExample()
 })
+
+func getEnvVar(name string) string {
+	value, found := os.LookupEnv(name)
+	if !found {
+		Fail(fmt.Sprintf("Environment variable '%s' required.", name))
+	}
+	return value
+}
+
+func deployToDoListExample() {
+	wlsUser := getEnvVar("TODO_LIST_WLS_USR")
+	wlsPass := getEnvVar("TODO_LIST_WLS_PWD")
+	regServ := getEnvVar("TODO_LIST_REG_SVR")
+	regUser := getEnvVar("TODO_LIST_REG_USR")
+	regPass := getEnvVar("TODO_LIST_REG_PSW")
+	util.CreateNamespace("todo-list", map[string]string{"verrazzano-managed": "true"})
+	util.CreateDockerSecret("todo-list", "tododomain-repo-credentials", regServ, regUser, regPass)
+	util.CreateCredentialsSecret("todo-list", "tododomain-weblogic-credentials", wlsUser, wlsPass, nil)
+	util.CreateCredentialsSecret("todo-list", "tododomain-jdbc-tododb", wlsUser, wlsPass, map[string]string{"weblogic.domainUID": "tododomain"})
+	util.CreatePasswordSecret("todo-list", "tododomain-runtime-encrypt-secret", wlsPass, map[string]string{"weblogic.domainUID": "tododomain"})
+	util.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-logging-scope.yaml")
+	util.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-components.yaml")
+	util.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-application.yaml")
+}
+
+func undeployToDoListExample() {
+	util.DeleteResourceFromFile("examples/todo-list/todo-list-application.yaml")
+	util.DeleteResourceFromFile("examples/todo-list/todo-list-components.yaml")
+	util.DeleteResourceFromFile("examples/todo-list/scope-logging.yaml")
+	util.DeleteNamespace("todo-list")
+}
 
 var _ = Describe("Verify ToDo List example application.", func() {
 
@@ -81,74 +93,3 @@ var _ = Describe("Verify ToDo List example application.", func() {
 	})
 
 })
-
-func applyYAMLFile(file string) error {
-	bytes, err := ioutil.ReadFile(file)
-	if err != nil {
-		return err
-	}
-	return applyYAMLData(bytes)
-}
-
-func applyYAMLData(data []byte) error {
-	reader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(data)))
-	for {
-		buf, err := reader.Read()
-		if err == io.EOF {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		var typeMeta runtime.TypeMeta
-		yaml.Unmarshal(buf, &typeMeta)
-		obj := &unstructured.Unstructured{
-			Object: map[string]interface{}{},
-		}
-		yaml.Unmarshal(buf, &obj.Object)
-		client, err := dynamic.NewForConfig(util.GetKubeConfig())
-		if err != nil {
-			panic(err)
-		}
-
-		nsGvk := schema.GroupVersionKind{
-			Group:   "",
-			Version: "v1",
-			Kind:    "Namespace",
-		}
-
-		cfg := util.GetKubeConfig()
-		dc, err := discovery.NewDiscoveryClientForConfig(cfg)
-		if err != nil {
-			fmt.Sprintf("err=%v\n", err)
-		}
-		mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(dc))
-		mapping, err := mapper.RESTMapping(nsGvk.GroupKind(), nsGvk.Version)
-		if err != nil {
-			fmt.Sprintf("err=%v\n", err)
-		}
-		nsGvr := mapping.Resource
-		fmt.Sprintf("res=%v\n", nsGvr)
-	    nsUns, err := client.Resource(nsGvr).Get(context.TODO(), obj.GetNamespace(), metav1.GetOptions{})
-		if err != nil {
-			fmt.Sprintf("err=%v\n", err)
-		}
-		fmt.Sprintf("ns=%v\n", nsUns)
-
-	    objGvk := schema.FromAPIVersionAndKind(obj.GetAPIVersion(), obj.GetKind())
-		objMap, err := mapper.RESTMapping(objGvk.GroupKind(), objGvk.Version)
-		if err != nil {
-			fmt.Sprintf("err=%v\n", err)
-		}
-		objGvr := objMap.Resource
-		_, err = client.Resource(objGvr).Namespace(obj.GetNamespace()).Create(context.TODO(), obj, metav1.CreateOptions{})
-		//_, err = client.Resource(gvr).Namespace(obj.GetNamespace()).Update(context.TODO(), obj, metav1.UpdateOptions{})
-		if err != nil {
-			return err
-		}
-
-	}
-}
-
-//func findGVRForGVK(gvk *schema.GroupVersionKind) (schema.GroupVersionResource, error) {
-//}
