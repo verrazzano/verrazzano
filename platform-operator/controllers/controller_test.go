@@ -13,7 +13,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/api/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/installjob"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/installjob"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"

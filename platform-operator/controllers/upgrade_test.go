@@ -6,11 +6,12 @@ package controllers
 import (
 	"context"
 	"errors"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/component"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"os/exec"
 	"testing"
 	"time"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/component"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -182,68 +183,11 @@ func TestUpgradeStarted(t *testing.T) {
 			return nil
 		})
 
-	// Create and make the request
-	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
-
-	// Validate the results
-	mocker.Finish()
-	asserts.NoError(err)
-	asserts.Equal(true, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
-}
-
-// TestUpgradeTooManyFailures tests the reconcileUpgrade method for the following use case
-// GIVEN a request to reconcile an verrazzano resource after install is completed
-// WHEN the current upgrade failed more than the failure limet
-// THEN ensure that upgrade is not started
-func TestUpgradeTooManyFailures(t *testing.T) {
-	namespace := "verrazzano"
-	name := "test"
-
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
-
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
-
-	// Expect a call to get the verrazzano resource.  Return resource with version
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace:  name.Namespace,
-				Name:       name.Name,
-				Generation: 1,
-				Finalizers: []string{finalizerName}}
-			verrazzano.Spec = vzapi.VerrazzanoSpec{
-				Version: "0.2.0"}
-			verrazzano.Status = vzapi.VerrazzanoStatus{
-				Conditions: []vzapi.Condition{
-					{
-						Type: vzapi.InstallComplete,
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:1",
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:1",
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:1",
-					},
-				},
-			}
+	// Expect a call to update the status of the Verrazzano resource
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
 			return nil
 		})
 
@@ -261,8 +205,8 @@ func TestUpgradeTooManyFailures(t *testing.T) {
 
 // TestUpgradeStartedWhenPrevFailures tests the reconcileUpgrade method for the following use case
 // GIVEN a request to reconcile an verrazzano resource after install is completed
-// WHEN the total upgrade failures exceed the limit, but the current upgrade is under the limit
-// THEN ensure that upgrade is started
+// WHEN the current upgrade failures exceeds the limit, but there was a previous upgrade success
+// THEN ensure that upgrade can be started again
 func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	namespace := "verrazzano"
 	name := "test"
@@ -304,11 +248,11 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 						Message: "Upgrade failed generation:1",
 					},
 					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:1",
+						Type: vzapi.UpgradeComplete,
 					},
 					{
-						Type: vzapi.UpgradeComplete,
+						Type:    vzapi.UpgradeFailed,
+						Message: "Upgrade failed generation:2",
 					},
 					{
 						Type:    vzapi.UpgradeFailed,
@@ -335,79 +279,11 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 			return nil
 		})
 
-	// Create and make the request
-	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
-
-	// Validate the results
-	mocker.Finish()
-	asserts.NoError(err)
-	asserts.Equal(true, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
-}
-
-// TestUpgradeNotStartedWhenPrevFailures tests the reconcileUpgrade method for the following use case
-// GIVEN a request to reconcile an verrazzano resource after install is completed
-// WHEN the current upgrade failures exceeds the limit, but there was a previous upgrade success
-// THEN ensure that upgrade is not started
-func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
-	namespace := "verrazzano"
-	name := "test"
-
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
-
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
-
-	// Expect a call to get the verrazzano resource.  Return resource with version
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace:  name.Namespace,
-				Name:       name.Name,
-				Generation: 2,
-				Finalizers: []string{finalizerName}}
-			verrazzano.Spec = vzapi.VerrazzanoSpec{
-				Version: "0.2.0"}
-			verrazzano.Status = vzapi.VerrazzanoStatus{
-				Conditions: []vzapi.Condition{
-					{
-						Type: vzapi.InstallComplete,
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:1",
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:1",
-					},
-					{
-						Type: vzapi.UpgradeComplete,
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:2",
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:2",
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:2",
-					},
-				},
-			}
+	// Expect a call to update the status of the Verrazzano resource
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			asserts.Len(verrazzano.Status.Conditions, 9, "Incorrect number of conditions")
 			return nil
 		})
 

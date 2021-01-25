@@ -12,9 +12,9 @@ import (
 	"time"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/api/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/installjob"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/installjob"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/uninstalljob"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/uninstalljob"
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -352,7 +352,7 @@ func (r *VerrazzanoReconciler) createUninstallJob(log *zap.SugaredLogger, vz *in
 	}
 
 	err = r.setUninstallCondition(log, jobFound, vz)
-	if err != nil && !errors.IsConflict(err) {
+	if err != nil {
 		return err
 	}
 
@@ -419,8 +419,8 @@ func (r *VerrazzanoReconciler) updateStatus(log *zap.SugaredLogger, cr *installv
 
 	// Update the status
 	err := r.Status().Update(context.TODO(), cr)
-	if err != nil {
-		log.Error(err, "Failed to update verrazzano resource status")
+	if err != nil && !errors.IsConflict(err) {
+		log.Errorf("Failed to update verrazzano resource status: %v", err)
 		return err
 	}
 	return nil
