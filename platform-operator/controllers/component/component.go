@@ -4,6 +4,7 @@
 package component
 
 import (
+	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -13,5 +14,5 @@ type Component interface {
 	Name() string
 
 	// Upgrade will upgrade the Verrazzano component specified in the CR.Version field
-	Upgrade(client clipkg.Client, namespace string) error
+	Upgrade(log *zap.SugaredLogger, client clipkg.Client, namespace string) error
 }
