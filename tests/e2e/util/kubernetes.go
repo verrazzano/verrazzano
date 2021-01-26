@@ -5,6 +5,7 @@ package util
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -23,6 +24,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
+
+const dockerconfigjsonTemplate string = "{\"auths\":{\"%v\":{\"username\":\"%v\",\"password\":\"%v\",\"auth\":\"%v\"}}}"
 
 // GetKubeConfig will get the kubeconfig from the environment variable KUBECONFIG, if set, or else from $HOME/.kube/config
 func GetKubeConfig() *restclient.Config {
@@ -219,3 +222,138 @@ func GetVMOClientset() *vmoclient.Clientset {
 
 	return clientset
 }
+
+// ListServices returns the list of services in a given namespace for the cluster
+func ListServices(namespace string) *corev1.ServiceList {
+	// Get the kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	services, err := clientset.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to list services in namespace %s with error: %v", namespace, err))
+	}
+	return services
+}
+
+// GetServices returns a service in a given namespace for the cluster
+func GetService(namespace string, name string) *corev1.Service {
+	services := ListServices(namespace)
+	if services == nil {
+		ginkgo.Fail(fmt.Sprintf("No services in namespace %s", namespace))
+	}
+	for _, service := range services.Items {
+		if name == service.Name {
+			return &service
+		}
+	}
+	ginkgo.Fail(fmt.Sprintf("No service %s in namespace %s", name, namespace))
+	return nil
+}
+
+// CreateCredentialsSecret creates opaque secret
+func CreateCredentialsSecret(namespace string, name string, username string, pw string, labels map[string]string) (*corev1.Secret, error) {
+	// Get the kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		Type: corev1.SecretTypeOpaque,
+		StringData: map[string]string{
+			"password": pw,
+			"username": username,
+		},
+	}
+	scr, err := clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
+	Log(Info, fmt.Sprintf("CreateSecretOfOpaque %v error: %v", name, err))
+	return scr, err
+}
+
+// CreatePasswordSecret creates opaque secret
+func CreatePasswordSecret(namespace string, name string, pw string, labels map[string]string) (*corev1.Secret, error) {
+	// Get the kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		Type: corev1.SecretTypeOpaque,
+		StringData: map[string]string{
+			"password": pw,
+		},
+	}
+	scr, err := clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
+	Log(Info, fmt.Sprintf("CreateSecretOfOpaque %v error: %v", name, err))
+	return scr, err
+}
+
+// CreateDockerSecret creates docker secret
+func CreateDockerSecret(namespace string, name string, server string, username string, password string) (*corev1.Secret, error) {
+	// Get the kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	auth := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", username, password)))
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Type: corev1.SecretTypeDockerConfigJson,
+		StringData: map[string]string{
+			".dockerconfigjson": fmt.Sprintf(dockerconfigjsonTemplate, server, username, password, auth),
+		},
+	}
+	scr, err := clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
+	Log(Info, fmt.Sprintf("CreateDockerSecret %v error: %v", name, err))
+	return scr, err
+}
+
+func DeleteSecret(namespace string, name string) error {
+	// Get the kubernetes clientset
+	clientset := GetKubernetesClientset()
+	return clientset.CoreV1().Secrets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+}
+
+// GetNamespace returns a namespace
+func GetNamespace(name string) (*corev1.Namespace, error) {
+	// Get the kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	return clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// CreateNamespace creates a namespace
+func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, error) {
+	// Get the kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Labels:    labels,
+		},
+	}
+	ns, err := clientset.CoreV1().Namespaces().Create(context.TODO(), namespace, metav1.CreateOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("CreateNamespace %s error: %v", name, err))
+	}
+	return ns, err
+}
+
+// DeleteNamespace deletes a namespace
+func DeleteNamespace(name string) error {
+	// Get the kubernetes clientset
+	clientset := GetKubernetesClientset()
+	err := clientset.CoreV1().Namespaces().Delete(context.TODO(), name, metav1.DeleteOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("DeleteNamespace %s error: %v", name, err))
+	}
+	return err
+}
+

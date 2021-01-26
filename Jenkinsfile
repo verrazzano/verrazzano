@@ -42,6 +42,7 @@ pipeline {
                 trim: true
         )
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
+        booleanParam (description: 'Whether to run example tests', name: 'RUN_EXAMPLE_TESTS', defaultValue: true)
     }
 
     environment {
@@ -74,6 +75,11 @@ pipeline {
         INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
+
+        WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
+        DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
+        OCIR_CREDS = credentials('ocir-pull-and-push-account')
+        OCIR_PHX_REPO = 'phx.ocir.io'
     }
 
     stages {
@@ -187,49 +193,49 @@ pipeline {
             }
         }
 
-        stage('Quality and Compliance Checks') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
-                    echo "fmt"
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    make go-fmt
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
-                    make go-fmt
-
-                    echo "vet"
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    make go-vet
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
-                    make go-vet
-
-                    echo "lint"
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    make go-lint
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
-                    make go-lint
-
-                    echo "ineffassign"
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    make go-ineffassign
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
-                    make go-ineffassign
-                """
-
-                dir('platform-operator'){
-                    echo "Third party license check platform-operator"
-                    thirdpartyCheck()
-                }
-                dir('application-operator'){
-                    echo "Third party license check application-operator"
-                    thirdpartyCheck()
-                }
-                sh """
-                    echo "copyright"
-                """
-                copyrightScan "${WORKSPACE}"
-            }
-        }
+//        stage('Quality and Compliance Checks') {
+//            when { not { buildingTag() } }
+//            steps {
+//                sh """
+//                    echo "fmt"
+//                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+//                    make go-fmt
+//                    cd ${GO_REPO_PATH}/verrazzano/application-operator
+//                    make go-fmt
+//
+//                    echo "vet"
+//                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+//                    make go-vet
+//                    cd ${GO_REPO_PATH}/verrazzano/application-operator
+//                    make go-vet
+//
+//                    echo "lint"
+//                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+//                    make go-lint
+//                    cd ${GO_REPO_PATH}/verrazzano/application-operator
+//                    make go-lint
+//
+//                    echo "ineffassign"
+//                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+//                    make go-ineffassign
+//                    cd ${GO_REPO_PATH}/verrazzano/application-operator
+//                    make go-ineffassign
+//                """
+//
+//                dir('platform-operator'){
+//                    echo "Third party license check platform-operator"
+//                    thirdpartyCheck()
+//                }
+//                dir('application-operator'){
+//                    echo "Third party license check application-operator"
+//                    thirdpartyCheck()
+//                }
+//                sh """
+//                    echo "copyright"
+//                """
+//                copyrightScan "${WORKSPACE}"
+//            }
+//        }
 
         stage('Unit Tests') {
             when { not { buildingTag() } }
@@ -269,40 +275,40 @@ pipeline {
             }
         }
 
-        stage('Scan Image') {
-            when { not { buildingTag() } }
-            steps {
-                script {
-                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
-                }
-            }
-        }
+//        stage('Scan Image') {
+//            when { not { buildingTag() } }
+//            steps {
+//                script {
+//                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+//                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+//                }
+//            }
+//            post {
+//                always {
+//                    archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
+//                }
+//            }
+//        }
 
-        stage('Integration Tests') {
-            when { not { buildingTag() } }
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
-                    build/scripts/copy-junit-output.sh ${WORKSPACE}
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
-                    make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
-                    build/scripts/copy-junit-output.sh ${WORKSPACE}
-                """
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-            }
-        }
+//        stage('Integration Tests') {
+//            when { not { buildingTag() } }
+//            steps {
+//                sh """
+//                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+//                    make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+//                    build/scripts/copy-junit-output.sh ${WORKSPACE}
+//                    #cd ${GO_REPO_PATH}/verrazzano/application-operator
+//                    #make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+//                    #build/scripts/copy-junit-output.sh ${WORKSPACE}
+//                """
+//            }
+//            post {
+//                always {
+//                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+//                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+//                }
+//            }
+//        }
 
         stage('Skip acceptance tests if commit message contains skip-at') {
             steps {
@@ -327,31 +333,31 @@ pipeline {
 
         stage('Acceptance Tests') {
             parallel {
-                stage('Kick off KinD Merge Acceptance tests') {
-                    when {
-                        allOf {
-                            not { buildingTag() }
-                            anyOf {
-                                branch 'master';
-                                branch 'develop';
-                                expression {SKIP_ACCEPTANCE_TESTS == false};
-                            }
-                        }
-                    }
-                    environment {
-                        FULL_IMAGE_NAME = "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    }
-                    steps {
-                        build job: "verrazzano-merge-tests/${env.BRANCH_NAME.replace("/", "%2F")}",
-                                parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME),
-                                             string(name: 'ACCEPTANCE_TESTS_BRANCH', value: params.ACCEPTANCE_TESTS_BRANCH),
-                                             string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME),
-                                             string(name: 'TEST_ENV', value: 'kind'),
-                                             string(name: 'INSTALL_PROFILE', value: 'dev')],
-                                wait: true,
-                                propagate: true
-                    }
-                }
+//                stage('Kick off KinD Merge Acceptance tests') {
+//                    when {
+//                        allOf {
+//                            not { buildingTag() }
+//                            anyOf {
+//                                branch 'master';
+//                                branch 'develop';
+//                                expression {SKIP_ACCEPTANCE_TESTS == false};
+//                            }
+//                        }
+//                    }
+//                    environment {
+//                        FULL_IMAGE_NAME = "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+//                    }
+//                    steps {
+//                        build job: "verrazzano-merge-tests/${env.BRANCH_NAME.replace("/", "%2F")}",
+//                                parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME),
+//                                             string(name: 'ACCEPTANCE_TESTS_BRANCH', value: params.ACCEPTANCE_TESTS_BRANCH),
+//                                             string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME),
+//                                             string(name: 'TEST_ENV', value: 'kind'),
+//                                             string(name: 'INSTALL_PROFILE', value: 'dev')],
+//                                wait: true,
+//                                propagate: true
+//                    }
+//                }
 
                 stage('New Acceptance Tests') {
                     stages {
@@ -427,6 +433,8 @@ pipeline {
                                     # Coherence image doesn't get pulled correctly in KIND.
                                     docker pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
                                     kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/middleware/coherence:12.2.1.4.0
+                                    docker pull phx.ocir.io/stevengreenberginc/will.hopkins/todo-domain:1
+                                    kind load docker-image --name ${CLUSTER_NAME} phx.ocir.io/stevengreenberginc/will.hopkins/todo-domain:1
                                 """
                             }
                             post {
@@ -451,9 +459,17 @@ pipeline {
                                         runGinkgoRandomize('verify-install')
                                     }
                                 }
-                                stage('restapi') {
+//                                stage('restapi') {
+//                                    steps {
+//                                        runGinkgo('verify-infra/restapi')
+//                                    }
+//                                }
+                                stage('examples') {
+                                    when {
+                                        expression {params.RUN_EXAMPLE_TESTS == true}
+                                    }
                                     steps {
-                                        runGinkgo('verify-infra/restapi')
+                                        runGinkgo('examples/todo_list')
                                     }
                                 }
                             }
@@ -470,6 +486,8 @@ pipeline {
             dumpCattleSystemPods()
             dumpNginxIngressControllerLogs()
             dumpVerrazzanoPlatformOperatorLogs()
+            dumpVerrazzanoApplicationOperatorLogs()
+            dumpOamKubernetesRuntimeLogs()
 
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
@@ -556,6 +574,30 @@ def dumpVerrazzanoPlatformOperatorLogs() {
         kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
         echo "verrazzano-platform-operator logs dumped to verrazzano-platform-operator-pod.log"
         echo "verrazzano-platform-operator pod description dumped to verrazzano-platform-operator-pod.out"
+        echo "------------------------------------------"
+    """
+}
+
+def dumpVerrazzanoApplicationOperatorLogs() {
+    sh """
+        ## dump out verrazzano-application-operator logs
+        mkdir -p ${WORKSPACE}/verrazzano-application-operator/logs
+        kubectl -n verrazzano-system logs --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        echo "verrazzano-application-operator logs dumped to verrazzano-application-operator-pod.log"
+        echo "verrazzano-application-operator pod description dumped to verrazzano-application-operator-pod.out"
+        echo "------------------------------------------"
+    """
+}
+
+def dumpOamKubernetesRuntimeLogs() {
+    sh """
+        ## dump out oam-kubernetes-runtime logs
+        mkdir -p ${WORKSPACE}/oam-kubernetes-runtime/logs
+        kubectl -n verrazzano-system logs --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${WORKSPACE}/oam-kubernetes-runtime/logs/oam-kubernetes-runtime-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system describe pod --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${WORKSPACE}/verrazzano-application-operator/logs/oam-kubernetes-runtime-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        echo "verrazzano-application-operator logs dumped to oam-kubernetes-runtime-pod.log"
+        echo "verrazzano-application-operator pod description dumped to oam-kubernetes-runtime-pod.out"
         echo "------------------------------------------"
     """
 }

@@ -122,6 +122,13 @@ func PodsRunning(namespace string, namePrefixes []string) bool {
 	missing := notRunning(pods.Items, namePrefixes...)
 	if len(missing) > 0 {
 		Log(Info, fmt.Sprintf("Pods %v were NOT running in %v", missing, namespace))
+		for _, pod := range pods.Items {
+			if isReadyAndRunning(pod) {
+				Log(Info, fmt.Sprintf("Pod %s ready", pod.Name))
+			} else {
+				Log(Info, fmt.Sprintf("Pod %s NOT ready, containers: %v", pod.Name, pod.Status.ContainerStatuses))
+			}
+		}
 	}
 	return len(missing) == 0
 }

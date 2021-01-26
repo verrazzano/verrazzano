@@ -5,6 +5,8 @@
 #
 SCRIPT_DIR=$(cd $(dirname $0); pwd -P)
 
+set -u
+
 DOCKER_SVR="${1:-$OCIR_PHX_REPO}"
 DOCKER_USR="${2:-$OCIR_CREDS_USR}"
 DOCKER_PWD="${3:-$OCIR_CREDS_PSW}"

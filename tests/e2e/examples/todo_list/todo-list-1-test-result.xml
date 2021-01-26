@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+  <testsuite name="ToDo List Example Test Suite" tests="3" failures="0" errors="0" time="133.086">
+      <testcase name="Verify ToDo List example application. Verify &#39;tododomain-adminserver&#39; and &#39;mysql&#39; pod is running" classname="ToDo List Example Test Suite" time="120.540717094"></testcase>
+      <testcase name="Verify ToDo List example application. Verify &#39;/todo&#39; UI endpoint is working." classname="ToDo List Example Test Suite" time="0.706463241"></testcase>
+      <testcase name="Verify ToDo List example application. Verify &#39;/todo/rest/items&#39; REST endpoint is working." classname="ToDo List Example Test Suite" time="0.529439746"></testcase>
+  </testsuite>
