@@ -8,13 +8,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	"os"
 	"time"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/api/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/installjob"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/uninstalljob"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/yaml"
 )
@@ -82,7 +83,8 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 				if condition.Type == installv1alpha1.UninstallComplete || condition.Type == installv1alpha1.UninstallFailed {
 					log.Infof("Removing finalizer %s", finalizerName)
 					vz.ObjectMeta.Finalizers = removeString(vz.ObjectMeta.Finalizers, finalizerName)
-					if err := r.Update(ctx, vz); err != nil {
+					err := r.Update(ctx, vz)
+					if err != nil && !errors.IsConflict(err) {
 						return reconcile.Result{}, err
 					}
 				}
@@ -310,6 +312,10 @@ func (r *VerrazzanoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var err error
 	r.Controller, err = ctrl.NewControllerManagedBy(mgr).
 		For(&installv1alpha1.Verrazzano{}).
+		// The GenerateChangedPredicate will skip update events that have no change in the object's metadata.generation
+		// field.  Any updates to the status or metadata do not cause the metadata.generation to be changed and
+		// therefore the reconciler will not be called.
+		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Build(r)
 	return err
 }
@@ -344,14 +350,6 @@ func (r *VerrazzanoReconciler) createUninstallJob(log *zap.SugaredLogger, vz *in
 		if err != nil {
 			return err
 		}
-
-		err = r.setUninstallCondition(log, jobFound, vz)
-		if err != nil {
-			return err
-		}
-
-		// Job created successfully and status set successfully
-		return nil
 	} else if err != nil {
 		return err
 	}
@@ -424,8 +422,8 @@ func (r *VerrazzanoReconciler) updateStatus(log *zap.SugaredLogger, cr *installv
 
 	// Update the status
 	err := r.Status().Update(context.TODO(), cr)
-	if err != nil {
-		log.Error(err, "Failed to update verrazzano resource status")
+	if err != nil && !errors.IsConflict(err) {
+		log.Errorf("Failed to update verrazzano resource status: %v", err)
 		return err
 	}
 	return nil

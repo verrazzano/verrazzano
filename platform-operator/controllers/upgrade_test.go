@@ -6,8 +6,6 @@ package controllers
 import (
 	"context"
 	"errors"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/component"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"os/exec"
 	"testing"
 	"time"
@@ -15,6 +13,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/api/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/component"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -182,6 +182,14 @@ func TestUpgradeStarted(t *testing.T) {
 			return nil
 		})
 
+	// Expect a 2nd call to update the status of the Verrazzano resource
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
+			return nil
+		})
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -190,7 +198,7 @@ func TestUpgradeStarted(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(true, result.Requeue)
+	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
@@ -335,6 +343,14 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 			return nil
 		})
 
+	// Expect a 2nd call to update the status of the Verrazzano resource
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			asserts.Len(verrazzano.Status.Conditions, 9, "Incorrect number of conditions")
+			return nil
+		})
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -343,7 +359,7 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(true, result.Requeue)
+	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
