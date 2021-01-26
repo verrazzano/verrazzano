@@ -4,9 +4,8 @@
 package component
 
 import (
-	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -36,10 +35,10 @@ type helmComponent struct {
 var _ Component = helmComponent{}
 
 // preUpgradeFuncSig is the signature for the optional preUgrade function
-type preUpgradeFuncSig func(client clipkg.Client, releaseName string, namespace string, chartDir string) error
+type preUpgradeFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error
 
 // upgradeFuncSig is needed for unit test override
-type upgradeFuncSig func(releaseName string, namespace string, chartDir string, overwriteYaml string) (stdout []byte, stderr []byte, err error)
+type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overwriteYaml string) (stdout []byte, stderr []byte, err error)
 
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
@@ -55,9 +54,7 @@ var UpgradePrehooksEnabled = true
 // Upgrade is done by using the helm chart upgrade command.   This command will apply the latest chart
 // that is included in the operator image, while retaining any helm value overrides that were applied during
 // install.
-func (h helmComponent) Upgrade(client clipkg.Client, ns string) error {
-	var log = ctrl.Log.WithName("upgrade")
-
+func (h helmComponent) Upgrade(log *zap.SugaredLogger, client clipkg.Client, ns string) error {
 	namespace := ns
 	if h.ignoreNamespaceOverride {
 		namespace = h.chartNamespace
@@ -68,20 +65,20 @@ func (h helmComponent) Upgrade(client clipkg.Client, ns string) error {
 		return err
 	}
 	if !found {
-		log.Info(fmt.Sprintf("Skipping upgrade of component %s since it is not installed", h.releaseName))
+		log.Infof("Skipping upgrade of component %s since it is not installed", h.releaseName)
 		return nil
 	}
 
 	// Do the preUpgrade if the function is defined
 	if h.preUpgradeFunc != nil && UpgradePrehooksEnabled {
-		err := h.preUpgradeFunc(client, h.releaseName, namespace, h.chartDir)
+		err := h.preUpgradeFunc(log, client, h.releaseName, namespace, h.chartDir)
 		if err != nil {
 			return err
 		}
 	}
 
 	// Do the upgrade
-	_, _, err = upgradeFunc(h.releaseName, namespace, h.chartDir, h.valuesFile)
+	_, _, err = upgradeFunc(log, h.releaseName, namespace, h.chartDir, h.valuesFile)
 	return err
 }
 

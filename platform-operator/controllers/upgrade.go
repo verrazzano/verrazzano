@@ -44,9 +44,9 @@ func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl
 			log.Info("Dry run enabled, skipping upgrade")
 			break
 		}
-		err := comp.Upgrade(r, cr.Namespace)
+		err := comp.Upgrade(log, r, cr.Namespace)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Error upgrading component %s", comp.Name()))
+			log.Errorf("Error upgrading component %s: %v", comp.Name(), err)
 			msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", comp.Name(),
 				fmtGeneration(cr.Generation), err.Error())
 			err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeFailed)

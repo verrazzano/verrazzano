@@ -65,7 +65,7 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		}
 
 		// Error getting the verrazzano resource - don't requeue.
-		log.Error(err, "Failed to fetch verrazzano resource")
+		log.Errorf("Failed to fetch verrazzano resource: %v", err)
 		return reconcile.Result{}, err
 	}
 
@@ -483,7 +483,7 @@ func (r *VerrazzanoReconciler) setUninstallCondition(log *zap.SugaredLogger, job
 		// Update the job
 		err := r.Status().Update(context.TODO(), job)
 		if err != nil {
-			log.Error(err, "Failed to update uninstall job owner references")
+			log.Errorf("Failed to update uninstall job owner references: %v", err)
 			return err
 		}
 
