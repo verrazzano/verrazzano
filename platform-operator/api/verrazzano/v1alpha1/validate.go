@@ -7,12 +7,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"io/ioutil"
 	"reflect"
 
 	vzcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/component"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/semver"
 	"go.uber.org/zap"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -22,8 +22,8 @@ import (
 // For unit test purposes
 var readFileFunction = ioutil.ReadFile
 
-// getCurrentChartVersion Load the current Chart.yaml into a chartVersion struct
-func getCurrentChartVersion() (*semver.SemVersion, error) {
+// GetCurrentChartVersion Load the current Chart.yaml into a chartVersion struct
+func GetCurrentChartVersion() (*semver.SemVersion, error) {
 	chartDir := vzcomp.VzChartDir()
 	chartBytes, err := readFileFunction(chartDir + "/Chart.yaml")
 	if err != nil {
@@ -50,7 +50,7 @@ func ValidateVersion(requestedVersion string) error {
 	if err != nil {
 		return err
 	}
-	chartSemVer, err := getCurrentChartVersion()
+	chartSemVer, err := GetCurrentChartVersion()
 	if err != nil {
 		return err
 	}

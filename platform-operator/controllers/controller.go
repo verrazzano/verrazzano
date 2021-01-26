@@ -283,6 +283,13 @@ func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log *zap.Su
 		return err
 	}
 
+	// Set the version in the status.  This will be updated when the starting install condition is updated.
+	chartSemVer, err := installv1alpha1.GetCurrentChartVersion()
+	if err != nil {
+		return err
+	}
+	vz.Status.Version = chartSemVer.ToString()
+
 	err = r.setInstallCondition(log, jobFound, vz)
 
 	return err
