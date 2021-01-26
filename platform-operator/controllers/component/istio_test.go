@@ -5,10 +5,12 @@ package component
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"path/filepath"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // TestPreUpgrade tests the Istio preUpgrade function
@@ -20,7 +22,7 @@ func TestPreUpgrade(t *testing.T) {
 	deleteJobFunc = fakeDeleteJob
 
 	chartDir, _ := filepath.Abs("./testdata")
-	err := PreUpgrade(nil, "", "ns", chartDir)
+	err := PreUpgrade(zap.S(), nil, "", "ns", chartDir)
 	assert.NoError(err, "PreUpgrade returned an error")
 }
 

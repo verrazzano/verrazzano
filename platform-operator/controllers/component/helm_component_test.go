@@ -6,11 +6,13 @@ package component
 import (
 	"errors"
 	"fmt"
+	"os/exec"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
-	"os/exec"
+	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
 )
 
 // helmFakeRunner is used to test helm without actually running an OS exec command
@@ -50,12 +52,12 @@ func TestUpgrade(t *testing.T) {
 	defer helm.SetDefaultRunner()
 	setUpgradeFunc(fakeUpgrade)
 	defer setDefaultUpgradeFunc()
-	err := comp.Upgrade(nil, "")
+	err := comp.Upgrade(zap.S(), nil, "")
 	assert.NoError(err, "Upgrade returned an error")
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(releaseName string, namespace string, chartDir string, overwriteYaml string) (stdout []byte, stderr []byte, err error) {
+func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overwriteYaml string) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "release1" {
 		return []byte("error"), []byte(""), errors.New("Invalid release name")
 	}
@@ -76,7 +78,7 @@ func (r helmFakeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err er
 	return []byte("success"), []byte(""), nil
 }
 
-func fakePreUpgrade(client clipkg.Client, release string, namespace string, chartDir string) error {
+func fakePreUpgrade(log *zap.SugaredLogger, client clipkg.Client, release string, namespace string, chartDir string) error {
 	if release != "release1" {
 		return fmt.Errorf("Incorrect release name %s", release)
 	}

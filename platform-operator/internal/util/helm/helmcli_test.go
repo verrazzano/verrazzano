@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"testing"
 
+	"go.uber.org/zap"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,7 +43,7 @@ func TestUpgrade(t *testing.T) {
 	SetCmdRunner(goodRunner{t: t})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(release, ns, chartdir, overrideYaml)
+	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, overrideYaml)
 	assert.NoError(err, "Upgrade returned an error")
 	assert.Len(stderr, 0, "Upgrade stderr should be empty")
 	assert.NotZero(stdout, "Upgrade stdout should not be empty")
@@ -56,7 +58,7 @@ func TestUpgradeFail(t *testing.T) {
 	SetCmdRunner(badRunner{t: t})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(release, ns, "", "")
+	stdout, stderr, err := Upgrade(zap.S(), release, ns, "", "")
 	assert.Error(err, "Upgrade should have returned an error")
 	assert.Len(stdout, 0, "Upgrade stdout should be empty")
 	assert.NotZero(stderr, "Upgrade stderr should not be empty")

@@ -4,21 +4,18 @@
 package helm
 
 import (
-	"fmt"
 	"os/exec"
 	"strings"
 
 	vz_os "github.com/verrazzano/verrazzano/platform-operator/internal/util/os"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"go.uber.org/zap"
 )
 
 // cmdRunner needed for unit tests
 var runner vz_os.CmdRunner = vz_os.DefaultRunner{}
 
 // Upgrade will upgrade a Helm release with the specified charts.
-func Upgrade(releaseName string, namespace string, chartDir string, overwriteYaml string) (stdout []byte, stderr []byte, err error) {
-	var log = ctrl.Log.WithName("helm")
-
+func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, overwriteYaml string) (stdout []byte, stderr []byte, err error) {
 	// Helm upgrade command will apply the new chart, but use all the existing
 	// overrides that we used during the install.
 	args := []string{"upgrade", releaseName, chartDir}
@@ -36,18 +33,18 @@ func Upgrade(releaseName string, namespace string, chartDir string, overwriteYam
 	cmd := exec.Command("helm", args...)
 	stdout, stderr, err = runner.Run(cmd)
 	if err != nil {
-		log.Error(err, fmt.Sprintf(" helm upgrade for release %s failed with stderr: %s\n", releaseName, string(stderr)))
+		log.Errorf("helm upgrade for release %s failed with stderr: %s\n", releaseName, string(stderr))
 		return stdout, stderr, err
 	}
 
 	//  Log upgrade output
-	log.Info(fmt.Sprintf("helm upgrade for release %s succeeded with stdout: %s\n", releaseName, string(stdout)))
+	log.Infof("helm upgrade for release %s succeeded with stdout: %s\n", releaseName, string(stdout))
 	return stdout, stderr, nil
 }
 
 // IsReleaseInstalled returns true if the release is installed
 func IsReleaseInstalled(releaseName string, namespace string) (found bool, err error) {
-	var log = ctrl.Log.WithName("helm")
+	log := zap.S()
 
 	args := []string{"status", releaseName}
 	if namespace != "" {
@@ -62,7 +59,7 @@ func IsReleaseInstalled(releaseName string, namespace string) (found bool, err e
 	if strings.Contains(string(stderr), "not found") {
 		return false, nil
 	}
-	log.Error(err, fmt.Sprintf("helm status for release %s failed with stderr: %s\n", releaseName, string(stderr)))
+	log.Errorf("helm status for release %s failed with stderr: %s\n", releaseName, string(stderr))
 	return false, err
 }
 
