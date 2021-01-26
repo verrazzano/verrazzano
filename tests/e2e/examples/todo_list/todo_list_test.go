@@ -127,14 +127,14 @@ var _ = Describe("Verify ToDo List example application.", func() {
 			util.Log(util.Info, fmt.Sprintf("Ingress: %s", ingress))
 			//service := util.GetService("istio-system", "istio-ingressgateway")
 			//ipAddress := service.Status.LoadBalancer.Ingress[0].IP
-			url := fmt.Sprintf("http://%s/todo", ingress)
-			hostHeader := "Host: todo.example.com"
-			status, content := util.GetWebPageWithCABundle(url, hostHeader)
+			url := fmt.Sprintf("http://%s/todo/", ingress)
+			host := "todo.example.com"
+			status, content := util.GetWebPageWithCABundle(url, host)
 			return WebResponse{
 				status: status,
 				content: content,
 			}
-		}, 3*time.Minute, 15*time.Second).Should(And(HaveStatus(200),ContainContent("Derek")))
+		}, 5*time.Minute, 15*time.Second).Should(And(HaveStatus(200),ContainContent("Derek")))
 	})
 
 	It("Verify '/todo/rest/items' REST endpoint is working.", func() {
@@ -144,13 +144,13 @@ var _ = Describe("Verify ToDo List example application.", func() {
 			//service := util.GetService("istio-system", "istio-ingressgateway")
 			//ipAddress := service.Status.LoadBalancer.Ingress[0].IP
 			url := fmt.Sprintf("http://%s/todo/rest/items", ingress)
-			hostHeader := "Host: todo.example.com"
-			status, content := util.GetWebPageWithCABundle(url, hostHeader)
+			host := "todo.example.com"
+			status, content := util.GetWebPageWithCABundle(url, host)
 			return WebResponse{
 				status:  status,
 				content: content,
 			}
-		}, 3*time.Minute, 15*time.Second).Should(And(HaveStatus(200),ContainContent("[")))
+		}, 5*time.Minute, 15*time.Second).Should(And(HaveStatus(200),ContainContent("[")))
 	})
 
 })
