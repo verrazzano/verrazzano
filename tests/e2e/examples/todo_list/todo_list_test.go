@@ -128,8 +128,8 @@ var _ = Describe("Verify ToDo List example application.", func() {
 			//service := util.GetService("istio-system", "istio-ingressgateway")
 			//ipAddress := service.Status.LoadBalancer.Ingress[0].IP
 			url := fmt.Sprintf("http://%s/todo", ingress)
-			host := "todo.example.com"
-			status, content := util.GetWebPageWithCABundle(url, host)
+			hostHeader := "Host: todo.example.com"
+			status, content := util.GetWebPageWithCABundle(url, hostHeader)
 			return WebResponse{
 				status: status,
 				content: content,
@@ -144,8 +144,8 @@ var _ = Describe("Verify ToDo List example application.", func() {
 			//service := util.GetService("istio-system", "istio-ingressgateway")
 			//ipAddress := service.Status.LoadBalancer.Ingress[0].IP
 			url := fmt.Sprintf("http://%s/todo/rest/items", ingress)
-			host := "todo.example.com"
-			status, content := util.GetWebPageWithCABundle(url, host)
+			hostHeader := "Host: todo.example.com"
+			status, content := util.GetWebPageWithCABundle(url, hostHeader)
 			return WebResponse{
 				status:  status,
 				content: content,
