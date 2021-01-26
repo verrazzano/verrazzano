@@ -433,6 +433,8 @@ pipeline {
                                     # Coherence image doesn't get pulled correctly in KIND.
                                     docker pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
                                     kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/middleware/coherence:12.2.1.4.0
+                                    docker pull phx.ocir.io/stevengreenberginc/will.hopkins/todo-domain:1
+                                    kind load docker-image --name ${CLUSTER_NAME} phx.ocir.io/stevengreenberginc/will.hopkins/todo-domain:1
                                 """
                             }
                             post {
