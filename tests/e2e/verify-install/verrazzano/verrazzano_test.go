@@ -7,14 +7,14 @@ import (
 	"github.com/onsi/ginkgo"
 	ginkgoExt "github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/tests/e2e/util"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 var _ = ginkgo.Describe("Verrazzano", func() {
 
 	ginkgoExt.DescribeTable("CRD for",
 		func(name string) {
-			gomega.Expect(util.DoesCRDExist(name)).To(gomega.BeTrue())
+			gomega.Expect(pkg.DoesCRDExist(name)).To(gomega.BeTrue())
 		},
 		ginkgoExt.Entry("verrazzanos should exist in cluster", "verrazzanos.install.verrazzano.io"),
 	)
