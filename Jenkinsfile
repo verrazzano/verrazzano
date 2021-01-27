@@ -446,6 +446,9 @@ pipeline {
                         }
 
                         stage('Run Acceptance Tests') {
+                            environment {
+                                TEST_ENV = "KIND"
+                            }
                             stages {
                                 stage('verify-install') {
                                     steps {
@@ -462,7 +465,6 @@ pipeline {
                                         expression {params.RUN_EXAMPLE_TESTS == true}
                                     }
                                     steps {
-                                        runGinkgo('examples/todo_list')
                                         runGinkgo('examples/sock-shop')
                                     }
                                 }
