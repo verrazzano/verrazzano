@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 	"strings"
@@ -74,6 +75,8 @@ func doGetWebPage(url string, hostHeader string, httpClient *retryablehttp.Clien
 		//_have_ to set req.Host, not use req.Header.Add - latter does not work by design in Go
 		req.Host = hostHeader
 	}
+	reqDump, _ := httputil.DumpRequest(req.Request, false)
+	fmt.Printf("request: %s\n", reqDump)
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		Log(Error, err.Error())
