@@ -1,0 +1,446 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations:
+    rbac.authorization.kubernetes.io/autoupdate: "true"
+  name: {{ .Values.api.clusterRole }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - deployments/scale
+  - deployments/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - extensions
+  resources:
+  - deployments
+  - deployments/scale
+  - deployments/status
+  - ingresses
+  - ingresses/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  - ingresses/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - oam.verrazzano.io
+  resources:
+  - ingresstraits
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - core.oam.dev
+  resources:
+  - components
+  - applicationconfigurations
+  - containerizedworkloads
+  - healthscopes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - verrazzano.io
+  resources:
+  - cohclusters
+  - helidonapps
+  - verrazzanobindings
+  - verrazzanomanagedclusters
+  - verrazzanomodels
+  - verrazzanomonitoringinstances
+  - wlsoperators
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.api.clusterRole }}-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.api.clusterRole }}
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: {{ .Values.api.consoleUserGroup }}
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: {{ .Values.api.consoleUser }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.api.clusterRole }}-impersonator
+rules:
+- apiGroups: [""]
+  resources: ["users", "groups", "serviceaccounts"]
+  verbs: ["impersonate"]
+- apiGroups: [""]
+  resources: ["users"]
+  verbs: ["impersonate"]
+  resourceNames: ["{{ .Values.api.consoleUser }}"]
+- apiGroups: [""]
+  resources: ["groups"]
+  verbs: ["impersonate"]
+  resourceNames: ["{{ .Values.api.consoleUserGroup }}"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.api.clusterRole }}-impersonator-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.api.clusterRole }}-impersonator
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.api.name }}
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-nginx-conf
+  labels:
+    app: {{ .Values.api.name }}
+data:
+  conf.lua: |
+    local function logJsonMessage(logLevel, msg, err)
+     local cjson = require "cjson"
+     local logMsg = ""
+     if error then
+       logMsg = cjson.encode({message = msg, error = err})
+     else
+       logMsg = cjson.encode({message = msg})
+     end
+     ngx.log(logLevel, logMsg)
+    end
+  
+    if ngx.req.get_method() == "OPTIONS" then
+      ngx.status = 200
+      ngx.exit(ngx.HTTP_OK)
+    end
+
+    logJsonMessage(ngx.INFO, "Extracting authorization header from request.")
+    local h, err = ngx.req.get_headers()["authorization"]
+    if err then
+      ngx.status = 403
+      ngx.say(logJsonMessage(ngx.ERR, "Error while reading authorization header from request.", err))
+      ngx.exit(ngx.HTTP_FORBIDDEN)
+    end
+
+    if not (h) then
+      ngx.status = 403
+      ngx.say(logJsonMessage(ngx.ERR, "Invalid authorization header", err))
+      ngx.exit(ngx.HTTP_FORBIDDEN)
+    end
+
+    logJsonMessage(ngx.INFO, "Extract jwt token from authorization header.")
+    local token = string.sub(h, 8)
+    if not (token) then
+      ngx.status = 403
+      ngx.say(logJsonMessage(ngx.ERR, "Invalid bearer token in authorization header"))           
+      ngx.exit(ngx.HTTP_FORBIDDEN)
+    end
+
+    logJsonMessage(ngx.INFO, "Read public key from keycloak.")
+    local http = require "resty.http"
+    local httpc = http.new()
+    local res, err = httpc:request_uri("http://keycloak-http.keycloak.svc.cluster.local/auth/realms/verrazzano-system")
+    if err then
+      ngx.status = 502
+      ngx.say(logJsonMessage(ngx.ERR, "Error accessing keycloak", err))
+      ngx.exit(ngx.HTTP_BAD_GATEWAY)
+    end
+
+    local cjson = require "cjson"
+    local data = cjson.decode(res.body)
+    if not (data.public_key) then
+      ngx.status = 500
+      ngx.say(logJsonMessage(ngx.ERR, "No public_key retreived from keycloak"))
+      ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
+    end
+
+    logJsonMessage(ngx.INFO, "Validate JWT token.")
+    local key = "-----BEGIN PUBLIC KEY-----\n" .. data.public_key .. "\n-----END PUBLIC KEY-----"
+    local jwt = require "resty.jwt"
+    local jwt_obj = jwt:load_jwt(token)
+    local verified = jwt:verify_jwt_obj(key, jwt_obj)
+    if (tostring(jwt_obj.valid) == "false" or tostring(jwt_obj.verified) == "false") then
+      ngx.status = 403
+      ngx.say(logJsonMessage(ngx.ERR, "Invalid JWT token", jwt_obj.reason))
+      ngx.exit(ngx.HTTP_FORBIDDEN)
+    end
+
+    logJsonMessage(ngx.INFO, "Check for groups in jwt token.")
+    if ( not (jwt_obj.payload) or not (jwt_obj.payload.groups)) then
+      ngx.status = 403
+      ngx.say(logJsonMessage(ngx.ERR, "No groups asscoiated with user."))
+      ngx.exit(ngx.HTTP_FORBIDDEN)
+    end
+
+    local function read_file(path)
+      local file = io.open(path, "rb")
+      if not file then return nil end
+      local content = file:read "*a"
+      file:close()
+      return content
+    end
+
+    logJsonMessage(ngx.INFO, "Read service account token.")
+    local serviceAccountToken = read_file("/run/secrets/kubernetes.io/serviceaccount/token");
+    if not (serviceAccountToken) then
+      ngx.status = 500
+      ngx.say(logJsonMessage(ngx.ERR, "No service account token presnet in pod."))
+      ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
+    end
+
+    logJsonMessage(ngx.INFO, "Set headers")
+    ngx.req.set_header("Authorization", "Bearer " .. serviceAccountToken)
+    for i,group in pairs(jwt_obj.payload.groups) do
+      ngx.req.set_header("Impersonate-Group", group)
+    end
+    ngx.req.set_header("Impersonate-User", "{{ .Values.api.consoleUser }}")
+  nginx.conf: |
+    #user  nobody;
+    worker_processes  1;
+
+    #error_log  logs/error.log;
+    #error_log  logs/error.log  notice;
+    #error_log  logs/error.log  info;
+
+    #pid        logs/nginx.pid;
+
+
+    events {
+        worker_connections  1024;
+    }
+
+
+    http {
+        include       mime.types;
+        default_type  application/octet-stream;
+
+        #log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+        #                  '$status $body_bytes_sent "$http_referer" '
+        #                  '"$http_user_agent" "$http_x_forwarded_for"';
+
+        error_log  logs/error.log  info;
+
+        sendfile        on;
+        #tcp_nopush     on;
+
+        #keepalive_timeout  0;
+        keepalive_timeout  65;
+
+        #gzip  on;
+        #
+        lua_package_path '/usr/local/share/lua/5.1/?.lua;;';
+        lua_package_cpath '/usr/local/lib/lua/5.1/?.so;;';
+        resolver _NAMESERVER_;
+        # cache for discovery metadata documents
+        lua_shared_dict discovery 1m;
+        #  cache for JWKs
+        lua_shared_dict jwks 1m;
+
+        server {
+            listen       8775;
+            server_name  apiserver;
+            root     /opt/nginx/html;
+            rewrite_by_lua_file /etc/nginx/conf.lua;
+            #charset koi8-r;
+            
+            #access_log  logs/host.access.log  main;
+            expires           0;
+            add_header        Cache-Control private;
+
+            location / {
+              proxy_pass https://kubernetes.default.svc/;
+            }
+
+            error_page 404 /404.html;
+              location = /40x.html {
+            }
+
+            #error_page  404              /404.html;
+
+            # redirect server error pages to the static page /50x.html
+            #
+            error_page   500 502 503 504  /50x.html;
+
+            location = /50x.html {
+                root   html;
+            }
+
+            # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+            #
+            #location ~ \.php$ {
+            #    proxy_pass   http://127.0.0.1;
+            #}
+
+            # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+            #
+            #location ~ \.php$ {
+            #    root           html;
+            #    fastcgi_pass   127.0.0.1:9000;
+            #    fastcgi_index  index.php;
+            #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+            #    include        fastcgi_params;
+            #}
+
+            # deny access to .htaccess files, if Apache's document root
+            # concurs with nginx's one
+            #
+            #location ~ /\.ht {
+            #    deny  all;
+            #}
+        }`
+
+
+    # another virtual host using mix of IP-, name-, and port-based configuration
+    #
+    #server {
+    #    listen       8000;
+    #    listen       somename:8080;
+    #    server_name  somename  alias  another.alias;
+
+    #    location / {
+    #        root   html;
+    #        index  index.html index.htm;
+    #    }
+    #}
+
+
+    # HTTPS server
+    #
+    #server {
+    #    listen       443 ssl;
+    #    server_name  localhost;
+
+    #    ssl_certificate      cert.pem;
+    #    ssl_certificate_key  cert.key;
+
+    #    ssl_session_cache    shared:SSL:1m;
+    #    ssl_session_timeout  5m;
+
+    #    ssl_ciphers  HIGH:!aNULL:!MD5;
+    #    ssl_prefer_server_ciphers  on;
+
+    #    location / {
+    #        root   html;
+    #        index  index.html index.htm;
+    #    }
+    #}
+  startup.sh: |
+    #!/bin/bash
+    cd `dirname $0`
+    cp `dirname $0`/nginx.conf /etc/nginx/nginx.conf
+    cp `dirname $0`/conf.lua /etc/nginx/conf.lua
+    nameserver=$(grep -i nameserver /etc/resolv.conf | awk '{split($0,line," "); print line[2]}')
+    sed -i -e "s|_NAMESERVER_|${nameserver}|g" /etc/nginx/nginx.conf
+
+    mkdir -p /usr/local/nginx/logs
+    touch /usr/local/nginx/logs/error.log
+
+    export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+    /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -t
+    /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf
+
+    tail -f /usr/local/nginx/logs/error.log
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .Values.api.name }}
+  name: {{ .Values.api.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.api.name }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.api.name }}
+    spec:
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+      volumes:
+       - name: api-nginx-conf
+         configMap:
+           name: api-nginx-conf
+           defaultMode: 0744
+      containers:
+      - image: {{ .Values.api.imageName }}:{{ .Values.api.imageVersion }}
+        imagePullPolicy: {{ .Values.api.pullPolicy }}
+        name: {{ .Values.api.name }}
+        ports:
+            - containerPort: {{ .Values.api.port }}
+        volumeMounts:
+        - name: api-nginx-conf
+          mountPath: /bootstrap
+      serviceAccount: {{ .Values.api.name }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.api.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - name: api
+    port: {{ .Values.api.port }}
+    protocol: TCP
+    targetPort: {{ .Values.api.port }}
+  selector:
+    app: {{ .Values.api.name }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.api.name }}
+  namespace: {{ .Release.Namespace }}
+{{- if .Values.global.imagePullSecrets }}
+imagePullSecrets:
+{{- range .Values.global.imagePullSecrets }}
+- name: {{ . }}
+{{- end }}
+{{- end }}

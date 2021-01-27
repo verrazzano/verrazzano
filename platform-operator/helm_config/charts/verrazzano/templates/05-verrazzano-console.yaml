@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ---
 apiVersion: apps/v1
@@ -60,6 +60,7 @@ metadata:
     annotations:
       external-dns.alpha.kubernetes.io/target: verrazzano-ingress.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
       kubernetes.io/tls-acme: "true"
+      nginx.ingress.kubernetes.io/rewrite-target: /$2
     name: {{ .Values.console.name }}-ingress
     namespace: {{ .Release.Namespace }}
 spec:
@@ -72,9 +73,9 @@ spec:
             servicePort: 8000
           path: /
         - backend:
-            serviceName: {{ .Values.verrazzanoOperator.name }}
-            servicePort: 3456
-          path: /20210501
+            serviceName: {{ .Values.api.name }}
+            servicePort: {{ .Values.api.port }}
+          path: /20210501(/|$)(.*)
   tls:
   - hosts:
     - verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
