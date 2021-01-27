@@ -142,8 +142,7 @@ var _ = Describe("Sock Shop Application", func() {
 
 	It("Verify '/catalogue' UI endpoint is working.", func() {
 		Eventually(func() bool {
-			service := util.GetService("istio-system", "istio-ingressgateway")
-			ipAddress := service.Status.LoadBalancer.Ingress[0].IP
+			ipAddress := util.Ingress()
 			url := fmt.Sprintf("http://%s/catalogue", ipAddress)
 			host := "oam-sockshop.example.com"
 			status, content := util.GetWebPageWithCABundle(url, host)
