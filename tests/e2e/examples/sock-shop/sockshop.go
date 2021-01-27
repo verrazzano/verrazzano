@@ -5,13 +5,10 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/tests/e2e/util"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/go-retryablehttp"
-	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
@@ -69,56 +66,24 @@ func NewSockShop(username, password, ingress string, hostHeader string) SockShop
 
 // wrapper function for HTTP request with cookies POST
 func (s *SockShop) Post(url, contentType string, body io.Reader) (int, string) {
-	return s.Req("POST", url, contentType, body)
+	return util.PostWithHostHeader(url, contentType, s.hostHeader, body)
 }
 
 // wrapper function for HTTP request with cookies GET
 func (s *SockShop) Get(url string) (int, string) {
-	return s.Req("GET", url, "", nil)
+	return util.GetWebPageWithCABundle(url, s.hostHeader)
 }
 
 // wrapper function for HTTP request with cookies DELETE
 func (s *SockShop) Delete(url string) (int, string) {
-	return s.Req("DELETE", url, "", nil)
-}
-
-// using cookies to send HTTP requests
-func (s *SockShop) Req(method, url, contentType string, body io.Reader) (int, string) {
-	httpClient := retryablehttp.NewClient()
-	req, err := retryablehttp.NewRequest(method, url, body)
-	if err != nil {
-		util.Log(Error, err.Error())
-	}
-	for _, cookie := range s.Cookies {
-		req.AddCookie(cookie)
-	}
-	if contentType != "" {
-		req.Header.Set("Content-Type", contentType)
-	}
-	if s.hostHeader != "" {
-		//_have_ to set req.Host, not use req.Header.Add - latter does not work by design in Go
-		req.Host = s.hostHeader
-	}
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		util.Log(Error, err.Error())
-		ginkgo.Fail(fmt.Sprintf("Could not %v %v", method, url))
-	}
-	defer resp.Body.Close()
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		util.Log(Error, err.Error())
-		ginkgo.Fail("Could not read content of response body")
-	}
-
-	return resp.StatusCode, string(respBody)
+	return util.Delete(url, s.hostHeader)
 }
 
 // visit page and create user
 func (s *SockShop) RegisterUser(body string) {
 	ingress := s.Ingress
 	url := fmt.Sprintf("http://%v/register", ingress)
-	status, register := s.Req("POST", url, "application/json", strings.NewReader(body))
+	status, register := util.PostWithHostHeader(url,"application/json", s.hostHeader, strings.NewReader(body))
 	util.Log(Info, fmt.Sprintf("Finished register %v status: %v", register, status))
 	Expect(status).To(Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", ingress, status))
 	Expect(strings.Contains(register, "username")).To(Equal(true), fmt.Sprintf("Cannot register %v", register))
@@ -141,10 +106,6 @@ func (s *SockShop) VerifyCatalogItems(webpage string) {
 	var items []CatalogItem
 	json.Unmarshal([]byte(webpage), &items)
 	Expect(len(items)).To(Not(Equal(0)), fmt.Sprint("Catalog page returned no items"))
-	//util.Log(Info, fmt.Sprintf("Attempting to access item page, name: %s, id: %s", items[0].Name, items[0].Id))
-	//status, webpage := s.Get("http://" + ingress + "/detail.html?id=" + items[0].Id)
-	//Expect(status).To(Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", ingress, status))
-	//Expect(strings.Contains(webpage, "product details")).To(Equal(true), fmt.Sprintf("Webpage found is NOT Catalog %v", webpage))
 }
 
 // retrieve first catalog item

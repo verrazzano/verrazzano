@@ -74,26 +74,11 @@ func GetWebPageWithBasicAuth(url string, hostHeader string, username string, pas
 }
 
 func doGetWebPage(url string, hostHeader string, httpClient *retryablehttp.Client, username string, password string) (int, string) {
-	req, _ := retryablehttp.NewRequest("GET", url, nil)
-	if hostHeader != "" {
-		//_have_ to set req.Host, not use req.Header.Add - latter does not work by design in Go
-		req.Host = hostHeader
-	}
-	if username != "" && password != "" {
-		req.SetBasicAuth(username, password)
-	}
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		Log(Error, err.Error())
-		ginkgo.Fail("Could not get web page " + url)
-	}
-	defer resp.Body.Close()
-	html, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		Log(Error, err.Error())
-		ginkgo.Fail("Could not read content of response body")
-	}
-	return resp.StatusCode, string(html)
+	return doReq(url, "GET", "", hostHeader, username, password, nil, httpClient)
+}
+
+func Delete(url string, hostHeader string) (int, string) {
+	return doReq(url, "DELETE", "", hostHeader, "", "", nil, GetVerrazzanoHTTPClient())
 }
 
 // GetVerrazzanoHTTPClient returns the Http client
@@ -143,7 +128,7 @@ func Post(url, contentType string, body io.Reader) (int, string) {
 }
 
 func PostWithHostHeader(url, contentType string, hostHeader string, body io.Reader) (int, string) {
-	return doPost(url, contentType, hostHeader, body, retryablehttp.NewClient())
+	return doPost(url, contentType, hostHeader, body, GetVerrazzanoHTTPClient())
 }
 
 // postWithClient
@@ -153,14 +138,24 @@ func postWithClient(url, contentType string, body io.Reader, httpClient *retryab
 
 // doPost
 func doPost(url, contentType string, hostHeader string, body io.Reader, httpClient *retryablehttp.Client) (int, string) {
-	req, err := retryablehttp.NewRequest("POST", url, body)
+	return doReq(url, "POST", contentType, hostHeader, "", "", body, httpClient)
+}
+
+func doReq(url, method string, contentType string, hostHeader string, username string, password string,
+	body io.Reader, httpClient *retryablehttp.Client) (int, string) {
+	req, err := retryablehttp.NewRequest(method, url, body)
 	if err != nil {
 		Log(Error, err.Error())
 		ginkgo.Fail("Could not create request")
 	}
-	req.Header.Set("Content-Type", contentType)
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
 	if hostHeader != "" {
 		req.Host = hostHeader
+	}
+	if username != "" && password != "" {
+		req.SetBasicAuth(username, password)
 	}
 	resp, err := httpClient.Do(req)
 	if err != nil {
