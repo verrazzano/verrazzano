@@ -220,13 +220,4 @@ command -v curl >/dev/null 2>&1 || {
 ##################################################
 ####Constants for Docker images, versions, tags
 ##################################################
-GLOBAL_HUB_REPO=ghcr.io/verrazzano
 GLOBAL_IMAGE_PULL_SECRET=verrazzano-container-registry
-
-GRAFANA_REPO=ghcr.io/verrazzano/grafana
-GRAFANA_TAG=v6.4.4
-
-PROMETHEUS_TAG=v2.13.1
-
-OAM_OPERATOR_IMAGE_REPO=ghcr.io/verrazzano/oam-kubernetes-runtime
-OAM_OPERATOR_IMAGE_TAG=v0.3.0

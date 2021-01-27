@@ -6,9 +6,10 @@ package v1alpha1
 import (
 	"context"
 	"errors"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"io/ioutil"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/semver"
@@ -442,7 +443,7 @@ func TestGetCurrentChartVersion(t *testing.T) {
 	expectedVersion, err := semver.NewSemVersion("v0.7.0")
 	assert.NoError(t, err)
 
-	version, err := getCurrentChartVersion()
+	version, err := GetCurrentChartVersion()
 	assert.NoError(t, err)
 	assert.Equal(t, expectedVersion, version)
 }
@@ -458,7 +459,7 @@ func TestGetCurrentChartVersionFileReadError(t *testing.T) {
 	defer func() {
 		readFileFunction = ioutil.ReadFile
 	}()
-	version, err := getCurrentChartVersion()
+	version, err := GetCurrentChartVersion()
 	assert.Error(t, err)
 	assert.Nil(t, version)
 }
@@ -475,7 +476,7 @@ func TestGetCurrentChartVersionBadYAML(t *testing.T) {
 	defer func() {
 		readFileFunction = ioutil.ReadFile
 	}()
-	version, err := getCurrentChartVersion()
+	version, err := GetCurrentChartVersion()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "error converting YAML to JSON")
 	assert.Nil(t, version)

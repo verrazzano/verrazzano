@@ -91,9 +91,37 @@ pipeline {
                     chmod 600 $HOME/.netrc
                 """
 
+                script {
+	            try {
+		        sh """
+                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+		        """
+		    } catch(error) {
+		        echo "docker login failed, retrying after sleep"
+		        retry(4) {
+			    sleep(30)
+			    sh """
+                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+			    """
+		        }
+		    }
+	        }
+                script {
+	            try {
+		        sh """
+                            echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
+		        """
+		    } catch(error) {
+		        echo "OCR docker login failed, retrying after sleep"
+		        retry(4) {
+			    sleep(30)
+			    sh """
+                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
+			    """
+		        }
+		    }
+	        }
                 sh """
-                    echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                    echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin                    
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
                     tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)

@@ -5,12 +5,13 @@ package controllers
 
 import (
 	"fmt"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/api/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/component"
-	"go.uber.org/zap"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"strconv"
 	"strings"
+
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/api/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/component"
+	"go.uber.org/zap"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // The max upgrade failures for a given upgrade attempt is 2
@@ -29,9 +30,11 @@ func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl
 
 	// Only write the upgrade started message once
 	if !isLastCondition(cr.Status, installv1alpha1.UpgradeStarted) {
-		r.updateStatus(log, cr, fmt.Sprintf("Verrazzano upgrade to version %s in progress", cr.Spec.Version),
+		err := r.updateStatus(log, cr, fmt.Sprintf("Verrazzano upgrade to version %s in progress", cr.Spec.Version),
 			installv1alpha1.UpgradeStarted)
-		return ctrl.Result{Requeue: true}, nil
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
@@ -41,9 +44,9 @@ func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl
 			log.Info("Dry run enabled, skipping upgrade")
 			break
 		}
-		err := comp.Upgrade(r, cr.Namespace)
+		err := comp.Upgrade(log, r, cr.Namespace)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Error upgrading component %s", comp.Name()))
+			log.Errorf("Error upgrading component %s: %v", comp.Name(), err)
 			msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", comp.Name(),
 				fmtGeneration(cr.Generation), err.Error())
 			err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeFailed)

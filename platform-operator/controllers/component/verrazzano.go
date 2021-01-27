@@ -5,6 +5,8 @@ package component
 
 import (
 	"path/filepath"
+
+	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -38,8 +40,8 @@ func (v Verrazzano) Name() string {
 // Upgrade is done by using the helm chart upgrade command.   This command will apply the latest chart
 // that is included in the operator image, while retaining any helm value overrides that were applied during
 // install.
-func (v Verrazzano) Upgrade(_ clipkg.Client, namespace string) error {
-	_, _, err := helm.Upgrade(vzReleaseName, resolveNamespace(namespace), VzChartDir(), "")
+func (v Verrazzano) Upgrade(log *zap.SugaredLogger, _ clipkg.Client, namespace string) error {
+	_, _, err := helm.Upgrade(log, vzReleaseName, resolveNamespace(namespace), VzChartDir(), "")
 	return err
 }
 

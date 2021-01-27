@@ -25,7 +25,13 @@ func GetComponents() []Component {
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 			preUpgradeFunc:          PreUpgrade,
 		},
-		Nginx{},
+		helmComponent{
+			releaseName:             "ingress-controller",
+			chartDir:                filepath.Join(thirdPartyChartsDir, "ingress-nginx"),
+			chartNamespace:          "ingress-nginx",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(overridesDir, "ingress-nginx-values.yaml"),
+		},
 		helmComponent{
 			releaseName:             "cert-manager",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "cert-manager"),
@@ -49,13 +55,6 @@ func GetComponents() []Component {
 		},
 		Verrazzano{},
 		helmComponent{
-			releaseName:             "verrazzano-application-operator",
-			chartDir:                filepath.Join(vzChartsDir, "verrazzano-application-operator"),
-			chartNamespace:          "verrazzano-system",
-			ignoreNamespaceOverride: true,
-			valuesFile:              filepath.Join(overridesDir, "verrazzano-application-operator-values.yaml"),
-		},
-		helmComponent{
 			releaseName:             "coherence-operator",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "coherence-operator"),
 			chartNamespace:          "verrazzano-system",
@@ -68,6 +67,20 @@ func GetComponents() []Component {
 			chartNamespace:          "verrazzano-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "weblogic-values.yaml"),
+		},
+		helmComponent{
+			releaseName:             "oam-kubernetes-runtime",
+			chartDir:                filepath.Join(thirdPartyChartsDir, "oam-kubernetes-runtime"),
+			chartNamespace:          "verrazzano-system",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(overridesDir, "oam-kubernetes-runtime-values.yaml"),
+		},
+		helmComponent{
+			releaseName:             "verrazzano-application-operator",
+			chartDir:                filepath.Join(vzChartsDir, "verrazzano-application-operator"),
+			chartNamespace:          "verrazzano-system",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(overridesDir, "verrazzano-application-operator-values.yaml"),
 		},
 		helmComponent{
 			releaseName:             "mysql",
