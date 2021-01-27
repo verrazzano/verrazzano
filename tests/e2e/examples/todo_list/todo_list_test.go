@@ -115,13 +115,13 @@ func ContainContent(expected string) types.GomegaMatcher {
 
 var _ = Describe("Verify ToDo List example application.", func() {
 
-	It("Verify 'tododomain-adminserver' and 'mysql' pods are running", func() {
+	PIt("Verify 'tododomain-adminserver' and 'mysql' pods are running", func() {
 		Eventually(func () bool {
 			return pkg.PodsRunning("todo-list", []string{"mysql", "tododomain-adminserver"})
 		}, waitTimeout, pollingInterval).Should(BeTrue())
 	})
 
-	It("Verify '/todo' UI endpoint is working.", func() {
+	PIt("Verify '/todo' UI endpoint is working.", func() {
 		Eventually(func () WebResponse {
 			ingress := pkg.GetKindIngress()
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
@@ -137,7 +137,7 @@ var _ = Describe("Verify ToDo List example application.", func() {
 		}, 5*time.Minute, 15*time.Second).Should(And(HaveStatus(200),ContainContent("Derek")))
 	})
 
-	It("Verify '/todo/rest/items' REST endpoint is working.", func() {
+	PIt("Verify '/todo/rest/items' REST endpoint is working.", func() {
 		Eventually(func () WebResponse {
 			ingress := pkg.GetKindIngress()
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
