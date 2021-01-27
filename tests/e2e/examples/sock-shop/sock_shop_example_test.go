@@ -35,13 +35,13 @@ var _ = BeforeSuite(func() {
 
 	// deploy the application here
 	if _, err := util.CreateNamespace("oam-sockshop", map[string]string{"verrazzano-managed": "true"}); err != nil {
-		Fail(fmt.Sprintf("Failed to create namespace"))
+		Fail(fmt.Sprintf("Failed to create namespace: %v", err))
 	}
 	if err := util.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-comp.yaml"); err != nil {
-		Fail(fmt.Sprintf("Failed to create Sock Shop component resources"))
+		Fail(fmt.Sprintf("Failed to create Sock Shop component resources: %v", err))
 	}
 	if err := util.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-app.yaml"); err != nil {
-		Fail(fmt.Sprintf("Failed to create Sock Shop application resource"))
+		Fail(fmt.Sprintf("Failed to create Sock Shop application resource: %v", err))
 	}
 })
 

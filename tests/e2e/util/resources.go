@@ -38,6 +38,7 @@ func CreateOrUpdateResourceFromFile(file string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
+	fmt.Printf("Found and retrieved the yaml file: %s", found)
 	return CreateOrUpdateResourceFromBytes(bytes)
 }
 
