@@ -42,6 +42,7 @@ pipeline {
                 trim: true
         )
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
+        booleanParam (description: 'Whether to run example tests', name: 'RUN_EXAMPLE_TESTS', defaultValue: true)
     }
 
     environment {
@@ -451,12 +452,21 @@ pipeline {
                                         runGinkgoRandomize('verify-install')
                                     }
                                 }
-                                stage('restapi') {
+//                                 stage('restapi') {
+//                                     steps {
+//                                         runGinkgo('verify-infra/restapi')
+//                                     }
+//                                 }
+                                stage('examples') {
+                                    when {
+                                        expression {params.RUN_EXAMPLE_TESTS == true}
+                                    }
                                     steps {
-                                        runGinkgo('verify-infra/restapi')
+                                        runGinkgo('examples/todo_list')
+                                        runGinkgo('examples/sock-shop')
                                     }
                                 }
-                            }
+                           }
                         }
                     }
                 }
