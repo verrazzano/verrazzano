@@ -82,8 +82,6 @@ func doGetWebPage(url string, hostHeader string, httpClient *retryablehttp.Clien
 		Log(Error, err.Error())
 		ginkgo.Fail("Could not get web page " + url)
 	}
-	resDump, _ := httputil.DumpResponse(req.Response, false)
-	fmt.Printf("response: %s\n", resDump)
 	defer resp.Body.Close()
 	html, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
