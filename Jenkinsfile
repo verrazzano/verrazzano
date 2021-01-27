@@ -193,49 +193,49 @@ pipeline {
             }
         }
 
-//        stage('Quality and Compliance Checks') {
-//            when { not { buildingTag() } }
-//            steps {
-//                sh """
-//                    echo "fmt"
-//                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-//                    make go-fmt
-//                    cd ${GO_REPO_PATH}/verrazzano/application-operator
-//                    make go-fmt
-//
-//                    echo "vet"
-//                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-//                    make go-vet
-//                    cd ${GO_REPO_PATH}/verrazzano/application-operator
-//                    make go-vet
-//
-//                    echo "lint"
-//                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-//                    make go-lint
-//                    cd ${GO_REPO_PATH}/verrazzano/application-operator
-//                    make go-lint
-//
-//                    echo "ineffassign"
-//                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-//                    make go-ineffassign
-//                    cd ${GO_REPO_PATH}/verrazzano/application-operator
-//                    make go-ineffassign
-//                """
-//
-//                dir('platform-operator'){
-//                    echo "Third party license check platform-operator"
-//                    thirdpartyCheck()
-//                }
-//                dir('application-operator'){
-//                    echo "Third party license check application-operator"
-//                    thirdpartyCheck()
-//                }
-//                sh """
-//                    echo "copyright"
-//                """
-//                copyrightScan "${WORKSPACE}"
-//            }
-//        }
+        stage('Quality and Compliance Checks') {
+            when { not { buildingTag() } }
+            steps {
+                sh """
+                    echo "fmt"
+                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                    make go-fmt
+                    cd ${GO_REPO_PATH}/verrazzano/application-operator
+                    make go-fmt
+
+                    echo "vet"
+                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                    make go-vet
+                    cd ${GO_REPO_PATH}/verrazzano/application-operator
+                    make go-vet
+
+                    echo "lint"
+                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                    make go-lint
+                    cd ${GO_REPO_PATH}/verrazzano/application-operator
+                    make go-lint
+
+                    echo "ineffassign"
+                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                    make go-ineffassign
+                    cd ${GO_REPO_PATH}/verrazzano/application-operator
+                    make go-ineffassign
+                """
+
+                dir('platform-operator'){
+                    echo "Third party license check platform-operator"
+                    thirdpartyCheck()
+                }
+                dir('application-operator'){
+                    echo "Third party license check application-operator"
+                    thirdpartyCheck()
+                }
+                sh """
+                    echo "copyright"
+                """
+                copyrightScan "${WORKSPACE}"
+            }
+        }
 
         stage('Unit Tests') {
             when { not { buildingTag() } }
@@ -275,40 +275,40 @@ pipeline {
             }
         }
 
-//        stage('Scan Image') {
-//            when { not { buildingTag() } }
-//            steps {
-//                script {
-//                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-//                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-//                }
-//            }
-//            post {
-//                always {
-//                    archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
-//                }
-//            }
-//        }
+        stage('Scan Image') {
+            when { not { buildingTag() } }
+            steps {
+                script {
+                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
+                }
+            }
+        }
 
-//        stage('Integration Tests') {
-//            when { not { buildingTag() } }
-//            steps {
-//                sh """
-//                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-//                    make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
-//                    build/scripts/copy-junit-output.sh ${WORKSPACE}
-//                    #cd ${GO_REPO_PATH}/verrazzano/application-operator
-//                    #make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
-//                    #build/scripts/copy-junit-output.sh ${WORKSPACE}
-//                """
-//            }
-//            post {
-//                always {
-//                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-//                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-//                }
-//            }
-//        }
+        stage('Integration Tests') {
+            when { not { buildingTag() } }
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                    make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+                    build/scripts/copy-junit-output.sh ${WORKSPACE}
+                    cd ${GO_REPO_PATH}/verrazzano/application-operator
+                    make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+                    build/scripts/copy-junit-output.sh ${WORKSPACE}
+                """
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+            }
+        }
 
         stage('Skip acceptance tests if commit message contains skip-at') {
             steps {
@@ -333,31 +333,31 @@ pipeline {
 
         stage('Acceptance Tests') {
             parallel {
-//                stage('Kick off KinD Merge Acceptance tests') {
-//                    when {
-//                        allOf {
-//                            not { buildingTag() }
-//                            anyOf {
-//                                branch 'master';
-//                                branch 'develop';
-//                                expression {SKIP_ACCEPTANCE_TESTS == false};
-//                            }
-//                        }
-//                    }
-//                    environment {
-//                        FULL_IMAGE_NAME = "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-//                    }
-//                    steps {
-//                        build job: "verrazzano-merge-tests/${env.BRANCH_NAME.replace("/", "%2F")}",
-//                                parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME),
-//                                             string(name: 'ACCEPTANCE_TESTS_BRANCH', value: params.ACCEPTANCE_TESTS_BRANCH),
-//                                             string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME),
-//                                             string(name: 'TEST_ENV', value: 'kind'),
-//                                             string(name: 'INSTALL_PROFILE', value: 'dev')],
-//                                wait: true,
-//                                propagate: true
-//                    }
-//                }
+                stage('Kick off KinD Merge Acceptance tests') {
+                    when {
+                        allOf {
+                            not { buildingTag() }
+                            anyOf {
+                                branch 'master';
+                                branch 'develop';
+                                expression {SKIP_ACCEPTANCE_TESTS == false};
+                            }
+                        }
+                    }
+                    environment {
+                        FULL_IMAGE_NAME = "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                    }
+                    steps {
+                        build job: "verrazzano-merge-tests/${env.BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [string(name: 'VERRAZZANO_BRANCH', value: env.BRANCH_NAME),
+                                             string(name: 'ACCEPTANCE_TESTS_BRANCH', value: params.ACCEPTANCE_TESTS_BRANCH),
+                                             string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: FULL_IMAGE_NAME),
+                                             string(name: 'TEST_ENV', value: 'kind'),
+                                             string(name: 'INSTALL_PROFILE', value: 'dev')],
+                                wait: true,
+                                propagate: true
+                    }
+                }
 
                 stage('New Acceptance Tests') {
                     stages {
@@ -433,8 +433,8 @@ pipeline {
                                     # Coherence image doesn't get pulled correctly in KIND.
                                     docker pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
                                     kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/middleware/coherence:12.2.1.4.0
-                                    docker pull phx.ocir.io/stevengreenberginc/will.hopkins/todo-domain:1
-                                    kind load docker-image --name ${CLUSTER_NAME} phx.ocir.io/stevengreenberginc/will.hopkins/todo-domain:1
+                                    docker pull container-registry.oraclecorp.com/verrazzano/example-todo:0.8.0
+                                    kind load docker-image --name ${CLUSTER_NAME} container-registry.oraclecorp.com/verrazzano/example-todo:0.8.0
                                 """
                             }
                             post {
@@ -459,11 +459,11 @@ pipeline {
                                         runGinkgoRandomize('verify-install')
                                     }
                                 }
-//                                stage('restapi') {
-//                                    steps {
-//                                        runGinkgo('verify-infra/restapi')
-//                                    }
-//                                }
+                                stage('restapi') {
+                                    steps {
+                                        runGinkgo('verify-infra/restapi')
+                                    }
+                                }
                                 stage('examples') {
                                     when {
                                         expression {params.RUN_EXAMPLE_TESTS == true}
