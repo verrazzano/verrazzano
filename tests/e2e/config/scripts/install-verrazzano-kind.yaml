@@ -7,6 +7,8 @@ metadata:
   name: my-verrazzano
 spec:
   components:
+    oam:
+      enabled: true
     ingress:
       type: NodePort
       nginxInstallArgs:
