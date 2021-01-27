@@ -54,7 +54,7 @@ type HttpResponse struct {
 
 // GetWebPageWithCABundle - same as GetWebPage, but with additional caData
 func GetWebPageWithCABundle(url string, hostHeader string) (int, string) {
-	return doGetWebPage(url, hostHeader, GetVerrazzanoHTTPClient())
+	return doGetWebPage(url, hostHeader, GetVerrazzanoHTTPClient(), "", "")
 }
 
 // GetCertificates will return the server SSL certificates for the given URL.
@@ -68,11 +68,19 @@ func GetCertificates(url string) ([]*x509.Certificate, error) {
 	return resp.TLS.PeerCertificates, nil
 }
 
-func doGetWebPage(url string, hostHeader string, httpClient *retryablehttp.Client) (int, string) {
+// GetWebPageWithBasicAuth - get web page using basic auth
+func GetWebPageWithBasicAuth(url string, hostHeader string, username string, password string) (int, string) {
+	return doGetWebPage(url, hostHeader, GetVerrazzanoHTTPClient(), username, password)
+}
+
+func doGetWebPage(url string, hostHeader string, httpClient *retryablehttp.Client, username string, password string) (int, string) {
 	req, _ := retryablehttp.NewRequest("GET", url, nil)
 	if hostHeader != "" {
 		//_have_ to set req.Host, not use req.Header.Add - latter does not work by design in Go
 		req.Host = hostHeader
+	}
+	if username != "" && password != "" {
+		req.SetBasicAuth(username, password)
 	}
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -130,9 +138,31 @@ func GetSystemVmiHttpClient() *retryablehttp.Client {
 	return newRetryableHTTPClient(vmiRawClient)
 }
 
-// postWithCLient
-func postWithCLient(url, contentType string, body io.Reader, httpClient *retryablehttp.Client) (int, string) {
-	resp, err := httpClient.Post(url, contentType, body)
+func Post(url, contentType string, body io.Reader) (int, string) {
+	return PostWithHostHeader(url, contentType, "", body)
+}
+
+func PostWithHostHeader(url, contentType string, hostHeader string, body io.Reader) (int, string) {
+	return doPost(url, contentType, hostHeader, body, retryablehttp.NewClient())
+}
+
+// postWithClient
+func postWithClient(url, contentType string, body io.Reader, httpClient *retryablehttp.Client) (int, string) {
+	return doPost(url, contentType, "", body, httpClient)
+}
+
+// doPost
+func doPost(url, contentType string, hostHeader string, body io.Reader, httpClient *retryablehttp.Client) (int, string) {
+	req, err := retryablehttp.NewRequest("POST", url, body)
+	if err != nil {
+		Log(Error, err.Error())
+		ginkgo.Fail("Could not create request")
+	}
+	req.Header.Set("Content-Type", contentType)
+	if hostHeader != "" {
+		req.Host = hostHeader
+	}
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		Log(Error, err.Error())
 		ginkgo.Fail("Could not POST " + url)

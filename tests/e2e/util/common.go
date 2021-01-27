@@ -185,3 +185,18 @@ func isReadyAndRunning(pod v1.Pod) bool {
 	}
 	return false
 }
+
+//JTq quries JSON Text with json path
+func JTq(jtext string, path ...string) interface{} {
+	var j map[string]interface{}
+	json.Unmarshal([]byte(jtext), &j)
+	return Jq(j, path...)
+}
+
+//Jq quries JSON ndoe with json path
+func Jq(node interface{}, path ...string) interface{} {
+	for _, p := range path {
+		node = node.(map[string]interface{})[p]
+	}
+	return node
+}

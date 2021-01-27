@@ -1,0 +1,35 @@
+apiVersion: coherence.oracle.com/v1
+kind: Coherence
+metadata:
+  name: carts-coh
+  namespace: temp
+spec:
+  cluster: SockShop
+  role: Carts
+  replicas: 1
+  image: ghcr.io/helidon-sockshop/carts-coherence:2.2.0
+  imagePullPolicy: Always
+  application:
+    type: helidon
+  jvm:
+    args:
+      - "-Dcoherence.k8s.operator.health.wait.dcs=false"
+    memory:
+      heapSize: 2g
+  coherence:
+    logLevel: 9
+    metrics:
+      enabled: true
+  ports:
+    - name: http
+      port: 7001
+      service:
+        name: carts
+        port: 80
+      serviceMonitor:
+        enabled: true
+    - name: metrics
+      port: 9612
+      serviceMonitor:
+        enabled: true
+

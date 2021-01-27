@@ -24,6 +24,13 @@ spec:
                   paths:
                     - path: "/carts"
                       pathType: Prefix
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: MetricsTrait
+            metadata:
+              name: carts-metrics
+            spec:
+              port: 7001
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
@@ -49,6 +56,13 @@ spec:
                   paths:
                     - path: "/catalogue"
                       pathType: Prefix
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: MetricsTrait
+            metadata:
+              name: catalog-metrics
+            spec:
+              port: 7001
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
@@ -74,6 +88,13 @@ spec:
                   paths:
                     - path: "/orders"
                       pathType: Prefix
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: MetricsTrait
+            metadata:
+              name: orders-metrics
+            spec:
+              port: 7001
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
@@ -99,6 +120,13 @@ spec:
                   paths:
                     - path: "/payment"
                       pathType: Prefix
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: MetricsTrait
+            metadata:
+              name: payment-metrics
+            spec:
+              port: 7001
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
@@ -124,6 +152,13 @@ spec:
                   paths:
                     - path: "/shipping"
                       pathType: Prefix
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: MetricsTrait
+            metadata:
+              name: shipping-metrics
+            spec:
+              port: 7001
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
@@ -157,3 +192,10 @@ spec:
                       pathType: Prefix
                     - path: "/cards"
                       pathType: Prefix
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: MetricsTrait
+            metadata:
+              name: users-metrics
+            spec:
+              port: 7001
