@@ -26,7 +26,7 @@ spec:
       jsonPath: .status.conditions[-1:].type
       name: Status
       type: string
-    - description: The current version of the install
+    - description: The current version of the Verrazzano installation
       jsonPath: .status.version
       name: Version
       type: string
