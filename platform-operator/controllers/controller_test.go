@@ -6,7 +6,6 @@ package controllers
 import (
 	"context"
 	"encoding/base64"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	"testing"
 	"time"
 
@@ -14,6 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/api/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/installjob"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
@@ -100,6 +101,8 @@ func TestSuccessfulInstall(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
+
+	config.Set(config.OperatorConfig{HelmConfigDir: "../helm_config"})
 
 	// Expect a call to get the verrazzano resource.
 	mock.EXPECT().
