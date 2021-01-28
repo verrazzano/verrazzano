@@ -1,0 +1,10 @@
+
+# VO settings -> VMI CR
+verrazzanoOperator.esDataStorageSize
+verrazzanoOperator.grafanaDataStorageSize
+verrazzanoOperator.prometheusDataStorageSize
+
+# KC/MySQL
+persistence.storageClass
+persistence.accessMode
+persistence.size

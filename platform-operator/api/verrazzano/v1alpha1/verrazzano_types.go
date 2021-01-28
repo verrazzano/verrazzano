@@ -58,12 +58,19 @@ type VerrazzanoSpec struct {
 	// Profile is the name of the profile to install.  Default is "prod".
 	// +optional
 	Profile ProfileType `json:"profile,omitempty"`
+	// DefaultVolumeTemplate Specifies the default storage template to use if not overridden by a specific component
+	// +optional
+	DefaultVolumeTemplate string `json:"defaultVolumeTemplate,omitempty"`
 	// EnvironmentName identifies install environment.  Default environment name is "default".
 	// +optional
 	EnvironmentName string `json:"environmentName,omitempty"`
 	// Core specifies core Verrazzano configuration
 	// +optional
 	Components ComponentSpec `json:"components,omitempty"`
+	// VolumeTemplates Defines storage options that can be shared by other Verrazzano
+	// components in the resource; if none are defined EmptyDir volumes are assumed by default
+	// +optional
+	VolumeTemplates []VolumeTemplate `json:"volumeTemplates,omitempty"`
 }
 
 // VerrazzanoStatus defines the observed state of Verrazzano
@@ -219,6 +226,9 @@ type MySQLComponent struct {
 	// Arguments for installing MySQL
 	// +optional
 	MySQLInstallArgs []InstallArgs `json:"mysqlInstallArgs,omitempty"`
+	// VolumeTemplate Name of the volume template to use for storage configuration
+	// +optional
+	VolumeTemplate   string        `json:"volumeTemplate,omitempty"`
 }
 
 // OAMComponent specifies the OAM configuration
@@ -312,6 +322,16 @@ type External struct {
 
 // IngressType is the type of ingress.
 type IngressType string
+
+// VolumeTemplate Allows defining a set of PersistentVolumeClaim characteristics that can be referenced by other
+// components for storage configuration
+type VolumeTemplate struct {
+	// Name The name of the template
+	Name string `json:"name"`
+	// Spec PersistentVolumeClaim template configuration
+	// +optional
+	Spec corev1.PersistentVolumeClaimSpec `json:"spec,omitempty"`
+}
 
 func init() {
 	SchemeBuilder.Register(&Verrazzano{}, &VerrazzanoList{})

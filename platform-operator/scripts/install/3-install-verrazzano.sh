@@ -149,9 +149,9 @@ function install_verrazzano()
   fi
   local token_array=(${RANCHER_ACCESS_TOKEN//:/ })
 
-  EXTRA_V8O_ARGUMENTS=""
+  local EXTRA_V8O_ARGUMENTS=$(get_verrazzano_helm_args_from_config)
   if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
-    EXTRA_V8O_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+    EXTRA_V8O_ARGUMENTS="${EXTRA_V8O_ARGUMENTS} --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
   fi
 
   local profile=$(get_config_value '.profile')

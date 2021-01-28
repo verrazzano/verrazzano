@@ -179,6 +179,7 @@ type InstallConfiguration struct {
 	Certificates    Certificate    `json:"certificates"`
 	Keycloak        Keycloak       `json:"keycloak"`
 	OAM             OAM            `json:"oam"`
+	VzInstallArgs   []InstallArg   `json:"verrazzanoInstallArgs,omitempty"`
 }
 
 // GetInstallConfig returns an install configuration in the json format required by the
@@ -199,6 +200,7 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguratio
 	return &InstallConfiguration{
 		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
+		VzInstallArgs:   getVerrazzanoInstallArgs(&vz.Spec),
 		DNS: DNS{
 			Type: DNSTypeOci,
 			Oci: &DNSOCI{
@@ -217,9 +219,44 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguratio
 				Environment:  vz.Spec.Components.CertManager.Certificate.Acme.Environment,
 			},
 		},
-		Keycloak: getKeycloak(vz.Spec.Components.Keycloak),
+		Keycloak: getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeTemplates, vz.Spec.DefaultVolumeTemplate),
 		OAM:      getOAM(vz.Spec.Components.OAM),
 	}
+}
+
+func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) []InstallArg {
+	// Eventually look up a template name when supported
+	template := findVolumeTemplate(vzSpec.DefaultVolumeTemplate, vzSpec.VolumeTemplates)
+	if template == nil {
+		return []InstallArg{}
+	}
+	vzInstallArgs := []InstallArg {
+		{
+			Name:      "verrazzanoOperator.esDataStorageSize",
+			Value:     template.Spec.Resources.Requests.Storage().String(),
+			SetString: false,
+		},
+		{
+			Name:      "verrazzanoOperator.grafanaDataStorageSize",
+			Value:     template.Spec.Resources.Requests.Storage().String(),
+			SetString: false,
+		},
+		{
+			Name:      "verrazzanoOperator.prometheusDataStorageSize",
+			Value:     template.Spec.Resources.Requests.Storage().String(),
+			SetString: false,
+		},
+	}
+	return vzInstallArgs
+}
+
+func findVolumeTemplate(templateName string, templates []installv1alpha1.VolumeTemplate) *installv1alpha1.VolumeTemplate {
+	for _,template := range templates {
+		if templateName == template.Name {
+			return &template
+		}
+	}
+	return nil
 }
 
 // newXipIoInstallConfig returns an install configuration for a xip.io install in the
@@ -228,6 +265,7 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration
 	return &InstallConfiguration{
 		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
+		VzInstallArgs:   getVerrazzanoInstallArgs(&vz.Spec),
 		DNS: DNS{
 			Type: DNSTypeXip,
 		},
@@ -239,7 +277,7 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration
 				SecretName:               getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
 			},
 		},
-		Keycloak: getKeycloak(vz.Spec.Components.Keycloak),
+		Keycloak: getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeTemplates, vz.Spec.DefaultVolumeTemplate),
 		OAM:      getOAM(vz.Spec.Components.OAM),
 	}
 }
@@ -251,6 +289,7 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfigu
 	return &InstallConfiguration{
 		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
+		VzInstallArgs:   getVerrazzanoInstallArgs(&vz.Spec),
 		DNS: DNS{
 			Type: DNSTypeExternal,
 			External: &ExternalDNS{
@@ -265,7 +304,7 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfigu
 				SecretName:               getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
 			},
 		},
-		Keycloak: getKeycloak(vz.Spec.Components.Keycloak),
+		Keycloak: getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeTemplates, vz.Spec.DefaultVolumeTemplate),
 		OAM:      getOAM(vz.Spec.Components.OAM),
 	}
 }
@@ -329,11 +368,44 @@ func getInstallArgs(args []installv1alpha1.InstallArgs) []InstallArg {
 }
 
 // getKeycloak returns the json representation for the keycloak configuration
-func getKeycloak(keycloak installv1alpha1.KeycloakComponent) Keycloak {
+func getKeycloak(keycloak installv1alpha1.KeycloakComponent, templates []installv1alpha1.VolumeTemplate, defaultStorageTemplate string) Keycloak {
+	storageTemplateName := keycloak.MySQL.VolumeTemplate
+	if len(storageTemplateName) == 0 {
+		storageTemplateName = defaultStorageTemplate
+	}
+	storageTemplate := findVolumeTemplate(storageTemplateName, templates)
+	mySQLArgs := getInstallArgs(keycloak.MySQL.MySQLInstallArgs)
+	if storageTemplate != nil {
+		storageClass := storageTemplate.Spec.StorageClassName
+		if storageClass != nil && len(*storageClass) > 0 {
+			mySQLArgs = append(mySQLArgs, InstallArg{
+				Name:      "persistence.storageClass",
+				Value:     *storageClass,
+				SetString: true,
+			})
+		}
+		size := storageTemplate.Spec.Resources.Requests.Storage().String()
+		if len(size) > 0 {
+			mySQLArgs = append(mySQLArgs, InstallArg{
+				Name:      "persistence.size",
+				Value:     size,
+				SetString: true,
+			})
+		}
+		accessModes := storageTemplate.Spec.AccessModes
+		if len(accessModes) > 0 {
+			// MySQL only allows a single AccessMode value, so just choose the first
+			mySQLArgs = append(mySQLArgs, InstallArg{
+				Name:      "persistence.accessMode",
+				Value:     string(accessModes[0]),
+				SetString: true,
+			})
+		}
+	}
 	return Keycloak{
 		KeycloakInstallArgs: getInstallArgs(keycloak.KeycloakInstallArgs),
 		MySQL: MySQL{
-			MySQLInstallArgs: getInstallArgs(keycloak.MySQL.MySQLInstallArgs),
+			MySQLInstallArgs: mySQLArgs,
 		},
 	}
 }

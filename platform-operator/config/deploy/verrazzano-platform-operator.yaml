@@ -51,7 +51,7 @@ spec:
             - --init-webhooks=true
           env:
             - name: MODE
-              value: RUN_OPERATOR
+              value: INIT
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
