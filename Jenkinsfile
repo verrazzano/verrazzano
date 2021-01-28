@@ -464,6 +464,11 @@ pipeline {
                                         runGinkgo('verify-infra/restapi')
                                     }
                                 }
+                                stage('oam-infra') {
+                                    steps {
+                                        runGinkgo('verify-infra/oam')
+                                    }
+                                }
                                 stage('examples') {
                                     when {
                                         expression {params.RUN_EXAMPLE_TESTS == true}
