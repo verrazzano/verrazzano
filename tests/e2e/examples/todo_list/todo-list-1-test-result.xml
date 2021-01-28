@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-  <testsuite name="ToDo List Example Test Suite" tests="1" failures="0" errors="0" time="392.753">
-      <testcase name="Verify ToDo List example application. Deployment Verify &#39;tododomain-adminserver&#39; and &#39;mysql&#39; pods are running" classname="ToDo List Example Test Suite" time="272.992193537"></testcase>
-  </testsuite>
