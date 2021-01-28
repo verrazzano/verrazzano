@@ -248,7 +248,7 @@ func appConfigMetricsExists() bool {
 	return metricsExist("vendor_requests_count_total", "app_oam_dev_component", "orders")
 }
 
-// findMetric parses a prometheus response to find a specified metric value
+// findMetric parses a Prometheus response to find a specified metric value
 func findMetric(metrics []interface{}, key, value string) bool {
 	for _, metric := range metrics {
 		if util.Jq(metric, "metric", key) == value {

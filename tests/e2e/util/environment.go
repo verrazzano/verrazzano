@@ -134,7 +134,7 @@ func findIstioIngressGatewaySvc(requireLoadBalancer bool) v1.Service {
 	return ingressgateway
 }
 
-// QueryMetric queries prometheus for the specified metric
+// QueryMetric queries Prometheus for the specified metric
 func QueryMetric(metricsName string) string {
 	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", getPrometheusIngressHost(), metricsName)
 	status, content := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", getVerrazzanoPassword())
