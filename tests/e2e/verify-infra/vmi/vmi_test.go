@@ -25,18 +25,21 @@ import (
 )
 
 func vmiIngressURLs() (map[string]string, error) {
-	ingress, err := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("istio-system").Get(context.TODO(), pkg.GetKindIngress(), v1.GetOptions{})
+	ingressList, err := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").List(context.TODO(), v1.ListOptions{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not get ingress %v: %v", pkg.GetKindIngress(), err.Error()))
+		return nil, err
 	}
 
 	ingressURLs := make(map[string]string)
-	var ingressRules []v1beta1.IngressRule = ingress.Spec.Rules
-	if len(ingressRules) != 1 {
-		return nil, fmt.Errorf("Expected ingress %s in namespace %s to have 1 ingress rule, but had %v",
-			ingress.Name, ingress.Namespace, ingressRules)
+
+	for _, ingress := range ingressList.Items {
+		var ingressRules []v1beta1.IngressRule = ingress.Spec.Rules
+		if len(ingressRules) != 1 {
+			return nil, fmt.Errorf("Expected ingress %s in namespace %s to have 1 ingress rule, but had %v",
+				ingress.Name, ingress.Namespace, ingressRules)
+		}
+		ingressURLs[ingress.Name] = fmt.Sprintf("https://%s/", ingressRules[0].Host)
 	}
-	ingressURLs[ingress.Name] = fmt.Sprintf("https://%s/", ingressRules[0].Host)
 	return ingressURLs, nil
 }
 
@@ -92,7 +95,7 @@ var _ = ginkgo.Describe("VMI", func() {
 
 	ginkgo.It("Elasticsearch endpoint should be accessible", func() {
 		elasticPodsRunning := func() bool {
-			return pkg.PodsRunning()
+			return pkg.PodsRunning("verrazzano-system", []string{"vmi-system-es-master"})
 		}
 		gomega.Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		gomega.Eventually(elasticTlsSecret, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue())
