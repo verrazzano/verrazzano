@@ -28,14 +28,14 @@ const (
 var sockShop SockShop
 var username, password string
 
-// creates the oam-sockshop namespace and applies the components and application yaml
+// creates the sockshop namespace and applies the components and application yaml
 var _ = BeforeSuite(func() {
 	username = "username" + strconv.FormatInt(time.Now().Unix(), 10)
 	password = b64.StdEncoding.EncodeToString([]byte(time.Now().String()))
-	sockShop = NewSockShop(username, password, util.Ingress(), "oam-sockshop.example.com")
+	sockShop = NewSockShop(username, password, util.Ingress(), "sockshop.example.com")
 
 	// deploy the application here
-	if _, err := util.CreateNamespace("oam-sockshop", map[string]string{"verrazzano-managed": "true"}); err != nil {
+	if _, err := util.CreateNamespace("sockshop", map[string]string{"verrazzano-managed": "true"}); err != nil {
 		Fail(fmt.Sprintf("Failed to create namespace: %v", err))
 	}
 	if err := util.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-comp.yaml"); err != nil {
@@ -149,7 +149,7 @@ var _ = Describe("Sock Shop Application", func() {
 		Eventually(func() bool {
 			ipAddress := util.Ingress()
 			url := fmt.Sprintf("http://%s/catalogue", ipAddress)
-			host := "oam-sockshop.example.com"
+			host := "sockshop.example.com"
 			status, content := util.GetWebPageWithCABundle(url, host)
 			return Expect(status).To(Equal(200)) &&
 				Expect(content).To(ContainSubstring("For all those leg lovers out there."))
@@ -185,7 +185,7 @@ var _ = AfterSuite(func() {
 	if err != nil {
 		Fail(fmt.Sprintf("Could not delete sock shop components: %v\n", err.Error()))
 	}
-	err = util.DeleteNamespace("oam-sockshop")
+	err = util.DeleteNamespace("sockshop")
 	if err != nil {
 		Fail(fmt.Sprintf("Could not delete sock shop namespace: %v\n", err.Error()))
 	}
@@ -193,9 +193,9 @@ var _ = AfterSuite(func() {
 
 // isSockShopServiceReady checks if the service is ready
 func isSockShopServiceReady(name string) bool {
-	svc, err := util.GetKubernetesClientset().CoreV1().Services("oam-sockshop").Get(context.TODO(), name, metav1.GetOptions{})
+	svc, err := util.GetKubernetesClientset().CoreV1().Services("sockshop").Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		Fail(fmt.Sprintf("Could not get services %v in oam-sockshop: %v\n", name, err.Error()))
+		Fail(fmt.Sprintf("Could not get services %v in sockshop: %v\n", name, err.Error()))
 		return false
 	}
 	if len(svc.Spec.Ports) > 0 {
@@ -230,7 +230,7 @@ func login(username string, password string) []*http.Cookie {
 
 // sockshopPodsRunning checks whether the application pods are ready
 func sockshopPodsRunning() bool {
-	return util.PodsRunning("oam-sockshop", expectedPods)
+	return util.PodsRunning("sockshop", expectedPods)
 }
 
 // appMetricsExists checks whether app related metrics are available

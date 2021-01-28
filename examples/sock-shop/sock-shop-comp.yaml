@@ -5,14 +5,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: carts
-  namespace: oam-sockshop
+  namespace: sockshop
 spec:
   workload:
     apiVersion: coherence.oracle.com/v1
     kind: Coherence
     metadata:
       name: carts-coh
-      namespace: oam-sockshop
+      namespace: sockshop
     spec:
       cluster: SockShop
       role: Carts
@@ -46,14 +46,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: catalog
-  namespace: oam-sockshop
+  namespace: sockshop
 spec:
   workload:
     apiVersion: coherence.oracle.com/v1
     kind: Coherence
     metadata:
       name: catalog-coh
-      namespace: oam-sockshop
+      namespace: sockshop
     spec:
       cluster: SockShop
       role: Catalog
@@ -87,14 +87,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: orders
-  namespace: oam-sockshop
+  namespace: sockshop
 spec:
   workload:
     apiVersion: coherence.oracle.com/v1
     kind: Coherence
     metadata:
       name: orders-coh
-      namespace: oam-sockshop
+      namespace: sockshop
     spec:
       cluster: SockShop
       role: Orders
@@ -128,14 +128,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: payment
-  namespace: oam-sockshop
+  namespace: sockshop
 spec:
   workload:
     apiVersion: coherence.oracle.com/v1
     kind: Coherence
     metadata:
       name: payment-coh
-      namespace: oam-sockshop
+      namespace: sockshop
     spec:
       cluster: SockShop
       role: Payment
@@ -173,14 +173,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: shipping
-  namespace: oam-sockshop
+  namespace: sockshop
 spec:
   workload:
     apiVersion: coherence.oracle.com/v1
     kind: Coherence
     metadata:
       name: shipping-coh
-      namespace: oam-sockshop
+      namespace: sockshop
     spec:
       cluster: SockShop
       role: Shipping
@@ -218,14 +218,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: users
-  namespace: oam-sockshop
+  namespace: sockshop
 spec:
   workload:
     apiVersion: coherence.oracle.com/v1
     kind: Coherence
     metadata:
       name: users-coh
-      namespace: oam-sockshop
+      namespace: sockshop
     spec:
       cluster: SockShop
       role: Users

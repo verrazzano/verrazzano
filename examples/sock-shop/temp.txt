@@ -1,0 +1,1572 @@
+INFO: Coherence Operator Utils Runner
+INFO:   Version: 
+INFO:   Commit:  
+INFO:   Built:   
+INFO: Args:
+INFO:     /coherence-operator/utils/runner
+INFO:     server
+INFO: Env:
+INFO:     CARTS_COH_METRICS_PORT=tcp://10.96.213.61:9612
+INFO:     CARTS_COH_METRICS_PORT_9612_TCP=tcp://10.96.213.61:9612
+INFO:     CARTS_COH_METRICS_PORT_9612_TCP_ADDR=10.96.213.61
+INFO:     CARTS_COH_METRICS_PORT_9612_TCP_PORT=9612
+INFO:     CARTS_COH_METRICS_PORT_9612_TCP_PROTO=tcp
+INFO:     CARTS_COH_METRICS_SERVICE_HOST=10.96.213.61
+INFO:     CARTS_COH_METRICS_SERVICE_PORT=9612
+INFO:     CARTS_COH_METRICS_SERVICE_PORT_METRICS=9612
+INFO:     CARTS_PORT=tcp://10.96.0.227:80
+INFO:     CARTS_PORT_80_TCP=tcp://10.96.0.227:80
+INFO:     CARTS_PORT_80_TCP_ADDR=10.96.0.227
+INFO:     CARTS_PORT_80_TCP_PORT=80
+INFO:     CARTS_PORT_80_TCP_PROTO=tcp
+INFO:     CARTS_SERVICE_HOST=10.96.0.227
+INFO:     CARTS_SERVICE_PORT=80
+INFO:     CARTS_SERVICE_PORT_HTTP=80
+INFO:     CATALOGUE_PORT=tcp://10.96.27.96:80
+INFO:     CATALOGUE_PORT_80_TCP=tcp://10.96.27.96:80
+INFO:     CATALOGUE_PORT_80_TCP_ADDR=10.96.27.96
+INFO:     CATALOGUE_PORT_80_TCP_PORT=80
+INFO:     CATALOGUE_PORT_80_TCP_PROTO=tcp
+INFO:     CATALOGUE_SERVICE_HOST=10.96.27.96
+INFO:     CATALOGUE_SERVICE_PORT=80
+INFO:     CATALOGUE_SERVICE_PORT_HTTP=80
+INFO:     CATALOG_COH_METRICS_PORT=tcp://10.96.42.11:9612
+INFO:     CATALOG_COH_METRICS_PORT_9612_TCP=tcp://10.96.42.11:9612
+INFO:     CATALOG_COH_METRICS_PORT_9612_TCP_ADDR=10.96.42.11
+INFO:     CATALOG_COH_METRICS_PORT_9612_TCP_PORT=9612
+INFO:     CATALOG_COH_METRICS_PORT_9612_TCP_PROTO=tcp
+INFO:     CATALOG_COH_METRICS_SERVICE_HOST=10.96.42.11
+INFO:     CATALOG_COH_METRICS_SERVICE_PORT=9612
+INFO:     CATALOG_COH_METRICS_SERVICE_PORT_METRICS=9612
+INFO:     COH_APP_TYPE=helidon
+INFO:     COH_CLUSTER_NAME=SockShop
+INFO:     COH_HEALTH_PORT=6676
+INFO:     COH_IDENTITY=carts-coh@oam-sockshop
+INFO:     COH_LOG_LEVEL=9
+INFO:     COH_MACHINE_NAME=10.0.10.2
+INFO:     COH_MEMBER_NAME=carts-coh-0
+INFO:     COH_METRICS_ENABLED=true
+INFO:     COH_METRICS_PORT=9612
+INFO:     COH_MGMT_ENABLED=false
+INFO:     COH_POD_UID=caf3497c-c5a7-4bb0-a20e-655ffcb99db2
+INFO:     COH_RACK_INFO_LOCATION=http://10.244.0.116:8000/rack/10.0.10.2
+INFO:     COH_ROLE=Carts
+INFO:     COH_SITE_INFO_LOCATION=http://10.244.0.116:8000/site/10.0.10.2
+INFO:     COH_UTIL_DIR=/coherence-operator/utils
+INFO:     COH_WKA=carts-coh-wka.oam-sockshop.svc.cluster.local
+INFO:     HOME=/root
+INFO:     HOSTNAME=carts-coh-0
+INFO:     JAVA_VERSION=11.0.6
+INFO:     JVM_ARGS=-Dcoherence.k8s.operator.health.wait.dcs=false
+INFO:     JVM_GC_LOGGING=false
+INFO:     JVM_HEAP_SIZE=2g
+INFO:     JVM_USE_CONTAINER_LIMITS=true
+INFO:     KUBERNETES_PORT=tcp://10.96.0.1:443
+INFO:     KUBERNETES_PORT_443_TCP=tcp://10.96.0.1:443
+INFO:     KUBERNETES_PORT_443_TCP_ADDR=10.96.0.1
+INFO:     KUBERNETES_PORT_443_TCP_PORT=443
+INFO:     KUBERNETES_PORT_443_TCP_PROTO=tcp
+INFO:     KUBERNETES_SERVICE_HOST=10.96.0.1
+INFO:     KUBERNETES_SERVICE_PORT=443
+INFO:     KUBERNETES_SERVICE_PORT_HTTPS=443
+INFO:     OPERATOR_BUILD_INFO=
+INFO:     OPERATOR_HOST=10.244.0.116:8000
+INFO:     OPERATOR_REQUEST_TIMEOUT=120
+INFO:     ORDERS_COH_METRICS_PORT=tcp://10.96.101.12:9612
+INFO:     ORDERS_COH_METRICS_PORT_9612_TCP=tcp://10.96.101.12:9612
+INFO:     ORDERS_COH_METRICS_PORT_9612_TCP_ADDR=10.96.101.12
+INFO:     ORDERS_COH_METRICS_PORT_9612_TCP_PORT=9612
+INFO:     ORDERS_COH_METRICS_PORT_9612_TCP_PROTO=tcp
+INFO:     ORDERS_COH_METRICS_SERVICE_HOST=10.96.101.12
+INFO:     ORDERS_COH_METRICS_SERVICE_PORT=9612
+INFO:     ORDERS_COH_METRICS_SERVICE_PORT_METRICS=9612
+INFO:     ORDERS_PORT=tcp://10.96.237.39:80
+INFO:     ORDERS_PORT_80_TCP=tcp://10.96.237.39:80
+INFO:     ORDERS_PORT_80_TCP_ADDR=10.96.237.39
+INFO:     ORDERS_PORT_80_TCP_PORT=80
+INFO:     ORDERS_PORT_80_TCP_PROTO=tcp
+INFO:     ORDERS_SERVICE_HOST=10.96.237.39
+INFO:     ORDERS_SERVICE_PORT=80
+INFO:     ORDERS_SERVICE_PORT_HTTP=80
+INFO:     PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+INFO:     PAYMENT_COH_METRICS_PORT=tcp://10.96.31.1:9612
+INFO:     PAYMENT_COH_METRICS_PORT_9612_TCP=tcp://10.96.31.1:9612
+INFO:     PAYMENT_COH_METRICS_PORT_9612_TCP_ADDR=10.96.31.1
+INFO:     PAYMENT_COH_METRICS_PORT_9612_TCP_PORT=9612
+INFO:     PAYMENT_COH_METRICS_PORT_9612_TCP_PROTO=tcp
+INFO:     PAYMENT_COH_METRICS_SERVICE_HOST=10.96.31.1
+INFO:     PAYMENT_COH_METRICS_SERVICE_PORT=9612
+INFO:     PAYMENT_COH_METRICS_SERVICE_PORT_METRICS=9612
+INFO:     PAYMENT_HTTP_PORT=tcp://10.96.110.156:80
+INFO:     PAYMENT_HTTP_PORT_80_TCP=tcp://10.96.110.156:80
+INFO:     PAYMENT_HTTP_PORT_80_TCP_ADDR=10.96.110.156
+INFO:     PAYMENT_HTTP_PORT_80_TCP_PORT=80
+INFO:     PAYMENT_HTTP_PORT_80_TCP_PROTO=tcp
+INFO:     PAYMENT_HTTP_SERVICE_HOST=10.96.110.156
+INFO:     PAYMENT_HTTP_SERVICE_PORT=80
+INFO:     PAYMENT_HTTP_SERVICE_PORT_HTTP=80
+INFO:     PAYMENT_PORT=tcp://10.96.58.225:1408
+INFO:     PAYMENT_PORT_1408_TCP=tcp://10.96.58.225:1408
+INFO:     PAYMENT_PORT_1408_TCP_ADDR=10.96.58.225
+INFO:     PAYMENT_PORT_1408_TCP_PORT=1408
+INFO:     PAYMENT_PORT_1408_TCP_PROTO=tcp
+INFO:     PAYMENT_SERVICE_HOST=10.96.58.225
+INFO:     PAYMENT_SERVICE_PORT=1408
+INFO:     PAYMENT_SERVICE_PORT_GRPC=1408
+INFO:     SHIPPING_COH_METRICS_PORT=tcp://10.96.55.246:9612
+INFO:     SHIPPING_COH_METRICS_PORT_9612_TCP=tcp://10.96.55.246:9612
+INFO:     SHIPPING_COH_METRICS_PORT_9612_TCP_ADDR=10.96.55.246
+INFO:     SHIPPING_COH_METRICS_PORT_9612_TCP_PORT=9612
+INFO:     SHIPPING_COH_METRICS_PORT_9612_TCP_PROTO=tcp
+INFO:     SHIPPING_COH_METRICS_SERVICE_HOST=10.96.55.246
+INFO:     SHIPPING_COH_METRICS_SERVICE_PORT=9612
+INFO:     SHIPPING_COH_METRICS_SERVICE_PORT_METRICS=9612
+INFO:     SHIPPING_HTTP_PORT=tcp://10.96.2.178:80
+INFO:     SHIPPING_HTTP_PORT_80_TCP=tcp://10.96.2.178:80
+INFO:     SHIPPING_HTTP_PORT_80_TCP_ADDR=10.96.2.178
+INFO:     SHIPPING_HTTP_PORT_80_TCP_PORT=80
+INFO:     SHIPPING_HTTP_PORT_80_TCP_PROTO=tcp
+INFO:     SHIPPING_HTTP_SERVICE_HOST=10.96.2.178
+INFO:     SHIPPING_HTTP_SERVICE_PORT=80
+INFO:     SHIPPING_HTTP_SERVICE_PORT_HTTP=80
+INFO:     SHIPPING_PORT=tcp://10.96.8.170:1408
+INFO:     SHIPPING_PORT_1408_TCP=tcp://10.96.8.170:1408
+INFO:     SHIPPING_PORT_1408_TCP_ADDR=10.96.8.170
+INFO:     SHIPPING_PORT_1408_TCP_PORT=1408
+INFO:     SHIPPING_PORT_1408_TCP_PROTO=tcp
+INFO:     SHIPPING_SERVICE_HOST=10.96.8.170
+INFO:     SHIPPING_SERVICE_PORT=1408
+INFO:     SHIPPING_SERVICE_PORT_GRPC=1408
+INFO:     SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+INFO:     USERS_COH_METRICS_PORT=tcp://10.96.5.191:9612
+INFO:     USERS_COH_METRICS_PORT_9612_TCP=tcp://10.96.5.191:9612
+INFO:     USERS_COH_METRICS_PORT_9612_TCP_ADDR=10.96.5.191
+INFO:     USERS_COH_METRICS_PORT_9612_TCP_PORT=9612
+INFO:     USERS_COH_METRICS_PORT_9612_TCP_PROTO=tcp
+INFO:     USERS_COH_METRICS_SERVICE_HOST=10.96.5.191
+INFO:     USERS_COH_METRICS_SERVICE_PORT=9612
+INFO:     USERS_COH_METRICS_SERVICE_PORT_METRICS=9612
+INFO:     USER_PORT=tcp://10.96.60.51:80
+INFO:     USER_PORT_80_TCP=tcp://10.96.60.51:80
+INFO:     USER_PORT_80_TCP_ADDR=10.96.60.51
+INFO:     USER_PORT_80_TCP_PORT=80
+INFO:     USER_PORT_80_TCP_PROTO=tcp
+INFO:     USER_SERVICE_HOST=10.96.60.51
+INFO:     USER_SERVICE_PORT=80
+INFO:     USER_SERVICE_PORT_HTTP=80
+INFO:
+INFO: Coherence Management over REST (COH_MGMT_ENABLED=false)
+INFO: Coherence Metrics (COH_METRICS_ENABLED=false)
+INFO: Configuring Coherence Metrics
+INFO: Auto-detecting Cloud Native Buildpacks
+INFO: Auto-detecting Cloud Native Buildpacks: CNB_PLATFORM_API found=false
+INFO: Auto-detecting Cloud Native Buildpacks: CNB Launcher '/cnb/lifecycle/launcher' found=false
+INFO: Configuring Coherence site and rack
+INFO: Configuring Coherence site from 'http://10.244.0.116:8000/site/10.0.10.2'
+INFO: Configuring Coherence rack from 'http://10.244.0.116:8000/rack/10.0.10.2'
+INFO: Performing http get from 'http://10.244.0.116:8000/site/10.0.10.2'
+INFO: Get response from 'http://10.244.0.116:8000/site/10.0.10.2' was ''
+INFO: Performing http get from 'http://10.244.0.116:8000/rack/10.0.10.2'
+INFO: Get response from 'http://10.244.0.116:8000/rack/10.0.10.2' was ''
+INFO: Checking for Coherence version 12.2.1.4.0
+INFO: Command: java -cp /coherence-operator/utils/lib/coherence-utils.jar -Dcoherence.operator.springboot.listener=false com.oracle.coherence.k8s.CoherenceVersion 12.2.1.4.0
+Exception in thread "main" java.lang.NoClassDefFoundError: com/tangosol/net/CacheFactory
+	at com.oracle.coherence.k8s.CoherenceVersion.main(CoherenceVersion.java:38)
+Caused by: java.lang.ClassNotFoundException: com.tangosol.net.CacheFactory
+	at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:581)
+	at java.base/jdk.internal.loader.ClassLoaders$AppClassLoader.loadClass(ClassLoaders.java:178)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:521)
+	... 1 more
+INFO: Coherence version is lower than 12.2.1.4.0
+
+INFO: Starting the Coherence Java process using:
+INFO: /usr/bin/java java -cp /app/classpath/carts-coherence.jar:/app/libs/aopalliance-repackaged-2.6.1.jar:/app/libs/carts-core.jar:/app/libs/coherence-20.12.jar:/app/libs/coherence-cdi-20.12.jar:/app/libs/coherence-cdi-server-20.12.jar:/app/libs/coherence-mp-config-20.12.jar:/app/libs/coherence-mp-metrics-20.12.jar:/app/libs/gson-2.8.6.jar:/app/libs/helidon-bundles-security-2.2.0.jar:/app/libs/helidon-common-2.2.0.jar:/app/libs/helidon-common-configurable-2.2.0.jar:/app/libs/helidon-common-context-2.2.0.jar:/app/libs/helidon-common-http-2.2.0.jar:/app/libs/helidon-common-key-util-2.2.0.jar:/app/libs/helidon-common-mapper-2.2.0.jar:/app/libs/helidon-common-media-type-2.2.0.jar:/app/libs/helidon-common-reactive-2.2.0.jar:/app/libs/helidon-common-service-loader-2.2.0.jar:/app/libs/helidon-config-2.2.0.jar:/app/libs/helidon-config-encryption-2.2.0.jar:/app/libs/helidon-config-mp-2.2.0.jar:/app/libs/helidon-config-object-mapping-2.2.0.jar:/app/libs/helidon-config-yaml-2.2.0.jar:/app/libs/helidon-fault-tolerance-2.2.0.jar:/app/libs/helidon-health-2.2.0.jar:/app/libs/helidon-health-checks-2.2.0.jar:/app/libs/helidon-health-common-2.2.0.jar:/app/libs/helidon-jersey-client-2.2.0.jar:/app/libs/helidon-jersey-common-2.2.0.jar:/app/libs/helidon-jersey-media-jsonp-2.2.0.jar:/app/libs/helidon-jersey-server-2.2.0.jar:/app/libs/helidon-media-common-2.2.0.jar:/app/libs/helidon-media-jsonp-2.2.0.jar:/app/libs/helidon-metrics-2.2.0.jar:/app/libs/helidon-microprofile-2.2.0.jar:/app/libs/helidon-microprofile-cdi-2.2.0.jar:/app/libs/helidon-microprofile-config-2.2.0.jar:/app/libs/helidon-microprofile-core-2.2.0.jar:/app/libs/helidon-microprofile-fault-tolerance-2.2.0.jar:/app/libs/helidon-microprofile-health-2.2.0.jar:/app/libs/helidon-microprofile-jwt-auth-2.2.0.jar:/app/libs/helidon-microprofile-metrics-2.2.0.jar:/app/libs/helidon-microprofile-openapi-2.2.0.jar:/app/libs/helidon-microprofile-rest-client-2.2.0.jar:/app/libs/helidon-microprofile-security-2.2.0.jar:/app/libs/helidon-microprofile-server-2.2.0.jar:/app/libs/helidon-microprofile-tracing-2.2.0.jar:/app/libs/helidon-openapi-2.2.0.jar:/app/libs/helidon-security-2.2.0.jar:/app/libs/helidon-security-abac-policy-2.2.0.jar:/app/libs/helidon-security-abac-role-2.2.0.jar:/app/libs/helidon-security-abac-scope-2.2.0.jar:/app/libs/helidon-security-abac-time-2.2.0.jar:/app/libs/helidon-security-annotations-2.2.0.jar:/app/libs/helidon-security-integration-common-2.2.0.jar:/app/libs/helidon-security-integration-jersey-2.2.0.jar:/app/libs/helidon-security-integration-jersey-client-2.2.0.jar:/app/libs/helidon-security-integration-webserver-2.2.0.jar:/app/libs/helidon-security-jwt-2.2.0.jar:/app/libs/helidon-security-providers-abac-2.2.0.jar:/app/libs/helidon-security-providers-common-2.2.0.jar:/app/libs/helidon-security-providers-header-2.2.0.jar:/app/libs/helidon-security-providers-http-auth-2.2.0.jar:/app/libs/helidon-security-providers-http-sign-2.2.0.jar:/app/libs/helidon-security-providers-jwt-2.2.0.jar:/app/libs/helidon-security-providers-oidc-2.2.0.jar:/app/libs/helidon-security-providers-oidc-common-2.2.0.jar:/app/libs/helidon-security-util-2.2.0.jar:/app/libs/helidon-tracing-2.2.0.jar:/app/libs/helidon-tracing-config-2.2.0.jar:/app/libs/helidon-tracing-jaeger-2.2.0.jar:/app/libs/helidon-tracing-jersey-2.2.0.jar:/app/libs/helidon-tracing-jersey-client-2.2.0.jar:/app/libs/helidon-tracing-tracer-resolver-2.2.0.jar:/app/libs/helidon-webclient-jaxrs-2.2.0.jar:/app/libs/helidon-webserver-2.2.0.jar:/app/libs/helidon-webserver-cors-2.2.0.jar:/app/libs/helidon-webserver-jersey-2.2.0.jar:/app/libs/hk2-api-2.6.1.jar:/app/libs/hk2-locator-2.6.1.jar:/app/libs/hk2-utils-2.6.1.jar:/app/libs/jaeger-client-1.1.0.jar:/app/libs/jaeger-core-1.1.0.jar:/app/libs/jaeger-thrift-1.1.0.jar:/app/libs/jaeger-tracerresolver-1.1.0.jar:/app/libs/jakarta.activation-api-1.2.2.jar:/app/libs/jakarta.annotation-api-1.3.5.jar:/app/libs/jakarta.el-api-3.0.3.jar:/app/libs/jakarta.enterprise.cdi-api-2.0.2.jar:/app/libs/jakarta.inject-api-1.0.jar:/app/libs/jakarta.interceptor-api-1.2.5.jar:/app/libs/jakarta.json-1.1.6-module.jar:/app/libs/jakarta.json-1.1.6.jar:/app/libs/jakarta.json.bind-api-1.0.2.jar:/app/libs/jakarta.validation-api-2.0.2.jar:/app/libs/jakarta.ws.rs-api-2.1.6.jar:/app/libs/jakarta.xml.bind-api-2.3.3.jar:/app/libs/jandex-2.1.1.Final.jar:/app/libs/javassist-3.25.0-GA.jar:/app/libs/jboss-classfilewriter-1.2.4.Final.jar:/app/libs/jboss-logging-3.2.1.Final.jar:/app/libs/jersey-cdi1x-2.32.jar:/app/libs/jersey-client-2.32.jar:/app/libs/jersey-common-2.32.jar:/app/libs/jersey-hk2-2.32.jar:/app/libs/jersey-media-json-binding-2.32.jar:/app/libs/jersey-media-json-processing-2.32.jar:/app/libs/jersey-mp-rest-client-2.32.jar:/app/libs/jersey-server-2.32.jar:/app/libs/jersey-weld2-se-2.32.jar:/app/libs/jsonp-jaxrs-1.1.6.jar:/app/libs/libthrift-0.13.0.jar:/app/libs/microprofile-config-api-1.4.jar:/app/libs/microprofile-fault-tolerance-api-2.1.1.jar:/app/libs/microprofile-health-api-2.2.jar:/app/libs/microprofile-jwt-auth-api-1.1.1.jar:/app/libs/microprofile-metrics-api-2.3.2.jar:/app/libs/microprofile-openapi-api-1.1.2.jar:/app/libs/microprofile-opentracing-api-1.3.3.jar:/app/libs/microprofile-rest-client-api-1.4.1.jar:/app/libs/netty-buffer-4.1.51.Final.jar:/app/libs/netty-codec-4.1.51.Final.jar:/app/libs/netty-codec-http-4.1.51.Final.jar:/app/libs/netty-codec-http2-4.1.51.Final.jar:/app/libs/netty-common-4.1.51.Final.jar:/app/libs/netty-handler-4.1.51.Final.jar:/app/libs/netty-resolver-4.1.51.Final.jar:/app/libs/netty-transport-4.1.51.Final.jar:/app/libs/okhttp-3.14.1.jar:/app/libs/okio-1.17.2.jar:/app/libs/opentracing-api-0.33.0.jar:/app/libs/opentracing-noop-0.33.0.jar:/app/libs/opentracing-tracerresolver-0.1.8.jar:/app/libs/opentracing-util-0.33.0.jar:/app/libs/osgi-resource-locator-1.0.3.jar:/app/libs/slf4j-api-1.7.30.jar:/app/libs/slf4j-jdk14-1.7.30.jar:/app/libs/smallrye-open-api-1.2.0.jar:/app/libs/snakeyaml-1.27.jar:/app/libs/weld-api-3.1.SP2.jar:/app/libs/weld-core-impl-2.2.0.jar:/app/libs/weld-environment-common-3.1.4.Final.jar:/app/libs/weld-se-core-2.2.0.jar:/app/libs/weld-spi-3.1.SP2.jar:/app/libs/yasson-1.0.8.jar:/coherence-operator/utils/lib/coherence-utils.jar:/coherence-operator/utils/config -Dcoherence.role=Carts -Dcoherence.metrics.http.enabled=true -XshowSettings:all -XX:+PrintCommandLineFlags -XX:+PrintFlagsFinal -Dcoherence.wka=carts-coh-wka.oam-sockshop.svc.cluster.local -Dcoherence.machine=10.0.10.2 -Dcoherence.member=carts-coh-0 -Dcoherence.cluster=SockShop -Dcoherence.k8s.operator.identity=carts-coh@oam-sockshop -Dcoherence.k8s.operator.health.port=6676 -Dcoherence.management.http.port=30000 -Dcoherence.metrics.http.port=9612 -XX:+UnlockDiagnosticVMOptions -Dcoherence.distributed.persistence-mode=on-demand -Dcoherence.log.level=9 -Dcoherence.override=k8s-coherence-nossl-override.xml -XX:HeapDumpPath=/coherence-operator/jvm/carts-coh-0/caf3497c-c5a7-4bb0-a20e-655ffcb99db2/heap-dumps/carts-coh-0-caf3497c-c5a7-4bb0-a20e-655ffcb99db2.hprof -XX:+UseG1GC -XX:InitialHeapSize=2g -XX:MaxHeapSize=2g -XX:NativeMemoryTracking=summary -XX:+PrintNMTStatistics -Dcoherence.ttl=0 -XX:ErrorFile=/coherence-operator/jvm/carts-coh-0/caf3497c-c5a7-4bb0-a20e-655ffcb99db2/hs-err-carts-coh-0-caf3497c-c5a7-4bb0-a20e-655ffcb99db2.log -XX:+HeapDumpOnOutOfMemoryError -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -Dcoherence.k8s.operator.health.wait.dcs=false com.oracle.coherence.k8s.Main io.helidon.microprofile.server.Main
+
+INFO: Environment:
+-XX:ErrorFile=/coherence-operator/jvm/carts-coh-0/caf3497c-c5a7-4bb0-a20e-655ffcb99db2/hs-err-carts-coh-0-caf3497c-c5a7-4bb0-a20e-655ffcb99db2.log -XX:+ExitOnOutOfMemoryError -XX:G1ConcRefinementThreads=13 -XX:GCDrainStackTargetSize=64 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/coherence-operator/jvm/carts-coh-0/caf3497c-c5a7-4bb0-a20e-655ffcb99db2/heap-dumps/carts-coh-0-caf3497c-c5a7-4bb0-a20e-655ffcb99db2.hprof -XX:InitialHeapSize=2147483648 -XX:MaxHeapSize=2147483648 -XX:NativeMemoryTracking=summary -XX:+PrintCommandLineFlags -XX:+PrintFlagsFinal -XX:+PrintNMTStatistics -XX:ReservedCodeCacheSize=251658240 -XX:+SegmentedCodeCache -XX:+UnlockDiagnosticVMOptions -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseContainerSupport -XX:+UseG1GC 
+[Global flags]
+      int AVX3Threshold                            = 4096                              {ARCH diagnostic} {default}
+     bool AbortVMOnCompilationFailure              = false                                  {diagnostic} {default}
+    ccstr AbortVMOnException                       =                                        {diagnostic} {default}
+    ccstr AbortVMOnExceptionMessage                =                                        {diagnostic} {default}
+     bool AbortVMOnSafepointTimeout                = false                                  {diagnostic} {default}
+     bool AbortVMOnVMOperationTimeout              = false                                  {diagnostic} {default}
+     intx AbortVMOnVMOperationTimeoutDelay         = 1000                                   {diagnostic} {default}
+      int ActiveProcessorCount                     = -1                                        {product} {default}
+    uintx AdaptiveSizeDecrementScaleFactor         = 4                                         {product} {default}
+    uintx AdaptiveSizeMajorGCDecayTimeScale        = 10                                        {product} {default}
+    uintx AdaptiveSizePolicyCollectionCostMargin   = 50                                        {product} {default}
+    uintx AdaptiveSizePolicyInitializingSteps      = 20                                        {product} {default}
+    uintx AdaptiveSizePolicyOutputInterval         = 0                                         {product} {default}
+    uintx AdaptiveSizePolicyWeight                 = 10                                        {product} {default}
+    uintx AdaptiveSizeThroughPutPolicy             = 0                                         {product} {default}
+    uintx AdaptiveTimeWeight                       = 25                                        {product} {default}
+     bool AggressiveHeap                           = false                                     {product} {default}
+     bool AggressiveOpts                           = false                                     {product} {default}
+     intx AliasLevel                               = 3                                      {C2 product} {default}
+     bool AlignVector                              = false                                  {C2 product} {default}
+    ccstr AllocateHeapAt                           =                                           {product} {default}
+     intx AllocateInstancePrefetchLines            = 1                                         {product} {default}
+     intx AllocatePrefetchDistance                 = 192                                       {product} {default}
+     intx AllocatePrefetchInstr                    = 3                                         {product} {default}
+     intx AllocatePrefetchLines                    = 4                                         {product} {default}
+     intx AllocatePrefetchStepSize                 = 64                                        {product} {default}
+     intx AllocatePrefetchStyle                    = 1                                         {product} {default}
+     bool AllowJNIEnvProxy                         = false                                     {product} {default}
+     bool AllowNonVirtualCalls                     = false                                     {product} {default}
+     bool AllowParallelDefineClass                 = false                                     {product} {default}
+     bool AllowUserSignalHandlers                  = false                                     {product} {default}
+     bool AllowVectorizeOnDemand                   = true                                   {C2 product} {default}
+     bool AlwaysActAsServerClassMachine            = false                                     {product} {default}
+     bool AlwaysCompileLoopMethods                 = false                                     {product} {default}
+     bool AlwaysLockClassLoader                    = false                                     {product} {default}
+     bool AlwaysPreTouch                           = false                                     {product} {default}
+     bool AlwaysRestoreFPU                         = false                                     {product} {default}
+     bool AlwaysTenure                             = false                                     {product} {default}
+     intx ArrayCopyLoadStoreMaxElem                = 8                                      {C2 product} {default}
+     bool AssertOnSuspendWaitFailure               = false                                     {product} {default}
+     bool AssumeMP                                 = true                                      {product} {default}
+     intx AutoBoxCacheMax                          = 128                                    {C2 product} {default}
+     intx BCEATraceLevel                           = 0                                         {product} {default}
+     bool BackgroundCompilation                    = true                                   {pd product} {default}
+   size_t BaseFootPrintEstimate                    = 268435456                                 {product} {default}
+     intx BiasedLockingBulkRebiasThreshold         = 20                                        {product} {default}
+     intx BiasedLockingBulkRevokeThreshold         = 40                                        {product} {default}
+     intx BiasedLockingDecayTime                   = 25000                                     {product} {default}
+     intx BiasedLockingStartupDelay                = 0                                         {product} {default}
+     bool BindCMSThreadToCPU                       = false                                  {diagnostic} {default}
+     bool BindGCTaskThreadsToCPUs                  = false                                     {product} {default}
+     bool BlockLayoutByFrequency                   = true                                   {C2 product} {default}
+     intx BlockLayoutMinDiamondPercentage          = 20                                     {C2 product} {default}
+     bool BlockLayoutRotateLoops                   = true                                   {C2 product} {default}
+     bool BlockOffsetArrayUseUnallocatedBlock      = false                                  {diagnostic} {default}
+     bool BranchOnRegister                         = false                                  {C2 product} {default}
+     bool BytecodeVerificationLocal                = false                                     {product} {default}
+     bool BytecodeVerificationRemote               = true                                      {product} {default}
+     bool C1OptimizeVirtualCallProfiling           = true                                   {C1 product} {default}
+     bool C1ProfileBranches                        = true                                   {C1 product} {default}
+     bool C1ProfileCalls                           = true                                   {C1 product} {default}
+     bool C1ProfileCheckcasts                      = true                                   {C1 product} {default}
+     bool C1ProfileInlinedCalls                    = true                                   {C1 product} {default}
+     bool C1ProfileVirtualCalls                    = true                                   {C1 product} {default}
+     bool C1UpdateMethodData                       = true                                   {C1 product} {default}
+     intx CICompilerCount                          = 12                                        {product} {ergonomic}
+     bool CICompilerCountPerCPU                    = true                                      {product} {default}
+     bool CIPrintCompileQueue                      = false                                  {diagnostic} {default}
+     bool CITime                                   = false                                     {product} {default}
+     bool CMSAbortSemantics                        = false                                     {product} {default}
+    uintx CMSAbortablePrecleanMinWorkPerIteration  = 100                                       {product} {default}
+     intx CMSAbortablePrecleanWaitMillis           = 100                                    {manageable} {default}
+   size_t CMSBitMapYieldQuantum                    = 10485760                                  {product} {default}
+    uintx CMSBootstrapOccupancy                    = 50                                        {product} {default}
+     bool CMSClassUnloadingEnabled                 = true                                      {product} {default}
+    uintx CMSClassUnloadingMaxInterval             = 0                                         {product} {default}
+     bool CMSCleanOnEnter                          = true                                      {product} {default}
+   size_t CMSConcMarkMultiple                      = 32                                        {product} {default}
+     bool CMSConcurrentMTEnabled                   = true                                      {product} {default}
+    uintx CMSCoordinatorYieldSleepCount            = 10                                        {product} {default}
+     bool CMSEdenChunksRecordAlways                = true                                      {product} {default}
+    uintx CMSExpAvgFactor                          = 50                                        {product} {default}
+     bool CMSExtrapolateSweep                      = false                                     {product} {default}
+    uintx CMSIncrementalSafetyFactor               = 10                                        {product} {default}
+    uintx CMSIndexedFreeListReplenish              = 4                                         {product} {default}
+     intx CMSInitiatingOccupancyFraction           = -1                                        {product} {default}
+    uintx CMSIsTooFullPercentage                   = 98                                        {product} {default}
+   double CMSLargeCoalSurplusPercent               = 0.950000                                  {product} {default}
+   double CMSLargeSplitSurplusPercent              = 1.000000                                  {product} {default}
+     bool CMSLoopWarn                              = false                                     {product} {default}
+    uintx CMSMaxAbortablePrecleanLoops             = 0                                         {product} {default}
+     intx CMSMaxAbortablePrecleanTime              = 5000                                      {product} {default}
+   size_t CMSOldPLABMax                            = 1024                                      {product} {default}
+   size_t CMSOldPLABMin                            = 16                                        {product} {default}
+    uintx CMSOldPLABNumRefills                     = 4                                         {product} {default}
+    uintx CMSOldPLABReactivityFactor               = 2                                         {product} {default}
+     bool CMSOldPLABResizeQuicker                  = false                                     {product} {default}
+    uintx CMSOldPLABToleranceFactor                = 4                                         {product} {default}
+     bool CMSPLABRecordAlways                      = true                                      {product} {default}
+     bool CMSParallelInitialMarkEnabled            = true                                      {product} {default}
+     bool CMSParallelRemarkEnabled                 = true                                      {product} {default}
+     bool CMSParallelSurvivorRemarkEnabled         = true                                      {product} {default}
+    uintx CMSPrecleanDenominator                   = 3                                         {product} {default}
+    uintx CMSPrecleanIter                          = 3                                         {product} {default}
+    uintx CMSPrecleanNumerator                     = 2                                         {product} {default}
+     bool CMSPrecleanRefLists1                     = true                                      {product} {default}
+     bool CMSPrecleanRefLists2                     = false                                     {product} {default}
+     bool CMSPrecleanSurvivors1                    = false                                     {product} {default}
+     bool CMSPrecleanSurvivors2                    = true                                      {product} {default}
+    uintx CMSPrecleanThreshold                     = 1000                                      {product} {default}
+     bool CMSPrecleaningEnabled                    = true                                      {product} {default}
+     bool CMSPrintChunksInDump                     = false                                     {product} {default}
+     bool CMSPrintObjectsInDump                    = false                                     {product} {default}
+    uintx CMSRemarkVerifyVariant                   = 1                                         {product} {default}
+     bool CMSReplenishIntermediate                 = true                                      {product} {default}
+   size_t CMSRescanMultiple                        = 32                                        {product} {default}
+    uintx CMSSamplingGrain                         = 16384                                     {product} {default}
+     bool CMSScavengeBeforeRemark                  = false                                     {product} {default}
+    uintx CMSScheduleRemarkEdenPenetration         = 50                                        {product} {default}
+   size_t CMSScheduleRemarkEdenSizeThreshold       = 2097152                                   {product} {default}
+    uintx CMSScheduleRemarkSamplingRatio           = 5                                         {product} {default}
+   double CMSSmallCoalSurplusPercent               = 1.050000                                  {product} {default}
+   double CMSSmallSplitSurplusPercent              = 1.100000                                  {product} {default}
+     bool CMSSplitIndexedFreeListBlocks            = true                                      {product} {default}
+     intx CMSTriggerInterval                       = -1                                     {manageable} {default}
+    uintx CMSTriggerRatio                          = 80                                        {product} {default}
+     intx CMSWaitDuration                          = 2000                                   {manageable} {default}
+    uintx CMSWorkQueueDrainThreshold               = 10                                        {product} {default}
+     bool CMSYield                                 = true                                      {product} {default}
+    uintx CMSYieldSleepCount                       = 0                                         {product} {default}
+   size_t CMSYoungGenPerWorker                     = 67108864                               {pd product} {default}
+    uintx CMS_FLSPadding                           = 1                                         {product} {default}
+    uintx CMS_FLSWeight                            = 75                                        {product} {default}
+    uintx CMS_SweepPadding                         = 1                                         {product} {default}
+    uintx CMS_SweepTimerThresholdMillis            = 10                                        {product} {default}
+    uintx CMS_SweepWeight                          = 75                                        {product} {default}
+    uintx CPUForCMSThread                          = 0                                      {diagnostic} {default}
+     bool CalculateClassFingerprint                = false                                     {product} {default}
+     bool CheckIntrinsics                          = true                                   {diagnostic} {default}
+     bool CheckJNICalls                            = false                                     {product} {default}
+     bool ClassUnloading                           = true                                      {product} {default}
+     bool ClassUnloadingWithConcurrentMark         = true                                      {product} {default}
+     bool ClipInlining                             = true                                      {product} {default}
+    uintx CodeCacheExpansionSize                   = 65536                                  {pd product} {default}
+    uintx CodeCacheMinBlockLength                  = 4                                   {pd diagnostic} {default}
+     bool CompactFields                            = true                                      {product} {default}
+     bool CompactStrings                           = true                                   {pd product} {default}
+     intx CompilationPolicyChoice                  = 2                                         {product} {default}
+ccstrlist CompileCommand                           =                                           {product} {default}
+    ccstr CompileCommandFile                       =                                           {product} {default}
+ccstrlist CompileOnly                              =                                           {product} {default}
+     intx CompileThreshold                         = 10000                                  {pd product} {default}
+   double CompileThresholdScaling                  = 1.000000                                  {product} {default}
+    ccstr CompilerDirectivesFile                   =                                        {diagnostic} {default}
+     bool CompilerDirectivesIgnoreCompileCommands  = false                                  {diagnostic} {default}
+      int CompilerDirectivesLimit                  = 50                                     {diagnostic} {default}
+     bool CompilerDirectivesPrint                  = false                                  {diagnostic} {default}
+     bool CompilerThreadHintNoPreempt              = false                                     {product} {default}
+     intx CompilerThreadPriority                   = -1                                        {product} {default}
+     intx CompilerThreadStackSize                  = 1024                                   {pd product} {default}
+   size_t CompressedClassSpaceSize                 = 1073741824                                {product} {default}
+     uint ConcGCThreads                            = 3                                         {product} {ergonomic}
+     intx ConditionalMoveLimit                     = 3                                   {C2 pd product} {default}
+     intx ContendedPaddingWidth                    = 128                                       {product} {default}
+     bool CrashOnOutOfMemoryError                  = false                                     {product} {default}
+     bool CreateCoredumpOnCrash                    = true                                      {product} {default}
+     bool CriticalJNINatives                       = true                                      {product} {default}
+     bool DTraceAllocProbes                        = false                                     {product} {default}
+     bool DTraceMethodProbes                       = false                                     {product} {default}
+     bool DTraceMonitorProbes                      = false                                     {product} {default}
+     bool DebugInlinedCalls                        = true                                {C2 diagnostic} {default}
+     bool DebugNonSafepoints                       = false                                  {diagnostic} {default}
+     bool Debugging                                = false                                     {product} {default}
+     bool DeferInitialCardMark                     = false                                  {diagnostic} {default}
+     bool DeoptimizeRandom                         = false                                     {product} {default}
+     bool DisableAttachMechanism                   = false                                     {product} {default}
+     bool DisableExplicitGC                        = false                                     {product} {default}
+ccstrlist DisableIntrinsic                         =                                        {diagnostic} {default}
+     bool DisplayVMOutput                          = true                                   {diagnostic} {default}
+     bool DisplayVMOutputToStderr                  = false                                     {product} {default}
+     bool DisplayVMOutputToStdout                  = false                                     {product} {default}
+     bool DoEscapeAnalysis                         = true                                   {C2 product} {default}
+     bool DoReserveCopyInSuperWord                 = true                                   {C2 product} {default}
+     intx DominatorSearchLimit                     = 1000                                {C2 diagnostic} {default}
+     bool DontCompileHugeMethods                   = true                                      {product} {default}
+     bool DontYieldALot                            = false                                  {pd product} {default}
+    ccstr DumpLoadedClassList                      =                                           {product} {default}
+     bool DumpPrivateMappingsInCore                = true                                   {diagnostic} {default}
+     bool DumpReplayDataOnError                    = true                                      {product} {default}
+     bool DumpSharedMappingsInCore                 = true                                   {diagnostic} {default}
+     bool DumpSharedSpaces                         = false                                     {product} {default}
+     bool DynamicallyResizeSystemDictionaries      = true                                   {diagnostic} {default}
+     bool EagerXrunInit                            = false                                     {product} {default}
+     intx EliminateAllocationArraySizeLimit        = 64                                     {C2 product} {default}
+     bool EliminateAllocations                     = true                                   {C2 product} {default}
+     bool EliminateAutoBox                         = true                                   {C2 product} {default}
+     bool EliminateLocks                           = true                                   {C2 product} {default}
+     bool EliminateNestedLocks                     = true                                   {C2 product} {default}
+     bool EnableContended                          = true                                      {product} {default}
+     bool EnableDynamicAgentLoading                = true                                      {product} {default}
+     bool EnableThreadSMRExtraValidityChecks       = true                                   {diagnostic} {default}
+     bool EnableThreadSMRStatistics                = false                                  {diagnostic} {default}
+   size_t ErgoHeapSizeLimit                        = 0                                         {product} {default}
+    ccstr ErrorFile                                = /coherence-operator/jvm/carts-coh-0/caf3497c-c5a7-4bb0-a20e-655ffcb99db2/hs-err-carts-coh-0-caf3497c-c5a7-4bb0-a20e-655ffcb99db2.log            {product} {command line}
+ uint64_t ErrorLogTimeout                          = 120                                       {product} {default}
+    ccstr ErrorReportServer                        =                                           {product} {default}
+   double EscapeAnalysisTimeout                    = 20.000000                              {C2 product} {default}
+     bool EstimateArgEscape                        = true                                      {product} {default}
+     bool ExecutingUnitTests                       = false                                     {product} {default}
+     bool ExitOnOutOfMemoryError                   = true                                      {product} {command line}
+     bool ExplicitGCInvokesConcurrent              = false                                     {product} {default}
+     bool ExtendedDTraceProbes                     = false                                     {product} {default}
+     bool ExtensiveErrorReports                    = false                                     {product} {default}
+    ccstr ExtraSharedClassListFile                 =                                           {product} {default}
+     bool FLSAlwaysCoalesceLarge                   = false                                     {product} {default}
+    uintx FLSCoalescePolicy                        = 2                                         {product} {default}
+   double FLSLargestBlockCoalesceProximity         = 0.990000                                  {product} {default}
+     bool FLSVerifyAllHeapReferences               = false                                  {diagnostic} {default}
+     bool FLSVerifyIndexTable                      = false                                  {diagnostic} {default}
+     bool FLSVerifyLists                           = false                                  {diagnostic} {default}
+     bool FailOverToOldVerifier                    = true                                      {product} {default}
+     intx FieldsAllocationStyle                    = 1                                         {product} {default}
+     bool FilterSpuriousWakeups                    = true                                      {product} {default}
+     bool FlightRecorder                           = false                                     {product} {default}
+    ccstr FlightRecorderOptions                    =                                           {product} {default}
+     bool FoldStableValues                         = true                                   {diagnostic} {default}
+     bool ForceDynamicNumberOfGCThreads            = false                                  {diagnostic} {default}
+     bool ForceNUMA                                = false                                     {product} {default}
+     bool ForceTimeHighResolution                  = false                                     {product} {default}
+     bool ForceUnreachable                         = false                                  {diagnostic} {default}
+     intx FreqInlineSize                           = 325                                    {pd product} {default}
+   double G1ConcMarkStepDurationMillis             = 10.000000                                 {product} {default}
+    uintx G1ConcRSHotCardLimit                     = 4                                         {product} {default}
+   size_t G1ConcRSLogCacheSize                     = 10                                        {product} {default}
+   size_t G1ConcRefinementGreenZone                = 0                                         {product} {default}
+   size_t G1ConcRefinementRedZone                  = 0                                         {product} {default}
+    uintx G1ConcRefinementServiceIntervalMillis    = 300                                       {product} {default}
+     uint G1ConcRefinementThreads                  = 13                                        {product} {ergonomic}
+   size_t G1ConcRefinementThresholdStep            = 2                                         {product} {default}
+   size_t G1ConcRefinementYellowZone               = 0                                         {product} {default}
+    uintx G1ConfidencePercent                      = 50                                        {product} {default}
+   size_t G1HeapRegionSize                         = 1048576                                   {product} {ergonomic}
+    uintx G1HeapWastePercent                       = 5                                         {product} {default}
+    uintx G1MixedGCCountTarget                     = 8                                         {product} {default}
+     intx G1RSetRegionEntries                      = 256                                       {product} {default}
+   size_t G1RSetScanBlockSize                      = 64                                        {product} {default}
+     intx G1RSetSparseRegionEntries                = 4                                         {product} {default}
+     intx G1RSetUpdatingPauseTimePercent           = 10                                        {product} {default}
+     uint G1RefProcDrainInterval                   = 1000                                      {product} {default}
+    uintx G1ReservePercent                         = 10                                        {product} {default}
+    uintx G1SATBBufferEnqueueingThresholdPercent   = 60                                        {product} {default}
+   size_t G1SATBBufferSize                         = 1024                                      {product} {default}
+     intx G1SummarizeRSetStatsPeriod               = 0                                      {diagnostic} {default}
+   size_t G1UpdateBufferSize                       = 256                                       {product} {default}
+     bool G1UseAdaptiveConcRefinement              = true                                      {product} {default}
+     bool G1UseAdaptiveIHOP                        = true                                      {product} {default}
+     bool G1VerifyHeapRegionCodeRoots              = false                                  {diagnostic} {default}
+     bool G1VerifyRSetsDuringFullGC                = false                                  {diagnostic} {default}
+    uintx GCDrainStackTargetSize                   = 64                                        {product} {ergonomic}
+    uintx GCHeapFreeLimit                          = 2                                         {product} {default}
+    uintx GCLockerEdenExpansionPercent             = 5                                         {product} {default}
+     bool GCLockerInvokesConcurrent                = false                                     {product} {default}
+    uintx GCLockerRetryAllocationCount             = 2                                      {diagnostic} {default}
+     bool GCParallelVerificationEnabled            = true                                   {diagnostic} {default}
+    uintx GCPauseIntervalMillis                    = 201                                       {product} {default}
+     uint GCTaskTimeStampEntries                   = 200                                       {product} {default}
+    uintx GCTimeLimit                              = 98                                        {product} {default}
+    uintx GCTimeRatio                              = 12                                        {product} {default}
+     intx GuaranteedSafepointInterval              = 1000                                   {diagnostic} {default}
+     uint HandshakeTimeout                         = 0                                      {diagnostic} {default}
+   size_t HeapBaseMinAddress                       = 2147483648                             {pd product} {default}
+     bool HeapDumpAfterFullGC                      = false                                  {manageable} {default}
+     bool HeapDumpBeforeFullGC                     = false                                  {manageable} {default}
+     bool HeapDumpOnOutOfMemoryError               = true                                   {manageable} {command line}
+    ccstr HeapDumpPath                             = /coherence-operator/jvm/carts-coh-0/caf3497c-c5a7-4bb0-a20e-655ffcb99db2/heap-dumps/carts-coh-0-caf3497c-c5a7-4bb0-a20e-655ffcb99db2.hprof         {manageable} {command line}
+    uintx HeapFirstMaximumCompactionCount          = 3                                         {product} {default}
+    uintx HeapMaximumCompactionInterval            = 20                                        {product} {default}
+    uintx HeapSearchSteps                          = 3                                         {product} {default}
+   size_t HeapSizePerGCThread                      = 43620760                                  {product} {default}
+     intx HotMethodDetectionLimit                  = 100000                                 {diagnostic} {default}
+     bool IdealizeClearArrayNode                   = true                             {C2 pd diagnostic} {default}
+     bool IgnoreEmptyClassPaths                    = false                                     {product} {default}
+     bool IgnoreUnrecognizedVMOptions              = false                                     {product} {default}
+     bool IgnoreUnverifiableClassesDuringDump      = true                                   {diagnostic} {default}
+     bool ImplicitNullChecks                       = true                                {pd diagnostic} {default}
+    uintx IncreaseFirstTierCompileThresholdAt      = 50                                        {product} {default}
+     bool IncrementalInline                        = true                                   {C2 product} {default}
+     intx InitArrayShortSize                       = 64                                  {pd diagnostic} {default}
+   size_t InitialBootClassLoaderMetaspaceSize      = 4194304                                   {product} {default}
+    uintx InitialCodeCacheSize                     = 2555904                                {pd product} {default}
+   size_t InitialHeapSize                          = 2147483648                                {product} {command line}
+    uintx InitialRAMFraction                       = 64                                        {product} {default}
+   double InitialRAMPercentage                     = 1.562500                                  {product} {default}
+    uintx InitialSurvivorRatio                     = 8                                         {product} {default}
+    uintx InitialTenuringThreshold                 = 7                                         {product} {default}
+    uintx InitiatingHeapOccupancyPercent           = 45                                        {product} {default}
+     bool InjectGCWorkerCreationFailure            = false                                  {diagnostic} {default}
+     bool Inline                                   = true                                      {product} {default}
+     bool InlineArrayCopy                          = true                                   {diagnostic} {default}
+     bool InlineClassNatives                       = true                                   {diagnostic} {default}
+    ccstr InlineDataFile                           =                                           {product} {default}
+     intx InlineFrequencyCount                     = 100                                 {pd diagnostic} {default}
+     bool InlineMathNatives                        = true                                   {diagnostic} {default}
+     bool InlineNIOCheckIndex                      = true                                {C1 diagnostic} {default}
+     bool InlineNatives                            = true                                   {diagnostic} {default}
+     bool InlineObjectCopy                         = true                                {C2 diagnostic} {default}
+     bool InlineObjectHash                         = true                                   {diagnostic} {default}
+     bool InlineReflectionGetCallerClass           = true                                {C2 diagnostic} {default}
+     intx InlineSmallCode                          = 2000                                   {pd product} {default}
+     bool InlineSynchronizedMethods                = true                                   {C1 product} {default}
+     bool InlineThreadNatives                      = true                                   {diagnostic} {default}
+     bool InlineUnsafeOps                          = true                                   {diagnostic} {default}
+     bool InsertMemBarAfterArraycopy               = true                                   {C2 product} {default}
+     intx InteriorEntryAlignment                   = 16                                  {C2 pd product} {default}
+     intx InterpreterProfilePercentage             = 33                                        {product} {default}
+     bool JavaMonitorsInStackTrace                 = true                                      {product} {default}
+     intx JavaPriority10_To_OSPriority             = -1                                        {product} {default}
+     intx JavaPriority1_To_OSPriority              = -1                                        {product} {default}
+     intx JavaPriority2_To_OSPriority              = -1                                        {product} {default}
+     intx JavaPriority3_To_OSPriority              = -1                                        {product} {default}
+     intx JavaPriority4_To_OSPriority              = -1                                        {product} {default}
+     intx JavaPriority5_To_OSPriority              = -1                                        {product} {default}
+     intx JavaPriority6_To_OSPriority              = -1                                        {product} {default}
+     intx JavaPriority7_To_OSPriority              = -1                                        {product} {default}
+     intx JavaPriority8_To_OSPriority              = -1                                        {product} {default}
+     intx JavaPriority9_To_OSPriority              = -1                                        {product} {default}
+     bool LIRFillDelaySlots                        = false                               {C1 pd product} {default}
+   size_t LargePageHeapSizeThreshold               = 134217728                                 {product} {default}
+   size_t LargePageSizeInBytes                     = 0                                         {product} {default}
+     intx LiveNodeCountInliningCutoff              = 40000                                  {C2 product} {default}
+     bool LoadExecStackDllInVMThread               = true                                      {product} {default}
+     bool LogCompilation                           = false                                  {diagnostic} {default}
+     bool LogEvents                                = true                                   {diagnostic} {default}
+    uintx LogEventsBufferEntries                   = 20                                     {diagnostic} {default}
+    ccstr LogFile                                  =                                        {diagnostic} {default}
+     bool LogTouchedMethods                        = false                                  {diagnostic} {default}
+     bool LogVMOutput                              = false                                  {diagnostic} {default}
+     intx LoopMaxUnroll                            = 16                                     {C2 product} {default}
+     intx LoopOptsCount                            = 43                                     {C2 product} {default}
+     intx LoopPercentProfileLimit                  = 30                                  {C2 pd product} {default}
+    uintx LoopStripMiningIter                      = 1000                                   {C2 product} {default}
+    uintx LoopStripMiningIterShortLoop             = 100                                    {C2 product} {default}
+     intx LoopUnrollLimit                          = 60                                  {C2 pd product} {default}
+     intx LoopUnrollMin                            = 4                                      {C2 product} {default}
+     bool LoopUnswitching                          = true                                   {C2 product} {default}
+    uintx MallocMaxTestWords                       = 0                                      {diagnostic} {default}
+     bool ManagementServer                         = false                                     {product} {default}
+   size_t MarkStackSize                            = 4194304                                   {product} {ergonomic}
+   size_t MarkStackSizeMax                         = 16777216                                  {product} {default}
+     uint MarkSweepAlwaysCompactCount              = 4                                         {product} {default}
+    uintx MarkSweepDeadRatio                       = 5                                         {product} {default}
+     intx MaxBCEAEstimateLevel                     = 5                                         {product} {default}
+     intx MaxBCEAEstimateSize                      = 150                                       {product} {default}
+ uint64_t MaxDirectMemorySize                      = 0                                         {product} {default}
+     bool MaxFDLimit                               = true                                      {product} {default}
+    uintx MaxGCMinorPauseMillis                    = 18446744073709551615                      {product} {default}
+    uintx MaxGCPauseMillis                         = 200                                       {product} {default}
+    uintx MaxHeapFreeRatio                         = 70                                     {manageable} {default}
+   size_t MaxHeapSize                              = 2147483648                                {product} {command line}
+     intx MaxInlineLevel                           = 9                                         {product} {default}
+     intx MaxInlineSize                            = 35                                        {product} {default}
+     intx MaxJNILocalCapacity                      = 65536                                     {product} {default}
+     intx MaxJavaStackTraceDepth                   = 1024                                      {product} {default}
+     intx MaxJumpTableSize                         = 65000                                  {C2 product} {default}
+     intx MaxJumpTableSparseness                   = 5                                      {C2 product} {default}
+     intx MaxLabelRootDepth                        = 1100                                   {C2 product} {default}
+     intx MaxLoopPad                               = 11                                     {C2 product} {default}
+   size_t MaxMetaspaceExpansion                    = 5451776                                   {product} {default}
+    uintx MaxMetaspaceFreeRatio                    = 70                                        {product} {default}
+   size_t MaxMetaspaceSize                         = 18446744073709547520                      {product} {default}
+   size_t MaxNewSize                               = 1287651328                                {product} {ergonomic}
+     intx MaxNodeLimit                             = 80000                                  {C2 product} {default}
+ uint64_t MaxRAM                                   = 137438953472                           {pd product} {default}
+    uintx MaxRAMFraction                           = 4                                         {product} {default}
+   double MaxRAMPercentage                         = 25.000000                                 {product} {default}
+     intx MaxRecursiveInlineLevel                  = 1                                         {product} {default}
+    uintx MaxTenuringThreshold                     = 15                                        {product} {default}
+     intx MaxTrivialSize                           = 6                                         {product} {default}
+     intx MaxVectorSize                            = 32                                     {C2 product} {default}
+   size_t MetaspaceSize                            = 21807104                               {pd product} {default}
+     bool MethodFlushing                           = true                                      {product} {default}
+   size_t MinHeapDeltaBytes                        = 1048576                                   {product} {ergonomic}
+    uintx MinHeapFreeRatio                         = 40                                     {manageable} {default}
+     intx MinInliningThreshold                     = 250                                       {product} {default}
+     intx MinJumpTableSize                         = 10                                  {C2 pd product} {default}
+   size_t MinMetaspaceExpansion                    = 339968                                    {product} {default}
+    uintx MinMetaspaceFreeRatio                    = 40                                        {product} {default}
+     intx MinPassesBeforeFlush                     = 10                                     {diagnostic} {default}
+    uintx MinRAMFraction                           = 2                                         {product} {default}
+   double MinRAMPercentage                         = 50.000000                                 {product} {default}
+    uintx MinSurvivorRatio                         = 3                                         {product} {default}
+   size_t MinTLABSize                              = 2048                                      {product} {default}
+     intx MonitorBound                             = 0                                         {product} {default}
+     bool MonitorInUseLists                        = true                                      {product} {default}
+     intx MultiArrayExpandLimit                    = 6                                      {C2 product} {default}
+    uintx NUMAChunkResizeWeight                    = 20                                        {product} {default}
+   size_t NUMAInterleaveGranularity                = 2097152                                   {product} {default}
+    uintx NUMAPageScanRate                         = 256                                       {product} {default}
+   size_t NUMASpaceResizeRate                      = 1073741824                                {product} {default}
+     bool NUMAStats                                = false                                     {product} {default}
+    ccstr NativeMemoryTracking                     = summary                                   {product} {command line}
+     bool NeedsDeoptSuspend                        = false                                  {pd product} {default}
+     bool NeverActAsServerClassMachine             = false                                  {pd product} {default}
+     bool NeverTenure                              = false                                     {product} {default}
+    uintx NewRatio                                 = 2                                         {product} {default}
+   size_t NewSize                                  = 1363144                                   {product} {default}
+   size_t NewSizeThreadIncrease                    = 5320                                   {pd product} {default}
+     intx NmethodSweepActivity                     = 10                                        {product} {default}
+     intx NodeLimitFudgeFactor                     = 2000                                   {C2 product} {default}
+    uintx NonNMethodCodeHeapSize                   = 7594288                                {pd product} {ergonomic}
+    uintx NonProfiledCodeHeapSize                  = 122031976                              {pd product} {ergonomic}
+     intx NumberOfLoopInstrToAlign                 = 4                                      {C2 product} {default}
+     intx ObjectAlignmentInBytes                   = 8                                    {lp64_product} {default}
+   size_t OldPLABSize                              = 1024                                      {product} {default}
+    uintx OldPLABWeight                            = 50                                        {product} {default}
+   size_t OldSize                                  = 5452592                                   {product} {default}
+     bool OmitStackTraceInFastThrow                = true                                      {product} {default}
+ccstrlist OnError                                  =                                           {product} {default}
+ccstrlist OnOutOfMemoryError                       =                                           {product} {default}
+     intx OnStackReplacePercentage                 = 140                                    {pd product} {default}
+     bool OptimizeExpensiveOps                     = true                                {C2 diagnostic} {default}
+     bool OptimizeFill                             = true                                   {C2 product} {default}
+     bool OptimizePtrCompare                       = true                                   {C2 product} {default}
+     bool OptimizeStringConcat                     = true                                   {C2 product} {default}
+     bool OptoBundling                             = false                               {C2 pd product} {default}
+     intx OptoLoopAlignment                        = 16                                     {pd product} {default}
+     bool OptoRegScheduling                        = true                                {C2 pd product} {default}
+     bool OptoScheduling                           = false                               {C2 pd product} {default}
+    uintx PLABWeight                               = 75                                        {product} {default}
+     bool PSChunkLargeArrays                       = true                                      {product} {default}
+      int ParGCArrayScanChunk                      = 50                                        {product} {default}
+     intx ParGCCardsPerStrideChunk                 = 256                                    {diagnostic} {default}
+    uintx ParGCDesiredObjsFromOverflowList         = 20                                        {product} {default}
+    uintx ParGCStridesPerThread                    = 2                                      {diagnostic} {default}
+     bool ParGCTrimOverflow                        = true                                      {product} {default}
+     bool ParGCUseLocalOverflow                    = false                                     {product} {default}
+    uintx ParallelGCBufferWastePct                 = 10                                        {product} {default}
+     uint ParallelGCThreads                        = 13                                        {product} {default}
+   size_t ParallelOldDeadWoodLimiterMean           = 50                                        {product} {default}
+   size_t ParallelOldDeadWoodLimiterStdDev         = 80                                        {product} {default}
+     bool ParallelRefProcBalancingEnabled          = true                                      {product} {default}
+     bool ParallelRefProcEnabled                   = true                                      {product} {default}
+     bool PartialPeelAtUnsignedTests               = true                                   {C2 product} {default}
+     bool PartialPeelLoop                          = true                                   {C2 product} {default}
+     intx PartialPeelNewPhiDelta                   = 0                                      {C2 product} {default}
+     bool PauseAtExit                              = false                                  {diagnostic} {default}
+     bool PauseAtStartup                           = false                                  {diagnostic} {default}
+    ccstr PauseAtStartupFile                       =                                        {diagnostic} {default}
+    uintx PausePadding                             = 1                                         {product} {default}
+     intx PerBytecodeRecompilationCutoff           = 200                                       {product} {default}
+     intx PerBytecodeTrapLimit                     = 4                                         {product} {default}
+     intx PerMethodRecompilationCutoff             = 400                                       {product} {default}
+     intx PerMethodTrapLimit                       = 100                                       {product} {default}
+     bool PerfAllowAtExitRegistration              = false                                     {product} {default}
+     bool PerfBypassFileSystemCheck                = false                                     {product} {default}
+     intx PerfDataMemorySize                       = 32768                                     {product} {default}
+     intx PerfDataSamplingInterval                 = 50                                        {product} {default}
+    ccstr PerfDataSaveFile                         =                                           {product} {default}
+     bool PerfDataSaveToFile                       = false                                     {product} {default}
+     bool PerfDisableSharedMem                     = false                                     {product} {default}
+     intx PerfMaxStringConstLength                 = 1024                                      {product} {default}
+   size_t PreTouchParallelChunkSize                = 1073741824                                {product} {default}
+     bool PreferContainerQuotaForCPUCount          = true                                      {product} {default}
+     bool PreferInterpreterNativeStubs             = false                                  {pd product} {default}
+     intx PrefetchCopyIntervalInBytes              = 576                                       {product} {default}
+     intx PrefetchFieldsAhead                      = 1                                         {product} {default}
+     intx PrefetchScanIntervalInBytes              = 576                                       {product} {default}
+     bool PreserveAllAnnotations                   = false                                     {product} {default}
+     bool PreserveFramePointer                     = false                                  {pd product} {default}
+   size_t PretenureSizeThreshold                   = 0                                         {product} {default}
+     bool PrintAdapterHandlers                     = false                                  {diagnostic} {default}
+     bool PrintAssembly                            = false                                  {diagnostic} {default}
+    ccstr PrintAssemblyOptions                     =                                        {diagnostic} {default}
+     bool PrintBiasedLockingStatistics             = false                                  {diagnostic} {default}
+     bool PrintClassHistogram                      = false                                  {manageable} {default}
+     bool PrintCodeCache                           = false                                     {product} {default}
+     bool PrintCodeCacheOnCompilation              = false                                     {product} {default}
+     bool PrintCommandLineFlags                    = true                                      {product} {command line}
+     bool PrintCompilation                         = false                                     {product} {default}
+     bool PrintCompilation2                        = false                                  {diagnostic} {default}
+     bool PrintConcurrentLocks                     = false                                  {manageable} {default}
+     bool PrintExtendedThreadInfo                  = false                                     {product} {default}
+     bool PrintFlagsFinal                          = true                                      {product} {command line}
+     bool PrintFlagsInitial                        = false                                     {product} {default}
+     bool PrintFlagsRanges                         = false                                     {product} {default}
+     bool PrintGC                                  = false                                     {product} {default}
+     bool PrintGCDetails                           = false                                     {product} {default}
+     bool PrintHeapAtSIGBREAK                      = true                                      {product} {default}
+     bool PrintInlining                            = false                                  {diagnostic} {default}
+     bool PrintInterpreter                         = false                                  {diagnostic} {default}
+     bool PrintIntrinsics                          = false                               {C2 diagnostic} {default}
+     bool PrintJNIResolving                        = false                                     {product} {default}
+     bool PrintMethodData                          = false                                  {diagnostic} {default}
+     bool PrintMethodFlushingStatistics            = false                                  {diagnostic} {default}
+     bool PrintMethodHandleStubs                   = false                                  {diagnostic} {default}
+     bool PrintNMTStatistics                       = true                                   {diagnostic} {command line}
+     bool PrintNMethods                            = false                                  {diagnostic} {default}
+     bool PrintNativeNMethods                      = false                                  {diagnostic} {default}
+     bool PrintOptoAssembly                        = false                               {C2 diagnostic} {default}
+     bool PrintPreciseBiasedLockingStatistics      = false                               {C2 diagnostic} {default}
+     bool PrintPreciseRTMLockingStatistics         = false                               {C2 diagnostic} {default}
+     bool PrintSafepointStatistics                 = false                                     {product} {default}
+     intx PrintSafepointStatisticsCount            = 300                                       {product} {default}
+     intx PrintSafepointStatisticsTimeout          = -1                                        {product} {default}
+     bool PrintSharedArchiveAndExit                = false                                     {product} {default}
+     bool PrintSharedDictionary                    = false                                     {product} {default}
+     bool PrintSignatureHandlers                   = false                                  {diagnostic} {default}
+     bool PrintStringTableStatistics               = false                                     {product} {default}
+     bool PrintStubCode                            = false                                  {diagnostic} {default}
+     bool PrintTieredEvents                        = false                                     {product} {default}
+     bool PrintTouchedMethodsAtExit                = false                                  {diagnostic} {default}
+     bool PrintVMOptions                           = false                                     {product} {default}
+     bool PrintVMQWaitTime                         = false                                     {product} {default}
+     bool PrintWarnings                            = true                                      {product} {default}
+    uintx ProcessDistributionStride                = 4                                         {product} {default}
+     bool ProfileDynamicTypes                      = true                                {C2 diagnostic} {default}
+     bool ProfileInterpreter                       = true                                   {pd product} {default}
+     bool ProfileIntervals                         = false                                     {product} {default}
+     intx ProfileIntervalsTicks                    = 100                                       {product} {default}
+     intx ProfileMaturityPercentage                = 20                                        {product} {default}
+     bool ProfileVM                                = false                                     {product} {default}
+    uintx ProfiledCodeHeapSize                     = 122031976                              {pd product} {ergonomic}
+     intx ProfilerNumberOfCompiledMethods          = 25                                     {diagnostic} {default}
+     intx ProfilerNumberOfInterpretedMethods       = 25                                     {diagnostic} {default}
+     intx ProfilerNumberOfRuntimeStubNodes         = 25                                     {diagnostic} {default}
+     intx ProfilerNumberOfStubMethods              = 25                                     {diagnostic} {default}
+     bool ProfilerPrintByteCodeStatistics          = false                                     {product} {default}
+     bool ProfilerRecordPC                         = false                                     {product} {default}
+    uintx PromotedPadding                          = 3                                         {product} {default}
+    uintx QueuedAllocationWarningCount             = 0                                         {product} {default}
+      int RTMRetryCount                            = 5                                    {ARCH product} {default}
+     bool RangeCheckElimination                    = true                                      {product} {default}
+     bool ReassociateInvariants                    = true                                   {C2 product} {default}
+     bool ReduceBulkZeroing                        = true                                   {C2 product} {default}
+     bool ReduceFieldZeroing                       = true                                   {C2 product} {default}
+     bool ReduceInitialCardMarks                   = true                                   {C2 product} {default}
+     bool ReduceNumberOfCompilerThreads            = true                                   {diagnostic} {default}
+     bool ReduceSignalUsage                        = false                                     {product} {default}
+     intx RefDiscoveryPolicy                       = 0                                         {product} {default}
+     bool RegisterFinalizersAtInit                 = true                                      {product} {default}
+     bool RelaxAccessControlCheck                  = false                                     {product} {default}
+    ccstr ReplayDataFile                           =                                           {product} {default}
+     bool RequireSharedSpaces                      = false                                     {product} {default}
+    uintx ReservedCodeCacheSize                    = 251658240                              {pd product} {ergonomic}
+     bool ResizeOldPLAB                            = true                                      {product} {default}
+     bool ResizePLAB                               = true                                      {product} {default}
+     bool ResizeTLAB                               = true                                   {pd product} {default}
+     bool RestoreMXCSROnJNICalls                   = false                                     {product} {default}
+     bool RestrictContended                        = true                                      {product} {default}
+     bool RestrictReservedStack                    = true                                      {product} {default}
+     bool RewriteBytecodes                         = true                                   {pd product} {default}
+     bool RewriteFrequentPairs                     = true                                   {pd product} {default}
+     bool SafepointALot                            = false                                  {diagnostic} {default}
+     bool SafepointTimeout                         = false                                     {product} {default}
+     intx SafepointTimeoutDelay                    = 10000                                     {product} {default}
+     bool ScavengeBeforeFullGC                     = false                                     {product} {default}
+     intx ScavengeRootsInCode                      = 2                                      {diagnostic} {default}
+     bool SegmentedCodeCache                       = true                                      {product} {ergonomic}
+     intx SelfDestructTimer                        = 0                                         {product} {default}
+     bool SerializeVMOutput                        = true                                   {diagnostic} {default}
+    ccstr SharedArchiveConfigFile                  =                                           {product} {default}
+    ccstr SharedArchiveFile                        =                                           {product} {default}
+   size_t SharedBaseAddress                        = 34359738368                               {product} {default}
+    ccstr SharedClassListFile                      =                                           {product} {default}
+    uintx SharedSymbolTableBucketSize              = 4                                         {product} {default}
+     bool ShowHiddenFrames                         = false                                  {diagnostic} {default}
+     bool ShowMessageBoxOnError                    = false                                     {product} {default}
+     bool ShowRegistersOnAssert                    = false                                  {diagnostic} {default}
+     bool ShrinkHeapInSteps                        = true                                      {product} {default}
+     intx SoftRefLRUPolicyMSPerMB                  = 1000                                      {product} {default}
+     bool SpecialArraysEquals                      = true                                {C2 diagnostic} {default}
+     bool SpecialEncodeISOArray                    = true                                {C2 diagnostic} {default}
+     bool SpecialStringCompareTo                   = true                                {C2 diagnostic} {default}
+     bool SpecialStringEquals                      = true                                {C2 diagnostic} {default}
+     bool SpecialStringIndexOf                     = true                                {C2 diagnostic} {default}
+     bool SplitIfBlocks                            = true                                   {C2 product} {default}
+     intx StackRedPages                            = 1                                      {pd product} {default}
+     intx StackReservedPages                       = 1                                      {pd product} {default}
+     intx StackShadowPages                         = 20                                     {pd product} {default}
+     bool StackTraceInThrowable                    = true                                      {product} {default}
+     intx StackYellowPages                         = 2                                      {pd product} {default}
+    uintx StartAggressiveSweepingAt                = 10                                        {product} {default}
+     bool StartAttachListener                      = false                                     {product} {default}
+    ccstr StartFlightRecording                     =                                           {product} {default}
+     bool StressCodeAging                          = false                                  {diagnostic} {default}
+     bool StressGCM                                = false                               {C2 diagnostic} {default}
+     bool StressLCM                                = false                               {C2 diagnostic} {default}
+     bool StressLdcRewrite                         = false                                     {product} {default}
+    uintx StringDeduplicationAgeThreshold          = 3                                         {product} {default}
+     bool StringDeduplicationRehashALot            = false                                  {diagnostic} {default}
+     bool StringDeduplicationResizeALot            = false                                  {diagnostic} {default}
+    uintx StringTableSize                          = 65536                                     {product} {default}
+     bool SuperWordLoopUnrollAnalysis              = true                                {C2 pd product} {default}
+     bool SuperWordReductions                      = true                                   {C2 product} {default}
+     bool SuppressFatalErrorMessage                = false                                     {product} {default}
+    uintx SurvivorPadding                          = 3                                         {product} {default}
+    uintx SurvivorRatio                            = 8                                         {product} {default}
+     intx SuspendRetryCount                        = 50                                        {product} {default}
+     intx SuspendRetryDelay                        = 5                                         {product} {default}
+    uintx TLABAllocationWeight                     = 35                                        {product} {default}
+    uintx TLABRefillWasteFraction                  = 64                                        {product} {default}
+   size_t TLABSize                                 = 0                                         {product} {default}
+     bool TLABStats                                = true                                      {product} {default}
+    uintx TLABWasteIncrement                       = 4                                         {product} {default}
+    uintx TLABWasteTargetPercent                   = 1                                         {product} {default}
+    uintx TargetPLABWastePct                       = 10                                        {product} {default}
+    uintx TargetSurvivorRatio                      = 50                                        {product} {default}
+    uintx TenuredGenerationSizeIncrement           = 20                                        {product} {default}
+    uintx TenuredGenerationSizeSupplement          = 80                                        {product} {default}
+    uintx TenuredGenerationSizeSupplementDecay     = 2                                         {product} {default}
+     bool ThreadLocalHandshakes                    = true                                   {pd product} {default}
+     intx ThreadPriorityPolicy                     = 0                                         {product} {default}
+     bool ThreadPriorityVerbose                    = false                                     {product} {default}
+     intx ThreadStackSize                          = 1024                                   {pd product} {default}
+    uintx ThresholdTolerance                       = 10                                        {product} {default}
+     intx Tier0BackedgeNotifyFreqLog               = 10                                        {product} {default}
+     intx Tier0InvokeNotifyFreqLog                 = 7                                         {product} {default}
+     intx Tier0ProfilingStartPercentage            = 200                                       {product} {default}
+     intx Tier23InlineeNotifyFreqLog               = 20                                        {product} {default}
+     intx Tier2BackEdgeThreshold                   = 0                                         {product} {default}
+     intx Tier2BackedgeNotifyFreqLog               = 14                                        {product} {default}
+     intx Tier2CompileThreshold                    = 0                                         {product} {default}
+     intx Tier2InvokeNotifyFreqLog                 = 11                                        {product} {default}
+     intx Tier3AOTBackEdgeThreshold                = 120000                                    {product} {default}
+     intx Tier3AOTCompileThreshold                 = 15000                                     {product} {default}
+     intx Tier3AOTInvocationThreshold              = 10000                                     {product} {default}
+     intx Tier3AOTMinInvocationThreshold           = 1000                                      {product} {default}
+     intx Tier3BackEdgeThreshold                   = 60000                                     {product} {default}
+     intx Tier3BackedgeNotifyFreqLog               = 13                                        {product} {default}
+     intx Tier3CompileThreshold                    = 2000                                      {product} {default}
+     intx Tier3DelayOff                            = 2                                         {product} {default}
+     intx Tier3DelayOn                             = 5                                         {product} {default}
+     intx Tier3InvocationThreshold                 = 200                                       {product} {default}
+     intx Tier3InvokeNotifyFreqLog                 = 10                                        {product} {default}
+     intx Tier3LoadFeedback                        = 5                                         {product} {default}
+     intx Tier3MinInvocationThreshold              = 100                                       {product} {default}
+     intx Tier4BackEdgeThreshold                   = 40000                                     {product} {default}
+     intx Tier4CompileThreshold                    = 15000                                     {product} {default}
+     intx Tier4InvocationThreshold                 = 5000                                      {product} {default}
+     intx Tier4LoadFeedback                        = 3                                         {product} {default}
+     intx Tier4MinInvocationThreshold              = 600                                       {product} {default}
+     bool TieredCompilation                        = true                                   {pd product} {default}
+     intx TieredCompileTaskTimeout                 = 50                                        {product} {default}
+     intx TieredRateUpdateMaxTime                  = 25                                        {product} {default}
+     intx TieredRateUpdateMinTime                  = 1                                         {product} {default}
+     intx TieredStopAtLevel                        = 4                                         {product} {default}
+     bool TimeLinearScan                           = false                                  {C1 product} {default}
+     bool TraceCompilerThreads                     = false                                  {diagnostic} {default}
+    ccstr TraceJVMTI                               =                                           {product} {default}
+     bool TraceJVMTIObjectTagging                  = false                                  {diagnostic} {default}
+     bool TraceNMethodInstalls                     = false                                  {diagnostic} {default}
+     bool TraceSpilling                            = false                               {C2 diagnostic} {default}
+     bool TraceSuspendWaitFailures                 = false                                     {product} {default}
+     bool TraceTypeProfile                         = false                               {C2 diagnostic} {default}
+     intx TrackedInitializationLimit               = 50                                     {C2 product} {default}
+     bool TransmitErrorReport                      = false                                     {product} {default}
+     bool TrapBasedNullChecks                      = false                                  {pd product} {default}
+     bool TrapBasedRangeChecks                     = false                               {C2 pd product} {default}
+     intx TypeProfileArgsLimit                     = 2                                         {product} {default}
+    uintx TypeProfileLevel                         = 111                                    {pd product} {default}
+     intx TypeProfileMajorReceiverPercent          = 90                                     {C2 product} {default}
+     intx TypeProfileParmsLimit                    = 2                                         {product} {default}
+     intx TypeProfileWidth                         = 2                                         {product} {default}
+     intx UnguardOnExecutionViolation              = 0                                         {product} {default}
+     bool UnlinkSymbolsALot                        = false                                     {product} {default}
+     bool UnlockDiagnosticVMOptions                = true                                   {diagnostic} {command line}
+     bool UseAES                                   = true                                      {product} {default}
+     bool UseAESCTRIntrinsics                      = true                                   {diagnostic} {default}
+     bool UseAESIntrinsics                         = true                                   {diagnostic} {default}
+     bool UseAOTStrictLoading                      = false                                  {diagnostic} {default}
+     intx UseAVX                                   = 2                                    {ARCH product} {default}
+     bool UseAdaptiveGCBoundary                    = false                                     {product} {default}
+     bool UseAdaptiveGenerationSizePolicyAtMajorCollection  = true                             {product} {default}
+     bool UseAdaptiveGenerationSizePolicyAtMinorCollection  = true                             {product} {default}
+     bool UseAdaptiveNUMAChunkSizing               = true                                      {product} {default}
+     bool UseAdaptiveSizeDecayMajorGCCost          = true                                      {product} {default}
+     bool UseAdaptiveSizePolicy                    = true                                      {product} {default}
+     bool UseAdaptiveSizePolicyFootprintGoal       = true                                      {product} {default}
+     bool UseAdaptiveSizePolicyWithSystemGC        = false                                     {product} {default}
+     bool UseAddressNop                            = true                                 {ARCH product} {default}
+     bool UseAdler32Intrinsics                     = false                                  {diagnostic} {default}
+     bool UseBASE64Intrinsics                      = false                                     {product} {default}
+     bool UseBMI1Instructions                      = true                                 {ARCH product} {default}
+     bool UseBMI2Instructions                      = true                                 {ARCH product} {default}
+     bool UseBiasedLocking                         = true                                      {product} {default}
+     bool UseBimorphicInlining                     = true                                   {C2 product} {default}
+      int UseBootstrapCallInfo                     = 1                                      {diagnostic} {default}
+     bool UseCLMUL                                 = true                                 {ARCH product} {default}
+     bool UseCMSBestFit                            = true                                      {product} {default}
+     bool UseCMSInitiatingOccupancyOnly            = false                                     {product} {default}
+     bool UseCMoveUnconditionally                  = false                                  {C2 product} {default}
+     bool UseCRC32CIntrinsics                      = true                                   {diagnostic} {default}
+     bool UseCRC32Intrinsics                       = true                                   {diagnostic} {default}
+     bool UseCharacterCompareIntrinsics            = false                               {C2 diagnostic} {default}
+     bool UseCodeAging                             = true                                      {product} {default}
+     bool UseCodeCacheFlushing                     = true                                      {product} {default}
+     bool UseCompiler                              = true                                      {product} {default}
+     bool UseCompressedClassPointers               = true                                 {lp64_product} {ergonomic}
+     bool UseCompressedOops                        = true                                 {lp64_product} {ergonomic}
+     bool UseConcMarkSweepGC                       = false                                     {product} {default}
+     bool UseCondCardMark                          = false                                     {product} {default}
+     bool UseContainerSupport                      = true                                      {product} {command line}
+     bool UseCountLeadingZerosInstruction          = true                                 {ARCH product} {default}
+     bool UseCountTrailingZerosInstruction         = true                                 {ARCH product} {default}
+     bool UseCountedLoopSafepoints                 = true                                   {C2 product} {default}
+     bool UseCounterDecay                          = true                                      {product} {default}
+     bool UseCpuAllocPath                          = false                                  {diagnostic} {default}
+     bool UseDivMod                                = true                                   {C2 product} {default}
+     bool UseDynamicNumberOfCompilerThreads        = true                                      {product} {default}
+     bool UseDynamicNumberOfGCThreads              = true                                      {product} {default}
+     bool UseFMA                                   = true                                      {product} {default}
+     bool UseFPUForSpilling                        = true                                   {C2 product} {default}
+     bool UseFastJNIAccessors                      = true                                      {product} {default}
+     bool UseFastStosb                             = true                                 {ARCH product} {default}
+     bool UseG1GC                                  = true                                      {product} {command line}
+     bool UseGCOverheadLimit                       = true                                      {product} {default}
+     bool UseGCTaskAffinity                        = false                                     {product} {default}
+     bool UseGHASHIntrinsics                       = true                                   {diagnostic} {default}
+     bool UseHeavyMonitors                         = false                                     {product} {default}
+     bool UseHugeTLBFS                             = false                                     {product} {default}
+     bool UseImplicitStableValues                  = true                                {C2 diagnostic} {default}
+     bool UseIncDec                                = true                              {ARCH diagnostic} {default}
+     bool UseInlineCaches                          = true                                      {product} {default}
+     bool UseInlineDepthForSpeculativeTypes        = true                                {C2 diagnostic} {default}
+     bool UseInterpreter                           = true                                      {product} {default}
+     bool UseJumpTables                            = true                                   {C2 product} {default}
+     bool UseLWPSynchronization                    = true                                      {product} {default}
+     bool UseLargePages                            = false                                  {pd product} {default}
+     bool UseLargePagesInMetaspace                 = false                                     {product} {default}
+     bool UseLargePagesIndividualAllocation        = false                                  {pd product} {default}
+     bool UseLibmIntrinsic                         = true                              {ARCH diagnostic} {default}
+     bool UseLinuxPosixThreadCPUClocks             = true                                      {product} {default}
+     bool UseLoopCounter                           = true                                      {product} {default}
+     bool UseLoopInvariantCodeMotion               = true                                   {C1 product} {default}
+     bool UseLoopPredicate                         = true                                   {C2 product} {default}
+     bool UseMathExactIntrinsics                   = true                                {C2 diagnostic} {default}
+     bool UseMaximumCompactionOnSystemGC           = true                                      {product} {default}
+     bool UseMembar                                = true                                   {pd product} {default}
+     bool UseMontgomeryMultiplyIntrinsic           = true                                {C2 diagnostic} {default}
+     bool UseMontgomerySquareIntrinsic             = true                                {C2 diagnostic} {default}
+     bool UseMulAddIntrinsic                       = true                                {C2 diagnostic} {default}
+     bool UseMultiplyToLenIntrinsic                = true                                {C2 diagnostic} {default}
+     bool UseNUMA                                  = false                                     {product} {default}
+     bool UseNUMAInterleaving                      = false                                     {product} {default}
+     bool UseNewCode                               = false                                  {diagnostic} {default}
+     bool UseNewCode2                              = false                                  {diagnostic} {default}
+     bool UseNewCode3                              = false                                  {diagnostic} {default}
+     bool UseNewLongLShift                         = false                                {ARCH product} {default}
+     bool UseOSErrorReporting                      = false                                  {pd product} {default}
+     bool UseOnStackReplacement                    = true                                   {pd product} {default}
+     bool UseOnlyInlinedBimorphic                  = true                                   {C2 product} {default}
+     bool UseOprofile                              = false                                     {product} {default}
+     bool UseOptoBiasInlining                      = true                                   {C2 product} {default}
+     bool UsePSAdaptiveSurvivorSizePolicy          = true                                      {product} {default}
+     bool UseParallelGC                            = false                                     {product} {default}
+     bool UseParallelOldGC                         = false                                     {product} {default}
+     bool UsePerfData                              = true                                      {product} {default}
+     bool UsePopCountInstruction                   = true                                      {product} {default}
+     bool UseProfiledLoopPredicate                 = true                                   {C2 product} {default}
+     bool UseRDPCForConstantTableBase              = false                                  {C2 product} {default}
+     bool UseRTMDeopt                              = false                                {ARCH product} {default}
+     bool UseRTMLocking                            = false                                {ARCH product} {default}
+     bool UseSHA                                   = true                                      {product} {default}
+     bool UseSHA1Intrinsics                        = false                                  {diagnostic} {default}
+     bool UseSHA256Intrinsics                      = true                                   {diagnostic} {default}
+     bool UseSHA512Intrinsics                      = true                                   {diagnostic} {default}
+     bool UseSHM                                   = false                                     {product} {default}
+     intx UseSSE                                   = 4                                         {product} {default}
+     bool UseSSE42Intrinsics                       = true                                 {ARCH product} {default}
+     bool UseSemaphoreGCThreadsSynchronization     = true                                   {diagnostic} {default}
+     bool UseSerialGC                              = false                                     {product} {default}
+     bool UseSharedSpaces                          = false                                     {product} {default}
+     bool UseSignalChaining                        = true                                      {product} {default}
+     bool UseSquareToLenIntrinsic                  = true                                {C2 diagnostic} {default}
+     bool UseStoreImmI16                           = false                                {ARCH product} {default}
+     bool UseStringDeduplication                   = false                                     {product} {default}
+     bool UseSubwordForMaxVector                   = true                                   {C2 product} {default}
+     bool UseSuperWord                             = true                                   {C2 product} {default}
+     bool UseTLAB                                  = true                                   {pd product} {default}
+     bool UseThreadPriorities                      = true                                   {pd product} {default}
+     bool UseTransparentHugePages                  = false                                     {product} {default}
+     bool UseTypeProfile                           = true                                      {product} {default}
+     bool UseTypeSpeculation                       = true                                   {C2 product} {default}
+     bool UseUnalignedAccesses                     = true                                   {diagnostic} {default}
+     bool UseUnalignedLoadStores                   = true                                 {ARCH product} {default}
+     bool UseVectorCmov                            = false                                  {C2 product} {default}
+     bool UseVectorizedMismatchIntrinsic           = true                                   {diagnostic} {default}
+     bool UseXMMForArrayCopy                       = true                                      {product} {default}
+     bool UseXMMForObjInit                         = false                                {ARCH product} {default}
+     bool UseXmmI2D                                = false                                {ARCH product} {default}
+     bool UseXmmI2F                                = false                                {ARCH product} {default}
+     bool UseXmmLoadAndClearUpper                  = true                                 {ARCH product} {default}
+     bool UseXmmRegToRegMoveAll                    = true                                 {ARCH product} {default}
+     bool VMThreadHintNoPreempt                    = false                                     {product} {default}
+     intx VMThreadPriority                         = -1                                        {product} {default}
+     intx VMThreadStackSize                        = 1024                                   {pd product} {default}
+     intx ValueMapInitialSize                      = 11                                     {C1 product} {default}
+     intx ValueMapMaxLoopSize                      = 8                                      {C1 product} {default}
+     intx ValueSearchLimit                         = 1000                                   {C2 product} {default}
+     bool VerifyAdapterCalls                       = false                                  {diagnostic} {default}
+     bool VerifyAfterGC                            = false                                  {diagnostic} {default}
+     bool VerifyBeforeExit                         = false                                  {diagnostic} {default}
+     bool VerifyBeforeGC                           = false                                  {diagnostic} {default}
+     bool VerifyBeforeIteration                    = false                                  {diagnostic} {default}
+     bool VerifyDuringGC                           = false                                  {diagnostic} {default}
+     bool VerifyDuringStartup                      = false                                  {diagnostic} {default}
+     intx VerifyGCLevel                            = 0                                      {diagnostic} {default}
+    uintx VerifyGCStartAt                          = 0                                      {diagnostic} {default}
+ccstrlist VerifyGCType                             =                                        {diagnostic} {default}
+     bool VerifyMergedCPBytecodes                  = true                                      {product} {default}
+     bool VerifyMethodHandles                      = false                                  {diagnostic} {default}
+     bool VerifyObjectStartArray                   = true                                   {diagnostic} {default}
+     bool VerifyRememberedSets                     = false                                  {diagnostic} {default}
+     bool VerifySharedSpaces                       = false                                     {product} {default}
+     bool VerifyStringTableAtExit                  = false                                  {diagnostic} {default}
+ccstrlist VerifySubSet                             =                                        {diagnostic} {default}
+     bool WhiteBoxAPI                              = false                                  {diagnostic} {default}
+    uintx YoungGenerationSizeIncrement             = 20                                        {product} {default}
+    uintx YoungGenerationSizeSupplement            = 80                                        {product} {default}
+    uintx YoungGenerationSizeSupplementDecay       = 8                                         {product} {default}
+   size_t YoungPLABSize                            = 4096                                      {product} {default}
+   double ZAllocationSpikeTolerance                = 2.000000                                  {product} {default}
+     uint ZCollectionInterval                      = 0                                         {product} {default}
+     bool ZConcurrentJNIWeakGlobalHandles          = true                                   {diagnostic} {default}
+     bool ZConcurrentStringTable                   = true                                   {diagnostic} {default}
+     bool ZConcurrentVMWeakHandles                 = true                                   {diagnostic} {default}
+   double ZFragmentationLimit                      = 25.000000                                 {product} {default}
+   size_t ZMarkStacksMax                           = 8589934592                                {product} {default}
+     bool ZOptimizeLoadBarriers                    = true                                   {diagnostic} {default}
+    ccstr ZPath                                    =                                           {product} {default}
+     bool ZProactive                               = true                                   {diagnostic} {default}
+     bool ZStallOnOutOfMemory                      = true                                      {product} {default}
+     bool ZStatisticsForceTrace                    = false                                  {diagnostic} {default}
+     uint ZStatisticsInterval                      = 10                                        {product} {default}
+     bool ZSymbolTableUnloading                    = false                                  {diagnostic} {default}
+     bool ZUnmapBadViews                           = false                                  {diagnostic} {default}
+     bool ZVerifyForwarding                        = false                                  {diagnostic} {default}
+     bool ZVerifyMarking                           = false                                  {diagnostic} {default}
+     bool ZWeakRoots                               = true                                   {diagnostic} {default}
+     bool ZeroTLAB                                 = false                                     {product} {default}
+VM settings:
+    Max. Heap Size (Estimated): 2.00G
+    Using VM: OpenJDK 64-Bit Server VM
+
+Property settings:
+    awt.toolkit = sun.awt.X11.XToolkit
+    coherence.cluster = SockShop
+    coherence.distributed.persistence-mode = on-demand
+    coherence.k8s.operator.health.port = 6676
+    coherence.k8s.operator.health.wait.dcs = false
+    coherence.k8s.operator.identity = carts-coh@oam-sockshop
+    coherence.log.level = 9
+    coherence.machine = 10.0.10.2
+    coherence.management.http.port = 30000
+    coherence.member = carts-coh-0
+    coherence.metrics.http.enabled = true
+    coherence.metrics.http.port = 9612
+    coherence.override = k8s-coherence-nossl-override.xml
+    coherence.role = Carts
+    coherence.ttl = 0
+    coherence.wka = carts-coh-wka.oam-sockshop.svc.cluster.local
+    file.encoding = ANSI_X3.4-1968
+    file.separator = /
+    java.awt.graphicsenv = sun.awt.X11GraphicsEnvironment
+    java.awt.printerjob = sun.print.PSPrinterJob
+    java.class.path = /app/classpath/carts-coherence.jar
+        /app/libs/aopalliance-repackaged-2.6.1.jar
+        /app/libs/carts-core.jar
+        /app/libs/coherence-20.12.jar
+        /app/libs/coherence-cdi-20.12.jar
+        /app/libs/coherence-cdi-server-20.12.jar
+        /app/libs/coherence-mp-config-20.12.jar
+        /app/libs/coherence-mp-metrics-20.12.jar
+        /app/libs/gson-2.8.6.jar
+        /app/libs/helidon-bundles-security-2.2.0.jar
+        /app/libs/helidon-common-2.2.0.jar
+        /app/libs/helidon-common-configurable-2.2.0.jar
+        /app/libs/helidon-common-context-2.2.0.jar
+        /app/libs/helidon-common-http-2.2.0.jar
+        /app/libs/helidon-common-key-util-2.2.0.jar
+        /app/libs/helidon-common-mapper-2.2.0.jar
+        /app/libs/helidon-common-media-type-2.2.0.jar
+        /app/libs/helidon-common-reactive-2.2.0.jar
+        /app/libs/helidon-common-service-loader-2.2.0.jar
+        /app/libs/helidon-config-2.2.0.jar
+        /app/libs/helidon-config-encryption-2.2.0.jar
+        /app/libs/helidon-config-mp-2.2.0.jar
+        /app/libs/helidon-config-object-mapping-2.2.0.jar
+        /app/libs/helidon-config-yaml-2.2.0.jar
+        /app/libs/helidon-fault-tolerance-2.2.0.jar
+        /app/libs/helidon-health-2.2.0.jar
+        /app/libs/helidon-health-checks-2.2.0.jar
+        /app/libs/helidon-health-common-2.2.0.jar
+        /app/libs/helidon-jersey-client-2.2.0.jar
+        /app/libs/helidon-jersey-common-2.2.0.jar
+        /app/libs/helidon-jersey-media-jsonp-2.2.0.jar
+        /app/libs/helidon-jersey-server-2.2.0.jar
+        /app/libs/helidon-media-common-2.2.0.jar
+        /app/libs/helidon-media-jsonp-2.2.0.jar
+        /app/libs/helidon-metrics-2.2.0.jar
+        /app/libs/helidon-microprofile-2.2.0.jar
+        /app/libs/helidon-microprofile-cdi-2.2.0.jar
+        /app/libs/helidon-microprofile-config-2.2.0.jar
+        /app/libs/helidon-microprofile-core-2.2.0.jar
+        /app/libs/helidon-microprofile-fault-tolerance-2.2.0.jar
+        /app/libs/helidon-microprofile-health-2.2.0.jar
+        /app/libs/helidon-microprofile-jwt-auth-2.2.0.jar
+        /app/libs/helidon-microprofile-metrics-2.2.0.jar
+        /app/libs/helidon-microprofile-openapi-2.2.0.jar
+        /app/libs/helidon-microprofile-rest-client-2.2.0.jar
+        /app/libs/helidon-microprofile-security-2.2.0.jar
+        /app/libs/helidon-microprofile-server-2.2.0.jar
+        /app/libs/helidon-microprofile-tracing-2.2.0.jar
+        /app/libs/helidon-openapi-2.2.0.jar
+        /app/libs/helidon-security-2.2.0.jar
+        /app/libs/helidon-security-abac-policy-2.2.0.jar
+        /app/libs/helidon-security-abac-role-2.2.0.jar
+        /app/libs/helidon-security-abac-scope-2.2.0.jar
+        /app/libs/helidon-security-abac-time-2.2.0.jar
+        /app/libs/helidon-security-annotations-2.2.0.jar
+        /app/libs/helidon-security-integration-common-2.2.0.jar
+        /app/libs/helidon-security-integration-jersey-2.2.0.jar
+        /app/libs/helidon-security-integration-jersey-client-2.2.0.jar
+        /app/libs/helidon-security-integration-webserver-2.2.0.jar
+        /app/libs/helidon-security-jwt-2.2.0.jar
+        /app/libs/helidon-security-providers-abac-2.2.0.jar
+        /app/libs/helidon-security-providers-common-2.2.0.jar
+        /app/libs/helidon-security-providers-header-2.2.0.jar
+        /app/libs/helidon-security-providers-http-auth-2.2.0.jar
+        /app/libs/helidon-security-providers-http-sign-2.2.0.jar
+        /app/libs/helidon-security-providers-jwt-2.2.0.jar
+        /app/libs/helidon-security-providers-oidc-2.2.0.jar
+        /app/libs/helidon-security-providers-oidc-common-2.2.0.jar
+        /app/libs/helidon-security-util-2.2.0.jar
+        /app/libs/helidon-tracing-2.2.0.jar
+        /app/libs/helidon-tracing-config-2.2.0.jar
+        /app/libs/helidon-tracing-jaeger-2.2.0.jar
+        /app/libs/helidon-tracing-jersey-2.2.0.jar
+        /app/libs/helidon-tracing-jersey-client-2.2.0.jar
+        /app/libs/helidon-tracing-tracer-resolver-2.2.0.jar
+        /app/libs/helidon-webclient-jaxrs-2.2.0.jar
+        /app/libs/helidon-webserver-2.2.0.jar
+        /app/libs/helidon-webserver-cors-2.2.0.jar
+        /app/libs/helidon-webserver-jersey-2.2.0.jar
+        /app/libs/hk2-api-2.6.1.jar
+        /app/libs/hk2-locator-2.6.1.jar
+        /app/libs/hk2-utils-2.6.1.jar
+        /app/libs/jaeger-client-1.1.0.jar
+        /app/libs/jaeger-core-1.1.0.jar
+        /app/libs/jaeger-thrift-1.1.0.jar
+        /app/libs/jaeger-tracerresolver-1.1.0.jar
+        /app/libs/jakarta.activation-api-1.2.2.jar
+        /app/libs/jakarta.annotation-api-1.3.5.jar
+        /app/libs/jakarta.el-api-3.0.3.jar
+        /app/libs/jakarta.enterprise.cdi-api-2.0.2.jar
+        /app/libs/jakarta.inject-api-1.0.jar
+        /app/libs/jakarta.interceptor-api-1.2.5.jar
+        /app/libs/jakarta.json-1.1.6-module.jar
+        /app/libs/jakarta.json-1.1.6.jar
+        /app/libs/jakarta.json.bind-api-1.0.2.jar
+        /app/libs/jakarta.validation-api-2.0.2.jar
+        /app/libs/jakarta.ws.rs-api-2.1.6.jar
+        /app/libs/jakarta.xml.bind-api-2.3.3.jar
+        /app/libs/jandex-2.1.1.Final.jar
+        /app/libs/javassist-3.25.0-GA.jar
+        /app/libs/jboss-classfilewriter-1.2.4.Final.jar
+        /app/libs/jboss-logging-3.2.1.Final.jar
+        /app/libs/jersey-cdi1x-2.32.jar
+        /app/libs/jersey-client-2.32.jar
+        /app/libs/jersey-common-2.32.jar
+        /app/libs/jersey-hk2-2.32.jar
+        /app/libs/jersey-media-json-binding-2.32.jar
+        /app/libs/jersey-media-json-processing-2.32.jar
+        /app/libs/jersey-mp-rest-client-2.32.jar
+        /app/libs/jersey-server-2.32.jar
+        /app/libs/jersey-weld2-se-2.32.jar
+        /app/libs/jsonp-jaxrs-1.1.6.jar
+        /app/libs/libthrift-0.13.0.jar
+        /app/libs/microprofile-config-api-1.4.jar
+        /app/libs/microprofile-fault-tolerance-api-2.1.1.jar
+        /app/libs/microprofile-health-api-2.2.jar
+        /app/libs/microprofile-jwt-auth-api-1.1.1.jar
+        /app/libs/microprofile-metrics-api-2.3.2.jar
+        /app/libs/microprofile-openapi-api-1.1.2.jar
+        /app/libs/microprofile-opentracing-api-1.3.3.jar
+        /app/libs/microprofile-rest-client-api-1.4.1.jar
+        /app/libs/netty-buffer-4.1.51.Final.jar
+        /app/libs/netty-codec-4.1.51.Final.jar
+        /app/libs/netty-codec-http-4.1.51.Final.jar
+        /app/libs/netty-codec-http2-4.1.51.Final.jar
+        /app/libs/netty-common-4.1.51.Final.jar
+        /app/libs/netty-handler-4.1.51.Final.jar
+        /app/libs/netty-resolver-4.1.51.Final.jar
+        /app/libs/netty-transport-4.1.51.Final.jar
+        /app/libs/okhttp-3.14.1.jar
+        /app/libs/okio-1.17.2.jar
+        /app/libs/opentracing-api-0.33.0.jar
+        /app/libs/opentracing-noop-0.33.0.jar
+        /app/libs/opentracing-tracerresolver-0.1.8.jar
+        /app/libs/opentracing-util-0.33.0.jar
+        /app/libs/osgi-resource-locator-1.0.3.jar
+        /app/libs/slf4j-api-1.7.30.jar
+        /app/libs/slf4j-jdk14-1.7.30.jar
+        /app/libs/smallrye-open-api-1.2.0.jar
+        /app/libs/snakeyaml-1.27.jar
+        /app/libs/weld-api-3.1.SP2.jar
+        /app/libs/weld-core-impl-2.2.0.jar
+        /app/libs/weld-environment-common-3.1.4.Final.jar
+        /app/libs/weld-se-core-2.2.0.jar
+        /app/libs/weld-spi-3.1.SP2.jar
+        /app/libs/yasson-1.0.8.jar
+        /coherence-operator/utils/lib/coherence-utils.jar
+        /coherence-operator/utils/config
+    java.class.version = 55.0
+    java.home = /usr/lib/jvm/java-11-openjdk-amd64
+    java.io.tmpdir = /tmp
+    java.library.path = /usr/java/packages/lib
+        /usr/lib/x86_64-linux-gnu/jni
+        /lib/x86_64-linux-gnu
+        /usr/lib/x86_64-linux-gnu
+        /usr/lib/jni
+        /lib
+        /usr/lib
+    java.runtime.name = OpenJDK Runtime Environment
+    java.runtime.version = 11.0.6+10-post-Debian-1bpo91
+    java.specification.name = Java Platform API Specification
+    java.specification.vendor = Oracle Corporation
+    java.specification.version = 11
+    java.vendor = Debian
+    java.vendor.url = https://tracker.debian.org/openjdk-11
+    java.vendor.url.bug = https://bugs.debian.org/openjdk-11
+    java.version = 11.0.6
+    java.version.date = 2020-01-14
+    java.vm.compressedOopsMode = 32-bit
+    java.vm.info = mixed mode
+    java.vm.name = OpenJDK 64-Bit Server VM
+    java.vm.specification.name = Java Virtual Machine Specification
+    java.vm.specification.vendor = Oracle Corporation
+    java.vm.specification.version = 11
+    java.vm.vendor = Debian
+    java.vm.version = 11.0.6+10-post-Debian-1bpo91
+    jdk.debug = release
+    line.separator = \n 
+    os.arch = amd64
+    os.name = Linux
+    os.version = 5.4.17-2036.100.6.1.el7uek.x86_64
+    path.separator = :
+    sun.arch.data.model = 64
+    sun.boot.library.path = /usr/lib/jvm/java-11-openjdk-amd64/lib
+    sun.cpu.endian = little
+    sun.cpu.isalist = 
+    sun.io.unicode.encoding = UnicodeLittle
+    sun.java.command = com.oracle.coherence.k8s.Main io.helidon.microprofile.server.Main
+    sun.java.launcher = SUN_STANDARD
+    sun.jnu.encoding = ANSI_X3.4-1968
+    sun.management.compiler = HotSpot 64-Bit Tiered Compilers
+    sun.os.patch.level = unknown
+    user.country = US
+    user.dir = /
+    user.home = /root
+    user.language = en
+    user.name = root
+    user.timezone = 
+
+Locale settings:
+    default locale = English (United States)
+    default display locale = English (United States)
+    default format locale = English (United States)
+    available locales = , af, af_NA, af_ZA, agq, agq_CM, ak, ak_GH, 
+        am, am_ET, ar, ar_001, ar_AE, ar_BH, ar_DJ, ar_DZ, 
+        ar_EG, ar_EH, ar_ER, ar_IL, ar_IQ, ar_JO, ar_KM, ar_KW, 
+        ar_LB, ar_LY, ar_MA, ar_MR, ar_OM, ar_PS, ar_QA, ar_SA, 
+        ar_SD, ar_SO, ar_SS, ar_SY, ar_TD, ar_TN, ar_YE, as, 
+        as_IN, asa, asa_TZ, ast, ast_ES, az, az_AZ_#Cyrl, az_AZ_#Latn, 
+        az__#Cyrl, az__#Latn, bas, bas_CM, be, be_BY, bem, bem_ZM, 
+        bez, bez_TZ, bg, bg_BG, bm, bm_ML, bn, bn_BD, 
+        bn_IN, bo, bo_CN, bo_IN, br, br_FR, brx, brx_IN, 
+        bs, bs_BA_#Cyrl, bs_BA_#Latn, bs__#Cyrl, bs__#Latn, ca, ca_AD, ca_ES, 
+        ca_ES_VALENCIA, ca_FR, ca_IT, ccp, ccp_BD, ccp_IN, ce, ce_RU, 
+        cgg, cgg_UG, chr, chr_US, ckb, ckb_IQ, ckb_IR, cs, 
+        cs_CZ, cu, cu_RU, cy, cy_GB, da, da_DK, da_GL, 
+        dav, dav_KE, de, de_AT, de_BE, de_CH, de_DE, de_IT, 
+        de_LI, de_LU, dje, dje_NE, dsb, dsb_DE, dua, dua_CM, 
+        dyo, dyo_SN, dz, dz_BT, ebu, ebu_KE, ee, ee_GH, 
+        ee_TG, el, el_CY, el_GR, en, en_001, en_150, en_AG, 
+        en_AI, en_AS, en_AT, en_AU, en_BB, en_BE, en_BI, en_BM, 
+        en_BS, en_BW, en_BZ, en_CA, en_CC, en_CH, en_CK, en_CM, 
+        en_CX, en_CY, en_DE, en_DG, en_DK, en_DM, en_ER, en_FI, 
+        en_FJ, en_FK, en_FM, en_GB, en_GD, en_GG, en_GH, en_GI, 
+        en_GM, en_GU, en_GY, en_HK, en_IE, en_IL, en_IM, en_IN, 
+        en_IO, en_JE, en_JM, en_KE, en_KI, en_KN, en_KY, en_LC, 
+        en_LR, en_LS, en_MG, en_MH, en_MO, en_MP, en_MS, en_MT, 
+        en_MU, en_MW, en_MY, en_NA, en_NF, en_NG, en_NL, en_NR, 
+        en_NU, en_NZ, en_PG, en_PH, en_PK, en_PN, en_PR, en_PW, 
+        en_RW, en_SB, en_SC, en_SD, en_SE, en_SG, en_SH, en_SI, 
+        en_SL, en_SS, en_SX, en_SZ, en_TC, en_TK, en_TO, en_TT, 
+        en_TV, en_TZ, en_UG, en_UM, en_US, en_US_POSIX, en_VC, en_VG, 
+        en_VI, en_VU, en_WS, en_ZA, en_ZM, en_ZW, eo, eo_001, 
+        es, es_419, es_AR, es_BO, es_BR, es_BZ, es_CL, es_CO, 
+        es_CR, es_CU, es_DO, es_EA, es_EC, es_ES, es_GQ, es_GT, 
+        es_HN, es_IC, es_MX, es_NI, es_PA, es_PE, es_PH, es_PR, 
+        es_PY, es_SV, es_US, es_UY, es_VE, et, et_EE, eu, 
+        eu_ES, ewo, ewo_CM, fa, fa_AF, fa_IR, ff, ff_CM, 
+        ff_GN, ff_MR, ff_SN, fi, fi_FI, fil, fil_PH, fo, 
+        fo_DK, fo_FO, fr, fr_BE, fr_BF, fr_BI, fr_BJ, fr_BL, 
+        fr_CA, fr_CD, fr_CF, fr_CG, fr_CH, fr_CI, fr_CM, fr_DJ, 
+        fr_DZ, fr_FR, fr_GA, fr_GF, fr_GN, fr_GP, fr_GQ, fr_HT, 
+        fr_KM, fr_LU, fr_MA, fr_MC, fr_MF, fr_MG, fr_ML, fr_MQ, 
+        fr_MR, fr_MU, fr_NC, fr_NE, fr_PF, fr_PM, fr_RE, fr_RW, 
+        fr_SC, fr_SN, fr_SY, fr_TD, fr_TG, fr_TN, fr_VU, fr_WF, 
+        fr_YT, fur, fur_IT, fy, fy_NL, ga, ga_IE, gd, 
+        gd_GB, gl, gl_ES, gsw, gsw_CH, gsw_FR, gsw_LI, gu, 
+        gu_IN, guz, guz_KE, gv, gv_IM, ha, ha_GH, ha_NE, 
+        ha_NG, haw, haw_US, hi, hi_IN, hr, hr_BA, hr_HR, 
+        hsb, hsb_DE, hu, hu_HU, hy, hy_AM, ig, ig_NG, 
+        ii, ii_CN, in, in_ID, is, is_IS, it, it_CH, 
+        it_IT, it_SM, it_VA, iw, iw_IL, ja, ja_JP, ja_JP_JP_#u-ca-japanese, 
+        jgo, jgo_CM, ji, ji_001, jmc, jmc_TZ, ka, ka_GE, 
+        kab, kab_DZ, kam, kam_KE, kde, kde_TZ, kea, kea_CV, 
+        khq, khq_ML, ki, ki_KE, kk, kk_KZ, kkj, kkj_CM, 
+        kl, kl_GL, kln, kln_KE, km, km_KH, kn, kn_IN, 
+        ko, ko_KP, ko_KR, kok, kok_IN, ks, ks_IN, ksb, 
+        ksb_TZ, ksf, ksf_CM, ksh, ksh_DE, kw, kw_GB, ky, 
+        ky_KG, lag, lag_TZ, lb, lb_LU, lg, lg_UG, lkt, 
+        lkt_US, ln, ln_AO, ln_CD, ln_CF, ln_CG, lo, lo_LA, 
+        lrc, lrc_IQ, lrc_IR, lt, lt_LT, lu, lu_CD, luo, 
+        luo_KE, luy, luy_KE, lv, lv_LV, mas, mas_KE, mas_TZ, 
+        mer, mer_KE, mfe, mfe_MU, mg, mg_MG, mgh, mgh_MZ, 
+        mgo, mgo_CM, mk, mk_MK, ml, ml_IN, mn, mn_MN, 
+        mr, mr_IN, ms, ms_BN, ms_MY, ms_SG, mt, mt_MT, 
+        mua, mua_CM, my, my_MM, mzn, mzn_IR, naq, naq_NA, 
+        nb, nb_NO, nb_SJ, nd, nd_ZW, nds, nds_DE, nds_NL, 
+        ne, ne_IN, ne_NP, nl, nl_AW, nl_BE, nl_BQ, nl_CW, 
+        nl_NL, nl_SR, nl_SX, nmg, nmg_CM, nn, nn_NO, nnh, 
+        nnh_CM, no, no_NO, no_NO_NY, nus, nus_SS, nyn, nyn_UG, 
+        om, om_ET, om_KE, or, or_IN, os, os_GE, os_RU, 
+        pa, pa_IN_#Guru, pa_PK_#Arab, pa__#Arab, pa__#Guru, pl, pl_PL, prg, 
+        prg_001, ps, ps_AF, pt, pt_AO, pt_BR, pt_CH, pt_CV, 
+        pt_GQ, pt_GW, pt_LU, pt_MO, pt_MZ, pt_PT, pt_ST, pt_TL, 
+        qu, qu_BO, qu_EC, qu_PE, rm, rm_CH, rn, rn_BI, 
+        ro, ro_MD, ro_RO, rof, rof_TZ, ru, ru_BY, ru_KG, 
+        ru_KZ, ru_MD, ru_RU, ru_UA, rw, rw_RW, rwk, rwk_TZ, 
+        sah, sah_RU, saq, saq_KE, sbp, sbp_TZ, sd, sd_PK, 
+        se, se_FI, se_NO, se_SE, seh, seh_MZ, ses, ses_ML, 
+        sg, sg_CF, shi, shi_MA_#Latn, shi_MA_#Tfng, shi__#Latn, shi__#Tfng, si, 
+        si_LK, sk, sk_SK, sl, sl_SI, smn, smn_FI, sn, 
+        sn_ZW, so, so_DJ, so_ET, so_KE, so_SO, sq, sq_AL, 
+        sq_MK, sq_XK, sr, sr_BA, sr_BA_#Cyrl, sr_BA_#Latn, sr_CS, sr_ME, 
+        sr_ME_#Cyrl, sr_ME_#Latn, sr_RS, sr_RS_#Cyrl, sr_RS_#Latn, sr_XK_#Cyrl, sr_XK_#Latn, sr__#Cyrl, 
+        sr__#Latn, sv, sv_AX, sv_FI, sv_SE, sw, sw_CD, sw_KE, 
+        sw_TZ, sw_UG, ta, ta_IN, ta_LK, ta_MY, ta_SG, te, 
+        te_IN, teo, teo_KE, teo_UG, tg, tg_TJ, th, th_TH, 
+        th_TH_TH_#u-nu-thai, ti, ti_ER, ti_ET, tk, tk_TM, to, to_TO, 
+        tr, tr_CY, tr_TR, tt, tt_RU, twq, twq_NE, tzm, 
+        tzm_MA, ug, ug_CN, uk, uk_UA, ur, ur_IN, ur_PK, 
+        uz, uz_AF_#Arab, uz_UZ_#Cyrl, uz_UZ_#Latn, uz__#Arab, uz__#Cyrl, uz__#Latn, vai, 
+        vai_LR_#Latn, vai_LR_#Vaii, vai__#Latn, vai__#Vaii, vi, vi_VN, vo, vo_001, 
+        vun, vun_TZ, wae, wae_CH, wo, wo_SN, xog, xog_UG, 
+        yav, yav_CM, yo, yo_BJ, yo_NG, yue, yue_CN_#Hans, yue_HK_#Hant, 
+        yue__#Hans, yue__#Hant, zgh, zgh_MA, zh, zh_CN, zh_CN_#Hans, zh_HK, 
+        zh_HK_#Hans, zh_HK_#Hant, zh_MO_#Hans, zh_MO_#Hant, zh_SG, zh_SG_#Hans, zh_TW, zh_TW_#Hant, 
+        zh__#Hans, zh__#Hant, zu, zu_ZA
+Operating System Metrics:
+    Provider: cgroupv1
+    Effective CPU Count: 16
+    CPU Period: 100000us
+    CPU Quota: 3200000us
+    CPU Shares: 32768
+    List of Processors, 16 total: 
+    0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 
+    List of Effective Processors, 16 total: 
+    0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 
+    List of Memory Nodes, 1 total: 
+    0 
+    List of Available Memory Nodes, 1 total: 
+    0 
+    CPUSet Memory Pressure Enabled: false
+    Memory Limit: Unlimited
+    Memory Soft Limit: Unlimited
+    Memory & Swap Limit: Unlimited
+    Kernel Memory Limit: Unlimited
+    TCP Memory Limit: Unlimited
+    Out Of Memory Killer Enabled: true
+
+Jan 26, 2021 7:36:28 PM com.oracle.coherence.mp.config.CdiConfigSourceProvider getConfigSources
+INFO: CDI is not available. No CDI-managed configuration sources will be used.
+Jan 26, 2021 7:36:30 PM com.tangosol.coherence.component.util.logOutput.Jdk log
+INFO: (thread=main, member=n/a, up=2.581): Loaded operational configuration from "jar:file:/app/libs/coherence-20.12.jar!/tangosol-coherence.xml"
+Jan 26, 2021 7:36:30 PM com.tangosol.coherence.component.util.logOutput.Jdk log
+INFO: (thread=main, member=n/a, up=2.751): Loaded operational overrides from "jar:file:/app/libs/coherence-20.12.jar!/tangosol-coherence-override-dev.xml"
+Jan 26, 2021 7:36:30 PM com.tangosol.coherence.component.util.logOutput.Jdk log
+INFO: (thread=main, member=n/a, up=2.809): Loaded operational overrides from "jar:file:/coherence-operator/utils/lib/coherence-utils.jar!/k8s-coherence-nossl-override.xml"
+Jan 26, 2021 7:36:30 PM com.tangosol.coherence.component.util.logOutput.Jdk log
+INFO: (thread=main, member=n/a, up=2.811): Optional configuration override "/tangosol-coherence-override.xml" is not specified
+Jan 26, 2021 7:36:30 PM com.tangosol.coherence.component.util.logOutput.Jdk log
+INFO: (thread=main, member=n/a, up=2.826): Optional configuration override "cache-factory-config.xml" is not specified
+Jan 26, 2021 7:36:30 PM com.tangosol.coherence.component.util.logOutput.Jdk log
+INFO: (thread=main, member=n/a, up=2.827): Optional configuration override "cache-factory-builder-config.xml" is not specified
+Jan 26, 2021 7:36:30 PM com.tangosol.coherence.component.util.logOutput.Jdk log
+INFO: (thread=main, member=n/a, up=2.830): Optional configuration override "/custom-mbeans.xml" is not specified
+Jan 26, 2021 7:36:31 PM com.tangosol.coherence.component.util.logOutput.Jdk log
+INFO: (thread=main, member=n/a, up=3.567): Coherence Operator REST server is listening on http://localhost:6676
+2021.01.26 19:36:31 INFO io.helidon.common.LogConfig Thread[main,5,main]: Logging at initialization configured using classpath: /logging.properties
+2021.01.26 19:36:31 INFO org.jboss.weld.Version Thread[main,5,main]: WELD-000900: 3.1.4 (Final)
+2021.01.26 19:36:31 CONFIG org.glassfish.jersey.internal.ServiceFinder Thread[main,5,main]: Running in a non-OSGi environment
+2021.01.26 19:36:31 INFO org.jboss.weld.Bootstrap Thread[main,5,main]: WELD-ENV-000020: Using jandex for bean discovery
+2021.01.26 19:36:31 INFO org.jboss.weld.Bootstrap Thread[main,5,main]: WELD-000101: Transactional services not available. Injection of @Inject UserTransaction not available. Transactional observers will be invoked synchronously.
+2021.01.26 19:36:32 INFO org.jboss.weld.Event Thread[main,5,main]: WELD-000411: Observer method [BackedAnnotatedMethod] private io.helidon.microprofile.openapi.OpenApiCdiExtension.processAnnotatedType(@Observes ProcessAnnotatedType<X>) receives events for all annotated types. Consider restricting events using @WithAnnotations or a generic type with bounds.
+2021.01.26 19:36:32 INFO org.jboss.weld.Event Thread[main,5,main]: WELD-000411: Observer method [BackedAnnotatedMethod] public org.glassfish.jersey.ext.cdi1x.internal.ProcessAllAnnotatedTypes.processAnnotatedType(@Observes ProcessAnnotatedType<?>, BeanManager) receives events for all annotated types. Consider restricting events using @WithAnnotations or a generic type with bounds.
+2021.01.26 19:36:32 INFO org.jboss.weld.Bootstrap Thread[main,5,main]: WELD-000141: Falling back to the default observer method resolver due to [BackedAnnotatedMethod] private com.oracle.coherence.cdi.CoherenceExtension.processValueExtractorInjectionPoint(@Observes @WithAnnotations ProcessAnnotatedType<T extends ExtractorFactory<?, ?, ?>>)
+2021.01.26 19:36:35 INFO coherence Thread[Logger@198112003 20.12,3,main]: (thread=Coherence, member=n/a, up=8.333): Loaded cache configuration from "jar:file:/app/libs/coherence-20.12.jar!/coherence-system-config.xml"
+2021.01.26 19:36:36 INFO coherence Thread[Logger@198112003 20.12,3,main]: (thread=Coherence, member=n/a, up=8.740): Starting session $SYS with scope name $SYS
+2021.01.26 19:36:36 INFO coherence Thread[Logger@198112003 20.12,3,main]: (thread=Coherence, member=n/a, up=9.480): TCMP bound to /10.244.0.7:36969 using SystemDatagramSocketProvider
+2021.01.26 19:36:37 INFO coherence Thread[Logger@198112003 20.12,3,main]: (thread=Cluster, member=n/a, up=10.137): Member(Id=7, Timestamp=2021-01-26 19:36:15.337, Address=10.244.0.126:39087, MachineId=9680, Location=site:users-coh-sts.oam-sockshop.svc.cluster.local,machine:10.0.10.2,process:32,member:users-coh-0, Role=Users) joined Cluster with senior member 7
+2021.01.26 19:36:37 INFO coherence Thread[Logger@198112003 20.12,3,main]: (thread=Cluster, member=n/a, up=10.163): This Member(Id=10, Timestamp=2021-01-26 19:36:37.379, Address=10.244.0.7:36969, MachineId=9680, Location=site:carts-coh-sts.oam-sockshop.svc.cluster.local,machine:10.0.10.2,process:33,member:carts-coh-0, Role=Carts, Edition=Community Edition, Mode=Development, CpuCount=16, SocketCount=2) joined cluster "SockShop" with senior Member(Id=7, Timestamp=2021-01-26 19:36:15.337, Address=10.244.0.126:39087, MachineId=9680, Location=site:users-coh-sts.oam-sockshop.svc.cluster.local,machine:10.0.10.2,process:32,member:users-coh-0, Role=Users, Edition=Community Edition, Mode=Development, CpuCount=16, SocketCount=2)
+2021.01.26 19:36:37 WARNING coherence Thread[Logger@198112003 20.12,3,main]: (thread=Cluster, member=n/a, up=10.165): This member is configured with a compatible but different WKA list than the senior Member(Id=7, Timestamp=2021-01-26 19:36:15.337, Address=10.244.0.126:39087, MachineId=9680, Location=site:users-coh-sts.oam-sockshop.svc.cluster.local,machine:10.0.10.2,process:32,member:users-coh-0, Role=Users). It is strongly recommended to use the same WKA list for all cluster members.
+2021.01.26 19:36:37 INFO coherence Thread[Logger@198112003 20.12,3,main]: (thread=Cluster, member=n/a, up=10.375): Member(Id=8, Timestamp=2021-01-26 19:36:33.946, Address=10.244.0.6:41733, MachineId=9680, Location=site:orders-coh-sts.oam-sockshop.svc.cluster.local,machine:10.0.10.2,process:34,member:orders-coh-0, Role=Orders) joined Cluster with senior member 7
+2021.01.26 19:36:37 INFO coherence Thread[Logger@198112003 20.12,3,main]: (thread=Cluster, member=n/a, up=10.375): Member(Id=9, Timestamp=2021-01-26 19:36:36.819, Address=10.244.0.5:44005, MachineId=9680, Location=site:catalog-coh-sts.oam-sockshop.svc.cluster.local,machine:10.0.10.2,process:32,member:catalog-coh-0, Role=Catalog) joined Cluster with senior member 7
+2021.01.26 19:36:37 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=NameService:TcpAcceptor, member=n/a, up=10.440): TcpAcceptor now listening for connections on carts-coh-0:36969.3
+2021.01.26 19:36:37 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=Cluster, member=n/a, up=10.442): NameService now listening for connections on carts-coh-0:7574.3
+2021.01.26 19:36:38 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=Transport:TransportService, member=n/a, up=10.720): Service TransportService joined the cluster with senior service member 7
+2021.01.26 19:36:38 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=SelectionService(channels=8, selector=MultiplexedSelector(sun.nio.ch.EPollSelectorImpl@451e9f47), id=1687512657), member=n/a, up=10.811): Connection established with tmb://10.244.0.6:41733.50502
+2021.01.26 19:36:38 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=SelectionService(channels=8, selector=MultiplexedSelector(sun.nio.ch.EPollSelectorImpl@451e9f47), id=1687512657), member=n/a, up=10.820): Connection established with tmb://10.244.0.5:44005.53891
+2021.01.26 19:36:38 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=SelectionService(channels=8, selector=MultiplexedSelector(sun.nio.ch.EPollSelectorImpl@451e9f47), id=1687512657), member=n/a, up=10.821): Connection established with tmb://10.244.0.126:39087.59617
+2021.01.26 19:36:38 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=Coherence, member=n/a, up=10.865): Started cluster Name=SockShop, ClusterPort=7574
+
+WellKnownAddressList(
+  10.244.0.126
+  10.244.0.123
+  10.244.0.6
+  10.244.0.7
+  10.244.0.5
+  )
+
+MasterMemberSet(
+  ThisMember=Member(Id=10, Timestamp=2021-01-26 19:36:37.379, Address=10.244.0.7:36969, MachineId=9680, Location=site:carts-coh-sts.oam-sockshop.svc.cluster.local,machine:10.0.10.2,process:33,member:carts-coh-0, Role=Carts)
+  OldestMember=Member(Id=7, Timestamp=2021-01-26 19:36:15.337, Address=10.244.0.126:39087, MachineId=9680, Location=site:users-coh-sts.oam-sockshop.svc.cluster.local,machine:10.0.10.2,process:32,member:users-coh-0, Role=Users)
+  ActualMemberSet=MemberSet(Size=4
+    Member(Id=7, Timestamp=2021-01-26 19:36:15.337, Address=10.244.0.126:39087, MachineId=9680, Location=site:users-coh-sts.oam-sockshop.svc.cluster.local,machine:10.0.10.2,process:32,member:users-coh-0, Role=Users)
+    Member(Id=8, Timestamp=2021-01-26 19:36:33.946, Address=10.244.0.6:41733, MachineId=9680, Location=site:orders-coh-sts.oam-sockshop.svc.cluster.local,machine:10.0.10.2,process:34,member:orders-coh-0, Role=Orders)
+    Member(Id=9, Timestamp=2021-01-26 19:36:36.819, Address=10.244.0.5:44005, MachineId=9680, Location=site:catalog-coh-sts.oam-sockshop.svc.cluster.local,machine:10.0.10.2,process:32,member:catalog-coh-0, Role=Catalog)
+    Member(Id=10, Timestamp=2021-01-26 19:36:37.379, Address=10.244.0.7:36969, MachineId=9680, Location=site:carts-coh-sts.oam-sockshop.svc.cluster.local,machine:10.0.10.2,process:33,member:carts-coh-0, Role=Carts)
+    )
+  MemberId|ServiceJoined|MemberState|Version|Edition
+    7|2021-01-26 19:36:15.337|JOINED|20.12.0|CE,
+    8|2021-01-26 19:36:33.946|JOINED|20.12.0|CE,
+    9|2021-01-26 19:36:36.819|JOINED|20.12.0|CE,
+    10|2021-01-26 19:36:37.379|JOINED|20.12.0|CE
+  RecycleMillis=1200000
+  RecycleSet=MemberSet(Size=6
+    Member(Id=1, Timestamp=2021-01-26 19:36:22.302, Address=10.244.0.120:39651, MachineId=9680)
+    Member(Id=2, Timestamp=2021-01-26 19:36:14.547, Address=10.244.0.121:43535, MachineId=9680)
+    Member(Id=3, Timestamp=2021-01-26 19:36:18.33, Address=10.244.0.122:45159, MachineId=9680)
+    Member(Id=4, Timestamp=2021-01-26 19:36:26.36, Address=10.244.0.123:34305, MachineId=9680)
+    Member(Id=5, Timestamp=2021-01-26 19:36:29.097, Address=10.244.0.124:35261, MachineId=9680)
+    Member(Id=6, Timestamp=2021-01-26 19:36:03.348, Address=10.244.0.125:35993, MachineId=9680)
+    )
+  )
+
+TcpRing{Connections=[9]}
+IpMonitor{Addresses=3, Timeout=15s}
+
+2021.01.26 19:36:38 CONFIG coherence Thread[Logger@9231537 20.12,3,main]: (thread=Coherence, member=10, up=10.951): Registering CDI-managed metrics registry adapters: MpMetricsRegistryAdapter$Proxy$_$$_WeldClientProxy
+2021.01.26 19:36:38 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=Invocation:Management, member=10, up=11.269): Service Management joined the cluster with senior service member 7
+2021.01.26 19:36:39 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=Coherence, member=10, up=11.555): Loaded Reporter configuration from "jar:file:/app/libs/coherence-20.12.jar!/reports/report-group.xml"
+2021.01.26 19:36:40 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:$SYS:Config, member=10, up=13.254): Service $SYS:Config joined the cluster with senior service member 7
+2021.01.26 19:36:41 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=Coherence, member=10, up=14.107): Started DefaultCacheServer
+Services
+  (
+  ClusterService{Name=Cluster, State=(SERVICE_STARTED, STATE_JOINED), Id=0, OldestMemberId=7}
+  TransportService{Name=TransportService, State=(SERVICE_STARTED), Id=1, OldestMemberId=7}
+  InvocationService{Name=Management, State=(SERVICE_STARTED), Id=2, OldestMemberId=7}
+  PartitionedCache{Name=$SYS:Config, State=(SERVICE_STARTED), Id=3, OldestMemberId=7, LocalStorage=enabled, PartitionCount=257, BackupCount=1, AssignedPartitions=0, BackupPartitions=0, CoordinatorId=7}
+  )
+
+2021.01.26 19:36:41 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=Coherence, member=10, up=14.113): Starting default Coherence instance
+2021.01.26 19:36:41 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=Coherence, member=10, up=14.419): Loaded cache configuration from "jar:file:/app/libs/coherence-20.12.jar!/coherence-cache-config.xml"
+2021.01.26 19:36:42 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=Coherence, member=10, up=14.961): Starting default session
+2021.01.26 19:36:42 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:Carts, member=10, up=15.135): Service Carts joined the cluster with senior service member 10
+2021.01.26 19:36:42 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:Carts, member=10, up=15.215): Service Carts: sending PartitionConfig ConfigSync to all
+2021.01.26 19:36:42 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:Carts, member=10, up=15.318): This member has become the distribution coordinator for MemberSet(Size=1
+  Member(Id=10, Timestamp=2021-01-26 19:36:37.379, Address=10.244.0.7:36969, MachineId=9680, Location=site:carts-coh-sts.oam-sockshop.svc.cluster.local,machine:10.0.10.2,process:33,member:carts-coh-0, Role=Carts)
+  )
+2021.01.26 19:36:42 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=Coherence, member=10, up=15.389): Started DefaultCacheServer
+Services
+  (
+  PartitionedCache{Name=Carts, State=(SERVICE_STARTED), Id=4, OldestMemberId=10, LocalStorage=enabled, PartitionCount=257, BackupCount=1, AssignedPartitions=0, BackupPartitions=0, CoordinatorId=10}
+  )
+2021.01.26 19:36:42 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=Coherence, member=10, up=15.393): Started Coherence server 
+Services
+  (
+  ClusterService{Name=Cluster, State=(SERVICE_STARTED, STATE_JOINED), Id=0, OldestMemberId=7}
+  TransportService{Name=TransportService, State=(SERVICE_STARTED), Id=1, OldestMemberId=7}
+  InvocationService{Name=Management, State=(SERVICE_STARTED), Id=2, OldestMemberId=7}
+  PartitionedCache{Name=$SYS:Config, State=(SERVICE_STARTED), Id=3, OldestMemberId=7, LocalStorage=enabled, PartitionCount=257, BackupCount=1, AssignedPartitions=0, BackupPartitions=0, CoordinatorId=7}
+  PartitionedCache{Name=Carts, State=(SERVICE_STARTED), Id=4, OldestMemberId=10, LocalStorage=enabled, PartitionCount=257, BackupCount=1, AssignedPartitions=0, BackupPartitions=0, CoordinatorId=10}
+  )
+
+2021.01.26 19:36:43 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:Carts, member=10, up=15.615): Partition ownership has stabilized with 1 nodes
+2021.01.26 19:36:43 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:$SYS:Config, member=10, up=16.138): Asking member 8 for primary ownership of PartitionSet{42..63}
+2021.01.26 19:36:43 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:$SYS:Config, member=10, up=16.322): Asking member 7 for primary ownership of PartitionSet{172..191}
+2021.01.26 19:36:43 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:$SYS:Config, member=10, up=16.520): Asking member 9 for primary ownership of PartitionSet{0..21}
+2021.01.26 19:36:44 INFO io.jaegertracing.Configuration Thread[main,5,main]: Initialized tracer=JaegerTracer(version=Java-1.1.0, serviceName=Carts, reporter=RemoteReporter(sender=HttpSender(), closeEnqueueTimeout=1000), sampler=RemoteControlledSampler(maxOperations=2000, manager=HttpSamplingManager(hostPort=localhost:5778), sampler=ProbabilisticSampler(tags={sampler.type=probabilistic, sampler.param=0.001})), tags={hostname=carts-coh-0, jaeger.version=Java-1.1.0, ip=10.244.0.7}, zipkinSharedRpcSpan=false, expandExceptionLogs=false, useTraceId128Bit=false)
+2021.01.26 19:36:44 INFO io.helidon.tracing.jaeger.JaegerTracerBuilder Thread[main,5,main]: Creating Jaeger tracer for 'Carts' configured with http://localhost:14268
+2021.01.26 19:36:44 INFO io.helidon.microprofile.security.SecurityCdiExtension Thread[main,5,main]: Authentication provider is missing from security configuration, but security extension for microprofile is enabled (requires providers configuration at key security.providers). Security will not have any valid authentication provider
+2021.01.26 19:36:44 INFO io.helidon.microprofile.security.SecurityCdiExtension Thread[main,5,main]: Authorization provider is missing from security configuration, but security extension for microprofile is enabled (requires providers configuration at key security.providers). ABAC provider is configured for authorization.
+2021.01.26 19:36:44 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:$SYS:Config, member=10, up=16.990): Asking member 9 for primary ownership of PartitionSet{0..21}
+2021.01.26 19:36:44 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:$SYS:Config, member=10, up=17.255): Asking member 8 for primary ownership of PartitionSet{42..63}
+2021.01.26 19:36:44 CONFIG io.helidon.webserver.cors.CorsEnabledServiceHelper Thread[main,5,main]: CORS is configured for service Metrics with CrossOriginConfig{pathPattern={+}, enabled=true, origins=[*], allowHeaders=[*], exposeHeaders=null, allowMethods=[GET, HEAD, OPTIONS], allowCredentials=false, maxAgeSeconds=3600
+2021.01.26 19:36:44 CONFIG io.helidon.webserver.cors.CorsSupportHelper Thread[main,5,main]: CorsSupportHelper configured as: CorsSupportHelper{name='Metrics', isActive=true, crossOriginConfigs=Aggregator{crossOriginConfigMatchables=[FixedCrossOriginConfigMatchable{matcher=RegexpPathMatcher{pattern=(.+)}, crossOriginConfig=CrossOriginConfig{pathPattern={+}, enabled=true, origins=[*], allowHeaders=[*], exposeHeaders=null, allowMethods=[GET, HEAD, OPTIONS], allowCredentials=false, maxAgeSeconds=3600}], isActive=true}, secondaryCrossOriginLookup=(not set)}
+2021.01.26 19:36:44 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:$SYS:Config, member=10, up=17.506): Transferring 0B of backup[1] for PartitionSet{42} to member 8
+2021.01.26 19:36:45 CONFIG io.helidon.microprofile.openapi.OpenApiCdiExtension Thread[main,5,main]: Adding Jandex index at jar:file:/app/classpath/carts-coherence.jar!/META-INF/jandex.idx
+2021.01.26 19:36:45 CONFIG io.helidon.microprofile.openapi.OpenApiCdiExtension Thread[main,5,main]: Adding Jandex index at jar:file:/app/libs/carts-core.jar!/META-INF/jandex.idx
+2021.01.26 19:36:45 CONFIG io.helidon.microprofile.openapi.OpenApiCdiExtension Thread[main,5,main]: Adding Jandex index at jar:file:/app/libs/coherence-mp-metrics-20.12.jar!/META-INF/jandex.idx
+2021.01.26 19:36:45 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:$SYS:Config, member=10, up=17.615): Transferring 0B of backup[1] for PartitionSet{0} to member 7
+2021.01.26 19:36:45 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:$SYS:Config, member=10, up=17.735): Partition ownership has stabilized with 4 nodes
+2021.01.26 19:36:45 CONFIG io.helidon.webserver.cors.CorsEnabledServiceHelper Thread[main,5,main]: CORS is configured for service OpenAPI with CrossOriginConfig{pathPattern={+}, enabled=true, origins=[*], allowHeaders=[*], exposeHeaders=null, allowMethods=[GET, HEAD, OPTIONS], allowCredentials=false, maxAgeSeconds=3600
+2021.01.26 19:36:45 CONFIG io.helidon.webserver.cors.CorsSupportHelper Thread[main,5,main]: CorsSupportHelper configured as: CorsSupportHelper{name='OpenAPI', isActive=true, crossOriginConfigs=Aggregator{crossOriginConfigMatchables=[FixedCrossOriginConfigMatchable{matcher=RegexpPathMatcher{pattern=(.+)}, crossOriginConfig=CrossOriginConfig{pathPattern={+}, enabled=true, origins=[*], allowHeaders=[*], exposeHeaders=null, allowMethods=[GET, HEAD, OPTIONS], allowCredentials=false, maxAgeSeconds=3600}], isActive=true}, secondaryCrossOriginLookup=(not set)}
+2021.01.26 19:36:45 INFO io.helidon.microprofile.server.ServerCdiExtension Thread[main,5,main]: Registering JAX-RS Application: HelidonMP
+2021.01.26 19:36:46 CONFIG org.glassfish.jersey.server.ApplicationHandler Thread[main,5,main]: Initiating Jersey application, version Jersey: 2.32 2020-09-25 10:48:52...
+2021.01.26 19:36:46 CONFIG org.glassfish.jersey.ext.cdi1x.internal.CdiComponentProvider Thread[main,5,main]: Jersey CDI component provider initialized.
+2021.01.26 19:36:46 CONFIG org.glassfish.jersey.ext.cdi1x.internal.CdiComponentProvider Thread[main,5,main]: Class, class org.glassfish.jersey.weld.se.WeldRequestScope, has been bound by Jersey CDI component provider.
+2021.01.26 19:36:46 CONFIG org.glassfish.jersey.ext.cdi1x.internal.CdiComponentProvider Thread[main,5,main]: Class, class io.helidon.examples.sockshop.carts.CartResourceAsync, has been bound by Jersey CDI component provider.
+2021.01.26 19:36:46 CONFIG org.glassfish.jersey.ext.cdi1x.internal.CdiComponentProvider Thread[main,5,main]: Class, class org.glassfish.json.jaxrs.JsonValueBodyWriter, has been bound by Jersey CDI component provider.
+2021.01.26 19:36:46 CONFIG org.glassfish.jersey.ext.cdi1x.internal.CdiComponentProvider Thread[main,5,main]: Class, class io.helidon.microprofile.tracing.MpTracingFilter, has been bound by Jersey CDI component provider.
+2021.01.26 19:36:46 CONFIG org.glassfish.jersey.ext.cdi1x.internal.CdiComponentProvider Thread[main,5,main]: Class, class io.helidon.security.integration.jersey.SecurityPreMatchingFilter, has been bound by Jersey CDI component provider.
+2021.01.26 19:36:46 CONFIG org.glassfish.jersey.ext.cdi1x.internal.CdiComponentProvider Thread[main,5,main]: Class, class io.helidon.examples.sockshop.carts.CorsFilter, has been bound by Jersey CDI component provider.
+2021.01.26 19:36:46 CONFIG org.glassfish.jersey.ext.cdi1x.internal.CdiComponentProvider Thread[main,5,main]: Class, class org.glassfish.json.jaxrs.JsonValueBodyReader, has been bound by Jersey CDI component provider.
+2021.01.26 19:36:46 CONFIG org.glassfish.jersey.ext.cdi1x.internal.CdiComponentProvider Thread[main,5,main]: Class, class io.helidon.examples.sockshop.carts.CartResource, has been bound by Jersey CDI component provider.
+2021.01.26 19:36:46 CONFIG org.glassfish.jersey.ext.cdi1x.internal.CdiComponentProvider Thread[main,5,main]: Class, class io.helidon.microprofile.tracing.MpTracingContextFilter, has been bound by Jersey CDI component provider.
+2021.01.26 19:36:46 CONFIG org.glassfish.jersey.ext.cdi1x.internal.CdiComponentProvider Thread[main,5,main]: Class, class io.helidon.security.integration.jersey.SecurityFilter, has been bound by Jersey CDI component provider.
+2021.01.26 19:36:46 CONFIG org.glassfish.jersey.process.internal.ExecutorProviders Thread[main,5,main]: Selected ExecutorServiceProvider implementation [io.helidon.webserver.jersey.AsyncExecutorProvider] to be used for injection of executor qualified by [org.glassfish.jersey.server.ManagedAsyncExecutor] annotation.
+2021.01.26 19:36:46 CONFIG org.glassfish.jersey.process.internal.ExecutorProviders Thread[main,5,main]: Multiple ExecutorServiceProvider registrations found for qualifier annotation [org.glassfish.jersey.server.ManagedAsyncExecutor]. The following provider registrations will be ignored: [org.glassfish.jersey.server.ServerExecutorProvidersConfigurator$DefaultManagedAsyncExecutorProvider]
+2021.01.26 19:36:46 CONFIG org.glassfish.jersey.process.internal.ExecutorProviders Thread[main,5,main]: Selected ScheduledExecutorServiceProvider implementation [org.glassfish.jersey.server.ServerExecutorProvidersConfigurator$DefaultBackgroundSchedulerProvider] to be used for injection of scheduler qualified by [org.glassfish.jersey.server.BackgroundScheduler] annotation.
+2021.01.26 19:36:46 CONFIG org.glassfish.jersey.server.ApplicationHandler Thread[main,5,main]: Jersey application initialized.
+Root Resource Classes:
+  io.helidon.examples.sockshop.carts.CartResource
+  io.helidon.examples.sockshop.carts.CartResourceAsync
+Pre-match Filters:
+   io.helidon.security.integration.jersey.SecurityPreMatchingFilter
+   io.helidon.microprofile.tracing.MpTracingContextFilter
+Global Request Filters:
+   org.glassfish.jersey.microprofile.restclient.HeadersRequestFilter
+   io.helidon.microprofile.tracing.MpTracingFilter
+   io.helidon.security.integration.jersey.SecurityFilter
+Global Response Filters:
+   org.glassfish.jersey.microprofile.restclient.HeadersRequestFilter
+   io.helidon.microprofile.tracing.MpTracingFilter
+   io.helidon.examples.sockshop.carts.CorsFilter$Proxy$_$$_WeldClientProxy
+   io.helidon.security.integration.jersey.SecurityFilter
+Global Reader Interceptors:
+   org.glassfish.jersey.server.internal.MappableExceptionWrapperInterceptor
+Global Writer Interceptors:
+   org.glassfish.jersey.server.internal.MappableExceptionWrapperInterceptor
+   org.glassfish.jersey.server.internal.JsonWithPaddingInterceptor
+Message Body Readers:
+   org.glassfish.jersey.jsonb.internal.JsonBindingProvider
+   org.glassfish.json.jaxrs.JsonValueBodyReader
+Message Body Writers:
+   org.glassfish.json.jaxrs.JsonValueBodyWriter
+   org.glassfish.jersey.jsonb.internal.JsonBindingProvider
+
+2021.01.26 19:36:46 CONFIG io.helidon.webserver.cors.CorsEnabledServiceHelper Thread[main,5,main]: CORS is configured for service Health with CrossOriginConfig{pathPattern={+}, enabled=true, origins=[*], allowHeaders=[*], exposeHeaders=null, allowMethods=[GET, HEAD, OPTIONS], allowCredentials=false, maxAgeSeconds=3600
+2021.01.26 19:36:46 CONFIG io.helidon.webserver.cors.CorsSupportHelper Thread[main,5,main]: CorsSupportHelper configured as: CorsSupportHelper{name='Health', isActive=true, crossOriginConfigs=Aggregator{crossOriginConfigMatchables=[FixedCrossOriginConfigMatchable{matcher=RegexpPathMatcher{pattern=(.+)}, crossOriginConfig=CrossOriginConfig{pathPattern={+}, enabled=true, origins=[*], allowHeaders=[*], exposeHeaders=null, allowMethods=[GET, HEAD, OPTIONS], allowCredentials=false, maxAgeSeconds=3600}], isActive=true}, secondaryCrossOriginLookup=(not set)}
+2021.01.26 19:36:47 INFO io.helidon.webserver.NettyWebServer Thread[nioEventLoopGroup-2-1,10,main]: Channel '@default' started: [id: 0x2d643f36, L:/0.0.0.0:7001]
+2021.01.26 19:36:47 INFO io.helidon.microprofile.server.ServerCdiExtension Thread[main,5,main]: Server started on http://localhost:7001 (and all other host addresses) in 19818 milliseconds (since JVM startup).
+2021.01.26 19:36:47 INFO io.helidon.common.HelidonFeatures Thread[features-thread,5,main]: Helidon MP 2.2.0 features: [CDI, Config, Fault Tolerance, Health, JAX-RS, Metrics, Open API, Security, Server, Tracing]
+2021.01.26 19:36:48 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=Cluster, member=10, up=20.818): Member(Id=11, Timestamp=2021-01-26 19:36:48.031, Address=10.244.0.8:37239, MachineId=9680, Location=site:shipping-coh-sts.oam-sockshop.svc.cluster.local,machine:10.0.10.2,process:31,member:shipping-coh-0, Role=Shipping) joined Cluster with senior member 7
+2021.01.26 19:36:48 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=SelectionService(channels=9, selector=MultiplexedSelector(sun.nio.ch.EPollSelectorImpl@451e9f47), id=1687512657), member=10, up=21.264): Connection established with tmb://10.244.0.8:37239.33571
+2021.01.26 19:36:48 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=Transport:TransportService, member=10, up=21.303): Member 11 joined Service TransportService with senior member 7
+2021.01.26 19:36:48 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=Invocation:Management, member=10, up=21.444): Member 11 joined Service Management with senior member 7
+2021.01.26 19:36:50 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=Cluster, member=10, up=22.588): Member(Id=12, Timestamp=2021-01-26 19:36:49.824, Address=10.244.0.14:44921, MachineId=9680, Location=site:payment-coh-sts.oam-sockshop.svc.cluster.local,machine:10.0.10.2,process:31,member:payment-coh-0, Role=Payment) joined Cluster with senior member 7
+2021.01.26 19:36:50 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=SelectionService(channels=10, selector=MultiplexedSelector(sun.nio.ch.EPollSelectorImpl@451e9f47), id=1687512657), member=10, up=22.970): Connection established with tmb://10.244.0.14:44921.32895
+2021.01.26 19:36:50 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=Transport:TransportService, member=10, up=23.010): Member 12 joined Service TransportService with senior member 7
+2021.01.26 19:36:50 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=Invocation:Management, member=10, up=23.283): Member 12 joined Service Management with senior member 7
+2021.01.26 19:36:50 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:$SYS:Config, member=10, up=23.483): Member 11 joined Service $SYS:Config with senior member 7
+2021.01.26 19:36:51 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:$SYS:Config, member=10, up=24.516): Transferring 0B of backup[1] for PartitionSet{12..21, 42..55} to member 11
+2021.01.26 19:36:51 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:$SYS:Config, member=10, up=24.518): Member 12 joined Service $SYS:Config with senior member 7
+2021.01.26 19:36:52 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:$SYS:Config, member=10, up=24.746): Transferring primary PartitionSet{11} to member 8 requesting 1
+2021.01.26 19:36:52 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:$SYS:Config, member=10, up=25.112): Transferring primary PartitionSet{0..10} to member 11 requesting 11
+2021.01.26 19:36:52 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:$SYS:Config, member=10, up=25.508): Asking member 11 for primary ownership of PartitionSet{6}
+2021.01.26 19:36:53 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:$SYS:Config, member=10, up=25.629): Asking member 11 for primary ownership of PartitionSet{6}
+2021.01.26 19:36:53 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:$SYS:Config, member=10, up=25.744): Transferring 0B of backup[1] for PartitionSet{6, 42..47, 56..63, 172} to member 12
+2021.01.26 19:36:53 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:$SYS:Config, member=10, up=26.143): Transferring primary PartitionSet{12..21} to member 12 requesting 10
+2021.01.26 19:36:54 INFO coherence Thread[Logger@9231537 20.12,3,main]: (thread=DistributedCache:$SYS:Config, member=10, up=26.667): Partition ownership has stabilized with 6 nodes

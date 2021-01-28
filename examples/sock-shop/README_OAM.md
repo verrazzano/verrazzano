@@ -14,8 +14,8 @@ It leverages OAM resources to define the application deployment.
 
 1. Create a namespace for the Sock Shop application and add a label identifying the namespace as managed by Verrazzano.
    ```
-   kubectl create namespace oam-sockshop
-   kubectl label namespace oam-sockshop verrazzano-managed=true
+   kubectl create namespace sockshop
+   kubectl label namespace sockshop verrazzano-managed=true
    ```
 
 1. Apply the Sock Shop OAM resources to deploy the application.
@@ -26,7 +26,7 @@ It leverages OAM resources to define the application deployment.
    
 1. Wait for the Sock Shop application to be ready.
    ```
-   kubectl wait --for=condition=Ready pods --all -n oam-sockshop --timeout=300s
+   kubectl wait --for=condition=Ready pods --all -n sockshop --timeout=300s
    ```
 
 ## Explore the Sock Shop application
@@ -54,7 +54,7 @@ Follow these steps to test the endpoints:
    istio-ingressgateway   LoadBalancer   10.96.97.98   11.22.33.44   80:31380/TCP,443:31390/TCP   13d
    ```   
 
-1. The application is deployed by default with a host value of `oam-sockshop.example.com`.
+1. The application is deployed by default with a host value of `sockshop.example.com`.
    
    There are several ways to access it:
    * **Using the command line**
@@ -63,28 +63,28 @@ Follow these steps to test the endpoints:
 
      ```
      # Get catalogue
-     curl -s -X GET -H "Host: oam-sockshop.example.com" http://<external IP>/catalogue
+     curl -s -X GET -H "Host: sockshop.example.com" http://<external IP>/catalogue
      [{"count":115,"description":"For all those leg lovers out there....", ...}]
 
      # Add a new user (replace values of username and password)
-     curl -i --header "Content-Type: application/json" -H "Host: oam-sockshop.example.com" --request POST --data '{"username":"foo","password":"****","email":"foo@example.com","firstName":"foo","lastName":"foo"}' http://<external IP>/register
+     curl -i --header "Content-Type: application/json" -H "Host: sockshop.example.com" --request POST --data '{"username":"foo","password":"****","email":"foo@example.com","firstName":"foo","lastName":"foo"}' http://<external IP>/register
 
      # Add an item to the user's cart
-     curl -i --header "Content-Type: application/json" -H "Host: oam-sockshop.example.com" --request POST --data '{"itemId": "a0a4f044-b040-410d-8ead-4de0446aec7e","unitPrice": "7.99"}' http://<external IP>/carts/{username}/items
+     curl -i --header "Content-Type: application/json" -H "Host: sockshop.example.com" --request POST --data '{"itemId": "a0a4f044-b040-410d-8ead-4de0446aec7e","unitPrice": "7.99"}' http://<external IP>/carts/{username}/items
 
      # Get cart items
-     curl -i -H "Host: oam-sockshop.example.com" http://"${SERVER}":"${PORT}"/carts/{username}/items
+     curl -i -H "Host: sockshop.example.com" http://"${SERVER}":"${PORT}"/carts/{username}/items
      ```
    * **Local Testing with a Browser** 
    
      Temporarily modify the `/etc/hosts` file (on Mac or Linux)
      or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10), 
-     to add an entry mapping `oam-sockshop.example.com` to the ingress gateway's `EXTERNAL-IP` address.
+     to add an entry mapping `sockshop.example.com` to the ingress gateway's `EXTERNAL-IP` address.
      For example:
      ```
-     11.22.33.44 oam-sockshop.example.com
+     11.22.33.44 sockshop.example.com
      ```
-     Then, you can access the application in a browser at `http://oam-sockshop.example.com/catalogue`
+     Then, you can access the application in a browser at `http://sockshop.example.com/catalogue`
 
    * **Using your own DNS Name:**
    
@@ -98,31 +98,21 @@ Follow these steps to test the endpoints:
     
 1. Verify that the application configuration, domain and ingress trait all exist.
    ```
-   kubectl get ApplicationConfiguration -n oam-sockshop
-   kubectl get Domain -n oam-sockshop
-   kubectl get IngressTrait -n oam-sockshop
+   kubectl get ApplicationConfiguration -n sockshop
+   kubectl get Domain -n sockshop
+   kubectl get IngressTrait -n sockshop
    ```   
 
 1. Verify that the Sock Shop service pods are successfully created and transition to the ready state.
    Note that this may take a few minutes and that you may see some of the services terminate and restart.
    ```
-    kubectl get pods -n oam-sockshop -w
+    kubectl get pods -n sockshop
    
     NAME             READY   STATUS        RESTARTS   AGE
-    carts-coh-0      0/1     Running       0          41s
-    catalog-coh-0    0/1     Running       0          40s
-    orders-coh-0     0/1     Running       0          39s
-    payment-coh-0    0/1     Running       0          37s
-    shipping-coh-0   0/1     Running       0          36s
-    users-coh-0      0/1     Running       0          35s
-    carts-coh-0      0/1     Terminating   0          50s
-    catalog-coh-0    0/1     Terminating   0          52s
-    carts-coh-0      0/1     Terminating   0          54s
-    catalog-coh-0    0/1     Terminating   0          54s
-    carts-coh-0      0/1     Terminating   0          58s
-    carts-coh-0      0/1     Terminating   0          58s
-    carts-coh-0      0/1     Pending       0          0s
-    carts-coh-0      0/1     Pending       0          0s
-    carts-coh-0      0/1     Init:0/1      0          0s
-    . . .
+    carts-coh-0      1/1     Running       0          41s
+    catalog-coh-0    1/1     Running       0          40s
+    orders-coh-0     1/1     Running       0          39s
+    payment-coh-0    1/1     Running       0          37s
+    shipping-coh-0   1/1     Running       0          36s
+    users-coh-0      1/1     Running       0          35s
    ``` 

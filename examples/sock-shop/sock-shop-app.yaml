@@ -4,7 +4,7 @@ apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
   name: carts-appconf
-  namespace: oam-sockshop
+  namespace: sockshop
   annotations:
     version: v1.0.0
     description: "OAM Sock Shop Carts Application"
@@ -20,7 +20,7 @@ spec:
             spec:
               rules:
                 - hosts:
-                    - "oam-sockshop.example.com"
+                    - "sockshop.example.com"
                   paths:
                     - path: "/carts"
                       pathType: Prefix
@@ -36,7 +36,7 @@ apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
   name: catalog-appconf
-  namespace: oam-sockshop
+  namespace: sockshop
   annotations:
     version: v1.0.0
     description: "OAM Sock Shop Catalog Application"
@@ -52,7 +52,7 @@ spec:
             spec:
               rules:
                 - hosts:
-                    - "oam-sockshop.example.com"
+                    - "sockshop.example.com"
                   paths:
                     - path: "/catalogue"
                       pathType: Prefix
@@ -68,7 +68,7 @@ apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
   name: orders-appconf
-  namespace: oam-sockshop
+  namespace: sockshop
   annotations:
     version: v1.0.0
     description: "OAM Sock Shop Orders Application"
@@ -84,7 +84,7 @@ spec:
             spec:
               rules:
                 - hosts:
-                    - "oam-sockshop.example.com"
+                    - "sockshop.example.com"
                   paths:
                     - path: "/orders"
                       pathType: Prefix
@@ -100,7 +100,7 @@ apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
   name: payment-appconf
-  namespace: oam-sockshop
+  namespace: sockshop
   annotations:
     version: v1.0.0
     description: "OAM Sock Shop Payment Application"
@@ -116,7 +116,7 @@ spec:
             spec:
               rules:
                 - hosts:
-                    - "oam-sockshop.example.com"
+                    - "sockshop.example.com"
                   paths:
                     - path: "/payment"
                       pathType: Prefix
@@ -132,7 +132,7 @@ apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
   name: shipping-appconf
-  namespace: oam-sockshop
+  namespace: sockshop
   annotations:
     version: v1.0.0
     description: "OAM Sock Shop Shipping Application"
@@ -148,7 +148,7 @@ spec:
             spec:
               rules:
                 - hosts:
-                    - "oam-sockshop.example.com"
+                    - "sockshop.example.com"
                   paths:
                     - path: "/shipping"
                       pathType: Prefix
@@ -164,7 +164,7 @@ apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
   name: users-appconf
-  namespace: oam-sockshop
+  namespace: sockshop
   annotations:
     version: v1.0.0
     description: "OAM Sock Shop Shipping Application"
@@ -180,7 +180,7 @@ spec:
             spec:
               rules:
                 - hosts:
-                    - "oam-sockshop.example.com"
+                    - "sockshop.example.com"
                   paths:
                     - path: "/register"
                       pathType: Prefix
