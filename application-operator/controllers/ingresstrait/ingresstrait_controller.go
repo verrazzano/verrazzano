@@ -5,6 +5,7 @@ package ingresstrait
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -19,6 +20,7 @@ import (
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8net "k8s.io/api/networking/v1beta1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -270,10 +272,16 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 
 // mutateGateway mutates the output Gateway child resource.
 func (r *Reconciler) mutateGateway(gateway *istioclinet.Gateway, trait *vzapi.IngressTrait, rule vzapi.IngressRule) error {
+
+	hostName, err := generateDNSHostName(r, trait)
+	if err != nil {
+		return err
+	}
+
 	// Set the spec content.
 	gateway.Spec.Selector = map[string]string{"istio": "ingressgateway"}
 	gateway.Spec.Servers = []*istionet.Server{{
-		Hosts: createHostsFromIngressTraitRule(rule),
+		Hosts: createHostsFromIngressTraitRule(rule, hostName),
 		Port: &istionet.Port{
 			Name:     "http",
 			Number:   80,
@@ -313,9 +321,13 @@ func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vz
 
 // mutateVirtualService mutates the output virtual service resource
 func (r *Reconciler) mutateVirtualService(virtualService *istioclinet.VirtualService, trait *vzapi.IngressTrait, rule vzapi.IngressRule, service *corev1.Service, gateway *istioclinet.Gateway) error {
+	hostName, err := generateDNSHostName(r, trait)
+	if err != nil {
+		return err
+	}
 	// Set the spec content.
 	virtualService.Spec.Gateways = []string{gateway.Name}
-	virtualService.Spec.Hosts = createHostsFromIngressTraitRule(rule)
+	virtualService.Spec.Hosts = createHostsFromIngressTraitRule(rule, hostName)
 	matches := []*istionet.HTTPMatchRequest{}
 	paths := getPathsFromRule(rule)
 	for _, path := range paths {
@@ -386,25 +398,6 @@ func createVirtualServiceMatchURIFromIngressTraitPath(path vzapi.IngressPath) *i
 	default:
 		return &istionet.StringMatch{MatchType: &istionet.StringMatch_Exact{Exact: p}}
 	}
-}
-
-// createHostsFromIngressTraitRule creates an array of hosts from an ingress rule.
-// It is primarily used to setup defaults when either no hosts are provided or the host is blank.
-// If the rule contains an empty host array a host array with a single "*" element is created.
-// Otherwise any blank hosts in the input ingress rules are replaced with "*" values.
-func createHostsFromIngressTraitRule(rule vzapi.IngressRule) []string {
-	hosts := rule.Hosts
-	if len(rule.Hosts) == 0 {
-		hosts = []string{"*"}
-	}
-	for i, h := range hosts {
-		h = strings.TrimSpace(h)
-		if len(h) == 0 {
-			h = "*"
-		}
-		hosts[i] = h
-	}
-	return hosts
 }
 
 // fetchServiceFromTrait traverses from an ingress trait resource to the related service resource and returns it.
@@ -500,3 +493,56 @@ func convertAPIVersionToGroupAndVersion(apiVersion string) (string, string) {
 	}
 	return parts[0], parts[1]
 }
+
+// createHostsFromIngressTraitRule creates an array of hosts from an ingress rule.
+// It is primarily used to setup defaults when either no hosts are provided or the host is blank.
+// If the rule contains an empty host array a host array with a single "*" element is created.
+// Otherwise any blank hosts in the input ingress rules are replaced with "*" values.
+func createHostsFromIngressTraitRule(rule vzapi.IngressRule, hostName string) []string {
+	var validHosts []string
+	for _, h := range rule.Hosts {
+		h = strings.TrimSpace(h)
+		// Ignore empty or wildcard hostname
+		if len(h) == 0  || strings.Contains(h, "*") {
+			continue
+		}
+		validHosts = append(validHosts, h)
+	}
+	// Use default hostname if none of the user specified hosts were valid
+	if len(validHosts) == 0 {
+		validHosts = []string{hostName}
+	}
+	return validHosts
+}
+
+// generateDNSHostName will generate a fully qualified DNS host name using the following structure:
+// <app>.<namespace>.<dns-subdomain>  where
+//   app: the OAM application name
+//   namespace: the namespace of the OAM application
+//   vz-name: the Verrazzano environment name
+//   dns-subdomain : The DNS subdomain name
+// For example: sales.books-ns.example.com
+func generateDNSHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
+
+	appName, ok := trait.Labels[oam.LabelAppName]
+	if !ok {
+		return  "", errors.New("OAM app name label missing from metadata, unable to add ingress trait")
+	}
+
+	// Extract the domain name from the verrazzano console ingress
+	// ingress-nginx ingress-vcontroller-ingress-nginx-controller
+	ingress := k8net.Ingress{}
+	name := "verrazzano-console-ingress"
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: "verrazzano-system"}, &ingress)
+	if err != nil {
+		return "",err
+	}
+	return buildAppDnsName(ingress.Spec.Rules[0].Host, appName, trait.Namespace), nil
+}
+
+func buildAppDnsName(hostName string, appName string, namespace string) string {
+	segs := strings.Split(hostName, ".")
+	domain := strings.Join(segs[2:], ".")
+	return fmt.Sprintf("%s.%s.%s", appName, namespace, domain)
+}
+

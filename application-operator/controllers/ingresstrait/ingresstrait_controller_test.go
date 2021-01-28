@@ -540,7 +540,7 @@ func TestCreateHostsFromIngressTraitRule(t *testing.T) {
 	// WHEN a host slice is requested for use
 	// THEN verify that the default "*" host is included
 	rule = vzapi.IngressRule{}
-	hosts = createHostsFromIngressTraitRule(rule)
+	hosts = createHostsFromIngressTraitRule(rule, "testNs")
 	assert.Len(hosts, 1)
 	assert.Equal("*", hosts[0])
 
@@ -548,7 +548,7 @@ func TestCreateHostsFromIngressTraitRule(t *testing.T) {
 	// WHEN a host slice is requested for use
 	// THEN verify that the default "*" host is included for the empty host
 	rule = vzapi.IngressRule{Hosts: []string{"host-1", "", "host-2"}}
-	hosts = createHostsFromIngressTraitRule(rule)
+	hosts = createHostsFromIngressTraitRule(rule,"testNs")
 	assert.Len(hosts, 3)
 	assert.Equal("host-1", hosts[0])
 	assert.Equal("*", hosts[1])
@@ -731,4 +731,16 @@ func newUnstructuredService(uid types.UID, clusterIP string) (unstructured.Unstr
 		}}
 
 	return convertToUnstructured(service)
+}
+
+// GIVEN a single service in the unstructured children list
+// WHEN extracting the service
+// THEN ensure the returned service is the child from the list
+func TestBuildAppDnsName(t *testing.T) {
+	assert := asserts.New(t)
+	hostName := "verrazzano.env.host1.example.com"
+	appName := "myapp"
+	namespace := "myns"
+	DNSName := "myapp.myns.host1.example.com"
+	assert.Equal(DNSName, buildAppDnsName(hostName, appName, namespace))
 }
