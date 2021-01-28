@@ -70,7 +70,10 @@ const wlsFluentdParsingRules = `<match fluent.**>
   @type record_transformer
   <record>
     domainUID "#{ENV['DOMAIN_UID']}"
-    namespace "#{ENV['NAMESPACE']}"
+    oam.applicationconfiguration.namespace "#{ENV['NAMESPACE']}"
+    oam.applicationconfiguration.name "#{ENV['APP_CONF_NAME']}"
+    oam.component.namespace "#{ENV['NAMESPACE']}"
+    oam.component.name  "#{ENV['COMPONENT_NAME']}"
   </record>
 </filter>
 <match **>
@@ -79,7 +82,7 @@ const wlsFluentdParsingRules = `<match fluent.**>
   port "#{ENV['ELASTICSEARCH_PORT']}"
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
-  index_name "#{ENV['NAMESPACE']}_#{ENV['DOMAIN_UID']}"
+  index_name "app-#{ENV['NAMESPACE']}-#{ENV['APP_CONF_NAME']}-#{ENV['COMPONENT_NAME']}"
   scheme http
   key_name timestamp 
   types timestamp:time
@@ -193,6 +196,22 @@ func getWlsSpecificContainerEnv(workload vzapi.QualifiedResourceRelation) []v1.E
 		{
 			Name:  "NAMESPACE",
 			Value: workload.Namespace,
+		},
+		{
+			Name: "APP_CONF_NAME",
+			ValueFrom: &v1.EnvVarSource{
+				FieldRef: &v1.ObjectFieldSelector{
+					FieldPath: "metadata.labels['app.oam.dev/name']",
+				},
+			},
+		},
+		{
+			Name: "COMPONENT_NAME",
+			ValueFrom: &v1.EnvVarSource{
+				FieldRef: &v1.ObjectFieldSelector{
+					FieldPath: "metadata.labels['app.oam.dev/component']",
+				},
+			},
 		},
 	}
 }

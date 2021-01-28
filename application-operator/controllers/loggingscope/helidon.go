@@ -34,10 +34,10 @@ const HelidonFluentdConfiguration = `<label @FLUENT_LOG>
 </label>
 <source>
   @type tail
-  path "/var/log/containers/#{ENV['APPLICATION_NAME']}*#{ENV['APP_CONTAINER_NAME']}*.log"
-  pos_file "/tmp/#{ENV['APPLICATION_NAME']}.log.pos"
+  path "/var/log/containers/#{ENV['WORKLOAD_NAME']}*#{ENV['APP_CONTAINER_NAME']}*.log"
+  pos_file "/tmp/#{ENV['WORKLOAD_NAME']}.log.pos"
   read_from_head true
-  tag "#{ENV['APPLICATION_NAME']}"
+  tag "#{ENV['WORKLOAD_NAME']}"
   # Helidon application messages are expected to look like this:
   # 2020.04.22 16:09:21 INFO org.books.bobby.Main Thread[main,5,main]: http://localhost:8080/books
   <parse>
@@ -79,8 +79,10 @@ const HelidonFluentdConfiguration = `<label @FLUENT_LOG>
 <filter **>
   @type record_transformer
   <record>
-    applicationName "#{ENV['APPLICATION_NAME']}"
-    namespace "#{ENV['NAMESPACE']}"
+    oam.applicationconfiguration.namespace "#{ENV['NAMESPACE']}"
+    oam.applicationconfiguration.name "#{ENV['APP_CONF_NAME']}"
+    oam.component.namespace "#{ENV['NAMESPACE']}"
+    oam.component.name  "#{ENV['COMPONENT_NAME']}"
   </record>
 </filter>
 <match **>
@@ -89,7 +91,7 @@ const HelidonFluentdConfiguration = `<label @FLUENT_LOG>
   port "#{ENV['ELASTICSEARCH_PORT']}"
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
-  index_name "#{ENV['ELASTICSEARCH_APP_INDEX']}"
+  index_name "app-#{ENV['NAMESPACE']}-#{ENV['APP_CONF_NAME']}-#{ENV['COMPONENT_NAME']}"
   scheme http
   include_timestamp true
   flush_interval 10s
@@ -215,7 +217,7 @@ func CreateFluentdConfigMap(namespace, name, fluentdConfig string) *kcore.Config
 }
 
 // CreateFluentdContainer creates a FLUENTD sidecar container.
-func CreateFluentdContainer(namespace, appName, containerName, fluentdImage, esSecret, esHost string) kcore.Container {
+func CreateFluentdContainer(namespace, workloadName, containerName, fluentdImage, esSecret, esHost string) kcore.Container {
 	container := kcore.Container{
 		Name:            fluentdContainerName,
 		Args:            []string{"-c", "/etc/fluent.conf"},
@@ -223,8 +225,8 @@ func CreateFluentdContainer(namespace, appName, containerName, fluentdImage, esS
 		ImagePullPolicy: kcore.PullIfNotPresent,
 		Env: []kcore.EnvVar{
 			{
-				Name:  "APPLICATION_NAME",
-				Value: appName,
+				Name:  "WORKLOAD_NAME",
+				Value: workloadName,
 			},
 			{
 				Name:  "APP_CONTAINER_NAME",
@@ -239,12 +241,24 @@ func CreateFluentdContainer(namespace, appName, containerName, fluentdImage, esS
 				Value: "true",
 			},
 			{
-				Name:  "ELASTICSEARCH_APP_INDEX",
-				Value: fmt.Sprintf("%s_%s", namespace, appName),
-			},
-			{
 				Name:  "NAMESPACE",
 				Value: namespace,
+			},
+			{
+				Name: "APP_CONF_NAME",
+				ValueFrom: &kcore.EnvVarSource{
+					FieldRef: &kcore.ObjectFieldSelector{
+						FieldPath: "metadata.labels['app.oam.dev/name']",
+					},
+				},
+			},
+			{
+				Name: "COMPONENT_NAME",
+				ValueFrom: &kcore.EnvVarSource{
+					FieldRef: &kcore.ObjectFieldSelector{
+						FieldPath: "metadata.labels['app.oam.dev/component']",
+					},
+				},
 			},
 			{
 				Name:  "ELASTICSEARCH_HOST",
