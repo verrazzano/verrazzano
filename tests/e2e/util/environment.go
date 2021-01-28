@@ -144,7 +144,7 @@ func QueryMetric(metricsName string) string {
 	return content
 }
 
-// getPrometheusIngressHost retrieves the prometheus host address
+// getPrometheusIngressHost retrieves the Prometheus host address
 func getPrometheusIngressHost() string {
 	ingressList, _ := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").List(context.TODO(), metav1.ListOptions{})
 	for _, ingress := range ingressList.Items {
