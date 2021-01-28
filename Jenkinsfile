@@ -458,11 +458,11 @@ pipeline {
                                         runGinkgoRandomize('verify-install')
                                     }
                                 }
-//                                 stage('restapi') {
-//                                     steps {
-//                                         runGinkgo('verify-infra/restapi')
-//                                     }
-//                                 }
+                                stage('restapi') {
+                                    steps {
+                                        runGinkgo('verify-infra/restapi')
+                                    }
+                                }
                                 stage('examples') {
                                     when {
                                         expression {params.RUN_EXAMPLE_TESTS == true}

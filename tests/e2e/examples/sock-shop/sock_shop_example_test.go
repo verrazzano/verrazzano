@@ -28,6 +28,7 @@ const (
 var sockShop SockShop
 var username, password string
 
+// creates the oam-sockshop namespace and applies the components and application yaml
 var _ = BeforeSuite(func() {
 	username = "username" + strconv.FormatInt(time.Now().Unix(), 10)
 	password = b64.StdEncoding.EncodeToString([]byte(time.Now().String()))
@@ -45,6 +46,7 @@ var _ = BeforeSuite(func() {
 	}
 })
 
+// the list of expected pods
 var expectedPods = []string{
 	"carts-coh-0",
 	"catalog-coh-0",
@@ -53,6 +55,7 @@ var expectedPods = []string{
 	"shipping-coh-0",
 	"users-coh-0"}
 
+// user registration template
 const registerTemp = `{
   "username":"%v",
   "password":"%v",
@@ -63,7 +66,9 @@ const registerTemp = `{
 
 var _ = Describe("Sock Shop Application", func() {
 	It("Verify application pods are running", func() {
+		// checks that all pods are up and running
 		Eventually(sockshopPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+		// checks that all application services are up
 		util.Concurrently(
 			func() {
 				Eventually(isSockShopServiceReady("catalogue"), waitTimeout, pollingInterval).Should(BeTrue())
@@ -169,6 +174,7 @@ var _ = Describe("Sock Shop Application", func() {
 
 })
 
+// undeploys the application, components, and namespace
 var _ = AfterSuite(func() {
 	// undeploy the application here
 	err := util.DeleteResourceFromFile("examples/sock-shop/sock-shop-app.yaml")
@@ -185,7 +191,7 @@ var _ = AfterSuite(func() {
 	}
 })
 
-// IsServiceReady checks if the service is ready
+// isSockShopServiceReady checks if the service is ready
 func isSockShopServiceReady(name string) bool {
 	svc, err := util.GetKubernetesClientset().CoreV1().Services("oam-sockshop").Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
@@ -198,6 +204,7 @@ func isSockShopServiceReady(name string) bool {
 	return false
 }
 
+// login logs in to the sockshop application
 func login(username string, password string) []*http.Cookie {
 	ingress := util.Ingress()
 	url := fmt.Sprintf("http://%v/login", ingress)
@@ -221,22 +228,27 @@ func login(username string, password string) []*http.Cookie {
 	return resp.Cookies()
 }
 
+// sockshopPodsRunning checks whether the application pods are ready
 func sockshopPodsRunning() bool {
 	return util.PodsRunning("oam-sockshop", expectedPods)
 }
 
+// appMetricsExists checks whether app related metrics are available
 func appMetricsExists() bool {
 	return metricsExist("base_jvm_uptime_seconds", "cluster", "SockShop")
 }
 
+// appComponentMetricsExists checks whether component related metrics are available
 func appComponentMetricsExists() bool {
 	return metricsExist("vendor_requests_count_total", "app_oam_dev_name", "catalog-appconf")
 }
 
+// appConfigMetricsExists checks whether config metrics are available
 func appConfigMetricsExists() bool {
 	return metricsExist("vendor_requests_count_total", "app_oam_dev_component", "orders")
 }
 
+// findMetric parses a prometheus response to find a specified metric value
 func findMetric(metrics []interface{}, key, value string) bool {
 	for _, metric := range metrics {
 		if util.Jq(metric, "metric", key) == value {
@@ -246,6 +258,7 @@ func findMetric(metrics []interface{}, key, value string) bool {
 	return false
 }
 
+// metricsExist validates the availability of a specified metric
 func metricsExist(metricsName, key, value string) bool {
 	metrics := util.JTq(util.QueryMetric(metricsName), "data", "result").([]interface{})
 	if metrics != nil {

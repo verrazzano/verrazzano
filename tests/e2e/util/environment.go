@@ -20,6 +20,7 @@ const (
 	istioSystemNamespace 		 = "istio-system"
 )
 
+// Ingress returns the ingress address
 func Ingress() string {
 	clusterType, ok := os.LookupEnv("TEST_ENV")
 	if !ok {
@@ -35,6 +36,7 @@ func Ingress() string {
 	}
 }
 
+// kindIngress returns the ingress address from a KIND cluster
 func kindIngress() string {
 	fmt.Println("Obtaining KIND control plane address info ...")
 	addrHost := ""
@@ -66,6 +68,7 @@ func kindIngress() string {
 	}
 }
 
+// okeIngress returns the ingress address from an OKE cluster
 func okeIngress() string {
 	fmt.Println("Obtaining ingressgateway info ...")
 	ingressgateway := findIstioIngressGatewaySvc(true)
@@ -83,6 +86,7 @@ func okeIngress() string {
 	return ""
 }
 
+// olcneIngress returns the ingress address from an OLCNE cluster
 func olcneIngress() string {
 	fmt.Println("Obtaining OLCNE ingressgateway info ...")
 	// Test a service for a dynamic address (.status.loadBalancer.ingress[0].ip),
@@ -108,6 +112,7 @@ func olcneIngress() string {
 	return ""
 }
 
+// findIstioIngressGatewaySvc retrieves the address of the istio ingress gateway
 func findIstioIngressGatewaySvc(requireLoadBalancer bool) v1.Service {
 	svcList := ListServices(istioSystemNamespace)
 	var ingressgateway v1.Service
@@ -129,6 +134,7 @@ func findIstioIngressGatewaySvc(requireLoadBalancer bool) v1.Service {
 	return ingressgateway
 }
 
+// QueryMetric queries prometheus for the specified metric
 func QueryMetric(metricsName string) string {
 	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", getPrometheusIngressHost(), metricsName)
 	status, content := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", getVerrazzanoPassword())
@@ -138,6 +144,7 @@ func QueryMetric(metricsName string) string {
 	return content
 }
 
+// getPrometheusIngressHost retrieves the prometheus host address
 func getPrometheusIngressHost() string {
 	ingressList, _ := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").List(context.TODO(), metav1.ListOptions{})
 	for _, ingress := range ingressList.Items {
@@ -149,6 +156,7 @@ func getPrometheusIngressHost() string {
 	return ""
 }
 
+// getVerrazzanoPassword gets the contents of the verrazzano-system secret (the password)
 func getVerrazzanoPassword() string {
 	secret, _ := GetKubernetesClientset().CoreV1().Secrets("verrazzano-system").Get(context.TODO(),"verrazzano", metav1.GetOptions{})
 	return string(secret.Data["password"])

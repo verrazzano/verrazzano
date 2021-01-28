@@ -68,20 +68,22 @@ func GetCertificates(url string) ([]*x509.Certificate, error) {
 	return resp.TLS.PeerCertificates, nil
 }
 
-// GetWebPageWithBasicAuth - get web page using basic auth
+// GetWebPageWithBasicAuth gets a web page using basic auth
 func GetWebPageWithBasicAuth(url string, hostHeader string, username string, password string) (int, string) {
 	return doGetWebPage(url, hostHeader, GetVerrazzanoHTTPClient(), username, password)
 }
 
+// doGetWebPage retries a web page
 func doGetWebPage(url string, hostHeader string, httpClient *retryablehttp.Client, username string, password string) (int, string) {
 	return doReq(url, "GET", "", hostHeader, username, password, nil, httpClient)
 }
 
+// Delete executes an HTTP DELETE
 func Delete(url string, hostHeader string) (int, string) {
 	return doReq(url, "DELETE", "", hostHeader, "", "", nil, GetVerrazzanoHTTPClient())
 }
 
-// GetVerrazzanoHTTPClient returns the Http client
+// GetVerrazzanoHTTPClient returns an Http client configured with the verrazzano CA cert
 func GetVerrazzanoHTTPClient() *retryablehttp.Client {
 	rawClient := getHTTPClientWIthCABundle(getVerrazzanoCACert())
 	return newRetryableHTTPClient(rawClient)
@@ -117,30 +119,28 @@ func ExpectHTTPGetOk(httpClient *retryablehttp.Client, url string) {
 	ExpectHttpOk(httpResp, err, "Error doing http(s) get from "+url)
 }
 
-// GetSystemVmiHttpClient
+// GetSystemVmiHttpClient returns an HTTP client configured with the system vmi CA cert
 func GetSystemVmiHttpClient() *retryablehttp.Client {
 	vmiRawClient := getHTTPClientWIthCABundle(getSystemVMICACert())
 	return newRetryableHTTPClient(vmiRawClient)
 }
 
-func Post(url, contentType string, body io.Reader) (int, string) {
-	return PostWithHostHeader(url, contentType, "", body)
-}
-
+// PostWithHostHeader posts a request with a specified Host header
 func PostWithHostHeader(url, contentType string, hostHeader string, body io.Reader) (int, string) {
 	return doPost(url, contentType, hostHeader, body, GetVerrazzanoHTTPClient())
 }
 
-// postWithClient
+// postWithClient posts a request using the specified HTTP client
 func postWithClient(url, contentType string, body io.Reader, httpClient *retryablehttp.Client) (int, string) {
 	return doPost(url, contentType, "", body, httpClient)
 }
 
-// doPost
+// doPost executes a POST request
 func doPost(url, contentType string, hostHeader string, body io.Reader, httpClient *retryablehttp.Client) (int, string) {
 	return doReq(url, "POST", contentType, hostHeader, "", "", body, httpClient)
 }
 
+// doReq executes an HTTP request with the specified method (GET, POST, DELETE, etc)
 func doReq(url, method string, contentType string, hostHeader string, username string, password string,
 	body io.Reader, httpClient *retryablehttp.Client) (int, string) {
 	req, err := retryablehttp.NewRequest(method, url, body)
@@ -171,6 +171,7 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 	return resp.StatusCode, string(html)
 }
 
+// getHTTPClientWIthCABundle returns an HTTP client configured with the provided CA cert
 func getHTTPClientWIthCABundle(caData []byte) *http.Client {
 	tr := &http.Transport{TLSClientConfig: &tls.Config{RootCAs: rootCertPool(caData)}}
 
@@ -200,18 +201,22 @@ func getHTTPClientWIthCABundle(caData []byte) *http.Client {
 	return &http.Client{Transport: tr}
 }
 
+// getVerrazzanoCACert returns the verrazzano CA cert
 func getVerrazzanoCACert() []byte {
 	return doGetCACertFromSecret(EnvName+"-secret", "verrazzano-system")
 }
 
+// getKeycloakCACert returns the keycloak CA cert
 func getKeycloakCACert() []byte {
 	return doGetCACertFromSecret(EnvName+"-secret", "keycloak")
 }
 
+// getSystemVMICACert returns the system vmi CA cert
 func getSystemVMICACert() []byte {
 	return doGetCACertFromSecret("system-tls", "verrazzano-system")
 }
 
+// getProxyURL returns the proxy URL from the proxy env variables
 func getProxyURL() string {
 	if proxyURL := os.Getenv("https_proxy"); proxyURL != "" {
 		return proxyURL
@@ -228,6 +233,7 @@ func getProxyURL() string {
 	return ""
 }
 
+// doGetCACertFromSecret returns the CA cert from the specified kubernetes secret
 func doGetCACertFromSecret(secretName string, namespace string) []byte {
 	clientset := GetKubernetesClientset()
 	certSecret, _ := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
@@ -249,6 +255,7 @@ func getNodeIP() string {
 	return ""
 }
 
+// newRetryableHTTPClient returns a new instance of a retryable HTTP client
 func newRetryableHTTPClient(client *http.Client) *retryablehttp.Client {
 	retryableClient := retryablehttp.NewClient() //default of 4 retries is sufficient for us
 	retryableClient.RetryMax = NumRetries
@@ -258,6 +265,7 @@ func newRetryableHTTPClient(client *http.Client) *retryablehttp.Client {
 	return retryableClient
 }
 
+// rootCertPool returns the root cert pool
 func rootCertPool(caData []byte) *x509.CertPool {
 	if len(caData) == 0 {
 		return nil

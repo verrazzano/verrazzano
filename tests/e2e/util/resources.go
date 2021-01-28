@@ -29,6 +29,7 @@ var nsGvr = schema.GroupVersionResource{
 	Resource: "namespaces",
 }
 
+// CreateOrUpdateResourceFromFile applies the yaml file specified by the provided path
 func CreateOrUpdateResourceFromFile(file string) error {
 	found, err := FindTestDataFile(file)
 	if err != nil {
@@ -42,6 +43,7 @@ func CreateOrUpdateResourceFromFile(file string) error {
 	return CreateOrUpdateResourceFromBytes(bytes)
 }
 
+// CreateOrUpdateResourceFromBytes applies the yaml file content
 func CreateOrUpdateResourceFromBytes(data []byte) error {
 	config := GetKubeConfig()
 	client, err := dynamic.NewForConfig(config)
@@ -99,6 +101,7 @@ func CreateOrUpdateResourceFromBytes(data []byte) error {
 	return nil
 }
 
+// DeleteResourceFromFile deletes the yaml file specified by the provided path
 func DeleteResourceFromFile(file string) error {
 	found, err := FindTestDataFile(file)
 	if err != nil {
@@ -111,6 +114,7 @@ func DeleteResourceFromFile(file string) error {
 	return DeleteResourceFromBytes(bytes)
 }
 
+// DeleteResourceFromBytes deletes from the cluster using the provided yaml file content
 func DeleteResourceFromBytes(data []byte) error {
 	config := GetKubeConfig()
 	client, err := dynamic.NewForConfig(config)

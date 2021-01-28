@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 )
 
+// FindTestDataFile retries the full path to the file specified by the provided relative path
 func FindTestDataFile(file string) (string, error) {
 	find := file
 	_, err := os.Stat(file)
