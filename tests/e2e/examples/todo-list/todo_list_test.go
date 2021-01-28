@@ -64,7 +64,7 @@ func deployToDoListExample() {
 	if err := util.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-logging-scope.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create ToDo List logging scope resource: %v", err))
 	}
-	util.Log(util.Info, "Create compontent resources")
+	util.Log(util.Info, "Create component resources")
 	if err := util.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-components.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create ToDo List component resources: %v", err))
 	}
@@ -75,7 +75,7 @@ func deployToDoListExample() {
 }
 
 func undeployToDoListExample() {
-	util.Log(util.Info, "Unddeploy ToDoList example")
+	util.Log(util.Info, "Undeploy ToDoList example")
 	util.Log(util.Info, "Delete application")
 	if err := util.DeleteResourceFromFile("examples/todo-list/todo-list-application.yaml"); err != nil {
 		util.Log(util.Error, fmt.Sprintf("Failed to delete application: %v", err))

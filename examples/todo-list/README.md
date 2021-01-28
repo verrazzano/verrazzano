@@ -25,7 +25,7 @@ For more information and the source code of this application, see
            --docker-server=container-registry.oracle.com \
            --docker-username=YOUR_REGISTRY_USERNAME \
            --docker-password=YOUR_REGISTRY_PASSWORD \
-           --docker-email=YOUR_REGISTRY_EMAIL
+           --docker-email=YOUR_REGISTRY_EMAIL \
            -n todo-list
    ```
    
@@ -61,6 +61,8 @@ For more information and the source code of this application, see
    ```
 
 1. Wait for the ToDo List example application to be ready.
+   You may need to repeat this command several times before it is successful.
+   The `tododomain-adminserver` pod can take some time to be created and `Ready`.
    ```
    kubectl wait pod --for=condition=Ready tododomain-adminserver -n todo-list
    ```
