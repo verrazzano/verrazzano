@@ -42,6 +42,7 @@ pipeline {
                 trim: true
         )
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
+        booleanParam (description: 'Whether to run example tests', name: 'RUN_EXAMPLE_TESTS', defaultValue: true)
     }
 
     environment {
@@ -312,6 +313,7 @@ pipeline {
 
                     // if we are planning to run the AT's (which is the default)
                     if (params.RUN_ACCEPTANCE_TESTS == true) {
+                        SKIP_ACCEPTANCE_TESTS = false
                         // check if the user has asked to skip AT using the commit message
                         result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
                         if (result == 0) {
@@ -320,6 +322,8 @@ pipeline {
                             echo "Skip acceptance tests based on opt-out in commit message [skip-at]"
                             echo "SKIP_ACCEPTANCE_TESTS is ${SKIP_ACCEPTANCE_TESTS}"
                         }
+                    } else {
+                        SKIP_ACCEPTANCE_TESTS = true
                     }
                 }
             }
@@ -445,6 +449,9 @@ pipeline {
                         }
 
                         stage('Run Acceptance Tests') {
+                            environment {
+                                TEST_ENV = "KIND"
+                            }
                             stages {
                                 stage('verify-install') {
                                     steps {
@@ -456,7 +463,15 @@ pipeline {
                                         runGinkgo('verify-infra/restapi')
                                     }
                                 }
-                            }
+                                stage('examples') {
+                                    when {
+                                        expression {params.RUN_EXAMPLE_TESTS == true}
+                                    }
+                                    steps {
+                                        runGinkgo('examples/sock-shop')
+                                    }
+                                }
+                           }
                         }
                     }
                 }
