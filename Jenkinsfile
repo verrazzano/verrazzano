@@ -2,7 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def SKIP_ACCEPTANCE_TESTS = true
+def SKIP_ACCEPTANCE_TESTS = false
 
 pipeline {
     options {
@@ -322,6 +322,8 @@ pipeline {
                             echo "Skip acceptance tests based on opt-out in commit message [skip-at]"
                             echo "SKIP_ACCEPTANCE_TESTS is ${SKIP_ACCEPTANCE_TESTS}"
                         }
+                    } else {
+                        SKIP_ACCEPTANCE_TESTS = true
                     }
                 }
             }
