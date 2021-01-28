@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package util
@@ -9,7 +9,8 @@ import (
 	"path/filepath"
 )
 
-// FindTestDataFile retries the full path to the file specified by the provided relative path
+// FindTestDataFile finds a test data file by searching up from the working directory looking for a relative file.
+// This is done to simplify the execution of tests in both local and remote environments.
 func FindTestDataFile(file string) (string, error) {
 	find := file
 	_, err := os.Stat(file)

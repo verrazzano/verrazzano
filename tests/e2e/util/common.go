@@ -122,6 +122,13 @@ func PodsRunning(namespace string, namePrefixes []string) bool {
 	missing := notRunning(pods.Items, namePrefixes...)
 	if len(missing) > 0 {
 		Log(Info, fmt.Sprintf("Pods %v were NOT running in %v", missing, namespace))
+		for _, pod := range pods.Items {
+			if isReadyAndRunning(pod) {
+				Log(Debug, fmt.Sprintf("Pod %s ready", pod.Name))
+			} else {
+				Log(Info, fmt.Sprintf("Pod %s NOT ready: %v", pod.Name, pod.Status.ContainerStatuses))
+			}
+		}
 	}
 	return len(missing) == 0
 }
@@ -160,7 +167,7 @@ func isPodRunning(pods []v1.Pod, namePrefix string) bool {
 						}
 					}
 				}
-				Log(Info, fmt.Sprintf("  Pod %v was NOT running: %v \n", pods[i].Name, status))
+				Log(Info, fmt.Sprintf("Pod %v was NOT running: %v", pods[i].Name, status))
 				return false
 			}
 		}
@@ -180,20 +187,20 @@ func isReadyAndRunning(pod v1.Pod) bool {
 		return true
 	}
 	if pod.Status.Reason == "Evicted" && len(pod.Status.ContainerStatuses) == 0 {
-		Log(Info, fmt.Sprintf("  Pod %v was Evicted\n", pod.Name))
+		Log(Info, fmt.Sprintf("Pod %v was Evicted", pod.Name))
 		return true //ignore this evicted pod
 	}
 	return false
 }
 
-//JTq quries JSON Text with json path
+// JTq queries JSON text with a JSON path
 func JTq(jtext string, path ...string) interface{} {
 	var j map[string]interface{}
 	json.Unmarshal([]byte(jtext), &j)
 	return Jq(j, path...)
 }
 
-//Jq quries JSON ndoe with json path
+// Jq queries JSON nodes with a JSON path
 func Jq(node interface{}, path ...string) interface{} {
 	for _, p := range path {
 		node = node.(map[string]interface{})[p]

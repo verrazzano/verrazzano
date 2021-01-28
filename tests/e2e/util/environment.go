@@ -6,11 +6,11 @@ package util
 import (
 	"context"
 	"fmt"
-	"github.com/onsi/ginkgo"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"strings"
+
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -134,33 +134,8 @@ func findIstioIngressGatewaySvc(requireLoadBalancer bool) v1.Service {
 	return ingressgateway
 }
 
-// QueryMetric queries Prometheus for the specified metric
-func QueryMetric(metricsName string) string {
-	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", getPrometheusIngressHost(), metricsName)
-	status, content := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", getVerrazzanoPassword())
-	if status != 200 {
-		ginkgo.Fail(fmt.Sprintf("Error retrieving metric %s", metricsName))
-	}
-	return content
-}
-
-// getPrometheusIngressHost retrieves the Prometheus host address
-func getPrometheusIngressHost() string {
-	ingressList, _ := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").List(context.TODO(), metav1.ListOptions{})
-	for _, ingress := range ingressList.Items {
-		if ingress.Name == "vmi-system-prometheus" {
-			Log(Info, fmt.Sprintf("Found Ingress %v", ingress.Name))
-			return ingress.Spec.Rules[0].Host
-		}
-	}
-	return ""
-}
-
 // getVerrazzanoPassword gets the contents of the verrazzano-system secret (the password)
 func getVerrazzanoPassword() string {
 	secret, _ := GetKubernetesClientset().CoreV1().Secrets("verrazzano-system").Get(context.TODO(),"verrazzano", metav1.GetOptions{})
 	return string(secret.Data["password"])
 }
-
-
-
