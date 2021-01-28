@@ -25,7 +25,7 @@ type ApiEndpoint struct {
 // GetApiEndpoint returns the ApiEndpoint stub with AccessToken
 func GetApiEndpoint() *ApiEndpoint {
 	keycloakURL := fmt.Sprintf("https://keycloak.%s.%s/auth/realms/%s/protocol/openid-connect/token", EnvName, DnsZone, realm)
-	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", username, GetVerrazzanoPassword(), clientId)
+	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", Username, GetVerrazzanoPassword(), clientId)
 	status, resp := postWithCLient(keycloakURL, "application/x-www-form-urlencoded", strings.NewReader(body), GetKeycloakHTTPClient())
 	var api ApiEndpoint
 	if status == http.StatusOK {

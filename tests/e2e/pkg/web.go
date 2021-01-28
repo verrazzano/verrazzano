@@ -40,7 +40,7 @@ const (
 	// RetryWaitMax - maximum retry wait
 	RetryWaitMax = 30 * time.Second
 
-	username               = "verrazzano"
+	Username               = "verrazzano"
 	clientId               = "admin-cli"
 	realm                  = "verrazzano-system"
 	verrazzanoApiUriPrefix = "20210501"
