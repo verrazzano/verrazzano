@@ -474,7 +474,7 @@ pipeline {
                                         expression {params.RUN_EXAMPLE_TESTS == true}
                                     }
                                     steps {
-                                        runGinkgo('examples/todo_list')
+                                        runGinkgo('examples/todo-list')
                                         runGinkgo('examples/sock-shop')
                                     }
                                 }
