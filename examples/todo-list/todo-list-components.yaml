@@ -16,7 +16,7 @@ spec:
     spec:
       domainUID: tododomain
       domainHome: /u01/domains/tododomain
-      image: phx.ocir.io/stevengreenberginc/will.hopkins/todo-domain:1
+      image: container-registry.oracle.com/verrazzano/example-todo:0.8.0
       imagePullSecrets:
         - name: tododomain-repo-credentials
       logHomeEnabled: true
