@@ -61,3 +61,17 @@ func Log(level LogLevel, message string) {
 		ginkgo.GinkgoWriter.Write([]byte(levelHeader + " " + time.Now().Format("2020-01-02 15:04:05.000000") + " " + message + "\n"))
 	}
 }
+
+// CreateLogFile creates a file with the given name (or truncates the file if it already exists)
+// and writes the given content string to the file.
+func CreateLogFile(filename string, content string) {
+	// create out output file
+	f, err := os.Create(filename + ".log")
+	if err != nil {
+		ginkgo.Fail("Could not create output file")
+	}
+	defer f.Close()
+
+	f.WriteString(content)
+	f.Sync()
+}

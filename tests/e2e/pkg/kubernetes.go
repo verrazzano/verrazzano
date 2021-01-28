@@ -17,6 +17,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apixv1beta1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
+	certclientv1alpha2 "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1alpha2"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -221,6 +223,31 @@ func GetVMOClientset() *vmoclient.Clientset {
 	}
 
 	return clientset
+}
+
+// ApiExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
+func ApiExtensionsClientSet() *apixv1beta1client.ApiextensionsV1beta1Client {
+	config := GetKubeConfig()
+
+	// create the clientset
+	clientset, err := apixv1beta1client.NewForConfig(config)
+	if err != nil {
+		ginkgo.Fail("Could not get clientset from config")
+	}
+
+	return clientset
+}
+
+// CertManagerClient returns a CertmanagerV1alpha2Client for this cluster
+func CertManagerClient() *certclientv1alpha2.CertmanagerV1alpha2Client {
+	config := GetKubeConfig()
+
+	client, err := certclientv1alpha2.NewForConfig(config)
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create cert-manager client: %v", err))
+	}
+
+	return client
 }
 
 // ListServices returns the list of services in a given namespace for the cluster

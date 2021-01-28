@@ -127,12 +127,6 @@ func ExpectHTTPGetOk(httpClient *retryablehttp.Client, url string) {
 	ExpectHttpOk(httpResp, err, "Error doing http(s) get from "+url)
 }
 
-// GetSystemVmiHttpClient
-func GetSystemVmiHttpClient() *retryablehttp.Client {
-	vmiRawClient := getHTTPClientWIthCABundle(getSystemVMICACert())
-	return newRetryableHTTPClient(vmiRawClient)
-}
-
 // postWithCLient
 func postWithCLient(url, contentType string, body io.Reader, httpClient *retryablehttp.Client) (int, string) {
 	resp, err := httpClient.Post(url, contentType, body)
@@ -184,10 +178,6 @@ func getVerrazzanoCACert() []byte {
 
 func getKeycloakCACert() []byte {
 	return doGetCACertFromSecret(EnvName+"-secret", "keycloak")
-}
-
-func getSystemVMICACert() []byte {
-	return doGetCACertFromSecret("system-tls", "verrazzano-system")
 }
 
 func getProxyURL() string {
