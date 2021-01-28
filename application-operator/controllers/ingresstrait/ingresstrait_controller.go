@@ -515,25 +515,23 @@ func createHostsFromIngressTraitRule(rule vzapi.IngressRule, hostName string) []
 	return validHosts
 }
 
-// generateDNSHostName will generate a fully qualified DNS host name using the following structure:
+// generateDNSHostName generates a DNS host name using the following structure:
 // <app>.<namespace>.<dns-subdomain>  where
-//   app: the OAM application name
-//   namespace: the namespace of the OAM application
-//   vz-name: the Verrazzano environment name
-//   dns-subdomain : The DNS subdomain name
-// For example: sales.books-ns.example.com
+//   app is the OAM application name
+//   namespace is the namespace of the OAM application
+//   dns-subdomain is The DNS subdomain name
+// For example: sales.cars.example.com
 func generateDNSHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
-
 	appName, ok := trait.Labels[oam.LabelAppName]
 	if !ok {
 		return  "", errors.New("OAM app name label missing from metadata, unable to add ingress trait")
 	}
 
-	// Extract the domain name from the verrazzano console ingress
+	// Extract the domain name from the rancher ingress
 	// ingress-nginx ingress-vcontroller-ingress-nginx-controller
 	ingress := k8net.Ingress{}
-	name := "verrazzano-console-ingress"
-	err := cli.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: "verrazzano-system"}, &ingress)
+	name := "rancher"
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: "cattle-system"}, &ingress)
 	if err != nil {
 		return "",err
 	}
