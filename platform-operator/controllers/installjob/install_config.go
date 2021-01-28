@@ -230,7 +230,7 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) []InstallA
 	if template == nil {
 		return []InstallArg{}
 	}
-	vzInstallArgs := []InstallArg {
+	vzInstallArgs := []InstallArg{
 		{
 			Name:      "verrazzanoOperator.esDataStorageSize",
 			Value:     template.Spec.Resources.Requests.Storage().String(),
@@ -251,7 +251,7 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) []InstallA
 }
 
 func findVolumeTemplate(templateName string, templates []installv1alpha1.VolumeTemplate) *installv1alpha1.VolumeTemplate {
-	for _,template := range templates {
+	for _, template := range templates {
 		if templateName == template.Name {
 			return &template
 		}

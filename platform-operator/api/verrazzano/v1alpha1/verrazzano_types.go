@@ -228,7 +228,7 @@ type MySQLComponent struct {
 	MySQLInstallArgs []InstallArgs `json:"mysqlInstallArgs,omitempty"`
 	// VolumeTemplate Name of the volume template to use for storage configuration
 	// +optional
-	VolumeTemplate   string        `json:"volumeTemplate,omitempty"`
+	VolumeTemplate string `json:"volumeTemplate,omitempty"`
 }
 
 // OAMComponent specifies the OAM configuration
