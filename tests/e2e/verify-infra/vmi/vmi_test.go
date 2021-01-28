@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -26,7 +27,7 @@ import (
 func vmiIngressURLs() (map[string]string, error) {
 	ingress, err := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("istio-system").Get(context.TODO(), pkg.GetKindIngress(), v1.GetOptions{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not get ingress %v", pkg.GetKindIngress()))
+		ginkgo.Fail(fmt.Sprintf("Could not get ingress %v: %v", pkg.GetKindIngress(), err.Error()))
 	}
 
 	ingressURLs := make(map[string]string)
@@ -51,7 +52,7 @@ var (
 	creds                  *pkg.UsernamePassword
 	vmiCRD                 *apiextensionsv1beta1.CustomResourceDefinition
 	ingressURLs            map[string]string
-	elastic                *pkg.Elastic
+	elastic                *vmi.Elastic
 	sysVmiHttpClient       *retryablehttp.Client
 	waitTimeout            = 10 * time.Minute
 	pollingInterval        = 30 * time.Second
@@ -78,7 +79,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Error retrieving system VMI credentials: %v", err))
 	}
-	elastic = pkg.GetElastic("system")
+	elastic = vmi.GetElastic("system")
 
 	sysVmiHttpClient = pkg.GetSystemVmiHttpClient()
 })
@@ -91,7 +92,7 @@ var _ = ginkgo.Describe("VMI", func() {
 
 	ginkgo.It("Elasticsearch endpoint should be accessible", func() {
 		elasticPodsRunning := func() bool {
-			return elastic.PodsRunning()
+			return pkg.PodsRunning()
 		}
 		gomega.Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		gomega.Eventually(elasticTlsSecret, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue())
