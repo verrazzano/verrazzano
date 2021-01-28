@@ -26,7 +26,7 @@ import (
 func vmiIngressURLs() (map[string]string, error) {
 	ingress, err := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("istio-system").Get(context.TODO(), pkg.GetKindIngress(), v1.GetOptions{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprint("Could not get ingress %v", pkg.GetKindIngress()))
+		ginkgo.Fail(fmt.Sprintf("Could not get ingress %v", pkg.GetKindIngress()))
 	}
 
 	ingressURLs := make(map[string]string)
