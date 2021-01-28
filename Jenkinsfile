@@ -459,14 +459,19 @@ pipeline {
                                         runGinkgoRandomize('verify-install')
                                     }
                                 }
-                                stage('restapi') {
+                                stage('verify-infra restapi') {
                                     steps {
                                         runGinkgo('verify-infra/restapi')
                                     }
                                 }
-                                stage('oam-infra') {
+                                stage('verify-infra oam') {
                                     steps {
                                         runGinkgo('verify-infra/oam')
+                                    }
+                                }
+                                stage('verify-infra vmi') {
+                                    steps {
+                                        runGinkgo('verify-infra/vmi')
                                     }
                                 }
                                 stage('examples') {
