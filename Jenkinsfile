@@ -313,6 +313,7 @@ pipeline {
 
                     // if we are planning to run the AT's (which is the default)
                     if (params.RUN_ACCEPTANCE_TESTS == true) {
+                        SKIP_ACCEPTANCE_TESTS = false
                         // check if the user has asked to skip AT using the commit message
                         result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
                         if (result == 0) {
