@@ -6,6 +6,7 @@ package todo_list
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -198,14 +199,14 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 	//})
 
 	ginkgo.Context("Logging.", func() {
-		indexName := "oam-todo-list--"
+		indexNamePrefix := "oam-todo-list--"
 
 		// GIVEN a WebLogic application with logging enabled via a logging scope
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
 		ginkgo.It("Verify Elasticsearch index exists", func() {
 			gomega.Eventually(func() bool {
-				return logIndexFound(indexName)
+				return getLogIndex(indexNamePrefix) != ""
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for todo-list")
 		})
 
@@ -214,7 +215,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 		// THEN verify that at least one recent log record is found
 		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
 			gomega.Eventually(func() bool {
-				return logRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+				return logRecordFound(getLogIndex(indexNamePrefix), time.Now().Add(-24*time.Hour), map[string]string{
 					"domainUID":  "tododomain",
 					"serverName": "tododomain-adminserver"})
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
@@ -247,15 +248,15 @@ func metricExist(metricsName, key, value string) bool {
 	}
 }
 
-// logIndexFound confirms a named index can be found.
-func logIndexFound(indexName string) bool {
+// getLogIndex returns an index whose name has specified prefix.
+func getLogIndex(indexNamePrefix string) string {
 	for _, name := range pkg.ListSystemElasticSearchIndices() {
-		if name == indexName {
-			return true
+		if strings.HasPrefix(name, indexNamePrefix) {
+			return name
 		}
 	}
-	pkg.Log(pkg.Error, fmt.Sprintf("Expected to find log index %s", indexName))
-	return false
+	pkg.Log(pkg.Error, fmt.Sprintf("Expected to find log index prefixed by %s", indexNamePrefix))
+	return ""
 }
 
 // logRecordFound confirms a recent log record for the index with matching fields can be found.

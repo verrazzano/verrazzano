@@ -84,6 +84,12 @@ const wlsFluentdParsingRules = `<match fluent.**>
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
   index_name "oam-#{ENV['NAMESPACE']}-#{ENV['APP_CONF_NAME']}-#{ENV['COMPONENT_NAME']}"
+  template_file /fluentd/etc/template.json
+  template_name "oam-template"
+  customize_template {"<<namespace>>":"${NAMESPACE}", "<<appconf>>":"${APP_CONF_NAME}", "<<component>>":"${COMPONENT_NAME}"}
+  template_overwrite true
+  index_date_pattern now/d
+  rollover_index true
   scheme http
   key_name timestamp 
   types timestamp:time
@@ -159,6 +165,7 @@ func getFluentd(ctx context.Context, log logr.Logger, client k8sclient.Client) F
 		Log:                    log,
 		Client:                 client,
 		ParseRules:             wlsFluentdParsingRules,
+		IndexTemplate:          IndexTemplate,
 		StorageVolumeName:      storageVolumeName,
 		StorageVolumeMountPath: storageVolumeMountPath,
 	}

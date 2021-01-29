@@ -8,15 +8,13 @@ import (
 	"fmt"
 	"strings"
 
-	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-
 	"github.com/go-logr/logr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -92,6 +90,12 @@ const HelidonFluentdConfiguration = `<label @FLUENT_LOG>
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
   index_name "oam-#{ENV['NAMESPACE']}-#{ENV['APP_CONF_NAME']}-#{ENV['COMPONENT_NAME']}"
+  template_file /fluentd/etc/template.json
+  template_name "oam-template"
+  customize_template {"<<namespace>>":"${NAMESPACE}", "<<appconf>>":"${APP_CONF_NAME}", "<<component>>":"${COMPONENT_NAME}"}
+  template_overwrite true
+  index_date_pattern now/d
+  rollover_index true
   scheme http
   include_timestamp true
   flush_interval 10s
@@ -201,7 +205,7 @@ func (h *HelidonHandler) getDeployment(ctx context.Context, workload vzapi.Quali
 }
 
 // CreateFluentdConfigMap creates the FLUENTD configmap for a given OAM application
-func CreateFluentdConfigMap(namespace, name, fluentdConfig string) *kcore.ConfigMap {
+func CreateFluentdConfigMap(namespace, name, fluentdConfig string, indexTemplate string) *kcore.ConfigMap {
 	return &kcore.ConfigMap{
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:      name,
@@ -211,6 +215,7 @@ func CreateFluentdConfigMap(namespace, name, fluentdConfig string) *kcore.Config
 			var data map[string]string
 			data = make(map[string]string)
 			data[fluentdConfKey] = fluentdConfig
+			data[templateJSONKey] = indexTemplate
 			return data
 		}(),
 	}
@@ -305,6 +310,12 @@ func CreateFluentdContainer(namespace, workloadName, containerName, fluentdImage
 				ReadOnly:  true,
 			},
 			{
+				MountPath: "/fluentd/etc/template.json",
+				Name:      volumeConf,
+				SubPath:   templateJSONKey,
+				ReadOnly:  true,
+			},
+			{
 				MountPath: "/var/log",
 				Name:      volumeVarlog,
 				ReadOnly:  true,
@@ -381,7 +392,7 @@ func (h *HelidonHandler) ensureFluentdConfigMap(ctx context.Context, namespace, 
 	configMap := &kcore.ConfigMap{}
 	err := h.Get(ctx, objKey(namespace, name), configMap)
 	if kerrs.IsNotFound(err) {
-		if err = h.Create(ctx, CreateFluentdConfigMap(namespace, name, HelidonFluentdConfiguration), &client.CreateOptions{}); err != nil {
+		if err = h.Create(ctx, CreateFluentdConfigMap(namespace, name, HelidonFluentdConfiguration, IndexTemplate), &client.CreateOptions{}); err != nil {
 			return err
 		}
 		return nil

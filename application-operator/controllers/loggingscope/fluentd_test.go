@@ -44,7 +44,7 @@ func TestFluentdApply(t *testing.T) {
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
 
-	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath}
+	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, IndexTemplate, testStorageName, scratchVolMountPath}
 
 	// simulate config map not existing
 	mockClient.EXPECT().
@@ -89,7 +89,7 @@ func TestFluentdApplyForUpdate(t *testing.T) {
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPodForUpdate()
 
-	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath}
+	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, IndexTemplate, testStorageName, scratchVolMountPath}
 
 	// simulate config map existing
 	mockClient.EXPECT().
@@ -125,7 +125,7 @@ func TestFluentdRemove(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mockClient := mocks.NewMockClient(mocker)
 
-	fluentd := &Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath}
+	fluentd := &Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, IndexTemplate, testStorageName, scratchVolMountPath}
 	scope := createTestLoggingScope(true)
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
