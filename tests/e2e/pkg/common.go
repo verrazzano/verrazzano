@@ -4,6 +4,7 @@
 package pkg
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -169,6 +170,17 @@ func isReadyAndRunning(pod v1.Pod) bool {
 	return false
 }
 
+func GetRetryPolicy(url string) func(ctx context.Context, resp *http.Response, err error) (bool, error) {
+	return func(ctx context.Context, resp *http.Response, err error) (bool, error) {
+		if resp != nil {
+			status := resp.StatusCode
+			if status == http.StatusNotFound {
+				return true, nil
+			}
+		}
+		return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
+	}
+}
 // JTq queries JSON text with a JSON path
 func JTq(jtext string, path ...string) interface{} {
 	var j map[string]interface{}
