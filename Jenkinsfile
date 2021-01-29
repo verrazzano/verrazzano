@@ -318,6 +318,7 @@ pipeline {
 
                     // if we are planning to run the AT's (which is the default)
                     if (params.RUN_ACCEPTANCE_TESTS == true) {
+                        SKIP_ACCEPTANCE_TESTS = false
                         // check if the user has asked to skip AT using the commit message
                         result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
                         if (result == 0) {
@@ -326,6 +327,8 @@ pipeline {
                             echo "Skip acceptance tests based on opt-out in commit message [skip-at]"
                             echo "SKIP_ACCEPTANCE_TESTS is ${SKIP_ACCEPTANCE_TESTS}"
                         }
+                    } else {
+                        SKIP_ACCEPTANCE_TESTS = true
                     }
                 }
             }
@@ -433,6 +436,7 @@ pipeline {
                                     # Coherence image doesn't get pulled correctly in KIND.
                                     docker pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
                                     kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/middleware/coherence:12.2.1.4.0
+                                    # The ToDoList example image currently cannot be pulled in KIND.
                                     docker pull container-registry.oracle.com/verrazzano/example-todo:0.8.0
                                     kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-todo:0.8.0
                                 """
@@ -479,7 +483,8 @@ pipeline {
                                         expression {params.RUN_EXAMPLE_TESTS == true}
                                     }
                                     steps {
-                                        runGinkgo('examples/todo_list')
+                                        runGinkgo('examples/todo-list')
+                                        runGinkgo('examples/sock-shop')
                                     }
                                 }
                             }

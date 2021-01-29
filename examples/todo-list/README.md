@@ -15,8 +15,8 @@ For more information and the source code of this application, see
 
 1. Create a namespace for the ToDo List example and add a label identifying the namespace as managed by Verrazzano.
    ```
-   kubectl create namespace todo
-   kubectl label namespace todo verrazzano-managed=true
+   kubectl create namespace todo-list
+   kubectl label namespace todo-list verrazzano-managed=true
    ```
 
 1. Create a `docker-registry` secret to enable pulling the ToDo List example image from the registry.
@@ -25,8 +25,8 @@ For more information and the source code of this application, see
            --docker-server=container-registry.oracle.com \
            --docker-username=YOUR_REGISTRY_USERNAME \
            --docker-password=YOUR_REGISTRY_PASSWORD \
-           --docker-email=YOUR_REGISTRY_EMAIL
-           -n todo
+           --docker-email=YOUR_REGISTRY_EMAIL \
+           -n todo-list
    ```
    
    Replace `YOUR_REGISTRY_USERNAME`, `YOUR_REGISTRY_PASSWORD` and `YOUR_REGISTRY_EMAIL` 
@@ -36,18 +36,18 @@ For more information and the source code of this application, see
    ```
    kubectl create secret generic tododomain-weblogic-credentials \
      --from-literal=password=welcome1 \
-     --from-literal=username=weblogic -n todo
+     --from-literal=username=weblogic -n todo-list
 
    kubectl create secret generic tododomain-jdbc-tododb \
      --from-literal=password=welcome1 \
-     --from-literal=username=derek -n todo
+     --from-literal=username=derek -n todo-list
    
-   kubectl -n todo label secret tododomain-jdbc-tododb weblogic.domainUID=tododomain
+   kubectl -n todo-list label secret tododomain-jdbc-tododb weblogic.domainUID=tododomain
 
    kubectl create secret generic tododomain-runtime-encrypt-secret \
-     --from-literal=password=welcome1 -n todo
+     --from-literal=password=welcome1 -n todo-list
    
-   kubectl -n todo label secret tododomain-runtime-encrypt-secret weblogic.domainUID=tododomain
+   kubectl -n todo-list label secret tododomain-runtime-encrypt-secret weblogic.domainUID=tododomain
    ```
 
    Note that the ToDo List example application is pre-configured to use these credentials.
@@ -61,8 +61,10 @@ For more information and the source code of this application, see
    ```
 
 1. Wait for the ToDo List example application to be ready.
+   You may need to repeat this command several times before it is successful.
+   The `tododomain-adminserver` pod can take some time to be created and `Ready`.
    ```
-   kubectl wait pod --for=condition=Ready tododomain-adminserver -n todo
+   kubectl wait pod --for=condition=Ready tododomain-adminserver -n todo-list
    ```
 
 1. Get the `EXTERNAL_IP` address of the istio-ingressgateway service.
@@ -99,28 +101,63 @@ For more information and the source code of this application, see
    Accessing the application in a browser should take you to a page titled 'Derek's ToDo List'
    with an edit field and an 'Add' button that allows you to add tasks.
 
+1. A variety of endpoints are available to further explore the logs, metrics, etc. associated with 
+   the deployed ToDo List application.
+   Accessing them may require the following:
+
+   * The telemetry password: Run this command to get the password that was generated for the telemetry components:
+     ```
+     kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
+     ```
+     The associated username is 'verrazzano'.
+
+   * You will have to accept the certificates associated with the endpoints.
+
+   You can retrieve the list of available ingresses with following command:
+
+   ```
+   kubectl get ingress -n verrazzano-system
+   NAME                         CLASS    HOSTS                                                     ADDRESS           PORTS     AGE
+   verrazzano-console-ingress   <none>   verrazzano.default.140.141.142.143.xip.io                 140.141.142.143   80, 443   7d2h
+   vmi-system-api               <none>   api.vmi.system.default.140.141.142.143.xip.io             140.141.142.143   80, 443   7d2h
+   vmi-system-es-ingest         <none>   elasticsearch.vmi.system.default.140.141.142.143.xip.io   140.141.142.143   80, 443   7d2h
+   vmi-system-grafana           <none>   grafana.vmi.system.default.140.141.142.143.xip.io         140.141.142.143   80, 443   7d2h
+   vmi-system-kibana            <none>   kibana.vmi.system.default.140.141.142.143.xip.io          140.141.142.143   80, 443   7d2h
+   vmi-system-prometheus        <none>   prometheus.vmi.system.default.140.141.142.143.xip.io      140.141.142.143   80, 443   7d2h
+   vmi-system-prometheus-gw     <none>   prometheus-gw.vmi.system.default.140.141.142.143.xip.io   140.141.142.143   80, 443   7d2h
+   ```
+
+   Some of the endpoints available (leveraging the ingress host information above):
+
+   | Description | Address | Credentials |
+   | ----------- | ------- | ----------- |
+   | Kibana      | https://[vmi-system-kibana ingress host]     | `verrazzano`/`telemetry-password` |
+   | Grafana     | https://[vmi-system-grafana ingress host]    | `verrazzano`/`telemetry-password` |
+   | Prometheus  | https://[vmi-system-prometheus ingress host] | `verrazzano`/`telemetry-password` |
+    
 ## Troubleshooting
     
 1. Verify that the application configuration, domain and ingress trait all exist.
    ```
-   kubectl get ApplicationConfiguration -n todo
-   kubectl get Domain -n todo
-   kubectl get IngressTrait -n todo
-   ```   
+   kubectl get ApplicationConfiguration -n todo-list
+   NAME           AGE
+   todo-appconf   19h
 
-1. Verify that the WebLogic admin server is created by the weblogic-operator.
-   Note that this will take several minutes and involve the running of an introspector job pod by the operator.
+   kubectl get Domain -n todo-list
+   NAME          AGE
+   todo-domain   19h
+
+   kubectl get IngressTrait -n todo-list
+   NAME                           AGE
+   todo-domain-trait-7cbd798c96   19h
    ```
-    kubectl get pods -n todo -w
+
+1. Verify that the WebLogic admin server and MySQL pods have been created and are running.
+   Note that this will take several minutes.
+   ```
+   kubectl get pods -n todo-list
    
-    NAME                            READY   STATUS            RESTARTS   AGE
-    tododomain-introspector-d82gf   1/1     Running           0          49s
-    tododomain-introspector-d82gf   0/1     Completed         0          93s
-    tododomain-introspector-d82gf   0/1     Terminating       0          94s
-    tododomain-adminserver          0/2     Pending           0          1s
-    tododomain-adminserver          0/2     Init:0/1          0          1s
-    tododomain-adminserver          0/2     PodInitializing   0          5s
-    tododomain-adminserver          0/2     Running           0          7s
-    tododomain-adminserver          1/2     Running           0          11s
-    tododomain-adminserver          2/2     Running           0          52s   
-   ```      
+   NAME                     READY   STATUS    RESTARTS   AGE
+   mysql-5c75c8b7f-vlhck    1/1     Running   0          19h
+   tododomain-adminserver   2/2     Running   0          19h
+   ```
