@@ -488,11 +488,10 @@ pipeline {
                             dumpK8sCluster('new-acceptance-tests-cluster-dump.tar.gz')
                         }
                         success {
-                            when {
-                                expression {params.DUMP_K8S_CLUSTER_ON_SUCCESS == true}
-                            }
-                            steps {
-                                dumpK8sCluster('new-acceptance-tests-cluster-dump.tar.gz')
+                            script {
+                                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                                    dumpK8sCluster('new-acceptance-tests-cluster-dump.tar.gz')
+                                }
                             }
                         }
                     }
