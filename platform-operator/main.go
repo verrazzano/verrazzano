@@ -71,11 +71,10 @@ func main() {
 
 	setupLog := zap.S()
 
-	mode := os.Getenv("MODE") // If this var is set, the install jobs are no-ops
-
 	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the
 	// validatingWebhookConfiguration resource before the operator container runs.
-	if mode == "INIT" {
+	mode := os.Getenv("MODE")
+	if mode == "INIT" { // If the MODE is INIT, we only execute this nested block of code
 		if !config.InitWebhooks {
 			setupLog.Info("Init webhooks false, exiting")
 			os.Exit(0)

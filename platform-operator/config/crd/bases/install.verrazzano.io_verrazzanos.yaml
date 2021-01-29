@@ -304,8 +304,11 @@ spec:
                             type: array
                           volumeSource:
                             description: VolumeSource Defines the type of volume to
-                              be used for persistence; can be either EmptyDir or PersistentVolumeClaim
-                              at present
+                              be used for persistence; at present only EmptyDirVolumeSource
+                              or PersistentVolumeClaimVolumeSource are supported.
+                              If PersistentVolumeClaimVolumeSource is used, it must
+                              reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates
+                              section.
                             properties:
                               awsElasticBlockStore:
                                 description: 'AWSElasticBlockStore represents an AWS
@@ -1643,7 +1646,7 @@ spec:
                   used for persistence, if not explicitly declared by a component;
                   at present only EmptyDirVolumeSource or PersistentVolumeClaimVolumeSource
                   are supported. If PersistentVolumeClaimVolumeSource is used, it
-                  must reference a PersistentVolumeClaim in the VolumeClaimTemplates
+                  must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates
                   section.
                 properties:
                   awsElasticBlockStore:
@@ -2835,7 +2838,7 @@ spec:
                 description: Version is the Verrazzano version
                 type: string
               volumeClaimSpecTemplates:
-                description: VolumeClaimSpecTemplates Defines a named set of PVC options
+                description: VolumeClaimSpecTemplates Defines a named set of PVC configurations
                   that can be referenced from components using persistent volumes.
                 items:
                   description: VolumeClaimSpecTemplate Contains common PVC configuration

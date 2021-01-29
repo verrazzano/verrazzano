@@ -67,11 +67,11 @@ type VerrazzanoSpec struct {
 
 	// DefaultVolumeSource Defines the type of volume to be used for persistence, if not explicitly declared by a component;
 	// at present only EmptyDirVolumeSource or PersistentVolumeClaimVolumeSource are supported. If PersistentVolumeClaimVolumeSource
-	// is used, it must reference a PersistentVolumeClaim in the VolumeClaimTemplates section.
+	// is used, it must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates section.
 	// +optional
 	DefaultVolumeSource *corev1.VolumeSource `json:"defaultVolumeSource,omitempty"`
 
-	// VolumeClaimSpecTemplates Defines a named set of PVC options that can be referenced from components using persistent volumes.
+	// VolumeClaimSpecTemplates Defines a named set of PVC configurations that can be referenced from components using persistent volumes.
 	// +optional
 	VolumeClaimSpecTemplates []VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty"`
 }
@@ -241,7 +241,9 @@ type MySQLComponent struct {
 	// Arguments for installing MySQL
 	// +optional
 	MySQLInstallArgs []InstallArgs `json:"mysqlInstallArgs,omitempty"`
-	// VolumeSource Defines the type of volume to be used for persistence; can be either EmptyDir or PersistentVolumeClaim at present
+	// VolumeSource Defines the type of volume to be used for persistence; at present only EmptyDirVolumeSource or
+	// PersistentVolumeClaimVolumeSource are supported. If PersistentVolumeClaimVolumeSource
+	// is used, it must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates section.
 	// +optional
 	VolumeSource *corev1.VolumeSource `json:"volumeSource,omitempty"`
 }
