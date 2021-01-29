@@ -1,0 +1,24 @@
+# permissions for end users to edit verrazzanocoherenceworkloads.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzanocoherenceworkload-editor-role
+rules:
+- apiGroups:
+  - oam.verrazzano.io
+  resources:
+  - verrazzanocoherenceworkloads
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - oam.verrazzano.io
+  resources:
+  - verrazzanocoherenceworkloads/status
+  verbs:
+  - get
