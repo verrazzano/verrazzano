@@ -6,7 +6,6 @@
 
 package installjob
 
-import "C"
 import (
 	"fmt"
 	"go.uber.org/zap"
