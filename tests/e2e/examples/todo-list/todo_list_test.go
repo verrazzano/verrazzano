@@ -150,17 +150,34 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 		// WHEN the REST endpoint is accessed
 		// THEN the expected results should be returned
 		ginkgo.It("Verify '/todo/rest/items' REST endpoint is working.", func() {
+			ingress := util.Ingress()
+			util.Log(util.Info, fmt.Sprintf("Ingress: %s", ingress))
+			host := "todo.example.com"
+			task := fmt.Sprintf("test-task-%s", time.Now().Format("20060102150405.0000"))
 			gomega.Eventually(func() WebResponse {
-				ingress := util.Ingress()
-				util.Log(util.Info, fmt.Sprintf("Ingress: %s", ingress))
 				url := fmt.Sprintf("http://%s/todo/rest/items", ingress)
-				host := "todo.example.com"
 				status, content := util.GetWebPageWithCABundle(url, host)
 				return WebResponse{
 					status:  status,
 					content: content,
 				}
 			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(HaveStatus(200), ContainContent("[")))
+			gomega.Eventually(func() WebResponse {
+				url := fmt.Sprintf("http://%s/todo/rest/item/%s", ingress, task)
+				status, content := util.PutWithHostHeader(url, "application/json", host, nil)
+				return WebResponse{
+					status:  status,
+					content: content,
+				}
+			}, shortWaitTimeout, shortPollingInterval).Should(HaveStatus(204))
+			gomega.Eventually(func() WebResponse {
+				url := fmt.Sprintf("http://%s/todo/rest/items", ingress)
+				status, content := util.GetWebPageWithCABundle(url, host)
+				return WebResponse{
+					status:  status,
+					content: content,
+				}
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(HaveStatus(200), ContainContent(task)))
 		})
 	})
 
@@ -182,18 +199,18 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 
 	ginkgo.Context("Logging.", func() {
 		// GIVEN a WebLogic application with logging enabled via a logging scope
-		// WHEN the ELASTICSEARCH index is retrieved
+		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
-		ginkgo.It("Verify tododomain ELASTICSEARCH index exists", func() {
+		ginkgo.It("Verify tododomain Elasticsearch index exists", func() {
 			gomega.Eventually(func() bool {
 				return logIndexFound("tododomain")
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index tododomain")
 		})
 
 		// GIVEN a WebLogic application with logging enabled via a logging scope
-		// WHEN the log records are retrieved from the ELASTICSEARCH index tododomain
+		// WHEN the log records are retrieved from the Elasticsearch index tododomain
 		// THEN verify that at least one recent log record is found
-		ginkgo.It("Verify recent tododomain ELASTICSEARCH log record exists", func() {
+		ginkgo.It("Verify recent tododomain Elasticsearch log record exists", func() {
 			gomega.Eventually(func() bool {
 				return logRecordFound("tododomain", time.Now().Add(-24*time.Hour), map[string]string{
 					"domainUID": "tododomain",
