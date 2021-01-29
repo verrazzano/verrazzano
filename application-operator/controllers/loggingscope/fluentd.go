@@ -19,6 +19,7 @@ import (
 
 const (
 	fluentdConfKey       = "fluentd.conf"
+	templateJSONKey      = "template.json"
 	fluentdContainerName = "fluentd"
 	configMapName        = "fluentd-config"
 
@@ -423,3 +424,52 @@ func resourceExists(ctx context.Context, r k8sclient.Reader, apiVersion, kind, n
 	err := r.List(ctx, &resources, k8sclient.InNamespace(namespace), k8sclient.MatchingFields{"metadata.name": name})
 	return len(resources.Items) != 0, err
 }
+
+// IndexTemplate ES index template
+const IndexTemplate = `
+{
+  "index_patterns" : "oam-<<namespace>>-<<appconf>>-<<component>>-*",
+  "version" : 60001,
+  "settings" : {
+    "index.refresh_interval" : "5s",
+    "index.mapping.total_fields.limit" : "2000",
+    "number_of_shards": 5
+  },
+  "mappings" : {
+    "dynamic_templates" : [ {
+      "message_field" : {
+        "path_match" : "log.message",
+        "match_mapping_type" : "string",
+        "mapping" : {
+          "type" : "text",
+          "norms" : false
+        }
+      }
+    }, {
+      "string_fields" : {
+        "match" : "*",
+        "match_mapping_type" : "string",
+        "mapping" : {
+          "type" : "text", "norms" : false,
+          "fields" : {
+            "keyword" : { "type": "keyword", "ignore_above": 256 }
+          }
+        }
+      }
+    } ],
+    "properties" : {
+      "@timestamp": { "type": "date", "format": "strict_date_time||strict_date_optional_time||epoch_millis"},
+      "@version": { "type": "keyword"},
+      "geoip"  : {
+        "dynamic": true,
+        "properties" : {
+          "ip": { "type": "ip" },
+          "location" : { "type" : "geo_point" },
+          "latitude" : { "type" : "half_float" },
+          "longitude" : { "type" : "half_float" }
+        }
+      }
+    }
+  }
+}
+`
