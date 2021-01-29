@@ -8,10 +8,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// VerrazzanoCoherenceWorkloadSpec defines the desired state of VerrazzanoCoherenceWorkload
+// VerrazzanoCoherenceWorkloadSpec wraps a Coherence resource. The Coherence object must include apiVersion,
+// kind, and spec fields. It may include a metadata field.
 type VerrazzanoCoherenceWorkloadSpec struct {
 	// +kubebuilder:validation:EmbeddedResource
 	// +kubebuilder:pruning:PreserveUnknownFields
@@ -20,8 +18,6 @@ type VerrazzanoCoherenceWorkloadSpec struct {
 
 // VerrazzanoCoherenceWorkloadStatus defines the observed state of VerrazzanoCoherenceWorkload
 type VerrazzanoCoherenceWorkloadStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 }
 
 // +kubebuilder:object:root=true

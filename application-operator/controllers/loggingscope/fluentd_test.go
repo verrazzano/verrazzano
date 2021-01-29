@@ -89,7 +89,7 @@ func TestFluentdApplyForUpdate(t *testing.T) {
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPodForUpdate()
 
-	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, "scratch"}
+	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath}
 
 	// simulate config map existing
 	mockClient.EXPECT().

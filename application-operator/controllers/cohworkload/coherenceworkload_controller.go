@@ -204,8 +204,13 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 		StorageVolumeName:      "logs",
 		StorageVolumeMountPath: "/logs",
 	}
+
+	// fluentdManager.Apply wants a QRR but it only cares about the namespace (at least for
+	// this use case)
 	resource := vzapi.QualifiedResourceRelation{Namespace: namespace}
 
+	// note that this call has the side effect of creating a FLUENTD config map if one
+	// does not already exist in the namespace
 	if _, err = fluentdManager.Apply(loggingScope, resource, fluentdPod); err != nil {
 		return err
 	}
