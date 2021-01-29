@@ -29,7 +29,9 @@ var nsGvr = schema.GroupVersionResource{
 	Resource: "namespaces",
 }
 
-// CreateOrUpdateResourceFromFile applies the yaml file specified by the provided path
+// CreateOrUpdateResourceFromFile creates or updates a Kubernetes resources from a YAML test data file.
+// The test data file is found using the FindTestDataFile function.
+// This is indented to be equivalent to `kubectl apply`
 func CreateOrUpdateResourceFromFile(file string) error {
 	found, err := FindTestDataFile(file)
 	if err != nil {
@@ -43,7 +45,8 @@ func CreateOrUpdateResourceFromFile(file string) error {
 	return CreateOrUpdateResourceFromBytes(bytes)
 }
 
-// CreateOrUpdateResourceFromBytes applies the yaml file content
+// CreateOrUpdateResourceFromBytes creates or updates a Kubernetes resource from bytes.
+// This is indented to be equivalent to `kubectl apply`
 func CreateOrUpdateResourceFromBytes(data []byte) error {
 	config := GetKubeConfig()
 	client, err := dynamic.NewForConfig(config)
@@ -101,7 +104,9 @@ func CreateOrUpdateResourceFromBytes(data []byte) error {
 	return nil
 }
 
-// DeleteResourceFromFile deletes the yaml file specified by the provided path
+// DeleteResourceFromFile deletes Kubernetes resources using names found in a YAML test data file.
+// This is indented to be equivalent to `kubectl delete`
+// The test data file is found using the FindTestDataFile function.
 func DeleteResourceFromFile(file string) error {
 	found, err := FindTestDataFile(file)
 	if err != nil {
@@ -114,7 +119,8 @@ func DeleteResourceFromFile(file string) error {
 	return DeleteResourceFromBytes(bytes)
 }
 
-// DeleteResourceFromBytes deletes from the cluster using the provided yaml file content
+// DeleteResourceFromBytes deletes Kubernetes resources using names found in YAML bytes.
+// This is indented to be equivalent to `kubectl delete`
 func DeleteResourceFromBytes(data []byte) error {
 	config := GetKubeConfig()
 	client, err := dynamic.NewForConfig(config)
