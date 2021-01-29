@@ -343,13 +343,13 @@ func CreateFluentdHostPathVolumes() []kcore.Volume {
 }
 
 // CreateFluentdConfigMapVolume create a config map volume for FLUENTD.
-func CreateFluentdConfigMapVolume(appName string) kcore.Volume {
+func CreateFluentdConfigMapVolume(workloadName string) kcore.Volume {
 	return kcore.Volume{
 		Name: volumeConf,
 		VolumeSource: kcore.VolumeSource{
 			ConfigMap: &kcore.ConfigMapVolumeSource{
 				LocalObjectReference: kcore.LocalObjectReference{
-					Name: fluentdConfigMapName(appName),
+					Name: fluentdConfigMapName(workloadName),
 				},
 				DefaultMode: func(mode int32) *int32 {
 					return &mode
@@ -360,8 +360,8 @@ func CreateFluentdConfigMapVolume(appName string) kcore.Volume {
 }
 
 // fluentdConfigMapName returns the name of a components FLUENTD config map
-func fluentdConfigMapName(appName string) string {
-	return fmt.Sprintf("%s-fluentd", appName)
+func fluentdConfigMapName(workloadName string) string {
+	return fmt.Sprintf("%s-fluentd", workloadName)
 }
 
 func replicateVmiSecret(vmiSec *kcore.Secret, namespace, name string) *kcore.Secret {
@@ -375,9 +375,9 @@ func replicateVmiSecret(vmiSec *kcore.Secret, namespace, name string) *kcore.Sec
 	return sec
 }
 
-func (h *HelidonHandler) ensureFluentdConfigMap(ctx context.Context, namespace, appName string) error {
+func (h *HelidonHandler) ensureFluentdConfigMap(ctx context.Context, namespace, workloadName string) error {
 	// check if configmap exists
-	name := fluentdConfigMapName(appName)
+	name := fluentdConfigMapName(workloadName)
 	configMap := &kcore.ConfigMap{}
 	err := h.Get(ctx, objKey(namespace, name), configMap)
 	if kerrs.IsNotFound(err) {
@@ -388,8 +388,8 @@ func (h *HelidonHandler) ensureFluentdConfigMap(ctx context.Context, namespace, 
 	}
 	return err
 }
-func (h *HelidonHandler) deleteFluentdConfigMap(ctx context.Context, namespace, appName string) error {
-	name := fluentdConfigMapName(appName)
+func (h *HelidonHandler) deleteFluentdConfigMap(ctx context.Context, namespace, workloadName string) error {
+	name := fluentdConfigMapName(workloadName)
 	configMap := &kcore.ConfigMap{}
 	err := h.Get(ctx, objKey(namespace, name), configMap)
 	if !kerrs.IsNotFound(err) || err == nil {
