@@ -434,7 +434,7 @@ pipeline {
                                     # Coherence image doesn't get pulled correctly in KIND.
                                     docker pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
                                     kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/middleware/coherence:12.2.1.4.0
-                                    # The ToDoList example image currently cannot be pulled in KIND.  
+                                    # The ToDoList example image currently cannot be pulled in KIND.
                                     docker pull container-registry.oracle.com/verrazzano/example-todo:0.8.0
                                     kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-todo:0.8.0
                                 """
@@ -464,9 +464,19 @@ pipeline {
                                         runGinkgoRandomize('verify-install')
                                     }
                                 }
-                                stage('restapi') {
+                                stage('verify-infra restapi') {
                                     steps {
                                         runGinkgo('verify-infra/restapi')
+                                    }
+                                }
+                                stage('verify-infra oam') {
+                                    steps {
+                                        runGinkgo('verify-infra/oam')
+                                    }
+                                }
+                                stage('verify-infra vmi') {
+                                    steps {
+                                        runGinkgo('verify-infra/vmi')
                                     }
                                 }
                                 stage('examples') {

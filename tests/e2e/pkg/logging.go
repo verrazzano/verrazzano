@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package util
+package pkg
 
 import (
 	"os"
@@ -60,4 +60,18 @@ func Log(level LogLevel, message string) {
 		}
 		ginkgo.GinkgoWriter.Write([]byte(levelHeader + " " + time.Now().Format("2020-01-02 15:04:05.000000") + " " + message + "\n"))
 	}
+}
+
+// CreateLogFile creates a file with the given name (or truncates the file if it already exists)
+// and writes the given content string to the file.
+func CreateLogFile(filename string, content string) {
+	// create out output file
+	f, err := os.Create(filename + ".log")
+	if err != nil {
+		ginkgo.Fail("Could not create output file")
+	}
+	defer f.Close()
+
+	f.WriteString(content)
+	f.Sync()
 }

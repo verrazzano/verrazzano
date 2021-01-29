@@ -3,7 +3,7 @@ package sock_shop
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/util"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"io"
 	"net/http"
 	"strconv"
@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	Debug = util.Debug
-	Info  = util.Info
-	Error = util.Error
+	Debug = pkg.Debug
+	Info  = pkg.Info
+	Error = pkg.Error
 )
 
 // SockShop encapsulates all testing information related to interactions with the sock shop app
@@ -72,25 +72,25 @@ func NewSockShop(username, password, ingress string, hostHeader string) SockShop
 
 // Post is a wrapper function for HTTP request with cookies POST
 func (s *SockShop) Post(url, contentType string, body io.Reader) (int, string) {
-	return util.PostWithHostHeader(url, contentType, s.hostHeader, body)
+	return pkg.PostWithHostHeader(url, contentType, s.hostHeader, body)
 }
 
 // Get is a wrapper function for HTTP request with cookies GET
 func (s *SockShop) Get(url string) (int, string) {
-	return util.GetWebPageWithCABundle(url, s.hostHeader)
+	return pkg.GetWebPageWithCABundle(url, s.hostHeader)
 }
 
 // Delete is a wrapper function for HTTP request with cookies DELETE
 func (s *SockShop) Delete(url string) (int, string) {
-	return util.Delete(url, s.hostHeader)
+	return pkg.Delete(url, s.hostHeader)
 }
 
 // RegisterUser interacts with sock shop to create a user
 func (s *SockShop) RegisterUser(body string) {
 	ingress := s.Ingress
 	url := fmt.Sprintf("http://%v/register", ingress)
-	status, register := util.PostWithHostHeader(url,"application/json", s.hostHeader, strings.NewReader(body))
-	util.Log(Info, fmt.Sprintf("Finished register %v status: %v", register, status))
+	status, register := pkg.PostWithHostHeader(url,"application/json", s.hostHeader, strings.NewReader(body))
+	pkg.Log(Info, fmt.Sprintf("Finished register %v status: %v", register, status))
 	Expect(status).To(Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", ingress, status))
 	Expect(strings.Contains(register, "username")).To(Equal(true), fmt.Sprintf("Cannot register %v", register))
 }
@@ -99,7 +99,7 @@ func (s *SockShop) RegisterUser(body string) {
 func (s *SockShop) ConnectToCatalog() string {
 	// connect to catalog
 	ingress := s.Ingress
-	util.Log(Info, fmt.Sprint("Connecting to Catalog"))
+	pkg.Log(Info, fmt.Sprint("Connecting to Catalog"))
 	status, webpage := s.Get("http://" + ingress + "/catalogue")
 	Expect(status).To(Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", ingress, status))
 	Expect(strings.Contains(webpage, "/catalogue/")).To(Equal(true), fmt.Sprintf("Webpage found is NOT the Catalog %v", webpage))
@@ -117,7 +117,7 @@ func (s *SockShop) VerifyCatalogItems(webpage string) {
 // GetCatalogItem retrieves the first catalog item
 func (s *SockShop) GetCatalogItem() Catalog {
 	ingress := s.Ingress
-	util.Log(Info, fmt.Sprint("Connecting to Catalog"))
+	pkg.Log(Info, fmt.Sprint("Connecting to Catalog"))
 	status, catalog := s.Get("http://" + ingress + "/catalogue")
 	Expect(status).To(Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", ingress, status))
 	Expect(strings.Contains(catalog, "/catalogue/")).To(Equal(true), fmt.Sprintf("Webpage found is NOT the Catalog %v", catalog))
@@ -135,7 +135,7 @@ func (s *SockShop) AddToCart(item CatalogItem) {
 	cartUrl := fmt.Sprintf("http://%v/carts/%v/items", ingress, s.username)
 	cartBody := fmt.Sprintf(`{"itemId": "%v","unitPrice": "%v"}`, item.Id, item.Price)
 	status, _ := s.Post(cartUrl, "application/json", strings.NewReader(cartBody))
-	util.Log(Info, fmt.Sprintf("Finished adding to cart %v status: %v", cartBody, status))
+	pkg.Log(Info, fmt.Sprintf("Finished adding to cart %v status: %v", cartBody, status))
 	Expect(status).To(Equal(201), fmt.Sprintf("POST %v failed with status %v", cartUrl, status))
 }
 
@@ -145,7 +145,7 @@ func (s *SockShop) CheckCart(item CatalogItem, quantity int) {
 	cartUrl := fmt.Sprintf("http://%v/carts/%v/items", ingress, s.username)
 	status, cart := s.Get(cartUrl)
 	Expect(status).To(Equal(200), fmt.Sprintf("GET %v failed with status %v", cartUrl, status))
-	util.Log(Info, fmt.Sprintf("Retreived cart: %v", cart))
+	pkg.Log(Info, fmt.Sprintf("Retreived cart: %v", cart))
 	var cartItems []CartItem
 	json.Unmarshal([]byte(cart), &cartItems)
 	foundItem := func() bool {
@@ -162,7 +162,7 @@ func (s *SockShop) CheckCart(item CatalogItem, quantity int) {
 // GetCartItems gathers all cart items
 func (s *SockShop) GetCartItems() []CartItem {
 	ingress := s.Ingress
-	util.Log(Info, fmt.Sprint("Gathering cart items"))
+	pkg.Log(Info, fmt.Sprint("Gathering cart items"))
 	cartUrl := fmt.Sprintf("http://%v/carts/%v/items", ingress, s.username)
 	status, toDelCart := s.Get(cartUrl)
 
@@ -176,7 +176,7 @@ func (s *SockShop) GetCartItems() []CartItem {
 func (s *SockShop) DeleteCartItems(items []CartItem) {
 	ingress := s.Ingress
 	cartUrl := fmt.Sprintf("http://%v/carts/%v/items", ingress, s.username)
-	util.Log(Info, fmt.Sprintf("Deleting cart items: %v", items))
+	pkg.Log(Info, fmt.Sprintf("Deleting cart items: %v", items))
 	for _, item := range items {
 		status, cartDel := s.Delete(cartUrl + "/" + item.ItemId)
 		Expect(status).To(Or(Equal(202)), fmt.Sprintf("Cart item %v not successfully deleted, response: %v status: %v", item.ItemId, cartDel, status))
@@ -198,7 +198,7 @@ func (s *SockShop) CheckCartEmpty() {
 func (s *SockShop) AccessPath(path, expectedString string) {
 	// move to cart page
 	ingress := s.Ingress
-	util.Log(Info, fmt.Sprint("Moving into the cart page"))
+	pkg.Log(Info, fmt.Sprint("Moving into the cart page"))
 	basketUrl := fmt.Sprintf("http://%v/%v", ingress, path)
 	status, basket := s.Get(basketUrl)
 	Expect(status).To(Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", basketUrl, status))
@@ -208,7 +208,7 @@ func (s *SockShop) AccessPath(path, expectedString string) {
 // ChangeAddress changes the address for the provided user
 func (s *SockShop) ChangeAddress(username string) {
 	ingress := s.Ingress
-	util.Log(Info, fmt.Sprint("Attempting to change address to 100 Oracle Pkwy, Redwood City, CA 94065"))
+	pkg.Log(Info, fmt.Sprint("Attempting to change address to 100 Oracle Pkwy, Redwood City, CA 94065"))
 	addressData := fmt.Sprintf(`{"userID": "%v", "number":"100", "street":"Oracle Pkwy", "city":"Redwood City", "postcode":"94065", "country":"USA"}`, username)
 	addressUrl := fmt.Sprintf("http://%v/addresses", ingress)
 	status, address := s.Post(addressUrl, "application/json", strings.NewReader(addressData))
@@ -221,29 +221,29 @@ func (s *SockShop) ChangeAddress(username string) {
 		integ, err := strconv.Atoi(addSplit[1])
 		Expect((integ > 0 && err == nil)).To(BeTrue(), fmt.Sprintf("Incorrect ID expected a positive integer and received %v", addSplit[1]))
 	}
-	util.Log(Info, fmt.Sprintf("Address: %v has been implemented with id", address))
+	pkg.Log(Info, fmt.Sprintf("Address: %v has been implemented with id", address))
 }
 
 // ChangePayment changes the form of payment
 func (s *SockShop) ChangePayment() {
 	// change payment
 	ingress := s.Ingress
-	util.Log(Info, fmt.Sprint("Attempting to change payment to 0000111122223333"))
+	pkg.Log(Info, fmt.Sprint("Attempting to change payment to 0000111122223333"))
 
 	cardData := fmt.Sprintf(`{"userID": "%v", "longNum":"00001111222223333", "expires":"01/23", "ccv":"123"}`, s.username)
 
 	cardUrl := fmt.Sprintf("http://%v/cards", ingress)
 	status, card := s.Post(cardUrl, "application/json", strings.NewReader(cardData))
 	Expect(status).To(Equal(200), fmt.Sprintf("POST %v returns status %v expected 200", cardUrl, status))
-	util.Log(Info, fmt.Sprintf("Card with ID: %v has been implemented", card))
+	pkg.Log(Info, fmt.Sprintf("Card with ID: %v has been implemented", card))
 }
 
 // GetOrders retrieves the orders
 func (s *SockShop) GetOrders() {
 	ingress := s.Ingress
-	util.Log(Info, fmt.Sprint("Attempting to locate orders"))
+	pkg.Log(Info, fmt.Sprint("Attempting to locate orders"))
 	ordersUrl := fmt.Sprintf("http://%v/orders", ingress)
 	status, orders := s.Get(ordersUrl)
 	Expect(status).To(Equal(201), fmt.Sprintf("Get %v returns status %v expected 201", ordersUrl, status))
-	util.Log(Info, fmt.Sprintf("Orders: %v have been retrieved", orders))
+	pkg.Log(Info, fmt.Sprintf("Orders: %v have been retrieved", orders))
 }
