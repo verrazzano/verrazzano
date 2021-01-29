@@ -73,12 +73,7 @@ func main() {
 
 	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the
 	// validatingWebhookConfiguration resource before the operator container runs.
-	mode := os.Getenv("MODE")
-	if mode == "INIT" { // If the MODE is INIT, we only execute this nested block of code
-		if !config.InitWebhooks {
-			setupLog.Info("Init webhooks false, exiting")
-			os.Exit(0)
-		}
+	if config.InitWebhooks {
 		setupLog.Info("Setting up certificates for webhook")
 		caCert, err := certificate.CreateWebhookCertificates(config.CertDir)
 		if err != nil {

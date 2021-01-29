@@ -22,7 +22,8 @@ import (
 //  THEN the xip.io install configuration is created and verified
 func TestXipIoInstallDefaults(t *testing.T) {
 	vz := installv1alpha1.Verrazzano{}
-	config := GetInstallConfig(&vz, zap.S())
+	config, err := GetInstallConfig(&vz, zap.S())
+	assert.NoError(t, err)
 	assert.Equalf(t, "default", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileProd, config.Profile, "Expected profile did not match")
 	assert.Equalf(t, DNSTypeXip, config.DNS.Type, "Expected DNS type did not match")
@@ -101,7 +102,8 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 		},
 	}
 
-	config := GetInstallConfig(&vz, zap.S())
+	config, err := GetInstallConfig(&vz, zap.S())
+	assert.NoError(t, err)
 	assert.Equalf(t, "testEnv", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileDev, config.Profile, "Expected profile did not match")
 	assert.Equalf(t, DNSTypeXip, config.DNS.Type, "Expected DNS type did not match")
@@ -206,7 +208,8 @@ func TestExternalInstall(t *testing.T) {
 		},
 	}
 
-	config := GetInstallConfig(&vz, zap.S())
+	config, err := GetInstallConfig(&vz, zap.S())
+	assert.NoError(t, err)
 	assert.Equalf(t, "external", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileProd, config.Profile, "Expected profile did not match")
 
@@ -304,7 +307,8 @@ func TestOCIDNSInstall(t *testing.T) {
 		},
 	}
 
-	config := GetInstallConfig(&vz, zap.S())
+	config, err := GetInstallConfig(&vz, zap.S())
+	assert.NoError(t, err)
 	assert.Equalf(t, "oci", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileProd, config.Profile, "Expected profile did not match")
 
@@ -377,7 +381,8 @@ func TestNodePortInstall(t *testing.T) {
 		},
 	}
 
-	config := GetInstallConfig(&vz, zap.S())
+	config, err := GetInstallConfig(&vz, zap.S())
+	assert.NoError(t, err)
 	assert.Equalf(t, "kind", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, InstallProfileDev, config.Profile, "Expected profile did not match")
 
@@ -419,7 +424,8 @@ func TestOAMDefaultInstall(t *testing.T) {
 		},
 	}
 
-	config := GetInstallConfig(&vz, zap.S())
+	config, err := GetInstallConfig(&vz, zap.S())
+	assert.NoError(t, err)
 	assert.Equal(t, false, config.OAM.Enabled, "Expected OAM to be disabled by default.")
 
 	jsonBytes, err := json.Marshal(config)
@@ -444,7 +450,8 @@ func TestOAMEnabledInstall(t *testing.T) {
 		},
 	}
 
-	config := GetInstallConfig(&vz, zap.S())
+	config, err := GetInstallConfig(&vz, zap.S())
+	assert.NoError(t, err)
 	assert.Equal(t, true, config.OAM.Enabled, "Expected OAM to be explicitly enabled.")
 
 	jsonBytes, err := json.Marshal(config)
@@ -469,7 +476,8 @@ func TestOAMDisabledInstall(t *testing.T) {
 		},
 	}
 
-	config := GetInstallConfig(&vz, zap.S())
+	config, err := GetInstallConfig(&vz, zap.S())
+	assert.NoError(t, err)
 	assert.Equal(t, false, config.OAM.Enabled, "Expected OAM to be explicitly disabled.")
 
 	jsonBytes, err := json.Marshal(config)

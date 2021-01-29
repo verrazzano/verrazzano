@@ -1,4 +1,4 @@
-# Copyright (C) 2020, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ---
 apiVersion: v1
@@ -51,7 +51,7 @@ spec:
             - --init-webhooks=true
           env:
             - name: MODE
-              value: INIT
+              value: RUN_OPERATOR
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs

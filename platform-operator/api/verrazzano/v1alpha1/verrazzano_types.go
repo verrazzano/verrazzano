@@ -82,9 +82,7 @@ type VerrazzanoSpec struct {
 type VolumeClaimSpecTemplate struct {
 	// Name The name of the configuration template
 	Name string `json:"name"`
-
 	// Spec The configuration specs for the template
-	// +optional
 	Spec corev1.PersistentVolumeClaimSpec `json:"spec,omitempty"`
 }
 
