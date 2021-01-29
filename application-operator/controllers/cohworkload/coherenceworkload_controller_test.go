@@ -239,7 +239,7 @@ func TestReconcileDeleteResources(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
 			// one item in the list is enough to cause the FLUENTD code to try delete the config map
 			configMaps := list.(*unstructured.UnstructuredList)
-			configMaps.Items = []unstructured.Unstructured{unstructured.Unstructured{}}
+			configMaps.Items = []unstructured.Unstructured{{}}
 			return nil
 		})
 	// expect a call to delete the FLUENTD config map

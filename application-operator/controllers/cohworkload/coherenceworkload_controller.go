@@ -127,7 +127,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// mutate the Coherence spec, add logging, etc.
-	spec, found, err := unstructured.NestedMap(u.Object, "spec")
+	spec, found, _ := unstructured.NestedMap(u.Object, "spec")
 	if !found {
 		return reconcile.Result{}, errors.New("Embedded Coherence resource is missing the required 'spec' field")
 	}
