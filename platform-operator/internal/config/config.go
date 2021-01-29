@@ -47,7 +47,7 @@ var instance OperatorConfig = OperatorConfig{
 	VersionCheckEnabled:      true,
 	WebhooksEnabled:          true,
 	WebhookValidationEnabled: true,
-	VerrazzanoInstallDir:     "/verrazzano/operator/scripts/install",
+	VerrazzanoInstallDir:     "/verrazzano/platform-operator/scripts/install",
 	ThirdpartyChartsDir:      "/verrazzano/thirdparty/charts",
 	HelmConfigDir:            "/verrazzano/helm_config",
 }
