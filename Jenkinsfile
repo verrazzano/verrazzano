@@ -78,8 +78,6 @@ pipeline {
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
-        OCIR_CREDS = credentials('ocir-pull-and-push-account')
-        OCIR_PHX_REPO = 'phx.ocir.io'
     }
 
     stages {
