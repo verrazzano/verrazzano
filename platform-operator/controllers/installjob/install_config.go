@@ -6,8 +6,10 @@
 
 package installjob
 
+import "C"
 import (
 	"fmt"
+	"go.uber.org/zap"
 	"strconv"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/api/verrazzano/v1alpha1"
@@ -18,7 +20,7 @@ import (
 
 const (
 	defaultCAClusterResourceName string = "cattle-system"
-	defaultCASecretNamne         string = "tls-rancher"
+	defaultCASecretName          string = "tls-rancher"
 )
 
 // DNSType identifies the DNS type
@@ -184,23 +186,23 @@ type InstallConfiguration struct {
 
 // GetInstallConfig returns an install configuration in the json format required by the
 // bash installer scripts.
-func GetInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration {
+func GetInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) *InstallConfiguration {
 	if vz.Spec.Components.DNS.External != (installv1alpha1.External{}) {
-		return newExternalDNSInstallConfig(vz)
+		return newExternalDNSInstallConfig(vz, log)
 	}
 
 	if vz.Spec.Components.DNS.OCI != (installv1alpha1.OCI{}) {
-		return newOCIDNSInstallConfig(vz)
+		return newOCIDNSInstallConfig(vz, log)
 	}
 
-	return newXipIoInstallConfig(vz)
+	return newXipIoInstallConfig(vz, log)
 }
 
-func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration {
+func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) *InstallConfiguration {
 	return &InstallConfiguration{
 		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
-		VzInstallArgs:   getVerrazzanoInstallArgs(&vz.Spec),
+		VzInstallArgs:   getVerrazzanoInstallArgs(&vz.Spec, log),
 		DNS: DNS{
 			Type: DNSTypeOci,
 			Oci: &DNSOCI{
@@ -219,38 +221,70 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguratio
 				Environment:  vz.Spec.Components.CertManager.Certificate.Acme.Environment,
 			},
 		},
-		Keycloak: getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeTemplates, vz.Spec.DefaultVolumeTemplate),
+		Keycloak: getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimTemplates, log),
 		OAM:      getOAM(vz.Spec.Components.OAM),
 	}
 }
 
-func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) []InstallArg {
-	// Eventually look up a template name when supported
-	template := findVolumeTemplate(vzSpec.DefaultVolumeTemplate, vzSpec.VolumeTemplates)
-	if template == nil {
+// getVerrazzanoInstallArgs Set custom helm args for the Verrazzano internal component as needed
+func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.SugaredLogger) []InstallArg {
+	var volumeSource interface{} = vzSpec.DefaultVolumeSource
+	if volumeSource == nil {
 		return []InstallArg{}
 	}
-	vzInstallArgs := []InstallArg{
-		{
-			Name:      "verrazzanoOperator.esDataStorageSize",
-			Value:     template.Spec.Resources.Requests.Storage().String(),
-			SetString: false,
-		},
-		{
-			Name:      "verrazzanoOperator.grafanaDataStorageSize",
-			Value:     template.Spec.Resources.Requests.Storage().String(),
-			SetString: false,
-		},
-		{
-			Name:      "verrazzanoOperator.prometheusDataStorageSize",
-			Value:     template.Spec.Resources.Requests.Storage().String(),
-			SetString: false,
-		},
+	switch v := volumeSource.(type) {
+	default:
+		log.Errorf("Unsupported VolumeSource type: %T", v)
+	case corev1.EmptyDirVolumeSource:
+		// TODO: Eventually, we may wan to pass down EmptyDir settings, right now we just use helm settings for the
+		//       verrazzano-operator to set values that cause the verrazzano-monitoring-operator to use an
+		//       EmptyDirVolumeSource with defaults
+		return []InstallArg{
+			{
+				Name:      "verrazzanoOperator.esDataStorageSize",
+				Value:     "",
+				SetString: false,
+			},
+			{
+				Name:      "verrazzanoOperator.grafanaDataStorageSize",
+				Value:     "",
+				SetString: false,
+			},
+			{
+				Name:      "verrazzanoOperator.prometheusDataStorageSize",
+				Value:     "",
+				SetString: false,
+			},
+		}
+	case corev1.PersistentVolumeClaimVolumeSource:
+		pvcs := volumeSource.(corev1.PersistentVolumeClaimVolumeSource)
+		storageTemplate := findVolumeTemplate(pvcs.ClaimName, vzSpec.VolumeClaimTemplates)
+		if storageTemplate == nil {
+			// Log error?
+			break
+		}
+		return []InstallArg{
+			{
+				Name:      "verrazzanoOperator.esDataStorageSize",
+				Value:     storageTemplate.Spec.Resources.Requests.Storage().String(),
+				SetString: false,
+			},
+			{
+				Name:      "verrazzanoOperator.grafanaDataStorageSize",
+				Value:     storageTemplate.Spec.Resources.Requests.Storage().String(),
+				SetString: false,
+			},
+			{
+				Name:      "verrazzanoOperator.prometheusDataStorageSize",
+				Value:     storageTemplate.Spec.Resources.Requests.Storage().String(),
+				SetString: false,
+			},
+		}
 	}
-	return vzInstallArgs
+	return []InstallArg{}
 }
 
-func findVolumeTemplate(templateName string, templates []installv1alpha1.VolumeTemplate) *installv1alpha1.VolumeTemplate {
+func findVolumeTemplate(templateName string, templates []corev1.PersistentVolumeClaim) *corev1.PersistentVolumeClaim {
 	for _, template := range templates {
 		if templateName == template.Name {
 			return &template
@@ -261,11 +295,11 @@ func findVolumeTemplate(templateName string, templates []installv1alpha1.VolumeT
 
 // newXipIoInstallConfig returns an install configuration for a xip.io install in the
 // json format required by the bash installer scripts.
-func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration {
+func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) *InstallConfiguration {
 	return &InstallConfiguration{
 		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
-		VzInstallArgs:   getVerrazzanoInstallArgs(&vz.Spec),
+		VzInstallArgs:   getVerrazzanoInstallArgs(&vz.Spec, log),
 		DNS: DNS{
 			Type: DNSTypeXip,
 		},
@@ -277,7 +311,7 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration
 				SecretName:               getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
 			},
 		},
-		Keycloak: getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeTemplates, vz.Spec.DefaultVolumeTemplate),
+		Keycloak: getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimTemplates, log),
 		OAM:      getOAM(vz.Spec.Components.OAM),
 	}
 }
@@ -285,11 +319,11 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration
 // newExternalDNSInstallConfig returns an install configuration for an external DNS install
 // in the json format required by the bash installer scripts.
 // This type of install configuration would be used for an OLCNE install.
-func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration {
+func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) *InstallConfiguration {
 	return &InstallConfiguration{
 		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
-		VzInstallArgs:   getVerrazzanoInstallArgs(&vz.Spec),
+		VzInstallArgs:   getVerrazzanoInstallArgs(&vz.Spec, log),
 		DNS: DNS{
 			Type: DNSTypeExternal,
 			External: &ExternalDNS{
@@ -304,7 +338,7 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfigu
 				SecretName:               getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
 			},
 		},
-		Keycloak: getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeTemplates, vz.Spec.DefaultVolumeTemplate),
+		Keycloak: getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimTemplates, log),
 		OAM:      getOAM(vz.Spec.Components.OAM),
 	}
 }
@@ -368,14 +402,28 @@ func getInstallArgs(args []installv1alpha1.InstallArgs) []InstallArg {
 }
 
 // getKeycloak returns the json representation for the keycloak configuration
-func getKeycloak(keycloak installv1alpha1.KeycloakComponent, templates []installv1alpha1.VolumeTemplate, defaultStorageTemplate string) Keycloak {
-	storageTemplateName := keycloak.MySQL.VolumeTemplate
-	if len(storageTemplateName) == 0 {
-		storageTemplateName = defaultStorageTemplate
-	}
-	storageTemplate := findVolumeTemplate(storageTemplateName, templates)
+func getKeycloak(keycloak installv1alpha1.KeycloakComponent, templates []corev1.PersistentVolumeClaim, log *zap.SugaredLogger) Keycloak {
 	mySQLArgs := getInstallArgs(keycloak.MySQL.MySQLInstallArgs)
-	if storageTemplate != nil {
+	var volumeSource interface{} = keycloak.MySQL.VolumeSource
+	switch v := volumeSource.(type) {
+	default:
+		log.Errorf("Unsupported VolumeSource type: %T", v)
+	case corev1.EmptyDirVolumeSource:
+		// TODO: Eventually, we may wan to pass down EmptyDir settings, right now we just use helm settings for the
+		//       verrazzano-operator to set values that cause the verrazzano-monitoring-operator to use an
+		//       EmptyDirVolumeSource with defaults
+		mySQLArgs = append(mySQLArgs, InstallArg{
+			Name:      "persistence.enabled",
+			Value:     "false",
+			SetString: true,
+		})
+	case corev1.PersistentVolumeClaimVolumeSource:
+		pvcs := volumeSource.(corev1.PersistentVolumeClaimVolumeSource)
+		storageTemplate := findVolumeTemplate(pvcs.ClaimName, templates)
+		if storageTemplate == nil {
+			// Log error?
+			break
+		}
 		storageClass := storageTemplate.Spec.StorageClassName
 		if storageClass != nil && len(*storageClass) > 0 {
 			mySQLArgs = append(mySQLArgs, InstallArg{
@@ -448,7 +496,7 @@ func getCAClusterResourceNamespace(ca installv1alpha1.CA) string {
 func getCASecretName(ca installv1alpha1.CA) string {
 	// Use default value if not specified
 	if ca.SecretName == "" {
-		return defaultCASecretNamne
+		return defaultCASecretName
 	}
 
 	return ca.SecretName
