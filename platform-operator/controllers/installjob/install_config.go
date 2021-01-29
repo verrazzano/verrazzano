@@ -225,73 +225,6 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogg
 	}
 }
 
-// getVerrazzanoInstallArgs Set custom helm args for the Verrazzano internal component as needed
-func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.SugaredLogger) []InstallArg {
-	var volumeSource interface{} = vzSpec.DefaultVolumeSource
-	if volumeSource == nil {
-		return []InstallArg{}
-	}
-	switch v := volumeSource.(type) {
-	default:
-		log.Errorf("Unsupported VolumeSource type: %T", v)
-	case corev1.EmptyDirVolumeSource:
-		// TODO: Eventually, we may wan to pass down EmptyDir settings, right now we just use helm settings for the
-		//       verrazzano-operator to set values that cause the verrazzano-monitoring-operator to use an
-		//       EmptyDirVolumeSource with defaults
-		return []InstallArg{
-			{
-				Name:      "verrazzanoOperator.esDataStorageSize",
-				Value:     "",
-				SetString: false,
-			},
-			{
-				Name:      "verrazzanoOperator.grafanaDataStorageSize",
-				Value:     "",
-				SetString: false,
-			},
-			{
-				Name:      "verrazzanoOperator.prometheusDataStorageSize",
-				Value:     "",
-				SetString: false,
-			},
-		}
-	case corev1.PersistentVolumeClaimVolumeSource:
-		pvcs := volumeSource.(corev1.PersistentVolumeClaimVolumeSource)
-		storageTemplate := findVolumeTemplate(pvcs.ClaimName, vzSpec.VolumeClaimTemplates)
-		if storageTemplate == nil {
-			// Log error?
-			break
-		}
-		return []InstallArg{
-			{
-				Name:      "verrazzanoOperator.esDataStorageSize",
-				Value:     storageTemplate.Spec.Resources.Requests.Storage().String(),
-				SetString: false,
-			},
-			{
-				Name:      "verrazzanoOperator.grafanaDataStorageSize",
-				Value:     storageTemplate.Spec.Resources.Requests.Storage().String(),
-				SetString: false,
-			},
-			{
-				Name:      "verrazzanoOperator.prometheusDataStorageSize",
-				Value:     storageTemplate.Spec.Resources.Requests.Storage().String(),
-				SetString: false,
-			},
-		}
-	}
-	return []InstallArg{}
-}
-
-func findVolumeTemplate(templateName string, templates []corev1.PersistentVolumeClaim) *corev1.PersistentVolumeClaim {
-	for _, template := range templates {
-		if templateName == template.Name {
-			return &template
-		}
-	}
-	return nil
-}
-
 // newXipIoInstallConfig returns an install configuration for a xip.io install in the
 // json format required by the bash installer scripts.
 func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) *InstallConfiguration {
@@ -403,50 +336,49 @@ func getInstallArgs(args []installv1alpha1.InstallArgs) []InstallArg {
 // getKeycloak returns the json representation for the keycloak configuration
 func getKeycloak(keycloak installv1alpha1.KeycloakComponent, templates []corev1.PersistentVolumeClaim, log *zap.SugaredLogger) Keycloak {
 	mySQLArgs := getInstallArgs(keycloak.MySQL.MySQLInstallArgs)
-	var volumeSource interface{} = keycloak.MySQL.VolumeSource
-	switch v := volumeSource.(type) {
-	default:
-		log.Errorf("Unsupported VolumeSource type: %T", v)
-	case corev1.EmptyDirVolumeSource:
+
+	mysqlVolumeSource := keycloak.MySQL.VolumeSource
+	if mysqlVolumeSource.EmptyDir != nil {
 		// TODO: Eventually, we may wan to pass down EmptyDir settings, right now we just use helm settings for the
 		//       verrazzano-operator to set values that cause the verrazzano-monitoring-operator to use an
 		//       EmptyDirVolumeSource with defaults
+		// TODO: At some point, make EmptyDir the default behavior; for now, we are going to let the profile chart overrides be the default behavior
 		mySQLArgs = append(mySQLArgs, InstallArg{
 			Name:      "persistence.enabled",
 			Value:     "false",
 			SetString: true,
 		})
-	case corev1.PersistentVolumeClaimVolumeSource:
-		pvcs := volumeSource.(corev1.PersistentVolumeClaimVolumeSource)
-		storageTemplate := findVolumeTemplate(pvcs.ClaimName, templates)
-		if storageTemplate == nil {
-			// Log error?
-			break
-		}
-		storageClass := storageTemplate.Spec.StorageClassName
-		if storageClass != nil && len(*storageClass) > 0 {
-			mySQLArgs = append(mySQLArgs, InstallArg{
-				Name:      "persistence.storageClass",
-				Value:     *storageClass,
-				SetString: true,
-			})
-		}
-		size := storageTemplate.Spec.Resources.Requests.Storage().String()
-		if len(size) > 0 {
-			mySQLArgs = append(mySQLArgs, InstallArg{
-				Name:      "persistence.size",
-				Value:     size,
-				SetString: true,
-			})
-		}
-		accessModes := storageTemplate.Spec.AccessModes
-		if len(accessModes) > 0 {
-			// MySQL only allows a single AccessMode value, so just choose the first
-			mySQLArgs = append(mySQLArgs, InstallArg{
-				Name:      "persistence.accessMode",
-				Value:     string(accessModes[0]),
-				SetString: true,
-			})
+	} else if mysqlVolumeSource.PersistentVolumeClaim != nil {
+		pvcs := mysqlVolumeSource.PersistentVolumeClaim
+		storageTemplate, found := findVolumeTemplate(pvcs.ClaimName, templates)
+		if !found {
+			log.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
+		} else {
+			storageClass := storageTemplate.Spec.StorageClassName
+			if storageClass != nil && len(*storageClass) > 0 {
+				mySQLArgs = append(mySQLArgs, InstallArg{
+					Name:      "persistence.storageClass",
+					Value:     *storageClass,
+					SetString: true,
+				})
+			}
+			size := storageTemplate.Spec.Resources.Requests.Storage().String()
+			if len(size) > 0 {
+				mySQLArgs = append(mySQLArgs, InstallArg{
+					Name:      "persistence.size",
+					Value:     size,
+					SetString: true,
+				})
+			}
+			accessModes := storageTemplate.Spec.AccessModes
+			if len(accessModes) > 0 {
+				// MySQL only allows a single AccessMode value, so just choose the first
+				mySQLArgs = append(mySQLArgs, InstallArg{
+					Name:      "persistence.accessMode",
+					Value:     string(accessModes[0]),
+					SetString: true,
+				})
+			}
 		}
 	}
 	return Keycloak{
@@ -519,6 +451,68 @@ func getProfile(profileType installv1alpha1.ProfileType) InstallProfile {
 	}
 
 	return InstallProfileDev
+}
+
+// getVerrazzanoInstallArgs Set custom helm args for the Verrazzano internal component as needed
+func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.SugaredLogger) []InstallArg {
+	if vzSpec.DefaultVolumeSource.EmptyDir != nil {
+		// TODO: Eventually, we may wan to pass down EmptyDir settings, right now we just use helm settings for the
+		//       verrazzano-operator to set values that cause the verrazzano-monitoring-operator to use an
+		//       EmptyDirVolumeSource with defaults
+		// TODO: At some point, make EmptyDir the default behavior; for now, we are going to let the profile chart overrides be the default behavior
+		return []InstallArg{
+			{
+				Name:      "verrazzanoOperator.esDataStorageSize",
+				Value:     "",
+				SetString: true,
+			},
+			{
+				Name:      "verrazzanoOperator.grafanaDataStorageSize",
+				Value:     "",
+				SetString: true,
+			},
+			{
+				Name:      "verrazzanoOperator.prometheusDataStorageSize",
+				Value:     "",
+				SetString: true,
+			},
+		}
+	} else if vzSpec.DefaultVolumeSource.PersistentVolumeClaim != nil {
+		pvcs := vzSpec.DefaultVolumeSource.PersistentVolumeClaim
+		storageTemplate, found := findVolumeTemplate(pvcs.ClaimName, vzSpec.VolumeClaimTemplates)
+		if !found {
+			log.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
+			return []InstallArg{}
+		}
+		return []InstallArg{
+			{
+				Name:      "verrazzanoOperator.esDataStorageSize",
+				Value:     storageTemplate.Spec.Resources.Requests.Storage().String(),
+				SetString: true,
+			},
+			{
+				Name:      "verrazzanoOperator.grafanaDataStorageSize",
+				Value:     storageTemplate.Spec.Resources.Requests.Storage().String(),
+				SetString: true,
+			},
+			{
+				Name:      "verrazzanoOperator.prometheusDataStorageSize",
+				Value:     storageTemplate.Spec.Resources.Requests.Storage().String(),
+				SetString: true,
+			},
+		}
+	}
+	return []InstallArg{}
+}
+
+// findVolumeTemplate Find a named VolumeClaimTemplate in the list
+func findVolumeTemplate(templateName string, templates []corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, bool) {
+	for _, template := range templates {
+		if templateName == template.ObjectMeta.Name {
+			return &template, true
+		}
+	}
+	return nil, false
 }
 
 // getOAM returns the install config for OAM
