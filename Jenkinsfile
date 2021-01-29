@@ -42,6 +42,7 @@ pipeline {
                 trim: true
         )
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
+        booleanParam (description: 'Whether to run example tests', name: 'RUN_EXAMPLE_TESTS', defaultValue: true)
     }
 
     environment {
@@ -74,6 +75,9 @@ pipeline {
         INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
+
+        WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
+        DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
     }
 
     stages {
@@ -312,6 +316,7 @@ pipeline {
 
                     // if we are planning to run the AT's (which is the default)
                     if (params.RUN_ACCEPTANCE_TESTS == true) {
+                        SKIP_ACCEPTANCE_TESTS = false
                         // check if the user has asked to skip AT using the commit message
                         result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
                         if (result == 0) {
@@ -320,6 +325,8 @@ pipeline {
                             echo "Skip acceptance tests based on opt-out in commit message [skip-at]"
                             echo "SKIP_ACCEPTANCE_TESTS is ${SKIP_ACCEPTANCE_TESTS}"
                         }
+                    } else {
+                        SKIP_ACCEPTANCE_TESTS = true
                     }
                 }
             }
@@ -427,6 +434,9 @@ pipeline {
                                     # Coherence image doesn't get pulled correctly in KIND.
                                     docker pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
                                     kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/middleware/coherence:12.2.1.4.0
+                                    # The ToDoList example image currently cannot be pulled in KIND.  
+                                    docker pull container-registry.oracle.com/verrazzano/example-todo:0.8.0
+                                    kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-todo:0.8.0
                                 """
                             }
                             post {
@@ -445,6 +455,9 @@ pipeline {
                         }
 
                         stage('Run Acceptance Tests') {
+                            environment {
+                                TEST_ENV = "KIND"
+                            }
                             stages {
                                 stage('verify-install') {
                                     steps {
@@ -454,6 +467,15 @@ pipeline {
                                 stage('restapi') {
                                     steps {
                                         runGinkgo('verify-infra/restapi')
+                                    }
+                                }
+                                stage('examples') {
+                                    when {
+                                        expression {params.RUN_EXAMPLE_TESTS == true}
+                                    }
+                                    steps {
+                                        runGinkgo('examples/todo-list')
+                                        runGinkgo('examples/sock-shop')
                                     }
                                 }
                             }
@@ -470,6 +492,8 @@ pipeline {
             dumpCattleSystemPods()
             dumpNginxIngressControllerLogs()
             dumpVerrazzanoPlatformOperatorLogs()
+            dumpVerrazzanoApplicationOperatorLogs()
+            dumpOamKubernetesRuntimeLogs()
 
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
@@ -556,6 +580,30 @@ def dumpVerrazzanoPlatformOperatorLogs() {
         kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
         echo "verrazzano-platform-operator logs dumped to verrazzano-platform-operator-pod.log"
         echo "verrazzano-platform-operator pod description dumped to verrazzano-platform-operator-pod.out"
+        echo "------------------------------------------"
+    """
+}
+
+def dumpVerrazzanoApplicationOperatorLogs() {
+    sh """
+        ## dump out verrazzano-application-operator logs
+        mkdir -p ${WORKSPACE}/verrazzano-application-operator/logs
+        kubectl -n verrazzano-system logs --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        echo "verrazzano-application-operator logs dumped to verrazzano-application-operator-pod.log"
+        echo "verrazzano-application-operator pod description dumped to verrazzano-application-operator-pod.out"
+        echo "------------------------------------------"
+    """
+}
+
+def dumpOamKubernetesRuntimeLogs() {
+    sh """
+        ## dump out oam-kubernetes-runtime logs
+        mkdir -p ${WORKSPACE}/oam-kubernetes-runtime/logs
+        kubectl -n verrazzano-system logs --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${WORKSPACE}/oam-kubernetes-runtime/logs/oam-kubernetes-runtime-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system describe pod --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${WORKSPACE}/verrazzano-application-operator/logs/oam-kubernetes-runtime-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        echo "verrazzano-application-operator logs dumped to oam-kubernetes-runtime-pod.log"
+        echo "verrazzano-application-operator pod description dumped to oam-kubernetes-runtime-pod.out"
         echo "------------------------------------------"
     """
 }

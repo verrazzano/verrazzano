@@ -34,10 +34,10 @@ const HelidonFluentdConfiguration = `<label @FLUENT_LOG>
 </label>
 <source>
   @type tail
-  path "/var/log/containers/#{ENV['APPLICATION_NAME']}*#{ENV['APP_CONTAINER_NAME']}*.log"
-  pos_file "/tmp/#{ENV['APPLICATION_NAME']}.log.pos"
+  path "/var/log/containers/#{ENV['WORKLOAD_NAME']}*#{ENV['APP_CONTAINER_NAME']}*.log"
+  pos_file "/tmp/#{ENV['WORKLOAD_NAME']}.log.pos"
   read_from_head true
-  tag "#{ENV['APPLICATION_NAME']}"
+  tag "#{ENV['WORKLOAD_NAME']}"
   # Helidon application messages are expected to look like this:
   # 2020.04.22 16:09:21 INFO org.books.bobby.Main Thread[main,5,main]: http://localhost:8080/books
   <parse>
@@ -79,7 +79,10 @@ const HelidonFluentdConfiguration = `<label @FLUENT_LOG>
 <filter **>
   @type record_transformer
   <record>
-    applicationName "#{ENV['APPLICATION_NAME']}"
+    oam.applicationconfiguration.namespace "#{ENV['NAMESPACE']}"
+    oam.applicationconfiguration.name "#{ENV['APP_CONF_NAME']}"
+    oam.component.namespace "#{ENV['NAMESPACE']}"
+    oam.component.name  "#{ENV['COMPONENT_NAME']}"
   </record>
 </filter>
 <match **>
@@ -88,7 +91,7 @@ const HelidonFluentdConfiguration = `<label @FLUENT_LOG>
   port "#{ENV['ELASTICSEARCH_PORT']}"
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
-  index_name "#{ENV['ELASTICSEARCH_APP_INDEX']}"
+  index_name "oam-#{ENV['NAMESPACE']}-#{ENV['APP_CONF_NAME']}-#{ENV['COMPONENT_NAME']}"
   scheme http
   include_timestamp true
   flush_interval 10s
@@ -214,7 +217,7 @@ func CreateFluentdConfigMap(namespace, name, fluentdConfig string) *kcore.Config
 }
 
 // CreateFluentdContainer creates a FLUENTD sidecar container.
-func CreateFluentdContainer(namespace, appName, containerName, fluentdImage, esSecret, esHost string) kcore.Container {
+func CreateFluentdContainer(namespace, workloadName, containerName, fluentdImage, esSecret, esHost string) kcore.Container {
 	container := kcore.Container{
 		Name:            fluentdContainerName,
 		Args:            []string{"-c", "/etc/fluent.conf"},
@@ -222,8 +225,8 @@ func CreateFluentdContainer(namespace, appName, containerName, fluentdImage, esS
 		ImagePullPolicy: kcore.PullIfNotPresent,
 		Env: []kcore.EnvVar{
 			{
-				Name:  "APPLICATION_NAME",
-				Value: appName,
+				Name:  "WORKLOAD_NAME",
+				Value: workloadName,
 			},
 			{
 				Name:  "APP_CONTAINER_NAME",
@@ -238,8 +241,24 @@ func CreateFluentdContainer(namespace, appName, containerName, fluentdImage, esS
 				Value: "true",
 			},
 			{
-				Name:  "ELASTICSEARCH_APP_INDEX",
-				Value: fmt.Sprintf("%s_%s", namespace, appName),
+				Name:  "NAMESPACE",
+				Value: namespace,
+			},
+			{
+				Name: "APP_CONF_NAME",
+				ValueFrom: &kcore.EnvVarSource{
+					FieldRef: &kcore.ObjectFieldSelector{
+						FieldPath: "metadata.labels['app.oam.dev/name']",
+					},
+				},
+			},
+			{
+				Name: "COMPONENT_NAME",
+				ValueFrom: &kcore.EnvVarSource{
+					FieldRef: &kcore.ObjectFieldSelector{
+						FieldPath: "metadata.labels['app.oam.dev/component']",
+					},
+				},
 			},
 			{
 				Name:  "ELASTICSEARCH_HOST",
@@ -324,13 +343,13 @@ func CreateFluentdHostPathVolumes() []kcore.Volume {
 }
 
 // CreateFluentdConfigMapVolume create a config map volume for FLUENTD.
-func CreateFluentdConfigMapVolume(appName string) kcore.Volume {
+func CreateFluentdConfigMapVolume(workloadName string) kcore.Volume {
 	return kcore.Volume{
 		Name: volumeConf,
 		VolumeSource: kcore.VolumeSource{
 			ConfigMap: &kcore.ConfigMapVolumeSource{
 				LocalObjectReference: kcore.LocalObjectReference{
-					Name: fluentdConfigMapName(appName),
+					Name: fluentdConfigMapName(workloadName),
 				},
 				DefaultMode: func(mode int32) *int32 {
 					return &mode
@@ -341,8 +360,8 @@ func CreateFluentdConfigMapVolume(appName string) kcore.Volume {
 }
 
 // fluentdConfigMapName returns the name of a components FLUENTD config map
-func fluentdConfigMapName(appName string) string {
-	return fmt.Sprintf("%s-fluentd", appName)
+func fluentdConfigMapName(workloadName string) string {
+	return fmt.Sprintf("%s-fluentd", workloadName)
 }
 
 func replicateVmiSecret(vmiSec *kcore.Secret, namespace, name string) *kcore.Secret {
@@ -356,9 +375,9 @@ func replicateVmiSecret(vmiSec *kcore.Secret, namespace, name string) *kcore.Sec
 	return sec
 }
 
-func (h *HelidonHandler) ensureFluentdConfigMap(ctx context.Context, namespace, appName string) error {
+func (h *HelidonHandler) ensureFluentdConfigMap(ctx context.Context, namespace, workloadName string) error {
 	// check if configmap exists
-	name := fluentdConfigMapName(appName)
+	name := fluentdConfigMapName(workloadName)
 	configMap := &kcore.ConfigMap{}
 	err := h.Get(ctx, objKey(namespace, name), configMap)
 	if kerrs.IsNotFound(err) {
@@ -369,8 +388,8 @@ func (h *HelidonHandler) ensureFluentdConfigMap(ctx context.Context, namespace, 
 	}
 	return err
 }
-func (h *HelidonHandler) deleteFluentdConfigMap(ctx context.Context, namespace, appName string) error {
-	name := fluentdConfigMapName(appName)
+func (h *HelidonHandler) deleteFluentdConfigMap(ctx context.Context, namespace, workloadName string) error {
+	name := fluentdConfigMapName(workloadName)
 	configMap := &kcore.ConfigMap{}
 	err := h.Get(ctx, objKey(namespace, name), configMap)
 	if !kerrs.IsNotFound(err) || err == nil {

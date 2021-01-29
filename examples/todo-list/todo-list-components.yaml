@@ -1,22 +1,22 @@
-# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: todo-domain
-  namespace: todo
+  namespace: todo-list
 spec:
   workload:
     apiVersion: weblogic.oracle/v8
     kind: Domain
     metadata:
       name: todo-domain
-      namespace: todo
+      namespace: todo-list
     spec:
       domainUID: tododomain
       domainHome: /u01/domains/tododomain
-      image: %TODO_APP_IMAGE%
+      image: container-registry.oracle.com/verrazzano/example-todo:0.8.0
       imagePullSecrets:
         - name: tododomain-repo-credentials
       logHomeEnabled: true
@@ -51,14 +51,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: todo-jdbc-configmap
-  namespace: todo
+  namespace: todo-list
 spec:
   workload:
     apiVersion: v1
     kind: ConfigMap
     metadata:
       name: tododomain-jdbc-config
-      namespace: todo
+      namespace: todo-list
     data:
       wdt_jdbc.yaml: |
         resources:
@@ -72,7 +72,7 @@ spec:
                   JNDIName: jdbc/ToDoDB
                 JDBCDriverParams:
                   # for MySQL, the last element in the URL is the database name, and must match the name inside the DB server
-                  URL: "jdbc:mysql://mysql.todo.svc.cluster.local:3306/tododb"
+                  URL: "jdbc:mysql://mysql.todo-list.svc.cluster.local:3306/tododb"
                   PasswordEncrypted: '@@SECRET:tododomain-jdbc-tododb:password@@'
                   DriverName: com.mysql.jdbc.Driver
                   Properties:
@@ -83,14 +83,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: todo-mysql-configmap
-  namespace: todo
+  namespace: todo-list
 spec:
   workload:
     apiVersion: v1
     kind: ConfigMap
     metadata:
       name: mysql-initdb-config
-      namespace: todo
+      namespace: todo-list
     data:
       initdb.sql: |
         create table `ToDos` (
@@ -104,14 +104,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: todo-mysql-service
-  namespace: todo
+  namespace: todo-list
 spec:
   workload:
     apiVersion: v1
     kind: Service
     metadata:
       name: mysql
-      namespace: todo
+      namespace: todo-list
     spec:
       ports:
         - port: 3306
@@ -123,14 +123,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: todo-mysql-deployment
-  namespace: todo
+  namespace: todo-list
 spec:
   workload:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
       name: mysql
-      namespace: todo
+      namespace: todo-list
     spec:
       progressDeadlineSeconds: 600
       replicas: 1
@@ -165,7 +165,7 @@ spec:
                       key: password
                 - name: MYSQL_DATABASE
                   value: tododb
-              image: "mysql:8.0.20"
+              image: ghcr.io/verrazzano/mysql:8.0.20
               imagePullPolicy: IfNotPresent
               name: mysql
               ports:
