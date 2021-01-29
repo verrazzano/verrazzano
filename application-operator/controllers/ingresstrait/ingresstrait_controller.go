@@ -498,7 +498,7 @@ func convertAPIVersionToGroupAndVersion(apiVersion string) (string, string) {
 // It is primarily used to setup defaults when either no hosts are provided or the host is blank.
 // If the rule contains an empty host array a host array with a single "*" element is created.
 // Otherwise any blank hosts in the input ingress rules are replaced with "*" values.
-func createHostsFromIngressTraitRule(rule vzapi.IngressRule, hostName string) []string {
+func createHostsFromIngressTraitRule(rule vzapi.IngressRule, defaultHostName string) []string {
 	var validHosts []string
 	for _, h := range rule.Hosts {
 		h = strings.TrimSpace(h)
@@ -509,8 +509,8 @@ func createHostsFromIngressTraitRule(rule vzapi.IngressRule, hostName string) []
 		validHosts = append(validHosts, h)
 	}
 	// Use default hostname if none of the user specified hosts were valid
-	if len(validHosts) == 0 {
-		validHosts = []string{hostName}
+	if len(validHosts) == 0 && len(defaultHostName) > 0 {
+		validHosts = []string{defaultHostName}
 	}
 	return validHosts
 }
@@ -522,27 +522,50 @@ func createHostsFromIngressTraitRule(rule vzapi.IngressRule, hostName string) []
 //   dns-subdomain is The DNS subdomain name
 // For example: sales.cars.example.com
 func generateDNSHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
+	const authRealmKey = "nginx.ingress.kubernetes.io/auth-realm"
+	const rancherIngress = "rancher"
+	const rancherNamespace = "cattle-system"
+	const xipio = "xip.io"
+	const istioIngressGateway = "istio-ingressgateway"
+	const istioNamespace = "istio-system"
+
 	appName, ok := trait.Labels[oam.LabelAppName]
 	if !ok {
 		return "", errors.New("OAM app name label missing from metadata, unable to add ingress trait")
 	}
-
 	// Extract the domain name from the rancher ingress
-	// ingress-nginx ingress-vcontroller-ingress-nginx-controller
 	ingress := k8net.Ingress{}
-	name := "rancher"
-	err := cli.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: "cattle-system"}, &ingress)
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: rancherIngress, Namespace: rancherNamespace}, &ingress)
 	if err != nil {
 		return "", err
 	}
-	return buildAppDnsName(ingress.Spec.Rules[0].Host, appName, trait.Namespace), nil
-}
+	authRealmAnno, ok := ingress.Annotations[authRealmKey]
+	if !ok || len(authRealmAnno) == 0 {
+		return "", errors.New(fmt.Sprintf("Annoation %s missing from Rancher ingress, unable to generate DNS name", authRealmKey))
+	}
+	segs := strings.Split(strings.TrimSpace(authRealmAnno), " ")
+	domain := strings.TrimSpace(segs[0])
 
-// buildAppDnsName builds a DNS name using the domain name from the ingress, the app name, and the namespace.
-// This assumes that the first 2 segments of the ingress name can be discarded to produce the hostname, which
-// is always the case for a Verrazzano installation.
-func buildAppDnsName(hostName string, appName string, namespace string) string {
-	segs := strings.Split(hostName, ".")
-	domain := strings.Join(segs[2:], ".")
-	return fmt.Sprintf("%s.%s.%s", appName, namespace, domain)
+	// If this is xip.io then get the IP from istio and make an xip.io address
+	if strings.HasSuffix(domain, xipio) {
+		// Get the IP from the Istio service
+		istio := corev1.Service{}
+		err := cli.Get(context.TODO(), types.NamespacedName{Name: istioIngressGateway, Namespace: istioNamespace}, &istio)
+		if err != nil {
+			return "", err
+		}
+
+		var IP string
+		if istio.Spec.Type == corev1.ServiceTypeLoadBalancer {
+			istioIngress := istio.Status.LoadBalancer.Ingress
+			if len(istioIngress) == 0 {
+				return "", errors.New(fmt.Sprintf("%s is missing loadbalancer IP", istioIngressGateway))
+			}
+			IP = istioIngress[0].IP
+		} else if istio.Spec.Type == corev1.ServiceTypeNodePort {
+			IP = istio.Spec.ClusterIP
+		}
+		domain = IP + "." + xipio
+	}
+	return fmt.Sprintf("%s.%s.%s", appName, trait.Namespace, domain), nil
 }

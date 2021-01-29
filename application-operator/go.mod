@@ -13,6 +13,7 @@ require (
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.1
 	github.com/stretchr/testify v1.5.1
+	github.com/verrazzano/verrazzano v0.8.0 // indirect
 	github.com/verrazzano/verrazzano-crd-generator v0.3.34
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5 // indirect
 	golang.org/x/mod v0.4.1 // indirect
