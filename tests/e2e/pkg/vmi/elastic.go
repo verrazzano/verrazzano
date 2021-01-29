@@ -99,7 +99,7 @@ func (e *Elastic) ListIndices() []string {
 
 //GetIndices gets index metadata (aliases, mappings, and settings) of all elasticsearch indices
 func (e *Elastic) GetIndices() map[string]interface{} {
-	esURL := pkg.GetVerrazzanoInstance().ElasticURL
+	esURL := pkg.GetVerrazzanoInstance().ElasticURL + "/_all"
 	body, err := e.retryGet(esURL, pkg.Username, pkg.GetVerrazzanoPassword())
 	if err != nil {
 		pkg.Log(pkg.Info, fmt.Sprintf("Error ListIndices %v error: %v", esURL, err))
