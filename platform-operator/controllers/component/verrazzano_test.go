@@ -4,11 +4,12 @@
 package component
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"os/exec"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"testing"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
+	"go.uber.org/zap"
 )
 
 // fakeRunner is used to test helm without actually running an OS exec command
@@ -35,7 +36,7 @@ func TestVzUpgrade(t *testing.T) {
 	vz := Verrazzano{}
 	helm.SetCmdRunner(fakeRunner{})
 	defer helm.SetDefaultRunner()
-	err := vz.Upgrade(nil, "")
+	err := vz.Upgrade(zap.S(), nil, "")
 	assert.NoError(err, "Upgrade returned an error")
 }
 

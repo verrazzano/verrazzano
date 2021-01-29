@@ -4,10 +4,9 @@
 package component
 
 import (
-	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -17,15 +16,13 @@ var deleteJobFunc = k8s.DeleteJob
 // PreUpgrade deletes the Istio Helm install job that may have been left over
 // from the previous install.  This must be done or the helm install will fail because the Istio
 // Helm post-hook won't be able to create the job
-func PreUpgrade(client clipkg.Client, _ string, namespace string, chartDir string) error {
-	var log = ctrl.Log.WithName("upgrade")
-
+func PreUpgrade(log *zap.SugaredLogger, client clipkg.Client, _ string, namespace string, chartDir string) error {
 	chart, err := helm.GetChartInfo(chartDir)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Unable to get the chart from %s", chartDir))
+		log.Errorf("Unable to get the chart from %s: %v", chartDir, err)
 		return err
 	}
 	jobName := "istio-security-post-install-" + chart.Version
-	log.Info(fmt.Sprintf("Deleting Istio Helm post-install job %s", jobName))
+	log.Infof("Deleting Istio Helm post-install job %s", jobName)
 	return deleteJobFunc(client, jobName, namespace)
 }

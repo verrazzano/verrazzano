@@ -181,6 +181,7 @@ func GetRetryPolicy(url string) func(ctx context.Context, resp *http.Response, e
 		return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
 	}
 }
+
 // JTq queries JSON text with a JSON path
 func JTq(jtext string, path ...string) interface{} {
 	var j map[string]interface{}

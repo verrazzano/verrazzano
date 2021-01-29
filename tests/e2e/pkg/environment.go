@@ -6,27 +6,49 @@ package pkg
 import (
 	"context"
 	"fmt"
-	"github.com/onsi/ginkgo"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net"
+	"os"
 	"strings"
 	yourl "net/url"
 
-	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	"github.com/onsi/ginkgo"
 
 )
 
-const istioSystemNamespace string = "istio-system"
+const (
+	CLUSTER_TYPE_OKE             = "OKE"
+	CLUSTER_TYPE_KIND            = "KIND"
+	CLUSTER_TYPE_OLCNE           = "OLCNE"
+	istioSystemNamespace 		 = "istio-system"
+)
 
-func GetKindIngress() string {
+// Ingress returns the ingress address
+func Ingress() string {
+	clusterType, ok := os.LookupEnv("TEST_ENV")
+	if !ok {
+		clusterType = CLUSTER_TYPE_OKE
+	}
+
+	if clusterType == CLUSTER_TYPE_KIND {
+		return kindIngress()
+	} else if clusterType == CLUSTER_TYPE_OLCNE {
+		return olcneIngress()
+	} else {
+		return okeIngress()
+	}
+}
+
+// kindIngress returns the ingress address from a KIND cluster
+func kindIngress() string {
 	fmt.Println("Obtaining KIND control plane address info ...")
 	addrHost := ""
 	var addrPort int32
 
-	pods := ListPods(istioSystemNamespace)
-	//pods, _ := clientset.CoreV1().Pods(istioSystemNamespace).List(context.TODO, metav1.ListOptions{})
+	pods, _ := GetKubernetesClientset().CoreV1().Pods(istioSystemNamespace).List(context.TODO(), metav1.ListOptions{})
 	for i := range pods.Items {
 		if strings.HasPrefix(pods.Items[i].Name, "istio-ingressgateway-") {
 			addrHost = pods.Items[i].Status.HostIP
@@ -52,10 +74,54 @@ func GetKindIngress() string {
 	}
 }
 
-func findIstioIngressGatewaySvc(requireLoadBalancer bool) corev1.Service {
+// okeIngress returns the ingress address from an OKE cluster
+func okeIngress() string {
+	fmt.Println("Obtaining ingressgateway info ...")
+	ingressgateway := findIstioIngressGatewaySvc(true)
+	for i := range ingressgateway.Status.LoadBalancer.Ingress {
+		ingress := ingressgateway.Status.LoadBalancer.Ingress[i]
+		fmt.Println("Ingress: ", ingress, "hostname: ", ingress.Hostname, "IP: ", ingress.IP)
+		if ingress.Hostname != "" {
+			fmt.Println("Returning Ingress Hostname: ", ingress.Hostname)
+			return ingress.Hostname
+		} else if ingress.IP != "" {
+			fmt.Println("Returning Ingress IP: ", ingress.IP)
+			return ingress.IP
+		}
+	}
+	return ""
+}
+
+// olcneIngress returns the ingress address from an OLCNE cluster
+func olcneIngress() string {
+	fmt.Println("Obtaining OLCNE ingressgateway info ...")
+	// Test a service for a dynamic address (.status.loadBalancer.ingress[0].ip),
+	// 	if that's not present then use .spec.externalIPs[0]
+	lb_ingressgateway := findIstioIngressGatewaySvc(true)
+	for i := range lb_ingressgateway.Status.LoadBalancer.Ingress {
+		ingress := lb_ingressgateway.Status.LoadBalancer.Ingress[i]
+		if ingress.Hostname != "" {
+			fmt.Println("Returning Ingress Hostname: ", ingress.Hostname)
+			return ingress.Hostname
+		} else if ingress.IP != "" {
+			fmt.Println("Returning Ingress IP: ", ingress.IP)
+			return ingress.IP
+		}
+	}
+	// Nothing found in .status, check .spec
+	ingressgateway := findIstioIngressGatewaySvc(false)
+	for i := range ingressgateway.Spec.ExternalIPs {
+		ingress := ingressgateway.Spec.ExternalIPs[i]
+		fmt.Println("Returning Ingress IP: ", ingress)
+		return ingress
+	}
+	return ""
+}
+
+// findIstioIngressGatewaySvc retrieves the address of the istio ingress gateway
+func findIstioIngressGatewaySvc(requireLoadBalancer bool) v1.Service {
 	svcList := ListServices(istioSystemNamespace)
-	//svcList, _ := clientset.Namespace(istioSystemNamespace).ListServices()
-	var ingressgateway corev1.Service
+	var ingressgateway v1.Service
 	for i := range svcList.Items {
 		svc := svcList.Items[i]
 		fmt.Println("Service name: ", svc.Name, ", LoadBalancer: ", svc.Status.LoadBalancer, ", Ingress: ", svc.Status.LoadBalancer.Ingress)
@@ -86,33 +152,6 @@ func Lookup(url string) bool {
 		return false
 	}
 	return true
-}
-
-//SecretsCreated checks if all the secrets identified by names are created
-func SecretsCreated(namespace string, names ...string) bool {
-	secrets := ListSecrets(namespace)
-	missing := missingSecrets(secrets.Items, names...)
-	Log(Info, fmt.Sprintf("Secrets %v were NOT created in %v", missing, namespace))
-	return (len(missing) == 0)
-}
-
-func missingSecrets(secrets []corev1.Secret, namePrefixes ...string) []string {
-	var missing = []string{}
-	for _, name := range namePrefixes {
-		if !secretExists(secrets, name) {
-			missing = append(missing, name)
-		}
-	}
-	return missing
-}
-
-func secretExists(secrets []corev1.Secret, namePrefix string) bool {
-	for i := range secrets {
-		if strings.HasPrefix(secrets[i].Name, namePrefix) {
-			return true
-		}
-	}
-	return false
 }
 
 // ListCertificates lists certificates in namespace

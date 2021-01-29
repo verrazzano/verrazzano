@@ -1,0 +1,201 @@
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: core.oam.dev/v1alpha2
+kind: ApplicationConfiguration
+metadata:
+  name: carts-appconf
+  namespace: sockshop
+  annotations:
+    version: v1.0.0
+    description: "OAM Sock Shop Carts Application"
+spec:
+  components:
+    - componentName: carts
+      traits:
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: IngressTrait
+            metadata:
+              name: carts-ingress
+            spec:
+              rules:
+                - hosts:
+                    - "sockshop.example.com"
+                  paths:
+                    - path: "/carts"
+                      pathType: Prefix
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: MetricsTrait
+            metadata:
+              name: carts-metrics
+            spec:
+              port: 7001
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: ApplicationConfiguration
+metadata:
+  name: catalog-appconf
+  namespace: sockshop
+  annotations:
+    version: v1.0.0
+    description: "OAM Sock Shop Catalog Application"
+spec:
+  components:
+    - componentName: catalog
+      traits:
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: IngressTrait
+            metadata:
+              name: catalog-ingress
+            spec:
+              rules:
+                - hosts:
+                    - "sockshop.example.com"
+                  paths:
+                    - path: "/catalogue"
+                      pathType: Prefix
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: MetricsTrait
+            metadata:
+              name: catalog-metrics
+            spec:
+              port: 7001
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: ApplicationConfiguration
+metadata:
+  name: orders-appconf
+  namespace: sockshop
+  annotations:
+    version: v1.0.0
+    description: "OAM Sock Shop Orders Application"
+spec:
+  components:
+    - componentName: orders
+      traits:
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: IngressTrait
+            metadata:
+              name: orders-ingress
+            spec:
+              rules:
+                - hosts:
+                    - "sockshop.example.com"
+                  paths:
+                    - path: "/orders"
+                      pathType: Prefix
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: MetricsTrait
+            metadata:
+              name: orders-metrics
+            spec:
+              port: 7001
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: ApplicationConfiguration
+metadata:
+  name: payment-appconf
+  namespace: sockshop
+  annotations:
+    version: v1.0.0
+    description: "OAM Sock Shop Payment Application"
+spec:
+  components:
+    - componentName: payment
+      traits:
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: IngressTrait
+            metadata:
+              name: payment-ingress
+            spec:
+              rules:
+                - hosts:
+                    - "sockshop.example.com"
+                  paths:
+                    - path: "/payment"
+                      pathType: Prefix
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: MetricsTrait
+            metadata:
+              name: payment-metrics
+            spec:
+              port: 7001
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: ApplicationConfiguration
+metadata:
+  name: shipping-appconf
+  namespace: sockshop
+  annotations:
+    version: v1.0.0
+    description: "OAM Sock Shop Shipping Application"
+spec:
+  components:
+    - componentName: shipping
+      traits:
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: IngressTrait
+            metadata:
+              name: shipping-ingress
+            spec:
+              rules:
+                - hosts:
+                    - "sockshop.example.com"
+                  paths:
+                    - path: "/shipping"
+                      pathType: Prefix
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: MetricsTrait
+            metadata:
+              name: shipping-metrics
+            spec:
+              port: 7001
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: ApplicationConfiguration
+metadata:
+  name: users-appconf
+  namespace: sockshop
+  annotations:
+    version: v1.0.0
+    description: "OAM Sock Shop Shipping Application"
+spec:
+  components:
+    - componentName: users
+      traits:
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: IngressTrait
+            metadata:
+              name: users-ingress
+            spec:
+              rules:
+                - hosts:
+                    - "sockshop.example.com"
+                  paths:
+                    - path: "/register"
+                      pathType: Prefix
+                    - path: "/login"
+                      pathType: Prefix
+                    - path: "/addresses"
+                      pathType: Prefix
+                    - path: "/customers"
+                      pathType: Prefix
+                    - path: "/cards"
+                      pathType: Prefix
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: MetricsTrait
+            metadata:
+              name: users-metrics
+            spec:
+              port: 7001

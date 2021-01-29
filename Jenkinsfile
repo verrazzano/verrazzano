@@ -434,7 +434,11 @@ pipeline {
                                     # Coherence image doesn't get pulled correctly in KIND.
                                     docker pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
                                     kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/middleware/coherence:12.2.1.4.0
+<<<<<<< HEAD
                                     # The ToDoList example image currently cannot be pulled in KIND.
+=======
+                                    # The ToDoList example image currently cannot be pulled in KIND.  
+>>>>>>> 222c22e4562a2e96b182c67395e6d272aabf162b
                                     docker pull container-registry.oracle.com/verrazzano/example-todo:0.8.0
                                     kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-todo:0.8.0
                                 """
@@ -455,6 +459,9 @@ pipeline {
                         }
 
                         stage('Run Acceptance Tests') {
+                            environment {
+                                TEST_ENV = "KIND"
+                            }
                             stages {
                                 stage('verify-install') {
                                     steps {
