@@ -27,7 +27,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	deployToDoListExample()
 })
 
-var _ = ginkgo.AfterSuite(func () {
+var _ = ginkgo.AfterSuite(func() {
 	undeployToDoListExample()
 })
 
@@ -92,20 +92,20 @@ func undeployToDoListExample() {
 	if err := util.DeleteNamespace("todo-list"); err != nil {
 		util.Log(util.Error, fmt.Sprintf("Failed to delete namespace: %v", err))
 	}
-	gomega.Eventually(func () bool {
+	gomega.Eventually(func() bool {
 		ns, err := util.GetNamespace("todo-list")
 		return ns == nil && err != nil && errors.IsNotFound(err)
 	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
 }
 
 type WebResponse struct {
-	status int
+	status  int
 	content string
 }
 
 // HaveStatus asserts that a WebResponse has a given status.
 func HaveStatus(expected int) types.GomegaMatcher {
-	return gomega.WithTransform(func (response WebResponse) int { return response.status }, gomega.Equal(expected))
+	return gomega.WithTransform(func(response WebResponse) int { return response.status }, gomega.Equal(expected))
 }
 
 // ContainContent asserts that a WebResponse contains a given substring.
@@ -115,18 +115,18 @@ func ContainContent(expected string) types.GomegaMatcher {
 
 var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 
-	ginkgo.Context("Deployment.", func () {
+	ginkgo.Context("Deployment.", func() {
 		// GIVEN the ToDoList app is deployed
 		// WHEN the running pods are checked
 		// THEN the adminserver and mysql pods should be found running
 		ginkgo.It("Verify 'tododomain-adminserver' and 'mysql' pods are running", func() {
-			gomega.Eventually(func () bool {
+			gomega.Eventually(func() bool {
 				return util.PodsRunning("todo-list", []string{"mysql", "tododomain-adminserver"})
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 		})
 	})
 
-	ginkgo.Context("Ingress.", func () {
+	ginkgo.Context("Ingress.", func() {
 		// Verify the application REST endpoint is working.
 		// GIVEN the ToDoList app is deployed
 		// WHEN the UI is accessed
@@ -198,22 +198,24 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 	//})
 
 	ginkgo.Context("Logging.", func() {
+		indexName := "oam-todo-list-todo-appconf-todo-domain"
+
 		// GIVEN a WebLogic application with logging enabled via a logging scope
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
-		ginkgo.It("Verify tododomain Elasticsearch index exists", func() {
+		ginkgo.It("Verify Elasticsearch index exists", func() {
 			gomega.Eventually(func() bool {
-				return logIndexFound("tododomain")
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index tododomain")
+				return logIndexFound(indexName)
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for todo-list")
 		})
 
 		// GIVEN a WebLogic application with logging enabled via a logging scope
-		// WHEN the log records are retrieved from the Elasticsearch index tododomain
+		// WHEN the log records are retrieved from the Elasticsearch index
 		// THEN verify that at least one recent log record is found
-		ginkgo.It("Verify recent tododomain Elasticsearch log record exists", func() {
+		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
 			gomega.Eventually(func() bool {
-				return logRecordFound("tododomain", time.Now().Add(-24*time.Hour), map[string]string{
-					"domainUID": "tododomain",
+				return logRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+					"domainUID":  "tododomain",
 					"serverName": "tododomain-adminserver"})
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 		})
