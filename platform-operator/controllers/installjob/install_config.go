@@ -220,7 +220,7 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogg
 				Environment:  vz.Spec.Components.CertManager.Certificate.Acme.Environment,
 			},
 		},
-		Keycloak: getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimTemplates, log),
+		Keycloak: getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource, log),
 		OAM:      getOAM(vz.Spec.Components.OAM),
 	}
 }
@@ -243,7 +243,7 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogge
 				SecretName:               getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
 			},
 		},
-		Keycloak: getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimTemplates, log),
+		Keycloak: getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource, log),
 		OAM:      getOAM(vz.Spec.Components.OAM),
 	}
 }
@@ -270,7 +270,7 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.Sugare
 				SecretName:               getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
 			},
 		},
-		Keycloak: getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimTemplates, log),
+		Keycloak: getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource, log),
 		OAM:      getOAM(vz.Spec.Components.OAM),
 	}
 }
@@ -334,10 +334,16 @@ func getInstallArgs(args []installv1alpha1.InstallArgs) []InstallArg {
 }
 
 // getKeycloak returns the json representation for the keycloak configuration
-func getKeycloak(keycloak installv1alpha1.KeycloakComponent, templates []corev1.PersistentVolumeClaim, log *zap.SugaredLogger) Keycloak {
+func getKeycloak(keycloak installv1alpha1.KeycloakComponent, templates []installv1alpha1.VolumeClaimSpecTemplate, defaultVolumeSpec *corev1.VolumeSource, log *zap.SugaredLogger) Keycloak {
+	// Get the explicit helm args for MySQL
 	mySQLArgs := getInstallArgs(keycloak.MySQL.MySQLInstallArgs)
 
+	// Use a volume source specified in the Keycloak config, otherwise use the default spec
 	mysqlVolumeSource := keycloak.MySQL.VolumeSource
+	if mysqlVolumeSource == nil {
+		mysqlVolumeSource = defaultVolumeSpec
+	}
+
 	if mysqlVolumeSource.EmptyDir != nil {
 		// TODO: Eventually, we may wan to pass down EmptyDir settings, right now we just use helm settings for the
 		//       verrazzano-operator to set values that cause the verrazzano-monitoring-operator to use an
@@ -350,11 +356,11 @@ func getKeycloak(keycloak installv1alpha1.KeycloakComponent, templates []corev1.
 		})
 	} else if mysqlVolumeSource.PersistentVolumeClaim != nil {
 		pvcs := mysqlVolumeSource.PersistentVolumeClaim
-		storageTemplate, found := findVolumeTemplate(pvcs.ClaimName, templates)
+		storageSpec, found := findVolumeTemplate(pvcs.ClaimName, templates)
 		if !found {
 			log.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 		} else {
-			storageClass := storageTemplate.Spec.StorageClassName
+			storageClass := storageSpec.StorageClassName
 			if storageClass != nil && len(*storageClass) > 0 {
 				mySQLArgs = append(mySQLArgs, InstallArg{
 					Name:      "persistence.storageClass",
@@ -362,7 +368,7 @@ func getKeycloak(keycloak installv1alpha1.KeycloakComponent, templates []corev1.
 					SetString: true,
 				})
 			}
-			size := storageTemplate.Spec.Resources.Requests.Storage().String()
+			size := storageSpec.Resources.Requests.Storage().String()
 			if len(size) > 0 {
 				mySQLArgs = append(mySQLArgs, InstallArg{
 					Name:      "persistence.size",
@@ -370,7 +376,7 @@ func getKeycloak(keycloak installv1alpha1.KeycloakComponent, templates []corev1.
 					SetString: true,
 				})
 			}
-			accessModes := storageTemplate.Spec.AccessModes
+			accessModes := storageSpec.AccessModes
 			if len(accessModes) > 0 {
 				// MySQL only allows a single AccessMode value, so just choose the first
 				mySQLArgs = append(mySQLArgs, InstallArg{
@@ -479,7 +485,7 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.S
 		}
 	} else if vzSpec.DefaultVolumeSource.PersistentVolumeClaim != nil {
 		pvcs := vzSpec.DefaultVolumeSource.PersistentVolumeClaim
-		storageTemplate, found := findVolumeTemplate(pvcs.ClaimName, vzSpec.VolumeClaimTemplates)
+		storageSpec, found := findVolumeTemplate(pvcs.ClaimName, vzSpec.VolumeClaimSpecTemplates)
 		if !found {
 			log.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 			return []InstallArg{}
@@ -487,17 +493,17 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.S
 		return []InstallArg{
 			{
 				Name:      "verrazzanoOperator.esDataStorageSize",
-				Value:     storageTemplate.Spec.Resources.Requests.Storage().String(),
+				Value:     storageSpec.Resources.Requests.Storage().String(),
 				SetString: true,
 			},
 			{
 				Name:      "verrazzanoOperator.grafanaDataStorageSize",
-				Value:     storageTemplate.Spec.Resources.Requests.Storage().String(),
+				Value:     storageSpec.Resources.Requests.Storage().String(),
 				SetString: true,
 			},
 			{
 				Name:      "verrazzanoOperator.prometheusDataStorageSize",
-				Value:     storageTemplate.Spec.Resources.Requests.Storage().String(),
+				Value:     storageSpec.Resources.Requests.Storage().String(),
 				SetString: true,
 			},
 		}
@@ -506,10 +512,10 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.S
 }
 
 // findVolumeTemplate Find a named VolumeClaimTemplate in the list
-func findVolumeTemplate(templateName string, templates []corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, bool) {
+func findVolumeTemplate(templateName string, templates []installv1alpha1.VolumeClaimSpecTemplate) (*corev1.PersistentVolumeClaimSpec, bool) {
 	for _, template := range templates {
-		if templateName == template.ObjectMeta.Name {
-			return &template, true
+		if templateName == template.Name {
+			return &template.Spec, true
 		}
 	}
 	return nil, false
