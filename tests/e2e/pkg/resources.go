@@ -29,6 +29,9 @@ var nsGvr = schema.GroupVersionResource{
 	Resource: "namespaces",
 }
 
+// CreateOrUpdateResourceFromFile creates or updates a Kubernetes resources from a YAML test data file.
+// The test data file is found using the FindTestDataFile function.
+// This is indented to be equivalent to `kubectl apply`
 func CreateOrUpdateResourceFromFile(file string) error {
 	found, err := FindTestDataFile(file)
 	if err != nil {
@@ -38,9 +41,12 @@ func CreateOrUpdateResourceFromFile(file string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
+	Log(Info, fmt.Sprintf("Found resource: %s", found))
 	return CreateOrUpdateResourceFromBytes(bytes)
 }
 
+// CreateOrUpdateResourceFromBytes creates or updates a Kubernetes resource from bytes.
+// This is indented to be equivalent to `kubectl apply`
 func CreateOrUpdateResourceFromBytes(data []byte) error {
 	config := GetKubeConfig()
 	client, err := dynamic.NewForConfig(config)
@@ -98,6 +104,9 @@ func CreateOrUpdateResourceFromBytes(data []byte) error {
 	return nil
 }
 
+// DeleteResourceFromFile deletes Kubernetes resources using names found in a YAML test data file.
+// This is indented to be equivalent to `kubectl delete`
+// The test data file is found using the FindTestDataFile function.
 func DeleteResourceFromFile(file string) error {
 	found, err := FindTestDataFile(file)
 	if err != nil {
@@ -110,6 +119,8 @@ func DeleteResourceFromFile(file string) error {
 	return DeleteResourceFromBytes(bytes)
 }
 
+// DeleteResourceFromBytes deletes Kubernetes resources using names found in YAML bytes.
+// This is indented to be equivalent to `kubectl delete`
 func DeleteResourceFromBytes(data []byte) error {
 	config := GetKubeConfig()
 	client, err := dynamic.NewForConfig(config)

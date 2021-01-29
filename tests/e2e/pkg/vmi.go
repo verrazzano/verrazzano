@@ -21,11 +21,6 @@ const (
 	RETRY_WAIT_MAX = 30 * time.Second
 )
 
-func GetSystemVmiHttpClient() *retryablehttp.Client {
-	vmiRawClient := getHttpClientWIthCABundle(getSystemVMICACert())
-	return newRetryableHttpClient(vmiRawClient)
-}
-
 // GetSystemVMICredentials - Obtain VMI system credentials
 func GetSystemVMICredentials() (*UsernamePassword, error) {
 	vmi, err := GetVerrazzanoMonitoringInstance("verrazzano-system", "system")
@@ -110,8 +105,4 @@ func getManagementClusterNodeIP() string {
 	}
 
 	return ""
-}
-
-func getSystemVMICACert() []byte {
-	return doGetCACertFromSecret("system-tls", "verrazzano-system")
 }
