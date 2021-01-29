@@ -503,7 +503,7 @@ func createHostsFromIngressTraitRule(rule vzapi.IngressRule, hostName string) []
 	for _, h := range rule.Hosts {
 		h = strings.TrimSpace(h)
 		// Ignore empty or wildcard hostname
-		if len(h) == 0  || strings.Contains(h, "*") {
+		if len(h) == 0 || strings.Contains(h, "*") {
 			continue
 		}
 		validHosts = append(validHosts, h)
@@ -524,7 +524,7 @@ func createHostsFromIngressTraitRule(rule vzapi.IngressRule, hostName string) []
 func generateDNSHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
 	appName, ok := trait.Labels[oam.LabelAppName]
 	if !ok {
-		return  "", errors.New("OAM app name label missing from metadata, unable to add ingress trait")
+		return "", errors.New("OAM app name label missing from metadata, unable to add ingress trait")
 	}
 
 	// Extract the domain name from the rancher ingress
@@ -533,14 +533,16 @@ func generateDNSHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, 
 	name := "rancher"
 	err := cli.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: "cattle-system"}, &ingress)
 	if err != nil {
-		return "",err
+		return "", err
 	}
 	return buildAppDnsName(ingress.Spec.Rules[0].Host, appName, trait.Namespace), nil
 }
 
+// buildAppDnsName builds a DNS name using the domain name from the ingress, the app name, and the namespace.
+// This assumes that the first 2 segments of the ingress name can be discarded to produce the hostname, which
+// is always the case for a Verrazzano installation.
 func buildAppDnsName(hostName string, appName string, namespace string) string {
 	segs := strings.Split(hostName, ".")
 	domain := strings.Join(segs[2:], ".")
 	return fmt.Sprintf("%s.%s.%s", appName, namespace, domain)
 }
-
