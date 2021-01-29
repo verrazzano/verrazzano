@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package util
+package pkg
 
 import (
 	"context"
@@ -39,7 +39,7 @@ const (
 	// RetryWaitMax - maximum retry wait
 	RetryWaitMax = 30 * time.Second
 
-	username               = "verrazzano"
+	Username               = "verrazzano"
 	clientId               = "admin-cli"
 	realm                  = "verrazzano-system"
 	verrazzanoApiUriPrefix = "20210501"

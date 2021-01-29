@@ -1,16 +1,22 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package util
+package pkg
 
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"strings"
+	yourl "net/url"
 
 	v1 "k8s.io/api/core/v1"
+	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	"github.com/onsi/ginkgo"
+
 )
 
 const (
@@ -134,8 +140,46 @@ func findIstioIngressGatewaySvc(requireLoadBalancer bool) v1.Service {
 	return ingressgateway
 }
 
-// getVerrazzanoPassword gets the contents of the verrazzano-system secret (the password)
-func getVerrazzanoPassword() string {
-	secret, _ := GetKubernetesClientset().CoreV1().Secrets("verrazzano-system").Get(context.TODO(),"verrazzano", metav1.GetOptions{})
-	return string(secret.Data["password"])
+func Lookup(url string) bool {
+	parsed, err := yourl.Parse(url)
+	if err != nil {
+		Log(Info, fmt.Sprintf("Error parse %v error: %v", url, err))
+		return false
+	}
+	_, err = net.LookupHost(parsed.Host)
+	if err != nil {
+		Log(Info, fmt.Sprintf("Error LookupHost %v error: %v", url, err))
+		return false
+	}
+	return true
+}
+
+// ListCertificates lists certificates in namespace
+func ListCertificates(namespace string) (*certapiv1alpha2.CertificateList, error) {
+	certs, err := CertManagerClient().Certificates(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Could not get list of certificates: %v\n", err.Error()))
+	}
+	// dump out namespace data to file
+	logData := ""
+	for i := range certs.Items {
+		logData = logData + certs.Items[i].Name + "\n"
+	}
+	CreateLogFile(fmt.Sprintf("%v-certificates", namespace), logData)
+	return certs, err
+}
+
+// ListIngress lists ingresses in namespace
+func ListIngresses(namespace string) (*extensionsv1beta1.IngressList, error) {
+	ingresses, err := GetKubernetesClientset().ExtensionsV1beta1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Could not get list of ingresses: %v\n", err.Error()))
+	}
+	// dump out namespace data to file
+	logData := ""
+	for i := range ingresses.Items {
+		logData = logData + ingresses.Items[i].Name + "\n"
+	}
+	CreateLogFile(fmt.Sprintf("%v-ingresses", namespace), logData)
+	return ingresses, err
 }

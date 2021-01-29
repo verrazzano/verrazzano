@@ -2,7 +2,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 domain: verrazzano.io
 multigroup: true
-repo: gitlab-odx.oracledx.com/verrazzano/verrazzano-application-operator
+repo: github.com/verrazzano/verrazzano/application-operator
 resources:
 - group: oam
   kind: IngressTrait
