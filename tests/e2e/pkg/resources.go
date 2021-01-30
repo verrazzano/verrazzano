@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package util
+package pkg
 
 import (
 	"bufio"
@@ -41,7 +41,7 @@ func CreateOrUpdateResourceFromFile(file string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
-	fmt.Printf("Found and retrieved the yaml file: %s", found)
+	Log(Info, fmt.Sprintf("Found resource: %s", found))
 	return CreateOrUpdateResourceFromBytes(bytes)
 }
 

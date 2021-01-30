@@ -6,7 +6,7 @@ package hello_helidon
 import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/tests/e2e/util"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 var _ = ginkgo.BeforeSuite(func() {
@@ -16,10 +16,10 @@ var _ = ginkgo.BeforeSuite(func() {
 var _ = ginkgo.Describe("Helidon Hello World Example Application", func() {
 	ginkgo.Context("Application", func() {
 		ginkgo.It("Namespace should exist", func() {
-			gomega.Expect(util.DoesNamespaceExist("hello-helidon")).To(gomega.BeTrue())
+			gomega.Expect(pkg.DoesNamespaceExist("hello-helidon")).To(gomega.BeTrue())
 		})
 		ginkgo.It("Pod should exist", func() {
-			gomega.Expect(util.DoesPodExist("hello-helidon", "helidon-hello-world")).To(gomega.BeTrue())
+			gomega.Expect(pkg.DoesPodExist("hello-helidon", "helidon-hello-world")).To(gomega.BeTrue())
 		})
 		// and so on
 	})

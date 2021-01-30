@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	wlsDomainKind     = "Domain"
-	wlsWorkloadKey    = "weblogic.oracle/v8/Domain"
-	storageVolumeName = "weblogic-domain-storage-volume"
+	wlsDomainKind          = "Domain"
+	wlsWorkloadKey         = "weblogic.oracle/v8/Domain"
+	storageVolumeName      = "weblogic-domain-storage-volume"
+	storageVolumeMountPath = scratchVolMountPath
 )
 
 // FLUENTD parsing rules for WLS
@@ -70,6 +71,10 @@ const wlsFluentdParsingRules = `<match fluent.**>
   @type record_transformer
   <record>
     domainUID "#{ENV['DOMAIN_UID']}"
+    oam.applicationconfiguration.namespace "#{ENV['NAMESPACE']}"
+    oam.applicationconfiguration.name "#{ENV['APP_CONF_NAME']}"
+    oam.component.namespace "#{ENV['NAMESPACE']}"
+    oam.component.name  "#{ENV['COMPONENT_NAME']}"
   </record>
 </filter>
 <match **>
@@ -78,7 +83,7 @@ const wlsFluentdParsingRules = `<match fluent.**>
   port "#{ENV['ELASTICSEARCH_PORT']}"
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
-  index_name "#{ENV['DOMAIN_UID']}"
+  index_name "oam-#{ENV['NAMESPACE']}-#{ENV['APP_CONF_NAME']}-#{ENV['COMPONENT_NAME']}"
   scheme http
   key_name timestamp 
   types timestamp:time
@@ -106,7 +111,7 @@ func (h *wlsHandler) Apply(ctx context.Context, resource vzapi.QualifiedResource
 		return err
 	}
 	serverPod := domain.Spec.ServerPod
-	fluentdPod := toFluentdPod(serverPod, buildWLSLogPath(name))
+	fluentdPod := toFluentdPod(serverPod, resource, buildWLSLogPath(name))
 	updated, err := getFluentdManager(ctx, h.Log, h).Apply(scope, resource, fluentdPod)
 
 	if updated && err == nil {
@@ -134,7 +139,7 @@ func (h *wlsHandler) Remove(ctx context.Context, resource vzapi.QualifiedResourc
 		h.Log.Info("Unable to lookup domain. Assuming that it has been deleted", "domain", domain)
 	}
 
-	fluentdPod := toFluentdPod(domain.Spec.ServerPod, "")
+	fluentdPod := toFluentdPod(domain.Spec.ServerPod, resource, "")
 	// indicates whether or not we have confirmed that all remove related changes have been made in the system
 	removeVerified := getFluentdManager(ctx, h.Log, h).Remove(scope, resource, fluentdPod)
 
@@ -150,7 +155,13 @@ func (h *wlsHandler) Remove(ctx context.Context, resource vzapi.QualifiedResourc
 
 // getFluentd creates an instance of FluentManager
 func getFluentd(ctx context.Context, log logr.Logger, client k8sclient.Client) FluentdManager {
-	return &fluentd{Context: ctx, Log: log, Client: client, ParseRules: wlsFluentdParsingRules, StorageVolumeName: storageVolumeName}
+	return &Fluentd{Context: ctx,
+		Log:                    log,
+		Client:                 client,
+		ParseRules:             wlsFluentdParsingRules,
+		StorageVolumeName:      storageVolumeName,
+		StorageVolumeMountPath: storageVolumeMountPath,
+	}
 }
 
 // createWlsDomain creates a WLS Domain instance
@@ -160,18 +171,18 @@ func createWlsDomain(resource vzapi.QualifiedResourceRelation) wls.Domain {
 }
 
 // toFluentdPod creates a FluentdPod instance from a WLS ServerPod
-func toFluentdPod(serverPod wls.ServerPod, logPath string) *FluentdPod {
+func toFluentdPod(serverPod wls.ServerPod, workload vzapi.QualifiedResourceRelation, logPath string) *FluentdPod {
 	return &FluentdPod{
 		Containers:   serverPod.Containers,
 		Volumes:      serverPod.Volumes,
 		VolumeMounts: serverPod.VolumeMounts,
 		LogPath:      logPath,
-		HandlerEnv:   getWlsSpecificContainerEnv(),
+		HandlerEnv:   getWlsSpecificContainerEnv(workload),
 	}
 }
 
 // getWlsSpecificContainerEnv builds WLS specific env vars
-func getWlsSpecificContainerEnv() []v1.EnvVar {
+func getWlsSpecificContainerEnv(workload vzapi.QualifiedResourceRelation) []v1.EnvVar {
 	return []v1.EnvVar{
 		{
 			Name: "DOMAIN_UID",
@@ -189,15 +200,35 @@ func getWlsSpecificContainerEnv() []v1.EnvVar {
 				},
 			},
 		},
+		{
+			Name:  "NAMESPACE",
+			Value: workload.Namespace,
+		},
+		{
+			Name: "APP_CONF_NAME",
+			ValueFrom: &v1.EnvVarSource{
+				FieldRef: &v1.ObjectFieldSelector{
+					FieldPath: "metadata.labels['app.oam.dev/name']",
+				},
+			},
+		},
+		{
+			Name: "COMPONENT_NAME",
+			ValueFrom: &v1.EnvVarSource{
+				FieldRef: &v1.ObjectFieldSelector{
+					FieldPath: "metadata.labels['app.oam.dev/component']",
+				},
+			},
+		},
 	}
 }
 
 // buildWLSLogPath builds a log path given a resource name
 func buildWLSLogPath(name string) string {
-	return fmt.Sprintf("/scratch/logs/%s/$(SERVER_NAME).log", name)
+	return fmt.Sprintf("%s/logs/%s/$(SERVER_NAME).log", scratchVolMountPath, name)
 }
 
 // buildWLSLogHome builds a log home give a resource name
 func buildWLSLogHome(name string) string {
-	return fmt.Sprintf("/scratch/logs/%s", name)
+	return fmt.Sprintf("%s/logs/%s", scratchVolMountPath, name)
 }

@@ -4,10 +4,11 @@
 package metricstrait
 
 import (
+	"strings"
+
 	"github.com/Jeffail/gabs/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
-	"strings"
 )
 
 // updateStringMap updates a string key value pair in a map.
@@ -39,34 +40,6 @@ func copyStringMapEntries(target map[string]string, source map[string]string, ke
 		}
 	}
 	return target
-}
-
-// stringSliceContainsString determines if a string is found in a string slice.
-// slice is the string slice to search. May be nil.
-// find is the string to search for in the slice.
-// Returns true if the string is found in the slice and false otherwise.
-func stringSliceContainsString(slice []string, find string) bool {
-	for _, s := range slice {
-		if s == find {
-			return true
-		}
-	}
-	return false
-}
-
-// removeStringFromStringSlice removes a string from a string slice.
-// slice is the string slice to remove the string from. May be nil.
-// remove is the string to remove from the slice.
-// Returns a new slice with the remove string removed.
-func removeStringFromStringSlice(slice []string, remove string) []string {
-	result := []string{}
-	for _, s := range slice {
-		if s == remove {
-			continue
-		}
-		result = append(result, s)
-	}
-	return result
 }
 
 // parseYAMLString parses a string into a internal representation.
