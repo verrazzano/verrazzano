@@ -49,6 +49,8 @@ type Reconciler struct {
 	Scheme *runtime.Scheme
 }
 
+var generateDNSHostNameFunc = generateDNSHostName
+
 // SetupWithManager creates a controller and adds it to the manager
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
@@ -273,7 +275,7 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 // mutateGateway mutates the output Gateway child resource.
 func (r *Reconciler) mutateGateway(gateway *istioclinet.Gateway, trait *vzapi.IngressTrait, rule vzapi.IngressRule) error {
 
-	hostName, err := generateDNSHostName(r, trait)
+	hostName, err := generateDNSHostNameFunc(r, trait)
 	if err != nil {
 		return err
 	}
@@ -321,7 +323,7 @@ func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vz
 
 // mutateVirtualService mutates the output virtual service resource
 func (r *Reconciler) mutateVirtualService(virtualService *istioclinet.VirtualService, trait *vzapi.IngressTrait, rule vzapi.IngressRule, service *corev1.Service, gateway *istioclinet.Gateway) error {
-	hostName, err := generateDNSHostName(r, trait)
+	hostName, err := generateDNSHostNameFunc(r, trait)
 	if err != nil {
 		return err
 	}

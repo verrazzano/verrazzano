@@ -7,6 +7,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
+	k8net "k8s.io/api/networking/v1beta1"
 	"testing"
 	"time"
 
@@ -78,7 +80,8 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 				Kind:       "IngressTrait"}
 			trait.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
-				Name:      name.Name}
+				Name:      name.Name,
+				Labels:    map[string]string{oam.LabelAppName: "myapp"}}
 			trait.Spec.Rules = []vzapi.IngressRule{{
 				Hosts: []string{"test-host"},
 				Paths: []vzapi.IngressPath{{Path: "test-path"}}}}
@@ -150,6 +153,33 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-trait-name-rule-0-vs"}, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "VirtualService"}, "test-trait-name-rule-0-vs"))
+
+	// Expect a call to get the rancher ingress
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace:   name.Namespace,
+				Name:        name.Name,
+				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
+			return nil
+		})
+	// Expect a call to get the rancher ingress
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace:   name.Namespace,
+				Name:        name.Name,
+				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
+			return nil
+		})
 	// Expect a call to create the ingress resource and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
@@ -302,8 +332,9 @@ func TestFailureToUpdateStatus(t *testing.T) {
 				Kind:       "IngressTrait"}
 			trait.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
-				Name:      name.Name}
-			trait.Spec.Rules = []vzapi.IngressRule{{
+				Name:      name.Name,
+				Labels:    map[string]string{oam.LabelAppName: "myapp"}}
+		trait.Spec.Rules = []vzapi.IngressRule{{
 				Hosts: []string{"test-host"},
 				Paths: []vzapi.IngressPath{{Path: "test-path"}}}}
 			trait.Spec.WorkloadReference = oamrt.TypedReference{
@@ -378,6 +409,32 @@ func TestFailureToUpdateStatus(t *testing.T) {
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, virtualService *istioclinet.VirtualService, opts ...client.CreateOption) error {
+			return nil
+		})
+	// Expect a call to get the rancher ingress
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace:   name.Namespace,
+				Name:        name.Name,
+				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
+			return nil
+		})
+	// Expect a call to get the rancher ingress
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace:   name.Namespace,
+				Name:        name.Name,
+				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
 			return nil
 		})
 	// Expect a call to get the status writer and return a mock.
@@ -536,23 +593,24 @@ func TestCreateHostsFromIngressTraitRule(t *testing.T) {
 	var rule vzapi.IngressRule
 	var hosts []string
 
+	generateDNSHostNameFunc = fakeGenerateDNSHostName
+
 	// GIVEN a trait rule with no hosts
 	// WHEN a host slice is requested for use
 	// THEN verify that the default "*" host is included
 	rule = vzapi.IngressRule{}
 	hosts = createHostsFromIngressTraitRule(rule, "testNs")
 	assert.Len(hosts, 1)
-	assert.Equal("*", hosts[0])
+	assert.Equal("testNs", hosts[0])
 
 	// GIVEN a trait rule with a mix of hosts including an empty host
 	// WHEN a host slice is requested for use
 	// THEN verify that the default "*" host is included for the empty host
 	rule = vzapi.IngressRule{Hosts: []string{"host-1", "", "host-2"}}
 	hosts = createHostsFromIngressTraitRule(rule, "testNs")
-	assert.Len(hosts, 3)
+	assert.Len(hosts, 2)
 	assert.Equal("host-1", hosts[0])
-	assert.Equal("*", hosts[1])
-	assert.Equal("host-2", hosts[2])
+	assert.Equal("host-2", hosts[1])
 }
 
 // TestGetPathsFromTrait tests various use cases of getPathsFromRule
@@ -733,15 +791,6 @@ func newUnstructuredService(uid types.UID, clusterIP string) (unstructured.Unstr
 	return convertToUnstructured(service)
 }
 
-//GIVEN a ingress hostname, appName, and namespace
-// WHEN building a full DNS name
-// THEN ensure the DNS name is correct, replacing the first 2 segments
-// of the ingress name with app and namespace
-func TestBuildAppDnsName(t *testing.T) {
-	assert := asserts.New(t)
-	hostName := "verrazzano.env.host1.example.com"
-	appName := "myapp"
-	namespace := "myns"
-	DNSName := "myapp.myns.host1.example.com"
-	assert.Equal(DNSName, buildAppDnsName(hostName, appName, namespace))
+func fakeGenerateDNSHostName(_ client.Reader, _ *vzapi.IngressTrait) (string, error) {
+	return "fakehost", nil
 }
