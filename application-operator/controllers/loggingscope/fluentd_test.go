@@ -5,16 +5,17 @@ package loggingscope
 
 import (
 	"context"
+	"reflect"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
 )
 
 const (
@@ -43,7 +44,7 @@ func TestFluentdApply(t *testing.T) {
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
 
-	fluentd := fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName}
+	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath}
 
 	// simulate config map not existing
 	mockClient.EXPECT().
@@ -88,7 +89,7 @@ func TestFluentdApplyForUpdate(t *testing.T) {
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPodForUpdate()
 
-	fluentd := fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName}
+	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath}
 
 	// simulate config map existing
 	mockClient.EXPECT().
@@ -124,7 +125,7 @@ func TestFluentdRemove(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mockClient := mocks.NewMockClient(mocker)
 
-	fluentd := &fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName}
+	fluentd := &Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath}
 	scope := createTestLoggingScope(true)
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
@@ -186,7 +187,7 @@ func createTestFluentdPodForUpdate() *FluentdPod {
 }
 
 // addFluentdArtifactsToFluentdPod adds FLUENTD artifacts to a FluentdPod
-func addFluentdArtifactsToFluentdPod(fluentd *fluentd, fluentdPod *FluentdPod, scope *v1alpha1.LoggingScope) {
+func addFluentdArtifactsToFluentdPod(fluentd *Fluentd, fluentdPod *FluentdPod, scope *v1alpha1.LoggingScope) {
 	fluentd.ensureFluentdVolumes(fluentdPod)
 	fluentdPod.VolumeMounts = append(fluentdPod.VolumeMounts, fluentd.createFluentdVolumeMount())
 	fluentdPod.Containers = append(fluentdPod.Containers, fluentd.createFluentdContainer(fluentdPod, scope))

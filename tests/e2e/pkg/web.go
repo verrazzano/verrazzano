@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package util
+package pkg
 
 import (
 	"context"
@@ -39,7 +39,7 @@ const (
 	// RetryWaitMax - maximum retry wait
 	RetryWaitMax = 30 * time.Second
 
-	username               = "verrazzano"
+	Username               = "verrazzano"
 	clientId               = "admin-cli"
 	realm                  = "verrazzano-system"
 	verrazzanoApiUriPrefix = "20210501"
@@ -140,6 +140,16 @@ func doPost(url, contentType string, hostHeader string, body io.Reader, httpClie
 	return doReq(url, "POST", contentType, hostHeader, "", "", body, httpClient)
 }
 
+// PutWithHostHeader PUTs a request with a specified Host header
+func PutWithHostHeader(url, contentType string, hostHeader string, body io.Reader) (int, string) {
+	return doPut(url, contentType, hostHeader, body, GetVerrazzanoHTTPClient())
+}
+
+// doPut executes a PUT request
+func doPut(url, contentType string, hostHeader string, body io.Reader, httpClient *retryablehttp.Client) (int, string) {
+	return doReq(url, "PUT", contentType, hostHeader, "", "", body, httpClient)
+}
+
 // doReq executes an HTTP request with the specified method (GET, POST, DELETE, etc)
 func doReq(url, method string, contentType string, hostHeader string, username string, password string,
 	body io.Reader, httpClient *retryablehttp.Client) (int, string) {
@@ -160,7 +170,7 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		Log(Error, err.Error())
-		ginkgo.Fail("Could not POST " + url)
+		ginkgo.Fail(fmt.Sprintf("Could not %s %s ", req.Method, url))
 	}
 	defer resp.Body.Close()
 	html, err := ioutil.ReadAll(resp.Body)

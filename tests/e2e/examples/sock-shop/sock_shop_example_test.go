@@ -17,7 +17,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/tests/e2e/util"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 const (
@@ -32,16 +32,16 @@ var username, password string
 var _ = BeforeSuite(func() {
 	username = "username" + strconv.FormatInt(time.Now().Unix(), 10)
 	password = b64.StdEncoding.EncodeToString([]byte(time.Now().String()))
-	sockShop = NewSockShop(username, password, util.Ingress(), "sockshop.example.com")
+	sockShop = NewSockShop(username, password, pkg.Ingress(), "sockshop.example.com")
 
 	// deploy the application here
-	if _, err := util.CreateNamespace("sockshop", map[string]string{"verrazzano-managed": "true"}); err != nil {
+	if _, err := pkg.CreateNamespace("sockshop", map[string]string{"verrazzano-managed": "true"}); err != nil {
 		Fail(fmt.Sprintf("Failed to create namespace: %v", err))
 	}
-	if err := util.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-comp.yaml"); err != nil {
+	if err := pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-comp.yaml"); err != nil {
 		Fail(fmt.Sprintf("Failed to create Sock Shop component resources: %v", err))
 	}
-	if err := util.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-app.yaml"); err != nil {
+	if err := pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-app.yaml"); err != nil {
 		Fail(fmt.Sprintf("Failed to create Sock Shop application resource: %v", err))
 	}
 })
@@ -69,7 +69,7 @@ var _ = Describe("Sock Shop Application", func() {
 		// checks that all pods are up and running
 		Eventually(sockshopPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		// checks that all application services are up
-		util.Concurrently(
+		pkg.Concurrently(
 			func() {
 				Eventually(isSockShopServiceReady("catalogue"), waitTimeout, pollingInterval).Should(BeTrue())
 			},
@@ -147,10 +147,10 @@ var _ = Describe("Sock Shop Application", func() {
 
 	It("Verify '/catalogue' UI endpoint is working.", func() {
 		Eventually(func() bool {
-			ipAddress := util.Ingress()
+			ipAddress := pkg.Ingress()
 			url := fmt.Sprintf("http://%s/catalogue", ipAddress)
 			host := "sockshop.example.com"
-			status, content := util.GetWebPageWithCABundle(url, host)
+			status, content := pkg.GetWebPageWithCABundle(url, host)
 			return Expect(status).To(Equal(200)) &&
 				Expect(content).To(ContainSubstring("For all those leg lovers out there."))
 		}, 3*time.Minute, 15*time.Second).Should(BeTrue())
@@ -158,7 +158,7 @@ var _ = Describe("Sock Shop Application", func() {
 
 	Describe("Verify Prometheus scraped metrics", func() {
 		It("Retrieve Prometheus scraped metrics", func() {
-			util.Concurrently(
+			pkg.Concurrently(
 				func() {
 					Eventually(appMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
 				},
@@ -177,15 +177,15 @@ var _ = Describe("Sock Shop Application", func() {
 // undeploys the application, components, and namespace
 var _ = AfterSuite(func() {
 	// undeploy the application here
-	err := util.DeleteResourceFromFile("examples/sock-shop/sock-shop-app.yaml")
+	err := pkg.DeleteResourceFromFile("examples/sock-shop/sock-shop-app.yaml")
 	if err != nil {
 		Fail(fmt.Sprintf("Could not delete sock shop applications: %v\n", err.Error()))
 	}
-	err = util.DeleteResourceFromFile("examples/sock-shop/sock-shop-comp.yaml")
+	err = pkg.DeleteResourceFromFile("examples/sock-shop/sock-shop-comp.yaml")
 	if err != nil {
 		Fail(fmt.Sprintf("Could not delete sock shop components: %v\n", err.Error()))
 	}
-	err = util.DeleteNamespace("sockshop")
+	err = pkg.DeleteNamespace("sockshop")
 	if err != nil {
 		Fail(fmt.Sprintf("Could not delete sock shop namespace: %v\n", err.Error()))
 	}
@@ -193,7 +193,7 @@ var _ = AfterSuite(func() {
 
 // isSockShopServiceReady checks if the service is ready
 func isSockShopServiceReady(name string) bool {
-	svc, err := util.GetKubernetesClientset().CoreV1().Services("sockshop").Get(context.TODO(), name, metav1.GetOptions{})
+	svc, err := pkg.GetKubernetesClientset().CoreV1().Services("sockshop").Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		Fail(fmt.Sprintf("Could not get services %v in sockshop: %v\n", name, err.Error()))
 		return false
@@ -206,14 +206,14 @@ func isSockShopServiceReady(name string) bool {
 
 // login logs in to the sockshop application
 func login(username string, password string) []*http.Cookie {
-	ingress := util.Ingress()
+	ingress := pkg.Ingress()
 	url := fmt.Sprintf("http://%v/login", ingress)
 	httpClient := retryablehttp.NewClient()
 	req, _ := retryablehttp.NewRequest("GET", url, nil)
 	req.SetBasicAuth(username, password)
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		util.Log(Error, err.Error())
+		pkg.Log(Error, err.Error())
 		Fail("Could not log into " + url)
 	}
 
@@ -221,7 +221,7 @@ func login(username string, password string) []*http.Cookie {
 
 	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		util.Log(Error, err.Error())
+		pkg.Log(Error, err.Error())
 		Fail("Could not read response body")
 	}
 
@@ -230,7 +230,7 @@ func login(username string, password string) []*http.Cookie {
 
 // sockshopPodsRunning checks whether the application pods are ready
 func sockshopPodsRunning() bool {
-	return util.PodsRunning("sockshop", expectedPods)
+	return pkg.PodsRunning("sockshop", expectedPods)
 }
 
 // appMetricsExists checks whether app related metrics are available
@@ -251,7 +251,7 @@ func appConfigMetricsExists() bool {
 // findMetric parses a Prometheus response to find a specified metric value
 func findMetric(metrics []interface{}, key, value string) bool {
 	for _, metric := range metrics {
-		if util.Jq(metric, "metric", key) == value {
+		if pkg.Jq(metric, "metric", key) == value {
 			return true
 		}
 	}
@@ -260,7 +260,7 @@ func findMetric(metrics []interface{}, key, value string) bool {
 
 // metricsExist validates the availability of a specified metric
 func metricsExist(metricsName, key, value string) bool {
-	metrics := util.JTq(util.QueryMetric(metricsName), "data", "result").([]interface{})
+	metrics := pkg.JTq(pkg.QueryMetric(metricsName), "data", "result").([]interface{})
 	if metrics != nil {
 		return findMetric(metrics, key, value)
 	} else {

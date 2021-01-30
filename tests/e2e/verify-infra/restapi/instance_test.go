@@ -8,51 +8,48 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/tests/e2e/util"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 var _ = ginkgo.Describe("instances", func() {
 
 	var _ = ginkgo.BeforeEach(func() {
-		api = util.GetApiEndpoint()
+		api = pkg.GetApiEndpoint()
 	})
 
 	ginkgo.Context("Fetching the instance ", func() {
 		ginkgo.It("", func() {
-			httpClient := util.GetVerrazzanoHTTPClient()
-			instance := util.GetVerrazzanoInstance()
+			httpClient := pkg.GetVerrazzanoHTTPClient()
+			instance := pkg.GetVerrazzanoInstance()
 
 			resp, err := api.Get()
-			util.ExpectHttpOk(resp, err, "Error doing http(s) get from "+instance.VzAPIURI)
+			pkg.ExpectHttpOk(resp, err, "Error doing http(s) get from "+instance.VzAPIURI)
 
 			gomega.Expect(instance.ID).To(gomega.Equal("0"), "Id is wrong")
 			gomega.Expect(instance.Name).NotTo(gomega.BeEmpty(), "Name is empty string")
 			gomega.Expect(instance.MgmtCluster).NotTo(gomega.BeEmpty(), "Cluster is empty string")
-			/* This check has been commented out until the script installers set this field correctly
-			   https://jira.oraclecorp.com/jira/browse/VZ-573
-			Expect(instance.MgmtPlatform).NotTo(BeEmpty(), "Platform is empty string")  */
 			gomega.Expect(instance.Status).To(gomega.Equal("OK"), "Status is not OK")
 			gomega.Expect(instance.Version).Should(gomega.MatchRegexp(`\d+\.\d+\.\d+`))
 
-			util.ExpectHTTPGetOk(httpClient, instance.KeyCloakURL)
-			util.ExpectHTTPGetOk(httpClient, instance.RancherURL)
+			pkg.ExpectHTTPGetOk(httpClient, instance.KeyCloakURL)
+			pkg.ExpectHTTPGetOk(httpClient, instance.RancherURL)
 
 			// Get VMI Credentials
-			vmiCredentials, err := util.GetSystemVMICredentials()
+			vmiCredentials, err := pkg.GetSystemVMICredentials()
 			if err != nil {
 				ginkgo.Fail(fmt.Sprintf("Error retrieving system VMI credentials: %v", err))
 			}
 
 			// Test VMI endpoints
-			sysVmiHttpClient := util.GetSystemVmiHttpClient()
+			sysVmiHttpClient := pkg.GetSystemVmiHttpClient()
 			gomega.Expect(instance.ElasticURL).Should(gomega.HavePrefix("https://elasticsearch.vmi.system"))
-			util.AssertURLAccessibleAndAuthorized(sysVmiHttpClient, instance.ElasticURL, vmiCredentials)
+			pkg.AssertURLAccessibleAndAuthorized(sysVmiHttpClient, instance.ElasticURL, vmiCredentials)
 			gomega.Expect(instance.GrafanaURL).Should(gomega.HavePrefix("https://grafana.vmi.system"))
-			util.AssertURLAccessibleAndAuthorized(sysVmiHttpClient, instance.GrafanaURL, vmiCredentials)
+			pkg.AssertURLAccessibleAndAuthorized(sysVmiHttpClient, instance.GrafanaURL, vmiCredentials)
 			gomega.Expect(instance.KibanaURL).Should(gomega.HavePrefix("https://kibana.vmi.system"))
-			util.AssertURLAccessibleAndAuthorized(sysVmiHttpClient, instance.KibanaURL, vmiCredentials)
+			pkg.AssertURLAccessibleAndAuthorized(sysVmiHttpClient, instance.KibanaURL, vmiCredentials)
 			gomega.Expect(instance.PrometheusURL).Should(gomega.HavePrefix("https://prometheus.vmi.system"))
-			util.AssertURLAccessibleAndAuthorized(sysVmiHttpClient, instance.PrometheusURL, vmiCredentials)
+			pkg.AssertURLAccessibleAndAuthorized(sysVmiHttpClient, instance.PrometheusURL, vmiCredentials)
 		})
 	})
 })

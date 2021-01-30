@@ -36,23 +36,23 @@ func TestHelidoHandlerApply(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mockClient := mocks.NewMockClient(mocker)
 	namespace := "hello-ns"
-	appName := "hello-workload"
+	workloadName := "hello-workload"
 	appContainerName := "testApply-app-container"
 	esSecretName := "myEsSecret"
-	workload := workloadOf(namespace, appName)
+	workload := workloadOf(namespace, workloadName)
 	scope := newLoggingScope(namespace, "esHost", esSecretName)
 
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: appName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
 			appContainer := kcore.Container{Name: appContainerName, Image: "test-app-container-image"}
 			deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, appContainer)
 			return nil
 		})
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: fluentdConfigMapName(appName)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: fluentdConfigMapName(workloadName)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *kcore.ConfigMap) error {
-			return kerrs.NewNotFound(schema.ParseGroupResource("v1.ConfigMap"), fluentdConfigMapName(appName))
+			return kerrs.NewNotFound(schema.ParseGroupResource("v1.ConfigMap"), fluentdConfigMapName(workloadName))
 		})
 	mockClient.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
@@ -62,7 +62,7 @@ func TestHelidoHandlerApply(t *testing.T) {
 	mockClient.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: esSecretName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *kcore.Secret) error {
-			return kerrs.NewNotFound(schema.ParseGroupResource("v1.ConfigMap"), fluentdConfigMapName(appName))
+			return kerrs.NewNotFound(schema.ParseGroupResource("v1.ConfigMap"), fluentdConfigMapName(workloadName))
 		})
 	mockClient.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano"}, gomock.Not(gomock.Nil())).
@@ -100,13 +100,13 @@ func TestHelidoHandlerRemove(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mockClient := mocks.NewMockClient(mocker)
 	namespace := "hello-ns"
-	appName := "hello-workload"
+	workloadName := "hello-workload"
 	esSecretName := "myEsSecret"
 	appContainerName := "testDelete-app-container"
-	workload := workloadOf(namespace, appName)
+	workload := workloadOf(namespace, workloadName)
 	scope := newLoggingScope(namespace, "esHost", esSecretName)
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: appName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
 			appContainer := kcore.Container{Name: appContainerName, Image: "test-app-container-image"}
 			fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, "appContainer", scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchHost)
@@ -128,7 +128,7 @@ func TestHelidoHandlerRemove(t *testing.T) {
 		})
 
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: fluentdConfigMapName(appName)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: fluentdConfigMapName(workloadName)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *kcore.ConfigMap) error {
 			return nil
 		})
@@ -140,7 +140,7 @@ func TestHelidoHandlerRemove(t *testing.T) {
 	mockClient.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: esSecretName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *kcore.Secret) error {
-			return kerrs.NewNotFound(schema.ParseGroupResource("v1.ConfigMap"), fluentdConfigMapName(appName))
+			return kerrs.NewNotFound(schema.ParseGroupResource("v1.ConfigMap"), fluentdConfigMapName(workloadName))
 		})
 	mockClient.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano"}, gomock.Not(gomock.Nil())).
@@ -172,10 +172,10 @@ func TestHelidoHandlerRemove(t *testing.T) {
 	asserts.Nil(t, err)
 }
 
-func workloadOf(namespace, appName string) vzapi.QualifiedResourceRelation {
+func workloadOf(namespace, workloadName string) vzapi.QualifiedResourceRelation {
 	return vzapi.QualifiedResourceRelation{
 		APIVersion: "core.oam.dev/v1alpha2",
-		Name:       appName,
+		Name:       workloadName,
 		Namespace:  namespace,
 		Kind:       "ContainerizedWorkload",
 	}
@@ -189,14 +189,14 @@ func TestHelidoHandlerApplyNoDeployment(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mockClient := mocks.NewMockClient(mocker)
 	namespace := "hello-ns"
-	appName := "hello-workload"
+	workloadName := "hello-workload"
 	esSecretName := "myEsSecret"
-	workload := workloadOf(namespace, appName)
+	workload := workloadOf(namespace, workloadName)
 	scope := newLoggingScope(namespace, "esHost", esSecretName)
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: appName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
-			return kerrs.NewNotFound(schema.ParseGroupResource("v1.Deployment"), appName)
+			return kerrs.NewNotFound(schema.ParseGroupResource("v1.Deployment"), workloadName)
 		})
 	h := &HelidonHandler{
 		Client: mockClient,
@@ -215,14 +215,14 @@ func TestHelidoHandlerRemoveNoDeployment(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mockClient := mocks.NewMockClient(mocker)
 	namespace := "hello-ns"
-	appName := "hello-workload"
+	workloadName := "hello-workload"
 	esSecretName := "myEsSecret"
-	workload := workloadOf(namespace, appName)
+	workload := workloadOf(namespace, workloadName)
 	scope := newLoggingScope(namespace, "esHost", esSecretName)
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: appName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
-			return kerrs.NewNotFound(schema.ParseGroupResource("v1.Deployment"), appName)
+			return kerrs.NewNotFound(schema.ParseGroupResource("v1.Deployment"), workloadName)
 		})
 	h := &HelidonHandler{
 		Client: mockClient,

@@ -72,7 +72,7 @@ spec:
                   JNDIName: jdbc/ToDoDB
                 JDBCDriverParams:
                   # for MySQL, the last element in the URL is the database name, and must match the name inside the DB server
-                  URL: "jdbc:mysql://mysql.todo.svc.cluster.local:3306/tododb"
+                  URL: "jdbc:mysql://mysql.todo-list.svc.cluster.local:3306/tododb"
                   PasswordEncrypted: '@@SECRET:tododomain-jdbc-tododb:password@@'
                   DriverName: com.mysql.jdbc.Driver
                   Properties:
