@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -485,4 +486,604 @@ func TestOAMDisabledInstall(t *testing.T) {
 
 	jsonString := string(jsonBytes)
 	assert.Contains(t, jsonString, "\"oam\":{\"enabled\":false}", "Expected json to show OAM disabled.")
+}
+
+// TestFindFolumeTemplate Test the findVolumeTemplate utility function
+// GIVEN a call to findVolumeTemplate
+// WHEN valid or invalid arguments are given
+// THEN true and the found template are is returned if found, nil/false otherwise
+func TestFindFolumeTemplate(t *testing.T) {
+
+	specTemplateList := []installv1alpha1.VolumeClaimSpecTemplate{
+		{
+			Name: "default",
+			Spec: corev1.PersistentVolumeClaimSpec{
+				VolumeName: "defVolume",
+			},
+		},
+		{
+			Name: "template1",
+			Spec: corev1.PersistentVolumeClaimSpec{
+				VolumeName: "temp1Volume",
+			},
+		},
+		{
+			Name: "template2",
+			Spec: corev1.PersistentVolumeClaimSpec{
+				VolumeName: "temp2Volume",
+			},
+		},
+	}
+	// Test boundary conditions
+	invalidName, found := findVolumeTemplate("blah", specTemplateList)
+	assert.Nil(t, invalidName)
+	assert.False(t, found)
+	emptyName, found2 := findVolumeTemplate("", specTemplateList)
+	assert.Nil(t, emptyName)
+	assert.False(t, found2)
+	nilList, found3 := findVolumeTemplate("default", nil)
+	assert.Nil(t, nilList)
+	assert.False(t, found3)
+	emptyList, found4 := findVolumeTemplate("default", []installv1alpha1.VolumeClaimSpecTemplate{})
+	assert.Nil(t, emptyList)
+	assert.False(t, found4)
+
+	// Test normal behavior
+	defTemplate, found := findVolumeTemplate("default", specTemplateList)
+	assert.True(t, found)
+	assert.Equal(t, "defVolume", defTemplate.VolumeName)
+	temp1, found := findVolumeTemplate("template1", specTemplateList)
+	assert.True(t, found)
+	assert.Equal(t, "temp1Volume", temp1.VolumeName)
+	temp2, found := findVolumeTemplate("template2", specTemplateList)
+	assert.True(t, found)
+	assert.Equal(t, "temp2Volume", temp2.VolumeName)
+
+}
+
+// TestGetVerrazzanoInstallArgsNilDefaultVolumeSource Test the getVerrazzanoInstallArgs  function
+// GIVEN a call to getVerrazzanoInstallArgs
+// WHEN No default volume source is specified (nil)
+// THEN the args list is empty and no error is returned
+func TestGetVerrazzanoInstallArgsNilDefaultVolumeSource(t *testing.T) {
+
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		DefaultVolumeSource: nil,
+	}
+	args, err := getVerrazzanoInstallArgs(&vzSpec, zap.S())
+	assert.Len(t, args, 0)
+	assert.Nil(t, err)
+}
+
+// TestGetVerrazzanoInstallArgsUnspportedVolumeSource Test the getVerrazzanoInstallArgs  function
+// GIVEN a call to getVerrazzanoInstallArgs
+// WHEN an unsupported volume source is specified as the defaultVolumeSource
+// THEN the args list is empty and an error is returned
+func TestGetVerrazzanoInstallArgsUnspportedVolumeSource(t *testing.T) {
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		DefaultVolumeSource: &corev1.VolumeSource{
+			HostPath: &corev1.HostPathVolumeSource{},
+		},
+	}
+	args, err := getVerrazzanoInstallArgs(&vzSpec, zap.S())
+	assert.Len(t, args, 0)
+	assert.Nil(t, err)
+}
+
+// TestGetVerrazzanoInstallArgsEmptydirDefaultVolumeSource Test the getVerrazzanoInstallArgs  function
+// GIVEN a call to getVerrazzanoInstallArgs
+// WHEN with an EmptyDirVolumeSource
+// THEN the args list specifies helm args with empty strings for the ES/Grafana/Prometheus storage settings
+func TestGetVerrazzanoInstallArgsEmptydirDefaultVolumeSource(t *testing.T) {
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		DefaultVolumeSource: &corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
+		},
+	}
+	args, err := getVerrazzanoInstallArgs(&vzSpec, zap.S())
+	assert.Len(t, args, 3)
+	assert.Nil(t, err)
+	assert.Equal(t, "verrazzanoOperator.esDataStorageSize", args[0].Name)
+	assert.Equal(t, "", args[0].Value)
+	assert.True(t, args[0].SetString)
+	assert.Equal(t, "verrazzanoOperator.grafanaDataStorageSize", args[1].Name)
+	assert.Equal(t, "", args[1].Value)
+	assert.True(t, args[1].SetString)
+	assert.Equal(t, "verrazzanoOperator.prometheusDataStorageSize", args[2].Name)
+	assert.Equal(t, "", args[2].Value)
+	assert.True(t, args[2].SetString)
+}
+
+// TestGetVerrazzanoInstallArgsUnspportedVolumeSource Test the getVerrazzanoInstallArgs  function
+// GIVEN a call to getVerrazzanoInstallArgs with a PersistentVolumeClaimVolumeSource
+// WHEN the ClaimName does not match the list of VolumeClaimSpecTemplates
+// THEN the args list is empty and an error is returned
+func TestGetVerrazzanoInstallArgsInvalidPVCVolumeSource(t *testing.T) {
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		DefaultVolumeSource: &corev1.VolumeSource{
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				ClaimName: "foo",
+			},
+		},
+		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
+			{
+				Name: "default",
+				Spec: corev1.PersistentVolumeClaimSpec{},
+			},
+		},
+	}
+	args, err := getVerrazzanoInstallArgs(&vzSpec, zap.S())
+	assert.Len(t, args, 0)
+	assert.NotNil(t, err)
+}
+
+// TestGetVerrazzanoInstallArgsEmptydirDefaultVolumeSource Test the getVerrazzanoInstallArgs  function
+// GIVEN a call to getVerrazzanoInstallArgs
+// WHEN with an PersistentVolumeClaimVolumeSource
+// THEN the args list specifies helm args the specified storage size for the ES/Grafana/Prometheus storage settings
+func TestGetVerrazzanoInstallArgsPVCVolumeSource(t *testing.T) {
+	resourceList := make(corev1.ResourceList, 1)
+	q, err := resource.ParseQuantity("50Gi")
+	assert.NoError(t, err)
+
+	resourceList["storage"] = q
+	storageClass := "mystorageclass"
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		DefaultVolumeSource: &corev1.VolumeSource{
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				ClaimName: "default",
+			},
+		},
+		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
+			{
+				Name: "default",
+				Spec: corev1.PersistentVolumeClaimSpec{
+					StorageClassName: &storageClass,
+					Resources: corev1.ResourceRequirements{
+						Requests: resourceList,
+					},
+				},
+			},
+		},
+	}
+	args, err := getVerrazzanoInstallArgs(&vzSpec, zap.S())
+	assert.Len(t, args, 3)
+	assert.Nil(t, err)
+	assert.Equal(t, "verrazzanoOperator.esDataStorageSize", args[0].Name)
+	assert.Equal(t, "50Gi", args[0].Value)
+	assert.True(t, args[0].SetString)
+	assert.Equal(t, "verrazzanoOperator.grafanaDataStorageSize", args[1].Name)
+	assert.Equal(t, "50Gi", args[1].Value)
+	assert.True(t, args[1].SetString)
+	assert.Equal(t, "verrazzanoOperator.prometheusDataStorageSize", args[2].Name)
+	assert.Equal(t, "50Gi", args[2].Value)
+	assert.True(t, args[2].SetString)
+}
+
+// TestGetKeycloakEmptyDirVolumeSourceNoDefaultVolumeSource Test the getKeycloak  function
+// GIVEN a call to getKeycloak
+// WHEN with an EmptyDirVolumeSource in the MySQL VolumeSource configuration
+// THEN the args list specifies helm args the specified storage size for the ES/Grafana/Prometheus storage settings
+func TestGetKeycloakEmptyDirVolumeSourceNoDefaultVolumeSource(t *testing.T) {
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		Components: installv1alpha1.ComponentSpec{
+			Keycloak: installv1alpha1.KeycloakComponent{
+				MySQL: installv1alpha1.MySQLComponent{
+					MySQLInstallArgs: nil,
+					VolumeSource: &corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+			},
+		},
+	}
+	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, []installv1alpha1.VolumeClaimSpecTemplate{}, nil, zap.S())
+	args := keycloak.MySQL.MySQLInstallArgs
+	assert.Len(t, args, 1)
+	assert.Nil(t, err)
+
+	assert.Equal(t, "persistence.enabled", args[0].Name)
+	assert.Equal(t, "false", args[0].Value)
+	assert.True(t, args[0].SetString)
+}
+
+// TestGetKeycloakEmptyDirVolumeSourceNoDefaultVolumeSource Test the getKeycloak  function
+// GIVEN a call to getKeycloak
+// WHEN with a PVCVolumeSource in the MySQL VolumeSource configuration and an EmptyDirVolumeSource DefaultVolumeSource
+// THEN The MySQL configuration overrides the default EmptyDir configuration
+func TestGetKeycloakPVCVolumeSourceOverrideDefaultVolumeSource(t *testing.T) {
+	resourceList := make(corev1.ResourceList, 1)
+	q, err := resource.ParseQuantity("50Gi")
+	assert.NoError(t, err)
+
+	resourceList["storage"] = q
+	storageClass := "mystorageclass"
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		DefaultVolumeSource: &corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
+		},
+		Components: installv1alpha1.ComponentSpec{
+			Keycloak: installv1alpha1.KeycloakComponent{
+				MySQL: installv1alpha1.MySQLComponent{
+					MySQLInstallArgs: nil,
+					VolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+							ClaimName: "default",
+						},
+					},
+				},
+			},
+		},
+		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
+			{
+				Name: "default",
+				Spec: corev1.PersistentVolumeClaimSpec{
+					StorageClassName: &storageClass,
+					Resources: corev1.ResourceRequirements{
+						Requests: resourceList,
+					},
+					AccessModes: []corev1.PersistentVolumeAccessMode{
+						"ReadWriteOnce",
+						"ReadWriteMany",
+					},
+				},
+			},
+		},
+	}
+	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, vzSpec.VolumeClaimSpecTemplates, vzSpec.DefaultVolumeSource, zap.S())
+	args := keycloak.MySQL.MySQLInstallArgs
+	assert.Len(t, args, 3)
+	assert.Nil(t, err)
+
+	assert.Equal(t, "persistence.storageClass", args[0].Name)
+	assert.Equal(t, storageClass, args[0].Value)
+	assert.True(t, args[0].SetString)
+	assert.Equal(t, "persistence.size", args[1].Name)
+	assert.Equal(t, "50Gi", args[1].Value)
+	assert.True(t, args[1].SetString)
+	assert.Equal(t, "persistence.accessMode", args[2].Name)
+	assert.Equal(t, "ReadWriteOnce", args[2].Value)
+	assert.True(t, args[2].SetString)
+}
+
+// TestGetKeycloakPVCVolumeSourceNoAccessModes Test the getKeycloak  function
+// GIVEN a call to getKeycloak
+// WHEN with a PVCVolumeSource in the MySQL VolumeSource configuration with no AccessModes specified
+// THEN The MySQL args do not contain the "persistence.accessMode" helm arg override
+func TestGetKeycloakPVCVolumeSourceNoAccessModes(t *testing.T) {
+	resourceList := make(corev1.ResourceList, 1)
+	q, err := resource.ParseQuantity("50Gi")
+	assert.NoError(t, err)
+
+	resourceList["storage"] = q
+	storageClass := "mystorageclass"
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		Components: installv1alpha1.ComponentSpec{
+			Keycloak: installv1alpha1.KeycloakComponent{
+				MySQL: installv1alpha1.MySQLComponent{
+					MySQLInstallArgs: nil,
+					VolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+							ClaimName: "default",
+						},
+					},
+				},
+			},
+		},
+		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
+			{
+				Name: "default",
+				Spec: corev1.PersistentVolumeClaimSpec{
+					StorageClassName: &storageClass,
+					Resources: corev1.ResourceRequirements{
+						Requests: resourceList,
+					},
+				},
+			},
+		},
+	}
+	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, vzSpec.VolumeClaimSpecTemplates, vzSpec.DefaultVolumeSource, zap.S())
+	args := keycloak.MySQL.MySQLInstallArgs
+	assert.Len(t, args, 2)
+	assert.Nil(t, err)
+
+	assert.Equal(t, "persistence.storageClass", args[0].Name)
+	assert.Equal(t, storageClass, args[0].Value)
+	assert.True(t, args[0].SetString)
+	assert.Equal(t, "persistence.size", args[1].Name)
+	assert.Equal(t, "50Gi", args[1].Value)
+	assert.True(t, args[1].SetString)
+}
+
+// TestGetKeycloakPVCVolumeSourceNoTemplates Test the getKeycloak  function
+// GIVEN a call to getKeycloak
+// WHEN with a PVCVolumeSource in the MySQL VolumeSource configuration with no templates specified
+// THEN The MySQL args are empty and an error is returned
+func TestGetKeycloakPVCVolumeSourceNoTemplates(t *testing.T) {
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		Components: installv1alpha1.ComponentSpec{
+			Keycloak: installv1alpha1.KeycloakComponent{
+				MySQL: installv1alpha1.MySQLComponent{
+					MySQLInstallArgs: nil,
+					VolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+							ClaimName: "default",
+						},
+					},
+				},
+			},
+		},
+	}
+	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, vzSpec.VolumeClaimSpecTemplates, vzSpec.DefaultVolumeSource, zap.S())
+	args := keycloak.MySQL.MySQLInstallArgs
+	assert.Len(t, args, 0)
+	assert.NotNil(t, err)
+}
+
+// TestGetKeycloakPVCVolumeSourceStorageSizeOnly Test the getKeycloak  function
+// GIVEN a call to getKeycloak
+// WHEN with a PVCVolumeSource in the MySQL VolumeSource configuration with no AccessModes or StorageClass specified
+// THEN The MySQL args do not contain the "persistence.accessMode" or "persistence.storageClass" helm arg override
+func TestGetKeycloakPVCVolumeSourceStorageSizeOnly(t *testing.T) {
+	resourceList := make(corev1.ResourceList, 1)
+	q, err := resource.ParseQuantity("50Gi")
+	assert.NoError(t, err)
+
+	resourceList["storage"] = q
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		Components: installv1alpha1.ComponentSpec{
+			Keycloak: installv1alpha1.KeycloakComponent{
+				MySQL: installv1alpha1.MySQLComponent{
+					MySQLInstallArgs: nil,
+					VolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+							ClaimName: "default",
+						},
+					},
+				},
+			},
+		},
+		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
+			{
+				Name: "default",
+				Spec: corev1.PersistentVolumeClaimSpec{
+					Resources: corev1.ResourceRequirements{
+						Requests: resourceList,
+					},
+				},
+			},
+		},
+	}
+	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, vzSpec.VolumeClaimSpecTemplates, vzSpec.DefaultVolumeSource, zap.S())
+	args := keycloak.MySQL.MySQLInstallArgs
+	assert.Len(t, args, 1)
+	assert.Nil(t, err)
+
+	assert.Equal(t, "persistence.size", args[0].Name)
+	assert.Equal(t, "50Gi", args[0].Value)
+	assert.True(t, args[0].SetString)
+}
+
+// TestGetKeycloakPVCVolumeSourceZeroStorageSize Test the getKeycloak  function
+// GIVEN a call to getKeycloak
+// WHEN with a PVCVolumeSource in the MySQL VolumeSource configuration with a Zero size string
+// THEN The MySQL args do not contain the "persistence.size" helm arg override
+func TestGetKeycloakPVCVolumeSourceZeroStorageSize(t *testing.T) {
+	resourceList := make(corev1.ResourceList, 1)
+	q, err := resource.ParseQuantity("0")
+	assert.NoError(t, err)
+
+	resourceList["storage"] = q
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		Components: installv1alpha1.ComponentSpec{
+			Keycloak: installv1alpha1.KeycloakComponent{
+				MySQL: installv1alpha1.MySQLComponent{
+					MySQLInstallArgs: nil,
+					VolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+							ClaimName: "default",
+						},
+					},
+				},
+			},
+		},
+		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
+			{
+				Name: "default",
+				Spec: corev1.PersistentVolumeClaimSpec{
+					Resources: corev1.ResourceRequirements{
+						Requests: resourceList,
+					},
+				},
+			},
+		},
+	}
+	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, vzSpec.VolumeClaimSpecTemplates, vzSpec.DefaultVolumeSource, zap.S())
+	args := keycloak.MySQL.MySQLInstallArgs
+	assert.Len(t, args, 0)
+	assert.Nil(t, err)
+}
+
+// TestGetKeycloakPVCVolumeSourceEmptyPVCConfiguration Test the getKeycloak  function
+// GIVEN a call to getKeycloak
+// WHEN with a PVCVolumeSource in the MySQL VolumeSource configuration with an empty struct
+// THEN The MySQL args do not contain any helm overrides
+func TestGetKeycloakPVCVolumeSourceEmptyPVCConfiguration(t *testing.T) {
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		Components: installv1alpha1.ComponentSpec{
+			Keycloak: installv1alpha1.KeycloakComponent{
+				MySQL: installv1alpha1.MySQLComponent{
+					MySQLInstallArgs: nil,
+					VolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+							ClaimName: "default",
+						},
+					},
+				},
+			},
+		},
+		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
+			{
+				Name: "default",
+				Spec: corev1.PersistentVolumeClaimSpec{},
+			},
+		},
+	}
+	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, vzSpec.VolumeClaimSpecTemplates, vzSpec.DefaultVolumeSource, zap.S())
+	args := keycloak.MySQL.MySQLInstallArgs
+	assert.Len(t, args, 0)
+	assert.Nil(t, err)
+}
+
+// TestNewExternalDNSInstallConfigInvalidVZInstallArgs Test the getVerrazzanoInstallArgs  function
+// GIVEN a call to newExternalDNSInstallConfig
+// WHEN the VerrazzanoSpec contains an invalid storage config
+// THEN the returned config is nil and an error is returned
+func TestNewExternalDNSInstallConfigInvalidVZInstallArgs(t *testing.T) {
+	vzSpec := installv1alpha1.Verrazzano{
+		Spec: installv1alpha1.VerrazzanoSpec{
+			DefaultVolumeSource: &corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: "foo",
+				},
+			},
+			VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
+				{
+					Name: "default",
+					Spec: corev1.PersistentVolumeClaimSpec{},
+				},
+			},
+		},
+	}
+	config, err := newExternalDNSInstallConfig(&vzSpec, zap.S())
+	assert.Nil(t, config)
+	assert.NotNil(t, err)
+}
+
+// TestNewExternalDNSInstallConfigInvalidKeyCloakConfig Test the getKeycloak  function
+// GIVEN a call to newExternalDNSInstallConfig
+// WHEN with a PVCVolumeSource in the MySQL VolumeSource configuration with no templates specified
+// THEN the returned config is nil and an error is returned
+func TestNewExternalDNSInstallConfigInvalidKeyCloakConfig(t *testing.T) {
+	vzSpec := installv1alpha1.Verrazzano{
+		Spec: installv1alpha1.VerrazzanoSpec{
+			Components: installv1alpha1.ComponentSpec{
+				Keycloak: installv1alpha1.KeycloakComponent{
+					MySQL: installv1alpha1.MySQLComponent{
+						MySQLInstallArgs: nil,
+						VolumeSource: &corev1.VolumeSource{
+							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+								ClaimName: "default",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	config, err := newExternalDNSInstallConfig(&vzSpec, zap.S())
+	assert.Nil(t, config)
+	assert.NotNil(t, err)
+}
+
+// TestNewXipIoInstallConfigInvalidVZInstallArgs Test the getVerrazzanoInstallArgs  function
+// GIVEN a call to newXipIoInstallConfig
+// WHEN the VerrazzanoSpec contains an invalid storage config
+// THEN the returned config is nil and an error is returned
+func TestNewXipIoInstallConfigInvalidVZInstallArgs(t *testing.T) {
+	vzSpec := installv1alpha1.Verrazzano{
+		Spec: installv1alpha1.VerrazzanoSpec{
+			DefaultVolumeSource: &corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: "foo",
+				},
+			},
+			VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
+				{
+					Name: "default",
+					Spec: corev1.PersistentVolumeClaimSpec{},
+				},
+			},
+		},
+	}
+	config, err := newXipIoInstallConfig(&vzSpec, zap.S())
+	assert.Nil(t, config)
+	assert.NotNil(t, err)
+}
+
+// TestNewXipIoInstallConfigInvalidKeyCloakConfig Test the getKeycloak  function
+// GIVEN a call to newXipIoInstallConfig
+// WHEN with a PVCVolumeSource in the MySQL VolumeSource configuration with no templates specified
+// THEN the returned config is nil and an error is returned
+func TestNewXipIoInstallConfigInvalidKeyCloakConfig(t *testing.T) {
+	vzSpec := installv1alpha1.Verrazzano{
+		Spec: installv1alpha1.VerrazzanoSpec{
+			Components: installv1alpha1.ComponentSpec{
+				Keycloak: installv1alpha1.KeycloakComponent{
+					MySQL: installv1alpha1.MySQLComponent{
+						MySQLInstallArgs: nil,
+						VolumeSource: &corev1.VolumeSource{
+							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+								ClaimName: "default",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	config, err := newXipIoInstallConfig(&vzSpec, zap.S())
+	assert.Nil(t, config)
+	assert.NotNil(t, err)
+}
+
+// TestNewOCIDNSInstallConfigInvalidVZInstallArgs Test the getVerrazzanoInstallArgs  function
+// GIVEN a call to newOCIDNSInstallConfig
+// WHEN the VerrazzanoSpec contains an invalid storage config
+// THEN the returned config is nil and an error is returned
+func TestNewOCIDNSInstallConfigInvalidVZInstallArgs(t *testing.T) {
+	vzSpec := installv1alpha1.Verrazzano{
+		Spec: installv1alpha1.VerrazzanoSpec{
+			DefaultVolumeSource: &corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: "foo",
+				},
+			},
+			VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
+				{
+					Name: "default",
+					Spec: corev1.PersistentVolumeClaimSpec{},
+				},
+			},
+		},
+	}
+	config, err := newOCIDNSInstallConfig(&vzSpec, zap.S())
+	assert.Nil(t, config)
+	assert.NotNil(t, err)
+}
+
+// TestNewOCIDNSInstallConfigInvalidKeyCloakConfig Test the getKeycloak  function
+// GIVEN a call to newOCIDNSInstallConfig
+// WHEN with a PVCVolumeSource in the MySQL VolumeSource configuration with no templates specified
+// THEN the returned config is nil and an error is returned
+func TestNewOCIDNSInstallConfigInvalidKeyCloakConfig(t *testing.T) {
+	vzSpec := installv1alpha1.Verrazzano{
+		Spec: installv1alpha1.VerrazzanoSpec{
+			Components: installv1alpha1.ComponentSpec{
+				Keycloak: installv1alpha1.KeycloakComponent{
+					MySQL: installv1alpha1.MySQLComponent{
+						MySQLInstallArgs: nil,
+						VolumeSource: &corev1.VolumeSource{
+							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+								ClaimName: "default",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	config, err := newOCIDNSInstallConfig(&vzSpec, zap.S())
+	assert.Nil(t, config)
+	assert.NotNil(t, err)
 }

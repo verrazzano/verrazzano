@@ -405,11 +405,11 @@ func getKeycloak(keycloak installv1alpha1.KeycloakComponent, templates []install
 				SetString: true,
 			})
 		}
-		size := storageSpec.Resources.Requests.Storage().String()
-		if len(size) > 0 {
+		storage := storageSpec.Resources.Requests.Storage()
+		if storageSpec.Resources.Requests != nil && !storage.IsZero() {
 			mySQLArgs = append(mySQLArgs, InstallArg{
 				Name:      "persistence.size",
-				Value:     size,
+				Value:     storage.String(),
 				SetString: true,
 			})
 		}
