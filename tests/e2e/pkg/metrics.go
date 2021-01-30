@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package util
+package pkg
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 // QueryMetric queries a metric from the system Prometheus
 func QueryMetric(metricsName string) string {
 	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", getPrometheusIngressHost(), metricsName)
-	status, content := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", getVerrazzanoPassword())
+	status, content := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", GetVerrazzanoPassword())
 	if status != 200 {
 		ginkgo.Fail(fmt.Sprintf("Error retrieving metric %s, status %d", metricsName, status))
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/onsi/ginkgo"
 	ginkgoExt "github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/tests/e2e/util"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	istionetworkingv1alpha3 "istio.io/api/networking/v1alpha3"
 	istioclientv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
@@ -23,7 +23,7 @@ var _ = ginkgo.Describe("Istio", func() {
 
 	ginkgoExt.DescribeTable("namespace",
 		func(name string) {
-			gomega.Expect(util.DoesNamespaceExist(name)).To(gomega.BeTrue())
+			gomega.Expect(pkg.DoesNamespaceExist(name)).To(gomega.BeTrue())
 		},
 		ginkgoExt.Entry(fmt.Sprintf("%s namespace should exist", istioNamespace), istioNamespace),
 	)
@@ -51,7 +51,7 @@ var _ = ginkgo.Describe("Istio", func() {
 				}
 				return deploymentNames
 			}
-			deployments := util.ListDeployments(namespace)
+			deployments := pkg.ListDeployments(namespace)
 			gomega.Expect(deployments).Should(
 				gomega.SatisfyAll(
 					gomega.Not(gomega.BeNil()),
@@ -66,7 +66,7 @@ var _ = ginkgo.Describe("Istio", func() {
 	const istioJob = "istio-init-crd-14-1.4.6"
 	ginkgoExt.DescribeTable("job",
 		func(namespace string, name string) {
-			gomega.Expect(util.DoesJobExist(namespace, name)).To(gomega.BeTrue())
+			gomega.Expect(pkg.DoesJobExist(namespace, name)).To(gomega.BeTrue())
 		},
 		ginkgoExt.Entry(fmt.Sprintf("%s namespace should contain job %s", istioNamespace, istioJob), istioNamespace, istioJob),
 	)
@@ -120,7 +120,7 @@ var _ = ginkgo.Describe("Istio", func() {
 
 // getIstioClientset returns the clientset object for Istio
 func getIstioClientset() *istioClient.Clientset {
-	cs, err := istioClient.NewForConfig(util.GetKubeConfig())
+	cs, err := istioClient.NewForConfig(pkg.GetKubeConfig())
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("failed to get Istio clientset: %v", err))
 	}
