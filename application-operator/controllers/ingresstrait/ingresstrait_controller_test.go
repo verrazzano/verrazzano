@@ -154,7 +154,7 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-trait-name-rule-0-vs"}, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "VirtualService"}, "test-trait-name-rule-0-vs"))
 
-	// Expect a call to get the rancher ingress
+	// Expect a call to get the rancher ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -167,7 +167,7 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
 			return nil
 		})
-	// Expect a call to get the rancher ingress
+	// Expect a call to get the rancher ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -411,7 +411,7 @@ func TestFailureToUpdateStatus(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, virtualService *istioclinet.VirtualService, opts ...client.CreateOption) error {
 			return nil
 		})
-	// Expect a call to get the rancher ingress
+	// Expect a call to get the rancher ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -424,7 +424,7 @@ func TestFailureToUpdateStatus(t *testing.T) {
 				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
 			return nil
 		})
-	// Expect a call to get the rancher ingress
+	// Expect a call to get the rancher ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {

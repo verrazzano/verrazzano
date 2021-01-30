@@ -543,7 +543,7 @@ func generateDNSHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, 
 	}
 	authRealmAnno, ok := ingress.Annotations[authRealmKey]
 	if !ok || len(authRealmAnno) == 0 {
-		return "", errors.New(fmt.Sprintf("Annoation %s missing from Rancher ingress, unable to generate DNS name", authRealmKey))
+		return "", fmt.Errorf("Annoation %s missing from Rancher ingress, unable to generate DNS name", authRealmKey)
 	}
 	segs := strings.Split(strings.TrimSpace(authRealmAnno), " ")
 	domain := strings.TrimSpace(segs[0])
@@ -561,7 +561,7 @@ func generateDNSHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, 
 		if istio.Spec.Type == corev1.ServiceTypeLoadBalancer {
 			istioIngress := istio.Status.LoadBalancer.Ingress
 			if len(istioIngress) == 0 {
-				return "", errors.New(fmt.Sprintf("%s is missing loadbalancer IP", istioIngressGateway))
+				return "", fmt.Errorf("%s is missing loadbalancer IP", istioIngressGateway)
 			}
 			IP = istioIngress[0].IP
 		} else if istio.Spec.Type == corev1.ServiceTypeNodePort {
