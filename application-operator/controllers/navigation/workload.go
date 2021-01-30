@@ -5,10 +5,16 @@ package navigation
 
 import (
 	"context"
+	"errors"
 	"fmt"
+
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -52,4 +58,64 @@ func FetchWorkloadChildren(ctx context.Context, cli client.Reader, log logr.Logg
 		return nil, err
 	}
 	return children, nil
+}
+
+// ComponentFromWorkloadLabels returns the OAM component from the application configuration that references
+// the workload. The workload lookup is done using the OAM labels from the workload metadata.
+func ComponentFromWorkloadLabels(ctx context.Context, cli client.Reader, namespace string, labels map[string]string) (*oamv1.ApplicationConfigurationComponent, error) {
+	// look up the OAM application that aggregates this workload
+	componentName, ok := labels[oam.LabelAppComponent]
+	if !ok {
+		return nil, errors.New("OAM component label missing from metadata")
+	}
+	appName, ok := labels[oam.LabelAppName]
+	if !ok {
+		return nil, errors.New("OAM app name label missing from metadata")
+	}
+
+	appConfig := oamv1.ApplicationConfiguration{}
+	name := types.NamespacedName{
+		Namespace: namespace,
+		Name:      appName,
+	}
+
+	if err := cli.Get(ctx, name, &appConfig); err != nil {
+		return nil, err
+	}
+
+	// find our component in the app config components collection
+	for _, c := range appConfig.Spec.Components {
+		if c.ComponentName == componentName {
+			return &c, nil
+		}
+	}
+
+	return nil, errors.New("Unable to find application component for workload")
+}
+
+// LoggingScopeFromWorkloadLabels returns the LoggingScope object associated with the workload or nil if
+// there is no associated logging scope. The workload lookup is done using the OAM labels from the workload metadata.
+func LoggingScopeFromWorkloadLabels(ctx context.Context, cli client.Reader, namespace string, labels map[string]string) (*vzapi.LoggingScope, error) {
+	component, err := ComponentFromWorkloadLabels(ctx, cli, namespace, labels)
+	if err != nil {
+		return nil, err
+	}
+
+	// fetch the first logging scope - do we need to handle multiple logging scopes?
+	for _, s := range component.Scopes {
+		if s.ScopeReference.Kind == vzapi.LoggingScopeKind {
+			scope := vzapi.LoggingScope{}
+			name := types.NamespacedName{
+				Namespace: namespace,
+				Name:      s.ScopeReference.Name,
+			}
+			err = cli.Get(ctx, name, &scope)
+			if err != nil {
+				return nil, err
+			}
+			return &scope, nil
+		}
+	}
+
+	return nil, nil
 }

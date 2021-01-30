@@ -6,10 +6,13 @@ package navigation
 import (
 	"context"
 	"fmt"
+
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -97,4 +100,22 @@ func FetchUnstructuredByReference(ctx context.Context, cli client.Reader, log lo
 		return nil, err
 	}
 	return &uns, nil
+}
+
+// ConvertRawExtensionToUnstructured converts a runtime.RawExtension to unstructured.Unstructured. The
+// CRDs for our wrapping types embed a runtime.RawExtension for the actual workload spec (e.g. WebLogic
+// Domain, Coherence)
+func ConvertRawExtensionToUnstructured(rawExtension *runtime.RawExtension) (*unstructured.Unstructured, error) {
+	var obj runtime.Object
+	var scope conversion.Scope
+	if err := runtime.Convert_runtime_RawExtension_To_runtime_Object(rawExtension, &obj, scope); err != nil {
+		return nil, err
+	}
+
+	innerObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+	if err != nil {
+		return nil, err
+	}
+
+	return &unstructured.Unstructured{Object: innerObj}, nil
 }

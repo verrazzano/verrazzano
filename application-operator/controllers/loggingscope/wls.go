@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	wlsDomainKind     = "Domain"
-	wlsWorkloadKey    = "weblogic.oracle/v8/Domain"
-	storageVolumeName = "weblogic-domain-storage-volume"
+	wlsDomainKind          = "Domain"
+	wlsWorkloadKey         = "weblogic.oracle/v8/Domain"
+	storageVolumeName      = "weblogic-domain-storage-volume"
+	storageVolumeMountPath = scratchVolMountPath
 )
 
 // FLUENTD parsing rules for WLS
@@ -154,7 +155,13 @@ func (h *wlsHandler) Remove(ctx context.Context, resource vzapi.QualifiedResourc
 
 // getFluentd creates an instance of FluentManager
 func getFluentd(ctx context.Context, log logr.Logger, client k8sclient.Client) FluentdManager {
-	return &fluentd{Context: ctx, Log: log, Client: client, ParseRules: wlsFluentdParsingRules, StorageVolumeName: storageVolumeName}
+	return &Fluentd{Context: ctx,
+		Log:                    log,
+		Client:                 client,
+		ParseRules:             wlsFluentdParsingRules,
+		StorageVolumeName:      storageVolumeName,
+		StorageVolumeMountPath: storageVolumeMountPath,
+	}
 }
 
 // createWlsDomain creates a WLS Domain instance
@@ -218,10 +225,10 @@ func getWlsSpecificContainerEnv(workload vzapi.QualifiedResourceRelation) []v1.E
 
 // buildWLSLogPath builds a log path given a resource name
 func buildWLSLogPath(name string) string {
-	return fmt.Sprintf("/scratch/logs/%s/$(SERVER_NAME).log", name)
+	return fmt.Sprintf("%s/logs/%s/$(SERVER_NAME).log", scratchVolMountPath, name)
 }
 
 // buildWLSLogHome builds a log home give a resource name
 func buildWLSLogHome(name string) string {
-	return fmt.Sprintf("/scratch/logs/%s", name)
+	return fmt.Sprintf("%s/logs/%s", scratchVolMountPath, name)
 }

@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -213,7 +214,7 @@ func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, trait *vz
 // addFinalizerIfRequired adds the finalizer to the trait if required
 // The finalizer is only added if the trait is not being deleted and the finalizer has not previously been added
 func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.MetricsTrait) error {
-	if trait.GetDeletionTimestamp().IsZero() && !stringSliceContainsString(trait.Finalizers, finalizerName) {
+	if trait.GetDeletionTimestamp().IsZero() && !controllers.StringSliceContainsString(trait.Finalizers, finalizerName) {
 		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta).String()
 		r.Log.Info("Adding finalizer from trait", "trait", traitName)
 		trait.Finalizers = append(trait.Finalizers, finalizerName)
@@ -228,10 +229,10 @@ func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.Me
 // removeFinalizerIfRequired removes the finalizer from the trait if required
 // The finalizer is only removed if the trait is being deleted and the finalizer had been added
 func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, trait *vzapi.MetricsTrait) error {
-	if !trait.DeletionTimestamp.IsZero() && stringSliceContainsString(trait.Finalizers, finalizerName) {
+	if !trait.DeletionTimestamp.IsZero() && controllers.StringSliceContainsString(trait.Finalizers, finalizerName) {
 		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta).String()
 		r.Log.Info("Removing finalizer from trait", "trait", traitName)
-		trait.Finalizers = removeStringFromStringSlice(trait.Finalizers, finalizerName)
+		trait.Finalizers = controllers.RemoveStringFromStringSlice(trait.Finalizers, finalizerName)
 		if err := r.Update(ctx, trait); err != nil {
 			r.Log.Error(err, "failed to remove finalizer to trait", "trait", traitName)
 			return err

@@ -1,0 +1,13 @@
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: core.oam.dev/v1alpha2
+kind: WorkloadDefinition
+metadata:
+  name: verrazzanocoherenceworkloads.oam.verrazzano.io
+spec:
+  childResourceKinds:
+    - apiVersion: coherence.oracle.com/v1
+      kind: Coherence
+  definitionRef:
+    name: verrazzanocoherenceworkloads.oam.verrazzano.io
