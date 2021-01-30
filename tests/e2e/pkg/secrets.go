@@ -1,12 +1,13 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package util
+package pkg
 
 import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"github.com/onsi/ginkgo"
 	corev1 "k8s.io/api/core/v1"
@@ -115,4 +116,32 @@ func DeleteSecret(namespace string, name string) error {
 	// Get the kubernetes clientset
 	clientset := GetKubernetesClientset()
 	return clientset.CoreV1().Secrets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+}
+
+
+//SecretsCreated checks if all the secrets identified by names are created
+func SecretsCreated(namespace string, names ...string) bool {
+	secrets := ListSecrets(namespace)
+	missing := missingSecrets(secrets.Items, names...)
+	Log(Info, fmt.Sprintf("Secrets %v were NOT created in %v", missing, namespace))
+	return (len(missing) == 0)
+}
+
+func missingSecrets(secrets []corev1.Secret, namePrefixes ...string) []string {
+	var missing = []string{}
+	for _, name := range namePrefixes {
+		if !secretExists(secrets, name) {
+			missing = append(missing, name)
+		}
+	}
+	return missing
+}
+
+func secretExists(secrets []corev1.Secret, namePrefix string) bool {
+	for i := range secrets {
+		if strings.HasPrefix(secrets[i].Name, namePrefix) {
+			return true
+		}
+	}
+	return false
 }

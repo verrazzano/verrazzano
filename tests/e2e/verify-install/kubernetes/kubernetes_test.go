@@ -9,7 +9,7 @@ import (
 	"github.com/onsi/ginkgo"
 	ginkgoExt "github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/tests/e2e/util"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -48,7 +48,7 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 	func() {
 		ginkgo.It("has the expected number of nodes",
 			func() {
-				nodes := util.ListNodes()
+				nodes := pkg.ListNodes()
 				gomega.Expect(len(nodes.Items)).To(gomega.BeNumerically(">=", 1))
 
 				// dump out node data to file
@@ -60,14 +60,14 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 
 		ginkgo.It("is a target Kubernetes version",
 			func() {
-				clientset := util.GetKubernetesClientset()
+				clientset := pkg.GetKubernetesClientset()
 				versionInfo, _ := clientset.ServerVersion()
 				gomega.Expect(versionInfo.GitVersion).Should(gomega.MatchRegexp(`(v1\.1[5-8]\.*)`))
 			})
 
 		ginkgo.It("has the expected namespaces",
 			func() {
-				namespaces := util.ListNamespaces()
+				namespaces := pkg.ListNamespaces()
 				gomega.Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(gomega.Equal(true))
 				gomega.Expect(nsListContains(namespaces.Items, "cattle-global-nt")).To(gomega.Equal(true))
 				gomega.Expect(nsListContains(namespaces.Items, "cattle-system")).To(gomega.Equal(true))
@@ -131,25 +131,25 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 
 		ginkgo.It("Expected pods are running",
 			func() {
-				util.Concurrently(
+				pkg.Concurrently(
 					func() {
-						gomega.Eventually(util.PodsRunning("cattle-system", expectedPodsCattleSystem), waitTimeout, pollingInterval).
+						gomega.Eventually(pkg.PodsRunning("cattle-system", expectedPodsCattleSystem), waitTimeout, pollingInterval).
 							Should(gomega.BeTrue())
 					},
 					func() {
-						gomega.Eventually(util.PodsRunning("keycloak", expectedPodsKeycloak), waitTimeout, pollingInterval).
+						gomega.Eventually(pkg.PodsRunning("keycloak", expectedPodsKeycloak), waitTimeout, pollingInterval).
 							Should(gomega.BeTrue())
 					},
 					func() {
-						gomega.Eventually(util.PodsRunning("cert-manager", expectedPodsCertManager), waitTimeout, pollingInterval).
+						gomega.Eventually(pkg.PodsRunning("cert-manager", expectedPodsCertManager), waitTimeout, pollingInterval).
 							Should(gomega.BeTrue())
 					},
 					func() {
-						gomega.Eventually(util.PodsRunning("ingress-nginx", expectedPodsIngressNginx), waitTimeout, pollingInterval).
+						gomega.Eventually(pkg.PodsRunning("ingress-nginx", expectedPodsIngressNginx), waitTimeout, pollingInterval).
 							Should(gomega.BeTrue())
 					},
 					func() {
-						gomega.Eventually(util.PodsRunning("verrazzano-system", expectedPodsVerrazzanoSystemMinimal), waitTimeout, pollingInterval).
+						gomega.Eventually(pkg.PodsRunning("verrazzano-system", expectedPodsVerrazzanoSystemMinimal), waitTimeout, pollingInterval).
 							Should(gomega.BeTrue())
 					},
 				)
@@ -167,5 +167,5 @@ func nsListContains(list []v1.Namespace, target string) bool {
 }
 
 func vzComponentPresent(name string, namespace string) bool {
-	return util.DoesPodExist(namespace, name)
+	return pkg.DoesPodExist(namespace, name)
 }

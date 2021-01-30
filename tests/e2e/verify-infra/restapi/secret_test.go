@@ -10,7 +10,7 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/tests/e2e/util"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/uuid"
@@ -18,7 +18,7 @@ import (
 
 var uniq string = string(uuid.NewUUID())
 
-var api *util.ApiEndpoint
+var api *pkg.ApiEndpoint
 var jsonGenericSecret string
 var jsonGenericSecretPatch string
 var jsonDockerSecret string
@@ -115,7 +115,7 @@ var dockerSecretPatch = Secret{
 }
 
 var _ = ginkgo.BeforeSuite(func() {
-	api = util.GetApiEndpoint()
+	api = pkg.GetApiEndpoint()
 	b, _ := json.Marshal(genericSecret)
 	jsonGenericSecret = string(b)
 	b, _ = json.Marshal(genericSecretPatch)
@@ -135,7 +135,7 @@ var _ = ginkgo.Describe("Secrets", func() {
 				func() {
 					var secrets []Secret
 					resp, err := api.GetSecrets()
-					util.ExpectHttpOk(resp, err, "Error calling Get Secrets REST API")
+					pkg.ExpectHttpOk(resp, err, "Error calling Get Secrets REST API")
 					gomega.Expect(resp.BodyErr).To(gomega.BeNil(), "Error reading HTTP response body")
 					err = json.Unmarshal(resp.Body, &secrets)
 					gomega.Expect(err).To(gomega.BeNil(), "Error decoding HTTP JSON response %v", resp.Body)
@@ -153,8 +153,8 @@ var _ = ginkgo.Describe("Secrets", func() {
 				func() {
 					expectUID(curUID)
 					resp, err := expectPatchSecret(curUID, jsonGenericSecretPatch)
-					util.ExpectHttpOk(resp, err, "Error calling PATCH Secrets REST API")
-					kSecret, _ := util.GetSecret(DefaultNamespace, GenericSecretName)
+					pkg.ExpectHttpOk(resp, err, "Error calling PATCH Secrets REST API")
+					kSecret, _ := pkg.GetSecret(DefaultNamespace, GenericSecretName)
 					expectSecretMatch(kSecret, genericSecretPatch)
 				})
 			ginkgo.It("then deleted ",
@@ -175,8 +175,8 @@ var _ = ginkgo.Describe("Secrets", func() {
 				func() {
 					expectUID(curUID)
 					resp, err := expectPatchSecret(curUID, jsonDockerSecretPatch)
-					util.ExpectHttpOk(resp, err, "Error calling PATCH Secrets REST API")
-					kSecret, _ := util.GetSecret(DefaultNamespace, DockerSecretName)
+					pkg.ExpectHttpOk(resp, err, "Error calling PATCH Secrets REST API")
+					kSecret, _ := pkg.GetSecret(DefaultNamespace, DockerSecretName)
 					expectSecretMatch(kSecret, dockerSecretPatch)
 				})
 			ginkgo.It("then deleted ",
@@ -191,21 +191,21 @@ var _ = ginkgo.Describe("Secrets", func() {
 			ginkgo.It(fmt.Sprintf("create secret with bad payload should fail with  %v", http.StatusBadRequest),
 				func() {
 					resp, err := api.CreateSecret("badjson{")
-					util.ExpectHttpStatus(http.StatusBadRequest, resp, err, "Create with bad payload returned wrong status")
+					pkg.ExpectHttpStatus(http.StatusBadRequest, resp, err, "Create with bad payload returned wrong status")
 				})
 			ginkgo.It(fmt.Sprintf("create duplicate should fail with status %v", http.StatusConflict), func() {
 				_, id, _ := expectCreateSecret(GenericSecretName, jsonGenericSecret)
 				curUID = id
 				resp, err := api.CreateSecret(jsonGenericSecret)
-				util.ExpectHttpStatus(http.StatusConflict, resp, err, "Create duplicate secret returned wrong status")
+				pkg.ExpectHttpStatus(http.StatusConflict, resp, err, "Create duplicate secret returned wrong status")
 			})
 			ginkgo.It(fmt.Sprintf("update secret with wrong UID should fail with status %v", http.StatusNotFound), func() {
 				resp, err := expectPatchSecret("badUID", jsonGenericSecretPatch)
-				util.ExpectHttpStatus(http.StatusNotFound, resp, err, "Update secret with wrong UID returned wrong status")
+				pkg.ExpectHttpStatus(http.StatusNotFound, resp, err, "Update secret with wrong UID returned wrong status")
 			})
 			ginkgo.It(fmt.Sprintf("delete secret with wrong UID should fail with status %v", http.StatusNotFound), func() {
 				resp, err := api.DeleteSecret("badUID")
-				util.ExpectHttpStatus(http.StatusNotFound, resp, err, "Error creating DELETE request")
+				pkg.ExpectHttpStatus(http.StatusNotFound, resp, err, "Error creating DELETE request")
 			})
 			ginkgo.It("delete with correct UID ", func() {
 				expectUID(curUID)
@@ -250,24 +250,24 @@ func expectUID(uid string) {
 // submit HTTP POST request and fail on error conditions
 func expectCreateSecret(name string, payload string) (*v1.Secret, string, error) {
 	resp, err := api.CreateSecret(payload)
-	util.ExpectHttpOk(resp, err, "Error calling CREATE REST API")
+	pkg.ExpectHttpOk(resp, err, "Error calling CREATE REST API")
 
-	kSecret, err := util.GetSecret(DefaultNamespace, name)
+	kSecret, err := pkg.GetSecret(DefaultNamespace, name)
 	gomega.Expect(err).To(gomega.BeNil(), "Error getting secret "+name)
 	return kSecret, string(kSecret.UID), nil
 }
 
 // submit HTTP PATCH request and fail on error conditions
-func expectPatchSecret(id, body string) (resp *util.HttpResponse, err error) {
+func expectPatchSecret(id, body string) (resp *pkg.HttpResponse, err error) {
 	return api.PatchSecret(id, body)
 }
 
 // submit HTTP DELETE request and fail on error conditions
 func expectDeleteSecret(id string, name string) error {
 	resp, err := api.DeleteSecret(id)
-	util.ExpectHttpOk(resp, err, "Error calling DELETE REST API")
+	pkg.ExpectHttpOk(resp, err, "Error calling DELETE REST API")
 
-	_, err = util.GetSecret(DefaultNamespace, name)
+	_, err = pkg.GetSecret(DefaultNamespace, name)
 	if !errors.IsNotFound(err) {
 		ginkgo.Fail(fmt.Sprintf("Secret %s still exists, should have been deleted", name))
 	}

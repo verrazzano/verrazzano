@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package util
+package pkg
 
 import (
 	"context"
@@ -27,7 +27,7 @@ func GetSystemElasticSearchIngressHost() string {
 // ListSystemElasticSearchIndices lists the system Elasticsearch indices
 func ListSystemElasticSearchIndices() []string {
 	url := fmt.Sprintf("https://%s/_all", GetSystemElasticSearchIngressHost())
-	status, body := GetWebPageWithBasicAuth(url, "", "verrazzano", getVerrazzanoPassword())
+	status, body := GetWebPageWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPassword())
 	if status != 200 {
 		ginkgo.Fail(fmt.Sprintf("Error retrieving Elasticsearch indices: url=%s, status=%d", url, status))
 	}
@@ -53,7 +53,7 @@ func QuerySystemElasticSearch(index string, fields map[string]string) map[string
 		}
 	}
 	url := fmt.Sprintf("https://%s/%s/_doc/_search?q=%s", GetSystemElasticSearchIngressHost(), index, query)
-	status, body := GetWebPageWithBasicAuth(url, "", "verrazzano", getVerrazzanoPassword())
+	status, body := GetWebPageWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPassword())
 	if status != 200 {
 		ginkgo.Fail(fmt.Sprintf("Error retrieving Elasticsearch query results: url=%s, status=%d", url, status))
 	}

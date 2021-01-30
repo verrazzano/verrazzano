@@ -7,6 +7,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"testing"
+
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
@@ -15,9 +17,9 @@ import (
 	k8sapps "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
 )
 
 // TestGetKindOfUnstructured tests the GetKindOfUnstructured function.
@@ -247,6 +249,32 @@ func TestFetchUnstructuredByReference(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal("test-space", uns.GetNamespace())
 	assert.Equal("test-name", uns.GetName())
+}
+
+// TestConvertRawExtensionToUnstructured tests the ConvertRawExtensionToUnstructured function.
+// GIVEN a runtime.RawExtension object
+// WHEN it is converted to an unstructured.Unstructured
+// THEN verify that the resulting unstructured has the correct api version, kind, metadata, and spec values
+func TestConvertRawExtensionToUnstructured(t *testing.T) {
+	assert := asserts.New(t)
+
+	json := `{"apiVersion":"coherence.oracle.com/v1","kind":"Coherence","metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
+	extension := runtime.RawExtension{Raw: []byte(json)}
+
+	u, err := ConvertRawExtensionToUnstructured(&extension)
+
+	assert.NoError(err)
+	assert.NotNil(u)
+	assert.Equal("coherence.oracle.com/v1", u.GetAPIVersion())
+	assert.Equal("Coherence", u.GetKind())
+
+	name, _, err := unstructured.NestedString(u.Object, "metadata", "name")
+	assert.NoError(err)
+	assert.Equal("unit-test-cluster", name)
+
+	replicas, _, err := unstructured.NestedInt64(u.Object, "spec", "replicas")
+	assert.NoError(err)
+	assert.Equal(int64(3), replicas)
 }
 
 // ConvertToUnstructured converts an object to an Unstructured version
