@@ -402,6 +402,27 @@ func createVirtualServiceMatchURIFromIngressTraitPath(path vzapi.IngressPath) *i
 	}
 }
 
+// createHostsFromIngressTraitRule creates an array of hosts from an ingress rule.
+// It is primarily used to setup defaults when either no hosts are provided or the host is blank.
+// If the rule contains an empty host array a host array with a single "*" element is created.
+// Otherwise any blank hosts in the input ingress rules are replaced with "*" values.
+func createHostsFromIngressTraitRule(rule vzapi.IngressRule, defaultHostName string) []string {
+	var validHosts []string
+	for _, h := range rule.Hosts {
+		h = strings.TrimSpace(h)
+		// Ignore empty or wildcard hostname
+		if len(h) == 0 || strings.Contains(h, "*") {
+			continue
+		}
+		validHosts = append(validHosts, h)
+	}
+	// Use default hostname if none of the user specified hosts were valid
+	if len(validHosts) == 0 && len(defaultHostName) > 0 {
+		validHosts = []string{defaultHostName}
+	}
+	return validHosts
+}
+
 // fetchServiceFromTrait traverses from an ingress trait resource to the related service resource and returns it.
 // This is done by first finding the workload related to the trait.
 // Then the child resources of the workload are founds.
@@ -494,27 +515,6 @@ func convertAPIVersionToGroupAndVersion(apiVersion string) (string, string) {
 		return "", parts[0]
 	}
 	return parts[0], parts[1]
-}
-
-// createHostsFromIngressTraitRule creates an array of hosts from an ingress rule.
-// It is primarily used to setup defaults when either no hosts are provided or the host is blank.
-// If the rule contains an empty host array a host array with a single "*" element is created.
-// Otherwise any blank hosts in the input ingress rules are replaced with "*" values.
-func createHostsFromIngressTraitRule(rule vzapi.IngressRule, defaultHostName string) []string {
-	var validHosts []string
-	for _, h := range rule.Hosts {
-		h = strings.TrimSpace(h)
-		// Ignore empty or wildcard hostname
-		if len(h) == 0 || strings.Contains(h, "*") {
-			continue
-		}
-		validHosts = append(validHosts, h)
-	}
-	// Use default hostname if none of the user specified hosts were valid
-	if len(validHosts) == 0 && len(defaultHostName) > 0 {
-		validHosts = []string{defaultHostName}
-	}
-	return validHosts
 }
 
 // generateDNSHostName generates a DNS host name using the following structure:
