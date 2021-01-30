@@ -334,7 +334,7 @@ func TestFailureToUpdateStatus(t *testing.T) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Labels:    map[string]string{oam.LabelAppName: "myapp"}}
-		trait.Spec.Rules = []vzapi.IngressRule{{
+			trait.Spec.Rules = []vzapi.IngressRule{{
 				Hosts: []string{"test-host"},
 				Paths: []vzapi.IngressPath{{Path: "test-path"}}}}
 			trait.Spec.WorkloadReference = oamrt.TypedReference{
