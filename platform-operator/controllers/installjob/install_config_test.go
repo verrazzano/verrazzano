@@ -684,7 +684,7 @@ func TestGetKeycloakEmptyDirVolumeSourceNoDefaultVolumeSource(t *testing.T) {
 
 	assert.Equal(t, "persistence.enabled", args[0].Name)
 	assert.Equal(t, "false", args[0].Value)
-	assert.True(t, args[0].SetString)
+	assert.False(t, args[0].SetString)
 }
 
 // TestGetKeycloakEmptyDirVolumeSourceNoDefaultVolumeSource Test the getKeycloak  function
