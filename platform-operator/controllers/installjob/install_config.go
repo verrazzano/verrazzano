@@ -385,8 +385,8 @@ func getKeycloak(keycloak installv1alpha1.KeycloakComponent, templates []install
 	if mysqlVolumeSource.EmptyDir != nil {
 		// EmptyDir, disable persistence
 		mySQLArgs = append(mySQLArgs, InstallArg{
-			Name:      "persistence.enabled",
-			Value:     "false",
+			Name:  "persistence.enabled",
+			Value: "false",
 		})
 	} else if mysqlVolumeSource.PersistentVolumeClaim != nil {
 		// Configured for persistence, adapt the PVC Spec template to the appropriate Helm args
