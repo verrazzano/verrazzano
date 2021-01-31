@@ -387,7 +387,6 @@ func getKeycloak(keycloak installv1alpha1.KeycloakComponent, templates []install
 		mySQLArgs = append(mySQLArgs, InstallArg{
 			Name:      "persistence.enabled",
 			Value:     "false",
-			SetString: true,
 		})
 	} else if mysqlVolumeSource.PersistentVolumeClaim != nil {
 		// Configured for persistence, adapt the PVC Spec template to the appropriate Helm args
