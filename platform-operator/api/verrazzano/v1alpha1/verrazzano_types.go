@@ -64,6 +64,26 @@ type VerrazzanoSpec struct {
 	// Core specifies core Verrazzano configuration
 	// +optional
 	Components ComponentSpec `json:"components,omitempty"`
+
+	// DefaultVolumeSource Defines the type of volume to be used for persistence, if not explicitly declared by a component;
+	// at present only EmptyDirVolumeSource or PersistentVolumeClaimVolumeSource are supported. If PersistentVolumeClaimVolumeSource
+	// is used, it must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates section.
+	// +optional
+	DefaultVolumeSource *corev1.VolumeSource `json:"defaultVolumeSource,omitempty"`
+
+	// VolumeClaimSpecTemplates Defines a named set of PVC configurations that can be referenced from components using persistent volumes.
+	// +optional
+	VolumeClaimSpecTemplates []VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty"`
+}
+
+// VolumeClaimSpecTemplate Contains common PVC configuration that can be referenced from Components; these
+// do not actually result in generated PVCs, but can used to provide common configuration to components that
+// declare a PersistentVolumeClaimVolumeSource
+type VolumeClaimSpecTemplate struct {
+	// Name The name of the configuration template
+	Name string `json:"name"`
+	// Spec The configuration specs for the template
+	Spec corev1.PersistentVolumeClaimSpec `json:"spec,omitempty"`
 }
 
 // VerrazzanoStatus defines the observed state of Verrazzano
@@ -219,6 +239,11 @@ type MySQLComponent struct {
 	// Arguments for installing MySQL
 	// +optional
 	MySQLInstallArgs []InstallArgs `json:"mysqlInstallArgs,omitempty"`
+	// VolumeSource Defines the type of volume to be used for persistence; at present only EmptyDirVolumeSource or
+	// PersistentVolumeClaimVolumeSource are supported. If PersistentVolumeClaimVolumeSource
+	// is used, it must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates section.
+	// +optional
+	VolumeSource *corev1.VolumeSource `json:"volumeSource,omitempty"`
 }
 
 // OAMComponent specifies the OAM configuration
