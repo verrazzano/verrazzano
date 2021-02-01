@@ -958,24 +958,30 @@ func TestCreateHostsFromIngressTraitRule(t *testing.T) {
 	var rule vzapi.IngressRule
 	var hosts []string
 
-	generateDNSHostNameFunc = fakeGenerateDNSHostName
-
 	// GIVEN a trait rule with no hosts
 	// WHEN a host slice is requested for use
-	// THEN verify that the default "*" host is included
+	// THEN verify that the default host is used
 	rule = vzapi.IngressRule{}
-	hosts = createHostsFromIngressTraitRule(rule, "testNs")
+	hosts = createHostsFromIngressTraitRule(rule, "defaultHost")
 	assert.Len(hosts, 1)
-	assert.Equal("testNs", hosts[0])
+	assert.Equal("defaultHost", hosts[0])
 
 	// GIVEN a trait rule with a mix of hosts including an empty host
 	// WHEN a host slice is requested for use
-	// THEN verify that the default "*" host is included for the empty host
+	// THEN verify that the empty host is ignored and the defaultHost is not used
 	rule = vzapi.IngressRule{Hosts: []string{"host-1", "", "host-2"}}
-	hosts = createHostsFromIngressTraitRule(rule, "testNs")
+	hosts = createHostsFromIngressTraitRule(rule, "defaultHost")
 	assert.Len(hosts, 2)
 	assert.Equal("host-1", hosts[0])
 	assert.Equal("host-2", hosts[1])
+
+	// GIVEN a trait rule with only wildcard hosts and an empty host
+	// WHEN a host slice is requested for use
+	// THEN verify that only the default host is used
+	rule = vzapi.IngressRule{Hosts: []string{"*", "", "*host", "host*", "ho*st"}}
+	hosts = createHostsFromIngressTraitRule(rule, "defaultHost")
+	assert.Len(hosts, 1)
+	assert.Equal("defaultHost", hosts[0])
 }
 
 // TestGetPathsFromTrait tests various use cases of getPathsFromRule
