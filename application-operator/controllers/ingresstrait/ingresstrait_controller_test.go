@@ -6,6 +6,7 @@ package ingresstrait
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -502,6 +503,155 @@ func TestBuildAppHostNameForDNS(t *testing.T) {
 	assert.Equal("myapp.myns.my.host.com", domainName)
 }
 
+// TestFailureBuildAppHostNameForDNS tests failure of building a DNS hostname for the application
+// GIVEN an appName and a trait
+// WHEN the ingress domain is not XIP.IO and the rancher annotation is missing
+// THEN ensure that an error is returned
+func TestFailureBuildAppHostNameForDNS(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	ns := "myns"
+	trait := vzapi.IngressTrait{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "oam.verrazzano.io/v1alpha1",
+			Kind:       "IngressTrait",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+		},
+	}
+	// Expect a call to get the Rancher ingress and return the ingress.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name}
+			return nil
+		})
+
+	// Build the host name
+	_, err := buildAppHostName(mock, &trait)
+
+	// Validate the results
+	mocker.Finish()
+	assert.Error(err)
+	assert.Contains(err.Error(), "Annotation nginx.ingress.kubernetes.io/auth-realm missing from Rancher ingress")
+}
+
+// TestBuildAppHostNameLoadBalancerXIP tests building a hostname for the application
+// GIVEN an appName and a trait
+// WHEN the ingress domain is XIP.IO and LoadBalancer is used
+// THEN ensure that the correct DNS name is build
+func TestBuildAppHostNameLoadBalancerXIP(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	ns := "myns"
+	trait := vzapi.IngressTrait{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "oam.verrazzano.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+		},
+	}
+	// Expect a call to get the Rancher ingress and return the ingress.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace:   name.Namespace,
+				Name:        name.Name,
+				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "1.2.3.4.xip.io auth"}}
+			return nil
+		})
+
+	// Expect a call to get the Istio service
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "istio-ingressgateway"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *v1.Service) error {
+			service.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1"}
+			service.Spec.Type = "LoadBalancer"
+			service.Status.LoadBalancer.Ingress = []v1.LoadBalancerIngress{{
+				IP: "5.6.7.8",
+			}}
+			return nil
+		})
+
+	// Build the host name
+	domainName, err := buildAppHostName(mock, &trait)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal("myapp.myns.5.6.7.8.xip.io", domainName)
+}
+
+// TestFailureBuildAppHostNameLoadBalancerXIP tests a failure when building a hostname for the application
+// GIVEN an appName and a trait
+// WHEN the ingress domain is XIP.IO and LoadBalancer is used, but an error occurs
+// THEN ensure that the correct error is returned
+func TestFailureBuildAppHostNameLoadBalancerXIP(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	ns := "myns"
+	trait := vzapi.IngressTrait{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "oam.verrazzano.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+		},
+	}
+	// Expect a call to get the Rancher ingress and return the ingress.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace:   name.Namespace,
+				Name:        name.Name,
+				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "1.2.3.4.xip.io auth"}}
+			return nil
+		})
+
+	// Expect a call to get the Istio service
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "istio-ingressgateway"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *v1.Service) error {
+			service.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1"}
+			service.Spec.Type = "LoadBalancer"
+			return nil
+		})
+
+	// Build the host name
+	_, err := buildAppHostName(mock, &trait)
+
+	// Validate the results
+	mocker.Finish()
+	assert.Error(err)
+	assert.Equal("istio-ingressgateway is missing loadbalancer IP", err.Error())
+}
+
 // TestBuildAppHostNameNodePortXIP tests building a hostname for the application
 // GIVEN an appName and a trait
 // WHEN the ingress domain is XIP.IO and NodePort is used
@@ -566,11 +716,11 @@ func TestBuildAppHostNameNodePortXIP(t *testing.T) {
 	assert.Equal("myapp.myns.5.6.7.8.xip.io", domainName)
 }
 
-// TestBuildAppHostNameLoadBalancerXIP tests building a hostname for the application
+// TestFailureBuildAppHostNameNodePortXIP tests a failure when building a hostname for the application
 // GIVEN an appName and a trait
-// WHEN the ingress domain is XIP.IO and LoadBalancer is used
-// THEN ensure that the correct DNS name is build
-func TestBuildAppHostNameLoadBalancerXIP(t *testing.T) {
+// WHEN the ingress domain is XIP.IO and NodePort is used, but an error occurus
+// THEN ensure that the correct error is returned
+func TestFailureBuildAppHostNameNodePortXIP(t *testing.T) {
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -605,20 +755,24 @@ func TestBuildAppHostNameLoadBalancerXIP(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *v1.Service) error {
 			service.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1"}
-			service.Spec.Type = "LoadBalancer"
-			service.Status.LoadBalancer.Ingress = []v1.LoadBalancerIngress{{
-				IP: "5.6.7.8",
-			}}
+			service.Spec.Type = "NodePort"
 			return nil
 		})
 
+	// Expect a call to get the Istio ingress gateway pod
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, podList *v1.PodList, opts ...client.ListOption) error {
+			return errors.New("Unable to find istio pods")
+		})
+
 	// Build the host name
-	domainName, err := buildAppHostName(mock, &trait)
+	_, err := buildAppHostName(mock, &trait)
 
 	// Validate the results
 	mocker.Finish()
-	assert.NoError(err)
-	assert.Equal("myapp.myns.5.6.7.8.xip.io", domainName)
+	assert.Error(err)
+	assert.Equal("Unable to find istio pods", err.Error())
 }
 
 // TestGetTraitFailurePropagated tests tje Reconcile method for the following use case

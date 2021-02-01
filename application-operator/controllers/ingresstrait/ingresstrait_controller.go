@@ -540,7 +540,7 @@ func buildAppHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, err
 	}
 	authRealmAnno, ok := ingress.Annotations[authRealmKey]
 	if !ok || len(authRealmAnno) == 0 {
-		return "", fmt.Errorf("Annoation %s missing from Rancher ingress, unable to generate DNS name", authRealmKey)
+		return "", fmt.Errorf("Annotation %s missing from Rancher ingress, unable to generate DNS name", authRealmKey)
 	}
 	segs := strings.Split(strings.TrimSpace(authRealmAnno), " ")
 	domain := strings.TrimSpace(segs[0])
