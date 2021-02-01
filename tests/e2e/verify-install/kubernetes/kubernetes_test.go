@@ -76,6 +76,7 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 				gomega.Expect(nsListContains(namespaces.Items, "keycloak")).To(gomega.Equal(true))
 				gomega.Expect(nsListContains(namespaces.Items, "local")).To(gomega.Equal(true))
 				gomega.Expect(nsListContains(namespaces.Items, "verrazzano-system")).To(gomega.Equal(true))
+				gomega.Expect(nsListContains(namespaces.Items, "verrazzano-mc")).To(gomega.Equal(true))
 				gomega.Expect(nsListContains(namespaces.Items, "cert-manager")).To(gomega.Equal(true))
 				gomega.Expect(nsListContains(namespaces.Items, "ingress-nginx")).To(gomega.Equal(true))
 

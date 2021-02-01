@@ -12,6 +12,7 @@ TMP_DIR=$(mktemp -d)
 trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
 VERRAZZANO_NS=verrazzano-system
+VERRAZZANO_MC=verrazzano-mc
 
 ENV_NAME=$(get_config_value ".environmentName")
 
@@ -276,6 +277,10 @@ REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 
 if ! kubectl get namespace ${VERRAZZANO_NS} ; then
   action "Creating ${VERRAZZANO_NS} namespace" kubectl create namespace ${VERRAZZANO_NS} || exit 1
+fi
+
+if ! kubectl get namespace ${VERRAZZANO_MC} ; then
+  action "Creating ${VERRAZZANO_MC} namespace" kubectl create namespace ${VERRAZZANO_MC} || exit 1
 fi
 
 if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then

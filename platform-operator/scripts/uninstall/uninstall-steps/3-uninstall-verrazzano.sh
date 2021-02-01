@@ -57,7 +57,7 @@ function delete_verrazzano() {
     || return $? # return on pipefail
 
   log "Deleting Verrazzano namespaces"
-  delete_k8s_resources namespace ":metadata.name,:metadata.labels" "Could not delete Verrazzano namespaces" '/k8s-app:verrazzano.io|verrazzano-system/ {print $1}' \
+  delete_k8s_resources namespace ":metadata.name,:metadata.labels" "Could not delete Verrazzano namespaces" '/k8s-app:verrazzano.io|verrazzano-system|verrazzano-mc/ {print $1}' \
     || return $? # return on pipefail
 }
 
