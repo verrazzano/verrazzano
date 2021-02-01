@@ -12,6 +12,7 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
@@ -149,6 +150,14 @@ func main() {
 		mgr.GetScheme())
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LoggingScope")
+		os.Exit(1)
+	}
+	if err = (&cohworkload.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoCoherenceWorkload"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoCoherenceWorkload")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

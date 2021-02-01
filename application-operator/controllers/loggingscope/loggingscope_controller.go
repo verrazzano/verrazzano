@@ -104,14 +104,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 		if !workloadFound {
 			handler := r.Handlers[handlerKey(existingResource)]
-			deleteConfirmed, err := handler.Remove(ctx, existingResource, scope)
-			if err != nil {
-				errors = append(errors, err.Error())
-			}
+			if handler != nil {
+				deleteConfirmed, err := handler.Remove(ctx, existingResource, scope)
+				if err != nil {
+					errors = append(errors, err.Error())
+				}
 
-			if !deleteConfirmed {
-				// Add the resource to the scope status until we confirm the remove
-				resources = append(resources, existingResource)
+				if !deleteConfirmed {
+					// Add the resource to the scope status until we confirm the remove
+					resources = append(resources, existingResource)
+				}
 			}
 		}
 	}

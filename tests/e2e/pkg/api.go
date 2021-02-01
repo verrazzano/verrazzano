@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package util
+package pkg
 
 import (
 	"bytes"
@@ -25,8 +25,8 @@ type ApiEndpoint struct {
 // GetApiEndpoint returns the ApiEndpoint stub with AccessToken
 func GetApiEndpoint() *ApiEndpoint {
 	keycloakURL := fmt.Sprintf("https://keycloak.%s.%s/auth/realms/%s/protocol/openid-connect/token", EnvName, DnsZone, realm)
-	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", username, GetVerrazzanoPassword(), clientId)
-	status, resp := postWithCLient(keycloakURL, "application/x-www-form-urlencoded", strings.NewReader(body), GetKeycloakHTTPClient())
+	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", Username, GetVerrazzanoPassword(), clientId)
+	status, resp := postWithClient(keycloakURL, "application/x-www-form-urlencoded", strings.NewReader(body), GetKeycloakHTTPClient())
 	var api ApiEndpoint
 	if status == http.StatusOK {
 		json.Unmarshal([]byte(resp), &api)

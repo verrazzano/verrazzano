@@ -1,9 +1,10 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package util
+package pkg
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -65,30 +66,6 @@ func GetVerrazzanoInstance() *VerrazzanoInstance {
 	return &instance
 }
 
-// GetSystemVMICredentials - Obtain VMI system credentials
-func GetSystemVMICredentials() (*UsernamePassword, error) {
-	vmi, err := GetVerrazzanoMonitoringInstance("verrazzano-system", "system")
-	if err != nil {
-		return nil, fmt.Errorf("error getting system VMI: %w", err)
-	}
-
-	secret, err := GetSecret("verrazzano-system", vmi.Spec.SecretsName)
-	if err != nil {
-		return nil, err
-	}
-
-	username := secret.Data["username"]
-	password := secret.Data["password"]
-	if username == nil || password == nil {
-		return nil, fmt.Errorf("username and password fields required in secret %v", secret)
-	}
-
-	return &UsernamePassword{
-		Username: string(username),
-		Password: string(password),
-	}, nil
-}
-
 // Concurrently executes the given assertions in parallel and waits for them all to complete
 func Concurrently(assertions ...func()) {
 	number := len(assertions)
@@ -122,6 +99,13 @@ func PodsRunning(namespace string, namePrefixes []string) bool {
 	missing := notRunning(pods.Items, namePrefixes...)
 	if len(missing) > 0 {
 		Log(Info, fmt.Sprintf("Pods %v were NOT running in %v", missing, namespace))
+		for _, pod := range pods.Items {
+			if isReadyAndRunning(pod) {
+				Log(Debug, fmt.Sprintf("Pod %s ready", pod.Name))
+			} else {
+				Log(Info, fmt.Sprintf("Pod %s NOT ready: %v", pod.Name, pod.Status.ContainerStatuses))
+			}
+		}
 	}
 	return len(missing) == 0
 }
@@ -160,7 +144,7 @@ func isPodRunning(pods []v1.Pod, namePrefix string) bool {
 						}
 					}
 				}
-				Log(Info, fmt.Sprintf("  Pod %v was NOT running: %v \n", pods[i].Name, status))
+				Log(Info, fmt.Sprintf("Pod %v was NOT running: %v", pods[i].Name, status))
 				return false
 			}
 		}
@@ -180,8 +164,35 @@ func isReadyAndRunning(pod v1.Pod) bool {
 		return true
 	}
 	if pod.Status.Reason == "Evicted" && len(pod.Status.ContainerStatuses) == 0 {
-		Log(Info, fmt.Sprintf("  Pod %v was Evicted\n", pod.Name))
+		Log(Info, fmt.Sprintf("Pod %v was Evicted", pod.Name))
 		return true //ignore this evicted pod
 	}
 	return false
+}
+
+func GetRetryPolicy(url string) func(ctx context.Context, resp *http.Response, err error) (bool, error) {
+	return func(ctx context.Context, resp *http.Response, err error) (bool, error) {
+		if resp != nil {
+			status := resp.StatusCode
+			if status == http.StatusNotFound {
+				return true, nil
+			}
+		}
+		return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
+	}
+}
+
+// JTq queries JSON text with a JSON path
+func JTq(jtext string, path ...string) interface{} {
+	var j map[string]interface{}
+	json.Unmarshal([]byte(jtext), &j)
+	return Jq(j, path...)
+}
+
+// Jq queries JSON nodes with a JSON path
+func Jq(node interface{}, path ...string) interface{} {
+	for _, p := range path {
+		node = node.(map[string]interface{})[p]
+	}
+	return node
 }
