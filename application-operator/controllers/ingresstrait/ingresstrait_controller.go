@@ -49,7 +49,7 @@ type Reconciler struct {
 	Scheme *runtime.Scheme
 }
 
-var generateDNSHostNameFunc = buildDNSHostName
+var generateDNSHostNameFunc = buildAppHostName
 
 // SetupWithManager creates a controller and adds it to the manager
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -517,13 +517,13 @@ func convertAPIVersionToGroupAndVersion(apiVersion string) (string, string) {
 	return parts[0], parts[1]
 }
 
-// buildDNSHostName generates a DNS host name using the following structure:
+// buildAppHostName generates a DNS host name for the application using the following structure:
 // <app>.<namespace>.<dns-subdomain>  where
 //   app is the OAM application name
 //   namespace is the namespace of the OAM application
 //   dns-subdomain is The DNS subdomain name
 // For example: sales.cars.example.com
-func buildDNSHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
+func buildAppHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
 	const authRealmKey = "nginx.ingress.kubernetes.io/auth-realm"
 	const rancherIngress = "rancher"
 	const rancherNamespace = "cattle-system"

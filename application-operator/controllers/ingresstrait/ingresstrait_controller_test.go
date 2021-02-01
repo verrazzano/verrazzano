@@ -7,13 +7,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
-	k8net "k8s.io/api/networking/v1beta1"
 	"testing"
 	"time"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -21,6 +20,7 @@ import (
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	v1 "k8s.io/api/core/v1"
+	k8net "k8s.io/api/networking/v1beta1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -154,7 +154,7 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-trait-name-rule-0-vs"}, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "VirtualService"}, "test-trait-name-rule-0-vs"))
 
-	// Expect a call to get the rancher ingress and return the ingress.
+	// Expect a call to get the Rancher ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -167,7 +167,7 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
 			return nil
 		})
-	// Expect a call to get the rancher ingress and return the ingress.
+	// Expect a call to get the Rancher ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -411,7 +411,7 @@ func TestFailureToUpdateStatus(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, virtualService *istioclinet.VirtualService, opts ...client.CreateOption) error {
 			return nil
 		})
-	// Expect a call to get the rancher ingress and return the ingress.
+	// Expect a call to get the Rancher ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -424,7 +424,7 @@ func TestFailureToUpdateStatus(t *testing.T) {
 				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
 			return nil
 		})
-	// Expect a call to get the rancher ingress and return the ingress.
+	// Expect a call to get the Rancher ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -457,6 +457,168 @@ func TestFailureToUpdateStatus(t *testing.T) {
 	assert.Contains(err.Error(), "test-error-message")
 	assert.Equal(true, result.Requeue)
 	assert.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestBuildAppHostNameForDNS tests building a DNS hostname for the application
+// GIVEN an appName and a trait
+// WHEN the ingress domain is not XIP.IO
+// THEN ensure that the correct DNS name is build
+func TestBuildAppHostNameForDNS(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	ns := "myns"
+	trait := vzapi.IngressTrait{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "oam.verrazzano.io/v1alpha1",
+			Kind:       "IngressTrait",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+		},
+	}
+	// Expect a call to get the Rancher ingress and return the ingress.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace:   name.Namespace,
+				Name:        name.Name,
+				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
+			return nil
+		})
+
+	// Build the host name
+	domainName, err := buildAppHostName(mock, &trait)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal("myapp.myns.my.host.com", domainName)
+}
+
+// TestBuildAppHostNameNodePortXIP tests building a hostname for the application
+// GIVEN an appName and a trait
+// WHEN the ingress domain is XIP.IO and NodePort is used
+// THEN ensure that the correct DNS name is build
+func TestBuildAppHostNameNodePortXIP(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	ns := "myns"
+	trait := vzapi.IngressTrait{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "oam.verrazzano.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+		},
+	}
+	// Expect a call to get the Rancher ingress and return the ingress.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace:   name.Namespace,
+				Name:        name.Name,
+				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "1.2.3.4.xip.io auth"}}
+			return nil
+		})
+
+	// Expect a call to get the Istio service
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "istio-ingressgateway"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *v1.Service) error {
+			service.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1"}
+			service.Spec.Type = "NodePort"
+			return nil
+		})
+
+	// Expect a call to get the Istio ingress gateway pod
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, podList *v1.PodList, opts ...client.ListOption) error {
+			podList.Items = []v1.Pod{{
+				Status: v1.PodStatus{
+					HostIP: "5.6.7.8",
+				},
+			}}
+			return nil
+		})
+
+	// Build the host name
+	domainName, err := buildAppHostName(mock, &trait)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal("myapp.myns.5.6.7.8.xip.io", domainName)
+}
+
+// TestBuildAppHostNameLoadBalancerXIP tests building a hostname for the application
+// GIVEN an appName and a trait
+// WHEN the ingress domain is XIP.IO and LoadBalancer is used
+// THEN ensure that the correct DNS name is build
+func TestBuildAppHostNameLoadBalancerXIP(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	ns := "myns"
+	trait := vzapi.IngressTrait{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "oam.verrazzano.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+		},
+	}
+	// Expect a call to get the Rancher ingress and return the ingress.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace:   name.Namespace,
+				Name:        name.Name,
+				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "1.2.3.4.xip.io auth"}}
+			return nil
+		})
+
+	// Expect a call to get the Istio service
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "istio-ingressgateway"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *v1.Service) error {
+			service.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1"}
+			service.Spec.Type = "LoadBalancer"
+			service.Status.LoadBalancer.Ingress = []v1.LoadBalancerIngress{{
+				IP: "5.6.7.8",
+			}}
+			return nil
+		})
+
+	// Build the host name
+	domainName, err := buildAppHostName(mock, &trait)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal("myapp.myns.5.6.7.8.xip.io", domainName)
 }
 
 // TestGetTraitFailurePropagated tests tje Reconcile method for the following use case
