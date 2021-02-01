@@ -577,13 +577,13 @@ func buildDomainNameForXIPIO(cli client.Reader, trait *vzapi.IngressTrait) (stri
 		// Do the equiv of the following command to get the IP
 		// kubectl -n istio-system get pods --selector app=istio-ingressgateway,istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}'
 		podList := corev1.PodList{}
-		listOptions := client.MatchingLabels{"app": "istio-ingressgateway","istio": "istio-ingressgateway"}
+		listOptions := client.MatchingLabels{"app": "istio-ingressgateway", "istio": "istio-ingressgateway"}
 		err := cli.List(context.TODO(), &podList, listOptions)
 		if err != nil {
 			return "", err
 		}
 		if len(podList.Items) == 0 {
-			return "",  errors.New("Unable to find Istio ingressway pod")
+			return "", errors.New("Unable to find Istio ingressway pod")
 		}
 		IP = podList.Items[0].Status.HostIP
 	} else {
