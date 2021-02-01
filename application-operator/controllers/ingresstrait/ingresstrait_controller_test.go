@@ -463,7 +463,7 @@ func TestFailureToUpdateStatus(t *testing.T) {
 // TestBuildAppHostNameForDNS tests building a DNS hostname for the application
 // GIVEN an appName and a trait
 // WHEN the ingress domain is not XIP.IO
-// THEN ensure that the correct DNS name is build
+// THEN ensure that the correct DNS name is built
 func TestBuildAppHostNameForDNS(t *testing.T) {
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
@@ -480,6 +480,55 @@ func TestBuildAppHostNameForDNS(t *testing.T) {
 			Labels:    map[string]string{oam.LabelAppName: "myapp"},
 		},
 	}
+	// Expect a call to get the Rancher ingress and return the ingress.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace:   name.Namespace,
+				Name:        name.Name,
+				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
+			return nil
+		})
+
+	// Build the host name
+	domainName, err := buildAppHostName(mock, &trait)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal("myapp.myns.my.host.com", domainName)
+}
+
+// TestBuildAppHostNameIgnoreWildcardForDNS tests building a DNS hostname for the application
+// GIVEN an appName and a trait with wildcard hostnames and empty hostnames
+// WHEN the buildAppHostName function is called
+// THEN ensure that the correct DNS name is built and that the wildcard and empty names are ignored
+func TestBuildAppHostNameIgnoreWildcardForDNS(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	ns := "myns"
+	trait := vzapi.IngressTrait{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "oam.verrazzano.io/v1alpha1",
+			Kind:       "IngressTrait",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+		},
+		Spec: vzapi.IngressTraitSpec{
+			Rules: []vzapi.IngressRule{{
+				Hosts: []string{"*name", "nam*e", "name*", "*", ""},
+			}},
+		},
+	}
+
 	// Expect a call to get the Rancher ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
@@ -548,7 +597,7 @@ func TestFailureBuildAppHostNameForDNS(t *testing.T) {
 // TestBuildAppHostNameLoadBalancerXIP tests building a hostname for the application
 // GIVEN an appName and a trait
 // WHEN the ingress domain is XIP.IO and LoadBalancer is used
-// THEN ensure that the correct DNS name is build
+// THEN ensure that the correct DNS name is built
 func TestBuildAppHostNameLoadBalancerXIP(t *testing.T) {
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
@@ -655,7 +704,7 @@ func TestFailureBuildAppHostNameLoadBalancerXIP(t *testing.T) {
 // TestBuildAppHostNameNodePortXIP tests building a hostname for the application
 // GIVEN an appName and a trait
 // WHEN the ingress domain is XIP.IO and NodePort is used
-// THEN ensure that the correct DNS name is build
+// THEN ensure that the correct DNS name is built
 func TestBuildAppHostNameNodePortXIP(t *testing.T) {
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
