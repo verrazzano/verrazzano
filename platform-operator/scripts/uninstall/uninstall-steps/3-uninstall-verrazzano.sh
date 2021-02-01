@@ -8,6 +8,7 @@ INSTALL_DIR=$SCRIPT_DIR/../../install
 UNINSTALL_DIR=$SCRIPT_DIR/..
 
 . $INSTALL_DIR/common.sh
+. $INSTALL_DIR/config.sh
 . $UNINSTALL_DIR/uninstall-utils.sh
 
 OAM_ENABLED=$(get_config_value ".oam.enabled")
