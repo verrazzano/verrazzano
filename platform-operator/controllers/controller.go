@@ -213,7 +213,10 @@ func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log *zap.Sug
 
 	err = r.Get(ctx, types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}, configMapFound)
 	if err != nil && errors.IsNotFound(err) {
-		config := installjob.GetInstallConfig(vz)
+		config, err := installjob.GetInstallConfig(vz, log)
+		if err != nil {
+			return err
+		}
 		jsonEncoding, err := json.MarshalIndent(config, "", "  ")
 		if err != nil {
 			return err

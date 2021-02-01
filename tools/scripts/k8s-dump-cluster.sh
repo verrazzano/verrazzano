@@ -14,7 +14,7 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 # usage
 function usage {
     echo ""
-    echo "usage: $0 -z tar_gz_file -s"
+    echo "usage: $0 -z tar_gz_file"
     echo " -z tar_gz_file   Name of the compressed tar file to generate. Ie: capture.tar.gz"
     echo " -h               Help"
     echo ""

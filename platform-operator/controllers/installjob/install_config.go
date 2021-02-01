@@ -8,6 +8,8 @@ package installjob
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	"strconv"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/api/verrazzano/v1alpha1"
@@ -18,7 +20,7 @@ import (
 
 const (
 	defaultCAClusterResourceName string = "cattle-system"
-	defaultCASecretNamne         string = "tls-rancher"
+	defaultCASecretName          string = "tls-rancher"
 )
 
 // DNSType identifies the DNS type
@@ -179,26 +181,36 @@ type InstallConfiguration struct {
 	Certificates    Certificate    `json:"certificates"`
 	Keycloak        Keycloak       `json:"keycloak"`
 	OAM             OAM            `json:"oam"`
+	VzInstallArgs   []InstallArg   `json:"verrazzanoInstallArgs,omitempty"`
 }
 
 // GetInstallConfig returns an install configuration in the json format required by the
 // bash installer scripts.
-func GetInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration {
+func GetInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (*InstallConfiguration, error) {
 	if vz.Spec.Components.DNS.External != (installv1alpha1.External{}) {
-		return newExternalDNSInstallConfig(vz)
+		return newExternalDNSInstallConfig(vz, log)
 	}
 
 	if vz.Spec.Components.DNS.OCI != (installv1alpha1.OCI{}) {
-		return newOCIDNSInstallConfig(vz)
+		return newOCIDNSInstallConfig(vz, log)
 	}
 
-	return newXipIoInstallConfig(vz)
+	return newXipIoInstallConfig(vz, log)
 }
 
-func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration {
+func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (*InstallConfiguration, error) {
+	vzArgs, err := getVerrazzanoInstallArgs(&vz.Spec, log)
+	if err != nil {
+		return nil, err
+	}
+	keycloak, err := getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource, log)
+	if err != nil {
+		return nil, err
+	}
 	return &InstallConfiguration{
 		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
+		VzInstallArgs:   vzArgs,
 		DNS: DNS{
 			Type: DNSTypeOci,
 			Oci: &DNSOCI{
@@ -217,17 +229,26 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguratio
 				Environment:  vz.Spec.Components.CertManager.Certificate.Acme.Environment,
 			},
 		},
-		Keycloak: getKeycloak(vz.Spec.Components.Keycloak),
+		Keycloak: keycloak,
 		OAM:      getOAM(vz.Spec.Components.OAM),
-	}
+	}, nil
 }
 
 // newXipIoInstallConfig returns an install configuration for a xip.io install in the
 // json format required by the bash installer scripts.
-func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration {
+func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (*InstallConfiguration, error) {
+	vzArgs, err := getVerrazzanoInstallArgs(&vz.Spec, log)
+	if err != nil {
+		return nil, err
+	}
+	keycloak, err := getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource, log)
+	if err != nil {
+		return nil, err
+	}
 	return &InstallConfiguration{
 		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
+		VzInstallArgs:   vzArgs,
 		DNS: DNS{
 			Type: DNSTypeXip,
 		},
@@ -239,18 +260,27 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration
 				SecretName:               getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
 			},
 		},
-		Keycloak: getKeycloak(vz.Spec.Components.Keycloak),
+		Keycloak: keycloak,
 		OAM:      getOAM(vz.Spec.Components.OAM),
-	}
+	}, nil
 }
 
 // newExternalDNSInstallConfig returns an install configuration for an external DNS install
 // in the json format required by the bash installer scripts.
 // This type of install configuration would be used for an OLCNE install.
-func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration {
+func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (*InstallConfiguration, error) {
+	vzArgs, err := getVerrazzanoInstallArgs(&vz.Spec, log)
+	if err != nil {
+		return nil, err
+	}
+	keycloak, err := getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource, log)
+	if err != nil {
+		return nil, err
+	}
 	return &InstallConfiguration{
 		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
+		VzInstallArgs:   vzArgs,
 		DNS: DNS{
 			Type: DNSTypeExternal,
 			External: &ExternalDNS{
@@ -265,9 +295,9 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfigu
 				SecretName:               getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
 			},
 		},
-		Keycloak: getKeycloak(vz.Spec.Components.Keycloak),
+		Keycloak: keycloak,
 		OAM:      getOAM(vz.Spec.Components.OAM),
-	}
+	}, nil
 }
 
 // getIngressPorts returns the list of ingress ports in the json format required by the bash installer scripts
@@ -329,13 +359,72 @@ func getInstallArgs(args []installv1alpha1.InstallArgs) []InstallArg {
 }
 
 // getKeycloak returns the json representation for the keycloak configuration
-func getKeycloak(keycloak installv1alpha1.KeycloakComponent) Keycloak {
-	return Keycloak{
+func getKeycloak(keycloak installv1alpha1.KeycloakComponent, templates []installv1alpha1.VolumeClaimSpecTemplate, defaultVolumeSpec *corev1.VolumeSource, log *zap.SugaredLogger) (Keycloak, error) {
+
+	// Get the explicit helm args for MySQL
+	mySQLArgs := getInstallArgs(keycloak.MySQL.MySQLInstallArgs)
+
+	keycloakConfig := Keycloak{
 		KeycloakInstallArgs: getInstallArgs(keycloak.KeycloakInstallArgs),
 		MySQL: MySQL{
-			MySQLInstallArgs: getInstallArgs(keycloak.MySQL.MySQLInstallArgs),
+			MySQLInstallArgs: mySQLArgs,
 		},
 	}
+
+	// Use a volume source specified in the Keycloak config, otherwise use the default spec
+	mysqlVolumeSource := keycloak.MySQL.VolumeSource
+	if mysqlVolumeSource == nil {
+		mysqlVolumeSource = defaultVolumeSpec
+	}
+
+	// No volumes to process, return what we have
+	if mysqlVolumeSource == nil {
+		return keycloakConfig, nil
+	}
+
+	if mysqlVolumeSource.EmptyDir != nil {
+		// EmptyDir, disable persistence
+		mySQLArgs = append(mySQLArgs, InstallArg{
+			Name:  "persistence.enabled",
+			Value: "false",
+		})
+	} else if mysqlVolumeSource.PersistentVolumeClaim != nil {
+		// Configured for persistence, adapt the PVC Spec template to the appropriate Helm args
+		pvcs := mysqlVolumeSource.PersistentVolumeClaim
+		storageSpec, found := findVolumeTemplate(pvcs.ClaimName, templates)
+		if !found {
+			err := errors.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
+			return Keycloak{}, err
+		}
+		storageClass := storageSpec.StorageClassName
+		if storageClass != nil && len(*storageClass) > 0 {
+			mySQLArgs = append(mySQLArgs, InstallArg{
+				Name:      "persistence.storageClass",
+				Value:     *storageClass,
+				SetString: true,
+			})
+		}
+		storage := storageSpec.Resources.Requests.Storage()
+		if storageSpec.Resources.Requests != nil && !storage.IsZero() {
+			mySQLArgs = append(mySQLArgs, InstallArg{
+				Name:      "persistence.size",
+				Value:     storage.String(),
+				SetString: true,
+			})
+		}
+		accessModes := storageSpec.AccessModes
+		if len(accessModes) > 0 {
+			// MySQL only allows a single AccessMode value, so just choose the first
+			mySQLArgs = append(mySQLArgs, InstallArg{
+				Name:      "persistence.accessMode",
+				Value:     string(accessModes[0]),
+				SetString: true,
+			})
+		}
+	}
+	// Update the MySQL Install args
+	keycloakConfig.MySQL.MySQLInstallArgs = mySQLArgs
+	return keycloakConfig, nil
 }
 
 // getIngress returns the json representation for the ingress
@@ -376,7 +465,7 @@ func getCAClusterResourceNamespace(ca installv1alpha1.CA) string {
 func getCASecretName(ca installv1alpha1.CA) string {
 	// Use default value if not specified
 	if ca.SecretName == "" {
-		return defaultCASecretNamne
+		return defaultCASecretName
 	}
 
 	return ca.SecretName
@@ -400,6 +489,67 @@ func getProfile(profileType installv1alpha1.ProfileType) InstallProfile {
 	}
 
 	return InstallProfileDev
+}
+
+// getVerrazzanoInstallArgs Set custom helm args for the Verrazzano internal component as needed
+func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.SugaredLogger) ([]InstallArg, error) {
+	if vzSpec.DefaultVolumeSource == nil {
+		return []InstallArg{}, nil
+	}
+	if vzSpec.DefaultVolumeSource.EmptyDir != nil {
+		return []InstallArg{
+			{
+				Name:      "verrazzanoOperator.esDataStorageSize",
+				Value:     "",
+				SetString: true,
+			},
+			{
+				Name:      "verrazzanoOperator.grafanaDataStorageSize",
+				Value:     "",
+				SetString: true,
+			},
+			{
+				Name:      "verrazzanoOperator.prometheusDataStorageSize",
+				Value:     "",
+				SetString: true,
+			},
+		}, nil
+	} else if vzSpec.DefaultVolumeSource.PersistentVolumeClaim != nil {
+		pvcs := vzSpec.DefaultVolumeSource.PersistentVolumeClaim
+		storageSpec, found := findVolumeTemplate(pvcs.ClaimName, vzSpec.VolumeClaimSpecTemplates)
+		if !found {
+			err := errors.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
+			return []InstallArg{}, err
+		}
+		return []InstallArg{
+			{
+				Name:      "verrazzanoOperator.esDataStorageSize",
+				Value:     storageSpec.Resources.Requests.Storage().String(),
+				SetString: true,
+			},
+			{
+				Name:      "verrazzanoOperator.grafanaDataStorageSize",
+				Value:     storageSpec.Resources.Requests.Storage().String(),
+				SetString: true,
+			},
+			{
+				Name:      "verrazzanoOperator.prometheusDataStorageSize",
+				Value:     storageSpec.Resources.Requests.Storage().String(),
+				SetString: true,
+			},
+		}, nil
+	}
+	return []InstallArg{}, nil
+}
+
+// findVolumeTemplate Find a named VolumeClaimTemplate in the list
+func findVolumeTemplate(templateName string, templates []installv1alpha1.VolumeClaimSpecTemplate) (*corev1.PersistentVolumeClaimSpec, bool) {
+	for i, template := range templates {
+		if templateName == template.Name {
+			return &templates[i].Spec, true
+		}
+	}
+	return nil, false
 }
 
 // getOAM returns the install config for OAM

@@ -244,6 +244,12 @@ function get_mysql_helm_args_from_config {
   fi
 }
 
+function get_verrazzano_helm_args_from_config {
+  if [ ! -z "$(get_config_value '.verrazzanoInstallArgs')" ]; then
+    config_array_to_helm_args ".verrazzanoInstallArgs[]" || return 1
+  fi
+}
+
 function config_array_to_helm_args {
   local install_args_config_name=$1
   local extra_install_args=($(get_config_array $install_args_config_name)) || return 1
