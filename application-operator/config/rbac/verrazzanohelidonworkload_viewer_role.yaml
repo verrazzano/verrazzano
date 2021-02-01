@@ -1,0 +1,20 @@
+# permissions for end users to view verrazzanohelidonworkloads.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzanohelidonworkload-viewer-role
+rules:
+- apiGroups:
+  - oam.verrazzano.io
+  resources:
+  - verrazzanohelidonworkloads
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - oam.verrazzano.io
+  resources:
+  - verrazzanohelidonworkloads/status
+  verbs:
+  - get

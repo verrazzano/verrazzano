@@ -14,6 +14,9 @@ resources:
   kind: LoggingScope
   version: v1alpha1
 - group: oam
+  kind: VerrazzanoHelidonWorkload
+  version: v1alpha1
+- group: oam
   kind: VerrazzanoCoherenceWorkload
   version: v1alpha1
 version: "2"

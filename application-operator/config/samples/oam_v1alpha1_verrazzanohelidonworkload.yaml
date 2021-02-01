@@ -1,0 +1,7 @@
+apiVersion: oam.verrazzano.io/v1alpha1
+kind: VerrazzanoHelidonWorkload
+metadata:
+  name: verrazzanohelidonworkload-sample
+spec:
+  # Add fields here
+  foo: bar

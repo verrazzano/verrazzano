@@ -8,6 +8,7 @@ resources:
 - bases/oam.verrazzano.io_ingresstraits.yaml
 - bases/oam.verrazzano.io_metricstraits.yaml
 - bases/oam.verrazzano.io_loggingscopes.yaml
+- bases/oam.verrazzano.io_verrazzanohelidonworkloads.yaml
 - bases/oam.verrazzano.io_verrazzanocoherenceworkloads.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
@@ -17,6 +18,7 @@ patchesStrategicMerge:
 #- patches/webhook_in_ingresstraits.yaml
 #- patches/webhook_in_metricstraits.yaml
 #- patches/webhook_in_loggingscopes.yaml
+#- patches/webhook_in_verrazzanohelidonworkloads.yaml
 #- patches/webhook_in_verrazzanocoherenceworkloads.yaml
 # +kubebuilder:scaffold:crdkustomizewebhookpatch
 
@@ -25,6 +27,7 @@ patchesStrategicMerge:
 #- patches/cainjection_in_ingresstraits.yaml
 #- patches/cainjection_in_metricstraits.yaml
 #- patches/cainjection_in_loggingscopes.yaml
+#- patches/cainjection_in_verrazzanohelidonworkloads.yaml
 #- patches/cainjection_in_verrazzanocoherenceworkloads.yaml
 # +kubebuilder:scaffold:crdkustomizecainjectionpatch
 

@@ -1,0 +1,24 @@
+# permissions for end users to edit verrazzanohelidonworkloads.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzanohelidonworkload-editor-role
+rules:
+- apiGroups:
+  - oam.verrazzano.io
+  resources:
+  - verrazzanohelidonworkloads
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - oam.verrazzano.io
+  resources:
+  - verrazzanohelidonworkloads/status
+  verbs:
+  - get

@@ -37,8 +37,9 @@ spec:
           metadata:
             type: object
           spec:
-            description: VerrazzanoCoherenceWorkloadSpec wraps a Coherence resource. The Coherence object must include apiVersion,
-              kind, and spec fields. It may include a metadata field.
+            description: VerrazzanoCoherenceWorkloadSpec wraps a Coherence resource.
+              The Coherence object must include apiVersion, kind, and spec fields.
+              It may include a metadata field.
             properties:
               coherence:
                 type: object
