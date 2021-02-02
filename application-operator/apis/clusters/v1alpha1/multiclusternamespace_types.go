@@ -20,10 +20,11 @@ type MultiClusterNamespaceSpec struct {
 	Placement Placement `json:"placement"`
 }
 
+// NamespaceTemplate should have the metadata and spec of the underlying namespace
 type NamespaceTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Metadata metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec corev1.NamespaceSpec `json:"spec,omitempty"`
+	Metadata metav1.ObjectMeta    `json:"metadata,omitempty"`
+	Spec     corev1.NamespaceSpec `json:"spec,omitempty"`
 }
 
 // MultiClusterNamespaceStatus defines the observed state of MultiClusterNamespace
