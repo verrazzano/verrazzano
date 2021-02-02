@@ -223,6 +223,13 @@ data:
       ngx.exit(ngx.HTTP_FORBIDDEN)
     end
 
+    logJsonMessage(ngx.INFO, "Check for k8s_user in jwt token.")
+    if ( not (jwt_obj.payload) or not (jwt_obj.payload.k8s_user)) then
+      ngx.status = 403
+      ngx.say(logJsonMessage(ngx.ERR, "No k8s_user asscoiated with user."))
+      ngx.exit(ngx.HTTP_FORBIDDEN)
+    end
+
     local function read_file(path)
       local file = io.open(path, "rb")
       if not file then return nil end
@@ -244,7 +251,7 @@ data:
     for i,group in pairs(jwt_obj.payload.groups) do
       ngx.req.set_header("Impersonate-Group", group)
     end
-    ngx.req.set_header("Impersonate-User", "{{ .Values.api.consoleUser }}")
+    ngx.req.set_header("Impersonate-User", jwt_obj.payload.k8s_user)
   nginx.conf: |
     #user  nobody;
     worker_processes  1;
