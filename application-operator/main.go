@@ -11,12 +11,6 @@ import (
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
-	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/webhooks"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -25,6 +19,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/webhooks"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -44,6 +46,7 @@ func init() {
 	_ = istioclinet.AddToScheme(scheme)
 	_ = wls.AddToScheme(scheme)
 
+	_ = clustersv1alpha1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
