@@ -155,32 +155,6 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-trait-name-rule-0-vs"}, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "VirtualService"}, "test-trait-name-rule-0-vs"))
 
-	// Expect a call to get the Rancher ingress and return the ingress.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
-			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
-				Kind:       "ingress"}
-			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace:   name.Namespace,
-				Name:        name.Name,
-				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
-			return nil
-		})
-	// Expect a call to get the Rancher ingress and return the ingress.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
-			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
-				Kind:       "ingress"}
-			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace:   name.Namespace,
-				Name:        name.Name,
-				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
-			return nil
-		})
 	// Expect a call to create the ingress resource and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
@@ -410,32 +384,6 @@ func TestFailureToUpdateStatus(t *testing.T) {
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, virtualService *istioclinet.VirtualService, opts ...client.CreateOption) error {
-			return nil
-		})
-	// Expect a call to get the Rancher ingress and return the ingress.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
-			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
-				Kind:       "ingress"}
-			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace:   name.Namespace,
-				Name:        name.Name,
-				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
-			return nil
-		})
-	// Expect a call to get the Rancher ingress and return the ingress.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
-			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
-				Kind:       "ingress"}
-			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace:   name.Namespace,
-				Name:        name.Name,
-				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
 			return nil
 		})
 	// Expect a call to get the status writer and return a mock.
@@ -952,36 +900,80 @@ func TestCreateVirtualServiceMatchUriFromIngressTraitPath(t *testing.T) {
 	assert.Equal("/path", match.MatchType.(*istionet.StringMatch_Exact).Exact)
 }
 
+// TestCreateHostsFromIngressTraitRule tests generation of a default host name
+// GIVEN a trait rule with only wildcard hosts and an empty host
+// WHEN a host slice DNS domain exists in the ingress
+// THEN verify that only the default host is used
+func TestCreateHostsFromIngressTraitRuleWildcards(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	ns := "myns"
+	trait := vzapi.IngressTrait{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "oam.verrazzano.io/v1alpha1",
+			Kind:       "IngressTrait",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Labels:    map[string]string{oam.LabelAppName: "myapp"},
+		},
+		Spec: vzapi.IngressTraitSpec{
+			Rules: []vzapi.IngressRule{{
+				Hosts: []string{"*name", "nam*e", "name*", "*", ""},
+			}},
+		},
+	}
+
+	// Expect a call to get the Rancher ingress and return the ingress.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace:   name.Namespace,
+				Name:        name.Name,
+				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
+			return nil
+		})
+
+	rule := vzapi.IngressRule{Hosts: []string{"*", "", "*host", "host*", "ho*st"}}
+	hosts, err := createHostsFromIngressTraitRule(mock, rule, &trait)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Len(hosts, 1)
+	assert.Equal("myapp.myns.my.host.com", hosts[0])
+}
+
 // TestCreateHostsFromIngressTraitRule tests various use cases of createHostsFromIngressTraitRule
 func TestCreateHostsFromIngressTraitRule(t *testing.T) {
 	assert := asserts.New(t)
 	var rule vzapi.IngressRule
 	var hosts []string
 
-	// GIVEN a trait rule with no hosts
+	// GIVEN a trait rule with a valid hosts
 	// WHEN a host slice is requested for use
-	// THEN verify that the default host is used
-	rule = vzapi.IngressRule{}
-	hosts = createHostsFromIngressTraitRule(rule, "defaultHost")
-	assert.Len(hosts, 1)
-	assert.Equal("defaultHost", hosts[0])
-
-	// GIVEN a trait rule with a mix of hosts including an empty host
-	// WHEN a host slice is requested for use
-	// THEN verify that the empty host is ignored and the defaultHost is not used
-	rule = vzapi.IngressRule{Hosts: []string{"host-1", "", "host-2"}}
-	hosts = createHostsFromIngressTraitRule(rule, "defaultHost")
+	// THEN verify that valid hosts are used
+	rule = vzapi.IngressRule{Hosts: []string{"host-1", "host-2"}}
+	hosts, err := createHostsFromIngressTraitRule(nil, rule, nil)
+	assert.NoError(err)
 	assert.Len(hosts, 2)
 	assert.Equal("host-1", hosts[0])
 	assert.Equal("host-2", hosts[1])
 
-	// GIVEN a trait rule with only wildcard hosts and an empty host
+	// GIVEN a trait rule with a mix of hosts including an empty host and wildcard host
 	// WHEN a host slice is requested for use
-	// THEN verify that only the default host is used
-	rule = vzapi.IngressRule{Hosts: []string{"*", "", "*host", "host*", "ho*st"}}
-	hosts = createHostsFromIngressTraitRule(rule, "defaultHost")
-	assert.Len(hosts, 1)
-	assert.Equal("defaultHost", hosts[0])
+	// THEN verify that the empty host is ignored and the defaultHost is not used
+	rule = vzapi.IngressRule{Hosts: []string{"host-1", "", "*", "host-2"}}
+	hosts, err = createHostsFromIngressTraitRule(nil, rule, nil)
+	assert.NoError(err)
+	assert.Len(hosts, 2)
+	assert.Equal("host-1", hosts[0])
+	assert.Equal("host-2", hosts[1])
 }
 
 // TestGetPathsFromTrait tests various use cases of getPathsFromRule

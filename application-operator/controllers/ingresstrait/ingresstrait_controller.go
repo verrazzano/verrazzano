@@ -272,8 +272,7 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 
 // mutateGateway mutates the output Gateway child resource.
 func (r *Reconciler) mutateGateway(gateway *istioclinet.Gateway, trait *vzapi.IngressTrait, rule vzapi.IngressRule) error {
-
-	hostName, err := buildAppHostName(r, trait)
+	hosts, err := createHostsFromIngressTraitRule(r, rule, trait)
 	if err != nil {
 		return err
 	}
@@ -281,7 +280,7 @@ func (r *Reconciler) mutateGateway(gateway *istioclinet.Gateway, trait *vzapi.In
 	// Set the spec content.
 	gateway.Spec.Selector = map[string]string{"istio": "ingressgateway"}
 	gateway.Spec.Servers = []*istionet.Server{{
-		Hosts: createHostsFromIngressTraitRule(rule, hostName),
+		Hosts: hosts,
 		Port: &istionet.Port{
 			Name:     "http",
 			Number:   80,
@@ -321,13 +320,13 @@ func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vz
 
 // mutateVirtualService mutates the output virtual service resource
 func (r *Reconciler) mutateVirtualService(virtualService *istioclinet.VirtualService, trait *vzapi.IngressTrait, rule vzapi.IngressRule, service *corev1.Service, gateway *istioclinet.Gateway) error {
-	hostName, err := buildAppHostName(r, trait)
+	// Set the spec content.
+	var err error
+	virtualService.Spec.Gateways = []string{gateway.Name}
+	virtualService.Spec.Hosts, err = createHostsFromIngressTraitRule(r, rule, trait)
 	if err != nil {
 		return err
 	}
-	// Set the spec content.
-	virtualService.Spec.Gateways = []string{gateway.Name}
-	virtualService.Spec.Hosts = createHostsFromIngressTraitRule(rule, hostName)
 	matches := []*istionet.HTTPMatchRequest{}
 	paths := getPathsFromRule(rule)
 	for _, path := range paths {
@@ -401,10 +400,9 @@ func createVirtualServiceMatchURIFromIngressTraitPath(path vzapi.IngressPath) *i
 }
 
 // createHostsFromIngressTraitRule creates an array of hosts from an ingress rule.
-// It is primarily used to setup defaults when either no hosts are provided or the host is blank.
-// If the rule contains an empty host array a host array with a single "*" element is created.
-// Otherwise any blank hosts in the input ingress rules are replaced with "*" values.
-func createHostsFromIngressTraitRule(rule vzapi.IngressRule, defaultHostName string) []string {
+// It filters out wildcard hosts or hosts that are empty. If there are no valid hosts provided,
+// then a DNS host name is automatically generated and used.
+func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, trait *vzapi.IngressTrait) ([]string, error) {
 	var validHosts []string
 	for _, h := range rule.Hosts {
 		h = strings.TrimSpace(h)
@@ -415,10 +413,14 @@ func createHostsFromIngressTraitRule(rule vzapi.IngressRule, defaultHostName str
 		validHosts = append(validHosts, h)
 	}
 	// Use default hostname if none of the user specified hosts were valid
-	if len(validHosts) == 0 && len(defaultHostName) > 0 {
-		validHosts = []string{defaultHostName}
+	if len(validHosts) == 0 {
+		hostName, err := buildAppHostName(cli, trait)
+		if err != nil {
+			return nil, err
+		}
+		validHosts = []string{hostName}
 	}
-	return validHosts
+	return validHosts, nil
 }
 
 // fetchServiceFromTrait traverses from an ingress trait resource to the related service resource and returns it.
