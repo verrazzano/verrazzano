@@ -1,0 +1,15 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+global:
+  hub: container-registry.oracle.com/olcne
+  tag: 1.7.3
+
+  # Provides dns resolution for global services
+  podDNSSearchNamespaces:
+    - global
+
+  multiCluster:
+    enabled: true
+
+  controlPlaneSecurityEnabled: true
