@@ -20,7 +20,7 @@ import (
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	clustersverrazzanoiov1alpha1 "github.com/verrazzano/verrazzano/apis/clusters.verrazzano.io/v1alpha1"
+	clustersverrazzanoiov1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/certificate"
