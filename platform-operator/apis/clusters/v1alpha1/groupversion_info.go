@@ -1,9 +1,9 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-// Package v1alpha1 contains API Schema definitions for the install v1alpha1 API group
+// Package v1alpha1 contains API Schema definitions for the clusters.verrazzano.io v1alpha1 API group
 // +kubebuilder:object:generate=true
-// +groupName=install.verrazzano.io
+// +groupName=clusters.verrazzano.io
 package v1alpha1
 
 import (
@@ -13,7 +13,7 @@ import (
 
 var (
 	// GroupVersion is group version used to register these objects
-	GroupVersion = schema.GroupVersion{Group: "install.verrazzano.io", Version: "v1alpha1"}
+	GroupVersion = schema.GroupVersion{Group: "clusters.verrazzano.io", Version: "v1alpha1"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
