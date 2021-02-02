@@ -43,6 +43,7 @@ pipeline {
         )
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
         booleanParam (description: 'Whether to run example tests', name: 'RUN_EXAMPLE_TESTS', defaultValue: true)
+        booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
     }
 
     environment {
@@ -490,6 +491,19 @@ pipeline {
                                 }
                             }
                         }
+
+                    }
+                    post {
+                        failure {
+                            dumpK8sCluster('new-acceptance-tests-cluster-dump.tar.gz')
+                        }
+                        success {
+                            script {
+                                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                                    dumpK8sCluster('new-acceptance-tests-cluster-dump.tar.gz')
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -505,7 +519,7 @@ pipeline {
             dumpVerrazzanoApplicationOperatorLogs()
             dumpOamKubernetesRuntimeLogs()
 
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump.tar.gz', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
             sh """
@@ -548,6 +562,12 @@ def runGinkgo(testSuitePath) {
             ginkgo -v -keepGoing --noColor ${testSuitePath}/...
         """
     }
+}
+
+def dumpK8sCluster(archiveFilePath) {
+    sh """
+        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -z ${archiveFilePath}
+    """
 }
 
 def dumpVerrazzanoSystemPods() {
