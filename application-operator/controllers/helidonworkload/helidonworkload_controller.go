@@ -39,7 +39,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("verrazzanohelidonworkload", req.NamespacedName)
 	log.Info("Reconciling verrazzano helidon workload")
 
-	// fetch the workload and unwrap the Coherence resource
+	// fetch the workload and unwrap the Deployment resource
 	_, err := r.fetchWorkload(ctx, req.NamespacedName)
 	if err != nil {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
