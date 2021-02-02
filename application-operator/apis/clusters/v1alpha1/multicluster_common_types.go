@@ -5,6 +5,11 @@ package v1alpha1
 
 import corev1 "k8s.io/api/core/v1"
 
+// Placement information for multi cluster resources
+type Placement struct {
+	Clusters []Cluster `json:"clusters"`
+}
+
 // Cluster where multi cluster resources are placed
 type Cluster struct {
 	// the name of the cluster

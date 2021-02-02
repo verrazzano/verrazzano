@@ -4,12 +4,12 @@ apiVersion: clusters.verrazzano.io/v1alpha1
 kind: MultiClusterNamespace
 metadata:
   name: mymcns
-  namespace: default
+  namespace: verrazzano-mc
 spec:
-  namespace:
-    apiVersion: v1
-    kind: Namespace
+  template:
     metadata:
       name: myns
-  clusters:
-    - name: managed1
+  spec:
+  placement:
+    clusters:
+      - name: managed1
