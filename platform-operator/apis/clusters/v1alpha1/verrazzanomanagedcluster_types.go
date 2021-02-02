@@ -7,27 +7,33 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // VerrazzanoManagedClusterSpec defines the desired state of VerrazzanoManagedCluster
+// +k8s:openapi-gen=true
 type VerrazzanoManagedClusterSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// The description of the managed cluster
+	Description string `json:"description" yaml:"description"`
 
-	// Foo is an example field of VerrazzanoManagedCluster. Edit VerrazzanoManagedCluster_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// The server address
+	ServerAddress string `json:"serverAddress" yaml:"serverAddress"`
+
+	// The type of managed cluster
+	Type string `json:"type" yaml:"type"`
+
+	// The secret containing the KUBECONFIG for the managed cluster
+	KubeconfigSecret string `json:"kubeconfigSecret" yaml:"kubeconfigSecret"`
 }
 
 // VerrazzanoManagedClusterStatus defines the observed state of VerrazzanoManagedCluster
+// +k8s:openapi-gen=true
 type VerrazzanoManagedClusterStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 }
 
 // +kubebuilder:object:root=true
-
-// VerrazzanoManagedCluster is the Schema for the verrazzanomanagedclusters API
+// +kubebuilder:resource:path=verrazzanos
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:shortName=vmc;vmcs
+// +genclient
+// VerrazzanoManagedCluster is the Schema for the Verrazzanomanagedclusters API
 type VerrazzanoManagedCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
