@@ -8,7 +8,6 @@ import (
 )
 
 // VerrazzanoManagedClusterSpec defines the desired state of VerrazzanoManagedCluster
-// +k8s:openapi-gen=true
 type VerrazzanoManagedClusterSpec struct {
 	// The description of the managed cluster
 	Description string `json:"description" yaml:"description"`
@@ -24,7 +23,6 @@ type VerrazzanoManagedClusterSpec struct {
 }
 
 // VerrazzanoManagedClusterStatus defines the observed state of VerrazzanoManagedCluster
-// +k8s:openapi-gen=true
 type VerrazzanoManagedClusterStatus struct {
 }
 
