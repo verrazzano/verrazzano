@@ -7,7 +7,7 @@ import corev1 "k8s.io/api/core/v1"
 // Cluster where multi cluster resources are placed
 type Cluster struct {
 	// the name of the cluster
-	name string `json:"name"`
+	Name string `json:"name"`
 }
 
 // Condition describes current state of a multi cluster resource.

@@ -14,7 +14,8 @@ import (
 // MultiClusterNamespaceSpec defines the desired state of MultiClusterNamespace
 type MultiClusterNamespaceSpec struct {
 	// The embedded Kubernetes namespace
-	namespace corev1.Namespace `json:"namespace"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Namespace corev1.Namespace `json:"namespace"`
 
 	// Clusters in which the namespace is to be placed
 	Clusters []Cluster `json:"clusters"`

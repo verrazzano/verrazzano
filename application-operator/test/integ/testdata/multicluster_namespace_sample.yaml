@@ -3,13 +3,13 @@
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: MultiClusterNamespace
 metadata:
-  name: sample_mcns
+  name: mymcns
   namespace: default
 spec:
   namespace:
     apiVersion: v1
     kind: Namespace
     metadata:
-      name: mymcns
+      name: myns
   clusters:
     - name: managed1

@@ -3,9 +3,9 @@
 package integ
 
 import (
-	"github.com/verrazzano/verrazzano/application-operator/test/integ/util"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/application-operator/test/integ/util"
 )
 
 var _ = Describe("Testing Multi-Cluster Namespace CRD", func() {
