@@ -502,7 +502,7 @@ func TestBuildAppHostNameIgnoreWildcardForDNS(t *testing.T) {
 
 // TestFailureBuildAppHostNameForDNS tests failure of building a DNS hostname for the application
 // GIVEN an appName and a trait
-// WHEN the ingress domain is not XIP.IO and the rancher annotation is missing
+// WHEN the ingress domain is not XIP.IO and the Rancher annotation is missing
 // THEN ensure that an error is returned
 func TestFailureBuildAppHostNameForDNS(t *testing.T) {
 	assert := asserts.New(t)

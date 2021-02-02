@@ -532,7 +532,7 @@ func buildAppHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, err
 	if !ok {
 		return "", errors.New("OAM app name label missing from metadata, unable to add ingress trait")
 	}
-	// Extract the domain name from the rancher ingress
+	// Extract the domain name from the Rancher ingress
 	ingress := k8net.Ingress{}
 	err := cli.Get(context.TODO(), types.NamespacedName{Name: rancherIngress, Namespace: rancherNamespace}, &ingress)
 	if err != nil {
@@ -545,7 +545,7 @@ func buildAppHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, err
 	segs := strings.Split(strings.TrimSpace(authRealmAnno), " ")
 	domain := strings.TrimSpace(segs[0])
 
-	// If this is XIP.IO then build the domain name using istio info
+	// If this is xip.io then build the domain name using Istio info
 	if strings.HasSuffix(domain, "xip.io") {
 		domain, err = buildDomainNameForXIPIO(cli, trait)
 		if err != nil {
@@ -555,7 +555,7 @@ func buildAppHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, err
 	return fmt.Sprintf("%s.%s.%s", appName, trait.Namespace, domain), nil
 }
 
-// buildDomainNameForXIPIO generates a domain name in the format of IP.xip.io
+// buildDomainNameForXIPIO generates a domain name in the format of "<IP>.xip.io"
 // Get the IP from Istio resources
 func buildDomainNameForXIPIO(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
 	const istioIngressGateway = "istio-ingressgateway"
