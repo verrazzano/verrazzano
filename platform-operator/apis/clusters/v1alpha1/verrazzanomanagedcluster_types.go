@@ -29,7 +29,6 @@ type VerrazzanoManagedClusterStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=verrazzanos
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName=vmc;vmcs
 // +genclient
