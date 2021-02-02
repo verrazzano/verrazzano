@@ -14,7 +14,9 @@ var _ = Describe("Testing Multi-Cluster Namespace CRD", func() {
 		Expect(stderr).To(Equal(""))
 	})
 	It("MultiClusterNamespace can be created ", func() {
-		_, stderr := util.Kubectl("apply -f testdata/multicluster_namespace_sample.yaml")
+		_, stderr := util.Kubectl("create ns multicluster")
+		Expect(stderr).To(Equal(""), "could not create multicluster namespace")
+		_, stderr = util.Kubectl("apply -f testdata/multicluster_namespace_sample.yaml")
 		Expect(stderr).To(Equal(""))
 	})
 })
