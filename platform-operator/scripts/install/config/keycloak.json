@@ -401,7 +401,12 @@
       "realm-management" : [ "manage-users" ]
     },
     "notBefore" : 0,
-    "groups" : [ ]
+    "groups" : [ "console-users" ],
+    "attributes": {
+      "k8s_user": [
+        "console-user"
+      ]
+    }
   }, {
     "id" : "ca205b69-e8a8-45c9-88b1-ea9c1b072152",
     "createdTimestamp" : 1564417839778,
@@ -506,9 +511,51 @@
     "authenticationFlowBindingOverrides" : { },
     "fullScopeAllowed" : false,
     "nodeReRegistrationTimeout" : 0,
-    "defaultClientScopes" : [ "web-origins", "role_list", "roles", "profile", "email" ],
-    "optionalClientScopes" : [ "address", "phone", "offline_access", "microprofile-jwt" ]
-  }, {
+    "protocolMappers": [
+        {
+          "id": "d74f5f6a-d0d5-4932-a7e8-a8fa78ea467d",
+          "name": "groupmember",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "groups",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "id": "c93fc5e2-729c-4d55-875b-2f9dd15155c4",
+          "name": "k8s-user",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "k8s_user",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "k8s_user",
+            "jsonType.label": "String"
+          }
+        }
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "role_list",
+        "roles",
+        "profile",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    }, {
     "id" : "1c0db381-4a6b-4549-a403-6af64fcf9c83",
     "clientId" : "broker",
     "name" : "${client_broker}",
@@ -865,6 +912,21 @@
             "access.token.claim": "true",
             "claim.name": "groups",
             "userinfo.token.claim": "true"
+          }
+	},
+        {
+          "id": "9a6edc99-1fc5-4b5e-bd31-127f577d3784",
+          "name": "k8s-user",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "k8s_user",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "k8s_user",
+            "jsonType.label": "String"
           }
         }
       ],

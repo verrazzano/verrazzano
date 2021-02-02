@@ -338,7 +338,7 @@ data:
             #location ~ /\.ht {
             #    deny  all;
             #}
-        }`
+        }
 
 
     # another virtual host using mix of IP-, name-, and port-based configuration
@@ -374,7 +374,7 @@ data:
     #        root   html;
     #        index  index.html index.htm;
     #    }
-    #}
+    }
   startup.sh: |
     #!/bin/bash
     cd `dirname $0`
@@ -426,6 +426,7 @@ spec:
       - image: {{ .Values.api.imageName }}:{{ .Values.api.imageVersion }}
         imagePullPolicy: {{ .Values.api.pullPolicy }}
         name: {{ .Values.api.name }}
+        command: ["/bootstrap/startup.sh"]
         ports:
             - containerPort: {{ .Values.api.port }}
         volumeMounts:
