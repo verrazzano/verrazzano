@@ -1161,7 +1161,3 @@ func newUnstructuredService(uid types.UID, clusterIP string) (unstructured.Unstr
 
 	return convertToUnstructured(service)
 }
-
-func fakeGenerateDNSHostName(_ client.Reader, _ *vzapi.IngressTrait) (string, error) {
-	return "fakehost", nil
-}
