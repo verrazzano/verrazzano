@@ -17,24 +17,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-// VerrazzanoInstance contains information about a Verrazzano instance
-type VerrazzanoInstance struct {
-	ID               string `json:"id"`
-	Name             string `json:"name"`
-	MgmtCluster      string `json:"mgmtCluster"`
-	MgmtPlatform     string `json:"mgmtPlatform"`
-	Status           string `json:"status"`
-	Version          string `json:"version"`
-	KeyCloakURL      string `json:"keyCloakUrl"`
-	RancherURL       string `json:"rancherUrl"`
-	VzAPIURI         string `json:"vzApiUri"`
-	ElasticURL       string `json:"elasticUrl"`
-	KibanaURL        string `json:"kibanaUrl"`
-	GrafanaURL       string `json:"grafanaUrl"`
-	PrometheusURL    string `json:"prometheusUrl"`
-	IsUsingSharedVMI bool   `json:"isUsingSharedVMI"`
-}
-
 // UsernamePassword - Username and Password credentials
 type UsernamePassword struct {
 	Username string
@@ -45,25 +27,6 @@ type UsernamePassword struct {
 func GetVerrazzanoPassword() string {
 	secret, _ := GetSecret("verrazzano-system", "verrazzano")
 	return string(secret.Data["password"])
-}
-
-// GetVerrazzanoInstance calls the rest API to fetch instance data
-func GetVerrazzanoInstance() *VerrazzanoInstance {
-	api := GetApiEndpoint()
-
-	resp, err := api.GetInstance()
-	if err != nil {
-		ginkgo.Fail("Could not get Verrazzano instance data")
-	}
-
-	var instance VerrazzanoInstance
-	err = json.Unmarshal(resp.Body, &instance)
-
-	if err != nil {
-		ginkgo.Fail("Could not unmarshal Verrazzano instance response")
-	}
-
-	return &instance
 }
 
 // Concurrently executes the given assertions in parallel and waits for them all to complete

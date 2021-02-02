@@ -4,7 +4,6 @@
 package pkg
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,6 +13,8 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
+	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 )
 
 type ApiEndpoint struct {
@@ -45,47 +46,29 @@ func getAPIURL() string {
 	return fmt.Sprintf("https://verrazzano.%s.%s/%s", EnvName, DnsZone, verrazzanoApiUriPrefix)
 }
 
-// GetSecrets
-func (api *ApiEndpoint) GetSecrets() (*HttpResponse, error) {
-	return api.get("secrets")
+// Get Invoke GET API Request
+func (api *ApiEndpoint) Get(path string) (*HttpResponse, error) {
+	return api.Request(http.MethodGet, path, nil)
 }
 
-// CreateSecret
-func (api *ApiEndpoint) CreateSecret(payload string) (*HttpResponse, error) {
-	b := bytes.NewBuffer([]byte(payload))
-	url := fmt.Sprintf("%s/secrets", api.apiUrl)
-	return api.request("POST", url, b)
+// Post Invoke POST API Request
+func (api *ApiEndpoint) Post(path string, body io.Reader) (*HttpResponse, error) {
+	return api.Request(http.MethodPost, path, body)
 }
 
-// DeleteSecret
-func (api *ApiEndpoint) DeleteSecret(id string) (*HttpResponse, error) {
-	url := fmt.Sprintf("%s/secrets/%s", api.apiUrl, id)
-	return api.request("DELETE", url, nil)
+// Patch Invoke POST API Request
+func (api *ApiEndpoint) Patch(path string, body io.Reader) (*HttpResponse, error) {
+	return api.Request(http.MethodPut, path, body)
 }
 
-// PatchSecret
-func (api *ApiEndpoint) PatchSecret(id, body string) (*HttpResponse, error) {
-	b := bytes.NewBuffer([]byte(body))
-	url := fmt.Sprintf("%s/secrets/%s", api.apiUrl, id)
-	return api.request("PATCH", url, b)
+// Delete Invoke DELETE API Request
+func (api *ApiEndpoint) Delete(path string) (*HttpResponse, error) {
+	return api.Request(http.MethodDelete, path, nil)
 }
 
-func (api *ApiEndpoint) get(path string) (*HttpResponse, error) {
+// Request Invoke API
+func (api *ApiEndpoint) Request(method, path string, body io.Reader) (*HttpResponse, error) {
 	url := fmt.Sprintf("%s/%s", api.apiUrl, path)
-	return api.request("GET", url, nil)
-}
-
-// Get
-func (api *ApiEndpoint) Get() (*HttpResponse, error) {
-	return api.get("")
-}
-
-// Get Instance
-func (api *ApiEndpoint) GetInstance() (*HttpResponse, error) {
-	return api.get("instance")
-}
-
-func (api *ApiEndpoint) request(method, url string, body io.Reader) (*HttpResponse, error) {
 	req, _ := retryablehttp.NewRequest(method, url, body)
 	if api.AccessToken != "" {
 		value := fmt.Sprintf("Bearer %v", api.AccessToken)
@@ -122,4 +105,20 @@ func ProcHttpResponse(resp *http.Response, httpErr error) *HttpResponse {
 		Body:       body,
 		BodyErr:    bodyErr,
 	}
+}
+
+//GetIngress fetches ingress from api
+func (api *ApiEndpoint) GetIngress(namespace, name string) extensionsv1beta1.Ingress {
+	response, err := api.Get(fmt.Sprintf("apis/extensions/v1beta1/namespaces/%s/ingresses/%s", namespace, name))
+	ExpectHttpOk(response, err, fmt.Sprintf("Error fetching ingress %s/%s from api, error: %v, response: %v", namespace, name, err, response))
+	ingress := extensionsv1beta1.Ingress{}
+	err = json.Unmarshal(response.Body, &ingress)
+	gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Invalid response for ingress %s/%s from api, error: %v", namespace, name, err))
+	return ingress
+}
+
+//GetElasticURL fetches ElasticSearch endpoint URL
+func (api *ApiEndpoint) GetElasticURL() string {
+	ingress := api.GetIngress("verrazzano-system", "vmi-system-es-ingest")
+	return fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
 }
