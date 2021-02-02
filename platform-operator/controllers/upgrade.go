@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/api/verrazzano/v1alpha1"
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/component"
 	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"

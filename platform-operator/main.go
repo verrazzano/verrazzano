@@ -9,7 +9,7 @@ import (
 
 	config2 "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/api/verrazzano/v1alpha1"
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/certificate"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/log"
