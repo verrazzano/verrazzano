@@ -12,14 +12,15 @@ import (
 	"github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
-const testNamespace string     = "springboot"
-const hostHeaderValue string   = "springboot.example.com"
+
+const testNamespace string = "springboot"
+const hostHeaderValue string = "springboot.example.com"
 
 var expectedPodsSpringBootApp = []string{"springboot-workload"}
-var waitTimeout              = 10 * time.Minute
-var pollingInterval          = 30 * time.Second
+var waitTimeout = 10 * time.Minute
+var pollingInterval = 30 * time.Second
 var shortPollingInterval = 10 * time.Second
-var shortWaitTimeout     = 5 * time.Minute
+var shortWaitTimeout = 5 * time.Minute
 
 var _ = ginkgo.BeforeSuite(func() {
 	deploySpringBootApplication()
@@ -61,13 +62,13 @@ func undeploySpringBootApplication() {
 	if err := pkg.DeleteNamespace(testNamespace); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the namespace: %v", err))
 	}
-	gomega.Eventually(func () bool {
+	gomega.Eventually(func() bool {
 		ns, err := pkg.GetNamespace(testNamespace)
 		return ns == nil && err != nil && errors.IsNotFound(err)
 	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
 }
 
-var _ = ginkgo.Describe("Verify Springboot Application", func() {
+var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 	// Verify springboot-workload pod is running
 	// GIVEN springboot app is deployed
 	// WHEN the component and appconfig are created
