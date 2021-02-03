@@ -12,8 +12,8 @@ import (
 	"github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
-const testNamespace      = "springboot"
-const hostHeaderValue	 = "springboot.example.com"
+const testNamespace string     = "springboot"
+const hostHeaderValue string   = "springboot.example.com"
 
 var expectedPodsSpringBootApp = []string{"springboot-workload"}
 var waitTimeout              = 10 * time.Minute

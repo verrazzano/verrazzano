@@ -8,31 +8,31 @@ SCRIPT_DIR=$(cd $(dirname $0); pwd -P)
 set -u
 
 NAMESPACE="springboot"
-SPRINGBOOT_COMPONENT_FILE="${SCRIPT_DIR}/springboot-comp.yaml"
 
-echo "Installing Spring Boot application."
+echo "Installing the Spring Boot application ..."
 
 status=$(kubectl get namespace ${NAMESPACE} -o jsonpath="{.status.phase}" 2> /dev/null)
 if [ "${status}" == "Active" ]; then
-  echo "Found namespace ${NAMESPACE}."
+  echo "Found the namespace ${NAMESPACE}."
 else
-  echo "Create namespace ${NAMESPACE}."
+  echo "Create the namespace ${NAMESPACE}."
   kubectl create namespace "${NAMESPACE}"
   if [ $? -ne 0 ]; then
-      echo "ERROR: Failed to create namespace ${NAMESPACE}, exiting."
+      echo "ERROR: Failed to create the namespace ${NAMESPACE}, exiting."
       exit 1
   fi
+  kubectl label namespace ${NAMESPACE} verrazzano-managed=true
 fi
 
-echo "Apply application configuration."
+echo "Apply the application configuration ..."
 kubectl apply -f ${SCRIPT_DIR}/
 code=$?
 if [ ${code} -ne 0 ]; then
-  echo "ERROR: Applying application configuration failed: ${code}. Exiting."
+  echo "ERROR: Applying application configuration failed: ${code}. Exiting..."
   exit ${code}
 fi
 
-echo "Wait for at least one running workload pod."
+echo "Wait for at least one running workload pod ..."
 attempt=1
 while true; do
   kubectl -n "${NAMESPACE}" wait --for=condition=ready pods --selector='app.oam.dev/name=springboot-appconf' --timeout 15s
