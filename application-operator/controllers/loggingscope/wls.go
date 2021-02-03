@@ -200,26 +200,6 @@ func getWlsSpecificContainerEnv(workload vzapi.QualifiedResourceRelation) []v1.E
 				},
 			},
 		},
-		{
-			Name:  "NAMESPACE",
-			Value: workload.Namespace,
-		},
-		{
-			Name: "APP_CONF_NAME",
-			ValueFrom: &v1.EnvVarSource{
-				FieldRef: &v1.ObjectFieldSelector{
-					FieldPath: "metadata.labels['app.oam.dev/name']",
-				},
-			},
-		},
-		{
-			Name: "COMPONENT_NAME",
-			ValueFrom: &v1.EnvVarSource{
-				FieldRef: &v1.ObjectFieldSelector{
-					FieldPath: "metadata.labels['app.oam.dev/component']",
-				},
-			},
-		},
 	}
 }
 
