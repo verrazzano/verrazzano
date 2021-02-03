@@ -3,24 +3,31 @@
 package integ
 
 import (
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/application-operator/test/integ/util"
 )
 
-var _ = BeforeSuite(func() {
-	_, stderr := util.Kubectl("create ns multiclustertest")
-	if stderr != "" {
-		Fail("could not create namespace multiclustertest")
+const (
+	multiclusterTestNamespace = "multiclustertest"
+	crdDir = "../../config/crd/bases"
+)
+var (
+	multiclusterCrds = [2]string{
+		fmt.Sprintf("%v/clusters.verrazzano.io_multiclusternamespaces.yaml"),
+		fmt.Sprintf("%v/clusters.verrazzano.io_multiclustersecrets.yaml"),
 	}
-})
+)
 
 var _ = Describe("Testing Multi-Cluster Namespace CRD", func() {
 	It("MultiCluster CRDs can be applied", func() {
-		_, stderr := util.Kubectl("apply -f ../../config/crd/bases/clusters.verrazzano.io_multiclusternamespaces.yaml")
-		Expect(stderr).To(Equal(""))
-		_, stderr = util.Kubectl("apply -f ../../config/crd/bases/clusters.verrazzano.io_multiclustersecret.yaml")
-		Expect(stderr).To(Equal(""))
+		for _, crd := range multiclusterCrds {
+			_, stderr := util.Kubectl(fmt.Sprintf("apply -f %v", crd))
+			Expect(stderr).To(Equal(""), fmt.Sprintf("Failed to apply CRD %v", crd))
+		}
+		_, stderr := util.Kubectl("create ns " + multiclusterTestNamespace)
+		Expect(stderr).To(Equal(""), "failed to create namespace " + multiclusterTestNamespace)
 	})
 	It("MultiClusterNamespace can be created ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_namespace_sample.yaml")
