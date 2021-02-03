@@ -11,12 +11,13 @@ import (
 
 const (
 	multiclusterTestNamespace = "multiclustertest"
-	crdDir = "../../config/crd/bases"
+	crdDir                    = "../../config/crd/bases"
 )
+
 var (
 	multiclusterCrds = [2]string{
-		fmt.Sprintf("%v/clusters.verrazzano.io_multiclusternamespaces.yaml"),
-		fmt.Sprintf("%v/clusters.verrazzano.io_multiclustersecrets.yaml"),
+		fmt.Sprintf("%v/clusters.verrazzano.io_multiclusternamespaces.yaml", crdDir),
+		fmt.Sprintf("%v/clusters.verrazzano.io_multiclustersecrets.yaml", crdDir),
 	}
 )
 
@@ -27,7 +28,7 @@ var _ = Describe("Testing Multi-Cluster Namespace CRD", func() {
 			Expect(stderr).To(Equal(""), fmt.Sprintf("Failed to apply CRD %v", crd))
 		}
 		_, stderr := util.Kubectl("create ns " + multiclusterTestNamespace)
-		Expect(stderr).To(Equal(""), "failed to create namespace " + multiclusterTestNamespace)
+		Expect(stderr).To(Equal(""), fmt.Sprintf("failed to create namespace %v", multiclusterTestNamespace))
 	})
 	It("MultiClusterNamespace can be created ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_namespace_sample.yaml")
