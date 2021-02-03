@@ -114,16 +114,8 @@ metadata:
   name: {{ .Values.api.clusterRole }}-impersonator
 rules:
 - apiGroups: [""]
-  resources: ["users", "groups", "serviceaccounts"]
+  resources: ["users", "groups"]
   verbs: ["impersonate"]
-- apiGroups: [""]
-  resources: ["users"]
-  verbs: ["impersonate"]
-  resourceNames: ["{{ .Values.api.consoleUser }}"]
-- apiGroups: [""]
-  resources: ["groups"]
-  verbs: ["impersonate"]
-  resourceNames: ["{{ .Values.api.consoleUserGroup }}"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
