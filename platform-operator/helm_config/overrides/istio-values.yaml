@@ -17,15 +17,6 @@ global:
   enableHelmTest: false
 
 gateways:
-  istio-ingressgateway:
-    ports:
-      - port: 80
-        targetPort: 80
-        name: http2
-        nodePort: 31380
-      - port: 443
-        name: https
-        nodePort: 31390
   istio-egressgateway:
     env:
       # Needed to route traffic via egress gateway if desired.
