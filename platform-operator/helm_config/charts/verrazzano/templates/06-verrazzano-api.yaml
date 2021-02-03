@@ -168,23 +168,23 @@ data:
     logJsonMessage(ngx.INFO, "Extracting authorization header from request.")
     local h, err = ngx.req.get_headers()["authorization"]
     if err then
-      ngx.status = 403
-      ngx.say(logJsonMessage(ngx.ERR, "Error while reading authorization header from request.", err))
-      ngx.exit(ngx.HTTP_FORBIDDEN)
+      ngx.status = 401
+      logJsonMessage(ngx.ERR, "Error while reading authorization header from request.", err)
+      ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
     if not (h) then
-      ngx.status = 403
-      ngx.say(logJsonMessage(ngx.ERR, "Invalid authorization header", err))
-      ngx.exit(ngx.HTTP_FORBIDDEN)
+      ngx.status = 401
+      logJsonMessage(ngx.ERR, "Invalid authorization header", err)
+      ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
     logJsonMessage(ngx.INFO, "Extract jwt token from authorization header.")
     local token = string.sub(h, 8)
     if not (token) then
-      ngx.status = 403
-      ngx.say(logJsonMessage(ngx.ERR, "Invalid bearer token in authorization header"))           
-      ngx.exit(ngx.HTTP_FORBIDDEN)
+      ngx.status = 401
+      logJsonMessage(ngx.ERR, "Invalid bearer token in authorization header")        
+      ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
     logJsonMessage(ngx.INFO, "Read public key from keycloak.")
@@ -192,17 +192,17 @@ data:
     local httpc = http.new()
     local res, err = httpc:request_uri("http://keycloak-http.keycloak.svc.cluster.local/auth/realms/verrazzano-system")
     if err then
-      ngx.status = 502
-      ngx.say(logJsonMessage(ngx.ERR, "Error accessing keycloak", err))
-      ngx.exit(ngx.HTTP_BAD_GATEWAY)
+      ngx.status = 401
+      logJsonMessage(ngx.ERR, "Error accessing keycloak", err)
+      ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
     local cjson = require "cjson"
     local data = cjson.decode(res.body)
     if not (data.public_key) then
-      ngx.status = 500
-      ngx.say(logJsonMessage(ngx.ERR, "No public_key retreived from keycloak"))
-      ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
+      ngx.status = 401
+      logJsonMessage(ngx.ERR, "No public_key retreived from keycloak")
+      ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
     logJsonMessage(ngx.INFO, "Validate JWT token.")
@@ -211,23 +211,23 @@ data:
     local jwt_obj = jwt:load_jwt(token)
     local verified = jwt:verify_jwt_obj(key, jwt_obj)
     if (tostring(jwt_obj.valid) == "false" or tostring(jwt_obj.verified) == "false") then
-      ngx.status = 403
-      ngx.say(logJsonMessage(ngx.ERR, "Invalid JWT token", jwt_obj.reason))
-      ngx.exit(ngx.HTTP_FORBIDDEN)
+      ngx.status = 401
+      logJsonMessage(ngx.ERR, "Invalid JWT token", jwt_obj.reason)
+      ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
     logJsonMessage(ngx.INFO, "Check for groups in jwt token.")
     if ( not (jwt_obj.payload) or not (jwt_obj.payload.groups)) then
-      ngx.status = 403
-      ngx.say(logJsonMessage(ngx.ERR, "No groups asscoiated with user."))
-      ngx.exit(ngx.HTTP_FORBIDDEN)
+      ngx.status = 401
+      logJsonMessage(ngx.ERR, "No groups asscoiated with user.")
+      ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
     logJsonMessage(ngx.INFO, "Check for k8s_user in jwt token.")
     if ( not (jwt_obj.payload) or not (jwt_obj.payload.k8s_user)) then
-      ngx.status = 403
-      ngx.say(logJsonMessage(ngx.ERR, "No k8s_user asscoiated with user."))
-      ngx.exit(ngx.HTTP_FORBIDDEN)
+      ngx.status = 401
+      logJsonMessage(ngx.ERR, "No k8s_user asscoiated with user.")
+      ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
     local function read_file(path)
@@ -241,9 +241,9 @@ data:
     logJsonMessage(ngx.INFO, "Read service account token.")
     local serviceAccountToken = read_file("/run/secrets/kubernetes.io/serviceaccount/token");
     if not (serviceAccountToken) then
-      ngx.status = 500
-      ngx.say(logJsonMessage(ngx.ERR, "No service account token presnet in pod."))
-      ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
+      ngx.status = 401
+      logJsonMessage(ngx.ERR, "No service account token presnet in pod.")
+      ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
     logJsonMessage(ngx.INFO, "Set headers")
