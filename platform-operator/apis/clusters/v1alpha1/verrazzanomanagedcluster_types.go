@@ -26,11 +26,11 @@ type VerrazzanoManagedClusterSpec struct {
 type VerrazzanoManagedClusterStatus struct {
 }
 
+// VerrazzanoManagedCluster is the Schema for the Verrazzanomanagedclusters API
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName=vmc;vmcs
 // +genclient
-// VerrazzanoManagedCluster is the Schema for the Verrazzanomanagedclusters API
 type VerrazzanoManagedCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
