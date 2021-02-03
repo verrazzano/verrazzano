@@ -12,14 +12,28 @@ import (
 
 // VerrazzanoManagedClusterSpec defines the desired state of VerrazzanoManagedCluster
 type VerrazzanoManagedClusterSpec struct {
-	// The name of the managed cluster
+	// The name of the managed cluster.
 	Name string `json:"name"`
 
-	// The description of the managed cluster
+	// The description of the managed cluster.
 	Description string `json:"description,omitempty"`
 
-	// The secret containing the KUBECONFIG for the managed cluster
-	KubeconfigSecret string `json:"kubeconfigSecret"`
+	// The generated identifier for the managed cluster.
+	// This field is managed by a Verrazzano Kubernetes operator.
+	ClusterId string `json:"clusterId,omitempty"`
+
+	// The name of the ServiceAccount that was generated for the managed cluster.
+	// This field is managed by a Verrazzano Kubernetes operator.
+	ServiceAccount string `json:"serviceAccount,omitempty"`
+
+	// The name of the generated secret for the kubeconfig to be used by the managed cluster for
+	// connecting to management cluster to synchronize multi-cluster objects.
+	// This field is managed by a Verrazzano Kubernetes operator.
+	KubeconfigSecret string `json:"kubeconfigSecret,omitempty"`
+
+	// The name of the secret containing generated YAML manifest to be applied by the user to the managed cluster.
+	// This field is managed by a Verrazzano Kubernetes operator.
+	ManagedClusterManifestSecret string `json:"managedClusterManifestSecret,omitempty"`
 }
 
 // VerrazzanoManagedClusterStatus defines the observed state of VerrazzanoManagedCluster
