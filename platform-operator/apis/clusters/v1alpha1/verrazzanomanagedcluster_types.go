@@ -8,7 +8,7 @@ import (
 )
 
 // The VerrazzanoManagedCluster custom resource contains information about a
-// kubernetes cluster that applications that are managed by Verrazzano.
+// kubernetes cluster where Verrazzano managed applications are deployed.
 
 // VerrazzanoManagedClusterSpec defines the desired state of VerrazzanoManagedCluster
 type VerrazzanoManagedClusterSpec struct {
