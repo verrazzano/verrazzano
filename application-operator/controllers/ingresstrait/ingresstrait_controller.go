@@ -5,6 +5,7 @@ package ingresstrait
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -19,6 +20,7 @@ import (
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8net "k8s.io/api/networking/v1beta1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -270,10 +272,15 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 
 // mutateGateway mutates the output Gateway child resource.
 func (r *Reconciler) mutateGateway(gateway *istioclinet.Gateway, trait *vzapi.IngressTrait, rule vzapi.IngressRule) error {
+	hosts, err := createHostsFromIngressTraitRule(r, rule, trait)
+	if err != nil {
+		return err
+	}
+
 	// Set the spec content.
 	gateway.Spec.Selector = map[string]string{"istio": "ingressgateway"}
 	gateway.Spec.Servers = []*istionet.Server{{
-		Hosts: createHostsFromIngressTraitRule(rule),
+		Hosts: hosts,
 		Port: &istionet.Port{
 			Name:     "http",
 			Number:   80,
@@ -314,8 +321,12 @@ func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vz
 // mutateVirtualService mutates the output virtual service resource
 func (r *Reconciler) mutateVirtualService(virtualService *istioclinet.VirtualService, trait *vzapi.IngressTrait, rule vzapi.IngressRule, service *corev1.Service, gateway *istioclinet.Gateway) error {
 	// Set the spec content.
+	var err error
 	virtualService.Spec.Gateways = []string{gateway.Name}
-	virtualService.Spec.Hosts = createHostsFromIngressTraitRule(rule)
+	virtualService.Spec.Hosts, err = createHostsFromIngressTraitRule(r, rule, trait)
+	if err != nil {
+		return err
+	}
 	matches := []*istionet.HTTPMatchRequest{}
 	paths := getPathsFromRule(rule)
 	for _, path := range paths {
@@ -389,22 +400,27 @@ func createVirtualServiceMatchURIFromIngressTraitPath(path vzapi.IngressPath) *i
 }
 
 // createHostsFromIngressTraitRule creates an array of hosts from an ingress rule.
-// It is primarily used to setup defaults when either no hosts are provided or the host is blank.
-// If the rule contains an empty host array a host array with a single "*" element is created.
-// Otherwise any blank hosts in the input ingress rules are replaced with "*" values.
-func createHostsFromIngressTraitRule(rule vzapi.IngressRule) []string {
-	hosts := rule.Hosts
-	if len(rule.Hosts) == 0 {
-		hosts = []string{"*"}
-	}
-	for i, h := range hosts {
+// It filters out wildcard hosts or hosts that are empty. If there are no valid hosts provided,
+// then a DNS host name is automatically generated and used.
+func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, trait *vzapi.IngressTrait) ([]string, error) {
+	var validHosts []string
+	for _, h := range rule.Hosts {
 		h = strings.TrimSpace(h)
-		if len(h) == 0 {
-			h = "*"
+		// Ignore empty or wildcard hostname
+		if len(h) == 0 || strings.Contains(h, "*") {
+			continue
 		}
-		hosts[i] = h
+		validHosts = append(validHosts, h)
 	}
-	return hosts
+	// Use default hostname if none of the user specified hosts were valid
+	if len(validHosts) == 0 {
+		hostName, err := buildAppHostName(cli, trait)
+		if err != nil {
+			return nil, err
+		}
+		validHosts = []string{hostName}
+	}
+	return validHosts, nil
 }
 
 // fetchServiceFromTrait traverses from an ingress trait resource to the related service resource and returns it.
@@ -499,4 +515,80 @@ func convertAPIVersionToGroupAndVersion(apiVersion string) (string, string) {
 		return "", parts[0]
 	}
 	return parts[0], parts[1]
+}
+
+// buildAppHostName generates a DNS host name for the application using the following structure:
+// <app>.<namespace>.<dns-subdomain>  where
+//   app is the OAM application name
+//   namespace is the namespace of the OAM application
+//   dns-subdomain is The DNS subdomain name
+// For example: sales.cars.example.com
+func buildAppHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
+	const authRealmKey = "nginx.ingress.kubernetes.io/auth-realm"
+	const rancherIngress = "rancher"
+	const rancherNamespace = "cattle-system"
+
+	appName, ok := trait.Labels[oam.LabelAppName]
+	if !ok {
+		return "", errors.New("OAM app name label missing from metadata, unable to add ingress trait")
+	}
+	// Extract the domain name from the Rancher ingress
+	ingress := k8net.Ingress{}
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: rancherIngress, Namespace: rancherNamespace}, &ingress)
+	if err != nil {
+		return "", err
+	}
+	authRealmAnno, ok := ingress.Annotations[authRealmKey]
+	if !ok || len(authRealmAnno) == 0 {
+		return "", fmt.Errorf("Annotation %s missing from Rancher ingress, unable to generate DNS name", authRealmKey)
+	}
+	segs := strings.Split(strings.TrimSpace(authRealmAnno), " ")
+	domain := strings.TrimSpace(segs[0])
+
+	// If this is xip.io then build the domain name using Istio info
+	if strings.HasSuffix(domain, "xip.io") {
+		domain, err = buildDomainNameForXIPIO(cli, trait)
+		if err != nil {
+			return "", err
+		}
+	}
+	return fmt.Sprintf("%s.%s.%s", appName, trait.Namespace, domain), nil
+}
+
+// buildDomainNameForXIPIO generates a domain name in the format of "<IP>.xip.io"
+// Get the IP from Istio resources
+func buildDomainNameForXIPIO(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
+	const istioIngressGateway = "istio-ingressgateway"
+	const istioNamespace = "istio-system"
+
+	istio := corev1.Service{}
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: istioIngressGateway, Namespace: istioNamespace}, &istio)
+	if err != nil {
+		return "", err
+	}
+	var IP string
+	if istio.Spec.Type == corev1.ServiceTypeLoadBalancer {
+		istioIngress := istio.Status.LoadBalancer.Ingress
+		if len(istioIngress) == 0 {
+			return "", fmt.Errorf("%s is missing loadbalancer IP", istioIngressGateway)
+		}
+		IP = istioIngress[0].IP
+	} else if istio.Spec.Type == corev1.ServiceTypeNodePort {
+		// Do the equiv of the following command to get the IP
+		// kubectl -n istio-system get pods --selector app=istio-ingressgateway,istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}'
+		podList := corev1.PodList{}
+		listOptions := client.MatchingLabels{"app": "istio-ingressgateway", "istio": "ingressgateway"}
+		err := cli.List(context.TODO(), &podList, listOptions)
+		if err != nil {
+			return "", err
+		}
+		if len(podList.Items) == 0 {
+			return "", errors.New("Unable to find Istio ingressway pod")
+		}
+		IP = podList.Items[0].Status.HostIP
+	} else {
+		return "", fmt.Errorf("Unsupported service type %s for istio_ingress", string(istio.Spec.Type))
+	}
+	domain := IP + "." + "xip.io"
+	return domain, nil
 }
