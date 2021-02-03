@@ -7,19 +7,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// The VerrazzanoManagedCluster custom resource contains information about a
+// kubernetes cluster that applications that are managed by Verrazzano.
+
 // VerrazzanoManagedClusterSpec defines the desired state of VerrazzanoManagedCluster
 type VerrazzanoManagedClusterSpec struct {
+	// The name of the managed cluster
+	Name string `json:"name"`
+
 	// The description of the managed cluster
-	Description string `json:"description" yaml:"description"`
-
-	// The server address
-	ServerAddress string `json:"serverAddress" yaml:"serverAddress"`
-
-	// The type of managed cluster
-	Type string `json:"type" yaml:"type"`
+	Description string `json:"description,omitempty"`
 
 	// The secret containing the KUBECONFIG for the managed cluster
-	KubeconfigSecret string `json:"kubeconfigSecret" yaml:"kubeconfigSecret"`
+	KubeconfigSecret string `json:"kubeconfigSecret"`
 }
 
 // VerrazzanoManagedClusterStatus defines the observed state of VerrazzanoManagedCluster

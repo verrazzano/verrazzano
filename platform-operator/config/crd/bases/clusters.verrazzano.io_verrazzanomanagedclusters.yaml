@@ -50,17 +50,12 @@ spec:
                 description: The secret containing the KUBECONFIG for the managed
                   cluster
                 type: string
-              serverAddress:
-                description: The server address
-                type: string
-              type:
-                description: The type of managed cluster
+              name:
+                description: The name of the managed cluster
                 type: string
             required:
-            - description
             - kubeconfigSecret
-            - serverAddress
-            - type
+            - name
             type: object
           status:
             description: VerrazzanoManagedClusterStatus defines the observed state

@@ -117,8 +117,8 @@ manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	# Add copyright headers to the kubebuildr generated CRDs
 	./hack/add-crd-header.sh
-	./hack/update-codegen-verrazzano.sh
-	./hack/update-codegen-clusters.sh
+	./hack/update-codegen.sh "verrazzano:v1alpha1" "client" "boilerplate.go.txt"
+	./hack/update-codegen.sh "clusters:v1alpha1" "client-clusters" "boilerplate-clusters.go.txt"
 
 	# Re-generate operator.yaml using template yaml file
 	cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|$(shell grep --max-count=1 "image:" deploy/operator.yaml | awk '{ print $$2 }')|g" > deploy/operator.yaml
