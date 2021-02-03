@@ -5,6 +5,8 @@ package v1alpha1
 
 import corev1 "k8s.io/api/core/v1"
 
+// This file contains common types and functions used by all MultiCluster Custom Resource Types
+
 // Placement information for multi cluster resources
 type Placement struct {
 	Clusters []Cluster `json:"clusters"`

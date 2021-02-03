@@ -8,9 +8,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // MultiClusterNamespaceSpec defines the desired state of MultiClusterNamespace
 type MultiClusterNamespaceSpec struct {
 	// The embedded Kubernetes namespace
@@ -38,8 +35,11 @@ type MultiClusterNamespaceStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=mcns
+// +kubebuilder:subresource:status
 
-// MultiClusterNamespace is the Schema for the multiclusternamespaces API
+// MultiClusterNamespace is the Schema for the multiclusternamespaces API, which will be used
+// by a user in the management cluster, to create a Kubernetes namespace targeted at one or more
+// managed clusters
 type MultiClusterNamespace struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
