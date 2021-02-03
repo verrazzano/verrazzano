@@ -24,9 +24,6 @@ This example provides a simple web application developed using Spring Boot. For 
 4. Wait for the Spring Boot application to be ready.
    ```
    kubectl wait --for=condition=Ready pods --all -n springboot --timeout=300s
-   ```
-
-   Please note that, the example directory contains `install-springboot.sh`, which performs steps 2, 3 and 4.
 
 ## Access the example application
 
@@ -112,8 +109,6 @@ This example provides a simple web application developed using Spring Boot. For 
    kubectl get pods -n springboot
    kubectl delete namespace springboot
    ```
-   
-   Again, the script `uninstall-springboot.sh` can be used to undeploy the Spring Boot application.
 
 ## Copyright
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
