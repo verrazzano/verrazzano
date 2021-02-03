@@ -10,7 +10,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -30,36 +29,65 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// Reconcile reconciles a VerrazzanoHelidonWorkload resource. It fetches the embedded Deployment CR, mutates it to add
-// scopes and traits, and then writes out the CR (or deletes it if the workload is being deleted).
+// Reconcile reconciles a VerrazzanoHelidonWorkload resource. It fetches the embedded DeploymentSpec, mutates it to add
+// scopes and traits, and then writes out the apps/Deployment (or deletes it if the workload is being deleted).
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=verrazzanohelidonworkloads,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=verrazzanohelidonworkloads/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("verrazzanohelidonworkload", req.NamespacedName)
 	log.Info("Reconciling verrazzano helidon workload")
 
-	// fetch the workload and unwrap the Deployment resource
-	_, err := r.fetchWorkload(ctx, req.NamespacedName)
-	if err != nil {
+	// fetch the workload
+	var workload vzapi.VerrazzanoHelidonWorkload
+	if err := r.Get(ctx, req.NamespacedName, &workload); err != nil {
+		if k8serrors.IsNotFound(err) {
+			log.Info("VerrazzanoHelidonWorkload has been deleted", "name", req.NamespacedName)
+		} else {
+			log.Error(err, "Failed to fetch VerrazzanoHelidonWorkload", "name", req.NamespacedName)
+		}
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
+	log.Info("Got the workload", "apiVersion", workload.APIVersion, "kind", workload.Kind)
+
+	//TODO: find the resource object to record the event to, default is the parent appConfig.
+
+	//unwrap the apps/DeploymentSpec and meta/ObjectMeta
 
 	log.Info("Successfully created Verrazzano Helidon workload")
 	return ctrl.Result{}, nil
 }
 
-// fetchWorkload fetches the VerrazzanoHelidonWorkload data given a namespaced name
-func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedName) (*vzapi.VerrazzanoHelidonWorkload, error) {
-	var workload vzapi.VerrazzanoHelidonWorkload
-	if err := r.Get(ctx, name, &workload); err != nil {
-		if k8serrors.IsNotFound(err) {
-			r.Log.Info("VerrazzanoHelidonWorkload has been deleted", "name", name)
-		} else {
-			r.Log.Error(err, "Failed to fetch VerrazzanoHelidonWorkload", "name", name)
-		}
-		return nil, err
-	}
-
-	return &workload, nil
+// locateParentAppConfig locate the parent application configuration object
+/*
+eventObj, err := r.locateParentAppConfig(ctx, r.Client, &workload)
+if eventObj == nil {
+	// fallback to workload itself
+	log.Error(err, "workload", "name", workload.Name)
+	eventObj = &workload
 }
+func (r *Reconciler) locateParentAppConfig(ctx context.Context, client client.Client, oamObject oam.Object) (oam.Object, error) {
+	var acName string
+	var eventObj = &v1alpha2.ApplicationConfiguration{}
+	// locate the appConf name from the owner list
+	for _, o := range oamObject.GetOwnerReferences() {
+		if o.Kind == v1alpha2.ApplicationConfigurationKind {
+			acName = o.Name
+			break
+		}
+	}
+	if len(acName) > 0 {
+		nn := types.NamespacedName{
+			Name:      acName,
+			Namespace: oamObject.GetNamespace(),
+		}
+		if err := client.Get(ctx, nn, eventObj); err != nil {
+			return nil, err
+		}
+		return eventObj, nil
+	}
+	return nil, errors.Errorf(ErrLocateAppConfig)
+}
+*/

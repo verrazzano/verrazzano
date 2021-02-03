@@ -10,9 +10,8 @@ import (
 
 // VerrazzanoHelidonWorkloadSpec wraps meta/ObjectMeta & apps/DeploymentSpec.
 type VerrazzanoHelidonWorkloadSpec struct {
-	// +kubebuilder:validation:EmbeddedResource
 	// +kubebuilder:pruning:PreserveUnknownFields
-	ObjectMeta metav1.ObjectMeta `json:"objectMeta"`
+	DeploymentMeta metav1.ObjectMeta     `json:"deploymentMeta"`
 	DeploymentSpec appsv1.DeploymentSpec `json:"deploymentSpec"`
 }
 

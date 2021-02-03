@@ -1,4 +1,4 @@
-# Copyright (c) 2021 Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 ---
@@ -39,6 +39,9 @@ spec:
           spec:
             description: VerrazzanoHelidonWorkloadSpec wraps meta/ObjectMeta & apps/DeploymentSpec.
             properties:
+              deploymentMeta:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
               deploymentSpec:
                 description: DeploymentSpec is the specification of the desired behavior
                   of the Deployment.
@@ -6346,13 +6349,9 @@ spec:
                 - selector
                 - template
                 type: object
-              objectMeta:
-                type: object
-                x-kubernetes-embedded-resource: true
-                x-kubernetes-preserve-unknown-fields: true
             required:
+            - deploymentMeta
             - deploymentSpec
-            - objectMeta
             type: object
           status:
             description: VerrazzanoHelidonWorkloadStatus defines the observed state
