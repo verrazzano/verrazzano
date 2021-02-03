@@ -101,7 +101,6 @@ var _ = ginkgo.Describe("VMI", func() {
 		gomega.Eventually(elasticTlsSecret, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "tls-secret did not show up")
 		gomega.Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "certificate did not show up")
 		gomega.Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "ingress did not show up")
-		gomega.Eventually(elasticLookup, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "elasticLookup never worked")
 		pkg.Concurrently(
 			func() {
 				gomega.Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "never connected")
@@ -239,10 +238,6 @@ func elasticConnected() bool {
 	} else {
 		return false
 	}
-}
-
-func elasticLookup() bool {
-	return elastic.LookupHost()
 }
 
 func elasticTlsSecret() bool {
