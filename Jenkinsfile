@@ -518,7 +518,7 @@ pipeline {
             dumpVerrazzanoPlatformOperatorLogs()
             dumpVerrazzanoApplicationOperatorLogs()
             dumpOamKubernetesRuntimeLogs()
-            dumpVerrazzanoApiLogs()
+            dumpVerrazzanoApiLogs()k.[;]
 
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump.tar.gz', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
@@ -643,6 +643,6 @@ def dumpVerrazzanoApiLogs() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-api.log"
-        ${WORKSPACE}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
