@@ -487,6 +487,10 @@ pipeline {
                                     steps {
                                         runGinkgo('examples/todo-list')
                                         runGinkgo('examples/sock-shop')
+                                        sh """
+                                            ${WORKSPACE}/verrazzano/application-operator/examples/hello-helidon/install-hello-world.sh
+                                        """
+                                        runGinkgo('examples/hello-helidon')
                                     }
                                 }
                             }
