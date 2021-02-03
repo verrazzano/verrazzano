@@ -7,8 +7,12 @@ import (
 	"flag"
 	"os"
 
+	clustersverrazzanoiov1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/certificate"
 	config2 "github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
+	"github.com/verrazzano/verrazzano/platform-operator/internal/util/log"
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -19,12 +23,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	clustersverrazzanoiov1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/certificate"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/util/log"
 	// +kubebuilder:scaffold:imports
 )
 
