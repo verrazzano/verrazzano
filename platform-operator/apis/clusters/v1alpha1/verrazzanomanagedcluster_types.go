@@ -18,7 +18,7 @@ type VerrazzanoManagedClusterSpec struct {
 	// The name of a secret that contains the credentials for scraping from
 	// the prometheus endpoint on the managed cluster.  The secret contains
 	// the endpoint, username and password.
-	PrometheusSecret string `json:"prometheusSecret,omitempty"`
+	PrometheusSecret string `json:"prometheusSecret"`
 
 	// The generated identifier for the managed cluster.
 	// This field is managed by a Verrazzano Kubernetes operator.
