@@ -19,4 +19,22 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 		ginkgoExt.Entry("verrazzanos should exist in cluster", "verrazzanos.install.verrazzano.io"),
 	)
 
+	ginkgoExt.DescribeTable("ClusterRole",
+		func(name string) {
+			gomega.Expect(pkg.DoesClusterRoleExist(name)).To(gomega.BeTrue())
+		},
+		ginkgoExt.Entry("verrazzano-admin should exist", "verrazzano-admin"),
+		ginkgoExt.Entry("verrazzano-app-admin should exist", "verrazzano-app-admin"),
+		ginkgoExt.Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
+	)
+
+	ginkgoExt.DescribeTable("ClusterRoleBinding",
+		func(name string) {
+			gomega.Expect(pkg.DoesClusterRoleBindingExist(name)).To(gomega.BeTrue())
+		},
+		ginkgoExt.Entry("verrazzano-admin should exist", "verrazzano-admin"),
+		ginkgoExt.Entry("verrazzano-app-admin should exist", "verrazzano-app-admin"),
+		ginkgoExt.Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
+	)
+
 })

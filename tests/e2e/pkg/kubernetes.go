@@ -308,3 +308,29 @@ func DeleteNamespace(name string) error {
 	}
 	return err
 }
+
+// DoesClusterRoleExist returns whether a cluster role with the given name exists in the cluster
+func DoesClusterRoleExist(name string) bool {
+	// Get the kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	namespace, err := clientset.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get cluster role %s with error: %v", name, err))
+	}
+
+	return namespace != nil
+}
+
+// DoesClusterRoleBindingExist returns whether a cluster role with the given name exists in the cluster
+func DoesClusterRoleBindingExist(name string) bool {
+	// Get the kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	namespace, err := clientset.RbacV1().ClusterRoleBindings().Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get cluster role %s with error: %v", name, err))
+	}
+
+	return namespace != nil
+}
