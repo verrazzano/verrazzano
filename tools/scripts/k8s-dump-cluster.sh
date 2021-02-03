@@ -106,6 +106,11 @@ function full_k8s_cluster_dump() {
     kubectl get Coherence --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/coherence.json || true
     kubectl get gateway --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/gateways.json || true
     kubectl get virtualservice --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/virtualservices.json || true
+    kubectl describe verrazzano --all-namespaces > $CAPTURE_DIR/cluster-dump/verrazzano_resources.out || true
+    kubectl api-resources -o wide > $CAPTURE_DIR/cluster-dump/api_resources.out || true
+    kubectl describe configmap --all-namespaces > $CAPTURE_DIR/cluster-dump/configmaps.out || true
+    helm version > $CAPTURE_DIR/cluster-dump/helm-version.out || true
+    helm ls -A -o json > $CAPTURE_DIR/cluster-dump/helm-ls.json || true
   else
     echo "Failed to dump cluster, verify kubectl has access to the cluster"
   fi
