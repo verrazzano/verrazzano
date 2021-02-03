@@ -4,8 +4,9 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
-. $SCRIPT_DIR/common.sh
 . $SCRIPT_DIR/config.sh
+. $SCRIPT_DIR/common.sh
+
 
 TMP_DIR=$(mktemp -d)
 trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT

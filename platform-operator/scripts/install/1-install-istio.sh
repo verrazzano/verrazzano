@@ -5,8 +5,8 @@
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
-. $SCRIPT_DIR/common.sh
 . $SCRIPT_DIR/config.sh
+. $SCRIPT_DIR/common.sh
 
 INGRESS_TYPE=$(get_config_value ".ingress.type")
 
