@@ -2982,9 +2982,10 @@ spec:
                     result in generated PVCs, but can used to provide common configuration
                     to components that declare a PersistentVolumeClaimVolumeSource
                   properties:
-                    name:
-                      description: Name The name of the configuration template
-                      type: string
+                    metadata:
+                      description: Metadata about the PersistentVolumeClaimSpec template.
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
                     spec:
                       description: Spec The configuration specs for the template
                       properties:
@@ -3114,8 +3115,6 @@ spec:
                             PersistentVolume backing this claim.
                           type: string
                       type: object
-                  required:
-                  - name
                   type: object
                 type: array
             type: object
