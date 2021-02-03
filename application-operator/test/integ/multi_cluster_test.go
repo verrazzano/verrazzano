@@ -15,9 +15,10 @@ const (
 )
 
 var (
-	multiclusterCrds = [2]string{
+	multiclusterCrds = []string{
 		fmt.Sprintf("%v/clusters.verrazzano.io_multiclusternamespaces.yaml", crdDir),
 		fmt.Sprintf("%v/clusters.verrazzano.io_multiclustersecrets.yaml", crdDir),
+		fmt.Sprintf("%v/clusters.verrazzano.io_multiclusterconfigmaps.yaml", crdDir),
 	}
 )
 
@@ -36,6 +37,10 @@ var _ = ginkgo.Describe("Testing Multi-Cluster Namespace CRD", func() {
 	})
 	ginkgo.It("MultiClusterSecret can be created ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_secret_sample.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""))
+	})
+	ginkgo.It("MultiClusterConfigMap can be created ", func() {
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_configmap_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
 })

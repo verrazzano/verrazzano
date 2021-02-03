@@ -22,4 +22,7 @@ resources:
 - group: clusters
   kind: MultiClusterSecret
   version: v1alpha1
+- group: clusters
+  kind: MultiClusterConfigMap
+  version: v1alpha1
 version: "2"

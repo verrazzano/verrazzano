@@ -11,6 +11,7 @@ resources:
 - bases/oam.verrazzano.io_verrazzanocoherenceworkloads.yaml
 - bases/clusters.verrazzano.io_multiclusternamespaces.yaml
 - bases/clusters.verrazzano.io_multiclustersecrets.yaml
+- bases/clusters.verrazzano.io_multiclusterconfigmaps.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
