@@ -518,7 +518,7 @@ pipeline {
             dumpVerrazzanoPlatformOperatorLogs()
             dumpVerrazzanoApplicationOperatorLogs()
             dumpOamKubernetesRuntimeLogs()
-            dumpVerrazzanoApiLogs()k.[;]
+            dumpVerrazzanoApiLogs()
 
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump.tar.gz', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
