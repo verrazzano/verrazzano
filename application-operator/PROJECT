@@ -19,4 +19,7 @@ resources:
 - group: clusters
   kind: MultiClusterNamespace
   version: v1alpha1
+- group: clusters
+  kind: MultiClusterSecret
+  version: v1alpha1
 version: "2"
