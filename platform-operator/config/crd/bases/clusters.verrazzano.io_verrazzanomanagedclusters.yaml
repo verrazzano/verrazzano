@@ -43,19 +43,36 @@ spec:
             description: VerrazzanoManagedClusterSpec defines the desired state of
               VerrazzanoManagedCluster
             properties:
+              clusterId:
+                description: The generated identifier for the managed cluster. This
+                  field is managed by a Verrazzano Kubernetes operator.
+                type: string
               description:
-                description: The description of the managed cluster
+                description: The description of the managed cluster.
                 type: string
               kubeconfigSecret:
-                description: The secret containing the KUBECONFIG for the managed
-                  cluster
+                description: The name of the generated secret for the kubeconfig to
+                  be used by the managed cluster for connecting to management cluster
+                  to synchronize multi-cluster objects. This field is managed by a
+                  Verrazzano Kubernetes operator.
                 type: string
-              name:
-                description: The name of the managed cluster
+              managedClusterManifestSecret:
+                description: The name of the secret containing generated YAML manifest
+                  to be applied by the user to the managed cluster. This field is
+                  managed by a Verrazzano Kubernetes operator.
+                type: string
+              prometheusSecret:
+                description: The name of a secret that contains the credentials for
+                  scraping from the prometheus endpoint on the managed cluster.  The
+                  secret contains the endpoint, username and password.
+                type: string
+              serviceAccount:
+                description: The name of the ServiceAccount that was generated for
+                  the managed cluster. This field is managed by a Verrazzano Kubernetes
+                  operator.
                 type: string
             required:
-            - kubeconfigSecret
-            - name
+            - prometheusSecret
             type: object
           status:
             description: VerrazzanoManagedClusterStatus defines the observed state
