@@ -70,8 +70,9 @@ manifests: go-mod controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	# Add copyright headers to the kubebuildr generated CRDs
 	./hack/add-crd-header.sh
-	# Add copyright headers to the kubebuildr generated manifests
+	# Add copyright headers to the kubebuildr generated manifests and to the edited PROJECT file
 	./hack/add-yml-header.sh config/webhook/manifests.yaml
+	./hack/add-yml-header.sh PROJECT
 
 # Generate code
 .PHONY: generate
