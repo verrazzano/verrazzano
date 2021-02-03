@@ -22,7 +22,7 @@ type VerrazzanoManagedClusterSpec struct {
 
 	// The generated identifier for the managed cluster.
 	// This field is managed by a Verrazzano Kubernetes operator.
-	ClusterId string `json:"clusterId,omitempty"`
+	ClusterID string `json:"clusterID,omitempty"`
 
 	// The name of the ServiceAccount that was generated for the managed cluster.
 	// This field is managed by a Verrazzano Kubernetes operator.
