@@ -21,13 +21,13 @@ type MultiClusterSecretSpec struct {
 // Note that K8S does not define a "SecretSpec" data type, so the 3 fields in Secret are copied here
 type SecretTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Metadata metav1.ObjectMeta    `json:"metadata,omitempty"`
+	Metadata metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Data corresponds to the Data field of K8S corev1.Secret
 	Data map[string][]byte `json:"data,omitempty"`
 
 	// StringData corresponds to the StringData field of K8S corev1.Secret
-    StringData map[string]string `json:"stringData,omitempty"`
+	StringData map[string]string `json:"stringData,omitempty"`
 
 	// Type corresponds to the Type field of K8S corev1.Secret
 	Type corev1.SecretType `json:"type,omitempty"`
