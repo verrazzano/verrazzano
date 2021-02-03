@@ -2,29 +2,46 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 global:
-  hub: ghcr.io/verrazzano
-  tag: 1.4.6
+  hub: container-registry.oracle.com/olcne
+  tag: 1.7.3
+  arch:
+    amd64: 2
+    s390x: 2
+    ppc64le: 2
+  # Provides dns resolution for global services
+  podDNSSearchNamespaces:
+    - global
+  multiCluster:
+    enabled: true
+  controlPlaneSecurityEnabled: true
+  enableHelmTest: false
+
 gateways:
   istio-ingressgateway:
     ports:
-    - port: 80
-      targetPort: 80
-      name: http2
-      nodePort: 31380
-    - port: 443
-      name: https
-      nodePort: 31390
-sidecarInjectorWebhook:
-  rewriteAppHTTPProbe: true
-grafana:
-  enabled: true
-  image:
-    repository: ghcr.io/verrazzano/grafana
-    tag: v6.4.4
-prometheus:
-  hub: ghcr.io/verrazzano
-  tag: v2.13.1
+      - port: 80
+        targetPort: 80
+        name: http2
+        nodePort: 31380
+      - port: 443
+        name: https
+        nodePort: 31390
+  istio-egressgateway:
+    env:
+      # Needed to route traffic via egress gateway if desired.
+      ISTIO_META_REQUESTED_NETWORK_VIEW: "external"
+
 istiocoredns:
+  enabled: true
   coreDNSImage: ghcr.io/verrazzano/coredns
   coreDNSTag: 1.6.2
   coreDNSPluginImage: ghcr.io/verrazzano/istio-coredns-plugin:0.2-20201016204812-23723dcb
+
+grafana:
+  image:
+    repository: ghcr.io/verrazzano/grafana
+    tag: v6.4.4
+
+prometheus:
+  hub: ghcr.io/verrazzano
+  tag: v2.13.1
