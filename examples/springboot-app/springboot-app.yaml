@@ -4,10 +4,10 @@ apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
   name: springboot-appconf
-  namespace: oam-springboot
+  namespace: springboot
   annotations:
     version: v1.0.0
-    description: "Springboot application"
+    description: "Spring Boot application"
 spec:
   components:
     - componentName: springboot-component
@@ -25,7 +25,7 @@ spec:
             spec:
               rules:
                 - hosts:
-                    - "oam-springboot.example.com"
+                    - "springboot.example.com"
                   paths:
                     - path: "/"
                       pathType: Prefix

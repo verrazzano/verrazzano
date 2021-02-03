@@ -4,20 +4,20 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: springboot-component
-  namespace: oam-springboot
+  namespace: springboot
 spec:
   workload:
     apiVersion: core.oam.dev/v1alpha2
     kind: ContainerizedWorkload
     metadata:
       name: springboot-workload
-      namespace: oam-springboot
+      namespace: springboot
       labels:
         app: springboot
     spec:
       containers:
       - name: springboot-container
-        image: "phx.ocir.io/stevengreenberginc/testimage/spring-boot-verrazzano:0.0.3"
+        image: "ghcr.io/verrazzano/example-springboot:0.9.0"
         ports:
           - containerPort: 8080
             name: springboot

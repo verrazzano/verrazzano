@@ -7,9 +7,9 @@ SCRIPT_DIR=$(cd $(dirname $0); pwd -P)
 
 set -u
 
-NAMESPACE="oam-springboot"
+NAMESPACE="springboot"
 
-echo "Removing Springboot OAM application."
+echo "Removing Spring Boot application."
 
 echo "Delete application definition."
 kubectl get applicationconfiguration springboot-appconf -n "${NAMESPACE}" &> /dev/null
@@ -56,4 +56,4 @@ else
   fi
 fi
 
-echo "Removal of Springboot OAM application successful."
+echo "Removal of Spring Boot application successful."

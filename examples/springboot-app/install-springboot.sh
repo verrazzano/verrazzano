@@ -7,10 +7,10 @@ SCRIPT_DIR=$(cd $(dirname $0); pwd -P)
 
 set -u
 
-NAMESPACE="oam-springboot"
+NAMESPACE="springboot"
 SPRINGBOOT_COMPONENT_FILE="${SCRIPT_DIR}/springboot-comp.yaml"
 
-echo "Installing Springboot OAM application."
+echo "Installing Spring Boot application."
 
 status=$(kubectl get namespace ${NAMESPACE} -o jsonpath="{.status.phase}" 2> /dev/null)
 if [ "${status}" == "Active" ]; then
@@ -23,11 +23,6 @@ else
       exit 1
   fi
 fi
-
-# QUESTION : Is it a good option to copy .yaml files to /tmp/springboot before replacing the tokens
-# and call kubectl apply -f /tmp/springboot/ ?
-echo "Substitute image name template in ${SPRINGBOOT_COMPONENT_FILE} as ${SPRINGBOOT_APP_IMAGE}"
-sed -i '' -e "s|%SPRINGBOOT_APP_IMAGE%|${SPRINGBOOT_APP_IMAGE}|" ${SPRINGBOOT_COMPONENT_FILE}
 
 echo "Apply application configuration."
 kubectl apply -f ${SCRIPT_DIR}/
@@ -56,4 +51,4 @@ while true; do
   sleep .5
 done
 
-echo "Installation of Springboot OAM application successful."
+echo "Installation of Spring Boot application successful."
