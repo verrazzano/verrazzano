@@ -8,7 +8,7 @@ package installjob
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
+	"errors"
 	"go.uber.org/zap"
 	"strconv"
 
@@ -393,7 +393,7 @@ func getKeycloak(keycloak installv1alpha1.KeycloakComponent, templates []install
 		pvcs := mysqlVolumeSource.PersistentVolumeClaim
 		storageSpec, found := findVolumeTemplate(pvcs.ClaimName, templates)
 		if !found {
-			err := errors.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
+			err := errors.New(fmt.Sprintf("No VolumeClaimTemplate found for %s", pvcs.ClaimName))
 			return Keycloak{}, err
 		}
 		storageClass := storageSpec.StorageClassName
@@ -518,7 +518,7 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.S
 		pvcs := vzSpec.DefaultVolumeSource.PersistentVolumeClaim
 		storageSpec, found := findVolumeTemplate(pvcs.ClaimName, vzSpec.VolumeClaimSpecTemplates)
 		if !found {
-			err := errors.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
+			err := errors.New(fmt.Sprintf("No VolumeClaimTemplate found for %s", pvcs.ClaimName))
 			return []InstallArg{}, err
 		}
 		return []InstallArg{
