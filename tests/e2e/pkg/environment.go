@@ -6,10 +6,8 @@ package pkg
 import (
 	"context"
 	"fmt"
-	"net"
 	"os"
 	"strings"
-	yourl "net/url"
 
 	v1 "k8s.io/api/core/v1"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
@@ -138,20 +136,6 @@ func findIstioIngressGatewaySvc(requireLoadBalancer bool) v1.Service {
 		}
 	}
 	return ingressgateway
-}
-
-func Lookup(url string) bool {
-	parsed, err := yourl.Parse(url)
-	if err != nil {
-		Log(Info, fmt.Sprintf("Error parse %v error: %v", url, err))
-		return false
-	}
-	_, err = net.LookupHost(parsed.Host)
-	if err != nil {
-		Log(Info, fmt.Sprintf("Error LookupHost %v error: %v", url, err))
-		return false
-	}
-	return true
 }
 
 // ListCertificates lists certificates in namespace
