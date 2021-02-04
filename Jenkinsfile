@@ -492,14 +492,14 @@ pipeline {
                                     }
                                 }
                             }
-                        }
-
+                            post {
+                                always {
+                                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                                }
+                            }
                     }
                     post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
                         failure {
                             dumpK8sCluster('new-acceptance-tests-cluster-dump.tar.gz')
                         }
