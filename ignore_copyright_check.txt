@@ -2,10 +2,10 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 platform-operator/scripts/install/config/images
 platform-operator/scripts/install/config/00-crds.patch
-platform-operator/scripts/install/chart/NOTES.txt
+platform-operator/helm_config/charts/verrazzano/NOTES.txt
+platform-operator/helm_config/charts/verrazzano-application-operator/NOTES.txt
 LICENSES-OLCNE.pdf
 coverage.xml
 # The charts and manifests directories contains external (3rd party) Helm charts and manifests
-thirdparty
-
+platform-operator/thirdparty
 application-operator/deploy/application-operator.txt
