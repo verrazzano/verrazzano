@@ -59,9 +59,9 @@ This example provides a simple web application developed using Spring Boot. For 
        before deploying the Spring Boot application.
      * Then, you can use a browser to access the application at `http://<yourhost.your.domain>/` and `http://<yourhost.your.domain>/facts`
 
-    The actuator endpoint is accessible under the path `/actuator` and the prometheus endpoint exposing metrics data in a format that can be scraped by a Prometheus server is accessible under the path `/actuator/prometheus`.
+    The actuator endpoint is accessible under the path `/actuator` and the Prometheus endpoint exposing metrics data in a format that can be scraped by a Prometheus server is accessible under the path `/actuator/prometheus`.
 
-3. A variety of endpoints are available to further explore the logs, metrics, etc. associated with 
+3. A variety of endpoints are available to further explore the logs and metrics associated with
    the deployed Spring Boot application.
    Accessing them may require the following:
 
