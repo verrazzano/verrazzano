@@ -7,11 +7,11 @@ import (
 	"flag"
 	"os"
 
-	config2 "github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/api/verrazzano/v1alpha1"
+	clustersverrazzanoiov1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/certificate"
+	config2 "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/log"
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
@@ -32,6 +32,7 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
 	_ = installv1alpha1.AddToScheme(scheme)
+	_ = clustersverrazzanoiov1alpha1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 

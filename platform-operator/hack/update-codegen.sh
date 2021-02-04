@@ -6,6 +6,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+API_GROUP_VERSION=$1
+BASE_CLIENT_OUTPUT_DIR=$2
+GO_HEADER_BOILERPLATE=$3
+
 CODEGEN_PATH=k8s.io/code-generator
 
 SCRIPT_ROOT=$(dirname $0)/..
@@ -18,7 +22,7 @@ CODEGEN_PKG=${CODEGEN_PKG:-${GOPATH}/pkg/mod/${CODEGEN_PATH}@${codeGenVer}}
 echo "codegen_pkg = ${CODEGEN_PKG}"
 chmod +x ${CODEGEN_PKG}/generate-groups.sh
 
-GENERATED_CLIENT_DIR=$SCRIPT_ROOT/client
+GENERATED_CLIENT_DIR=$SCRIPT_ROOT/${BASE_CLIENT_OUTPUT_DIR}
 echo Remove $GENERATED_CLIENT_DIR dir if exist
 rm -rf $GENERATED_CLIENT_DIR
 
@@ -27,7 +31,7 @@ rm -rf $GENERATED_CLIENT_DIR
 #                  k8s.io/kubernetes. The output-base is needed for the generators to output into the vendor dir
 #                  instead of the $GOPATH directly. For normal projects this can be dropped.
 ${CODEGEN_PKG}/generate-groups.sh "client" \
-  github.com/verrazzano/verrazzano/platform-operator/client github.com/verrazzano/verrazzano/platform-operator/api \
-  verrazzano:v1alpha1 \
+  github.com/verrazzano/verrazzano/platform-operator/${BASE_CLIENT_OUTPUT_DIR} github.com/verrazzano/verrazzano/platform-operator/apis \
+  ${API_GROUP_VERSION} \
   --output-base "${GOPATH}/src" \
-  --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.go.txt
+  --go-header-file ${SCRIPT_ROOT}/hack/${GO_HEADER_BOILERPLATE}

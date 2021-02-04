@@ -16,3 +16,5 @@ sed -e "/VZ_INSTALL_IMAGE/a\              value: ${GHCR_REPO}/verrazzano/${VERRA
 -e "s|IMAGE_NAME|${GHCR_REPO}/verrazzano/${VERRAZZANO_OPERATOR_IMAGE}|g" > /tmp/operator.yaml
 
 cat ${OPERATOR_DIR}/config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> /tmp/operator.yaml
+cat ${OPERATOR_DIR}/config/crd/bases/clusters.verrazzano.io_verrazzanomanagedclusters.yaml >> /tmp/operator.yaml
+
