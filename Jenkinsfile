@@ -334,164 +334,157 @@ pipeline {
             }
         }
 
-        stage('New Acceptance Tests') {
-            stages {
-                 stage('Create Kind Cluster for Test Suite') {
-                    steps {
+        stage('Acceptance Tests') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    anyOf {
+                        branch 'master';
+                        branch 'develop';
+                        expression {SKIP_ACCEPTANCE_TESTS == false};
+                    }
+                }
+            }
+
+            stage('Prepare AT environment') {
+                steps {
+                    sh """
+                        echo "Create Kind clsuter"
+                        cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                        make create-cluster
+
+                        echo "Create Image Pull Secrets"
+                        cd ${GO_REPO_PATH}/verrazzano
+                        ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                        ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                        ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+
+                        echo "Install Platform Operator"
+                        cd ${GO_REPO_PATH}/verrazzano
+
+                        # Configure the deployment file to use an image pull secret for branches that have private images
+                        if [ "${env.BRANCH_NAME}" == "master" ] || [ "${env.BRANCH_NAME}" == "develop" ]; then
+                            echo "Using operator.yaml from Verrazzano repo"
+                            cp platform-operator/deploy/operator.yaml /tmp/operator.yaml
+                        else
+                            echo "Generating operator.yaml based on image name provided: ${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                            ./tests/e2e/config/scripts/process_operator_yaml.sh platform-operator "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                        fi
+
+                        # Install the verrazzano-platform-operator
+                        cat /tmp/operator.yaml
+                        kubectl apply -f /tmp/operator.yaml
+
+                        # make sure ns exists
+                        ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+
+                        # create secret in verrazzano-install ns
+                        ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+
+                        # Configure the custom resource to install verrazzano on Kind
+                        echo "Installing yq"
+                        GO111MODULE=on go get github.com/mikefarah/yq/v4
+                        export PATH=${HOME}/go/bin:${PATH}
+                        ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND}
+
+                        echo "Wait for Operator to be ready"
+                        cd ${GO_REPO_PATH}/verrazzano
+                        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+
+                        echo "Installing Verrazzano on Kind"
+                        kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}
+
+                        # wait for Verrazzano install to complete
+                        ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+
+                        # Hack
+                        # OCIR images don't work with KIND.
+                        # Coherence image doesn't get pulled correctly in KIND.
+                        docker pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
+                        kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/middleware/coherence:12.2.1.4.0
+                        # The ToDoList example image currently cannot be pulled in KIND.
+                        docker pull container-registry.oracle.com/verrazzano/example-todo:0.8.0
+                        kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-todo:0.8.0
+                    """
+                }
+                post {
+                    always {
                         sh """
-                            cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                            make create-cluster
+                            ## dump out install logs
+                            mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
+                            kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
+                            kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+                            echo "Verrazzano Installation logs dumped to verrazzano-install.log"
+                            echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
+                            echo "------------------------------------------"
                         """
                     }
                 }
+            }
 
-                stage('Create Image Pull Secrets') {
-                    steps {
-                        sh """
-                            # Create image pull secret for Verrazzano docker images
-                            cd ${GO_REPO_PATH}/verrazzano
-                            ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                            ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                            ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
-                        """
-                    }
+            stage('Run Acceptance Tests') {
+                environment {
+                    TEST_ENV = "KIND"
                 }
-
-                stage('Install Platform Operator') {
-                    steps {
-                        sh """
-                            cd ${GO_REPO_PATH}/verrazzano
-
-                            # Configure the deployment file to use an image pull secret for branches that have private images
-                            if [ "${env.BRANCH_NAME}" == "master" ] || [ "${env.BRANCH_NAME}" == "develop" ]; then
-                                echo "Using operator.yaml from Verrazzano repo"
-                                cp platform-operator/deploy/operator.yaml /tmp/operator.yaml
-                            else
-                                echo "Generating operator.yaml based on image name provided: ${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                                ./tests/e2e/config/scripts/process_operator_yaml.sh platform-operator "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                            fi
-
-                            # Install the verrazzano-platform-operator
-                            cat /tmp/operator.yaml
-                            kubectl apply -f /tmp/operator.yaml
-
-                            # make sure ns exists
-                            ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
-
-                            # create secret in verrazzano-install ns
-                            ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
-
-                            # Configure the custom resource to install verrazzano on Kind
-                            echo "Installing yq"
-                            GO111MODULE=on go get github.com/mikefarah/yq/v4
-                            export PATH=${HOME}/go/bin:${PATH}
-                            ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND}
-                        """
+                parallel {
+                    stage('verify-install') {
+                        steps {
+                            runGinkgoRandomize('verify-install')
+                        }
                     }
-                }
-
-                stage('Install Verrazzano') {
-                    steps {
-                        sh """
-                            echo "Waiting for Operator to be ready"
-                            cd ${GO_REPO_PATH}/verrazzano
-                            kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-
-                            echo "Installing Verrazzano on Kind"
-                            kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}
-
-                            # wait for Verrazzano install to complete
-                            ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
-
-                            # Hack
-                            # OCIR images don't work with KIND.
-                            # Coherence image doesn't get pulled correctly in KIND.
-                            docker pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
-                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/middleware/coherence:12.2.1.4.0
-                            # The ToDoList example image currently cannot be pulled in KIND.
-                            docker pull container-registry.oracle.com/verrazzano/example-todo:0.8.0
-                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-todo:0.8.0
-                        """
+                    stage('verify-infra restapi') {
+                        steps {
+                            runGinkgoRandomize('verify-infra/restapi')
+                        }
                     }
-                    post {
-                        always {
-                            sh """
-                                ## dump out install logs
-                                mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
-                                kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
-                                kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
-                                echo "Verrazzano Installation logs dumped to verrazzano-install.log"
-                                echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
-                                echo "------------------------------------------"
-                            """
+                    stage('verify-infra oam') {
+                        steps {
+                            runGinkgoRandomize('verify-infra/oam')
+                        }
+                    }
+                    stage('verify-infra vmi') {
+                        steps {
+                            runGinkgoRandomize('verify-infra/vmi')
+                        }
+                    }
+                    // yes i know this is ugly - working on cleaning it up
+                    stage('examples todo') {
+                        when {
+                            expression {params.RUN_EXAMPLE_TESTS == true}
+                        }
+                        steps {
+                            runGinkgo('examples/todo-list')
+                        }
+                    }
+                    stage('examples socks') {
+                        when {
+                            expression {params.RUN_EXAMPLE_TESTS == true}
+                        }
+                        steps {
+                            runGinkgo('examples/sock-shop')
+                        }
+                    }
+                    stage('examples spring') {
+                        when {
+                            expression {params.RUN_EXAMPLE_TESTS == true}
+                        }
+                        steps {
+                            runGinkgo('examples/springboot-app')
+                        }
+                    }
+                    stage('examples helidon') {
+                        when {
+                            expression {params.RUN_EXAMPLE_TESTS == true}
+                        }
+                        steps {
+                            runGinkgo('examples/hello-helidon')
                         }
                     }
                 }
-
-                stage('Run Acceptance Tests') {
-                    environment {
-                        TEST_ENV = "KIND"
-                    }
-                    parallel {
-                        stage('verify-install') {
-                            steps {
-                                runGinkgoRandomize('verify-install')
-                            }
-                        }
-                        stage('verify-infra restapi') {
-                            steps {
-                                runGinkgoRandomize('verify-infra/restapi')
-                            }
-                        }
-                        stage('verify-infra oam') {
-                            steps {
-                                runGinkgoRandomize('verify-infra/oam')
-                            }
-                        }
-                        stage('verify-infra vmi') {
-                            steps {
-                                runGinkgoRandomize('verify-infra/vmi')
-                            }
-                        }
-                        // yes i know this is ugly - working on cleaning it up
-                        stage('examples todo') {
-                            when {
-                                expression {params.RUN_EXAMPLE_TESTS == true}
-                            }
-                            steps {
-                                runGinkgo('examples/todo-list')
-                            }
-                        }
-                        stage('examples socks') {
-                            when {
-                                expression {params.RUN_EXAMPLE_TESTS == true}
-                            }
-                            steps {
-                                runGinkgo('examples/sock-shop')
-                            }
-                        }
-                        stage('examples spring') {
-                            when {
-                                expression {params.RUN_EXAMPLE_TESTS == true}
-                            }
-                            steps {
-                                runGinkgo('examples/springboot-app')
-                            }
-                        }
-                        stage('examples helidon') {
-                            when {
-                                expression {params.RUN_EXAMPLE_TESTS == true}
-                            }
-                            steps {
-                                runGinkgo('examples/hello-helidon')
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
+                post {
+                    always {
+                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
                     }
                 }
             }
@@ -507,7 +500,7 @@ pipeline {
                     }
                 }
             }
-            }
+        }
     }
 
     post {
