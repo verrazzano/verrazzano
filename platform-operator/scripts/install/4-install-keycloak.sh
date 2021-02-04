@@ -86,7 +86,7 @@ metadata:
   namespace: ${KEYCLOAK_NS}
 type: Opaque
 data:
-  password: $(cat /dev/urandom | tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1 | base64)
+  password: $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1 | base64)
 ")
 
   # Check if using the optional imagePullSecret

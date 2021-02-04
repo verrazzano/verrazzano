@@ -22,6 +22,7 @@ import (
 	oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 )
 
 const (
@@ -81,7 +82,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 		handler := r.Handlers[handlerKey(resource)]
 		if handler == nil {
-			log.Error(nil, "Unknown Resource Kind encountered in Logging Scope Controller", "resource", resource)
+			// if this is one of our wrapper resources, we expect to not find a handler since logging is
+			// added at resource creation time
+			if vznav.IsVerrazzanoWorkloadKind(workload) {
+				log.Info("Skipping logging scope processing for Verrazzano workload kind", "resource", resource)
+			} else {
+				log.Error(nil, "Unknown Resource Kind encountered in Logging Scope Controller", "resource", resource)
+			}
 			continue
 		}
 		err = handler.Apply(ctx, resource, scope)

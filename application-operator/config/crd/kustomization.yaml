@@ -9,6 +9,8 @@ resources:
 - bases/oam.verrazzano.io_metricstraits.yaml
 - bases/oam.verrazzano.io_loggingscopes.yaml
 - bases/oam.verrazzano.io_verrazzanocoherenceworkloads.yaml
+- bases/clusters.verrazzano.io_multiclusternamespaces.yaml
+- bases/clusters.verrazzano.io_multiclustersecrets.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

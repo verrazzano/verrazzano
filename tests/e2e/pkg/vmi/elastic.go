@@ -7,9 +7,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"net/http"
 )
 
 type Elastic struct {
@@ -47,7 +48,7 @@ func (e *Elastic) PodsRunning() bool {
 
 //Checks if the elasticsearch cluster can be connected
 func (e *Elastic) Connect() bool {
-	esURL := pkg.GetVerrazzanoInstance().ElasticURL
+	esURL := pkg.GetApiEndpoint().GetElasticURL()
 	body, err := e.retryGet(esURL, pkg.Username, pkg.GetVerrazzanoPassword())
 	if err != nil {
 		return false
@@ -99,7 +100,7 @@ func (e *Elastic) ListIndices() []string {
 
 //GetIndices gets index metadata (aliases, mappings, and settings) of all elasticsearch indices
 func (e *Elastic) GetIndices() map[string]interface{} {
-	esURL := pkg.GetVerrazzanoInstance().ElasticURL + "/_all"
+	esURL := pkg.GetApiEndpoint().GetElasticURL() + "/_all"
 	body, err := e.retryGet(esURL, pkg.Username, pkg.GetVerrazzanoPassword())
 	if err != nil {
 		pkg.Log(pkg.Info, fmt.Sprintf("Error ListIndices %v error: %v", esURL, err))
@@ -108,13 +109,6 @@ func (e *Elastic) GetIndices() map[string]interface{} {
 	var indices map[string]interface{}
 	json.Unmarshal(body, &indices)
 	return indices
-}
-
-
-//Lookup the Elasticsearch host
-func (e *Elastic) LookupHost() bool {
-	esURL := pkg.GetVerrazzanoInstance().ElasticURL
-	return pkg.Lookup(esURL)
 }
 
 //Check the Elasticsearch secret
@@ -151,5 +145,3 @@ func (e *Elastic) CheckIngress() bool {
 	}
 	return false
 }
-
-
