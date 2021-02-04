@@ -31,6 +31,9 @@ const (
 	elasticSearchPwdField  = "ELASTICSEARCH_PASSWORD"
 )
 
+// ElasticSearchIndex defines the common index pattern
+const ElasticSearchIndex = "#{ENV['NAMESPACE']}-#{ENV['APP_CONF_NAME']}-#{ENV['COMPONENT_NAME']}"
+
 // FluentdManager is a general interface to interact with FLUENTD related resources
 type FluentdManager interface {
 	Apply(scope *vzapi.LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error)

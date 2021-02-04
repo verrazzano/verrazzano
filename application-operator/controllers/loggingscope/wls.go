@@ -83,7 +83,7 @@ const wlsFluentdParsingRules = `<match fluent.**>
   port "#{ENV['ELASTICSEARCH_PORT']}"
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
-  index_name "oam-#{ENV['NAMESPACE']}-#{ENV['APP_CONF_NAME']}-#{ENV['COMPONENT_NAME']}"
+  index_name "` + ElasticSearchIndex + `"
   scheme http
   key_name timestamp 
   types timestamp:time
