@@ -25,7 +25,7 @@ var (
 	}
 )
 
-var _ = ginkgo.Describe("Testing Multi-Cluster Namespace CRD", func() {
+var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 	ginkgo.It("MultiCluster CRDs can be applied", func() {
 		for _, crd := range multiclusterCrds {
 			_, stderr := util.Kubectl(fmt.Sprintf("apply -f %v", crd))
