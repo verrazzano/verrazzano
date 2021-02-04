@@ -488,11 +488,17 @@ pipeline {
                                         runGinkgo('examples/todo-list')
                                         runGinkgo('examples/sock-shop')
                                         runGinkgo('examples/springboot-app')
+                                        runGinkgo('examples/hello-helidon')
                                     }
                                 }
                             }
+                            post {
+                                always {
+                                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                                }
+                            }
                         }
-
                     }
                     post {
                         failure {

@@ -1,153 +1,128 @@
+# OAM hello-helidon application
 
-# Hello World Helidon
+The Hello Helidon example is a Helidon-based service that returns a "hello world" response when invoked. The application is specified in terms of OAM component and application configuration YAML files, and then deployed by applying those files.
 
-This example application provides a simple *Hello World* REST service written with [Helidon](https://helidon.io).
-For more information and the code of this application, see the [Verrazzano examples](https://github.com/verrazzano/examples).
-
-## Deploy the example application
+## Deploy the hello-helidon application
 
 1. Prerequisites: Install Verrazzano following the [installation instructions](../../README.md).
-   The Hello World Helidon example application model and binding files are contained in the Verrazzano project located at `<VERRAZZANO_HOME>/examples/hello-helidon`, where `VERRAZZANO_HOME` is the root of the Verrazzano project.
+   The hello-helidon application deployment artifacts are contained in the Verrazzano project located at 
+   `<VERRAZZANO_HOME>/examples/hello-helidon`, where `<VERRAZZANO_HOME>` is the root of the Verrazzano project.
 
-   **NOTE:** All paths in this document are relative to `<VERRAZZANO_HOME>/examples/hello-helidon`.
+   **NOTE:** All files and paths in this document are relative to 
+   `<VERRAZZANO_HOME>/examples/hello-helidon`.
 
-1. Deploy the Verrazzano Application Model and Verrazzano Application Binding for the example application.
+1. Create a namespace for the hello-helidon application and add a label identifying the namespace as managed by Verrazzano.
+   ```
+   kubectl create namespace oam-hello-helidon
+   kubectl label namespace oam-hello-helidon verrazzano-managed=true
+   ```
 
-    **Note:**  All files and paths in this document are relative to `<VERRAZZANO_HOME>/examples/hello-helidon`.
+1. Apply the hello-helidon OAM resources to deploy the application.
+   ```
+   kubectl apply -f hello-helidon-comp.yaml
+   kubectl apply -f hello-helidon-app.yaml
+   ```
+   
+1. Wait for the hello-helidon application to be ready.
+   ```
+   kubectl wait --for=condition=Ready pods --all -n oam-hello-helidon --timeout=300s
+   ```
 
-    ### Using an OKE cluster
-    Run the following script:
+## Testing the hello-helidon application
 
-    ```
-    ./install-hello-world.sh
-    ```
+The hello-helidon microservices application implements a single REST API endpoint `/greet` which returns a message `{"message":"Hello World!"}` when invoked.
 
-   The script deploys the Verrazzano Application Model and Verrazzano Application Binding, waits for the pods in the `greet` namespace to be
-   ready, and calls one of the endpoints provided by the REST service implemented by the example application.
-
-1. Verify that all the objects have started. Objects are started in the `greet`, `verrazzano-system`, and `monitoring`
-  namespaces. The following code block shows the objects to expect. Objects not related to this example application
-  have been removed from the list.
-
-    ```
-    kubectl get all -n greet | grep hello-world
-    NAME                                          READY   STATUS    RESTARTS   AGE
-    pod/hello-world-application-bb58ccfd6-6xmpg   3/3     Running   0          19m
-    pod/hello-world-application-bb58ccfd6-89ftc   3/3     Running   0          19m
-
-    NAME                              TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
-    service/hello-world-application   ClusterIP   10.96.119.252   <none>        8080/TCP   19m
-
-    NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
-    deployment.apps/hello-world-application   2/2     2            2           19m
-
-    NAME                                                DESIRED   CURRENT   READY   AGE
-    replicaset.apps/hello-world-application-bb58ccfd6   2         2         2       19m
-
-    kubectl get all -n verrazzano-system | grep hello-world
-    NAME                                                        READY   STATUS    RESTARTS   AGE
-    pod/vmi-hello-world-binding-api-7f74b6bcc4-8sqjm            1/1     Running   0          19m
-    pod/vmi-hello-world-binding-es-data-0-7c98fd4fcf-sxgdp      2/2     Running   0          19m
-    pod/vmi-hello-world-binding-es-data-1-788b454c5-2g7ct       2/2     Running   0          19m
-    pod/vmi-hello-world-binding-es-ingest-676f89db-zkh4z        1/1     Running   0          19m
-    pod/vmi-hello-world-binding-es-master-0                     1/1     Running   0          19m
-    pod/vmi-hello-world-binding-es-master-1                     1/1     Running   0          19m
-    pod/vmi-hello-world-binding-es-master-2                     1/1     Running   0          19m
-    pod/vmi-hello-world-binding-grafana-5cc57fd5b9-xk5z2        1/1     Running   0          19m
-    pod/vmi-hello-world-binding-kibana-8654ccd97-vkl48          1/1     Running   0          19m
-    pod/vmi-hello-world-binding-prometheus-0-54fb4db4d7-hkcpr   3/3     Running   0          19m
-    pod/vmi-hello-world-binding-prometheus-gw-9f6d54f5b-b887x   1/1     Running   0          19m
-
-    NAME                                              TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)             AGE
-    service/vmi-hello-world-binding-api               ClusterIP   10.96.215.157   <none>        9097/TCP            19m
-    service/vmi-hello-world-binding-es-data           ClusterIP   10.96.109.124   <none>        9100/TCP            19m
-    service/vmi-hello-world-binding-es-ingest         ClusterIP   10.96.113.71    <none>        9200/TCP            19m
-    service/vmi-hello-world-binding-es-master         ClusterIP   None            <none>        9300/TCP            19m
-    service/vmi-hello-world-binding-grafana           ClusterIP   10.96.149.121   <none>        3000/TCP            19m
-    service/vmi-hello-world-binding-kibana            ClusterIP   10.96.4.240     <none>        5601/TCP            19m
-    service/vmi-hello-world-binding-prometheus        ClusterIP   10.96.136.127   <none>        9090/TCP,9100/TCP   19m
-    service/vmi-hello-world-binding-prometheus-gw     ClusterIP   10.96.158.80    <none>        9091/TCP            19m
-
-    NAME                                                    READY   UP-TO-DATE   AVAILABLE   AGE
-    deployment.apps/vmi-hello-world-binding-api             1/1     1            1           19m
-    deployment.apps/vmi-hello-world-binding-es-data-0       1/1     1            1           19m
-    deployment.apps/vmi-hello-world-binding-es-data-1       1/1     1            1           19m
-    deployment.apps/vmi-hello-world-binding-es-ingest       1/1     1            1           19m
-    deployment.apps/vmi-hello-world-binding-grafana         1/1     1            1           19m
-    deployment.apps/vmi-hello-world-binding-kibana          1/1     1            1           19m
-    deployment.apps/vmi-hello-world-binding-prometheus-0    1/1     1            1           19m
-    deployment.apps/vmi-hello-world-binding-prometheus-gw   1/1     1            1           19m
-
-    NAME                                                              DESIRED   CURRENT   READY   AGE
-    replicaset.apps/vmi-hello-world-binding-api-7f74b6bcc4            1         1         1       19m
-    replicaset.apps/vmi-hello-world-binding-es-data-0-7c98fd4fcf      1         1         1       19m
-    replicaset.apps/vmi-hello-world-binding-es-data-1-788b454c5       1         1         1       19m
-    replicaset.apps/vmi-hello-world-binding-es-ingest-676f89db        1         1         1       19m
-    replicaset.apps/vmi-hello-world-binding-grafana-5cc57fd5b9        1         1         1       19m
-    replicaset.apps/vmi-hello-world-binding-kibana-8654ccd97          1         1         1       19m
-    replicaset.apps/vmi-hello-world-binding-prometheus-0-54fb4db4d7   1         1         1       19m
-    replicaset.apps/vmi-hello-world-binding-prometheus-gw-9f6d54f5b   1         1         1       19m
-
-    NAME                                                 READY   AGE
-    statefulset.apps/vmi-hello-world-binding-es-master   3/3     19m
-
-    kubectl get all -n monitoring | grep hello-world
-    NAME                                                   READY   STATUS    RESTARTS   AGE
-    pod/prom-pusher-hello-world-binding-787d9c6894-62nts   1/1     Running   0          19m
-
-    NAME                                              READY   UP-TO-DATE   AVAILABLE   AGE
-    deployment.apps/prom-pusher-hello-world-binding   1/1     1            1           19m
-
-    NAME                                                         DESIRED   CURRENT   READY   AGE
-    replicaset.apps/prom-pusher-hello-world-binding-787d9c6894   1         1         1       19m
-    ```
-## Explore the example application
-
-The Hello World Helidon example application implements a REST service with the following endpoints:
-
-- `/greet` - Returns a default greeting message that is stored in memory in an application-scoped bean.
-This endpoint accepts the `GET` HTTP request method.
-- `/greet/{name}` - Returns a greeting message including the name provided in the path parameter. This
-endpoint accepts the `GET` HTTP request method.
-- `/greet/greeting` - Changes the greeting message to be used in future calls to the other endpoints. This
-endpoint accepts the `PUT` HTTP request method and a JSON payload.
+NOTE:  This following set of instructions assumes you are using a kubernetes
+environment such as OKE.  Other environments or deployments may require alternate mechanisms for retrieving addresses, 
+ports, etc.
 
 Follow these steps to test the endpoints:
 
-1. Get the IP address and port number for calling the REST service.
+1. Get the `EXTERNAL_IP` address of the istio-ingressgateway service.  
 
-   To get the EXTERNAL-IP address for the `istio-ingressgateway` service:
+   ```
+   kubectl get service istio-ingressgateway -n istio-system
 
+   NAME                   TYPE           CLUSTER-IP    EXTERNAL-IP   PORT(S)                      AGE
+   istio-ingressgateway   LoadBalancer   10.96.97.98   11.22.33.44   80:31380/TCP,443:31390/TCP   13d
+   ```   
+
+2. The application is deployed by default with a host value of `hello-helidon.example.com`.
+   
+   There are several ways to access it:
+   * **Using the command line**
+
+     Use the external IP provided by the previous step to call the `/greet` endpoint:
+
+     ```
+     curl -s -X GET -H "Host: hello-helidon.example.com" http://<external IP>/greet
+     {"message":"Hello World!"}
+     ```
+   * **Local Testing with a Browser** 
+   
+     Temporarily modify the `/etc/hosts` file (on Mac or Linux)
+     or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10), 
+     to add an entry mapping `hello-helidon.example.com` to the ingress gateway's `EXTERNAL-IP` address.
+     For example:
+     ```
+     11.22.33.44 hello-helidon.example.com
+     ```
+     Then, you can access the application in a browser at `http://hello-helidon.example.com/greet`
+
+   * **Using your own DNS Name:**
+   
+     * Point your own DNS name to the ingress gateway's `EXTERNAL-IP` address
+     * In this case, you would need to edit the `hello-helidon-app.yaml` file 
+       to use the appropriate value under the `hosts` section (such as `yourhost.your.domain`), 
+       before deploying the hello-helidon application.
+     * Then, you can use a browser to access the application at `http://<yourhost.your.domain>/greet`
+   
+3. ## Troubleshooting
+    
+4. Verify that the application configuration, domain and ingress trait all exist.
+   ```
+   kubectl get ApplicationConfiguration -n oam-hello-helidon
+   kubectl get Domain -n oam-hello-helidon
+   kubectl get IngressTrait -n oam-hello-helidon
+   ```   
+
+5. Verify that the hello-helidon service pods are successfully created and transition to the ready state.
+   Note that this may take a few minutes and that you may see some of the services terminate and restart.
+   ```
+    kubectl get pods -n oam-hello-helidon
+   
+    NAME                                      READY   STATUS    RESTARTS   AGE
+    hello-helidon-workload-676d97c7d4-wkrj2   2/2     Running   0          5m39s
+   ``` 
+6. A variety of endpoints are available to further explore the logs, metrics, etc assoicated with 
+the deployed hello-helidon application.  Accessing them may require the following:
+
+    - The telemetry password: Run this command to get the password that was generated for the telemetry components:
+        ```
+        kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
+        ``` 
+        The associated username is 'verrazzano'
+   
+    - You will have to accept the certificates associated with the endpoints
+      
+    You can retrieve the list of available ingresses with following command:
+    
     ```
-    SERVER=$(kubectl get service -n istio-system istio-ingressgateway -o json | jq -r '.status.loadBalancer.ingress[0].ip')
-    PORT=80
-    ```
-
-1. Use the IP address and port number to call the following endpoints of the greeting REST service:
-
-    ```
-    # Get default message
-    curl -s -X GET http://"${SERVER}":"${PORT}"/greet
-    {"message":"Hello World!"}
-
-    # Get message for Robert:
-    curl -s -X GET http://"${SERVER}":"${PORT}"/greet/Robert
-    {"message":"Hello Robert!"}
-
-    # Change the message:
-    curl -s -X PUT -H "Content-Type: application/json" -d '{"greeting" : "Hallo"}' http://"${SERVER}":"${PORT}"/greet/greeting
-
-    # Get message for Robert again:
-    curl -s -X GET http://"${SERVER}":"${PORT}"/greet/Robert
-    {"message":"Hallo Robert!"}
-    ```
-
-## Uninstall the example application
-
-Run the following script to delete the Verrazzano Application Model and Verrazzano Application Binding for the example application:
-
-    ```
-    ./uninstall-hello-world.sh
-    verrazzanobinding.verrazzano.io "hello-world-binding" deleted
-    verrazzanomodel.verrazzano.io "hello-world-model" deleted
-    ```
+    kubectl get ing -n verrazzano-system
+    NAME                         CLASS    HOSTS                                                    ADDRESS          PORTS     AGE
+    verrazzano-console-ingress   <none>   verrazzano.default.140.238.94.217.xip.io                 140.238.94.217   80, 443   7d2h
+    vmi-system-api               <none>   api.vmi.system.default.140.238.94.217.xip.io             140.238.94.217   80, 443   7d2h
+    vmi-system-es-ingest         <none>   elasticsearch.vmi.system.default.140.238.94.217.xip.io   140.238.94.217   80, 443   7d2h
+    vmi-system-grafana           <none>   grafana.vmi.system.default.140.238.94.217.xip.io         140.238.94.217   80, 443   7d2h
+    vmi-system-kibana            <none>   kibana.vmi.system.default.140.238.94.217.xip.io          140.238.94.217   80, 443   7d2h
+    vmi-system-prometheus        <none>   prometheus.vmi.system.default.140.238.94.217.xip.io      140.238.94.217   80, 443   7d2h
+    vmi-system-prometheus-gw     <none>   prometheus-gw.vmi.system.default.140.238.94.217.xip.io   140.238.94.217   80, 443   7d2h
+    ```  
+    
+    Some of the endpoints available (leveraging the ingress host information above):
+    
+    | Description| Address | Credentials |
+    | --- | --- | --- |
+    | Kibana | https://[vmi-system-kibana ingress host] | `verrazzano`/`telemetry-password` |
+    | Grafana | https://[vmi-system-grafana ingress host] | `verrazzano`/`telemetry-password` |
+    | Prometheus | https://[vmi-system-prometheus ingress host] | `verrazzano`/`telemetry-password` |    
