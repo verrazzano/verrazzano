@@ -25,4 +25,7 @@ resources:
 - group: clusters
   kind: MultiClusterConfigMap
   version: v1alpha1
+- group: clusters
+  kind: MultiClusterComponent
+  version: v1alpha1
 version: "2"
