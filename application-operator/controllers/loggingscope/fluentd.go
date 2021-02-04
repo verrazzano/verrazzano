@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -29,6 +30,9 @@ const (
 	elasticSearchUserField = "ELASTICSEARCH_USER"
 	elasticSearchPwdField  = "ELASTICSEARCH_PASSWORD"
 )
+
+// ElasticSearchIndex defines the common index pattern
+const ElasticSearchIndex = "#{ENV['NAMESPACE']}-#{ENV['APP_CONF_NAME']}-#{ENV['COMPONENT_NAME']}"
 
 // FluentdManager is a general interface to interact with FLUENTD related resources
 type FluentdManager interface {
@@ -67,7 +71,7 @@ func (f *Fluentd) Apply(scope *vzapi.LoggingScope, resource vzapi.QualifiedResou
 
 		f.ensureFluentdVolumes(fluentdPod)
 		f.ensureFluentdVolumeMountExists(fluentdPod)
-		f.ensureFluentdContainer(fluentdPod, scope)
+		f.ensureFluentdContainer(fluentdPod, scope, resource.Namespace)
 		return true, nil
 	}
 	return false, nil
@@ -87,7 +91,7 @@ func (f *Fluentd) Remove(scope *vzapi.LoggingScope, resource vzapi.QualifiedReso
 // ensureFluentdContainer ensures that the FLUENTD container is in the expected state. If a FLUENTD container already
 // exists, replace it with a container created with the current scope information. If no FLUENTD container already
 // exists, create one and add it to the FluentdPod.
-func (f *Fluentd) ensureFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.LoggingScope) {
+func (f *Fluentd) ensureFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.LoggingScope, namespace string) {
 	containers := fluentdPod.Containers
 	fluentdContainerIndex := -1
 	// iterate over existing containers looking for FLUENTD container
@@ -98,7 +102,7 @@ func (f *Fluentd) ensureFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 			break
 		}
 	}
-	fluentdContainer := f.createFluentdContainer(fluentdPod, scope)
+	fluentdContainer := f.createFluentdContainer(fluentdPod, scope, namespace)
 	if fluentdContainerIndex != -1 {
 		// the index is still the initial -1 so we didn't find an existing FLUENTD container so we replace it
 		containers[fluentdContainerIndex] = fluentdContainer
@@ -306,7 +310,7 @@ func (f *Fluentd) isFluentdContainerUpToDate(containers []v1.Container, scope *v
 }
 
 // createFluentdContainer creates the FLUENTD container
-func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.LoggingScope) corev1.Container {
+func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.LoggingScope, namespace string) corev1.Container {
 	container := corev1.Container{
 		Name:            "fluentd",
 		Args:            []string{"-c", "/etc/fluent.conf"},
@@ -358,6 +362,26 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 						Optional: func(opt bool) *bool {
 							return &opt
 						}(true),
+					},
+				},
+			},
+			{
+				Name:  "NAMESPACE",
+				Value: namespace,
+			},
+			{
+				Name: "APP_CONF_NAME",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						FieldPath: "metadata.labels['" + oam.LabelAppName + "']",
+					},
+				},
+			},
+			{
+				Name: "COMPONENT_NAME",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						FieldPath: "metadata.labels['" + oam.LabelAppComponent + "']",
 					},
 				},
 			},
