@@ -30,12 +30,11 @@ type VerrazzanoManagedClusterReconciler struct {
 func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.TODO()
 	log := zap.S().With("resource", fmt.Sprintf("%s:%s", req.Namespace, req.Name))
-
 	log.Info("Reconciler called")
-
 	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{}
 
-	if err := r.Get(ctx, req.NamespacedName, vmc); err != nil {
+	err := r.Get(ctx, req.NamespacedName, vmc)
+	if err != nil {
 		// If the resource is not found, that means all of the finalizers have been removed,
 		// and the verrazzano resource has been deleted, so there is nothing left to do.
 		if errors.IsNotFound(err) {
