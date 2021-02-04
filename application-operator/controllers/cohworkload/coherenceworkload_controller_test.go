@@ -31,6 +31,8 @@ import (
 )
 
 const namespace = "unit-test-namespace"
+const coherenceAPIVersion = "coherence.oracle.com/v1"
+const coherenceKind = "Coherence"
 
 // TestReconcilerSetupWithManager test the creation of the logging scope reconciler.
 // GIVEN a controller implementation
@@ -82,9 +84,11 @@ func TestReconcileCreateCoherence(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-coherence-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoCoherenceWorkload) error {
 			labelsJSON, _ := json.Marshal(labels)
-			coherenceJSON := `{"apiVersion":"coherence.oracle.com/v1","kind":"Coherence","metadata":{"name":"unit-test-cluster","labels":` + string(labelsJSON) + `},"spec":{"replicas":3}}`
-			workload.Spec.Coherence = runtime.RawExtension{Raw: []byte(coherenceJSON)}
+			coherenceJSON := `{"metadata":{"name":"unit-test-cluster","labels":` + string(labelsJSON) + `},"spec":{"replicas":3}}`
+			workload.Spec.Template = runtime.RawExtension{Raw: []byte(coherenceJSON)}
 			workload.ObjectMeta.Labels = labels
+			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
 	// expect a call to add a finalizer
@@ -106,8 +110,8 @@ func TestReconcileCreateCoherence(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal("coherence.oracle.com/v1", u.GetAPIVersion())
-			assert.Equal("Coherence", u.GetKind())
+			assert.Equal(coherenceAPIVersion, u.GetAPIVersion())
+			assert.Equal(coherenceKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied
 			assert.Equal(labels, u.GetLabels())
@@ -146,9 +150,11 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-coherence-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-			json := `{"apiVersion":"coherence.oracle.com/v1","kind":"Coherence","metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
-			workload.Spec.Coherence = runtime.RawExtension{Raw: []byte(json)}
+			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
+			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
 			workload.ObjectMeta.Labels = labels
+			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
 	// expect a call to add a finalizer
@@ -193,8 +199,8 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal("coherence.oracle.com/v1", u.GetAPIVersion())
-			assert.Equal("Coherence", u.GetKind())
+			assert.Equal(coherenceAPIVersion, u.GetAPIVersion())
+			assert.Equal(coherenceKind, u.GetKind())
 
 			// make sure JVM args were added
 			jvmArgs, _, _ := unstructured.NestedSlice(u.Object, "spec", "jvm", "args")
@@ -240,9 +246,11 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-coherence-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-			json := `{"apiVersion":"coherence.oracle.com/v1","kind":"Coherence","metadata":{"name":"unit-test-cluster"},"spec":{"jvm":{"args": ["` + existingJvmArg + `"]}}}`
-			workload.Spec.Coherence = runtime.RawExtension{Raw: []byte(json)}
+			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"jvm":{"args": ["` + existingJvmArg + `"]}}}`
+			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
 			workload.ObjectMeta.Labels = labels
+			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
 	// expect a call to add a finalizer
@@ -287,8 +295,8 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal("coherence.oracle.com/v1", u.GetAPIVersion())
-			assert.Equal("Coherence", u.GetKind())
+			assert.Equal(coherenceAPIVersion, u.GetAPIVersion())
+			assert.Equal(coherenceKind, u.GetKind())
 
 			// make sure JVM args were added and that the existing arg is still present
 			jvmArgs, _, _ := unstructured.NestedStringSlice(u.Object, "spec", "jvm", "args")
@@ -328,10 +336,12 @@ func TestReconcileDeleteResources(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-coherence-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-			json := `{"apiVersion":"coherence.oracle.com/v1","kind":"Coherence","metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
-			workload.Spec.Coherence = runtime.RawExtension{Raw: []byte(json)}
+			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
+			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
 			workload.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 			workload.ObjectMeta.Finalizers = []string{finalizer}
+			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -392,9 +402,11 @@ func TestReconcileAlreadyExists(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-coherence-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-			json := `{"apiVersion":"coherence.oracle.com/v1","kind":"Coherence","metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
-			workload.Spec.Coherence = runtime.RawExtension{Raw: []byte(json)}
+			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
+			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
 			workload.ObjectMeta.Labels = labels
+			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
 	// expect a call to add a finalizer
@@ -416,8 +428,8 @@ func TestReconcileAlreadyExists(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal("coherence.oracle.com/v1", u.GetAPIVersion())
-			assert.Equal("Coherence", u.GetKind())
+			assert.Equal(coherenceAPIVersion, u.GetAPIVersion())
+			assert.Equal(coherenceKind, u.GetKind())
 			return k8serrors.NewAlreadyExists(k8sschema.GroupResource{}, "")
 		})
 
@@ -450,9 +462,11 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-coherence-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-			json := `{"apiVersion":"coherence.oracle.com/v1","kind":"Coherence","metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
-			workload.Spec.Coherence = runtime.RawExtension{Raw: []byte(json)}
+			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
+			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
 			workload.ObjectMeta.Labels = labels
+			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
 	// expect a call to add a finalizer
@@ -474,8 +488,8 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal("coherence.oracle.com/v1", u.GetAPIVersion())
-			assert.Equal("Coherence", u.GetKind())
+			assert.Equal(coherenceAPIVersion, u.GetAPIVersion())
+			assert.Equal(coherenceKind, u.GetKind())
 			return k8serrors.NewBadRequest("An error has occurred")
 		})
 

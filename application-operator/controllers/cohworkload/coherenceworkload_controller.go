@@ -116,7 +116,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
-	u, err := vznav.ConvertRawExtensionToUnstructured(&workload.Spec.Coherence)
+	u, err := vznav.ConvertRawExtensionToUnstructured(&workload.Spec.Template)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -125,6 +125,18 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err = unstructured.SetNestedField(u.Object, req.NamespacedName.Namespace, "metadata", "namespace"); err != nil {
 		return reconcile.Result{}, err
 	}
+
+	// the embedded resource doesn't have an API version or kind, so add them
+	gvk := vznav.APIVersionAndKindToContainedGVK(workload.APIVersion, workload.Kind)
+	if gvk == nil {
+		errStr := "Unable to determine contained GroupVersionKind for workload"
+		log.Error(nil, errStr, "workload", workload)
+		return reconcile.Result{}, errors.New(errStr)
+	}
+
+	apiVersion, kind := gvk.ToAPIVersionAndKind()
+	u.SetAPIVersion(apiVersion)
+	u.SetKind(kind)
 
 	// clean up resources that we've created on delete
 	if isDeleting, err := r.handleDelete(ctx, log, workload, u); isDeleting {
