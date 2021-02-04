@@ -109,7 +109,7 @@ func TestReconcileCreateCoherence(t *testing.T) {
 			assert.Equal("coherence.oracle.com/v1", u.GetAPIVersion())
 			assert.Equal("Coherence", u.GetKind())
 
-			// make sure the oam component and app name labels were copied
+			// make sure the OAM component and app name labels were copied
 			assert.Equal(labels, u.GetLabels())
 			return nil
 		})
