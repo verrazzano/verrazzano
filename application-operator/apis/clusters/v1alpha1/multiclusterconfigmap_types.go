@@ -20,7 +20,7 @@ type MultiClusterConfigMapSpec struct {
 // Note that K8S does not define a "ConfigMapSpec" data type, so fields in ConfigMap are copied here
 type ConfigMapTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Metadata metav1.ObjectMeta    `json:"metadata,omitempty"`
+	Metadata metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Immutable corresponds to the Immutable field of K8S corev1.ConfigMap
 	Immutable *bool `json:"immutable,omitempty"`

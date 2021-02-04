@@ -20,8 +20,8 @@ type MultiClusterComponentSpec struct {
 // ComponentTemplate should have the metadata and spec of the underlying OAM component
 type ComponentTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Metadata metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec v1alpha2.ComponentSpec `json:"spec,omitempty"`
+	Metadata metav1.ObjectMeta      `json:"metadata,omitempty"`
+	Spec     v1alpha2.ComponentSpec `json:"spec,omitempty"`
 }
 
 // MultiClusterComponentStatus defines the observed state of MultiClusterComponent
