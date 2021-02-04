@@ -352,7 +352,7 @@ pipeline {
                 stage('Prepare AT environment') {
                     steps {
                         sh """
-                            echo "Create Kind clsuter"
+                            echo "Create Kind cluster"
                             cd ${GO_REPO_PATH}/verrazzano/platform-operator
                             make create-cluster
 
@@ -401,7 +401,7 @@ pipeline {
                             ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
 
                             # Hack
-                            # OCIR images don't work with KIND.
+                            # OCR images don't work with KIND.
                             # The ToDoList example image currently cannot be pulled in KIND.
                             docker pull container-registry.oracle.com/verrazzano/example-todo:0.8.0
                             kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-todo:0.8.0
