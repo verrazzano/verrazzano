@@ -106,7 +106,7 @@ function delete_coherence_operator {
   fi
 }
 
-log "uninistall is seeing OAM_ENABLED = ${OAM_ENABLED}"
+log "uninstall is seeing OAM_ENABLED = ${OAM_ENABLED}"
 
 if [ "${OAM_ENABLED}" == "true" ]; then
   action "Deleting Verrazzano Application Kubernetes operator" delete_application_operator || exit 1
