@@ -21,6 +21,23 @@ gateways:
     env:
       # Needed to route traffic via egress gateway if desired.
       ISTIO_META_REQUESTED_NETWORK_VIEW: "external"
+  istio-ingressgateway:
+    ports:
+      - port: 15021
+        targetPort: 15021
+        name: status-port
+      - port: 80
+        targetPort: 8080
+        name: http2
+        nodePort: 31380
+      - port: 443
+        targetPort: 8443
+        name: https
+        nodePort: 31390
+        # This is the port where sni routing happens
+      - port: 15443
+        targetPort: 15443
+        name: tls
 
 istiocoredns:
   enabled: true
