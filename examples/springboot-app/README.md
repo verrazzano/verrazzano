@@ -54,7 +54,7 @@ This example provides a simple web application developed using Spring Boot. For 
      Then, you can access the application in a browser at `http://springboot.example.com/` and `http://springboot.example.com/facts`.
    * **Using your own DNS name:**
      * Point your own DNS name to the ingress gateway's `EXTERNAL-IP` address.
-     * In this case, you would need to have edited the `springboot-app.yaml` file .
+     * In this case, you would need to have edited the `springboot-app.yaml` file 
        to use the appropriate value under the `hosts` section (such as `yourhost.your.domain`), 
        before deploying the Spring Boot application.
      * Then, you can use a browser to access the application at `http://<yourhost.your.domain>/` and `http://<yourhost.your.domain>/facts`.
