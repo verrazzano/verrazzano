@@ -1,0 +1,19 @@
+# Copyright (c) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: verrazzano.io/v1beta1
+kind: VerrazzanoBinding
+metadata:
+  name: hello-world-binding
+  namespace: default
+spec:
+  description: "Hello World Application binding"
+  modelName: hello-world-model
+  placement:
+    - name: local
+      namespaces:
+        - name: greet
+          components:
+            - name: hello-world-application
+  ingressBindings:
+    - name: "greet-ingress"
+      dnsName: "*"
