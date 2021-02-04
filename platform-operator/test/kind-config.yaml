@@ -7,19 +7,17 @@ nodes:
     image: kindest/node:v1.17.0@sha256:9512edae126da271b66b990b6fff768fbb7cd786c7d39e86bdf55906352fdf62
     kubeadmConfigPatches:
       - |
+        kind: ClusterConfiguration
+        apiServer:
+          extraArgs:
+            "service-account-issuer": "kubernetes.default.svc"
+            "service-account-signing-key-file": "/etc/kubernetes/pki/sa.key"
+      - |
         kind: InitConfiguration
         nodeRegistration:
           kubeletExtraArgs:
             node-labels: "ingress-ready=true"
             authorization-mode: "AlwaysAllow"
-        apiVersion: kubeadm.k8s.io/v1beta2
-        kind: ClusterConfiguration
-        metadata:
-          name: config
-        apiServer:
-          extraArgs:
-            "service-account-issuer": "kubernetes.default.svc"
-            "service-account-signing-key-file": "/etc/kubernetes/pki/sa.key"
     extraPortMappings:
       - containerPort: 80
         hostPort: 80
