@@ -17,7 +17,7 @@ type MultiClusterComponentSpec struct {
 	Placement Placement `json:"placement"`
 }
 
-// ComponentTemplate should have the metadata and spec of the underlying OAM component
+// ComponentTemplate has the metadata and spec of the underlying OAM component
 type ComponentTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 	Metadata metav1.ObjectMeta      `json:"metadata,omitempty"`

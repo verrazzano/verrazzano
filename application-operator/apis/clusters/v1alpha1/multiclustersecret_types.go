@@ -17,7 +17,7 @@ type MultiClusterSecretSpec struct {
 	Placement Placement `json:"placement"`
 }
 
-// SecretTemplate should have the metadata and spec of the underlying secret
+// SecretTemplate has the metadata and spec of the underlying secret
 // Note that K8S does not define a "SecretSpec" data type, so the 3 fields in Secret are copied here
 type SecretTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields

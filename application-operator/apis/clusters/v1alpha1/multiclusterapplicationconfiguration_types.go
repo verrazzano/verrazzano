@@ -17,7 +17,7 @@ type MultiClusterApplicationConfigurationSpec struct {
 	Placement Placement `json:"placement"`
 }
 
-// ApplicationConfigurationTemplate should have the metadata and spec of the underlying
+// ApplicationConfigurationTemplate has the metadata and spec of the underlying
 // OAM ApplicationConfiguration
 type ApplicationConfigurationTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields

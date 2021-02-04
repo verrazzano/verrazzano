@@ -17,6 +17,7 @@ type MultiClusterLoggingScopeSpec struct {
 	Placement Placement `json:"placement"`
 }
 
+// LoggingScopeTemplate has the metadata and spec of the underlying LoggingScope
 type LoggingScopeTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 	Metadata metav1.ObjectMeta         `json:"metadata,omitempty"`

@@ -16,7 +16,7 @@ type MultiClusterConfigMapSpec struct {
 	Placement Placement `json:"placement"`
 }
 
-// ConfigMapTemplate should have the metadata and spec of the underlying ConfigMap
+// ConfigMapTemplate has the metadata and spec of the underlying ConfigMap
 // Note that K8S does not define a "ConfigMapSpec" data type, so fields in ConfigMap are copied here
 type ConfigMapTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
