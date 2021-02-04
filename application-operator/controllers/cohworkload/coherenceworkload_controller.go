@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
@@ -48,6 +49,10 @@ multiline_flush_interval 20s
  role "#{ENV['COH_ROLE']}"
  host "#{ENV['HOSTNAME']}"
  pod-uid "#{ENV['COH_POD_UID']}"
+ oam.applicationconfiguration.namespace "#{ENV['NAMESPACE']}"
+ oam.applicationconfiguration.name "#{ENV['APP_CONF_NAME']}"
+ oam.component.namespace "#{ENV['NAMESPACE']}"
+ oam.component.name  "#{ENV['COMPONENT_NAME']}"
 </record>
 </filter>
 
@@ -57,7 +62,7 @@ multiline_flush_interval 20s
   port "#{ENV['ELASTICSEARCH_PORT']}"
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
-  index_name "#{ENV['COH_CLUSTER_NAME']}"
+  index_name "` + loggingscope.ElasticSearchIndex + `"
   scheme http
   key_name timestamp 
   types timestamp:time
@@ -126,7 +131,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	// mutate the Coherence spec, add logging, etc.
+	// mutate the Coherence resource, copy labels, add logging, etc.
+	copyLabels(workload.ObjectMeta.GetLabels(), u)
+
 	spec, found, _ := unstructured.NestedMap(u.Object, "spec")
 	if !found {
 		return reconcile.Result{}, errors.New("Embedded Coherence resource is missing the required 'spec' field")
@@ -167,6 +174,22 @@ func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedNam
 	}
 
 	return &workload, nil
+}
+
+// copyLabels copies specific labels from the Verrazzano workload to the contained Coherence resource
+func copyLabels(workloadLabels map[string]string, coherence *unstructured.Unstructured) {
+	labels := map[string]string{}
+
+	// copy the oam component and app name labels
+	if componentName, ok := workloadLabels[oam.LabelAppComponent]; ok {
+		labels[oam.LabelAppComponent] = componentName
+	}
+
+	if appName, ok := workloadLabels[oam.LabelAppName]; ok {
+		labels[oam.LabelAppName] = appName
+	}
+
+	coherence.SetLabels(labels)
 }
 
 // addLogging adds a FLUENTD sidecar and updates the Coherence spec if there is an associated LoggingScope

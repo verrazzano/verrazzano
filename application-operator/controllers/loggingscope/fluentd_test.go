@@ -129,7 +129,7 @@ func TestFluentdRemove(t *testing.T) {
 	scope := createTestLoggingScope(true)
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
-	addFluentdArtifactsToFluentdPod(fluentd, fluentdPod, scope)
+	addFluentdArtifactsToFluentdPod(fluentd, fluentdPod, scope, resource.Namespace)
 
 	// simulate config map existing
 	mockClient.EXPECT().
@@ -187,10 +187,10 @@ func createTestFluentdPodForUpdate() *FluentdPod {
 }
 
 // addFluentdArtifactsToFluentdPod adds FLUENTD artifacts to a FluentdPod
-func addFluentdArtifactsToFluentdPod(fluentd *Fluentd, fluentdPod *FluentdPod, scope *v1alpha1.LoggingScope) {
+func addFluentdArtifactsToFluentdPod(fluentd *Fluentd, fluentdPod *FluentdPod, scope *v1alpha1.LoggingScope, namespace string) {
 	fluentd.ensureFluentdVolumes(fluentdPod)
 	fluentdPod.VolumeMounts = append(fluentdPod.VolumeMounts, fluentd.createFluentdVolumeMount())
-	fluentdPod.Containers = append(fluentdPod.Containers, fluentd.createFluentdContainer(fluentdPod, scope))
+	fluentdPod.Containers = append(fluentdPod.Containers, fluentd.createFluentdContainer(fluentdPod, scope, namespace))
 }
 
 // testAssertFluentdPodForApply asserts FluentdPod state for Apply

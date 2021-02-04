@@ -5,6 +5,7 @@ package cohworkload
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -80,8 +81,9 @@ func TestReconcileCreateCoherence(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-coherence-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-			json := `{"apiVersion":"coherence.oracle.com/v1","kind":"Coherence","metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
-			workload.Spec.Coherence = runtime.RawExtension{Raw: []byte(json)}
+			labelsJSON, _ := json.Marshal(labels)
+			coherenceJSON := `{"apiVersion":"coherence.oracle.com/v1","kind":"Coherence","metadata":{"name":"unit-test-cluster","labels":` + string(labelsJSON) + `},"spec":{"replicas":3}}`
+			workload.Spec.Coherence = runtime.RawExtension{Raw: []byte(coherenceJSON)}
 			workload.ObjectMeta.Labels = labels
 			return nil
 		})
@@ -106,6 +108,9 @@ func TestReconcileCreateCoherence(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal("coherence.oracle.com/v1", u.GetAPIVersion())
 			assert.Equal("Coherence", u.GetKind())
+
+			// make sure the OAM component and app name labels were copied
+			assert.Equal(labels, u.GetLabels())
 			return nil
 		})
 

@@ -6,4 +6,5 @@
 # It should be run by config/default
 resources:
 - bases/install.verrazzano.io_verrazzanos.yaml
+- bases/clusters.verrazzano.io_verrazzanomanagedclusters.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
