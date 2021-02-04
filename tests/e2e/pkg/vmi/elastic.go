@@ -111,12 +111,6 @@ func (e *Elastic) GetIndices() map[string]interface{} {
 	return indices
 }
 
-//Lookup the Elasticsearch host
-func (e *Elastic) LookupHost() bool {
-	esURL := pkg.GetApiEndpoint().GetElasticURL()
-	return pkg.Lookup(esURL)
-}
-
 //Check the Elasticsearch secret
 func (e *Elastic) CheckTlsSecret() bool {
 	secretName := fmt.Sprintf("%v-tls", e.binding)

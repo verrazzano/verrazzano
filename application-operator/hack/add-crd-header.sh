@@ -14,8 +14,19 @@ CRD_HEADER=$(dirname $0)/boilerplate.yaml.txt
 GENERATED_CRDS_DIR=$SCRIPT_ROOT/config/crd/bases
 
 for CRD_FILENAME in $(ls $GENERATED_CRDS_DIR/*.y*ml) ; do
-  echo "Adding header from $CRD_HEADER to generated CRD file $CRD_FILENAME"
-  TMP_CRD=${CRD_FILENAME}.tmp
-  cat $CRD_HEADER $CRD_FILENAME > $TMP_CRD
-  mv $TMP_CRD $CRD_FILENAME
+  GIT_HISTORY_LENGTH=$(git log $CRD_FILENAME | wc -l)
+  if [ "$GIT_HISTORY_LENGTH" -eq 0 ] ; then
+    echo "Adding header from $CRD_HEADER to generated NEW CRD file $CRD_FILENAME"
+    TMP_CRD=${CRD_FILENAME}.tmp
+    cat $CRD_HEADER $CRD_FILENAME > $TMP_CRD
+    mv $TMP_CRD $CRD_FILENAME
+  else
+    echo "Adding back previous header to re-generated existing file $CRD_FILENAME"
+    # get and use existing copyright header by getting first 2 lines of file at
+    # most recent revision
+    TMP_CRD=${CRD_FILENAME}.tmp
+    git show HEAD~1:$CRD_FILENAME | head -2 > $TMP_CRD
+    cat $CRD_FILENAME >> $TMP_CRD
+    mv $TMP_CRD $CRD_FILENAME
+  fi
 done

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -496,19 +497,19 @@ func TestFindFolumeTemplate(t *testing.T) {
 
 	specTemplateList := []installv1alpha1.VolumeClaimSpecTemplate{
 		{
-			Name: "default",
+			ObjectMeta: metav1.ObjectMeta{Name: "default"},
 			Spec: corev1.PersistentVolumeClaimSpec{
 				VolumeName: "defVolume",
 			},
 		},
 		{
-			Name: "template1",
+			ObjectMeta: metav1.ObjectMeta{Name: "template1"},
 			Spec: corev1.PersistentVolumeClaimSpec{
 				VolumeName: "temp1Volume",
 			},
 		},
 		{
-			Name: "template2",
+			ObjectMeta: metav1.ObjectMeta{Name: "template2"},
 			Spec: corev1.PersistentVolumeClaimSpec{
 				VolumeName: "temp2Volume",
 			},
@@ -607,8 +608,8 @@ func TestGetVerrazzanoInstallArgsInvalidPVCVolumeSource(t *testing.T) {
 		},
 		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 			{
-				Name: "default",
-				Spec: corev1.PersistentVolumeClaimSpec{},
+				ObjectMeta: metav1.ObjectMeta{Name: "default"},
+				Spec:       corev1.PersistentVolumeClaimSpec{},
 			},
 		},
 	}
@@ -636,7 +637,7 @@ func TestGetVerrazzanoInstallArgsPVCVolumeSource(t *testing.T) {
 		},
 		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 			{
-				Name: "default",
+				ObjectMeta: metav1.ObjectMeta{Name: "default"},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					StorageClassName: &storageClass,
 					Resources: corev1.ResourceRequirements{
@@ -716,7 +717,7 @@ func TestGetKeycloakPVCVolumeSourceOverrideDefaultVolumeSource(t *testing.T) {
 		},
 		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 			{
-				Name: "default",
+				ObjectMeta: metav1.ObjectMeta{Name: "default"},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					StorageClassName: &storageClass,
 					Resources: corev1.ResourceRequirements{
@@ -772,7 +773,7 @@ func TestGetKeycloakPVCVolumeSourceNoAccessModes(t *testing.T) {
 		},
 		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 			{
-				Name: "default",
+				ObjectMeta: metav1.ObjectMeta{Name: "default"},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					StorageClassName: &storageClass,
 					Resources: corev1.ResourceRequirements{
@@ -845,7 +846,7 @@ func TestGetKeycloakPVCVolumeSourceStorageSizeOnly(t *testing.T) {
 		},
 		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 			{
-				Name: "default",
+				ObjectMeta: metav1.ObjectMeta{Name: "default"},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					Resources: corev1.ResourceRequirements{
 						Requests: resourceList,
@@ -889,7 +890,7 @@ func TestGetKeycloakPVCVolumeSourceZeroStorageSize(t *testing.T) {
 		},
 		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 			{
-				Name: "default",
+				ObjectMeta: metav1.ObjectMeta{Name: "default"},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					Resources: corev1.ResourceRequirements{
 						Requests: resourceList,
@@ -924,8 +925,8 @@ func TestGetKeycloakPVCVolumeSourceEmptyPVCConfiguration(t *testing.T) {
 		},
 		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 			{
-				Name: "default",
-				Spec: corev1.PersistentVolumeClaimSpec{},
+				ObjectMeta: metav1.ObjectMeta{Name: "default"},
+				Spec:       corev1.PersistentVolumeClaimSpec{},
 			},
 		},
 	}
@@ -949,8 +950,8 @@ func TestNewExternalDNSInstallConfigInvalidVZInstallArgs(t *testing.T) {
 			},
 			VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 				{
-					Name: "default",
-					Spec: corev1.PersistentVolumeClaimSpec{},
+					ObjectMeta: metav1.ObjectMeta{Name: "default"},
+					Spec:       corev1.PersistentVolumeClaimSpec{},
 				},
 			},
 		},
@@ -1000,8 +1001,8 @@ func TestNewXipIoInstallConfigInvalidVZInstallArgs(t *testing.T) {
 			},
 			VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 				{
-					Name: "default",
-					Spec: corev1.PersistentVolumeClaimSpec{},
+					ObjectMeta: metav1.ObjectMeta{Name: "default"},
+					Spec:       corev1.PersistentVolumeClaimSpec{},
 				},
 			},
 		},
@@ -1051,8 +1052,8 @@ func TestNewOCIDNSInstallConfigInvalidVZInstallArgs(t *testing.T) {
 			},
 			VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 				{
-					Name: "default",
-					Spec: corev1.PersistentVolumeClaimSpec{},
+					ObjectMeta: metav1.ObjectMeta{Name: "default"},
+					Spec:       corev1.PersistentVolumeClaimSpec{},
 				},
 			},
 		},

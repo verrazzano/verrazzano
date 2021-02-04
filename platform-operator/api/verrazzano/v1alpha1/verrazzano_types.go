@@ -80,8 +80,9 @@ type VerrazzanoSpec struct {
 // do not actually result in generated PVCs, but can used to provide common configuration to components that
 // declare a PersistentVolumeClaimVolumeSource
 type VolumeClaimSpecTemplate struct {
-	// Name The name of the configuration template
-	Name string `json:"name"`
+	// Metadata about the PersistentVolumeClaimSpec template.
+	// +kubebuilder:pruning:PreserveUnknownFields
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// Spec The configuration specs for the template
 	Spec corev1.PersistentVolumeClaimSpec `json:"spec,omitempty"`
 }
