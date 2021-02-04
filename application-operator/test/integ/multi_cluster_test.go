@@ -20,6 +20,7 @@ var (
 		fmt.Sprintf("%v/clusters.verrazzano.io_multiclustersecrets.yaml", crdDir),
 		fmt.Sprintf("%v/clusters.verrazzano.io_multiclusterconfigmaps.yaml", crdDir),
 		fmt.Sprintf("%v/clusters.verrazzano.io_multiclustercomponents.yaml", crdDir),
+		fmt.Sprintf("%v/clusters.verrazzano.io_multiclusterapplicationconfigurations.yaml", crdDir),
 	}
 )
 
@@ -46,6 +47,10 @@ var _ = ginkgo.Describe("Testing Multi-Cluster Namespace CRD", func() {
 	})
 	ginkgo.It("MultiClusterComponent can be created ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_component_sample.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""))
+	})
+	ginkgo.It("MultiClusterApplicationConfiguration can be created ", func() {
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_appconf_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
 })

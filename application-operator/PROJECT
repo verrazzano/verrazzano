@@ -28,4 +28,7 @@ resources:
 - group: clusters
   kind: MultiClusterComponent
   version: v1alpha1
+- group: clusters
+  kind: MultiClusterApplicationConfiguration
+  version: v1alpha1
 version: "2"

@@ -13,6 +13,7 @@ resources:
 - bases/clusters.verrazzano.io_multiclustersecrets.yaml
 - bases/clusters.verrazzano.io_multiclusterconfigmaps.yaml
 - bases/clusters.verrazzano.io_multiclustercomponents.yaml
+- bases/clusters.verrazzano.io_multiclusterapplicationconfigurations.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
