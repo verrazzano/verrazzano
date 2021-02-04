@@ -71,4 +71,8 @@ var _ = Describe("Custom Resource Definition for verrazzano install", func() {
 		Expect(K8sClient.DoesCRDExist("verrazzanos.install.verrazzano.io")).To(BeTrue(),
 			"The verrazzanos.install.verrazzano.io CRD should exist")
 	})
+	It("verrazzanomanagedclusters.clusters.verrazzano.io exists", func() {
+		Expect(K8sClient.DoesCRDExist("verrazzanomanagedclusters.clusters.verrazzano.io")).To(BeTrue(),
+			"The verrazzanomanagedclusters.clusters.verrazzano.io CRD should exist")
+	})
 })

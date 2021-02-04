@@ -64,11 +64,50 @@ func TestCreateVMC(t *testing.T) {
 
 }
 
+// TestDeleteVMC tests the Reconcile method for the following use case
+// GIVEN a request to reconcile an VerrazzanoManagedCluster resource
+// WHEN a VerrazzanoManagedCluster resource has been deleted
+// THEN ensure the object is not processed
+func TestDeleteVMC(t *testing.T) {
+	namespace := "verrazzano-install"
+	name := "test"
+	labels := map[string]string{"label1": "test"}
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	// Expect a call to get the VerrazzanoManagedCluster resource.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			vmc.TypeMeta = metav1.TypeMeta{
+				APIVersion: apiVersion,
+				Kind:       kind}
+			vmc.ObjectMeta = metav1.ObjectMeta{
+				Namespace:         name.Namespace,
+				Name:              name.Name,
+				DeletionTimestamp: &metav1.Time{},
+				Labels:            labels}
+			return nil
+		})
+
+	// Create and make the request
+	request := newRequest(namespace, name)
+	reconciler := newVMCReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	//_ = clientgoscheme.AddToScheme(scheme)
-	//_ = core.AddToScheme(scheme)
 	vzapi.AddToScheme(scheme)
 	return scheme
 }

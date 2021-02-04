@@ -46,6 +46,11 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		return reconcile.Result{}, err
 	}
 
+	// If the VerrazzanoManagedCluster is being deleted then return success
+	if vmc.GetDeletionTimestamp() != nil {
+		return ctrl.Result{}, nil
+	}
+
 	return ctrl.Result{}, nil
 }
 
