@@ -487,6 +487,7 @@ pipeline {
                                     steps {
                                         runGinkgo('examples/todo-list')
                                         runGinkgo('examples/sock-shop')
+                                        runGinkgo('examples/springboot-app')
                                     }
                                 }
                             }
