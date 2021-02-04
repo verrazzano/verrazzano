@@ -498,6 +498,7 @@ pipeline {
                                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                                 }
                             }
+                        }
                     }
                     post {
                         failure {
