@@ -4,33 +4,48 @@
 package hello_helidon
 
 import (
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 var _ = ginkgo.BeforeSuite(func() {
-	// deploy the application here
-	// right now it is being done by the jenkinsfile running install-hello-world.sh
-	// move that logic to here
-	testConfig = GetTestConfig()
-	env = NewVerrazzanoEnvironmentFromConfig(testConfig)
-	prom = env.GetProm("system")
+	if _, err := pkg.CreateNamespace("oam-hello-helidon", map[string]string{"verrazzano-managed": "true"}); err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
+	}
+
+	if err := pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-comp.yaml"); err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create hello-helidon component resources: %v", err))
+	}
+	if err := pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml"); err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create hello-helidon application resource: %v", err))
+	}
+
 })
 
 var _ = ginkgo.AfterSuite(func() {
 	// undeploy the application here
+	err := pkg.DeleteResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Could not delete hello-helidon application resource: %v\n", err.Error()))
+	}
+	err = pkg.DeleteResourceFromFile("examples/hello-helidon/hello-helidon-comp.yaml")
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Could not delete hello-helidon component resource: %v\n", err.Error()))
+	}
+	err = pkg.DeleteNamespace("oam-hello-helidon")
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Could not delete oam-hello-helidon namespace: %v\n", err.Error()))
+	}
 })
 
 var (
-	env                      VerrazzanoEnvironment
-	testConfig               VerrazzanoTestConfig
 	expectedPodsHelloHelidon = []string{"hello-helidon-workload"}
-	prom                     *Prometheus
 	waitTimeout              = 10 * time.Minute
 	pollingInterval          = 30 * time.Second
 )
@@ -49,7 +64,7 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 	// THEN the expected pod must be running in the test namespace
 	ginkgo.Describe("Verify hello-helidon-workload pod is running.", func() {
 		ginkgo.It("and waiting for expected pods must be running", func() {
-			gomega.Eventually(podsRunningInVerrazzanoApplication, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			gomega.Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 	})
 
@@ -59,7 +74,7 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 	// THEN the application endpoint must be accessible
 	ginkgo.Describe("Verify Hello Helidon app is working.", func() {
 		ginkgo.It("Access /greet App Url.", func() {
-			ingress := env.GetCluster1().Ingress()
+			ingress := pkg.Ingress()
 			url := fmt.Sprintf("http://%s/greet", ingress)
 			isEndpointAccessible := func() bool {
 				return appEndpointAccessible(url)
@@ -89,28 +104,30 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 	})
 })
 
-func podsRunningInVerrazzanoApplication() bool {
-	return env.GetCluster1().Namespace(testNamespace).
-		PodsRunning(expectedPodsHelloHelidon)
+func helloHelidonPodsRunning() bool {
+	return pkg.PodsRunning(testNamespace, expectedPodsHelloHelidon)
 }
 
 func appEndpointAccessible(url string) bool {
-	status, webpage := GetWebPage(url, helloHostHeader)
-	return Expect(status).To(Equal(http.StatusOK), fmt.Sprintf("GET %v returns status %v expected 200.", url, status)) &&
-		Expect(strings.Contains(webpage, "Hello World")).To(Equal(true), fmt.Sprintf("Webpage is NOT Hello World %v", webpage))
+	status, webpage := pkg.GetWebPageWithBasicAuth(url, helloHostHeader, "", "")
+	gomega.Expect(status).To(gomega.Equal(http.StatusOK), fmt.Sprintf("GET %v returns status %v expected 200.", url, status))
+	gomega.Expect(strings.Contains(webpage, "Hello World")).To(gomega.Equal(true), fmt.Sprintf("Webpage is NOT Hello World %v", webpage))
+	return true
 }
 
+// findMetric parses a Prometheus response to find a specified metric value
 func findMetric(metrics []interface{}, key, value string) bool {
 	for _, metric := range metrics {
-		if Jq(metric, "metric", key) == value {
+		if pkg.Jq(metric, "metric", key) == value {
 			return true
 		}
 	}
 	return false
 }
 
+// metricsExist validates the availability of a specified metric
 func metricsExist(metricsName, key, value string) bool {
-	metrics := prom.Metrics(metricsName)
+	metrics := pkg.JTq(pkg.QueryMetric(metricsName), "data", "result").([]interface{})
 	if metrics != nil {
 		return findMetric(metrics, key, value)
 	} else {
