@@ -2,7 +2,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 global:
-  hub: container-registry.oracle.com/olcne
+  hub: ghcr.io/verrazzano
   tag: 1.7.3
   arch:
     amd64: 2
