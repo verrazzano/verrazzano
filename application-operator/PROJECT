@@ -1,5 +1,3 @@
-# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
-# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 domain: verrazzano.io
 multigroup: true
 repo: github.com/verrazzano/verrazzano/application-operator
@@ -30,5 +28,8 @@ resources:
   version: v1alpha1
 - group: clusters
   kind: MultiClusterApplicationConfiguration
+  version: v1alpha1
+- group: clusters
+  kind: MultiClusterLoggingScope
   version: v1alpha1
 version: "2"
