@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -9,6 +9,8 @@ SOURCE_DIR=$(cd $(dirname $BASH_SOURCE); pwd -P)
 SCRIPT_DIR=${SCRIPT_DIR:-$(cd $(dirname ${BASH_SOURCE[${#BASH_SOURCE[@]} - 1]}); pwd -P)}
 # The directory where any generated artifacts should be stored.
 BUILD_DIR="${SCRIPT_DIR}/build"
+CHARTS_DIR=$(cd $SOURCE_DIR/../../../thirdparty/charts; pwd -P)
+MANIFESTS_DIR=$(cd $SOURCE_DIR/../../../thirdparty/manifests; pwd -P)
 
 . ${SOURCE_DIR}/logging.sh
 
@@ -55,7 +57,7 @@ function get_rancher_access_token {
   # the scenarios we want (e.g. connection errors)
   until [ $retries -ge 10 ]
   do
-    ARGS=(-k --connect-timeout 30 \
+    ARGS=(-k --connect-timeout 30 $(get_rancher_resolve ${rancher_hostname}) \
     -d '{"Username":"admin", "Password":"'$rancher_password'"}' \
     -H "Content-Type: application/json" \
     -X POST https://$rancher_hostname/v3-public/localProviders/local?action=login)
@@ -85,7 +87,7 @@ function get_rancher_access_token {
   local retries=0
   until [ "$retries" -ge 10 ]
   do
-    ARGS=(-k --connect-timeout 30 \
+    ARGS=(-k --connect-timeout 30 $(get_rancher_resolve ${rancher_hostname}) \
     -d '{"type":"token", "description":"automation"}' \
     -H "Content-Type: application/json"
     -H "Authorization: Bearer ${rancher_admin_token}" \
@@ -215,47 +217,30 @@ command -v curl >/dev/null 2>&1 || {
 ##################################################
 ####Constants for Docker images, versions, tags
 ##################################################
-GLOBAL_HUB_REPO=container-registry.oracle.com/olcne
+GLOBAL_HUB_REPO=ghcr.io/verrazzano
 GLOBAL_IMAGE_PULL_SECRET=verrazzano-container-registry
 
-CERT_MANAGER_IMAGE=ghcr.io/verrazzano/cert-manager-controller
-CERT_MANAGER_TAG=0.13.1-20201016205232-4c8f3fe38
-CERT_MANAGER_RELEASE=0.13
-CERT_MANAGER_HELM_CHART_VERSION=0.13.1
-CERT_MANAGER_SOLVER_IMAGE=ghcr.io/verrazzano/cert-manager-acmesolver
-CERT_MANAGER_SOLVER_TAG=0.13.1-20201016205234-4c8f3fe38
-
-EXTERNAL_DNS_REPO=verrazzano/external-dns
-EXTERNAL_DNS_VERSION=2.20.0
-EXTERNAL_DNS_TAG=v0.7.1-20201016205338-516bc8b2
-EXTERNAL_DNS_REGISTRY=ghcr.io
-
-GRAFANA_REPO=container-registry.oracle.com/olcne/grafana
+GRAFANA_REPO=ghcr.io/verrazzano/grafana
 GRAFANA_TAG=v6.4.4
+
+PROMETHEUS_TAG=v2.13.1
 
 ISTIO_CORE_DNS_PLUGIN_IMAGE=ghcr.io/verrazzano/istio-coredns-plugin
 ISTIO_CORE_DNS_PLUGIN_TAG=0.2-20201016204812-23723dcb
-ISTIO_CORE_DNS_IMAGE=container-registry.oracle.com/olcne/coredns
+ISTIO_CORE_DNS_IMAGE=ghcr.io/verrazzano/coredns
 ISTIO_CORE_DNS_TAG=1.6.2
 ISTIO_VERSION=1.4.6
-ISTIO_HELM_CHART_VERSION=1.4.10
-
-KEYCLOAK_IMAGE=ghcr.io/verrazzano/keycloak
-KEYCLOAK_IMAGE_TAG=10.0.1-20201016212759-30d98b0
-KEYCLOAK_CHART_VERSION=8.2.2
-
-KEYCLOAK_THEME_IMAGE=ghcr.io/verrazzano/keycloak-oracle-theme:0.7.0-20201210185422-c4ff48c
 
 MYSQL_IMAGE=ghcr.io/verrazzano/mysql
 MYSQL_IMAGE_TAG=8.0.20
 
-NGINX_INGRESS_CONTROLLER_IMAGE=ghcr.io/verrazzano/nginx-ingress-controller
-NGINX_INGRESS_CONTROLLER_TAG=0.32-20201016205412-8580ea0ef
-NGINX_INGRESS_CONTROLLER_VERSION=1.27.0
+OAM_OPERATOR_IMAGE_REPO=ghcr.io/verrazzano/oam-kubernetes-runtime
+OAM_OPERATOR_IMAGE_TAG=v0.3.0
 
-NGINX_DEFAULT_BACKEND_IMAGE=ghcr.io/verrazzano/nginx-ingress-default-backend
-NGINX_DEFAULT_BACKEND_TAG=0.32-20201016205412-8580ea0ef
+WEBLOGIC_OPERATOR_IMAGE_REPO=oracle/weblogic-kubernetes-operator
+WEBLOGIC_OPERATOR_IMAGE_TAG=3.1.0
 
-RANCHER_IMAGE=ghcr.io/verrazzano/rancher
-RANCHER_VERSION=v2.4.3
-RANCHER_TAG=v2.4.3-20201016205256-4988df094
+COHERENCE_OPERATOR_IMAGE_REPO=ghcr.io/oracle/coherence-operator
+COHERENCE_OPERATOR_IMAGE_TAG=3.1.1
+
+VERRAZZANO_APPLICATION_OPERATOR_IMAGE=__VERRAZZANO_APPLICATION_OPERATOR_IMAGE__

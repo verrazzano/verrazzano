@@ -1,0 +1,48 @@
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+scrape_configs:
+- job_name: ##JOB_NAME##
+  kubernetes_sd_configs:
+  - namespaces:
+      names:
+      - ##NAMESPACE##
+    role: pod
+  relabel_configs:
+  - action: keep
+    regex: true;##APP_NAME##;##COMP_NAME##
+    source_labels:
+    - __meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled
+    - __meta_kubernetes_pod_label_app_oam_dev_name
+    - __meta_kubernetes_pod_label_app_oam_dev_component
+  - action: replace
+    regex: (.+)
+    source_labels:
+    - __meta_kubernetes_pod_annotation_verrazzano_io_metricsPath
+    target_label: __metrics_path__
+  - action: replace
+    regex: ([^:]+)(?::\d+)?;(\d+)
+    replacement: $1:$2
+    source_labels:
+    - __address__
+    - __meta_kubernetes_pod_annotation_verrazzano_io_metricsPort
+    target_label: __address__
+  - action: replace
+    regex: (.*)
+    replacement: $1
+    source_labels:
+    - __meta_kubernetes_namespace
+    target_label: namespace
+  - action: labelmap
+    regex: __meta_kubernetes_pod_label_(.+)
+  - action: replace
+    source_labels:
+    - __meta_kubernetes_pod_name
+    target_label: pod_name
+  - action: labeldrop
+    regex: (controller_revision_hash)
+  - action: replace
+    regex: .*/(.*)$
+    replacement: $1
+    source_labels:
+    - name
+    target_label: webapp

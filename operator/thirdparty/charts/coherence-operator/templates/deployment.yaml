@@ -1,0 +1,103 @@
+{{- if eq .Values.webhookCertType "self-signed" }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ default "coherence-webhook-server-cert" .Values.webhookCertSecret }}
+  namespace: {{ .Release.Namespace }}
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: coherence-operator
+    control-plane: coherence
+  name: coherence-operator-webhook-service
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - port: 443
+    targetPort: 9443
+  selector:
+    control-plane: coherence
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: coherence
+  name: coherence-operator-controller-manager
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: coherence
+  template:
+    metadata:
+      labels:
+        control-plane: coherence
+    spec:
+      containers:
+      - name: manager
+        args:
+        - --enable-leader-election
+        command:
+        - /manager
+        env:
+        - name: OPERATOR_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: OPERATOR_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: WEBHOOK_SERVICE
+          value: coherence-operator-webhook-service
+        - name: WEBHOOK_SECRET
+          value: {{ default "coherence-webhook-server-cert" .Values.webhookCertSecret }}
+        - name: CERT_TYPE
+          value: {{ default "self-signed" .Values.webhookCertType | quote }}
+        - name: COHERENCE_IMAGE
+          value: {{ .Values.defaultCoherenceImage | quote }}
+        - name: RACK_LABEL
+          value: {{ .Values.rackLabel | quote }}
+        - name: SITE_LABEL
+          value: {{ .Values.siteLabel | quote }}
+        - name: UTILS_IMAGE
+          value: {{ .Values.defaultCoherenceUtilsImage | quote }}
+        - name: WATCH_NAMESPACE
+          value: {{ .Values.watchNamespaces | quote }}
+        image: {{ .Values.image }}
+        ports:
+        - name: webhook-server
+          containerPort: 9443
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+{{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+{{- end }}
+{{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+{{- end }}
+      terminationGracePeriodSeconds: 10
+{{- if .Values.tolerations }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 }}
+{{- end }}
+{{- if .Values.affinity }}
+      affinity:
+{{ toYaml .Values.affinity | indent 8 }}
+{{- end }}
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: {{ .Values.webhookCertSecret }}

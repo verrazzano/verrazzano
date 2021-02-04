@@ -4,13 +4,17 @@
 package v1alpha1
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/operator/internal/util/env"
-	"github.com/verrazzano/verrazzano/operator/internal/util/semver"
-	"go.uber.org/zap"
+	"github.com/verrazzano/verrazzano/operator/internal/config"
 	"io/ioutil"
 	"reflect"
+
+	vzcomp "github.com/verrazzano/verrazzano/operator/internal/component"
+	"github.com/verrazzano/verrazzano/operator/internal/util/semver"
+	"go.uber.org/zap"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
@@ -22,11 +26,12 @@ type chartVersion struct {
 	AppVersion  string
 }
 
-var readFileFunction func(string) ([]byte, error) = ioutil.ReadFile
+// For unit test purposes
+var readFileFunction = ioutil.ReadFile
 
 // getCurrentChartVersion Load the current Chart.yaml into a chartVersion struct
 func getCurrentChartVersion() (*semver.SemVersion, error) {
-	chartDir := env.VzChartDir()
+	chartDir := vzcomp.VzChartDir()
 	chartBytes, err := readFileFunction(chartDir + "/Chart.yaml")
 	if err != nil {
 		return nil, err
@@ -41,7 +46,7 @@ func getCurrentChartVersion() (*semver.SemVersion, error) {
 
 // ValidateVersion check that requestedVersion matches chart requestedVersion
 func ValidateVersion(requestedVersion string) error {
-	if !env.IsCheckVersionRequired() {
+	if !config.Get().VersionCheckEnabled {
 		zap.S().Infof("Version validation disabled")
 		return nil
 	}
@@ -56,14 +61,18 @@ func ValidateVersion(requestedVersion string) error {
 	if err != nil {
 		return err
 	}
-	if requestedSemVer.CompareTo(chartSemVer) != 0 {
-		return fmt.Errorf("Requested version %s does not match chart version %s", requestedSemVer.VersionString, chartSemVer.VersionString)
+	if !requestedSemVer.IsEqualTo(chartSemVer) {
+		return fmt.Errorf("Requested version %s does not match chart version %s", requestedVersion, chartSemVer.ToString())
 	}
 	return nil
 }
 
 // ValidateUpgradeRequest Ensures that for the upgrade case only the version field has changed
 func ValidateUpgradeRequest(currentSpec *VerrazzanoSpec, newSpec *VerrazzanoSpec) error {
+	if !config.Get().VersionCheckEnabled {
+		zap.S().Infof("Version validation disabled")
+		return nil
+	}
 	// Short-circuit if the version strings are the same
 	if currentSpec.Version == newSpec.Version {
 		return nil
@@ -90,8 +99,8 @@ func ValidateUpgradeRequest(currentSpec *VerrazzanoSpec, newSpec *VerrazzanoSpec
 			// Unable to parse the current spec version; this should never happen
 			return err
 		}
-		if requestedSemVer.CompareTo(currentSemVer) < 0 {
-			return fmt.Errorf("Requested version %s is not newer than current version %s", requestedSemVer.VersionString, currentSemVer.VersionString)
+		if requestedSemVer.IsLessThan(currentSemVer) {
+			return fmt.Errorf("Requested version %s is not newer than current version %s", requestedSemVer.ToString(), currentSemVer.ToString())
 		}
 	}
 
@@ -101,5 +110,30 @@ func ValidateUpgradeRequest(currentSpec *VerrazzanoSpec, newSpec *VerrazzanoSpec
 		!reflect.DeepEqual(newSpec.Components, currentSpec.Components) {
 		return errors.New("Configuration updates not allowed during upgrade between Verrazzano versions")
 	}
+	return nil
+}
+
+// ValidateActiveInstall enforces that only one install of Verrazzano is allowed.
+func ValidateActiveInstall(client client.Client) error {
+	vzList := &VerrazzanoList{}
+
+	err := client.List(context.Background(), vzList)
+	if err != nil {
+		return err
+	}
+
+	if len(vzList.Items) != 0 {
+		return fmt.Errorf("Only one install of Verrazzano is allowed")
+	}
+
+	return nil
+}
+
+// ValidateInProgress makes sure there is not an install, uninstall or upgrade in progress
+func ValidateInProgress(state StateType) error {
+	if state == Installing || state == Uninstalling || state == Upgrading {
+		return fmt.Errorf("Updates to resource not allowed while install, uninstall or upgrade is in progress")
+	}
+
 	return nil
 }

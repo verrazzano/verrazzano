@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -71,13 +71,15 @@ type VerrazzanoStatus struct {
 	Version string `json:"version,omitempty"`
 	// The latest available observations of an object's current state.
 	Conditions []Condition `json:"conditions,omitempty"`
+	// State of the Verrazzano custom resource
+	State StateType `json:"state,omitempty"`
 }
 
-// ConditionType identifies the condition of the install/uninstall which can be checked with kubectl wait
+// ConditionType identifies the condition of the install/uninstall/upgrade which can be checked with kubectl wait
 type ConditionType string
 
 const (
-	// InstallStarted is state when an install is in progress.
+	// InstallStarted means an install is in progress.
 	InstallStarted ConditionType = "InstallStarted"
 
 	// InstallComplete means the install job has completed its execution successfully
@@ -86,7 +88,7 @@ const (
 	// InstallFailed means the install job has failed during execution.
 	InstallFailed ConditionType = "InstallFailed"
 
-	// UninstallStarted is state when an uninstall is in progress.
+	// UninstallStarted means an uninstall is in progress.
 	UninstallStarted ConditionType = "UninstallStarted"
 
 	// UninstallComplete means the uninstall job has completed its execution successfully
@@ -95,7 +97,7 @@ const (
 	// UninstallFailed means the uninstall job has failed during execution.
 	UninstallFailed ConditionType = "UninstallFailed"
 
-	// UpgradeStarted means that a Verraazzano upgrade has been started.
+	// UpgradeStarted means that an upgrade has been started.
 	UpgradeStarted ConditionType = "UpgradeStarted"
 
 	// UpgradeFailed means the upgrade has failed during execution.
@@ -119,6 +121,26 @@ type Condition struct {
 	Message string `json:"message,omitempty"`
 }
 
+// StateType identifies the state of an install/uninstall/upgrade
+type StateType string
+
+const (
+	// Installing is the state when an install is in progress
+	Installing StateType = "Installing"
+
+	// Uninstalling is the state when an uninstall is in progress
+	Uninstalling StateType = "Uninstalling"
+
+	// Upgrading is the state when an upgrade is in progress
+	Upgrading StateType = "Upgrading"
+
+	// Ready is the state when a Verrazzano resource can perform an uninstall or upgrade
+	Ready StateType = "Ready"
+
+	// Failed is the state when an install/uninstall/upgrade has failed
+	Failed StateType = "Failed"
+)
+
 // ComponentSpec contains a set of components used by Verrazzano
 type ComponentSpec struct {
 	// CertManager contains the CertManager component configuration
@@ -133,6 +155,12 @@ type ComponentSpec struct {
 	// Istio contains the istio component configuration
 	// +optional
 	Istio IstioComponent `json:"istio,omitempty"`
+	// Keycloak contains the Keycloak component configuration
+	// +optional
+	Keycloak KeycloakComponent `json:"keycloak,omitempty"`
+	// OAM contains the OAM component configuration
+	// +optional
+	OAM OAMComponent `json:"oam,omitempty"`
 }
 
 // CertManagerComponent specifies the core CertManagerComponent config.
@@ -144,7 +172,7 @@ type CertManagerComponent struct {
 
 // DNSComponent specifies the DNS configuration
 type DNSComponent struct {
-	// DNS type of xio.io.  This is the default.
+	// DNS type of xip.io.  This is the default.
 	// +optional
 	XIPIO XIPIO `json:"xip.io,omitempty"`
 	// DNS type of OCI (Oracle Cloud Infrastructure)
@@ -160,19 +188,43 @@ type IngressNginxComponent struct {
 	// Type of ingress.  Default is LoadBalancer
 	// +optional
 	Type IngressType `json:"type,omitempty"`
-	// Arguments for installing nginx
+	// Arguments for installing NGINX
 	// +optional
 	NGINXInstallArgs []InstallArgs `json:"nginxInstallArgs,omitempty"`
-	// Ports to be used for nginx
+	// Ports to be used for NGINX
 	// +optional
 	Ports []corev1.ServicePort `json:"ports,omitempty"`
 }
 
-// IstioComponent specifies the istio configuration
+// IstioComponent specifies the Istio configuration
 type IstioComponent struct {
-	// Arguments for installing istio
+	// Arguments for installing Istio
 	// +optional
 	IstioInstallArgs []InstallArgs `json:"istioInstallArgs,omitempty"`
+}
+
+// KeycloakComponent specifies the Keycloak configuration
+type KeycloakComponent struct {
+	// Arguments for installing Keycloak
+	// +optional
+	KeycloakInstallArgs []InstallArgs `json:"keycloakInstallArgs,omitempty"`
+	// MySQL contains the MySQL component configuration needed for Keycloak
+	// +optional
+	MySQL MySQLComponent `json:"mysql,omitempty"`
+}
+
+// MySQLComponent specifies the MySQL configuration
+type MySQLComponent struct {
+	// Arguments for installing MySQL
+	// +optional
+	MySQLInstallArgs []InstallArgs `json:"mysqlInstallArgs,omitempty"`
+}
+
+// OAMComponent specifies the OAM configuration
+type OAMComponent struct {
+	// Argument to enable installation of OAM components
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
 }
 
 // InstallArgs identifies a name/value or name/value list needed for install.

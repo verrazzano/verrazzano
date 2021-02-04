@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // NOTE: the code in this source file is specifically for transforming data from
@@ -83,8 +83,8 @@ type IngressPort struct {
 	TargetPort int32  `json:"targetPort,omitempty"`
 }
 
-// IngressArg configuration
-type IngressArg struct {
+// InstallArg configuration
+type InstallArg struct {
 	Name      string `json:"name"`
 	Value     string `json:"value"`
 	SetString bool   `json:"setString,omitempty"`
@@ -92,12 +92,12 @@ type IngressArg struct {
 
 // Application configuration
 type Application struct {
-	IstioInstallArgs []IngressArg `json:"istioInstallArgs,omitempty"`
+	IstioInstallArgs []InstallArg `json:"istioInstallArgs,omitempty"`
 }
 
 // Verrazzano configuration
 type Verrazzano struct {
-	NginxInstallArgs []IngressArg  `json:"nginxInstallArgs,omitempty"`
+	NginxInstallArgs []InstallArg  `json:"nginxInstallArgs,omitempty"`
 	Ports            []IngressPort `json:"ports,omitempty"`
 }
 
@@ -154,6 +154,22 @@ const (
 	InstallProfileDev InstallProfile = "dev"
 )
 
+// Keycloak configuration
+type Keycloak struct {
+	KeycloakInstallArgs []InstallArg `json:"keycloakInstallArgs,omitempty"`
+	MySQL               MySQL        `json:"mysql,omitempty"`
+}
+
+// MySQL configuration
+type MySQL struct {
+	MySQLInstallArgs []InstallArg `json:"mySqlInstallArgs,omitempty"`
+}
+
+// OAM configuration for a Verrazzano installation
+type OAM struct {
+	Enabled bool `json:"enabled"`
+}
+
 // InstallConfiguration - Verrazzano installation configuration options
 type InstallConfiguration struct {
 	EnvironmentName string         `json:"environmentName"`
@@ -161,23 +177,25 @@ type InstallConfiguration struct {
 	DNS             DNS            `json:"dns"`
 	Ingress         Ingress        `json:"ingress"`
 	Certificates    Certificate    `json:"certificates"`
+	Keycloak        Keycloak       `json:"keycloak"`
+	OAM             OAM            `json:"oam"`
 }
 
 // GetInstallConfig returns an install configuration in the json format required by the
 // bash installer scripts.
-func GetInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
+func GetInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration {
 	if vz.Spec.Components.DNS.External != (installv1alpha1.External{}) {
-		return newExternalDNSInstallConfig(vz), nil
+		return newExternalDNSInstallConfig(vz)
 	}
 
 	if vz.Spec.Components.DNS.OCI != (installv1alpha1.OCI{}) {
 		return newOCIDNSInstallConfig(vz)
 	}
 
-	return newXipIoInstallConfig(vz), nil
+	return newXipIoInstallConfig(vz)
 }
 
-func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
+func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration {
 	return &InstallConfiguration{
 		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
@@ -199,7 +217,9 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfigurati
 				Environment:  vz.Spec.Components.CertManager.Certificate.Acme.Environment,
 			},
 		},
-	}, nil
+		Keycloak: getKeycloak(vz.Spec.Components.Keycloak),
+		OAM:      getOAM(vz.Spec.Components.OAM),
+	}
 }
 
 // newXipIoInstallConfig returns an install configuration for a xip.io install in the
@@ -219,6 +239,8 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfiguration
 				SecretName:               getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
 			},
 		},
+		Keycloak: getKeycloak(vz.Spec.Components.Keycloak),
+		OAM:      getOAM(vz.Spec.Components.OAM),
 	}
 }
 
@@ -243,6 +265,8 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) *InstallConfigu
 				SecretName:               getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
 			},
 		},
+		Keycloak: getKeycloak(vz.Spec.Components.Keycloak),
+		OAM:      getOAM(vz.Spec.Components.OAM),
 	}
 }
 
@@ -278,30 +302,40 @@ func getIngressPorts(ports []corev1.ServicePort) []IngressPort {
 	return ingressPorts
 }
 
-// getIngressArgs returns the list of ingress args in the json format required by the bash installer scripts
-func getIngressArgs(args []installv1alpha1.InstallArgs) []IngressArg {
-	ingressArgs := []IngressArg{}
+// getInstallArgs returns the list of install args in the json format required by the bash installer scripts
+func getInstallArgs(args []installv1alpha1.InstallArgs) []InstallArg {
+	installArgs := []InstallArg{}
 
 	for _, arg := range args {
-		ingressArg := IngressArg{}
+		installArg := InstallArg{}
 		if arg.Value != "" {
-			ingressArg.Name = arg.Name
-			ingressArg.Value = arg.Value
+			installArg.Name = arg.Name
+			installArg.Value = arg.Value
 			if arg.SetString {
-				ingressArg.SetString = arg.SetString
+				installArg.SetString = arg.SetString
 			}
-			ingressArgs = append(ingressArgs, ingressArg)
+			installArgs = append(installArgs, installArg)
 			continue
 		}
 
 		for i, value := range arg.ValueList {
-			ingressArg.Name = fmt.Sprintf("%s[%d]", arg.Name, i)
-			ingressArg.Value = value
-			ingressArgs = append(ingressArgs, ingressArg)
+			installArg.Name = fmt.Sprintf("%s[%d]", arg.Name, i)
+			installArg.Value = value
+			installArgs = append(installArgs, installArg)
 		}
 	}
 
-	return ingressArgs
+	return installArgs
+}
+
+// getKeycloak returns the json representation for the keycloak configuration
+func getKeycloak(keycloak installv1alpha1.KeycloakComponent) Keycloak {
+	return Keycloak{
+		KeycloakInstallArgs: getInstallArgs(keycloak.KeycloakInstallArgs),
+		MySQL: MySQL{
+			MySQLInstallArgs: getInstallArgs(keycloak.MySQL.MySQLInstallArgs),
+		},
+	}
 }
 
 // getIngress returns the json representation for the ingress
@@ -309,11 +343,11 @@ func getIngress(ingress installv1alpha1.IngressNginxComponent, istio installv1al
 	return Ingress{
 		Type: getIngressType(ingress.Type),
 		Verrazzano: Verrazzano{
-			NginxInstallArgs: getIngressArgs(ingress.NGINXInstallArgs),
+			NginxInstallArgs: getInstallArgs(ingress.NGINXInstallArgs),
 			Ports:            getIngressPorts(ingress.Ports),
 		},
 		Application: Application{
-			IstioInstallArgs: getIngressArgs(istio.IstioInstallArgs),
+			IstioInstallArgs: getInstallArgs(istio.IstioInstallArgs),
 		},
 	}
 }
@@ -366,4 +400,10 @@ func getProfile(profileType installv1alpha1.ProfileType) InstallProfile {
 	}
 
 	return InstallProfileDev
+}
+
+// getOAM returns the install config for OAM
+func getOAM(oam installv1alpha1.OAMComponent) OAM {
+	config := OAM{Enabled: oam.Enabled}
+	return config
 }
