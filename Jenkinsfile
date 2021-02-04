@@ -402,9 +402,6 @@ pipeline {
 
                             # Hack
                             # OCIR images don't work with KIND.
-                            # Coherence image doesn't get pulled correctly in KIND.
-                            docker pull container-registry.oracle.com/middleware/coherence:12.2.1.4.0
-                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/middleware/coherence:12.2.1.4.0
                             # The ToDoList example image currently cannot be pulled in KIND.
                             docker pull container-registry.oracle.com/verrazzano/example-todo:0.8.0
                             kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-todo:0.8.0
