@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -17,6 +18,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+var workloadPropertyNameMap = map[string]string{
+	"oam.verrazzano.io/v1alpha1.VerrazzanoWebLogicWorkload":  "domain",
+	"oam.verrazzano.io/v1alpha1.VerrazzanoCoherenceWorkload": "coherence",
+}
 
 // FetchWorkloadDefinition fetches the workload definition of the provided workload.
 // The definition is found by converting the workload APIVersion and Kind to a CRD resource name.
@@ -118,4 +124,59 @@ func LoggingScopeFromWorkloadLabels(ctx context.Context, cli client.Reader, name
 	}
 
 	return nil, nil
+}
+
+// IsVerrazzanoWorkloadKind returns true if the workload is a Verrazzano workload kind
+// (e.g. VerrazzanoWebLogicWorkload), false otherwise.
+func IsVerrazzanoWorkloadKind(workload *unstructured.Unstructured) bool {
+	kind := workload.GetKind()
+	return strings.HasPrefix(kind, "Verrazzano") && strings.HasSuffix(kind, "Workload")
+}
+
+// GetContainedWorkloadVersionKindName returns the api version, kind, and name of the contained workload
+// inside a Verrazzano*Workload.
+func GetContainedWorkloadVersionKindName(workload *unstructured.Unstructured) (string, string, string, error) {
+	// container workloads use different properties to hold the resource, so use a map
+	// to get the property name (e.g. VerrazzanoWebLogicWorkload has a "spec" containing a "domain" property)
+	key := fmt.Sprintf("%s.%s", workload.GetAPIVersion(), workload.GetKind())
+	specProperty, ok := workloadPropertyNameMap[key]
+	if !ok {
+		return "", "", "", fmt.Errorf("Unable to find spec property for workload type: %s", workload.GetKind())
+	}
+
+	apiVersion, found, err := unstructured.NestedString(workload.Object, "spec", specProperty, "apiVersion")
+	if !found || err != nil {
+		return "", "", "", errors.New("Unable to find api version in contained workload")
+	}
+
+	kind, found, err := unstructured.NestedString(workload.Object, "spec", specProperty, "kind")
+	if !found || err != nil {
+		return "", "", "", errors.New("Unable to find kind in contained workload")
+	}
+
+	name, found, err := unstructured.NestedString(workload.Object, "spec", specProperty, "metadata", "name")
+	if !found || err != nil {
+		return "", "", "", errors.New("Unable to find metadata name in contained workload")
+	}
+
+	return apiVersion, kind, name, nil
+}
+
+// FetchContainedWorkload takes a Verrazzano workload and fetches the contained workload as unstructured.
+func FetchContainedWorkload(ctx context.Context, cli client.Reader, workload *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	apiVersion, kind, name, err := GetContainedWorkloadVersionKindName(workload)
+	if err != nil {
+		return nil, err
+	}
+
+	u := &unstructured.Unstructured{}
+	u.SetAPIVersion(apiVersion)
+	u.SetKind(kind)
+
+	err = cli.Get(ctx, client.ObjectKey{Namespace: workload.GetNamespace(), Name: name}, u)
+	if err != nil {
+		return nil, err
+	}
+
+	return u, nil
 }

@@ -44,7 +44,7 @@ spec:
     spec:
       initContainers:
         - name: webhook-init
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.9.0-20210203141310-b070fb6
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.9.0-20210203234050-4c08bd6
           imagePullPolicy: IfNotPresent
           args:
             - --zap-log-level=info
@@ -58,7 +58,7 @@ spec:
       containers:
         - name: verrazzano-platform-operator
           imagePullPolicy: IfNotPresent
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.9.0-20210203141310-b070fb6
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.9.0-20210203234050-4c08bd6
           ports:
             - containerPort: 9443
               name: webhook
@@ -81,7 +81,7 @@ spec:
             - name: MODE
               value: RUN_OPERATOR
             - name: VZ_INSTALL_IMAGE
-              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.9.0-20210203141310-b070fb6
+              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.9.0-20210203234050-4c08bd6
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
@@ -2982,9 +2982,10 @@ spec:
                     result in generated PVCs, but can used to provide common configuration
                     to components that declare a PersistentVolumeClaimVolumeSource
                   properties:
-                    name:
-                      description: Name The name of the configuration template
-                      type: string
+                    metadata:
+                      description: Metadata about the PersistentVolumeClaimSpec template.
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
                     spec:
                       description: Spec The configuration specs for the template
                       properties:
@@ -3114,8 +3115,6 @@ spec:
                             PersistentVolume backing this claim.
                           type: string
                       type: object
-                  required:
-                  - name
                   type: object
                 type: array
             type: object
