@@ -5,7 +5,7 @@ This example provides a simple web application developed using Spring Boot. For 
 ## Deploy the example application
 
 1. Prerequisites: Install Verrazzano following the [installation instructions](../../README.md).
-   The Bob's Books example application model and binding files are contained in the Verrazzano project located at `<VERRAZZANO_HOME>/examples/springboot-app`, where `VERRAZZANO_HOME` is the root of the Verrazzano project.
+   The Spring Boot example application model and binding files are contained in the Verrazzano project located at `<VERRAZZANO_HOME>/examples/springboot-app`, where `VERRAZZANO_HOME` is the root of the Verrazzano project.
 
    **NOTE:** All files and paths in this document are relative to `<VERRAZZANO_HOME>/examples/springboot-app`.
 
@@ -38,12 +38,12 @@ This example provides a simple web application developed using Spring Boot. For 
 2. The application is deployed by default with a host value of `springboot.example.com`.
    There are several ways to access it:
    
-   * **Using the Command Line** 
+   * **Using the command line**
      ```
      curl -H "Host: springboot.example.com" http://11.22.33.44
 	 curl -H "Host: springboot.example.com" http://11.22.33.44/facts
      ```
-   * **Local Testing with a Browser** \
+   * **Local testing with a browser** \
      Temporarily modify the `/etc/hosts` file (on Mac or Linux)
      or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10), 
      to add an entry mapping `springboot.example.com` to the ingress gateway's `EXTERNAL-IP` address.
@@ -51,8 +51,8 @@ This example provides a simple web application developed using Spring Boot. For 
      ```
      11.22.33.44 springboot.example.com
      ```
-     Then, you can access the application in a browser at `http://springboot.example.com/` and `http://springboot.example.com/facts`
-   * **Using your own DNS Name:**
+     Then, you can access the application in a browser at `http://springboot.example.com/` and `http://springboot.example.com/facts`.
+   * **Using your own DNS name:**
      * Point your own DNS name to the ingress gateway's `EXTERNAL-IP` address
      * In this case, you would need to have edited the `springboot-app.yaml` file 
        to use the appropriate value under the `hosts` section (such as `yourhost.your.domain`), 
@@ -65,11 +65,11 @@ This example provides a simple web application developed using Spring Boot. For 
    the deployed Spring Boot application.
    Accessing them may require the following:
 
-   * The telemetry password: Run this command to get the password that was generated for the telemetry components:
+   * Run this command to get the password that was generated for the telemetry components:
      ```
      kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
      ```
-     The associated username is 'verrazzano'.
+     The associated user name is `verrazzano`.
 
    * You will have to accept the certificates associated with the endpoints.
 
@@ -91,20 +91,20 @@ This example provides a simple web application developed using Spring Boot. For 
 
    | Description | Address | Credentials |
    | ----------- | ------- | ----------- |
-   | Kibana      | https://[vmi-system-kibana ingress host]     | `verrazzano`/`telemetry-password` |
-   | Grafana     | https://[vmi-system-grafana ingress host]    | `verrazzano`/`telemetry-password` |
-   | Prometheus  | https://[vmi-system-prometheus ingress host] | `verrazzano`/`telemetry-password` |
+   | Kibana      | `https://[vmi-system-kibana ingress host]`     | `verrazzano`/`telemetry-password` |
+   | Grafana     | `https://[vmi-system-grafana ingress host]`    | `verrazzano`/`telemetry-password` |
+   | Prometheus  | `https://[vmi-system-prometheus ingress host]` | `verrazzano`/`telemetry-password` |
    
 
 ## Undeploy the example application   
    
-1. Delete the Spring Boot OAM resources to undeploy the application
+1. Delete the Spring Boot OAM resources to undeploy the application.
    ```
    kubectl delete -f springboot-app.yaml
    kubectl delete -f springboot-comp.yaml
    ```
    
-2. Delete the namespace springboot after the application pod is terminated.
+2. Delete the namespace `springboot` after the application pod is terminated.
    ```
    kubectl get pods -n springboot
    kubectl delete namespace springboot
