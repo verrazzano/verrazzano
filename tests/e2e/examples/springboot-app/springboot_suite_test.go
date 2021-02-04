@@ -13,7 +13,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-func TestOAMInfra(t *testing.T) {
+func TestSpringBootExample(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("examples-springboot-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
 	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Spring Boot Suite", []ginkgo.Reporter{junitReporter})
