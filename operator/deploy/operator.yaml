@@ -42,50 +42,24 @@ spec:
       labels:
         app: verrazzano-platform-operator
     spec:
-      initContainers:
-        - name: webhook-init
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20210119200537-b451f18
-          imagePullPolicy: IfNotPresent
-          args:
-            - --zap-log-level=info
-            - --init-webhooks=true
-          env:
-            - name: MODE
-              value: RUN_OPERATOR
-          volumeMounts:
-            - name: webhook-certs
-              mountPath: /etc/webhook/certs
       containers:
         - name: verrazzano-platform-operator
           imagePullPolicy: IfNotPresent
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20210119200537-b451f18
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.7.0-20201218212724-a3784dd
           ports:
             - containerPort: 9443
               name: webhook
               protocol: TCP
-          startupProbe:
-            httpGet:
-              path: /validate-install-verrazzano-io-v1alpha1-verrazzano
-              port: webhook
-              scheme: HTTPS
-              httpHeaders:
-                - name: Content-Type
-                  value: application/json
-            periodSeconds: 5
-            timeoutSeconds: 3
-            failureThreshold: 15
           args:
             - --zap-log-level=info
-            - --enable-webhook-validation=true
           env:
             - name: MODE
               value: RUN_OPERATOR
             - name: VZ_INSTALL_IMAGE
-              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.8.0-20210119200537-b451f18
+              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.7.0-20201218212724-a3784dd
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
-              readOnly: true
           resources:
             requests:
               memory: 72Mi
@@ -134,7 +108,7 @@ webhooks:
           - verrazzanos
     sideEffects: None
     failurePolicy: Fail
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 ---
@@ -261,7 +235,7 @@ spec:
                     description: Ingress contains the ingress-nginx component configuration
                     properties:
                       nginxInstallArgs:
-                        description: Arguments for installing NGINX
+                        description: Arguments for installing nginx
                         items:
                           description: InstallArgs identifies a name/value or name/value
                             list needed for install. Value and ValueList cannot both
@@ -286,7 +260,7 @@ spec:
                           type: object
                         type: array
                       ports:
-                        description: Ports to be used for NGINX
+                        description: Ports to be used for nginx
                         items:
                           description: ServicePort contains information on service's
                             port.
@@ -377,72 +351,6 @@ spec:
                           type: object
                         type: array
                     type: object
-                  keycloak:
-                    description: Keycloak contains the keycloak component configuration
-                    properties:
-                      keycloakInstallArgs:
-                        description: Arguments for installing keycloak
-                        items:
-                          description: InstallArgs identifies a name/value or name/value
-                            list needed for install. Value and ValueList cannot both
-                            be specified.
-                          properties:
-                            name:
-                              description: Name of install argument
-                              type: string
-                            setString:
-                              description: If the Value is a literal string
-                              type: boolean
-                            value:
-                              description: Value for named install argument
-                              type: string
-                            valueList:
-                              description: List of values for named install argument
-                              items:
-                                type: string
-                              type: array
-                          required:
-                          - name
-                          type: object
-                        type: array
-                      mysql:
-                        description: MySql contains the MySQL component configuration
-                          needed for keycloak
-                        properties:
-                          mysqlInstallArgs:
-                            description: Arguments for installing MySQL
-                            items:
-                              description: InstallArgs identifies a name/value or
-                                name/value list needed for install. Value and ValueList
-                                cannot both be specified.
-                              properties:
-                                name:
-                                  description: Name of install argument
-                                  type: string
-                                setString:
-                                  description: If the Value is a literal string
-                                  type: boolean
-                                value:
-                                  description: Value for named install argument
-                                  type: string
-                                valueList:
-                                  description: List of values for named install argument
-                                  items:
-                                    type: string
-                                  type: array
-                              required:
-                              - name
-                              type: object
-                            type: array
-                        type: object
-                    type: object
-                  oam:
-                    description: OAM contains the OAM component configuration
-                    properties:
-                      enabled:
-                        description: Argument to enable installation of OAM components
-                        type: boolean
-                    type: object
                 type: object
               environmentName:
                 description: EnvironmentName identifies install environment.  Default
@@ -484,9 +392,6 @@ spec:
                   - type
                   type: object
                 type: array
-              state:
-                description: State of the Verrazzano custom resource
-                type: string
               version:
                 description: The version of Verrazzano that is installed
                 type: string

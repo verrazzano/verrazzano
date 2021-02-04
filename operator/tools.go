@@ -12,6 +12,4 @@ import (
 	_ "k8s.io/code-generator/cmd/deepcopy-gen"
 	_ "k8s.io/code-generator/cmd/informer-gen"
 	_ "k8s.io/code-generator/cmd/lister-gen"
-	// Other tools
-	_ "github.com/gordonklaus/ineffassign"
 )

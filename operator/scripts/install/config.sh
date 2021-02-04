@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 CONFIG_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -158,14 +158,13 @@ function validate_config_json {
 function get_verrazzano_ingress_ip {
   local ingress_type=$(get_config_value ".ingress.type")
   if [ ${ingress_type} == "NodePort" ]; then
-    # on MAC and Windows, container IP is not accessible.  Port forwarding from 127.0.0.1 to container IP is needed.
-    ingress_ip="127.0.0.1"
+    ingress_ip=$(kubectl -n ingress-nginx get pods --selector app=nginx-ingress,component=controller -o jsonpath='{.items[0].status.hostIP}')
   elif [ ${ingress_type} == "LoadBalancer" ]; then
     # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
-    ingress_ip=$(kubectl get svc ingress-controller-ingress-nginx-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
+    ingress_ip=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json | jq -r '.status.loadBalancer.ingress[0].ip')
     # In case of OLCNE, it would return null
     if [ ${ingress_ip} == "null" ]; then
-      ingress_ip=$(kubectl get svc ingress-controller-ingress-nginx-controller -n ingress-nginx -o json  | jq -r '.spec.externalIPs[0]')
+      ingress_ip=$(kubectl get svc ingress-controller-nginx-ingress-controller -n ingress-nginx -o json  | jq -r '.spec.externalIPs[0]')
     fi
   fi
   echo ${ingress_ip}
@@ -174,7 +173,6 @@ function get_verrazzano_ingress_ip {
 function get_application_ingress_ip {
   local ingress_type=$(get_config_value ".ingress.type")
   if [ ${ingress_type} == "NodePort" ]; then
-    # on MAC and Windows, container IP is not accessible.  Port forwarding will be needed.
     ingress_ip=$(kubectl -n istio-system get pods --selector app=istio-ingressgateway,istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}')
   elif [ ${ingress_type} == "LoadBalancer" ]; then
     # Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
@@ -200,26 +198,6 @@ function get_dns_suffix {
   echo ${dns_suffix}
 }
 
-function get_application_ingress_http_port {
-  local ingress_type=$(get_config_value ".ingress.type")
-  if [ ${ingress_type} == "NodePort" ]; then
-    http_port=$(kubectl get service -n istio-system istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}')
-  elif [ ${ingress_type} == "LoadBalancer" ]; then
-    http_port=80
-  fi
-  echo ${http_port}
-}
-
-function get_application_ingress_https_port {
-  local ingress_type=$(get_config_value ".ingress.type")
-  if [ ${ingress_type} == "NodePort" ]; then
-    https_port=$(kubectl get service -n istio-system istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}')
-  elif [ ${ingress_type} == "LoadBalancer" ]; then
-    https_port=443
-  fi
-  echo ${https_port}
-}
-
 function get_nginx_helm_args_from_config {
   if [ ! -z "$(get_config_value ".ingress.verrazzano")" ] && [ ! -z "$(get_config_value '.ingress.verrazzano.nginxInstallArgs')" ]; then
     config_array_to_helm_args ".ingress.verrazzano.nginxInstallArgs[]" || return 1
@@ -229,18 +207,6 @@ function get_nginx_helm_args_from_config {
 function get_istio_helm_args_from_config {
   if [ ! -z "$(get_config_value ".ingress.application")" ] && [ ! -z "$(get_config_value '.ingress.application.istioInstallArgs')" ]; then
     config_array_to_helm_args ".ingress.application.istioInstallArgs[]" || return 1
-  fi
-}
-
-function get_keycloak_helm_args_from_config {
-  if [ ! -z "$(get_config_value ".keycloak")" ] && [ ! -z "$(get_config_value '.keycloak.keycloakInstallArgs')" ]; then
-    config_array_to_helm_args ".keycloak.keycloakInstallArgs[]" || return 1
-  fi
-}
-
-function get_mysql_helm_args_from_config {
-  if [ ! -z "$(get_config_value ".keycloak.mysql")" ] && [ ! -z "$(get_config_value '.keycloak.mysql.mySqlInstallArgs')" ]; then
-    config_array_to_helm_args ".keycloak.mysql.mySqlInstallArgs[]" || return 1
   fi
 }
 
@@ -287,28 +253,6 @@ function get_acme_environment() {
   fi
 }
 
-# rancher needs to be accessed by the scripts running in-cluster
-# in case of NodePort, 127.0.0.1 is not accessible
-# --resolve rancher.my-env.127.0.0.1.xip.io:443:nginx_container_ip
-function get_rancher_resolve() {
-  local rancher_hostname=$1
-  local rancher_in_cluster_host=$(get_rancher_in_cluster_host ${rancher_hostname})
-  local resolve=""
-  if [ ${rancher_hostname} != ${rancher_in_cluster_host} ]; then
-    resolve="--resolve ${rancher_hostname}:443:${rancher_in_cluster_host}"
-  fi
-  echo ${resolve}
-}
-
-function get_rancher_in_cluster_host() {
-  local rancher_hostname=$1
-  local rancher_in_cluster_host=${rancher_hostname}
-  if [ $(get_config_value ".ingress.type") == "NodePort" ]; then
-    rancher_in_cluster_host=$(kubectl -n ingress-nginx get pods --selector app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller -o jsonpath='{.items[0].status.hostIP}')
-  fi
-  echo ${rancher_in_cluster_host}
-}
-
 if [ -z "$INSTALL_CONFIG_FILE" ]; then
   INSTALL_CONFIG_FILE=$DEFAULT_CONFIG_FILE
 fi
@@ -328,8 +272,6 @@ validate_config_json "$CONFIG_JSON" || fail "Installation config is invalid"
 #log "got nginx ingress ip $(get_verrazzano_ingress_ip)"
 #log "got nginx suffix $(get_dns_suffix $(get_verrazzano_ingress_ip))"
 #log "got istio ingress ip $(get_application_ingress_ip)"
-#log "got istio http $(get_application_ingress_http_port)"
-#log "got istio https $(get_application_ingress_https_port)"
 #log "got verrazzano ports spec $(get_verrazzano_ports_spec)"
 #log "got nginx helm args $(get_nginx_helm_args_from_config)"
 #log "got istio helm args $(get_istio_helm_args_from_config)"

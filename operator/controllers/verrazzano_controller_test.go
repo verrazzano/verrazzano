@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package controllers
@@ -6,13 +6,13 @@ package controllers
 import (
 	"context"
 	"encoding/base64"
-	"github.com/verrazzano/verrazzano/operator/internal/k8s"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/operator/api/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/operator/internal"
 	"github.com/verrazzano/verrazzano/operator/internal/installjob"
 	"github.com/verrazzano/verrazzano/operator/mocks"
 	"go.uber.org/zap"
@@ -149,7 +149,7 @@ func TestSuccessfulInstall(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
 			newJob := installjob.NewJob(&installjob.JobConfig{
-				JobConfigCommon: k8s.JobConfigCommon{
+				JobConfigCommon: internal.JobConfigCommon{
 					JobName:            name.Name,
 					Namespace:          name.Namespace,
 					Labels:             labels,
@@ -514,7 +514,7 @@ func TestUninstallComplete(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
 			newJob := installjob.NewJob(&installjob.JobConfig{
-				JobConfigCommon: k8s.JobConfigCommon{
+				JobConfigCommon: internal.JobConfigCommon{
 					JobName:            name.Name,
 					Namespace:          name.Namespace,
 					Labels:             labels,
@@ -669,7 +669,7 @@ func TestUninstallFailed(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
 			newJob := installjob.NewJob(&installjob.JobConfig{
-				JobConfigCommon: k8s.JobConfigCommon{
+				JobConfigCommon: internal.JobConfigCommon{
 					JobName:            name.Name,
 					Namespace:          name.Namespace,
 					Labels:             labels,
@@ -754,7 +754,7 @@ func TestUninstallSucceeded(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
 			newJob := installjob.NewJob(&installjob.JobConfig{
-				JobConfigCommon: k8s.JobConfigCommon{
+				JobConfigCommon: internal.JobConfigCommon{
 					JobName:            name.Name,
 					Namespace:          name.Namespace,
 					Labels:             labels,

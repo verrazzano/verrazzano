@@ -1,10 +1,10 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package uninstalljob
 
 import (
-	"github.com/verrazzano/verrazzano/operator/internal/k8s"
+	"github.com/verrazzano/verrazzano/operator/internal"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +23,7 @@ func TestNewJob(t *testing.T) {
 	image := "docker-image"
 
 	job := NewJob(&JobConfig{
-		JobConfigCommon: k8s.JobConfigCommon{
+		JobConfigCommon: internal.JobConfigCommon{
 			JobName:            name,
 			Namespace:          namespace,
 			Labels:             labels,
@@ -70,7 +70,7 @@ func TestNewJobDryRun(t *testing.T) {
 	image := "docker-image"
 
 	job := NewJob(&JobConfig{
-		JobConfigCommon: k8s.JobConfigCommon{
+		JobConfigCommon: internal.JobConfigCommon{
 			JobName:            name,
 			Namespace:          namespace,
 			Labels:             labels,

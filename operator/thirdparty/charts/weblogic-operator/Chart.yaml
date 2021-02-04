@@ -1,6 +1,0 @@
-apiVersion: v1
-appVersion: 3.1.0
-description: Helm chart for configuring the WebLogic operator.
-name: weblogic-operator
-type: application
-version: 3.1.0

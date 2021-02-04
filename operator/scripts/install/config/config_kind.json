@@ -20,7 +20,7 @@
                "value": "DaemonSet"
             },
             {
-               "name": "controller.hostPort.enabled",
+               "name": "controller.daemonset.useHostPort",
                "value": "true"
             },
             {

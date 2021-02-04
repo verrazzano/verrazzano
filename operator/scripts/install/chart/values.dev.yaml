@@ -11,6 +11,9 @@ verrazzanoOperator:
   grafanaDataStorageSize: ""
   esDataStorageSize: ""
 
+appBinding:
+  useSystemVMI: true
+
 elasticSearch:
   nodes:
     master:

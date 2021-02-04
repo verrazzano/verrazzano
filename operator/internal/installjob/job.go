@@ -1,10 +1,10 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package installjob
 
 import (
-	"github.com/verrazzano/verrazzano/operator/internal/k8s"
+	"github.com/verrazzano/verrazzano/operator/internal"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,7 +13,7 @@ import (
 
 // JobConfig Defines the parameters for an install job
 type JobConfig struct {
-	k8s.JobConfigCommon // Extending the base job config
+	internal.JobConfigCommon // Extending the base job config
 
 	ConfigMapName string // Name of the install configmap used by the scripts
 }
@@ -27,9 +27,9 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 	var annotations map[string]string = nil
 	mode := installMode
 	if jobConfig.DryRun {
-		mode = k8s.NoOpMode
+		mode = internal.NoOpMode
 		annotations = make(map[string]string, 1)
-		annotations[k8s.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
+		annotations[internal.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)
 	}
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
