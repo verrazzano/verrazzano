@@ -62,6 +62,7 @@ rules:
   - oam.verrazzano.io
   resources:
   - ingresstraits
+  - loggingscopes
   verbs:
   - get
   - list
