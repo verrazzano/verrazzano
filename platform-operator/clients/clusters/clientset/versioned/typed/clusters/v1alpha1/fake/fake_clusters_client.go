@@ -6,7 +6,7 @@
 package fake
 
 import (
-	v1alpha1 "github.com/verrazzano/verrazzano/platform-operator/client-clusters/clientset/versioned/typed/clusters/v1alpha1"
+	v1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/typed/clusters/v1alpha1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )

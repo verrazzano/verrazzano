@@ -7,7 +7,7 @@ package v1alpha1
 
 import (
 	v1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/client-clusters/clientset/versioned/scheme"
+	"github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 
