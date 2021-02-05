@@ -3004,6 +3004,43 @@ spec:
                   - type
                   type: object
                 type: array
+              instance:
+                description: The Verrazzano instance info
+                properties:
+                  elasticUrl:
+                    type: string
+                  grafanaUrl:
+                    type: string
+                  id:
+                    type: string
+                  keyCloakUrl:
+                    type: string
+                  kibanaUrl:
+                    type: string
+                  name:
+                    type: string
+                  prometheusUrl:
+                    type: string
+                  rancherUrl:
+                    type: string
+                  version:
+                    description: MgmtCluster      string `json:"mgmtCluster"` MgmtPlatform     string
+                      `json:"mgmtPlatform"` Status           string `json:"status"`
+                    type: string
+                  vzApiUri:
+                    type: string
+                required:
+                - elasticUrl
+                - grafanaUrl
+                - id
+                - keyCloakUrl
+                - kibanaUrl
+                - name
+                - prometheusUrl
+                - rancherUrl
+                - version
+                - vzApiUri
+                type: object
               state:
                 description: State of the Verrazzano custom resource
                 type: string

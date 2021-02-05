@@ -87,10 +87,31 @@ type VolumeClaimSpecTemplate struct {
 	Spec corev1.PersistentVolumeClaimSpec `json:"spec,omitempty"`
 }
 
+// InstanceInfo details of installed Verrazzano instance maintained in status field
+type InstanceInfo struct {
+	ID               string `json:"id"`
+	Name             string `json:"name"`
+	//MgmtCluster      string `json:"mgmtCluster"`
+	//MgmtPlatform     string `json:"mgmtPlatform"`
+	//Status           string `json:"status"`
+	Version          string `json:"version"`
+	KeyCloakURL      string `json:"keyCloakUrl"`
+	RancherURL       string `json:"rancherUrl"`
+	VzAPIURL         string `json:"vzApiUri"`
+	ElasticURL       string `json:"elasticUrl"`
+	KibanaURL        string `json:"kibanaUrl"`
+	GrafanaURL       string `json:"grafanaUrl"`
+	PrometheusURL    string `json:"prometheusUrl"`
+	//IsUsingSharedVMI bool   `json:"isUsingSharedVMI"`
+}
+
+
 // VerrazzanoStatus defines the observed state of Verrazzano
 type VerrazzanoStatus struct {
 	// The version of Verrazzano that is installed
 	Version string `json:"version,omitempty"`
+	// The Verrazzano instance info
+	Instance *InstanceInfo `json:"instance,omitempty"`
 	// The latest available observations of an object's current state.
 	Conditions []Condition `json:"conditions,omitempty"`
 	// State of the Verrazzano custom resource

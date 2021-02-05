@@ -7,8 +7,12 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	goerrors "errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/instance"
+	k8net "k8s.io/api/networking/v1beta1"
 	"os"
+	"strings"
 	"time"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -423,7 +427,19 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 		cr.Status.State = installv1alpha1.Uninstalling
 	case installv1alpha1.UpgradeStarted:
 		cr.Status.State = installv1alpha1.Upgrading
-	case installv1alpha1.InstallComplete, installv1alpha1.UninstallComplete, installv1alpha1.UpgradeComplete:
+	case installv1alpha1.InstallComplete:
+		domain, err := getDomain(r.Client)
+		if err != nil {
+			return err
+		}
+		cr.Status.Instance = instance.GetInstanceInfo(
+			cr.Name,
+			cr.Status.Version,
+			cr.Spec.EnvironmentName,
+			domain,
+		)
+		fallthrough
+	case installv1alpha1.UninstallComplete, installv1alpha1.UpgradeComplete:
 		cr.Status.State = installv1alpha1.Ready
 	case installv1alpha1.InstallFailed, installv1alpha1.UpgradeFailed, installv1alpha1.UninstallFailed:
 		cr.Status.State = installv1alpha1.Failed
@@ -609,4 +625,84 @@ func removeString(slice []string, s string) (result []string) {
 		result = append(result, item)
 	}
 	return
+}
+
+// buildAppHostName generates a DNS host name for the application using the following structure:
+// <app>.<namespace>.<dns-subdomain>  where
+//   app is the OAM application name
+//   namespace is the namespace of the OAM application
+//   dns-subdomain is The DNS subdomain name
+// For example: sales.cars.example.com
+//func buildAppHostName(c client.Client, appName string, namespace string) (string, error) {
+//	domain, err := getDomain(c)
+//	if err != nil {
+//		return "", err
+//	}
+//	return fmt.Sprintf("%s.%s.%s", appName, namespace, domain), nil
+//}
+
+func getDomain(c client.Client) (string, error) {
+	const authRealmKey = "nginx.ingress.kubernetes.io/auth-realm"
+	const rancherIngress = "rancher"
+	const rancherNamespace = "cattle-system"
+
+	// Extract the domain name from the Rancher ingress
+	ingress := k8net.Ingress{}
+	err := c.Get(context.TODO(), types.NamespacedName{Name: rancherIngress, Namespace: rancherNamespace}, &ingress)
+	if err != nil {
+		return "",  err
+	}
+	authRealmAnno, ok := ingress.Annotations[authRealmKey]
+	if !ok || len(authRealmAnno) == 0 {
+		return "", fmt.Errorf("Annotation %s missing from Rancher ingress, unable to generate DNS name", authRealmKey)
+	}
+	segs := strings.Split(strings.TrimSpace(authRealmAnno), " ")
+	domain := strings.TrimSpace(segs[0])
+
+	// If this is xip.io then build the domain name using Istio info
+	if strings.HasSuffix(domain, "xip.io") {
+		domain, err = buildDomainNameForXIPIO(c)
+		if err != nil {
+			return "", err
+		}
+	}
+	return domain, nil
+}
+
+// buildDomainNameForXIPIO generates a domain name in the format of "<IP>.xip.io"
+// Get the IP from Istio resources
+func buildDomainNameForXIPIO(c client.Client) (string, error) {
+	const istioIngressGateway = "istio-ingressgateway"
+	const istioNamespace = "istio-system"
+
+	istio := corev1.Service{}
+	err := c.Get(context.TODO(), types.NamespacedName{Name: istioIngressGateway, Namespace: istioNamespace}, &istio)
+	if err != nil {
+		return "", err
+	}
+	var IP string
+	if istio.Spec.Type == corev1.ServiceTypeLoadBalancer {
+		istioIngress := istio.Status.LoadBalancer.Ingress
+		if len(istioIngress) == 0 {
+			return "", fmt.Errorf("%s is missing loadbalancer IP", istioIngressGateway)
+		}
+		IP = istioIngress[0].IP
+	} else if istio.Spec.Type == corev1.ServiceTypeNodePort {
+		// Do the equiv of the following command to get the IP
+		// kubectl -n istio-system get pods --selector app=istio-ingressgateway,istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}'
+		podList := corev1.PodList{}
+		listOptions := client.MatchingLabels{"app": "istio-ingressgateway", "istio": "ingressgateway"}
+		err := c.List(context.TODO(), &podList, listOptions)
+		if err != nil {
+			return "", err
+		}
+		if len(podList.Items) == 0 {
+			return "", goerrors.New("Unable to find Istio ingressway pod")
+		}
+		IP = podList.Items[0].Status.HostIP
+	} else {
+		return "", fmt.Errorf("Unsupported service type %s for istio_ingress", string(istio.Spec.Type))
+	}
+	domain := IP + "." + "xip.io"
+	return domain, nil
 }
