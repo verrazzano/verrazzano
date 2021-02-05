@@ -26,7 +26,7 @@ const kind = "VerrazzanoManagedCluster"
 // TestCreateVMC tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an VerrazzanoManagedCluster resource
 // WHEN a VerrazzanoManagedCluster resource has been applied
-// THEN ensure all the objects are already created
+// THEN ensure all the objects are created
 func TestCreateVMC(t *testing.T) {
 	namespace := "verrazzano-install"
 	name := "test"
@@ -61,7 +61,6 @@ func TestCreateVMC(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
-
 }
 
 // TestDeleteVMC tests the Reconcile method for the following use case
