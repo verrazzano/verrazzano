@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 module github.com/verrazzano/verrazzano/platform-operator
@@ -6,6 +6,7 @@ module github.com/verrazzano/verrazzano/platform-operator
 go 1.13
 
 require (
+	github.com/go-logr/logr v0.1.0
 	github.com/golang/mock v1.4.4
 	github.com/gordonklaus/ineffassign v0.0.0-20210104184537-8eed68eb605f
 	github.com/onsi/ginkgo v1.12.0
