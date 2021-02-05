@@ -6,6 +6,7 @@ package pkg
 import (
 	"context"
 	"fmt"
+	v1 "k8s.io/api/rbac/v1"
 	"os"
 	"path/filepath"
 	"strings"
@@ -314,12 +315,25 @@ func DoesClusterRoleExist(name string) bool {
 	// Get the kubernetes clientset
 	clientset := GetKubernetesClientset()
 
-	namespace, err := clientset.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
+	clusterrole, err := clientset.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to get cluster role %s with error: %v", name, err))
 	}
 
-	return namespace != nil
+	return clusterrole != nil
+}
+
+// GetClusterRole returns the cluster role with the given name
+func GetClusterRole(name string) *v1.ClusterRole {
+	// Get the kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	clusterrole, err := clientset.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get cluster role %s with error: %v", name, err))
+	}
+
+	return clusterrole
 }
 
 // DoesClusterRoleBindingExist returns whether a cluster role with the given name exists in the cluster
@@ -327,10 +341,10 @@ func DoesClusterRoleBindingExist(name string) bool {
 	// Get the kubernetes clientset
 	clientset := GetKubernetesClientset()
 
-	namespace, err := clientset.RbacV1().ClusterRoleBindings().Get(context.TODO(), name, metav1.GetOptions{})
+	clusterrolebinding, err := clientset.RbacV1().ClusterRoleBindings().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to get cluster role %s with error: %v", name, err))
+		ginkgo.Fail(fmt.Sprintf("Failed to get cluster role binding %s with error: %v", name, err))
 	}
 
-	return namespace != nil
+	return clusterrolebinding != nil
 }

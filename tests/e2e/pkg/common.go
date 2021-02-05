@@ -196,3 +196,14 @@ func Jq(node interface{}, path ...string) interface{} {
 	}
 	return node
 }
+
+// SliceContainsString checks if the input slice (an array of strings)
+// contains an entry which matches the string s
+func SliceContainsString(slice []string, s string) bool {
+	for _, str := range slice {
+		if str == s {
+			return true
+		}
+	}
+	return false
+}
