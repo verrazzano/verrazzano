@@ -9,6 +9,8 @@ spec:
   environmentName: uni
   profile: dev
   components:
+    oam:
+      enabled: true
     dns:
       external:
         suffix: abc.def.xyz.com
