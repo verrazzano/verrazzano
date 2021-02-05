@@ -284,7 +284,7 @@ func TestMetricsTraitCreatedForVerrazzanoWorkload(t *testing.T) {
 			workload.SetKind("VerrazzanoCoherenceWorkload")
 			workload.SetNamespace(name.Namespace)
 			workload.SetName(name.Name)
-			unstructured.SetNestedMap(workload.Object, containedResource, "spec", "coherence")
+			unstructured.SetNestedMap(workload.Object, containedResource, "spec", "template")
 			workload.SetUID("test-workload-uid")
 			return nil
 		})

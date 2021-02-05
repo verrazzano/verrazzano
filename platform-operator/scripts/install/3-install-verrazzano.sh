@@ -27,8 +27,6 @@ fi
 DNS_TYPE=$(get_config_value ".dns.type")
 DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
-OAM_ENABLED=$(get_config_value ".oam.enabled")
-
 # Check if the nginx ingress ports are accessible
 function check_ingress_ports() {
   exitvalue=0
@@ -292,9 +290,7 @@ fi
 
 action "Creating admission controller cert" create_admission_controller_cert || exit 1
 action "Installing Verrazzano system components" install_verrazzano || exit 1
-if [ "${OAM_ENABLED}" == "true" ]; then
-  action "Installing Coherence Kubernetes operator" install_coherence_operator || exit 1
-  action "Installing WebLogic Kubernetes operator" install_weblogic_operator || exit 1
-  action "Installing OAM Kubernetes operator" install_oam_operator || exit 1
-  action "Installing Verrazzano Application Kubernetes operator" install_application_operator || exit 1
-fi
+action "Installing Coherence Kubernetes operator" install_coherence_operator || exit 1
+action "Installing WebLogic Kubernetes operator" install_weblogic_operator || exit 1
+action "Installing OAM Kubernetes operator" install_oam_operator || exit 1
+action "Installing Verrazzano Application Kubernetes operator" install_application_operator || exit 1

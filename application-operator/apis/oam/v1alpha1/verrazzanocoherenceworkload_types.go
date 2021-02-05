@@ -8,12 +8,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// VerrazzanoCoherenceWorkloadSpec wraps a Coherence resource. The Coherence object must include apiVersion,
-// kind, and spec fields. It may include a metadata field.
+// VerrazzanoCoherenceWorkloadSpec wraps a Coherence resource. The Coherence object specified
+// in the template must contain a spec field and it may include a metadata field.
 type VerrazzanoCoherenceWorkloadSpec struct {
-	// +kubebuilder:validation:EmbeddedResource
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Coherence runtime.RawExtension `json:"coherence"`
+	Template runtime.RawExtension `json:"template"`
 }
 
 // VerrazzanoCoherenceWorkloadStatus defines the observed state of VerrazzanoCoherenceWorkload

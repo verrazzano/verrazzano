@@ -89,7 +89,6 @@ func TestFetchWorkloadFromTrait(t *testing.T) {
 	var ctx = context.TODO()
 	var trait *vzapi.IngressTrait
 	var err error
-	//var name types.NamespacedName
 	var uns *unstructured.Unstructured
 
 	// GIVEN a trait with a reference to a workload that can be found
@@ -146,13 +145,11 @@ func TestFetchWorkloadFromTrait(t *testing.T) {
 	workloadAPIVersion := "oam.verrazzano.io/v1alpha1"
 	workloadKind := "VerrazzanoCoherenceWorkload"
 
-	containedAPIVersion := "oam.verrazzano.io/v1alpha1"
-	containedKind := "VerrazzanoCoherenceWorkload"
+	containedAPIVersion := "coherence.oracle.com/v1"
+	containedKind := "Coherence"
 	containedName := "unit-test-resource"
 
 	containedResource := map[string]interface{}{
-		"apiVersion": containedAPIVersion,
-		"kind":       containedKind,
 		"metadata": map[string]interface{}{
 			"name": containedName,
 		},
@@ -172,7 +169,7 @@ func TestFetchWorkloadFromTrait(t *testing.T) {
 			obj.SetName(key.Name)
 			obj.SetAPIVersion(workloadAPIVersion)
 			obj.SetKind(workloadKind)
-			unstructured.SetNestedMap(obj.Object, containedResource, "spec", "coherence")
+			unstructured.SetNestedMap(obj.Object, containedResource, "spec", "template")
 			return nil
 		})
 	// expect a call to fetch the contained workload that is wrapped by the Verrazzano workload
@@ -180,6 +177,8 @@ func TestFetchWorkloadFromTrait(t *testing.T) {
 		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "test-trait-namespace", Name: containedName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured) error {
 			obj.SetUnstructuredContent(containedResource)
+			obj.SetAPIVersion(containedAPIVersion)
+			obj.SetKind(containedKind)
 			return nil
 		})
 

@@ -15,13 +15,17 @@ import (
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var workloadPropertyNameMap = map[string]string{
-	"oam.verrazzano.io/v1alpha1.VerrazzanoWebLogicWorkload":  "domain",
-	"oam.verrazzano.io/v1alpha1.VerrazzanoCoherenceWorkload": "coherence",
+// workloadToContainedGVKMap maps Verrazzano workload GroupVersionKind strings to schema.GroupVersionKind
+// structs of the resources that the workloads contain. This is needed because the embedded resources
+// do not have API version and kind fields.
+var workloadToContainedGVKMap = map[string]schema.GroupVersionKind{
+	"oam.verrazzano.io/v1alpha1.VerrazzanoWebLogicWorkload":  {Group: "weblogic.oracle", Version: "v8", Kind: "Domain"},
+	"oam.verrazzano.io/v1alpha1.VerrazzanoCoherenceWorkload": {Group: "coherence.oracle.com", Version: "v1", Kind: "Coherence"},
 }
 
 // FetchWorkloadDefinition fetches the workload definition of the provided workload.
@@ -133,28 +137,36 @@ func IsVerrazzanoWorkloadKind(workload *unstructured.Unstructured) bool {
 	return strings.HasPrefix(kind, "Verrazzano") && strings.HasSuffix(kind, "Workload")
 }
 
-// GetContainedWorkloadVersionKindName returns the api version, kind, and name of the contained workload
+// APIVersionAndKindToContainedGVK returns the GroupVersionKind of the contained resource
+// for the given wrapper resource API version and kind.
+func APIVersionAndKindToContainedGVK(apiVersion string, kind string) *schema.GroupVersionKind {
+	key := fmt.Sprintf("%s.%s", apiVersion, kind)
+	gvk, ok := workloadToContainedGVKMap[key]
+	if ok {
+		return &gvk
+	}
+	return nil
+}
+
+// WorkloadToContainedGVK returns the GroupVersionKind of the contained resource
+// for the type wrapped by the provided Verrazzano workload.
+func WorkloadToContainedGVK(workload *unstructured.Unstructured) *schema.GroupVersionKind {
+	return APIVersionAndKindToContainedGVK(workload.GetAPIVersion(), workload.GetKind())
+}
+
+// GetContainedWorkloadVersionKindName returns the API version, kind, and name of the contained workload
 // inside a Verrazzano*Workload.
 func GetContainedWorkloadVersionKindName(workload *unstructured.Unstructured) (string, string, string, error) {
-	// container workloads use different properties to hold the resource, so use a map
-	// to get the property name (e.g. VerrazzanoWebLogicWorkload has a "spec" containing a "domain" property)
-	key := fmt.Sprintf("%s.%s", workload.GetAPIVersion(), workload.GetKind())
-	specProperty, ok := workloadPropertyNameMap[key]
-	if !ok {
-		return "", "", "", fmt.Errorf("Unable to find spec property for workload type: %s", workload.GetKind())
+	gvk := WorkloadToContainedGVK(workload)
+	if gvk == nil {
+		return "", "", "", fmt.Errorf("Unable to find contained GroupVersionKind for workload: %v", workload)
 	}
 
-	apiVersion, found, err := unstructured.NestedString(workload.Object, "spec", specProperty, "apiVersion")
-	if !found || err != nil {
-		return "", "", "", errors.New("Unable to find api version in contained workload")
-	}
+	apiVersion, kind := gvk.ToAPIVersionAndKind()
 
-	kind, found, err := unstructured.NestedString(workload.Object, "spec", specProperty, "kind")
-	if !found || err != nil {
-		return "", "", "", errors.New("Unable to find kind in contained workload")
-	}
-
-	name, found, err := unstructured.NestedString(workload.Object, "spec", specProperty, "metadata", "name")
+	// NOTE: this may need to change if we do not allow the user to set the name or if we do and default it
+	// to the workload or component name
+	name, found, err := unstructured.NestedString(workload.Object, "spec", "template", "metadata", "name")
 	if !found || err != nil {
 		return "", "", "", errors.New("Unable to find metadata name in contained workload")
 	}
