@@ -7,16 +7,21 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
+
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/go-logr/logr"
 
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 
-	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/rand"
 )
 
 const (
@@ -105,21 +110,29 @@ type HelidonHandler struct {
 }
 
 // Apply applies a logging scope to a Kubernetes Deployment
-func (h *HelidonHandler) Apply(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) error {
+func (h *HelidonHandler) Apply(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) (*ctrl.Result, error) {
 	deploy, err := h.getDeployment(ctx, workload, scope)
 	if err != nil {
 		h.Log.Error(err, "Failed to fetch Deployment", "Deployment", workload.Name)
-		return err
+		return nil, err
 	}
 	appContainer, fluentdFound := searchContainers(deploy.Spec.Template.Spec.Containers)
+	h.Log.V(1).Info("Update Deployment", "Deployment", deploy.Name, "fluentdFound", fluentdFound)
+	if fluentdFound {
+		// If the Deployment does contain a FLUENTD container
+		// requeue with a jittered delay to account for situation where the Deployment should be
+		// updated by the oam-kubernetes-runtime
+		duration := time.Duration(rand.IntnRange(5, 10)) * time.Second
+		return &ctrl.Result{Requeue: true, RequeueAfter: duration}, nil
+	}
 	if !fluentdFound {
-		err := h.ensureFluentdConfigMap(ctx, scope.GetNamespace(), workload.Name)
+		err = h.ensureFluentdConfigMap(ctx, scope.GetNamespace(), workload.Name)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		err = h.ensureEsSecret(ctx, scope.GetNamespace(), scope.Spec.SecretName)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		volumes := CreateFluentdHostPathVolumes()
 		for _, volume := range volumes {
@@ -130,11 +143,11 @@ func (h *HelidonHandler) Apply(ctx context.Context, workload vzapi.QualifiedReso
 		deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, fluentdContainer)
 		err = h.Update(ctx, deploy)
 		if err != nil {
-			h.Log.V(1).Info("Update Deployment", "Deployment", deploy.Name, "error", err)
-			return err
+			h.Log.V(1).Info("Failed to update Deployment", "Deployment", deploy.Name, "error", err)
+			return nil, err
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func searchContainers(containers []kcore.Container) (string, bool) {
