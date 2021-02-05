@@ -362,8 +362,8 @@ kind: ClusterRoleBinding
 metadata:
   name: verrazzano-admin
 subjects:
-- kind: {{ .Values.user-role-bindings.admin.kind }}
-  name: {{ .Values.user-role-bindings.admin.name }}
+- kind: {{ .Values.userrolebindings.admin.kind }}
+  name: {{ .Values.userrolebindings.admin.name }}
   apiGroup: rbac.authorization.k8s.io
 roleRef:
   kind: ClusterRole
@@ -385,8 +385,8 @@ kind: ClusterRoleBinding
 metadata:
   name: verrazzano-monitor
 subjects:
-- kind: {{ .Values.user-role-bindings.monitor.kind }}
-  name: {{ .Values.user-role-bindings.monitor.name }}
+- kind: {{ .Values.userrolebindings.monitor.kind }}
+  name: {{ .Values.userrolebindings.monitor.name }}
   apiGroup: rbac.authorization.k8s.io
 roleRef:
   kind: ClusterRole
@@ -408,8 +408,8 @@ kind: ClusterRoleBinding
 metadata:
   name: verrazzano-app-admin
 subjects:
-- kind: {{ .Values.user-role-bindings.app-admin.kind }}
-  name: {{ .Values.user-role-bindings.app-admin.name }}
+- kind: {{ .Values.userrolebindings.appadmin.kind }}
+  name: {{ .Values.userrolebindings.appadmin.name }}
   apiGroup: rbac.authorization.k8s.io
 roleRef:
   kind: ClusterRole
@@ -431,8 +431,8 @@ kind: ClusterRoleBinding
 metadata:
   name: verrazzano-app-monitor
 subjects:
-- kind: {{ .Values.user-role-bindings.app-monitor.kind }}
-  name: {{ .Values.user-role-bindings.app-monitor.name }}
+- kind: {{ .Values.userrolebindings.appmonitor.kind }}
+  name: {{ .Values.userrolebindings.appmonitor.name }}
   apiGroup: rbac.authorization.k8s.io
 roleRef:
   kind: ClusterRole
