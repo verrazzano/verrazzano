@@ -1,4 +1,8 @@
-#!/usr/bin/env bash
+#!/bin/bash
+#
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+#
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
@@ -27,5 +31,5 @@ set -e
 
 $SCRIPT_DIR/terraform init -no-color -reconfigure \
   --backend-config "key=${TF_VAR_state_name}" \
-  
+
 $SCRIPT_DIR/terraform plan -var-file=$TF_VAR_nodepool_config.tfvars -no-color
