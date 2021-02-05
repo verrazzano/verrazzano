@@ -105,7 +105,7 @@ pipeline {
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
-		LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/verrazzano/tests/e2e/config/scripts/looping-test"
+		LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
         INSTALL_CONFIG_FILE = "${INSTALL_SCRIPT_DIR}/install-verrazzano-xipio.yaml"
     }
 
