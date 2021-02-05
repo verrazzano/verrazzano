@@ -1,0 +1,490 @@
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+def DOCKER_IMAGE_TAG
+
+def abort = false
+def failureCount = 0
+
+pipeline {
+    options {
+        skipDefaultCheckout true
+        throttleJobProperty(
+            categories: ['looper'],
+            throttleEnabled: true,
+            throttleOption: 'category'
+        )
+        timeout(time: 40, unit: 'MINUTES')
+    }
+
+    agent {
+       docker {
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryCredentialsId 'ocir-pull-and-push-account'
+        }
+    }
+
+    parameters {
+        string (name: 'VERRAZZANO_BRANCH',
+                defaultValue: 'develop',
+                description: 'Branch or tag or commit to clone and checkout, of the Verrazzano repo',
+                trim: true)
+        choice (name: 'OKE_NODE_POOL',
+                description: 'OKE node pool configuration',
+                // 1st choice is the default value
+                choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
+        string (name: 'VERRAZZANO_OPERATOR_IMAGE',
+                defaultValue: 'NONE',
+                description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from VZ repo will be leveraged to create VZ platform operator',
+                trim: true)
+        choice (name: 'OKE_CLUSTER_VERSION',
+                description: 'Kubernetes Version for OKE Cluster',
+                // 1st choice is the default value
+                choices: [ "v1.17.13", "v1.16.15", "v1.18.10" ])
+        string (name: 'failureCount',
+                defaultValue: '0',
+                description: 'Number of consecutive failures',
+                trim: true)
+        booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS',
+                      defaultValue: false,
+                      description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)')
+    }
+
+    environment {
+        CLUSTER_NAME = 'byok8s-kind'
+        OCR_CREDS = credentials('ocr-pull-and-push-account')
+        NETRC_FILE = credentials('netrc')
+        GOPATH = '/home/opc/go'
+        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_EMAIL = credentials('github-packages-email')
+        DOCKER_REPO = 'ghcr.io'
+        DOCKER_NAMESPACE = 'verrazzano'
+        OKE_CLUSTER_REGION = 'us-ashburn-1'
+        OCR_REPO = 'container-registry.oracle.com'
+        IMAGE_PULL_SECRET = 'verrazzano-container-registry'
+
+        TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
+        TF_VAR_tenancy_id = credentials('oci-tenancy')
+        TF_VAR_user_id = credentials('oci-user-ocid')
+        TF_VAR_region = "${params.OKE_CLUSTER_REGION}"
+        TF_VAR_kubernetes_version = "${params.OKE_CLUSTER_VERSION}"
+        TF_VAR_nodepool_config = "${params.OKE_NODE_POOL}"
+        TF_VAR_api_fingerprint = credentials('oci-api-key-fingerprint')
+        TF_VAR_api_private_key_path = credentials('oci-api-key')
+        TF_VAR_s3_bucket_access_key = credentials('oci-s3-bucket-access-key')
+        TF_VAR_s3_bucket_secret_key = credentials('oci-s3-bucket-secret-key')
+        TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
+
+        TEST_CONFIG_FILE = "${HOME}/testConfigOke.yaml"
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
+        OCI_CLI_USER = credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-api-key')
+        OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
+        DISABLE_SPINNER=1
+        OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
+        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
+        TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+        GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
+        SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
+        DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
+        DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
+        DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
+        DOCKER_OAM_CI_IMAGE_NAME = 'verrazzano-application-operator-jenkins'
+        DOCKER_OAM_PUBLISH_IMAGE_NAME = 'verrazzano-application-operator'
+        DOCKER_OAM_IMAGE_NAME = "${env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'master' ? env.DOCKER_OAM_PUBLISH_IMAGE_NAME : env.DOCKER_OAM_CI_IMAGE_NAME}"
+        CREATE_LATEST_TAG = "${env.BRANCH_NAME == 'master' ? '1' : '0'}"
+        GITHUB_RELEASE_USERID = credentials('github-userid-release')
+        GITHUB_RELEASE_EMAIL = credentials('github-email-release')
+        POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
+        KUBECONFIG = "${WORKSPACE}/oke_kubeconfig"
+        VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
+        INSTALL_PROFILE = "dev"
+        VZ_ENVIRONMENT_NAME = "default"
+        TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
+		LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/verrazzano/tests/e2e/config/scripts/looping-test"
+        INSTALL_CONFIG_FILE = "${INSTALL_SCRIPT_DIR}/install-verrazzano-xipio.yaml"
+    }
+
+    stages {
+        stage('Clean workspace and checkout') {
+            steps {
+                sh """
+                    echo "${NODE_LABELS}"
+                """
+
+                script {
+                    checkout scm
+                }
+                sh """
+                    cp -f "${NETRC_FILE}" $HOME/.netrc
+                    chmod 600 $HOME/.netrc
+                """
+
+                script {
+                    try {
+                        sh """
+                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                        """
+                    } catch(error) {
+                        echo "docker login failed, retrying after sleep"
+                        retry(4) {
+                            sleep(30)
+                            sh """
+                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                            """
+                        }
+                    }
+                }
+
+                script {
+                    try {
+                        sh """
+                            echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
+                        """
+                    } catch(error) {
+                        echo "OCR docker login failed, retrying after sleep"
+                        retry(4) {
+                            sleep(30)
+                            sh """
+                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
+                            """
+                        }
+                    }
+                }
+
+                sh """
+                    rm -rf ${GO_REPO_PATH}/verrazzano
+                    mkdir -p ${GO_REPO_PATH}/verrazzano
+                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+                """
+
+                script {
+                    def props = readProperties file: '.verrazzano-development-version'
+                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
+                    DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+                }
+            }
+        }
+
+        stage("setup-kubeconfig") {
+            steps {
+                script {
+                    copyArtifacts(projectName: 'verrazzano-create-oke-cluster', selector: lastSuccessful())
+                }
+            }
+        }
+
+        // TODO : Evalauate the option of using tools/scripts/k8s-dump-cluster.sh/k8s-dump-cluster.sh and extract the archive while comparing the resources
+        stage("get-pre-install-resources") {
+            steps {
+                sh """
+                    ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${LOOPING_TEST_SCRIPTS_DIR}/pre-install-resources
+                """
+            }
+        }
+
+        //stage('Create Image Pull Secrets') {
+        //    steps {
+        //        sh """
+        //            # Create image pull secret for Verrazzano docker images
+        //            cd ${GO_REPO_PATH}/verrazzano
+        //            ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+        //            ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+        //            ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+        //        """
+        //    }
+        //}
+
+        stage('Install Platform Operator') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh """
+                        cd ${GO_REPO_PATH}/verrazzano
+                        if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
+                            echo "Using operator.yaml from Verrazzano repo"
+                            cp platform-operator/deploy/operator.yaml /tmp/operator.yaml
+                        else
+                            echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
+                            ./tests/e2e/config/scripts/process_operator_yaml.sh platform-operator "${VERRAZZANO_OPERATOR_IMAGE}"
+                        fi
+
+                        # Install the verrazzano-platform-operator
+                        cat /tmp/operator.yaml
+                        kubectl apply -f /tmp/operator.yaml
+
+                        # make sure ns exists
+                        ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+
+                        # create secret in verrazzano-install ns
+                        ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+
+                        # Configure the custom resource to install Verrazzano on OKE
+                        echo "Installing yq"
+                        GO111MODULE=on go get github.com/mikefarah/yq/v4
+                        export PATH=${HOME}/go/bin:${PATH}
+                        ./tests/e2e/config/scripts/process_xipio_install_yaml.sh ${INSTALL_CONFIG_FILE}
+                    """
+                }
+            }
+        }
+
+        stage('Install Verrazzano') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh """
+                        echo "Waiting for Operator to be ready"
+                        cd ${GO_REPO_PATH}/verrazzano
+                        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+
+                        echo "Installing Verrazzano on OKE"
+                        kubectl apply -f ${INSTALL_CONFIG_FILE}
+
+                        # wait for Verrazzano install to complete
+                        ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+
+                        ${TEST_SCRIPTS_DIR}/common-test-setup-script.sh "${GO_REPO_PATH}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "default"
+                        ${TEST_SCRIPTS_DIR}/get_ingress_ip.sh ${TEST_CONFIG_FILE}
+                        echo "----------Test config file:-------------"
+                        cat ${TEST_CONFIG_FILE}
+                        echo "----------------------------------------"
+                    """
+                }
+            }
+            post {
+                always {
+                    sh """
+                        ## dump out install logs
+                        mkdir -p ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/build/logs
+                        kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
+                        kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+                        echo "Verrazzano Installation logs dumped to verrazzano-install.log"
+                        echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
+                        echo "------------------------------------------"
+                    """
+                }
+            }
+        }
+
+        stage('Verify Verrazzano Install') {
+            environment {
+                TEST_ENV = "OKE"
+            }
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    runGinkgoRandomize('verify-install')
+                }
+            }
+        }
+
+        stage('Uninstall Verrazzano') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh """
+                        kubectl delete verrazzano my-verrazzano
+                    """
+                }
+            }
+            post {
+                always {
+                    sh """
+                        ## dump out uninstall logs
+                        # TODO : Move this to a definition and use k8s-dump-objects.sh
+                        mkdir -p ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/uninstall/build/logs
+                        kubectl logs --selector=job-name=verrazzano-uninstall-my-verrazzano > ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log --tail -1
+                        kubectl describe pod --selector=job-name=verrazzano-uninstall-my-verrazzano > ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
+                    """
+                }
+            }
+        }
+
+        stage('Remove Operator') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh """
+                        kubectl delete -f /tmp/operator.yaml
+                    """
+                }
+            }
+        }
+
+        stage("verify-uninstall") {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh """
+                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${LOOPING_TEST_SCRIPTS_DIR}/post-uninstall-resources
+                        ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh
+                    """
+                }
+            }
+        }
+    }
+    post {
+        always {
+            dumpVerrazzanoSystemPods()
+            dumpCattleSystemPods()
+            dumpNginxIngressControllerLogs()
+            dumpVerrazzanoPlatformOperatorLogs()
+            dumpVerrazzanoApplicationOperatorLogs()
+            dumpOamKubernetesRuntimeLogs()
+            dumpVerrazzanoApiLogs()
+
+            script {
+                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                    dumpK8sCluster('loop-tests-cluster-dump.tar.gz')
+                }
+            }
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump.tar.gz', allowEmptyArchive: true
+            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+        }
+
+        failure {
+            dumpK8sCluster('loop-tests-cluster-dump.tar.gz')
+            script {
+                failureCount = params.failureCount as Integer
+                failureCount++
+                println("current failureCount: ${failureCount}")
+                //if (env.BRANCH_NAME == "master") {
+                //slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
+                //}
+
+                // kick off another cluster build after initial attempt to reuse cluster (failureCount = 1)
+                if (failureCount > 1) {
+                    try {
+                        build job: 'verrazzano-create-oke-cluster',
+                            parameters: [
+                                string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
+                                string(name: 'OKE_NODE_POOL', value: params.OKE_NODE_POOL),
+                                string(name: 'OKE_CLUSTER_VERSION', value: params.OKE_CLUSTER_VERSION),
+                            ], wait: true
+                        failureCount = 0
+                        // pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\nPlease investigate the cause of the failure, then clean up the cluster and associated resources when you are done. The OKE cluster to inspect will be the one associated with the previous successful build of project create-oke-cluster")
+                    } catch (Exception e) {
+                        abort = true
+                        // slackSend ( message: "Loop test interrupted due to cluster build failure - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
+                    }
+                }
+            }
+        }
+        aborted {
+            script {
+                abort = true
+                sh """
+                    echo "Run aborted - ensuring deletion of VZ cluster and operator"
+                    kubectl delete --ignore-not-found=true verrazzano my-verrazzano
+                    kubectl delete --ignore-not-found=true -f /tmp/operator.yaml
+                """
+            }
+        }
+        //cleanup {
+        //    script {
+        //        if (!abort) {
+        //             def failures = failureCount as String
+        //             build job: 'verrazzano-new-installation-loop/develop',
+        //                parameters: [
+        //                        string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
+        //                        string(name: 'OKE_NODE_POOL', value: params.OKE_NODE_POOL),
+        //                        string(name: 'OKE_CLUSTER_VERSION', value: params.OKE_CLUSTER_VERSION),
+        //                        string(name: 'failureCount', value: failures)
+        //                ], wait: false
+        //        }
+        //    }
+        //}
+    }
+}
+
+def runGinkgoRandomize(testSuitePath) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor ${testSuitePath}/...
+        """
+    }
+}
+
+def dumpK8sCluster(archiveFilePath) {
+    sh """
+        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -z ${archiveFilePath}
+    """
+}
+
+def dumpVerrazzanoSystemPods() {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-pods.log"
+        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-certs.log"
+        ./scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-kibana.log"
+        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-es-master.log"
+        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def dumpCattleSystemPods() {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cattle-system-pods.log"
+        ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/rancher.log"
+        ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def dumpNginxIngressControllerLogs() {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/nginx-ingress-controller.log"
+        ./scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def dumpVerrazzanoPlatformOperatorLogs() {
+    sh """
+        ## dump out verrazzano-platform-operator logs
+        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
+        kubectl -n verrazzano-install logs --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        echo "verrazzano-platform-operator logs dumped to verrazzano-platform-operator-pod.log"
+        echo "verrazzano-platform-operator pod description dumped to verrazzano-platform-operator-pod.out"
+        echo "------------------------------------------"
+    """
+}
+
+def dumpVerrazzanoApplicationOperatorLogs() {
+    sh """
+        ## dump out verrazzano-application-operator logs
+        mkdir -p ${WORKSPACE}/verrazzano-application-operator/logs
+        kubectl -n verrazzano-system logs --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        echo "verrazzano-application-operator logs dumped to verrazzano-application-operator-pod.log"
+        echo "verrazzano-application-operator pod description dumped to verrazzano-application-operator-pod.out"
+        echo "------------------------------------------"
+        """
+}
+
+def dumpOamKubernetesRuntimeLogs() {
+    sh """
+        ## dump out oam-kubernetes-runtime logs
+        mkdir -p ${WORKSPACE}/oam-kubernetes-runtime/logs
+        kubectl -n verrazzano-system logs --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${WORKSPACE}/oam-kubernetes-runtime/logs/oam-kubernetes-runtime-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system describe pod --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${WORKSPACE}/verrazzano-application-operator/logs/oam-kubernetes-runtime-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        echo "verrazzano-application-operator logs dumped to oam-kubernetes-runtime-pod.log"
+        echo "verrazzano-application-operator pod description dumped to oam-kubernetes-runtime-pod.out"
+        echo "------------------------------------------"
+    """
+}
+
+def dumpVerrazzanoApiLogs() {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-api.log"
+        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
