@@ -109,6 +109,12 @@ if [ -z $CAPTURE_DIR ] || [ ! -d $CAPTURE_DIR ]; then
   exit 1
 fi
 
+function process_nodes_output() {
+  if [ -f $CAPTURE_DIR/cluster-dump/nodes.json ]; then
+    cat $CAPTURE_DIR/cluster-dump/nodes.json | jq '.items[].status.images[].names|@csv' | sed -e 's/"//g' -e 's/\\//g'| sort -u > $CAPTURE_DIR/cluster-dump/images-on-nodes.csv
+  fi
+}
+
 function full_k8s_cluster_dump() {
   echo "Full capture of kubernetes cluster"
   # Get general cluster-info dump, this contains quite a bit but not everything, it also sets up the directory structure
@@ -128,6 +134,7 @@ function full_k8s_cluster_dump() {
     kubectl describe configmap --all-namespaces > $CAPTURE_DIR/cluster-dump/configmaps.out || true
     helm version > $CAPTURE_DIR/cluster-dump/helm-version.out || true
     helm ls -A -o json > $CAPTURE_DIR/cluster-dump/helm-ls.json || true
+    process_nodes_output || true
   else
     echo "Failed to dump cluster, verify kubectl has access to the cluster"
   fi
