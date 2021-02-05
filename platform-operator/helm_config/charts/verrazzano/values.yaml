@@ -29,16 +29,12 @@ elasticSearch:
 
 verrazzanoOperator:
   name: verrazzano-operator
-  imageName: ghcr.io/verrazzano/verrazzano-operator
-  imageVersion: 0.9.0-20210122131328-3beb454
-  cohMicroImage: ghcr.io/verrazzano/verrazzano-coh-cluster-operator:0.9.0-20210123000113-545ad59
-  helidonMicroImage: ghcr.io/verrazzano/verrazzano-helidon-app-operator:0.9.0-20210121210620-02233c2
-  wlsMicroImage: ghcr.io/verrazzano/verrazzano-wko-operator:0.9.0-20210121215245-5404ca7
+  imageName: ghcr.io/verrazzano/verrazzano-operator-jenkins
+  imageVersion: 0.9.0-20210205011827-41e96e7
   prometheusPusherImage: ghcr.io/verrazzano/prometheus-pusher:1.0.1-20201016212958-5b64612
   nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
   filebeatImage: ghcr.io/verrazzano/filebeat:6.8.3-20201016212236-05eabe44b
   journalbeatImage: ghcr.io/verrazzano/journalbeat:6.8.3-20201016212623-05eabe44b
-  weblogicOperatorImage: ghcr.io/oracle/weblogic-kubernetes-operator:3.1.0
   fluentdImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-20201016214205-7f37ac6
   apiServerRealm: verrazzano-system
   RequestMemory: 72Mi
@@ -83,14 +79,6 @@ clusterOperator:
   rancherUserName:
   rancherPassword:
   rancherHostname:
-
-verrazzanoAdmissionController:
-  name: verrazzano-validation
-  controllerName: verrazzano-admission-controller
-  imageName: ghcr.io/verrazzano/verrazzano-admission-controller
-  imageVersion: 0.9.0-20210121212626-3d41abf
-  caBundle:
-  RequestMemory: 15Mi
 
 console:
   name: verrazzano-console
