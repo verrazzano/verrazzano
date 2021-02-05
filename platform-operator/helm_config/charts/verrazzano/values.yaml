@@ -29,8 +29,8 @@ elasticSearch:
 
 verrazzanoOperator:
   name: verrazzano-operator
-  imageName: ghcr.io/verrazzano/verrazzano-operator-jenkins
-  imageVersion: 0.9.0-20210205011827-41e96e7
+  imageName: lhr.ocir.io/stevengreenberginc/pmackin-vz-operator
+  imageVersion: 7
   prometheusPusherImage: ghcr.io/verrazzano/prometheus-pusher:1.0.1-20201016212958-5b64612
   nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
   filebeatImage: ghcr.io/verrazzano/filebeat:6.8.3-20201016212236-05eabe44b
