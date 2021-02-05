@@ -47,6 +47,7 @@ pipeline {
 
         CLUSTER_NAME = 'verrazzano'
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
+        TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
         OCR_CREDS = credentials('ocr-pull-and-push-account')
@@ -330,6 +331,7 @@ pipeline {
                 stage('Prepare AT environment') {
                     steps {
                         sh """
+                            echo "tests will execute" > ${TESTS_EXECUTED_FILE}
                             echo "Create Kind cluster"
                             cd ${GO_REPO_PATH}/verrazzano/platform-operator
                             make create-cluster
@@ -470,12 +472,16 @@ pipeline {
 
             post {
                 failure {
-                    dumpK8sCluster('new-acceptance-tests-cluster-dump.tar.gz')
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('new-acceptance-tests-cluster-dump')
+                        }
+                    }
                 }
                 success {
                     script {
-                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster('new-acceptance-tests-cluster-dump.tar.gz')
+                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('new-acceptance-tests-cluster-dump')
                         }
                     }
                 }
@@ -485,15 +491,18 @@ pipeline {
 
     post {
         always {
-            dumpVerrazzanoSystemPods()
-            dumpCattleSystemPods()
-            dumpNginxIngressControllerLogs()
-            dumpVerrazzanoPlatformOperatorLogs()
-            dumpVerrazzanoApplicationOperatorLogs()
-            dumpOamKubernetesRuntimeLogs()
-            dumpVerrazzanoApiLogs()
-
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump.tar.gz', allowEmptyArchive: true
+            script {
+                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                    dumpVerrazzanoSystemPods()
+                    dumpCattleSystemPods()
+                    dumpNginxIngressControllerLogs()
+                    dumpVerrazzanoPlatformOperatorLogs()
+                    dumpVerrazzanoApplicationOperatorLogs()
+                    dumpOamKubernetesRuntimeLogs()
+                    dumpVerrazzanoApiLogs()
+                }
+            }
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
             sh """
@@ -538,9 +547,9 @@ def runGinkgo(testSuitePath) {
     }
 }
 
-def dumpK8sCluster(archiveFilePath) {
+def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -z ${archiveFilePath}
+        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}
     """
 }
 
