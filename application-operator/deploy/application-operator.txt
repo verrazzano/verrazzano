@@ -1,0 +1,1 @@
+ghcr.io/verrazzano/verrazzano-application-operator:0.9.0-20210122190722-75d564e

@@ -1,0 +1,136 @@
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: verrazzano-install
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: verrazzano-platform-operator
+  namespace: verrazzano-install
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: verrazzano-platform-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: verrazzano-platform-operator
+    namespace: verrazzano-install
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verrazzano-platform-operator
+  namespace: verrazzano-install
+  labels:
+    app: verrazzano-platform-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: verrazzano-platform-operator
+  template:
+    metadata:
+      labels:
+        app: verrazzano-platform-operator
+    spec:
+      initContainers:
+        - name: webhook-init
+          image: IMAGE_NAME
+          imagePullPolicy: IfNotPresent
+          args:
+            - --zap-log-level=info
+            - --init-webhooks=true
+          env:
+            - name: MODE
+              value: RUN_OPERATOR
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
+      containers:
+        - name: verrazzano-platform-operator
+          imagePullPolicy: IfNotPresent
+          image: IMAGE_NAME
+          ports:
+            - containerPort: 9443
+              name: webhook
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /validate-install-verrazzano-io-v1alpha1-verrazzano
+              port: webhook
+              scheme: HTTPS
+              httpHeaders:
+                - name: Content-Type
+                  value: application/json
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 15
+          args:
+            - --zap-log-level=info
+            - --enable-webhook-validation=true
+          env:
+            - name: MODE
+              value: RUN_OPERATOR
+            - name: VZ_INSTALL_IMAGE
+              value: IMAGE_NAME
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
+              readOnly: true
+          resources:
+            requests:
+              memory: 72Mi
+      volumes:
+        - name: webhook-certs
+          emptyDir: {}
+      serviceAccountName: verrazzano-platform-operator
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: verrazzano-platform-operator
+  namespace: verrazzano-install
+  labels:
+    app: verrazzano-platform-operator
+spec:
+  ports:
+    - name: webhook
+      port: 443
+      targetPort: 9443
+  selector:
+    app: verrazzano-platform-operator
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: verrazzano-platform-operator
+  labels:
+    app: verrazzano-platform-operator
+webhooks:
+  - name: install.verrazzano.io
+    clientConfig:
+      service:
+        name: verrazzano-platform-operator
+        namespace: verrazzano-install
+        path: /validate-install-verrazzano-io-v1alpha1-verrazzano
+    rules:
+      - apiGroups:
+          - install.verrazzano.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - verrazzanos
+    sideEffects: None
+    failurePolicy: Fail
