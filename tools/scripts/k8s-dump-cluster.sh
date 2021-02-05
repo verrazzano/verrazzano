@@ -15,7 +15,9 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 function usage {
     echo ""
     echo "usage: $0 -z tar_gz_file"
+    echo " You must specify at least a tar file or a directory to capture into (specifying both is valid as well)"
     echo " -z tar_gz_file   Name of the compressed tar file to generate. Ie: capture.tar.gz"
+    echo " -d directory     Directory to capture dump into"
     echo " -h               Help"
     echo ""
     exit 1
@@ -28,22 +30,31 @@ kubectl >/dev/null 2>&1 || {
 
 TAR_GZ_FILE=""
 DUMP_SECRETS="FALSE"
-while getopts z:sh flag
+while getopts z:d:h flag
 do
     case "${flag}" in
         z) TAR_GZ_FILE=${OPTARG};;
+        d) DIRECTORY=${OPTARG};;
         h) usage;;
         *) usage;;
     esac
 done
 shift $((OPTIND -1))
 
-if [ -z "$TAR_GZ_FILE" ] ; then
+# We need at least a directory or a tar file specified for the dump
+if [[ -z "$TAR_GZ_FILE" && -z "$DIRECTORY" ]] ; then
   usage
 fi
 
-if [ -f "$TAR_GZ_FILE" ] ; then
+# If a tar file output was specified and it exists already fail
+if [[ ! -z "$TAR_GZ_FILE" && -f "$TAR_GZ_FILE" ]] ; then
   echo "$TAR_GZ_FILE already exists. Aborting."
+  exit 1
+fi
+
+# If a tar file output was specified and it exists already fail
+if [[ ! -z "$DIRECTORY" && -f "$DIRECTORY" ]] ; then
+  echo "$DIRECTORY already exists. Aborting."
   exit 1
 fi
 
@@ -86,9 +97,15 @@ fi
 #      careful in any case as once captured into an archive they need to be aware in how they handle it, and we may
 #      need to trim down more from what we capture as well.
 
-CAPTURE_DIR=$(mktemp -d $(pwd)/capture_XXXXXXX)
+if [ -z $DIRECTORY ]; then
+  CAPTURE_DIR=$(mktemp -d $(pwd)/capture_XXXXXXX)
+else
+  mkdir $DIRECTORY
+  CAPTURE_DIR=$DIRECTORY
+fi
+
 if [ -z $CAPTURE_DIR ] || [ ! -d $CAPTURE_DIR ]; then
-  echo "Failed to intialize temporary directory"
+  echo "Failed to intialize capture directory"
   exit 1
 fi
 
@@ -117,15 +134,21 @@ function full_k8s_cluster_dump() {
 }
 
 function save_dump_file() {
-  # We only save files into cluster-dump and below we do not save the temp directory portion
-  if [ -d $CAPTURE_DIR/cluster-dump ]; then
-    tar -czf $TAR_GZ_FILE -C $CAPTURE_DIR cluster-dump
-    echo "Dump saved to $TAR_GZ_FILE"
+  # This will save the dump to a targ gz file if that was specified
+  if [ ! -z $TAR_GZ_FILE ]; then
+    # We only save files into cluster-dump and below we do not save the temp directory portion
+    if [ -d $CAPTURE_DIR/cluster-dump ]; then
+      tar -czf $TAR_GZ_FILE -C $CAPTURE_DIR cluster-dump
+      echo "Dump saved to $TAR_GZ_FILE"
+    fi
   fi
 }
 
 function cleanup_dump() {
-  rm -rf $CAPTURE_DIR
+  # This will cleanup the capture directory if it was not specified (it is a temp directory in that case)
+  if [ -z $DIRECTORY ]; then
+    rm -rf $CAPTURE_DIR
+  fi
 }
 
 full_k8s_cluster_dump
