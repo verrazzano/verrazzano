@@ -95,7 +95,6 @@ pipeline {
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
         INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
-        INSTALL_PROFILE = "dev"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
@@ -467,7 +466,11 @@ pipeline {
                                     when { expression { return params.TEST_ENV == 'ocidns_oke' } }
                                     stages {
                                         stage('Create dns zone') {
-                                            dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId}", returnStdout: true)
+                                            steps {
+                                                script {
+                                                    dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId}", returnStdout: true)
+                                                }
+                                            }
                                         }
                                         stage('Configure Install profile') {
                                               environment {
@@ -518,31 +521,35 @@ pipeline {
                         }
 
                         stage ('Install Verrazzano') {
-                            sh """
-                                echo "Waiting for Operator to be ready"
-                                kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-                                echo "Installing Verrazzano on ${TEST_ENV}"
-                                # apply config to create cluster
-                                if [ "${TEST_ENV}" == "magicdns_oke" ]; then
-                                kubectl apply -f ${INSTALL_CONFIG_FILE_XIPIO}
-                                elif [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                                kubectl apply -f ${INSTALL_CONFIG_FILE_OCIDNS}
-                                elif [ "${TEST_ENV}" == "kind" ]; then
-                                kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}
-                                fi
+                            steps {
+                                script {
+                                    sh """
+                                        echo "Waiting for Operator to be ready"
+                                        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+                                        echo "Installing Verrazzano on ${TEST_ENV}"
+                                        # apply config to create cluster
+                                        if [ "${TEST_ENV}" == "magicdns_oke" ]; then
+                                        kubectl apply -f ${INSTALL_CONFIG_FILE_XIPIO}
+                                        elif [ "${TEST_ENV}" == "ocidns_oke" ]; then
+                                        kubectl apply -f ${INSTALL_CONFIG_FILE_OCIDNS}
+                                        elif [ "${TEST_ENV}" == "kind" ]; then
+                                        kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}
+                                        fi
 
-                                cd ${GO_REPO_PATH}/verrazzano
-                                ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+                                        cd ${GO_REPO_PATH}/verrazzano
+                                        ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
 
-                                if [ "${TEST_ENV}" == "kind" ]; then
-                                    # Hack
-                                    # OCR images don't work with KIND.
-                                    # The ToDoList example image currently cannot be pulled in KIND.
-                                    docker pull container-registry.oracle.com/verrazzano/example-todo:0.8.0
-                                    kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-todo:0.8.0
-                                fi
-                                
-                            """
+                                        if [ "${TEST_ENV}" == "kind" ]; then
+                                            # Hack
+                                            # OCR images don't work with KIND.
+                                            # The ToDoList example image currently cannot be pulled in KIND.
+                                            docker pull container-registry.oracle.com/verrazzano/example-todo:0.8.0
+                                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-todo:0.8.0
+                                        fi
+                                        
+                                    """
+                                }
+                            }
                         }
                     }
                     post {
