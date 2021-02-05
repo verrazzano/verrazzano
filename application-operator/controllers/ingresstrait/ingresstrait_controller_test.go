@@ -581,7 +581,7 @@ func TestBuildAppHostNameForDNS(t *testing.T) {
 		})
 
 	// Build the host name
-	domainName, err := buildAppHostName(mock, &trait)
+	domainName, err := buildAppFullyQualifiedHostName(mock, &trait)
 
 	// Validate the results
 	mocker.Finish()
@@ -591,7 +591,7 @@ func TestBuildAppHostNameForDNS(t *testing.T) {
 
 // TestBuildAppHostNameIgnoreWildcardForDNS tests building a DNS hostname for the application
 // GIVEN an appName and a trait with wildcard hostnames and empty hostnames
-// WHEN the buildAppHostName function is called
+// WHEN the buildAppFullyQualifiedHostName function is called
 // THEN ensure that the correct DNS name is built and that the wildcard and empty names are ignored
 func TestBuildAppHostNameIgnoreWildcardForDNS(t *testing.T) {
 	assert := asserts.New(t)
@@ -630,7 +630,7 @@ func TestBuildAppHostNameIgnoreWildcardForDNS(t *testing.T) {
 		})
 
 	// Build the host name
-	domainName, err := buildAppHostName(mock, &trait)
+	domainName, err := buildAppFullyQualifiedHostName(mock, &trait)
 
 	// Validate the results
 	mocker.Finish()
@@ -672,7 +672,7 @@ func TestFailureBuildAppHostNameForDNS(t *testing.T) {
 		})
 
 	// Build the host name
-	_, err := buildAppHostName(mock, &trait)
+	_, err := buildAppFullyQualifiedHostName(mock, &trait)
 
 	// Validate the results
 	mocker.Finish()
@@ -727,7 +727,7 @@ func TestBuildAppHostNameLoadBalancerXIP(t *testing.T) {
 		})
 
 	// Build the host name
-	domainName, err := buildAppHostName(mock, &trait)
+	domainName, err := buildAppFullyQualifiedHostName(mock, &trait)
 
 	// Validate the results
 	mocker.Finish()
@@ -779,7 +779,7 @@ func TestFailureBuildAppHostNameLoadBalancerXIP(t *testing.T) {
 		})
 
 	// Build the host name
-	_, err := buildAppHostName(mock, &trait)
+	_, err := buildAppFullyQualifiedHostName(mock, &trait)
 
 	// Validate the results
 	mocker.Finish()
@@ -843,7 +843,7 @@ func TestBuildAppHostNameNodePortXIP(t *testing.T) {
 		})
 
 	// Build the host name
-	domainName, err := buildAppHostName(mock, &trait)
+	domainName, err := buildAppFullyQualifiedHostName(mock, &trait)
 
 	// Validate the results
 	mocker.Finish()
@@ -902,7 +902,7 @@ func TestFailureBuildAppHostNameNodePortXIP(t *testing.T) {
 		})
 
 	// Build the host name
-	_, err := buildAppHostName(mock, &trait)
+	_, err := buildAppFullyQualifiedHostName(mock, &trait)
 
 	// Validate the results
 	mocker.Finish()

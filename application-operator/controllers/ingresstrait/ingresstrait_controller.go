@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"reflect"
 	"strings"
 
@@ -14,11 +15,12 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	pluralize "github.com/gertd/go-pluralize"
 	"github.com/go-logr/logr"
+	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
 	istionet "istio.io/api/networking/v1alpha3"
-	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1beta1"
@@ -38,9 +40,12 @@ const (
 	gatewayKind              = "Gateway"
 	virtualServiceAPIVersion = "networking.istio.io/v1alpha3"
 	virtualServiceKind       = "VirtualService"
+	certificateAPIVersion    = "cert-manager.io/v1alpha2"
+	certificateKind          = "Certificate"
 	serviceAPIVersion        = "v1"
 	serviceKind              = "Service"
 	clusterIPNone            = "None"
+	verrazzanoClusterIssuer  = "verrazzano-cluster-issuer"
 )
 
 // Reconciler is used to reconcile an IngressTrait object
@@ -101,6 +106,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 		rules = []vzapi.IngressRule{{}}
 	}
 	for index, rule := range rules {
+		r.createOrUpdateGatewayCertificate(ctx, trait, &status)
 		gwName := fmt.Sprintf("%s-rule-%d-gw", trait.Name, index)
 		gateway := r.createOrUpdateGateway(ctx, trait, rule, gwName, &status)
 		vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
@@ -225,12 +231,61 @@ func (r *Reconciler) fetchChildResourcesByAPIVersionKinds(ctx context.Context, n
 	return childResources, nil
 }
 
+func (r *Reconciler) createOrUpdateGatewayCertificate(ctx context.Context, trait *vzapi.IngressTrait, status *reconcileresults.ReconcileResults) error {
+	const istioNamespace = "istio-system"
+
+	// derive certificate name and see if it exists, in ready state, and has appropriate SAN value(s)
+	certificate := certapiv1alpha2.Certificate{}
+	certName, err := buildCertificateNameFromIngressTrait(trait)
+	if err != nil {
+		return err
+	}
+	if err := r.Get(context.TODO(), types.NamespacedName{Name: certName, Namespace: istioNamespace}, &certificate); err != nil {
+		if k8serrors.IsNotFound(err) {
+			// proceed with certificate creation
+			certificate = certapiv1alpha2.Certificate{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       certificateKind,
+					APIVersion: certificateAPIVersion,
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      certName,
+					Namespace: istioNamespace,
+				},
+				Spec: certapiv1alpha2.CertificateSpec{
+					DNSNames:   []string{fmt.Sprintf("*.%s", buildAppDomainName(r, trait))},
+					SecretName: fmt.Sprintf("secret-%s", buildCertificateNameFromIngressTrait(trait)),
+					IssuerRef: certv1.ObjectReference{
+						Name: verrazzanoClusterIssuer,
+						Kind: "ClusterIssuer",
+					},
+				},
+			}
+		} else {
+			return err
+		}
+	} else {
+		// certificate already exists
+		r.Log.Info("Certificate exists - nothing to do")
+	}
+
+	return nil
+}
+
+func buildCertificateNameFromIngressTrait(trait *vzapi.IngressTrait) (string, error) {
+	appName, ok := trait.Labels[oam.LabelAppName]
+	if !ok {
+		return "", errors.New("OAM app name label missing from metadata, unable to add ingress trait")
+	}
+	return fmt.Sprintf("%s-%s-cert", trait.Namespace, appName), nil
+}
+
 // createOrUpdateGateway creates or updates the Gateway child resource of the trait.
 // Results are added to the status object.
-func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, status *reconcileresults.ReconcileResults) *istioclinet.Gateway {
+func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, status *reconcileresults.ReconcileResults) *istioclient.Gateway {
 	// Create a gateway populating only name metadata.
 	// This is used as default if the gateway needs to be created.
-	gateway := &istioclinet.Gateway{
+	gateway := &istioclient.Gateway{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: gatewayAPIVersion,
 			Kind:       gatewayKind},
@@ -255,7 +310,7 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 }
 
 // mutateGateway mutates the output Gateway child resource.
-func (r *Reconciler) mutateGateway(gateway *istioclinet.Gateway, trait *vzapi.IngressTrait, rule vzapi.IngressRule) error {
+func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.IngressTrait, rule vzapi.IngressRule) error {
 	hosts, err := createHostsFromIngressTraitRule(r, rule, trait)
 	if err != nil {
 		return err
@@ -277,10 +332,10 @@ func (r *Reconciler) mutateGateway(gateway *istioclinet.Gateway, trait *vzapi.In
 
 // createOrUpdateVirtualService creates or updates the VirtualService child resource of the trait.
 // Results are added to the status object.
-func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, service *corev1.Service, gateway *istioclinet.Gateway, status *reconcileresults.ReconcileResults) {
+func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, service *corev1.Service, gateway *istioclient.Gateway, status *reconcileresults.ReconcileResults) {
 	// Create a virtual service populating only name metadata.
 	// This is used as default if the virtual service needs to be created.
-	virtualService := &istioclinet.VirtualService{
+	virtualService := &istioclient.VirtualService{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: virtualServiceAPIVersion,
 			Kind:       virtualServiceKind},
@@ -303,7 +358,7 @@ func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vz
 }
 
 // mutateVirtualService mutates the output virtual service resource
-func (r *Reconciler) mutateVirtualService(virtualService *istioclinet.VirtualService, trait *vzapi.IngressTrait, rule vzapi.IngressRule, service *corev1.Service, gateway *istioclinet.Gateway) error {
+func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualService, trait *vzapi.IngressTrait, rule vzapi.IngressRule, service *corev1.Service, gateway *istioclient.Gateway) error {
 	// Set the spec content.
 	var err error
 	virtualService.Spec.Gateways = []string{gateway.Name}
@@ -398,7 +453,7 @@ func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, 
 	}
 	// Use default hostname if none of the user specified hosts were valid
 	if len(validHosts) == 0 {
-		hostName, err := buildAppHostName(cli, trait)
+		hostName, err := buildAppFullyQualifiedHostName(cli, trait)
 		if err != nil {
 			return nil, err
 		}
@@ -501,21 +556,34 @@ func convertAPIVersionToGroupAndVersion(apiVersion string) (string, string) {
 	return parts[0], parts[1]
 }
 
-// buildAppHostName generates a DNS host name for the application using the following structure:
+// buildAppFullyQualifiedHostName generates a DNS host name for the application using the following structure:
 // <app>.<namespace>.<dns-subdomain>  where
 //   app is the OAM application name
 //   namespace is the namespace of the OAM application
 //   dns-subdomain is The DNS subdomain name
 // For example: sales.cars.example.com
-func buildAppHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
-	const authRealmKey = "nginx.ingress.kubernetes.io/auth-realm"
-	const rancherIngress = "rancher"
-	const rancherNamespace = "cattle-system"
-
+func buildAppFullyQualifiedHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
 	appName, ok := trait.Labels[oam.LabelAppName]
 	if !ok {
 		return "", errors.New("OAM app name label missing from metadata, unable to add ingress trait")
 	}
+	domainName, err := buildAppDomainName(cli, trait)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s.%s", appName, domainName), nil
+}
+
+// buildAppDomainName generates a domain name for the application using the following structure:
+// <namespace>.<dns-subdomain>  where
+//   namespace is the namespace of the OAM application
+//   dns-subdomain is The DNS subdomain name
+// For example: cars.example.com
+func buildAppDomainName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
+	const authRealmKey = "nginx.ingress.kubernetes.io/auth-realm"
+	const rancherIngress = "rancher"
+	const rancherNamespace = "cattle-system"
+
 	// Extract the domain name from the Rancher ingress
 	ingress := k8net.Ingress{}
 	err := cli.Get(context.TODO(), types.NamespacedName{Name: rancherIngress, Namespace: rancherNamespace}, &ingress)
@@ -536,7 +604,7 @@ func buildAppHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, err
 			return "", err
 		}
 	}
-	return fmt.Sprintf("%s.%s.%s", appName, trait.Namespace, domain), nil
+	return fmt.Sprintf("%s.%s", trait.Namespace, domain), nil
 }
 
 // buildDomainNameForXIPIO generates a domain name in the format of "<IP>.xip.io"
