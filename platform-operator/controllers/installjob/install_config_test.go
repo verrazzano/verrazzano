@@ -4,7 +4,6 @@
 package installjob
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
