@@ -27,6 +27,7 @@ type VerrazzanoManagedClusterReconciler struct {
 // +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=verrazzanomanagedclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=verrazzanomanagedclusters/status,verbs=get;update;patch
 
+// Reconcile reconciles a VerrazzanoManagedCluster object
 func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.TODO()
 	log := zap.S().With("resource", fmt.Sprintf("%s:%s", req.Namespace, req.Name))
@@ -54,6 +55,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 	return ctrl.Result{}, nil
 }
 
+// SetupWithManager creates a new controller and adds it to the manager
 func (r *VerrazzanoManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clustersv1alpha1.VerrazzanoManagedCluster{}).
