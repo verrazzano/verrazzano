@@ -398,51 +398,69 @@ pipeline {
                 stage('Prepare AT environment') {
                     stages {
                         stage('Create Cluster') {
-                            if [ "${env.TEST_ENV}" == "kind" ]
-                            then
-                                echo "Create Kind cluster"
-                                cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                                make create-cluster
-                            else
-                                cd ${GO_REPO_PATH}/verrazzano
-                                TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ./tests/e2e/config/scripts/create_oke_cluster.sh
-                            fi
+                            steps {
+                                script {
+                                    sh """
+                                        if [ "${env.TEST_ENV}" == "kind" ]
+                                        then
+                                            echo "Create Kind cluster"
+                                            cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                                            make create-cluster
+                                        else
+                                            cd ${GO_REPO_PATH}/verrazzano
+                                            TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ./tests/e2e/config/scripts/create_oke_cluster.sh
+                                        fi
+                                    """
+                                    }
+                                }
                         }
                         stage ('Install yq'){
-                            echo "Installing yq"
-                            GO111MODULE=on go get github.com/mikefarah/yq/v4
+                            steps {
+                                script {
+                                    sh """
+                                        echo "Installing yq"
+                                        GO111MODULE=on go get github.com/mikefarah/yq/v4
+                                    """
+                                }
+                            }
                         }
 
                         stage('Configure verrazzano prerequisites') {
                             parallel {
                                 stage ('Install platform operator') {
-                                    echo "Create Image Pull Secrets"
-                                    cd ${GO_REPO_PATH}/verrazzano
-                                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                                    ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                                    ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+                                     steps {
+                                        script {
+                                            sh """
+                                                echo "Create Image Pull Secrets"
+                                                cd ${GO_REPO_PATH}/verrazzano
+                                                ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                                                ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                                                ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
 
-                                    echo "Install Platform Operator"
-                                    cd ${GO_REPO_PATH}/verrazzano
+                                                echo "Install Platform Operator"
+                                                cd ${GO_REPO_PATH}/verrazzano
 
-                                    # Configure the deployment file to use an image pull secret for branches that have private images
-                                    if [ "${env.BRANCH_NAME}" == "master" ] || [ "${env.BRANCH_NAME}" == "develop" ]; then
-                                        echo "Using operator.yaml from Verrazzano repo"
-                                        cp platform-operator/deploy/operator.yaml /tmp/operator.yaml
-                                    else
-                                        echo "Generating operator.yaml based on image name provided: ${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                                        ./tests/e2e/config/scripts/process_operator_yaml.sh platform-operator "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                                    fi
+                                                # Configure the deployment file to use an image pull secret for branches that have private images
+                                                if [ "${env.BRANCH_NAME}" == "master" ] || [ "${env.BRANCH_NAME}" == "develop" ]; then
+                                                    echo "Using operator.yaml from Verrazzano repo"
+                                                    cp platform-operator/deploy/operator.yaml /tmp/operator.yaml
+                                                else
+                                                    echo "Generating operator.yaml based on image name provided: ${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                                                    ./tests/e2e/config/scripts/process_operator_yaml.sh platform-operator "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                                                fi
 
-                                    # Install the verrazzano-platform-operator
-                                    cat /tmp/operator.yaml
-                                    kubectl apply -f /tmp/operator.yaml
+                                                # Install the verrazzano-platform-operator
+                                                cat /tmp/operator.yaml
+                                                kubectl apply -f /tmp/operator.yaml
 
-                                    # make sure ns exists
-                                    ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+                                                # make sure ns exists
+                                                ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
 
-                                    # create secret in verrazzano-install ns
-                                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+                                                # create secret in verrazzano-install ns
+                                                ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+                                            """
+                                            }
+                                        }
                                 }
 
                                 stage("Configure OCI DNS install prerequisites") {
