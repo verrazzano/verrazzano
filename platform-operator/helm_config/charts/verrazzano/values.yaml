@@ -125,16 +125,16 @@ config:
   dnsSuffix: verrazzano.io
   enableMonitoringStorage: true
 
-user-role-bindings:
+userrolebindings:
   admin:
     kind: Group
     name: verrazzano-admins
   monitor:
     kind: Group
     name: verrazzano-monitors
-  app-admin:
+  appadmin:
     kind: Group
     name: verrazzano-app-admins
-  app-monitor:
+  appmonitor:
     kind: Group
     name: verrazzano-app-monitors
