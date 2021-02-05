@@ -107,6 +107,8 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 		ginkgoExt.Entry("verrazzano-app-monitor", "install.verrazzano.io", "'*'", "put", false),
 		ginkgoExt.Entry("verrazzano-app-monitor", "install.verrazzano.io", "'*'", "post", false),
 	)
+
+	// now add clusterrolebindings...
 })
 
 func clusterroleContains(clusterrole *v1.ClusterRole, apigroup string, resource string, verb string) bool {
