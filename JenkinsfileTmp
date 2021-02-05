@@ -407,7 +407,7 @@ pipeline {
                                             make create-cluster
                                         else
                                             cd ${GO_REPO_PATH}/verrazzano
-                                            TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ./tests/e2e/config/scripts/create_oke_cluster.sh
+                                            TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} ./tests/e2e/config/scripts/create_oke_cluster.sh
                                         fi
                                     """
                                     }
@@ -670,7 +670,7 @@ pipeline {
                   make delete-cluster
                 else
                   cd ${GO_REPO_PATH}/verrazzano
-                  TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ./tests/e2e/config/scripts/delete_oke_cluster.sh
+                  TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} ./tests/e2e/config/scripts/delete_oke_cluster.sh
                 fi
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                   echo "Failures seen during dumping of artifacts, treat post as failed"
