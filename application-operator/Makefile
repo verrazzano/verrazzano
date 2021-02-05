@@ -72,6 +72,7 @@ manifests: go-mod controller-gen
 	./hack/add-crd-header.sh
 	# Add copyright headers to the kubebuildr generated manifests
 	./hack/add-yml-header.sh config/webhook/manifests.yaml
+	./hack/add-yml-header.sh config/rbac/role.yaml
 
 # Generate code
 .PHONY: generate
