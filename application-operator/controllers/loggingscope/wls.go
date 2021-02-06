@@ -83,7 +83,7 @@ const wlsFluentdParsingRules = `<match fluent.**>
   port "#{ENV['ELASTICSEARCH_PORT']}"
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
-  index_name "oam-#{ENV['NAMESPACE']}-#{ENV['APP_CONF_NAME']}-#{ENV['COMPONENT_NAME']}"
+  index_name "` + ElasticSearchIndex + `"
   scheme http
   key_name timestamp 
   types timestamp:time
@@ -197,26 +197,6 @@ func getWlsSpecificContainerEnv(workload vzapi.QualifiedResourceRelation) []v1.E
 			ValueFrom: &v1.EnvVarSource{
 				FieldRef: &v1.ObjectFieldSelector{
 					FieldPath: "metadata.labels['weblogic.serverName']",
-				},
-			},
-		},
-		{
-			Name:  "NAMESPACE",
-			Value: workload.Namespace,
-		},
-		{
-			Name: "APP_CONF_NAME",
-			ValueFrom: &v1.EnvVarSource{
-				FieldRef: &v1.ObjectFieldSelector{
-					FieldPath: "metadata.labels['app.oam.dev/name']",
-				},
-			},
-		},
-		{
-			Name: "COMPONENT_NAME",
-			ValueFrom: &v1.EnvVarSource{
-				FieldRef: &v1.ObjectFieldSelector{
-					FieldPath: "metadata.labels['app.oam.dev/component']",
 				},
 			},
 		},

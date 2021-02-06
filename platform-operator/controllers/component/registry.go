@@ -18,12 +18,52 @@ func GetComponents() []Component {
 
 	return []Component{
 		helmComponent{
-			releaseName:             "istio",
-			chartDir:                filepath.Join(thirdPartyChartsDir, "istio"),
+			releaseName:             "istio-base",
+			chartDir:                filepath.Join(thirdPartyChartsDir, "istio/base"),
+			chartNamespace:          "istio-system",
+			ignoreNamespaceOverride: true,
+		},
+		helmComponent{
+			releaseName:             "istiod",
+			chartDir:                filepath.Join(thirdPartyChartsDir, "istio/istio-control/istio-discovery"),
 			chartNamespace:          "istio-system",
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
-			preUpgradeFunc:          PreUpgrade,
+		},
+		helmComponent{
+			releaseName:             "istio-ingress",
+			chartDir:                filepath.Join(thirdPartyChartsDir, "istio/gateways/istio-ingress"),
+			chartNamespace:          "istio-system",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
+		},
+		helmComponent{
+			releaseName:             "istio-egress",
+			chartDir:                filepath.Join(thirdPartyChartsDir, "istio/gateways/istio-egress"),
+			chartNamespace:          "istio-system",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
+		},
+		helmComponent{
+			releaseName:             "istiocoredns",
+			chartDir:                filepath.Join(thirdPartyChartsDir, "istio/istiocoredns"),
+			chartNamespace:          "istio-system",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
+		},
+		helmComponent{
+			releaseName:             "grafana",
+			chartDir:                filepath.Join(thirdPartyChartsDir, "istio/istio-telemetry/grafana"),
+			chartNamespace:          "istio-system",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
+		},
+		helmComponent{
+			releaseName:             "prometheus",
+			chartDir:                filepath.Join(thirdPartyChartsDir, "istio/istio-telemetry/prometheus"),
+			chartNamespace:          "istio-system",
+			ignoreNamespaceOverride: true,
+			valuesFile:              filepath.Join(overridesDir, "istio-values.yaml"),
 		},
 		helmComponent{
 			releaseName:             "ingress-controller",

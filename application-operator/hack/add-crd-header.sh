@@ -25,7 +25,7 @@ for CRD_FILENAME in $(ls $GENERATED_CRDS_DIR/*.y*ml) ; do
     # get and use existing copyright header by getting first 2 lines of file at
     # most recent revision
     TMP_CRD=${CRD_FILENAME}.tmp
-    git show HEAD~1:$CRD_FILENAME | head -2 > $TMP_CRD
+    git show HEAD:$CRD_FILENAME | head -2 > $TMP_CRD
     cat $CRD_FILENAME >> $TMP_CRD
     mv $TMP_CRD $CRD_FILENAME
   fi

@@ -7,11 +7,12 @@ import (
 	"flag"
 	"os"
 
-	config2 "github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/api/verrazzano/v1alpha1"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers"
+	clusterscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzanomanagedcluster"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/certificate"
+	config2 "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/log"
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
@@ -32,6 +33,7 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
 	_ = installv1alpha1.AddToScheme(scheme)
+	_ = clustersv1alpha1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -145,6 +147,14 @@ func main() {
 		mgr.GetWebhookServer().CertDir = config.CertDir
 	}
 
+	// Setup the reconciler for VerrazzanoManagedCluster objects
+	if err = (&clusterscontroller.VerrazzanoManagedClusterReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoManagedCluster")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")

@@ -11,8 +11,6 @@ UNINSTALL_DIR=$SCRIPT_DIR/..
 . $INSTALL_DIR/config.sh
 . $UNINSTALL_DIR/uninstall-utils.sh
 
-OAM_ENABLED=$(get_config_value ".oam.enabled")
-
 set -o pipefail
 
 function delete_verrazzano() {
@@ -106,12 +104,8 @@ function delete_coherence_operator {
   fi
 }
 
-log "uninstall is seeing OAM_ENABLED = ${OAM_ENABLED}"
-OAM_ENABLED="true"
-if [ "${OAM_ENABLED}" == "true" ]; then
-  action "Deleting Verrazzano Application Kubernetes operator" delete_application_operator || exit 1
-  action "Deleting OAM Kubernetes operator" delete_oam_operator || exit 1
-  action "Deleting Coherence Kubernetes operator" delete_coherence_operator || exit 1
-  action "Deleting WebLogic Kubernetes operator" delete_weblogic_operator || exit 1
-fi
+action "Deleting Verrazzano Application Kubernetes operator" delete_application_operator || exit 1
+action "Deleting OAM Kubernetes operator" delete_oam_operator || exit 1
+action "Deleting Coherence Kubernetes operator" delete_coherence_operator || exit 1
+action "Deleting WebLogic Kubernetes operator" delete_weblogic_operator || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1

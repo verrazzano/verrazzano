@@ -1633,13 +1633,6 @@ spec:
                             type: object
                         type: object
                     type: object
-                  oam:
-                    description: OAM contains the OAM component configuration
-                    properties:
-                      enabled:
-                        description: Argument to enable installation of OAM components
-                        type: boolean
-                    type: object
                 type: object
               defaultVolumeSource:
                 description: DefaultVolumeSource Defines the type of volume to be
