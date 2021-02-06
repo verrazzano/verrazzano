@@ -44,7 +44,7 @@ spec:
     spec:
       initContainers:
         - name: webhook-init
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.9.0-20210205112356-a9d81db
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.9.0-20210206001614-c9403f9
           imagePullPolicy: IfNotPresent
           args:
             - --zap-log-level=info
@@ -58,7 +58,7 @@ spec:
       containers:
         - name: verrazzano-platform-operator
           imagePullPolicy: IfNotPresent
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.9.0-20210205112356-a9d81db
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.9.0-20210206001614-c9403f9
           ports:
             - containerPort: 9443
               name: webhook
@@ -81,7 +81,7 @@ spec:
             - name: MODE
               value: RUN_OPERATOR
             - name: VZ_INSTALL_IMAGE
-              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.9.0-20210205112356-a9d81db
+              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.9.0-20210206001614-c9403f9
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
@@ -1769,13 +1769,6 @@ spec:
                             type: object
                         type: object
                     type: object
-                  oam:
-                    description: OAM contains the OAM component configuration
-                    properties:
-                      enabled:
-                        description: Argument to enable installation of OAM components
-                        type: boolean
-                    type: object
                 type: object
               defaultVolumeSource:
                 description: DefaultVolumeSource Defines the type of volume to be
@@ -3172,7 +3165,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.4.1
+    controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
   name: verrazzanomanagedclusters.clusters.verrazzano.io
 spec:
