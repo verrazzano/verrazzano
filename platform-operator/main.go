@@ -150,7 +150,6 @@ func main() {
 	// Setup the reconciler for VerrazzanoManagedCluster objects
 	if err = (&clusterscontroller.VerrazzanoManagedClusterReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoManagedCluster"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoManagedCluster")
