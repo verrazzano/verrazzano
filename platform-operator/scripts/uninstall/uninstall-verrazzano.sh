@@ -46,45 +46,6 @@ if [ "$FORCE" = false ] ; then
   done
 fi
 
-function check_applications () {
-  # check to make sure crds exist and grab them
-  kubectl get crd verrazzanobindings.verrazzano.io || return 0
-  kubectl get crd verrazzanomodels.verrazzano.io || return 0
-  bindings=$(kubectl get vb) || err_return $? "Could not retrieve VerrazzanoBindings" || return $?
-  models=$(kubectl get vm) || err_return $? "Could not retrieve VerrazzanoModels" || return $?
-
-  if [ "$bindings" ] || [ "$models" ] ; then
-    APPLICATION_RESOURCES="$(tput bold)The following applications will be deleted upon uninstall:$(tput sgr0)
-    Verrazzano Models:
-        $(kubectl get vm --no-headers -o custom-columns=":metadata.name" || err_return $? "Could not retrieve VerrazzanoModels" || return $?)
-    Verrazzano Bindings:
-        $(kubectl get vb --no-headers -o custom-columns=":metadata.name" || err_return $? "Could not retrieve VerrazzanoBindings" || return $?)\n"
-  fi
-}
-
-function prompt_delete_applications () {
-  # check to make sure crds exist and grab them
-  kubectl get crd verrazzanobindings.verrazzano.io || return 0
-  kubectl get crd verrazzanomodels.verrazzano.io || return 0
-  bindings=$(kubectl get vb) || err_return $? "Could not retrieve VerrazzanoBindings" || return $?
-  models=$(kubectl get vm) || err_return $? "Could not retrieve VerrazzanoModels" || return $?
-
-  if [ "$bindings" ] || [ "$models" ] ; then
-      if [ "$FORCE" = false ] ; then
-      while true
-      do
-        echo -n "$(tput bold)Are you sure you want to delete these applications? [y/n]:$(tput sgr0)" >&4
-        read -r resp
-        case $resp in
-          [Yy]* ) break;;
-          [Nn]* ) exit;;
-          * ) status 'Please answer yes or no'
-        esac
-      done
-    fi
-  fi
-}
-
 action "Retrieving Verrazzano Applications" check_applications || exit 1
 echo -ne "$APPLICATION_RESOURCES" >&4
 prompt_delete_applications || exit 1
