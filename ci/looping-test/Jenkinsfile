@@ -102,7 +102,7 @@ pipeline {
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
         KUBECONFIG = "${WORKSPACE}/oke_kubeconfig"
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
-        INSTALL_PROFILE = "dev"
+        INSTALL_PROFILE = "prod"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
@@ -110,7 +110,7 @@ pipeline {
     }
 
     stages {
-        stage('Clean workspace and checkout') {
+        stage('clean-workspace-and-checkout') {
             steps {
                 sh """
                     echo "${NODE_LABELS}"
@@ -189,19 +189,7 @@ pipeline {
             }
         }
 
-        //stage('Create Image Pull Secrets') {
-        //    steps {
-        //        sh """
-        //            # Create image pull secret for Verrazzano docker images
-        //            cd ${GO_REPO_PATH}/verrazzano
-        //            ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-        //            ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-        //            ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
-        //        """
-        //    }
-        //}
-
-        stage('Install Platform Operator') {
+        stage('install-platform-operator') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
@@ -223,8 +211,15 @@ pipeline {
 
                         # create secret in verrazzano-install ns
                         ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+                    """
+                }
+            }
+        }
 
-                        # Configure the custom resource to install Verrazzano on OKE
+        stage("setup-verrazzano-cr") {
+            steps {
+                script {
+                    sh """
                         echo "Installing yq"
                         GO111MODULE=on go get github.com/mikefarah/yq/v4
                         export PATH=${HOME}/go/bin:${PATH}
@@ -234,7 +229,7 @@ pipeline {
             }
         }
 
-        stage('Install Verrazzano') {
+        stage('install-verrazzano') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
@@ -271,7 +266,7 @@ pipeline {
             }
         }
 
-        stage('Verify Verrazzano Install') {
+        stage('verify-install') {
             environment {
                 TEST_ENV = "OKE"
             }
@@ -282,11 +277,12 @@ pipeline {
             }
         }
 
-        stage('Uninstall Verrazzano') {
+        stage('uninstall-verrazzano') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
-                        kubectl delete verrazzano my-verrazzano
+                        # kubectl delete verrazzano my-verrazzano
+                        kubectl delete -f ${INSTALL_CONFIG_FILE}
                     """
                 }
             }
@@ -303,7 +299,7 @@ pipeline {
             }
         }
 
-        stage('Remove Operator') {
+        stage('delete-platform-operator') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
