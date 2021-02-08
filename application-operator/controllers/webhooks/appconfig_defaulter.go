@@ -19,7 +19,7 @@ var log = ctrl.Log.WithName("webhooks.appconfig-defaulter")
 // AppConfigDefaulterPath specifies the path of AppConfigDefaulter
 const AppConfigDefaulterPath = "/appconfig-defaulter"
 
-// +kubebuilder:webhook:admissionReviewVersions={"v1","v1beta1"},verbs=create;update;delete,path=/appconfig-defaulter,mutating=true,failurePolicy=fail,groups=core.oam.dev,resources=ApplicationConfigurations,sideEffects=None,versions=v1alpha2,name=appconfig-defaulter.kb.io
+// +kubebuilder:webhook:verbs=create;update,path=/appconfig-defaulter,mutating=true,failurePolicy=fail,groups=core.oam.dev,resources=ApplicationConfigurations,versions=v1alpha2,name=appconfig-defaulter.kb.io
 
 // AppConfigWebhook uses a list of AppConfigDefaulters to supply appconfig default values
 type AppConfigWebhook struct {

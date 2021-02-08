@@ -30,7 +30,7 @@ func (r *IngressTrait) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// +kubebuilder:webhook:admissionReviewVersions={"v1","v1beta1"},verbs=create;update,path=/validate-oam-verrazzano-io-v1alpha1-ingresstrait,mutating=false,failurePolicy=fail,groups=oam.verrazzano.io,resources=ingresstraits,sideEffects=None,versions=v1alpha1,name=vingresstrait.kb.io
+// +kubebuilder:webhook:verbs=create;update,path=/validate-oam-verrazzano-io-v1alpha1-ingresstrait,mutating=false,failurePolicy=fail,groups=oam.verrazzano.io,resources=ingresstraits,versions=v1alpha1,name=vingresstrait.kb.io
 
 var _ webhook.Validator = &IngressTrait{}
 

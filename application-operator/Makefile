@@ -67,11 +67,10 @@ check: go-fmt go-vet go-ineffassign go-lint
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: manifests
 manifests: go-mod controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-	# Add copyright headers to the kubebuildr generated CRDs
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./..." output:crd:artifacts:config=config/crd/bases
+	# Add copyright headers to the kubebuilder generated CRDs
 	./hack/add-crd-header.sh
-	# Add copyright headers to the kubebuildr generated manifests
-	./hack/add-yml-header.sh config/webhook/manifests.yaml
+	# Add copyright headers to the kubebuilder generated manifests
 	./hack/add-yml-header.sh PROJECT
 	./hack/add-yml-header.sh config/rbac/role.yaml
 

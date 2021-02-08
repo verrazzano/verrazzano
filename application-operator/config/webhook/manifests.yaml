@@ -2,16 +2,14 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 ---
-apiVersion: admissionregistration.k8s.io/v1
+apiVersion: admissionregistration.k8s.io/v1beta1
 kind: MutatingWebhookConfiguration
 metadata:
   creationTimestamp: null
   name: mutating-webhook-configuration
 webhooks:
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
+- clientConfig:
+    caBundle: Cg==
     service:
       name: webhook-service
       namespace: system
@@ -26,22 +24,18 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
-    - DELETE
     resources:
     - ApplicationConfigurations
-  sideEffects: None
 
 ---
-apiVersion: admissionregistration.k8s.io/v1
+apiVersion: admissionregistration.k8s.io/v1beta1
 kind: ValidatingWebhookConfiguration
 metadata:
   creationTimestamp: null
   name: validating-webhook-configuration
 webhooks:
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
+- clientConfig:
+    caBundle: Cg==
     service:
       name: webhook-service
       namespace: system
@@ -58,4 +52,3 @@ webhooks:
     - UPDATE
     resources:
     - ingresstraits
-  sideEffects: None
