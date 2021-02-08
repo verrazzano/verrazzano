@@ -7,13 +7,14 @@ import (
 	"context"
 	b64 "encoding/base64"
 	"fmt"
-	"github.com/hashicorp/go-retryablehttp"
 	"io/ioutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/hashicorp/go-retryablehttp"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -240,7 +241,7 @@ func appMetricsExists() bool {
 
 // appComponentMetricsExists checks whether component related metrics are available
 func appComponentMetricsExists() bool {
-	return metricsExist("vendor_requests_count_total", "app_oam_dev_name", "catalog-appconf")
+	return metricsExist("vendor_requests_count_total", "app_oam_dev_name", "sockshop-appconf")
 }
 
 // appConfigMetricsExists checks whether config metrics are available
