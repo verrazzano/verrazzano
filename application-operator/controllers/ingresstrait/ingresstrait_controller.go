@@ -15,6 +15,7 @@ import (
 	pluralize "github.com/gertd/go-pluralize"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -141,23 +142,6 @@ func (r *Reconciler) fetchTrait(ctx context.Context, name types.NamespacedName) 
 		return nil, err
 	}
 	return &trait, nil
-}
-
-// fetchWorkloadFromTrait fetches a workload resource using data from a trait resource.
-// The trait's workload reference is populated by the OAM runtime when the trait resource
-// is created.  This provides a way for the trait's controller to locate the workload resource
-// that was generated from the common applicationconfiguration resource.
-func (r *Reconciler) fetchWorkloadFromTrait(ctx context.Context, trait oam.Trait) (*unstructured.Unstructured, error) {
-	var workload unstructured.Unstructured
-	workload.SetAPIVersion(trait.GetWorkloadReference().APIVersion)
-	workload.SetKind(trait.GetWorkloadReference().Kind)
-	workloadKey := client.ObjectKey{Name: trait.GetWorkloadReference().Name, Namespace: trait.GetNamespace()}
-	r.Log.Info("Fetch workload", "workload", workloadKey)
-	if err := r.Get(ctx, workloadKey, &workload); err != nil {
-		r.Log.Error(err, "Failed to fetch workload", "workload", workloadKey)
-		return nil, err
-	}
-	return &workload, nil
 }
 
 // fetchWorkloadDefinition fetches the workload definition of the provided workload.
@@ -432,7 +416,7 @@ func (r *Reconciler) fetchServiceFromTrait(ctx context.Context, trait *vzapi.Ing
 
 	// Fetch workload resource
 	var workload *unstructured.Unstructured
-	if workload, err = r.fetchWorkloadFromTrait(ctx, trait); err != nil {
+	if workload, err = vznav.FetchWorkloadFromTrait(ctx, r.Client, r.Log, trait); err != nil {
 		return nil, err
 	}
 

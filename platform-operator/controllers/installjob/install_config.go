@@ -8,12 +8,10 @@ package installjob
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	"go.uber.org/zap"
 	"strconv"
 
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/api/verrazzano/v1alpha1"
-
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -167,11 +165,6 @@ type MySQL struct {
 	MySQLInstallArgs []InstallArg `json:"mySqlInstallArgs,omitempty"`
 }
 
-// OAM configuration for a Verrazzano installation
-type OAM struct {
-	Enabled bool `json:"enabled"`
-}
-
 // InstallConfiguration - Verrazzano installation configuration options
 type InstallConfiguration struct {
 	EnvironmentName string         `json:"environmentName"`
@@ -180,7 +173,6 @@ type InstallConfiguration struct {
 	Ingress         Ingress        `json:"ingress"`
 	Certificates    Certificate    `json:"certificates"`
 	Keycloak        Keycloak       `json:"keycloak"`
-	OAM             OAM            `json:"oam"`
 	VzInstallArgs   []InstallArg   `json:"verrazzanoInstallArgs,omitempty"`
 }
 
@@ -230,7 +222,6 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogg
 			},
 		},
 		Keycloak: keycloak,
-		OAM:      getOAM(vz.Spec.Components.OAM),
 	}, nil
 }
 
@@ -261,7 +252,6 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogge
 			},
 		},
 		Keycloak: keycloak,
-		OAM:      getOAM(vz.Spec.Components.OAM),
 	}, nil
 }
 
@@ -296,7 +286,6 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.Sugare
 			},
 		},
 		Keycloak: keycloak,
-		OAM:      getOAM(vz.Spec.Components.OAM),
 	}, nil
 }
 
@@ -393,7 +382,7 @@ func getKeycloak(keycloak installv1alpha1.KeycloakComponent, templates []install
 		pvcs := mysqlVolumeSource.PersistentVolumeClaim
 		storageSpec, found := findVolumeTemplate(pvcs.ClaimName, templates)
 		if !found {
-			err := errors.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
+			err := fmt.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 			return Keycloak{}, err
 		}
 		storageClass := storageSpec.StorageClassName
@@ -518,7 +507,7 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.S
 		pvcs := vzSpec.DefaultVolumeSource.PersistentVolumeClaim
 		storageSpec, found := findVolumeTemplate(pvcs.ClaimName, vzSpec.VolumeClaimSpecTemplates)
 		if !found {
-			err := errors.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
+			err := fmt.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 			return []InstallArg{}, err
 		}
 		return []InstallArg{
@@ -550,10 +539,4 @@ func findVolumeTemplate(templateName string, templates []installv1alpha1.VolumeC
 		}
 	}
 	return nil, false
-}
-
-// getOAM returns the install config for OAM
-func getOAM(oam installv1alpha1.OAMComponent) OAM {
-	config := OAM{Enabled: oam.Enabled}
-	return config
 }

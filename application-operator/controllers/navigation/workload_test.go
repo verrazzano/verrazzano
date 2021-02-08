@@ -6,6 +6,7 @@ package navigation
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
@@ -16,9 +17,11 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	k8sapps "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -349,4 +352,234 @@ func TestLoggingScopeFromWorkloadLabels(t *testing.T) {
 	mocker.Finish()
 	assert.True(k8serrors.IsNotFound(err))
 	assert.Nil(loggingScope)
+}
+
+// TestIsVerrazzanoWorkloadKind tests the IsVerrazzanoWorkloadKind function.
+func TestIsVerrazzanoWorkloadKind(t *testing.T) {
+	assert := asserts.New(t)
+
+	// GIVEN a Verrazzano workload
+	// WHEN a call is made to check if the workload is a Verrazzano workload kind
+	// THEN expect the call to return true
+	workloadKind := "VerrazzanoCoherenceWorkload"
+
+	u := &unstructured.Unstructured{}
+	u.SetKind(workloadKind)
+
+	assert.True(IsVerrazzanoWorkloadKind(u))
+
+	// GIVEN a non-Verrazzano workload
+	// WHEN a call is made to check if the workload is a Verrazzano workload kind
+	// THEN expect the call to return false
+	workloadKind = "ContainerizedWorkload"
+
+	u = &unstructured.Unstructured{}
+	u.SetKind(workloadKind)
+
+	assert.False(IsVerrazzanoWorkloadKind(u))
+}
+
+// TestAPIVersionAndKindToContainedGVK tests the APIVersionAndKindToContainedGVK function.
+func TestAPIVersionAndKindToContainedGVK(t *testing.T) {
+	assert := asserts.New(t)
+
+	// GIVEN a known Verrazzano API version and workload kind
+	// WHEN a call is made to look up the contained GroupVersionKind
+	// THEN verify that the API version and kind are the expected values
+	gvk := APIVersionAndKindToContainedGVK(vzapi.GroupVersion.String(), "VerrazzanoCoherenceWorkload")
+
+	assert.NotNil(gvk)
+	apiVersion, kind := gvk.ToAPIVersionAndKind()
+	assert.Equal("coherence.oracle.com/v1", apiVersion)
+	assert.Equal("Coherence", kind)
+
+	// GIVEN an unknown Verrazzano API version and workload kind
+	// WHEN a call is made to look up the contained GroupVersionKind
+	// THEN verify that nil is returned
+	gvk = APIVersionAndKindToContainedGVK(vzapi.GroupVersion.String(), "BogusWorkload")
+
+	assert.Nil(gvk)
+}
+
+// TestWorkloadToContainedGVK tests the WorkloadToContainedGVK function.
+func TestWorkloadToContainedGVK(t *testing.T) {
+	assert := asserts.New(t)
+
+	// GIVEN an unstructured containing a known Verrazzano workload kind
+	// WHEN a call is made to look up the contained GroupVersionKind
+	// THEN verify that the API version and kind are the expected values
+	u := &unstructured.Unstructured{}
+	u.SetAPIVersion(vzapi.GroupVersion.String())
+	u.SetKind("VerrazzanoCoherenceWorkload")
+
+	gvk := WorkloadToContainedGVK(u)
+
+	assert.NotNil(gvk)
+	apiVersion, kind := gvk.ToAPIVersionAndKind()
+	assert.Equal("coherence.oracle.com/v1", apiVersion)
+	assert.Equal("Coherence", kind)
+
+	// GIVEN an unstructured containing an unknown Verrazzano workload kind
+	// WHEN a call is made to look up the contained GroupVersionKind
+	// THEN verify that nil is returned
+	u.SetKind("BogusWorkload")
+
+	gvk = WorkloadToContainedGVK(u)
+
+	assert.Nil(gvk)
+}
+
+// TestGetContainedWorkloadVersionKindName tests the GetContainedWorkloadVersionKindName function.
+func TestGetContainedWorkloadVersionKindName(t *testing.T) {
+	assert := asserts.New(t)
+
+	// GIVEN a Verrazzano workload containing another workload
+	// WHEN a call is made to get the api version, kind, and name of the contained workload
+	// THEN the api version, kind, and name are returned
+	workloadAPIVersion := "oam.verrazzano.io/v1alpha1"
+	workloadKind := "VerrazzanoCoherenceWorkload"
+
+	containedAPIVersion := "coherence.oracle.com/v1"
+	containedKind := "Coherence"
+	containedName := "unit-test-resource"
+
+	containedResource := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"name": containedName,
+		},
+	}
+
+	u := &unstructured.Unstructured{}
+	u.SetAPIVersion(workloadAPIVersion)
+	u.SetKind(workloadKind)
+	unstructured.SetNestedMap(u.Object, containedResource, "spec", "template")
+
+	apiVersion, kind, name, err := GetContainedWorkloadVersionKindName(u)
+
+	assert.Nil(err)
+	assert.Equal(containedAPIVersion, apiVersion)
+	assert.Equal(containedKind, kind)
+	assert.Equal(containedName, name)
+
+	// GIVEN a Verrazzano workload containing another workload where the Verrazzano workload is of an unknown kind
+	// WHEN a call is made to get the api version, kind, and name of the contained workload
+	// THEN an error is returned
+	workloadKind = "VerrazzanoBogusWorkload"
+
+	u = &unstructured.Unstructured{}
+	u.SetAPIVersion(workloadAPIVersion)
+	u.SetKind(workloadKind)
+
+	apiVersion, kind, name, err = GetContainedWorkloadVersionKindName(u)
+
+	assert.Error(err)
+	assert.True(strings.HasPrefix(err.Error(), "Unable to find contained GroupVersionKind for workload"))
+	assert.Empty(apiVersion)
+	assert.Empty(kind)
+	assert.Empty(name)
+
+	// GIVEN a Verrazzano workload containing another workload missing the metadata name field
+	// WHEN a call is made to get the api version, kind, and name of the contained workload
+	// THEN an error is returned
+	workloadAPIVersion = "oam.verrazzano.io/v1alpha1"
+	workloadKind = "VerrazzanoCoherenceWorkload"
+
+	containedResource = map[string]interface{}{}
+
+	u = &unstructured.Unstructured{}
+	u.SetAPIVersion(workloadAPIVersion)
+	u.SetKind(workloadKind)
+	unstructured.SetNestedMap(u.Object, containedResource, "spec", "template")
+
+	apiVersion, kind, name, err = GetContainedWorkloadVersionKindName(u)
+
+	assert.Error(err)
+	assert.Equal("Unable to find metadata name in contained workload", err.Error())
+	assert.Empty(apiVersion)
+	assert.Empty(kind)
+	assert.Empty(name)
+}
+
+// TestFetchContainedWorkload tests the FetchContainedWorkload function.
+func TestFetchContainedWorkload(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker *gomock.Controller
+	var cli *mocks.MockClient
+	var ctx = context.TODO()
+
+	namespace := "unit-test-namespace"
+	workloadAPIVersion := "oam.verrazzano.io/v1alpha1"
+	workloadKind := "VerrazzanoCoherenceWorkload"
+
+	containedAPIVersion := "coherence.oracle.com/v1"
+	containedKind := "Coherence"
+	containedName := "unit-test-resource"
+
+	containedResource := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"name": containedName,
+		},
+	}
+
+	u := &unstructured.Unstructured{}
+	u.SetNamespace(namespace)
+	u.SetAPIVersion(workloadAPIVersion)
+	unstructured.SetNestedMap(u.Object, containedResource, "spec", "template")
+
+	// GIVEN a Verrazzano workload containing another workload
+	// WHEN a call is made to fetch the contained workload and the contained GroupVersionKind cannot be determined
+	// THEN validate that the call returns an error
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+
+	u.SetKind("BogusWorkload")
+
+	contained, err := FetchContainedWorkload(ctx, cli, u)
+
+	assert.True(strings.HasPrefix(err.Error(), "Unable to find contained GroupVersionKind for workload"))
+	assert.Nil(contained)
+
+	// GIVEN a Verrazzano workload containing another workload
+	// WHEN a call is made to fetch the contained workload and there is an error
+	// THEN validate that the call returns an error
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+
+	u.SetKind(workloadKind)
+
+	// expect a call to get the contained resource, return an error
+	cli.EXPECT().
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: containedName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, contained *unstructured.Unstructured) error {
+			return errors.NewNotFound(schema.GroupResource{}, "Unable to fetch resource")
+		})
+
+	contained, err = FetchContainedWorkload(ctx, cli, u)
+
+	assert.True(errors.IsNotFound(err))
+	assert.Nil(contained)
+
+	// GIVEN a Verrazzano workload containing another workload
+	// WHEN a call is made to fetch the contained workload
+	// THEN the call returns the contained workload
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+
+	// expect a call to get the contained resource, return it as unstructured
+	cli.EXPECT().
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: containedName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, contained *unstructured.Unstructured) error {
+			contained.SetUnstructuredContent(containedResource)
+			contained.SetAPIVersion(containedAPIVersion)
+			contained.SetKind(containedKind)
+			return nil
+		})
+
+	contained, err = FetchContainedWorkload(ctx, cli, u)
+
+	assert.Nil(err)
+	assert.Equal(containedAPIVersion, contained.GetAPIVersion())
+	assert.Equal(containedKind, contained.GetKind())
+	assert.Equal(containedName, contained.GetName())
 }

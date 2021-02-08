@@ -115,13 +115,15 @@ go-ineffassign:
 .PHONY: manifests
 manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-	# Add copyright headers to the kubebuildr generated CRDs
+	# Add copyright headers to the kubebuilder generated CRDs
 	./hack/add-crd-header.sh
-	./hack/update-codegen-verrazzano.sh
+	./hack/update-codegen.sh "verrazzano:v1alpha1" "verrazzano" "boilerplate.go.txt"
+	./hack/update-codegen.sh "clusters:v1alpha1" "clusters" "boilerplate-clusters.go.txt"
 
 	# Re-generate operator.yaml using template yaml file
 	cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|$(shell grep --max-count=1 "image:" deploy/operator.yaml | awk '{ print $$2 }')|g" > deploy/operator.yaml
 	cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
+	cat config/crd/bases/clusters.verrazzano.io_verrazzanomanagedclusters.yaml >> deploy/operator.yaml
 
 # Generate code
 .PHONY: generate
@@ -138,7 +140,7 @@ ifeq (, $(shell command -v controller-gen))
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
 	cd $$CONTROLLER_GEN_TMP_DIR ;\
 	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.5 ;\
+	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1 ;\
 	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
 	}
 CONTROLLER_GEN=$(GOBIN)/controller-gen
@@ -204,6 +206,7 @@ else
 	mkdir -p build/deploy
 	cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > ${BUILD-DEPLOY}/operator.yaml
 	cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> ${BUILD-DEPLOY}/operator.yaml
+	cat config/crd/bases/clusters.verrazzano.io_verrazzanomanagedclusters.yaml >> ${BUILD-DEPLOY}/operator.yaml
 	kubectl apply -f ${BUILD-DEPLOY}/operator.yaml
 endif
 
@@ -247,6 +250,7 @@ create-test-deploy:
 		echo "Building local operator deployment resource file in /tmp/operator.yaml, VZ_DEV_IMAGE=${VZ_DEV_IMAGE}"; \
 		cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${VZ_DEV_IMAGE}|g" > /tmp/operator.yaml; \
 		cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> /tmp/operator.yaml; \
+		cat config/crd/bases/clusters.verrazzano.io_verrazzanomanagedclusters.yaml >> /tmp/operator.yaml; \
 	else \
 		echo "VZ_DEV_IMAGE not defined, please set it to a valid image name/tag"; \
 	fi

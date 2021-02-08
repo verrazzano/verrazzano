@@ -22,6 +22,7 @@ import (
 	oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 )
 
 const (
@@ -31,7 +32,7 @@ const (
 
 // Handler abstracts the FLUENTD integration for components
 type Handler interface {
-	Apply(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) error
+	Apply(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) (*ctrl.Result, error)
 	Remove(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) (bool, error)
 }
 
@@ -81,10 +82,19 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 		handler := r.Handlers[handlerKey(resource)]
 		if handler == nil {
-			log.Error(nil, "Unknown Resource Kind encountered in Logging Scope Controller", "resource", resource)
+			// if this is one of our wrapper resources, we expect to not find a handler since logging is
+			// added at resource creation time
+			if vznav.IsVerrazzanoWorkloadKind(workload) {
+				log.Info("Skipping logging scope processing for Verrazzano workload kind", "resource", resource)
+			} else {
+				log.Error(nil, "Unknown Resource Kind encountered in Logging Scope Controller", "resource", resource)
+			}
 			continue
 		}
-		err = handler.Apply(ctx, resource, scope)
+		result, err := handler.Apply(ctx, resource, scope)
+		if result != nil {
+			return *result, nil
+		}
 		if err != nil {
 			errors = append(errors, err.Error())
 		}

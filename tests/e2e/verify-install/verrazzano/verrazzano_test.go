@@ -18,6 +18,7 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 			gomega.Expect(pkg.DoesCRDExist(name)).To(gomega.BeTrue())
 		},
 		ginkgoExt.Entry("verrazzanos should exist in cluster", "verrazzanos.install.verrazzano.io"),
+		ginkgoExt.Entry("verrazzanomanagedclusters should exist in cluster", "verrazzanomanagedclusters.clusters.verrazzano.io"),
 	)
 
 	ginkgoExt.DescribeTable("ClusterRole",

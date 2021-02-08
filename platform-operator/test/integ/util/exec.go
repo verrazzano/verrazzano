@@ -1,10 +1,11 @@
-// Copyright (C) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package util
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -57,4 +58,11 @@ func RunCommand(commandLine string) (string, string) {
 	}
 	outStr, errStr := string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
 	return outStr, errStr
+}
+
+// Kubectl runs kubectl in an external process, captures the stdout
+// and stderr, as well as streaming them to the real output streams in real time
+func Kubectl(args string) (string, string) {
+	commandLine := fmt.Sprintf("kubectl --kubeconfig %v %v", GetKubeconfig(), args)
+	return RunCommand(commandLine)
 }

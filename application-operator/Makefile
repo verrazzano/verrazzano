@@ -67,12 +67,12 @@ check: go-fmt go-vet go-ineffassign go-lint
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: manifests
 manifests: go-mod controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-	# Add copyright headers to the kubebuildr generated CRDs
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./..." output:crd:artifacts:config=config/crd/bases
+	# Add copyright headers to the kubebuilder generated CRDs
 	./hack/add-crd-header.sh
-	# Add copyright headers to the kubebuildr generated manifests and to the edited PROJECT file
-	./hack/add-yml-header.sh config/webhook/manifests.yaml
+	# Add copyright headers to the kubebuilder generated manifests
 	./hack/add-yml-header.sh PROJECT
+	./hack/add-yml-header.sh config/rbac/role.yaml
 
 # Generate code
 .PHONY: generate
@@ -89,7 +89,7 @@ ifeq (, $(shell command -v controller-gen))
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
 	cd $$CONTROLLER_GEN_TMP_DIR ;\
 	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.5 ;\
+	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1 ;\
 	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
 	}
 CONTROLLER_GEN=$(GOBIN)/controller-gen
