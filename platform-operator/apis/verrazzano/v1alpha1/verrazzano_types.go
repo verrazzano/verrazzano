@@ -5,6 +5,7 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -65,6 +66,10 @@ type VerrazzanoSpec struct {
 	// +optional
 	Components ComponentSpec `json:"components,omitempty"`
 
+	// Security specifies Verrazzano security configuration
+	// +optional
+	Security SecuritySpec `json:"security,omitempty"`
+
 	// DefaultVolumeSource Defines the type of volume to be used for persistence, if not explicitly declared by a component;
 	// at present only EmptyDirVolumeSource or PersistentVolumeClaimVolumeSource are supported. If PersistentVolumeClaimVolumeSource
 	// is used, it must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates section.
@@ -74,6 +79,12 @@ type VerrazzanoSpec struct {
 	// VolumeClaimSpecTemplates Defines a named set of PVC configurations that can be referenced from components using persistent volumes.
 	// +optional
 	VolumeClaimSpecTemplates []VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty"`
+}
+
+// SecuritySpec defines the security configuration for Verrazzano
+type SecuritySpec struct {
+	AdminBindingSubject   rbacv1.Subject `json:"adminBinding,omitempty"`
+	MonitorBindingSubject rbacv1.Subject `json:"monitorBinding,omitempty"`
 }
 
 // VolumeClaimSpecTemplate Contains common PVC configuration that can be referenced from Components; these

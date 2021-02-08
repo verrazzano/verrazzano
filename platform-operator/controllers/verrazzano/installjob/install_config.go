@@ -13,6 +13,7 @@ import (
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -482,53 +483,81 @@ func getProfile(profileType installv1alpha1.ProfileType) InstallProfile {
 
 // getVerrazzanoInstallArgs Set custom helm args for the Verrazzano internal component as needed
 func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.SugaredLogger) ([]InstallArg, error) {
-	if vzSpec.DefaultVolumeSource == nil {
-		return []InstallArg{}, nil
-	}
-	if vzSpec.DefaultVolumeSource.EmptyDir != nil {
-		return []InstallArg{
-			{
-				Name:      "verrazzanoOperator.esDataStorageSize",
-				Value:     "",
-				SetString: true,
-			},
-			{
-				Name:      "verrazzanoOperator.grafanaDataStorageSize",
-				Value:     "",
-				SetString: true,
-			},
-			{
-				Name:      "verrazzanoOperator.prometheusDataStorageSize",
-				Value:     "",
-				SetString: true,
-			},
-		}, nil
-	} else if vzSpec.DefaultVolumeSource.PersistentVolumeClaim != nil {
-		pvcs := vzSpec.DefaultVolumeSource.PersistentVolumeClaim
-		storageSpec, found := findVolumeTemplate(pvcs.ClaimName, vzSpec.VolumeClaimSpecTemplates)
-		if !found {
-			err := fmt.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
-			return []InstallArg{}, err
+	args := make([]InstallArg, 10) // need to ensure the size grows as more args are added here
+	if vzSpec.DefaultVolumeSource != nil {
+		if vzSpec.DefaultVolumeSource.EmptyDir != nil {
+			args = append(args, []InstallArg{
+				{
+					Name:      "verrazzanoOperator.esDataStorageSize",
+					Value:     "",
+					SetString: true,
+				},
+				{
+					Name:      "verrazzanoOperator.grafanaDataStorageSize",
+					Value:     "",
+					SetString: true,
+				},
+				{
+					Name:      "verrazzanoOperator.prometheusDataStorageSize",
+					Value:     "",
+					SetString: true,
+				},
+			}...)
+		} else if vzSpec.DefaultVolumeSource.PersistentVolumeClaim != nil {
+			pvcs := vzSpec.DefaultVolumeSource.PersistentVolumeClaim
+			storageSpec, found := findVolumeTemplate(pvcs.ClaimName, vzSpec.VolumeClaimSpecTemplates)
+			if !found {
+				err := fmt.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
+				return []InstallArg{}, err
+			}
+			args = append(args, []InstallArg{
+				{
+					Name:      "verrazzanoOperator.esDataStorageSize",
+					Value:     storageSpec.Resources.Requests.Storage().String(),
+					SetString: true,
+				},
+				{
+					Name:      "verrazzanoOperator.grafanaDataStorageSize",
+					Value:     storageSpec.Resources.Requests.Storage().String(),
+					SetString: true,
+				},
+				{
+					Name:      "verrazzanoOperator.prometheusDataStorageSize",
+					Value:     storageSpec.Resources.Requests.Storage().String(),
+					SetString: true,
+				},
+			}...)
 		}
-		return []InstallArg{
-			{
-				Name:      "verrazzanoOperator.esDataStorageSize",
-				Value:     storageSpec.Resources.Requests.Storage().String(),
-				SetString: true,
-			},
-			{
-				Name:      "verrazzanoOperator.grafanaDataStorageSize",
-				Value:     storageSpec.Resources.Requests.Storage().String(),
-				SetString: true,
-			},
-			{
-				Name:      "verrazzanoOperator.prometheusDataStorageSize",
-				Value:     storageSpec.Resources.Requests.Storage().String(),
-				SetString: true,
-			},
-		}, nil
 	}
-	return []InstallArg{}, nil
+	if (vzSpec.Security != installv1alpha1.SecuritySpec{} && vzSpec.Security.AdminBindingSubject != rbacv1.Subject{}) {
+		args = append(args, []InstallArg{
+			{
+				Name:      "verrazzanoOperator.userrolebindings.admin.kind",
+				Value:     vzSpec.Security.AdminBindingSubject.Kind,
+				SetString: true,
+			},
+			{
+				Name:      "verrazzanoOperator.userrolebindings.admin.name",
+				Value:     vzSpec.Security.AdminBindingSubject.Name,
+				SetString: true,
+			},
+		}...)
+	}
+	if (vzSpec.Security != installv1alpha1.SecuritySpec{} && vzSpec.Security.MonitorBindingSubject != rbacv1.Subject{}) {
+		args = append(args, []InstallArg{
+			{
+				Name:      "verrazzanoOperator.userrolebindings.monitor.kind",
+				Value:     vzSpec.Security.MonitorBindingSubject.Kind,
+				SetString: true,
+			},
+			{
+				Name:      "verrazzanoOperator.userrolebindings.monitor.name",
+				Value:     vzSpec.Security.MonitorBindingSubject.Name,
+				SetString: true,
+			},
+		}...)
+	}
+	return args, nil
 }
 
 // findVolumeTemplate Find a named VolumeClaimTemplate in the list
