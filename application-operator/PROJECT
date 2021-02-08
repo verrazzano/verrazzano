@@ -34,4 +34,7 @@ resources:
 - group: clusters
   kind: MultiClusterLoggingScope
   version: v1alpha1
+- group: oam
+  kind: VerrazzanoHelidonWorkload
+  version: v1alpha1
 version: "2"
