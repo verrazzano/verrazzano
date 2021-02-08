@@ -67,6 +67,15 @@ func (c Client) DoesDeploymentExist(name string, namespace string) bool {
 	return procExistsStatus(err, "Deployment")
 }
 
+// IsDeploymentUpdated returns true if the given Deployment has been updated with sidecar container
+func (c Client) IsDeploymentUpdated(name string, namespace string) bool {
+	dep, err := c.clientset.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return false
+	}
+	return len(dep.Spec.Template.Spec.Containers) > 1
+}
+
 // DoesPodExist returns true if a Pod with the given prefix exists
 func (c Client) DoesPodExist(name string, namespace string) bool {
 	return (c.getPod(name, namespace) != nil)
@@ -82,7 +91,7 @@ func (c Client) DoesContainerExist(namespace, podName, containerName string) boo
 	for _, pod := range pods.Items {
 		if strings.HasPrefix(pod.Name, podName) {
 			for _, container := range pod.Status.ContainerStatuses {
-				if container.Name == containerName {
+				if container.Name == containerName && container.Ready {
 					return true
 				}
 			}
