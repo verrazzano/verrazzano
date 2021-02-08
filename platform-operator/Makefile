@@ -210,7 +210,7 @@ else
 	cat config/crd/bases/clusters.verrazzano.io_verrazzanomanagedclusters.yaml >> ${BUILD-DEPLOY}/operator.yaml
 	kubectl apply -f ${BUILD-DEPLOY}/operator.yaml || INSTALL_RESULT=FAIL
 endif
-        if [ ! -z "${INSTALL_RESULT}" ]; then \
+	if [ ! -z "${INSTALL_RESULT}" ]; then \
 		echo 'Platform operator install failed, capturing kind cluster dump'; \
 		../tools/scripts/k8s-dump-cluster.sh -d platform-operator-integ-cluster-dump; \
 		exit 1; \

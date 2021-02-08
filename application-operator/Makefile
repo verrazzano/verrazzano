@@ -214,7 +214,7 @@ integ-test: create-cluster
 	echo 'Install OAM runtime and Verrazzano application operator...'
 	INSTALL_RESULT=
 	installer/install.sh || INSTALL_RESULT=FAIL
-        if [ ! -z "${INSTALL_RESULT}" ]; then \
+	if [ ! -z "${INSTALL_RESULT}" ]; then \
 		echo 'Application operator install failed, capturing kind cluster dump'; \
 		../tools/scripts/k8s-dump-cluster.sh -d application-operator-integ-cluster-dump; \
 		exit 1; \
