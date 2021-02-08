@@ -56,7 +56,6 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
-    - DELETE
     resources:
     - ingresstraits
   sideEffects: None
