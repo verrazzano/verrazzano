@@ -212,9 +212,13 @@ integ-test: create-cluster
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 	echo 'Install OAM runtime and Verrazzano application operator...'
-	installer/install.sh || echo 'Application operator install failed, capturing kind cluster dump'; \
+	INSTALL_RESULT=
+	installer/install.sh || INSTALL_RESULT=FAIL
+        if [ ! -z "${INSTALL_RESULT}" ]; then \
+		echo 'Application operator install failed, capturing kind cluster dump'; \
 		../tools/scripts/k8s-dump-cluster.sh -d application-operator-integ-cluster-dump; \
-		exit 1
+		exit 1; \
+	fi
 
 	echo 'Run tests...'
 	IGNORE=
