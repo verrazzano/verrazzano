@@ -132,9 +132,3 @@ userrolebindings:
   monitor:
     kind: Group
     name: verrazzano-monitors
-  appadmin:
-    kind: Group
-    name: verrazzano-app-admins
-  appmonitor:
-    kind: Group
-    name: verrazzano-app-monitors
