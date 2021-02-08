@@ -254,7 +254,7 @@ func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: istioNamespace,
-			Name:	   certName,
+			Name:      certName,
 		}}
 
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, certificate, func() error {

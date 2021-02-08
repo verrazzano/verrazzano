@@ -37,7 +37,7 @@ type IngressRule struct {
 
 // IngressSecurity specifies the secret containing the certificate securing the transport for an ingress trait.
 type IngressSecurity struct {
-	SecretName string      `json:"secretName,omitempty"`
+	SecretName string `json:"secretName,omitempty"`
 }
 
 // IngressPath specifies a specific path to be exposed for an ingress trait.
