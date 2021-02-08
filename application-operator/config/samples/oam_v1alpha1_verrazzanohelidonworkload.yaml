@@ -6,23 +6,24 @@ kind: VerrazzanoHelidonWorkload
 metadata:
   name: verrazzanohelidonworkload-sample
 spec:
-  deploymentMeta:
-    name: hello-helidon-deployment
-    labels:
-      app: hello-helidon
-  deploymentSpec:
-    replicas: 3
-    selector:
-      matchLabels:
+  deploymentTemplate:
+    metadata:
+      name: hello-helidon-deployment
+      labels:
         app: hello-helidon
-    template:
-      metadata:
-        labels:
+    spec:
+      replicas: 3
+      selector:
+        matchLabels:
           app: hello-helidon
-      spec:
-        containers:
-          - name: hello-helidon-container
-            image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4"
-            ports:
-              - containerPort: 8080
-                name: http
+      template:
+        metadata:
+          labels:
+            app: hello-helidon
+        spec:
+          containers:
+            - name: hello-helidon-container
+              image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4"
+              ports:
+                - containerPort: 8080
+                  name: http

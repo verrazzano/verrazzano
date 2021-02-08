@@ -10,9 +10,15 @@ import (
 
 // VerrazzanoHelidonWorkloadSpec wraps meta/ObjectMeta & apps/DeploymentSpec.
 type VerrazzanoHelidonWorkloadSpec struct {
+	// The embedded apps/Deployment
+	DeploymentTemplate DeploymentTemplate `json:"deploymentTemplate"`
+}
+
+// DeploymentTemplate should have the metadata and spec of the underlying apps/Deployment
+type DeploymentTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
-	DeploymentMeta metav1.ObjectMeta     `json:"deploymentMeta"`
-	DeploymentSpec appsv1.DeploymentSpec `json:"deploymentSpec"`
+	Metadata metav1.ObjectMeta     `json:"metadata,omitempty"`
+	Spec     appsv1.DeploymentSpec `json:"spec,omitempty"`
 }
 
 // VerrazzanoHelidonWorkloadStatus defines the observed state of VerrazzanoHelidonWorkload
