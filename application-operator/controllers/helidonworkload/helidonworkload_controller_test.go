@@ -4,65 +4,108 @@
 package helidonworkload
 
 import (
-	"path/filepath"
+	"context"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
+	"github.com/golang/mock/gomock"
+	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	// +kubebuilder:scaffold:imports
+	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// These tests use Ginkgo (BDD-style Go testing framework). Refer to
-// http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
+const namespace = "unit-test-namespace"
 
-var cfg *rest.Config
-var k8sClient client.Client
-var testEnv *envtest.Environment
+// TestReconcilerSetupWithManager test the creation of the logging scope reconciler.
+// GIVEN a controller implementation
+// WHEN the controller is created
+// THEN verify no error is returned
+func TestReconcilerSetupWithManager(t *testing.T) {
+	assert := asserts.New(t)
 
-func TestAPIs(t *testing.T) {
-	RegisterFailHandler(Fail)
+	var mocker *gomock.Controller
+	var mgr *mocks.MockManager
+	var cli *mocks.MockClient
+	var scheme *runtime.Scheme
+	var reconciler Reconciler
+	var err error
 
-	RunSpecsWithDefaultAndCustomReporters(t,
-		"Controller Suite",
-		[]Reporter{printer.NewlineReporter{}})
+	mocker = gomock.NewController(t)
+	mgr = mocks.NewMockManager(mocker)
+	cli = mocks.NewMockClient(mocker)
+	scheme = runtime.NewScheme()
+	vzapi.AddToScheme(scheme)
+	reconciler = Reconciler{Client: cli, Scheme: scheme}
+	mgr.EXPECT().GetConfig().Return(&rest.Config{})
+	mgr.EXPECT().GetScheme().Return(scheme)
+	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
+	mgr.EXPECT().SetFields(gomock.Any()).Return(nil).AnyTimes()
+	mgr.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
+	err = reconciler.SetupWithManager(mgr)
+	mocker.Finish()
+	assert.NoError(err)
 }
 
-var _ = BeforeSuite(func(done Done) {
-	logf.SetLogger(zap.LoggerTo(GinkgoWriter, true))
+// TestReconcileWorkloadNotFound tests reconciling a VerrazzanoHelidonWorkload when the workload
+// cannot be fetched. This happens when the workload has been deleted by the OAM runtime.
+// GIVEN a VerrazzanoHelidonWorkload resource has been deleted
+// WHEN the controller Reconcile function is called and we attempt to fetch the workload
+// THEN return success from the controller as there is nothing more to do
+func TestReconcileWorkloadNotFound(t *testing.T) {
+	assert := asserts.New(t)
 
-	By("bootstrapping test environment")
-	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "config", "crd", "bases")},
+	var mocker *gomock.Controller = gomock.NewController(t)
+	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the VerrazzanoHelidonWorkload
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
+		})
+
+	// create a request and reconcile it
+	request := newRequest(namespace, "unit-test-verrazzano-helidon-workload")
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+}
+
+// newScheme creates a new scheme that includes this package's object to use for testing
+func newScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	vzapi.AddToScheme(scheme)
+	return scheme
+}
+
+// newReconciler creates a new reconciler for testing
+// c - The K8s client to inject into the reconciler
+func newReconciler(c client.Client) Reconciler {
+	return Reconciler{
+		Client: c,
+		Log:    ctrl.Log.WithName("test"),
+		Scheme: newScheme(),
 	}
+}
 
-	var err error
-	cfg, err = testEnv.Start()
-	Expect(err).ToNot(HaveOccurred())
-	Expect(cfg).ToNot(BeNil())
-
-	err = vzapi.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	// +kubebuilder:scaffold:scheme
-
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-	Expect(err).ToNot(HaveOccurred())
-	Expect(k8sClient).ToNot(BeNil())
-
-	close(done)
-}, 60)
-
-var _ = AfterSuite(func() {
-	By("tearing down the test environment")
-	err := testEnv.Stop()
-	Expect(err).ToNot(HaveOccurred())
-})
+// newRequest creates a new reconciler request for testing
+// namespace - The namespace to use in the request
+// name - The name to use in the request
+func newRequest(namespace string, name string) ctrl.Request {
+	return ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: namespace,
+			Name:      name,
+		},
+	}
+}

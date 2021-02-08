@@ -59,35 +59,3 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	log.Info("Successfully created Verrazzano Helidon workload")
 	return ctrl.Result{}, nil
 }
-
-// locateParentAppConfig locate the parent application configuration object
-/*
-eventObj, err := r.locateParentAppConfig(ctx, r.Client, &workload)
-if eventObj == nil {
-	// fallback to workload itself
-	log.Error(err, "workload", "name", workload.Name)
-	eventObj = &workload
-}
-func (r *Reconciler) locateParentAppConfig(ctx context.Context, client client.Client, oamObject oam.Object) (oam.Object, error) {
-	var acName string
-	var eventObj = &v1alpha2.ApplicationConfiguration{}
-	// locate the appConf name from the owner list
-	for _, o := range oamObject.GetOwnerReferences() {
-		if o.Kind == v1alpha2.ApplicationConfigurationKind {
-			acName = o.Name
-			break
-		}
-	}
-	if len(acName) > 0 {
-		nn := types.NamespacedName{
-			Name:      acName,
-			Namespace: oamObject.GetNamespace(),
-		}
-		if err := client.Get(ctx, nn, eventObj); err != nil {
-			return nil, err
-		}
-		return eventObj, nil
-	}
-	return nil, errors.Errorf(ErrLocateAppConfig)
-}
-*/
