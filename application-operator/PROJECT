@@ -16,6 +16,9 @@ resources:
 - group: oam
   kind: VerrazzanoCoherenceWorkload
   version: v1alpha1
+- group: oam
+  kind: VerrazzanoWebLogicWorkload
+  version: v1alpha1
 - group: clusters
   kind: MultiClusterNamespace
   version: v1alpha1
