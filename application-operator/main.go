@@ -11,6 +11,7 @@ import (
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/helidonworkload"
@@ -45,6 +46,7 @@ func init() {
 	_ = istioclinet.AddToScheme(scheme)
 	_ = wls.AddToScheme(scheme)
 
+	_ = clustersv1alpha1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 

@@ -334,7 +334,17 @@
       } ]
     }
   },
-  "groups" : [ {
+  "groups" : [ 
+  {
+      "id": "3ffe8f11-7131-4d00-bc95-bbf627f6e2ba",
+      "name": "console-users",
+      "path": "/console-users",
+      "attributes": {},
+      "realmRoles": [],
+      "clientRoles": {},
+      "subGroups": []
+  },
+  {
     "id" : "d83e0089-e05f-4710-987d-fa8915e31330",
     "name" : "privileged",
     "path" : "/privileged",
@@ -391,7 +401,12 @@
       "realm-management" : [ "manage-users" ]
     },
     "notBefore" : 0,
-    "groups" : [ ]
+    "groups" : [ "console-users" ],
+    "attributes": {
+      "k8s_user": [
+        "console-user"
+      ]
+    }
   }, {
     "id" : "ca205b69-e8a8-45c9-88b1-ea9c1b072152",
     "createdTimestamp" : 1564417839778,
@@ -496,9 +511,51 @@
     "authenticationFlowBindingOverrides" : { },
     "fullScopeAllowed" : false,
     "nodeReRegistrationTimeout" : 0,
-    "defaultClientScopes" : [ "web-origins", "role_list", "roles", "profile", "email" ],
-    "optionalClientScopes" : [ "address", "phone", "offline_access", "microprofile-jwt" ]
-  }, {
+    "protocolMappers": [
+        {
+          "id": "d74f5f6a-d0d5-4932-a7e8-a8fa78ea467d",
+          "name": "groupmember",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "groups",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "id": "c93fc5e2-729c-4d55-875b-2f9dd15155c4",
+          "name": "k8s-user",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "k8s_user",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "k8s_user",
+            "jsonType.label": "String"
+          }
+        }
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "role_list",
+        "roles",
+        "profile",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    }, {
     "id" : "1c0db381-4a6b-4549-a403-6af64fcf9c83",
     "clientId" : "broker",
     "name" : "${client_broker}",
@@ -842,6 +899,37 @@
     "authenticationFlowBindingOverrides": {},
     "fullScopeAllowed": true,
     "nodeReRegistrationTimeout": -1,
+    "protocolMappers": [
+        {
+          "id": "4dbd8939-37c4-4ec2-afa8-6e09d254cd71",
+          "name": "groupmember",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "groups",
+            "userinfo.token.claim": "true"
+          }
+	},
+        {
+          "id": "9a6edc99-1fc5-4b5e-bd31-127f577d3784",
+          "name": "k8s-user",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "k8s_user",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "k8s_user",
+            "jsonType.label": "String"
+          }
+        }
+      ],
     "defaultClientScopes": [
       "web-origins",
       "role_list",
@@ -1558,31 +1646,59 @@
     } ]
   }, {
     "id" : "e8bda85e-f9bb-4400-b4ef-37674a6ce294",
-    "alias" : "direct grant",
-    "description" : "OpenID Connect Resource Owner Grant",
-    "providerId" : "basic-flow",
-    "topLevel" : true,
-    "builtIn" : true,
-    "authenticationExecutions" : [ {
-      "authenticator" : "direct-grant-validate-username",
-      "requirement" : "REQUIRED",
-      "priority" : 10,
-      "userSetupAllowed" : false,
-      "autheticatorFlow" : false
+    "alias": "direct grant",
+      "description": "OpenID Connect Resource Owner Grant",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": true,
+      "authenticationExecutions": [
+        {
+          "authenticator": "direct-grant-validate-username",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "direct-grant-validate-password",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 30,
+          "flowAlias": "direct grant - direct-grant-validate-otp - Conditional",
+          "userSetupAllowed": false,
+          "autheticatorFlow": true
+        }
+      ]
+    },
+    {
+      "id": "27dde218-6cee-4a0a-8a63-b6b86fb7f555",
+      "alias": "direct grant - direct-grant-validate-otp - Conditional",
+      "description": "Flow to determine if the direct-grant-validate-otp authenticator should be used or not.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": true,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-configured",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "direct-grant-validate-otp",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        }
+      ]
     }, {
-      "authenticator" : "direct-grant-validate-password",
-      "requirement" : "REQUIRED",
-      "priority" : 20,
-      "userSetupAllowed" : false,
-      "autheticatorFlow" : false
-    }, {
-      "authenticator" : "direct-grant-validate-otp",
-      "requirement" : "OPTIONAL",
-      "priority" : 30,
-      "userSetupAllowed" : false,
-      "autheticatorFlow" : false
-    } ]
-  }, {
     "id" : "6696f686-6740-4ea4-8efc-3c9967016932",
     "alias" : "docker auth",
     "description" : "Used by Docker clients to authenticate against the IDP",

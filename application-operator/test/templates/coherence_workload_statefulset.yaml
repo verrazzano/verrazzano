@@ -125,7 +125,7 @@ spec:
               value: "true"
             - name: COH_METRICS_PORT
               value: "9612"
-          image: phx.ocir.io/stevengreenberginc/tvlatas/deployment-example:3.1.1
+          image: fixme-deployment-example:3.1.1
           imagePullPolicy: Always
           livenessProbe:
             failureThreshold: 5

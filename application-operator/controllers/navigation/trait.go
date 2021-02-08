@@ -5,6 +5,7 @@ package navigation
 
 import (
 	"context"
+
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -35,14 +36,25 @@ func FetchTrait(ctx context.Context, cli client.Reader, log logr.Logger, name ty
 // is created.  This provides a way for the trait's controller to locate the workload resource
 // that was generated from the common applicationconfiguration resource.
 func FetchWorkloadFromTrait(ctx context.Context, cli client.Reader, log logr.Logger, trait oam.Trait) (*unstructured.Unstructured, error) {
-	var workload unstructured.Unstructured
+	var workload = &unstructured.Unstructured{}
 	workload.SetAPIVersion(trait.GetWorkloadReference().APIVersion)
 	workload.SetKind(trait.GetWorkloadReference().Kind)
 	workloadKey := client.ObjectKey{Name: trait.GetWorkloadReference().Name, Namespace: trait.GetNamespace()}
+	var err error
 	log.Info("Fetch workload", "workload", workloadKey)
-	if err := cli.Get(ctx, workloadKey, &workload); err != nil {
+	if err = cli.Get(ctx, workloadKey, workload); err != nil {
 		log.Error(err, "Failed to fetch workload", "workload", workloadKey)
 		return nil, err
 	}
-	return &workload, nil
+
+	if IsVerrazzanoWorkloadKind(workload) {
+		// this is one of our wrapper workloads so we need to unwrap and pull out the real workload
+		workload, err = FetchContainedWorkload(ctx, cli, workload)
+		if err != nil {
+			log.Error(err, "Failed to fetch contained workload", "workload", workload)
+			return nil, err
+		}
+	}
+
+	return workload, nil
 }

@@ -38,15 +38,14 @@ spec:
             type: object
           spec:
             description: VerrazzanoCoherenceWorkloadSpec wraps a Coherence resource.
-              The Coherence object must include apiVersion, kind, and spec fields.
-              It may include a metadata field.
+              The Coherence object specified in the template must contain a spec field
+              and it may include a metadata field.
             properties:
-              coherence:
+              template:
                 type: object
-                x-kubernetes-embedded-resource: true
                 x-kubernetes-preserve-unknown-fields: true
             required:
-            - coherence
+            - template
             type: object
           status:
             description: VerrazzanoCoherenceWorkloadStatus defines the observed state

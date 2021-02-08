@@ -1,0 +1,130 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: multiclusternamespaces.clusters.verrazzano.io
+spec:
+  group: clusters.verrazzano.io
+  names:
+    kind: MultiClusterNamespace
+    listKind: MultiClusterNamespaceList
+    plural: multiclusternamespaces
+    shortNames:
+    - mcns
+    singular: multiclusternamespace
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: MultiClusterNamespace is the Schema for the multiclusternamespaces
+          API, which will be used by a user in the management cluster, to create a
+          Kubernetes namespace targeted at one or more managed clusters
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MultiClusterNamespaceSpec defines the desired state of MultiClusterNamespace
+            properties:
+              placement:
+                description: Clusters in which the namespace is to be placed
+                properties:
+                  clusters:
+                    items:
+                      description: Cluster where multi cluster resources are placed
+                      properties:
+                        name:
+                          description: the name of the cluster
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                required:
+                - clusters
+                type: object
+              template:
+                description: The embedded Kubernetes namespace
+                properties:
+                  metadata:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  spec:
+                    description: NamespaceSpec describes the attributes on a Namespace.
+                    properties:
+                      finalizers:
+                        description: 'Finalizers is an opaque list of values that
+                          must be empty to permanently remove object from storage.
+                          More info: https://kubernetes.io/docs/tasks/administer-cluster/namespaces/'
+                        items:
+                          description: FinalizerName is the name identifying a finalizer
+                            during namespace lifecycle.
+                          type: string
+                        type: array
+                    type: object
+                type: object
+            required:
+            - placement
+            - template
+            type: object
+          status:
+            description: MultiClusterNamespaceStatus defines the observed state of
+              MultiClusterNamespace
+            properties:
+              conditions:
+                description: The latest available observations of an object's current
+                  state.
+                items:
+                  description: Condition describes current state of a multi cluster
+                    resource.
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another.
+                      type: string
+                    message:
+                      description: Human readable message indicating details about
+                        last transition.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of condition.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              state:
+                description: State of the MultiClusterNamespace custom resource
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

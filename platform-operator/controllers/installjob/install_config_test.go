@@ -4,17 +4,16 @@
 package installjob
 
 import (
-	"encoding/json"
 	"fmt"
-	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/util/intstr"
-
 	"github.com/stretchr/testify/assert"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/api/verrazzano/v1alpha1"
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // TestXipIoInstallDefaults tests the creation of an xip.io install default configuration
@@ -412,82 +411,6 @@ func TestNodePortInstall(t *testing.T) {
 	assert.Equalf(t, "tls-rancher", config.Certificates.CA.SecretName, "Expected CA secret name did not match")
 }
 
-// TestOAMDefaultInstall tests the creation of a install with OAM config defaulted
-// GIVEN an install CR with OAM config defaulted
-// WHEN the install config is created an marshaled to json
-// THEN check that OAM is disabled in each
-func TestOAMDefaultInstall(t *testing.T) {
-	vz := installv1alpha1.Verrazzano{
-		Spec: installv1alpha1.VerrazzanoSpec{
-			Profile:         "dev",
-			EnvironmentName: "test-env",
-			Components:      installv1alpha1.ComponentSpec{},
-		},
-	}
-
-	config, err := GetInstallConfig(&vz, zap.S())
-	assert.NoError(t, err)
-	assert.Equal(t, false, config.OAM.Enabled, "Expected OAM to be disabled by default.")
-
-	jsonBytes, err := json.Marshal(config)
-	assert.NoError(t, err, "Expected resource to marshal to json.")
-
-	jsonString := string(jsonBytes)
-	assert.Contains(t, jsonString, "\"oam\":{\"enabled\":false}", "Expected json to show OAM disabled.")
-}
-
-// TestOAMEnabledInstall tests the creation of a install with OAM is enabled in the CR
-// GIVEN an install CR with OAM explicitly enabled
-// WHEN the install config is created an marshaled to json
-// THEN check that OAM is enabled in each
-func TestOAMEnabledInstall(t *testing.T) {
-	vz := installv1alpha1.Verrazzano{
-		Spec: installv1alpha1.VerrazzanoSpec{
-			Profile:         "dev",
-			EnvironmentName: "test-env",
-			Components: installv1alpha1.ComponentSpec{
-				OAM: installv1alpha1.OAMComponent{Enabled: true},
-			},
-		},
-	}
-
-	config, err := GetInstallConfig(&vz, zap.S())
-	assert.NoError(t, err)
-	assert.Equal(t, true, config.OAM.Enabled, "Expected OAM to be explicitly enabled.")
-
-	jsonBytes, err := json.Marshal(config)
-	assert.NoError(t, err, "Expected resource to marshal to json.")
-
-	jsonString := string(jsonBytes)
-	assert.Contains(t, jsonString, "\"oam\":{\"enabled\":true}", "Expected json to show OAM enabled.")
-}
-
-// TestOAMDisabledInstall tests the creation of a install with OAM is disabled in the CR
-// GIVEN an install CR with OAM explicitly disabled
-// WHEN the install config is created an marshaled to json
-// THEN check that OAM is disabled in each
-func TestOAMDisabledInstall(t *testing.T) {
-	vz := installv1alpha1.Verrazzano{
-		Spec: installv1alpha1.VerrazzanoSpec{
-			Profile:         "dev",
-			EnvironmentName: "test-env",
-			Components: installv1alpha1.ComponentSpec{
-				OAM: installv1alpha1.OAMComponent{Enabled: false},
-			},
-		},
-	}
-
-	config, err := GetInstallConfig(&vz, zap.S())
-	assert.NoError(t, err)
-	assert.Equal(t, false, config.OAM.Enabled, "Expected OAM to be explicitly disabled.")
-
-	jsonBytes, err := json.Marshal(config)
-	assert.NoError(t, err, "Expected resource to marshal to json.")
-
-	jsonString := string(jsonBytes)
-	assert.Contains(t, jsonString, "\"oam\":{\"enabled\":false}", "Expected json to show OAM disabled.")
-}
-
 // TestFindFolumeTemplate Test the findVolumeTemplate utility function
 // GIVEN a call to findVolumeTemplate
 // WHEN valid or invalid arguments are given
@@ -496,19 +419,19 @@ func TestFindFolumeTemplate(t *testing.T) {
 
 	specTemplateList := []installv1alpha1.VolumeClaimSpecTemplate{
 		{
-			Name: "default",
+			ObjectMeta: metav1.ObjectMeta{Name: "default"},
 			Spec: corev1.PersistentVolumeClaimSpec{
 				VolumeName: "defVolume",
 			},
 		},
 		{
-			Name: "template1",
+			ObjectMeta: metav1.ObjectMeta{Name: "template1"},
 			Spec: corev1.PersistentVolumeClaimSpec{
 				VolumeName: "temp1Volume",
 			},
 		},
 		{
-			Name: "template2",
+			ObjectMeta: metav1.ObjectMeta{Name: "template2"},
 			Spec: corev1.PersistentVolumeClaimSpec{
 				VolumeName: "temp2Volume",
 			},
@@ -607,8 +530,8 @@ func TestGetVerrazzanoInstallArgsInvalidPVCVolumeSource(t *testing.T) {
 		},
 		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 			{
-				Name: "default",
-				Spec: corev1.PersistentVolumeClaimSpec{},
+				ObjectMeta: metav1.ObjectMeta{Name: "default"},
+				Spec:       corev1.PersistentVolumeClaimSpec{},
 			},
 		},
 	}
@@ -636,7 +559,7 @@ func TestGetVerrazzanoInstallArgsPVCVolumeSource(t *testing.T) {
 		},
 		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 			{
-				Name: "default",
+				ObjectMeta: metav1.ObjectMeta{Name: "default"},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					StorageClassName: &storageClass,
 					Resources: corev1.ResourceRequirements{
@@ -716,7 +639,7 @@ func TestGetKeycloakPVCVolumeSourceOverrideDefaultVolumeSource(t *testing.T) {
 		},
 		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 			{
-				Name: "default",
+				ObjectMeta: metav1.ObjectMeta{Name: "default"},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					StorageClassName: &storageClass,
 					Resources: corev1.ResourceRequirements{
@@ -772,7 +695,7 @@ func TestGetKeycloakPVCVolumeSourceNoAccessModes(t *testing.T) {
 		},
 		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 			{
-				Name: "default",
+				ObjectMeta: metav1.ObjectMeta{Name: "default"},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					StorageClassName: &storageClass,
 					Resources: corev1.ResourceRequirements{
@@ -845,7 +768,7 @@ func TestGetKeycloakPVCVolumeSourceStorageSizeOnly(t *testing.T) {
 		},
 		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 			{
-				Name: "default",
+				ObjectMeta: metav1.ObjectMeta{Name: "default"},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					Resources: corev1.ResourceRequirements{
 						Requests: resourceList,
@@ -889,7 +812,7 @@ func TestGetKeycloakPVCVolumeSourceZeroStorageSize(t *testing.T) {
 		},
 		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 			{
-				Name: "default",
+				ObjectMeta: metav1.ObjectMeta{Name: "default"},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					Resources: corev1.ResourceRequirements{
 						Requests: resourceList,
@@ -924,8 +847,8 @@ func TestGetKeycloakPVCVolumeSourceEmptyPVCConfiguration(t *testing.T) {
 		},
 		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 			{
-				Name: "default",
-				Spec: corev1.PersistentVolumeClaimSpec{},
+				ObjectMeta: metav1.ObjectMeta{Name: "default"},
+				Spec:       corev1.PersistentVolumeClaimSpec{},
 			},
 		},
 	}
@@ -949,8 +872,8 @@ func TestNewExternalDNSInstallConfigInvalidVZInstallArgs(t *testing.T) {
 			},
 			VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 				{
-					Name: "default",
-					Spec: corev1.PersistentVolumeClaimSpec{},
+					ObjectMeta: metav1.ObjectMeta{Name: "default"},
+					Spec:       corev1.PersistentVolumeClaimSpec{},
 				},
 			},
 		},
@@ -1000,8 +923,8 @@ func TestNewXipIoInstallConfigInvalidVZInstallArgs(t *testing.T) {
 			},
 			VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 				{
-					Name: "default",
-					Spec: corev1.PersistentVolumeClaimSpec{},
+					ObjectMeta: metav1.ObjectMeta{Name: "default"},
+					Spec:       corev1.PersistentVolumeClaimSpec{},
 				},
 			},
 		},
@@ -1051,8 +974,8 @@ func TestNewOCIDNSInstallConfigInvalidVZInstallArgs(t *testing.T) {
 			},
 			VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
 				{
-					Name: "default",
-					Spec: corev1.PersistentVolumeClaimSpec{},
+					ObjectMeta: metav1.ObjectMeta{Name: "default"},
+					Spec:       corev1.PersistentVolumeClaimSpec{},
 				},
 			},
 		},

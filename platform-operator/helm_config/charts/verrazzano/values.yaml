@@ -95,7 +95,17 @@ verrazzanoAdmissionController:
 console:
   name: verrazzano-console
   imageName: ghcr.io/verrazzano/console
-  imageVersion: 0.9.0-20210122131824-c7cfc9b
+  imageVersion: 0.9.0-20210202153634-5d96a30
+
+api:
+  name: verrazzano-api
+  imageName: ghcr.io/verrazzano/nginx-ingress-controller
+  imageVersion: 0.32-20210122132046-a84f6166a
+  pullPolicy: Always
+  port: 8775
+  clusterRole: console
+  consoleUserGroup: console-users
+  consoleUser: console-user
 
 # OCI-related values
 oci:

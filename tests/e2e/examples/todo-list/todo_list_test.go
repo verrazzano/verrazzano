@@ -92,7 +92,7 @@ func undeployToDoListExample() {
 	if err := pkg.DeleteNamespace("todo-list"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete namespace: %v", err))
 	}
-	gomega.Eventually(func () bool {
+	gomega.Eventually(func() bool {
 		ns, err := pkg.GetNamespace("todo-list")
 		return ns == nil && err != nil && errors.IsNotFound(err)
 	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
@@ -120,7 +120,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 		// WHEN the running pods are checked
 		// THEN the adminserver and mysql pods should be found running
 		ginkgo.It("Verify 'tododomain-adminserver' and 'mysql' pods are running", func() {
-			gomega.Eventually(func () bool {
+			gomega.Eventually(func() bool {
 				return pkg.PodsRunning("todo-list", []string{"mysql", "tododomain-adminserver"})
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 		})
@@ -198,7 +198,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 	//})
 
 	ginkgo.Context("Logging.", func() {
-		indexName := "oam-todo-list--"
+		indexName := "todo-list--"
 
 		// GIVEN a WebLogic application with logging enabled via a logging scope
 		// WHEN the Elasticsearch index is retrieved
