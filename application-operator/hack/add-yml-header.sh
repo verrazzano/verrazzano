@@ -25,6 +25,6 @@ else
   # of file at most recent revision
   echo "Adding back YAML header to existing file $YML_FILENAME"
   git show HEAD~1:$YML_FILENAME | head -2 > $TMP_YML
-  cat $YML_FILENAME | sed 1,2d >> $TMP_YML
+  cat $YML_FILENAME >> $TMP_YML
   mv $TMP_YML $YML_FILENAME
 fi

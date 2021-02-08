@@ -1,5 +1,7 @@
 # Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
@@ -8,7 +10,7 @@ metadata:
 webhooks:
 - admissionReviewVersions:
   - v1
-  - v1alpha1
+  - v1beta1
   clientConfig:
     service:
       name: webhook-service
@@ -27,7 +29,7 @@ webhooks:
     - DELETE
     resources:
     - ApplicationConfigurations
-  sideEffects: NoneOnDryRun
+  sideEffects: None
 
 ---
 apiVersion: admissionregistration.k8s.io/v1
@@ -38,7 +40,7 @@ metadata:
 webhooks:
 - admissionReviewVersions:
   - v1
-  - v1alpha1
+  - v1beta1
   clientConfig:
     service:
       name: webhook-service
