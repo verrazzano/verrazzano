@@ -125,27 +125,25 @@ func (h *HelidonHandler) Apply(ctx context.Context, workload vzapi.QualifiedReso
 		duration := time.Duration(rand.IntnRange(5, 10)) * time.Second
 		return &ctrl.Result{Requeue: true, RequeueAfter: duration}, nil
 	}
-	if !fluentdFound {
-		err = h.ensureFluentdConfigMap(ctx, scope.GetNamespace(), workload.Name)
-		if err != nil {
-			return nil, err
-		}
-		err = h.ensureEsSecret(ctx, scope.GetNamespace(), scope.Spec.SecretName)
-		if err != nil {
-			return nil, err
-		}
-		volumes := CreateFluentdHostPathVolumes()
-		for _, volume := range volumes {
-			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volume)
-		}
-		deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdConfigMapVolume(workload.Name))
-		fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, appContainer, scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchHost)
-		deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, fluentdContainer)
-		err = h.Update(ctx, deploy)
-		if err != nil {
-			h.Log.V(1).Info("Failed to update Deployment", "Deployment", deploy.Name, "error", err)
-			return nil, err
-		}
+	err = h.ensureFluentdConfigMap(ctx, scope.GetNamespace(), workload.Name)
+	if err != nil {
+		return nil, err
+	}
+	err = h.ensureEsSecret(ctx, scope.GetNamespace(), scope.Spec.SecretName)
+	if err != nil {
+		return nil, err
+	}
+	volumes := CreateFluentdHostPathVolumes()
+	for _, volume := range volumes {
+		deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volume)
+	}
+	deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdConfigMapVolume(workload.Name))
+	fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, appContainer, scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchHost)
+	deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, fluentdContainer)
+	err = h.Update(ctx, deploy)
+	if err != nil {
+		h.Log.V(1).Info("Failed to update Deployment", "Deployment", deploy.Name, "error", err)
+		return nil, err
 	}
 	return nil, nil
 }
