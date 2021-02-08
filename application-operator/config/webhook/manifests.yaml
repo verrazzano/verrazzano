@@ -26,6 +26,7 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - ApplicationConfigurations
   sideEffects: NoneOnDryRun
@@ -55,6 +56,7 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - ingresstraits
   sideEffects: None
