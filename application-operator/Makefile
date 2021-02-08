@@ -212,21 +212,10 @@ integ-test: create-cluster
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 	echo 'Install OAM runtime and Verrazzano application operator...'
-	INSTALL_RESULT=
-	installer/install.sh || INSTALL_RESULT=FAIL
-	if [ ! -z "${INSTALL_RESULT}" ]; then \
-		echo 'Application operator install failed, capturing kind cluster dump'; \
-		../tools/scripts/k8s-dump-cluster.sh -d application-operator-integ-cluster-dump; \
-		exit 1; \
-	fi
+	installer/install.sh || (echo 'Application operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d application-operator-integ-cluster-dump;)
 
 	echo 'Run tests...'
-	IGNORE=
-	ginkgo -v --keepGoing -cover test/integ/... || IGNORE=FAILURE
-	if [ ! -z "${IGNORE}" ]; then \
-		echo 'Application operator tests failed, capturing kind cluster dump'; \
-		../tools/scripts/k8s-dump-cluster.sh -d application-operator-integ-cluster-dump; \
-	fi
+	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Application operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d application-operator-integ-cluster-dump;)
 
 .PHONY: create-cluster
 create-cluster:

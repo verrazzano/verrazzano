@@ -198,31 +198,19 @@ integ-test: create-cluster
 	echo 'Load docker image for the verrazzano-platform-operator...'
 
 	echo 'Deploy verrazzano platform operator ...'
-	INSTALL_RESULT=
 ifdef JENKINS_URL
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
-	kubectl apply -f deploy/operator.yaml || INSTALL_RESULT=FAIL
+	kubectl apply -f deploy/operator.yaml || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d platform-operator-integ-cluster-dump;)
 else
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	mkdir -p build/deploy
 	cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > ${BUILD-DEPLOY}/operator.yaml
 	cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> ${BUILD-DEPLOY}/operator.yaml
 	cat config/crd/bases/clusters.verrazzano.io_verrazzanomanagedclusters.yaml >> ${BUILD-DEPLOY}/operator.yaml
-	kubectl apply -f ${BUILD-DEPLOY}/operator.yaml || INSTALL_RESULT=FAIL
+	kubectl apply -f ${BUILD-DEPLOY}/operator.yaml || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d platform-operator-integ-cluster-dump;)
 endif
-	if [ ! -z "${INSTALL_RESULT}" ]; then \
-		echo 'Platform operator install failed, capturing kind cluster dump'; \
-		../tools/scripts/k8s-dump-cluster.sh -d platform-operator-integ-cluster-dump; \
-		exit 1; \
-	fi
-
 	echo 'Run tests...'
-	IGNORE=
-	ginkgo -v --keepGoing -cover test/integ/... || IGNORE=FAILURE
-	if [ ! -z "${IGNORE}" ]; then \
-		echo 'Platform operator tests failed, capturing kind cluster dump'; \
-		../tools/scripts/k8s-dump-cluster.sh -d platform-operator-integ-cluster-dump; \
-	fi
+	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d platform-operator-integ-cluster-dump;)
 
 .PHONY: create-cluster
 create-cluster:
