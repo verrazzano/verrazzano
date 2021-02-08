@@ -236,8 +236,8 @@ func (r *Reconciler) fetchChildResourcesByAPIVersionKinds(ctx context.Context, n
 func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.IngressTrait, status *reconcileresults.ReconcileResults) string {
 	var secretName string
 
-	if trait.Spec.Tls != (vzapi.IngressSecurity{}) {
-		secretName := trait.Spec.Tls.SecretName
+	if trait.Spec.TLS != (vzapi.IngressSecurity{}) {
+		secretName := trait.Spec.TLS.SecretName
 		if secretName != "" {
 			return secretName
 		}

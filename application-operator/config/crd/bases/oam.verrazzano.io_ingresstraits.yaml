@@ -64,7 +64,7 @@ spec:
                   type: object
                 type: array
               tls:
-                description: Tls specifies the security parameters for an ingress
+                description: TLS specifies the security parameters for an ingress
                   trait.
                 properties:
                   secretName:
