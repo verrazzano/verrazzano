@@ -72,7 +72,7 @@ func (r *MultiClusterSecretReconciler) updateStatus(ctx context.Context, mcSecre
 	if statusNeedsUpdate(mcSecret.Status.Conditions, mcSecret.Status.State, condition, state) {
 		mcSecret.Status.Conditions = append(mcSecret.Status.Conditions, condition)
 		mcSecret.Status.State = state
-		return reconcile.Result{Requeue: true}, r.Status().Update(ctx, mcSecret)
+		return reconcile.Result{}, r.Status().Update(ctx, mcSecret)
 	} else {
 		return reconcile.Result{}, nil
 	}
