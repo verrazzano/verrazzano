@@ -106,11 +106,13 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 		rules = []vzapi.IngressRule{{}}
 	}
 	for index, rule := range rules {
-		r.createOrUpdateGatewayCertificate(ctx, trait, &status)
-		gwName := fmt.Sprintf("%s-rule-%d-gw", trait.Name, index)
-		gateway := r.createOrUpdateGateway(ctx, trait, rule, gwName, &status)
-		vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
-		r.createOrUpdateVirtualService(ctx, trait, rule, vsName, service, gateway, &status)
+		secretName := r.createOrUseGatewaySecret(ctx, trait, &status)
+		if secretName != "" {
+			gwName := fmt.Sprintf("%s-rule-%d-gw", trait.Name, index)
+			gateway := r.createOrUpdateGateway(ctx, trait, rule, gwName, secretName, &status)
+			vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
+			r.createOrUpdateVirtualService(ctx, trait, rule, vsName, service, gateway, &status)
+		}
 	}
 	return &status
 }
@@ -231,45 +233,61 @@ func (r *Reconciler) fetchChildResourcesByAPIVersionKinds(ctx context.Context, n
 	return childResources, nil
 }
 
-func (r *Reconciler) createOrUpdateGatewayCertificate(ctx context.Context, trait *vzapi.IngressTrait, status *reconcileresults.ReconcileResults) error {
-	const istioNamespace = "istio-system"
+func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.IngressTrait, status *reconcileresults.ReconcileResults) string {
+	var secretName string
 
-	// derive certificate name and see if it exists, in ready state, and has appropriate SAN value(s)
-	certificate := certapiv1alpha2.Certificate{}
+	if trait.Spec.Tls != (vzapi.IngressSecurity{}) {
+		secretName := trait.Spec.Tls.SecretName
+		if secretName != "" {
+			return secretName
+		}
+	}
+	const istioNamespace = "istio-system"
 	certName, err := buildCertificateNameFromIngressTrait(trait)
 	if err != nil {
-		return err
+		r.Log.Error(err, "Failed to create certificate name from ingress trait.")
 	}
-	if err := r.Get(context.TODO(), types.NamespacedName{Name: certName, Namespace: istioNamespace}, &certificate); err != nil {
-		if k8serrors.IsNotFound(err) {
-			// proceed with certificate creation
-			certificate = certapiv1alpha2.Certificate{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       certificateKind,
-					APIVersion: certificateAPIVersion,
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      certName,
-					Namespace: istioNamespace,
-				},
-				Spec: certapiv1alpha2.CertificateSpec{
-					DNSNames:   []string{fmt.Sprintf("*.%s", buildAppDomainName(r, trait))},
-					SecretName: fmt.Sprintf("secret-%s", buildCertificateNameFromIngressTrait(trait)),
-					IssuerRef: certv1.ObjectReference{
-						Name: verrazzanoClusterIssuer,
-						Kind: "ClusterIssuer",
-					},
-				},
-			}
-		} else {
+	certificate := &certapiv1alpha2.Certificate{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       certificateKind,
+			APIVersion: certificateAPIVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: istioNamespace,
+			Name:	   certName,
+		}}
+
+	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, certificate, func() error {
+		if certName == "" {
+			return errors.New("Certificate Name was not generated successfully")
+		}
+		secretName = fmt.Sprintf("secret-%s", certName)
+		appDomainName, err := buildAppDomainName(r, trait)
+		if err != nil {
 			return err
 		}
-	} else {
-		// certificate already exists
-		r.Log.Info("Certificate exists - nothing to do")
+		certificate.Spec = certapiv1alpha2.CertificateSpec{
+			DNSNames:   []string{fmt.Sprintf("*.%s", appDomainName)},
+			SecretName: secretName,
+			IssuerRef: certv1.ObjectReference{
+				Name: verrazzanoClusterIssuer,
+				Kind: "ClusterIssuer",
+			},
+		}
+
+		return nil
+	})
+	ref := vzapi.QualifiedResourceRelation{APIVersion: certificateAPIVersion, Kind: certificateKind, Name: certificate.Name, Role: "certificate"}
+	status.Relations = append(status.Relations, ref)
+	status.Results = append(status.Results, res)
+	status.Errors = append(status.Errors, err)
+
+	if err != nil {
+		r.Log.Error(err, "Failed to create or update gateway secret containing certificate.")
+		return ""
 	}
 
-	return nil
+	return secretName
 }
 
 func buildCertificateNameFromIngressTrait(trait *vzapi.IngressTrait) (string, error) {
@@ -282,7 +300,7 @@ func buildCertificateNameFromIngressTrait(trait *vzapi.IngressTrait) (string, er
 
 // createOrUpdateGateway creates or updates the Gateway child resource of the trait.
 // Results are added to the status object.
-func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, status *reconcileresults.ReconcileResults) *istioclient.Gateway {
+func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, secretName string, status *reconcileresults.ReconcileResults) *istioclient.Gateway {
 	// Create a gateway populating only name metadata.
 	// This is used as default if the gateway needs to be created.
 	gateway := &istioclient.Gateway{
@@ -294,7 +312,7 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 			Name:      name}}
 
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, gateway, func() error {
-		return r.mutateGateway(gateway, trait, rule)
+		return r.mutateGateway(gateway, trait, rule, secretName)
 	})
 
 	ref := vzapi.QualifiedResourceRelation{APIVersion: gatewayAPIVersion, Kind: gatewayKind, Name: trait.Name, Role: "gateway"}
@@ -310,23 +328,29 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 }
 
 // mutateGateway mutates the output Gateway child resource.
-func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.IngressTrait, rule vzapi.IngressRule) error {
+func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.IngressTrait, rule vzapi.IngressRule, secretName string) error {
 	hosts, err := createHostsFromIngressTraitRule(r, rule, trait)
 	if err != nil {
 		return err
 	}
 
-	// Set the spec content.
-	gateway.Spec.Selector = map[string]string{"istio": "ingressgateway"}
-	gateway.Spec.Servers = []*istionet.Server{{
-		Hosts: hosts,
-		Port: &istionet.Port{
-			Name:     "http",
-			Number:   80,
-			Protocol: "HTTP"}}}
+	if secretName != "" {
+		// Set the spec content.
+		gateway.Spec.Selector = map[string]string{"istio": "ingressgateway"}
+		gateway.Spec.Servers = []*istionet.Server{{
+			Hosts: hosts,
+			Port: &istionet.Port{
+				Name:     "https",
+				Number:   443,
+				Protocol: "HTTPS"},
+			Tls: &istionet.ServerTLSSettings{
+				Mode:           istionet.ServerTLSSettings_SIMPLE,
+				CredentialName: secretName,
+			}}}
+		// Set the owner reference.
+		controllerutil.SetControllerReference(trait, gateway, r.Scheme)
+	}
 
-	// Set the owner reference.
-	controllerutil.SetControllerReference(trait, gateway, r.Scheme)
 	return nil
 }
 

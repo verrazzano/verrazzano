@@ -15,6 +15,10 @@ type IngressTraitSpec struct {
 	// Rules specifies a list of ingress rules to for an ingress trait.
 	Rules []IngressRule `json:"rules,omitempty"`
 
+	// Tls specifies the security parameters for an ingress trait.
+	// +optional
+	Tls IngressSecurity `json:"tls,omitempty"`
+
 	// The WorkloadReference to the workload to which this trait applies.
 	// This value is populated by the OAM runtime when a ApplicationConfiguration
 	// resource is processed.  When the ApplicationConfiguration is processed a trait and
@@ -29,6 +33,11 @@ type IngressTraitSpec struct {
 type IngressRule struct {
 	Hosts []string      `json:"hosts,omitempty"`
 	Paths []IngressPath `json:"paths,omitempty"`
+}
+
+// IngressSecurity specifies the secret containing the certificate securing the transport for an ingress trait.
+type IngressSecurity struct {
+	SecretName string      `json:"secretName,omitempty"`
 }
 
 // IngressPath specifies a specific path to be exposed for an ingress trait.

@@ -63,6 +63,13 @@ spec:
                       type: array
                   type: object
                 type: array
+              tls:
+                description: Tls specifies the security parameters for an ingress
+                  trait.
+                properties:
+                  secretName:
+                    type: string
+                type: object
               workloadRef:
                 description: The WorkloadReference to the workload to which this trait
                   applies. This value is populated by the OAM runtime when a ApplicationConfiguration
