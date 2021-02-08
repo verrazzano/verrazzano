@@ -53,7 +53,6 @@ pipeline {
     }
 
     environment {
-        CLUSTER_NAME = 'byok8s-kind'
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         NETRC_FILE = credentials('netrc')
         GOPATH = '/home/opc/go'
@@ -61,15 +60,13 @@ pipeline {
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_EMAIL = credentials('github-packages-email')
         DOCKER_REPO = 'ghcr.io'
-        DOCKER_NAMESPACE = 'verrazzano'
-        OKE_CLUSTER_REGION = 'us-ashburn-1'
+
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
 
         TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
         TF_VAR_tenancy_id = credentials('oci-tenancy')
         TF_VAR_user_id = credentials('oci-user-ocid')
-        TF_VAR_region = "${params.OKE_CLUSTER_REGION}"
         TF_VAR_kubernetes_version = "${params.OKE_CLUSTER_VERSION}"
         TF_VAR_nodepool_config = "${params.OKE_NODE_POOL}"
         TF_VAR_api_fingerprint = credentials('oci-api-key-fingerprint')
@@ -83,22 +80,11 @@ pipeline {
         OCI_CLI_USER = credentials('oci-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
-        OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
         DISABLE_SPINNER=1
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-        GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
-        DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
-        DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
-        DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
-        DOCKER_OAM_CI_IMAGE_NAME = 'verrazzano-application-operator-jenkins'
-        DOCKER_OAM_PUBLISH_IMAGE_NAME = 'verrazzano-application-operator'
-        DOCKER_OAM_IMAGE_NAME = "${env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'master' ? env.DOCKER_OAM_PUBLISH_IMAGE_NAME : env.DOCKER_OAM_CI_IMAGE_NAME}"
-        CREATE_LATEST_TAG = "${env.BRANCH_NAME == 'master' ? '1' : '0'}"
-        GITHUB_RELEASE_USERID = credentials('github-userid-release')
-        GITHUB_RELEASE_EMAIL = credentials('github-email-release')
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
         KUBECONFIG = "${WORKSPACE}/oke_kubeconfig"
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
@@ -180,7 +166,6 @@ pipeline {
             }
         }
 
-        // TODO : Evalauate the option of using tools/scripts/k8s-dump-cluster.sh/k8s-dump-cluster.sh and extract the archive while comparing the resources
         stage("get-pre-install-resources") {
             steps {
                 sh """
@@ -290,7 +275,6 @@ pipeline {
                 always {
                     sh """
                         ## dump out uninstall logs
-                        # TODO : Move this to a definition and use k8s-dump-objects.sh
                         mkdir -p ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/uninstall/build/logs
                         kubectl logs --selector=job-name=verrazzano-uninstall-my-verrazzano > ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log --tail -1
                         kubectl describe pod --selector=job-name=verrazzano-uninstall-my-verrazzano > ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out

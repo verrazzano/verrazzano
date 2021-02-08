@@ -37,11 +37,21 @@ pipeline {
     }
 
     environment {
-        CLUSTER_NAME = 'byok8s-kind'
         NETRC_FILE = credentials('netrc')
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
+        DOCKER_REPO = 'ghcr.io'
+
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_EMAIL = credentials('github-packages-email')
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
+
+        KUBECONFIG = "${WORKSPACE}/oke_kubeconfig"
+        VERRAZZANO_KUBECONFIG = "${WORKSPACE}/oke_kubeconfig"
+        VZ_ENVIRONMENT_NAME = "default"
+        GOPATH = '/home/opc/go'
+        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
+        TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
 
         TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
         TF_VAR_tenancy_id = credentials('oci-tenancy')
@@ -60,21 +70,10 @@ pipeline {
         OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
         OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
-
-        KUBECONFIG = "${WORKSPACE}/oke_kubeconfig"
-        VERRAZZANO_KUBECONFIG = "${WORKSPACE}/oke_kubeconfig"
-        DOCKER_CREDS = credentials('github-packages-credentials-rw')
-        DOCKER_EMAIL = credentials('github-packages-email')
-        DOCKER_REPO = 'ghcr.io'
-        DOCKER_NAMESPACE = 'verrazzano'
-        VZ_ENVIRONMENT_NAME = "default"
-        GOPATH = '/home/opc/go'
-        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
-        TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
     }
 
     stages {
-        stage('Clean workspace and checkout') {
+        stage('clean-workspace-and-checkout') {
             steps {
                 sh """
                     echo "${NODE_LABELS}"
@@ -134,7 +133,7 @@ pipeline {
             }
         }
 		
-        stage("install-oke") {
+        stage("create-oke-cluster") {
             steps {
                 sh "TF_VAR_label_prefix=loop-${env.BUILD_NUMBER} TF_VAR_state_name=loop-${env.BUILD_NUMBER}-main ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
             }
@@ -157,7 +156,7 @@ pipeline {
         always {
             script {
                 if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
-                    dumpK8sCluster('create-oke-looping-test-cluster-dump.tar.gz')
+                    dumpK8sCluster('loop-test-oke-cluster-dump.tar.gz')
                 }
             }
             archiveArtifacts artifacts: '**/oke_kubeconfig,**/*cluster-dump.tar.gz', allowEmptyArchive: true
