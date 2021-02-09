@@ -1562,9 +1562,9 @@ func newRequest(namespace string, name string) ctrl.Request {
 
 // newVerrazzanoReconciler creates a new reconciler for testing
 // c - The Kerberos client to inject into the reconciler
-func newVerrazzanoReconciler(c client.Client) VerrazzanoReconciler {
+func newVerrazzanoReconciler(c client.Client) Reconciler {
 	scheme := newScheme()
-	reconciler := VerrazzanoReconciler{
+	reconciler := Reconciler{
 		Client: c,
 		Scheme: scheme}
 	return reconciler
