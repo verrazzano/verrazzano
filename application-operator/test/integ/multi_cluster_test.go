@@ -9,11 +9,14 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/application-operator/test/integ/util"
 	"reflect"
+	"time"
 )
 
 const (
 	multiclusterTestNamespace = "multiclustertest"
 	crdDir                    = "../../config/crd/bases"
+	timeout = 5 * time.Second
+	pollInterval = 20 * time.Millisecond
 )
 
 var (
@@ -47,7 +50,7 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 		gomega.Expect(err).To(gomega.BeNil())
 		gomega.Eventually(func() bool {
 			return secretExistsWithData(multiclusterTestNamespace, "mymcsecret", mcsecret.Spec.Template.Data)
-		}).Should(gomega.BeTrue())
+		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 	ginkgo.It("MultiClusterConfigMap can be created ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_configmap_sample.yaml")
@@ -68,6 +71,7 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 })
 
 func secretExistsWithData(namespace string, name string, secretData map[string][]byte) bool {
+	fmt.Printf("Looking for Kubernetes secret %v/%v\n", namespace, name)
 	secret, err := K8sClient.GetSecret(multiclusterTestNamespace, "mymcsecret")
 	return err == nil && reflect.DeepEqual(secret.Data, secretData)
 }
