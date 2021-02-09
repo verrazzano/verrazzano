@@ -4,7 +4,7 @@ name: verrazzano-application-operator
 namespace: verrazzano-system
 
 global:
-  imagePullSecrets: [ ]
+  imagePullSecrets: []
 
 # NOTE: The image value gets set in the override file verrazzano-application-operator-values.yaml
 # during the platform operator docker image build.

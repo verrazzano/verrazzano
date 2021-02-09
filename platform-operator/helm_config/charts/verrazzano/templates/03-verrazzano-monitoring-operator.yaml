@@ -36,12 +36,12 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     k8s-app: {{ .Values.monitoringOperator.name }}
-  {{- if .Values.global.imagePullSecrets }}
+{{- if .Values.global.imagePullSecrets }}
 imagePullSecrets:
-  {{- range .Values.global.imagePullSecrets }}
-  - name: {{ . }}
-  {{- end }}
-  {{- end }}
+{{- range .Values.global.imagePullSecrets }}
+- name: {{ . }}
+{{- end }}
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -189,8 +189,8 @@ rules:
       - list
       - watch
       - update
-  - nonResourceURLs: [ "/metrics" ]
-    verbs: [ "get" ]
+  - nonResourceURLs: ["/metrics"]
+    verbs: ["get"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
