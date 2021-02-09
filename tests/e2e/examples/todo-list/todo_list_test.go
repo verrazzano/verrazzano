@@ -16,7 +16,6 @@ import (
 )
 
 const (
-	ISO8601Layout        = "2006-01-02T15:04:05.999999999-07:00"
 	shortWaitTimeout     = 5 * time.Minute
 	shortPollingInterval = 10 * time.Second
 	longWaitTimeout      = 10 * time.Minute
@@ -205,7 +204,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 		// THEN verify that it is found
 		ginkgo.It("Verify Elasticsearch index exists", func() {
 			gomega.Eventually(func() bool {
-				return logIndexFound(indexName)
+				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for todo-list")
 		})
 
@@ -214,7 +213,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 		// THEN verify that at least one recent log record is found
 		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
 			gomega.Eventually(func() bool {
-				return logRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"domainUID":  "tododomain",
 					"serverName": "tododomain-adminserver"})
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
@@ -245,47 +244,6 @@ func metricExist(metricsName, key, value string) bool {
 	} else {
 		return false
 	}
-}
-
-// logIndexFound confirms a named index can be found.
-func logIndexFound(indexName string) bool {
-	for _, name := range pkg.ListSystemElasticSearchIndices() {
-		if name == indexName {
-			return true
-		}
-	}
-	pkg.Log(pkg.Error, fmt.Sprintf("Expected to find log index %s", indexName))
-	return false
-}
-
-// logRecordFound confirms a recent log record for the index with matching fields can be found.
-func logRecordFound(indexName string, after time.Time, fields map[string]string) bool {
-	searchResult := pkg.QuerySystemElasticSearch(indexName, fields)
-	hits := pkg.Jq(searchResult, "hits", "hits")
-	if hits == nil {
-		pkg.Log(pkg.Info, "Expected to find hits in log record query results")
-		return false
-	}
-	pkg.Log(pkg.Info, fmt.Sprintf("Found %d records", len(hits.([]interface{}))))
-	if len(hits.([]interface{})) == 0 {
-		pkg.Log(pkg.Info, "Expected log record query results to contain at least one hit")
-		return false
-	}
-	for _, hit := range hits.([]interface{}) {
-		timestamp := pkg.Jq(hit, "_source", "@timestamp")
-		t, err := time.Parse(ISO8601Layout, timestamp.(string))
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Failed to parse timestamp: %s", timestamp))
-			return false
-		}
-		if t.After(after) {
-			pkg.Log(pkg.Info, fmt.Sprintf("Found recent record: %s", timestamp))
-			return true
-		}
-		pkg.Log(pkg.Info, fmt.Sprintf("Found old record: %s", timestamp))
-	}
-	pkg.Log(pkg.Error, fmt.Sprintf("Failed to find recent log record for index %s", indexName))
-	return false
 }
 
 // getRequiredEnvVarOrFail returns the values of the provided environment variable name or fails.
