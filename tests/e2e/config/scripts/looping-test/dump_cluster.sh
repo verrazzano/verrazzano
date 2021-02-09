@@ -10,7 +10,7 @@ if [ -z "$1" ] ; then
   exit 1
 fi
 
-mkdir "$1"
+mkdir -p "$1"
 cd "$1"
 touch default.txt kube-node-lease.txt kube-public.txt kube-system.txt
 cd "$SCRIPT_DIR"
