@@ -25,7 +25,11 @@ type ApiEndpoint struct {
 
 // GetApiEndpoint returns the ApiEndpoint stub with AccessToken
 func GetApiEndpoint() *ApiEndpoint {
-	keycloakURL := fmt.Sprintf("https://keycloak.%s.%s/auth/realms/%s/protocol/openid-connect/token", EnvName, DnsZone, realm)
+	dnsSuffix, err := DNSSuffix()
+	if err != nil {
+		ginkgo.Fail(err.Error())
+	}
+	keycloakURL := fmt.Sprintf("https://keycloak.%s.%s/auth/realms/%s/protocol/openid-connect/token", EnvName, dnsSuffix, realm)
 	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", Username, GetVerrazzanoPassword(), clientId)
 	status, resp := postWithClient(keycloakURL, "application/x-www-form-urlencoded", strings.NewReader(body), GetKeycloakHTTPClient())
 	var api ApiEndpoint
@@ -43,7 +47,11 @@ func GetApiEndpoint() *ApiEndpoint {
 
 // getAPIURL returns the Verrazzano REST API URL
 func getAPIURL() string {
-	return fmt.Sprintf("https://verrazzano.%s.%s/%s", EnvName, DnsZone, verrazzanoApiUriPrefix)
+	dnsSuffix, err := DNSSuffix()
+	if err != nil {
+		ginkgo.Fail(err.Error())
+	}
+	return fmt.Sprintf("https://verrazzano.%s.%s/%s", EnvName, dnsSuffix, verrazzanoApiUriPrefix)
 }
 
 // Get Invoke GET API Request

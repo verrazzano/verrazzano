@@ -27,9 +27,6 @@ const (
 	// EnvName - default environment name
 	EnvName = "default"
 
-	// DnsZone - default DNS zone
-	DnsZone = "127.0.0.1.xip.io"
-
 	// NumRetries - maximum number of retries
 	NumRetries = 7
 
