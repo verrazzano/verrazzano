@@ -100,7 +100,7 @@ the deployed Hello World Helidon application.  Accessing them may require the fo
         ```
         kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
         ``` 
-        The associated username is `verrazzano`
+        The associated user name is `verrazzano`
    
     - You will have to accept the certificates associated with the endpoints.
       
