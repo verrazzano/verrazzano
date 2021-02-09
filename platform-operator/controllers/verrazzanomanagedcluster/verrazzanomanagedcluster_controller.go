@@ -11,11 +11,10 @@ import (
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -45,7 +44,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 			return reconcile.Result{}, nil
 		}
 
-		// Error getting the VerrazzanoManagedCluster resource - don't requeue.
+		// Error getting the VerrazzanoManagedCluster resource
 		log.Errorf("Failed to fetch resource: %v", err)
 		return reconcile.Result{}, err
 	}
@@ -56,38 +55,27 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 	}
 
 	// Reconcile the service account
-	err = reconcileServiceAccount(r, vmc, req.Namespace)
+	err = r.reconcileServiceAccount(vmc)
 	if err != nil {
-		log.Info("Failed to reconcile the ServiceAccount")
+		log.Infof("Failed to reconcile the ServiceAccount: %v", err)
 		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func reconcileServiceAccount(r *VerrazzanoManagedClusterReconciler, vmc *clustersv1alpha1.VerrazzanoManagedCluster, namespace string) error {
-	saNew := createServiceAccount(generateServiceAccountName(vmc.Name), namespace)
-
-	// Does the service account exist?
-	sa := corev1.ServiceAccount{}
-	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: saNew.Name, Namespace: saNew.Namespace}, &sa)
+func (r *VerrazzanoManagedClusterReconciler) reconcileServiceAccount(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	// Create or update the service account
+	_, err := r.createOrUpdateServiceAccount(context.TODO(), vmc)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			// Create the SA
-			r.log.Infof("Creating ServiceAccount %s in namespace %s", saNew.Name, saNew.Namespace)
-			err2 := r.Client.Create(context.TODO(), saNew)
-			if err2 != nil {
-				return err2
-			}
-		} else {
-			return err
-		}
+		return err
 	}
 
 	// Does the VerrazzanoManagedCluster object contain the service account name?
-	if vmc.Spec.ServiceAccount != saNew.Name {
-		r.log.Infof("Updating ServiceAccount from %q to %q", vmc.Spec.ServiceAccount, saNew.Name)
-		vmc.Spec.ServiceAccount = saNew.Name
+	saName := generateServiceAccountName(vmc.Name)
+	if vmc.Spec.ServiceAccount != saName {
+		r.log.Infof("Updating ServiceAccount from %q to %q", vmc.Spec.ServiceAccount, saName)
+		vmc.Spec.ServiceAccount = saName
 		err = r.Update(context.TODO(), vmc)
 		if err != nil {
 			return err
@@ -97,20 +85,27 @@ func reconcileServiceAccount(r *VerrazzanoManagedClusterReconciler, vmc *cluster
 	return nil
 }
 
+// Create or update the ServiceAccount for a VerrazzanoManagedCluster
+func (r *VerrazzanoManagedClusterReconciler) createOrUpdateServiceAccount(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) (controllerutil.OperationResult, error) {
+	var serviceAccount corev1.ServiceAccount
+	serviceAccount.Namespace = vmc.Namespace
+	serviceAccount.Name = generateServiceAccountName(vmc.Name)
+
+	return controllerutil.CreateOrUpdate(ctx, r.Client, &serviceAccount, func() error {
+		r.mutateServiceAccount(vmc, &serviceAccount)
+		// This SetControllerReference call will trigger garbage collection i.e. the serviceAccount
+		// will automatically get deleted when the VerrazzanoManagedCluster is deleted
+		return controllerutil.SetControllerReference(vmc, &serviceAccount, r.Scheme)
+	})
+}
+
+func (r *VerrazzanoManagedClusterReconciler) mutateServiceAccount(vmc *clustersv1alpha1.VerrazzanoManagedCluster, serviceAccount *corev1.ServiceAccount) {
+	serviceAccount.Name = generateServiceAccountName(vmc.Name)
+}
+
 // Generate the service account name
 func generateServiceAccountName(clusterName string) string {
 	return fmt.Sprintf("%s-managed-cluster", clusterName)
-}
-
-// Create a service account object
-func createServiceAccount(name string, namespace string) *corev1.ServiceAccount {
-	return &corev1.ServiceAccount{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-	}
 }
 
 // SetupWithManager creates a new controller and adds it to the manager

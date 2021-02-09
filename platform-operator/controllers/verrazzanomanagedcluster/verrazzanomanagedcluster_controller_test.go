@@ -11,7 +11,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -31,7 +30,7 @@ const kind = "VerrazzanoManagedCluster"
 // WHEN a VerrazzanoManagedCluster resource has been applied
 // THEN ensure all the objects are created
 func TestCreateVMC(t *testing.T) {
-	namespace := "verrazzano-install"
+	namespace := "verrazzano-mc"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
 	asserts := assert.New(t)
@@ -132,7 +131,7 @@ func TestDeleteVMC(t *testing.T) {
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	vzapi.AddToScheme(scheme)
+	clustersapi.AddToScheme(scheme)
 	return scheme
 }
 
