@@ -77,7 +77,10 @@ func reconcileServiceAccount(r *VerrazzanoManagedClusterReconciler, vmc *cluster
 		if errors.IsNotFound(err) {
 			// Create the SA
 			r.log.Infof("Creating ServiceAccount %s in namespace %s", saNew.Name, saNew.Namespace)
-			err = r.Client.Create(context.TODO(), saNew)
+			err2 := r.Client.Create(context.TODO(), saNew)
+			if err2 != nil {
+				return err2
+			}
 		} else {
 			return err
 		}
