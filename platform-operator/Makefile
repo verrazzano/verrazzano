@@ -214,7 +214,7 @@ endif
 
 .PHONY: create-cluster
 create-cluster:
-ifdef JENKINS_URLI
+ifdef JENKINS_URL
 	./build/scripts/cleanup.sh ${CLUSTER_NAME}
 endif
 	echo 'Create cluster...'
