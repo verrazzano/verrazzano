@@ -8,6 +8,7 @@ on:
     types: [created]
 jobs:
   pagerduty:
+    if: ${{ !github.event.issue.pull_request }}
     env:
       ROUTING_KEY: ${{ secrets.PAGERDUTY_ROUTING_KEY }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
