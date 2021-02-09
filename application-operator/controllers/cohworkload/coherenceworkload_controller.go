@@ -367,9 +367,6 @@ func addJvmArgs(coherenceSpec map[string]interface{}) {
 func (r *Reconciler) handleDelete(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoCoherenceWorkload, coherence *unstructured.Unstructured) (bool, error) {
 	if !workload.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllers.StringSliceContainsString(workload.ObjectMeta.Finalizers, finalizer) {
-			log.Info("Deleting logging-related resources (if needed)")
-			r.deleteLogging(ctx, log, workload.ObjectMeta.Namespace)
-
 			log.Info("Deleting Coherence CR")
 			if err := r.Delete(ctx, coherence); err != nil {
 				return true, err
@@ -395,20 +392,4 @@ func (r *Reconciler) handleDelete(ctx context.Context, log logr.Logger, workload
 	}
 
 	return false, nil
-}
-
-// deleteLogging cleans up any logging resources that we created when processing a
-// LoggingScope on resource creation
-func (r *Reconciler) deleteLogging(ctx context.Context, log logr.Logger, namespace string) {
-	// this struct is empty as we're just using this to delete the FLUENTD config map - also if
-	// there was no logging scope for this component, this will just be a no-op
-	fluentdPod := &loggingscope.FluentdPod{}
-	fluentdManager := &loggingscope.Fluentd{
-		Context: ctx,
-		Log:     log,
-		Client:  r.Client,
-	}
-	resource := vzapi.QualifiedResourceRelation{Namespace: namespace}
-
-	fluentdManager.Remove(nil, resource, fluentdPod)
 }
