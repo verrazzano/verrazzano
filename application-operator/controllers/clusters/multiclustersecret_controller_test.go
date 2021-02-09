@@ -69,7 +69,7 @@ func TestReconcileCreateSecret(t *testing.T) {
 
 	// expect a call to fetch the MultiClusterSecret (and another to fetch and update corev1.Secret)
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.AssignableToTypeOf(&mcSecretSample)).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcSecret *clustersv1alpha1.MultiClusterSecret) error {
 				mcSecret.ObjectMeta = mcSecretSample.ObjectMeta
 				mcSecret.TypeMeta = mcSecretSample.TypeMeta
@@ -101,7 +101,10 @@ func TestReconcileCreateSecret(t *testing.T) {
 
 	mockStatusWriter.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&mcSecretSample)).
-		Return(nil)
+		DoAndReturn(func(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret) error {
+			assertMultiClusterSecretStatus(assert, mcSecret, clustersv1alpha1.Ready, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
+			return nil
+		})
 
 	// create a request and reconcile it
 	request := newRequest(namespace, crName)
@@ -111,6 +114,13 @@ func TestReconcileCreateSecret(t *testing.T) {
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Equal(false, result.Requeue)
+}
+
+func assertMultiClusterSecretStatus(assert *asserts.Assertions, mcSecret *clustersv1alpha1.MultiClusterSecret, state clustersv1alpha1.StateType, condition clustersv1alpha1.ConditionType, conditionStatus v1.ConditionStatus) {
+	assert.Equal(state, mcSecret.Status.State)
+	assert.Equal(1, len(mcSecret.Status.Conditions))
+	assert.Equal(conditionStatus, mcSecret.Status.Conditions[0].Status)
+	assert.Equal(condition, mcSecret.Status.Conditions[0].Type)
 }
 
 // TestReconcileUpdateSecret tests the path of reconciling a MultiClusterSecret when the underlying
