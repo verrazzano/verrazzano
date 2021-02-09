@@ -21,13 +21,15 @@ var waitTimeout = 10 * time.Minute
 var pollingInterval = 30 * time.Second
 var shortPollingInterval = 10 * time.Second
 var shortWaitTimeout = 5 * time.Minute
+var longWaitTimeout      = 10 * time.Minute
+var longPollingInterval  = 20 * time.Second
 
 var _ = ginkgo.BeforeSuite(func() {
-	deploySpringBootApplication()
+	// deploySpringBootApplication()
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	undeploySpringBootApplication()
+	// undeploySpringBootApplication()
 })
 
 func deploySpringBootApplication() {
@@ -85,27 +87,76 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 	// GIVEN springboot app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
-	ginkgo.It("Verify welcome page of Spring Boot application is working.", func() {
-		gomega.Eventually(func() bool {
-			ingress := pkg.Ingress()
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-			url := fmt.Sprintf("http://%s/", ingress)
-			status, content := pkg.GetWebPageWithCABundle(url, hostHeaderValue)
-			return gomega.Expect(status).To(gomega.Equal(200)) &&
-				gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
-		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+	ginkgo.Context("Ingress.", func() {
+		ginkgo.It("Verify welcome page of Spring Boot application is working.", func() {
+			gomega.Eventually(func() bool {
+				ingress := pkg.Ingress()
+				pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
+				url := fmt.Sprintf("http://%s/", ingress)
+				status, content := pkg.GetWebPageWithCABundle(url, hostHeaderValue)
+				return gomega.Expect(status).To(gomega.Equal(200)) &&
+					gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+		})
+
+		ginkgo.It("Verify Verrazzano facts endpoint is working.", func() {
+			gomega.Eventually(func() bool {
+				ingress := pkg.Ingress()
+				url := fmt.Sprintf("http://%s/facts", ingress)
+				status, content := pkg.GetWebPageWithCABundle(url, hostHeaderValue)
+				gomega.Expect(len(content) > 0, fmt.Sprintf("An empty string returned from /facts endpoint %v", content))
+				return gomega.Expect(status).To(gomega.Equal(200))
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+		})
 	})
 
-	ginkgo.It("Verify Verrazzano facts endpoint is working.", func() {
-		gomega.Eventually(func() bool {
-			ingress := pkg.Ingress()
-			url := fmt.Sprintf("http://%s/facts", ingress)
-			status, content := pkg.GetWebPageWithCABundle(url, hostHeaderValue)
-			gomega.Expect(len(content) > 0, fmt.Sprintf("An empty string returned from /facts endpoint %v", content))
-			return gomega.Expect(status).To(gomega.Equal(200))
-		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+	ginkgo.Context("Metrics.", func() {
+		ginkgo.It("Retrieve Prometheus metrics", func() {
+			gomega.Eventually(metricsExist, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
 	})
 
-	// Check whether the Istio Gateway is up
-	// verify Prometheus scraped metrics
+	ginkgo.Context("Logging.", func() {
+		indexName := "springboot-springboot-appconf-springboot-component"
+		ginkgo.It("Verify Elasticsearch index exists", func() {
+			gomega.Eventually(func() bool {
+				return logIndexFound(indexName)
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for todo-list")
+		})
+
+		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
+			gomega.Eventually(func() bool {
+				return logRecordFound(indexName)
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+		})
+	})
 })
+
+func metricsExist() bool {
+	metrics := pkg.JTq(pkg.QueryMetric("http_server_requests_seconds_count"), "data", "result").([]interface{})
+	if metrics != nil {
+		return true
+	}
+	return false
+}
+
+// logIndexFound confirms a named index can be found.
+func logIndexFound(indexName string) bool {
+	for _, name := range pkg.ListSystemElasticSearchIndices() {
+		if name == indexName {
+			return true
+		}
+	}
+	pkg.Log(pkg.Error, fmt.Sprintf("Expected to find log index %s", indexName))
+	return false
+}
+
+func logRecordFound(indexName string) bool {
+	searchResult := pkg.QuerySystemElasticSearch(indexName, map[string]string{})
+	hits := pkg.Jq(searchResult, "hits", "hits")
+	if hits == nil {
+		pkg.Log(pkg.Info, "Expected to find hits in log record query results")
+		return false
+	}
+	return true
+}
