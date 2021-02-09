@@ -15,8 +15,8 @@ import (
 const (
 	multiclusterTestNamespace = "multiclustertest"
 	crdDir                    = "../../config/crd/bases"
-	timeout = 5 * time.Second
-	pollInterval = 20 * time.Millisecond
+	timeout                   = 5 * time.Second
+	pollInterval              = 20 * time.Millisecond
 )
 
 var (
