@@ -115,6 +115,10 @@ func TestReconcileCreateCoherence(t *testing.T) {
 
 			// make sure the OAM component and app name labels were copied
 			assert.Equal(labels, u.GetLabels())
+
+			// make sure sidecar.istio.io/inject annotation was added
+			annotations, _, _ := unstructured.NestedStringMap(u.Object, "spec", "annotations")
+			assert.Equal(annotations, map[string]string{"sidecar.istio.io/inject": "false"})
 			return nil
 		})
 
@@ -209,6 +213,10 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 			// make sure side car was added
 			sideCars, _, _ := unstructured.NestedSlice(u.Object, "spec", "sideCars")
 			assert.Equal(1, len(sideCars))
+
+			// make sure sidecar.istio.io/inject annotation was added
+			annotations, _, _ := unstructured.NestedStringMap(u.Object, "spec", "annotations")
+			assert.Equal(annotations, map[string]string{"sidecar.istio.io/inject": "false"})
 			return nil
 		})
 
@@ -306,6 +314,10 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			// make sure side car was added
 			sideCars, _, _ := unstructured.NestedSlice(u.Object, "spec", "sideCars")
 			assert.Equal(1, len(sideCars))
+
+			// make sure sidecar.istio.io/inject annotation was added
+			annotations, _, _ := unstructured.NestedStringMap(u.Object, "spec", "annotations")
+			assert.Equal(annotations, map[string]string{"sidecar.istio.io/inject": "false"})
 			return nil
 		})
 
