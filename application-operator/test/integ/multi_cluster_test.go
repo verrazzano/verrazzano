@@ -1,6 +1,7 @@
 // Copyright (C) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-package integ
+
+package integ_test
 
 import (
 	"fmt"
@@ -38,9 +39,14 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_namespace_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
-	ginkgo.It("MultiClusterSecret can be created ", func() {
+	ginkgo.It("Apply MultiClusterSecret creates K8S secret", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_secret_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
+		mcsecret, err := K8sClient.GetMultiClusterSecret(multiclusterTestNamespace, "mymcsecret")
+		gomega.Expect(err).To(gomega.BeNil())
+		secret, err := K8sClient.GetSecret(multiclusterTestNamespace, "mymcsecret")
+		gomega.Expect(err).To(gomega.BeNil())
+		gomega.Expect(secret.Data).To(gomega.Equal(mcsecret.Spec.Template.Data))
 	})
 	ginkgo.It("MultiClusterConfigMap can be created ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_configmap_sample.yaml")
