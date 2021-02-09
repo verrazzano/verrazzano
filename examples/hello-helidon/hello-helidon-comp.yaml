@@ -7,17 +7,18 @@ metadata:
   namespace: oam-hello-helidon
 spec:
   workload:
-    apiVersion: core.oam.dev/v1alpha2
-    kind: ContainerizedWorkload
-    metadata:
-      name: hello-helidon-workload
-      namespace: oam-hello-helidon
-      labels:
-        app: hello-helidon
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoHelidonWorkload
     spec:
-      containers:
-      - name: hello-helidon-container
-        image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4"
-        ports:
-          - containerPort: 8080
-            name: http
+      deploymentTemplate:
+        metadata:
+          name: hello-helidon-deployment
+          labels:
+            app: hello-helidon-deploy
+        podSpec:
+          containers:
+          - name: hello-helidon-container
+            image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4"
+            ports:
+            - containerPort: 8080
+              name: http
