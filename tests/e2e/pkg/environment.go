@@ -9,26 +9,24 @@ import (
 	"os"
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	"github.com/onsi/ginkgo"
-
+	v1 "k8s.io/api/core/v1"
+	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	CLUSTER_TYPE_OKE             = "OKE"
-	CLUSTER_TYPE_KIND            = "KIND"
-	CLUSTER_TYPE_OLCNE           = "OLCNE"
-	istioSystemNamespace 		 = "istio-system"
+	CLUSTER_TYPE_KIND    = "kind"
+	CLUSTER_TYPE_OLCNE   = "OLCNE"
+	istioSystemNamespace = "istio-system"
 )
 
 // Ingress returns the ingress address
 func Ingress() string {
 	clusterType, ok := os.LookupEnv("TEST_ENV")
 	if !ok {
-		clusterType = CLUSTER_TYPE_OKE
+		clusterType = CLUSTER_TYPE_KIND
 	}
 
 	if clusterType == CLUSTER_TYPE_KIND {
