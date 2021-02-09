@@ -8,6 +8,7 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/application-operator/test/integ/util"
+	"reflect"
 )
 
 const (
@@ -44,9 +45,9 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 		gomega.Expect(stderr).To(gomega.Equal(""))
 		mcsecret, err := K8sClient.GetMultiClusterSecret(multiclusterTestNamespace, "mymcsecret")
 		gomega.Expect(err).To(gomega.BeNil())
-		secret, err := K8sClient.GetSecret(multiclusterTestNamespace, "mymcsecret")
-		gomega.Expect(err).To(gomega.BeNil())
-		gomega.Expect(secret.Data).To(gomega.Equal(mcsecret.Spec.Template.Data))
+		gomega.Eventually(func() bool {
+			return secretExistsWithData(multiclusterTestNamespace, "mymcsecret", mcsecret.Spec.Template.Data)
+		}).Should(gomega.BeTrue())
 	})
 	ginkgo.It("MultiClusterConfigMap can be created ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_configmap_sample.yaml")
@@ -65,3 +66,8 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
 })
+
+func secretExistsWithData(namespace string, name string, secretData map[string][]byte) bool {
+	secret, err := K8sClient.GetSecret(multiclusterTestNamespace, "mymcsecret")
+	return err == nil && reflect.DeepEqual(secret.Data, secretData)
+}
