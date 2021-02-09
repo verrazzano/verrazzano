@@ -133,6 +133,19 @@ function install_istio()
       -f $VZ_OVERRIDES_DIR/istio-values.yaml \
       ${IMAGE_PULL_SECRETS_ARGUMENT} \
       || return $?
+
+    log "Setting Istio global mesh policy to STRICT mode"
+    kubectl apply -f <(echo "
+apiVersion: "security.istio.io/v1beta1"
+kind: "PeerAuthentication"
+metadata:
+  name: "default"
+  namespace: "istio-system"
+spec:
+  mtls:
+    mode: STRICT
+")
+
 }
 
 function update_coredns()
