@@ -3,6 +3,11 @@
 
 def DOCKER_IMAGE_TAG
 
+def availableRegions = [ "us-ashburn-1", "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
+                          "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
+                          "sa-saopaulo-1", "uk-london-1", "us-phoenix-1" ]
+Collections.shuffle(availableRegions)
+
 pipeline {
     options {
         skipDefaultCheckout true
@@ -26,6 +31,9 @@ pipeline {
                 description: 'OKE node pool configuration',
                 // 1st choice is the default value
                 choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
+        choice (description: 'OCI region to launch OKE clusters in', name: 'OKE_CLUSTER_REGION',
+            // 1st choice is the default value
+            choices: availableRegions )
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                 defaultValue: 'NONE',
                 description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from VZ repo will be leveraged to create VZ platform operator',
@@ -54,6 +62,7 @@ pipeline {
         TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
         TF_VAR_tenancy_id = credentials('oci-tenancy')
         TF_VAR_user_id = credentials('oci-user-ocid')
+        TF_VAR_region = "${params.OKE_CLUSTER_REGION}"
         TF_VAR_kubernetes_version = "${params.OKE_CLUSTER_VERSION}"
         TF_VAR_nodepool_config = "${params.OKE_NODE_POOL}"
         TF_VAR_api_fingerprint = credentials('oci-api-key-fingerprint')
