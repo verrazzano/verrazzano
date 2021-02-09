@@ -6,8 +6,9 @@ package webhooks
 import (
 	"context"
 	"encoding/json"
-	v1beta12 "k8s.io/api/admission/v1beta1"
 	"net/http"
+
+	v1beta12 "k8s.io/api/admission/v1beta1"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -65,8 +66,8 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 		return admission.Allowed("cleaned up appconfig default")
 	}
 
-	log.Info("adding appconfig default",
-		"appconfig.Name", appConfig.Name, "appconfig.Kind", appConfig.Kind)
+	log.Info("Handling appconfig default",
+		"request.Operation", req.Operation, "appconfig.Name", appConfig.Name, "appconfig.Kind", appConfig.Kind)
 	err := a.decoder.Decode(req, appConfig)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)

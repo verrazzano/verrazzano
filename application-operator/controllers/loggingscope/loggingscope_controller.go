@@ -32,7 +32,7 @@ const (
 
 // Handler abstracts the FLUENTD integration for components
 type Handler interface {
-	Apply(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) error
+	Apply(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) (*ctrl.Result, error)
 	Remove(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) (bool, error)
 }
 
@@ -91,7 +91,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			}
 			continue
 		}
-		err = handler.Apply(ctx, resource, scope)
+		result, err := handler.Apply(ctx, resource, scope)
+		if result != nil {
+			return *result, nil
+		}
 		if err != nil {
 			errors = append(errors, err.Error())
 		}
