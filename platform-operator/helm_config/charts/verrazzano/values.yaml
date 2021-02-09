@@ -3,7 +3,7 @@
 name: verrazzano
 
 global:
-  imagePullSecrets: []
+  imagePullSecrets: [ ]
 
 image:
   pullPolicy: Always

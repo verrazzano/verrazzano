@@ -9,8 +9,8 @@ import (
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers"
-	clusterscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzanomanagedcluster"
+	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano"
+	clusterscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/certificate"
 	config2 "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/log"
@@ -119,7 +119,7 @@ func main() {
 
 	// Setup the reconciler
 	_, dryRun := os.LookupEnv("VZ_DRY_RUN") // If this var is set, the install jobs are no-ops
-	reconciler := controllers.VerrazzanoReconciler{
+	reconciler := vzcontroller.VerrazzanoReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 		DryRun: dryRun,

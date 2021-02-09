@@ -12,7 +12,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/installjob"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
@@ -102,7 +102,7 @@ func TestSuccessfulInstall(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	config.Set(config.OperatorConfig{HelmConfigDir: "../helm_config"})
+	config.Set(config.OperatorConfig{HelmConfigDir: "../../helm_config"})
 
 	// Expect a call to get the verrazzano resource.
 	mock.EXPECT().
