@@ -61,6 +61,7 @@ pipeline {
 
         TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
         TF_VAR_tenancy_id = credentials('oci-tenancy')
+        TF_VAR_tenancy_name = credentials('oci-tenancy-name')
         TF_VAR_user_id = credentials('oci-user-ocid')
         TF_VAR_region = "${params.OKE_CLUSTER_REGION}"
         TF_VAR_kubernetes_version = "${params.OKE_CLUSTER_VERSION}"
@@ -90,6 +91,9 @@ pipeline {
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
         UNINSTALL_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/uninstall-test"
         INSTALL_CONFIG_FILE = "${GO_REPO_PATH}/verrazzano/platform-operator/config/samples/install-default.yaml"
+
+        WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
+        DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
     }
 
     stages {
@@ -274,8 +278,8 @@ pipeline {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
-                        kubectl delete verrazzano my-verrazzano
-                        # kubectl delete -f ${INSTALL_CONFIG_FILE}
+                        # kubectl delete verrazzano my-verrazzano
+                        kubectl delete -f ${INSTALL_CONFIG_FILE}
                     """
                 }
             }
@@ -296,7 +300,7 @@ pipeline {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
                         ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${UNINSTALL_TEST_SCRIPTS_DIR}/post-uninstall-resources
-                        ${UNINSTALL_TEST_SCRIPTS_DIR}/verify_uninstall.sh
+                        ${UNINSTALL_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${UNINSTALL_TEST_SCRIPTS_DIR}
                     """
                 }
             }
@@ -305,7 +309,7 @@ pipeline {
         stage("reinstall-verrazzano") {
             steps {
                 sh """
-                    # sleep for a period to ensure asynch deletion of verrazzano components from uninstall above has completed
+                    # sleep for a period to ensure async deletion of verrazzano components from uninstall above has completed
                     sleep 90
                     kubectl apply -f ${INSTALL_CONFIG_FILE}
                     # wait for Verrazzano install to complete
@@ -346,7 +350,8 @@ pipeline {
                     dumpK8sCluster('verrazzano-uninstall-test-dump')
                 }
             }
-            sh "VERRAZZANO_KUBECONFIG=${env.KUBECONFIG} TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/delete_oke_cluster.sh"
+            sh "VERRAZZANO_KUBECONFIG=${env.KUBECONFIG} TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP}
+            TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/delete_oke_cluster.sh"
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*verrazzano-uninstall-test-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
         }
