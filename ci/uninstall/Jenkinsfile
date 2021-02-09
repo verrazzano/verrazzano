@@ -269,7 +269,7 @@ pipeline {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     // Enable Bob's Books demo later
-                    runGinkgoRandomize('examples/todo-list')
+                    runGinkgo('examples/todo-list')
                 }
             }
         }
@@ -300,7 +300,7 @@ pipeline {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
                         ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${UNINSTALL_TEST_SCRIPTS_DIR}/post-uninstall-resources
-                        ${UNINSTALL_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${UNINSTALL_TEST_SCRIPTS_DIR}
+                        ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${UNINSTALL_TEST_SCRIPTS_DIR}
                     """
                 }
             }
@@ -322,6 +322,19 @@ pipeline {
                     echo "----------------------------------------"
                 """
             }
+            post {
+                always {
+                    sh """
+                        ## dump out install logs
+                        mkdir -p ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/build/logs
+                        kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-reinstall.log --tail -1
+                        kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-reinstall-job-pod.out
+                        echo "Verrazzano Installation logs dumped to verrazzano-reinstall.log"
+                        echo "Verrazzano Install pod description dumped to verrazzano-reinstall-job-pod.out"
+                        echo "------------------------------------------"
+                    """
+                }
+            }
         }
 
         stage('rerun-example') {
@@ -331,7 +344,7 @@ pipeline {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     // Enable Bob's Books demo later
-                    runGinkgoRandomize('examples/todo-list')
+                    runGinkgo('examples/todo-list')
                 }
             }
         }
@@ -371,11 +384,11 @@ pipeline {
     }
 }
 
-def runGinkgoRandomize(testSuitePath) {
+def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor ${testSuitePath}/...
+            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
         """
     }
 }
