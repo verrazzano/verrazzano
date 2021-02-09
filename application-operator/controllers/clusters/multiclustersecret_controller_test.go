@@ -1,3 +1,6 @@
+// Copyright (c) 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package controllers
 
 import (
@@ -312,7 +315,7 @@ func getSampleMCSecret(ns string, name string, secretData map[string][]byte) clu
 	mcSecret.ObjectMeta.Name = crName
 	mcSecret.APIVersion = clustersv1alpha1.GroupVersion.String()
 	mcSecret.Kind = "MultiClusterSecret"
-	mcSecret.Spec.Placement.Clusters = []clustersv1alpha1.Cluster{clustersv1alpha1.Cluster{Name: "myCluster"}}
+	mcSecret.Spec.Placement.Clusters = []clustersv1alpha1.Cluster{{Name: "myCluster"}}
 	return mcSecret
 }
 

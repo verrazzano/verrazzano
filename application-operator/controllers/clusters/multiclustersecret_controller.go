@@ -30,6 +30,9 @@ type MultiClusterSecretReconciler struct {
 // +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=multiclustersecrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=multiclustersecrets/status,verbs=get;update;patch
 
+// Reconcile reconciles a MultiClusterSecret resource. It fetches the embedded Secret, mutates it
+// based on the MultiClusterSecret, and updates the status of the MultiClusterSecret to reflect the
+// success or failure of the changes to the embedded Secret
 func (r *MultiClusterSecretReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
 	logger := r.Log.WithValues("multiclustersecret", req.NamespacedName)
@@ -54,17 +57,19 @@ func (r *MultiClusterSecretReconciler) updateStatus(ctx context.Context, mcSecre
 	var condition clustersv1alpha1.Condition
 	var state clustersv1alpha1.StateType
 	if err != nil {
-		condition = clustersv1alpha1.Condition{Type: clustersv1alpha1.DeployFailed,
-			Status: corev1.ConditionTrue,
-			Message: err.Error(),
+		condition = clustersv1alpha1.Condition{
+			Type:               clustersv1alpha1.DeployFailed,
+			Status:             corev1.ConditionTrue,
+			Message:            err.Error(),
 			LastTransitionTime: time.Now().Format(time.RFC3339),
 		}
 		state = clustersv1alpha1.Failed
 	} else {
 		msg := fmt.Sprintf("Secret %v", opResult)
-		condition = clustersv1alpha1.Condition{Type: clustersv1alpha1.DeployComplete,
-			Status: corev1.ConditionTrue,
-			Message: msg,
+		condition = clustersv1alpha1.Condition{
+			Type:               clustersv1alpha1.DeployComplete,
+			Status:             corev1.ConditionTrue,
+			Message:            msg,
 			LastTransitionTime: time.Now().Format(time.RFC3339),
 		}
 		state = clustersv1alpha1.Ready
@@ -73,9 +78,8 @@ func (r *MultiClusterSecretReconciler) updateStatus(ctx context.Context, mcSecre
 		mcSecret.Status.Conditions = append(mcSecret.Status.Conditions, condition)
 		mcSecret.Status.State = state
 		return reconcile.Result{}, r.Status().Update(ctx, mcSecret)
-	} else {
-		return reconcile.Result{}, nil
 	}
+	return reconcile.Result{}, nil
 }
 
 func statusNeedsUpdate(curConditions []clustersv1alpha1.Condition, curState clustersv1alpha1.StateType,
@@ -97,6 +101,7 @@ func statusNeedsUpdate(curConditions []clustersv1alpha1.Condition, curState clus
 	return !foundStatus
 }
 
+// SetupWithManager registers our controller with the manager
 func (r *MultiClusterSecretReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clustersv1alpha1.MultiClusterSecret{}).
@@ -113,7 +118,7 @@ func (r *MultiClusterSecretReconciler) createOrUpdateSecret(ctx context.Context,
 	secret.Name = mcSecret.Name
 
 	return controllerutil.CreateOrUpdate(ctx, r.Client, &secret, func() error {
-		r.MutateSecret(mcSecret, &secret)
+		r.mutateSecret(mcSecret, &secret)
 		// This SetControllerReference call will trigger garbage collection i.e. the secret
 		// will automatically get deleted when the mcSecret is deleted
 		return controllerutil.SetControllerReference(&mcSecret, &secret, r.Scheme)
@@ -121,7 +126,8 @@ func (r *MultiClusterSecretReconciler) createOrUpdateSecret(ctx context.Context,
 
 }
 
-func (r *MultiClusterSecretReconciler) MutateSecret(mcSecret clustersv1alpha1.MultiClusterSecret, secret *corev1.Secret) {
+// mutateSecret mutates the corev1.Secret to reflect the contents of the parent MultiClusterSecret
+func (r *MultiClusterSecretReconciler) mutateSecret(mcSecret clustersv1alpha1.MultiClusterSecret, secret *corev1.Secret) {
 	secret.Type = mcSecret.Spec.Template.Type
 	secret.Data = mcSecret.Spec.Template.Data
 	secret.StringData = mcSecret.Spec.Template.StringData
