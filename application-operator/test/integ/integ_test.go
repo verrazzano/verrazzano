@@ -24,7 +24,7 @@ const verrazzanoSystem = "verrazzano-system"
 const appService = "hello-workload"
 const appPodPrefix = "hello-workload"
 const appDeployment = "hello-workload"
-const appNamespace = "default"
+const appNamespace = "hello"
 
 var fewSeconds = 2 * time.Second
 var tenSeconds = 10 * time.Second
@@ -111,24 +111,45 @@ var _ = Describe("Testing hello app lifecycle", func() {
 		_, stderr := util.Kubectl(command)
 		Expect(stderr).To(Equal(""))
 	})
-	It("apply component should result in a component in default namespace", func() {
+	It("application namespace is created", func() {
+		command := fmt.Sprintf("create ns %s", appNamespace)
+		_, stderr := util.Kubectl(command)
+		Expect(stderr).To(Equal(""))
+	})
+	It("apply component should result in a component in app namespace", func() {
 		_, stderr := util.Kubectl("apply -f testdata/hello-comp.yaml")
 		Expect(stderr).To(Equal(""))
 		//	Eventually(appComponentExists, fewSeconds).Should(BeTrue())
 	})
-	It("apply app config should result in a app config in default namespace", func() {
+	It("apply loggingscope should result in a loggingscope in app namespace", func() {
+		_, stderr := util.Kubectl("apply -f testdata/loggingscope.yaml")
+		Expect(stderr).To(Equal(""))
+		//	Eventually(appComponentExists, fewSeconds).Should(BeTrue())
+	})
+	It("apply app config should result in a app config in app namespace", func() {
 		Eventually(createAppConfig, threeMins).Should(BeTrue())
 		Eventually(appConfigExists, fewSeconds).Should(BeTrue())
 	})
-	It("hello deployment should exist ", func() {
-		Eventually(appDeploymentExists, tenSeconds).Should(BeTrue())
+	It("hello deployment should be updated ", func() {
+		Eventually(appDeploymentUpdated, tenSeconds).Should(BeTrue())
 	})
 	It("logging sidecar exists in app pod ", func() {
-		Eventually(fluentdSidecarExists, threeMins).Should(BeTrue())
+		Eventually(fluentdSidecarExists, fiveMins).Should(BeTrue())
 	})
 	It("hello service should exist ", func() {
 		Eventually(appServiceExists, tenSeconds).Should(BeTrue(),
 			"The hello service should exist")
+	})
+
+	It("update app config should result in a app config in app namespace", func() {
+		Eventually(updateAppConfig, threeMins).Should(BeTrue())
+		Eventually(appConfigExists, fewSeconds).Should(BeTrue())
+	})
+	It("hello deployment should be updated ", func() {
+		Eventually(appDeploymentUpdated, fiveMins).Should(BeTrue())
+	})
+	It("logging sidecar exists in updated app pod ", func() {
+		Eventually(fluentdSidecarExists, fiveMins).Should(BeTrue())
 	})
 
 	It("deleting app config", func() {
@@ -136,6 +157,9 @@ var _ = Describe("Testing hello app lifecycle", func() {
 	})
 	It("deleting app component", func() {
 		Eventually(canDeleteAppComponent, fiveMins).Should(BeTrue())
+	})
+	It("deleting app loggingscope", func() {
+		Eventually(canDeleteAppLoggingScope, fiveMins).Should(BeTrue())
 	})
 	It("deleting verrazzano secret", func() {
 		command := fmt.Sprintf("delete secret verrazzano -n verrazzano-system")
@@ -151,7 +175,11 @@ var _ = Describe("Testing hello app lifecycle", func() {
 	It("hello service should not exist ", func() {
 		Eventually(doesServiceExist, fiveMins).Should(BeFalse())
 	})
-
+	It("application namespace is deleted", func() {
+		command := fmt.Sprintf("delete ns %s", appNamespace)
+		_, stderr := util.Kubectl(command)
+		Expect(stderr).To(Equal(""))
+	})
 })
 
 //// Helper functions
@@ -168,12 +196,21 @@ func operatorServiceExists() bool {
 }
 
 func createAppConfig() bool {
-	_, stderr := util.Kubectl("apply -f testdata/hello-app.yaml")
+	_, stderr := util.Kubectl("apply -f testdata/hello-app-v0.yaml")
+	return stderr == ""
+}
+
+func updateAppConfig() bool {
+	_, stderr := util.Kubectl("apply -f testdata/hello-app-v1.yaml")
 	return stderr == ""
 }
 
 func appDeploymentExists() bool {
 	return K8sClient.DoesDeploymentExist(appDeployment, appNamespace)
+}
+
+func appDeploymentUpdated() bool {
+	return K8sClient.IsDeploymentUpdated(appDeployment, appNamespace)
 }
 
 func fluentdSidecarExists() bool {
@@ -189,12 +226,20 @@ func appServiceExists() bool {
 }
 
 func canDeleteAppConfig() bool {
-	_, stderr := util.Kubectl("delete -f testdata/hello-app.yaml")
+	command := fmt.Sprintf("delete appconfig -n %s hello-app", appNamespace)
+	_, stderr := util.Kubectl(command)
 	return stderr == ""
 }
 
 func canDeleteAppComponent() bool {
-	_, stderr := util.Kubectl("delete -f testdata/hello-comp.yaml")
+	command := fmt.Sprintf("delete component -n %s hello-component", appNamespace)
+	_, stderr := util.Kubectl(command)
+	return stderr == ""
+}
+
+func canDeleteAppLoggingScope() bool {
+	command := fmt.Sprintf("delete loggingscope -n %s hello-loggingscope", appNamespace)
+	_, stderr := util.Kubectl(command)
 	return stderr == ""
 }
 
@@ -203,7 +248,7 @@ func doesServiceExist() bool {
 }
 
 func appConfigExists() bool {
-	appConfig, err := K8sClient.GetAppConfig("default", "hello-app")
+	appConfig, err := K8sClient.GetAppConfig(appNamespace, "hello-app")
 	if err != nil || appConfig == nil || len(appConfig.Spec.Components) == 0 {
 		return false
 	}

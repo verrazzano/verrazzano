@@ -9,9 +9,11 @@ package mocks
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	v1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	reflect "reflect"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // MockHandler is a mock of Handler interface
@@ -38,11 +40,12 @@ func (m *MockHandler) EXPECT() *MockHandlerMockRecorder {
 }
 
 // Apply mocks base method
-func (m *MockHandler) Apply(arg0 context.Context, arg1 v1alpha1.QualifiedResourceRelation, arg2 *v1alpha1.LoggingScope) error {
+func (m *MockHandler) Apply(arg0 context.Context, arg1 v1alpha1.QualifiedResourceRelation, arg2 *v1alpha1.LoggingScope) (*ctrl.Result, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Apply", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(*ctrl.Result)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Apply indicates an expected call of Apply
