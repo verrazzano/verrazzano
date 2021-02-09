@@ -350,8 +350,7 @@ pipeline {
                     dumpK8sCluster('verrazzano-uninstall-test-dump')
                 }
             }
-            sh "VERRAZZANO_KUBECONFIG=${env.KUBECONFIG} TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP}
-            TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/delete_oke_cluster.sh"
+            sh "VERRAZZANO_KUBECONFIG=${env.KUBECONFIG} TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/delete_oke_cluster.sh"
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*verrazzano-uninstall-test-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
         }
