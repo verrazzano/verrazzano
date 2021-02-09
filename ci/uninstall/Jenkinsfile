@@ -3,18 +3,9 @@
 
 def DOCKER_IMAGE_TAG
 
-def abort = false
-def failureCount = 0
-
 pipeline {
     options {
         skipDefaultCheckout true
-        throttleJobProperty(
-            categories: ['looper'],
-            throttleEnabled: true,
-            throttleOption: 'category'
-        )
-        timeout(time: 40, unit: 'MINUTES')
     }
 
     agent {
@@ -43,10 +34,6 @@ pipeline {
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
                 choices: [ "v1.17.13", "v1.16.15", "v1.18.10" ])
-        string (name: 'failureCount',
-                defaultValue: '0',
-                description: 'Number of consecutive failures',
-                trim: true)
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS',
                       defaultValue: false,
                       description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)')
@@ -92,6 +79,7 @@ pipeline {
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
+        UNINSTALL_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/uninstall-test"
         INSTALL_CONFIG_FILE = "${GO_REPO_PATH}/verrazzano/platform-operator/config/samples/install-default.yaml"
     }
 
@@ -158,18 +146,20 @@ pipeline {
             }
         }
 
-        stage("setup-kubeconfig") {
+        stage("install-oke-cluster") {
             steps {
-                script {
-                    copyArtifacts(projectName: 'verrazzano-create-oke-cluster', selector: lastSuccessful())
-                }
+                sh "TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
             }
         }
 
-        stage("get-pre-install-resources") {
+        stage("create-image-pull-secrets") {
             steps {
                 sh """
-                    ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${LOOPING_TEST_SCRIPTS_DIR}/pre-install-resources
+                    # Create image pull secret for Verrazzano docker images
+                    cd ${GO_REPO_PATH}/verrazzano
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
                 """
             }
         }
@@ -198,6 +188,14 @@ pipeline {
                         ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
                     """
                 }
+            }
+        }
+
+        stage("get-pre-install-resources") {
+            steps {
+                sh """
+                    ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${UNINSTALL_TEST_SCRIPTS_DIR}/pre-install-resources
+                """
             }
         }
 
@@ -251,13 +249,14 @@ pipeline {
             }
         }
 
-        stage('verify-install') {
+        stage('run-example') {
             environment {
                 TEST_ENV = "OKE"
             }
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    runGinkgoRandomize('verify-install')
+                    // Enable Bob's Books demo later
+                    runGinkgoRandomize('examples/todo-list')
                 }
             }
         }
@@ -266,8 +265,8 @@ pipeline {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
-                        # kubectl delete verrazzano my-verrazzano
-                        kubectl delete -f ${INSTALL_CONFIG_FILE}
+                        kubectl delete verrazzano my-verrazzano
+                        # kubectl delete -f ${INSTALL_CONFIG_FILE}
                     """
                 }
             }
@@ -283,23 +282,43 @@ pipeline {
             }
         }
 
-        stage('delete-platform-operator') {
+        stage("verify-uninstall") {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
-                        kubectl delete -f /tmp/operator.yaml
+                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${UNINSTALL_TEST_SCRIPTS_DIR}/post-uninstall-resources
+                        ${UNINSTALL_TEST_SCRIPTS_DIR}/verify_uninstall.sh
                     """
                 }
             }
         }
 
-        stage("verify-uninstall") {
+        stage("reinstall-verrazzano") {
+            steps {
+                sh """
+                    # sleep for a period to ensure asynch deletion of verrazzano components from uninstall above has completed
+                    sleep 90
+                    kubectl apply -f ${INSTALL_CONFIG_FILE}
+                    # wait for Verrazzano install to complete
+                    ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+
+                    ${TEST_SCRIPTS_DIR}/common-test-setup-script.sh "${GO_REPO_PATH}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "default"
+                    ${TEST_SCRIPTS_DIR}/get_ingress_ip.sh ${TEST_CONFIG_FILE}
+                    echo "----------Test config file:-------------"
+                    cat ${TEST_CONFIG_FILE}
+                    echo "----------------------------------------"
+                """
+            }
+        }
+
+        stage('rerun-example') {
+            environment {
+                TEST_ENV = "OKE"
+            }
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh """
-                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${LOOPING_TEST_SCRIPTS_DIR}/post-uninstall-resources
-                        ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh
-                    """
+                    // Enable Bob's Books demo later
+                    runGinkgoRandomize('examples/todo-list')
                 }
             }
         }
@@ -313,22 +332,18 @@ pipeline {
             dumpVerrazzanoApplicationOperatorLogs()
             dumpOamKubernetesRuntimeLogs()
             dumpVerrazzanoApiLogs()
-
             script {
                 if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                    dumpK8sCluster('verrazzano-installation-loop-dump')
+                    dumpK8sCluster('verrazzano-uninstall-test-dump')
                 }
             }
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*verrazzano-installation-loop-dump/**', allowEmptyArchive: true
+            sh "VERRAZZANO_KUBECONFIG=${env.KUBECONFIG} TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/delete_oke_cluster.sh"
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*verrazzano-uninstall-test-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
         }
 
         failure {
-            dumpK8sCluster('verrazzano-installation-loop-dump')
             script {
-                failureCount = params.failureCount as Integer
-                failureCount++
-                println("current failureCount: ${failureCount}")
                 mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
                 subject: "Verrazzano: ${env.JOB_NAME} - Failed",
                 body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
@@ -338,49 +353,8 @@ pipeline {
                         slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                     }
                 }
-
-                // kick off another cluster build after initial attempt to reuse cluster (failureCount = 1)
-                if (failureCount > 1) {
-                    try {
-                        build job: 'verrazzano-create-oke-cluster',
-                            parameters: [
-                                string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
-                                string(name: 'OKE_NODE_POOL', value: params.OKE_NODE_POOL),
-                                string(name: 'OKE_CLUSTER_VERSION', value: params.OKE_CLUSTER_VERSION),
-                            ], wait: true
-                        failureCount = 0
-                        // pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\nPlease investigate the cause of the failure, then clean up the cluster and associated resources when you are done. The OKE cluster to inspect will be the one associated with the previous successful build of project create-oke-cluster")
-                    } catch (Exception e) {
-                        abort = true
-                        // slackSend ( message: "Loop test interrupted due to cluster build failure - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
-                    }
-                }
             }
         }
-        aborted {
-            script {
-                abort = true
-                sh """
-                    echo "Run aborted - ensuring deletion of VZ cluster and operator"
-                    kubectl delete --ignore-not-found=true verrazzano my-verrazzano
-                    kubectl delete --ignore-not-found=true -f /tmp/operator.yaml
-                """
-            }
-        }
-        //cleanup {
-        //    script {
-        //        if (!abort) {
-        //             def failures = failureCount as String
-        //             build job: 'verrazzano-new-installation-loop/develop',
-        //                parameters: [
-        //                        string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
-        //                        string(name: 'OKE_NODE_POOL', value: params.OKE_NODE_POOL),
-        //                        string(name: 'OKE_CLUSTER_VERSION', value: params.OKE_CLUSTER_VERSION),
-        //                        string(name: 'failureCount', value: failures)
-        //                ], wait: false
-        //        }
-        //    }
-        //}
     }
 }
 
