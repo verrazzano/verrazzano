@@ -176,7 +176,7 @@ func (c Client) GetMultiClusterSecret(namespace, name string) (*clustersv1alpha1
 		Get().
 		AbsPath("/apis/clusters.verrazzano.io/v1alpha1").
 		Namespace(namespace).
-		Resource("MultiClusterSecret").
+		Resource("multiclustersecrets").
 		Name(name).
 		DoRaw(context.TODO())
 
