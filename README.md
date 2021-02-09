@@ -22,6 +22,6 @@ For instructions on using Verrazzano, see the [Verrazzano documentation](https:/
 
 For detailed installation instructions, see the [Verrazzano Installation Guide](https://verrazzano.io/docs/setup/install/installation/).
 
-If you want to build and install Verrazzano from this repository, follow the instructions in the [operator](./platform-operator) directory.
+If you want to build and install Verrazzano from this repository, follow the instructions in the [platform-operator](./platform-operator) directory.
 
 If you are interested in contributing to this repository, see [CONTRIBUTING.md](./CONTRIBUTING.md).
