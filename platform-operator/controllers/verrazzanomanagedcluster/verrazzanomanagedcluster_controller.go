@@ -45,7 +45,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 			return reconcile.Result{}, nil
 		}
 
-		// Error getting the verrazzano resource - don't requeue.
+		// Error getting the VerrazzanoManagedCluster resource - don't requeue.
 		log.Errorf("Failed to fetch resource: %v", err)
 		return reconcile.Result{}, err
 	}
