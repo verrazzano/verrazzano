@@ -84,8 +84,4 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 		_, stderr := util.Kubectl("apply -f testdata/vmc_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
-	ginkgo.It("VerrazzanoManagedCluster can be deleted ", func() {
-		_, stderr := util.Kubectl("delete -f testdata/vmc_sample.yaml")
-		gomega.Expect(stderr).To(gomega.Equal(""))
-	})
 })

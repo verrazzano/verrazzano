@@ -26,8 +26,6 @@ type VerrazzanoManagedClusterReconciler struct {
 	log    *zap.SugaredLogger
 }
 
-const resourceKind = "VerrazzanoManagedCluster"
-
 // +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=verrazzanomanagedclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=verrazzanomanagedclusters/status,verbs=get;update;patch
 
@@ -48,7 +46,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		}
 
 		// Error getting the verrazzano resource - don't requeue.
-		log.Errorf("Failed to fetch %s resource: %v", resourceKind, err)
+		log.Errorf("Failed to fetch resource: %v", err)
 		return reconcile.Result{}, err
 	}
 
