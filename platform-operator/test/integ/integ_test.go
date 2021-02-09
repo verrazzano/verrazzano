@@ -15,7 +15,6 @@ import (
 const clusterAdmin = "cluster-admin"
 const platformOperator = "verrazzano-platform-operator"
 const installNamespace = "verrazzano-install"
-const mcNamespace = "verrazzano-mc"
 
 var K8sClient k8s.Client
 
