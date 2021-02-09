@@ -208,6 +208,7 @@ else
 	cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> ${BUILD-DEPLOY}/operator.yaml
 	cat config/crd/bases/clusters.verrazzano.io_verrazzanomanagedclusters.yaml >> ${BUILD-DEPLOY}/operator.yaml
 	kubectl apply -f ${BUILD-DEPLOY}/operator.yaml || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d platform-operator-integ-cluster-dump; exit 1)
+	kubectl create namespace verrazzano-mc
 endif
 	echo 'Run tests...'
 	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d platform-operator-integ-cluster-dump;)

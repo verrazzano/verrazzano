@@ -8,11 +8,16 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -48,6 +53,28 @@ func TestCreateVMC(t *testing.T) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Labels:    labels}
+			return nil
+		})
+
+	// Expect a call to get the ServiceAccount - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: generateServiceAccountName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ServiceAccount"}, generateServiceAccountName(name)))
+
+	// Expect a call to create the ServiceAccount - return success
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, serviceAccount *corev1.ServiceAccount, opts ...client.CreateOption) error {
+			asserts.Equalf(namespace, serviceAccount.Namespace, "ServiceAccount namespace did not match")
+			asserts.Equalf(generateServiceAccountName(name), serviceAccount.Name, "ServiceAccount name did not match")
+			return nil
+		})
+
+	// Expect a call to update the ServiceAccount of the resource - return success
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(vmc.Spec.ServiceAccount, generateServiceAccountName(name), "ServiceAccount name did not match")
 			return nil
 		})
 

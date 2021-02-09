@@ -7,13 +7,13 @@ import (
 	"context"
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -23,6 +23,7 @@ import (
 type VerrazzanoManagedClusterReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	log    *zap.SugaredLogger
 }
 
 const resourceKind = "VerrazzanoManagedCluster"
@@ -34,6 +35,7 @@ const resourceKind = "VerrazzanoManagedCluster"
 func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.TODO()
 	log := zap.S().With("resource", fmt.Sprintf("%s:%s", req.Namespace, req.Name))
+	r.log = log
 	log.Info("Reconciler called")
 	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{}
 
@@ -55,21 +57,10 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	// Reconcile the cluster-id
-	clusterID := generateClusterID(vmc.Name, vmc.Namespace)
-	if vmc.Spec.ClusterID != clusterID {
-		log.Infof("Updating ClusterID from %q to %q on %s resource %s in namespace %s", vmc.Spec.ClusterID, clusterID, resourceKind, vmc.Name, vmc.Namespace)
-		vmc.Spec.ClusterID = clusterID
-		err := r.Update(ctx, vmc)
-		if err != nil {
-			log.Errorf("Failed to update %s resource %s in namespace %s: %v", resourceKind, vmc.Name, vmc.Namespace, err)
-			return ctrl.Result{}, err
-		}
-	}
-
 	// Reconcile the service account
-	err = reconcileServiceAccount(vmc, req.Namespace)
+	err = reconcileServiceAccount(r, vmc, req.Namespace)
 	if err != nil {
+		log.Info("Failed to reconcile the ServiceAccount")
 		return ctrl.Result{}, err
 	}
 
@@ -77,16 +68,37 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 }
 
 func reconcileServiceAccount(r *VerrazzanoManagedClusterReconciler, vmc *clustersv1alpha1.VerrazzanoManagedCluster, namespace string) error {
-	saNew := createServiceAccount(vmc.Spec.ClusterID, namespace)
+	saNew := createServiceAccount(generateServiceAccountName(vmc.Name), namespace)
 
 	// Does the service account exist?
-	sa, err := r.Client.Get()
+	sa := corev1.ServiceAccount{}
+	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: saNew.Name, Namespace: saNew.Namespace}, &sa)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Create the SA
+			r.log.Infof("Creating ServiceAccount %s in namespace %s", saNew.Name, saNew.Namespace)
+			err = r.Client.Create(context.TODO(), saNew)
+		} else {
+			return err
+		}
+	}
 
+	// Does the VerrazzanoManagedCluster object contain the service account name?
+	if vmc.Spec.ServiceAccount != saNew.Name {
+		r.log.Infof("Updating ServiceAccount from %q to %q", vmc.Spec.ServiceAccount, saNew.Name)
+		vmc.Spec.ServiceAccount = saNew.Name
+		err = r.Update(context.TODO(), vmc)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
-// Generate the value of the cluster identifier
-func generateClusterID(clusterName string, namespace string) string {
-	return fmt.Sprintf("%s-%s", clusterName, namespace)
+// Generate the service account name
+func generateServiceAccountName(clusterName string) string {
+	return fmt.Sprintf("%s-managed-cluster", clusterName)
 }
 
 // Create a service account object
@@ -97,9 +109,6 @@ func createServiceAccount(name string, namespace string) *corev1.ServiceAccount 
 			Name:      name,
 			Namespace: namespace,
 		},
-		Secrets:                      nil,
-		ImagePullSecrets:             nil,
-		AutomountServiceAccountToken: nil,
 	}
 }
 

@@ -3203,10 +3203,6 @@ spec:
             description: VerrazzanoManagedClusterSpec defines the desired state of
               VerrazzanoManagedCluster
             properties:
-              clusterID:
-                description: The generated identifier for the managed cluster. This
-                  field is managed by a Verrazzano Kubernetes operator.
-                type: string
               description:
                 description: The description of the managed cluster.
                 type: string
