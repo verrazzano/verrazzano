@@ -160,6 +160,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
+	// set istio injection annotation to false for Coherence pods
+	if err = r.disableIstioInjection(log, u); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	// write out the Coherence resource
 	if err = r.Client.Create(ctx, u); err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
@@ -202,6 +207,27 @@ func copyLabels(workloadLabels map[string]string, coherence *unstructured.Unstru
 	}
 
 	coherence.SetLabels(labels)
+}
+
+// disableIstioInjection sets the sidecar.istio.io/inject annotation to false since Coherence does not work with Istio
+func (r *Reconciler) disableIstioInjection(log logr.Logger, u *unstructured.Unstructured) error {
+	annotations, _, err := unstructured.NestedStringMap(u.Object, "spec", "annotations")
+	if err != nil {
+		return errors.New("unable to get annotations from Coherence spec")
+	}
+
+	// if no annotations exist initialize the annotations map otherwise update existing annotations.
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+	annotations["sidecar.istio.io/inject"] = "false"
+
+	err = unstructured.SetNestedStringMap(u.Object, annotations, "spec", "annotations")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // addLogging adds a FLUENTD sidecar and updates the Coherence spec if there is an associated LoggingScope
@@ -341,9 +367,6 @@ func addJvmArgs(coherenceSpec map[string]interface{}) {
 func (r *Reconciler) handleDelete(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoCoherenceWorkload, coherence *unstructured.Unstructured) (bool, error) {
 	if !workload.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllers.StringSliceContainsString(workload.ObjectMeta.Finalizers, finalizer) {
-			log.Info("Deleting logging-related resources (if needed)")
-			r.deleteLogging(ctx, log, workload.ObjectMeta.Namespace)
-
 			log.Info("Deleting Coherence CR")
 			if err := r.Delete(ctx, coherence); err != nil {
 				return true, err
@@ -369,20 +392,4 @@ func (r *Reconciler) handleDelete(ctx context.Context, log logr.Logger, workload
 	}
 
 	return false, nil
-}
-
-// deleteLogging cleans up any logging resources that we created when processing a
-// LoggingScope on resource creation
-func (r *Reconciler) deleteLogging(ctx context.Context, log logr.Logger, namespace string) {
-	// this struct is empty as we're just using this to delete the FLUENTD config map - also if
-	// there was no logging scope for this component, this will just be a no-op
-	fluentdPod := &loggingscope.FluentdPod{}
-	fluentdManager := &loggingscope.Fluentd{
-		Context: ctx,
-		Log:     log,
-		Client:  r.Client,
-	}
-	resource := vzapi.QualifiedResourceRelation{Namespace: namespace}
-
-	fluentdManager.Remove(nil, resource, fluentdPod)
 }

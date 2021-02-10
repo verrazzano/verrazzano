@@ -15,6 +15,7 @@ resources:
 - bases/clusters.verrazzano.io_multiclustercomponents.yaml
 - bases/clusters.verrazzano.io_multiclusterapplicationconfigurations.yaml
 - bases/clusters.verrazzano.io_multiclusterloggingscopes.yaml
+- bases/oam.verrazzano.io_verrazzanoweblogicworkloads.yaml
 - bases/oam.verrazzano.io_verrazzanohelidonworkloads.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
@@ -25,6 +26,7 @@ patchesStrategicMerge:
 #- patches/webhook_in_metricstraits.yaml
 #- patches/webhook_in_loggingscopes.yaml
 #- patches/webhook_in_verrazzanocoherenceworkloads.yaml
+#- patches/webhook_in_verrazzanoweblogicworkloads.yaml
 #- patches/webhook_in_verrazzanohelidonworkloads.yaml
 # +kubebuilder:scaffold:crdkustomizewebhookpatch
 
@@ -34,6 +36,7 @@ patchesStrategicMerge:
 #- patches/cainjection_in_metricstraits.yaml
 #- patches/cainjection_in_loggingscopes.yaml
 #- patches/cainjection_in_verrazzanocoherenceworkloads.yaml
+#- patches/cainjection_in_verrazzanoweblogicworkloads.yaml
 #- patches/cainjection_in_verrazzanohelidonworkloads.yaml
 # +kubebuilder:scaffold:crdkustomizecainjectionpatch
 

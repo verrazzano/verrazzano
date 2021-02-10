@@ -67,12 +67,12 @@ check: go-fmt go-vet go-ineffassign go-lint
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: manifests
 manifests: go-mod controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-	# Add copyright headers to the kubebuildr generated CRDs
-	# ./hack/add-crd-header.sh
-	# Add copyright headers to the kubebuildr generated manifests and to the edited PROJECT file
-	# ./hack/add-yml-header.sh config/webhook/manifests.yaml
-	# ./hack/add-yml-header.sh PROJECT
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./..." output:crd:artifacts:config=config/crd/bases
+	# Add copyright headers to the kubebuilder generated CRDs
+	./hack/add-crd-header.sh
+	# Add copyright headers to the kubebuilder generated manifests
+	./hack/add-yml-header.sh PROJECT
+	./hack/add-yml-header.sh config/rbac/role.yaml
 
 # Generate code
 .PHONY: generate
@@ -89,7 +89,7 @@ ifeq (, $(shell command -v controller-gen))
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
 	cd $$CONTROLLER_GEN_TMP_DIR ;\
 	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.5 ;\
+	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1 ;\
 	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
 	}
 CONTROLLER_GEN=$(GOBIN)/controller-gen
@@ -198,8 +198,8 @@ OPERATOR_SETUP = test/operatorsetup
 OAM_RUNTIME_IMAGE="ghcr.io/verrazzano/oam-kubernetes-runtime:v0.3.0"
 
 # These exports are needed for the install.sh
-export KUBECONFIG=${HOME}/.kube/vzconfig
-export VERRAZZANO_KUBECONFIG=${HOME}/.kube/vzconfig
+export KUBECONFIG=${HOME}/.kube/config
+export VERRAZZANO_KUBECONFIG=${HOME}/.kube/config
 export VERRAZZANO_APP_OP_IMAGE=${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 .PHONY: integ-test
@@ -212,10 +212,10 @@ integ-test: create-cluster
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 	echo 'Install OAM runtime and Verrazzano application operator...'
-	installer/install.sh
+	installer/install.sh || (echo 'Application operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d application-operator-integ-cluster-dump; exit 1)
 
 	echo 'Run tests...'
-	ginkgo -v --keepGoing -cover test/integ/...
+	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Application operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d application-operator-integ-cluster-dump; exit 1)
 
 .PHONY: create-cluster
 create-cluster:

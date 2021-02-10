@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"strings"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -67,6 +68,15 @@ func (c Client) DoesDeploymentExist(name string, namespace string) bool {
 	return procExistsStatus(err, "Deployment")
 }
 
+// IsDeploymentUpdated returns true if the given Deployment has been updated with sidecar container
+func (c Client) IsDeploymentUpdated(name string, namespace string) bool {
+	dep, err := c.clientset.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return false
+	}
+	return len(dep.Spec.Template.Spec.Containers) > 1
+}
+
 // DoesPodExist returns true if a Pod with the given prefix exists
 func (c Client) DoesPodExist(name string, namespace string) bool {
 	return (c.getPod(name, namespace) != nil)
@@ -82,7 +92,7 @@ func (c Client) DoesContainerExist(namespace, podName, containerName string) boo
 	for _, pod := range pods.Items {
 		if strings.HasPrefix(pod.Name, podName) {
 			for _, container := range pod.Status.ContainerStatuses {
-				if container.Name == containerName {
+				if container.Name == containerName && container.Ready {
 					return true
 				}
 			}
@@ -158,4 +168,27 @@ func (c Client) GetAppConfig(namespace, name string) (*oamv1.ApplicationConfigur
 	var appConfig oamv1.ApplicationConfiguration
 	err = json.Unmarshal(bytes, &appConfig)
 	return &appConfig, err
+}
+
+//GetMultiClusterSecret gets the specified MultiClusterSecret resource
+func (c Client) GetMultiClusterSecret(namespace, name string) (*clustersv1alpha1.MultiClusterSecret, error) {
+	bytes, err := c.clientset.RESTClient().
+		Get().
+		AbsPath("/apis/clusters.verrazzano.io/v1alpha1").
+		Namespace(namespace).
+		Resource("multiclustersecrets").
+		Name(name).
+		DoRaw(context.TODO())
+
+	if err != nil {
+		return nil, err
+	}
+	var mcSecret clustersv1alpha1.MultiClusterSecret
+	err = json.Unmarshal(bytes, &mcSecret)
+	return &mcSecret, err
+}
+
+//GetSecret gets the specified K8S secret
+func (c Client) GetSecret(namespace, name string) (*corev1.Secret, error) {
+	return c.clientset.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
