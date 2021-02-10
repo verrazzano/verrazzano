@@ -230,33 +230,21 @@ pipeline {
                             }
                         }
                         stage('examples todo') {
-                            when {
-                                expression {params.RUN_EXAMPLE_TESTS == true}
-                            }
                             steps {
                                 runGinkgo('examples/todo-list')
                             }
                         }
                         stage('examples socks') {
-                            when {
-                                expression {params.RUN_EXAMPLE_TESTS == true}
-                            }
                             steps {
                                 runGinkgo('examples/sock-shop')
                             }
                         }
                         stage('examples spring') {
-                            when {
-                                expression {params.RUN_EXAMPLE_TESTS == true}
-                            }
                             steps {
                                 runGinkgo('examples/springboot-app')
                             }
                         }
                         stage('examples helidon') {
-                            when {
-                                expression {params.RUN_EXAMPLE_TESTS == true}
-                            }
                             steps {
                                 runGinkgo('examples/hello-helidon')
                             }
