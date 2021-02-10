@@ -1,3 +1,5 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 ---
 apiVersion: apiextensions.k8s.io/v1
@@ -14,368 +16,368 @@ spec:
     listKind: MultiClusterApplicationConfigurationList
     plural: multiclusterapplicationconfigurations
     shortNames:
-    - mcappconf
-    - mcappconfs
+      - mcappconf
+      - mcappconfs
     singular: multiclusterapplicationconfiguration
   scope: Namespaced
   versions:
-  - name: v1alpha1
-    schema:
-      openAPIV3Schema:
-        description: MultiClusterApplicationConfiguration is the Schema for the multiclusterapplicationconfigurations
-          API
-        properties:
-          apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: MultiClusterApplicationConfiguration is the Schema for the multiclusterapplicationconfigurations
+            API
+          properties:
+            apiVersion:
+              description: 'APIVersion defines the versioned schema of this representation
               of an object. Servers should convert recognized schemas to the latest
               internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-            type: string
-          kind:
-            description: 'Kind is a string value representing the REST resource this
+              type: string
+            kind:
+              description: 'Kind is a string value representing the REST resource this
               object represents. Servers may infer this from the endpoint the client
               submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-            type: string
-          metadata:
-            type: object
-          spec:
-            description: MultiClusterApplicationConfigurationSpec defines the desired
-              state of MultiClusterApplicationConfiguration
-            properties:
-              placement:
-                description: Clusters in which the secret is to be placed
-                properties:
-                  clusters:
-                    items:
-                      description: Cluster where multi cluster resources are placed
-                      properties:
-                        name:
-                          description: the name of the cluster
-                          type: string
-                      required:
-                      - name
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: MultiClusterApplicationConfigurationSpec defines the desired
+                state of MultiClusterApplicationConfiguration
+              properties:
+                placement:
+                  description: Clusters in which the secret is to be placed
+                  properties:
+                    clusters:
+                      items:
+                        description: Cluster where multi cluster resources are placed
+                        properties:
+                          name:
+                            description: the name of the cluster
+                            type: string
+                        required:
+                          - name
+                        type: object
+                      type: array
+                  required:
+                    - clusters
+                  type: object
+                template:
+                  description: The embedded OAM ApplicationConfiguration
+                  properties:
+                    metadata:
                       type: object
-                    type: array
-                required:
-                - clusters
-                type: object
-              template:
-                description: The embedded OAM ApplicationConfiguration
-                properties:
-                  metadata:
-                    type: object
-                    x-kubernetes-preserve-unknown-fields: true
-                  spec:
-                    description: An ApplicationConfigurationSpec defines the desired
-                      state of a ApplicationConfiguration.
-                    properties:
-                      components:
-                        description: Components of which this ApplicationConfiguration
-                          consists. Each component will be used to instantiate a workload.
-                        items:
-                          description: An ApplicationConfigurationComponent specifies
-                            a component of an ApplicationConfiguration. Each component
-                            is used to instantiate a workload.
-                          properties:
-                            componentName:
-                              description: ComponentName specifies a component whose
-                                latest revision will be bind with ApplicationConfiguration.
-                                When the spec of the referenced component changes,
-                                ApplicationConfiguration will automatically migrate
-                                all trait affect from the prior revision to the new
-                                one. This is mutually exclusive with RevisionName.
-                              type: string
-                            dataInputs:
-                              description: DataInputs specify the data input sinks
-                                into this component.
-                              items:
-                                description: DataInput specifies a data input sink
-                                  to an object. If input is array, it will be appended
-                                  to the target field paths.
-                                properties:
-                                  toFieldPaths:
-                                    description: ToFieldPaths specifies the field
-                                      paths of an object to fill passed value.
-                                    items:
-                                      type: string
-                                    type: array
-                                  valueFrom:
-                                    description: ValueFrom specifies the value source.
-                                    properties:
-                                      dataOutputName:
-                                        description: DataOutputName matches a name
-                                          of a DataOutput in the same AppConfig.
+                      x-kubernetes-preserve-unknown-fields: true
+                    spec:
+                      description: An ApplicationConfigurationSpec defines the desired
+                        state of a ApplicationConfiguration.
+                      properties:
+                        components:
+                          description: Components of which this ApplicationConfiguration
+                            consists. Each component will be used to instantiate a workload.
+                          items:
+                            description: An ApplicationConfigurationComponent specifies
+                              a component of an ApplicationConfiguration. Each component
+                              is used to instantiate a workload.
+                            properties:
+                              componentName:
+                                description: ComponentName specifies a component whose
+                                  latest revision will be bind with ApplicationConfiguration.
+                                  When the spec of the referenced component changes,
+                                  ApplicationConfiguration will automatically migrate
+                                  all trait affect from the prior revision to the new
+                                  one. This is mutually exclusive with RevisionName.
+                                type: string
+                              dataInputs:
+                                description: DataInputs specify the data input sinks
+                                  into this component.
+                                items:
+                                  description: DataInput specifies a data input sink
+                                    to an object. If input is array, it will be appended
+                                    to the target field paths.
+                                  properties:
+                                    toFieldPaths:
+                                      description: ToFieldPaths specifies the field
+                                        paths of an object to fill passed value.
+                                      items:
                                         type: string
-                                    required:
-                                    - dataOutputName
-                                    type: object
-                                type: object
-                              type: array
-                            dataOutputs:
-                              description: DataOutputs specify the data output sources
-                                from this component.
-                              items:
-                                description: DataOutput specifies a data output source
-                                  from an object.
-                                properties:
-                                  conditions:
-                                    description: Conditions specify the conditions
-                                      that should be satisfied before emitting a data
-                                      output. Different conditions are AND-ed together.
-                                      If no conditions is specified, it is by default
-                                      to check output value not empty.
-                                    items:
-                                      description: ConditionRequirement specifies
-                                        the requirement to match a value.
+                                      type: array
+                                    valueFrom:
+                                      description: ValueFrom specifies the value source.
                                       properties:
-                                        fieldPath:
-                                          description: FieldPath specifies got value
-                                            from workload/trait object
+                                        dataOutputName:
+                                          description: DataOutputName matches a name
+                                            of a DataOutput in the same AppConfig.
                                           type: string
-                                        op:
-                                          description: ConditionOperator specifies
-                                            the operator to match a value.
-                                          type: string
-                                        value:
-                                          description: Value specifies an expected
-                                            value This is mutually exclusive with
-                                            ValueFrom
-                                          type: string
-                                        valueFrom:
-                                          description: ValueFrom specifies expected
-                                            value from AppConfig This is mutually
-                                            exclusive with Value
-                                          properties:
-                                            fieldPath:
-                                              type: string
-                                          required:
-                                          - fieldPath
-                                          type: object
                                       required:
-                                      - op
+                                        - dataOutputName
                                       type: object
-                                    type: array
-                                  fieldPath:
-                                    description: FieldPath refers to the value of
-                                      an object's field.
-                                    type: string
-                                  name:
-                                    description: Name is the unique name of a DataOutput
-                                      in an ApplicationConfiguration.
-                                    type: string
-                                type: object
-                              type: array
-                            parameterValues:
-                              description: ParameterValues specify values for the
-                                the specified component's parameters. Any parameter
-                                required by the component must be specified.
-                              items:
-                                description: A ComponentParameterValue specifies a
-                                  value for a named parameter. The associated component
-                                  must publish a parameter with this name.
-                                properties:
-                                  name:
-                                    description: Name of the component parameter to
-                                      set.
-                                    type: string
-                                  value:
-                                    anyOf:
-                                    - type: integer
-                                    - type: string
-                                    description: Value to set.
-                                    x-kubernetes-int-or-string: true
-                                required:
-                                - name
-                                - value
-                                type: object
-                              type: array
-                            revisionName:
-                              description: RevisionName of a specific component revision
-                                to which to bind ApplicationConfiguration. This is
-                                mutually exclusive with componentName.
-                              type: string
-                            scopes:
-                              description: Scopes in which the specified component
-                                should exist.
-                              items:
-                                description: A ComponentScope specifies a scope in
-                                  which a component should exist.
-                                properties:
-                                  scopeRef:
-                                    description: A ScopeReference must refer to an
-                                      OAM scope resource.
-                                    properties:
-                                      apiVersion:
-                                        description: APIVersion of the referenced
-                                          object.
-                                        type: string
-                                      kind:
-                                        description: Kind of the referenced object.
-                                        type: string
-                                      name:
-                                        description: Name of the referenced object.
-                                        type: string
-                                      uid:
-                                        description: UID of the referenced object.
-                                        type: string
-                                    required:
-                                    - apiVersion
-                                    - kind
-                                    - name
-                                    type: object
-                                required:
-                                - scopeRef
-                                type: object
-                              type: array
-                            traits:
-                              description: Traits of the specified component.
-                              items:
-                                description: A ComponentTrait specifies a trait that
-                                  should be applied to a component.
-                                properties:
-                                  dataInputs:
-                                    description: DataInputs specify the data input
-                                      sinks into this trait.
-                                    items:
-                                      description: DataInput specifies a data input
-                                        sink to an object. If input is array, it will
-                                        be appended to the target field paths.
-                                      properties:
-                                        toFieldPaths:
-                                          description: ToFieldPaths specifies the
-                                            field paths of an object to fill passed
-                                            value.
-                                          items:
+                                  type: object
+                                type: array
+                              dataOutputs:
+                                description: DataOutputs specify the data output sources
+                                  from this component.
+                                items:
+                                  description: DataOutput specifies a data output source
+                                    from an object.
+                                  properties:
+                                    conditions:
+                                      description: Conditions specify the conditions
+                                        that should be satisfied before emitting a data
+                                        output. Different conditions are AND-ed together.
+                                        If no conditions is specified, it is by default
+                                        to check output value not empty.
+                                      items:
+                                        description: ConditionRequirement specifies
+                                          the requirement to match a value.
+                                        properties:
+                                          fieldPath:
+                                            description: FieldPath specifies got value
+                                              from workload/trait object
                                             type: string
-                                          type: array
-                                        valueFrom:
-                                          description: ValueFrom specifies the value
-                                            source.
-                                          properties:
-                                            dataOutputName:
-                                              description: DataOutputName matches
-                                                a name of a DataOutput in the same
-                                                AppConfig.
-                                              type: string
-                                          required:
-                                          - dataOutputName
-                                          type: object
-                                      type: object
-                                    type: array
-                                  dataOutputs:
-                                    description: DataOutputs specify the data output
-                                      sources from this trait.
-                                    items:
-                                      description: DataOutput specifies a data output
-                                        source from an object.
-                                      properties:
-                                        conditions:
-                                          description: Conditions specify the conditions
-                                            that should be satisfied before emitting
-                                            a data output. Different conditions are
-                                            AND-ed together. If no conditions is specified,
-                                            it is by default to check output value
-                                            not empty.
-                                          items:
-                                            description: ConditionRequirement specifies
-                                              the requirement to match a value.
+                                          op:
+                                            description: ConditionOperator specifies
+                                              the operator to match a value.
+                                            type: string
+                                          value:
+                                            description: Value specifies an expected
+                                              value This is mutually exclusive with
+                                              ValueFrom
+                                            type: string
+                                          valueFrom:
+                                            description: ValueFrom specifies expected
+                                              value from AppConfig This is mutually
+                                              exclusive with Value
                                             properties:
                                               fieldPath:
-                                                description: FieldPath specifies got
-                                                  value from workload/trait object
                                                 type: string
-                                              op:
-                                                description: ConditionOperator specifies
-                                                  the operator to match a value.
-                                                type: string
-                                              value:
-                                                description: Value specifies an expected
-                                                  value This is mutually exclusive
-                                                  with ValueFrom
-                                                type: string
-                                              valueFrom:
-                                                description: ValueFrom specifies expected
-                                                  value from AppConfig This is mutually
-                                                  exclusive with Value
-                                                properties:
-                                                  fieldPath:
-                                                    type: string
-                                                required:
-                                                - fieldPath
-                                                type: object
                                             required:
-                                            - op
+                                              - fieldPath
                                             type: object
-                                          type: array
-                                        fieldPath:
-                                          description: FieldPath refers to the value
-                                            of an object's field.
+                                        required:
+                                          - op
+                                        type: object
+                                      type: array
+                                    fieldPath:
+                                      description: FieldPath refers to the value of
+                                        an object's field.
+                                      type: string
+                                    name:
+                                      description: Name is the unique name of a DataOutput
+                                        in an ApplicationConfiguration.
+                                      type: string
+                                  type: object
+                                type: array
+                              parameterValues:
+                                description: ParameterValues specify values for the
+                                  the specified component's parameters. Any parameter
+                                  required by the component must be specified.
+                                items:
+                                  description: A ComponentParameterValue specifies a
+                                    value for a named parameter. The associated component
+                                    must publish a parameter with this name.
+                                  properties:
+                                    name:
+                                      description: Name of the component parameter to
+                                        set.
+                                      type: string
+                                    value:
+                                      anyOf:
+                                        - type: integer
+                                        - type: string
+                                      description: Value to set.
+                                      x-kubernetes-int-or-string: true
+                                  required:
+                                    - name
+                                    - value
+                                  type: object
+                                type: array
+                              revisionName:
+                                description: RevisionName of a specific component revision
+                                  to which to bind ApplicationConfiguration. This is
+                                  mutually exclusive with componentName.
+                                type: string
+                              scopes:
+                                description: Scopes in which the specified component
+                                  should exist.
+                                items:
+                                  description: A ComponentScope specifies a scope in
+                                    which a component should exist.
+                                  properties:
+                                    scopeRef:
+                                      description: A ScopeReference must refer to an
+                                        OAM scope resource.
+                                      properties:
+                                        apiVersion:
+                                          description: APIVersion of the referenced
+                                            object.
+                                          type: string
+                                        kind:
+                                          description: Kind of the referenced object.
                                           type: string
                                         name:
-                                          description: Name is the unique name of
-                                            a DataOutput in an ApplicationConfiguration.
+                                          description: Name of the referenced object.
                                           type: string
+                                        uid:
+                                          description: UID of the referenced object.
+                                          type: string
+                                      required:
+                                        - apiVersion
+                                        - kind
+                                        - name
                                       type: object
-                                    type: array
-                                  trait:
-                                    description: A Trait that will be created for
-                                      the component
-                                    type: object
-                                    x-kubernetes-embedded-resource: true
-                                    x-kubernetes-preserve-unknown-fields: true
-                                required:
-                                - trait
-                                type: object
-                              type: array
-                          type: object
-                        type: array
-                    required:
-                    - components
-                    type: object
-                type: object
-            required:
-            - placement
-            - template
-            type: object
-          status:
-            description: MultiClusterApplicationConfigurationStatus defines the observed
-              state of MultiClusterApplicationConfiguration
-            properties:
-              conditions:
-                description: The latest available observations of an object's current
-                  state.
-                items:
-                  description: Condition describes current state of a multi cluster
-                    resource.
-                  properties:
-                    lastTransitionTime:
-                      description: Last time the condition transitioned from one status
-                        to another.
-                      type: string
-                    message:
-                      description: Human readable message indicating details about
-                        last transition.
-                      type: string
-                    status:
-                      description: Status of the condition, one of True, False, Unknown.
-                      type: string
-                    type:
-                      description: Type of condition.
-                      type: string
-                  required:
-                  - status
-                  - type
+                                  required:
+                                    - scopeRef
+                                  type: object
+                                type: array
+                              traits:
+                                description: Traits of the specified component.
+                                items:
+                                  description: A ComponentTrait specifies a trait that
+                                    should be applied to a component.
+                                  properties:
+                                    dataInputs:
+                                      description: DataInputs specify the data input
+                                        sinks into this trait.
+                                      items:
+                                        description: DataInput specifies a data input
+                                          sink to an object. If input is array, it will
+                                          be appended to the target field paths.
+                                        properties:
+                                          toFieldPaths:
+                                            description: ToFieldPaths specifies the
+                                              field paths of an object to fill passed
+                                              value.
+                                            items:
+                                              type: string
+                                            type: array
+                                          valueFrom:
+                                            description: ValueFrom specifies the value
+                                              source.
+                                            properties:
+                                              dataOutputName:
+                                                description: DataOutputName matches
+                                                  a name of a DataOutput in the same
+                                                  AppConfig.
+                                                type: string
+                                            required:
+                                              - dataOutputName
+                                            type: object
+                                        type: object
+                                      type: array
+                                    dataOutputs:
+                                      description: DataOutputs specify the data output
+                                        sources from this trait.
+                                      items:
+                                        description: DataOutput specifies a data output
+                                          source from an object.
+                                        properties:
+                                          conditions:
+                                            description: Conditions specify the conditions
+                                              that should be satisfied before emitting
+                                              a data output. Different conditions are
+                                              AND-ed together. If no conditions is specified,
+                                              it is by default to check output value
+                                              not empty.
+                                            items:
+                                              description: ConditionRequirement specifies
+                                                the requirement to match a value.
+                                              properties:
+                                                fieldPath:
+                                                  description: FieldPath specifies got
+                                                    value from workload/trait object
+                                                  type: string
+                                                op:
+                                                  description: ConditionOperator specifies
+                                                    the operator to match a value.
+                                                  type: string
+                                                value:
+                                                  description: Value specifies an expected
+                                                    value This is mutually exclusive
+                                                    with ValueFrom
+                                                  type: string
+                                                valueFrom:
+                                                  description: ValueFrom specifies expected
+                                                    value from AppConfig This is mutually
+                                                    exclusive with Value
+                                                  properties:
+                                                    fieldPath:
+                                                      type: string
+                                                  required:
+                                                    - fieldPath
+                                                  type: object
+                                              required:
+                                                - op
+                                              type: object
+                                            type: array
+                                          fieldPath:
+                                            description: FieldPath refers to the value
+                                              of an object's field.
+                                            type: string
+                                          name:
+                                            description: Name is the unique name of
+                                              a DataOutput in an ApplicationConfiguration.
+                                            type: string
+                                        type: object
+                                      type: array
+                                    trait:
+                                      description: A Trait that will be created for
+                                        the component
+                                      type: object
+                                      x-kubernetes-embedded-resource: true
+                                      x-kubernetes-preserve-unknown-fields: true
+                                  required:
+                                    - trait
+                                  type: object
+                                type: array
+                            type: object
+                          type: array
+                      required:
+                        - components
+                      type: object
                   type: object
-                type: array
-              state:
-                description: State of the MultiClusterApplicationConfiguration custom
-                  resource
-                type: string
-            type: object
-        type: object
-    served: true
-    storage: true
-    subresources:
-      status: {}
+              required:
+                - placement
+                - template
+              type: object
+            status:
+              description: MultiClusterApplicationConfigurationStatus defines the observed
+                state of MultiClusterApplicationConfiguration
+              properties:
+                conditions:
+                  description: The latest available observations of an object's current
+                    state.
+                  items:
+                    description: Condition describes current state of a multi cluster
+                      resource.
+                    properties:
+                      lastTransitionTime:
+                        description: Last time the condition transitioned from one status
+                          to another.
+                        type: string
+                      message:
+                        description: Human readable message indicating details about
+                          last transition.
+                        type: string
+                      status:
+                        description: Status of the condition, one of True, False, Unknown.
+                        type: string
+                      type:
+                        description: Type of condition.
+                        type: string
+                    required:
+                      - status
+                      - type
+                    type: object
+                  type: array
+                state:
+                  description: State of the MultiClusterApplicationConfiguration custom
+                    resource
+                  type: string
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
 status:
   acceptedNames:
     kind: ""
