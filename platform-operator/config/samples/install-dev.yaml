@@ -7,6 +7,3 @@ metadata:
   name: my-verrazzano
 spec:
   profile: dev
-  components:
-    oam:
-      enabled: true

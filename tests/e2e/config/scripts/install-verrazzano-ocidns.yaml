@@ -7,8 +7,6 @@ metadata:
   name: my-verrazzano
 spec:
   components:
-    oam:
-      enabled: true
     certManager:
       certificate:
         acme:

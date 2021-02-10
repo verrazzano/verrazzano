@@ -9,8 +9,6 @@ spec:
   environmentName: env
   profile: prod
   components:
-    oam:
-      enabled: true
     certManager:
       certificate:
         acme:
