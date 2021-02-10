@@ -237,15 +237,23 @@ func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.
 	var secretName string
 
 	if trait.Spec.TLS != (vzapi.IngressSecurity{}) {
-		secretName := trait.Spec.TLS.SecretName
-		if secretName != "" {
-			return secretName
-		}
+		secretName = r.processConfiguredSecret(trait, status)
+	} else {
+		secretName = r.createGatewayCertificate(ctx, trait, status)
 	}
+
+	return secretName
+}
+
+func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.IngressTrait, status *reconcileresults.ReconcileResults) string {
+	var secretName string
+	var err error
+	var certName string
 	const istioNamespace = "istio-system"
-	certName, err := buildCertificateNameFromIngressTrait(trait)
+
+	certName, err = buildCertificateNameFromIngressTrait(trait)
 	if err != nil {
-		r.Log.Error(err, "Failed to create certificate name from ingress trait.")
+		r.Log.Error(err, "failed to create certificate name from ingress trait")
 	}
 	certificate := &certapiv1alpha2.Certificate{
 		TypeMeta: metav1.TypeMeta{
@@ -259,9 +267,9 @@ func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.
 
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, certificate, func() error {
 		if certName == "" {
-			return errors.New("Certificate Name was not generated successfully")
+			return errors.New("certificate name not generated successfully")
 		}
-		secretName = fmt.Sprintf("secret-%s", certName)
+		secretName = fmt.Sprintf("%s-secret", certName)
 		appDomainName, err := buildAppDomainName(r, trait)
 		if err != nil {
 			return err
@@ -283,10 +291,28 @@ func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.
 	status.Errors = append(status.Errors, err)
 
 	if err != nil {
-		r.Log.Error(err, "Failed to create or update gateway secret containing certificate.")
+		r.Log.Error(err, "failed to create or update gateway secret containing certificate")
 		return ""
 	}
 
+	return secretName
+}
+
+func (r *Reconciler) processConfiguredSecret(trait *vzapi.IngressTrait, status *reconcileresults.ReconcileResults) string {
+	secretName := trait.Spec.TLS.SecretName
+	if secretName != "" {
+		// if a secret is specified then host(s) must be provided for all rules
+		for _, rule := range trait.Spec.Rules {
+			if len(rule.Hosts) == 0 {
+				err := errors.New("all rules must specify at least one host when a secret is specified for TLS transport")
+				ref := vzapi.QualifiedResourceRelation{APIVersion: "v1", Kind: "Secret", Name: secretName, Role: "secret"}
+				status.Relations = append(status.Relations, ref)
+				status.Errors = append(status.Errors, err)
+				status.Results = append(status.Results, controllerutil.OperationResultNone)
+				return ""
+			}
+		}
+	}
 	return secretName
 }
 

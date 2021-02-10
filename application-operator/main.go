@@ -10,11 +10,11 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
+	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/helidonworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
@@ -47,6 +47,7 @@ func init() {
 	_ = wls.AddToScheme(scheme)
 
 	_ = clustersv1alpha1.AddToScheme(scheme)
+	_ = certapiv1alpha2.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -163,14 +164,14 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoCoherenceWorkload")
 		os.Exit(1)
 	}
-	if err = (&helidonworkload.Reconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoHelidonWorkload"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoHelidonWorkload")
-		os.Exit(1)
-	}
+	//if err = (&helidonworkload.Reconciler{
+	//	Client: mgr.GetClient(),
+	//	Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoHelidonWorkload"),
+	//	Scheme: mgr.GetScheme(),
+	//}).SetupWithManager(mgr); err != nil {
+	//	setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoHelidonWorkload")
+	//	os.Exit(1)
+	//}
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")
