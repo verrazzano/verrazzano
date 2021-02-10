@@ -227,8 +227,8 @@ endif
 ifdef JENKINS_URL
 	# Get the ip address of the container running the kube apiserver
 	# and update the kubeconfig file to point to that address, instead of localhost
-	sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
-	cat ${KUBECONFIG} | grep server
+	#sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
+	cat ${KUBECONFIG} #| grep server
 endif
 
 .PHONY: delete-cluster
