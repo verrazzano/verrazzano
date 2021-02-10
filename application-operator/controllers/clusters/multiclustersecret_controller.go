@@ -47,7 +47,7 @@ func (r *MultiClusterSecretReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 	logger.Info("MultiClusterSecret create or update with underlying secret",
 		"secret", mcSecret.Spec.Template.Metadata.Name,
 		"placement", mcSecret.Spec.Placement.Clusters[0].Name)
-	opResult, err := r.createOrUpdateSecret(ctx, mcSecret, &result)
+	opResult, err := r.createOrUpdateSecret(ctx, mcSecret)
 
 	return r.updateStatus(ctx, &mcSecret, opResult, err)
 }
@@ -111,7 +111,7 @@ func (r *MultiClusterSecretReconciler) fetchMultiClusterSecret(ctx context.Conte
 	return r.Get(ctx, name, mcSecretRef)
 }
 
-func (r *MultiClusterSecretReconciler) createOrUpdateSecret(ctx context.Context, mcSecret clustersv1alpha1.MultiClusterSecret, recRes *reconcile.Result) (controllerutil.OperationResult, error) {
+func (r *MultiClusterSecretReconciler) createOrUpdateSecret(ctx context.Context, mcSecret clustersv1alpha1.MultiClusterSecret) (controllerutil.OperationResult, error) {
 	var secret corev1.Secret
 	secret.Namespace = mcSecret.Namespace
 	secret.Name = mcSecret.Name
