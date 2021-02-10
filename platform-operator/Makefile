@@ -233,7 +233,7 @@ ifdef JENKINS_URL
 	docker ps
 	docker network ls
 
-	docker ps | grep "jenkins-runner" | awk '{ print $1 }' | xargs docker network connect kind
+	docker network connect kind $$(docker ps | grep "jenkins-runner" | awk '{ print $$1 }')
 endif
 
 .PHONY: delete-cluster
