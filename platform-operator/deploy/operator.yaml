@@ -2964,6 +2964,28 @@ spec:
                 description: Profile is the name of the profile to install.  Default
                   is "prod".
                 type: string
+              security:
+                description: Security specifies Verrazzano security configuration
+                properties:
+                  adminBinding:
+                    description: RoleBindingSubject specifes the kind and name of
+                      a subject to bind to
+                    properties:
+                      kind:
+                        type: string
+                      name:
+                        type: string
+                    type: object
+                  monitorBinding:
+                    description: RoleBindingSubject specifes the kind and name of
+                      a subject to bind to
+                    properties:
+                      kind:
+                        type: string
+                      name:
+                        type: string
+                    type: object
+                type: object
               version:
                 description: Version is the Verrazzano version
                 type: string

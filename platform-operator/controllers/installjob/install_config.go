@@ -13,7 +13,6 @@ import (
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -529,33 +528,37 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.S
 			}...)
 		}
 	}
-	if (vzSpec.Security != installv1alpha1.SecuritySpec{} && vzSpec.Security.AdminBindingSubject != rbacv1.Subject{}) {
-		args = append(args, []InstallArg{
-			{
-				Name:      "verrazzanoOperator.userrolebindings.admin.kind",
-				Value:     vzSpec.Security.AdminBindingSubject.Kind,
-				SetString: true,
-			},
-			{
-				Name:      "verrazzanoOperator.userrolebindings.admin.name",
-				Value:     vzSpec.Security.AdminBindingSubject.Name,
-				SetString: true,
-			},
-		}...)
+	if vzSpec.Security.AdminBinding.Name != "" {
+		args = append(args, InstallArg{
+			Name:      "verrazzanoOperator.userrolebindings.admin.name",
+			Value:     vzSpec.Security.AdminBinding.Name,
+			SetString: true,
+		})
+		k := vzSpec.Security.AdminBinding.Kind
+		if k == "" {
+			k = "Group"
+		}
+		args = append(args, InstallArg{
+			Name:      "verrazzanoOperator.userrolebindings.admin.kind",
+			Value:     k,
+			SetString: true,
+		})
 	}
-	if (vzSpec.Security != installv1alpha1.SecuritySpec{} && vzSpec.Security.MonitorBindingSubject != rbacv1.Subject{}) {
-		args = append(args, []InstallArg{
-			{
-				Name:      "verrazzanoOperator.userrolebindings.monitor.kind",
-				Value:     vzSpec.Security.MonitorBindingSubject.Kind,
-				SetString: true,
-			},
-			{
-				Name:      "verrazzanoOperator.userrolebindings.monitor.name",
-				Value:     vzSpec.Security.MonitorBindingSubject.Name,
-				SetString: true,
-			},
-		}...)
+	if vzSpec.Security.MonitorBinding.Name != "" {
+		args = append(args, InstallArg{
+			Name:      "verrazzanoOperator.userrolebindings.monitor.name",
+			Value:     vzSpec.Security.MonitorBinding.Name,
+			SetString: true,
+		})
+		k := vzSpec.Security.MonitorBinding.Kind
+		if k == "" {
+			k = "Group"
+		}
+		args = append(args, InstallArg{
+			Name:      "verrazzanoOperator.userrolebindings.monitor.kind",
+			Value:     k,
+			SetString: true,
+		})
 	}
 	return args, nil
 }
