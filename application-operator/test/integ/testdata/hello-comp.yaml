@@ -4,14 +4,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: hello-component
-  namespace: default
+  namespace: hello
 spec:
   workload:
     apiVersion: core.oam.dev/v1alpha2
     kind: ContainerizedWorkload
     metadata:
       name: hello-workload
-      namespace: default
+      namespace: hello
       labels:
         app: hello-helidon
     spec:

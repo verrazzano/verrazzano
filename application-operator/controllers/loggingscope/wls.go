@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	ctrl "sigs.k8s.io/controller-runtime"
+
 	"github.com/go-logr/logr"
 	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -100,7 +102,7 @@ type wlsHandler struct {
 }
 
 // Apply applies a logging scope to a WLS Domain
-func (h *wlsHandler) Apply(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) error {
+func (h *wlsHandler) Apply(ctx context.Context, resource vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) (*ctrl.Result, error) {
 	name := resource.Name
 	domain := createWlsDomain(resource)
 
@@ -108,7 +110,7 @@ func (h *wlsHandler) Apply(ctx context.Context, resource vzapi.QualifiedResource
 	key, _ := k8sclient.ObjectKeyFromObject(&domain)
 	err := h.Get(ctx, key, &domain)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	serverPod := domain.Spec.ServerPod
 	fluentdPod := toFluentdPod(serverPod, resource, buildWLSLogPath(name))
@@ -126,7 +128,7 @@ func (h *wlsHandler) Apply(ctx context.Context, resource vzapi.QualifiedResource
 		err = h.Update(ctx, &domain)
 
 	}
-	return err
+	return nil, err
 }
 
 // Remove removes a logging scope from a WLS Domain

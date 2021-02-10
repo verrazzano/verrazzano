@@ -9,10 +9,12 @@ import (
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -20,6 +22,7 @@ import (
 type VerrazzanoManagedClusterReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	log    *zap.SugaredLogger
 }
 
 // +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=verrazzanomanagedclusters,verbs=get;list;watch;create;update;patch;delete
@@ -29,6 +32,7 @@ type VerrazzanoManagedClusterReconciler struct {
 func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.TODO()
 	log := zap.S().With("resource", fmt.Sprintf("%s:%s", req.Namespace, req.Name))
+	r.log = log
 	log.Info("Reconciler called")
 	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{}
 
@@ -40,8 +44,8 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 			return reconcile.Result{}, nil
 		}
 
-		// Error getting the verrazzano resource - don't requeue.
-		log.Errorf("Failed to fetch verrazzano resource: %v", err)
+		// Error getting the VerrazzanoManagedCluster resource
+		log.Errorf("Failed to fetch resource: %v", err)
 		return reconcile.Result{}, err
 	}
 
@@ -50,7 +54,58 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, nil
 	}
 
+	// Reconcile the service account
+	err = r.reconcileServiceAccount(vmc)
+	if err != nil {
+		log.Infof("Failed to reconcile the ServiceAccount: %v", err)
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
+}
+
+func (r *VerrazzanoManagedClusterReconciler) reconcileServiceAccount(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	// Create or update the service account
+	_, err := r.createOrUpdateServiceAccount(context.TODO(), vmc)
+	if err != nil {
+		return err
+	}
+
+	// Does the VerrazzanoManagedCluster object contain the service account name?
+	saName := generateServiceAccountName(vmc.Name)
+	if vmc.Spec.ServiceAccount != saName {
+		r.log.Infof("Updating ServiceAccount from %q to %q", vmc.Spec.ServiceAccount, saName)
+		vmc.Spec.ServiceAccount = saName
+		err = r.Update(context.TODO(), vmc)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Create or update the ServiceAccount for a VerrazzanoManagedCluster
+func (r *VerrazzanoManagedClusterReconciler) createOrUpdateServiceAccount(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) (controllerutil.OperationResult, error) {
+	var serviceAccount corev1.ServiceAccount
+	serviceAccount.Namespace = vmc.Namespace
+	serviceAccount.Name = generateServiceAccountName(vmc.Name)
+
+	return controllerutil.CreateOrUpdate(ctx, r.Client, &serviceAccount, func() error {
+		r.mutateServiceAccount(vmc, &serviceAccount)
+		// This SetControllerReference call will trigger garbage collection i.e. the serviceAccount
+		// will automatically get deleted when the VerrazzanoManagedCluster is deleted
+		return controllerutil.SetControllerReference(vmc, &serviceAccount, r.Scheme)
+	})
+}
+
+func (r *VerrazzanoManagedClusterReconciler) mutateServiceAccount(vmc *clustersv1alpha1.VerrazzanoManagedCluster, serviceAccount *corev1.ServiceAccount) {
+	serviceAccount.Name = generateServiceAccountName(vmc.Name)
+}
+
+// Generate the service account name
+func generateServiceAccountName(clusterName string) string {
+	return fmt.Sprintf("%s-managed-cluster", clusterName)
 }
 
 // SetupWithManager creates a new controller and adds it to the manager
