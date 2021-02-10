@@ -12,21 +12,17 @@ import (
 
 // GetInstanceInfo returns the instance info for the local install.
 func GetInstanceInfo(envName string, dnsSuffix string) *v1alpha1.InstanceInfo {
-	vzURI := getVerrazzanoURI(envName, dnsSuffix)
+	vzURI := fmt.Sprintf("%s.%s", envName, dnsSuffix)
 	return &v1alpha1.InstanceInfo{
-		Console:       getConsoleURL(vzURI),
+		Console:       deriveURL(vzURI, "verrazzano"),
 		VzAPIURL:      deriveURL(vzURI, "api"),
 		RancherURL:    deriveURL(vzURI, "rancher"),
-		ElasticURL:    getElasticURL(vzURI),
-		KibanaURL:     getKibanaURL(vzURI),
-		GrafanaURL:    getGrafanaURL(vzURI),
-		PrometheusURL: getPrometheusURL(vzURI),
-		KeyCloakURL:   getKeyCloakURL(vzURI),
+		ElasticURL:    deriveURL(vzURI, "elasticsearch.vmi.system"),
+		KibanaURL:     deriveURL(vzURI, "kibana.vmi.system"),
+		GrafanaURL:    deriveURL(vzURI, "grafana.vmi.system"),
+		PrometheusURL: deriveURL(vzURI, "prometheus.vmi.system"),
+		KeyCloakURL:   deriveURL(vzURI, "keycloak"),
 	}
-}
-
-func getVerrazzanoURI(name string, suffix string) string {
-	return fmt.Sprintf("%s.%s", name, suffix)
 }
 
 // Derive the URL from the verrazzano URI by prefixing with the given URL segment
@@ -36,34 +32,4 @@ func deriveURL(verrazzanoURI string, component string) *string {
 		return &url
 	}
 	return nil
-}
-
-// GetKeyCloakURL returns Keycloak URL
-func getKeyCloakURL(verrazzanoURI string) *string {
-	return deriveURL(verrazzanoURI, "keycloak")
-}
-
-// GetKibanaURL returns Kibana URL
-func getKibanaURL(verrazzanoURI string) *string {
-	return deriveURL(verrazzanoURI, "kibana.vmi.system")
-}
-
-// GetGrafanaURL returns Grafana URL
-func getGrafanaURL(verrazzanoURI string) *string {
-	return deriveURL(verrazzanoURI, "grafana.vmi.system")
-}
-
-// GetPrometheusURL returns Prometheus URL
-func getPrometheusURL(verrazzanoURI string) *string {
-	return deriveURL(verrazzanoURI, "prometheus.vmi.system")
-}
-
-// GetElasticURL returns Elasticsearch URL
-func getElasticURL(verrazzanoURI string) *string {
-	return deriveURL(verrazzanoURI, "elasticsearch.vmi.system")
-}
-
-// GetConsoleURL returns the Verrazzano Console URL
-func getConsoleURL(verrazzanoURI string) *string {
-	return deriveURL(verrazzanoURI, "verrazzano")
 }
