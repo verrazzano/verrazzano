@@ -4,7 +4,7 @@ The Hello World Helidon example is a Helidon-based service that returns a "hello
 
 ## Prerequisites
 
-Install Verrazzano following the [installation instructions](../../README.md).
+Install Verrazzano following the [installation instructions](https://verrazzano.io/docs/setup/install/installation/).
 
 The Hello World Helidon application deployment artifacts are contained in the Verrazzano project located at
 `<VERRAZZANO_HOME>/examples/hello-helidon`, where `<VERRAZZANO_HOME>` is the root of the Verrazzano project.
@@ -36,12 +36,12 @@ The Hello World Helidon application deployment artifacts are contained in the Ve
 The Hello World Helidon microservices application implements a single REST API endpoint `/greet`, which returns a message `{"message":"Hello World!"}` when invoked.
 
 **NOTE**:  This following set of instructions assumes you are using a Kubernetes
-environment such as OKE.  Other environments or deployments may require alternate mechanisms for retrieving addresses,
-ports and such.
+environment such as OKE.  Other environments or deployments may require alternative mechanisms for retrieving addresses,
+ports, and such.
 
 Follow these steps to test the endpoints:
 
-1. Get the `EXTERNAL_IP` address of the istio-ingressgateway service.  
+1. Get the `EXTERNAL_IP` address of the `istio-ingressgateway` service.  
 
    ```
    kubectl get service istio-ingressgateway -n istio-system
@@ -50,12 +50,12 @@ Follow these steps to test the endpoints:
    istio-ingressgateway   LoadBalancer   10.96.97.98   11.22.33.44   80:31380/TCP,443:31390/TCP   13d
    ```   
 
-1. The application is deployed by default with a host value of `hello-helidon.example.com`.
+1. By default, the application is deployed with a host value of `hello-helidon.example.com`.
 
    There are several ways to access it:
    * **Using the command line**
 
-     Use the external IP provided by the previous step to call the `/greet` endpoint:
+     To call the `/greet` endpoint, use the external IP provided by the previous step:
 
      ```
      curl -s -X GET -H "Host: hello-helidon.example.com" http://<external IP>/greet
@@ -63,7 +63,7 @@ Follow these steps to test the endpoints:
      ```
    * **Local testing with a browser**
 
-     Temporarily modify the `/etc/hosts` file (on Mac or Linux)
+     Temporarily, modify the `/etc/hosts` file (on Mac or Linux)
      or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10),
      to add an entry mapping `hello-helidon.example.com` to the ingress gateway's `EXTERNAL-IP` address.
      For example:
@@ -96,14 +96,14 @@ Follow these steps to test the endpoints:
     NAME                                      READY   STATUS    RESTARTS   AGE
     hello-helidon-workload-676d97c7d4-wkrj2   2/2     Running   0          5m39s
    ```
-1. A variety of endpoints are available to further explore the logs, metrics and such associated with
+1. A variety of endpoints are available to further explore the logs, metrics, and such, associated with
 the deployed Hello World Helidon application.  Accessing them may require the following:
 
     - Run this command to get the password that was generated for the telemetry components:
         ```
         kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
         ```
-        The associated user name is `verrazzano`
+        The associated user name is `verrazzano`.
 
     - You will have to accept the certificates associated with the endpoints.
 
@@ -128,3 +128,6 @@ the deployed Hello World Helidon application.  Accessing them may require the fo
     | Kibana | `https://[vmi-system-kibana ingress host]` | `verrazzano`/`telemetry-password` |
     | Grafana | `https://[vmi-system-grafana ingress host]` | `verrazzano`/`telemetry-password` |
     | Prometheus | `https://[vmi-system-prometheus ingress host]` | `verrazzano`/`telemetry-password` |    
+
+
+Copyright (c) 2020, 2021, Oracle and/or its affiliates.
