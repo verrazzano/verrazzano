@@ -34,6 +34,7 @@ echo "updating OKE private_workers_seclist to allow pub_lb_subnet access to work
 # find vcn id "${var.label_prefix}-${var.vcn_name}"
 VCN_ID=$(oci network vcn list \
   --compartment-id "${TF_VAR_compartment_id}" \
+  --region "${TF_VAR_region}" \
   --display-name "${TF_VAR_label_prefix}-oke-vcn" \
   | jq -r '.data[0].id')
 
@@ -46,6 +47,7 @@ fi
 SEC_LIST_ID=$(oci network security-list list \
   --compartment-id "${TF_VAR_compartment_id}" \
   --display-name "${TF_VAR_label_prefix}-private-workers" \
+  --region "${TF_VAR_region}" \
   --vcn-id "${VCN_ID}" \
   | jq -r '.data[0].id')
 
@@ -57,6 +59,7 @@ fi
 # find pub_lb_subnet CIDR
 LB_SUBNET_CIDR=$(oci network subnet list \
   --compartment-id "${TF_VAR_compartment_id}" \
+  --region "${TF_VAR_region}" \
   --display-name "${TF_VAR_label_prefix}-pub_lb" \
   --vcn-id "${VCN_ID}" \
   | jq -r '.data[0]."cidr-block"')

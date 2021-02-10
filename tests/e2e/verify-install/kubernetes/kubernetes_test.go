@@ -62,7 +62,7 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 			func() {
 				clientset := pkg.GetKubernetesClientset()
 				versionInfo, _ := clientset.ServerVersion()
-				gomega.Expect(versionInfo.GitVersion).Should(gomega.MatchRegexp(`(v1\.1[5-8]\.*)`))
+				gomega.Expect(versionInfo.GitVersion).Should(gomega.MatchRegexp(`(v1\.1[5-10]\.*)`))
 			})
 
 		ginkgo.It("has the expected namespaces",

@@ -166,12 +166,12 @@ function check_kube_version {
     local major=$(echo $kubeVer | jq -r '.serverVersion.major')
     local minor=$(echo $kubeVer | jq -r '.serverVersion.minor')
     local patch=$(echo $servVer | cut -d'.' -f 3)
-    VER_ERROR_MSG="Kubernetes serverVersion $servVer must be greater than or equal to v1.16.8 and less than or equal to v1.18.*"
+    VER_ERROR_MSG="Kubernetes serverVersion $servVer must be greater than or equal to v1.16.8 and less than or equal to v1.20.*"
     if [ "$major" -ne 1 ] ; then
       log $VER_ERROR_MSG
       return 1
     fi
-    if [ "$minor" -lt 16 ] || [ "$minor" -gt 18  ]; then
+    if [ "$minor" -lt 16 ] || [ "$minor" -gt 20  ]; then
       log $VER_ERROR_MSG
       return 1
     fi
