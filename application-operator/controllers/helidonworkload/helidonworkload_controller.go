@@ -133,6 +133,8 @@ func (r *Reconciler) convertWorkloadToDeployment(
 		},
 	}
 	workload.Spec.DeploymentTemplate.Metadata.DeepCopyInto(&d.ObjectMeta)
+	// make sure the namespace is set to the namespace of the component
+	workload.Spec.DeploymentTemplate.Metadata.Namespace = workload.GetNamespace()
 	workload.Spec.DeploymentTemplate.PodSpec.DeepCopyInto(&d.Spec.Template.Spec)
 	//TODO: Set GUID from workload for controller reference work?
 	d.Spec.Template.ObjectMeta.SetLabels(map[string]string{

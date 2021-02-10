@@ -19,13 +19,19 @@ type VerrazzanoHelidonWorkloadSpec struct {
 type DeploymentTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 	Metadata metav1.ObjectMeta `json:"metadata,omitempty"`
-	PodSpec  v1.PodSpec        `json:"podSpec,omitempty"`
+	// Number of desired pods. Defaults to 1.
+	// +optional
+	Replicas *int32     `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
+	PodSpec  v1.PodSpec `json:"podSpec,omitempty"`
 }
 
 // VerrazzanoHelidonWorkloadStatus defines the observed state of VerrazzanoHelidonWorkload
 type VerrazzanoHelidonWorkloadStatus struct {
-	// The reconcile status of this metrics trait
+	// The reconcile status of this workload.
 	oamrt.ConditionedStatus `json:",inline"`
+
+	// Resources managed by this workload.
+	Resources []QualifiedResourceRelation `json:"resources,omitempty"`
 }
 
 // VerrazzanoHelidonWorkload is the Schema for the verrazzanohelidonworkloads API

@@ -5916,6 +5916,10 @@ spec:
                     required:
                     - containers
                     type: object
+                  replicas:
+                    description: Number of desired pods. Defaults to 1.
+                    format: int32
+                    type: integer
                 type: object
             required:
             - deploymentTemplate
@@ -5955,6 +5959,31 @@ spec:
                   - reason
                   - status
                   - type
+                  type: object
+                type: array
+              resources:
+                description: Resources managed by this workload.
+                items:
+                  description: QualifiedResourceRelation identifies a specific related
+                    resource (both APIVersion/Kind and namespace name) along this
+                    the role of the resource in the relationship.
+                  properties:
+                    apiversion:
+                      type: string
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                    role:
+                      type: string
+                  required:
+                  - apiversion
+                  - kind
+                  - name
+                  - namespace
+                  - role
                   type: object
                 type: array
             type: object
