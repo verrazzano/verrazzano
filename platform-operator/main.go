@@ -4,8 +4,15 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
+	"time"
+
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -169,18 +176,34 @@ func main() {
 
 	// +kubebuilder:scaffold:builder
 
+	setupLog.Info("Starting thread for syncing multi-cluster objects")
+	go mcThread(mgr.GetClient(), setupLog)
+
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Errorf("problem running manager: %v", err)
 		os.Exit(1)
 	}
 
-	setupLog.Info("Starting thread for syncing multi-cluster objects")
-	go mcThread(mgr.GetClient())
 }
 
-func mcThread(client client.Client) {
-	// Check for the existence of the verrazzano-cluster secret.  It contains the credentials
+func mcThread(client client.Client, log *zap.SugaredLogger) {
+	// Wait for the existence of the verrazzano-cluster secret.  It contains the credentials
 	// for connecting to a managed cluster.
+	secret := corev1.Secret{}
+
+	for {
+		log.Info("looking for secret")
+		err := client.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.MCAdminNamespace}, &secret)
+		if err != nil {
+			time.Sleep(60 * time.Second)
+		} else {
+			log.Info("found secret")
+			break
+		}
+	}
+
+	// The secret exists
+	log.Infof("Found secret named %s in namespace %s", secret.Name, secret.Namespace)
 
 }
