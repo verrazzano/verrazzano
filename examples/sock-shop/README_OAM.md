@@ -5,7 +5,7 @@ It uses OAM resources to define the application deployment.
 
 ## Prerequisites
 
-Install Verrazzano following the [installation instructions](../../README.md).
+Install Verrazzano following the [installation instructions](https://verrazzano.io/docs/setup/install/installation/).
 
 The Sock Shop application deployment artifacts are contained in the Verrazzano project located at
 `<VERRAZZANO_HOME>/examples/sockshop`, where `<VERRAZZANO_HOME>` is the root of the Verrazzano project.
@@ -67,7 +67,7 @@ Follow these steps to test the endpoints:
    There are several ways to access it:
    * **Using the command line**
 
-     Use the external IP provided in the previous step to call the following services:
+     To call the following services, use the external IP provided in the previous step:
 
      ```
      # Get catalogue
@@ -85,7 +85,7 @@ Follow these steps to test the endpoints:
      ```
    * **Local testing with a browser**
 
-     Temporarily modify the `/etc/hosts` file (on Mac or Linux)
+     Temporarily, modify the `/etc/hosts` file (on Mac or Linux)
      or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10),
      to add an entry mapping `sockshop.example.com` to the ingress gateway's `EXTERNAL-IP` address.
      For example:
