@@ -140,7 +140,7 @@ pipeline {
                             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
                             echo "Create Kind cluster"
                             cd ${TEST_SCRIPTS_DIR}
-                            ./create_kind_cluster.sh "{CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "KUBERNETES_CLUSTER_VERSION"
+                            ./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KUBERNETES_CLUSTER_VERSION}"
 
                             echo "Create Image Pull Secrets"
                             cd ${GO_REPO_PATH}/verrazzano
