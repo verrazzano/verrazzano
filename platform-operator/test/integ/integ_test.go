@@ -47,11 +47,11 @@ var _ = ginkgo.Describe("verrazzano-install namespace resources ", func() {
 		gomega.Expect(K8sClient.DoesPodExist(platformOperator, installNamespace)).To(gomega.BeTrue(),
 			"The verrazzano-platform-operator pod should exist")
 	})
-	ginkgo.It("is running (within 1m)", func() {
+	ginkgo.It("is running (within 2m)", func() {
 		isPodRunningYet := func() bool {
 			return K8sClient.IsPodRunning(platformOperator, installNamespace)
 		}
-		gomega.Eventually(isPodRunningYet, "1m", "5s").Should(gomega.BeTrue(),
+		gomega.Eventually(isPodRunningYet, "2m", "5s").Should(gomega.BeTrue(),
 			"The verrazzano-platform-operator pod should be in the Running state")
 	})
 })
