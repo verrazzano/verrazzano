@@ -34,7 +34,6 @@ type MultiClusterSecretReconciler struct {
 // based on the MultiClusterSecret, and updates the status of the MultiClusterSecret to reflect the
 // success or failure of the changes to the embedded Secret
 func (r *MultiClusterSecretReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
 	logger := r.Log.WithValues("multiclustersecret", req.NamespacedName)
 	var mcSecret clustersv1alpha1.MultiClusterSecret
 	result := reconcile.Result{}
