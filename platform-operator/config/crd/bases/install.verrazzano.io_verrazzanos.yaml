@@ -3007,39 +3007,30 @@ spec:
               instance:
                 description: The Verrazzano instance info
                 properties:
+                  consoleUrl:
+                    description: Console The console URL for this instance
+                    type: string
                   elasticUrl:
+                    description: ElasticURL The Elasticsearch URL for this instance
                     type: string
                   grafanaUrl:
-                    type: string
-                  id:
+                    description: GrafanaURL The Grafana URL for this instance
                     type: string
                   keyCloakUrl:
+                    description: KeyCloakURL The KeyCloak URL for this instance
                     type: string
                   kibanaUrl:
-                    type: string
-                  name:
+                    description: KibanaURL The Kibana URL for this instance
                     type: string
                   prometheusUrl:
+                    description: PrometheusURL The console URL for this instance
                     type: string
                   rancherUrl:
-                    type: string
-                  version:
-                    description: MgmtCluster      string `json:"mgmtCluster"` MgmtPlatform     string
-                      `json:"mgmtPlatform"` Status           string `json:"status"`
+                    description: RancherURL The Rancher URL for this instance
                     type: string
                   vzApiUri:
+                    description: VzAPIURL The Verrazzano API URL for this instance
                     type: string
-                required:
-                - elasticUrl
-                - grafanaUrl
-                - id
-                - keyCloakUrl
-                - kibanaUrl
-                - name
-                - prometheusUrl
-                - rancherUrl
-                - version
-                - vzApiUri
                 type: object
               state:
                 description: State of the Verrazzano custom resource

@@ -1,0 +1,16 @@
+# Copyright (c) 2020, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: install.verrazzano.io/v1alpha1
+kind: Verrazzano
+metadata:
+  name: my-olcne-install
+spec:
+  profile: dev
+  components:
+    dns:
+      domain: abc.def.xyz.com
+      external:
+    ingress:
+      type: LoadBalancer
+# other config omitted

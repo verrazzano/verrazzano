@@ -89,22 +89,23 @@ type VolumeClaimSpecTemplate struct {
 
 // InstanceInfo details of installed Verrazzano instance maintained in status field
 type InstanceInfo struct {
-	ID               string `json:"id"`
-	Name             string `json:"name"`
-	//MgmtCluster      string `json:"mgmtCluster"`
-	//MgmtPlatform     string `json:"mgmtPlatform"`
-	//Status           string `json:"status"`
-	Version          string `json:"version"`
-	KeyCloakURL      string `json:"keyCloakUrl"`
-	RancherURL       string `json:"rancherUrl"`
-	VzAPIURL         string `json:"vzApiUri"`
-	ElasticURL       string `json:"elasticUrl"`
-	KibanaURL        string `json:"kibanaUrl"`
-	GrafanaURL       string `json:"grafanaUrl"`
-	PrometheusURL    string `json:"prometheusUrl"`
-	//IsUsingSharedVMI bool   `json:"isUsingSharedVMI"`
+	// Console The console URL for this instance
+	Console          *string `json:"consoleUrl,omitempty"`
+	// KeyCloakURL The KeyCloak URL for this instance
+	KeyCloakURL      *string `json:"keyCloakUrl,omitempty"`
+	// RancherURL The Rancher URL for this instance
+	RancherURL       *string `json:"rancherUrl,omitempty"`
+	// VzAPIURL The Verrazzano API URL for this instance
+	VzAPIURL         *string `json:"vzApiUri,omitempty"`
+	// ElasticURL The Elasticsearch URL for this instance
+	ElasticURL       *string `json:"elasticUrl,omitempty"`
+	// KibanaURL The Kibana URL for this instance
+	KibanaURL        *string `json:"kibanaUrl,omitempty"`
+	// GrafanaURL The Grafana URL for this instance
+	GrafanaURL       *string `json:"grafanaUrl,omitempty"`
+	// PrometheusURL The console URL for this instance
+	PrometheusURL    *string `json:"prometheusUrl,omitempty"`
 }
-
 
 // VerrazzanoStatus defines the observed state of Verrazzano
 type VerrazzanoStatus struct {

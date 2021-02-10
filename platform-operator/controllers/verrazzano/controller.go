@@ -627,20 +627,7 @@ func removeString(slice []string, s string) (result []string) {
 	return
 }
 
-// buildAppHostName generates a DNS host name for the application using the following structure:
-// <app>.<namespace>.<dns-subdomain>  where
-//   app is the OAM application name
-//   namespace is the namespace of the OAM application
-//   dns-subdomain is The DNS subdomain name
-// For example: sales.cars.example.com
-//func buildAppHostName(c client.Client, appName string, namespace string) (string, error) {
-//	domain, err := getDomain(c)
-//	if err != nil {
-//		return "", err
-//	}
-//	return fmt.Sprintf("%s.%s.%s", appName, namespace, domain), nil
-//}
-
+// getDomain Build the DNS Domain from the current install
 func getDomain(c client.Client) (string, error) {
 	const authRealmKey = "nginx.ingress.kubernetes.io/auth-realm"
 	const rancherIngress = "rancher"
@@ -659,9 +646,9 @@ func getDomain(c client.Client) (string, error) {
 	segs := strings.Split(strings.TrimSpace(authRealmAnno), " ")
 	domain := strings.TrimSpace(segs[0])
 
-	// If this is xip.io then build the domain name using Istio info
+	// If this is xip.io then build the domain name using ingress-nginx info
 	if strings.HasSuffix(domain, "xip.io") {
-		domain, err = buildDomainNameForXIPIO(c)
+		domain, err = buildSystemDomainNameForXIPIO(c)
 		if err != nil {
 			return "", err
 		}
@@ -669,29 +656,30 @@ func getDomain(c client.Client) (string, error) {
 	return domain, nil
 }
 
-// buildDomainNameForXIPIO generates a domain name in the format of "<IP>.xip.io"
-// Get the IP from Istio resources
-func buildDomainNameForXIPIO(c client.Client) (string, error) {
-	const istioIngressGateway = "istio-ingressgateway"
-	const istioNamespace = "istio-system"
+// buildSystemDomainNameForXIPIO generates the system domain name in the format of "<IP>.xip.io"
+// Get the IP from ingress-nginx resources; the IP will be different than the application/Istio gateway
+func buildSystemDomainNameForXIPIO(c client.Client) (string, error) {
+	const nginxIngressController = "ingress-controller-ingress-nginx-controller"
+	const nginxNamespace = "ingress-nginx"
 
-	istio := corev1.Service{}
-	err := c.Get(context.TODO(), types.NamespacedName{Name: istioIngressGateway, Namespace: istioNamespace}, &istio)
+
+	nginxService := corev1.Service{}
+	err := c.Get(context.TODO(), types.NamespacedName{Name: nginxIngressController, Namespace: nginxNamespace}, &nginxService)
 	if err != nil {
 		return "", err
 	}
-	var IP string
-	if istio.Spec.Type == corev1.ServiceTypeLoadBalancer {
-		istioIngress := istio.Status.LoadBalancer.Ingress
-		if len(istioIngress) == 0 {
-			return "", fmt.Errorf("%s is missing loadbalancer IP", istioIngressGateway)
+	var ipAddress string
+	if nginxService.Spec.Type == corev1.ServiceTypeLoadBalancer {
+		nginxIngress := nginxService.Status.LoadBalancer.Ingress
+		if len(nginxIngress) == 0 {
+			return "", fmt.Errorf("%s is missing loadbalancer ipAddress", nginxIngressController)
 		}
-		IP = istioIngress[0].IP
-	} else if istio.Spec.Type == corev1.ServiceTypeNodePort {
-		// Do the equiv of the following command to get the IP
+		ipAddress = nginxIngress[0].IP
+	} else if nginxService.Spec.Type == corev1.ServiceTypeNodePort {
+		// Do the equiv of the following command to get the ipAddress
 		// kubectl -n istio-system get pods --selector app=istio-ingressgateway,istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}'
 		podList := corev1.PodList{}
-		listOptions := client.MatchingLabels{"app": "istio-ingressgateway", "istio": "ingressgateway"}
+		listOptions := client.MatchingLabels{"app": "nginxService-ingressgateway", "nginxService": "ingressgateway"}
 		err := c.List(context.TODO(), &podList, listOptions)
 		if err != nil {
 			return "", err
@@ -699,10 +687,10 @@ func buildDomainNameForXIPIO(c client.Client) (string, error) {
 		if len(podList.Items) == 0 {
 			return "", goerrors.New("Unable to find Istio ingressway pod")
 		}
-		IP = podList.Items[0].Status.HostIP
+		ipAddress = podList.Items[0].Status.HostIP
 	} else {
-		return "", fmt.Errorf("Unsupported service type %s for istio_ingress", string(istio.Spec.Type))
+		return "", fmt.Errorf("Unsupported service type %s for istio_ingress", string(nginxService.Spec.Type))
 	}
-	domain := IP + "." + "xip.io"
+	domain := ipAddress + "." + "xip.io"
 	return domain, nil
 }
