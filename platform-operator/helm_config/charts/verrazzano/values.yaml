@@ -80,7 +80,7 @@ clusterOperator:
 console:
   name: verrazzano-console
   imageName: ghcr.io/verrazzano/console
-  imageVersion: 0.9.0-20210202153634-5d96a30
+  imageVersion: 0.10.0-20210210142813-e472bf6
 
 api:
   name: verrazzano-api
