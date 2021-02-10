@@ -14,6 +14,7 @@ pipeline {
     stages {
         stage('Trigger Acceptance Tests') {
             matrix {
+                agent any
                 axes {
                     axis {
                         name 'KUBERNETES_CLUSTER_VERSION'
