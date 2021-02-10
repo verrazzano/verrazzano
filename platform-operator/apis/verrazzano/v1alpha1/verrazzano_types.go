@@ -5,7 +5,6 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -81,10 +80,16 @@ type VerrazzanoSpec struct {
 	VolumeClaimSpecTemplates []VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty"`
 }
 
+// RoleBindingSubject specifes the kind and name of a subject to bind to
+type RoleBindingSubject struct {
+	Kind string `json:"kind,omitempty"`
+	Name string `json:"name,omitempty"`
+}
+
 // SecuritySpec defines the security configuration for Verrazzano
 type SecuritySpec struct {
-	AdminBindingSubject   rbacv1.Subject `json:"adminBinding,omitempty"`
-	MonitorBindingSubject rbacv1.Subject `json:"monitorBinding,omitempty"`
+	AdminBinding   RoleBindingSubject `json:"adminBinding,omitempty"`
+	MonitorBinding RoleBindingSubject `json:"monitorBinding,omitempty"`
 }
 
 // VolumeClaimSpecTemplate Contains common PVC configuration that can be referenced from Components; these
