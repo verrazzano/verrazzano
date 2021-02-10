@@ -5,7 +5,7 @@ For more information and the source code of this application, see the [Verrazzan
 
 ## Prerequisites
 
-Install Verrazzano following the [installation instructions](../../README.md).
+Install Verrazzano following the [installation instructions](https://verrazzano.io/docs/setup/install/installation/).
 
 The ToDo List application deployment artifacts are contained in the Verrazzano project located at
 `<VERRAZZANO_HOME>/examples/todo-list`, where `<VERRAZZANO_HOME>` is the root of the Verrazzano project.
@@ -78,14 +78,14 @@ The ToDo List application deployment artifacts are contained in the Verrazzano p
    ```   
 
 1. Access the ToDo List example application.
-   By defaul, the application is deployed with a host value of `todo.example.com`.
+   By default, the application is deployed with a host value of `todo.example.com`.
    There are several ways to access it:
    * **Using the command line**
      ```
      curl -H "Host: todo.example.com" http://11.22.33.44/todo/
      ```
    * **Local testing with a browser** \
-     Temporarily modify the `/etc/hosts` file (on Mac or Linux)
+     Temporarily, modify the `/etc/hosts` file (on Mac or Linux)
      or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10),
      to add an entry mapping `todo.example.com` to the ingress gateway's `EXTERNAL-IP` address.
      For example:
