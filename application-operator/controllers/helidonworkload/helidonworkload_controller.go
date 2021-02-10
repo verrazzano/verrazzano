@@ -93,7 +93,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// create a service for the workload
-	service, err := r.createServiceFromDeployment(&workload, deploy)
+	service, err := r.createServiceFromDeployment(deploy)
 	if err != nil {
 		log.Error(err, "Failed to get service from a deployment")
 		//TODO: OAM is doing Wait
@@ -119,10 +119,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *Reconciler) convertWorkloadToDeployment(
 	workload *vzapi.VerrazzanoHelidonWorkload) (*appsv1.Deployment, error) {
 	//TODO: What if metadata and spec are not set?
+
 	d := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       deploymentKind,
 			APIVersion: deploymentAPIVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: workload.Spec.DeploymentTemplate.Metadata.GetName(),
+			// make sure the namespace is set to the namespace of the component
+			Namespace: workload.GetNamespace(),
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
@@ -132,9 +138,10 @@ func (r *Reconciler) convertWorkloadToDeployment(
 			},
 		},
 	}
-	workload.Spec.DeploymentTemplate.Metadata.DeepCopyInto(&d.ObjectMeta)
-	// make sure the namespace is set to the namespace of the component
-	workload.Spec.DeploymentTemplate.Metadata.Namespace = workload.GetNamespace()
+	//workload.Spec.DeploymentTemplate.Metadata.SetNamespace(workload.GetNamespace())
+	//workload.Spec.DeploymentTemplate.Metadata.DeepCopyInto(&d.ObjectMeta)
+	d.ObjectMeta.SetLabels(workload.Spec.DeploymentTemplate.Metadata.GetLabels())
+	d.ObjectMeta.SetAnnotations(workload.Spec.DeploymentTemplate.Metadata.GetAnnotations())
 	workload.Spec.DeploymentTemplate.PodSpec.DeepCopyInto(&d.Spec.Template.Spec)
 	//TODO: Set GUID from workload for controller reference work?
 	d.Spec.Template.ObjectMeta.SetLabels(map[string]string{
@@ -160,12 +167,12 @@ func (r *Reconciler) convertWorkloadToDeployment(
 }
 
 // create a service for the deployment
-func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelidonWorkload,
+func (r *Reconciler) createServiceFromDeployment(
 	deploy *appsv1.Deployment) (*corev1.Service, error) {
 
 	// We don't add a Service if there are no containers for the Deployment.
 	// This should never happen in practice.
-	if len(deploy.Spec.Template.Spec.Containers) >= 1 {
+	if len(deploy.Spec.Template.Spec.Containers) > 0 {
 		s := &corev1.Service{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       serviceKind,
@@ -175,7 +182,7 @@ func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelid
 				Name:      deploy.GetName(),
 				Namespace: deploy.GetNamespace(),
 				Labels: map[string]string{
-					labelKey: string(workload.GetUID()),
+					labelKey: string(deploy.GetUID()),
 				},
 			},
 			Spec: corev1.ServiceSpec{
@@ -201,9 +208,9 @@ func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelid
 		}
 		if y, err := yaml.Marshal(s); err != nil {
 			r.Log.Error(err, "Failed to convert service to yaml")
-			r.Log.Info("Set service in json ", "deploy", s)
+			r.Log.Info("Set service in json ", "ServiceJson", s)
 		} else {
-			r.Log.Info("Set service in yaml: ", string(y))
+			r.Log.Info("Set service in yaml: ", "ServiceYaml", string(y))
 		}
 		return s, nil
 	}
