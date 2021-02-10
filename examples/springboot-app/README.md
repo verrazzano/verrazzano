@@ -6,7 +6,7 @@ This example provides a simple web application developed using Spring Boot. For 
 
 Install Verrazzano following the [installation instructions](../../README.md).
 
-  The Spring Boot example application model and binding files are contained in the Verrazzano project located at `<VERRAZZANO_HOME>/examples/springboot-app`, where `VERRAZZANO_HOME` is the root of the Verrazzano project.
+  The Spring Boot example application deployment artifacts are contained in the Verrazzano project located at `<VERRAZZANO_HOME>/examples/springboot-app`, where `VERRAZZANO_HOME` is the root of the Verrazzano project.
 
    **NOTE:** All files and paths in this document are relative to `<VERRAZZANO_HOME>/examples/springboot-app`.
 
