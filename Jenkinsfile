@@ -20,28 +20,6 @@ pipeline {
     }
 
     parameters {
-        string (name: 'RELEASE_VERSION',
-                defaultValue: '',
-                description: 'Release version used for the version of helm chart and tag for the image:\n'+
-                'When RELEASE_VERSION is not defined, version will be determined by incrementing last minor release version by 1, for example:\n'+
-                'When RELEASE_VERSION is v0.1.0, image tag will be v0.1.0 and helm chart version is also v0.1.0.\n'+
-                'When RELEASE_VERSION is not specified and last release version is v0.1.0, image tag will be v0.1.1 and helm chart version is also v0.1.1.',
-                trim: true)
-        string (name: 'RELEASE_DESCRIPTION',
-                defaultValue: '',
-                description: 'Brief description for the release.',
-                trim: true)
-        string (name: 'RELEASE_BRANCH',
-                defaultValue: 'master',
-                description: 'Branch to create release from, change this to enable release from a non master branch, e.g.\n'+
-                'When the branch being built is master then release will always be created when RELEASE_BRANCH has the default value - master.\n'+
-                'When the branch being built is any non-master branch - release can be created by setting RELEASE_BRANCH to same value as non-master branch, else it is skipped.\n',
-                trim: true)
-        string (name: 'ACCEPTANCE_TESTS_BRANCH',
-                defaultValue: 'master',
-                description: 'Branch or tag of verrazzano acceptance tests, on which to kick off the tests',
-                trim: true
-        )
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
         booleanParam (description: 'Whether to run example tests', name: 'RUN_EXAMPLE_TESTS', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
@@ -69,6 +47,7 @@ pipeline {
 
         CLUSTER_NAME = 'verrazzano'
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
+        TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
         OCR_CREDS = credentials('ocr-pull-and-push-account')
@@ -305,7 +284,7 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/*cluster-dump/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
@@ -352,6 +331,7 @@ pipeline {
                 stage('Prepare AT environment') {
                     steps {
                         sh """
+                            echo "tests will execute" > ${TESTS_EXECUTED_FILE}
                             echo "Create Kind cluster"
                             cd ${GO_REPO_PATH}/verrazzano/platform-operator
                             make create-cluster
@@ -492,12 +472,16 @@ pipeline {
 
             post {
                 failure {
-                    dumpK8sCluster('new-acceptance-tests-cluster-dump.tar.gz')
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('new-acceptance-tests-cluster-dump')
+                        }
+                    }
                 }
                 success {
                     script {
-                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster('new-acceptance-tests-cluster-dump.tar.gz')
+                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('new-acceptance-tests-cluster-dump')
                         }
                     }
                 }
@@ -507,15 +491,18 @@ pipeline {
 
     post {
         always {
-            dumpVerrazzanoSystemPods()
-            dumpCattleSystemPods()
-            dumpNginxIngressControllerLogs()
-            dumpVerrazzanoPlatformOperatorLogs()
-            dumpVerrazzanoApplicationOperatorLogs()
-            dumpOamKubernetesRuntimeLogs()
-            dumpVerrazzanoApiLogs()
-
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump.tar.gz', allowEmptyArchive: true
+            script {
+                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                    dumpVerrazzanoSystemPods()
+                    dumpCattleSystemPods()
+                    dumpNginxIngressControllerLogs()
+                    dumpVerrazzanoPlatformOperatorLogs()
+                    dumpVerrazzanoApplicationOperatorLogs()
+                    dumpOamKubernetesRuntimeLogs()
+                    dumpVerrazzanoApiLogs()
+                }
+            }
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
             sh """
@@ -560,9 +547,9 @@ def runGinkgo(testSuitePath) {
     }
 }
 
-def dumpK8sCluster(archiveFilePath) {
+def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -z ${archiveFilePath}
+        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}
     """
 }
 

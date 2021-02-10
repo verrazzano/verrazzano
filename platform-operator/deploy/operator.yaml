@@ -44,7 +44,7 @@ spec:
     spec:
       initContainers:
         - name: webhook-init
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.9.0-20210205023343-4669f6b
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.10.0-20210210022042-2f1b612
           imagePullPolicy: IfNotPresent
           args:
             - --zap-log-level=info
@@ -58,7 +58,7 @@ spec:
       containers:
         - name: verrazzano-platform-operator
           imagePullPolicy: IfNotPresent
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.9.0-20210205023343-4669f6b
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.10.0-20210210022042-2f1b612
           ports:
             - containerPort: 9443
               name: webhook
@@ -81,7 +81,7 @@ spec:
             - name: MODE
               value: RUN_OPERATOR
             - name: VZ_INSTALL_IMAGE
-              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.9.0-20210205023343-4669f6b
+              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.10.0-20210210022042-2f1b612
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
@@ -142,7 +142,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.2.5
+    controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
   name: verrazzanos.install.verrazzano.io
 spec:
@@ -327,6 +327,7 @@ spec:
                               format: int32
                               type: integer
                             protocol:
+                              default: TCP
                               description: The IP protocol for this port. Supports
                                 "TCP", "UDP", and "SCTP". Default is TCP.
                               type: string
@@ -1769,13 +1770,6 @@ spec:
                             type: object
                         type: object
                     type: object
-                  oam:
-                    description: OAM contains the OAM component configuration
-                    properties:
-                      enabled:
-                        description: Argument to enable installation of OAM components
-                        type: boolean
-                    type: object
                 type: object
               defaultVolumeSource:
                 description: DefaultVolumeSource Defines the type of volume to be
@@ -3209,10 +3203,6 @@ spec:
             description: VerrazzanoManagedClusterSpec defines the desired state of
               VerrazzanoManagedCluster
             properties:
-              clusterID:
-                description: The generated identifier for the managed cluster. This
-                  field is managed by a Verrazzano Kubernetes operator.
-                type: string
               description:
                 description: The description of the managed cluster.
                 type: string

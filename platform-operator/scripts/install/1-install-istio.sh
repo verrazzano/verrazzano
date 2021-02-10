@@ -65,45 +65,74 @@ function create_secret {
 
 function install_istio()
 {
-    ISTIO_INIT_CHART_DIR=${CHARTS_DIR}/istio-init
     ISTIO_CHART_DIR=${CHARTS_DIR}/istio
 
-    # Install istio CRDs  using helm
-    EXTRA_ISTIO_ARGUMENTS=""
+    log "Installing Istio base"
+    helm upgrade istio-base ${ISTIO_CHART_DIR}/base \
+      --install \
+      --namespace istio-system \
+      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+      --wait \
+      || return $?
+
+    IMAGE_PULL_SECRETS_ARGUMENT=""
     if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
-      EXTRA_ISTIO_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+      IMAGE_PULL_SECRETS_ARGUMENT=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
 
-    log "Installing istio CRDs"
-    helm install istio-init ${ISTIO_INIT_CHART_DIR} \
-        --namespace istio-system \
-        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-        ${EXTRA_ISTIO_ARGUMENTS} \
-        --wait \
-        || return $?
+    log "Installing Istio discovery"
+    helm upgrade istiod ${ISTIO_CHART_DIR}/istio-control/istio-discovery \
+      --install \
+      --namespace istio-system \
+      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+      ${IMAGE_PULL_SECRETS_ARGUMENT} \
+      || return $?
 
-    log "Wait for istio CRD creation jobs to complete"
-    if ! kubectl -n istio-system wait --for=condition=complete job --all --timeout=300s ; then
-      consoleerr "ERROR: Istio CRD creation failed"
-      return 1
-    fi
+    log "Generate Istio ingress specific configuration"
+    local EXTRA_INGRESS_ARGUMENTS=""
+    EXTRA_INGRESS_ARGUMENTS=$(get_istio_helm_args_from_config)
+    EXTRA_INGRESS_ARGUMENTS="$EXTRA_INGRESS_ARGUMENTS --set gateways.istio-ingressgateway.type=${INGRESS_TYPE}"
 
-    # Install istio using helm
-    log "Generate istio cluster specific configuration"
-    local EXTRA_HELM_ARGUMENTS=""
-    if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
-      EXTRA_HELM_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
-    fi
-    EXTRA_HELM_ARGUMENTS="$EXTRA_HELM_ARGUMENTS $(get_istio_helm_args_from_config)"
+    log "Installing Istio ingress"
+    helm upgrade istio-ingress ${ISTIO_CHART_DIR}/gateways/istio-ingress \
+      --install \
+      --namespace istio-system \
+      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+      ${EXTRA_INGRESS_ARGUMENTS} \
+      ${IMAGE_PULL_SECRETS_ARGUMENT} \
+      || return $?
 
-    log "installing istio"
-    helm install istio ${ISTIO_CHART_DIR} \
-        --namespace istio-system \
-        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-        --set gateways.istio-ingressgateway.type="${INGRESS_TYPE}" \
-        --values ${ISTIO_CHART_DIR}/example-values/values-istio-multicluster-gateways.yaml \
-        ${EXTRA_HELM_ARGUMENTS} \
-        || return $?
+    log "Installing Istio egress"
+    helm upgrade istio-egress ${ISTIO_CHART_DIR}/gateways/istio-egress \
+      --install \
+      --namespace istio-system \
+      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+      ${IMAGE_PULL_SECRETS_ARGUMENT} \
+      || return $?
+
+    log "Installing istiocoredns"
+    helm upgrade istiocoredns ${ISTIO_CHART_DIR}/istiocoredns \
+      --install \
+      --namespace istio-system \
+      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+      ${IMAGE_PULL_SECRETS_ARGUMENT} \
+      || return $?
+
+    log "Installing Istio Grafana"
+    helm upgrade grafana ${ISTIO_CHART_DIR}/istio-telemetry/grafana \
+      --install \
+      --namespace istio-system \
+      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+      ${IMAGE_PULL_SECRETS_ARGUMENT} \
+      || return $?
+
+    log "Installing Istio Prometheus"
+    helm upgrade prometheus ${ISTIO_CHART_DIR}/istio-telemetry/prometheus \
+      --install \
+      --namespace istio-system \
+      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+      ${IMAGE_PULL_SECRETS_ARGUMENT} \
+      || return $?
 }
 
 function update_coredns()

@@ -215,8 +215,6 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 
 	containedName := "test-contained-workload-name"
 	containedResource := map[string]interface{}{
-		"apiVersion": "coherence.oracle.com/v1",
-		"kind":       "Coherence",
 		"metadata": map[string]interface{}{
 			"name": containedName,
 		},
@@ -230,7 +228,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 			workload.SetKind("VerrazzanoCoherenceWorkload")
 			workload.SetNamespace(name.Namespace)
 			workload.SetName(name.Name)
-			unstructured.SetNestedMap(workload.Object, containedResource, "spec", "coherence")
+			unstructured.SetNestedMap(workload.Object, containedResource, "spec", "template")
 			return nil
 		})
 	// Expect a call to get the contained Coherence resource
@@ -239,6 +237,8 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *unstructured.Unstructured) error {
 			workload.SetUnstructuredContent(containedResource)
 			workload.SetNamespace(name.Namespace)
+			workload.SetAPIVersion("coherence.oracle.com/v1")
+			workload.SetKind("Coherence")
 			workload.SetUID("test-workload-uid")
 			return nil
 		})

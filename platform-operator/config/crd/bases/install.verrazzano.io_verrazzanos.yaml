@@ -6,7 +6,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.2.5
+    controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
   name: verrazzanos.install.verrazzano.io
 spec:
@@ -191,6 +191,7 @@ spec:
                               format: int32
                               type: integer
                             protocol:
+                              default: TCP
                               description: The IP protocol for this port. Supports
                                 "TCP", "UDP", and "SCTP". Default is TCP.
                               type: string
@@ -1632,13 +1633,6 @@ spec:
                                 type: object
                             type: object
                         type: object
-                    type: object
-                  oam:
-                    description: OAM contains the OAM component configuration
-                    properties:
-                      enabled:
-                        description: Argument to enable installation of OAM components
-                        type: boolean
                     type: object
                 type: object
               defaultVolumeSource:

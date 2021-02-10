@@ -180,9 +180,6 @@ type ComponentSpec struct {
 	// Keycloak contains the Keycloak component configuration
 	// +optional
 	Keycloak KeycloakComponent `json:"keycloak,omitempty"`
-	// OAM contains the OAM component configuration
-	// +optional
-	OAM OAMComponent `json:"oam,omitempty"`
 }
 
 // CertManagerComponent specifies the core CertManagerComponent config.
@@ -245,13 +242,6 @@ type MySQLComponent struct {
 	// is used, it must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates section.
 	// +optional
 	VolumeSource *corev1.VolumeSource `json:"volumeSource,omitempty"`
-}
-
-// OAMComponent specifies the OAM configuration
-type OAMComponent struct {
-	// Argument to enable installation of OAM components
-	// +optional
-	Enabled bool `json:"enabled,omitempty"`
 }
 
 // InstallArgs identifies a name/value or name/value list needed for install.

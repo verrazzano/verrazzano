@@ -116,7 +116,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
-	u, err := vznav.ConvertRawExtensionToUnstructured(&workload.Spec.Coherence)
+	u, err := vznav.ConvertRawExtensionToUnstructured(&workload.Spec.Template)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -125,6 +125,18 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err = unstructured.SetNestedField(u.Object, req.NamespacedName.Namespace, "metadata", "namespace"); err != nil {
 		return reconcile.Result{}, err
 	}
+
+	// the embedded resource doesn't have an API version or kind, so add them
+	gvk := vznav.APIVersionAndKindToContainedGVK(workload.APIVersion, workload.Kind)
+	if gvk == nil {
+		errStr := "Unable to determine contained GroupVersionKind for workload"
+		log.Error(nil, errStr, "workload", workload)
+		return reconcile.Result{}, errors.New(errStr)
+	}
+
+	apiVersion, kind := gvk.ToAPIVersionAndKind()
+	u.SetAPIVersion(apiVersion)
+	u.SetKind(kind)
 
 	// clean up resources that we've created on delete
 	if isDeleting, err := r.handleDelete(ctx, log, workload, u); isDeleting {
@@ -145,6 +157,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// spec has been updated with logging, need to set it back in the unstructured
 	if err = unstructured.SetNestedField(u.Object, spec, "spec"); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// set istio injection annotation to false for Coherence pods
+	if err = r.disableIstioInjection(log, u); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -190,6 +207,27 @@ func copyLabels(workloadLabels map[string]string, coherence *unstructured.Unstru
 	}
 
 	coherence.SetLabels(labels)
+}
+
+// disableIstioInjection sets the sidecar.istio.io/inject annotation to false since Coherence does not work with Istio
+func (r *Reconciler) disableIstioInjection(log logr.Logger, u *unstructured.Unstructured) error {
+	annotations, _, err := unstructured.NestedStringMap(u.Object, "spec", "annotations")
+	if err != nil {
+		return errors.New("unable to get annotations from Coherence spec")
+	}
+
+	// if no annotations exist initialize the annotations map otherwise update existing annotations.
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+	annotations["sidecar.istio.io/inject"] = "false"
+
+	err = unstructured.SetNestedStringMap(u.Object, annotations, "spec", "annotations")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // addLogging adds a FLUENTD sidecar and updates the Coherence spec if there is an associated LoggingScope
@@ -329,9 +367,6 @@ func addJvmArgs(coherenceSpec map[string]interface{}) {
 func (r *Reconciler) handleDelete(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoCoherenceWorkload, coherence *unstructured.Unstructured) (bool, error) {
 	if !workload.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllers.StringSliceContainsString(workload.ObjectMeta.Finalizers, finalizer) {
-			log.Info("Deleting logging-related resources (if needed)")
-			r.deleteLogging(ctx, log, workload.ObjectMeta.Namespace)
-
 			log.Info("Deleting Coherence CR")
 			if err := r.Delete(ctx, coherence); err != nil {
 				return true, err
@@ -357,20 +392,4 @@ func (r *Reconciler) handleDelete(ctx context.Context, log logr.Logger, workload
 	}
 
 	return false, nil
-}
-
-// deleteLogging cleans up any logging resources that we created when processing a
-// LoggingScope on resource creation
-func (r *Reconciler) deleteLogging(ctx context.Context, log logr.Logger, namespace string) {
-	// this struct is empty as we're just using this to delete the FLUENTD config map - also if
-	// there was no logging scope for this component, this will just be a no-op
-	fluentdPod := &loggingscope.FluentdPod{}
-	fluentdManager := &loggingscope.Fluentd{
-		Context: ctx,
-		Log:     log,
-		Client:  r.Client,
-	}
-	resource := vzapi.QualifiedResourceRelation{Namespace: namespace}
-
-	fluentdManager.Remove(nil, resource, fluentdPod)
 }
