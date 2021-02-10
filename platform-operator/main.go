@@ -7,6 +7,8 @@ import (
 	"flag"
 	"os"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	clusterscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
@@ -172,4 +174,13 @@ func main() {
 		setupLog.Errorf("problem running manager: %v", err)
 		os.Exit(1)
 	}
+
+	setupLog.Info("Starting thread for syncing multi-cluster objects")
+	go mcThread(mgr.GetClient())
+}
+
+func mcThread(client client.Client) {
+	// Check for the existence of the verrazzano-cluster secret.  It contains the credentials
+	// for connecting to a managed cluster.
+
 }
