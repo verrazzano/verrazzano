@@ -4,7 +4,7 @@ apiVersion: clusters.verrazzano.io/v1alpha1
 kind: VerrazzanoManagedCluster
 metadata:
   name: cluster1
-  namespace: verrazzano-install
+  namespace: verrazzano-mc
 spec:
   description: "Test VerrazzanoManagedCluster object"
   prometheusSecret: prometheus-cluster1

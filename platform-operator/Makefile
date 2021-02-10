@@ -178,7 +178,7 @@ endif
 #
 .PHONY: unit-test
 unit-test: go-install
-	$(GO) test -v  ./internal/... ./controllers/... ./api/...
+	$(GO) test -v  ./internal/... ./controllers/... ./apis/...
 
 .PHONY: coverage
 coverage: unit-test

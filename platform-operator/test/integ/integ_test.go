@@ -15,6 +15,7 @@ import (
 const clusterAdmin = "cluster-admin"
 const platformOperator = "verrazzano-platform-operator"
 const installNamespace = "verrazzano-install"
+const mcNamespace = "verrazzano-mc"
 
 var K8sClient k8s.Client
 
@@ -79,12 +80,12 @@ var _ = ginkgo.Describe("Custom Resource Definition for verrazzano install", fun
 })
 
 var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
-	ginkgo.It("VerrazzanoManagedCluster can be created ", func() {
-		_, stderr := util.Kubectl("apply -f testdata/vmc_sample.yaml")
+	ginkgo.It("Create multi-cluster namespace ", func() {
+		_, stderr := util.Kubectl(fmt.Sprintf("create namespace %s", mcNamespace))
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
-	ginkgo.It("VerrazzanoManagedCluster can be deleted ", func() {
-		_, stderr := util.Kubectl("delete -f testdata/vmc_sample.yaml")
+	ginkgo.It("VerrazzanoManagedCluster can be created ", func() {
+		_, stderr := util.Kubectl("apply -f testdata/vmc_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
 })
