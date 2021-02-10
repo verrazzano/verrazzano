@@ -39,10 +39,9 @@ pipeline {
                                 build job: 'verrazzano-new-kind-acceptance-tests',
                                     parameters: [
                                         string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: ${KUBERNETES_CLUSTER_VERSION})
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: env.KUBERNETES_CLUSTER_VERSION)
                                     ], wait: false
                             }
-
                         }
                     }
                 }
