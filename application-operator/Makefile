@@ -69,7 +69,7 @@ check: go-fmt go-vet go-ineffassign go-lint
 manifests: go-mod controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./..." output:crd:artifacts:config=config/crd/bases
 	# Add copyright headers to the kubebuilder generated CRDs
-	# ./hack/add-crd-header.sh
+	./hack/add-crd-header.sh
 	# Add copyright headers to the kubebuilder generated manifests
 	./hack/add-yml-header.sh PROJECT
 	./hack/add-yml-header.sh config/rbac/role.yaml
@@ -198,8 +198,8 @@ OPERATOR_SETUP = test/operatorsetup
 OAM_RUNTIME_IMAGE="ghcr.io/verrazzano/oam-kubernetes-runtime:v0.3.0"
 
 # These exports are needed for the install.sh
-export KUBECONFIG=${HOME}/.kube/vzconfig
-export VERRAZZANO_KUBECONFIG=${HOME}/.kube/vzconfig
+export KUBECONFIG=${HOME}/.kube/config
+export VERRAZZANO_KUBECONFIG=${HOME}/.kube/config
 export VERRAZZANO_APP_OP_IMAGE=${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 .PHONY: integ-test
