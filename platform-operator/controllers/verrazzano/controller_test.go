@@ -1551,6 +1551,61 @@ func TestUpdateInternalConfigMap(t *testing.T) {
 	asserts.NoError(err)
 }
 
+// TestSuccessfulInstall tests the Reconcile method for the following use case
+// GIVEN a request to reconcile an verrazzano resource
+// WHEN a verrazzano resource has been applied
+// THEN ensure all the objects are already created
+//func TestSuccessfulInstall(t *testing.T) {
+//	namespace := "verrazzano"
+//	name := "test"
+//	labels := map[string]string{"label1": "test"}
+//	asserts := assert.New(t)
+//	mocker := gomock.NewController(t)
+//	mock := mocks.NewMockClient(mocker)
+//	mockStatus := mocks.NewMockStatusWriter(mocker)
+//	asserts.NotNil(mockStatus)
+//
+//	// Expect a call to get the Rancher ingress
+//	mock.EXPECT().
+//		Get(gomock.Any(), types.NamespacedName{Namespace: "ingress-nginx", Name: "ingress-controller-ingress-nginx-controller"}, gomock.Not(gomock.Nil())).
+//		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *corev1.Service) error {
+//			service.Spec.Type = corev1.ServiceTypeLoadBalancer
+//			service.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{
+//				{
+//					IP:       "11.22.33.44",
+//					Hostname: "myhost",
+//				},
+//			}
+//			return nil
+//		})
+//
+//	// Expect a call to get the status writer and return a mock.
+//	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+//
+//	// Expect a call to update the status of the Verrazzano resource
+//	mockStatus.EXPECT().
+//		Update(gomock.Any(), gomock.Any()).
+//		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+//			asserts.Len(verrazzano.Status.Conditions, 1)
+//			return nil
+//		})
+//
+//	setupInstallInternalConfigMapExpectations(mock, name, namespace)
+//
+//	buildSystemDomainNameForXIPIO(mock)
+//
+//	// Create and make the request
+//	request := newRequest(namespace, name)
+//	reconciler := newVerrazzanoReconciler(mock)
+//	result, err := reconciler.Reconcile(request)
+//
+//	// Validate the results
+//	mocker.Finish()
+//	asserts.NoError(err)
+//	asserts.Equal(false, result.Requeue)
+//	asserts.Equal(time.Duration(0), result.RequeueAfter)
+//}
+
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()

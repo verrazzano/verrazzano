@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	goerrors "errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/instance"
 	k8net "k8s.io/api/networking/v1beta1"
@@ -430,12 +429,14 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 	case installv1alpha1.InstallComplete:
 		domain, err := buildDomain(r.Client)
 		if err != nil {
-			return err
+			// An error building the instance info is non-fatal, log and continue
+			log.Errorf("Error obtaining DNS domain for installed instance, %v", err)
+		} else {
+			cr.Status.Instance = instance.GetInstanceInfo(
+				cr.Spec.EnvironmentName,
+				domain,
+			)
 		}
-		cr.Status.Instance = instance.GetInstanceInfo(
-			cr.Spec.EnvironmentName,
-			domain,
-		)
 		fallthrough
 	case installv1alpha1.UninstallComplete, installv1alpha1.UpgradeComplete:
 		cr.Status.State = installv1alpha1.Ready
@@ -669,24 +670,18 @@ func buildSystemDomainNameForXIPIO(c client.Client) (string, error) {
 	if nginxService.Spec.Type == corev1.ServiceTypeLoadBalancer {
 		nginxIngress := nginxService.Status.LoadBalancer.Ingress
 		if len(nginxIngress) == 0 {
-			return "", fmt.Errorf("%s is missing loadbalancer ipAddress", nginxIngressController)
+			// In case of OLCNE, need to obtain the External IP from the Spec
+			if len(nginxService.Spec.ExternalIPs) == 0 {
+				return "", fmt.Errorf("%s is missing External IP address", nginxService.Name)
+			}
+			ipAddress = nginxService.Spec.ExternalIPs[0]
+		} else {
+			ipAddress = nginxIngress[0].IP
 		}
-		ipAddress = nginxIngress[0].IP
 	} else if nginxService.Spec.Type == corev1.ServiceTypeNodePort {
-		// Do the equiv of the following command to get the ipAddress
-		// kubectl -n istio-system get pods --selector app=istio-ingressgateway,istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}'
-		podList := corev1.PodList{}
-		listOptions := client.MatchingLabels{"app": "nginxService-ingressgateway", "nginxService": "ingressgateway"}
-		err := c.List(context.TODO(), &podList, listOptions)
-		if err != nil {
-			return "", err
-		}
-		if len(podList.Items) == 0 {
-			return "", goerrors.New("Unable to find Istio ingressway pod")
-		}
-		ipAddress = podList.Items[0].Status.HostIP
+		ipAddress = "127.0.0.1"
 	} else {
-		return "", fmt.Errorf("Unsupported service type %s for istio_ingress", string(nginxService.Spec.Type))
+		return "", fmt.Errorf("Unsupported service type %s for Nginx ingress", string(nginxService.Spec.Type))
 	}
 	domain := ipAddress + "." + "xip.io"
 	return domain, nil
