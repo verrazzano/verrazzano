@@ -144,7 +144,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// mutate the Coherence resource, copy labels, add logging, etc.
-	copyLabels(workload.ObjectMeta.GetLabels(), u)
+	if err = copyLabels(log, workload.ObjectMeta.GetLabels(), u); err != nil {
+		return reconcile.Result{}, err
+	}
 
 	spec, found, _ := unstructured.NestedMap(u.Object, "spec")
 	if !found {
@@ -194,8 +196,11 @@ func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedNam
 }
 
 // copyLabels copies specific labels from the Verrazzano workload to the contained Coherence resource
-func copyLabels(workloadLabels map[string]string, coherence *unstructured.Unstructured) {
-	labels := map[string]string{}
+func copyLabels(log logr.Logger, workloadLabels map[string]string, coherence *unstructured.Unstructured) error {
+	labels, found, _ := unstructured.NestedStringMap(coherence.Object, "spec", "labels")
+	if !found {
+		labels = map[string]string{}
+	}
 
 	// copy the oam component and app name labels
 	if componentName, ok := workloadLabels[oam.LabelAppComponent]; ok {
@@ -206,7 +211,13 @@ func copyLabels(workloadLabels map[string]string, coherence *unstructured.Unstru
 		labels[oam.LabelAppName] = appName
 	}
 
-	coherence.SetLabels(labels)
+	err := unstructured.SetNestedStringMap(coherence.Object, labels, "spec", "labels")
+	if err != nil {
+		log.Error(err, "Unable to set labels in spec")
+		return err
+	}
+
+	return nil
 }
 
 // disableIstioInjection sets the sidecar.istio.io/inject annotation to false since Coherence does not work with Istio

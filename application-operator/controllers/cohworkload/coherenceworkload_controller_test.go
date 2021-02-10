@@ -5,7 +5,6 @@ package cohworkload
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -83,8 +82,7 @@ func TestReconcileCreateCoherence(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-coherence-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-			labelsJSON, _ := json.Marshal(labels)
-			coherenceJSON := `{"metadata":{"name":"unit-test-cluster","labels":` + string(labelsJSON) + `},"spec":{"replicas":3}}`
+			coherenceJSON := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(coherenceJSON)}
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.GroupVersion.String()
@@ -114,7 +112,8 @@ func TestReconcileCreateCoherence(t *testing.T) {
 			assert.Equal(coherenceKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied
-			assert.Equal(labels, u.GetLabels())
+			specLabels, _, _ := unstructured.NestedStringMap(u.Object, "spec", "labels")
+			assert.Equal(labels, specLabels)
 
 			// make sure sidecar.istio.io/inject annotation was added
 			annotations, _, _ := unstructured.NestedStringMap(u.Object, "spec", "annotations")
