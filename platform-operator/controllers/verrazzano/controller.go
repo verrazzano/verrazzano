@@ -428,7 +428,7 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 	case installv1alpha1.UpgradeStarted:
 		cr.Status.State = installv1alpha1.Upgrading
 	case installv1alpha1.InstallComplete:
-		domain, err := getDomain(r.Client)
+		domain, err := buildDomain(r.Client)
 		if err != nil {
 			return err
 		}
@@ -625,8 +625,8 @@ func removeString(slice []string, s string) (result []string) {
 	return
 }
 
-// getDomain Build the DNS Domain from the current install
-func getDomain(c client.Client) (string, error) {
+// buildDomain Build the DNS Domain from the current install
+func buildDomain(c client.Client) (string, error) {
 	const authRealmKey = "nginx.ingress.kubernetes.io/auth-realm"
 	const rancherIngress = "rancher"
 	const rancherNamespace = "cattle-system"

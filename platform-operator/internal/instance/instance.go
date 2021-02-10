@@ -1,4 +1,4 @@
-// Copyright (C) 2020, Oracle and/or its affiliates.
+// Copyright (C) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package instance
@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-// GetInstanceInfo returns a single instance identified by the secret Kubernetes UID.
+// GetInstanceInfo returns the instance info for the local install.
 func GetInstanceInfo(envName string, dnsSuffix string) *v1alpha1.InstanceInfo {
 	vzURI := getVerrazzanoURI(envName, dnsSuffix)
 	return &v1alpha1.InstanceInfo{
