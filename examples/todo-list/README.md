@@ -5,11 +5,14 @@ For more information and the source code of this application, see the [Verrazzan
 
 ## Prerequisites
 
-Install Verrazzano following the [installation instructions](https://verrazzano.io/docs/setup/install/installation/).
+* Install Verrazzano following the [installation instructions](https://verrazzano.io/docs/setup/install/installation/).
+* In order to be able to download the example image, you must first accept the license agreement.
+  * In a browser navigate to https://container-registry.oracle.com/ and sign in.
+  * Search for `example-todo` and select the image name in the results.
+  * Click Continue, then read and accept the license agreement.
 
 The ToDo List application deployment artifacts are contained in the Verrazzano project located at
-`<VERRAZZANO_HOME>/examples/todo-list`, where `<VERRAZZANO_HOME>` is the root of the Verrazzano project.
-
+`<VERRAZZANO_HOME>/examples/todo-list`, where `<VERRAZZANO_HOME>` is the root of the Verrazzano project.\
 **NOTE:** All files and paths in this document are relative to
 `<VERRAZZANO_HOME>/examples/todo-list`.
 
