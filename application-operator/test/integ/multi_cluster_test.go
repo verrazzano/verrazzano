@@ -5,11 +5,12 @@ package integ_test
 
 import (
 	"fmt"
+	"reflect"
+	"time"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/application-operator/test/integ/util"
-	"reflect"
-	"time"
 )
 
 const (
