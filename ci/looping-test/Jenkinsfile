@@ -240,9 +240,9 @@ pipeline {
                 always {
                     sh """
                         ## dump out install logs
-                        mkdir -p ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/build/logs
-                        kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
-                        kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+                        mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
+                        kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
+                        kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
                         echo "Verrazzano Installation logs dumped to verrazzano-install.log"
                         echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
                         echo "------------------------------------------"
@@ -275,9 +275,9 @@ pipeline {
                 always {
                     sh """
                         ## dump out uninstall logs
-                        mkdir -p ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/uninstall/build/logs
-                        kubectl logs --selector=job-name=verrazzano-uninstall-my-verrazzano > ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log --tail -1
-                        kubectl describe pod --selector=job-name=verrazzano-uninstall-my-verrazzano > ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
+                        mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/uninstall/build/logs
+                        kubectl logs --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log --tail -1
+                        kubectl describe pod --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
                     """
                 }
             }
