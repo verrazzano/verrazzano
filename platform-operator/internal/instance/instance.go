@@ -8,27 +8,20 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"strings"
-
-	//clusterPkg "github.com/verrazzano/verrazzano-operator/pkg/api/clusters"
-	//"github.com/verrazzano/verrazzano-operator/pkg/util"
-	"go.uber.org/zap"
 )
 
 // GetInstanceInfo returns a single instance identified by the secret Kubernetes UID.
-func GetInstanceInfo(name string, version string, envName string, dnsSuffix string) *v1alpha1.InstanceInfo {
-	zap.S().Infow("GET /instance")
-
+func GetInstanceInfo(envName string, dnsSuffix string) *v1alpha1.InstanceInfo {
 	vzURI := getVerrazzanoURI(envName, dnsSuffix)
-
 	return &v1alpha1.InstanceInfo{
-		Console:          getConsoleURL(vzURI),
-		VzAPIURL:         deriveURL(vzURI,"api"),
-		RancherURL:       deriveURL(vzURI,"rancher"),
-		ElasticURL:       getElasticURL(vzURI),
-		KibanaURL:        getKibanaURL(vzURI),
-		GrafanaURL:       getGrafanaURL(vzURI),
-		PrometheusURL:    getPrometheusURL(vzURI),
-		KeyCloakURL:      getKeyCloakURL(vzURI),
+		Console:       getConsoleURL(vzURI),
+		VzAPIURL:      deriveURL(vzURI, "api"),
+		RancherURL:    deriveURL(vzURI, "rancher"),
+		ElasticURL:    getElasticURL(vzURI),
+		KibanaURL:     getKibanaURL(vzURI),
+		GrafanaURL:    getGrafanaURL(vzURI),
+		PrometheusURL: getPrometheusURL(vzURI),
+		KeyCloakURL:   getKeyCloakURL(vzURI),
 	}
 }
 
@@ -47,30 +40,30 @@ func deriveURL(verrazzanoURI string, component string) *string {
 
 // GetKeyCloakURL returns Keycloak URL
 func getKeyCloakURL(verrazzanoURI string) *string {
-	return deriveURL(verrazzanoURI,"keycloak")
+	return deriveURL(verrazzanoURI, "keycloak")
 }
 
 // GetKibanaURL returns Kibana URL
 func getKibanaURL(verrazzanoURI string) *string {
-	return deriveURL(verrazzanoURI,"kibana.vmi.system")
+	return deriveURL(verrazzanoURI, "kibana.vmi.system")
 }
 
 // GetGrafanaURL returns Grafana URL
 func getGrafanaURL(verrazzanoURI string) *string {
-	return deriveURL(verrazzanoURI,"grafana.vmi.system")
+	return deriveURL(verrazzanoURI, "grafana.vmi.system")
 }
 
 // GetPrometheusURL returns Prometheus URL
 func getPrometheusURL(verrazzanoURI string) *string {
-	return deriveURL(verrazzanoURI,"prometheus.vmi.system")
+	return deriveURL(verrazzanoURI, "prometheus.vmi.system")
 }
 
 // GetElasticURL returns Elasticsearch URL
 func getElasticURL(verrazzanoURI string) *string {
-	return deriveURL(verrazzanoURI,"elasticsearch.vmi.system")
+	return deriveURL(verrazzanoURI, "elasticsearch.vmi.system")
 }
 
 // GetConsoleURL returns the Verrazzano Console URL
 func getConsoleURL(verrazzanoURI string) *string {
-	return deriveURL(verrazzanoURI,"verrazzano")
+	return deriveURL(verrazzanoURI, "verrazzano")
 }

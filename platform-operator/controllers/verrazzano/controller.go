@@ -433,8 +433,6 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 			return err
 		}
 		cr.Status.Instance = instance.GetInstanceInfo(
-			cr.Name,
-			cr.Status.Version,
 			cr.Spec.EnvironmentName,
 			domain,
 		)
@@ -637,7 +635,7 @@ func getDomain(c client.Client) (string, error) {
 	ingress := k8net.Ingress{}
 	err := c.Get(context.TODO(), types.NamespacedName{Name: rancherIngress, Namespace: rancherNamespace}, &ingress)
 	if err != nil {
-		return "",  err
+		return "", err
 	}
 	authRealmAnno, ok := ingress.Annotations[authRealmKey]
 	if !ok || len(authRealmAnno) == 0 {
@@ -661,7 +659,6 @@ func getDomain(c client.Client) (string, error) {
 func buildSystemDomainNameForXIPIO(c client.Client) (string, error) {
 	const nginxIngressController = "ingress-controller-ingress-nginx-controller"
 	const nginxNamespace = "ingress-nginx"
-
 
 	nginxService := corev1.Service{}
 	err := c.Get(context.TODO(), types.NamespacedName{Name: nginxIngressController, Namespace: nginxNamespace}, &nginxService)
