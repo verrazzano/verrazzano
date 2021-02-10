@@ -176,9 +176,14 @@ func DNSSuffix() (string, error) {
 	}
 
 	if clusterType == CLUSTER_TYPE_KIND {
-		return kindIngress() + ".xip.io", nil
+		return "127.0.0.1.xip.io", nil
 	} else if clusterType == CLUSTER_TYPE_OKE_MAGICDNS {
-		return okeIngress() + ".xip.io", nil
+		consoleIngress, err := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-console-ingress", metav1.GetOptions{})
+		if err != nil {
+			return "", err
+		}
+
+		return consoleIngress.Status.LoadBalancer.Ingress[0].IP + ".xip.io", nil
 	} else if clusterType == CLUSTER_TYPE_OKE_OCIDNS {
 		dnsZoneName, ok := os.LookupEnv("OCI_DNS_ZONE_NAME")
 		if !ok {

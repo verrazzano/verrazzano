@@ -11,10 +11,13 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var serverUrl = "https://verrazzano." + pkg.EnvName + "." + pkg.DnsZone
-
 var _ = ginkgo.Describe("Verrazzano Web UI",
 	func() {
+		dnsSuffix, err := pkg.DNSSuffix()
+		if err != nil {
+			ginkgo.Fail(err.Error())
+		}
+		var serverUrl = "https://verrazzano." + pkg.EnvName + "." + dnsSuffix
 		pkg.Log(pkg.Info, "The Web UI's URL is "+serverUrl)
 
 		ginkgo.It("can be accessed", func() {
