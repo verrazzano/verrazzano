@@ -22,6 +22,7 @@ import (
 const MultiClusterNamespace = "verrazzano-mc"
 
 var getClientFunc = getClient
+var _ webhook.Validator = &VerrazzanoManagedCluster{}
 
 // SetupWebhookWithManager is used to let the controller manager know about the webhook
 func (v *VerrazzanoManagedCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -29,8 +30,6 @@ func (v *VerrazzanoManagedCluster) SetupWebhookWithManager(mgr ctrl.Manager) err
 		For(v).
 		Complete()
 }
-
-var _ webhook.Validator = &VerrazzanoManagedCluster{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (v *VerrazzanoManagedCluster) ValidateCreate() error {
@@ -48,12 +47,10 @@ func (v *VerrazzanoManagedCluster) ValidateCreate() error {
 	if err != nil {
 		return err
 	}
-
 	err = v.validateSecret(client)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -69,7 +66,6 @@ func (v *VerrazzanoManagedCluster) ValidateUpdate(old runtime.Object) error {
 	oldResource := old.(*VerrazzanoManagedCluster)
 	log.Debugf("oldResource: %v", oldResource)
 	log.Debugf("v: %v", v)
-
 	return nil
 }
 
@@ -85,7 +81,6 @@ func getClient() (client.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return client.New(config, client.Options{Scheme: newScheme()})
 }
 
