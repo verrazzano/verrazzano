@@ -119,12 +119,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			APIVersion: deploy.GetObjectKind().GroupVersionKind().GroupVersion().String(),
 			Kind:       deploy.GetObjectKind().GroupVersionKind().Kind,
 			Name:       deploy.GetName(),
+			Namespace: 	deploy.GetNamespace(),
 			Role:       "Deployment",
 		},
 		vzapi.QualifiedResourceRelation{
 			APIVersion: service.GetObjectKind().GroupVersionKind().GroupVersion().String(),
 			Kind:       service.GetObjectKind().GroupVersionKind().Kind,
 			Name:       service.GetName(),
+			Namespace: 	service.GetNamespace(),
 			Role:       "Service",
 		},
 	)
