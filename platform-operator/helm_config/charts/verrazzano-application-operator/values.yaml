@@ -9,6 +9,6 @@ global:
 # NOTE: The image value gets set in the override file verrazzano-application-operator-values.yaml
 # during the platform operator docker image build.
 image:
-imagePullPolicy: Always
+imagePullPolicy: IfNotPresent
 
 requestMemory: 72Mi
