@@ -34,7 +34,7 @@ pipeline {
                         sh """
                              echo '>>>>> Kubernetes Version ${kversion}'
                         """
-                        build job: 'verrazzano-new-kind-acceptance-tests',
+                        build job: 'verrazzano-new-kind-acceptance-tests/pabhat%2FVZ-2070',
                             parameters: [
                                 string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
                                 string(name: 'KUBERNETES_CLUSTER_VERSION', value: kversion)
