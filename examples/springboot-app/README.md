@@ -4,7 +4,7 @@ This example provides a simple web application developed using Spring Boot. For 
 
 ## Prerequisites
 
-Install Verrazzano following the [installation instructions](../../README.md).
+Install Verrazzano following the [installation instructions](https://verrazzano.io/docs/setup/install/installation/).
 
   The Spring Boot example application deployment artifacts are contained in the Verrazzano project located at `<VERRAZZANO_HOME>/examples/springboot-app`, where `VERRAZZANO_HOME` is the root of the Verrazzano project.
 
@@ -48,7 +48,7 @@ Install Verrazzano following the [installation instructions](../../README.md).
 	 curl -H "Host: springboot.example.com" http://11.22.33.44/facts
      ```
    * **Local testing with a browser** \
-     Temporarily modify the `/etc/hosts` file (on Mac or Linux)
+     Temporarily, modify the `/etc/hosts` file (on Mac or Linux)
      or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10),
      to add an entry mapping `springboot.example.com` to the ingress gateway's `EXTERNAL-IP` address.
      For example:

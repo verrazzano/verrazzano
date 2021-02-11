@@ -38,12 +38,6 @@ spec:
               value: {{ .Values.clusterOperator.rancherHostname }}
             - name: USE_SYSTEM_VMI
               value: {{ .Values.appBinding.useSystemVMI | quote }}
-            - name: COH_MICRO_IMAGE
-              value: {{ .Values.verrazzanoOperator.cohMicroImage }}
-            - name: HELIDON_MICRO_IMAGE
-              value: {{ .Values.verrazzanoOperator.helidonMicroImage }}
-            - name: WLS_MICRO_IMAGE
-              value: {{ .Values.verrazzanoOperator.wlsMicroImage }}
             - name: PROMETHEUS_PUSHER_IMAGE
               value: {{ .Values.verrazzanoOperator.prometheusPusherImage }}
             - name: NODE_EXPORTER_IMAGE
@@ -52,16 +46,8 @@ spec:
               value: {{ .Values.verrazzanoOperator.filebeatImage }}
             - name: JOURNALBEAT_IMAGE
               value: {{ .Values.verrazzanoOperator.journalbeatImage }}
-            - name: WEBLOGIC_OPERATOR_IMAGE
-              value: {{ .Values.verrazzanoOperator.weblogicOperatorImage }}
             - name: FLUENTD_IMAGE
               value: {{ .Values.verrazzanoOperator.fluentdImage }}
-            - name: COH_MICRO_REQUEST_MEMORY
-              value: {{ .Values.verrazzanoOperator.cohMicroRequestMemory }}
-            - name: HELIDON_MICRO_REQUEST_MEMORY
-              value: {{ .Values.verrazzanoOperator.helidonMicroRequestMemory }}
-            - name: WLS_MICRO_REQUEST_MEMORY
-              value: {{ .Values.verrazzanoOperator.wlsMicroRequestMemory }}
             - name: ES_MASTER_NODE_REQUEST_MEMORY
               value: {{ .Values.elasticSearch.nodes.master.requests.memory }}
             - name: ES_INGEST_NODE_REQUEST_MEMORY
@@ -135,9 +121,6 @@ rules:
       - verrazzano.io
     resources:
       - verrazzanomonitoringinstances
-      - wlsoperators
-      - helidonapps
-      - cohclusters
     verbs:
       - get
       - list
@@ -185,14 +168,6 @@ rules:
       - statefulsets
     verbs:
       - '*'
-  - apiGroups:
-      - apps
-    resources:
-      - deployments/finalizers
-    resourceNames:
-      - coherence-operator
-    verbs:
-      - update
   - apiGroups:
       - extensions
     resources:
@@ -259,35 +234,6 @@ rules:
       - customresourcedefinitions
     verbs:
       - '*'
-  - apiGroups:
-      - coherence.oracle.com
-    resources:
-      - '*'
-    verbs:
-      - '*'
-  - apiGroups:
-      - weblogic.oracle
-    resources:
-      - domains
-    verbs:
-      - get
-      - list
-      - watch
-      - update
-      - create
-      - delete
-      - patch
-      - deletecollection
-  - apiGroups:
-      - weblogic.oracle
-    resources:
-      - domains/status
-    verbs:
-      - get
-      - list
-      - watch
-      - update
-      - patch
   - apiGroups:
       - batch
     resources:
