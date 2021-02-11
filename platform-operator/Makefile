@@ -200,7 +200,7 @@ integ-test: create-cluster
 	echo 'Deploy verrazzano platform operator ...'
 ifdef JENKINS_URL
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
-	kubectl apply -f deploy/operator.yaml || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d platform-operator-integ-cluster-dump;)
+	kubectl apply -f deploy/operator.yaml || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d platform-operator-integ-cluster-dump; exit 1)
 else
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	mkdir -p build/deploy
