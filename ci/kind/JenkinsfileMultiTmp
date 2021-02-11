@@ -22,7 +22,7 @@ pipeline {
     }
 
     environment {
-        KUBERNETES_VERSION = '1.17, 1.18, 1.19, 1.20'
+        KUBERNETES_VERSION = '1.17,1.18,1.19,1.20'
     }
 
     stages {
