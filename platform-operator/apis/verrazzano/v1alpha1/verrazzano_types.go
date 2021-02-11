@@ -89,19 +89,19 @@ type VolumeClaimSpecTemplate struct {
 
 // InstanceInfo details of installed Verrazzano instance maintained in status field
 type InstanceInfo struct {
-	// Console The console URL for this instance
+	// Console The Console URL for this Verrazzano installation
 	Console *string `json:"consoleUrl,omitempty"`
-	// KeyCloakURL The KeyCloak URL for this instance
+	// KeyCloakURL The KeyCloak URL for this Verrazzano installation
 	KeyCloakURL *string `json:"keyCloakUrl,omitempty"`
-	// RancherURL The Rancher URL for this instance
+	// RancherURL The Rancher URL for this Verrazzano installation
 	RancherURL *string `json:"rancherUrl,omitempty"`
-	// ElasticURL The Elasticsearch URL for this instance
+	// ElasticURL The Elasticsearch URL for this Verrazzano installation
 	ElasticURL *string `json:"elasticUrl,omitempty"`
-	// KibanaURL The Kibana URL for this instance
+	// KibanaURL The Kibana URL for this Verrazzano installation
 	KibanaURL *string `json:"kibanaUrl,omitempty"`
-	// GrafanaURL The Grafana URL for this instance
+	// GrafanaURL The Grafana URL for this Verrazzano installation
 	GrafanaURL *string `json:"grafanaUrl,omitempty"`
-	// PrometheusURL The console URL for this instance
+	// PrometheusURL The Prometheus URL for this Verrazzano installation
 	PrometheusURL *string `json:"prometheusUrl,omitempty"`
 }
 

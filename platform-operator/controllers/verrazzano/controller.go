@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/instance"
 	"os"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzinstance"
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -430,7 +430,7 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 			// An error building the instance info is non-fatal, log and continue
 			log.Errorf("Error obtaining DNS domain for installed instance, %v", err)
 		} else {
-			cr.Status.VerrazzanoInstance = instance.GetInstanceInfo(domain)
+			cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(domain)
 		}
 		fallthrough
 	case installv1alpha1.UninstallComplete, installv1alpha1.UpgradeComplete:

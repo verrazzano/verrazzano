@@ -3008,25 +3008,28 @@ spec:
                 description: The Verrazzano instance info
                 properties:
                   consoleUrl:
-                    description: Console The console URL for this instance
+                    description: Console The Console URL for this Verrazzano installation
                     type: string
                   elasticUrl:
-                    description: ElasticURL The Elasticsearch URL for this instance
+                    description: ElasticURL The Elasticsearch URL for this Verrazzano
+                      installation
                     type: string
                   grafanaUrl:
-                    description: GrafanaURL The Grafana URL for this instance
+                    description: GrafanaURL The Grafana URL for this Verrazzano installation
                     type: string
                   keyCloakUrl:
-                    description: KeyCloakURL The KeyCloak URL for this instance
+                    description: KeyCloakURL The KeyCloak URL for this Verrazzano
+                      installation
                     type: string
                   kibanaUrl:
-                    description: KibanaURL The Kibana URL for this instance
+                    description: KibanaURL The Kibana URL for this Verrazzano installation
                     type: string
                   prometheusUrl:
-                    description: PrometheusURL The console URL for this instance
+                    description: PrometheusURL The Prometheus URL for this Verrazzano
+                      installation
                     type: string
                   rancherUrl:
-                    description: RancherURL The Rancher URL for this instance
+                    description: RancherURL The Rancher URL for this Verrazzano installation
                     type: string
                 type: object
               state:
