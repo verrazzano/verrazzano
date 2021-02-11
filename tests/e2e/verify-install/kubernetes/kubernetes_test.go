@@ -32,7 +32,6 @@ var expectedPodsIngressNginx = []string{
 	"ingress-controller-ingress-nginx-defaultbackend"}
 
 var expectedPodsVerrazzanoSystemMinimal = []string{
-	"verrazzano-admission-controller",
 	"verrazzano-cluster-operator",
 	"verrazzano-console",
 	"verrazzano-monitoring-operator",

@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package controllers
+package verrazzano
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/component"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -18,7 +18,7 @@ import (
 const failedUpgradeLimit = 2
 
 // Reconcile upgrade will upgrade the components as required
-func (r *VerrazzanoReconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	// Upgrade version was validated in webhook, see ValidateVersion
 	targetVersion := cr.Spec.Version
 

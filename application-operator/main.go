@@ -13,6 +13,7 @@ import (
 	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	clusterscontroller "github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
@@ -169,6 +170,14 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoWebLogicWorkload")
+		os.Exit(1)
+	}
+	if err = (&clusterscontroller.MultiClusterSecretReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterSecret"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterSecret")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
