@@ -4,12 +4,10 @@
 apiVersion: core.oam.dev/v1alpha2
 kind: WorkloadDefinition
 metadata:
-  name: verrazzanohelidonworkloads.oam.verrazzano.io
+  name: verrazzanoweblogicworkloads.oam.verrazzano.io
 spec:
   childResourceKinds:
-    - apiVersion: v1
-      kind: Deployment
-    - apiVersion: v1
-      kind: Service
+    - apiVersion: weblogic.oracle/v8
+      kind: Domain
   definitionRef:
-    name: verrazzanohelidonworkloads.oam.verrazzano.io
+    name: verrazzanoweblogicworkloads.oam.verrazzano.io

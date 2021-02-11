@@ -115,6 +115,10 @@ func TestReconcileCreateCoherence(t *testing.T) {
 
 			// make sure the OAM component and app name labels were copied
 			assert.Equal(labels, u.GetLabels())
+
+			// make sure sidecar.istio.io/inject annotation was added
+			annotations, _, _ := unstructured.NestedStringMap(u.Object, "spec", "annotations")
+			assert.Equal(annotations, map[string]string{"sidecar.istio.io/inject": "false"})
 			return nil
 		})
 
@@ -209,6 +213,10 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 			// make sure side car was added
 			sideCars, _, _ := unstructured.NestedSlice(u.Object, "spec", "sideCars")
 			assert.Equal(1, len(sideCars))
+
+			// make sure sidecar.istio.io/inject annotation was added
+			annotations, _, _ := unstructured.NestedStringMap(u.Object, "spec", "annotations")
+			assert.Equal(annotations, map[string]string{"sidecar.istio.io/inject": "false"})
 			return nil
 		})
 
@@ -306,6 +314,10 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			// make sure side car was added
 			sideCars, _, _ := unstructured.NestedSlice(u.Object, "spec", "sideCars")
 			assert.Equal(1, len(sideCars))
+
+			// make sure sidecar.istio.io/inject annotation was added
+			annotations, _, _ := unstructured.NestedStringMap(u.Object, "spec", "annotations")
+			assert.Equal(annotations, map[string]string{"sidecar.istio.io/inject": "false"})
 			return nil
 		})
 
@@ -320,8 +332,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 }
 
 // TestReconcileDeleteResources tests the happy path of reconciling a VerrazzanoCoherenceWorkload when
-// the workload is being deleted. We delete resources that were created for FLUENTD as well as
-// the Coherence CR we created.
+// the workload is being deleted.
 // GIVEN a VerrazzanoCoherenceWorkload resource is being deleted
 // WHEN the controller Reconcile function is called
 // THEN expect delete calls for resources we created
@@ -342,21 +353,6 @@ func TestReconcileDeleteResources(t *testing.T) {
 			workload.ObjectMeta.Finalizers = []string{finalizer}
 			workload.APIVersion = vzapi.GroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
-			return nil
-		})
-	// expect a call to list the FLUENTD config maps
-	cli.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
-			// one item in the list is enough to cause the FLUENTD code to try delete the config map
-			configMaps := list.(*unstructured.UnstructuredList)
-			configMaps.Items = []unstructured.Unstructured{{}}
-			return nil
-		})
-	// expect a call to delete the FLUENTD config map
-	cli.EXPECT().
-		Delete(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.DeleteOption) error {
 			return nil
 		})
 	// expect a call to delete the Coherence CR

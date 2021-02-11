@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
 	"os"
 
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
@@ -164,14 +165,14 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoCoherenceWorkload")
 		os.Exit(1)
 	}
-	//if err = (&helidonworkload.Reconciler{
-	//	Client: mgr.GetClient(),
-	//	Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoHelidonWorkload"),
-	//	Scheme: mgr.GetScheme(),
-	//}).SetupWithManager(mgr); err != nil {
-	//	setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoHelidonWorkload")
-	//	os.Exit(1)
-	//}
+	if err = (&wlsworkload.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoWebLogicWorkload"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoWebLogicWorkload")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")

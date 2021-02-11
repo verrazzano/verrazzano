@@ -1,16 +1,19 @@
-# OAM Helidon Sock Shop
+# Helidon Sock Shop
 
 This example application provides a [Helidon](https://helidon.io) implementation of the [Sock Shop Microservices Demo Application](https://microservices-demo.github.io/).
-It leverages OAM resources to define the application deployment.
+It uses OAM resources to define the application deployment.
+
+## Prerequisites
+
+Install Verrazzano following the [installation instructions](../../README.md).
+
+The Sock Shop application deployment artifacts are contained in the Verrazzano project located at
+`<VERRAZZANO_HOME>/examples/sockshop`, where `<VERRAZZANO_HOME>` is the root of the Verrazzano project.
+
+**NOTE:** All files and paths in this document are relative to
+`<VERRAZZANO_HOME>/examples/sockshop`.
 
 ## Deploy the Sock Shop application
-
-1. Prerequisites: Install Verrazzano following the [installation instructions](../../README.md).
-   The Sock Shop application deployment artifacts are contained in the Verrazzano project located at 
-   `<VERRAZZANO_HOME>/examples/sockshop`, where `<VERRAZZANO_HOME>` is the root of the Verrazzano project.
-
-   **NOTE:** All files and paths in this document are relative to 
-   `<VERRAZZANO_HOME>/examples/sockshop`.
 
 1. Create a namespace for the Sock Shop application and add a label identifying the namespace as managed by Verrazzano.
    ```
@@ -23,7 +26,7 @@ It leverages OAM resources to define the application deployment.
    kubectl apply -f sock-shop-comp.yaml
    kubectl apply -f sock-shop-app.yaml
    ```
-   
+
 1. Wait for the Sock Shop application to be ready.
    ```
    kubectl wait --for=condition=Ready pods --all -n sockshop --timeout=300s
@@ -33,7 +36,7 @@ It leverages OAM resources to define the application deployment.
 
 The Sock Shop microservices application implements REST API endpoints including the following:
 
-- `/catalogue` - Returns the sockshop catalogue.
+- `/catalogue` - Returns the sockshop catalog.
 This endpoint accepts the `GET` HTTP request method.
 - `/register` - POST `{
   "username":"xxx",
@@ -44,13 +47,13 @@ This endpoint accepts the `GET` HTTP request method.
 }` to create a user. This
 endpoint accepts the `POST` HTTP request method.
 
-NOTE:  This following set of instructions assumes you are using a kubernetes
-environment such as OKE.  Other environments or deployments may require alternate mechanisms for retrieving addresses, 
-ports, etc.
+**NOTE**:  The following instructions assume that you are using a Kubernetes
+environment, such as OKE.  Other environments or deployments may require alternative mechanisms for retrieving addresses,
+ports, and such.
 
 Follow these steps to test the endpoints:
 
-1. Get the `EXTERNAL_IP` address of the istio-ingressgateway service.  
+1. Get the `EXTERNAL_IP` address of the `istio-ingressgateway` service.  
 
    ```
    kubectl get service istio-ingressgateway -n istio-system
@@ -59,12 +62,12 @@ Follow these steps to test the endpoints:
    istio-ingressgateway   LoadBalancer   10.96.97.98   11.22.33.44   80:31380/TCP,443:31390/TCP   13d
    ```   
 
-1. The application is deployed by default with a host value of `sockshop.example.com`.
-   
+1. By default, the application is deployed with a host value of `sockshop.example.com`.
+
    There are several ways to access it:
    * **Using the command line**
 
-     Use the external IP provided by the previous step to call the following services:
+     Use the external IP provided in the previous step to call the following services:
 
      ```
      # Get catalogue
@@ -80,28 +83,28 @@ Follow these steps to test the endpoints:
      # Get cart items
      curl -i -H "Host: sockshop.example.com" http://"${SERVER}":"${PORT}"/carts/{username}/items
      ```
-   * **Local Testing with a Browser** 
-   
+   * **Local testing with a browser**
+
      Temporarily modify the `/etc/hosts` file (on Mac or Linux)
-     or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10), 
+     or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10),
      to add an entry mapping `sockshop.example.com` to the ingress gateway's `EXTERNAL-IP` address.
      For example:
      ```
      11.22.33.44 sockshop.example.com
      ```
-     Then, you can access the application in a browser at `http://sockshop.example.com/catalogue`
+     Then, you can access the application in a browser at `http://sockshop.example.com/catalogue`.
 
-   * **Using your own DNS Name:**
-   
-     * Point your own DNS name to the ingress gateway's `EXTERNAL-IP` address
-     * In this case, you would need to edit the `sock-shop-app.yaml` file 
-       to use the appropriate value under the `hosts` section (such as `yourhost.your.domain`), 
+   * **Using your own DNS name:**
+
+     * Point your own DNS name to the ingress gateway's `EXTERNAL-IP` address.
+     * In this case, you would need to edit the `sock-shop-app.yaml` file
+       to use the appropriate value under the `hosts` section (such as `yourhost.your.domain`),
        before deploying the Sock Shop application.
-     * Then, you can use a browser to access the application at `http://<yourhost.your.domain>/catalogue`
-   
-1. ## Troubleshooting
-    
-1. Verify that the application configuration, domain and ingress trait all exist.
+     * Then, you can use a browser to access the application at `http://<yourhost.your.domain>/catalogue`.
+
+## Troubleshooting
+
+1. Verify that the application configuration, domain, and ingress trait all exist.
    ```
    kubectl get ApplicationConfiguration -n sockshop
    kubectl get Domain -n sockshop
@@ -112,7 +115,7 @@ Follow these steps to test the endpoints:
    Note that this may take a few minutes and that you may see some of the services terminate and restart.
    ```
     kubectl get pods -n sockshop
-   
+
     NAME             READY   STATUS        RESTARTS   AGE
     carts-coh-0      1/1     Running       0          41s
     catalog-coh-0    1/1     Running       0          40s
@@ -120,20 +123,20 @@ Follow these steps to test the endpoints:
     payment-coh-0    1/1     Running       0          37s
     shipping-coh-0   1/1     Running       0          36s
     users-coh-0      1/1     Running       0          35s
-   ``` 
-1. A variety of endpoints are available to further explore the logs, metrics, etc assoicated with 
+   ```
+1. A variety of endpoints are available to further explore the logs, metrics, and such, associated with
 the deployed Sock Shop application.  Accessing them may require the following:
 
-    - The telemetry password: Run this command to get the password that was generated for the telemetry components:
+    - Run this command to get the password that was generated for the telemetry components:
         ```
         kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
-        ``` 
-        The associated username is 'verrazzano'
-   
-    - You will have to accept the certificates associated with the endpoints
-      
+        ```
+        The associated user name is `verrazzano`.
+
+    - You will have to accept the certificates associated with the endpoints.
+
     You can retrieve the list of available ingresses with following command:
-    
+
     ```
     kubectl get ing -n verrazzano-system
     NAME                         CLASS    HOSTS                                                    ADDRESS          PORTS     AGE
@@ -145,11 +148,14 @@ the deployed Sock Shop application.  Accessing them may require the following:
     vmi-system-prometheus        <none>   prometheus.vmi.system.default.140.238.94.217.xip.io      140.238.94.217   80, 443   7d2h
     vmi-system-prometheus-gw     <none>   prometheus-gw.vmi.system.default.140.238.94.217.xip.io   140.238.94.217   80, 443   7d2h
     ```  
-    
-    Some of the endpoints available (leveraging the ingress host information above):
-    
+
+    Using the ingress host information, some of the endpoints available are:
+
     | Description| Address | Credentials |
     | --- | --- | --- |
-    | Kibana | https://[vmi-system-kibana ingress host] | `verrazzano`/`telemetry-password` |
-    | Grafana | https://[vmi-system-grafana ingress host] | `verrazzano`/`telemetry-password` |
-    | Prometheus | https://[vmi-system-prometheus ingress host] | `verrazzano`/`telemetry-password` |    
+    | Kibana | `https://[vmi-system-kibana ingress host]` | `verrazzano`/`telemetry-password` |
+    | Grafana | `https://[vmi-system-grafana ingress host]` | `verrazzano`/`telemetry-password` |
+    | Prometheus | `https://[vmi-system-prometheus ingress host]` | `verrazzano`/`telemetry-password` |    
+
+
+    Copyright (c) 2020, 2021, Oracle and/or its affiliates.

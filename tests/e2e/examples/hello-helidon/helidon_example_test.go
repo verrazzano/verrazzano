@@ -14,6 +14,11 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
+const (
+	longWaitTimeout      = 10 * time.Minute
+	longPollingInterval  = 20 * time.Second
+)
+
 var _ = ginkgo.BeforeSuite(func() {
 	if _, err := pkg.CreateNamespace("oam-hello-helidon", map[string]string{"verrazzano-managed": "true"}); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
@@ -100,6 +105,30 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 					gomega.Eventually(appConfigMetricsExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 				},
 			)
+		})
+	})
+
+	ginkgo.Context("Logging.", func() {
+		indexName := "oam-hello-helidon-hello-helidon-appconf-hello-helidon-component"
+
+		// GIVEN an application with logging enabled via a logging scope
+		// WHEN the Elasticsearch index is retrieved
+		// THEN verify that it is found
+		ginkgo.It("Verify Elasticsearch index exists", func() {
+			gomega.Eventually(func() bool {
+				return pkg.LogIndexFound(indexName)
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for hello helidon")
+		})
+
+		// GIVEN an application with logging enabled via a logging scope
+		// WHEN the log records are retrieved from the Elasticsearch index
+		// THEN verify that at least one recent log record is found
+		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
+			gomega.Eventually(func() bool {
+				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+					"oam.applicationconfiguration.namespace":  "oam-hello-helidon",
+					"oam.applicationconfiguration.name": "hello-helidon-appconf"})
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 		})
 	})
 })

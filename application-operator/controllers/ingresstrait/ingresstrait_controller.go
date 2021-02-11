@@ -251,6 +251,15 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 	var certName string
 	const istioNamespace = "istio-system"
 
+	//ensure trait does not specify hosts
+	for _, rule := range trait.Spec.Rules {
+		if len(rule.Hosts) != 0 {
+			r.Log.Info("host(s) specified in the trait rules will likely not correlate to the generated certificate CN." +
+				" Please redeploy after removing the hosts or specifying a secret with the given hosts in its SAN list")
+			break
+		}
+	}
+
 	certName, err = buildCertificateNameFromIngressTrait(trait)
 	if err != nil {
 		r.Log.Error(err, "failed to create certificate name from ingress trait")
@@ -269,6 +278,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 		if certName == "" {
 			return errors.New("certificate name not generated successfully")
 		}
+		r.Log.Info("Updating certificate spec with secret")
 		secretName = fmt.Sprintf("%s-secret", certName)
 		appDomainName, err := buildAppDomainName(r, trait)
 		if err != nil {
@@ -372,7 +382,14 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 			Tls: &istionet.ServerTLSSettings{
 				Mode:           istionet.ServerTLSSettings_SIMPLE,
 				CredentialName: secretName,
-			}}}
+			}},
+			{
+			Hosts: hosts,
+			Port: &istionet.Port{
+				Name:     "http",
+				Number:   80,
+				Protocol: "HTTP"},
+			}}
 		// Set the owner reference.
 		controllerutil.SetControllerReference(trait, gateway, r.Scheme)
 	}
