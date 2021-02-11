@@ -9,9 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/instance"
-	k8net "k8s.io/api/networking/v1beta1"
 	"os"
-	"strings"
 	"time"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -427,15 +425,12 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 	case installv1alpha1.UpgradeStarted:
 		cr.Status.State = installv1alpha1.Upgrading
 	case installv1alpha1.InstallComplete:
-		domain, err := buildDomain(r.Client)
+		domain, err := buildDomain(r.Client, cr)
 		if err != nil {
 			// An error building the instance info is non-fatal, log and continue
 			log.Errorf("Error obtaining DNS domain for installed instance, %v", err)
 		} else {
-			cr.Status.Instance = instance.GetInstanceInfo(
-				cr.Spec.EnvironmentName,
-				domain,
-			)
+			cr.Status.Instance = instance.GetInstanceInfo(domain)
 		}
 		fallthrough
 	case installv1alpha1.UninstallComplete, installv1alpha1.UpgradeComplete:
@@ -627,37 +622,37 @@ func removeString(slice []string, s string) (result []string) {
 }
 
 // buildDomain Build the DNS Domain from the current install
-func buildDomain(c client.Client) (string, error) {
-	const authRealmKey = "nginx.ingress.kubernetes.io/auth-realm"
-	const rancherIngress = "rancher"
-	const rancherNamespace = "cattle-system"
-
-	// Extract the domain name from the Rancher ingress
-	ingress := k8net.Ingress{}
-	err := c.Get(context.TODO(), types.NamespacedName{Name: rancherIngress, Namespace: rancherNamespace}, &ingress)
+func buildDomain(c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
+	subdomain := vz.Spec.EnvironmentName
+	if len(subdomain) == 0 {
+		subdomain = "default"
+	}
+	baseDomain, err := buildDomainSuffix(c, vz)
 	if err != nil {
 		return "", err
 	}
-	authRealmAnno, ok := ingress.Annotations[authRealmKey]
-	if !ok || len(authRealmAnno) == 0 {
-		return "", fmt.Errorf("Annotation %s missing from Rancher ingress, unable to generate DNS name", authRealmKey)
-	}
-	segs := strings.Split(strings.TrimSpace(authRealmAnno), " ")
-	domain := strings.TrimSpace(segs[0])
-
-	// If this is xip.io then build the domain name using ingress-nginx info
-	if strings.HasSuffix(domain, "xip.io") {
-		domain, err = buildSystemDomainNameForXIPIO(c)
-		if err != nil {
-			return "", err
-		}
-	}
+	domain := subdomain + "." + baseDomain
 	return domain, nil
 }
 
-// buildSystemDomainNameForXIPIO generates the system domain name in the format of "<IP>.xip.io"
-// Get the IP from ingress-nginx resources; the IP will be different than the application/Istio gateway
-func buildSystemDomainNameForXIPIO(c client.Client) (string, error) {
+// buildDomainSuffix Get the configured domain suffix, or compute the xip.io domain
+func buildDomainSuffix(c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
+	dns := vz.Spec.Components.DNS
+	if dns.OCI != (installv1alpha1.OCI{}) {
+		return dns.OCI.DNSZoneName, nil
+	}
+	if dns.External != (installv1alpha1.External{}) {
+		return dns.External.Suffix, nil
+	}
+	ipAddress, err := getIngressIP(c)
+	if err != nil {
+		return "", err
+	}
+	return ipAddress + ".xip.io", nil
+}
+
+// getIngressIP get the Ingress IP, used for the xip.io case
+func getIngressIP(c client.Client) (string, error) {
 	const nginxIngressController = "ingress-controller-ingress-nginx-controller"
 	const nginxNamespace = "ingress-nginx"
 
@@ -666,7 +661,6 @@ func buildSystemDomainNameForXIPIO(c client.Client) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var ipAddress string
 	if nginxService.Spec.Type == corev1.ServiceTypeLoadBalancer {
 		nginxIngress := nginxService.Status.LoadBalancer.Ingress
 		if len(nginxIngress) == 0 {
@@ -674,15 +668,11 @@ func buildSystemDomainNameForXIPIO(c client.Client) (string, error) {
 			if len(nginxService.Spec.ExternalIPs) == 0 {
 				return "", fmt.Errorf("%s is missing External IP address", nginxService.Name)
 			}
-			ipAddress = nginxService.Spec.ExternalIPs[0]
-		} else {
-			ipAddress = nginxIngress[0].IP
+			return nginxService.Spec.ExternalIPs[0], nil
 		}
+		return nginxIngress[0].IP, nil
 	} else if nginxService.Spec.Type == corev1.ServiceTypeNodePort {
-		ipAddress = "127.0.0.1"
-	} else {
-		return "", fmt.Errorf("Unsupported service type %s for Nginx ingress", string(nginxService.Spec.Type))
+		return "127.0.0.1", nil
 	}
-	domain := ipAddress + "." + "xip.io"
-	return domain, nil
+	return "", fmt.Errorf("Unsupported service type %s for Nginx ingress", string(nginxService.Spec.Type))
 }

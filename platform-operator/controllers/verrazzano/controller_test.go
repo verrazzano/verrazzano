@@ -19,7 +19,6 @@ import (
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	k8net "k8s.io/api/networking/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -115,6 +114,7 @@ func TestSuccessfulInstall(t *testing.T) {
 			verrazzano.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name}
+			verrazzano.Spec.Components.DNS.External.Suffix = "mydomain.com"
 			savedVerrazzano = verrazzano
 			return nil
 		})
@@ -168,15 +168,6 @@ func TestSuccessfulInstall(t *testing.T) {
 			job.Status = batchv1.JobStatus{
 				Succeeded: 1,
 			}
-			return nil
-		})
-
-	// Expect a call to get the Rancher ingress
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
-			ingress.Annotations = make(map[string]string, 1)
-			ingress.Annotations["nginx.ingress.kubernetes.io/auth-realm"] = "foo.v8o.oracledx.com auth"
 			return nil
 		})
 

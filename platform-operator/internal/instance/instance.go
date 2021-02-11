@@ -4,15 +4,13 @@
 package instance
 
 import (
-	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"strings"
 )
 
 // GetInstanceInfo returns the instance info for the local install.
-func GetInstanceInfo(envName string, dnsSuffix string) *v1alpha1.InstanceInfo {
-	vzURI := fmt.Sprintf("%s.%s", envName, dnsSuffix)
+func GetInstanceInfo(vzURI string) *v1alpha1.InstanceInfo {
 	return &v1alpha1.InstanceInfo{
 		Console:       deriveURL(vzURI, "verrazzano"),
 		VzAPIURL:      deriveURL(vzURI, "api"),

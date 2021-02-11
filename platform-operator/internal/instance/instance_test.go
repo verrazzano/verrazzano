@@ -11,16 +11,15 @@ import (
 )
 
 func TestGetInstanceInfo(t *testing.T) {
-	const dnsDomain = "testverrazzano.com"
-	const envName = "myenv"
-	instanceInfo := GetInstanceInfo(envName, dnsDomain)
+	const dnsDomain = "myenv.testverrazzano.com"
+	instanceInfo := GetInstanceInfo(dnsDomain)
 	assert.NotNil(t, instanceInfo)
-	assert.Equal(t, fmt.Sprintf("https://%s.%s.%s", "verrazzano", envName, dnsDomain), *instanceInfo.Console)
-	assert.Equal(t, fmt.Sprintf("https://%s.%s.%s", "rancher", envName, dnsDomain), *instanceInfo.RancherURL)
-	assert.Equal(t, fmt.Sprintf("https://%s.%s.%s", "api", envName, dnsDomain), *instanceInfo.VzAPIURL)
-	assert.Equal(t, fmt.Sprintf("https://%s.%s.%s", "keycloak", envName, dnsDomain), *instanceInfo.KeyCloakURL)
-	assert.Equal(t, fmt.Sprintf("https://%s.vmi.system.%s.%s", "elasticsearch", envName, dnsDomain), *instanceInfo.ElasticURL)
-	assert.Equal(t, fmt.Sprintf("https://%s.vmi.system.%s.%s", "grafana", envName, dnsDomain), *instanceInfo.GrafanaURL)
-	assert.Equal(t, fmt.Sprintf("https://%s.vmi.system.%s.%s", "kibana", envName, dnsDomain), *instanceInfo.KibanaURL)
-	assert.Equal(t, fmt.Sprintf("https://%s.vmi.system.%s.%s", "prometheus", envName, dnsDomain), *instanceInfo.PrometheusURL)
+	assert.Equal(t, fmt.Sprintf("https://%s.%s", "verrazzano", dnsDomain), *instanceInfo.Console)
+	assert.Equal(t, fmt.Sprintf("https://%s.%s", "rancher", dnsDomain), *instanceInfo.RancherURL)
+	assert.Equal(t, fmt.Sprintf("https://%s.%s", "api", dnsDomain), *instanceInfo.VzAPIURL)
+	assert.Equal(t, fmt.Sprintf("https://%s.%s", "keycloak", dnsDomain), *instanceInfo.KeyCloakURL)
+	assert.Equal(t, fmt.Sprintf("https://%s.vmi.system.%s", "elasticsearch", dnsDomain), *instanceInfo.ElasticURL)
+	assert.Equal(t, fmt.Sprintf("https://%s.vmi.system.%s", "grafana", dnsDomain), *instanceInfo.GrafanaURL)
+	assert.Equal(t, fmt.Sprintf("https://%s.vmi.system.%s", "kibana", dnsDomain), *instanceInfo.KibanaURL)
+	assert.Equal(t, fmt.Sprintf("https://%s.vmi.system.%s", "prometheus", dnsDomain), *instanceInfo.PrometheusURL)
 }
