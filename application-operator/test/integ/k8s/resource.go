@@ -188,7 +188,42 @@ func (c Client) GetMultiClusterSecret(namespace, name string) (*clustersv1alpha1
 	return &mcSecret, err
 }
 
-//GetSecret gets the specified K8S secret
+// GetSecret gets the specified K8S secret
 func (c Client) GetSecret(namespace, name string) (*corev1.Secret, error) {
 	return c.clientset.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// GetMultiClusterComponent gets the specified MultiClusterComponent
+func (c Client) GetMultiClusterComponent(namespace string, name string) (*clustersv1alpha1.MultiClusterComponent, error) {
+	bytes, err := c.clientset.RESTClient().
+		Get().
+		AbsPath("/apis/clusters.verrazzano.io/v1alpha1").
+		Namespace(namespace).
+		Resource("multiclustercomponents").
+		Name(name).
+		DoRaw(context.TODO())
+
+	if err != nil {
+		return nil, err
+	}
+	var mcComp clustersv1alpha1.MultiClusterComponent
+	err = json.Unmarshal(bytes, &mcComp)
+	return &mcComp, err
+}
+
+// GetOAMComponent gets the specified OAM Component
+func (c Client) GetOAMComponent(namespace string, name string) (*oamv1.Component, error) {
+	bytes, err := c.clientset.RESTClient().
+		Get().
+		AbsPath("/apis/core.oam.dev/v1alpha2").
+		Namespace(namespace).
+		Resource("components").
+		Name(name).
+		DoRaw(context.TODO())
+	if err != nil {
+		return nil, err
+	}
+	var comp oamv1.Component
+	err = json.Unmarshal(bytes, &comp)
+	return &comp, err
 }
