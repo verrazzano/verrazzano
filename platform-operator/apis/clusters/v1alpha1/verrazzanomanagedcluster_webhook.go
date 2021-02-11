@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
+// MultiClusterNamespace is the namespace that contains multi-cluster resources
 const MultiClusterNamespace = "verrazzano-mc"
 
 var getClientFunc = getClient

@@ -10,9 +10,9 @@ import (
 	"testing"
 )
 
-// TestCreate tests the validation of a valid VerrazzanoManagedCluster resource
+// TestCreateWithSecret tests the validation of a valid VerrazzanoManagedCluster secret
 // GIVEN a call validate VerrazzanoManagedCluster
-// WHEN the VerrazzanoManagedCluster has valid contents
+// WHEN the VerrazzanoManagedCluster has valid secret specified
 // THEN the validation should succeed
 func TestCreateWithSecret(t *testing.T) {
 	const secretName = "mySecret"
@@ -86,6 +86,6 @@ func TestCreateMissingSecret(t *testing.T) {
 		},
 	}
 	err := vz.ValidateCreate()
-	assert.EqualError(t, err, "Error getting the Prometheus secret mySecret namespace verrazzano-mc",
+	assert.EqualError(t, err, "The Prometheus secret mySecret does not exist in namespace verrazzano-mc",
 		"Expected correct error message for missing secret")
 }
