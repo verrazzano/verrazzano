@@ -4,9 +4,11 @@
 package reconcileresults
 
 import (
+	"reflect"
+
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	"reflect"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -83,14 +85,18 @@ func (s *ReconcileResults) CreateRelations() []v1alpha1.QualifiedResourceRelatio
 
 // RecordOutcome records the outcome of an operation during a reconcile.
 func (s *ReconcileResults) RecordOutcome(rel v1alpha1.QualifiedResourceRelation, res controllerutil.OperationResult, err error) {
-	s.Relations = append(s.Relations, rel)
-	s.Results = append(s.Results, res)
-	s.Errors = append(s.Errors, err)
+	// Don't record the inability to update a deleted resource as an error.
+	if err == nil || !apierrors.IsNotFound(err) {
+		s.Relations = append(s.Relations, rel)
+		s.Results = append(s.Results, res)
+		s.Errors = append(s.Errors, err)
+	}
 }
 
 // RecordOutcomeIfError records the outcome of an operation during a reconcile only the err is non-nil.
 func (s *ReconcileResults) RecordOutcomeIfError(rel v1alpha1.QualifiedResourceRelation, res controllerutil.OperationResult, err error) {
-	if err != nil {
+	// Don't record the inability to update a deleted resource as an error.
+	if err != nil && !apierrors.IsNotFound(err) {
 		s.Relations = append(s.Relations, rel)
 		s.Results = append(s.Results, res)
 		s.Errors = append(s.Errors, err)

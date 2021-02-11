@@ -5,7 +5,6 @@ package cohworkload
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -33,6 +32,8 @@ import (
 const namespace = "unit-test-namespace"
 const coherenceAPIVersion = "coherence.oracle.com/v1"
 const coherenceKind = "Coherence"
+
+var specJvmArgsFields = []string{specField, jvmField, argsField}
 
 // TestReconcilerSetupWithManager test the creation of the logging scope reconciler.
 // GIVEN a controller implementation
@@ -83,8 +84,7 @@ func TestReconcileCreateCoherence(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-coherence-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-			labelsJSON, _ := json.Marshal(labels)
-			coherenceJSON := `{"metadata":{"name":"unit-test-cluster","labels":` + string(labelsJSON) + `},"spec":{"replicas":3}}`
+			coherenceJSON := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(coherenceJSON)}
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.GroupVersion.String()
@@ -114,10 +114,11 @@ func TestReconcileCreateCoherence(t *testing.T) {
 			assert.Equal(coherenceKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied
-			assert.Equal(labels, u.GetLabels())
+			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specLabelsFields...)
+			assert.Equal(labels, specLabels)
 
 			// make sure sidecar.istio.io/inject annotation was added
-			annotations, _, _ := unstructured.NestedStringMap(u.Object, "spec", "annotations")
+			annotations, _, _ := unstructured.NestedStringMap(u.Object, specAnnotationsFields...)
 			assert.Equal(annotations, map[string]string{"sidecar.istio.io/inject": "false"})
 			return nil
 		})
@@ -207,15 +208,15 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 			assert.Equal(coherenceKind, u.GetKind())
 
 			// make sure JVM args were added
-			jvmArgs, _, _ := unstructured.NestedSlice(u.Object, "spec", "jvm", "args")
+			jvmArgs, _, _ := unstructured.NestedSlice(u.Object, specJvmArgsFields...)
 			assert.Equal(additionalJvmArgs, jvmArgs)
 
 			// make sure side car was added
-			sideCars, _, _ := unstructured.NestedSlice(u.Object, "spec", "sideCars")
+			sideCars, _, _ := unstructured.NestedSlice(u.Object, specField, "sideCars")
 			assert.Equal(1, len(sideCars))
 
 			// make sure sidecar.istio.io/inject annotation was added
-			annotations, _, _ := unstructured.NestedStringMap(u.Object, "spec", "annotations")
+			annotations, _, _ := unstructured.NestedStringMap(u.Object, specAnnotationsFields...)
 			assert.Equal(annotations, map[string]string{"sidecar.istio.io/inject": "false"})
 			return nil
 		})
@@ -307,16 +308,16 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			assert.Equal(coherenceKind, u.GetKind())
 
 			// make sure JVM args were added and that the existing arg is still present
-			jvmArgs, _, _ := unstructured.NestedStringSlice(u.Object, "spec", "jvm", "args")
+			jvmArgs, _, _ := unstructured.NestedStringSlice(u.Object, specJvmArgsFields...)
 			assert.Equal(len(additionalJvmArgs)+1, len(jvmArgs))
 			assert.True(controllers.StringSliceContainsString(jvmArgs, existingJvmArg))
 
 			// make sure side car was added
-			sideCars, _, _ := unstructured.NestedSlice(u.Object, "spec", "sideCars")
+			sideCars, _, _ := unstructured.NestedSlice(u.Object, specField, "sideCars")
 			assert.Equal(1, len(sideCars))
 
 			// make sure sidecar.istio.io/inject annotation was added
-			annotations, _, _ := unstructured.NestedStringMap(u.Object, "spec", "annotations")
+			annotations, _, _ := unstructured.NestedStringMap(u.Object, specAnnotationsFields...)
 			assert.Equal(annotations, map[string]string{"sidecar.istio.io/inject": "false"})
 			return nil
 		})
