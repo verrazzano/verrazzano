@@ -10,6 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestGetInstanceInfo tests buildDomain method
+// GIVEN a request to GetInstanceInfo
+// WHEN with a proper domain
+// THEN the an instance info struct is returned with the expected URLs
 func TestGetInstanceInfo(t *testing.T) {
 	const dnsDomain = "myenv.testverrazzano.com"
 	instanceInfo := GetInstanceInfo(dnsDomain)
@@ -22,4 +26,13 @@ func TestGetInstanceInfo(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("https://%s.vmi.system.%s", "grafana", dnsDomain), *instanceInfo.GrafanaURL)
 	assert.Equal(t, fmt.Sprintf("https://%s.vmi.system.%s", "kibana", dnsDomain), *instanceInfo.KibanaURL)
 	assert.Equal(t, fmt.Sprintf("https://%s.vmi.system.%s", "prometheus", dnsDomain), *instanceInfo.PrometheusURL)
+}
+
+// TestDeriveNegative tests buildDomain method
+// GIVEN a request to deriveURL
+// WHEN with an empty domain
+// THEN nil is returned
+func TestDeriveNegative(t *testing.T) {
+	url := deriveURL("", "foo")
+	assert.Nil(t, url)
 }
