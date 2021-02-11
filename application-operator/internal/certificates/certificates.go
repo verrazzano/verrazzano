@@ -28,8 +28,10 @@ const (
 	OperatorNamespace = "verrazzano-system"
 	// ValidatingWebhookName is the resource namespace for the Verrazzano ValidatingWebhook
 	ValidatingWebhookName = "verrazzano-application-ingresstrait-validator"
-	// MutatingWebhookName is the resource namespace for the Verrazzano MutatingWebhook
-	MutatingWebhookName = "verrazzano-application-appconfig-defaulter"
+	// AppConfigMutatingWebhookName is the resource namespace for the Verrazzano MutatingWebhook for appconfigs
+	AppConfigMutatingWebhookName = "verrazzano-application-appconfig-defaulter"
+	// PodMutatingWebhookName is the resource namespace for the Verrazzano MutatingWebhook for pods
+	PodMutatingWebhookName = "verrazzano-application-pod-defaulter"
 )
 
 // SetupCertificates creates the needed certificates for the validating webhook
@@ -175,10 +177,12 @@ func UpdateValidatingWebhookConfiguration(kubeClient kubernetes.Interface, caCer
 	return nil
 }
 
-// UpdateMutatingWebhookConfiguration sets the CABundle
-func UpdateMutatingWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer) error {
+// UpdateMutatingWebhookConfigurations sets the CABundle
+func UpdateMutatingWebhookConfigurations(kubeClient kubernetes.Interface, caCert *bytes.Buffer) error {
 	var webhook *adminv1beta1.MutatingWebhookConfiguration
-	webhook, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.TODO(), MutatingWebhookName, metav1.GetOptions{})
+
+	// First, we will update the mutating webhook for appconfigs
+	webhook, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.TODO(), AppConfigMutatingWebhookName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -187,5 +191,17 @@ func UpdateMutatingWebhookConfiguration(kubeClient kubernetes.Interface, caCert 
 	if err != nil {
 		return err
 	}
+
+	// Second, we will update the mutating webhook for pods
+	webhook, err = kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.TODO(), PodMutatingWebhookName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	webhook.Webhooks[0].ClientConfig.CABundle = caCert.Bytes()
+	_, err = kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Update(context.TODO(), webhook, metav1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
