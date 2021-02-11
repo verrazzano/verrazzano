@@ -482,7 +482,7 @@ func getProfile(profileType installv1alpha1.ProfileType) InstallProfile {
 
 // getVerrazzanoInstallArgs Set custom helm args for the Verrazzano internal component as needed
 func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.SugaredLogger) ([]InstallArg, error) {
-	args := make([]InstallArg, 10) // need to ensure the size grows as more args are added here
+	args := make([]InstallArg, 0, 10) // need to ensure the size grows as more args are added here
 	if vzSpec.DefaultVolumeSource != nil {
 		if vzSpec.DefaultVolumeSource.EmptyDir != nil {
 			args = append(args, []InstallArg{
@@ -530,7 +530,7 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.S
 	}
 	if vzSpec.Security.AdminBinding.Name != "" {
 		args = append(args, InstallArg{
-			Name:      "verrazzanoOperator.userrolebindings.admin.name",
+			Name:      "userrolebindings.admin.name",
 			Value:     vzSpec.Security.AdminBinding.Name,
 			SetString: true,
 		})
@@ -539,14 +539,14 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.S
 			k = "Group"
 		}
 		args = append(args, InstallArg{
-			Name:      "verrazzanoOperator.userrolebindings.admin.kind",
+			Name:      "userrolebindings.admin.kind",
 			Value:     k,
 			SetString: true,
 		})
 	}
 	if vzSpec.Security.MonitorBinding.Name != "" {
 		args = append(args, InstallArg{
-			Name:      "verrazzanoOperator.userrolebindings.monitor.name",
+			Name:      "userrolebindings.monitor.name",
 			Value:     vzSpec.Security.MonitorBinding.Name,
 			SetString: true,
 		})
@@ -555,7 +555,7 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.S
 			k = "Group"
 		}
 		args = append(args, InstallArg{
-			Name:      "verrazzanoOperator.userrolebindings.monitor.kind",
+			Name:      "userrolebindings.monitor.kind",
 			Value:     k,
 			SetString: true,
 		})
