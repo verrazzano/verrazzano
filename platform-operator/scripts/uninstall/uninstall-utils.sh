@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -42,6 +42,20 @@ function err_return() {
 
   error "$message"
   return "$exit_code"
+}
+
+# Deletes kubernetes resources from all namespaces
+# $1 resource-type - type of the resources being deleted
+function delete_k8s_resource_from_all_namespaces() {
+  local res=$1
+  if kubectl get crd "${res}"> /dev/null 2>&1 ; then
+    IFS=$'\n' read -r -d '' -a namespaces < <( kubectl get namespaces --no-headers -o custom-columns=":metadata.name" && printf '\0' )
+    for ns in "${namespaces[@]}" ; do
+      if ! kubectl delete "${res}" --namespace ${ns} --all > /dev/null 2>&1 ; then
+        log "Failed to delete ${res} from namespace ${ns}"
+      fi
+    done
+  fi
 }
 
 # utility function to delete kubernetes resources
