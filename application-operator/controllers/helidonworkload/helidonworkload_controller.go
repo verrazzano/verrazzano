@@ -55,7 +55,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("verrazzanohelidonworkload", req.NamespacedName)
-	log.Info("Reconciling verrazzano helidon workload")
+	log.Info("Reconciling VerrazzanoHelidonWorkload")
 
 	// fetch the workload
 	var workload vzapi.VerrazzanoHelidonWorkload
@@ -75,20 +75,20 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	deploy, err := r.convertWorkloadToDeployment(&workload)
 	if err != nil {
 		log.Error(err, "Failed to convert workload to deployment")
-		//TODO: OAM is doing Wait
+		//TODO: OAM is doing Wait and formatting error
 		return reconcile.Result{}, err
 	}
-	//TODO: make sure the namespace is set to the namespace of the component - was needed in coherence
-	//TODO: set the controller reference so that we can watch this deployment and it will be deleted automatically
-	/*if err := ctrl.SetControllerReference(&workload, deploy, r.Scheme); err != nil {
+
+	//set the controller reference so that we can watch this deployment and it will be deleted automatically
+	if err := ctrl.SetControllerReference(&workload, deploy, r.Scheme); err != nil {
 		return reconcile.Result{}, err
-	}*/
+	}
 
 	// server side apply, only the fields we set are touched
 	applyOpts := []client.PatchOption{client.ForceOwnership, client.FieldOwner(workload.GetUID())}
 	if err := r.Patch(ctx, deploy, client.Apply, applyOpts...); err != nil {
 		log.Error(err, "Failed to apply a deployment")
-		//TODO: OAM is doing Wait
+		//TODO: OAM is doing Wait and formatting error
 		return reconcile.Result{}, err
 	}
 
@@ -96,30 +96,53 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	service, err := r.createServiceFromDeployment(deploy)
 	if err != nil {
 		log.Error(err, "Failed to get service from a deployment")
-		//TODO: OAM is doing Wait
+		//TODO: OAM is doing Wait and formatting error
 		return reconcile.Result{}, err
 	}
-	//TODO: always set the controller reference so that we can watch this service and
-	/*if err := ctrl.SetControllerReference(&workload, service, r.Scheme); err != nil {
+	//set the controller reference so that we can watch this service and it will be deleted automatically
+	if err := ctrl.SetControllerReference(&workload, service, r.Scheme); err != nil {
 		return reconcile.Result{}, err
-	}*/
+	}
 
 	// server side apply the service
 	if err := r.Patch(ctx, service, client.Apply, applyOpts...); err != nil {
 		log.Error(err, "Failed to apply a service")
-		//TODO: OAM is doing Wait
+		//TODO: OAM is doing Wait and formatting error
+		return reconcile.Result{}, err
+	}
+
+	//TODO: OAM is doing garbage collect the service/deployments that we created but not needed
+	// record the new deployment, new service
+	workload.Status.Resources = nil
+	workload.Status.Resources = append(workload.Status.Resources,
+		vzapi.QualifiedResourceRelation{
+			APIVersion: deploy.GetObjectKind().GroupVersionKind().GroupVersion().String(),
+			Kind:       deploy.GetObjectKind().GroupVersionKind().Kind,
+			Name:       deploy.GetName(),
+			Role:       "Deployment",
+		},
+		vzapi.QualifiedResourceRelation{
+			APIVersion: service.GetObjectKind().GroupVersionKind().GroupVersion().String(),
+			Kind:       service.GetObjectKind().GroupVersionKind().Kind,
+			Name:       service.GetName(),
+			Role:       "Service",
+		},
+	)
+
+	if err := r.Status().Update(ctx, &workload); err != nil {
+		//TODO: OAM is doing Wait and formatting error
 		return reconcile.Result{}, err
 	}
 
 	log.Info("Successfully created Verrazzano Helidon workload")
-	return ctrl.Result{}, nil
+	return reconcile.Result{}, nil
 }
 
 //convertWorkloadToDeployment converts a VerrazzanoHelidonWorkload into a Deployment.
 func (r *Reconciler) convertWorkloadToDeployment(
 	workload *vzapi.VerrazzanoHelidonWorkload) (*appsv1.Deployment, error) {
 	//TODO: What if metadata and spec are not set?
-
+	//TODO: How to validate metadata and spec
 	d := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       deploymentKind,
@@ -127,10 +150,11 @@ func (r *Reconciler) convertWorkloadToDeployment(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: workload.Spec.DeploymentTemplate.Metadata.GetName(),
-			// make sure the namespace is set to the namespace of the component
+			//make sure the namespace is set to the namespace of the component
 			Namespace: workload.GetNamespace(),
 		},
 		Spec: appsv1.DeploymentSpec{
+			//setting label selector for pod that this deployment will manage
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					labelKey: string(workload.GetUID()),
@@ -138,31 +162,30 @@ func (r *Reconciler) convertWorkloadToDeployment(
 			},
 		},
 	}
-	//workload.Spec.DeploymentTemplate.Metadata.SetNamespace(workload.GetNamespace())
-	//workload.Spec.DeploymentTemplate.Metadata.DeepCopyInto(&d.ObjectMeta)
+	// Set metadata on deployment from workload spec's metadata
 	d.ObjectMeta.SetLabels(workload.Spec.DeploymentTemplate.Metadata.GetLabels())
 	d.ObjectMeta.SetAnnotations(workload.Spec.DeploymentTemplate.Metadata.GetAnnotations())
+	// Set replication deployment from workload spec
+	d.Spec.Replicas = workload.Spec.DeploymentTemplate.Replicas
+	// Set PodSpec on deployment's PodTemplate from workload spec
 	workload.Spec.DeploymentTemplate.PodSpec.DeepCopyInto(&d.Spec.Template.Spec)
-	//TODO: Set GUID from workload for controller reference work?
+	//making sure pods have same label as selector on deployment
 	d.Spec.Template.ObjectMeta.SetLabels(map[string]string{
 		labelKey: string(workload.GetUID()),
 	})
-	//k8s server-side patch complains if the protocol is not set
-	/*for i := 0; i < len(d.Spec.Template.Spec.Containers); i++ {
-		for j := 0; j < len(d.Spec.Template.Spec.Containers[i].Ports); j++ {
-			if len(d.Spec.Template.Spec.Containers[i].Ports[j].Protocol) == 0 {
-				d.Spec.Template.Spec.Containers[i].Ports[j].Protocol = corev1.ProtocolTCP
-			}
-		}
-	}*/
-	//TODO: pass through label and annotation from the workload to the deployment - done in OAM
-	//TODO: pass through label from the workload to the pod template - done in OAM
+	//k8s server-side patch complains if the protocol is not set on container port
+	//but since modified our CRD dont have to code to it
+
+	// pass through label and annotation from the workload to the deployment
+	passLabelAndAnnotation(workload, d)
+
 	if y, err := yaml.Marshal(d); err != nil {
 		r.Log.Error(err, "Failed to convert deployment to yaml")
 		r.Log.Info("Set deployment in json ", "DeploymentJson", d)
 	} else {
 		r.Log.Info("Set deployment in yaml ", "DeploymentYaml", string(y))
 	}
+
 	return d, nil
 }
 
@@ -215,4 +238,31 @@ func (r *Reconciler) createServiceFromDeployment(
 		return s, nil
 	}
 	return nil, nil
+}
+
+// passLabelAndAnnotation passes through labels and annotation objectMeta from the workload to the deployment object
+func passLabelAndAnnotation(workload *vzapi.VerrazzanoHelidonWorkload, deploy *appsv1.Deployment) {
+	// set app-config labels on deployment metadata
+	deploy.SetLabels(mergeMapOverrideWithDst(workload.GetLabels(), deploy.GetLabels()))
+	// set app-config labels on deployment/podtemplate metadata
+	deploy.Spec.Template.SetLabels(mergeMapOverrideWithDst(workload.GetLabels(), deploy.Spec.Template.GetLabels()))
+	// set app-config annotation on deployment metadata
+	deploy.SetAnnotations(mergeMapOverrideWithDst(workload.GetAnnotations(), deploy.GetAnnotations()))
+}
+
+// MergeMapOverrideWithDst merges two could be nil maps. If any conflicts, override src with dst.
+func mergeMapOverrideWithDst(src, dst map[string]string) map[string]string {
+	if src == nil && dst == nil {
+		return nil
+	}
+	r := make(map[string]string)
+	for k, v := range dst {
+		r[k] = v
+	}
+	for k, v := range src {
+		if _, exist := r[k]; !exist {
+			r[k] = v
+		}
+	}
+	return r
 }
