@@ -112,7 +112,7 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 			assert.Equal(weblogicKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied
-			specLabels, _, _ := unstructured.NestedStringMap(u.Object, "spec", "serverPod", "labels")
+			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
 			assert.Equal(labels, specLabels)
 			return nil
 		})
@@ -202,11 +202,11 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 			assert.Equal(weblogicKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied
-			specLabels, _, _ := unstructured.NestedStringMap(u.Object, "spec", "serverPod", "labels")
+			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
 			assert.Equal(labels, specLabels)
 
 			// make sure the FLUENTD sidecar was added
-			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
+			containers, _, _ := unstructured.NestedSlice(u.Object, specServerPodContainersFields...)
 			assert.Equal(1, len(containers))
 			assert.Equal(fluentdImage, containers[0].(map[string]interface{})["image"])
 			return nil
