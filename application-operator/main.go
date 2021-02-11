@@ -5,7 +5,6 @@ package main
 
 import (
 	"flag"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
 	"os"
 
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
@@ -21,6 +20,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/webhooks"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
