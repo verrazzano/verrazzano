@@ -45,10 +45,6 @@ if [ "$FORCE" = false ] ; then
   done
 fi
 
-action "Retrieving Verrazzano Applications" check_applications || exit 1
-echo -ne "$APPLICATION_RESOURCES" >&4
-prompt_delete_applications || exit 1
-
 section "Uninstalling Verrazzano Applications"
 $SCRIPT_DIR/uninstall-steps/0-uninstall-applications.sh || exit 1
 section "Uninstalling Keycloak..."
