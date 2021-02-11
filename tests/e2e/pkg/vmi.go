@@ -75,7 +75,7 @@ func getHttpClientWIthCABundle(caData []byte) *http.Client {
 		tr.Proxy = http.ProxyURL(tURLProxy)
 	}
 
-	ipResolve := getManagementClusterNodeIP()
+	ipResolve := getNginxNodeIP()
 	if ipResolve != "" {
 		dialer := &net.Dialer{
 			Timeout:   30 * time.Second,
@@ -94,8 +94,8 @@ func getHttpClientWIthCABundle(caData []byte) *http.Client {
 	return &http.Client{Transport: tr}
 }
 
-// If testing against KIND, returns the control-plane node ip ; "" otherwise
-func getManagementClusterNodeIP() string {
+// Returns the nginx controller node ip
+func getNginxNodeIP() string {
 	pods := ListPods("ingress-nginx")
 	for i := range pods.Items {
 		pod := pods.Items[i]

@@ -193,7 +193,7 @@ func getHTTPClientWIthCABundle(caData []byte) *http.Client {
 		tr.Proxy = http.ProxyURL(tURLProxy)
 	}
 
-	ipResolve := getNodeIP()
+	ipResolve := getNginxNodeIP()
 	if ipResolve != "" {
 		dialer := &net.Dialer{
 			Timeout:   30 * time.Second,
@@ -251,8 +251,8 @@ func doGetCACertFromSecret(secretName string, namespace string) []byte {
 	return certSecret.Data["ca.crt"]
 }
 
-// Returns the control-plane node ip
-func getNodeIP() string {
+// Returns the nginx controller node ip
+func getNginxNodeIP() string {
 	clientset := GetKubernetesClientset()
 	pods, err := clientset.CoreV1().Pods("ingress-nginx").List(context.TODO(), metav1.ListOptions{})
 	if err == nil {
