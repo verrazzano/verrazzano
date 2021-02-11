@@ -4,15 +4,11 @@
 package pkg
 
 import (
-	"context"
-	"crypto/tls"
 	"fmt"
-	"github.com/hashicorp/go-retryablehttp"
-	"net"
 	"net/http"
-	"net/url"
-	"strings"
 	"time"
+
+	"github.com/hashicorp/go-retryablehttp"
 )
 
 const (
@@ -54,55 +50,12 @@ func newRetryableHttpClient(client *http.Client) *retryablehttp.Client {
 	return retryableClient
 }
 
-
 func GetBindingVmiHttpClient(bindingName string) *retryablehttp.Client {
 	bindingVmiCaCert := getBindingVMICACert(bindingName)
-	vmiRawClient := getHttpClientWIthCABundle(bindingVmiCaCert)
+	vmiRawClient := getHTTPClientWIthCABundle(bindingVmiCaCert)
 	return newRetryableHttpClient(vmiRawClient)
 }
 
 func getBindingVMICACert(bindingName string) []byte {
 	return doGetCACertFromSecret(fmt.Sprintf("%v-tls", bindingName), "verrazzano-system")
-}
-
-func getHttpClientWIthCABundle(caData []byte) *http.Client {
-	tr := &http.Transport{TLSClientConfig: &tls.Config{RootCAs: rootCertPool(caData)}}
-
-	proxyURL := getProxyURL()
-	if proxyURL != "" {
-		tURL := url.URL{}
-		tURLProxy, _ := tURL.Parse(proxyURL)
-		tr.Proxy = http.ProxyURL(tURLProxy)
-	}
-
-	ipResolve := getNginxControllerNodeIP()
-	if ipResolve != "" {
-		dialer := &net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}
-		tr.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-			Log(Debug, fmt.Sprintf("original address %s", addr))
-			if strings.Contains(addr, "127.0.0.1") && strings.Contains(addr, ":443") {
-				addr = ipResolve + ":443"
-				Log(Debug, fmt.Sprintf("modified address %s", addr))
-			}
-			return dialer.DialContext(ctx, network, addr)
-		}
-	}
-
-	return &http.Client{Transport: tr}
-}
-
-// Returns the nginx controller node ip
-func getNginxControllerNodeIP() string {
-	pods := ListPods("ingress-nginx")
-	for i := range pods.Items {
-		pod := pods.Items[i]
-		if strings.HasPrefix(pod.Name, "ingress-controller-ingress-nginx-controller-") {
-			return pod.Status.HostIP
-		}
-	}
-
-	return ""
 }
