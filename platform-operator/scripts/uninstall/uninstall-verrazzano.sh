@@ -5,10 +5,9 @@
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 INSTALL_DIR=$SCRIPT_DIR/../install
-UNINSTALL_DIR=$SCRIPT_DIR/..
 
 . $INSTALL_DIR/common.sh
-. $UNINSTALL_DIR/uninstall-utils.sh
+. $SCRIPT_DIR/uninstall-utils.sh
 
 set -o pipefail
 
