@@ -32,7 +32,7 @@ var _ = ginkgo.AfterSuite(func() {
 
 var _ = ginkgo.Describe("verrazzano-install namespace resources ", func() {
 	ginkgo.It(fmt.Sprintf("Namespace %s exists", installNamespace), func() {
-		gomega.Expect(K8sClient.DoesNamespaceExist(installNamespace)).To(gomega.BeTrue(),
+		gomega.Expect(K8sClient.DoesNamespaceExist(installNamespace)).To(gomega.BeFalse(),
 			"The install-namespace should exist")
 	})
 	ginkgo.It(fmt.Sprintf("ServiceAccount %s exists", platformOperator), func() {
