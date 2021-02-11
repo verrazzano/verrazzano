@@ -148,59 +148,32 @@ var _ = ginkgo.Describe("VMI", func() {
 	})
 
 	ginkgo.It("Kibana endpoint should be accessible", func() {
-		isAccessible := func() bool {
-			return assertIngressURL("vmi-system-kibana")
-		}
-		gomega.Eventually(isAccessible, "2m", "5s").Should(gomega.BeTrue(),
-			"The Kibana endpoint should be accessible")
+		assertIngressURL("vmi-system-kibana")
 	})
 
 	ginkgo.It("Prometheus endpoint should be accessible", func() {
-		isAccessible := func() bool {
-			return assertIngressURL("vmi-system-prometheus")
-		}
-		gomega.Eventually(isAccessible, "2m", "5s").Should(gomega.BeTrue(),
-			"The Prometheus endpoint should be accessible")
+		assertIngressURL("vmi-system-prometheus")
 
 	})
 
 	ginkgo.It("Prometheus push gateway should be accessible", func() {
-		isAccessible := func() bool {
-			return assertIngressURL("vmi-system-prometheus-gw")
-		}
-		gomega.Eventually(isAccessible, "2m", "5s").Should(gomega.BeTrue(),
-			"The Prometheus push gateway endpoint should be accessible")
+		assertIngressURL("vmi-system-prometheus-gw")
 	})
 
 	ginkgo.It("Grafana endpoint should be accessible", func() {
-		isAccessible := func() bool {
-			gomega.Expect(ingressURLs).To(gomega.HaveKey("vmi-system-grafana"), "Ingress vmi-system-grafana not found")
-			sysVmiHttpClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-				return http.ErrUseLastResponse
-			}
-			url := ingressURLs["vmi-system-grafana"]
-			resp, err := sysVmiHttpClient.Get(url)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred(), "GET %s", url)
-			gomega.Expect(resp.StatusCode).To(gomega.Equal(http.StatusFound), "GET %s", url)
-			gomega.Expect(resp.Header.Get("location")).To(gomega.Equal("/login"))
-			// if we made it here, all good, so return true
-			return true
+		gomega.Expect(ingressURLs).To(gomega.HaveKey("vmi-system-grafana"), "Ingress vmi-system-grafana not found")
+		sysVmiHttpClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
 		}
-		gomega.Eventually(isAccessible, "2m", "5s").Should(gomega.BeTrue(),
-			"The Grafana endpoint should be accessible")
+		url := ingressURLs["vmi-system-grafana"]
+		resp, err := sysVmiHttpClient.Get(url)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "GET %s", url)
+		gomega.Expect(resp.StatusCode).To(gomega.Equal(http.StatusFound), "GET %s", url)
+		gomega.Expect(resp.Header.Get("location")).To(gomega.Equal("/login"))
 	})
 
 	ginkgo.It("System Node Exporter dashboard should be installed in Grafana", func() {
-		dashboardInstalled := func () bool {
-			result, err := browseGrafanaDashboard("Host%20Metrics")
-			if err != nil {
-				ginkgo.Fail(fmt.Sprintf("got error looking for dashboards: %v", err))
-				return false
-			}
-			return result
-		}
-		gomega.Eventually(dashboardInstalled, "2m", "5s").Should(gomega.BeTrue(),
-			"The System Node Exporter dashboard should be installed in Grafana")
+		browseGrafanaDashboard("Host%20Metrics")
 	})
 
 	ginkgo.It("Default dashboard should be installed in System Grafana for shared VMI", func() {
@@ -226,16 +199,7 @@ var _ = ginkgo.Describe("VMI", func() {
 			"Coherence%20Machines%20Summary%20Dashboard",
 		}
 		for _, value := range DefaultDashboards {
-			dashboardInstalled := func() bool {
-				result, err := browseGrafanaDashboard(value)
-				if err != nil {
-					ginkgo.Fail(fmt.Sprintf("got error looking for dashboards: %v", err))
-					return false
-				}
-				return result
-			}
-			gomega.Expect(dashboardInstalled, "2m", "5s").To(gomega.BeTrue(),
-				"Dashboard "+value+" should be installed")
+			browseGrafanaDashboard(value)
 		}
 	})
 })
@@ -247,13 +211,10 @@ func jq(node interface{}, path ...string) interface{} {
 	return node
 }
 
-func assertIngressURL(key string) bool {
+func assertIngressURL(key string) {
 	gomega.Expect(ingressURLs).To(gomega.HaveKey(key), fmt.Sprintf("Ingress %s not found", key))
 	assertURLAccessibleAndUnauthorized(ingressURLs[key])
 	assertURLAccessibleAndAuthorized(ingressURLs[key])
-
-	// if we made it this far without failing, everything is good - return true :)
-	return true
 }
 func assertURLAccessibleAndAuthorized(url string) {
 	pkg.AssertURLAccessibleAndAuthorized(sysVmiHttpClient, url, creds)
@@ -291,7 +252,7 @@ func elasticIngress() bool {
 	return elastic.CheckIngress()
 }
 
-func browseGrafanaDashboard(url string) (bool, error) {
+func browseGrafanaDashboard(url string) error {
 	searchURL := fmt.Sprintf("%sapi/search?query=%s", ingressURLs["vmi-system-grafana"], url)
 	fmt.Println("Grafana URL in browseGrafanaDashboard ", searchURL)
 	sysVmiHttpClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
@@ -318,5 +279,5 @@ func browseGrafanaDashboard(url string) (bool, error) {
 	if len(response) != 1 {
 		ginkgo.Fail(fmt.Sprintf("Expected a dashboard in response to system vmi dashboard query but received: %v", len(response)))
 	}
-	return true, nil
+	return nil
 }
