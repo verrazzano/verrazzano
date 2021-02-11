@@ -9,6 +9,26 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - clusters.verrazzano.io
+  resources:
+  - multiclustersecrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - clusters.verrazzano.io
+  resources:
+  - multiclustersecrets/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - oam.verrazzano.io
   resources:
   - loggingscopes

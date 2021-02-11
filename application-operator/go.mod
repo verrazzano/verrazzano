@@ -9,7 +9,6 @@ require (
 	github.com/gertd/go-pluralize v0.1.7
 	github.com/go-logr/logr v0.1.0
 	github.com/golang/mock v1.4.4
-	github.com/gordonklaus/ineffassign v0.0.0-20210209182638-d0e41b2fc8ed // indirect
 	github.com/jetstack/cert-manager v0.13.1
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.1
