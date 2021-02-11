@@ -18,8 +18,8 @@ require (
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5 // indirect
 	golang.org/x/mod v0.4.1 // indirect
 	golang.org/x/tools v0.1.0 // indirect
-	istio.io/api v0.0.0-20200629210345-933b83065c19
-	istio.io/client-go v0.0.0-20200630182733-fd3f873f3f52
+        istio.io/api v0.0.0-20200911191701-0dc35ad5c478
+        istio.io/client-go v0.0.0-20200807182027-d287a5abb594
 	k8s.io/api v0.19.0
 	k8s.io/apiextensions-apiserver v0.19.0
 	k8s.io/apimachinery v0.19.0
