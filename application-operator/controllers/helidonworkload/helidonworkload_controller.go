@@ -5,16 +5,16 @@ package helidonworkload
 
 import (
 	"context"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"reflect"
 
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -67,7 +67,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
-	log.Info("Got the workload", "apiVersion", workload.APIVersion, "kind", workload.Kind)
+	log.Info("Retrieved workload", "apiVersion", workload.APIVersion, "kind", workload.Kind)
 
 	//TODO: Find the resource object to record the event to, default is the parent appConfig - done in OAM
 
@@ -119,14 +119,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			APIVersion: deploy.GetObjectKind().GroupVersionKind().GroupVersion().String(),
 			Kind:       deploy.GetObjectKind().GroupVersionKind().Kind,
 			Name:       deploy.GetName(),
-			Namespace: 	deploy.GetNamespace(),
+			Namespace:  deploy.GetNamespace(),
 			Role:       "Deployment",
 		},
 		vzapi.QualifiedResourceRelation{
 			APIVersion: service.GetObjectKind().GroupVersionKind().GroupVersion().String(),
 			Kind:       service.GetObjectKind().GroupVersionKind().Kind,
 			Name:       service.GetName(),
-			Namespace: 	service.GetNamespace(),
+			Namespace:  service.GetNamespace(),
 			Role:       "Service",
 		},
 	)
@@ -175,17 +175,15 @@ func (r *Reconciler) convertWorkloadToDeployment(
 	d.Spec.Template.ObjectMeta.SetLabels(map[string]string{
 		labelKey: string(workload.GetUID()),
 	})
-	//k8s server-side patch complains if the protocol is not set on container port
-	//but since modified our CRD dont have to code to it
 
 	// pass through label and annotation from the workload to the deployment
 	passLabelAndAnnotation(workload, d)
 
 	if y, err := yaml.Marshal(d); err != nil {
 		r.Log.Error(err, "Failed to convert deployment to yaml")
-		r.Log.Info("Set deployment in json ", "DeploymentJson", d)
+		r.Log.Info("Deployment in json format ", "DeploymentJson", d)
 	} else {
-		r.Log.Info("Set deployment in yaml ", "DeploymentYaml", string(y))
+		r.Log.Info("Deployment in yaml format ", "DeploymentYaml", string(y))
 	}
 
 	return d, nil
@@ -233,9 +231,9 @@ func (r *Reconciler) createServiceFromDeployment(
 		}
 		if y, err := yaml.Marshal(s); err != nil {
 			r.Log.Error(err, "Failed to convert service to yaml")
-			r.Log.Info("Set service in json ", "ServiceJson", s)
+			r.Log.Info("Service in json format ", "ServiceJson", s)
 		} else {
-			r.Log.Info("Set service in yaml: ", "ServiceYaml", string(y))
+			r.Log.Info("Service in yaml format: ", "ServiceYaml", string(y))
 		}
 		return s, nil
 	}
