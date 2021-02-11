@@ -26,6 +26,10 @@ type Reconciler struct {
 	Scheme *runtime.Scheme
 }
 
+// Reconcile reconciles a MultiClusterConfigMap resource. It fetches the embedded ConfigMap,
+// mutates it based on the MultiClusterConfigMap, and updates the status of the
+// MultiClusterConfigMap to reflect the success or failure of the changes to the embedded resource
+// Currently it does NOT support Immutable ConfigMap resources
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log.WithValues("multiclusterconfigmap", req.NamespacedName)
 	var mcConfigMap clustersv1alpha1.MultiClusterConfigMap
@@ -47,14 +51,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 }
 
+// SetupWithManager registers our controller with the manager
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clustersv1alpha1.MultiClusterConfigMap{}).
 		Complete(r)
 }
 
-func (r *Reconciler) fetchMultiClusterConfigMap(ctx context.Context, name types.NamespacedName, mcComp *clustersv1alpha1.MultiClusterConfigMap) error {
-	return r.Get(ctx, name, mcComp)
+func (r *Reconciler) fetchMultiClusterConfigMap(ctx context.Context, name types.NamespacedName, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap) error {
+	return r.Get(ctx, name, mcConfigMap)
 }
 
 func (r *Reconciler) createOrUpdateConfigMap(ctx context.Context, mcConfigMap clustersv1alpha1.MultiClusterConfigMap) (controllerutil.OperationResult, error) {

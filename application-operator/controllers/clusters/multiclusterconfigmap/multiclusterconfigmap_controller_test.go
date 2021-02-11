@@ -72,14 +72,14 @@ func TestReconcileCreateConfigMap(t *testing.T) {
 	cli := mocks.NewMockClient(mocker)
 	mockStatusWriter := mocks.NewMockStatusWriter(mocker)
 
-	mcCompSample, err := getMCConfigMap(sampleMCConfigMapFile)
+	mcConfigMap, err := getMCConfigMap(sampleMCConfigMapFile)
 
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	// expect a call to fetch the MultiClusterConfigMap
-	doExpectGetMultiClusterConfigMap(cli, mcCompSample)
+	doExpectGetMultiClusterConfigMap(cli, mcConfigMap)
 
 	// expect a call to fetch existing K8S ConfigMap, and return not found error, to test create case
 	cli.EXPECT().
@@ -90,7 +90,7 @@ func TestReconcileCreateConfigMap(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, c *v1.ConfigMap, opts ...client.CreateOption) error {
-			assertConfigMapValid(assert, c, mcCompSample)
+			assertConfigMapValid(assert, c, mcConfigMap)
 			return nil
 		})
 
@@ -119,30 +119,30 @@ func TestReconcileUpdateConfigMap(t *testing.T) {
 	cli := mocks.NewMockClient(mocker)
 	mockStatusWriter := mocks.NewMockStatusWriter(mocker)
 
-	mcCompSample, err := getMCConfigMap(sampleMCConfigMapFile)
+	mcConfigMap, err := getMCConfigMap(sampleMCConfigMapFile)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	// expect a call to fetch the MultiClusterConfigMap
-	doExpectGetMultiClusterConfigMap(cli, mcCompSample)
+	doExpectGetMultiClusterConfigMap(cli, mcConfigMap)
 
-	// expect a call to fetch underlying K8S ConfigMap, and return an existing component
-	doExpectGetConfigMapExists(cli, mcCompSample.ObjectMeta)
+	// expect a call to fetch underlying K8S ConfigMap, and return an existing ConfigMap
+	doExpectGetConfigMapExists(cli, mcConfigMap.ObjectMeta)
 
-	// expect a call to update the K8S ConfigMap with the new component workload data
+	// expect a call to update the K8S ConfigMap with the new ConfigMap data
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, c *v1.ConfigMap, opts ...client.CreateOption) error {
-			assertConfigMapValid(assert, c, mcCompSample)
+			assertConfigMapValid(assert, c, mcConfigMap)
 			return nil
 		})
 
-	// expect a call to update the status of the multicluster component
+	// expect a call to update the status of the multicluster ConfigMap
 	cli.EXPECT().Status().Return(mockStatusWriter)
 
 	mockStatusWriter.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&mcCompSample)).
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&mcConfigMap)).
 		Return(nil)
 
 	// create a request and reconcile it
@@ -158,7 +158,7 @@ func TestReconcileUpdateConfigMap(t *testing.T) {
 // TestReconcileCreateConfigMapFailed tests the path of reconciling a MultiClusterConfigMap
 // when the underlying K8S ConfigMap does not exist and fails to be created due to some error condition
 // GIVEN a MultiClusterConfigMap resource is created
-// WHEN the controller Reconcile function is called and create underlying component fails
+// WHEN the controller Reconcile function is called and create underlying ConfigMap fails
 // THEN expect the status of the MultiClusterConfigMap to be updated with failure information
 func TestReconcileCreateConfigMapFailed(t *testing.T) {
 	assert := asserts.New(t)
@@ -167,13 +167,13 @@ func TestReconcileCreateConfigMapFailed(t *testing.T) {
 	cli := mocks.NewMockClient(mocker)
 	mockStatusWriter := mocks.NewMockStatusWriter(mocker)
 
-	mcCompSample, err := getMCConfigMap(sampleMCConfigMapFile)
+	mcConfigMap, err := getMCConfigMap(sampleMCConfigMapFile)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	// expect a call to fetch the MultiClusterConfigMap
-	doExpectGetMultiClusterConfigMap(cli, mcCompSample)
+	doExpectGetMultiClusterConfigMap(cli, mcConfigMap)
 
 	// expect a call to fetch existing K8S ConfigMap and return not found error, to simulate create case
 	cli.EXPECT().
@@ -204,7 +204,7 @@ func TestReconcileCreateConfigMapFailed(t *testing.T) {
 // TestReconcileCreateConfigMapFailed tests the path of reconciling a MultiClusterConfigMap
 // when the underlying K8S ConfigMap exists and fails to be updated due to some error condition
 // GIVEN a MultiClusterConfigMap resource is created
-// WHEN the controller Reconcile function is called and update underlying component fails
+// WHEN the controller Reconcile function is called and update underlying ConfigMap fails
 // THEN expect the status of the MultiClusterConfigMap to be updated with failure information
 func TestReconcileUpdateConfigMapFailed(t *testing.T) {
 	assert := asserts.New(t)
@@ -213,16 +213,16 @@ func TestReconcileUpdateConfigMapFailed(t *testing.T) {
 	cli := mocks.NewMockClient(mocker)
 	mockStatusWriter := mocks.NewMockStatusWriter(mocker)
 
-	mcCompSample, err := getMCConfigMap(sampleMCConfigMapFile)
+	mcConfigMap, err := getMCConfigMap(sampleMCConfigMapFile)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	// expect a call to fetch the MultiClusterConfigMap
-	doExpectGetMultiClusterConfigMap(cli, mcCompSample)
+	doExpectGetMultiClusterConfigMap(cli, mcConfigMap)
 
 	// expect a call to fetch existing K8S ConfigMap (simulate update case)
-	doExpectGetConfigMapExists(cli, mcCompSample.ObjectMeta)
+	doExpectGetConfigMapExists(cli, mcConfigMap.ObjectMeta)
 
 	// expect a call to update the K8S ConfigMap and fail the call
 	cli.EXPECT().
@@ -266,8 +266,8 @@ func doExpectStatusUpdateFailed(cli *mocks.MockClient, mockStatusWriter *mocks.M
 	// the status update should be to failure status/conditions on the MultiClusterConfigMap
 	mockStatusWriter.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterConfigMap{})).
-		DoAndReturn(func(ctx context.Context, mcComp *clustersv1alpha1.MultiClusterConfigMap) error {
-			assertMultiClusterConfigMapStatus(assert, mcComp, clustersv1alpha1.Failed, clustersv1alpha1.DeployFailed, v1.ConditionTrue)
+		DoAndReturn(func(ctx context.Context, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap) error {
+			assertMultiClusterConfigMapStatus(assert, mcConfigMap, clustersv1alpha1.Failed, clustersv1alpha1.DeployFailed, v1.ConditionTrue)
 			return nil
 		})
 }
@@ -280,32 +280,32 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 	// the status update should be to success status/conditions on the MultiClusterConfigMap
 	mockStatusWriter.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterConfigMap{})).
-		DoAndReturn(func(ctx context.Context, mcComp *clustersv1alpha1.MultiClusterConfigMap) error {
-			assertMultiClusterConfigMapStatus(assert, mcComp, clustersv1alpha1.Ready, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
+		DoAndReturn(func(ctx context.Context, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap) error {
+			assertMultiClusterConfigMapStatus(assert, mcConfigMap, clustersv1alpha1.Ready, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
 			return nil
 		})
 }
 
 // doExpectGetMultiClusterConfigMap adds an expectation to the given MockClient to expect a Get
-// call for a MultiClusterConfigMap, and populate the multi cluster component with given data
-func doExpectGetMultiClusterConfigMap(cli *mocks.MockClient, mcCompSample clustersv1alpha1.MultiClusterConfigMap) {
+// call for a MultiClusterConfigMap, and populate the multi cluster ConfigMap with given data
+func doExpectGetMultiClusterConfigMap(cli *mocks.MockClient, mcConfigMapSample clustersv1alpha1.MultiClusterConfigMap) {
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.AssignableToTypeOf(&mcCompSample)).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcComp *clustersv1alpha1.MultiClusterConfigMap) error {
-			mcComp.ObjectMeta = mcCompSample.ObjectMeta
-			mcComp.TypeMeta = mcCompSample.TypeMeta
-			mcComp.Spec = mcCompSample.Spec
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.AssignableToTypeOf(&mcConfigMapSample)).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap) error {
+			mcConfigMap.ObjectMeta = mcConfigMapSample.ObjectMeta
+			mcConfigMap.TypeMeta = mcConfigMapSample.TypeMeta
+			mcConfigMap.Spec = mcConfigMapSample.Spec
 			return nil
 		})
 }
 
 // assertMultiClusterConfigMapStatus asserts that the status and conditions on the MultiClusterConfigMap
 // are as expected
-func assertMultiClusterConfigMapStatus(assert *asserts.Assertions, mcComp *clustersv1alpha1.MultiClusterConfigMap, state clustersv1alpha1.StateType, condition clustersv1alpha1.ConditionType, conditionStatus v1.ConditionStatus) {
-	assert.Equal(state, mcComp.Status.State)
-	assert.Equal(1, len(mcComp.Status.Conditions))
-	assert.Equal(conditionStatus, mcComp.Status.Conditions[0].Status)
-	assert.Equal(condition, mcComp.Status.Conditions[0].Type)
+func assertMultiClusterConfigMapStatus(assert *asserts.Assertions, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap, state clustersv1alpha1.StateType, condition clustersv1alpha1.ConditionType, conditionStatus v1.ConditionStatus) {
+	assert.Equal(state, mcConfigMap.Status.State)
+	assert.Equal(1, len(mcConfigMap.Status.Conditions))
+	assert.Equal(conditionStatus, mcConfigMap.Status.Conditions[0].Status)
+	assert.Equal(condition, mcConfigMap.Status.Conditions[0].Type)
 }
 
 // assertConfigMapValid asserts that the metadata and content of the created/updated K8S ConfigMap
@@ -331,12 +331,12 @@ func getMCConfigMap(filename string) (clustersv1alpha1.MultiClusterConfigMap, er
 		return mcConfigMap, err
 	}
 
-	rawMcComp, err := clusters.ReadYaml2Json(sampleConfigMapFile)
+	rawResource, err := clusters.ReadYaml2Json(sampleConfigMapFile)
 	if err != nil {
 		return mcConfigMap, err
 	}
 
-	err = json.Unmarshal(rawMcComp, &mcConfigMap)
+	err = json.Unmarshal(rawResource, &mcConfigMap)
 	return mcConfigMap, err
 }
 
@@ -346,12 +346,12 @@ func getExistingConfigMap() (v1.ConfigMap, error) {
 	if err != nil {
 		return configMap, err
 	}
-	rawMcComp, err := clusters.ReadYaml2Json(existingConfigMapFile)
+	rawResource, err := clusters.ReadYaml2Json(existingConfigMapFile)
 	if err != nil {
 		return configMap, err
 	}
 
-	err = json.Unmarshal(rawMcComp, &configMap)
+	err = json.Unmarshal(rawResource, &configMap)
 	return configMap, err
 }
 
