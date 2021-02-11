@@ -234,7 +234,7 @@ var _ = ginkgo.Describe("VMI", func() {
 				}
 				return result
 			}
-			gomega.Eventually(dashboardInstalled, "2m", "5s").Should(gomega.BeTrue(),
+			gomega.Expect(dashboardInstalled, "2m", "5s").To(gomega.BeTrue(),
 				"Dashboard "+value+" should be installed")
 		}
 	})
