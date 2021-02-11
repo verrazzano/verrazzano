@@ -316,15 +316,15 @@ pipeline {
 
             script {
                 if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                    dumpK8sCluster('verrazzano-installation-loop-dump')
+                    dumpK8sCluster('verrazzano-installation-loop-cluster-dump')
                 }
             }
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*verrazzano-installation-loop-dump/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*verrazzano-installation-loop-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
         }
 
         failure {
-            dumpK8sCluster('verrazzano-installation-loop-dump')
+            dumpK8sCluster('verrazzano-installation-loop-cluster-dump')
             script {
                 failureCount = params.failureCount as Integer
                 failureCount++
