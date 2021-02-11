@@ -13,7 +13,6 @@ import (
 func GetInstanceInfo(vzURI string) *v1alpha1.InstanceInfo {
 	return &v1alpha1.InstanceInfo{
 		Console:       deriveURL(vzURI, "verrazzano"),
-		VzAPIURL:      deriveURL(vzURI, "api"),
 		RancherURL:    deriveURL(vzURI, "rancher"),
 		ElasticURL:    deriveURL(vzURI, "elasticsearch.vmi.system"),
 		KibanaURL:     deriveURL(vzURI, "kibana.vmi.system"),

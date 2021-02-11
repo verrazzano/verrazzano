@@ -430,7 +430,7 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 			// An error building the instance info is non-fatal, log and continue
 			log.Errorf("Error obtaining DNS domain for installed instance, %v", err)
 		} else {
-			cr.Status.Instance = instance.GetInstanceInfo(domain)
+			cr.Status.VerrazzanoInstance = instance.GetInstanceInfo(domain)
 		}
 		fallthrough
 	case installv1alpha1.UninstallComplete, installv1alpha1.UpgradeComplete:

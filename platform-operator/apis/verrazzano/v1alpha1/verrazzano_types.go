@@ -95,8 +95,6 @@ type InstanceInfo struct {
 	KeyCloakURL *string `json:"keyCloakUrl,omitempty"`
 	// RancherURL The Rancher URL for this instance
 	RancherURL *string `json:"rancherUrl,omitempty"`
-	// VzAPIURL The Verrazzano API URL for this instance
-	VzAPIURL *string `json:"vzApiUri,omitempty"`
 	// ElasticURL The Elasticsearch URL for this instance
 	ElasticURL *string `json:"elasticUrl,omitempty"`
 	// KibanaURL The Kibana URL for this instance
@@ -112,7 +110,7 @@ type VerrazzanoStatus struct {
 	// The version of Verrazzano that is installed
 	Version string `json:"version,omitempty"`
 	// The Verrazzano instance info
-	Instance *InstanceInfo `json:"instance,omitempty"`
+	VerrazzanoInstance *InstanceInfo `json:"instance,omitempty"`
 	// The latest available observations of an object's current state.
 	Conditions []Condition `json:"conditions,omitempty"`
 	// State of the Verrazzano custom resource

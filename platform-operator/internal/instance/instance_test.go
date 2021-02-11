@@ -20,7 +20,6 @@ func TestGetInstanceInfo(t *testing.T) {
 	assert.NotNil(t, instanceInfo)
 	assert.Equal(t, fmt.Sprintf("https://%s.%s", "verrazzano", dnsDomain), *instanceInfo.Console)
 	assert.Equal(t, fmt.Sprintf("https://%s.%s", "rancher", dnsDomain), *instanceInfo.RancherURL)
-	assert.Equal(t, fmt.Sprintf("https://%s.%s", "api", dnsDomain), *instanceInfo.VzAPIURL)
 	assert.Equal(t, fmt.Sprintf("https://%s.%s", "keycloak", dnsDomain), *instanceInfo.KeyCloakURL)
 	assert.Equal(t, fmt.Sprintf("https://%s.vmi.system.%s", "elasticsearch", dnsDomain), *instanceInfo.ElasticURL)
 	assert.Equal(t, fmt.Sprintf("https://%s.vmi.system.%s", "grafana", dnsDomain), *instanceInfo.GrafanaURL)

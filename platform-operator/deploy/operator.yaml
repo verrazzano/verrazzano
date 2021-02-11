@@ -3164,9 +3164,6 @@ spec:
                   rancherUrl:
                     description: RancherURL The Rancher URL for this instance
                     type: string
-                  vzApiUri:
-                    description: VzAPIURL The Verrazzano API URL for this instance
-                    type: string
                 type: object
               state:
                 description: State of the Verrazzano custom resource
