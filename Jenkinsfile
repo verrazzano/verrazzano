@@ -385,6 +385,21 @@ pipeline {
                             # The ToDoList example image currently cannot be pulled in KIND.
                             docker pull container-registry.oracle.com/verrazzano/example-todo:0.8.0
                             kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-todo:0.8.0
+
+                            # Hack
+                            # The Bobs Books example image currently cannot be pulled in KIND.
+                            docker pull container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.12-1-20210205215204-b624b86
+                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.12-1-20210205215204-b624b86
+                            docker pull container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210205215204-b624b86
+                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210205215204-b624b86
+                            docker pull container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.12-1-20210205215204-b624b86
+                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.12-1-20210205215204-b624b86
+                            docker pull container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210205215204-b624b86
+                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210205215204-b624b86
+                            docker pull container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210205215204-b624b86
+                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210205215204-b624b86
+                            docker pull container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210205215204-b624b86
+                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210205215204-b624b86
                         """
                     }
                     post {
@@ -458,6 +473,14 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('examples/hello-helidon')
+                            }
+                        }
+                        stage('examples bobs') {
+                            when {
+                                expression {params.RUN_EXAMPLE_TESTS == true}
+                            }
+                            steps {
+                                runGinkgo('examples/bobs-books')
                             }
                         }
                     }

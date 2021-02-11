@@ -31,7 +31,7 @@ function install_wls_operator {
   fi
 
   log "Install WebLogic Kubernetes operator"
-  helm install weblogic-operator $TMP_DIR/weblogic-kubernetes-operator/kubernetes/charts/weblogic-operator --namespace verrazzano-system --set image=ghcr.io/oracle/weblogic-kubernetes-operator:3.1.0 --set serviceAccount=weblogic-operator-sa --set domainNamespaceSelectionStrategy=LabelSelector --set domainNamespaceLabelSelector=verrazzano-maanged --set enableClusterRoleBinding=true --wait
+  helm install weblogic-operator $TMP_DIR/weblogic-kubernetes-operator/kubernetes/charts/weblogic-operator --namespace verrazzano-system --set image=ghcr.io/oracle/weblogic-kubernetes-operator:3.1.0 --set serviceAccount=weblogic-operator-sa --set domainNamespaceSelectionStrategy=LabelSelector --set domainNamespaceLabelSelector=verrazzano-managed --set enableClusterRoleBinding=true --wait
   if [ $? -ne 0 ]; then
     error "Failed to install WebLogic Kubernetes operator."
     return 1
