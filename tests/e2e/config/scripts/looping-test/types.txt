@@ -1,0 +1,10 @@
+PersistentVolume
+MutatingWebhookConfiguration
+ValidatingWebhookConfiguration
+CustomResourceDefinition
+APIService
+ClusterRoleBinding
+ClusterRole
+RoleBinding
+CertificateSigningRequest
+
