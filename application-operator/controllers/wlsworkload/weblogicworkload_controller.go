@@ -10,6 +10,7 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	corev1 "k8s.io/api/core/v1"
@@ -21,6 +22,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+const finalizer = "verrazzanoweblogicworkload.finalizers.verrazzano.io"
 
 // this struct allows us to extract information from the unstructured WebLogic spec
 // so we can interface with the FLUENTD code
@@ -78,6 +81,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	apiVersion, kind := gvk.ToAPIVersionAndKind()
 	u.SetAPIVersion(apiVersion)
 	u.SetKind(kind)
+
+	// clean up resources that we've created on delete
+	if isDeleting, err := r.handleDelete(ctx, log, workload, u); isDeleting {
+		return reconcile.Result{}, err
+	}
 
 	// mutate the WebLogic domain resource, copy labels, add logging, etc.
 	if err = copyLabels(log, workload.ObjectMeta.GetLabels(), u); err != nil {
@@ -224,4 +232,36 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 	}
 
 	return nil
+}
+
+// handleDelete handles delete processing - we delete the WebLogic domain CR when our VerrazzanoWebLogicWorkload is deleted.
+// returns true if our workload is being deleted, false otherwise
+func (r *Reconciler) handleDelete(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoWebLogicWorkload, weblogic *unstructured.Unstructured) (bool, error) {
+	if !workload.ObjectMeta.DeletionTimestamp.IsZero() {
+		if controllers.StringSliceContainsString(workload.ObjectMeta.Finalizers, finalizer) {
+			log.Info("Deleting WebLogic domain CR")
+			if err := r.Delete(ctx, weblogic); err != nil {
+				return true, err
+			}
+
+			workload.ObjectMeta.Finalizers = controllers.RemoveStringFromStringSlice(workload.ObjectMeta.Finalizers, finalizer)
+			if err := r.Update(ctx, workload); err != nil {
+				// just log and keep going
+				r.Log.Info("Unable to remove finalizer from workload", "error", err)
+			}
+		}
+
+		return true, nil
+	}
+
+	// not deleting, so add our finalizer and update the workload if it's not already in the list
+	if !controllers.StringSliceContainsString(workload.ObjectMeta.Finalizers, finalizer) {
+		workload.ObjectMeta.Finalizers = append(workload.ObjectMeta.Finalizers, finalizer)
+		if err := r.Update(ctx, workload); err != nil {
+			// just log and keep going
+			r.Log.Info("Unable to add finalizer to workload", "error", err)
+		}
+	}
+
+	return false, nil
 }
