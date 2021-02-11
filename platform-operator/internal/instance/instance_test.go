@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-	func TestGetInstanceInfo(t *testing.T) {
+func TestGetInstanceInfo(t *testing.T) {
 	const dnsDomain = "testverrazzano.com"
 	const envName = "myenv"
 	instanceInfo := GetInstanceInfo(envName, dnsDomain)
