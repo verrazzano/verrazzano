@@ -73,7 +73,7 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind.yaml"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
@@ -97,8 +97,8 @@ pipeline {
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
         OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
-        INSTALL_CONFIG_FILE_OCIDNS = "./tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
-        INSTALL_CONFIG_FILE_XIPIO = "./tests/e2e/config/scripts/install-verrazzano-xipio.yaml"
+        INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
+        INSTALL_CONFIG_FILE_XIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-xipio.yaml"
         OCI_DNS_ZONE_SUFFIX=credentials('oci-dns-zone')
         OCI_DNS_ZONE_NAME="z${zoneId}." + "${OCI_DNS_ZONE_SUFFIX}"
         VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'ocidns_oke' ? 'b' + env.BUILD_NUMBER : 'default'}"
