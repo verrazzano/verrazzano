@@ -75,7 +75,7 @@ func getHttpClientWIthCABundle(caData []byte) *http.Client {
 		tr.Proxy = http.ProxyURL(tURLProxy)
 	}
 
-	ipResolve := getNginxNodeIP()
+	ipResolve := getNginxControllerNodeIP()
 	if ipResolve != "" {
 		dialer := &net.Dialer{
 			Timeout:   30 * time.Second,
@@ -95,7 +95,7 @@ func getHttpClientWIthCABundle(caData []byte) *http.Client {
 }
 
 // Returns the nginx controller node ip
-func getNginxNodeIP() string {
+func getNginxControllerNodeIP() string {
 	pods := ListPods("ingress-nginx")
 	for i := range pods.Items {
 		pod := pods.Items[i]
