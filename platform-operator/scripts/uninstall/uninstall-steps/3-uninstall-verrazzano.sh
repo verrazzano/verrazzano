@@ -13,6 +13,8 @@ UNINSTALL_DIR=$SCRIPT_DIR/..
 
 set -o pipefail
 
+VERRAZZANO_NS=verrazzano-system
+
 function delete_verrazzano() {
   # delete helm installation of Verrazzano
   log "Deleting Verrazzano"
@@ -62,45 +64,51 @@ function delete_verrazzano() {
 
 function delete_oam_operator {
   log "Uninstall the OAM Kubernetes operator"
-  helm uninstall oam-kubernetes-runtime --namespace "${VERRAZZANO_NS}" || return $?
-  if [ $? -ne 0 ]; then
-    error "Failed to uninstall the OAM Kubernetes operator."
+  if helm status oam-kubernetes-runtime --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall oam-kubernetes-runtime --namespace "${VERRAZZANO_NS}" ; then
+      error "Failed to uninstall the OAM Kubernetes operator."
+    fi
   fi
 
   log "Delete the OAM Kubernetes operator roles"
-  kubectl delete clusterrolebinding cluster-admin-binding-oam || return $?
-  if [ $? -ne 0 ]; then
-    error "Failed to delete the OAM Kubernetes operator roles."
+  if kubectl get clusterrolebinding cluster-admin-binding-oam ; then
+    if ! kubectl delete clusterrolebinding cluster-admin-binding-oam ; then
+      error "Failed to delete the OAM Kubernetes operator roles."
+    fi
   fi
 }
 
 function delete_application_operator {
   log "Uninstall the Verrazzano Kubernetes application operator"
-  helm uninstall verrazzano-application-operator --namespace "${VERRAZZANO_NS}" || return $?
-  if [ $? -ne 0 ]; then
-    error "Failed to uninstall the Verrazzano Kubernetes application operator."
+  if helm status verrazzano-application-operator --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall verrazzano-application-operator --namespace "${VERRAZZANO_NS}" ; then
+      error "Failed to uninstall the Verrazzano Kubernetes application operator."
+    fi
   fi
 }
 
 function delete_weblogic_operator {
   log "Uninstall the WebLogic Kubernetes operator"
-  helm uninstall weblogic-operator --namespace "${VERRAZZANO_NS}" || return $?
-  if [ $? -ne 0 ]; then
-    error "Failed to uninstall the WebLogic Kubernetes operator."
+  if helm status uninstall weblogic-operator --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall weblogic-operator --namespace "${VERRAZZANO_NS}" ; then
+      error "Failed to uninstall the WebLogic Kubernetes operator."
+    fi
   fi
 
   log "Delete the WebLogic Kubernetes operator service account"
-  kubectl delete serviceaccount -n "${VERRAZZANO_NS}" weblogic-operator-sa || return $?
-  if [ $? -ne 0 ]; then
-    error "Failed to delete the WebLogic Kubernetes operator service account."
+  if kubectl get serviceaccount -n "${VERRAZZANO_NS}" weblogic-operator-sa > /dev/null 2>&1 ; then
+    if ! kubectl delete serviceaccount -n "${VERRAZZANO_NS}" weblogic-operator-sa ; then
+      error "Failed to delete the WebLogic Kubernetes operator service account."
+    fi
   fi
 }
 
 function delete_coherence_operator {
   log "Uninstall the Coherence Kubernetes operator"
-  helm uninstall coherence-operator --namespace "${VERRAZZANO_NS}" || return $?
-  if [ $? -ne 0 ]; then
-    error "Failed to uninstall the Coherence Kubernetes operator."
+  if helm status uninstall coherence-operator --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall coherence-operator --namespace "${VERRAZZANO_NS}" ; then
+      error "Failed to uninstall the Coherence Kubernetes operator."
+    fi
   fi
 }
 

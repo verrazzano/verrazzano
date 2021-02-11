@@ -10,6 +10,8 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/test/integ/util"
 )
 
@@ -57,9 +59,14 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_configmap_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
-	ginkgo.It("MultiClusterComponent can be created ", func() {
+	ginkgo.It("Apply MultiClusterComponent creates OAM component ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_component_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
+		mcComp, err := K8sClient.GetMultiClusterComponent(multiclusterTestNamespace, "mymccomp")
+		gomega.Expect(err).To(gomega.BeNil())
+		gomega.Eventually(func() bool {
+			return componentExistsWithFields(multiclusterTestNamespace, "mymccomp", mcComp)
+		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 	ginkgo.It("MultiClusterApplicationConfiguration can be created ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_appconf_sample.yaml")
@@ -70,6 +77,34 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
 })
+
+func componentExistsWithFields(namespace string, name string, multiClusterComp *clustersv1alpha1.MultiClusterComponent) bool {
+	fmt.Printf("Looking for OAM Component %v/%v\n", namespace, name)
+	component, err := K8sClient.GetOAMComponent(namespace, name)
+	if err != nil {
+		return false
+	}
+	areEqual := reflect.DeepEqual(component.Spec.Parameters, multiClusterComp.Spec.Template.Spec.Parameters)
+	if !areEqual {
+		fmt.Println("Retrieved component parameters don't match multi cluster component parameters")
+		return false
+	}
+	compWorkload, err := clusters.ReadContainerizedWorkload(component.Spec.Workload)
+	if err != nil {
+		fmt.Printf("Retrieved OAM component workload could not be read %v\n", err.Error())
+		return false
+	}
+	mcCompWorkload, err := clusters.ReadContainerizedWorkload(multiClusterComp.Spec.Template.Spec.Workload)
+	if err != nil {
+		fmt.Printf("MultiClusterComponent workload could not be read: %v\n", err.Error())
+	}
+
+	if reflect.DeepEqual(compWorkload, mcCompWorkload) {
+		return true
+	}
+	fmt.Println("MultiClusterComponent Workload does not match retrieved OAM Component Workload")
+	return false
+}
 
 func secretExistsWithData(namespace string, name string, secretData map[string][]byte) bool {
 	fmt.Printf("Looking for Kubernetes secret %v/%v\n", namespace, name)
