@@ -1,13 +1,16 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package controllers
+package multiclustersecret
 
 import (
 	"context"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -19,13 +22,12 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"testing"
 )
 
 const namespace = "unit-mcsecret-namespace"
 const crName = "unit-mcsecret"
 
-// TestReconcilerSetupWithManager test the creation of the MultiClusterSecretReconciler.
+// TestReconcilerSetupWithManager test the creation of the Reconciler.
 // GIVEN a controller implementation
 // WHEN the controller is created
 // THEN verify no error is returned
@@ -36,7 +38,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	var mgr *mocks.MockManager
 	var cli *mocks.MockClient
 	var scheme *runtime.Scheme
-	var reconciler MultiClusterSecretReconciler
+	var reconciler Reconciler
 	var err error
 
 	mocker = gomock.NewController(t)
@@ -44,7 +46,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	cli = mocks.NewMockClient(mocker)
 	scheme = runtime.NewScheme()
 	clustersv1alpha1.AddToScheme(scheme)
-	reconciler = MultiClusterSecretReconciler{Client: cli, Scheme: scheme}
+	reconciler = Reconciler{Client: cli, Scheme: scheme}
 	mgr.EXPECT().GetConfig().Return(&rest.Config{})
 	mgr.EXPECT().GetScheme().Return(scheme)
 	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
@@ -91,8 +93,8 @@ func TestReconcileCreateSecret(t *testing.T) {
 	doExpectStatusUpdateSucceeded(cli, mockStatusWriter, assert)
 
 	// create a request and reconcile it
-	request := newRequest(namespace, crName)
-	reconciler := newReconciler(cli)
+	request := clusters.NewRequest(namespace, crName)
+	reconciler := newSecretReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
@@ -140,8 +142,8 @@ func TestReconcileUpdateSecret(t *testing.T) {
 		Return(nil)
 
 	// create a request and reconcile it
-	request := newRequest(namespace, crName)
-	reconciler := newReconciler(cli)
+	request := clusters.NewRequest(namespace, crName)
+	reconciler := newSecretReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
@@ -185,8 +187,8 @@ func TestReconcileCreateSecretFailed(t *testing.T) {
 	doExpectStatusUpdateFailed(cli, mockStatusWriter, assert)
 
 	// create a request and reconcile it
-	request := newRequest(namespace, crName)
-	reconciler := newReconciler(cli)
+	request := clusters.NewRequest(namespace, crName)
+	reconciler := newSecretReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
@@ -224,8 +226,8 @@ func TestReconcileUpdateSecretFailed(t *testing.T) {
 	doExpectStatusUpdateFailed(cli, mockStatusWriter, assert)
 
 	// create a request and reconcile it
-	request := newRequest(namespace, crName)
-	reconciler := newReconciler(cli)
+	request := clusters.NewRequest(namespace, crName)
+	reconciler := newSecretReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
@@ -319,31 +321,12 @@ func getSampleMCSecret(ns string, name string, secretData map[string][]byte) clu
 	return mcSecret
 }
 
-// newReconciler creates a new reconciler for testing
+// newSecretReconciler creates a new reconciler for testing
 // c - The K8s client to inject into the reconciler
-func newReconciler(c client.Client) MultiClusterSecretReconciler {
-	return MultiClusterSecretReconciler{
+func newSecretReconciler(c client.Client) Reconciler {
+	return Reconciler{
 		Client: c,
 		Log:    ctrl.Log.WithName("test"),
-		Scheme: newScheme(),
-	}
-}
-
-// newScheme creates a new scheme that includes this package's object to use for testing
-func newScheme() *runtime.Scheme {
-	scheme := runtime.NewScheme()
-	clustersv1alpha1.AddToScheme(scheme)
-	return scheme
-}
-
-// newRequest creates a new reconciler request for testing
-// namespace - The namespace to use in the request
-// name - The name to use in the request
-func newRequest(namespace string, name string) ctrl.Request {
-	return ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Namespace: namespace,
-			Name:      name,
-		},
+		Scheme: clusters.NewScheme(),
 	}
 }

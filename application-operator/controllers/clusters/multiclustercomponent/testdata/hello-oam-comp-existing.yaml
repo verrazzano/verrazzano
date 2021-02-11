@@ -1,0 +1,28 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: unit-mccomp
+  namespace: unit-mccomp-namespace
+spec:
+  workload:
+    apiVersion: core.oam.dev/v1alpha2
+    kind: ContainerizedWorkload
+    metadata:
+      name: hello-existing-workload
+      namespace: hello
+      labels:
+        app: hello-helidon
+    spec:
+      containers:
+        - name: hello-existing
+          image: ghcr.io/oracle/oraclelinux:7-slim
+          args:
+            - /bin/sh
+            - -c
+            - echo 'sleeping'; sleep 50000;
+          ports:
+            - containerPort: 8080
+              name: http
+
