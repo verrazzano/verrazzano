@@ -72,6 +72,13 @@ multiline_flush_interval 20s
 
 const finalizer = "verrazzanocoherenceworkload.finalizers.verrazzano.io"
 
+const specField = "spec"
+const jvmField = "jvm"
+const argsField = "args"
+
+var specLabelsFields = []string{specField, "labels"}
+var specAnnotationsFields = []string{specField, "annotations"}
+
 // additional JVM args that need to get added to the Coherence spec to enable logging
 var additionalJvmArgs = []interface{}{
 	"-Dcoherence.log=jdk",
@@ -148,7 +155,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	spec, found, _ := unstructured.NestedMap(u.Object, "spec")
+	spec, found, _ := unstructured.NestedMap(u.Object, specField)
 	if !found {
 		return reconcile.Result{}, errors.New("Embedded Coherence resource is missing the required 'spec' field")
 	}
@@ -158,7 +165,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// spec has been updated with logging, need to set it back in the unstructured
-	if err = unstructured.SetNestedField(u.Object, spec, "spec"); err != nil {
+	if err = unstructured.SetNestedField(u.Object, spec, specField); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -197,7 +204,7 @@ func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedNam
 
 // copyLabels copies specific labels from the Verrazzano workload to the contained Coherence resource
 func copyLabels(log logr.Logger, workloadLabels map[string]string, coherence *unstructured.Unstructured) error {
-	labels, found, _ := unstructured.NestedStringMap(coherence.Object, "spec", "labels")
+	labels, found, _ := unstructured.NestedStringMap(coherence.Object, specLabelsFields...)
 	if !found {
 		labels = map[string]string{}
 	}
@@ -211,7 +218,7 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, coherence *un
 		labels[oam.LabelAppName] = appName
 	}
 
-	err := unstructured.SetNestedStringMap(coherence.Object, labels, "spec", "labels")
+	err := unstructured.SetNestedStringMap(coherence.Object, labels, specLabelsFields...)
 	if err != nil {
 		log.Error(err, "Unable to set labels in spec")
 		return err
@@ -222,7 +229,7 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, coherence *un
 
 // disableIstioInjection sets the sidecar.istio.io/inject annotation to false since Coherence does not work with Istio
 func (r *Reconciler) disableIstioInjection(log logr.Logger, u *unstructured.Unstructured) error {
-	annotations, _, err := unstructured.NestedStringMap(u.Object, "spec", "annotations")
+	annotations, _, err := unstructured.NestedStringMap(u.Object, specAnnotationsFields...)
 	if err != nil {
 		return errors.New("unable to get annotations from Coherence spec")
 	}
@@ -233,7 +240,7 @@ func (r *Reconciler) disableIstioInjection(log logr.Logger, u *unstructured.Unst
 	}
 	annotations["sidecar.istio.io/inject"] = "false"
 
-	err = unstructured.SetNestedStringMap(u.Object, annotations, "spec", "annotations")
+	err = unstructured.SetNestedStringMap(u.Object, annotations, specAnnotationsFields...)
 	if err != nil {
 		return err
 	}
@@ -354,15 +361,15 @@ func moveConfigMapVolume(log logr.Logger, fluentdPod *loggingscope.FluentdPod, c
 // in the Coherence container
 func addJvmArgs(coherenceSpec map[string]interface{}) {
 	var jvm map[string]interface{}
-	if val, found := coherenceSpec["jvm"]; !found {
+	if val, found := coherenceSpec[jvmField]; !found {
 		jvm = make(map[string]interface{})
-		coherenceSpec["jvm"] = jvm
+		coherenceSpec[jvmField] = jvm
 	} else {
 		jvm = val.(map[string]interface{})
 	}
 
 	var args []interface{}
-	if val, found := jvm["args"]; !found {
+	if val, found := jvm[argsField]; !found {
 		args = additionalJvmArgs
 	} else {
 		// just append our logging args, this needs to be improved to handle
@@ -370,7 +377,7 @@ func addJvmArgs(coherenceSpec map[string]interface{}) {
 		args = val.([]interface{})
 		args = append(args, additionalJvmArgs...)
 	}
-	jvm["args"] = args
+	jvm[argsField] = args
 }
 
 // handleDelete handles delete processing - we delete the Coherence CR when our VerrazzanoCoherenceWorkload is deleted.
