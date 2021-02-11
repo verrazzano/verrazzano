@@ -447,6 +447,103 @@ func TestReconcileDeleteResources(t *testing.T) {
 	assert.Equal(false, result.Requeue)
 }
 
+// TestCopyLabelsFailure tests reconciling a VerrazzanoWebLogicWorkload and we are
+// not able to copy labels to the WebLogic domain CR.
+// GIVEN a VerrazzanoWebLogicWorkload resource
+// WHEN the controller Reconcile function is called and the labels cannot be copied
+// THEN expect an error to be returned
+func TestCopyLabelsFailure(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker *gomock.Controller = gomock.NewController(t)
+	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the VerrazzanoWebLogicWorkload - return a malformed WebLogic resource (spec should be an object
+	// so when we attempt to set the labels field inside spec it will fail) - this is a contrived example but it's the easiest
+	// way to force error on copying labels
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+			json := `{"metadata":{"name":"unit-test-cluster"},"spec":27}`
+			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
+			workload.ObjectMeta.Finalizers = []string{finalizer}
+			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.Kind = "VerrazzanoWebLogicWorkload"
+			return nil
+		})
+
+	// create a request and reconcile it
+	request := newRequest(namespace, "unit-test-verrazzano-weblogic-workload")
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.EqualError(err, "value cannot be set because .spec is not a map[string]interface{}")
+	assert.Equal(false, result.Requeue)
+}
+
+// TestAddLoggingFailure tests reconciling a VerrazzanoWebLogicWorkload with an attached logging scope
+// and we fail to fetch the logging scope data.
+// GIVEN a VerrazzanoWebLogicWorkload resource is created with a logging scope
+// WHEN the controller Reconcile function is called and there is an error fetching the logging scope
+// THEN expect an error to be returned
+func TestAddLoggingFailure(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker *gomock.Controller = gomock.NewController(t)
+	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+
+	appConfigName := "unit-test-app-config"
+	componentName := "unit-test-component"
+	loggingScopeName := "unit-test-logging-scope"
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
+
+	// expect a call to fetch the VerrazzanoWebLogicWorkload
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+			weblogicJSON := `{"metadata":{"name":"unit-test-cluster"},"spec":{"domainUID":"unit-test-domain"}}`
+			workload.Spec.Template = runtime.RawExtension{Raw: []byte(weblogicJSON)}
+			workload.ObjectMeta.Labels = labels
+			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.Kind = "VerrazzanoWebLogicWorkload"
+			return nil
+		})
+	// expect a call to add a finalizer
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
+			assert.Equal(workload.ObjectMeta.Finalizers[0], finalizer)
+			return nil
+		})
+	// expect a call to fetch the oam application configuration (and the component has an attached logging scope)
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
+			loggingScope := oamcore.ComponentScope{ScopeReference: oamrt.TypedReference{Kind: vzapi.LoggingScopeKind, Name: loggingScopeName}}
+			component.Scopes = []oamcore.ComponentScope{loggingScope}
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+			return nil
+		})
+	// expect a call to fetch the logging scope and return a NotFound error
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: loggingScopeName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, loggingScope *vzapi.LoggingScope) error {
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
+		})
+
+	// create a request and reconcile it
+	request := newRequest(namespace, "unit-test-verrazzano-weblogic-workload")
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.Error(err)
+	assert.True(k8serrors.IsNotFound(err))
+	assert.Equal(false, result.Requeue)
+}
+
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
