@@ -154,7 +154,7 @@ webhooks:
         path: "/pod-defaulter"
     rules:
       - apiGroups:
-          - core
+          - "*"
         apiVersions:
           - v1
         operations:
