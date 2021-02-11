@@ -87,16 +87,17 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 	})
 	ginkgo.It("Missing secret name validation ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/vmc_missing_secret_name.yaml")
-		gomega.Expect(stderr).To(gomega.ContainSubstring(fmt.Sprintf("The name of the Prometheus secret in namespace %s must be specified"), mcNamespace))
+		gomega.Expect(stderr).To(gomega.ContainSubstring(
+			fmt.Sprintf("The name of the Prometheus secret in namespace %s must be specified", mcNamespace)))
 	})
 	ginkgo.It("Missing secret validation ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/vmc_sample.yaml")
 		gomega.Expect(stderr).To(gomega.ContainSubstring(
-			fmt.Sprintf("The Prometheus secret %s does not exist in namespace %s"), prometheusSecret, mcNamespace))
+			fmt.Sprintf(fmt.Sprintf("The Prometheus secret %s does not exist in namespace %s", prometheusSecret, mcNamespace))))
 	})
 	ginkgo.It("Create Prometheus secret ", func() {
 		_, stderr := util.Kubectl(
-			fmt.Sprintf("create secrete -n %s  generic %s --from-literal=password=mypw --from-literal=username=myuser", mcNamespace, prometheusSecret))
+			fmt.Sprintf("create secret -n %s  generic %s --from-literal=password=mypw --from-literal=username=myuser", mcNamespace, prometheusSecret))
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
 	ginkgo.It("VerrazzanoManagedCluster can be created ", func() {
