@@ -8,8 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
@@ -32,7 +30,7 @@ const kind = "VerrazzanoManagedCluster"
 // WHEN a VerrazzanoManagedCluster resource has been applied
 // THEN ensure all the objects are created
 func TestCreateVMC(t *testing.T) {
-	namespace := constants.MCAdminNamespace
+	namespace := "verrazzano-mc"
 	name := "test"
 	labels := map[string]string{"label1": "test"}
 	asserts := assert.New(t)
