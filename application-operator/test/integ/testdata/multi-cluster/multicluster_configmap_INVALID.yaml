@@ -3,8 +3,8 @@
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: MultiClusterConfigMap
 metadata:
-  name: unit-mccm
-  namespace: unit-mccm-namespace
+  name: invalid-mccm
+  namespace: multiclustertest
 spec:
   template:
     metadata:
