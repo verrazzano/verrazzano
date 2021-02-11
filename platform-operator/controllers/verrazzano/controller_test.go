@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"testing"
 	"time"
 
@@ -114,6 +115,7 @@ func TestSuccessfulInstall(t *testing.T) {
 			verrazzano.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name}
+			verrazzano.Spec.Components.DNS.External.Suffix = "mydomain.com"
 			savedVerrazzano = verrazzano
 			return nil
 		})
@@ -1539,6 +1541,280 @@ func TestUpdateInternalConfigMap(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
+}
+
+// TestBuildIngressIPForXIPNodePort tests buildDomain method
+// GIVEN a request to buildDomain
+// WHEN an xio.io configuration is detected and the service type is NodePort
+// THEN the correct domain using 127.0.0.1 is returned
+func TestBuildIngressIPForXIPNodePort(t *testing.T) {
+	namespace := "verrazzano"
+	name := "test"
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	// Expect a call to get the Rancher ingress
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "ingress-nginx", Name: "ingress-controller-ingress-nginx-controller"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *corev1.Service) error {
+			service.Spec.Type = corev1.ServiceTypeNodePort
+			return nil
+		})
+
+	suffix, err := buildDomain(mock, &vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "default.127.0.0.1.xip.io", suffix)
+
+	// Validate the results
+	mocker.Finish()
+}
+
+// TestBuildIngressIPForXIPLoadBalancer tests buildDomain method
+// GIVEN a request to buildDomain
+// WHEN an xio.io configuration is detected and the service type is LoadBalancer
+// THEN the correct domain is returned
+func TestBuildIngressIPForXIPLoadBalancer(t *testing.T) {
+	namespace := "verrazzano"
+	name := "test"
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	// Expect a call to get the Rancher ingress
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "ingress-nginx", Name: "ingress-controller-ingress-nginx-controller"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *corev1.Service) error {
+			service.Spec.Type = corev1.ServiceTypeLoadBalancer
+			service.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{
+				{
+					IP:       "11.22.33.44",
+					Hostname: "myhost",
+				},
+			}
+			return nil
+		})
+
+	suffix, err := buildDomain(mock, &vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "default.11.22.33.44.xip.io", suffix)
+
+	// Validate the results
+	mocker.Finish()
+}
+
+// TestBuildIngressIPForXIPGetError tests buildDomain method
+// GIVEN a request to buildDomain
+// WHEN an xio.io configuration is detected and the client.Get() call returns an error
+// THEN an error is returned
+func TestBuildIngressIPForXIPGetError(t *testing.T) {
+	namespace := "verrazzano"
+	name := "test"
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	// Expect a call to get the Rancher ingress
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "ingress-nginx", Name: "ingress-controller-ingress-nginx-controller"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *corev1.Service) error {
+			return fmt.Errorf("Simulated error")
+		})
+
+	suffix, err := buildDomain(mock, &vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+	})
+	assert.Error(t, err)
+	assert.Equal(t, "", suffix)
+
+	// Validate the results
+	mocker.Finish()
+}
+
+// TestBuildIngressIPForXIPInvalidServiceType tests buildDomain method
+// GIVEN a request to buildDomain
+// WHEN an xio.io configuration is detected with an invalid service type
+// THEN an error is returned
+func TestBuildIngressIPForXIPInvalidServiceType(t *testing.T) {
+	namespace := "verrazzano"
+	name := "test"
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	// Expect a call to get the Rancher ingress
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "ingress-nginx", Name: "ingress-controller-ingress-nginx-controller"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *corev1.Service) error {
+			service.Spec.Type = corev1.ServiceTypeClusterIP
+			return nil
+		})
+
+	suffix, err := buildDomain(mock, &vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+	})
+	assert.Error(t, err)
+	assert.Equal(t, "", suffix)
+
+	// Validate the results
+	mocker.Finish()
+}
+
+// TestBuildIngressIPForXIPLoadBalancerOLCNE tests buildDomain method
+// GIVEN a request to buildDomain
+// WHEN an xio.io configuration is detected and the service IP is in the expected location for OLCNE
+// THEN the correct domain is returned
+func TestBuildIngressIPForXIPLoadBalancerOLCNE(t *testing.T) {
+	namespace := "verrazzano"
+	name := "test"
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	// Expect a call to get the Rancher ingress
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "ingress-nginx", Name: "ingress-controller-ingress-nginx-controller"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *corev1.Service) error {
+			service.Spec.Type = corev1.ServiceTypeLoadBalancer
+			service.Spec.ExternalIPs = []string{
+				"11.22.33.44",
+			}
+			return nil
+		})
+
+	suffix, err := buildDomain(mock, &vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "default.11.22.33.44.xip.io", suffix)
+
+	// Validate the results
+	mocker.Finish()
+}
+
+// TestBuildIngressIPForXIPLoadBalancerOLCNENoIPFound tests buildDomain method
+// GIVEN a request to buildDomain
+// WHEN an xio.io configuration is detected no service IP is in the expected location for OLCNE
+// THEN an error is returned
+func TestBuildIngressIPForXIPLoadBalancerOLCNENoIPFound(t *testing.T) {
+	namespace := "verrazzano"
+	name := "test"
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	// Expect a call to get the Rancher ingress
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "ingress-nginx", Name: "ingress-controller-ingress-nginx-controller"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *corev1.Service) error {
+			service.Spec.Type = corev1.ServiceTypeLoadBalancer
+			return nil
+		})
+
+	suffix, err := buildDomain(mock, &vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+	})
+	assert.Error(t, err)
+	assert.Equal(t, "", suffix)
+
+	// Validate the results
+	mocker.Finish()
+}
+
+// TestBuildOCIDNSDomain tests buildDomain method
+// GIVEN a request to buildDomain
+// WHEN an OCI DNS configuration is detected both with and without an environment name in the spec
+// THEN the correct domain is returned
+func TestBuildOCIDNSDomain(t *testing.T) {
+	namespace := "verrazzano"
+	name := "test"
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	suffix, err := buildDomain(mock, &vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				DNS: vzapi.DNSComponent{OCI: vzapi.OCI{DNSZoneName: "my.zone.com"}},
+			},
+		},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "default.my.zone.com", suffix)
+
+	suffix, err = buildDomain(mock, &vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+		Spec: vzapi.VerrazzanoSpec{
+			EnvironmentName: "myenv",
+			Components: vzapi.ComponentSpec{
+				DNS: vzapi.DNSComponent{OCI: vzapi.OCI{DNSZoneName: "my.zone.com"}},
+			},
+		},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "myenv.my.zone.com", suffix)
+
+	// Validate the results
+	mocker.Finish()
+}
+
+// TestBuildExternalDNSDomain tests buildDomain method
+// GIVEN a request to buildDomain
+// WHEN an External DNS configuration is detected both with and without an environment name in the spec
+// THEN the correct domain is returned
+func TestBuildExternalDNSDomain(t *testing.T) {
+	namespace := "verrazzano"
+	name := "test"
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	suffix, err := buildDomain(mock, &vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				DNS: vzapi.DNSComponent{External: vzapi.External{Suffix: "my.external.com"}},
+			},
+		},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "default.my.external.com", suffix)
+
+	suffix, err = buildDomain(mock, &vzapi.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+		Spec: vzapi.VerrazzanoSpec{
+			EnvironmentName: "myenv",
+			Components: vzapi.ComponentSpec{
+				DNS: vzapi.DNSComponent{External: vzapi.External{Suffix: "my.external.com"}},
+			},
+		},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "myenv.my.external.com", suffix)
+
+	// Validate the results
+	mocker.Finish()
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing
