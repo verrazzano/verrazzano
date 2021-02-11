@@ -384,11 +384,11 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 				CredentialName: secretName,
 			}},
 			{
-			Hosts: hosts,
-			Port: &istionet.Port{
-				Name:     "http",
-				Number:   80,
-				Protocol: "HTTP"},
+				Hosts: hosts,
+				Port: &istionet.Port{
+					Name:     "http",
+					Number:   80,
+					Protocol: "HTTP"},
 			}}
 		// Set the owner reference.
 		controllerutil.SetControllerReference(trait, gateway, r.Scheme)
