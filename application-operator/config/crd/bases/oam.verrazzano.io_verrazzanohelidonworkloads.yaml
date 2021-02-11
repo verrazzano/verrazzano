@@ -21,7 +21,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: VerrazzanoHelidonWorkload is the Schema for the verrazzanohelidonworkloads
+        description: VerrazzanoHelidonWorkload is the Schema for verrazzanohelidonworkloads
           API
         properties:
           apiVersion:

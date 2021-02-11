@@ -34,7 +34,7 @@ type VerrazzanoHelidonWorkloadStatus struct {
 	Resources []QualifiedResourceRelation `json:"resources,omitempty"`
 }
 
-// VerrazzanoHelidonWorkload is the Schema for the verrazzanohelidonworkloads API
+// VerrazzanoHelidonWorkload is the Schema for verrazzanohelidonworkloads API
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 type VerrazzanoHelidonWorkload struct {
