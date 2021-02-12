@@ -7,6 +7,9 @@ import (
 	"flag"
 	"os"
 
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustercomponent"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterconfigmap"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustersecret"
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -179,14 +182,6 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterSecret")
-		os.Exit(1)
-	}
-	if err = (&helidonworkload.Reconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoHelidonWorkload"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoHelidonWorkload")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

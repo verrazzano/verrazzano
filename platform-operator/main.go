@@ -138,12 +138,11 @@ func main() {
 
 	// Setup the validation webhook
 	if config.WebhooksEnabled {
-		setupLog.Info("Setting up webhook with manager")
+		setupLog.Info("Setting up Verrazzano webhook with manager")
 		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Errorf("unable to setup webhook with manager: %v", err)
 			os.Exit(1)
 		}
-
 		mgr.GetWebhookServer().CertDir = config.CertDir
 	}
 
@@ -155,6 +154,17 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoManagedCluster")
 		os.Exit(1)
 	}
+
+	// Setup the validation webhook
+	if config.WebhooksEnabled {
+		setupLog.Info("Setting up VerrazzanoManagedCluster webhook with manager")
+		if err = (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Errorf("unable to setup webhook with manager: %v", err)
+			os.Exit(1)
+		}
+		mgr.GetWebhookServer().CertDir = config.CertDir
+	}
+
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")

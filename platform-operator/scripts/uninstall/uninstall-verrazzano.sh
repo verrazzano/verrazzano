@@ -5,10 +5,9 @@
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 INSTALL_DIR=$SCRIPT_DIR/../install
-UNINSTALL_DIR=$SCRIPT_DIR/..
 
 . $INSTALL_DIR/common.sh
-. $UNINSTALL_DIR/uninstall-utils.sh
+. $SCRIPT_DIR/uninstall-utils.sh
 
 set -o pipefail
 
@@ -45,10 +44,6 @@ if [ "$FORCE" = false ] ; then
     esac
   done
 fi
-
-action "Retrieving Verrazzano Applications" check_applications || exit 1
-echo -ne "$APPLICATION_RESOURCES" >&4
-prompt_delete_applications || exit 1
 
 section "Uninstalling Verrazzano Applications"
 $SCRIPT_DIR/uninstall-steps/0-uninstall-applications.sh || exit 1

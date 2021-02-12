@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 
@@ -145,6 +146,26 @@ func GetRetryPolicy(url string) func(ctx context.Context, resp *http.Response, e
 	}
 }
 
+// findMetric parses a Prometheus response to find a specified metric value
+func findMetric(metrics []interface{}, key, value string) bool {
+	for _, metric := range metrics {
+		if Jq(metric, "metric", key) == value {
+			return true
+		}
+	}
+	return false
+}
+
+// MetricsExist validates the availability of a specified metric
+func MetricsExist(metricsName, key, value string) bool {
+	metrics := JTq(QueryMetric(metricsName), "data", "result").([]interface{})
+	if metrics != nil {
+		return findMetric(metrics, key, value)
+	} else {
+		return false
+	}
+}
+
 // JTq queries JSON text with a JSON path
 func JTq(jtext string, path ...string) interface{} {
 	var j map[string]interface{}
@@ -158,4 +179,13 @@ func Jq(node interface{}, path ...string) interface{} {
 		node = node.(map[string]interface{})[p]
 	}
 	return node
+}
+
+// GetRequiredEnvVarOrFail returns the values of the provided environment variable name or fails.
+func GetRequiredEnvVarOrFail(name string) string {
+	value, found := os.LookupEnv(name)
+	if !found {
+		ginkgo.Fail(fmt.Sprintf("Environment variable '%s' required.", name))
+	}
+	return value
 }

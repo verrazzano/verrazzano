@@ -153,15 +153,9 @@ func procExistsStatus(err error, msg string) bool {
 	return false
 }
 
-//GetAppConfig gets OAM custom-resource ApplicationConfiguration
+// GetAppConfig gets OAM custom-resource ApplicationConfiguration
 func (c Client) GetAppConfig(namespace, name string) (*oamv1.ApplicationConfiguration, error) {
-	bytes, err := c.clientset.RESTClient().
-		Get().
-		AbsPath("/apis/core.oam.dev/v1alpha2").
-		Namespace(namespace).
-		Resource("applicationconfigurations").
-		Name(name).
-		DoRaw(context.TODO())
+	bytes, err := c.getRaw("/apis/core.oam.dev/v1alpha2", "applicationconfigurations", namespace, name)
 	if err != nil {
 		return nil, err
 	}
@@ -170,16 +164,9 @@ func (c Client) GetAppConfig(namespace, name string) (*oamv1.ApplicationConfigur
 	return &appConfig, err
 }
 
-//GetMultiClusterSecret gets the specified MultiClusterSecret resource
+// GetMultiClusterSecret gets the specified MultiClusterSecret resource
 func (c Client) GetMultiClusterSecret(namespace, name string) (*clustersv1alpha1.MultiClusterSecret, error) {
-	bytes, err := c.clientset.RESTClient().
-		Get().
-		AbsPath("/apis/clusters.verrazzano.io/v1alpha1").
-		Namespace(namespace).
-		Resource("multiclustersecrets").
-		Name(name).
-		DoRaw(context.TODO())
-
+	bytes, err := c.getRaw("/apis/clusters.verrazzano.io/v1alpha1", "multiclustersecrets", namespace, name)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +175,55 @@ func (c Client) GetMultiClusterSecret(namespace, name string) (*clustersv1alpha1
 	return &mcSecret, err
 }
 
-//GetSecret gets the specified K8S secret
+// GetSecret gets the specified K8S secret
 func (c Client) GetSecret(namespace, name string) (*corev1.Secret, error) {
 	return c.clientset.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// GetMultiClusterComponent gets the specified MultiClusterComponent
+func (c Client) GetMultiClusterComponent(namespace string, name string) (*clustersv1alpha1.MultiClusterComponent, error) {
+	bytes, err := c.getRaw("/apis/clusters.verrazzano.io/v1alpha1", "multiclustercomponents", namespace, name)
+	if err != nil {
+		return nil, err
+	}
+	var mcComp clustersv1alpha1.MultiClusterComponent
+	err = json.Unmarshal(bytes, &mcComp)
+	return &mcComp, err
+}
+
+// GetOAMComponent gets the specified OAM Component
+func (c Client) GetOAMComponent(namespace string, name string) (*oamv1.Component, error) {
+	bytes, err := c.getRaw("/apis/core.oam.dev/v1alpha2", "components", namespace, name)
+	if err != nil {
+		return nil, err
+	}
+	var comp oamv1.Component
+	err = json.Unmarshal(bytes, &comp)
+	return &comp, err
+}
+
+// GetMultiClusterConfigMap gets the specified MultiClusterConfigMap
+func (c Client) GetMultiClusterConfigMap(namespace string, name string) (*clustersv1alpha1.MultiClusterConfigMap, error) {
+	bytes, err := c.getRaw("/apis/clusters.verrazzano.io/v1alpha1", "multiclusterconfigmaps", namespace, name)
+	if err != nil {
+		return nil, err
+	}
+	var mcConfigMap clustersv1alpha1.MultiClusterConfigMap
+	err = json.Unmarshal(bytes, &mcConfigMap)
+	return &mcConfigMap, err
+}
+
+// GetConfigMap gets the specified K8S ConfigMap
+func (c Client) GetConfigMap(namespace string, name string) (*corev1.ConfigMap, error) {
+	return c.clientset.CoreV1().ConfigMaps(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+func (c Client) getRaw(absPath, resource, namespace, name string) ([]byte, error) {
+	return c.clientset.RESTClient().
+		Get().
+		AbsPath(absPath).
+		Namespace(namespace).
+		Resource(resource).
+		Name(name).
+		DoRaw(context.TODO())
 }

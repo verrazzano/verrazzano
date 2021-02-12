@@ -45,7 +45,7 @@ func TestApply(t *testing.T) {
 	scope := createTestLoggingScope(true)
 
 	wlsDomain := createWlsDomain(resource)
-	fluentdPod := toFluentdPod(wlsDomain.Spec.ServerPod, resource, buildWLSLogPath(resource.Name))
+	fluentdPod := toFluentdPod(wlsDomain.Spec.ServerPod, resource, BuildWLSLogPath(resource.Name))
 
 	mockClient.EXPECT().
 		Get(context.Background(), types.NamespacedName{Name: testResourceName, Namespace: testNamespace}, &wlsDomain).

@@ -9,37 +9,37 @@ metadata:
 spec:
   workload:
     apiVersion: coherence.oracle.com/v1
-    kind: CoherenceCluster
+    kind: Coherence
     metadata:
       name: roberts-coherence
       namespace: bobs-books
     spec:
       replicas: 2
-      jvm:
-        args:
-          - "-Dcoherence.pof.config=books-pof-config.xml"
-      image: container-registry.oracle.com/middleware/coherence:12.2.1.4.0
+      image: container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210205215204-b624b86
       imagePullPolicy: IfNotPresent
       imagePullSecrets:
-        - name: ocr
-      coherence:
-        logLevel: 9
-        cacheConfig: books-cache-config.xml
-        metrics:
-          enabled: true
-          port: 9612
+        - name: bobs-books-repo-credentials
+      env:
+        - name: BACKEND_PORT
+          value: "8001"
+        - name: BACKEND_HOSTNAME
+          value: bobs-bookstore-cluster-cluster-1.bobs-books.svc.cluster.local
+        - name: TRACING_HOST
+          value: "jaeger-collector"
+        - name: JAEGER_SAMPLER_TYPE
+          value: "const"
+        - name: JAEGER_SAMPLER_PARAM
+          value: "1"
+      jvm:
+        memory:
+          heapSize: 1g
+        args:
+          - "-Dcoherence.k8s.operator.health.wait.dcs=false"
       ports:
         - name: extend
           port: 9000
-      application:
-        image: container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.10-3-7508985-127
-        imagePullSecrets:
-          - name: ocr
-        env:
-          - name: BACKEND_PORT
-            value: "8001"
-          - name: BACKEND_HOSTNAME
-            value: bobs-bookstore-cluster-cluster-1.bobs-books.svc.cluster.local
+          service:
+            name: roberts-coherence-extend
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -58,7 +58,9 @@ spec:
     spec:
       containers:
         - name: robert-helidon-stock-application
-          image: "container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.10-3-7508985-127"
+          image: container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210205215204-b624b86
+          imagePullPolicy: IfNotPresent
+          imagePullSecret: bobs-books-repo-credentials
           ports:
             - name: http
               containerPort: 8080
@@ -66,9 +68,9 @@ spec:
             - name: COH_CLUSTER
               value: roberts-coherence
             - name: COH_CACHE_CONFIG
-              value: roberts-cache-config.xml
+              value: coherence-cache-config.xml
             - name: COH_POF_CONFIG
-              value: roberts-pof-config.xml
+              value: pof-config.xml
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -78,31 +80,33 @@ metadata:
 spec:
   workload:
     apiVersion: coherence.oracle.com/v1
-    kind: CoherenceCluster
+    kind: Coherence
     metadata:
       name: bobbys-coherence
       namespace: bobs-books
     spec:
       replicas: 1
-      jvm:
-        args:
-          - "-Dcoherence.pof.config=bobbys-pof-config.xml"
-      image: container-registry.oracle.com/middleware/coherence:12.2.1.4.0
+      image: container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.12-1-20210205215204-b624b86
       imagePullPolicy: IfNotPresent
       imagePullSecrets:
-        - name: ocr
-        - name: github-packages
-      coherence:
-        logLevel: 9
-        cacheConfig: bobbys-cache-config.xml
-        metrics:
-          enabled: true
-          port: 9612
+        - name: bobs-books-repo-credentials
+      env:
+        - name: TRACING_HOST
+          value: "jaeger-collector"
+        - name: JAEGER_SAMPLER_TYPE
+          value: "const"
+        - name: JAEGER_SAMPLER_PARAM
+          value: "1"
+      jvm:
+        memory:
+          heapSize: 1g
+        args:
+          - "-Dcoherence.k8s.operator.health.wait.dcs=false"
       ports:
-      - name: extend
-        port: 9000
-      application:
-        image: ghcr.io/verrazzano/example-bobbys-coherence:0.1.10-3-6e5f030-129
+        - name: extend
+          port: 9000
+          service:
+            name: bobbys-coherence-extend
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -121,8 +125,9 @@ spec:
     spec:
       containers:
       - name: bobbys-helidon-stock-application
-        image: "ghcr.io/verrazzano/example-bobbys-helidon-stock-application:0.1.10-3-6e5f030-129"
-        imagePullSecret: github-packages
+        image: container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210205215204-b624b86
+        imagePullPolicy: IfNotPresent
+        imagePullSecret: bobs-books-repo-credentials
         ports:
           - containerPort: 8080
             name: http
@@ -134,9 +139,9 @@ spec:
           - name: COH_CLUSTER
             value: bobbys-coherence
           - name: COH_CACHE_CONFIG
-            value: bobbys-helidon-cache-config.xml
+            value: coherence-cache-config.xml
           - name: COH_POF_CONFIG
-            value: bobbys-helidon-pof-config.xml
+            value: pof-config.xml
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -156,9 +161,9 @@ spec:
     spec:
       domainUID: bobbys-front-end
       domainHome: /u01/oracle/user_projects/domains/bobbys-front-end
-      image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.10-3-e5ae893-124
+      image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.12-1-20210205215204-b624b86
       imagePullSecrets:
-        - name: ocr
+        - name: bobs-books-repo-credentials
       logHome: /scratch/logs/bobbys-front-end
       logHomeEnabled: true
       domainHomeSourceType: "FromModel"
@@ -169,6 +174,8 @@ spec:
       clusters:
         - clusterName: cluster-1
       configuration:
+        istio:
+          enabled: false
         introspectorJobActiveDeadlineSeconds: 300
         model:
           runtimeEncryptionSecret: bobbys-front-end-runtime-encrypt-secret
@@ -186,12 +193,6 @@ spec:
             value: /u01/oracle/wlserver
           - name: MW_HOME
             value: /u01/oracle
-        volumeMounts:
-          - mountPath: /scratch
-            name: weblogic-domain-storage-volume
-        volumes:
-          - emptyDir: {}
-            name: weblogic-domain-storage-volume
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -298,7 +299,7 @@ spec:
                       key: password
                 - name: MYSQL_DATABASE
                   value: books
-              image: "mysql:8.0.20"
+              image: ghcr.io/verrazzano/mysql:8.0.20
               imagePullPolicy: IfNotPresent
               name: mysql
               ports:
@@ -313,7 +314,7 @@ spec:
                   name: mysql-initdb
           dnsPolicy: ClusterFirst
           imagePullSecrets:
-            - name: ocr
+            - name: bobs-books-repo-credentials
           restartPolicy: Always
           schedulerName: default-scheduler
           securityContext: {}
@@ -383,7 +384,7 @@ spec:
       domainUID: bobs-bookstore
       domainHome: /u01/oracle/user_projects/domains/bobs-bookstore
       domainHomeSourceType: FromModel
-      image: "container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.10-3-e5ae893-124"
+      image: container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210205215204-b624b86
       logHome: /scratch/logs/bobs-bookstore
       logHomeEnabled: true
       includeServerOutInPodLog: true
@@ -391,10 +392,12 @@ spec:
       webLogicCredentialsSecret:
         name: bobs-bookstore-weblogic-credentials
       imagePullSecrets:
-        - name: ocr
+        - name: bobs-books-repo-credentials
       clusters:
         - clusterName: cluster-1
       configuration:
+        istio:
+          enabled: false
         introspectorJobActiveDeadlineSeconds: 300
         model:
           configMap: bobs-bookstore-wdt-config-map
@@ -411,9 +414,3 @@ spec:
             value: /u01/oracle/wlserver
           - name: MW_HOME
             value: /u01/oracle
-        volumeMounts:
-          - mountPath: /scratch
-            name: weblogic-domain-storage-volume
-        volumes:
-          - emptyDir: {}
-            name: weblogic-domain-storage-volume

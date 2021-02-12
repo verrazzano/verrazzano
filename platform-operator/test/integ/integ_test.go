@@ -16,6 +16,7 @@ const clusterAdmin = "cluster-admin"
 const platformOperator = "verrazzano-platform-operator"
 const installNamespace = "verrazzano-install"
 const mcNamespace = "verrazzano-mc"
+const prometheusSecret = "prometheus-cluster1"
 
 var K8sClient k8s.Client
 
@@ -47,11 +48,11 @@ var _ = ginkgo.Describe("verrazzano-install namespace resources ", func() {
 		gomega.Expect(K8sClient.DoesPodExist(platformOperator, installNamespace)).To(gomega.BeTrue(),
 			"The verrazzano-platform-operator pod should exist")
 	})
-	ginkgo.It("is running (within 1m)", func() {
+	ginkgo.It("Platform operator pod is eventually running", func() {
 		isPodRunningYet := func() bool {
 			return K8sClient.IsPodRunning(platformOperator, installNamespace)
 		}
-		gomega.Eventually(isPodRunningYet, "1m", "5s").Should(gomega.BeTrue(),
+		gomega.Eventually(isPodRunningYet, "2m", "5s").Should(gomega.BeTrue(),
 			"The verrazzano-platform-operator pod should be in the Running state")
 	})
 })
@@ -82,6 +83,20 @@ var _ = ginkgo.Describe("Custom Resource Definition for verrazzano install", fun
 var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 	ginkgo.It("Create multi-cluster namespace ", func() {
 		_, stderr := util.Kubectl(fmt.Sprintf("create namespace %s", mcNamespace))
+		gomega.Expect(stderr).To(gomega.Equal(""))
+	})
+	ginkgo.It("Missing secret name validation ", func() {
+		_, stderr := util.Kubectl("apply -f testdata/vmc_missing_secret_name.yaml")
+		gomega.Expect(stderr).To(gomega.ContainSubstring("missing required field \"prometheusSecret\""))
+	})
+	ginkgo.It("Missing secret validation ", func() {
+		_, stderr := util.Kubectl("apply -f testdata/vmc_sample.yaml")
+		gomega.Expect(stderr).To(gomega.ContainSubstring(
+			fmt.Sprintf(fmt.Sprintf("The Prometheus secret %s does not exist in namespace %s", prometheusSecret, mcNamespace))))
+	})
+	ginkgo.It("Create Prometheus secret ", func() {
+		_, stderr := util.Kubectl(
+			fmt.Sprintf("create secret generic %s -n %s --from-literal=password=mypw --from-literal=username=myuser", prometheusSecret, mcNamespace))
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
 	ginkgo.It("VerrazzanoManagedCluster can be created ", func() {

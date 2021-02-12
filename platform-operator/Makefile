@@ -8,6 +8,7 @@ TIMESTAMP := $(shell date -u +%Y%m%d%H%M%S)
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
 DOCKER_IMAGE_TAG ?= local-${TIMESTAMP}-$(shell git rev-parse --short HEAD)
 
+CONTROLLER_GEN_VERSION ?= $(shell go list -m -f '{{.Version}}' sigs.k8s.io/controller-tools)
 CREATE_LATEST_TAG=0
 
 CRD_OPTIONS ?= "crd:crdVersions=v1"
@@ -135,18 +136,18 @@ generate: controller-gen
 .PHONY: controller-gen
 controller-gen:
 ifeq (, $(shell command -v controller-gen))
-	@{ \
-	set -e ;\
-	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
-	cd $$CONTROLLER_GEN_TMP_DIR ;\
-	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1 ;\
-	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
-	}
-CONTROLLER_GEN=$(GOBIN)/controller-gen
+	go get sigs.k8s.io/controller-tools/cmd/controller-gen@
+	$(eval CONTROLLER_GEN=$(GOBIN)/controller-gen)
 else
-CONTROLLER_GEN=$(shell command -v controller-gen)
+	$(eval CONTROLLER_GEN=$(shell command -v controller-gen))
 endif
+	@{ \
+	set -eu; \
+	ACTUAL_CONTROLLER_GEN_VERSION=$$(${CONTROLLER_GEN} --version | awk '{print $$2}') ; \
+	if [ "$${ACTUAL_CONTROLLER_GEN_VERSION}" != "${CONTROLLER_GEN_VERSION}" ] ; then \
+		echo  "Bad controller-gen version $${ACTUAL_CONTROLLER_GEN_VERSION}, please install ${CONTROLLER_GEN_VERSION}" ; \
+	fi ; \
+	}
 
 #
 # Docker-related tasks
@@ -193,6 +194,12 @@ BUILD-DEPLOY = build/deploy
 DEPLOY = deploy
 OPERATOR_SETUP = test/operatorsetup
 
+ifdef JENKINS_URL
+	CLUSTER_DUMP_LOCATION = ${WORKSPACE}/platform-operator-integ-cluster-dump
+else
+	CLUSTER_DUMP_LOCATION = platform-operator-integ-cluster-dump
+endif
+
 .PHONY: integ-test
 integ-test: create-cluster
 	echo 'Load docker image for the verrazzano-platform-operator...'
@@ -200,17 +207,17 @@ integ-test: create-cluster
 	echo 'Deploy verrazzano platform operator ...'
 ifdef JENKINS_URL
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
-	kubectl apply -f deploy/operator.yaml || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d platform-operator-integ-cluster-dump;)
+	kubectl apply -f deploy/operator.yaml || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
 else
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	mkdir -p build/deploy
 	cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > ${BUILD-DEPLOY}/operator.yaml
 	cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> ${BUILD-DEPLOY}/operator.yaml
 	cat config/crd/bases/clusters.verrazzano.io_verrazzanomanagedclusters.yaml >> ${BUILD-DEPLOY}/operator.yaml
-	kubectl apply -f ${BUILD-DEPLOY}/operator.yaml || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d platform-operator-integ-cluster-dump; exit 1)
+	kubectl apply -f ${BUILD-DEPLOY}/operator.yaml || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
 endif
 	echo 'Run tests...'
-	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d platform-operator-integ-cluster-dump;)
+	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
 
 .PHONY: create-cluster
 create-cluster:
@@ -227,8 +234,10 @@ endif
 ifdef JENKINS_URL
 	# Get the ip address of the container running the kube apiserver
 	# and update the kubeconfig file to point to that address, instead of localhost
-	sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
+	sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
 	cat ${KUBECONFIG} | grep server
+
+	$$(X=$$(docker inspect $$(docker ps | grep "jenkins-runner" | awk '{ print $$1 }') | jq '.[].NetworkSettings.Networks' | grep -q kind ; echo $$?); if [[ ! $$X -eq "0" ]]; then docker network connect kind $$(docker ps | grep "jenkins-runner" | awk '{ print $$1 }'); fi)
 endif
 
 .PHONY: delete-cluster
