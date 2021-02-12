@@ -3,8 +3,8 @@
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: MultiClusterComponent
 metadata:
-  name: unit-mccomp
-  namespace: unit-mccomp-namespace
+  name: unit-mcappconfig
+  namespace: unit-mcappconfig-namespace
 spec:
   template:
     spec:
