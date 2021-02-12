@@ -82,13 +82,19 @@ type VerrazzanoSpec struct {
 
 // RoleBindingSubject specifes the kind and name of a subject to bind to
 type RoleBindingSubject struct {
+	// Kind specifies the kind value for an rbac subject for a RoleBinding
 	Kind string `json:"kind,omitempty"`
+	// Name specifies the name value for an rbac subject for a RoleBinding
 	Name string `json:"name,omitempty"`
 }
 
 // SecuritySpec defines the security configuration for Verrazzano
 type SecuritySpec struct {
-	AdminBinding   RoleBindingSubject `json:"adminBinding,omitempty"`
+	// AdminBinding specifies the subject that should be bound to the verrazzano-admin role
+	// +optional
+	AdminBinding RoleBindingSubject `json:"adminBinding,omitempty"`
+	// MonitorBinding specifies the subject that should be bound to the verrazzano-monitor role
+	// +optional
 	MonitorBinding RoleBindingSubject `json:"monitorBinding,omitempty"`
 }
 

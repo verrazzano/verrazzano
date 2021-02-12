@@ -2968,21 +2968,29 @@ spec:
                 description: Security specifies Verrazzano security configuration
                 properties:
                   adminBinding:
-                    description: RoleBindingSubject specifes the kind and name of
-                      a subject to bind to
+                    description: AdminBinding specifies the subject that should be
+                      bound to the verrazzano-admin role
                     properties:
                       kind:
+                        description: Kind specifies the kind value for an rbac subject
+                          for a RoleBinding
                         type: string
                       name:
+                        description: Name specifies the name value for an rbac subject
+                          for a RoleBinding
                         type: string
                     type: object
                   monitorBinding:
-                    description: RoleBindingSubject specifes the kind and name of
-                      a subject to bind to
+                    description: MonitorBinding specifies the subject that should
+                      be bound to the verrazzano-monitor role
                     properties:
                       kind:
+                        description: Kind specifies the kind value for an rbac subject
+                          for a RoleBinding
                         type: string
                       name:
+                        description: Name specifies the name value for an rbac subject
+                          for a RoleBinding
                         type: string
                     type: object
                 type: object
