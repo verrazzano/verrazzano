@@ -7,6 +7,7 @@ import (
 	"flag"
 	"os"
 
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterapplicationconfiguration"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustercomponent"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterconfigmap"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterloggingscope"
@@ -26,6 +27,7 @@ import (
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	clusterscontroller "github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
@@ -206,6 +208,14 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterLoggingScope")
+		os.Exit(1)
+	}
+	if err = (&multiclusterapplicationconfiguration.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterApplicationConfiguration"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterApplicationConfiguration")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
