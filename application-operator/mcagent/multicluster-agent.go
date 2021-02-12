@@ -49,17 +49,6 @@ func StartAgent(client client.Client, log logr.Logger) {
 		return
 	}
 
-	// test
-	var mcSecret clustersv1alpha1.MultiClusterSecret
-	err = clientset.Get(context.TODO(), types.NamespacedName{
-		Namespace: "hello",
-		Name:      "admin-elasticsearch",
-	}, &mcSecret)
-	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to get the MCSecret: %v", err))
-	}
-	log.Info(fmt.Sprintf("MC placement name", mcSecret.Spec.Placement.Clusters[0]))
-
 	// Start the thread for syncing multi-cluster objects
 	go StartSync(clientset, log)
 }
@@ -118,9 +107,10 @@ func getMCClient(secret *corev1.Secret) (client.Client, error) {
 	scheme := runtime.NewScheme()
 	_ = clustersv1alpha1.AddToScheme(scheme)
 
-	clientset, err := client.New(config, client.Options{
-		Scheme: scheme,
-	})
+	clientset, err := client.New(config, client.Options{Scheme: scheme})
+	if err != nil {
+		return nil, err
+	}
 
 	return clientset, nil
 }
