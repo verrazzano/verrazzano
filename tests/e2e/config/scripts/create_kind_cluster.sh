@@ -35,6 +35,7 @@ create_kind_cluster() {
   kubectl config set-context kind-${CLUSTER_NAME}
   sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
   cat ${KUBECONFIG} | grep server
+  $(docker network connect kind $(docker ps | grep "jenkins-runner" | awk '{ print $1 }'))
 }
 
 create_kind_cluster
