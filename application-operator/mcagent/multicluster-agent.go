@@ -2,7 +2,6 @@ package mcagent
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -18,7 +17,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func McThread(client client.Client, log logr.Logger) {
+// StartAgent - start the agent thread for syncing multi-cluster objects
+func StartAgent(client client.Client, log logr.Logger) {
 	// Wait for the existence of the verrazzano-cluster secret.  It contains the credentials
 	// for connecting to a managed cluster.
 	secret := corev1.Secret{}
@@ -62,13 +62,13 @@ func validateClusterSecret(secret *corev1.Secret) error {
 	// The secret must contain a cluster-name
 	_, ok := secret.Data["cluster-name"]
 	if !ok {
-		return errors.New(fmt.Sprintf("The secret named %s in namespace %s is missing the required field cluster-name", secret.Name, secret.Namespace))
+		return fmt.Errorf("The secret named %s in namespace %s is missing the required field cluster-name", secret.Name, secret.Namespace)
 	}
 
 	// The secret must contain a kubeconfig
 	_, ok = secret.Data["kubeconfig"]
 	if !ok {
-		return errors.New(fmt.Sprintf("The secret named %s in namespace %s is missing the required field kubeconfig", secret.Name, secret.Namespace))
+		return fmt.Errorf("The secret named %s in namespace %s is missing the required field kubeconfig", secret.Name, secret.Namespace)
 	}
 
 	return nil
