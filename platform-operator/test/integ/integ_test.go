@@ -48,7 +48,7 @@ var _ = ginkgo.Describe("verrazzano-install namespace resources ", func() {
 		gomega.Expect(K8sClient.DoesPodExist(platformOperator, installNamespace)).To(gomega.BeTrue(),
 			"The verrazzano-platform-operator pod should exist")
 	})
-	ginkgo.It("is running (within 1m)", func() {
+	ginkgo.It("Platform operator pod is eventually running", func() {
 		isPodRunningYet := func() bool {
 			return K8sClient.IsPodRunning(platformOperator, installNamespace)
 		}
@@ -96,7 +96,7 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 	})
 	ginkgo.It("Create Prometheus secret ", func() {
 		_, stderr := util.Kubectl(
-			fmt.Sprintf("create secret -n %s  generic %s --from-literal=password=mypw --from-literal=username=myuser", mcNamespace, prometheusSecret))
+			fmt.Sprintf("create secret generic %s -n %s --from-literal=password=mypw --from-literal=username=myuser", prometheusSecret, mcNamespace))
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
 	ginkgo.It("VerrazzanoManagedCluster can be created ", func() {
