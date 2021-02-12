@@ -62,10 +62,6 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 			return componentExistsWithFields(multiclusterTestNamespace, "mymccomp", mcComp)
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
-	ginkgo.It("MultiClusterApplicationConfiguration can be created ", func() {
-		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_appconf_sample.yaml")
-		gomega.Expect(stderr).To(gomega.Equal(""))
-	})
 })
 
 var _ = ginkgo.Describe("Testing MultiClusterConfigMap", func() {
@@ -105,11 +101,42 @@ var _ = ginkgo.Describe("Testing MultiClusterLoggingScope", func() {
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 })
+var _ = ginkgo.Describe("Testing MultiClusterApplicationConfiguration", func() {
+	ginkgo.It("MultiClusterApplicationConfiguration can be created ", func() {
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_appconf_sample.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""))
+		mcAppConfig, err := K8sClient.GetMultiClusterAppConfig(multiclusterTestNamespace, "mymcappconf")
+		gomega.Expect(err).To(gomega.BeNil())
+		gomega.Eventually(func() bool {
+			return appConfigExistsWithFields(multiclusterTestNamespace, "mymcappconf", mcAppConfig)
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+	})
+})
+
+func appConfigExistsWithFields(namespace string, name string, multiClusterAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration) bool {
+	fmt.Printf("Looking for OAM app config %v/%v\n", namespace, name)
+	appConfig, err := K8sClient.GetOAMAppConfig(namespace, name)
+	if err != nil {
+		return false
+	}
+	areEqual := true
+	for i, expectedComp := range multiClusterAppConfig.Spec.Template.Spec.Components {
+		areEqual = areEqual &&
+			appConfig.Spec.Components[i].ComponentName == expectedComp.ComponentName &&
+			reflect.DeepEqual(appConfig.Spec.Components[i].Traits[0], expectedComp.Traits[0]) &&
+			reflect.DeepEqual(appConfig.Spec.Components[i].Scopes[0], expectedComp.Scopes[0])
+	}
+	if !areEqual {
+		fmt.Println("Retrieved app config spec doesn't match multi cluster app config spec")
+		return false
+	}
+	return true
+}
 
 func loggingScopeExistsWithFields(namespace string, name string, mcLogScope *clustersv1alpha1.MultiClusterLoggingScope) bool {
 	fmt.Printf("Looking for LoggingScope %v/%v\n", namespace, name)
 	logScope, err := K8sClient.GetLoggingScope(namespace, name)
-	return err == nil && reflect.DeepEqual(logScope.Spec, mcLogScope.Spec)
+	return err == nil && reflect.DeepEqual(logScope.Spec, mcLogScope.Spec.Template.Spec)
 }
 
 func componentExistsWithFields(namespace string, name string, multiClusterComp *clustersv1alpha1.MultiClusterComponent) bool {

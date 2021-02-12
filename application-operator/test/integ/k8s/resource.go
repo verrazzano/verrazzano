@@ -242,6 +242,28 @@ func (c Client) GetLoggingScope(namespace string, name string) (*v1alpha1.Loggin
 	return &logScope, err
 }
 
+// GetMultiClusterAppConfig gets the specified MultiClusterApplicationConfiguration
+func (c Client) GetMultiClusterAppConfig(namespace string, name string) (*clustersv1alpha1.MultiClusterApplicationConfiguration, error) {
+	bytes, err := c.getRaw("/apis/clusters.verrazzano.io/v1alpha1", "multiclusterapplicationconfigurations", namespace, name)
+	if err != nil {
+		return nil, err
+	}
+	var mcAppConf clustersv1alpha1.MultiClusterApplicationConfiguration
+	err = json.Unmarshal(bytes, &mcAppConf)
+	return &mcAppConf, err
+}
+
+// GetOAMAppConfig gets the specified OAM ApplicationConfiguration
+func (c Client) GetOAMAppConfig(namespace string, name string) (*oamv1.ApplicationConfiguration, error) {
+	bytes, err := c.getRaw("/apis/core.oam.dev/v1alpha2", "applicationconfigurations", namespace, name)
+	if err != nil {
+		return nil, err
+	}
+	var appConf oamv1.ApplicationConfiguration
+	err = json.Unmarshal(bytes, &appConf)
+	return &appConf, err
+}
+
 func (c Client) getRaw(absPath, resource, namespace, name string) ([]byte, error) {
 	return c.clientset.RESTClient().
 		Get().

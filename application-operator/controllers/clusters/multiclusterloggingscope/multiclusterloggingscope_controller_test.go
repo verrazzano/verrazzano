@@ -72,14 +72,14 @@ func TestReconcileCreateLoggingScope(t *testing.T) {
 	cli := mocks.NewMockClient(mocker)
 	mockStatusWriter := mocks.NewMockStatusWriter(mocker)
 
-	mcCompSample, err := getSampleMCLoggingScope()
+	mcLogScopeSample, err := getSampleMCLoggingScope()
 
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	// expect a call to fetch the MultiClusterLoggingScope
-	doExpectGetMultiClusterLoggingScope(cli, mcCompSample)
+	doExpectGetMultiClusterLoggingScope(cli, mcLogScopeSample)
 
 	// expect a call to fetch existing LoggingScope, and return not found error, to test create case
 	cli.EXPECT().
@@ -90,7 +90,7 @@ func TestReconcileCreateLoggingScope(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, c *v1alpha1.LoggingScope, opts ...client.CreateOption) error {
-			assertLoggingScopeValid(assert, c, mcCompSample)
+			assertLoggingScopeValid(assert, c, mcLogScopeSample)
 			return nil
 		})
 
@@ -119,35 +119,35 @@ func TestReconcileUpdateLoggingScope(t *testing.T) {
 	cli := mocks.NewMockClient(mocker)
 	mockStatusWriter := mocks.NewMockStatusWriter(mocker)
 
-	mcCompSample, err := getSampleMCLoggingScope()
+	mcLogScopeSample, err := getSampleMCLoggingScope()
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
-	existingOAMComp, err := getExistingLoggingScope()
+	existingLogScope, err := getExistingLoggingScope()
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	// expect a call to fetch the MultiClusterLoggingScope
-	doExpectGetMultiClusterLoggingScope(cli, mcCompSample)
+	doExpectGetMultiClusterLoggingScope(cli, mcLogScopeSample)
 
-	// expect a call to fetch underlying LoggingScope, and return an existing component
-	doExpectGetLoggingScopeExists(cli, mcCompSample.ObjectMeta, existingOAMComp.Spec)
+	// expect a call to fetch underlying LoggingScope, and return an existing LoggingScope
+	doExpectGetLoggingScopeExists(cli, mcLogScopeSample.ObjectMeta, existingLogScope.Spec)
 
-	// expect a call to update the LoggingScope with the new component workload data
+	// expect a call to update the LoggingScope with the new data
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, c *v1alpha1.LoggingScope, opts ...client.CreateOption) error {
-			assertLoggingScopeValid(assert, c, mcCompSample)
+			assertLoggingScopeValid(assert, c, mcLogScopeSample)
 			return nil
 		})
 
-	// expect a call to update the status of the multicluster component
+	// expect a call to update the status of the multicluster loggingscope
 	cli.EXPECT().Status().Return(mockStatusWriter)
 
 	mockStatusWriter.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&mcCompSample)).
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&mcLogScopeSample)).
 		Return(nil)
 
 	// create a request and reconcile it
@@ -163,7 +163,7 @@ func TestReconcileUpdateLoggingScope(t *testing.T) {
 // TestReconcileCreateLoggingScopeFailed tests the path of reconciling a MultiClusterLoggingScope
 // when the underlying LoggingScope does not exist and fails to be created due to some error condition
 // GIVEN a MultiClusterLoggingScope resource is created
-// WHEN the controller Reconcile function is called and create underlying component fails
+// WHEN the controller Reconcile function is called and create underlying LoggingScope fails
 // THEN expect the status of the MultiClusterLoggingScope to be updated with failure information
 func TestReconcileCreateLoggingScopeFailed(t *testing.T) {
 	assert := asserts.New(t)
@@ -172,13 +172,13 @@ func TestReconcileCreateLoggingScopeFailed(t *testing.T) {
 	cli := mocks.NewMockClient(mocker)
 	mockStatusWriter := mocks.NewMockStatusWriter(mocker)
 
-	mcCompSample, err := getSampleMCLoggingScope()
+	mcLogScopeSample, err := getSampleMCLoggingScope()
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	// expect a call to fetch the MultiClusterLoggingScope
-	doExpectGetMultiClusterLoggingScope(cli, mcCompSample)
+	doExpectGetMultiClusterLoggingScope(cli, mcLogScopeSample)
 
 	// expect a call to fetch existing LoggingScope and return not found error, to simulate create case
 	cli.EXPECT().
@@ -209,7 +209,7 @@ func TestReconcileCreateLoggingScopeFailed(t *testing.T) {
 // TestReconcileCreateLoggingScopeFailed tests the path of reconciling a MultiClusterLoggingScope
 // when the underlying LoggingScope exists and fails to be updated due to some error condition
 // GIVEN a MultiClusterLoggingScope resource is created
-// WHEN the controller Reconcile function is called and update underlying component fails
+// WHEN the controller Reconcile function is called and update underlying LoggingScope fails
 // THEN expect the status of the MultiClusterLoggingScope to be updated with failure information
 func TestReconcileUpdateLoggingScopeFailed(t *testing.T) {
 	assert := asserts.New(t)
@@ -218,16 +218,16 @@ func TestReconcileUpdateLoggingScopeFailed(t *testing.T) {
 	cli := mocks.NewMockClient(mocker)
 	mockStatusWriter := mocks.NewMockStatusWriter(mocker)
 
-	mcCompSample, err := getSampleMCLoggingScope()
+	mcLogScopeSample, err := getSampleMCLoggingScope()
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	// expect a call to fetch the MultiClusterLoggingScope
-	doExpectGetMultiClusterLoggingScope(cli, mcCompSample)
+	doExpectGetMultiClusterLoggingScope(cli, mcLogScopeSample)
 
 	// expect a call to fetch existing LoggingScope (simulate update case)
-	doExpectGetLoggingScopeExists(cli, mcCompSample.ObjectMeta, mcCompSample.Spec.Template.Spec)
+	doExpectGetLoggingScopeExists(cli, mcLogScopeSample.ObjectMeta, mcLogScopeSample.Spec.Template.Spec)
 
 	// expect a call to update the LoggingScope and fail the call
 	cli.EXPECT().
@@ -251,12 +251,12 @@ func TestReconcileUpdateLoggingScopeFailed(t *testing.T) {
 }
 
 // doExpectGetLoggingScopeExists expects a call to get a LoggingScope and return an "existing" one
-func doExpectGetLoggingScopeExists(cli *mocks.MockClient, metadata metav1.ObjectMeta, componentSpec v1alpha1.LoggingScopeSpec) {
+func doExpectGetLoggingScopeExists(cli *mocks.MockClient, metadata metav1.ObjectMeta, loggingScopeSpec v1alpha1.LoggingScopeSpec) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *v1alpha1.LoggingScope) error {
-			component.Spec = componentSpec
-			component.ObjectMeta = metadata
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, loggingScope *v1alpha1.LoggingScope) error {
+			loggingScope.Spec = loggingScopeSpec
+			loggingScope.ObjectMeta = metadata
 			return nil
 		})
 }
@@ -269,8 +269,8 @@ func doExpectStatusUpdateFailed(cli *mocks.MockClient, mockStatusWriter *mocks.M
 	// the status update should be to failure status/conditions on the MultiClusterLoggingScope
 	mockStatusWriter.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterLoggingScope{})).
-		DoAndReturn(func(ctx context.Context, mcComp *clustersv1alpha1.MultiClusterLoggingScope) error {
-			assertMultiClusterLoggingScopeStatus(assert, mcComp, clustersv1alpha1.Failed, clustersv1alpha1.DeployFailed, v1.ConditionTrue)
+		DoAndReturn(func(ctx context.Context, mcLogScope *clustersv1alpha1.MultiClusterLoggingScope) error {
+			assertMultiClusterLoggingScopeStatus(assert, mcLogScope, clustersv1alpha1.Failed, clustersv1alpha1.DeployFailed, v1.ConditionTrue)
 			return nil
 		})
 }
@@ -283,32 +283,32 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 	// the status update should be to success status/conditions on the MultiClusterLoggingScope
 	mockStatusWriter.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterLoggingScope{})).
-		DoAndReturn(func(ctx context.Context, mcComp *clustersv1alpha1.MultiClusterLoggingScope) error {
-			assertMultiClusterLoggingScopeStatus(assert, mcComp, clustersv1alpha1.Ready, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
+		DoAndReturn(func(ctx context.Context, mcLogScope *clustersv1alpha1.MultiClusterLoggingScope) error {
+			assertMultiClusterLoggingScopeStatus(assert, mcLogScope, clustersv1alpha1.Ready, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
 			return nil
 		})
 }
 
 // doExpectGetMultiClusterLoggingScope adds an expectation to the given MockClient to expect a Get
-// call for a MultiClusterLoggingScope, and populate the multi cluster component with given data
-func doExpectGetMultiClusterLoggingScope(cli *mocks.MockClient, mcCompSample clustersv1alpha1.MultiClusterLoggingScope) {
+// call for a MultiClusterLoggingScope, and populate the multi cluster logging scope with given data
+func doExpectGetMultiClusterLoggingScope(cli *mocks.MockClient, mcLogScopeSample clustersv1alpha1.MultiClusterLoggingScope) {
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.AssignableToTypeOf(&mcCompSample)).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcComp *clustersv1alpha1.MultiClusterLoggingScope) error {
-			mcComp.ObjectMeta = mcCompSample.ObjectMeta
-			mcComp.TypeMeta = mcCompSample.TypeMeta
-			mcComp.Spec = mcCompSample.Spec
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.AssignableToTypeOf(&mcLogScopeSample)).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcLogScope *clustersv1alpha1.MultiClusterLoggingScope) error {
+			mcLogScope.ObjectMeta = mcLogScopeSample.ObjectMeta
+			mcLogScope.TypeMeta = mcLogScopeSample.TypeMeta
+			mcLogScope.Spec = mcLogScopeSample.Spec
 			return nil
 		})
 }
 
 // assertMultiClusterLoggingScopeStatus asserts that the status and conditions on the MultiClusterLoggingScope
 // are as expected
-func assertMultiClusterLoggingScopeStatus(assert *asserts.Assertions, mcComp *clustersv1alpha1.MultiClusterLoggingScope, state clustersv1alpha1.StateType, condition clustersv1alpha1.ConditionType, conditionStatus v1.ConditionStatus) {
-	assert.Equal(state, mcComp.Status.State)
-	assert.Equal(1, len(mcComp.Status.Conditions))
-	assert.Equal(conditionStatus, mcComp.Status.Conditions[0].Status)
-	assert.Equal(condition, mcComp.Status.Conditions[0].Type)
+func assertMultiClusterLoggingScopeStatus(assert *asserts.Assertions, mcLogScope *clustersv1alpha1.MultiClusterLoggingScope, state clustersv1alpha1.StateType, condition clustersv1alpha1.ConditionType, conditionStatus v1.ConditionStatus) {
+	assert.Equal(state, mcLogScope.Status.State)
+	assert.Equal(1, len(mcLogScope.Status.Conditions))
+	assert.Equal(conditionStatus, mcLogScope.Status.Conditions[0].Status)
+	assert.Equal(condition, mcLogScope.Status.Conditions[0].Type)
 }
 
 // assertLoggingScopeValid asserts that the metadata and content of the created/updated LoggingScope
@@ -334,34 +334,34 @@ func assertLoggingScopeValid(assert *asserts.Assertions, logScope *v1alpha1.Logg
 
 // getSampleMCLoggingScope creates and returns a sample MultiClusterLoggingScope used in tests
 func getSampleMCLoggingScope() (clustersv1alpha1.MultiClusterLoggingScope, error) {
-	mcComp := clustersv1alpha1.MultiClusterLoggingScope{}
+	mcLogScope := clustersv1alpha1.MultiClusterLoggingScope{}
 	sampleLoggingScopeFile, err := filepath.Abs("testdata/sample-multiclusterloggingscope.yaml")
 	if err != nil {
-		return mcComp, err
+		return mcLogScope, err
 	}
 
-	rawMcComp, err := clusters.ReadYaml2Json(sampleLoggingScopeFile)
+	rawMcLogScope, err := clusters.ReadYaml2Json(sampleLoggingScopeFile)
 	if err != nil {
-		return mcComp, err
+		return mcLogScope, err
 	}
 
-	err = json.Unmarshal(rawMcComp, &mcComp)
-	return mcComp, err
+	err = json.Unmarshal(rawMcLogScope, &mcLogScope)
+	return mcLogScope, err
 }
 
 func getExistingLoggingScope() (v1alpha1.LoggingScope, error) {
-	oamComp := v1alpha1.LoggingScope{}
+	logScope := v1alpha1.LoggingScope{}
 	existingLoggingScopeFile, err := filepath.Abs("testdata/loggingscope-existing.yaml")
 	if err != nil {
-		return oamComp, err
+		return logScope, err
 	}
-	rawMcComp, err := clusters.ReadYaml2Json(existingLoggingScopeFile)
+	rawLogScope, err := clusters.ReadYaml2Json(existingLoggingScopeFile)
 	if err != nil {
-		return oamComp, err
+		return logScope, err
 	}
 
-	err = json.Unmarshal(rawMcComp, &oamComp)
-	return oamComp, err
+	err = json.Unmarshal(rawLogScope, &logScope)
+	return logScope, err
 }
 
 // newReconciler creates a new reconciler for testing
