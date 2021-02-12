@@ -65,6 +65,10 @@ type VerrazzanoSpec struct {
 	// +optional
 	Components ComponentSpec `json:"components,omitempty"`
 
+	// Security specifies Verrazzano security configuration
+	// +optional
+	Security SecuritySpec `json:"security,omitempty"`
+
 	// DefaultVolumeSource Defines the type of volume to be used for persistence, if not explicitly declared by a component;
 	// at present only EmptyDirVolumeSource or PersistentVolumeClaimVolumeSource are supported. If PersistentVolumeClaimVolumeSource
 	// is used, it must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates section.
@@ -74,6 +78,24 @@ type VerrazzanoSpec struct {
 	// VolumeClaimSpecTemplates Defines a named set of PVC configurations that can be referenced from components using persistent volumes.
 	// +optional
 	VolumeClaimSpecTemplates []VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty"`
+}
+
+// RoleBindingSubject specifes the kind and name of a subject to bind to
+type RoleBindingSubject struct {
+	// Kind specifies the kind value for an rbac subject for a RoleBinding
+	Kind string `json:"kind,omitempty"`
+	// Name specifies the name value for an rbac subject for a RoleBinding
+	Name string `json:"name,omitempty"`
+}
+
+// SecuritySpec defines the security configuration for Verrazzano
+type SecuritySpec struct {
+	// AdminBinding specifies the subject that should be bound to the verrazzano-admin role
+	// +optional
+	AdminBinding RoleBindingSubject `json:"adminBinding,omitempty"`
+	// MonitorBinding specifies the subject that should be bound to the verrazzano-monitor role
+	// +optional
+	MonitorBinding RoleBindingSubject `json:"monitorBinding,omitempty"`
 }
 
 // VolumeClaimSpecTemplate Contains common PVC configuration that can be referenced from Components; these
