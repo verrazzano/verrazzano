@@ -44,7 +44,7 @@ CRD_PATH=config/crd/bases
 ifdef JENKINS_URL
 	CLUSTER_DUMP_LOCATION = ${WORKSPACE}/application-operator-integ-cluster-dump
 else
-	CLUSTER_DUMP_LOCATIION = application-operator-integ-cluster-dump
+	CLUSTER_DUMP_LOCATION = application-operator-integ-cluster-dump
 endif
 
 .PHONY: build

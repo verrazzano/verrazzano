@@ -196,7 +196,7 @@ OPERATOR_SETUP = test/operatorsetup
 ifdef JENKINS_URL
 	CLUSTER_DUMP_LOCATION = ${WORKSPACE}/platform-operator-integ-cluster-dump
 else
-	CLUSTER_DUMP_LOCATIION = platform-operator-integ-cluster-dump
+	CLUSTER_DUMP_LOCATION = platform-operator-integ-cluster-dump
 endif
 
 .PHONY: integ-test
