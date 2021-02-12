@@ -192,11 +192,9 @@ VERRAZZANO_NS = verrazzano-install
 BUILD-DEPLOY = build/deploy
 DEPLOY = deploy
 OPERATOR_SETUP = test/operatorsetup
-DOCKER_IMAGE_NAME = lhr.ocir.io/stevengreenberginc/pmackin-platform-operator
-DOCKER_IMAGE_TAG = 118
 
 .PHONY: integ-test
-integ-test:
+integ-test: create-cluster
 	echo 'Load docker image for the verrazzano-platform-operator...'
 
 	echo 'Deploy verrazzano platform operator ...'
