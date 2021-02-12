@@ -249,7 +249,10 @@ func (r *Reconciler) handleDelete(ctx context.Context, log logr.Logger, workload
 		if controllers.StringSliceContainsString(workload.ObjectMeta.Finalizers, finalizer) {
 			log.Info("Deleting WebLogic domain CR")
 			if err := r.Delete(ctx, weblogic); err != nil {
-				return true, err
+				// ignore not found, still need to remove the finalizer
+				if !k8serrors.IsNotFound(err) {
+					return true, err
+				}
 			}
 
 			workload.ObjectMeta.Finalizers = controllers.RemoveStringFromStringSlice(workload.ObjectMeta.Finalizers, finalizer)
