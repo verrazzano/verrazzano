@@ -46,7 +46,7 @@ var _ = AfterSuite(func() {
 
 var _ = Describe("Custom Resource Definition for OAM controller runtime", func() {
 	It("applicationconfigurations.core.oam.dev exists", func() {
-		Expect(K8sClient.DoesCRDExist("applicationconfigurations.core.oam.dev")).To(BeFalse(),
+		Expect(K8sClient.DoesCRDExist("applicationconfigurations.core.oam.dev")).To(BeTrue(),
 			"The applicationconfigurations.core.oam.dev CRD should exist")
 	})
 	It("components.core.oam.dev exists", func() {
