@@ -5,11 +5,12 @@ package bobs_books
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"time"
 )
 
 const (
@@ -62,7 +63,7 @@ func deployBobsBooksExample() {
 	}
 	pkg.Log(pkg.Info, "Create database credentials secret")
 	if _, err := pkg.CreateCredentialsSecretFromMap("bobs-books", "mysql-credentials",
-		map[string]string{"password": dbPass, "username": wlsUser, "url": "jdbc:mysql://mysql.bobs-books.svc.cluster.local:3306/books" }, nil); err != nil {
+		map[string]string{"password": dbPass, "username": wlsUser, "url": "jdbc:mysql://mysql.bobs-books.svc.cluster.local:3306/books"}, nil); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create WebLogic credentials secret: %v", err))
 	}
 	pkg.Log(pkg.Info, "Create logging scope resource")
@@ -93,7 +94,7 @@ func undeployBobsBooksExample() {
 	if err := pkg.DeleteNamespace("bobs-books"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete namespace: %v", err))
 	}
-	gomega.Eventually(func () bool {
+	gomega.Eventually(func() bool {
 		ns, err := pkg.GetNamespace("bobs-books")
 		return ns == nil && err != nil && errors.IsNotFound(err)
 	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
@@ -105,7 +106,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 		// WHEN the running pods are checked
 		// THEN the adminserver and managed server pods should be found running
 		ginkgo.It("Verify expected pods are running", func() {
-			gomega.Eventually(func () bool {
+			gomega.Eventually(func() bool {
 				expectedPods := []string{
 					"bobbys-front-end-adminserver",
 					"bobs-bookstore-adminserver",
@@ -214,7 +215,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 		})
 	})
 	ginkgo.Context("Logging.", func() {
-		indexName := "bobs-books--"
+		indexName := "bobs-books-bobby-front-end-bobby-wls"
 		// GIVEN a WebLogic application with logging enabled via a logging scope
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
