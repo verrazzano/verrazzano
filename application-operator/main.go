@@ -126,10 +126,15 @@ func main() {
 			os.Exit(1)
 		}
 
-		setupLog.Info("Updating webhook configuration")
-		err = certificates.UpdateMutatingWebhookConfigurations(kubeClient, caCert)
+		setupLog.Info("Updating webhook configurations")
+		err = certificates.UpdateAppConfigMutatingWebhookConfiguration(kubeClient, caCert)
 		if err != nil {
-			setupLog.Error(err, "unable to update mutating webhook configuration")
+			setupLog.Error(err, "unable to update appconfig mutating webhook configuration")
+			os.Exit(1)
+		}
+		err = certificates.UpdatePodMutatingWebhookConfiguration(kubeClient, caCert)
+		if err != nil {
+			setupLog.Error(err, "unable to update pod mutating webhook configuration")
 			os.Exit(1)
 		}
 		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert)
@@ -148,7 +153,7 @@ func main() {
 			&webhooks.LoggingScopeDefaulter{Client: mgr.GetClient()},
 		}}
 		mgr.GetWebhookServer().Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})
-		mgr.GetWebhookServer().Register(webhooks.PodDefaulterPath, &webhook.Admission{Handler: &webhooks.PodDefaulter{Client: mgr.GetClient()}})
+		mgr.GetWebhookServer().Register(webhooks.PodDefaulterPath, &webhook.Admission{Handler: &webhooks.PodWebhook{Client: mgr.GetClient()}})
 
 	}
 	reconciler := loggingscope.NewReconciler(

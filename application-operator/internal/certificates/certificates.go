@@ -177,11 +177,9 @@ func UpdateValidatingWebhookConfiguration(kubeClient kubernetes.Interface, caCer
 	return nil
 }
 
-// UpdateMutatingWebhookConfigurations sets the CABundle
-func UpdateMutatingWebhookConfigurations(kubeClient kubernetes.Interface, caCert *bytes.Buffer) error {
+// UpdateAppConfigMutatingWebhookConfiguration sets the CABundle
+func UpdateAppConfigMutatingWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer) error {
 	var webhook *adminv1beta1.MutatingWebhookConfiguration
-
-	// First, we will update the mutating webhook for appconfigs
 	webhook, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.TODO(), AppConfigMutatingWebhookName, metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -191,9 +189,13 @@ func UpdateMutatingWebhookConfigurations(kubeClient kubernetes.Interface, caCert
 	if err != nil {
 		return err
 	}
+	return nil
+}
 
-	// Second, we will update the mutating webhook for pods
-	webhook, err = kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.TODO(), PodMutatingWebhookName, metav1.GetOptions{})
+// UpdatePodMutatingWebhookConfiguration sets the CABundle
+func UpdatePodMutatingWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer) error {
+	var webhook *adminv1beta1.MutatingWebhookConfiguration
+	webhook, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.TODO(), PodMutatingWebhookName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -202,6 +204,5 @@ func UpdateMutatingWebhookConfigurations(kubeClient kubernetes.Interface, caCert
 	if err != nil {
 		return err
 	}
-
 	return nil
 }

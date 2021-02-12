@@ -148,6 +148,9 @@ metadata:
     app: verrazzano-application-operator
 webhooks:
   - name: verrazzano-application-pod-defaulter.verrazzano.io
+    namespaceSelector:
+      matchLabels:
+        istio-injection: enabled
     clientConfig:
       service:
         name: verrazzano-application-operator

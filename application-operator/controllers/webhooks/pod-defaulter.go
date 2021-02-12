@@ -17,14 +17,14 @@ import (
 // PodDefaulterPath specifies the path of PodDefaulter
 const PodDefaulterPath = "/pod-defaulter"
 
-// podAnnotator annotates Pods
-type PodDefaulter struct {
+// PodWebhook type for pod defaulter webhook
+type PodWebhook struct {
 	Client  client.Client
 	decoder *admission.Decoder
 }
 
-// PodDefaulter identifies OAM created pods and mutates pods and adds additional resources as needed.
-func (a *PodDefaulter) Handle(ctx context.Context, req admission.Request) admission.Response {
+// Handle identifies OAM created pods and mutates pods and adds additional resources as needed.
+func (a *PodWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
 	var log = ctrl.Log.WithName("webhooks.pod-defaulter")
 
 	pod := &corev1.Pod{}
@@ -34,22 +34,19 @@ func (a *PodDefaulter) Handle(ctx context.Context, req admission.Request) admiss
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	log.Info(fmt.Sprintf("Created pod: %s", pod.Name))
+	log.Info(fmt.Sprintf("Created pod: %s:%s", pod.Namespace, pod.Name))
 
 	//	marshaledPod, err := json.Marshal(pod)
 	//	if err != nil {
 	//		return admission.Errored(http.StatusInternalServerError, err)
 	//	}
 
-	return admission.Allowed("")
+	return admission.Allowed("No action required")
 	//	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledPod)
 }
 
-// podAnnotator implements admission.DecoderInjector.
-// A decoder will be automatically injected.
-
 // InjectDecoder injects the decoder.
-func (a *PodDefaulter) InjectDecoder(d *admission.Decoder) error {
+func (a *PodWebhook) InjectDecoder(d *admission.Decoder) error {
 	a.decoder = d
 	return nil
 }
