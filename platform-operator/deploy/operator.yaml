@@ -44,7 +44,7 @@ spec:
     spec:
       initContainers:
         - name: webhook-init
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.10.0-20210212133725-f7d6772
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.10.0-20210212140850-eea8571
           imagePullPolicy: IfNotPresent
           args:
             - --zap-log-level=info
@@ -58,7 +58,7 @@ spec:
       containers:
         - name: verrazzano-platform-operator
           imagePullPolicy: IfNotPresent
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.10.0-20210212133725-f7d6772
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.10.0-20210212140850-eea8571
           ports:
             - containerPort: 9443
               name: webhook
@@ -81,7 +81,7 @@ spec:
             - name: MODE
               value: RUN_OPERATOR
             - name: VZ_INSTALL_IMAGE
-              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.10.0-20210212133725-f7d6772
+              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.10.0-20210212140850-eea8571
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
@@ -132,6 +132,24 @@ webhooks:
           - UPDATE
         resources:
           - verrazzanos
+    sideEffects: None
+    failurePolicy: Fail
+  - name: clusters.verrazzano.io
+    clientConfig:
+      service:
+        name: verrazzano-platform-operator
+        namespace: verrazzano-install
+        path: /validate-clusters-verrazzano-io-v1alpha1-verrazzanomanagedcluster
+    rules:
+      - apiGroups:
+          - clusters.verrazzano.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - verrazzanomanagedclusters
     sideEffects: None
     failurePolicy: Fail
 # Copyright (c) 2020, 2021, Oracle and/or its affiliates.
