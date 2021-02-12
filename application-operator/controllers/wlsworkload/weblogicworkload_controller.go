@@ -191,6 +191,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 		Volumes:      extracted.Volumes,
 		VolumeMounts: extracted.VolumeMounts,
 		LogPath:      loggingscope.BuildWLSLogPath(name),
+		HandlerEnv:   loggingscope.GetWlsSpecificContainerEnv(),
 	}
 	fluentdManager := loggingscope.GetFluentd(ctx, r.Log, r.Client)
 
