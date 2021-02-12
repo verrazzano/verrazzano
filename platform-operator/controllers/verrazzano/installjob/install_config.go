@@ -482,7 +482,7 @@ func getProfile(profileType installv1alpha1.ProfileType) InstallProfile {
 
 // getVerrazzanoInstallArgs Set custom helm args for the Verrazzano internal component as needed
 func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.SugaredLogger) ([]InstallArg, error) {
-	args := make([]InstallArg, 0, 16) // start with a capacity 16 slice
+	args := []InstallArg{}
 	if vzSpec.DefaultVolumeSource != nil {
 		if vzSpec.DefaultVolumeSource.EmptyDir != nil {
 			args = append(args, []InstallArg{

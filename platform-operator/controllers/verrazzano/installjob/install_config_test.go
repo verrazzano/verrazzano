@@ -617,7 +617,7 @@ func TestGetVerrazzanoInstallArgsWithSecurity(t *testing.T) {
 	assert.True(t, args[3].SetString)
 }
 
-// TestGetVerrazzanoInstallArgsWithSecurity Test the getVerrazzanoInstallArgs function
+// TestGetVerrazzanoInstallArgsWithSecurityInvalidSubjectKind Test the getVerrazzanoInstallArgs function
 // GIVEN a call to getVerrazzanoInstallArgs with a SecuritySpec
 // WHEN the AdminBindng and MonitorBidnging are valid
 // THEN the args list is length 4 and err is nil
@@ -635,7 +635,7 @@ func TestGetVerrazzanoInstallArgsWithSecurityInvalidSubjectKind(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-// TestGetVerrazzanoInstallArgsWithSecurity Test the getVerrazzanoInstallArgs function
+// TestGetVerrazzanoInstallArgsWithSecurityAndPVCVolumeSource Test the getVerrazzanoInstallArgs function
 // GIVEN a call to getVerrazzanoInstallArgs with a SecuritySpec and a PersistentVolumeClaimVolumeSource
 // WHEN the SecuritySpec and PVCVolumeSource are both valid
 // THEN the args list is specifies both security and helm args the specified storage size for the ES/Grafana/Prometheus storage settings
