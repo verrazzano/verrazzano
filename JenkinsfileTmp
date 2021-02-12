@@ -103,7 +103,10 @@ pipeline {
         OCI_DNS_ZONE_NAME="z${zoneId}." + "${OCI_DNS_ZONE_SUFFIX}"
         VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'ocidns_oke' ? 'b' + env.BUILD_NUMBER : 'default'}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-
+        CHARTS_DIR="${GO_REPO_PATH}/verrazzano/platform-operator/thirdparty/charts"
+        VZ_CHARTS_DIR="${GO_REPO_PATH}/verrazzano/platform-operator/helm_config/charts"
+        VZ_OVERRIDES_DIR="${GO_REPO_PATH}/verrazzano/platform-operator/helm_config/overrides"
+        MANIFESTS_DIR="${GO_REPO_PATH}/verrazzano/platform-operator/thirdparty/manifests"
     }
 
     stages {
