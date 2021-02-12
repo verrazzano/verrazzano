@@ -1,5 +1,4 @@
 #!/bin/bash
-
 #
 # Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
@@ -29,5 +28,7 @@ then
 fi
 
 set -e
+
 $SCRIPT_DIR/terraform init -no-color -reconfigure
+
 $SCRIPT_DIR/terraform plan -var-file=$TF_VAR_nodepool_config.tfvars -no-color

@@ -29,13 +29,13 @@ pipeline {
                 trim: true)
         choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
             // 1st choice is the default value
-            choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
+            choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.4" ])
         choice (description: 'OCI region to launch OKE clusters in', name: 'OKE_CLUSTER_REGION',
             // 1st choice is the default value
             choices: availableRegions )
         choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
                 // 1st choice is the default value
-                choices: [ "v1.17.13", "v1.16.15", "v1.18.10" ])
+                choices: [ "v1.18.10", "v1.17.13", "v1.16.15"])
        booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
     }
 
@@ -58,6 +58,7 @@ pipeline {
 
         TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
         TF_VAR_tenancy_id = credentials('oci-tenancy')
+        TF_VAR_tenancy_name = credentials('oci-tenancy-name')
         TF_VAR_user_id = credentials('oci-user-ocid')
         TF_VAR_region = "${params.OKE_CLUSTER_REGION}"
         TF_VAR_kubernetes_version = "${params.OKE_CLUSTER_VERSION}"
@@ -76,7 +77,7 @@ pipeline {
     }
 
     stages {
-        stage('clean-workspace-and-checkout') {
+        stage('Clean workspace and checkout') {
             steps {
                 sh """
                     echo "${NODE_LABELS}"
@@ -136,25 +137,18 @@ pipeline {
             }
         }
 		
-        stage("create-oke-cluster") {
+        stage('Create Cluster') {
             steps {
                 sh "TF_VAR_label_prefix=loop-${env.BUILD_NUMBER} TF_VAR_state_name=loop-${env.BUILD_NUMBER}-main ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
-            }
-        }
 
-        stage("create-image-pull-secrets") {
-            steps {
-                sh """
-                    # Create image pull secret for Verrazzano docker images
-                    cd ${GO_REPO_PATH}/verrazzano
-                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                    ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                    ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
-                """
+                # Create image pull secret for Verrazzano docker images
+                cd ${GO_REPO_PATH}/verrazzano
+                ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
             }
         }
     }
-
     post {
         always {
             script {

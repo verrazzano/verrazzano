@@ -34,7 +34,7 @@ pipeline {
         choice (name: 'OKE_NODE_POOL',
                 description: 'OKE node pool configuration',
                 // 1st choice is the default value
-                choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
+                choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.4" ])
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                 defaultValue: 'NONE',
                 description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from VZ repo will be leveraged to create VZ platform operator',
@@ -42,7 +42,7 @@ pipeline {
         choice (name: 'OKE_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
-                choices: [ "v1.17.13", "v1.16.15", "v1.18.10" ])
+                choices: [ "v1.18.10", "v1.17.13", "v1.16.15"])
         string (name: 'failureCount',
                 defaultValue: '0',
                 description: 'Number of consecutive failures',
@@ -96,7 +96,7 @@ pipeline {
     }
 
     stages {
-        stage('clean-workspace-and-checkout') {
+        stage('Clean workspace and checkout') {
             steps {
                 sh """
                     echo "${NODE_LABELS}"
@@ -158,23 +158,18 @@ pipeline {
             }
         }
 
-        stage("setup-kubeconfig") {
+        stage("Setup Test Environment") {
             steps {
                 script {
                     copyArtifacts(projectName: 'verrazzano-create-oke-cluster', selector: lastSuccessful())
                 }
-            }
-        }
-
-        stage("get-pre-install-resources") {
-            steps {
                 sh """
                     ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${LOOPING_TEST_SCRIPTS_DIR}/pre-install-resources
                 """
             }
         }
 
-        stage('install-platform-operator') {
+        stage('Install Verrazzano') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
@@ -196,28 +191,12 @@ pipeline {
 
                         # create secret in verrazzano-install ns
                         ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
-                    """
-                }
-            }
-        }
 
-        stage("setup-verrazzano-cr") {
-            steps {
-                script {
-                    sh """
                         echo "Installing yq"
                         GO111MODULE=on go get github.com/mikefarah/yq/v4
                         export PATH=${HOME}/go/bin:${PATH}
                         ./tests/e2e/config/scripts/process_xipio_install_yaml.sh ${INSTALL_CONFIG_FILE}
-                    """
-                }
-            }
-        }
 
-        stage('install-verrazzano') {
-            steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh """
                         echo "Waiting for Operator to be ready"
                         cd ${GO_REPO_PATH}/verrazzano
                         kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
@@ -251,7 +230,8 @@ pipeline {
             }
         }
 
-        stage('verify-install') {
+
+        stage('Verify Install') {
             environment {
                 TEST_ENV = "OKE"
             }
@@ -262,12 +242,11 @@ pipeline {
             }
         }
 
-        stage('uninstall-verrazzano') {
+        stage('Uninstall Verrazzano') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
-                        # kubectl delete verrazzano my-verrazzano
-                        kubectl delete -f ${INSTALL_CONFIG_FILE}
+                        kubectl delete verrazzano my-verrazzano
                     """
                 }
             }
@@ -283,7 +262,7 @@ pipeline {
             }
         }
 
-        stage('delete-platform-operator') {
+        stage('Delete Platform Operator') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
@@ -293,7 +272,7 @@ pipeline {
             }
         }
 
-        stage("verify-uninstall") {
+        stage("Verify Uninstall") {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """

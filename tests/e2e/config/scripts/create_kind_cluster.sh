@@ -13,18 +13,18 @@ KIND_IMAGE=""
 
 create_kind_cluster() {
   if [ ${K8S_VERSION} == 1.17 ]; then
-    KIND_IMAGE="v1.17.0@sha256:9512edae126da271b66b990b6fff768fbb7cd786c7d39e86bdf55906352fdf62"
+    KIND_IMAGE="v1.17.11@sha256:5240a7a2c34bf241afb54ac05669f8a46661912eab05705d660971eeb12f6555"
   elif [ ${K8S_VERSION} == 1.18 ]; then
-    KIND_IMAGE="v1.18.15@sha256:5c1b980c4d0e0e8e7eb9f36f7df525d079a96169c8a8f20d8bd108c0d0889cc4"
+    KIND_IMAGE="v1.18.8@sha256:f4bcc97a0ad6e7abaf3f643d890add7efe6ee4ab90baeb374b4f41a4c95567eb"
   elif [ ${K8S_VERSION} == 1.19 ]; then
-    KIND_IMAGE="v1.19.7@sha256:a70639454e97a4b733f9d9b67e12c01f6b0297449d5b9cbbef87473458e26dca"
+    KIND_IMAGE="v1.19.1@sha256:98cf5288864662e37115e362b23e4369c8c4a408f99cbc06e58ac30ddc721600"
   elif [ ${K8S_VERSION} == 1.20 ]; then
     KIND_IMAGE="v1.20.2@sha256:8f7ea6e7642c0da54f04a7ee10431549c0257315b3a634f6ef2fecaaedb19bab"
   else
     echo "ERROR: Invalid value for Kubernetes Version ${K8S_VERSION}."
     exit 1
   fi
-  
+
   cd ${PLATFORM_OPERATOR_DIR}/build/scripts
   ./cleanup.sh ${CLUSTER_NAME}
 
@@ -33,7 +33,9 @@ create_kind_cluster() {
   sed -i "s/KIND_IMAGE/${KIND_IMAGE}/g" kind-config.yaml
   HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 --name ${CLUSTER_NAME} --wait 5m --config=kind-config.yaml
   kubectl config set-context kind-${CLUSTER_NAME}
-  sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
+  sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
+  cat ${KUBECONFIG} | grep server
+  $$(X=$$(docker inspect $$(docker ps | grep "jenkins-runner" | awk '{ print $$1 }') | jq '.[].NetworkSettings.Networks' | grep -q kind ; echo $$?); if [[ ! $$X -eq "0" ]]; then docker network connect kind $$(docker ps | grep "jenkins-runner" | awk '{ print $$1 }'); fi)
 }
 
 create_kind_cluster

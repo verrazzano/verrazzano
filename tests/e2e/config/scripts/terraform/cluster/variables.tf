@@ -13,8 +13,9 @@ variable "username" {
   default = ""
 }
 variable "tenancy_name" {}
+
 variable "kubernetes_version" {
-  default = "v1.17.13"
+  default = "v1.18.10"
 }
 variable "allow_worker_ssh_access" {
   default = false

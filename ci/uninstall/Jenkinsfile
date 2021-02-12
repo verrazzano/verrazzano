@@ -30,7 +30,7 @@ pipeline {
         choice (name: 'OKE_NODE_POOL',
                 description: 'OKE node pool configuration',
                 // 1st choice is the default value
-                choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
+                choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.4" ])
         choice (description: 'OCI region to launch OKE clusters in', name: 'OKE_CLUSTER_REGION',
             // 1st choice is the default value
             choices: availableRegions )
@@ -41,7 +41,7 @@ pipeline {
         choice (name: 'OKE_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
-                choices: [ "v1.17.13", "v1.16.15", "v1.18.10" ])
+                choices: [ "v1.18.10", "v1.17.13", "v1.16.15" ])
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS',
                       defaultValue: false,
                       description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)')
@@ -97,7 +97,7 @@ pipeline {
     }
 
     stages {
-        stage('clean-workspace-and-checkout') {
+        stage('Clean workspace and checkout') {
             steps {
                 sh """
                     echo "${NODE_LABELS}"
@@ -159,28 +159,22 @@ pipeline {
             }
         }
 
-        stage("install-oke-cluster") {
+        stage("Create Cluster") {
             steps {
-                sh "TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
+                sh "TF_VAR_label_prefix=uninstall-${env.BUILD_NUMBER} TF_VAR_state_name=uninstall-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
             }
         }
 
-        stage("create-image-pull-secrets") {
-            steps {
-                sh """
-                    # Create image pull secret for Verrazzano docker images
-                    cd ${GO_REPO_PATH}/verrazzano
-                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                    ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                    ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                """
-            }
-        }
-
-        stage('install-platform-operator') {
+        stage('Install Verrazzano') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
+                        # Create image pull secret for Verrazzano docker images
+                        cd ${GO_REPO_PATH}/verrazzano
+                        ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                        ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                        ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+
                         cd ${GO_REPO_PATH}/verrazzano
                         if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
                             echo "Using operator.yaml from Verrazzano repo"
@@ -199,36 +193,14 @@ pipeline {
 
                         # create secret in verrazzano-install ns
                         ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
-                    """
-                }
-            }
-        }
 
-        stage("get-pre-install-resources") {
-            steps {
-                sh """
-                    ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${UNINSTALL_TEST_SCRIPTS_DIR}/pre-install-resources
-                """
-            }
-        }
+                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${UNINSTALL_TEST_SCRIPTS_DIR}/pre-install-resources
 
-        stage("setup-verrazzano-cr") {
-            steps {
-                script {
-                    sh """
                         echo "Installing yq"
                         GO111MODULE=on go get github.com/mikefarah/yq/v4
                         export PATH=${HOME}/go/bin:${PATH}
                         ./tests/e2e/config/scripts/process_xipio_install_yaml.sh ${INSTALL_CONFIG_FILE}
-                    """
-                }
-            }
-        }
 
-        stage('install-verrazzano') {
-            steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh """
                         echo "Waiting for Operator to be ready"
                         cd ${GO_REPO_PATH}/verrazzano
                         kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
@@ -262,7 +234,7 @@ pipeline {
             }
         }
 
-        stage('run-test') {
+        stage('Run Test') {
             environment {
                 TEST_ENV = "OKE"
             }
@@ -274,12 +246,11 @@ pipeline {
             }
         }
 
-        stage('uninstall-verrazzano') {
+        stage('Uninstall Verrazzano') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
-                        # kubectl delete verrazzano my-verrazzano
-                        kubectl delete -f ${INSTALL_CONFIG_FILE}
+                        kubectl delete verrazzano my-verrazzano
                     """
                 }
             }
@@ -295,7 +266,7 @@ pipeline {
             }
         }
 
-        stage("verify-uninstall") {
+        stage("Verify Uninstall") {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
@@ -306,7 +277,7 @@ pipeline {
             }
         }
 
-        stage("reinstall-verrazzano") {
+        stage("Reinstall Verrazzano") {
             steps {
                 sh """
                     # sleep for a period to ensure async deletion of verrazzano components from uninstall above has completed
@@ -337,7 +308,7 @@ pipeline {
             }
         }
 
-        stage('rerun-test') {
+        stage('Rerun Test') {
             environment {
                 TEST_ENV = "OKE"
             }
@@ -363,7 +334,8 @@ pipeline {
                     dumpK8sCluster('verrazzano-uninstall-test-dump')
                 }
             }
-            sh "VERRAZZANO_KUBECONFIG=${env.KUBECONFIG} TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/delete_oke_cluster.sh"
+            sh "VERRAZZANO_KUBECONFIG=${env.KUBECONFIG} TF_VAR_label_prefix=uninstall-${env.BUILD_NUMBER} TF_VAR_state_name=uninstall-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/delete_oke_cluster.sh"
+
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*verrazzano-uninstall-test-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
         }
