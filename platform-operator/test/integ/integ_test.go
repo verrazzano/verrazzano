@@ -81,6 +81,13 @@ var _ = ginkgo.Describe("Custom Resource Definition for verrazzano install", fun
 })
 
 var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
+	ginkgo.It("Platform operator pod is eventually running", func() {
+		isPodRunningYet := func() bool {
+			return K8sClient.IsPodRunning(platformOperator, installNamespace)
+		}
+		gomega.Eventually(isPodRunningYet, "2m", "5s").Should(gomega.BeTrue(),
+			"The verrazzano-platform-operator pod should be in the Running state")
+	})
 	ginkgo.It("Create multi-cluster namespace ", func() {
 		_, stderr := util.Kubectl(fmt.Sprintf("create namespace %s", mcNamespace))
 		gomega.Expect(stderr).To(gomega.Equal(""))
