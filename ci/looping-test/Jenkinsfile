@@ -42,7 +42,7 @@ pipeline {
         choice (name: 'OKE_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
-                choices: [ "v1.18.10", "v1.17.13", "v1.16.15"])
+                choices: [ "v1.18.10", "v1.17.13" ])
         string (name: 'failureCount',
                 defaultValue: '0',
                 description: 'Number of consecutive failures',
