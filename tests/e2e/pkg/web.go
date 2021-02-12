@@ -199,7 +199,20 @@ func getHTTPClientWIthCABundle(caData []byte) *http.Client {
 		tr.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 			Log(Debug, fmt.Sprintf("original address %s", addr))
 			if strings.Contains(addr, "127.0.0.1") && strings.Contains(addr, ":443") {
+				// resolve to the nginx node ip if address contains 127.0.0.1, for node port installation
 				addr = ipResolve + ":443"
+				Log(Debug, fmt.Sprintf("modified address %s", addr))
+			} else if strings.Contains(addr, "xip.io") && strings.Contains(addr, ":443")  {
+				// resolve xip.io ourselves
+				resolving := strings.TrimSuffix(strings.TrimSuffix(addr, ":443"), ".xip.io")
+				four := resolving[strings.LastIndex(resolving, "."):]
+				resolving = strings.TrimSuffix(resolving, four)
+				three := resolving[strings.LastIndex(resolving, "."):]
+				resolving = strings.TrimSuffix(resolving, three)
+				two := resolving[strings.LastIndex(resolving, "."):]
+				resolving = strings.TrimSuffix(resolving, two)
+				one := resolving[strings.LastIndex(resolving, ".")+1:]
+				addr = one + two + three + four + ":443"
 				Log(Debug, fmt.Sprintf("modified address %s", addr))
 			}
 			return dialer.DialContext(ctx, network, addr)
