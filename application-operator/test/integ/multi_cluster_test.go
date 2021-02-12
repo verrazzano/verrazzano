@@ -39,8 +39,6 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 			_, stderr := util.Kubectl(fmt.Sprintf("apply -f %v", crd))
 			gomega.Expect(stderr).To(gomega.Equal(""), fmt.Sprintf("Failed to apply CRD %v", crd))
 		}
-		_, stderr := util.Kubectl("create ns " + multiclusterTestNamespace)
-		gomega.Expect(stderr).To(gomega.Equal(""), fmt.Sprintf("failed to create namespace %v", multiclusterTestNamespace))
 	})
 	ginkgo.It("MultiClusterNamespace can be created ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_namespace_sample.yaml")
@@ -76,7 +74,6 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 
 var _ = ginkgo.Describe("Testing MultiClusterConfigMap", func() {
 	ginkgo.It("Apply MultiClusterConfigMap creates a ConfigMap ", func() {
-		util.Kubectl("create ns " + multiclusterTestNamespace)
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_configmap_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
 		mcConfigMap, err := K8sClient.GetMultiClusterConfigMap(multiclusterTestNamespace, "mymcconfigmap")
