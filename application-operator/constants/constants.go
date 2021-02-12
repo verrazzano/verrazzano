@@ -3,8 +3,8 @@
 
 package constants
 
-// MCAdminNamespace - the name of the admin namespace for multi-cluster
-const MCAdminNamespace = "verrazzano-mc"
+// VerrazzanoSystemNamespace
+const VerrazzanoSystemNamespace = "verrazzano-system"
 
 // MCRegistrationSecret - the name of the secret that contains the cluster registration information
 const MCRegistrationSecret = "verrazzano-cluster"
