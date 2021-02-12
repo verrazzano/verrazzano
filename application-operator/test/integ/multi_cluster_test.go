@@ -18,7 +18,7 @@ import (
 const (
 	multiclusterTestNamespace = "multiclustertest"
 	crdDir                    = "../../config/crd/bases"
-	timeout                   = 10 * time.Second
+	timeout                   = 2 * time.Minute
 	pollInterval              = 40 * time.Millisecond
 )
 
@@ -103,10 +103,11 @@ var _ = ginkgo.Describe("Testing MultiClusterLoggingScope", func() {
 })
 var _ = ginkgo.Describe("Testing MultiClusterApplicationConfiguration", func() {
 	ginkgo.It("MultiClusterApplicationConfiguration can be created ", func() {
+		// First apply the hello-component referenced in this MultiCluster application config
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_appconf_sample.yaml")
-		gomega.Expect(stderr).To(gomega.Equal(""))
+		gomega.Expect(stderr).To(gomega.Equal(""), "multicluster app config should be applied successfully")
 		mcAppConfig, err := K8sClient.GetMultiClusterAppConfig(multiclusterTestNamespace, "mymcappconf")
-		gomega.Expect(err).To(gomega.BeNil())
+		gomega.Expect(err).To(gomega.BeNil(), "multicluster app config mymcappconf should exist")
 		gomega.Eventually(func() bool {
 			return appConfigExistsWithFields(multiclusterTestNamespace, "mymcappconf", mcAppConfig)
 		}, timeout, pollInterval).Should(gomega.BeTrue())
