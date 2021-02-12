@@ -29,6 +29,10 @@ type Reconciler struct {
 	Scheme *runtime.Scheme
 }
 
+// Reconcile reconciles a MultiClusterApplicationConfiguration resource. It fetches the embedded OAM
+// app config, mutates it based on the MultiClusterApplicationConfiguration, and updates the status
+// of the MultiClusterApplicationConfiguration to reflect the success or failure of the changes to
+// the embedded resource
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log.WithValues("multiclusterapplicationconfiguration", req.NamespacedName)
 	var mcAppConfig clustersv1alpha1.MultiClusterApplicationConfiguration
