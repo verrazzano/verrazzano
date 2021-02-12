@@ -67,6 +67,7 @@ rules:
   - loggingscopes
   - metricstraits
   - verrazzanocoherenceworkloads
+  - verrazzanoweblogicworkloads
   verbs:
   - get
   - list
