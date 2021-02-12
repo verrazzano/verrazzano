@@ -5,7 +5,6 @@ package clusters
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"time"
@@ -94,11 +93,11 @@ func NewRequest(namespace string, name string) ctrl.Request {
 func ReadYaml2Json(filename string) ([]byte, error) {
 	yamlBytes, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Failed to read test data file %s: %s", filename, err.Error()))
+		return nil, fmt.Errorf("failed to read test data file %s: %s", filename, err.Error())
 	}
 	jsonBytes, err := yaml.YAMLToJSON(yamlBytes)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Failed to unmarshall YAML to JSON in file %s: %s", filename, err.Error()))
+		return nil, fmt.Errorf("failed to unmarshall YAML to JSON in file %s: %s", filename, err.Error())
 	}
 	return jsonBytes, nil
 }
