@@ -109,3 +109,11 @@ config:
   envName:
   dnsSuffix: verrazzano.io
   enableMonitoringStorage: true
+
+userrolebindings:
+  admin:
+    kind: Group
+    name: verrazzano-admins
+  monitor:
+    kind: Group
+    name: verrazzano-monitors
