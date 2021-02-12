@@ -91,7 +91,7 @@ generate: controller-gen
 .PHONY: controller-gen
 controller-gen:
 ifeq (, $(shell command -v controller-gen))
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@
+	$(GO) get sigs.k8s.io/controller-tools/cmd/controller-gen
 	$(eval CONTROLLER_GEN=$(GOBIN)/controller-gen)
 else
 	$(eval CONTROLLER_GEN=$(shell command -v controller-gen))
@@ -149,12 +149,20 @@ go-vet:
 
 .PHONY: go-lint
 go-lint:
-	$(GO) get -u golang.org/x/lint/golint
+	@{ \
+	set -eu ; \
+	GOLINT_VERSION=$$(go list -m -f '{{.Version}}' golang.org/x/lint) ; \
+	${GO} get golang.org/x/lint/golint@$${GOLINT_VERSION} ; \
+	}
 	golint -set_exit_status $(shell go list ./... | grep -v github.com/verrazzano/verrazzano-application-operator/pkg/assets)
 
 .PHONY: go-ineffassign
 go-ineffassign:
-	$(GO) get -u github.com/gordonklaus/ineffassign
+	@{ \
+	set -eu ; \
+	INEFFASSIGN_VERSION=$$(go list -m -f '{{.Version}}' github.com/gordonklaus/ineffassign) ; \
+	${GO} get github.com/gordonklaus/ineffassign@$${INEFFASSIGN_VERSION} ; \
+	}
 	ineffassign $(shell go list ./...)
 
 .PHONY: go-mod
