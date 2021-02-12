@@ -20,15 +20,13 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+	"github.com/onsi/gomega/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
 	// EnvName - default environment name
 	EnvName = "default"
-
-	// DnsZone - default DNS zone
-	DnsZone = "127.0.0.1.xip.io"
 
 	// NumRetries - maximum number of retries
 	NumRetries = 7
@@ -192,7 +190,7 @@ func getHTTPClientWIthCABundle(caData []byte) *http.Client {
 		tr.Proxy = http.ProxyURL(tURLProxy)
 	}
 
-	ipResolve := getNodeIP()
+	ipResolve := getNginxNodeIP()
 	if ipResolve != "" {
 		dialer := &net.Dialer{
 			Timeout:   30 * time.Second,
@@ -250,8 +248,8 @@ func doGetCACertFromSecret(secretName string, namespace string) []byte {
 	return certSecret.Data["ca.crt"]
 }
 
-// Returns the control-plane node ip
-func getNodeIP() string {
+// Returns the nginx controller node ip
+func getNginxNodeIP() string {
 	clientset := GetKubernetesClientset()
 	pods, err := clientset.CoreV1().Pods("ingress-nginx").List(context.TODO(), metav1.ListOptions{})
 	if err == nil {
@@ -285,4 +283,19 @@ func rootCertPool(caData []byte) *x509.CertPool {
 	certPool := x509.NewCertPool()
 	certPool.AppendCertsFromPEM(caData)
 	return certPool
+}
+
+type WebResponse struct {
+	Status  int
+	Content string
+}
+
+// HaveStatus asserts that a WebResponse has a given status.
+func HaveStatus(expected int) types.GomegaMatcher {
+	return gomega.WithTransform(func(response WebResponse) int { return response.Status }, gomega.Equal(expected))
+}
+
+// ContainContent asserts that a WebResponse contains a given substring.
+func ContainContent(expected string) types.GomegaMatcher {
+	return gomega.WithTransform(func(response WebResponse) string { return response.Content }, gomega.ContainSubstring(expected))
 }

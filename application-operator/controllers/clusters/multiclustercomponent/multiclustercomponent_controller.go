@@ -25,9 +25,6 @@ type Reconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=multiclustercomponents,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=multiclustercomponents/status,verbs=get;update;patch
-
 // Reconcile reconciles a MultiClusterComponent resource. It fetches the embedded OAM Component,
 // mutates it based on the MultiClusterComponent, and updates the status of the
 // MultiClusterComponent to reflect the success or failure of the changes to the embedded resource
@@ -38,7 +35,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	err := r.fetchMultiClusterComponent(ctx, req.NamespacedName, &mcComp)
 	if err != nil {
-		logger.Info("Failed to fetch MultiClusterSecret", "err", err)
+		logger.Info("Failed to fetch MultiClusterComponent", "err", err)
 		return result, client.IgnoreNotFound(err)
 	}
 
@@ -74,7 +71,7 @@ func (r *Reconciler) createOrUpdateComponent(ctx context.Context, mcComp cluster
 	})
 }
 
-// mutateSecret mutates the corev1.Secret to reflect the contents of the parent MultiClusterSecret
+// mutateComponent mutates the OAM component to reflect the contents of the parent MultiClusterComponent
 func (r *Reconciler) mutateComponent(mcComp clustersv1alpha1.MultiClusterComponent, oamComp *v1alpha2.Component) {
 	oamComp.Spec = mcComp.Spec.Template.Spec
 }

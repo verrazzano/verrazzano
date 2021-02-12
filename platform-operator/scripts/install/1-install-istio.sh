@@ -152,7 +152,7 @@ function update_coredns()
     return 0
 }
 
-function check_kube_version {
+function log_kube_version {
     local kubeVer=$(kubectl version -o json)
     log "------Begin Kubernetes Version Info----"
     log "$kubeVer"
@@ -161,23 +161,6 @@ function check_kube_version {
     if [ "$servVer" == "null" ] || [ -z "$servVer" ]; then
         log "Could not retrieve Kubernetes server version"
         return 1
-    fi
-
-    local major=$(echo $kubeVer | jq -r '.serverVersion.major')
-    local minor=$(echo $kubeVer | jq -r '.serverVersion.minor')
-    local patch=$(echo $servVer | cut -d'.' -f 3)
-    VER_ERROR_MSG="Kubernetes serverVersion $servVer must be greater than or equal to v1.16.8 and less than or equal to v1.18.*"
-    if [ "$major" -ne 1 ] ; then
-      log $VER_ERROR_MSG
-      return 1
-    fi
-    if [ "$minor" -lt 16 ] || [ "$minor" -gt 18  ]; then
-      log $VER_ERROR_MSG
-      return 1
-    fi
-    if [ "$minor" -eq 16 ] && [ "$patch" -lt 8  ]; then
-      log $VER_ERROR_MSG
-      return 1
     fi
 }
 
@@ -208,7 +191,7 @@ function wait_for_nodes_to_exist {
     fi
 }
 
-action "Checking Kubernetes version" check_kube_version || exit 1
+action "Checking Kubernetes version" log_kube_version || exit 1
 action "Checking Helm version" check_helm_version || (error "Helm version must be v3.x! Your Helm version is: $(helm version --short)"; exit 1)
 
 # Wait for all cluster nodes to exist, and then to be ready
