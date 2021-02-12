@@ -123,8 +123,8 @@ func appConfigExistsWithFields(namespace string, name string, multiClusterAppCon
 	for i, expectedComp := range multiClusterAppConfig.Spec.Template.Spec.Components {
 		areEqual = areEqual &&
 			appConfig.Spec.Components[i].ComponentName == expectedComp.ComponentName &&
-			reflect.DeepEqual(appConfig.Spec.Components[i].Traits[0], expectedComp.Traits[0]) &&
-			reflect.DeepEqual(appConfig.Spec.Components[i].Scopes[0], expectedComp.Scopes[0])
+			reflect.DeepEqual(len(appConfig.Spec.Components[i].Traits), len(expectedComp.Traits)) &&
+			reflect.DeepEqual(len(appConfig.Spec.Components[i].Scopes), len(expectedComp.Scopes))
 	}
 	if !areEqual {
 		fmt.Println("Retrieved app config spec doesn't match multi cluster app config spec")
