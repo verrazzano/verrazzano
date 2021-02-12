@@ -52,7 +52,7 @@ var _ = ginkgo.Describe("verrazzano-install namespace resources ", func() {
 		isPodRunningYet := func() bool {
 			return K8sClient.IsPodRunning(platformOperator, installNamespace)
 		}
-		gomega.Eventually(isPodRunningYet, "1m", "5s").Should(gomega.BeTrue(),
+		gomega.Eventually(isPodRunningYet, "2m", "5s").Should(gomega.BeTrue(),
 			"The verrazzano-platform-operator pod should be in the Running state")
 	})
 })
@@ -87,8 +87,7 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 	})
 	ginkgo.It("Missing secret name validation ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/vmc_missing_secret_name.yaml")
-		gomega.Expect(stderr).To(gomega.ContainSubstring(
-			fmt.Sprintf("The name of the Prometheus secret in namespace %s must be specified", mcNamespace)))
+		gomega.Expect(stderr).To(gomega.ContainSubstring("missing required field \"prometheusSecret\""))
 	})
 	ginkgo.It("Missing secret validation ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/vmc_sample.yaml")
