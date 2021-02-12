@@ -57,7 +57,10 @@ func StartAgent(client client.Client, log logr.Logger) {
 func StartSync(clientset client.Client, log logr.Logger) {
 	// Periodically loop looking for multi-cluster objects
 	for {
-		getMCSecretObjects(clientset, log)
+		err := getMCSecretObjects(clientset, log)
+		if err != nil {
+			log.Error(err, "Error syncing MCSecret objects")
+		}
 		time.Sleep(5 * time.Minute)
 	}
 }
@@ -65,6 +68,15 @@ func StartSync(clientset client.Client, log logr.Logger) {
 // Synchronize MCSecret objects to the local cluster
 func getMCSecretObjects(clientset client.Client, log logr.Logger) error {
 	// Get all the MCSecret objects from the admin cluster
+	allMCSecrets := &clustersv1alpha1.MultiClusterSecretList{}
+	err := clientset.List(context.TODO(), allMCSecrets)
+	if err != nil {
+		return err
+	}
+	// Dump the list found
+	for _, i := range allMCSecrets.Items {
+		log.Info(fmt.Sprintf("MCSecret name %s namespace %s placement %s", i.Name, i.Namespace, i.Spec.Placement.Clusters[0]))
+	}
 
 	return nil
 }
