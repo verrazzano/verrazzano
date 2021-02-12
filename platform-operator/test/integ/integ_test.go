@@ -51,7 +51,7 @@ var _ = ginkgo.Describe("verrazzano-install namespace resources ", func() {
 		isPodRunningYet := func() bool {
 			return K8sClient.IsPodRunning(platformOperator, installNamespace)
 		}
-		gomega.Eventually(isPodRunningYet, "1m", "5s").Should(gomega.BeTrue(),
+		gomega.Eventually(isPodRunningYet, "2m", "5s").Should(gomega.BeTrue(),
 			"The verrazzano-platform-operator pod should be in the Running state")
 	})
 })

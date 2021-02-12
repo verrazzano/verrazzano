@@ -47,9 +47,9 @@ var instance OperatorConfig = OperatorConfig{
 	VersionCheckEnabled:      true,
 	WebhooksEnabled:          true,
 	WebhookValidationEnabled: true,
-	VerrazzanoInstallDir:     "/verrazzano/operator/scripts/install",
-	ThirdpartyChartsDir:      "/verrazzano/thirdparty/charts",
-	HelmConfigDir:            "/verrazzano/helm_config",
+	VerrazzanoInstallDir:     "/verrazzano/platform-operator/scripts/install",
+	ThirdpartyChartsDir:      "/verrazzano/platform-operator/thirdparty/charts",
+	HelmConfigDir:            "/verrazzano/platform-operator/helm_config",
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests

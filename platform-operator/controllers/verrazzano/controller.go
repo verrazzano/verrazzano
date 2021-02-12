@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package controllers
+package verrazzano
 
 import (
 	"context"
@@ -12,9 +12,10 @@ import (
 	"time"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/installjob"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/uninstalljob"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzinstance"
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -32,8 +33,8 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// VerrazzanoReconciler reconciles a Verrazzano object
-type VerrazzanoReconciler struct {
+// Reconciler reconciles a Verrazzano object
+type Reconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	Controller controller.Controller
@@ -50,7 +51,7 @@ const configDataKey = "spec"
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
-func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.TODO()
 	log := zap.S().With("resource", fmt.Sprintf("%s:%s", req.Namespace, req.Name))
 
@@ -136,7 +137,7 @@ func (r *VerrazzanoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	return ctrl.Result{}, err
 }
 
-func (r *VerrazzanoReconciler) doesOCIDNSConfigSecretExist(vz *installv1alpha1.Verrazzano) error {
+func (r *Reconciler) doesOCIDNSConfigSecretExist(vz *installv1alpha1.Verrazzano) error {
 	// ensure the secret exists before proceeding
 	secret := &corev1.Secret{}
 	err := r.Get(context.TODO(), types.NamespacedName{Name: vz.Spec.Components.DNS.OCI.OCIConfigSecret, Namespace: "default"}, secret)
@@ -147,7 +148,7 @@ func (r *VerrazzanoReconciler) doesOCIDNSConfigSecretExist(vz *installv1alpha1.V
 }
 
 // createServiceAccount creates a required service account
-func (r *VerrazzanoReconciler) createServiceAccount(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+func (r *Reconciler) createServiceAccount(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Define a new service account resource
 	serviceAccount := installjob.NewServiceAccount(vz.Namespace, buildServiceAccountName(vz.Name), os.Getenv("IMAGE_PULL_SECRET"), vz.Labels)
 
@@ -175,7 +176,7 @@ func (r *VerrazzanoReconciler) createServiceAccount(ctx context.Context, log *za
 }
 
 // createClusterRoleBinding creates a required cluster role binding
-func (r *VerrazzanoReconciler) createClusterRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Define a new cluster role binding resource
 	clusterRoleBinding := installjob.NewClusterRoleBinding(vz, buildClusterRoleBindingName(vz.Namespace, vz.Name), buildServiceAccountName(vz.Name))
 
@@ -197,7 +198,7 @@ func (r *VerrazzanoReconciler) createClusterRoleBinding(ctx context.Context, log
 }
 
 // createConfigMap creates a required config map for installation
-func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+func (r *Reconciler) createConfigMap(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Create the configmap resource that will contain installation configuration options
 	configMap := installjob.NewConfigMap(vz.Namespace, buildConfigMapName(vz.Name), vz.Labels)
 
@@ -236,7 +237,7 @@ func (r *VerrazzanoReconciler) createConfigMap(ctx context.Context, log *zap.Sug
 }
 
 // createInstallJob creates the installation job
-func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, configMapName string) error {
+func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, configMapName string) error {
 	// Define a new install job resource
 	job := installjob.NewJob(
 		&installjob.JobConfig{
@@ -299,7 +300,7 @@ func (r *VerrazzanoReconciler) createInstallJob(ctx context.Context, log *zap.Su
 }
 
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found
-func (r *VerrazzanoReconciler) cleanupUninstallJob(jobName string, namespace string, log *zap.SugaredLogger) error {
+func (r *Reconciler) cleanupUninstallJob(jobName string, namespace string, log *zap.SugaredLogger) error {
 	// Check if the job for running the uninstall scripts exist
 	jobFound := &batchv1.Job{}
 	log.Infof("Checking if stale uninstall job %s exists", jobName)
@@ -318,7 +319,7 @@ func (r *VerrazzanoReconciler) cleanupUninstallJob(jobName string, namespace str
 }
 
 // SetupWithManager creates a new controller and adds it to the manager
-func (r *VerrazzanoReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var err error
 	r.Controller, err = ctrl.NewControllerManagedBy(mgr).
 		For(&installv1alpha1.Verrazzano{}).
@@ -330,7 +331,7 @@ func (r *VerrazzanoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return err
 }
 
-func (r *VerrazzanoReconciler) createUninstallJob(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+func (r *Reconciler) createUninstallJob(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Define a new uninstall job resource
 	job := uninstalljob.NewJob(
 		&uninstalljob.JobConfig{
@@ -403,7 +404,7 @@ func buildInternalConfigMapName(name string) string {
 }
 
 // updateStatus updates the status in the verrazzano CR
-func (r *VerrazzanoReconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType) error {
+func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType) error {
 	t := time.Now().UTC()
 	condition := installv1alpha1.Condition{
 		Type:    conditionType,
@@ -423,7 +424,16 @@ func (r *VerrazzanoReconciler) updateStatus(log *zap.SugaredLogger, cr *installv
 		cr.Status.State = installv1alpha1.Uninstalling
 	case installv1alpha1.UpgradeStarted:
 		cr.Status.State = installv1alpha1.Upgrading
-	case installv1alpha1.InstallComplete, installv1alpha1.UninstallComplete, installv1alpha1.UpgradeComplete:
+	case installv1alpha1.InstallComplete:
+		domain, err := buildDomain(r.Client, cr)
+		if err != nil {
+			// An error building the instance info is non-fatal, log and continue
+			log.Errorf("Error obtaining DNS domain for installed instance, %v", err)
+		} else {
+			cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(domain)
+		}
+		fallthrough
+	case installv1alpha1.UninstallComplete, installv1alpha1.UpgradeComplete:
 		cr.Status.State = installv1alpha1.Ready
 	case installv1alpha1.InstallFailed, installv1alpha1.UpgradeFailed, installv1alpha1.UninstallFailed:
 		cr.Status.State = installv1alpha1.Failed
@@ -440,7 +450,7 @@ func (r *VerrazzanoReconciler) updateStatus(log *zap.SugaredLogger, cr *installv
 }
 
 // setInstallCondition sets the verrazzano resource condition in status for install
-func (r *VerrazzanoReconciler) setInstallCondition(log *zap.SugaredLogger, job *batchv1.Job, vz *installv1alpha1.Verrazzano) (err error) {
+func (r *Reconciler) setInstallCondition(log *zap.SugaredLogger, job *batchv1.Job, vz *installv1alpha1.Verrazzano) (err error) {
 	// If the job has succeeded or failed add the appropriate condition
 	if job.Status.Succeeded != 0 || job.Status.Failed != 0 {
 		for _, condition := range vz.Status.Conditions {
@@ -471,7 +481,7 @@ func (r *VerrazzanoReconciler) setInstallCondition(log *zap.SugaredLogger, job *
 }
 
 // setUninstallCondition sets the verrazzano resource condition in status for uninstall
-func (r *VerrazzanoReconciler) setUninstallCondition(log *zap.SugaredLogger, job *batchv1.Job, vz *installv1alpha1.Verrazzano) (err error) {
+func (r *Reconciler) setUninstallCondition(log *zap.SugaredLogger, job *batchv1.Job, vz *installv1alpha1.Verrazzano) (err error) {
 	// If the job has succeeded or failed add the appropriate condition
 	if job.Status.Succeeded != 0 || job.Status.Failed != 0 {
 		for _, condition := range vz.Status.Conditions {
@@ -513,7 +523,7 @@ func (r *VerrazzanoReconciler) setUninstallCondition(log *zap.SugaredLogger, job
 }
 
 // saveInstallSpec Saves the install spec in a configmap to use with upgrade/updates later on
-func (r *VerrazzanoReconciler) saveVerrazzanoSpec(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (err error) {
+func (r *Reconciler) saveVerrazzanoSpec(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (err error) {
 	installSpecBytes, err := yaml.Marshal(vz.Spec)
 	if err != nil {
 		return err
@@ -558,7 +568,7 @@ func (r *VerrazzanoReconciler) saveVerrazzanoSpec(ctx context.Context, log *zap.
 }
 
 // getSavedInstallSpec Returns the saved Verrazzano resource Spec field from the internal ConfigMap, or an error if it can't be restored
-func (r *VerrazzanoReconciler) getSavedInstallSpec(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (*installv1alpha1.VerrazzanoSpec, error) {
+func (r *Reconciler) getSavedInstallSpec(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (*installv1alpha1.VerrazzanoSpec, error) {
 	configMap, err := r.getInternalConfigMap(ctx, vz)
 	if err != nil {
 		log.Warnf("No saved configuration found for install spec for %s", vz.Name)
@@ -580,7 +590,7 @@ func (r *VerrazzanoReconciler) getSavedInstallSpec(ctx context.Context, log *zap
 }
 
 // getInternalConfigMap Convenience method for getting the saved install ConfigMap
-func (r *VerrazzanoReconciler) getInternalConfigMap(ctx context.Context, vz *installv1alpha1.Verrazzano) (installConfig *corev1.ConfigMap, err error) {
+func (r *Reconciler) getInternalConfigMap(ctx context.Context, vz *installv1alpha1.Verrazzano) (installConfig *corev1.ConfigMap, err error) {
 	key := client.ObjectKey{
 		Namespace: vz.Namespace,
 		Name:      buildInternalConfigMapName(vz.Name),
@@ -609,4 +619,60 @@ func removeString(slice []string, s string) (result []string) {
 		result = append(result, item)
 	}
 	return
+}
+
+// buildDomain Build the DNS Domain from the current install
+func buildDomain(c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
+	subdomain := vz.Spec.EnvironmentName
+	if len(subdomain) == 0 {
+		subdomain = "default"
+	}
+	baseDomain, err := buildDomainSuffix(c, vz)
+	if err != nil {
+		return "", err
+	}
+	domain := subdomain + "." + baseDomain
+	return domain, nil
+}
+
+// buildDomainSuffix Get the configured domain suffix, or compute the xip.io domain
+func buildDomainSuffix(c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
+	dns := vz.Spec.Components.DNS
+	if dns.OCI != (installv1alpha1.OCI{}) {
+		return dns.OCI.DNSZoneName, nil
+	}
+	if dns.External != (installv1alpha1.External{}) {
+		return dns.External.Suffix, nil
+	}
+	ipAddress, err := getIngressIP(c)
+	if err != nil {
+		return "", err
+	}
+	return ipAddress + ".xip.io", nil
+}
+
+// getIngressIP get the Ingress IP, used for the xip.io case
+func getIngressIP(c client.Client) (string, error) {
+	const nginxIngressController = "ingress-controller-ingress-nginx-controller"
+	const nginxNamespace = "ingress-nginx"
+
+	nginxService := corev1.Service{}
+	err := c.Get(context.TODO(), types.NamespacedName{Name: nginxIngressController, Namespace: nginxNamespace}, &nginxService)
+	if err != nil {
+		return "", err
+	}
+	if nginxService.Spec.Type == corev1.ServiceTypeLoadBalancer {
+		nginxIngress := nginxService.Status.LoadBalancer.Ingress
+		if len(nginxIngress) == 0 {
+			// In case of OLCNE, need to obtain the External IP from the Spec
+			if len(nginxService.Spec.ExternalIPs) == 0 {
+				return "", fmt.Errorf("%s is missing External IP address", nginxService.Name)
+			}
+			return nginxService.Spec.ExternalIPs[0], nil
+		}
+		return nginxIngress[0].IP, nil
+	} else if nginxService.Spec.Type == corev1.ServiceTypeNodePort {
+		return "127.0.0.1", nil
+	}
+	return "", fmt.Errorf("Unsupported service type %s for Nginx ingress", string(nginxService.Spec.Type))
 }

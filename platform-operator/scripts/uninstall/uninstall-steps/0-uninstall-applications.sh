@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -52,20 +52,16 @@ function initializing_uninstall {
   fi
 }
 
-function delete_bindings {
-  log "Deleting VerrazzanoBindings"
-  kubectl get crd verrazzanobindings.verrazzano.io || return 0
-  delete_k8s_resources VerrazzanoBindings ":metadata.name" "Could not delete VerrazzanoBindings" \
-    || return $? # return on pipefail
+# Delete all of the OAM ApplicationConfiguration resources in all namespaces.
+function delete_oam_applications_configurations {
+  delete_k8s_resource_from_all_namespaces applicationconfigurations.core.oam.dev
 }
 
-function delete_models {
-  log "Deleting VerrazzanoModels"
-  kubectl get crd verrazzanomodels.verrazzano.io || return 0
-  delete_k8s_resources VerrazzanoModels ":metadata.name" "Could not delete VerrazzanoModels" \
-    || return $? # return on pipefail
+# Delete all of the OAM Component resources in all namespaces.
+function delete_oam_components {
+  delete_k8s_resource_from_all_namespaces components.core.oam.dev
 }
 
 action "Initializing Uninstall" initializing_uninstall || exit 1
-action "Deleting Verrazzano Bindings" delete_bindings || exit 1
-action "Deleting Verrazzano Models" delete_models || exit 1
+action "Deleting OAM application configurations" delete_oam_applications_configurations || exit 1
+action "Deleting OAM components" delete_oam_components || exit 1

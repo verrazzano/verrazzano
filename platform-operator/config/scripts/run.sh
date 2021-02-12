@@ -27,7 +27,7 @@ function dump-install-logs {
   echo "**************************************************************"
   echo " Dumping the installation logs contained in install/build/logs"
   echo "**************************************************************"
-  cat operator/scripts/install/build/logs/*
+  cat platform-operator/scripts/install/build/logs/*
   exit $exitStatus
 }
 
@@ -37,7 +37,7 @@ function dump-uninstall-logs {
   echo "*************************************************************"
   echo " Dumping the uninstall logs contained in uninstall/build/logs"
   echo "*************************************************************"
-  cat operator/scripts/uninstall/build/logs/*
+  cat platform-operator/scripts/uninstall/build/logs/*
   exit $exitStatus
 }
 
@@ -53,15 +53,15 @@ if [ "${MODE}" == "NOOP" ]; then
 elif [ "${MODE}" == "INSTALL" ]; then
   # Create a kubeconfig and run the installation
   create-kubeconfig
-  ./operator/scripts/install/1-install-istio.sh || dump-install-logs 1
-  ./operator/scripts/install/2-install-system-components.sh || dump-install-logs 1
-  ./operator/scripts/install/3-install-verrazzano.sh || dump-install-logs 1
-  ./operator/scripts/install/4-install-keycloak.sh || dump-install-logs 1
+  ./platform-operator/scripts/install/1-install-istio.sh || dump-install-logs 1
+  ./platform-operator/scripts/install/2-install-system-components.sh || dump-install-logs 1
+  ./platform-operator/scripts/install/3-install-verrazzano.sh || dump-install-logs 1
+  ./platform-operator/scripts/install/4-install-keycloak.sh || dump-install-logs 1
   dump-install-logs 0
 elif [ "${MODE}" == "UNINSTALL" ]; then
   # Create a kubeconfig and run the installation
   create-kubeconfig
-  ./operator/scripts/uninstall/uninstall-verrazzano.sh -f || dump-uninstall-logs 1
+  ./platform-operator/scripts/uninstall/uninstall-verrazzano.sh -f || dump-uninstall-logs 1
   dump-uninstall-logs 0
 else
   # Run the operator
