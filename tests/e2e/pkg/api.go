@@ -4,12 +4,15 @@
 package pkg
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
+
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
@@ -25,7 +28,9 @@ type ApiEndpoint struct {
 
 // GetApiEndpoint returns the ApiEndpoint stub with AccessToken
 func GetApiEndpoint() *ApiEndpoint {
-	keycloakURL := fmt.Sprintf("https://keycloak.%s.%s/auth/realms/%s/protocol/openid-connect/token", EnvName, DnsZone, realm)
+	ingress, _ := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
+	var ingressRules []extensionsv1beta1.IngressRule = ingress.Spec.Rules
+	keycloakURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", ingressRules[0].Host, realm)
 	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", Username, GetVerrazzanoPassword(), clientId)
 	status, resp := postWithClient(keycloakURL, "application/x-www-form-urlencoded", strings.NewReader(body), GetKeycloakHTTPClient())
 	var api ApiEndpoint
@@ -43,7 +48,9 @@ func GetApiEndpoint() *ApiEndpoint {
 
 // getAPIURL returns the Verrazzano REST API URL
 func getAPIURL() string {
-	return fmt.Sprintf("https://verrazzano.%s.%s/%s", EnvName, DnsZone, verrazzanoApiUriPrefix)
+	ingress, _ := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-console-ingress", v1.GetOptions{})
+	var ingressRules []extensionsv1beta1.IngressRule = ingress.Spec.Rules
+	return fmt.Sprintf("https://%s/%s", ingressRules[0].Host, verrazzanoApiUriPrefix)
 }
 
 // Get Invoke GET API Request
