@@ -158,12 +158,12 @@ webhooks:
         path: "/pod-defaulter"
     rules:
       - apiGroups:
-          - "*"
+          - ""
         apiVersions:
           - v1
         operations:
           - CREATE
         resources:
           - pods
-    sideEffects: NoneOnDryRun
+    sideEffects: None
     failurePolicy: Fail
