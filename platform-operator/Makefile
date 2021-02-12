@@ -193,6 +193,12 @@ BUILD-DEPLOY = build/deploy
 DEPLOY = deploy
 OPERATOR_SETUP = test/operatorsetup
 
+ifdef JENKINS_URL
+	CLUSTER_DUMP_LOCATION = ${WORKSPACE}/platform-operator-integ-cluster-dump
+else
+	CLUSTER_DUMP_LOCATIION = platform-operator-integ-cluster-dump
+endif
+
 .PHONY: integ-test
 integ-test: create-cluster
 	echo 'Load docker image for the verrazzano-platform-operator...'
@@ -200,17 +206,17 @@ integ-test: create-cluster
 	echo 'Deploy verrazzano platform operator ...'
 ifdef JENKINS_URL
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
-	kubectl apply -f deploy/operator.yaml || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d platform-operator-integ-cluster-dump; exit 1)
+	kubectl apply -f deploy/operator.yaml || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
 else
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	mkdir -p build/deploy
 	cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > ${BUILD-DEPLOY}/operator.yaml
 	cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> ${BUILD-DEPLOY}/operator.yaml
 	cat config/crd/bases/clusters.verrazzano.io_verrazzanomanagedclusters.yaml >> ${BUILD-DEPLOY}/operator.yaml
-	kubectl apply -f ${BUILD-DEPLOY}/operator.yaml || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d platform-operator-integ-cluster-dump; exit 1)
+	kubectl apply -f ${BUILD-DEPLOY}/operator.yaml || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
 endif
 	echo 'Run tests...'
-	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d platform-operator-integ-cluster-dump; exit 1)
+	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
 
 .PHONY: create-cluster
 create-cluster:
