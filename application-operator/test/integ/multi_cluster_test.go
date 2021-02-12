@@ -39,8 +39,6 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 			_, stderr := util.Kubectl(fmt.Sprintf("apply -f %v", crd))
 			gomega.Expect(stderr).To(gomega.Equal(""), fmt.Sprintf("Failed to apply CRD %v", crd))
 		}
-		_, stderr := util.Kubectl("create ns " + multiclusterTestNamespace)
-		gomega.Expect(stderr).To(gomega.Equal(""), fmt.Sprintf("failed to create namespace %v", multiclusterTestNamespace))
 	})
 	ginkgo.It("MultiClusterNamespace can be created ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_namespace_sample.yaml")
@@ -54,10 +52,6 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 		gomega.Eventually(func() bool {
 			return secretExistsWithData(multiclusterTestNamespace, "mymcsecret", mcsecret.Spec.Template.Data)
 		}, timeout, pollInterval).Should(gomega.BeTrue())
-	})
-	ginkgo.It("MultiClusterConfigMap can be created ", func() {
-		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_configmap_sample.yaml")
-		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
 	ginkgo.It("Apply MultiClusterComponent creates OAM component ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_component_sample.yaml")
@@ -75,6 +69,32 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 	ginkgo.It("MultiClusterLoggingScope can be created ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_loggingscope_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
+	})
+})
+
+var _ = ginkgo.Describe("Testing MultiClusterConfigMap", func() {
+	ginkgo.It("Apply MultiClusterConfigMap creates a ConfigMap ", func() {
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_configmap_sample.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""))
+		mcConfigMap, err := K8sClient.GetMultiClusterConfigMap(multiclusterTestNamespace, "mymcconfigmap")
+		gomega.Expect(err).To(gomega.BeNil())
+		gomega.Eventually(func() bool {
+			return configMapExistsMatchingMCConfigMap(
+				multiclusterTestNamespace,
+				"mymcconfigmap",
+				mcConfigMap,
+			)
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+	})
+	ginkgo.It("Apply Invalid MultiClusterConfigMap results in Failed Status", func() {
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_configmap_INVALID.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""))
+		gomega.Eventually(func() bool {
+			// Expecting a failed state value in the MultiClusterConfigMap since creation of
+			// underlying config map should fail for invalid config map
+			mcConfigMap, err := K8sClient.GetMultiClusterConfigMap(multiclusterTestNamespace, "invalid-mccm")
+			return err == nil && mcConfigMap.Status.State == clustersv1alpha1.Failed
+		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 })
 
@@ -106,8 +126,16 @@ func componentExistsWithFields(namespace string, name string, multiClusterComp *
 	return false
 }
 
-func secretExistsWithData(namespace string, name string, secretData map[string][]byte) bool {
+func secretExistsWithData(namespace, name string, secretData map[string][]byte) bool {
 	fmt.Printf("Looking for Kubernetes secret %v/%v\n", namespace, name)
-	secret, err := K8sClient.GetSecret(multiclusterTestNamespace, "mymcsecret")
+	secret, err := K8sClient.GetSecret(namespace, name)
 	return err == nil && reflect.DeepEqual(secret.Data, secretData)
+}
+
+func configMapExistsMatchingMCConfigMap(namespace, name string, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap) bool {
+	fmt.Printf("Looking for Kubernetes secret %v/%v\n", namespace, name)
+	configMap, err := K8sClient.GetConfigMap(namespace, name)
+	return err == nil &&
+		reflect.DeepEqual(configMap.Data, mcConfigMap.Spec.Template.Data) &&
+		reflect.DeepEqual(configMap.BinaryData, mcConfigMap.Spec.Template.BinaryData)
 }

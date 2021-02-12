@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustercomponent"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterconfigmap"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustersecret"
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
 
@@ -188,6 +189,14 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterComponent")
+		os.Exit(1)
+	}
+	if err = (&multiclusterconfigmap.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterConfigMap"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterConfigMap")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
