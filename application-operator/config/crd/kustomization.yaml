@@ -16,6 +16,7 @@ resources:
 - bases/clusters.verrazzano.io_multiclusterapplicationconfigurations.yaml
 - bases/clusters.verrazzano.io_multiclusterloggingscopes.yaml
 - bases/oam.verrazzano.io_verrazzanoweblogicworkloads.yaml
+- bases/clusters.verrazzano.io_verrazzanoprojects.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
