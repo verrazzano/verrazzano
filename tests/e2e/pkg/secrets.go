@@ -41,6 +41,14 @@ func GetSecret(namespace string, name string) (*corev1.Secret, error) {
 
 // CreateCredentialsSecret creates opaque secret
 func CreateCredentialsSecret(namespace string, name string, username string, pw string, labels map[string]string) (*corev1.Secret, error) {
+	return CreateCredentialsSecretFromMap(namespace, name, map[string]string{
+		"password": pw,
+		"username": username,
+	}, labels)
+}
+
+// CreateCredentialsSecret creates opaque secret from the given map of values
+func CreateCredentialsSecretFromMap(namespace string, name string, values, labels map[string]string) (*corev1.Secret, error) {
 	Log(Info, fmt.Sprintf("CreateCredentialsSecret %s in %s", name, namespace))
 	// Get the kubernetes clientset
 	clientset := GetKubernetesClientset()
@@ -52,10 +60,7 @@ func CreateCredentialsSecret(namespace string, name string, username string, pw 
 			Labels:    labels,
 		},
 		Type: corev1.SecretTypeOpaque,
-		StringData: map[string]string{
-			"password": pw,
-			"username": username,
-		},
+		StringData: values,
 	}
 	scr, err := clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
 	if err != nil {

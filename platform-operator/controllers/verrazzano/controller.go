@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzinstance"
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -423,7 +424,16 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 		cr.Status.State = installv1alpha1.Uninstalling
 	case installv1alpha1.UpgradeStarted:
 		cr.Status.State = installv1alpha1.Upgrading
-	case installv1alpha1.InstallComplete, installv1alpha1.UninstallComplete, installv1alpha1.UpgradeComplete:
+	case installv1alpha1.InstallComplete:
+		domain, err := buildDomain(r.Client, cr)
+		if err != nil {
+			// An error building the instance info is non-fatal, log and continue
+			log.Errorf("Error obtaining DNS domain for installed instance, %v", err)
+		} else {
+			cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(domain)
+		}
+		fallthrough
+	case installv1alpha1.UninstallComplete, installv1alpha1.UpgradeComplete:
 		cr.Status.State = installv1alpha1.Ready
 	case installv1alpha1.InstallFailed, installv1alpha1.UpgradeFailed, installv1alpha1.UninstallFailed:
 		cr.Status.State = installv1alpha1.Failed
@@ -609,4 +619,60 @@ func removeString(slice []string, s string) (result []string) {
 		result = append(result, item)
 	}
 	return
+}
+
+// buildDomain Build the DNS Domain from the current install
+func buildDomain(c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
+	subdomain := vz.Spec.EnvironmentName
+	if len(subdomain) == 0 {
+		subdomain = "default"
+	}
+	baseDomain, err := buildDomainSuffix(c, vz)
+	if err != nil {
+		return "", err
+	}
+	domain := subdomain + "." + baseDomain
+	return domain, nil
+}
+
+// buildDomainSuffix Get the configured domain suffix, or compute the xip.io domain
+func buildDomainSuffix(c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
+	dns := vz.Spec.Components.DNS
+	if dns.OCI != (installv1alpha1.OCI{}) {
+		return dns.OCI.DNSZoneName, nil
+	}
+	if dns.External != (installv1alpha1.External{}) {
+		return dns.External.Suffix, nil
+	}
+	ipAddress, err := getIngressIP(c)
+	if err != nil {
+		return "", err
+	}
+	return ipAddress + ".xip.io", nil
+}
+
+// getIngressIP get the Ingress IP, used for the xip.io case
+func getIngressIP(c client.Client) (string, error) {
+	const nginxIngressController = "ingress-controller-ingress-nginx-controller"
+	const nginxNamespace = "ingress-nginx"
+
+	nginxService := corev1.Service{}
+	err := c.Get(context.TODO(), types.NamespacedName{Name: nginxIngressController, Namespace: nginxNamespace}, &nginxService)
+	if err != nil {
+		return "", err
+	}
+	if nginxService.Spec.Type == corev1.ServiceTypeLoadBalancer {
+		nginxIngress := nginxService.Status.LoadBalancer.Ingress
+		if len(nginxIngress) == 0 {
+			// In case of OLCNE, need to obtain the External IP from the Spec
+			if len(nginxService.Spec.ExternalIPs) == 0 {
+				return "", fmt.Errorf("%s is missing External IP address", nginxService.Name)
+			}
+			return nginxService.Spec.ExternalIPs[0], nil
+		}
+		return nginxIngress[0].IP, nil
+	} else if nginxService.Spec.Type == corev1.ServiceTypeNodePort {
+		return "127.0.0.1", nil
+	}
+	return "", fmt.Errorf("Unsupported service type %s for Nginx ingress", string(nginxService.Spec.Type))
 }

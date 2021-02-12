@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+	"github.com/onsi/gomega/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -285,4 +286,19 @@ func rootCertPool(caData []byte) *x509.CertPool {
 	certPool := x509.NewCertPool()
 	certPool.AppendCertsFromPEM(caData)
 	return certPool
+}
+
+type WebResponse struct {
+	Status  int
+	Content string
+}
+
+// HaveStatus asserts that a WebResponse has a given status.
+func HaveStatus(expected int) types.GomegaMatcher {
+	return gomega.WithTransform(func(response WebResponse) int { return response.Status }, gomega.Equal(expected))
+}
+
+// ContainContent asserts that a WebResponse contains a given substring.
+func ContainContent(expected string) types.GomegaMatcher {
+	return gomega.WithTransform(func(response WebResponse) string { return response.Content }, gomega.ContainSubstring(expected))
 }
