@@ -48,6 +48,9 @@ func StartAgent(client client.Client, log logr.Logger) {
 		return
 	}
 
+	// Start the thread for syncing multi-cluster objects
+	go StartSync(k8sClient, log)
+
 	// Test listing a resource
 	_, err = k8sClient.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
@@ -55,6 +58,22 @@ func StartAgent(client client.Client, log logr.Logger) {
 	}
 	log.Info("Successfully listed namespaces")
 
+}
+
+// StartSync - start the thread for syncing multi-cluster objects
+func StartSync(k8sClient *kubernetes.Clientset, log logr.Logger) {
+	// Periodically loop looking for multi-cluster objects
+	for {
+		getMCSecretObjects(k8sClient, log)
+		time.Sleep(5 * time.Minute)
+	}
+}
+
+// Synchronize MCSecret objects to the local cluster
+func getMCSecretObjects(k8sClient *kubernetes.Clientset, log logr.Logger) error {
+	// Get all the MCSecret objects from the admin cluster
+
+	return nil
 }
 
 // Validate the cluster secret
