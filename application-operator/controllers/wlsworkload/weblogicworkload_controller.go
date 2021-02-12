@@ -10,6 +10,7 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	corev1 "k8s.io/api/core/v1"
@@ -21,6 +22,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+const finalizer = "verrazzanoweblogicworkload.finalizers.verrazzano.io"
+
+const specField = "spec"
+
+var specServerPodFields = []string{specField, "serverPod"}
+var specServerPodLabelsFields = append(specServerPodFields, "labels")
+var specServerPodContainersFields = append(specServerPodFields, "containers")
+var specServerPodVolumesFields = append(specServerPodFields, "volumes")
+var specServerPodVolumeMountsFields = append(specServerPodFields, "volumeMounts")
 
 // this struct allows us to extract information from the unstructured WebLogic spec
 // so we can interface with the FLUENTD code
@@ -79,6 +90,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	u.SetAPIVersion(apiVersion)
 	u.SetKind(kind)
 
+	// clean up resources that we've created on delete
+	if isDeleting, err := r.handleDelete(ctx, log, workload, u); isDeleting {
+		return reconcile.Result{}, err
+	}
+
 	// mutate the WebLogic domain resource, copy labels, add logging, etc.
 	if err = copyLabels(log, workload.ObjectMeta.GetLabels(), u); err != nil {
 		return reconcile.Result{}, err
@@ -119,7 +135,7 @@ func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedNam
 // copyLabels copies specific labels from the Verrazzano workload to the contained WebLogic resource
 func copyLabels(log logr.Logger, workloadLabels map[string]string, weblogic *unstructured.Unstructured) error {
 	// the WebLogic domain spec/serverPod/labels field has labels that get propagated to the pods
-	labels, found, _ := unstructured.NestedStringMap(weblogic.Object, "spec", "serverPod", "labels")
+	labels, found, _ := unstructured.NestedStringMap(weblogic.Object, specServerPodLabelsFields...)
 	if !found {
 		labels = map[string]string{}
 	}
@@ -133,7 +149,7 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, weblogic *uns
 		labels[oam.LabelAppName] = appName
 	}
 
-	err := unstructured.SetNestedStringMap(weblogic.Object, labels, "spec", "serverPod", "labels")
+	err := unstructured.SetNestedStringMap(weblogic.Object, labels, specServerPodLabelsFields...)
 	if err != nil {
 		log.Error(err, "Unable to set labels in spec serverPod")
 		return err
@@ -157,7 +173,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 	// extract just enough of the WebLogic data into concrete types so we can merge with
 	// the FLUENTD data
 	var extracted containersMountsVolumes
-	if serverPod, found, _ := unstructured.NestedMap(weblogic.Object, "spec", "serverPod"); found {
+	if serverPod, found, _ := unstructured.NestedMap(weblogic.Object, specServerPodFields...); found {
 		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(serverPod, &extracted); err != nil {
 			return errors.New("unable to extract containers, volumes, and volume mounts from WebLogic spec")
 		}
@@ -195,33 +211,68 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 		return err
 	}
 
-	err = unstructured.SetNestedSlice(weblogic.Object, fluentdPodUnstructured["containers"].([]interface{}), "spec", "serverPod", "containers")
+	err = unstructured.SetNestedSlice(weblogic.Object, fluentdPodUnstructured["containers"].([]interface{}), specServerPodContainersFields...)
 	if err != nil {
 		log.Error(err, "Unable to set serverPod containers")
 		return err
 	}
-	err = unstructured.SetNestedSlice(weblogic.Object, fluentdPodUnstructured["volumes"].([]interface{}), "spec", "serverPod", "volumes")
+	err = unstructured.SetNestedSlice(weblogic.Object, fluentdPodUnstructured["volumes"].([]interface{}), specServerPodVolumesFields...)
 	if err != nil {
 		log.Error(err, "Unable to set serverPod volumes")
 		return err
 	}
-	err = unstructured.SetNestedField(weblogic.Object, fluentdPodUnstructured["volumeMounts"].([]interface{}), "spec", "serverPod", "volumeMounts")
+	err = unstructured.SetNestedField(weblogic.Object, fluentdPodUnstructured["volumeMounts"].([]interface{}), specServerPodVolumeMountsFields...)
 	if err != nil {
 		log.Error(err, "Unable to set serverPod volumeMounts")
 		return err
 	}
 
 	// logHome and logHomeEnabled fields need to be set to turn on logging
-	err = unstructured.SetNestedField(weblogic.Object, loggingscope.BuildWLSLogHome(name), "spec", "logHome")
+	err = unstructured.SetNestedField(weblogic.Object, loggingscope.BuildWLSLogHome(name), specField, "logHome")
 	if err != nil {
 		log.Error(err, "Unable to set logHome")
 		return err
 	}
-	err = unstructured.SetNestedField(weblogic.Object, true, "spec", "logHomeEnabled")
+	err = unstructured.SetNestedField(weblogic.Object, true, specField, "logHomeEnabled")
 	if err != nil {
 		log.Error(err, "Unable to set logHomeEnabled")
 		return err
 	}
 
 	return nil
+}
+
+// handleDelete handles delete processing - we delete the WebLogic domain CR when our VerrazzanoWebLogicWorkload is deleted.
+// returns true if our workload is being deleted, false otherwise
+func (r *Reconciler) handleDelete(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoWebLogicWorkload, weblogic *unstructured.Unstructured) (bool, error) {
+	if !workload.ObjectMeta.DeletionTimestamp.IsZero() {
+		if controllers.StringSliceContainsString(workload.ObjectMeta.Finalizers, finalizer) {
+			log.Info("Deleting WebLogic domain CR")
+			if err := r.Delete(ctx, weblogic); err != nil {
+				// ignore not found, still need to remove the finalizer
+				if !k8serrors.IsNotFound(err) {
+					return true, err
+				}
+			}
+
+			workload.ObjectMeta.Finalizers = controllers.RemoveStringFromStringSlice(workload.ObjectMeta.Finalizers, finalizer)
+			if err := r.Update(ctx, workload); err != nil {
+				// just log and keep going
+				r.Log.Info("Unable to remove finalizer from workload", "error", err)
+			}
+		}
+
+		return true, nil
+	}
+
+	// not deleting, so add our finalizer and update the workload if it's not already in the list
+	if !controllers.StringSliceContainsString(workload.ObjectMeta.Finalizers, finalizer) {
+		workload.ObjectMeta.Finalizers = append(workload.ObjectMeta.Finalizers, finalizer)
+		if err := r.Update(ctx, workload); err != nil {
+			// just log and keep going
+			r.Log.Info("Unable to add finalizer to workload", "error", err)
+		}
+	}
+
+	return false, nil
 }
