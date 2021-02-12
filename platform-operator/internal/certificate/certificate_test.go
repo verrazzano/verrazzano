@@ -76,11 +76,17 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 
 	var caCert bytes.Buffer
 	caCert.WriteString("Fake CABundle")
-	path := "/validate-install-verrazzano-io-v1alpha1-verrazzano"
-	service := adminv1beta1.ServiceReference{
+	pathInstall := "/validate-install-verrazzano-io-v1alpha1-verrazzano"
+	serviceInstall := adminv1beta1.ServiceReference{
 		Name:      OperatorName,
 		Namespace: OperatorNamespace,
-		Path:      &path,
+		Path:      &pathInstall,
+	}
+	pathClusters := "/validate-clusters-verrazzano-io-v1alpha1-verrazzanomanagedcluster"
+	serviceClusters := adminv1beta1.ServiceReference{
+		Name:      OperatorName,
+		Namespace: OperatorNamespace,
+		Path:      &pathClusters,
 	}
 	webhook := adminv1beta1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
@@ -91,7 +97,13 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 			{
 				Name: "install.verrazzano.io",
 				ClientConfig: adminv1beta1.WebhookClientConfig{
-					Service: &service,
+					Service: &serviceInstall,
+				},
+			},
+			{
+				Name: "clusters.verrazzano.io",
+				ClientConfig: adminv1beta1.WebhookClientConfig{
+					Service: &serviceClusters,
 				},
 			},
 		},

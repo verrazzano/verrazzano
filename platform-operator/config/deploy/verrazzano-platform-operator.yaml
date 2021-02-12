@@ -134,3 +134,21 @@ webhooks:
           - verrazzanos
     sideEffects: None
     failurePolicy: Fail
+  - name: clusters.verrazzano.io
+    clientConfig:
+      service:
+        name: verrazzano-platform-operator
+        namespace: verrazzano-install
+        path: /validate-clusters-verrazzano-io-v1alpha1-verrazzanomanagedcluster
+    rules:
+      - apiGroups:
+          - clusters.verrazzano.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - verrazzanomanagedclusters
+    sideEffects: None
+    failurePolicy: Fail
