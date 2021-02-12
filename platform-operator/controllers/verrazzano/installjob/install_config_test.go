@@ -583,6 +583,113 @@ func TestGetVerrazzanoInstallArgsPVCVolumeSource(t *testing.T) {
 	assert.True(t, args[2].SetString)
 }
 
+// TestGetVerrazzanoInstallArgsWithSecurity Test the getVerrazzanoInstallArgs function
+// GIVEN a call to getVerrazzanoInstallArgs with a SecuritySpec
+// WHEN the AdminBindng and MonitorBidnging are valid
+// THEN the args list is length 4 and err is nil
+func TestGetVerrazzanoInstallArgsWithSecurity(t *testing.T) {
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		Security: installv1alpha1.SecuritySpec{
+			AdminBinding: installv1alpha1.RoleBindingSubject{
+				Kind: "User",
+				Name: "kilgore-trout",
+			},
+			MonitorBinding: installv1alpha1.RoleBindingSubject{
+				Kind: "Group",
+				Name: "group-of-monitors",
+			},
+		},
+	}
+	args, err := getVerrazzanoInstallArgs(&vzSpec, zap.S())
+	assert.Len(t, args, 4)
+	assert.Nil(t, err)
+	assert.Equal(t, "userrolebindings.admin.name", args[0].Name)
+	assert.Equal(t, "kilgore-trout", args[0].Value)
+	assert.True(t, args[0].SetString)
+	assert.Equal(t, "userrolebindings.admin.kind", args[1].Name)
+	assert.Equal(t, "User", args[1].Value)
+	assert.True(t, args[1].SetString)
+	assert.Equal(t, "userrolebindings.monitor.name", args[2].Name)
+	assert.Equal(t, "group-of-monitors", args[2].Value)
+	assert.True(t, args[2].SetString)
+	assert.Equal(t, "userrolebindings.monitor.kind", args[3].Name)
+	assert.Equal(t, "Group", args[3].Value)
+	assert.True(t, args[3].SetString)
+}
+
+// TestGetVerrazzanoInstallArgsWithSecurity Test the getVerrazzanoInstallArgs function
+// GIVEN a call to getVerrazzanoInstallArgs with a SecuritySpec
+// WHEN the AdminBindng and MonitorBidnging are valid
+// THEN the args list is length 4 and err is nil
+func TestGetVerrazzanoInstallArgsWithSecurityInvalidSubjectKind(t *testing.T) {
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		Security: installv1alpha1.SecuritySpec{
+			MonitorBinding: installv1alpha1.RoleBindingSubject{
+				Kind: "BadKind",
+				Name: "bad-kind-name",
+			},
+		},
+	}
+	args, err := getVerrazzanoInstallArgs(&vzSpec, zap.S())
+	assert.Len(t, args, 0)
+	assert.NotNil(t, err)
+}
+
+// TestGetVerrazzanoInstallArgsWithSecurity Test the getVerrazzanoInstallArgs function
+// GIVEN a call to getVerrazzanoInstallArgs with a SecuritySpec and a PersistentVolumeClaimVolumeSource
+// WHEN the SecuritySpec and PVCVolumeSource are both valid
+// THEN the args list is specifies both security and helm args the specified storage size for the ES/Grafana/Prometheus storage settings
+func TestGetVerrazzanoInstallArgsWithSecurityAndPVCVolumeSource(t *testing.T) {
+	resourceList := make(corev1.ResourceList, 1)
+	q, err := resource.ParseQuantity("50Gi")
+	assert.NoError(t, err)
+
+	resourceList["storage"] = q
+	storageClass := "mystorageclass"
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		Security: installv1alpha1.SecuritySpec{
+			AdminBinding: installv1alpha1.RoleBindingSubject{
+				Kind: "User",
+				Name: "kilgore-trout",
+			},
+		},
+		DefaultVolumeSource: &corev1.VolumeSource{
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				ClaimName: "default",
+			},
+		},
+		VolumeClaimSpecTemplates: []installv1alpha1.VolumeClaimSpecTemplate{
+			{
+				ObjectMeta: metav1.ObjectMeta{Name: "default"},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					StorageClassName: &storageClass,
+					Resources: corev1.ResourceRequirements{
+						Requests: resourceList,
+					},
+				},
+			},
+		},
+	}
+	args, err := getVerrazzanoInstallArgs(&vzSpec, zap.S())
+	assert.Len(t, args, 5)
+	assert.Nil(t, err)
+	assert.Equal(t, "verrazzanoOperator.esDataStorageSize", args[0].Name)
+	assert.Equal(t, "50Gi", args[0].Value)
+	assert.True(t, args[0].SetString)
+	assert.Equal(t, "verrazzanoOperator.grafanaDataStorageSize", args[1].Name)
+	assert.Equal(t, "50Gi", args[1].Value)
+	assert.True(t, args[1].SetString)
+	assert.Equal(t, "verrazzanoOperator.prometheusDataStorageSize", args[2].Name)
+	assert.Equal(t, "50Gi", args[2].Value)
+	assert.True(t, args[2].SetString)
+	assert.Equal(t, "userrolebindings.admin.name", args[3].Name)
+	assert.Equal(t, "kilgore-trout", args[3].Value)
+	assert.True(t, args[3].SetString)
+	assert.Equal(t, "userrolebindings.admin.kind", args[4].Name)
+	assert.Equal(t, "User", args[4].Value)
+	assert.True(t, args[4].SetString)
+}
+
 // TestGetKeycloakEmptyDirVolumeSourceNoDefaultVolumeSource Test the getKeycloak  function
 // GIVEN a call to getKeycloak
 // WHEN with an EmptyDirVolumeSource in the MySQL VolumeSource configuration

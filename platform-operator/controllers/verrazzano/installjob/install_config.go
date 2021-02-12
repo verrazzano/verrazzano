@@ -538,6 +538,10 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.S
 		if k == "" {
 			k = "Group"
 		}
+		if k != "Group" && k != "User" {
+			err := fmt.Errorf("Unsuppored subject kind %s", k)
+			return []InstallArg{}, err
+		}
 		args = append(args, InstallArg{
 			Name:      "userrolebindings.admin.kind",
 			Value:     k,
@@ -553,6 +557,10 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.S
 		k := vzSpec.Security.MonitorBinding.Kind
 		if k == "" {
 			k = "Group"
+		}
+		if k != "Group" && k != "User" {
+			err := fmt.Errorf("Unsuppored subject kind %s", k)
+			return []InstallArg{}, err
 		}
 		args = append(args, InstallArg{
 			Name:      "userrolebindings.monitor.kind",
