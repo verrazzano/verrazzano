@@ -66,10 +66,6 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_appconf_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
-	ginkgo.It("MultiClusterLoggingScope can be created ", func() {
-		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_loggingscope_sample.yaml")
-		gomega.Expect(stderr).To(gomega.Equal(""))
-	})
 })
 
 var _ = ginkgo.Describe("Testing MultiClusterConfigMap", func() {
@@ -97,6 +93,24 @@ var _ = ginkgo.Describe("Testing MultiClusterConfigMap", func() {
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 })
+
+var _ = ginkgo.Describe("Testing MultiClusterLoggingScope", func() {
+	ginkgo.It("Apply MultiClusterLoggingScope creates a LoggingScope ", func() {
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_loggingscope_sample.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""))
+		mcLogScope, err := K8sClient.GetMultiClusterLoggingScope(multiclusterTestNamespace, "mymcloggingscope")
+		gomega.Expect(err).To(gomega.BeNil())
+		gomega.Eventually(func() bool {
+			return loggingScopeExistsWithFields(multiclusterTestNamespace, "mymcloggingscope", mcLogScope)
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+	})
+})
+
+func loggingScopeExistsWithFields(namespace string, name string, mcLogScope *clustersv1alpha1.MultiClusterLoggingScope) bool {
+	fmt.Printf("Looking for LoggingScope %v/%v\n", namespace, name)
+	logScope, err := K8sClient.GetLoggingScope(namespace, name)
+	return err == nil && reflect.DeepEqual(logScope.Spec, mcLogScope.Spec)
+}
 
 func componentExistsWithFields(namespace string, name string, multiClusterComp *clustersv1alpha1.MultiClusterComponent) bool {
 	fmt.Printf("Looking for OAM Component %v/%v\n", namespace, name)
