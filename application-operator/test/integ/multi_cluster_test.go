@@ -24,12 +24,12 @@ const (
 
 var (
 	multiclusterCrds = []string{
-		fmt.Sprintf("%v/clusters.verrazzano.io_multiclusternamespaces.yaml", crdDir),
 		fmt.Sprintf("%v/clusters.verrazzano.io_multiclustersecrets.yaml", crdDir),
 		fmt.Sprintf("%v/clusters.verrazzano.io_multiclusterconfigmaps.yaml", crdDir),
 		fmt.Sprintf("%v/clusters.verrazzano.io_multiclustercomponents.yaml", crdDir),
 		fmt.Sprintf("%v/clusters.verrazzano.io_multiclusterapplicationconfigurations.yaml", crdDir),
 		fmt.Sprintf("%v/clusters.verrazzano.io_multiclusterloggingscopes.yaml", crdDir),
+		fmt.Sprintf("%v/clusters.verrazzano.io_verrazzanoprojects.yaml", crdDir),
 	}
 )
 
@@ -40,8 +40,8 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 			gomega.Expect(stderr).To(gomega.Equal(""), fmt.Sprintf("Failed to apply CRD %v", crd))
 		}
 	})
-	ginkgo.It("MultiClusterNamespace can be created ", func() {
-		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_namespace_sample.yaml")
+	ginkgo.It("VerrazzanoProject can be created ", func() {
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
 	ginkgo.It("Apply MultiClusterSecret creates K8S secret", func() {
