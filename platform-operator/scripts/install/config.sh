@@ -297,13 +297,18 @@ function get_acme_environment() {
 # --resolve rancher.my-env.127.0.0.1.xip.io:443:nginx_host_ip:nginx_node_port
 function get_rancher_resolve() {
   local rancher_hostname=$1
-  local rancher_in_cluster_host=$(get_rancher_in_cluster_host)
-  local resolve="--resolve ${rancher_hostname}:443:${rancher_in_cluster_host}:$(get_nginx_nodeport)"
+  local rancher_in_cluster_host=$(get_rancher_in_cluster_host ${RANCHER_HOSTNAME})
+  local resolve="--resolve ${rancher_hostname}:443:$(get_nginx_hostip):$(get_nginx_nodeport)"
   echo ${resolve}
 }
 
 function get_rancher_in_cluster_host() {
-  echo $(get_nginx_hostip)
+  local rancher_hostname=$1
+  local rancher_in_cluster_host=${rancher_hostname}
+  if [ $(get_config_value ".ingress.type") == "NodePort" ]; then
+    rancher_in_cluster_host=$(kubectl -n ingress-nginx get pods --selector app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller -o jsonpath='{.items[0].status.hostIP}')
+  fi
+  echo ${rancher_in_cluster_host}
 }
 
 function get_nginx_hostip() {

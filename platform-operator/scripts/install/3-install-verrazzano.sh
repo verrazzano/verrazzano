@@ -175,7 +175,7 @@ function install_verrazzano()
       --set clusterOperator.rancherURL=https://${RANCHER_HOSTNAME} \
       --set clusterOperator.rancherUserName="${token_array[0]}" \
       --set clusterOperator.rancherPassword="${token_array[1]}" \
-      --set clusterOperator.rancherHostname=$(get_rancher_in_cluster_host) \
+      --set clusterOperator.rancherHostname=$(get_rancher_in_cluster_host ${RANCHER_HOSTNAME}) \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)" \
       ${PROFILE_VALUES_OVERRIDE} \
       ${EXTRA_V8O_ARGUMENTS} || return $?
