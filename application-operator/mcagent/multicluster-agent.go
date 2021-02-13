@@ -189,13 +189,13 @@ func validateClusterSecret(secret *corev1.Secret) error {
 	// The secret must contain a cluster-name
 	_, ok := secret.Data["cluster-name"]
 	if !ok {
-		return fmt.Errorf("The secret named %s in namespace %s is missing the required field cluster-name", secret.Name, secret.Namespace)
+		return fmt.Errorf("the secret named %s in namespace %s is missing the required field cluster-name", secret.Name, secret.Namespace)
 	}
 
 	// The secret must contain a kubeconfig
 	_, ok = secret.Data["kubeconfig"]
 	if !ok {
-		return fmt.Errorf("The secret named %s in namespace %s is missing the required field kubeconfig", secret.Name, secret.Namespace)
+		return fmt.Errorf("the secret named %s in namespace %s is missing the required field kubeconfig", secret.Name, secret.Namespace)
 	}
 
 	return nil
