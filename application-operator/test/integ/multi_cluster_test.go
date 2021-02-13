@@ -45,10 +45,6 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
-	ginkgo.It("MultiClusterNamespace can be created ", func() {
-		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_namespace_sample.yaml")
-		gomega.Expect(stderr).To(gomega.Equal(""))
-	})
 	ginkgo.It("Apply MultiClusterSecret creates K8S secret", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_secret_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
