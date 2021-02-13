@@ -64,6 +64,7 @@ function get_rancher_access_token {
     -d '{"Username":"admin", "Password":"'$rancher_password'"}' \
     -H "Content-Type: application/json" \
     -X POST https://$rancher_hostname/v3-public/localProviders/local?action=login)
+    echo "--------------------------$(get_rancher_resolve ${rancher_hostname})"
     call_curl 201 response http_code ARGS
     if [ $? -eq 0 ]; then
       rancher_admin_token=$(echo $response | jq -r '.token')
