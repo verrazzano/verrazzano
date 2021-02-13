@@ -53,7 +53,7 @@ func StartAgent(client client.Client, log logr.Logger) {
 	log.Info(fmt.Sprintf("Found secret named %s in namespace %s for cluster named %q", secret.Name, secret.Namespace, clusterName))
 
 	// Create the client for accessing the managed cluster
-	clientset, err := getMCClient(&secret)
+	mcClient, err := getMCClient(&secret)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to get the client for cluster %q", clusterName))
 		return
@@ -61,7 +61,7 @@ func StartAgent(client client.Client, log logr.Logger) {
 
 	// Start the thread for syncing multi-cluster objects
 	s := &Syncer{
-		AdminClient: clientset,
+		AdminClient: mcClient,
 		MCClient:    client,
 		Log:         log,
 		ClusterName: secret.ClusterName,
