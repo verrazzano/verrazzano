@@ -294,24 +294,16 @@ function get_acme_environment() {
 }
 
 # rancher needs to be accessed by the scripts running in-cluster
-# in case of NodePort, 127.0.0.1 is not accessible
-# --resolve rancher.my-env.127.0.0.1.xip.io:443:nginx_container_ip
+# --resolve rancher.my-env.127.0.0.1.xip.io:443:nginx_container_ip:443
 function get_rancher_resolve() {
   local rancher_hostname=$1
-  local rancher_in_cluster_host=$(get_rancher_in_cluster_host ${rancher_hostname})
-  local resolve=""
-  if [ ${rancher_hostname} != ${rancher_in_cluster_host} ]; then
-    resolve="--resolve ${rancher_hostname}:443:${rancher_in_cluster_host}"
-  fi
+  local rancher_in_cluster_host=$(get_rancher_in_cluster_host)
+  local resolve="--resolve ${rancher_hostname}:443:${rancher_in_cluster_host}:443"
   echo ${resolve}
 }
 
 function get_rancher_in_cluster_host() {
-  local rancher_hostname=$1
-  local rancher_in_cluster_host=${rancher_hostname}
-  if [ $(get_config_value ".ingress.type") == "NodePort" ]; then
-    rancher_in_cluster_host=$(kubectl -n ingress-nginx get pods --selector app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller -o jsonpath='{.items[0].status.hostIP}')
-  fi
+  local rancher_in_cluster_host=$(kubectl -n ingress-nginx get pods --selector app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller -o jsonpath='{.items[0].status.hostIP}')
   echo ${rancher_in_cluster_host}
 }
 

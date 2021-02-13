@@ -277,7 +277,7 @@ function wait_for_rancher_agent_to_exist {
 }
 
 function patch_rancher_agents() {
-    local rancher_in_cluster_host=$(get_rancher_in_cluster_host ${RANCHER_HOSTNAME})
+    local rancher_in_cluster_host=$(get_rancher_in_cluster_host)
 
     if [ ${RANCHER_HOSTNAME} != ${rancher_in_cluster_host} ]; then
         local patch_data='{"spec":{"template":{"spec":{"hostAliases":[{"hostnames":["'"${RANCHER_HOSTNAME}"'"],"ip":"'"${rancher_in_cluster_host}"'"}]}}}}'
