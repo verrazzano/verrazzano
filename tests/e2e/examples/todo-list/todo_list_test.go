@@ -181,7 +181,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 	//})
 
 	ginkgo.Context("Logging.", func() {
-		indexName := "todo-list--"
+		indexName := "todo-list-todo-appconf-todo-domain"
 
 		// GIVEN a WebLogic application with logging enabled via a logging scope
 		// WHEN the Elasticsearch index is retrieved
