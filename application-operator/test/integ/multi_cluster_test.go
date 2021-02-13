@@ -18,8 +18,8 @@ import (
 const (
 	multiclusterTestNamespace = "multiclustertest"
 	crdDir                    = "../../config/crd/bases"
-	timeout                   = 5 * time.Second
-	pollInterval              = 20 * time.Millisecond
+	timeout                   = 2 * time.Minute
+	pollInterval              = 40 * time.Millisecond
 )
 
 var (
@@ -62,14 +62,6 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 			return componentExistsWithFields(multiclusterTestNamespace, "mymccomp", mcComp)
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
-	ginkgo.It("MultiClusterApplicationConfiguration can be created ", func() {
-		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_appconf_sample.yaml")
-		gomega.Expect(stderr).To(gomega.Equal(""))
-	})
-	ginkgo.It("MultiClusterLoggingScope can be created ", func() {
-		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_loggingscope_sample.yaml")
-		gomega.Expect(stderr).To(gomega.Equal(""))
-	})
 })
 
 var _ = ginkgo.Describe("Testing MultiClusterConfigMap", func() {
@@ -97,6 +89,54 @@ var _ = ginkgo.Describe("Testing MultiClusterConfigMap", func() {
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 })
+
+var _ = ginkgo.Describe("Testing MultiClusterLoggingScope", func() {
+	ginkgo.It("Apply MultiClusterLoggingScope creates a LoggingScope ", func() {
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_loggingscope_sample.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""))
+		mcLogScope, err := K8sClient.GetMultiClusterLoggingScope(multiclusterTestNamespace, "mymcloggingscope")
+		gomega.Expect(err).To(gomega.BeNil())
+		gomega.Eventually(func() bool {
+			return loggingScopeExistsWithFields(multiclusterTestNamespace, "mymcloggingscope", mcLogScope)
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+	})
+})
+var _ = ginkgo.Describe("Testing MultiClusterApplicationConfiguration", func() {
+	ginkgo.It("MultiClusterApplicationConfiguration can be created ", func() {
+		// First apply the hello-component referenced in this MultiCluster application config
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_appconf_sample.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""), "multicluster app config should be applied successfully")
+		mcAppConfig, err := K8sClient.GetMultiClusterAppConfig(multiclusterTestNamespace, "mymcappconf")
+		gomega.Expect(err).To(gomega.BeNil(), "multicluster app config mymcappconf should exist")
+		gomega.Eventually(func() bool {
+			return appConfigExistsWithFields(multiclusterTestNamespace, "mymcappconf", mcAppConfig)
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+	})
+})
+
+func appConfigExistsWithFields(namespace string, name string, multiClusterAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration) bool {
+	fmt.Printf("Looking for OAM app config %v/%v\n", namespace, name)
+	appConfig, err := K8sClient.GetOAMAppConfig(namespace, name)
+	if err != nil {
+		return false
+	}
+	areEqual := true
+	for i, expectedComp := range multiClusterAppConfig.Spec.Template.Spec.Components {
+		areEqual = areEqual &&
+			appConfig.Spec.Components[i].ComponentName == expectedComp.ComponentName
+	}
+	if !areEqual {
+		fmt.Println("Retrieved app config spec doesn't match multi cluster app config spec")
+		return false
+	}
+	return true
+}
+
+func loggingScopeExistsWithFields(namespace string, name string, mcLogScope *clustersv1alpha1.MultiClusterLoggingScope) bool {
+	fmt.Printf("Looking for LoggingScope %v/%v\n", namespace, name)
+	logScope, err := K8sClient.GetLoggingScope(namespace, name)
+	return err == nil && reflect.DeepEqual(logScope.Spec, mcLogScope.Spec.Template.Spec)
+}
 
 func componentExistsWithFields(namespace string, name string, multiClusterComp *clustersv1alpha1.MultiClusterComponent) bool {
 	fmt.Printf("Looking for OAM Component %v/%v\n", namespace, name)
@@ -133,7 +173,7 @@ func secretExistsWithData(namespace, name string, secretData map[string][]byte) 
 }
 
 func configMapExistsMatchingMCConfigMap(namespace, name string, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap) bool {
-	fmt.Printf("Looking for Kubernetes secret %v/%v\n", namespace, name)
+	fmt.Printf("Looking for Kubernetes ConfigMap %v/%v\n", namespace, name)
 	configMap, err := K8sClient.GetConfigMap(namespace, name)
 	return err == nil &&
 		reflect.DeepEqual(configMap.Data, mcConfigMap.Spec.Template.Data) &&

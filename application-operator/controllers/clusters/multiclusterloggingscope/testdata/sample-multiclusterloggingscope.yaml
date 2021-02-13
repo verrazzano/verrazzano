@@ -3,17 +3,16 @@
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: MultiClusterLoggingScope
 metadata:
-  name: mymcloggingscope
-  namespace: multiclustertest
+  name: unit-mclogscope
+  namespace: unit-mclogscope-namespace
 spec:
   template:
     spec:
       fluentdImage: myFluentdImage:v123
-      elasticSearchHost: vmi-system-es-ingest.verrazzano-system.svc.cluster.local
+      elasticSearchHost: myLocalEsHost
       elasticSearchPort: 9200
-      secretName: mySecret
+      secretName: logScopeSecret
       workloadRefs: []
   placement:
     clusters:
       - name: managed1
-
