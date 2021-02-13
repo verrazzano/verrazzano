@@ -13,25 +13,14 @@ import (
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	"sigs.k8s.io/yaml"
 )
 
-func podDecoder() *admission.Decoder {
-	scheme := runtime.NewScheme()
-	core.AddToScheme(scheme)
-	decoder, err := admission.NewDecoder(scheme)
-	if err != nil {
-		log.Error(err, "error new decoder")
-	}
-	return decoder
-}
-
 // TestPodDefaulterHandleError tests handling an invalid pod admission.Request
-// GIVEN a PodDefaulter and a pod admission.Request
+// GIVEN a PodWebhook and a pod admission.Request
 //  WHEN Handle is called with an invalid admission.Request containing no content
 //  THEN Handle should return an error with http.StatusBadRequest
 func TestPodDefaulterHandleError(t *testing.T) {
@@ -44,16 +33,16 @@ func TestPodDefaulterHandleError(t *testing.T) {
 	assert.Equal(t, int32(http.StatusBadRequest), res.Result.Code)
 }
 
-// TestAppConfigDefaulterHandle tests handling an appconfig Delete admission.Request
-// GIVEN a AppConfigDefaulter and an appconfig Delete admission.Request
-//  WHEN Handle is called with an admission.Request containing appconfig
-//  THEN Handle should return an Allowed response with no patch
+// TestPodDefaulterHandleNoAction tests handling a pod admission.Request
+// GIVEN a PodWebhook and an pod admission.Request
+//  WHEN Handle is called with an admission.Request containing pod
+//  THEN Handle should return an Allowed response with no action required
 func TestPodDefaulterHandleNoAction(t *testing.T) {
 	decoder := decoder()
 	defaulter := &PodWebhook{}
 	defaulter.InjectDecoder(decoder)
 	req := admission.Request{}
-	req.Object = runtime.RawExtension{Raw: readYaml2Json(t, "simple-pod.yaml")}
+	req.Object = runtime.RawExtension{Raw: podReadYaml2Json(t, "simple-pod.yaml")}
 	res := defaulter.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.Equal(t, v1.StatusReason("No action required"), res.Result.Reason)

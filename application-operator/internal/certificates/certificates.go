@@ -26,11 +26,11 @@ const (
 	OperatorName = "verrazzano-application-operator"
 	// OperatorNamespace is the resource namespace for the Verrazzano platform operator
 	OperatorNamespace = "verrazzano-system"
-	// ValidatingWebhookName is the resource namespace for the Verrazzano ValidatingWebhook
+	// ValidatingWebhookName is the resource name for the Verrazzano ValidatingWebhook
 	ValidatingWebhookName = "verrazzano-application-ingresstrait-validator"
-	// AppConfigMutatingWebhookName is the resource namespace for the Verrazzano MutatingWebhook for appconfigs
+	// AppConfigMutatingWebhookName is the resource name for the Verrazzano MutatingWebhook for appconfigs
 	AppConfigMutatingWebhookName = "verrazzano-application-appconfig-defaulter"
-	// PodMutatingWebhookName is the resource namespace for the Verrazzano MutatingWebhook for pods
+	// PodMutatingWebhookName is the resource name for the Verrazzano MutatingWebhook for pods
 	PodMutatingWebhookName = "verrazzano-application-pod-defaulter"
 )
 
