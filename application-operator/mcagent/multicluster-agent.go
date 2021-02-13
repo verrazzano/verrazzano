@@ -18,6 +18,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// Syncer contains context for synchronize operations
+type Syncer struct {
+	AdminClient client.Client
+	MCClient    client.Client
+	Log         logr.Logger
+	ClusterName string
+	Context     context.Context
+}
+
 // StartAgent - start the agent thread for syncing multi-cluster objects
 func StartAgent(client client.Client, log logr.Logger) {
 	// Wait for the existence of the verrazzano-cluster secret.  It contains the credentials
@@ -51,52 +60,60 @@ func StartAgent(client client.Client, log logr.Logger) {
 	}
 
 	// Start the thread for syncing multi-cluster objects
-	go StartSync(clientset, log)
+	s := &Syncer{
+		AdminClient: clientset,
+		MCClient:    client,
+		Log:         log,
+		ClusterName: secret.ClusterName,
+		Context:     context.TODO(),
+	}
+
+	go s.StartSync()
 }
 
 // StartSync - start the thread for syncing multi-cluster objects
-func StartSync(clientset client.Client, log logr.Logger) {
-	log.Info("Starting sync of multi-cluster objects")
-	ctx := context.TODO()
+func (s *Syncer) StartSync() {
+	s.Log.Info("Starting sync of multi-cluster objects")
 
 	// Periodically loop looking for multi-cluster objects
 	for {
-		err := syncMCSecretObjects(clientset, ctx, log)
+		err := s.syncMCSecretObjects()
 		if err != nil {
-			log.Error(err, "Error syncing MultiClusterSecret objects")
+			s.Log.Error(err, "Error syncing MultiClusterSecret objects")
 		}
-		err = syncMCConfigMapObjects(clientset, ctx, log)
+		err = s.syncMCConfigMapObjects()
 		if err != nil {
-			log.Error(err, "Error syncing MultiClusterConfigMap objects")
+			s.Log.Error(err, "Error syncing MultiClusterConfigMap objects")
 		}
-		err = syncMCLoggingScopeObjects(clientset, ctx, log)
+		err = s.syncMCLoggingScopeObjects()
 		if err != nil {
-			log.Error(err, "Error syncing MultiClusterLoggingScope objects")
+			s.Log.Error(err, "Error syncing MultiClusterLoggingScope objects")
 		}
-		err = syncMCComponentObjects(clientset, ctx, log)
+		err = s.syncMCComponentObjects()
 		if err != nil {
-			log.Error(err, "Error syncing MultiClusterComponent objects")
+			s.Log.Error(err, "Error syncing MultiClusterComponent objects")
 		}
-		err = syncMCApplicationConfigurationObjects(clientset, ctx, log)
+		err = s.syncMCApplicationConfigurationObjects()
 		if err != nil {
-			log.Error(err, "Error syncing MultiClusterApplicationConfiguration objects")
+			s.Log.Error(err, "Error syncing MultiClusterApplicationConfiguration objects")
 		}
 		time.Sleep(1 * time.Minute)
 	}
 }
 
 // Synchronize MultiClusterSecret objects to the local cluster
-func syncMCSecretObjects(clientset client.Client, ctx context.Context, log logr.Logger) error {
+func (s *Syncer) syncMCSecretObjects() error {
 	// Get all the MultiClusterSecret objects from the admin cluster
 	allMCSecrets := &clustersv1alpha1.MultiClusterSecretList{}
-	err := clientset.List(ctx, allMCSecrets)
+	listOptions := &client.ListOptions{}
+	err := s.AdminClient.List(s.Context, allMCSecrets, listOptions)
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
 
-	// Write each of the records that are targetted to this cluster
+	// Write each of the records that are targeted to this cluster
 	for _, mcSecert := range allMCSecrets.Items {
-		_, err := createOrUpdateMCSecret(clientset, ctx, mcSecert)
+		_, err := s.createOrUpdateMCSecret(mcSecert)
 		if err != nil {
 			return err
 		}
@@ -105,12 +122,13 @@ func syncMCSecretObjects(clientset client.Client, ctx context.Context, log logr.
 }
 
 // Create or update a MultiClusterSecret
-func createOrUpdateMCSecret(clientset client.Client, ctx context.Context, mcSecret clustersv1alpha1.MultiClusterSecret) (controllerutil.OperationResult, error) {
+func (s *Syncer) createOrUpdateMCSecret(mcSecret clustersv1alpha1.MultiClusterSecret) (controllerutil.OperationResult, error) {
 	var mcSecretNew clustersv1alpha1.MultiClusterSecret
 	mcSecretNew.Namespace = mcSecret.Namespace
 	mcSecretNew.Name = mcSecret.Name
 
-	return controllerutil.CreateOrUpdate(ctx, clientset, &mcSecretNew, func() error {
+	// Create or update on the local cluster
+	return controllerutil.CreateOrUpdate(s.Context, s.MCClient, &mcSecretNew, func() error {
 		mutateMCSecret(mcSecret, &mcSecretNew)
 		return nil
 	})
@@ -123,10 +141,10 @@ func mutateMCSecret(mcSecret clustersv1alpha1.MultiClusterSecret, mcSecretNew *c
 }
 
 // Synchronize MultiClusterConfigMap objects to the local cluster
-func syncMCConfigMapObjects(clientset client.Client, ctx context.Context, log logr.Logger) error {
+func (s *Syncer) syncMCConfigMapObjects() error {
 	// Get all the MultiClusterConfigMap objects from the admin cluster
 	allMCConfigMaps := &clustersv1alpha1.MultiClusterConfigMapList{}
-	err := clientset.List(ctx, allMCConfigMaps)
+	err := s.AdminClient.List(s.Context, allMCConfigMaps)
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
@@ -134,10 +152,10 @@ func syncMCConfigMapObjects(clientset client.Client, ctx context.Context, log lo
 }
 
 // Synchronize MultiClusterComponent objects to the local cluster
-func syncMCComponentObjects(clientset client.Client, ctx context.Context, log logr.Logger) error {
+func (s *Syncer) syncMCComponentObjects() error {
 	// Get all the MultiClusterComponent objects from the admin cluster
 	allMCComponents := &clustersv1alpha1.MultiClusterComponentList{}
-	err := clientset.List(ctx, allMCComponents)
+	err := s.AdminClient.List(s.Context, allMCComponents)
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
@@ -145,10 +163,10 @@ func syncMCComponentObjects(clientset client.Client, ctx context.Context, log lo
 }
 
 // Synchronize MultiClusterLoggingScope objects to the local cluster
-func syncMCLoggingScopeObjects(clientset client.Client, ctx context.Context, log logr.Logger) error {
+func (s *Syncer) syncMCLoggingScopeObjects() error {
 	// Get all the MultiClusterLoggingScope objects from the admin cluster
 	allMCLoggingScopes := &clustersv1alpha1.MultiClusterLoggingScopeList{}
-	err := clientset.List(ctx, allMCLoggingScopes)
+	err := s.AdminClient.List(s.Context, allMCLoggingScopes)
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
@@ -156,10 +174,10 @@ func syncMCLoggingScopeObjects(clientset client.Client, ctx context.Context, log
 }
 
 // Synchronize MultiClusterApplicationConfiguration objects to the local cluster
-func syncMCApplicationConfigurationObjects(clientset client.Client, ctx context.Context, log logr.Logger) error {
+func (s *Syncer) syncMCApplicationConfigurationObjects() error {
 	// Get all the MultiClusterApplicationConfiguration objects from the admin cluster
 	allMCApplicationConfigurations := &clustersv1alpha1.MultiClusterApplicationConfigurationList{}
-	err := clientset.List(ctx, allMCApplicationConfigurations)
+	err := s.AdminClient.List(s.Context, allMCApplicationConfigurations)
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
