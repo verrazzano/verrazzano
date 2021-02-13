@@ -55,6 +55,8 @@ func StartAgent(client client.Client, log logr.Logger) {
 
 // StartSync - start the thread for syncing multi-cluster objects
 func StartSync(clientset client.Client, log logr.Logger) {
+	log.Info("Starting sync of multi-cluster objects")
+
 	// Periodically loop looking for multi-cluster objects
 	for {
 		err := syncMCSecretObjects(clientset, log)
