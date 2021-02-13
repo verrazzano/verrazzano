@@ -134,7 +134,7 @@ func (s *Syncer) createOrUpdateMCSecret(mcSecret clustersv1alpha1.MultiClusterSe
 	})
 }
 
-// mutateMCSecret mutates the corev1.Secret to reflect the contents of the parent MultiClusterSecret
+// mutateMCSecret mutates the MultiClusterSecret to reflect the contents of the parent MultiClusterSecret
 func mutateMCSecret(mcSecret clustersv1alpha1.MultiClusterSecret, mcSecretNew *clustersv1alpha1.MultiClusterSecret) {
 	mcSecretNew.Spec.Placement = mcSecret.Spec.Placement
 	mcSecretNew.Spec.Template = mcSecret.Spec.Template
@@ -159,7 +159,35 @@ func (s *Syncer) syncMCComponentObjects() error {
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
+
+	// Write each of the records that are targeted to this cluster
+	for _, mcComponent := range allMCComponents.Items {
+		_, err := s.createOrUpdateMCComponent(mcComponent)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+// Create or update a MultiClusterComponent
+func (s *Syncer) createOrUpdateMCComponent(mcComponent clustersv1alpha1.MultiClusterComponent) (controllerutil.OperationResult, error) {
+	var mcComponentNew clustersv1alpha1.MultiClusterComponent
+	mcComponentNew.Namespace = mcComponent.Namespace
+	mcComponentNew.Name = mcComponent.Name
+
+	// Create or update on the local cluster
+	return controllerutil.CreateOrUpdate(s.Context, s.MCClient, &mcComponentNew, func() error {
+		mutateMCComponent(mcComponent, &mcComponentNew)
+		return nil
+	})
+}
+
+// mutateMCComponent mutates the MultiClusterComponent to reflect the contents of the parent MultiClusterComponent
+func mutateMCComponent(mcComponent clustersv1alpha1.MultiClusterComponent, mcComponentNew *clustersv1alpha1.MultiClusterComponent) {
+	mcComponentNew.Spec.Placement = mcComponent.Spec.Placement
+	mcComponentNew.Spec.Template = mcComponent.Spec.Template
 }
 
 // Synchronize MultiClusterLoggingScope objects to the local cluster
