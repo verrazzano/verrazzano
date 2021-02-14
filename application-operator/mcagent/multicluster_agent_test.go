@@ -64,6 +64,10 @@ func TestCreateMCSecret(t *testing.T) {
 							},
 						},
 					},
+					Template: clustersv1alpha1.SecretTemplate{
+						Data:       map[string][]byte{"username": []byte("test-username")},
+						StringData: map[string]string{"test": "test-stringdata"},
+					},
 				},
 			}
 			mcSecretList.Items = append(mcSecretList.Items, mcSecret)
@@ -84,6 +88,8 @@ func TestCreateMCSecret(t *testing.T) {
 			assert.Equal(testMCSecretName, mcSecret.Name, "mcsecret name did not match")
 			assert.Equal(testLabels, mcSecret.Labels, "mcsecret labels did not match")
 			assert.Equal(testPlacement, mcSecret.Spec.Placement.Clusters[0].Name, "mcsecret does not contain expected placement")
+			assert.Equal([]byte("test-username"), mcSecret.Spec.Template.Data["username"], "mcsecret does not contain expected template data")
+			assert.Equal("test-stringdata", mcSecret.Spec.Template.StringData["test"], "mcsecret does not contain expected string data")
 			return nil
 		})
 
