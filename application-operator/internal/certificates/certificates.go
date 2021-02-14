@@ -30,8 +30,8 @@ const (
 	ValidatingWebhookName = "verrazzano-application-ingresstrait-validator"
 	// AppConfigMutatingWebhookName is the resource name for the Verrazzano MutatingWebhook for appconfigs
 	AppConfigMutatingWebhookName = "verrazzano-application-appconfig-defaulter"
-	// PodMutatingWebhookName is the resource name for the Verrazzano MutatingWebhook for pods
-	PodMutatingWebhookName = "verrazzano-application-pod-defaulter"
+	// IstioMutatingWebhookName is the resource name for the Verrazzano MutatingWebhook for Istio pods
+	IstioMutatingWebhookName = "verrazzano-application-istio-defaulter"
 )
 
 // SetupCertificates creates the needed certificates for the validating webhook
@@ -192,10 +192,10 @@ func UpdateAppConfigMutatingWebhookConfiguration(kubeClient kubernetes.Interface
 	return nil
 }
 
-// UpdatePodMutatingWebhookConfiguration sets the CABundle
-func UpdatePodMutatingWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer) error {
+// UpdateIstioMutatingWebhookConfiguration sets the CABundle
+func UpdateIstioMutatingWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer) error {
 	var webhook *adminv1beta1.MutatingWebhookConfiguration
-	webhook, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.TODO(), PodMutatingWebhookName, metav1.GetOptions{})
+	webhook, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.TODO(), IstioMutatingWebhookName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

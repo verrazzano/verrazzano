@@ -14,18 +14,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// PodDefaulterPath specifies the path of PodDefaulter
-const PodDefaulterPath = "/pod-defaulter"
+// IstioDefaulterPath specifies the path of Istio defaulter webhook
+const IstioDefaulterPath = "/istio-defaulter"
 
-// PodWebhook type for pod defaulter webhook
-type PodWebhook struct {
+// IstioWebhook type for istio defaulter webhook
+type IstioWebhook struct {
 	Client  client.Client
 	decoder *admission.Decoder
 }
 
 // Handle identifies OAM created pods and mutates pods and adds additional resources as needed.
-func (a *PodWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
-	var log = ctrl.Log.WithName("webhooks.pod-defaulter")
+func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
+	var log = ctrl.Log.WithName("webhooks.istio-defaulter")
 
 	pod := &corev1.Pod{}
 
@@ -46,7 +46,7 @@ func (a *PodWebhook) Handle(ctx context.Context, req admission.Request) admissio
 }
 
 // InjectDecoder injects the decoder.
-func (a *PodWebhook) InjectDecoder(d *admission.Decoder) error {
+func (a *IstioWebhook) InjectDecoder(d *admission.Decoder) error {
 	a.decoder = d
 	return nil
 }

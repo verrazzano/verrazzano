@@ -19,13 +19,13 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// TestPodDefaulterHandleError tests handling an invalid pod admission.Request
-// GIVEN a PodWebhook and a pod admission.Request
+// TestIstioDefaulterHandleError tests handling an invalid admission.Request
+// GIVEN an IstioWebhook and an admission.Request
 //  WHEN Handle is called with an invalid admission.Request containing no content
 //  THEN Handle should return an error with http.StatusBadRequest
-func TestPodDefaulterHandleError(t *testing.T) {
+func TestIstioDefaulterHandleError(t *testing.T) {
 	decoder := decoder()
-	defaulter := &PodWebhook{}
+	defaulter := &IstioWebhook{}
 	defaulter.InjectDecoder(decoder)
 	req := admission.Request{}
 	res := defaulter.Handle(context.TODO(), req)
@@ -33,13 +33,13 @@ func TestPodDefaulterHandleError(t *testing.T) {
 	assert.Equal(t, int32(http.StatusBadRequest), res.Result.Code)
 }
 
-// TestPodDefaulterHandleNoAction tests handling a pod admission.Request
-// GIVEN a PodWebhook and an pod admission.Request
-//  WHEN Handle is called with an admission.Request containing pod
+// TestIstioDefaulterHandleNoAction tests handling an admission.Request
+// GIVEN a IstioWebhook and an admission.Request
+//  WHEN Handle is called with an admission.Request containing a pod resource
 //  THEN Handle should return an Allowed response with no action required
-func TestPodDefaulterHandleNoAction(t *testing.T) {
+func TestIstioDefaulterHandleNoAction(t *testing.T) {
 	decoder := decoder()
-	defaulter := &PodWebhook{}
+	defaulter := &IstioWebhook{}
 	defaulter.InjectDecoder(decoder)
 	req := admission.Request{}
 	req.Object = runtime.RawExtension{Raw: podReadYaml2Json(t, "simple-pod.yaml")}

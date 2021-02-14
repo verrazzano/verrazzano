@@ -141,12 +141,12 @@ webhooks:
 apiVersion: admissionregistration.k8s.io/v1beta1
 kind: MutatingWebhookConfiguration
 metadata:
-  name: verrazzano-application-pod-defaulter
+  name: verrazzano-application-istio-defaulter
   namespace: {{ .Values.namespace }}
   labels:
     app: {{ .Values.name }}
 webhooks:
-  - name: verrazzano-application-pod-defaulter.verrazzano.io
+  - name: verrazzano-application-istio-defaulter.verrazzano.io
     namespaceSelector:
       matchLabels:
         istio-injection: enabled
@@ -154,7 +154,7 @@ webhooks:
       service:
         name: {{ .Values.name }}
         namespace: {{ .Values.namespace }}
-        path: "/pod-defaulter"
+        path: "/istio-defaulter"
     rules:
       - apiGroups:
           - ""
