@@ -1,3 +1,6 @@
+// Copyright (c) 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package mcagent
 
 import (
@@ -52,8 +55,8 @@ func StartAgent(client client.Client, log logr.Logger) {
 	clusterName := string(secret.Data["cluster-name"])
 	log.Info(fmt.Sprintf("Found secret named %s in namespace %s for cluster named %q", secret.Name, secret.Namespace, clusterName))
 
-	// Create the client for accessing the managed cluster
-	mcClient, err := getMCClient(&secret)
+	// Create the client for accessing the admin cluster
+	adminClient, err := getAdminClient(&secret)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Failed to get the client for cluster %q", clusterName))
 		return
@@ -61,7 +64,7 @@ func StartAgent(client client.Client, log logr.Logger) {
 
 	// Start the thread for syncing multi-cluster objects
 	s := &Syncer{
-		AdminClient: mcClient,
+		AdminClient: adminClient,
 		MCClient:    client,
 		Log:         log,
 		ClusterName: secret.ClusterName,
@@ -126,6 +129,7 @@ func (s *Syncer) createOrUpdateMCSecret(mcSecret clustersv1alpha1.MultiClusterSe
 	var mcSecretNew clustersv1alpha1.MultiClusterSecret
 	mcSecretNew.Namespace = mcSecret.Namespace
 	mcSecretNew.Name = mcSecret.Name
+	mcSecretNew.Labels = mcSecret.Labels
 
 	// Create or update on the local cluster
 	return controllerutil.CreateOrUpdate(s.Context, s.MCClient, &mcSecretNew, func() error {
@@ -229,8 +233,8 @@ func validateClusterSecret(secret *corev1.Secret) error {
 	return nil
 }
 
-// Get the clientset for accessing the managed cluster
-func getMCClient(secret *corev1.Secret) (client.Client, error) {
+// Get the clientset for accessing the admin cluster
+func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	// Create a temp file that contains the kubeconfig
 	tmpFile, err := ioutil.TempFile("/tmp", "kubeconfig")
 	if err != nil {
