@@ -25,7 +25,6 @@ import (
 const testClusterName = "cluster1"
 const testNamespace = constants.VerrazzanoSystemNamespace
 const testMCSecretName = "test-mcsecret"
-const testPlacement = "cluster1"
 
 var testLabels = map[string]string{"label1": "test1"}
 
@@ -57,7 +56,7 @@ func TestCreateMCSecret(t *testing.T) {
 			Placement: clustersv1alpha1.Placement{
 				Clusters: []clustersv1alpha1.Cluster{
 					{
-						Name: testPlacement,
+						Name: testClusterName,
 					},
 				},
 			},
@@ -89,7 +88,7 @@ func TestCreateMCSecret(t *testing.T) {
 			assert.Equal(testNamespace, mcSecret.Namespace, "mcsecret namespace did not match")
 			assert.Equal(testMCSecretName, mcSecret.Name, "mcsecret name did not match")
 			assert.Equal(testLabels, mcSecret.Labels, "mcsecret labels did not match")
-			assert.Equal(testPlacement, mcSecret.Spec.Placement.Clusters[0].Name, "mcsecret does not contain expected placement")
+			assert.Equal(testClusterName, mcSecret.Spec.Placement.Clusters[0].Name, "mcsecret does not contain expected placement")
 			assert.Equal([]byte("test-username"), mcSecret.Spec.Template.Data["username"], "mcsecret does not contain expected template data")
 			assert.Equal("test-stringdata", mcSecret.Spec.Template.StringData["test"], "mcsecret does not contain expected string data")
 			return nil
@@ -139,7 +138,7 @@ func TestUpdateMCSecret(t *testing.T) {
 			Placement: clustersv1alpha1.Placement{
 				Clusters: []clustersv1alpha1.Cluster{
 					{
-						Name: testPlacement,
+						Name: testClusterName,
 					},
 				},
 			},
@@ -181,6 +180,69 @@ func TestUpdateMCSecret(t *testing.T) {
 			assert.Equal("new-name", mcSecret.Spec.Placement.Clusters[0].Name, "mcsecret does not contain expected placement")
 			assert.Equal([]byte("test-username-new"), mcSecret.Spec.Template.Data["username"], "mcsecret does not contain expected template data")
 			assert.Equal("test-stringdata-new", mcSecret.Spec.Template.StringData["test"], "mcsecret does not contain expected string data")
+			return nil
+		})
+
+	// Make the request
+	s := &Syncer{
+		AdminClient: adminMock,
+		MCClient:    mcMock,
+		Log:         log,
+		ClusterName: testClusterName,
+		Context:     context.TODO(),
+	}
+	err := s.syncMCSecretObjects()
+
+	// Validate the results
+	adminMocker.Finish()
+	mcMocker.Finish()
+	assert.NoError(err)
+}
+
+// TestMCSecretPlacement tests the synchronization method for the following use case.
+// GIVEN a request to sync MultiClusterSecret objects
+// WHEN the a object exists that is not targetted for the cluster
+// THEN ensure that the MultiClusterSecret is not created or updated
+func TestMCSecretPlacement(t *testing.T) {
+	assert := asserts.New(t)
+	log := ctrl.Log.WithName("test")
+
+	// Managed cluster mocks
+	mcMocker := gomock.NewController(t)
+	mcMock := mocks.NewMockClient(mcMocker)
+
+	// Admin cluster mocks
+	adminMocker := gomock.NewController(t)
+	adminMock := mocks.NewMockClient(adminMocker)
+
+	// Test data
+	testMCSecret := clustersv1alpha1.MultiClusterSecret{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNamespace,
+			Name:      testMCSecretName,
+			Labels:    testLabels,
+		},
+		Spec: clustersv1alpha1.MultiClusterSecretSpec{
+			Placement: clustersv1alpha1.Placement{
+				Clusters: []clustersv1alpha1.Cluster{
+					{
+						Name: "not-my-cluster",
+					},
+				},
+			},
+			Template: clustersv1alpha1.SecretTemplate{
+				Data:       map[string][]byte{"username": []byte("test-username")},
+				StringData: map[string]string{"test": "test-stringdata"},
+			},
+		},
+	}
+
+	// Admin Cluster - expect call to list MultiClusterSecret objects - return list with one object
+	adminMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
 			return nil
 		})
 

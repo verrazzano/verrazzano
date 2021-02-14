@@ -116,9 +116,11 @@ func (s *Syncer) syncMCSecretObjects() error {
 
 	// Write each of the records that are targeted to this cluster
 	for _, mcSecert := range allMCSecrets.Items {
-		_, err := s.createOrUpdateMCSecret(mcSecert)
-		if err != nil {
-			return err
+		if isThisCluster(s.ClusterName, mcSecert.Spec.Placement) {
+			_, err := s.createOrUpdateMCSecret(mcSecert)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -166,9 +168,11 @@ func (s *Syncer) syncMCComponentObjects() error {
 
 	// Write each of the records that are targeted to this cluster
 	for _, mcComponent := range allMCComponents.Items {
-		_, err := s.createOrUpdateMCComponent(mcComponent)
-		if err != nil {
-			return err
+		if isThisCluster(s.ClusterName, mcComponent.Spec.Placement) {
+			_, err := s.createOrUpdateMCComponent(mcComponent)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -260,4 +264,15 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	}
 
 	return clientset, nil
+}
+
+// Check if the placement is for this cluster
+func isThisCluster(clusterName string, placement clustersv1alpha1.Placement) bool {
+	// Loop through the cluster list looking for the cluster name
+	for _, cluster := range placement.Clusters {
+		if cluster.Name == clusterName {
+			return true
+		}
+	}
+	return false
 }
