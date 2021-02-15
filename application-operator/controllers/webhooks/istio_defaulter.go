@@ -12,8 +12,6 @@ import (
 	"github.com/gertd/go-pluralize"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -44,30 +42,28 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	istioLogger.Info(fmt.Sprintf("Pod serviceAccountName: %s", pod.Spec.ServiceAccountName))
-
-	// TODO: probably not needed
-	// Get the unstructured version of the pod
-	obj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(pod)
-	if err != nil {
-		return admission.Errored(http.StatusBadRequest, err)
-	}
-	u := unstructured.Unstructured{Object: obj}
-
-	istioLogger.Info(fmt.Sprintf("Unstructured pod: %s:%s:%s", u.GetNamespace(), u.GetName(), u.GetGenerateName()))
-
-	ownerRefList := a.flatten(nil, req.Namespace, pod.OwnerReferences[0])
+	ownerRefList := a.flatten(nil, req.Namespace, pod.OwnerReferences)
 	for _, ref := range ownerRefList {
 		istioLogger.Info(fmt.Sprintf("ownerReference: %s:%s", ref.Kind, ref.Name))
 	}
+
+	// TODO: if no applicationconfiguration owner ref then return with no action
+	//  weblogic introspector is pod of this type
+
+	istioLogger.Info(fmt.Sprintf("Pod serviceAccountName: %s", pod.Spec.ServiceAccountName))
+
+	// TODO: create serviceaccount name if needed and not found
+
+	// TODO: create/update authz policy
+
+	// TODO: set application specific label for all OAM pods
+
+	// TODO: set serviceAccountName if needed
 
 	//	marshaledPod, err := json.Marshal(pod)
 	//	if err != nil {
 	//		return admission.Errored(http.StatusInternalServerError, err)
 	//	}
-
-	// TODO: set label that says this is an istio enabled OAM pod
-	// TODO: set serviceAccountName is neccessary
 
 	return admission.Allowed("No action required")
 	//	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledPod)
@@ -79,32 +75,32 @@ func (a *IstioWebhook) InjectDecoder(d *admission.Decoder) error {
 	return nil
 }
 
-func (a *IstioWebhook) flatten(list []metav1.OwnerReference, namespace string, ownerRef metav1.OwnerReference) []metav1.OwnerReference {
+func (a *IstioWebhook) flatten(list []metav1.OwnerReference, namespace string, ownerRefs []metav1.OwnerReference) []metav1.OwnerReference {
 
-	list = append(list, ownerRef)
+	for _, ownerRef := range ownerRefs {
+		list = append(list, ownerRef)
 
-	group, version := convertAPIVersionToGroupAndVersion(ownerRef.APIVersion)
-	resource := schema.GroupVersionResource{
-		Group:    group,
-		Version:  version,
-		Resource: pluralize.NewClient().Plural(strings.ToLower(ownerRef.Kind)),
+		group, version := convertAPIVersionToGroupAndVersion(ownerRef.APIVersion)
+		resource := schema.GroupVersionResource{
+			Group:    group,
+			Version:  version,
+			Resource: pluralize.NewClient().Plural(strings.ToLower(ownerRef.Kind)),
+		}
+		istioLogger.Info(fmt.Sprintf("resource.Group: %s", resource.Group))
+		istioLogger.Info(fmt.Sprintf("resource.Version: %s", resource.Version))
+		istioLogger.Info(fmt.Sprintf("resource.Resource: %s", resource.Resource))
+		istioLogger.Info(fmt.Sprintf("Namespace: %s", namespace))
+		istioLogger.Info(fmt.Sprintf("Name: %s", ownerRef.Name))
+		unst, err := a.DynamicClient.Resource(resource).Namespace(namespace).Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
+		if err != nil {
+			istioLogger.Error(err, "Dynamic API failed")
+		}
+
+		//  TODO: Handle error dynamic client api call
+		if len(unst.GetOwnerReferences()) != 0 {
+			list = a.flatten(list, namespace, unst.GetOwnerReferences())
+		}
 	}
-	istioLogger.Info(fmt.Sprintf("resource.Group: %s", resource.Group))
-	istioLogger.Info(fmt.Sprintf("resource.Version: %s", resource.Version))
-	istioLogger.Info(fmt.Sprintf("resource.Resource: %s", resource.Resource))
-	istioLogger.Info(fmt.Sprintf("Namespace: %s", namespace))
-	istioLogger.Info(fmt.Sprintf("Name: %s", ownerRef.Name))
-	unst, err := a.DynamicClient.Resource(resource).Namespace(namespace).Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
-	if err != nil {
-		istioLogger.Info(fmt.Sprintf("Dynamic API failed: %v", err))
-	} else {
-		istioLogger.Info(fmt.Sprintf("Dynamic client get: %s:%s", unst.GetNamespace(), unst.GetName()))
-	}
-
-	if len(unst.GetOwnerReferences()) != 0 {
-		list = a.flatten(list, namespace, unst.GetOwnerReferences()[0])
-	}
-
 	return list
 }
 
