@@ -5,11 +5,11 @@ package mcagent
 
 import (
 	"context"
+	"encoding/json"
 	"path/filepath"
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	json "github.com/json-iterator/go"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
@@ -25,10 +25,12 @@ import (
 const testMCComponentName = "unit-mccomp"
 const testMCComponentNamespace = "unit-mccomp-namespace"
 
+var mcComponentTestLabels = map[string]string{"label1": "test1"}
+
 // TestCreateMCComponent tests the synchronization method for the following use case.
-// GIVEN a request to sync MultiClusterSecret objects
+// GIVEN a request to sync MultiClusterComponent objects
 // WHEN the a new object exists
-// THEN ensure that the MultiClusterSecret is created.
+// THEN ensure that the MultiClusterComponent is created.
 func TestCreateMCComponent(t *testing.T) {
 	assert := asserts.New(t)
 	log := ctrl.Log.WithName("test")
@@ -42,52 +44,33 @@ func TestCreateMCComponent(t *testing.T) {
 	adminMock := mocks.NewMockClient(adminMocker)
 
 	// Test data
-	testMCSecret := clustersv1alpha1.MultiClusterSecret{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: testNamespace,
-			Name:      testMCSecretName,
-			Labels:    testLabels,
-		},
-		Spec: clustersv1alpha1.MultiClusterSecretSpec{
-			Placement: clustersv1alpha1.Placement{
-				Clusters: []clustersv1alpha1.Cluster{
-					{
-						Name: testClusterName,
-					},
-				},
-			},
-			Template: clustersv1alpha1.SecretTemplate{
-				Data:       map[string][]byte{"username": []byte("test-username")},
-				StringData: map[string]string{"test": "test-stringdata"},
-			},
-		},
+	testMCComponent, err := getSampleMCComponent()
+	if err != nil {
+		assert.NoError(err, "failed to read sample data for MultiClusterComponent")
 	}
 
-	// Admin Cluster - expect call to list MultiClusterSecret objects - return list with one object
+	// Admin Cluster - expect call to list MultiClusterComponent objects - return list with one object
 	adminMock.EXPECT().
-		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
-			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, opts ...*client.ListOptions) error {
+			mcComponentList.Items = append(mcComponentList.Items, testMCComponent)
 			return nil
 		})
 
-	// Managed Cluster - expect call to get a MultiClusterSecret secret from the list returned by the admin cluster
+	// Managed Cluster - expect call to get a MultiClusterComponent from the list returned by the admin cluster
 	//                   Return the resource does not exist
 	mcMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testMCSecretName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: testNamespace, Resource: "MultiClusterSecret"}, testMCSecretName))
+		Get(gomock.Any(), types.NamespacedName{Namespace: testMCComponentNamespace, Name: testMCComponentName}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: testMCComponentNamespace, Resource: "MultiClusterComponent"}, testMCComponentName))
 
-	// Managed Cluster - expect call to create a MultiClusterSecret
+	// Managed Cluster - expect call to create a MultiClusterComponent
 	mcMock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret, opts ...client.CreateOption) error {
-			assert.Equal(testNamespace, mcSecret.Namespace, "mcsecret namespace did not match")
-			assert.Equal(testMCSecretName, mcSecret.Name, "mcsecret name did not match")
-			assert.Equal(testLabels, mcSecret.Labels, "mcsecret labels did not match")
-			assert.Equal(testClusterName, mcSecret.Spec.Placement.Clusters[0].Name, "mcsecret does not contain expected placement")
-			assert.Equal([]byte("test-username"), mcSecret.Spec.Template.Data["username"], "mcsecret does not contain expected template data")
-			assert.Equal("test-stringdata", mcSecret.Spec.Template.StringData["test"], "mcsecret does not contain expected string data")
+		DoAndReturn(func(ctx context.Context, mcComponent *clustersv1alpha1.MultiClusterComponent, opts ...client.CreateOption) error {
+			assert.Equal(testMCComponentNamespace, mcComponent.Namespace, "mccomponent namespace did not match")
+			assert.Equal(testMCComponentName, mcComponent.Name, "mccomponent name did not match")
+			assert.Equal(mcComponentTestLabels, mcComponent.Labels, "mccomponent labels did not match")
+			assert.Equal(testClusterName, mcComponent.Spec.Placement.Clusters[0].Name, "mccomponent does not contain expected placement")
 			return nil
 		})
 
@@ -99,7 +82,7 @@ func TestCreateMCComponent(t *testing.T) {
 		ClusterName: testClusterName,
 		Context:     context.TODO(),
 	}
-	err := s.syncMCSecretObjects()
+	err = s.syncMCComponentObjects()
 
 	// Validate the results
 	adminMocker.Finish()
@@ -137,7 +120,7 @@ func TestUpdateMCComponent(t *testing.T) {
 			return nil
 		})
 
-	// Managed Cluster - expect call to get a MultiClusterComponent secret from the list returned by the admin cluster
+	// Managed Cluster - expect call to get a MultiClusterComponent from the list returned by the admin cluster
 	//                   Return the resource with some values different than what the admin cluster returned
 	mcMock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testMCComponentNamespace, Name: testMCComponentName}, gomock.Not(gomock.Nil())).
@@ -152,10 +135,10 @@ func TestUpdateMCComponent(t *testing.T) {
 	mcMock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, mcComponent *clustersv1alpha1.MultiClusterComponent, opts ...client.UpdateOption) error {
-			assert.Equal(testMCComponentNamespace, mcComponent.Namespace, "mcsecret namespace did not match")
-			assert.Equal(testMCComponentName, mcComponent.Name, "mcsecret name did not match")
-			assert.Equal(testLabels, mcComponent.Labels, "mcsecret labels did not match")
-			assert.Equal("new-name", mcComponent.Spec.Placement.Clusters[0].Name, "mcsecret does not contain expected placement")
+			assert.Equal(testMCComponentNamespace, mcComponent.Namespace, "mccomponent namespace did not match")
+			assert.Equal(testMCComponentName, mcComponent.Name, "mccomponent name did not match")
+			assert.Equal(mcComponentTestLabels, mcComponent.Labels, "mccomponent labels did not match")
+			assert.Equal("new-name", mcComponent.Spec.Placement.Clusters[0].Name, "mccomponent does not contain expected placement")
 			return nil
 		})
 
@@ -197,7 +180,7 @@ func TestMCComponentPlacement(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: testMCComponentNamespace,
 			Name:      testMCComponentName,
-			Labels:    testLabels,
+			Labels:    mcComponentTestLabels,
 		},
 		Spec: clustersv1alpha1.MultiClusterComponentSpec{
 			Placement: clustersv1alpha1.Placement{
