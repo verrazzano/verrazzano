@@ -69,13 +69,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log.Info("Retrieved workload", "apiVersion", workload.APIVersion, "kind", workload.Kind)
 
-	//TODO: Find the resource object to record the event to, default is the parent appConfig - done in OAM
-
 	// unwrap the apps/DeploymentSpec and meta/ObjectMeta
 	deploy, err := r.convertWorkloadToDeployment(&workload)
 	if err != nil {
 		log.Error(err, "Failed to convert workload to deployment")
-		//TODO: OAM is doing Wait and formatting error
 		return reconcile.Result{}, err
 	}
 
@@ -88,7 +85,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	applyOpts := []client.PatchOption{client.ForceOwnership, client.FieldOwner(workload.GetUID())}
 	if err := r.Patch(ctx, deploy, client.Apply, applyOpts...); err != nil {
 		log.Error(err, "Failed to apply a deployment")
-		//TODO: OAM is doing Wait and formatting error
 		return reconcile.Result{}, err
 	}
 
@@ -96,7 +92,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	service, err := r.createServiceFromDeployment(deploy)
 	if err != nil {
 		log.Error(err, "Failed to get service from a deployment")
-		//TODO: OAM is doing Wait and formatting error
 		return reconcile.Result{}, err
 	}
 	// set the controller reference so that we can watch this service and it will be deleted automatically
@@ -107,12 +102,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// server side apply the service
 	if err := r.Patch(ctx, service, client.Apply, applyOpts...); err != nil {
 		log.Error(err, "Failed to apply a service")
-		//TODO: OAM is doing Wait and formatting error
 		return reconcile.Result{}, err
 	}
 
-	//TODO: OAM is doing garbage collect the service/deployments that we created
-	// but not needed record the new deployment, new service
 	workload.Status.Resources = nil
 	workload.Status.Resources = append(workload.Status.Resources,
 		vzapi.QualifiedResourceRelation{
@@ -132,7 +124,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	)
 
 	if err := r.Status().Update(ctx, &workload); err != nil {
-		//TODO: OAM is doing Wait and formatting error
 		return reconcile.Result{}, err
 	}
 
@@ -143,8 +134,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 // convertWorkloadToDeployment converts a VerrazzanoHelidonWorkload into a Deployment.
 func (r *Reconciler) convertWorkloadToDeployment(
 	workload *vzapi.VerrazzanoHelidonWorkload) (*appsv1.Deployment, error) {
-	//TODO: What if metadata and spec are not set?
-	//TODO: How to validate metadata and spec
+
 	d := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       deploymentKind,
