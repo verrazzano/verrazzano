@@ -17,11 +17,9 @@ import (
 )
 
 const (
-	CLUSTER_TYPE_KIND         = "kind"
-	CLUSTER_TYPE_OKE_MAGICDNS = "magicdns_oke"
-	CLUSTER_TYPE_OKE_OCIDNS   = "ocidns_oke"
-	CLUSTER_TYPE_OLCNE        = "OLCNE"
-	istioSystemNamespace      = "istio-system"
+	CLUSTER_TYPE_KIND    = "kind"
+	CLUSTER_TYPE_OLCNE   = "OLCNE"
+	istioSystemNamespace = "istio-system"
 )
 
 // Ingress returns the ingress address
@@ -167,32 +165,4 @@ func ListIngresses(namespace string) (*extensionsv1beta1.IngressList, error) {
 	}
 	CreateLogFile(fmt.Sprintf("%v-ingresses", namespace), logData)
 	return ingresses, err
-}
-
-//DNSSuffix return the DNS suffix for url's in a environment
-func DNSSuffix() (string, error) {
-	clusterType, ok := os.LookupEnv("TEST_ENV")
-	if !ok {
-		return "", fmt.Errorf("No TEST_ENV specified")
-	}
-
-	if clusterType == CLUSTER_TYPE_KIND {
-		return "127.0.0.1.xip.io", nil
-	} else if clusterType == CLUSTER_TYPE_OKE_MAGICDNS {
-		consoleIngress, err := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-console-ingress", metav1.GetOptions{})
-		if err != nil {
-			return "", err
-		}
-
-		return consoleIngress.Status.LoadBalancer.Ingress[0].IP + ".xip.io", nil
-	} else if clusterType == CLUSTER_TYPE_OKE_OCIDNS {
-		dnsZoneName, ok := os.LookupEnv("OCI_DNS_ZONE_NAME")
-		if !ok {
-			return "", fmt.Errorf("No OCI_DNS_ZONE_NAME specified")
-		}
-
-		return dnsZoneName, nil
-	} else {
-		return "", fmt.Errorf("Unsupported TEST_ENV %s", clusterType)
-	}
 }

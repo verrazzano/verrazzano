@@ -9,10 +9,11 @@ SOURCE_DIR=$(cd $(dirname $BASH_SOURCE); pwd -P)
 SCRIPT_DIR=${SCRIPT_DIR:-$(cd $(dirname ${BASH_SOURCE[${#BASH_SOURCE[@]} - 1]}); pwd -P)}
 # The directory where any generated artifacts should be stored.
 BUILD_DIR="${SCRIPT_DIR}/build"
-CHARTS_DIR=$(cd $SOURCE_DIR/../../../thirdparty/charts; pwd -P)
-VZ_CHARTS_DIR=$(cd $SOURCE_DIR/../../../helm_config/charts; pwd -P)
-VZ_OVERRIDES_DIR=$(cd $SOURCE_DIR/../../../helm_config/overrides; pwd -P)
-MANIFESTS_DIR=$(cd $SOURCE_DIR/../../../thirdparty/manifests; pwd -P)
+CHARTS_DIR=$(cd $SOURCE_DIR/../../thirdparty/charts; pwd -P)
+VZ_CHARTS_DIR=$(cd $SOURCE_DIR/../../helm_config/charts; pwd -P)
+VZ_OVERRIDES_DIR=$(cd $SOURCE_DIR/../../helm_config/overrides; pwd -P)
+
+MANIFESTS_DIR=$(cd $SOURCE_DIR/../../thirdparty/manifests; pwd -P)
 
 . ${SOURCE_DIR}/logging.sh
 
