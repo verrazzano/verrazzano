@@ -1,11 +1,10 @@
 #!/bin/bash
 #
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
-ACC_TESTS_ROOT=${SCRIPT_DIR}/..
 
 check_for_resources() {
   local resource_type=$1
@@ -45,7 +44,7 @@ fi
 echo "Check OCI CLI is working..."
 # If OCI CLI is not configured correctly, the following command will have a non-zero return code
 # which will cause the job to fail at this point
-oci ce cluster list --compartment-id=${TF_VAR_compartment_id} > /dev/null
+oci ce cluster list --compartment-id=${TF_VAR_compartment_id} --region=${TF_VAR_region} > /dev/null
 
 # check available resources
 check_for_resources VCN vcn vcn-count 1
@@ -53,7 +52,7 @@ check_for_resources LB load-balancer lb-100mbps-count 2
 
 echo 'Install OKE...'
 echo 'Create cluster...'
-cd ${ACC_TESTS_ROOT}/scripts/terraform/cluster
+cd ${SCRIPT_DIR}/terraform/cluster
 ./create-cluster.sh
 status_code=$?
 if [ ${status_code:-1} -eq 0 ]; then
@@ -61,7 +60,7 @@ if [ ${status_code:-1} -eq 0 ]; then
     cat generated/kubeconfig > ${KUBECONFIG}
     # Adding a Service Account Authentication Token to kubeconfig
     # https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Tasks/contengaddingserviceaccttoken.htm
-    ${ACC_TESTS_ROOT}/scripts/update_oke_kubeconfig.sh
+    ${SCRIPT_DIR}/update_oke_kubeconfig.sh
 
     # Right after oke cluster is provisioned, it takes a while before any node is added to the cluster
     # The next command will wait for node to come up before continue

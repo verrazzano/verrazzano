@@ -9,6 +9,7 @@ DOCKER_IMAGE_NAME ?= ${NAME}-dev
 DOCKER_IMAGE_TAG ?= local-${TIMESTAMP}-$(shell git rev-parse --short HEAD)
 
 CONTROLLER_GEN_VERSION ?= $(shell go list -m -f '{{.Version}}' sigs.k8s.io/controller-tools)
+
 CREATE_LATEST_TAG=0
 
 CRD_OPTIONS ?= "crd:crdVersions=v1"
@@ -104,12 +105,20 @@ go-vet:
 
 .PHONY: go-lint
 go-lint:
-	$(GO) get -u golang.org/x/lint/golint
+	@{ \
+	set -eu ; \
+	GOLINT_VERSION=$$(go list -m -f '{{.Version}}' golang.org/x/lint) ; \
+	${GO} get golang.org/x/lint/golint@$${GOLINT_VERSION} ; \
+	}
 	golint -set_exit_status $(shell go list ./...)
 
 .PHONY: go-ineffassign
 go-ineffassign:
-	$(GO) get -u github.com/gordonklaus/ineffassign
+	@{ \
+	set -eu ; \
+	INEFFASSIGN_VERSION=$$(go list -m -f '{{.Version}}' github.com/gordonklaus/ineffassign) ; \
+	${GO} get github.com/gordonklaus/ineffassign@$${INEFFASSIGN_VERSION} ; \
+	}
 	ineffassign $(shell go list ./...)
 
 # Generate manifests e.g. CRD, RBAC etc.
@@ -136,7 +145,7 @@ generate: controller-gen
 .PHONY: controller-gen
 controller-gen:
 ifeq (, $(shell command -v controller-gen))
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@
+	$(GO) get sigs.k8s.io/controller-tools/cmd/controller-gen
 	$(eval CONTROLLER_GEN=$(GOBIN)/controller-gen)
 else
 	$(eval CONTROLLER_GEN=$(shell command -v controller-gen))
@@ -194,6 +203,12 @@ BUILD-DEPLOY = build/deploy
 DEPLOY = deploy
 OPERATOR_SETUP = test/operatorsetup
 
+ifdef JENKINS_URL
+	CLUSTER_DUMP_LOCATION = ${WORKSPACE}/platform-operator-integ-cluster-dump
+else
+	CLUSTER_DUMP_LOCATION = platform-operator-integ-cluster-dump
+endif
+
 .PHONY: integ-test
 integ-test: create-cluster
 	echo 'Load docker image for the verrazzano-platform-operator...'
@@ -201,17 +216,17 @@ integ-test: create-cluster
 	echo 'Deploy verrazzano platform operator ...'
 ifdef JENKINS_URL
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
-	kubectl apply -f deploy/operator.yaml || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d platform-operator-integ-cluster-dump;)
+	kubectl apply -f deploy/operator.yaml || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
 else
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	mkdir -p build/deploy
 	cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > ${BUILD-DEPLOY}/operator.yaml
 	cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> ${BUILD-DEPLOY}/operator.yaml
 	cat config/crd/bases/clusters.verrazzano.io_verrazzanomanagedclusters.yaml >> ${BUILD-DEPLOY}/operator.yaml
-	kubectl apply -f ${BUILD-DEPLOY}/operator.yaml || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d platform-operator-integ-cluster-dump; exit 1)
+	kubectl apply -f ${BUILD-DEPLOY}/operator.yaml || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
 endif
 	echo 'Run tests...'
-	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d platform-operator-integ-cluster-dump;)
+	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
 
 .PHONY: create-cluster
 create-cluster:

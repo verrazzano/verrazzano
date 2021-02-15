@@ -1,6 +1,7 @@
-variable "compartment_id" {}
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+variable "compartment_id" {}
 
 variable "cluster_name" {
   default = "oke"
@@ -12,8 +13,9 @@ variable "username" {
   default = ""
 }
 variable "tenancy_name" {}
+
 variable "kubernetes_version" {
-  default = "v1.17.13"
+  default = "v1.18.10"
 }
 variable "allow_worker_ssh_access" {
   default = false

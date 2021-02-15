@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -12,11 +12,11 @@ set +e
 function delete_lb() {
   if [ ! -z "$1" ]; then
     echo "trying to delete LB with IP address $1"
-    local LB_ID=$(oci lb load-balancer list --compartment-id="${TF_VAR_compartment_id}" \
+    local LB_ID=$(oci lb load-balancer list --compartment-id="${TF_VAR_compartment_id}" --region="${TF_VAR_region}" \
     | jq -r --arg IP_ADDRESS "$1" '.data[] | select(."ip-addresses"[0]."ip-address" == ($IP_ADDRESS)) | .id')
     if [ ! -z "${LB_ID}" ]; then
       echo "LB to be deleted has ID ${LB_ID}"
-      oci lb load-balancer delete --force --load-balancer-id ${LB_ID}
+      oci lb load-balancer delete --force --load-balancer-id ${LB_ID} --region ${TF_VAR_region}
     fi
   fi
 }

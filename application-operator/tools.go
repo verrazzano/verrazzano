@@ -14,5 +14,6 @@ import (
 	_ "k8s.io/code-generator/cmd/lister-gen"
 	// Other tools
 	_ "github.com/gordonklaus/ineffassign"
+	_ "golang.org/x/lint"
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
 )

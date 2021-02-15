@@ -39,6 +39,10 @@ var _ = BeforeSuite(func() {
 	if err != nil {
 		Fail(fmt.Sprintf("Error creating Kubernetes client to access Verrazzano API objects: %v", err))
 	}
+	_, stderr := util.Kubectl("create ns " + multiclusterTestNamespace)
+	if stderr != "" {
+		Fail(fmt.Sprintf("failed to create namespace %v", multiclusterTestNamespace))
+	}
 })
 
 var _ = AfterSuite(func() {

@@ -7,7 +7,10 @@ import (
 	"flag"
 	"os"
 
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterapplicationconfiguration"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustercomponent"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterconfigmap"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterloggingscope"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustersecret"
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
 
@@ -126,10 +129,15 @@ func main() {
 			os.Exit(1)
 		}
 
-		setupLog.Info("Updating webhook configuration")
-		err = certificates.UpdateMutatingWebhookConfiguration(kubeClient, caCert)
+		setupLog.Info("Updating webhook configurations")
+		err = certificates.UpdateAppConfigMutatingWebhookConfiguration(kubeClient, caCert)
 		if err != nil {
-			setupLog.Error(err, "unable to update mutating webhook configuration")
+			setupLog.Error(err, "unable to update appconfig mutating webhook configuration")
+			os.Exit(1)
+		}
+		err = certificates.UpdateIstioMutatingWebhookConfiguration(kubeClient, caCert)
+		if err != nil {
+			setupLog.Error(err, "unable to update pod mutating webhook configuration")
 			os.Exit(1)
 		}
 		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert)
@@ -148,6 +156,7 @@ func main() {
 			&webhooks.LoggingScopeDefaulter{Client: mgr.GetClient()},
 		}}
 		mgr.GetWebhookServer().Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})
+		mgr.GetWebhookServer().Register(webhooks.IstioDefaulterPath, &webhook.Admission{Handler: &webhooks.IstioWebhook{Client: mgr.GetClient()}})
 
 	}
 	reconciler := loggingscope.NewReconciler(
@@ -188,6 +197,30 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterComponent")
+		os.Exit(1)
+	}
+	if err = (&multiclusterconfigmap.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterConfigMap"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterConfigMap")
+		os.Exit(1)
+	}
+	if err = (&multiclusterloggingscope.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterLoggingScope"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterLoggingScope")
+		os.Exit(1)
+	}
+	if err = (&multiclusterapplicationconfiguration.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterApplicationConfiguration"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterApplicationConfiguration")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

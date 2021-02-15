@@ -8,24 +8,22 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: multiclusternamespaces.clusters.verrazzano.io
+  name: verrazzanoprojects.clusters.verrazzano.io
 spec:
   group: clusters.verrazzano.io
   names:
-    kind: MultiClusterNamespace
-    listKind: MultiClusterNamespaceList
-    plural: multiclusternamespaces
+    kind: VerrazzanoProject
+    listKind: VerrazzanoProjectList
+    plural: verrazzanoprojects
     shortNames:
-    - mcns
-    singular: multiclusternamespace
+    - vp
+    singular: verrazzanoproject
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: MultiClusterNamespace is the Schema for the multiclusternamespaces
-          API, which will be used by a user in the management cluster, to create a
-          Kubernetes namespace targeted at one or more managed clusters
+        description: VerrazzanoProject is the Schema for the verrazzanoprojects API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -40,52 +38,17 @@ spec:
           metadata:
             type: object
           spec:
-            description: MultiClusterNamespaceSpec defines the desired state of MultiClusterNamespace
+            description: VerrazzanoProjectSpec defines the desired state of VerrazzanoProject
+              - a VerrazzanoProject contains a list of Kubernetes namespaces which
+              are part of the project
             properties:
-              placement:
-                description: Clusters in which the namespace is to be placed
-                properties:
-                  clusters:
-                    items:
-                      description: Cluster where multi cluster resources are placed
-                      properties:
-                        name:
-                          description: the name of the cluster
-                          type: string
-                      required:
-                      - name
-                      type: object
-                    type: array
-                required:
-                - clusters
-                type: object
-              template:
-                description: The embedded Kubernetes namespace
-                properties:
-                  metadata:
-                    type: object
-                    x-kubernetes-preserve-unknown-fields: true
-                  spec:
-                    description: NamespaceSpec describes the attributes on a Namespace.
-                    properties:
-                      finalizers:
-                        description: 'Finalizers is an opaque list of values that
-                          must be empty to permanently remove object from storage.
-                          More info: https://kubernetes.io/docs/tasks/administer-cluster/namespaces/'
-                        items:
-                          description: FinalizerName is the name identifying a finalizer
-                            during namespace lifecycle.
-                          type: string
-                        type: array
-                    type: object
-                type: object
-            required:
-            - placement
-            - template
+              namespaces:
+                items:
+                  type: string
+                type: array
             type: object
           status:
-            description: MultiClusterNamespaceStatus defines the observed state of
-              MultiClusterNamespace
+            description: VerrazzanoProjectStatus defines the observed state of VerrazzanoProject
             properties:
               conditions:
                 description: The latest available observations of an object's current
@@ -114,7 +77,7 @@ spec:
                   type: object
                 type: array
               state:
-                description: State of the MultiClusterNamespace custom resource
+                description: State of the MultiClusterSecret custom resource
                 type: string
             type: object
         type: object

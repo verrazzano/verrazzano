@@ -4,7 +4,12 @@
 package web_test
 
 import (
+	"context"
+	"fmt"
 	"time"
+
+	"k8s.io/api/extensions/v1beta1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -13,11 +18,10 @@ import (
 
 var _ = ginkgo.Describe("Verrazzano Web UI",
 	func() {
-		dnsSuffix, err := pkg.DNSSuffix()
-		if err != nil {
-			ginkgo.Fail(err.Error())
-		}
-		var serverUrl = "https://verrazzano." + pkg.EnvName + "." + dnsSuffix
+		ingress, _ := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-console-ingress", v1.GetOptions{})
+		var ingressRules []v1beta1.IngressRule = ingress.Spec.Rules
+		serverUrl := fmt.Sprintf("https://%s/", ingressRules[0].Host)
+
 		pkg.Log(pkg.Info, "The Web UI's URL is "+serverUrl)
 
 		ginkgo.It("can be accessed", func() {

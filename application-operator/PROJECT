@@ -20,9 +20,6 @@ resources:
   kind: VerrazzanoWebLogicWorkload
   version: v1alpha1
 - group: clusters
-  kind: MultiClusterNamespace
-  version: v1alpha1
-- group: clusters
   kind: MultiClusterSecret
   version: v1alpha1
 - group: clusters
@@ -36,5 +33,8 @@ resources:
   version: v1alpha1
 - group: clusters
   kind: MultiClusterLoggingScope
+  version: v1alpha1
+- group: clusters
+  kind: VerrazzanoProject
   version: v1alpha1
 version: "2"

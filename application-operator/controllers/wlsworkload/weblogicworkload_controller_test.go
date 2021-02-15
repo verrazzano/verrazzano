@@ -6,6 +6,7 @@ package wlsworkload
 import (
 	"context"
 	"testing"
+	"time"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -17,6 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -87,6 +89,13 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			return nil
 		})
+	// expect a call to add a finalizer
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
+			assert.Equal(workload.ObjectMeta.Finalizers[0], finalizer)
+			return nil
+		})
 	// expect a call to fetch the oam application configuration
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
@@ -103,7 +112,7 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 			assert.Equal(weblogicKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied
-			specLabels, _, _ := unstructured.NestedStringMap(u.Object, "spec", "serverPod", "labels")
+			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
 			assert.Equal(labels, specLabels)
 			return nil
 		})
@@ -147,6 +156,13 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			return nil
 		})
+	// expect a call to add a finalizer
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
+			assert.Equal(workload.ObjectMeta.Finalizers[0], finalizer)
+			return nil
+		})
 	// expect a call to fetch the oam application configuration (and the component has an attached logging scope)
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
@@ -186,11 +202,11 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 			assert.Equal(weblogicKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied
-			specLabels, _, _ := unstructured.NestedStringMap(u.Object, "spec", "serverPod", "labels")
+			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
 			assert.Equal(labels, specLabels)
 
 			// make sure the FLUENTD sidecar was added
-			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
+			containers, _, _ := unstructured.NestedSlice(u.Object, specServerPodContainersFields...)
 			assert.Equal(1, len(containers))
 			assert.Equal(fluentdImage, containers[0].(map[string]interface{})["image"])
 			return nil
@@ -230,6 +246,13 @@ func TestReconcileAlreadyExists(t *testing.T) {
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.GroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
+			return nil
+		})
+	// expect a call to add a finalizer
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
+			assert.Equal(workload.ObjectMeta.Finalizers[0], finalizer)
 			return nil
 		})
 	// expect a call to fetch the oam application configuration
@@ -283,6 +306,13 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.GroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
+			return nil
+		})
+	// expect a call to add a finalizer
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
+			assert.Equal(workload.ObjectMeta.Finalizers[0], finalizer)
 			return nil
 		})
 	// expect a call to fetch the oam application configuration
@@ -366,6 +396,151 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 
 	mocker.Finish()
 	assert.Equal("an error has occurred", err.Error())
+	assert.Equal(false, result.Requeue)
+}
+
+// TestReconcileDeleteResources tests the happy path of reconciling a VerrazzanoWebLogicWorkload when
+// the workload is being deleted.
+// GIVEN a VerrazzanoWebLogicWorkload resource is being deleted
+// WHEN the controller Reconcile function is called
+// THEN expect delete calls for resources we created
+func TestReconcileDeleteResources(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker *gomock.Controller = gomock.NewController(t)
+	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the VerrazzanoWebLogicWorkload - set the deletion timestamp to trigger the
+	// delete workflow
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
+			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
+			workload.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+			workload.ObjectMeta.Finalizers = []string{finalizer}
+			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.Kind = "VerrazzanoWebLogicWorkload"
+			return nil
+		})
+	// expect a call to delete the WebLogic domain CR
+	cli.EXPECT().
+		Delete(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.DeleteOption) error {
+			return nil
+		})
+	// expect a call to update the workload to remove the finalizer
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
+			assert.Equal(0, len(workload.ObjectMeta.Finalizers))
+			return nil
+		})
+
+	// create a request and reconcile it
+	request := newRequest(namespace, "unit-test-verrazzano-weblogic-workload")
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+}
+
+// TestCopyLabelsFailure tests reconciling a VerrazzanoWebLogicWorkload and we are
+// not able to copy labels to the WebLogic domain CR.
+// GIVEN a VerrazzanoWebLogicWorkload resource
+// WHEN the controller Reconcile function is called and the labels cannot be copied
+// THEN expect an error to be returned
+func TestCopyLabelsFailure(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker *gomock.Controller = gomock.NewController(t)
+	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the VerrazzanoWebLogicWorkload - return a malformed WebLogic resource (spec should be an object
+	// so when we attempt to set the labels field inside spec it will fail) - this is a contrived example but it's the easiest
+	// way to force error on copying labels
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+			json := `{"metadata":{"name":"unit-test-cluster"},"spec":27}`
+			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
+			workload.ObjectMeta.Finalizers = []string{finalizer}
+			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.Kind = "VerrazzanoWebLogicWorkload"
+			return nil
+		})
+
+	// create a request and reconcile it
+	request := newRequest(namespace, "unit-test-verrazzano-weblogic-workload")
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.EqualError(err, "value cannot be set because .spec is not a map[string]interface{}")
+	assert.Equal(false, result.Requeue)
+}
+
+// TestAddLoggingFailure tests reconciling a VerrazzanoWebLogicWorkload with an attached logging scope
+// and we fail to fetch the logging scope data.
+// GIVEN a VerrazzanoWebLogicWorkload resource is created with a logging scope
+// WHEN the controller Reconcile function is called and there is an error fetching the logging scope
+// THEN expect an error to be returned
+func TestAddLoggingFailure(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker *gomock.Controller = gomock.NewController(t)
+	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+
+	appConfigName := "unit-test-app-config"
+	componentName := "unit-test-component"
+	loggingScopeName := "unit-test-logging-scope"
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
+
+	// expect a call to fetch the VerrazzanoWebLogicWorkload
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+			weblogicJSON := `{"metadata":{"name":"unit-test-cluster"},"spec":{"domainUID":"unit-test-domain"}}`
+			workload.Spec.Template = runtime.RawExtension{Raw: []byte(weblogicJSON)}
+			workload.ObjectMeta.Labels = labels
+			workload.APIVersion = vzapi.GroupVersion.String()
+			workload.Kind = "VerrazzanoWebLogicWorkload"
+			return nil
+		})
+	// expect a call to add a finalizer
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
+			assert.Equal(workload.ObjectMeta.Finalizers[0], finalizer)
+			return nil
+		})
+	// expect a call to fetch the oam application configuration (and the component has an attached logging scope)
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
+			loggingScope := oamcore.ComponentScope{ScopeReference: oamrt.TypedReference{Kind: vzapi.LoggingScopeKind, Name: loggingScopeName}}
+			component.Scopes = []oamcore.ComponentScope{loggingScope}
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+			return nil
+		})
+	// expect a call to fetch the logging scope and return a NotFound error
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: loggingScopeName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, loggingScope *vzapi.LoggingScope) error {
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
+		})
+
+	// create a request and reconcile it
+	request := newRequest(namespace, "unit-test-verrazzano-weblogic-workload")
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.Error(err)
+	assert.True(k8serrors.IsNotFound(err))
 	assert.Equal(false, result.Requeue)
 }
 
