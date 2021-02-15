@@ -18,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // Syncer contains context for synchronize operations
@@ -102,122 +101,6 @@ func (s *Syncer) StartSync() {
 		}
 		time.Sleep(1 * time.Minute)
 	}
-}
-
-// Synchronize MultiClusterSecret objects to the local cluster
-func (s *Syncer) syncMCSecretObjects() error {
-	// Get all the MultiClusterSecret objects from the admin cluster
-	allMCSecrets := &clustersv1alpha1.MultiClusterSecretList{}
-	listOptions := &client.ListOptions{}
-	err := s.AdminClient.List(s.Context, allMCSecrets, listOptions)
-	if err != nil {
-		return client.IgnoreNotFound(err)
-	}
-
-	// Write each of the records that are targeted to this cluster
-	for _, mcSecert := range allMCSecrets.Items {
-		if isThisCluster(s.ClusterName, mcSecert.Spec.Placement) {
-			_, err := s.createOrUpdateMCSecret(mcSecert)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-// Create or update a MultiClusterSecret
-func (s *Syncer) createOrUpdateMCSecret(mcSecret clustersv1alpha1.MultiClusterSecret) (controllerutil.OperationResult, error) {
-	var mcSecretNew clustersv1alpha1.MultiClusterSecret
-	mcSecretNew.Namespace = mcSecret.Namespace
-	mcSecretNew.Name = mcSecret.Name
-	mcSecretNew.Labels = mcSecret.Labels
-
-	// Create or update on the local cluster
-	return controllerutil.CreateOrUpdate(s.Context, s.MCClient, &mcSecretNew, func() error {
-		mutateMCSecret(mcSecret, &mcSecretNew)
-		return nil
-	})
-}
-
-// mutateMCSecret mutates the MultiClusterSecret to reflect the contents of the parent MultiClusterSecret
-func mutateMCSecret(mcSecret clustersv1alpha1.MultiClusterSecret, mcSecretNew *clustersv1alpha1.MultiClusterSecret) {
-	mcSecretNew.Spec.Placement = mcSecret.Spec.Placement
-	mcSecretNew.Spec.Template = mcSecret.Spec.Template
-}
-
-// Synchronize MultiClusterConfigMap objects to the local cluster
-func (s *Syncer) syncMCConfigMapObjects() error {
-	// Get all the MultiClusterConfigMap objects from the admin cluster
-	allMCConfigMaps := &clustersv1alpha1.MultiClusterConfigMapList{}
-	err := s.AdminClient.List(s.Context, allMCConfigMaps)
-	if err != nil {
-		return client.IgnoreNotFound(err)
-	}
-	return nil
-}
-
-// Synchronize MultiClusterComponent objects to the local cluster
-func (s *Syncer) syncMCComponentObjects() error {
-	// Get all the MultiClusterComponent objects from the admin cluster
-	allMCComponents := &clustersv1alpha1.MultiClusterComponentList{}
-	err := s.AdminClient.List(s.Context, allMCComponents)
-	if err != nil {
-		return client.IgnoreNotFound(err)
-	}
-
-	// Write each of the records that are targeted to this cluster
-	for _, mcComponent := range allMCComponents.Items {
-		if isThisCluster(s.ClusterName, mcComponent.Spec.Placement) {
-			_, err := s.createOrUpdateMCComponent(mcComponent)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-// Create or update a MultiClusterComponent
-func (s *Syncer) createOrUpdateMCComponent(mcComponent clustersv1alpha1.MultiClusterComponent) (controllerutil.OperationResult, error) {
-	var mcComponentNew clustersv1alpha1.MultiClusterComponent
-	mcComponentNew.Namespace = mcComponent.Namespace
-	mcComponentNew.Name = mcComponent.Name
-
-	// Create or update on the local cluster
-	return controllerutil.CreateOrUpdate(s.Context, s.MCClient, &mcComponentNew, func() error {
-		mutateMCComponent(mcComponent, &mcComponentNew)
-		return nil
-	})
-}
-
-// mutateMCComponent mutates the MultiClusterComponent to reflect the contents of the parent MultiClusterComponent
-func mutateMCComponent(mcComponent clustersv1alpha1.MultiClusterComponent, mcComponentNew *clustersv1alpha1.MultiClusterComponent) {
-	mcComponentNew.Spec.Placement = mcComponent.Spec.Placement
-	mcComponentNew.Spec.Template = mcComponent.Spec.Template
-}
-
-// Synchronize MultiClusterLoggingScope objects to the local cluster
-func (s *Syncer) syncMCLoggingScopeObjects() error {
-	// Get all the MultiClusterLoggingScope objects from the admin cluster
-	allMCLoggingScopes := &clustersv1alpha1.MultiClusterLoggingScopeList{}
-	err := s.AdminClient.List(s.Context, allMCLoggingScopes)
-	if err != nil {
-		return client.IgnoreNotFound(err)
-	}
-	return nil
-}
-
-// Synchronize MultiClusterApplicationConfiguration objects to the local cluster
-func (s *Syncer) syncMCApplicationConfigurationObjects() error {
-	// Get all the MultiClusterApplicationConfiguration objects from the admin cluster
-	allMCApplicationConfigurations := &clustersv1alpha1.MultiClusterApplicationConfigurationList{}
-	err := s.AdminClient.List(s.Context, allMCApplicationConfigurations)
-	if err != nil {
-		return client.IgnoreNotFound(err)
-	}
-	return nil
 }
 
 // Validate the cluster secret
