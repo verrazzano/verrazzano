@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -44,7 +45,7 @@ func TestCreateMCComponent(t *testing.T) {
 	adminMock := mocks.NewMockClient(adminMocker)
 
 	// Test data
-	testMCComponent, err := getSampleMCComponent()
+	testMCComponent, err := getSampleMCComponent("testdata/hello-multiclustercomponent.yaml")
 	if err != nil {
 		assert.NoError(err, "failed to read sample data for MultiClusterComponent")
 	}
@@ -101,22 +102,24 @@ func TestUpdateMCComponent(t *testing.T) {
 	// Managed cluster mocks
 	mcMocker := gomock.NewController(t)
 	mcMock := mocks.NewMockClient(mcMocker)
+	//mcMockStatusWriter := mocks.NewMockStatusWriter(mcMocker)
 
 	// Admin cluster mocks
 	adminMocker := gomock.NewController(t)
 	adminMock := mocks.NewMockClient(adminMocker)
 
 	// Test data
-	testMCComponent, err := getSampleMCComponent()
-	if err != nil {
-		assert.NoError(err, "failed to read sample data for MultiClusterComponent")
-	}
+	testMCComponent, err := getSampleMCComponent("testdata/hello-multiclustercomponent.yaml")
+	assert.NoError(err, "failed to read sample data for MultiClusterComponent")
+
+	testMCComponentUpdate, err := getSampleMCComponent("testdata/hello-multiclustercomponent-update.yaml")
+	assert.NoError(err, "failed to read sample data for MultiClusterComponent")
 
 	// Admin Cluster - expect call to list MultiClusterComponent objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, opts ...*client.ListOptions) error {
-			mcComponentList.Items = append(mcComponentList.Items, testMCComponent)
+			mcComponentList.Items = append(mcComponentList.Items, testMCComponentUpdate)
 			return nil
 		})
 
@@ -125,8 +128,7 @@ func TestUpdateMCComponent(t *testing.T) {
 	mcMock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testMCComponentNamespace, Name: testMCComponentName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcComponent *clustersv1alpha1.MultiClusterComponent) error {
-			mcComponent = &testMCComponent
-			mcComponent.Spec.Placement.Clusters[0].Name = "new-name"
+			testMCComponent.DeepCopyInto(mcComponent)
 			return nil
 		})
 
@@ -138,7 +140,11 @@ func TestUpdateMCComponent(t *testing.T) {
 			assert.Equal(testMCComponentNamespace, mcComponent.Namespace, "mccomponent namespace did not match")
 			assert.Equal(testMCComponentName, mcComponent.Name, "mccomponent name did not match")
 			assert.Equal(mcComponentTestLabels, mcComponent.Labels, "mccomponent labels did not match")
-			assert.Equal("new-name", mcComponent.Spec.Placement.Clusters[0].Name, "mccomponent does not contain expected placement")
+			workload := v1alpha2.ContainerizedWorkload{}
+			err := json.Unmarshal(mcComponent.Spec.Template.Spec.Workload.Raw, &workload)
+			assert.NoError(err, "failed to unmarshal the containerized workload")
+			assert.Equal("hello2", workload.Spec.Containers[0].Name)
+			assert.Equal("ghcr.io/oracle/oraclelinux:7-slim2", workload.Spec.Containers[0].Image)
 			return nil
 		})
 
@@ -218,9 +224,9 @@ func TestMCComponentPlacement(t *testing.T) {
 }
 
 // getSampleMCComponent creates and returns a sample MultiClusterComponent used in tests
-func getSampleMCComponent() (clustersv1alpha1.MultiClusterComponent, error) {
+func getSampleMCComponent(filePath string) (clustersv1alpha1.MultiClusterComponent, error) {
 	mcComp := clustersv1alpha1.MultiClusterComponent{}
-	sampleComponentFile, err := filepath.Abs("testdata/hello-multiclustercomponent.yaml")
+	sampleComponentFile, err := filepath.Abs(filePath)
 	if err != nil {
 		return mcComp, err
 	}
