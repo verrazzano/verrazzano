@@ -155,6 +155,7 @@ func main() {
 		}}
 		mgr.GetWebhookServer().Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})
 
+		// Get a Kubernetes dynamic client.
 		restConfig, err := clientcmd.BuildConfigFromFlags("", "")
 		if err != nil {
 			setupLog.Error(err, "unable to build kube config")
@@ -165,9 +166,19 @@ func main() {
 			setupLog.Error(err, "unable to create Kubernetes dynamic client")
 			os.Exit(1)
 		}
-		mgr.GetWebhookServer().Register(webhooks.IstioDefaulterPath, &webhook.Admission{Handler: &webhooks.IstioWebhook{DynamicClient: dynamicClient}})
 
+		// Register a webhook that listens on pods that are running in a istio enabled namespace.
+		mgr.GetWebhookServer().Register(
+			webhooks.IstioDefaulterPath,
+			&webhook.Admission{
+				Handler: &webhooks.IstioWebhook{
+					KubeClient:    kubeClient,
+					DynamicClient: dynamicClient,
+				},
+			},
+		)
 	}
+
 	reconciler := loggingscope.NewReconciler(
 		mgr.GetClient(),
 		ctrl.Log.WithName("controllers").WithName("LoggingScope"),

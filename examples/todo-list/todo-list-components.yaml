@@ -28,7 +28,7 @@ spec:
             name: tododomain-weblogic-credentials
           configuration:
             istio:
-              enabled: false
+              enabled: true
             introspectorJobActiveDeadlineSeconds: 900
             model:
               configMap: tododomain-jdbc-config
