@@ -16,7 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -181,23 +180,9 @@ func TestMCComponentPlacement(t *testing.T) {
 	adminMock := mocks.NewMockClient(adminMocker)
 
 	// Test data
-	testMCComponent := clustersv1alpha1.MultiClusterComponent{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: testMCComponentNamespace,
-			Name:      testMCComponentName,
-			Labels:    mcComponentTestLabels,
-		},
-		Spec: clustersv1alpha1.MultiClusterComponentSpec{
-			Placement: clustersv1alpha1.Placement{
-				Clusters: []clustersv1alpha1.Cluster{
-					{
-						Name: "not-my-cluster",
-					},
-				},
-			},
-		},
-	}
+	testMCComponent, err := getSampleMCComponent("testdata/hello-multiclustercomponent.yaml")
+	assert.NoError(err, "failed to read sample data for MultiClusterComponent")
+	testMCComponent.Spec.Placement.Clusters[0].Name = "not-my-cluster"
 
 	// Admin Cluster - expect call to list MultiClusterComponent objects - return list with one object
 	adminMock.EXPECT().
@@ -215,7 +200,7 @@ func TestMCComponentPlacement(t *testing.T) {
 		ClusterName: testClusterName,
 		Context:     context.TODO(),
 	}
-	err := s.syncMCComponentObjects()
+	err = s.syncMCComponentObjects()
 
 	// Validate the results
 	adminMocker.Finish()
