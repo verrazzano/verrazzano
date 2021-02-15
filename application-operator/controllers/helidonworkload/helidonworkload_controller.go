@@ -71,7 +71,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	//TODO: Find the resource object to record the event to, default is the parent appConfig - done in OAM
 
-	//unwrap the apps/DeploymentSpec and meta/ObjectMeta
+	// unwrap the apps/DeploymentSpec and meta/ObjectMeta
 	deploy, err := r.convertWorkloadToDeployment(&workload)
 	if err != nil {
 		log.Error(err, "Failed to convert workload to deployment")
@@ -79,7 +79,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	//set the controller reference so that we can watch this deployment and it will be deleted automatically
+	// set the controller reference so that we can watch this deployment and it will be deleted automatically
 	if err := ctrl.SetControllerReference(&workload, deploy, r.Scheme); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -99,7 +99,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		//TODO: OAM is doing Wait and formatting error
 		return reconcile.Result{}, err
 	}
-	//set the controller reference so that we can watch this service and it will be deleted automatically
+	// set the controller reference so that we can watch this service and it will be deleted automatically
 	if err := ctrl.SetControllerReference(&workload, service, r.Scheme); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -111,8 +111,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	//TODO: OAM is doing garbage collect the service/deployments that we created but not needed
-	// record the new deployment, new service
+	//TODO: OAM is doing garbage collect the service/deployments that we created
+	// but not needed record the new deployment, new service
 	workload.Status.Resources = nil
 	workload.Status.Resources = append(workload.Status.Resources,
 		vzapi.QualifiedResourceRelation{
@@ -140,7 +140,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return reconcile.Result{}, nil
 }
 
-//convertWorkloadToDeployment converts a VerrazzanoHelidonWorkload into a Deployment.
+// convertWorkloadToDeployment converts a VerrazzanoHelidonWorkload into a Deployment.
 func (r *Reconciler) convertWorkloadToDeployment(
 	workload *vzapi.VerrazzanoHelidonWorkload) (*appsv1.Deployment, error) {
 	//TODO: What if metadata and spec are not set?
@@ -171,7 +171,7 @@ func (r *Reconciler) convertWorkloadToDeployment(
 	d.Spec.Replicas = workload.Spec.DeploymentTemplate.Replicas
 	// Set PodSpec on deployment's PodTemplate from workload spec
 	workload.Spec.DeploymentTemplate.PodSpec.DeepCopyInto(&d.Spec.Template.Spec)
-	//making sure pods have same label as selector on deployment
+	// making sure pods have same label as selector on deployment
 	d.Spec.Template.ObjectMeta.SetLabels(map[string]string{
 		labelKey: string(workload.GetUID()),
 	})
@@ -243,15 +243,15 @@ func (r *Reconciler) createServiceFromDeployment(
 // passLabelAndAnnotation passes through labels and annotation objectMeta from the workload to the deployment object
 func passLabelAndAnnotation(workload *vzapi.VerrazzanoHelidonWorkload, deploy *appsv1.Deployment) {
 	// set app-config labels on deployment metadata
-	deploy.SetLabels(mergeMapOverrideWithDst(workload.GetLabels(), deploy.GetLabels()))
+	deploy.SetLabels(mergeMapOverrideWithDest(workload.GetLabels(), deploy.GetLabels()))
 	// set app-config labels on deployment/podtemplate metadata
-	deploy.Spec.Template.SetLabels(mergeMapOverrideWithDst(workload.GetLabels(), deploy.Spec.Template.GetLabels()))
+	deploy.Spec.Template.SetLabels(mergeMapOverrideWithDest(workload.GetLabels(), deploy.Spec.Template.GetLabels()))
 	// set app-config annotation on deployment metadata
-	deploy.SetAnnotations(mergeMapOverrideWithDst(workload.GetAnnotations(), deploy.GetAnnotations()))
+	deploy.SetAnnotations(mergeMapOverrideWithDest(workload.GetAnnotations(), deploy.GetAnnotations()))
 }
 
-// MergeMapOverrideWithDst merges two could be nil maps. If any conflicts, override src with dst.
-func mergeMapOverrideWithDst(src, dst map[string]string) map[string]string {
+// mergeMapOverrideWithDest merges two could be nil maps. If any conflicts, override src with dst.
+func mergeMapOverrideWithDest(src, dst map[string]string) map[string]string {
 	if src == nil && dst == nil {
 		return nil
 	}
