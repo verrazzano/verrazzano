@@ -18,12 +18,12 @@ check_for_resources() {
   if [ ${status_code:-1} -eq 0 ]; then
     # OCI query succeeded, proceed with value evaluation
     if [ $count -lt $min_required ]; then
-      echo "ERROR: Not enough ${resource_type}s available to run the acceptance tests: ${count}"
+      echo "ERROR: Not enough ${resource_type}s available to create the OKE cluster : ${count}"
       exit 1
     elif [ $count -lt 5 ]; then
-      echo "WARNING: Critically low number of ${resource_type}s available in tenancy: ${count}. Proceeding with acceptance tests."
+      echo "WARNING: Critically low number of ${resource_type}s available in tenancy: ${count}. Proceeding with creating the OKE cluster ..."
     else
-      echo "Sufficient number of ${resource_type}s available for continuing with acceptance tests: ${count}"
+      echo "Sufficient number of ${resource_type}s available for creating the OKE cluster: ${count}"
     fi
   else
     echo "ERROR: Query for available number of ${resource_type}s in tenancy failed."

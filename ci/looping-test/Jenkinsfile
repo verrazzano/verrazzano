@@ -298,7 +298,7 @@ pipeline {
                     dumpK8sCluster('verrazzano-installation-loop-cluster-dump')
                 }
             }
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*verrazzano-installation-loop-cluster-dump/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/pre-install-resources/**,**/post-uninstall-resources/**,**/verrazzano_images.txt,**/*verrazzano-installation-loop-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
         }
 
