@@ -7,33 +7,32 @@ import (
 	"flag"
 	"os"
 
+	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
+	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterapplicationconfiguration"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustercomponent"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterconfigmap"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterloggingscope"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustersecret"
-	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
-
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
-	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
-	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
-
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/webhooks"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
-	// +kubebuilder:scaffold:imports
+	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
+	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/tools/clientcmd"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 var (
@@ -53,7 +52,6 @@ func init() {
 	_ = wls.AddToScheme(scheme)
 
 	_ = clustersv1alpha1.AddToScheme(scheme)
-	// +kubebuilder:scaffold:scheme
 }
 
 const defaultScraperName = "verrazzano-system/vmi-system-prometheus-0"
@@ -156,7 +154,18 @@ func main() {
 			&webhooks.LoggingScopeDefaulter{Client: mgr.GetClient()},
 		}}
 		mgr.GetWebhookServer().Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})
-		mgr.GetWebhookServer().Register(webhooks.IstioDefaulterPath, &webhook.Admission{Handler: &webhooks.IstioWebhook{Client: mgr.GetClient()}})
+
+		restConfig, err := clientcmd.BuildConfigFromFlags("", "")
+		if err != nil {
+			setupLog.Error(err, "unable to build kube config")
+			os.Exit(1)
+		}
+		dynamicClient, err := dynamic.NewForConfig(restConfig)
+		if err != nil {
+			setupLog.Error(err, "unable to create Kubernetes dynamic client")
+			os.Exit(1)
+		}
+		mgr.GetWebhookServer().Register(webhooks.IstioDefaulterPath, &webhook.Admission{Handler: &webhooks.IstioWebhook{DynamicClient: dynamicClient}})
 
 	}
 	reconciler := loggingscope.NewReconciler(
