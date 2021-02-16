@@ -16,6 +16,15 @@ import (
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/helidonworkload"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/webhooks"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -24,15 +33,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/webhooks"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -181,6 +181,14 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoWebLogicWorkload")
+		os.Exit(1)
+	}
+	if err = (&helidonworkload.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoHelidonWorkload"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoHelidonWorkload")
 		os.Exit(1)
 	}
 	if err = (&multiclustersecret.Reconciler{
