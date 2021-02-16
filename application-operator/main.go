@@ -183,6 +183,14 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoWebLogicWorkload")
 		os.Exit(1)
 	}
+	if err = (&helidonworkload.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoHelidonWorkload"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoHelidonWorkload")
+		os.Exit(1)
+	}
 	if err = (&multiclustersecret.Reconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterSecret"),
