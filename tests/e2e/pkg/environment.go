@@ -32,17 +32,17 @@ func Ingress() string {
 	}
 
 	if clusterType == CLUSTER_TYPE_KIND {
-		return kindIngress()
+		return loadBalancerIngress()
 	} else if clusterType == CLUSTER_TYPE_OLCNE {
-		return olcneIngress()
+		return externalLoadBalancerIngress()
 	} else {
-		return okeIngress()
+		return loadBalancerIngress()
 	}
 }
 
-// kindIngress returns the ingress address from a KIND cluster
-func kindIngress() string {
-	fmt.Println("Obtaining KIND control plane address info ...")
+// nodePortIngress returns the ingress node port address
+func nodePortIngress() string {
+	fmt.Println("Obtaining node address info ...")
 	addrHost := ""
 	var addrPort int32
 
@@ -54,26 +54,27 @@ func kindIngress() string {
 	}
 
 	ingressgateway := findIstioIngressGatewaySvc(false)
-	fmt.Println("ingressgateway for KIND cluster is ", ingressgateway)
+	fmt.Println("ingressgateway for cluster is ", ingressgateway)
 	for _, eachPort := range ingressgateway.Spec.Ports {
 		if eachPort.Port == 80 {
-			fmt.Printf("KIND cluster - found ingressgateway port %d with nodeport %d, name %s\n", eachPort.Port, eachPort.NodePort, eachPort.Name)
+			fmt.Printf("cluster - found ingressgateway port %d with nodeport %d, name %s\n", eachPort.Port, eachPort.NodePort, eachPort.Name)
+			fmt.Printf("cluster - found ingressgateway port %d with nodeport %d, name %s\n", eachPort.Port, eachPort.NodePort, eachPort.Name)
 			addrPort = eachPort.NodePort
 		}
 	}
 
 	if addrHost == "" {
-		fmt.Println("KIND control plane address is empty")
+		fmt.Println("node address is empty")
 		return ""
 	} else {
 		ingressAddr := fmt.Sprintf("%s:%d", addrHost, addrPort)
-		fmt.Printf("KIND ingress address is %s\n", ingressAddr)
+		fmt.Printf("ingress address is %s\n", ingressAddr)
 		return ingressAddr
 	}
 }
 
-// okeIngress returns the ingress address from an OKE cluster
-func okeIngress() string {
+// loadBalancerIngress returns the ingress load balancer address
+func loadBalancerIngress() string {
 	fmt.Println("Obtaining ingressgateway info ...")
 	ingressgateway := findIstioIngressGatewaySvc(true)
 	for i := range ingressgateway.Status.LoadBalancer.Ingress {
@@ -90,9 +91,9 @@ func okeIngress() string {
 	return ""
 }
 
-// olcneIngress returns the ingress address from an OLCNE cluster
-func olcneIngress() string {
-	fmt.Println("Obtaining OLCNE ingressgateway info ...")
+// externalLoadBalancerIngress returns the ingress external load balancer address
+func externalLoadBalancerIngress() string {
+	fmt.Println("Obtaining ingressgateway info ...")
 	// Test a service for a dynamic address (.status.loadBalancer.ingress[0].ip),
 	// 	if that's not present then use .spec.externalIPs[0]
 	lb_ingressgateway := findIstioIngressGatewaySvc(true)

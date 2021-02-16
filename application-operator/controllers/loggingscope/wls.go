@@ -179,12 +179,12 @@ func toFluentdPod(serverPod wls.ServerPod, workload vzapi.QualifiedResourceRelat
 		Volumes:      serverPod.Volumes,
 		VolumeMounts: serverPod.VolumeMounts,
 		LogPath:      logPath,
-		HandlerEnv:   getWlsSpecificContainerEnv(workload),
+		HandlerEnv:   GetWlsSpecificContainerEnv(),
 	}
 }
 
-// getWlsSpecificContainerEnv builds WLS specific env vars
-func getWlsSpecificContainerEnv(workload vzapi.QualifiedResourceRelation) []v1.EnvVar {
+// GetWlsSpecificContainerEnv builds WLS specific env vars
+func GetWlsSpecificContainerEnv() []v1.EnvVar {
 	return []v1.EnvVar{
 		{
 			Name: "DOMAIN_UID",

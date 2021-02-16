@@ -12,7 +12,7 @@ require (
 	github.com/onsi/gomega v1.9.0
 	github.com/stretchr/testify v1.5.1
 	go.uber.org/zap v1.16.0
-	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5 // indirect
+	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
 	golang.org/x/mod v0.4.1 // indirect
 	golang.org/x/tools v0.1.0 // indirect
 	k8s.io/api v0.18.2

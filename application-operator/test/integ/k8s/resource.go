@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"fmt"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+
 	"strings"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -216,6 +218,50 @@ func (c Client) GetMultiClusterConfigMap(namespace string, name string) (*cluste
 // GetConfigMap gets the specified K8S ConfigMap
 func (c Client) GetConfigMap(namespace string, name string) (*corev1.ConfigMap, error) {
 	return c.clientset.CoreV1().ConfigMaps(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// GetMultiClusterLoggingScope gets the specified MultiClusterLoggingScope
+func (c Client) GetMultiClusterLoggingScope(namespace string, name string) (*clustersv1alpha1.MultiClusterLoggingScope, error) {
+	bytes, err := c.getRaw("/apis/clusters.verrazzano.io/v1alpha1", "multiclusterloggingscopes", namespace, name)
+	if err != nil {
+		return nil, err
+	}
+	var mcLogScope clustersv1alpha1.MultiClusterLoggingScope
+	err = json.Unmarshal(bytes, &mcLogScope)
+	return &mcLogScope, err
+}
+
+// GetLoggingScope gets the specified LoggingScope
+func (c Client) GetLoggingScope(namespace string, name string) (*v1alpha1.LoggingScope, error) {
+	bytes, err := c.getRaw("/apis/oam.verrazzano.io/v1alpha1", "loggingscopes", namespace, name)
+	if err != nil {
+		return nil, err
+	}
+	var logScope v1alpha1.LoggingScope
+	err = json.Unmarshal(bytes, &logScope)
+	return &logScope, err
+}
+
+// GetMultiClusterAppConfig gets the specified MultiClusterApplicationConfiguration
+func (c Client) GetMultiClusterAppConfig(namespace string, name string) (*clustersv1alpha1.MultiClusterApplicationConfiguration, error) {
+	bytes, err := c.getRaw("/apis/clusters.verrazzano.io/v1alpha1", "multiclusterapplicationconfigurations", namespace, name)
+	if err != nil {
+		return nil, err
+	}
+	var mcAppConf clustersv1alpha1.MultiClusterApplicationConfiguration
+	err = json.Unmarshal(bytes, &mcAppConf)
+	return &mcAppConf, err
+}
+
+// GetOAMAppConfig gets the specified OAM ApplicationConfiguration
+func (c Client) GetOAMAppConfig(namespace string, name string) (*oamv1.ApplicationConfiguration, error) {
+	bytes, err := c.getRaw("/apis/core.oam.dev/v1alpha2", "applicationconfigurations", namespace, name)
+	if err != nil {
+		return nil, err
+	}
+	var appConf oamv1.ApplicationConfiguration
+	err = json.Unmarshal(bytes, &appConf)
+	return &appConf, err
 }
 
 func (c Client) getRaw(absPath, resource, namespace, name string) ([]byte, error) {

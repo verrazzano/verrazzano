@@ -80,7 +80,7 @@ clusterOperator:
 console:
   name: verrazzano-console
   imageName: ghcr.io/verrazzano/console
-  imageVersion: 0.10.0-20210210142813-e472bf6
+  imageVersion: 0.10.0-20210212141431-71fa098
 
 api:
   name: verrazzano-api
@@ -109,3 +109,11 @@ config:
   envName:
   dnsSuffix: verrazzano.io
   enableMonitoringStorage: true
+
+userrolebindings:
+  admin:
+    kind: Group
+    name: verrazzano-admins
+  monitor:
+    kind: Group
+    name: verrazzano-monitors

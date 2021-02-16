@@ -271,3 +271,124 @@ subjects:
   - kind: ServiceAccount
     name: {{ .Values.verrazzanoOperator.name }}
     namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-system-read
+  labels:
+    verrazzano.io/aggregate-to-verrazzano-admin: "true"
+    verrazzano.io/aggregate-to-verrazzano-monitor: "true"
+rules:
+- apiGroups:
+    - verrazzano.io
+    - oam.verrazzano.io
+    - install.verrazzano.io
+  resources:
+    - "*"
+  verbs:
+    - get
+    - list
+    - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-system-write
+  labels:
+    verrazzano.io/aggregate-to-verrazzano-admin: "true"
+rules:
+- apiGroups:
+    - verrazzano.io
+    - oam.verrazzano.io
+    - install.verrazzano.io
+  resources:
+    - "*"
+  verbs:
+    - put
+    - post
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-application-read
+  labels:
+    verrazzano.io/aggregate-to-verrazzano-admin: "true"
+    verrazzano.io/aggregate-to-verrazzano-monitor: "true"
+    verrazzano.io/aggregate-to-verrazzano-application-admin: "true"
+    verrazzano.io/aggregate-to-verrazzano-application-monitor: "true"
+rules:
+- apiGroups:
+    - verrazzano.io
+    - oam.verrazzano.io
+    - install.verrazzano.io
+  resources:
+    - "*"
+  verbs:
+    - get
+    - list
+    - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-application-write
+  labels:
+    verrazzano.io/aggregate-to-verrazzano-admin: "true"
+    verrazzano.io/aggregate-to-verrazzano-application-admin: "true"
+rules:
+- apiGroups:
+    - verrazzano.io
+    - oam.verrazzano.io
+    - install.verrazzano.io
+  resources:
+    - "*"
+  verbs:
+    - put
+    - post
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-admin
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      verrazzano.io/aggregate-to-verrazzano-admin: "true"
+rules: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: verrazzano-admin
+subjects:
+- kind: {{ .Values.userrolebindings.admin.kind }}
+  name: {{ .Values.userrolebindings.admin.name }}
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: verrazzano-admin
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-monitor
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      verrazzano.io/aggregate-to-verrazzano-monitor: "true"
+rules: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: verrazzano-monitor
+subjects:
+- kind: {{ .Values.userrolebindings.monitor.kind }}
+  name: {{ .Values.userrolebindings.monitor.name }}
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: verrazzano-monitor
+  apiGroup: rbac.authorization.k8s.io
