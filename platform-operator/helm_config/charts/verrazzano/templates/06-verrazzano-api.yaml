@@ -226,14 +226,14 @@ data:
     logJsonMessage(ngx.INFO, "Check for groups in jwt token.")
     if ( not (jwt_obj.payload) or not (jwt_obj.payload.groups)) then
       ngx.status = 401
-      logJsonMessage(ngx.ERR, "No groups asscoiated with user.")
+      logJsonMessage(ngx.ERR, "No groups associated with user.")
       ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
     logJsonMessage(ngx.INFO, "Check for sub in jwt token.")
     if ( not (jwt_obj.payload) or not (jwt_obj.payload.sub)) then
       ngx.status = 401
-      logJsonMessage(ngx.ERR, "No sub asscoiated with user.")
+      logJsonMessage(ngx.ERR, "No sub associated with user.")
       ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
