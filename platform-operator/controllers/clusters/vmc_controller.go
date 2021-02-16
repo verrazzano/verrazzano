@@ -6,7 +6,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -24,6 +23,8 @@ type VerrazzanoManagedClusterReconciler struct {
 	Scheme *runtime.Scheme
 	log    *zap.SugaredLogger
 }
+
+const mcRoleAndBindingName = "verrazzano-managed-cluster"
 
 // +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=verrazzanomanagedclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=verrazzanomanagedclusters/status,verbs=get;update;patch
@@ -61,6 +62,12 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
+	err = r.reconcileManagedRoleBinding(vmc)
+	if err != nil {
+		log.Infof("Failed to reconcile the ServiceAccount: %v", err)
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -72,7 +79,7 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileServiceAccount(vmc *cluste
 	}
 
 	// Does the VerrazzanoManagedCluster object contain the service account name?
-	saName := generateServiceAccountName(vmc.Name)
+	saName := generateManagedResourceName(vmc.Name)
 	if vmc.Spec.ServiceAccount != saName {
 		r.log.Infof("Updating ServiceAccount from %q to %q", vmc.Spec.ServiceAccount, saName)
 		vmc.Spec.ServiceAccount = saName
@@ -89,7 +96,7 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileServiceAccount(vmc *cluste
 func (r *VerrazzanoManagedClusterReconciler) createOrUpdateServiceAccount(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) (controllerutil.OperationResult, error) {
 	var serviceAccount corev1.ServiceAccount
 	serviceAccount.Namespace = vmc.Namespace
-	serviceAccount.Name = generateServiceAccountName(vmc.Name)
+	serviceAccount.Name = generateManagedResourceName(vmc.Name)
 
 	return controllerutil.CreateOrUpdate(ctx, r.Client, &serviceAccount, func() error {
 		r.mutateServiceAccount(vmc, &serviceAccount)
@@ -100,11 +107,11 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateServiceAccount(ctx co
 }
 
 func (r *VerrazzanoManagedClusterReconciler) mutateServiceAccount(vmc *clustersv1alpha1.VerrazzanoManagedCluster, serviceAccount *corev1.ServiceAccount) {
-	serviceAccount.Name = generateServiceAccountName(vmc.Name)
+	serviceAccount.Name = generateManagedResourceName(vmc.Name)
 }
 
-// Generate the service account name
-func generateServiceAccountName(clusterName string) string {
+// Generate the common name used by all resources specific to a given managed cluster
+func generateManagedResourceName(clusterName string) string {
 	return fmt.Sprintf("%s-managed-cluster", clusterName)
 }
 
