@@ -1,5 +1,6 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: MultiClusterComponent
 metadata:
@@ -20,8 +21,8 @@ spec:
             app: hello-helidon
         spec:
           containers:
-            - name: hello2
-              image: ghcr.io/oracle/oraclelinux:7-slim2
+            - name: hello
+              image: ghcr.io/oracle/oraclelinux:7-slim
               args:
                 - /bin/sh
                 - -c
