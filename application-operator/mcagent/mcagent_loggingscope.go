@@ -36,7 +36,6 @@ func (s *Syncer) createOrUpdateMCLoggingScope(mcLoggingScope clustersv1alpha1.Mu
 	var mcLoggingScopeNew clustersv1alpha1.MultiClusterLoggingScope
 	mcLoggingScopeNew.Namespace = mcLoggingScope.Namespace
 	mcLoggingScopeNew.Name = mcLoggingScope.Name
-	mcLoggingScopeNew.Labels = mcLoggingScope.Labels
 
 	// Create or update on the local cluster
 	return controllerutil.CreateOrUpdate(s.Context, s.MCClient, &mcLoggingScopeNew, func() error {
@@ -49,4 +48,5 @@ func (s *Syncer) createOrUpdateMCLoggingScope(mcLoggingScope clustersv1alpha1.Mu
 func mutateMCLoggingScope(mcLoggingScope clustersv1alpha1.MultiClusterLoggingScope, mcLoggingScopeNew *clustersv1alpha1.MultiClusterLoggingScope) {
 	mcLoggingScopeNew.Spec.Placement = mcLoggingScope.Spec.Placement
 	mcLoggingScopeNew.Spec.Template = mcLoggingScope.Spec.Template
+	mcLoggingScopeNew.Labels = mcLoggingScope.Labels
 }

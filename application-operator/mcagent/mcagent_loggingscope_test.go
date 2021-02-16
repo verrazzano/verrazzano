@@ -25,6 +25,7 @@ const testMCLoggingScopeName = "unit-mclogscope"
 const testMCLoggingScopeNamespace = "unit-mclogscope-namespace"
 
 var mcLoggingScopeTestLabels = map[string]string{"label1": "test1"}
+var mcLoggingScopeTestUpdatedLabels = map[string]string{"label1": "test1updated"}
 
 // TestCreateMCLoggingScope tests the synchronization method for the following use case.
 // GIVEN a request to sync MultiClusterLoggingScope objects
@@ -138,7 +139,7 @@ func TestUpdateMCLoggingScope(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, mcLoggingScope *clustersv1alpha1.MultiClusterLoggingScope, opts ...client.UpdateOption) error {
 			assert.Equal(testMCLoggingScopeNamespace, mcLoggingScope.Namespace, "mcloggingscope namespace did not match")
 			assert.Equal(testMCLoggingScopeName, mcLoggingScope.Name, "mcloggingscope name did not match")
-			assert.Equal(mcLoggingScopeTestLabels, mcLoggingScope.Labels, "mcloggingscope labels did not match")
+			assert.Equal(mcLoggingScopeTestUpdatedLabels, mcLoggingScope.Labels, "mcloggingscope labels did not match")
 			assert.Equal("logScopeSecret2", mcLoggingScope.Spec.Template.Spec.SecretName, "mcloggingscope does not contain expected secret")
 			assert.Equal("myLocalEsHost2", mcLoggingScope.Spec.Template.Spec.ElasticSearchHost, "mcloggingscope does not contain expected elasticSearchHost")
 			return nil
