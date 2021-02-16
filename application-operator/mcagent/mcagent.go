@@ -132,7 +132,7 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 		return nil, err
 	}
 
-	err = ioutil.WriteFile(tmpFile.Name(), secret.Data[adminKubeconfigData], 0666)
+	err = ioutil.WriteFile(tmpFile.Name(), secret.Data[adminKubeconfigData], 0600)
 	defer os.Remove(tmpFile.Name())
 	if err != nil {
 		return nil, err
