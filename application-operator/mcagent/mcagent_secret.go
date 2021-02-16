@@ -36,7 +36,6 @@ func (s *Syncer) createOrUpdateMCSecret(mcSecret clustersv1alpha1.MultiClusterSe
 	var mcSecretNew clustersv1alpha1.MultiClusterSecret
 	mcSecretNew.Namespace = mcSecret.Namespace
 	mcSecretNew.Name = mcSecret.Name
-	mcSecretNew.Labels = mcSecret.Labels
 
 	// Create or update on the local cluster
 	return controllerutil.CreateOrUpdate(s.Context, s.MCClient, &mcSecretNew, func() error {
@@ -49,4 +48,5 @@ func (s *Syncer) createOrUpdateMCSecret(mcSecret clustersv1alpha1.MultiClusterSe
 func mutateMCSecret(mcSecret clustersv1alpha1.MultiClusterSecret, mcSecretNew *clustersv1alpha1.MultiClusterSecret) {
 	mcSecretNew.Spec.Placement = mcSecret.Spec.Placement
 	mcSecretNew.Spec.Template = mcSecret.Spec.Template
+	mcSecretNew.Labels = mcSecret.Labels
 }
