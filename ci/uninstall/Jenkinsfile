@@ -194,7 +194,7 @@ pipeline {
                         # create secret in verrazzano-install ns
                         ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
-                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/pre-install-resources
+                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/pre-install-resources
 
                         echo "Installing yq"
                         GO111MODULE=on go get github.com/mikefarah/yq/v4
@@ -270,8 +270,8 @@ pipeline {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
-                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/post-uninstall-resources
-                        ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build
+                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources
+                        ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources
                     """
                 }
             }
@@ -335,7 +335,7 @@ pipeline {
                 }
             }
             sh "VERRAZZANO_KUBECONFIG=${env.KUBECONFIG} TF_VAR_label_prefix=uninstall-${env.BUILD_NUMBER} TF_VAR_state_name=uninstall-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/delete_oke_cluster.sh"
-            archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/default.txt,**/verrazzano_images.txt,**/*verrazzano-uninstall-test-dump/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*verrazzano-uninstall-test-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             sh """
                 cd ${WORKSPACE}/verrazzano
