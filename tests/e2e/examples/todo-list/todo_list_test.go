@@ -17,7 +17,7 @@ const (
 	ISO8601Layout        = "2006-01-02T15:04:05.999999999-07:00"
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
-	longWaitTimeout      = 25 * time.Minute
+	longWaitTimeout      = 15 * time.Minute
 	longPollingInterval  = 20 * time.Second
 )
 
