@@ -44,7 +44,7 @@ func TestCreateMCComponent(t *testing.T) {
 	adminMock := mocks.NewMockClient(adminMocker)
 
 	// Test data
-	testMCComponent, err := getSampleMCComponent("testdata/multiclustercomponent.yaml")
+	testMCComponent, err := getSampleMCComponent("testdata/multicluster-component.yaml")
 	if err != nil {
 		assert.NoError(err, "failed to read sample data for MultiClusterComponent")
 	}
@@ -101,17 +101,16 @@ func TestUpdateMCComponent(t *testing.T) {
 	// Managed cluster mocks
 	mcMocker := gomock.NewController(t)
 	mcMock := mocks.NewMockClient(mcMocker)
-	//mcMockStatusWriter := mocks.NewMockStatusWriter(mcMocker)
 
 	// Admin cluster mocks
 	adminMocker := gomock.NewController(t)
 	adminMock := mocks.NewMockClient(adminMocker)
 
 	// Test data
-	testMCComponent, err := getSampleMCComponent("testdata/multiclustercomponent.yaml")
+	testMCComponent, err := getSampleMCComponent("testdata/multicluster-component.yaml")
 	assert.NoError(err, "failed to read sample data for MultiClusterComponent")
 
-	testMCComponentUpdate, err := getSampleMCComponent("testdata/multiclustercomponent-update.yaml")
+	testMCComponentUpdate, err := getSampleMCComponent("testdata/multicluster-component-update.yaml")
 	assert.NoError(err, "failed to read sample data for MultiClusterComponent")
 
 	// Admin Cluster - expect call to list MultiClusterComponent objects - return list with one object
@@ -180,7 +179,7 @@ func TestMCComponentPlacement(t *testing.T) {
 	adminMock := mocks.NewMockClient(adminMocker)
 
 	// Test data
-	testMCComponent, err := getSampleMCComponent("testdata/multiclustercomponent.yaml")
+	testMCComponent, err := getSampleMCComponent("testdata/multicluster-component.yaml")
 	assert.NoError(err, "failed to read sample data for MultiClusterComponent")
 	testMCComponent.Spec.Placement.Clusters[0].Name = "not-my-cluster"
 

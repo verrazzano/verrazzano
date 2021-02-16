@@ -11,8 +11,8 @@ import (
 // Synchronize MultiClusterConfigMap objects to the local cluster
 func (s *Syncer) syncMCConfigMapObjects() error {
 	// Get all the MultiClusterConfigMap objects from the admin cluster
-	allMCConfigMaps := &clustersv1alpha1.MultiClusterConfigMapList{}
-	err := s.AdminClient.List(s.Context, allMCConfigMaps)
+	allMCConfigMaps := clustersv1alpha1.MultiClusterConfigMapList{}
+	err := s.AdminClient.List(s.Context, &allMCConfigMaps)
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}

@@ -12,17 +12,17 @@ import (
 // Synchronize MultiClusterSecret objects to the local cluster
 func (s *Syncer) syncMCSecretObjects() error {
 	// Get all the MultiClusterSecret objects from the admin cluster
-	allMCSecrets := &clustersv1alpha1.MultiClusterSecretList{}
+	allMCSecrets := clustersv1alpha1.MultiClusterSecretList{}
 	listOptions := &client.ListOptions{}
-	err := s.AdminClient.List(s.Context, allMCSecrets, listOptions)
+	err := s.AdminClient.List(s.Context, &allMCSecrets, listOptions)
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
 
 	// Write each of the records that are targeted to this cluster
-	for _, mcSecert := range allMCSecrets.Items {
-		if s.isThisCluster(mcSecert.Spec.Placement) {
-			_, err := s.createOrUpdateMCSecret(mcSecert)
+	for _, mcSecret := range allMCSecrets.Items {
+		if s.isThisCluster(mcSecret.Spec.Placement) {
+			_, err := s.createOrUpdateMCSecret(mcSecret)
 			if err != nil {
 				return err
 			}
