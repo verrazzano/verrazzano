@@ -5,7 +5,6 @@
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
-#TYPES=$(kubectl api-resources --verbs=list -o name)
 TYPES=`cat $SCRIPT_DIR/types.txt`
 
 if [ -z $1 ] ; then
@@ -13,6 +12,9 @@ if [ -z $1 ] ; then
   exit 1
 fi
 
+namespace=$1
 for type in ${TYPES} ; do
-  kubectl get "${type}" --show-kind -o custom-columns=NAME:.metadata.name,KIND:.kind --ignore-not-found --no-headers -n $1
+  echo "kubectl get ${type} --show-kind -o custom-columns=NAME:.metadata.name,KIND:.kind --ignore-not-found --no-headers -n ${namespace}"
+  kubectl get "${type}" --show-kind -o custom-columns=NAME:.metadata.name,KIND:.kind --ignore-not-found --no-headers -n ${namespace}
+  echo
 done

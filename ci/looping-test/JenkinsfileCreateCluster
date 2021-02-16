@@ -139,7 +139,7 @@ pipeline {
 		
         stage('Create Cluster') {
             steps {
-                sh "TF_VAR_label_prefix=loop-${env.BUILD_NUMBER} TF_VAR_state_name=loop-${env.BUILD_NUMBER}-main ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
+                sh "TF_VAR_label_prefix=loop-${env.BUILD_NUMBER} TF_VAR_state_name=loop-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
 
                 # Create image pull secret for Verrazzano docker images
                 cd ${GO_REPO_PATH}/verrazzano
