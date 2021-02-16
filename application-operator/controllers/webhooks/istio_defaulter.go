@@ -11,6 +11,7 @@ import (
 
 	"github.com/gertd/go-pluralize"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
@@ -35,30 +36,49 @@ var istioLogger = ctrl.Log.WithName("webhooks.istio-defaulter")
 // Handle identifies OAM created pods with a name selecter that matches istio-enabled:true,
 // mutates pods and adds additional resources as needed.
 func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
-
 	pod := &corev1.Pod{}
 	err := a.Decoder.Decode(req, pod)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
+	// Get all owner references for this pod
 	ownerRefList := a.flatten(nil, req.Namespace, pod.OwnerReferences)
-	for _, ref := range ownerRefList {
-		istioLogger.Info(fmt.Sprintf("ownerReference: %s:%s", ref.Kind, ref.Name))
+
+	// Check if the pod was created from an OAM ApplicationConfiguration resource.
+	// We do this by checking for the existence of an OAM ApplicationConfiguration ownerReference resource.
+	appConfigOwnerRef := metav1.OwnerReference{}
+	for _, ownerRef := range ownerRefList {
+		istioLogger.Info(fmt.Sprintf("ownerReference: %s:%s", ownerRef.Kind, ownerRef.Name))
+		if ownerRef.Kind == "ApplicationConfiguration" {
+			istioLogger.Info(fmt.Sprintf("OAM created pod: %s:%s:%s", req.Namespace, pod.Name, pod.GenerateName))
+			appConfigOwnerRef = ownerRef
+			break
+		}
+	}
+	// No OAM ApplicationConfiguration ownerReference resource found
+	if appConfigOwnerRef == (metav1.OwnerReference{}) {
+		istioLogger.Info(fmt.Sprintf("Not a OAM created pod: %s:%s:%s", req.Namespace, pod.Name, pod.GenerateName))
+		return admission.Allowed("No action required, pod was not created from an ApplicationConfiguration resource")
 	}
 
-	// TODO: if no applicationconfiguration owner ref then return with no action
-	//  weblogic introspector is pod of this type
-
+	// Create a service account if the pod is using the default service account.  The service account will
+	// be referenced in an Istio authorization policy.
 	istioLogger.Info(fmt.Sprintf("Pod serviceAccountName: %s", pod.Spec.ServiceAccountName))
-
-	// TODO: create serviceaccount name if needed and not found
+	serviceAccountName := pod.Spec.ServiceAccountName
+	if serviceAccountName == "default" {
+		serviceAccountName, err = a.createServiceAccountIfNeeded(req.Namespace, appConfigOwnerRef)
+		if err != nil {
+			return admission.Errored(http.StatusInternalServerError, err)
+		}
+	}
+	istioLogger.Info(fmt.Sprintf("Pod serviceAccountName to use: %s", serviceAccountName))
 
 	// TODO: create/update authz policy
 
-	// TODO: set application specific label for all OAM pods
+	// TODO: set application specific label for OAM pod
 
-	// TODO: set serviceAccountName if needed
+	// TODO: set serviceAccountName for OAM pod, if needed
 
 	//	marshaledPod, err := json.Marshal(pod)
 	//	if err != nil {
@@ -75,8 +95,40 @@ func (a *IstioWebhook) InjectDecoder(d *admission.Decoder) error {
 	return nil
 }
 
-func (a *IstioWebhook) flatten(list []metav1.OwnerReference, namespace string, ownerRefs []metav1.OwnerReference) []metav1.OwnerReference {
+func (a *IstioWebhook) createServiceAccountIfNeeded(namespace string, ownerRef metav1.OwnerReference) (string, error) {
+	// Check if service account exists.  If it does not exist, create it.
+	serviceAccount, err := a.KubeClient.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
+	if err != nil && errors.IsNotFound(err) {
+		sa := &corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ownerRef.Name,
+				Namespace: namespace,
+				Labels: map[string]string{
+					"istio-app": ownerRef.Name,
+				},
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						Name:       ownerRef.Name,
+						Kind:       ownerRef.Kind,
+						APIVersion: ownerRef.APIVersion,
+						UID:        ownerRef.UID,
+					},
+				},
+			},
+		}
+		serviceAccount, err = a.KubeClient.CoreV1().ServiceAccounts(namespace).Create(context.TODO(), sa, metav1.CreateOptions{})
+		if err != nil {
+			return "", err
+		}
+		istioLogger.Info(fmt.Sprintf("Created service account: %s", serviceAccount.Name))
+	} else if err != nil {
+		return "", err
+	}
 
+	return serviceAccount.Name, nil
+}
+
+func (a *IstioWebhook) flatten(list []metav1.OwnerReference, namespace string, ownerRefs []metav1.OwnerReference) []metav1.OwnerReference {
 	for _, ownerRef := range ownerRefs {
 		list = append(list, ownerRef)
 
