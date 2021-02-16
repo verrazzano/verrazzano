@@ -74,7 +74,11 @@ func (s *Syncer) StartSync() {
 
 	// Periodically loop looking for multi-cluster objects
 	for {
-		err := s.syncMCSecretObjects()
+		err := s.syncVerrazzanoProjects()
+		if err != nil {
+			s.Log.Error(err, "Error syncing Project resources")
+		}
+		err = s.syncMCSecretObjects()
 		if err != nil {
 			s.Log.Error(err, "Error syncing MultiClusterSecret objects")
 		}
