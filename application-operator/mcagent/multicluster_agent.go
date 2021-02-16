@@ -99,7 +99,7 @@ func (s *Syncer) StartSync() {
 		if err != nil {
 			s.Log.Error(err, "Error syncing MultiClusterApplicationConfiguration objects")
 		}
-		time.Sleep(1 * time.Minute)
+		time.Sleep(5 * time.Minute)
 	}
 }
 

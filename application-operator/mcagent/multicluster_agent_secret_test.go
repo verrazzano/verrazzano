@@ -138,6 +138,7 @@ func TestUpdateMCSecret(t *testing.T) {
 			assert.Equal(testMCSecretName, mcSecret.Name, "mcsecret name did not match")
 			assert.Equal(testLabels, mcSecret.Labels, "mcsecret labels did not match")
 			assert.Equal("test-stringdata2", mcSecret.Spec.Template.StringData["test"], "mcsecret does not contain expected string data")
+			assert.Equal([]byte("test"), mcSecret.Spec.Template.Data["username"], "mcsecret does not contain expected data")
 			return nil
 		})
 
