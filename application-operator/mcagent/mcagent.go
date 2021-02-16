@@ -29,6 +29,9 @@ type Syncer struct {
 	Context            context.Context
 }
 
+const adminKubeconfigData = "admin-kubeconfig"
+const clusterNameData = "managed-cluster-name"
+
 // StartAgent - start the agent thread for syncing multi-cluster objects
 func StartAgent(client client.Client, log logr.Logger) {
 	// Wait for the existence of the verrazzano-cluster secret.  It contains the credentials
@@ -51,7 +54,7 @@ func StartAgent(client client.Client, log logr.Logger) {
 	}
 
 	// The cluster secret exists
-	managedClusterName := string(secret.Data["cluster-name"])
+	managedClusterName := string(secret.Data[clusterNameData])
 	log.Info(fmt.Sprintf("Found secret named %s in namespace %s for cluster named %q", secret.Name, secret.Namespace, managedClusterName))
 
 	// Create the client for accessing the admin cluster
@@ -106,16 +109,16 @@ func (s *Syncer) StartSync() {
 
 // Validate the cluster secret
 func validateClusterSecret(secret *corev1.Secret) error {
-	// The secret must contain a cluster-name
-	_, ok := secret.Data["cluster-name"]
+	// The secret must contain a cluster name
+	_, ok := secret.Data[clusterNameData]
 	if !ok {
-		return fmt.Errorf("the secret named %s in namespace %s is missing the required field cluster-name", secret.Name, secret.Namespace)
+		return fmt.Errorf("the secret named %s in namespace %s is missing the required field %s", secret.Name, secret.Namespace, clusterNameData)
 	}
 
 	// The secret must contain a kubeconfig
-	_, ok = secret.Data["kubeconfig"]
+	_, ok = secret.Data[adminKubeconfigData]
 	if !ok {
-		return fmt.Errorf("the secret named %s in namespace %s is missing the required field kubeconfig", secret.Name, secret.Namespace)
+		return fmt.Errorf("the secret named %s in namespace %s is missing the required field %s", secret.Name, secret.Namespace, adminKubeconfigData)
 	}
 
 	return nil
@@ -124,12 +127,12 @@ func validateClusterSecret(secret *corev1.Secret) error {
 // Get the clientset for accessing the admin cluster
 func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	// Create a temp file that contains the kubeconfig
-	tmpFile, err := ioutil.TempFile("/tmp", "kubeconfig")
+	tmpFile, err := ioutil.TempFile("", "kubeconfig")
 	if err != nil {
 		return nil, err
 	}
 
-	err = ioutil.WriteFile(tmpFile.Name(), secret.Data["kubeconfig"], 0777)
+	err = ioutil.WriteFile(tmpFile.Name(), secret.Data[adminKubeconfigData], 0666)
 	defer os.Remove(tmpFile.Name())
 	if err != nil {
 		return nil, err
