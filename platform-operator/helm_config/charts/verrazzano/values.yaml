@@ -90,7 +90,6 @@ api:
   port: 8775
   clusterRole: console
   consoleUserGroup: console-users
-  consoleUser: console-user
 
 # OCI-related values
 oci:

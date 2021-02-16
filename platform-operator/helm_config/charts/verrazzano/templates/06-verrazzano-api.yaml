@@ -122,9 +122,6 @@ subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
   name: {{ .Values.api.consoleUserGroup }}
-- apiGroup: rbac.authorization.k8s.io
-  kind: User
-  name: {{ .Values.api.consoleUser }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -233,10 +230,10 @@ data:
       ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
-    logJsonMessage(ngx.INFO, "Check for k8s_user in jwt token.")
-    if ( not (jwt_obj.payload) or not (jwt_obj.payload.k8s_user)) then
+    logJsonMessage(ngx.INFO, "Check for sub in jwt token.")
+    if ( not (jwt_obj.payload) or not (jwt_obj.payload.sub)) then
       ngx.status = 401
-      logJsonMessage(ngx.ERR, "No k8s_user asscoiated with user.")
+      logJsonMessage(ngx.ERR, "No sub asscoiated with user.")
       ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
@@ -261,7 +258,7 @@ data:
     for i,group in pairs(jwt_obj.payload.groups) do
       ngx.req.set_header("Impersonate-Group", group)
     end
-    ngx.req.set_header("Impersonate-User", jwt_obj.payload.k8s_user)
+    ngx.req.set_header("Impersonate-User", jwt_obj.payload.sub)
   nginx.conf: |
     #user  nobody;
     worker_processes  1;

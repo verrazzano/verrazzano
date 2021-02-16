@@ -401,12 +401,7 @@
       "realm-management" : [ "manage-users" ]
     },
     "notBefore" : 0,
-    "groups" : [ "console-users" ],
-    "attributes": {
-      "k8s_user": [
-        "console-user"
-      ]
-    }
+    "groups" : [ "console-users" ]
   }, {
     "id" : "ca205b69-e8a8-45c9-88b1-ea9c1b072152",
     "createdTimestamp" : 1564417839778,
@@ -524,21 +519,6 @@
             "access.token.claim": "true",
             "claim.name": "groups",
             "userinfo.token.claim": "true"
-          }
-        },
-        {
-          "id": "c93fc5e2-729c-4d55-875b-2f9dd15155c4",
-          "name": "k8s-user",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-attribute-mapper",
-          "consentRequired": false,
-          "config": {
-            "userinfo.token.claim": "true",
-            "user.attribute": "k8s_user",
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "claim.name": "k8s_user",
-            "jsonType.label": "String"
           }
         }
       ],
