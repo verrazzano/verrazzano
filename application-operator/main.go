@@ -233,7 +233,7 @@ func main() {
 	}
 	// +kubebuilder:scaffold:builder
 
-	setupLog.Info("Starting thread for syncing multi-cluster objects")
+	setupLog.Info("Starting agent for syncing multi-cluster objects")
 	go mcagent.StartAgent(mgr.GetClient(), ctrl.Log.WithName("multi-cluster agent"))
 
 	setupLog.Info("starting manager")

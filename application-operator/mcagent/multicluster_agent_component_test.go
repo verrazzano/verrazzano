@@ -76,11 +76,11 @@ func TestCreateMCComponent(t *testing.T) {
 
 	// Make the request
 	s := &Syncer{
-		AdminClient: adminMock,
-		MCClient:    mcMock,
-		Log:         log,
-		ClusterName: testClusterName,
-		Context:     context.TODO(),
+		AdminClient:        adminMock,
+		MCClient:           mcMock,
+		Log:                log,
+		ManagedClusterName: testClusterName,
+		Context:            context.TODO(),
 	}
 	err = s.syncMCComponentObjects()
 
@@ -149,11 +149,11 @@ func TestUpdateMCComponent(t *testing.T) {
 
 	// Make the request
 	s := &Syncer{
-		AdminClient: adminMock,
-		MCClient:    mcMock,
-		Log:         log,
-		ClusterName: testClusterName,
-		Context:     context.TODO(),
+		AdminClient:        adminMock,
+		MCClient:           mcMock,
+		Log:                log,
+		ManagedClusterName: testClusterName,
+		Context:            context.TODO(),
 	}
 	err = s.syncMCComponentObjects()
 
@@ -194,11 +194,11 @@ func TestMCComponentPlacement(t *testing.T) {
 
 	// Make the request
 	s := &Syncer{
-		AdminClient: adminMock,
-		MCClient:    mcMock,
-		Log:         log,
-		ClusterName: testClusterName,
-		Context:     context.TODO(),
+		AdminClient:        adminMock,
+		MCClient:           mcMock,
+		Log:                log,
+		ManagedClusterName: testClusterName,
+		Context:            context.TODO(),
 	}
 	err = s.syncMCComponentObjects()
 

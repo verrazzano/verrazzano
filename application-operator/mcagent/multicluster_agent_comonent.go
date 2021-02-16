@@ -20,7 +20,7 @@ func (s *Syncer) syncMCComponentObjects() error {
 
 	// Write each of the records that are targeted to this cluster
 	for _, mcComponent := range allMCComponents.Items {
-		if isThisCluster(s.ClusterName, mcComponent.Spec.Placement) {
+		if s.isThisCluster(mcComponent.Spec.Placement) {
 			_, err := s.createOrUpdateMCComponent(mcComponent)
 			if err != nil {
 				return err

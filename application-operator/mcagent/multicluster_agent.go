@@ -22,11 +22,11 @@ import (
 
 // Syncer contains context for synchronize operations
 type Syncer struct {
-	AdminClient client.Client
-	MCClient    client.Client
-	Log         logr.Logger
-	ClusterName string
-	Context     context.Context
+	AdminClient        client.Client
+	MCClient           client.Client
+	Log                logr.Logger
+	ManagedClusterName string
+	Context            context.Context
 }
 
 // StartAgent - start the agent thread for syncing multi-cluster objects
@@ -51,29 +51,30 @@ func StartAgent(client client.Client, log logr.Logger) {
 	}
 
 	// The cluster secret exists
-	clusterName := string(secret.Data["cluster-name"])
-	log.Info(fmt.Sprintf("Found secret named %s in namespace %s for cluster named %q", secret.Name, secret.Namespace, clusterName))
+	managedClusterName := string(secret.Data["cluster-name"])
+	log.Info(fmt.Sprintf("Found secret named %s in namespace %s for cluster named %q", secret.Name, secret.Namespace, managedClusterName))
 
 	// Create the client for accessing the admin cluster
 	adminClient, err := getAdminClient(&secret)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to get the client for cluster %q", clusterName))
+		log.Error(err, fmt.Sprintf("Failed to get the client for cluster %q", managedClusterName))
 		return
 	}
 
-	// Start the thread for syncing multi-cluster objects
+	// Create the synchronization context structure
 	s := &Syncer{
-		AdminClient: adminClient,
-		MCClient:    client,
-		Log:         log,
-		ClusterName: secret.ClusterName,
-		Context:     context.TODO(),
+		AdminClient:        adminClient,
+		MCClient:           client,
+		Log:                log,
+		ManagedClusterName: managedClusterName,
+		Context:            context.TODO(),
 	}
 
-	go s.StartSync()
+	// Start syncing multi-cluster objects
+	s.StartSync()
 }
 
-// StartSync - start the thread for syncing multi-cluster objects
+// StartSync - start syncing multi-cluster objects
 func (s *Syncer) StartSync() {
 	s.Log.Info("Starting sync of multi-cluster objects")
 
@@ -99,7 +100,7 @@ func (s *Syncer) StartSync() {
 		if err != nil {
 			s.Log.Error(err, "Error syncing MultiClusterApplicationConfiguration objects")
 		}
-		time.Sleep(5 * time.Minute)
+		time.Sleep(1 * time.Minute)
 	}
 }
 
@@ -150,10 +151,10 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 }
 
 // Check if the placement is for this cluster
-func isThisCluster(clusterName string, placement clustersv1alpha1.Placement) bool {
+func (s *Syncer) isThisCluster(placement clustersv1alpha1.Placement) bool {
 	// Loop through the cluster list looking for the cluster name
 	for _, cluster := range placement.Clusters {
-		if cluster.Name == clusterName {
+		if cluster.Name == s.ManagedClusterName {
 			return true
 		}
 	}

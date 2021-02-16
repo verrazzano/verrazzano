@@ -21,7 +21,7 @@ func (s *Syncer) syncMCSecretObjects() error {
 
 	// Write each of the records that are targeted to this cluster
 	for _, mcSecert := range allMCSecrets.Items {
-		if isThisCluster(s.ClusterName, mcSecert.Spec.Placement) {
+		if s.isThisCluster(mcSecert.Spec.Placement) {
 			_, err := s.createOrUpdateMCSecret(mcSecert)
 			if err != nil {
 				return err
