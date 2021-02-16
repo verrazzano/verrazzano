@@ -25,6 +25,7 @@ const testMCConfigMapName = "unit-mccm"
 const testMCConfigMapNamespace = "unit-mccm-namespace"
 
 var mcConfigMapTestLabels = map[string]string{"label1": "test1"}
+var mcConfigMapTestUpdatedLabels = map[string]string{"label1": "test1updated"}
 
 // TestCreateMCConfigMap tests the synchronization method for the following use case.
 // GIVEN a request to sync MultiClusterConfigMap objects
@@ -138,7 +139,7 @@ func TestUpdateMCConfigMap(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap, opts ...client.UpdateOption) error {
 			assert.Equal(testMCConfigMapNamespace, mcConfigMap.Namespace, "mcConfigMap namespace did not match")
 			assert.Equal(testMCConfigMapName, mcConfigMap.Name, "mcConfigMap name did not match")
-			assert.Equal(mcConfigMapTestLabels, mcConfigMap.Labels, "mcConfigMap labels did not match")
+			assert.Equal(mcConfigMapTestUpdatedLabels, mcConfigMap.Labels, "mcConfigMap labels did not match")
 			assert.Equal("simplevalue2", mcConfigMap.Spec.Template.Data["simple.key"])
 			return nil
 		})

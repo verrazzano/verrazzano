@@ -36,7 +36,6 @@ func (s *Syncer) createOrUpdateMCConfigMap(mcConfigMap clustersv1alpha1.MultiClu
 	var mcConfigMapNew clustersv1alpha1.MultiClusterConfigMap
 	mcConfigMapNew.Namespace = mcConfigMap.Namespace
 	mcConfigMapNew.Name = mcConfigMap.Name
-	mcConfigMapNew.Labels = mcConfigMap.Labels
 
 	// Create or update on the local cluster
 	return controllerutil.CreateOrUpdate(s.Context, s.MCClient, &mcConfigMapNew, func() error {
@@ -49,4 +48,5 @@ func (s *Syncer) createOrUpdateMCConfigMap(mcConfigMap clustersv1alpha1.MultiClu
 func mutateMCConfigMap(mcConfigMap clustersv1alpha1.MultiClusterConfigMap, mcConfigMapNew *clustersv1alpha1.MultiClusterConfigMap) {
 	mcConfigMapNew.Spec.Placement = mcConfigMap.Spec.Placement
 	mcConfigMapNew.Spec.Template = mcConfigMap.Spec.Template
+	mcConfigMapNew.Labels = mcConfigMap.Labels
 }

@@ -6,7 +6,7 @@ metadata:
   name: unit-mccm
   namespace: unit-mccm-namespace
   labels:
-    label1: test1
+    label1: test1updated
 spec:
   template:
     metadata:
