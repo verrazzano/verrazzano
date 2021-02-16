@@ -36,7 +36,6 @@ func (s *Syncer) createOrUpdateMCComponent(mcComponent clustersv1alpha1.MultiClu
 	var mcComponentNew clustersv1alpha1.MultiClusterComponent
 	mcComponentNew.Namespace = mcComponent.Namespace
 	mcComponentNew.Name = mcComponent.Name
-	mcComponentNew.Labels = mcComponent.Labels
 
 	// Create or update on the local cluster
 	return controllerutil.CreateOrUpdate(s.Context, s.MCClient, &mcComponentNew, func() error {
@@ -49,4 +48,5 @@ func (s *Syncer) createOrUpdateMCComponent(mcComponent clustersv1alpha1.MultiClu
 func mutateMCComponent(mcComponent clustersv1alpha1.MultiClusterComponent, mcComponentNew *clustersv1alpha1.MultiClusterComponent) {
 	mcComponentNew.Spec.Placement = mcComponent.Spec.Placement
 	mcComponentNew.Spec.Template = mcComponent.Spec.Template
+	mcComponentNew.Labels = mcComponent.Labels
 }

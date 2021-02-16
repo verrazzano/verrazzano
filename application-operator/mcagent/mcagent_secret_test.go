@@ -25,7 +25,8 @@ const testClusterName = "managed1"
 const testMCSecretNamespace = "unit-mcsecret-namespace"
 const testMCSecretName = "unit-mcsecret"
 
-var testLabels = map[string]string{"label1": "test1"}
+var mcSecretTestLabels = map[string]string{"label1": "test1"}
+var mcSecretTestUpdatedLabels = map[string]string{"label1": "test1updated"}
 
 // TestCreateMCSecret tests the synchronization method for the following use case.
 // GIVEN a request to sync MultiClusterSecret objects
@@ -67,7 +68,7 @@ func TestCreateMCSecret(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret, opts ...client.CreateOption) error {
 			assert.Equal(testMCSecretNamespace, mcSecret.Namespace, "mcsecret namespace did not match")
 			assert.Equal(testMCSecretName, mcSecret.Name, "mcsecret name did not match")
-			assert.Equal(testLabels, mcSecret.Labels, "mcsecret labels did not match")
+			assert.Equal(mcSecretTestLabels, mcSecret.Labels, "mcsecret labels did not match")
 			assert.Equal(testClusterName, mcSecret.Spec.Placement.Clusters[0].Name, "mcsecret does not contain expected placement")
 			assert.Equal([]byte("verrazzano"), mcSecret.Spec.Template.Data["username"], "mcsecret does not contain expected template data")
 			assert.Equal("test-stringdata", mcSecret.Spec.Template.StringData["test"], "mcsecret does not contain expected string data")
@@ -136,7 +137,7 @@ func TestUpdateMCSecret(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret, opts ...client.UpdateOption) error {
 			assert.Equal(testMCSecretNamespace, mcSecret.Namespace, "mcsecret namespace did not match")
 			assert.Equal(testMCSecretName, mcSecret.Name, "mcsecret name did not match")
-			assert.Equal(testLabels, mcSecret.Labels, "mcsecret labels did not match")
+			assert.Equal(mcSecretTestUpdatedLabels, mcSecret.Labels, "mcsecret labels did not match")
 			assert.Equal("test-stringdata2", mcSecret.Spec.Template.StringData["test"], "mcsecret does not contain expected string data")
 			assert.Equal([]byte("test"), mcSecret.Spec.Template.Data["username"], "mcsecret does not contain expected data")
 			return nil
