@@ -292,6 +292,7 @@ pipeline {
             sh """
                 cd ${GO_REPO_PATH}/verrazzano/platform-operator
                 make delete-cluster
+                cd ${WORKSPACE}/verrazzano
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                   echo "Failures seen during dumping of artifacts, treat post as failed"
                   exit 1

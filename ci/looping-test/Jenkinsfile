@@ -300,6 +300,10 @@ pipeline {
             }
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/pre-install-resources/**/*.txt,**/post-uninstall-resources/**/*.txt,**/verrazzano_images.txt,**/*verrazzano-installation-loop-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
+            sh """
+                cd ${WORKSPACE}/verrazzano
+            """
+            deleteDir()
         }
 
         failure {
