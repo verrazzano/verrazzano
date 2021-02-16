@@ -315,8 +315,8 @@ metadata:
   labels:
     verrazzano.io/aggregate-to-verrazzano-admin: "true"
     verrazzano.io/aggregate-to-verrazzano-monitor: "true"
-    verrazzano.io/aggregate-to-verrazzano-application-admin: "true"
-    verrazzano.io/aggregate-to-verrazzano-application-monitor: "true"
+    verrazzano.io/aggregate-to-verrazzano-project-admin: "true"
+    verrazzano.io/aggregate-to-verrazzano-project-monitor: "true"
 rules:
 - apiGroups:
     - verrazzano.io
@@ -335,7 +335,7 @@ metadata:
   name: verrazzano-application-write
   labels:
     verrazzano.io/aggregate-to-verrazzano-admin: "true"
-    verrazzano.io/aggregate-to-verrazzano-application-admin: "true"
+    verrazzano.io/aggregate-to-verrazzano-project-admin: "true"
 rules:
 - apiGroups:
     - verrazzano.io
@@ -392,3 +392,23 @@ roleRef:
   kind: ClusterRole
   name: verrazzano-monitor
   apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-project-admin
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      verrazzano.io/aggregate-to-verrazzano-project-admin: "true"
+rules: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-project-monitor
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      verrazzano.io/aggregate-to-verrazzano-project-monitor: "true"
+rules: []
