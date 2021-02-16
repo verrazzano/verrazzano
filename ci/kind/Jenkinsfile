@@ -137,6 +137,10 @@ pipeline {
                             cd ${TEST_SCRIPTS_DIR}
                             ./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KUBERNETES_CLUSTER_VERSION}"
 
+                            echo "Install metallb"
+                            cd ${GO_REPO_PATH}/verrazzano
+                            ./tests/e2e/config/scripts/install-metallb.sh
+
                             echo "Create Image Pull Secrets"
                             cd ${GO_REPO_PATH}/verrazzano
                             ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
