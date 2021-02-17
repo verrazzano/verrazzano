@@ -84,9 +84,12 @@ func TestCreateVMC(t *testing.T) {
 	// Expect a call to create the ClusterRoleBinding - return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, ClusterRoleBinding *rbacv1.ClusterRoleBinding, opts ...client.CreateOption) error {
-			asserts.Equalf(generateManagedResourceName(name), ClusterRoleBinding.Name, "ClusterRoleBinding name did not match")
-			return nil
+		DoAndReturn(func(ctx context.Context, binding *rbacv1.ClusterRoleBinding, opts ...client.CreateOption) error {
+			asserts.Equalf(generateManagedResourceName(name), binding.Name, "ClusterRoleBinding name did not match")
+			asserts.Equalf(generateManagedResourceName(name), binding.RoleRef.Name, "ClusterRoleBinding roleref did not match")
+			asserts.Equalf(generateManagedResourceName(name), binding.Subjects[0].Name, "Subject did not match")
+			asserts.Equalf(namespace, binding.Subjects[0].Namespace, "Subject namespace did not match")
+		return nil
 		})
 
 	// Create and make the request
