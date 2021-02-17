@@ -12,7 +12,7 @@ import (
 
 	"github.com/gertd/go-pluralize"
 	securityv1beta1 "istio.io/api/security/v1beta1"
-	v1beta1 "istio.io/api/type/v1beta1"
+	"istio.io/api/type/v1beta1"
 	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
@@ -50,35 +50,32 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 	}
 
 	// Check for the annotation "sidecar.istio.io/inject: false".  No action required if annotation is set to false.
-	// TODO: is the correct thing to do for Coherence pods?
 	for key, value := range pod.Annotations {
 		if key == "sidecar.istio.io/inject" && value == "false" {
+			istioLogger.Info(fmt.Sprintf("Pod labeled with sidecar.istio.io/inject: false: %s:%s:%s", req.Namespace, pod.Name, pod.GenerateName))
 			return admission.Allowed("No action required, pod labeled with sidecar.istio.io/inject: false")
 		}
 	}
 	// Get all owner references for this pod
 	ownerRefList := a.flatten(nil, req.Namespace, pod.OwnerReferences)
 
-	// Check if the pod was created from an OAM ApplicationConfiguration resource.
-	// We do this by checking for the existence of an OAM ApplicationConfiguration ownerReference resource.
+	// Check if the pod was created from an ApplicationConfiguration resource.
+	// We do this by checking for the existence of an ApplicationConfiguration ownerReference resource.
 	appConfigOwnerRef := metav1.OwnerReference{}
 	for _, ownerRef := range ownerRefList {
-		istioLogger.Info(fmt.Sprintf("ownerReference: %s:%s", ownerRef.Kind, ownerRef.Name))
 		if ownerRef.Kind == "ApplicationConfiguration" {
-			istioLogger.Info(fmt.Sprintf("OAM created pod: %s:%s:%s", req.Namespace, pod.Name, pod.GenerateName))
 			appConfigOwnerRef = ownerRef
 			break
 		}
 	}
-	// No OAM ApplicationConfiguration ownerReference resource found so there is no action required.
+	// No ApplicationConfiguration ownerReference resource was found so there is no action required.
 	if appConfigOwnerRef == (metav1.OwnerReference{}) {
-		istioLogger.Info(fmt.Sprintf("Not a OAM created pod: %s:%s:%s", req.Namespace, pod.Name, pod.GenerateName))
+		istioLogger.Info(fmt.Sprintf("Pod not created from an ApplicationConfiguration: %s:%s:%s", req.Namespace, pod.Name, pod.GenerateName))
 		return admission.Allowed("No action required, pod was not created from an ApplicationConfiguration resource")
 	}
 
 	// If a pod is using the "default" service account then create a appconfig specific service account, if not already
-	// created. This service account will be referenced in an Istio authorization policy.
-	istioLogger.Info(fmt.Sprintf("Pod serviceAccountName: %s", pod.Spec.ServiceAccountName))
+	// created. This service account will be referenced in an Istio authorization policy that we create/update.
 	serviceAccountName := pod.Spec.ServiceAccountName
 	if serviceAccountName == "default" {
 		serviceAccountName, err = a.createServiceAccount(req.Namespace, appConfigOwnerRef)
@@ -86,7 +83,6 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
 	}
-	istioLogger.Info(fmt.Sprintf("Pod serviceAccountName to use: %s", serviceAccountName))
 
 	// Create/update Istio Authorization policy
 	err = a.createUpdateAuthorizationPolicy(req.Namespace, serviceAccountName, appConfigOwnerRef)
@@ -94,12 +90,14 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	// Add the label to the pod that will be used as the match selector in the authorization policy.
+	// Add the label to the pod which is used as the match selector in the authorization policy we created/updated.
 	pod.Labels[istioAppLabel] = appConfigOwnerRef.Name
 
-	// Set the service account name for the pod.
+	// Set the service account name for the pod which is used in the principal portion of the authorization policy we
+	// created/updated.
 	pod.Spec.ServiceAccountName = serviceAccountName
 
+	// Marshal the mutated pod to send back in the admission review response.
 	marshaledPod, err := json.Marshal(pod)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
@@ -219,7 +217,7 @@ func (a *IstioWebhook) createServiceAccount(namespace string, ownerRef metav1.Ow
 				},
 			},
 		}
-		istioLogger.Info(fmt.Sprintf("Creating service account: %s:%s", namespace, serviceAccount.Name))
+		istioLogger.Info(fmt.Sprintf("Creating service account: %s:%s", namespace, ownerRef.Name))
 		serviceAccount, err = a.KubeClient.CoreV1().ServiceAccounts(namespace).Create(context.TODO(), sa, metav1.CreateOptions{})
 		if err != nil {
 			return "", err
