@@ -126,4 +126,3 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 			"The ClusterRoleBinding should exist")
 	})
 })
-
