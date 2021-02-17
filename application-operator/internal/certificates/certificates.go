@@ -50,7 +50,7 @@ func SetupCertificates(certDir string) (*bytes.Buffer, error) {
 		Subject: pkix.Name{
 			CommonName: commonName,
 		},
-		DNSNames:     []string{commonName},
+		DNSNames:              []string{commonName},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(1, 0, 0),
 		IsCA:                  true,
