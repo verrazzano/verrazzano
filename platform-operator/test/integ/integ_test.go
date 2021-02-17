@@ -14,6 +14,7 @@ import (
 
 const clusterAdmin = "cluster-admin"
 const platformOperator = "verrazzano-platform-operator"
+const managedCluster = "verrazzano-managed-cluster1"
 const installNamespace = "verrazzano-install"
 const mcNamespace = "verrazzano-mc"
 const prometheusSecret = "prometheus-cluster1"
@@ -110,4 +111,19 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 		_, stderr := util.Kubectl("apply -f testdata/vmc_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
+	ginkgo.It("ServiceAccount exists ", func() {
+		serviceAccountExists := func() bool {
+			return K8sClient.DoesServiceAccountExist(managedCluster, mcNamespace)
+		}
+		gomega.Eventually(serviceAccountExists, "30s", "5s").Should(gomega.BeTrue(),
+			"The ServiceAccount should exist")
+	})
+	ginkgo.It("ClusterRoleBinding exists ", func() {
+		bindingExists := func() bool {
+			return K8sClient.DoesClusterRoleBindingExist(managedCluster)
+		}
+		gomega.Eventually(bindingExists, "30s", "5s").Should(gomega.BeTrue(),
+			"The ClusterRoleBinding should exist")
+	})
 })
+
