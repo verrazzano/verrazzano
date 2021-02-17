@@ -248,6 +248,8 @@ func (r *Reconciler) fetchChildResourcesByAPIVersionKinds(ctx context.Context, n
 	return childResources, nil
 }
 
+// createOrUseGatewaySecret will create a certificate that will be embedded in an secret or leverage an existing secret
+// if one is configured in the ingress.
 func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.IngressTrait, status *reconcileresults.ReconcileResults) string {
 	var secretName string
 
@@ -260,6 +262,11 @@ func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.
 	return secretName
 }
 
+// createGatewayCertificate creates a certificate that is leveraged by the cert manager to create a certificate embedded
+// in a secret.  That secret will be leveraged by the gateway to provide TLS/HTTPS endpoints for deployed applications.
+// There will be one gateway generated per application.  The generated virtual services will be routed via the
+// application-wide gateway.  This implementation addresses a known Istio traffic management issue
+// (see https://istio.io/v1.7/docs/ops/common-problems/network-issues/#404-errors-occur-when-multiple-gateways-configured-with-same-tls-certificate)
 func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.IngressTrait, status *reconcileresults.ReconcileResults) string {
 	var secretName string
 	var err error
@@ -275,7 +282,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 		}
 	}
 
-	certName, err = buildCertificateNameFromIngressTrait(trait)
+	certName, err = buildCertificateNameFromAppName(trait)
 	if err != nil {
 		r.Log.Error(err, "failed to create certificate name from ingress trait")
 		status.Errors = append(status.Errors, err)
@@ -301,7 +308,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 
 			res, err = controllerutil.CreateOrUpdate(ctx, r.Client, certificate, func() error {
 				r.Log.Info("Updating certificate spec with secret")
-				appDomainName, err := buildAppDomainName(r, trait)
+				appDomainName, err := buildNamespacedDomainName(r, trait)
 				if err != nil {
 					return err
 				}
@@ -361,9 +368,9 @@ func (r *Reconciler) validateConfiguredSecret(trait *vzapi.IngressTrait, status 
 	return secretName
 }
 
-// buildCertificateNameFromIngressTrait will attempt to retrieve the app name associated with the ingress trait
+// buildCertificateNameFromAppName will attempt to retrieve the app name associated with the ingress trait
 // and construct a cert name.  Will generate an error if the app name is missing.
-func buildCertificateNameFromIngressTrait(trait *vzapi.IngressTrait) (string, error) {
+func buildCertificateNameFromAppName(trait *vzapi.IngressTrait) (string, error) {
 	appName, ok := trait.Labels[oam.LabelAppName]
 	if !ok {
 		return "", errors.New("OAM app name label missing from metadata, unable to generate certificate name")
@@ -416,29 +423,27 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 		hosts = appendToConfiguredHosts(hosts, existingHosts)
 	}
 
-	if secretName != "" {
-		// Set the spec content.
-		gateway.Spec.Selector = map[string]string{"istio": "ingressgateway"}
-		gateway.Spec.Servers = []*istionet.Server{{
+	// Set the spec content.
+	gateway.Spec.Selector = map[string]string{"istio": "ingressgateway"}
+	gateway.Spec.Servers = []*istionet.Server{{
+		Hosts: hosts,
+		Port: &istionet.Port{
+			Name:     "https",
+			Number:   443,
+			Protocol: "HTTPS"},
+		Tls: &istionet.ServerTLSSettings{
+			Mode:           istionet.ServerTLSSettings_SIMPLE,
+			CredentialName: secretName,
+		}},
+		{
 			Hosts: hosts,
 			Port: &istionet.Port{
-				Name:     "https",
-				Number:   443,
-				Protocol: "HTTPS"},
-			Tls: &istionet.ServerTLSSettings{
-				Mode:           istionet.ServerTLSSettings_SIMPLE,
-				CredentialName: secretName,
-			}},
-			{
-				Hosts: hosts,
-				Port: &istionet.Port{
-					Name:     "http",
-					Number:   80,
-					Protocol: "HTTP"},
-			}}
-		// Set the owner reference.
-		controllerutil.SetControllerReference(trait, gateway, r.Scheme)
-	}
+				Name:     "http",
+				Number:   80,
+				Protocol: "HTTP"},
+		}}
+	// Set the owner reference.
+	controllerutil.SetControllerReference(trait, gateway, r.Scheme)
 
 	return nil
 }
@@ -466,7 +471,7 @@ func findHost(hosts []string, newHost string) (int, bool) {
 }
 
 // fetchGateway attempts to get a gateway given a namespaced name.
-// Will return nil for the gateway and no error if the trait does not exist.
+// Will return nil for the gateway and no error if the gateway does not exist.
 func (r *Reconciler) fetchGateway(ctx context.Context, name types.NamespacedName) (*istioclient.Gateway, error) {
 	gateway := &istioclient.Gateway{}
 	r.Log.Info("Fetch gateway", "gateway", name)
@@ -718,19 +723,19 @@ func buildAppFullyQualifiedHostName(cli client.Reader, trait *vzapi.IngressTrait
 	if !ok {
 		return "", errors.New("OAM app name label missing from metadata, unable to add ingress trait")
 	}
-	domainName, err := buildAppDomainName(cli, trait)
+	domainName, err := buildNamespacedDomainName(cli, trait)
 	if err != nil {
 		return "", err
 	}
 	return fmt.Sprintf("%s.%s", appName, domainName), nil
 }
 
-// buildAppDomainName generates a domain name for the application using the following structure:
+// buildNamespacedDomainName generates a domain name for the application using the following structure:
 // <namespace>.<dns-subdomain>  where
 //   namespace is the namespace of the OAM application
 //   dns-subdomain is The DNS subdomain name
 // For example: cars.example.com
-func buildAppDomainName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
+func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
 	const authRealmKey = "nginx.ingress.kubernetes.io/auth-realm"
 	const rancherIngress = "rancher"
 	const rancherNamespace = "cattle-system"
