@@ -6,8 +6,6 @@ package mcagent
 import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	k8score "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -22,21 +20,27 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 		return client.IgnoreNotFound(err)
 	}
 
-	// Create namespaces specified in the Project resources in the local cluster
-	for _, project := range allProjects.Items {
-		if project.Namespace == constants.VerrazzanoMultiClusterNamespace {
-			for _, namespace := range project.Spec.Namespaces {
-				nsSpec := &k8score.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
-				s.Log.Info("Creating/Updating namespace", namespace)
-				_, err = controllerutil.CreateOrUpdate(s.Context, s.LocalClient, nsSpec, func() error {
-					return nil
-				})
-				if err != nil {
-					s.Log.Error(err, "Error creating/updating namespace", namespace)
-				}
+	// Write each of the records in verrazzano-mc namespace
+	for _, vp := range allProjects.Items {
+		if vp.Namespace == constants.VerrazzanoMultiClusterNamespace {
+			_, err := s.createOrUpdateVerrazzanoProject(vp)
+			if err != nil {
+				return err
 			}
 		}
 	}
-
 	return nil
+}
+
+// Create or update a VerrazzanoProject
+func (s *Syncer) createOrUpdateVerrazzanoProject(vp clustersv1alpha1.VerrazzanoProject) (controllerutil.OperationResult, error) {
+	var vpNew clustersv1alpha1.VerrazzanoProject
+	vpNew.Namespace = vp.Namespace
+	vpNew.Name = vp.Name
+
+	// Create or update on the local cluster
+	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &vpNew, func() error {
+		vpNew.Spec.Namespaces = vp.Spec.Namespaces
+		return nil
+	})
 }
