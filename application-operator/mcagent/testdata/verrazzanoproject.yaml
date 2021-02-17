@@ -4,7 +4,7 @@
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: VerrazzanoProject
 metadata:
-  name: unit-proj
+  name: VP_NAME
   namespace: VP_NS
 spec:
   namespaces:

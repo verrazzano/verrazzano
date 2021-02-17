@@ -7,23 +7,22 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/application-operator/constants"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+
 	"sigs.k8s.io/yaml"
 
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
-	k8score "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -31,11 +30,13 @@ import (
 // TestSyncer_syncVerrazzanoProjects tests the synchronization method for the following use case.
 // GIVEN a request to sync VerrazzanoProject objects
 // WHEN the a new object exists
-// THEN create namespaces specified in the Project resources in the local cluster
+// THEN ensure that the VerrazzanoProject is created.
 func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
-	const existingNS = "existingNS"
+	const existingVP = "existingVP"
+	newNamespaces := []string{"newNS1", "newNS2"}
 	type fields struct {
 		vpNamespace string
+		vpName      string
 		nsNames     []string
 	}
 	tests := []struct {
@@ -44,18 +45,20 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"Update namespace",
+			"Update VP",
 			fields{
 				constants.VerrazzanoMultiClusterNamespace,
-				[]string{existingNS},
+				existingVP,
+				newNamespaces,
 			},
 			false,
 		},
 		{
-			"Create namespace",
+			"Create VP",
 			fields{
 				constants.VerrazzanoMultiClusterNamespace,
-				[]string{"newNS"},
+				"newVP",
+				newNamespaces,
 			},
 			false,
 		},
@@ -63,7 +66,8 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 			"VP not in verrazzano-mc namespace",
 			fields{
 				"random-namespace",
-				[]string{"newNS"},
+				"vpInRandomNamespace",
+				newNamespaces,
 			},
 			false,
 		},
@@ -82,10 +86,10 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 			adminMock := mocks.NewMockClient(adminMocker)
 
 			// Test data
-			testProj, err := getTestVerrazzanoProject(tt.fields.vpNamespace, tt.fields.nsNames)
+			testProj, err := getTestVerrazzanoProject(tt.fields.vpNamespace, tt.fields.vpName, tt.fields.nsNames)
 			assert.NoError(err, "failed to get sample project")
 
-			// Admin Cluster - expect call to list MultiClusterSecret objects - return list with one object
+			// Admin Cluster - expect call to list VerrazzanoProject objects - return list with one object
 			adminMock.EXPECT().
 				List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
 				DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
@@ -94,26 +98,37 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 				})
 
 			if tt.fields.vpNamespace == constants.VerrazzanoMultiClusterNamespace {
-				// Managed Cluster - expect call to get a namespace
-				if tt.fields.nsNames[0] == existingNS {
+				if tt.fields.vpName == existingVP {
+					// Managed Cluster - expect call to get VerrazzanoProject
 					localMock.EXPECT().
-						Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: tt.fields.nsNames[0]}, gomock.Not(gomock.Nil())).
-						DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *k8score.Namespace) error {
-							ns.Name = tt.fields.nsNames[0]
+						Get(gomock.Any(), types.NamespacedName{Namespace: tt.fields.vpNamespace, Name: tt.fields.vpName}, gomock.Not(gomock.Nil())).
+						DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
+							vp.Spec.Namespaces = []string{"existingNS1", "existingNS2", "existingNS3"}
+							return nil
+						})
+
+					// Managed Cluster - expect call to update a VerrazzanoProject
+					localMock.EXPECT().
+						Update(gomock.Any(), gomock.Any()).
+						DoAndReturn(func(ctx context.Context, vp *clustersv1alpha1.VerrazzanoProject, opts ...client.UpdateOption) error {
+							assert.Equal(tt.fields.vpNamespace, vp.Namespace, "VerrazzanoProject namespace did not match")
+							assert.Equal(tt.fields.vpName, vp.Name, "VerrazzanoProject name did not match")
+							assert.ElementsMatch(tt.fields.nsNames, vp.Spec.Namespaces)
 							return nil
 						})
 				} else {
+					// Managed Cluster - expect call to get VerrazzanoProject
 					localMock.EXPECT().
-						Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: tt.fields.nsNames[0]}, gomock.Not(gomock.Nil())).
-						Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "VerrazzanoProject"}, tt.fields.nsNames[0]))
-				}
+						Get(gomock.Any(), types.NamespacedName{Namespace: tt.fields.vpNamespace, Name: tt.fields.vpName}, gomock.Not(gomock.Nil())).
+						Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "VerrazzanoProject"}, tt.fields.vpName))
 
-				// Managed Cluster - expect call to create a namespace if non-existing namespace
-				if tt.fields.nsNames[0] != existingNS {
+					// Managed Cluster - expect call to create a VerrazzanoProject
 					localMock.EXPECT().
 						Create(gomock.Any(), gomock.Any()).
-						DoAndReturn(func(ctx context.Context, ns *k8score.Namespace, opts ...client.CreateOption) error {
-							assert.Equal(tt.fields.nsNames[0], ns.Name, "namespace name did not match")
+						DoAndReturn(func(ctx context.Context, vp *clustersv1alpha1.VerrazzanoProject, opts ...client.CreateOption) error {
+							assert.Equal(tt.fields.vpNamespace, vp.Namespace, "VerrazzanoProject namespace did not match")
+							assert.Equal(tt.fields.vpName, vp.Name, "VerrazzanoProject name did not match")
+							assert.ElementsMatch(tt.fields.nsNames, vp.Spec.Namespaces)
 							return nil
 						})
 				}
@@ -141,7 +156,7 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 }
 
 // getTestVerrazzanoProject creates and returns VerrazzanoProject used in tests
-func getTestVerrazzanoProject(vpNamespace string, nsNames []string) (clustersv1alpha1.VerrazzanoProject, error) {
+func getTestVerrazzanoProject(vpNamespace string, vpName string, nsNames []string) (clustersv1alpha1.VerrazzanoProject, error) {
 	proj := clustersv1alpha1.VerrazzanoProject{}
 	templateFile, err := filepath.Abs("testdata/verrazzanoproject.yaml")
 	if err != nil {
@@ -152,6 +167,7 @@ func getTestVerrazzanoProject(vpNamespace string, nsNames []string) (clustersv1a
 		return proj, err
 	}
 	yamlBytes := bytes.Replace(templateBytes, []byte("VP_NS"), []byte(vpNamespace), -1)
+	yamlBytes = bytes.Replace(yamlBytes, []byte("VP_NAME"), []byte(vpName), -1)
 	for _, nsName := range nsNames {
 		nsNameBytes := []byte("\n    - " + nsName)
 		yamlBytes = append(yamlBytes, nsNameBytes...)
@@ -160,7 +176,6 @@ func getTestVerrazzanoProject(vpNamespace string, nsNames []string) (clustersv1a
 	if err != nil {
 		return proj, err
 	}
-	fmt.Println(string(jsonBytes))
 	err = json.Unmarshal(jsonBytes, &proj)
 	return proj, err
 }

@@ -76,7 +76,7 @@ func (s *Syncer) StartSync() {
 	for {
 		err := s.syncVerrazzanoProjects()
 		if err != nil {
-			s.Log.Error(err, "Error syncing Project resources")
+			s.Log.Error(err, "Error syncing VerrazzanoProject objects")
 		}
 		err = s.syncMCSecretObjects()
 		if err != nil {
