@@ -164,6 +164,11 @@ pipeline {
                     copyArtifacts(projectName: 'verrazzano-create-oke-cluster', selector: lastSuccessful())
                 }
                 sh """
+                    cd ${GO_REPO_PATH}/verrazzano
+                    git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
+                    git config --global user.name $DOCKER_CREDS_USR
+                    git config --global user.email "${DOCKER_EMAIL}"
+                    git checkout -b ${env.BRANCH_NAME}
                     ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/pre-install-resources
                 """
             }

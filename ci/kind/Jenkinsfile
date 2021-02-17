@@ -132,6 +132,11 @@ pipeline {
                 stage('Prepare AT environment') {
                     steps {
                         sh """
+                            cd ${GO_REPO_PATH}/verrazzano
+                            git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
+                            git config --global user.name $DOCKER_CREDS_USR
+                            git config --global user.email "${DOCKER_EMAIL}"
+                            git checkout -b ${env.BRANCH_NAME}
                             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
                             echo "Create Kind cluster"
                             cd ${TEST_SCRIPTS_DIR}
