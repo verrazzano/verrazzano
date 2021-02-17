@@ -26,8 +26,8 @@ type VerrazzanoManagedClusterReconciler struct {
 	log    *zap.SugaredLogger
 }
 
-// bindingInfo used to mutate the ClusterRoleBinding
-type bindingInfo struct {
+// bindingParams used to mutate the ClusterRoleBinding
+type bindingParams struct {
 	vmc                     *clustersv1alpha1.VerrazzanoManagedCluster
 	roleBindingName         string
 	roleName                string
@@ -130,33 +130,33 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileManagedRoleBinding(vmc *cl
 	binding.Name = bindingName
 
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &binding, func() error {
-		bindingInfo{
+		mutateBinding(&binding, bindingParams{
 			vmc:                     vmc,
 			roleBindingName:         bindingName,
 			roleName:                roleName,
 			serviceAccountName:      vmc.Spec.ServiceAccount,
 			serviceAccountNamespace: vmc.Namespace,
-		}.mutateBinding(&binding)
+		})
 		return nil
 	})
 	return err
 }
 
 // mutateBinding mutes the ClusterRoleBinding to ensure it has the valid params
-func (b bindingInfo) mutateBinding(binding *rbacv1.ClusterRoleBinding) {
+func mutateBinding(binding *rbacv1.ClusterRoleBinding, p bindingParams) {
 	binding.ObjectMeta = metav1.ObjectMeta{
-		Name:   b.roleBindingName,
-		Labels: b.vmc.Labels,
+		Name:   p.roleBindingName,
+		Labels: p.vmc.Labels,
 		// Set owner reference here instead of calling controllerutil.SetControllerReference
 		// which does not allow cluster-scoped resources.
 		// This reference will result in the clusterrolebinding resource being deleted
 		// when the verrazzano CR is deleted.
 		OwnerReferences: []metav1.OwnerReference{
 			{
-				APIVersion: b.vmc.APIVersion,
-				Kind:       b.vmc.Kind,
-				Name:       b.vmc.Name,
-				UID:        b.vmc.UID,
+				APIVersion: p.vmc.APIVersion,
+				Kind:       p.vmc.Kind,
+				Name:       p.vmc.Name,
+				UID:        p.vmc.UID,
 				Controller: func() *bool {
 					flag := true
 					return &flag
@@ -167,13 +167,13 @@ func (b bindingInfo) mutateBinding(binding *rbacv1.ClusterRoleBinding) {
 	binding.RoleRef = rbacv1.RoleRef{
 		APIGroup: "rbac.authorization.k8s.io",
 		Kind:     "ClusterRole",
-		Name:     b.roleName,
+		Name:     p.roleName,
 	}
 	binding.Subjects = []rbacv1.Subject{
 		{
 			Kind:      "ServiceAccount",
-			Name:      b.serviceAccountName,
-			Namespace: b.serviceAccountNamespace,
+			Name:      p.serviceAccountName,
+			Namespace: p.serviceAccountNamespace,
 		},
 	}
 }
