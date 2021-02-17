@@ -36,6 +36,8 @@ spec:
               value: {{ .Values.clusterOperator.rancherURL }}
             - name: rancherHost
               value: {{ .Values.clusterOperator.rancherHostname }}
+            - name: rancherPort
+              value: {{ .Values.clusterOperator.rancherHostPort | quote }}
             - name: USE_SYSTEM_VMI
               value: {{ .Values.appBinding.useSystemVMI | quote }}
             - name: PROMETHEUS_PUSHER_IMAGE
