@@ -124,15 +124,16 @@ func (r *VerrazzanoManagedClusterReconciler) mutateServiceAccount(vmc *clustersv
 // reconcileManagedRoleBinding reconciles the ClusterRoleBinding that binds the service account used by the managed cluster
 // to the role containing the permission
 func (r *VerrazzanoManagedClusterReconciler) reconcileManagedRoleBinding(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	bindingAndRoleName := generateManagedResourceName(vmc.Name)
+	const roleName = "verrazzano-managed-cluster"
+	bindingName := generateManagedResourceName(vmc.Name)
 	var binding rbacv1.ClusterRoleBinding
-	binding.Name = bindingAndRoleName
+	binding.Name = bindingName
 
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &binding, func() error {
 		bindingInfo{
 			vmc:                     vmc,
-			roleBindingName:         bindingAndRoleName,
-			roleName:                bindingAndRoleName,
+			roleBindingName:         bindingName,
+			roleName:                roleName,
 			serviceAccountName:      vmc.Spec.ServiceAccount,
 			serviceAccountNamespace: vmc.Namespace,
 		}.mutateBinding(&binding)

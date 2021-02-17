@@ -86,10 +86,10 @@ func TestCreateVMC(t *testing.T) {
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, binding *rbacv1.ClusterRoleBinding, opts ...client.CreateOption) error {
 			asserts.Equalf(generateManagedResourceName(name), binding.Name, "ClusterRoleBinding name did not match")
-			asserts.Equalf(generateManagedResourceName(name), binding.RoleRef.Name, "ClusterRoleBinding roleref did not match")
+			asserts.Equalf("verrazzano-managed-cluster", binding.RoleRef.Name, "ClusterRoleBinding roleref did not match")
 			asserts.Equalf(generateManagedResourceName(name), binding.Subjects[0].Name, "Subject did not match")
 			asserts.Equalf(namespace, binding.Subjects[0].Namespace, "Subject namespace did not match")
-		return nil
+			return nil
 		})
 
 	// Create and make the request
