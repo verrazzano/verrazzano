@@ -15,15 +15,15 @@ import (
 )
 
 const (
-	longWaitTimeout      = 10 * time.Minute
-	longPollingInterval  = 20 * time.Second
+	longWaitTimeout     = 10 * time.Minute
+	longPollingInterval = 20 * time.Second
 )
 
 var _ = ginkgo.BeforeSuite(func() {
-	if _, err := pkg.CreateNamespace("oam-hello-helidon", map[string]string{"verrazzano-managed": "true"}); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
-	}
-
+	/*	if _, err := pkg.CreateNamespace("oam-hello-helidon", map[string]string{"verrazzano-managed": "true"}); err != nil {
+			ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
+		}
+	*/
 	if err := pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-comp.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create hello-helidon component resources: %v", err))
 	}
@@ -43,10 +43,10 @@ var _ = ginkgo.AfterSuite(func() {
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not delete hello-helidon component resource: %v\n", err.Error()))
 	}
-	err = pkg.DeleteNamespace("oam-hello-helidon")
+	/*err = pkg.DeleteNamespace("oam-hello-helidon")
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not delete oam-hello-helidon namespace: %v\n", err.Error()))
-	}
+	}*/
 })
 
 var (
@@ -126,8 +126,8 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
 			gomega.Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"oam.applicationconfiguration.namespace":  "oam-hello-helidon",
-					"oam.applicationconfiguration.name": "hello-helidon-appconf"})
+					"oam.applicationconfiguration.namespace": "oam-hello-helidon",
+					"oam.applicationconfiguration.name":      "hello-helidon-appconf"})
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 		})
 	})

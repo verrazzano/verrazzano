@@ -11,8 +11,8 @@ import (
 	"io"
 	"io/ioutil"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
@@ -78,12 +78,13 @@ func CreateOrUpdateResourceFromBytes(data []byte) error {
 			return fmt.Errorf("failed to unmarshal resource: %w", err)
 		}
 
-		// Check to make sure the namespace of the resource exists.
-		_, err = client.Resource(nsGvr).Get(context.TODO(), uns.GetNamespace(), metav1.GetOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to find resource namespace: %w", err)
-		}
-
+		/*
+			// Check to make sure the namespace of the resource exists.
+			_, err = client.Resource(nsGvr).Get(context.TODO(), uns.GetNamespace(), metav1.GetOptions{})
+			if err != nil {
+				return fmt.Errorf("failed to find resource namespace: %w", err)
+			}
+		*/
 		// Map the object's GVK to a GVR
 		unsGvk := schema.FromAPIVersionAndKind(uns.GetAPIVersion(), uns.GetKind())
 		unsMap, err := mapper.RESTMapping(unsGvk.GroupKind(), unsGvk.Version)
@@ -162,7 +163,7 @@ func DeleteResourceFromBytes(data []byte) error {
 		// Delete the resource.
 		err = client.Resource(unsMap.Resource).Namespace(uns.GetNamespace()).Delete(context.TODO(), uns.GetName(), metav1.DeleteOptions{})
 		if err != nil && !errors.IsNotFound(err) {
-			fmt.Printf("Failed to delete %s/%v", uns.GetNamespace(), uns.GroupVersionKind() )
+			fmt.Printf("Failed to delete %s/%v", uns.GetNamespace(), uns.GroupVersionKind())
 		}
 	}
 }
