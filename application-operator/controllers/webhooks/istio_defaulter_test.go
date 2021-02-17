@@ -45,7 +45,7 @@ func TestIstioDefaulterHandleNoAction(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: podReadYaml2Json(t, "simple-pod.yaml")}
 	res := defaulter.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
-	assert.Equal(t, v1.StatusReason("No action required"), res.Result.Reason)
+	assert.Equal(t, v1.StatusReason("No action required, pod was not created from an ApplicationConfiguration resource"), res.Result.Reason)
 }
 
 func podReadYaml2Json(t *testing.T, path string) []byte {

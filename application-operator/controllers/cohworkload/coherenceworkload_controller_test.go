@@ -6,7 +6,6 @@ package cohworkload
 import (
 	"context"
 	"testing"
-	"time"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -18,7 +17,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -91,13 +89,6 @@ func TestReconcileCreateCoherence(t *testing.T) {
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
-	// expect a call to add a finalizer
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
-			assert.Equal(workload.ObjectMeta.Finalizers[0], finalizer)
-			return nil
-		})
 	// expect a call to fetch the oam application configuration
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
@@ -160,13 +151,6 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.GroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
-			return nil
-		})
-	// expect a call to add a finalizer
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
-			assert.Equal(workload.ObjectMeta.Finalizers[0], finalizer)
 			return nil
 		})
 	// expect a call to fetch the oam application configuration (and the component has an attached logging scope)
@@ -262,13 +246,6 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
-	// expect a call to add a finalizer
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
-			assert.Equal(workload.ObjectMeta.Finalizers[0], finalizer)
-			return nil
-		})
 	// expect a call to fetch the oam application configuration (and the component has an attached logging scope)
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
@@ -332,54 +309,6 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 	assert.Equal(false, result.Requeue)
 }
 
-// TestReconcileDeleteResources tests the happy path of reconciling a VerrazzanoCoherenceWorkload when
-// the workload is being deleted.
-// GIVEN a VerrazzanoCoherenceWorkload resource is being deleted
-// WHEN the controller Reconcile function is called
-// THEN expect delete calls for resources we created
-func TestReconcileDeleteResources(t *testing.T) {
-	assert := asserts.New(t)
-
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
-
-	// expect a call to fetch the VerrazzanoCoherenceWorkload - set the deletion timestamp to trigger the
-	// delete workflow
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-coherence-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
-			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
-			workload.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now()}
-			workload.ObjectMeta.Finalizers = []string{finalizer}
-			workload.APIVersion = vzapi.GroupVersion.String()
-			workload.Kind = "VerrazzanoCoherenceWorkload"
-			return nil
-		})
-	// expect a call to delete the Coherence CR
-	cli.EXPECT().
-		Delete(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.DeleteOption) error {
-			return nil
-		})
-	// expect a call to update the workload to remove the finalizer
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
-			assert.Equal(0, len(workload.ObjectMeta.Finalizers))
-			return nil
-		})
-
-	// create a request and reconcile it
-	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
-	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
-
-	mocker.Finish()
-	assert.NoError(err)
-	assert.Equal(false, result.Requeue)
-}
-
 // TestReconcileAlreadyExists tests reconciling a VerrazzanoCoherenceWorkload when the Coherence
 // CR already exists. We ignore the error and return success.
 // GIVEN a VerrazzanoCoherenceWorkload resource is created
@@ -404,13 +333,6 @@ func TestReconcileAlreadyExists(t *testing.T) {
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.GroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
-			return nil
-		})
-	// expect a call to add a finalizer
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
-			assert.Equal(workload.ObjectMeta.Finalizers[0], finalizer)
 			return nil
 		})
 	// expect a call to fetch the oam application configuration
@@ -464,13 +386,6 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.GroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
-			return nil
-		})
-	// expect a call to add a finalizer
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
-			assert.Equal(workload.ObjectMeta.Finalizers[0], finalizer)
 			return nil
 		})
 	// expect a call to fetch the oam application configuration

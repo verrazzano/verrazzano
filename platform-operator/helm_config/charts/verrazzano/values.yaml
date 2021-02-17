@@ -30,7 +30,7 @@ elasticSearch:
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: ghcr.io/verrazzano/verrazzano-operator
-  imageVersion: 0.10.0-20210208144209-d62732b
+  imageVersion: 0.10.0-20210216140204-4b137c4
   prometheusPusherImage: ghcr.io/verrazzano/prometheus-pusher:1.0.1-20201016212958-5b64612
   nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
   filebeatImage: ghcr.io/verrazzano/filebeat:6.8.3-20201016212236-05eabe44b
@@ -80,7 +80,7 @@ clusterOperator:
 console:
   name: verrazzano-console
   imageName: ghcr.io/verrazzano/console
-  imageVersion: 0.10.0-20210210142813-e472bf6
+  imageVersion: 0.10.0-20210212141431-71fa098
 
 api:
   name: verrazzano-api
