@@ -7,7 +7,5 @@ metadata:
   name: unit-proj
   namespace: verrazzano-mc
 spec:
-  template:
-    spec:
-      namespaces:
-        - name: ns1
+  namespaces:
+    - ns1

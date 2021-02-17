@@ -6,30 +6,39 @@ package mcagent
 import (
 	"context"
 	"encoding/json"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	k8score "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	k8score "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// TestCreateNamespace tests the synchronization method for the following use case.
-// GIVEN a request to sync MultiClusterSecret objects
-// WHEN the a new object exists
-// THEN ensure that the MultiClusterSecret is created.
+const testNamespace1 = "ns1"
+
 func TestCreateNamespace(t *testing.T) {
+	doTestCreateNamespace(t, false)
+}
+
+func TestUpdateNamespace(t *testing.T) {
+	doTestCreateNamespace(t, true)
+}
+
+func doTestCreateNamespace(t *testing.T, existingNS bool) {
 	assert := asserts.New(t)
 	log := ctrl.Log.WithName("test")
 
 	// Managed cluster mocks
-	mcMocker := gomock.NewController(t)
-	mcMock := mocks.NewMockClient(mcMocker)
+	localMocker := gomock.NewController(t)
+	localMock := mocks.NewMockClient(localMocker)
 
 	// Admin cluster mocks
 	adminMocker := gomock.NewController(t)
@@ -47,18 +56,34 @@ func TestCreateNamespace(t *testing.T) {
 			return nil
 		})
 
-	// Managed Cluster - expect call to create a namespace
-	mcMock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, ns *k8score.Namespace, opts ...client.CreateOption) error {
-			assert.Equal("ns1", ns.Namespace, "namespace name did not match")
-			return nil
-		})
+	// Managed Cluster - expect call to get a namespace
+	if existingNS {
+		localMock.EXPECT().
+			Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: testNamespace1}, gomock.Not(gomock.Nil())).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *k8score.Namespace) error {
+				ns.Name = testNamespace1
+				return nil
+			})
+	} else {
+		localMock.EXPECT().
+			Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: testNamespace1}, gomock.Not(gomock.Nil())).
+			Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "VerrazzanoProject"}, testNamespace1))
+	}
+
+	// Managed Cluster - expect call to create a namespace if non-existing namespace
+	if !existingNS {
+		localMock.EXPECT().
+			Create(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, ns *k8score.Namespace, opts ...client.CreateOption) error {
+				assert.Equal(testNamespace1, ns.Name, "namespace name did not match")
+				return nil
+			})
+	}
 
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        localMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -67,7 +92,7 @@ func TestCreateNamespace(t *testing.T) {
 
 	// Validate the results
 	adminMocker.Finish()
-	mcMocker.Finish()
+	localMocker.Finish()
 	assert.NoError(err)
 }
 
