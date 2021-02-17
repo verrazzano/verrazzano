@@ -46,11 +46,11 @@ func SetupCertificates(certDir string) (*bytes.Buffer, error) {
 
 	// CA config
 	ca := &x509.Certificate{
-		DNSNames:     []string{commonName},
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			CommonName: commonName,
 		},
+		DNSNames:     []string{commonName},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(1, 0, 0),
 		IsCA:                  true,
