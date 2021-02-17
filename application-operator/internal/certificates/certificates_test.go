@@ -6,6 +6,8 @@ package certificates
 import (
 	"bytes"
 	"context"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -32,8 +34,22 @@ func TestSetupCertificates(t *testing.T) {
 	caBundle, err := SetupCertificates(dir)
 	assert.Nil(err, "error should not be returned setting up certificates")
 	assert.NotNil(caBundle, "CA bundle should be returned")
-	assert.FileExists(fmt.Sprintf("%s/%s", dir, "tls.crt"), "expected tls.crt file not found")
-	assert.FileExists(fmt.Sprintf("%s/%s", dir, "tls.key"), "expected tls.key file not found")
+	crtFile := fmt.Sprintf("%s/%s", dir, "tls.crt")
+	keyFile := fmt.Sprintf("%s/%s", dir, "tls.key")
+	assert.FileExists(crtFile, dir, "tls.crt", "expected tls.crt file not found")
+	assert.FileExists(keyFile, dir, "tls.key", "expected tls.key file not found")
+
+	crtBytes, err := ioutil.ReadFile(crtFile)
+	if assert.NoError(err) {
+		block, _ := pem.Decode(crtBytes)
+		assert.NotEmptyf(block, "failed to decode PEM block containing public key")
+		assert.Equal("CERTIFICATE", block.Type)
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if assert.NoError(err) {
+			assert.NotEmpty(cert.DNSNames, "Certificate DNSNames SAN field should not be empty")
+			assert.Equal("verrazzano-application-operator.verrazzano-system.svc", cert.DNSNames[0])
+		}
+	}
 }
 
 // TestSetupCertificatesFail tests that the certificates needed for webhooks are not created

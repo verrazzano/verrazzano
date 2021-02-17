@@ -5,6 +5,7 @@ package controllers
 
 import (
 	"context"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"testing"
 	"time"
 
@@ -55,23 +56,39 @@ func TestCreateVMC(t *testing.T) {
 
 	// Expect a call to get the ServiceAccount - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: generateServiceAccountName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ServiceAccount"}, generateServiceAccountName(name)))
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ServiceAccount"}, generateManagedResourceName(name)))
 
 	// Expect a call to create the ServiceAccount - return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, serviceAccount *corev1.ServiceAccount, opts ...client.CreateOption) error {
 			asserts.Equalf(namespace, serviceAccount.Namespace, "ServiceAccount namespace did not match")
-			asserts.Equalf(generateServiceAccountName(name), serviceAccount.Name, "ServiceAccount name did not match")
+			asserts.Equalf(generateManagedResourceName(name), serviceAccount.Name, "ServiceAccount name did not match")
 			return nil
 		})
 
-	// Expect a call to update the ServiceAccount of the resource - return success
+	// Expect a call to update the VerrazzanoManagedCluster service account name - return success
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.Equal(vmc.Spec.ServiceAccount, generateServiceAccountName(name), "ServiceAccount name did not match")
+			asserts.Equal(vmc.Spec.ServiceAccount, generateManagedResourceName(name), "ServiceAccount name did not match")
+			return nil
+		})
+
+	// Expect a call to get the ClusterRoleBinding - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ServiceAccount"}, generateManagedResourceName(name)))
+
+	// Expect a call to create the ClusterRoleBinding - return success
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, binding *rbacv1.ClusterRoleBinding, opts ...client.CreateOption) error {
+			asserts.Equalf(generateManagedResourceName(name), binding.Name, "ClusterRoleBinding name did not match")
+			asserts.Equalf("verrazzano-managed-cluster", binding.RoleRef.Name, "ClusterRoleBinding roleref did not match")
+			asserts.Equalf(generateManagedResourceName(name), binding.Subjects[0].Name, "Subject did not match")
+			asserts.Equalf(namespace, binding.Subjects[0].Namespace, "Subject namespace did not match")
 			return nil
 		})
 

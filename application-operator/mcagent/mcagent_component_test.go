@@ -26,6 +26,7 @@ const testMCComponentName = "unit-mccomp"
 const testMCComponentNamespace = "unit-mccomp-namespace"
 
 var mcComponentTestLabels = map[string]string{"label1": "test1"}
+var mcComponentTestUpdatedLabels = map[string]string{"label1": "test1updated"}
 
 // TestCreateMCComponent tests the synchronization method for the following use case.
 // GIVEN a request to sync MultiClusterComponent objects
@@ -44,7 +45,7 @@ func TestCreateMCComponent(t *testing.T) {
 	adminMock := mocks.NewMockClient(adminMocker)
 
 	// Test data
-	testMCComponent, err := getSampleMCComponent("testdata/multiclustercomponent.yaml")
+	testMCComponent, err := getSampleMCComponent("testdata/multicluster-component.yaml")
 	if err != nil {
 		assert.NoError(err, "failed to read sample data for MultiClusterComponent")
 	}
@@ -77,7 +78,7 @@ func TestCreateMCComponent(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -101,17 +102,16 @@ func TestUpdateMCComponent(t *testing.T) {
 	// Managed cluster mocks
 	mcMocker := gomock.NewController(t)
 	mcMock := mocks.NewMockClient(mcMocker)
-	//mcMockStatusWriter := mocks.NewMockStatusWriter(mcMocker)
 
 	// Admin cluster mocks
 	adminMocker := gomock.NewController(t)
 	adminMock := mocks.NewMockClient(adminMocker)
 
 	// Test data
-	testMCComponent, err := getSampleMCComponent("testdata/multiclustercomponent.yaml")
+	testMCComponent, err := getSampleMCComponent("testdata/multicluster-component.yaml")
 	assert.NoError(err, "failed to read sample data for MultiClusterComponent")
 
-	testMCComponentUpdate, err := getSampleMCComponent("testdata/multiclustercomponent-update.yaml")
+	testMCComponentUpdate, err := getSampleMCComponent("testdata/multicluster-component-update.yaml")
 	assert.NoError(err, "failed to read sample data for MultiClusterComponent")
 
 	// Admin Cluster - expect call to list MultiClusterComponent objects - return list with one object
@@ -138,7 +138,7 @@ func TestUpdateMCComponent(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, mcComponent *clustersv1alpha1.MultiClusterComponent, opts ...client.UpdateOption) error {
 			assert.Equal(testMCComponentNamespace, mcComponent.Namespace, "mccomponent namespace did not match")
 			assert.Equal(testMCComponentName, mcComponent.Name, "mccomponent name did not match")
-			assert.Equal(mcComponentTestLabels, mcComponent.Labels, "mccomponent labels did not match")
+			assert.Equal(mcComponentTestUpdatedLabels, mcComponent.Labels, "mccomponent labels did not match")
 			workload := v1alpha2.ContainerizedWorkload{}
 			err := json.Unmarshal(mcComponent.Spec.Template.Spec.Workload.Raw, &workload)
 			assert.NoError(err, "failed to unmarshal the containerized workload")
@@ -150,7 +150,7 @@ func TestUpdateMCComponent(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -180,7 +180,7 @@ func TestMCComponentPlacement(t *testing.T) {
 	adminMock := mocks.NewMockClient(adminMocker)
 
 	// Test data
-	testMCComponent, err := getSampleMCComponent("testdata/multiclustercomponent.yaml")
+	testMCComponent, err := getSampleMCComponent("testdata/multicluster-component.yaml")
 	assert.NoError(err, "failed to read sample data for MultiClusterComponent")
 	testMCComponent.Spec.Placement.Clusters[0].Name = "not-my-cluster"
 
@@ -195,7 +195,7 @@ func TestMCComponentPlacement(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),

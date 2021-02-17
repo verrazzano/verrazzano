@@ -13,6 +13,41 @@ metadata:
   namespace: verrazzano-install
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-managed-cluster
+rules:
+  - apiGroups:
+      - clusters.verrazzano.io
+    resources:
+      - multiclusterapplicationconfigurations
+      - multiclustercomponents
+      - multiclusterconfigmaps
+      - multiclusterloggingscopes
+      - multiclustersecrets
+      - verrazzanoprojects
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - clusters.verrazzano.io
+    resources:
+      - multiclusterapplicationconfigurations/status
+      - multiclustercomponents/status
+      - multiclusterconfigmaps/status
+      - multiclusterloggingscopes/status
+      - multiclustersecrets/status
+      - verrazzanoprojects/status
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: verrazzano-platform-operator
