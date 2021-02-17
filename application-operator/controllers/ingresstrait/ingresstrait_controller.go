@@ -121,6 +121,8 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 	return &status
 }
 
+// getGatewayName will generate a gateway name from the namespace and application name of the provided trait. Returns
+// an error if the app name is not available.
 func getGatewayName(trait *vzapi.IngressTrait) (string, error) {
 	appName, ok := trait.Labels[oam.LabelAppName]
 	if !ok {
@@ -359,6 +361,8 @@ func (r *Reconciler) validateConfiguredSecret(trait *vzapi.IngressTrait, status 
 	return secretName
 }
 
+// buildCertificateNameFromIngressTrait will attempt to retrieve the app name associated with the ingress trait
+// and construct a cert name.  Will generate an error if the app name is missing.
 func buildCertificateNameFromIngressTrait(trait *vzapi.IngressTrait) (string, error) {
 	appName, ok := trait.Labels[oam.LabelAppName]
 	if !ok {
