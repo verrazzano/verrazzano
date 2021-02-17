@@ -619,7 +619,8 @@ pipeline {
                                 TEST_ROLE = "verrazzano-project-admin"
                                 TEST_NAMESPACE = "oam-hello-helidon"
                                 TEST_SERVICEACCOUNT= "oam-hello-helidon"
-                                TEST_KUBECONFIG= "/tmp/" + UUID.randomUUID().toString()
+                                TS = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                                TEST_KUBECONFIG= "/tmp/" + "${TS}"
                             }
                             when {
                                 expression {params.RUN_EXAMPLE_TESTS == true}
