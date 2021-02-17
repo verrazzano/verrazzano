@@ -16,9 +16,7 @@ import (
 var waitTimeout = 15 * time.Minute
 var pollingInterval = 30 * time.Second
 var expectedPodsCattleSystem = []string{
-	"rancher",
-	"cattle-node-agent",
-	"cattle-cluster-agent"}
+	"rancher"}
 
 var expectedPodsKeycloak = []string{
 	"mysql",

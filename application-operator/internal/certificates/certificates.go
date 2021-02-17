@@ -85,6 +85,7 @@ func SetupCertificates(certDir string) (*bytes.Buffer, error) {
 
 	// server cert config
 	cert := &x509.Certificate{
+		DNSNames:     []string{commonName},
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			CommonName: commonName,

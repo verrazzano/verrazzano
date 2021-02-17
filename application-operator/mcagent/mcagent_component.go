@@ -12,8 +12,8 @@ import (
 // Synchronize MultiClusterComponent objects to the local cluster
 func (s *Syncer) syncMCComponentObjects() error {
 	// Get all the MultiClusterComponent objects from the admin cluster
-	allMCComponents := &clustersv1alpha1.MultiClusterComponentList{}
-	err := s.AdminClient.List(s.Context, allMCComponents)
+	allMCComponents := clustersv1alpha1.MultiClusterComponentList{}
+	err := s.AdminClient.List(s.Context, &allMCComponents)
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
@@ -36,10 +36,9 @@ func (s *Syncer) createOrUpdateMCComponent(mcComponent clustersv1alpha1.MultiClu
 	var mcComponentNew clustersv1alpha1.MultiClusterComponent
 	mcComponentNew.Namespace = mcComponent.Namespace
 	mcComponentNew.Name = mcComponent.Name
-	mcComponentNew.Labels = mcComponent.Labels
 
 	// Create or update on the local cluster
-	return controllerutil.CreateOrUpdate(s.Context, s.MCClient, &mcComponentNew, func() error {
+	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &mcComponentNew, func() error {
 		mutateMCComponent(mcComponent, &mcComponentNew)
 		return nil
 	})
@@ -49,4 +48,5 @@ func (s *Syncer) createOrUpdateMCComponent(mcComponent clustersv1alpha1.MultiClu
 func mutateMCComponent(mcComponent clustersv1alpha1.MultiClusterComponent, mcComponentNew *clustersv1alpha1.MultiClusterComponent) {
 	mcComponentNew.Spec.Placement = mcComponent.Spec.Placement
 	mcComponentNew.Spec.Template = mcComponent.Spec.Template
+	mcComponentNew.Labels = mcComponent.Labels
 }
