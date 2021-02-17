@@ -28,7 +28,7 @@ import (
 // IstioDefaulterPath specifies the path of Istio defaulter webhook
 const IstioDefaulterPath = "/istio-defaulter"
 
-const istioAppLabel = "istio-app"
+const istioAppLabel = "verrazzano.io/istio"
 
 // IstioWebhook type for istio defaulter webhook
 type IstioWebhook struct {
@@ -115,7 +115,8 @@ func (a *IstioWebhook) InjectDecoder(d *admission.Decoder) error {
 }
 
 func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, serviceAccountName string, ownerRef metav1.OwnerReference) error {
-	sourcePrincipal := fmt.Sprintf("cluster.local/ns/%s/sa/%s", namespace, serviceAccountName)
+	podPrincipal := fmt.Sprintf("cluster.local/ns/%s/sa/%s", namespace, serviceAccountName)
+	gwPrincipal := "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"
 
 	// Check if authorization policy exist.  The name of the authorization policy is the owner reference name which happens
 	// to be the appconfig name.
@@ -132,7 +133,8 @@ func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, service
 			{
 				Source: &securityv1beta1.Source{
 					Principals: []string{
-						sourcePrincipal,
+						podPrincipal,
+						gwPrincipal,
 					},
 				},
 			},
@@ -174,7 +176,7 @@ func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, service
 	// Check if we need to add a principal to an existing Istio authorization policy.
 	principalFound := false
 	for _, principal := range authPolicy.Spec.GetRules()[0].From[0].Source.Principals {
-		if principal == sourcePrincipal {
+		if principal == podPrincipal {
 			principalFound = true
 			break
 		}
@@ -182,7 +184,7 @@ func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, service
 
 	// We did not find the principal in the Istio authorization policy so update the policy with the new principal.
 	if !principalFound {
-		authPolicy.Spec.GetRules()[0].From[0].Source.Principals = append(authPolicy.Spec.GetRules()[0].From[0].Source.Principals, sourcePrincipal)
+		authPolicy.Spec.GetRules()[0].From[0].Source.Principals = append(authPolicy.Spec.GetRules()[0].From[0].Source.Principals, podPrincipal)
 		istioLogger.Info(fmt.Sprintf("Updating Istio authorization policy: %s:%s", namespace, ownerRef.Name))
 		_, err := a.IstioClient.SecurityV1beta1().AuthorizationPolicies(namespace).Update(context.TODO(), authPolicy, metav1.UpdateOptions{})
 		if err != nil {
