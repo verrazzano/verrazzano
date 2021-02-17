@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"reflect"
 	"strings"
 
@@ -15,7 +16,6 @@ import (
 	pluralize "github.com/gertd/go-pluralize"
 	"github.com/go-logr/logr"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
@@ -108,13 +108,26 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 	for index, rule := range rules {
 		secretName := r.createOrUseGatewaySecret(ctx, trait, &status)
 		if secretName != "" {
-			gwName := fmt.Sprintf("%s-rule-%d-gw", trait.Name, index)
-			gateway := r.createOrUpdateGateway(ctx, trait, rule, gwName, secretName, &status)
-			vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
-			r.createOrUpdateVirtualService(ctx, trait, rule, vsName, service, gateway, &status)
+			gwName, err := getGatewayName(trait)
+			if err != nil {
+				status.Errors = append(status.Errors, err)
+			} else {
+				gateway := r.createOrUpdateGateway(ctx, trait, rule, gwName, secretName, &status)
+				vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
+				r.createOrUpdateVirtualService(ctx, trait, rule, vsName, service, gateway, &status)
+			}
 		}
 	}
 	return &status
+}
+
+func getGatewayName(trait *vzapi.IngressTrait) (string, error) {
+	appName, ok := trait.Labels[oam.LabelAppName]
+	if !ok {
+		return "", errors.New("OAM app name label missing from metadata, unable to generate gateway name")
+	}
+	gwName := fmt.Sprintf("%s-%s-gw", trait.Namespace, appName)
+	return gwName, nil
 }
 
 // updateTraitStatus updates the trait's status conditions and resources if they have changed.
@@ -263,42 +276,59 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 	certName, err = buildCertificateNameFromIngressTrait(trait)
 	if err != nil {
 		r.Log.Error(err, "failed to create certificate name from ingress trait")
+		status.Errors = append(status.Errors, err)
+		status.Results = append(status.Results, controllerutil.OperationResultNone)
+		return ""
 	}
-	certificate := &certapiv1alpha2.Certificate{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       certificateKind,
-			APIVersion: certificateAPIVersion,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: istioNamespace,
-			Name:      certName,
-		}}
+	// check if certificate already exists and skip creation if it does
+	certificate := &certapiv1alpha2.Certificate{}
+	err = r.Get(context.TODO(), types.NamespacedName{Name: certName, Namespace: istioNamespace}, certificate)
+	secretName = fmt.Sprintf("%s-secret", certName)
+	if err != nil {
+		res := controllerutil.OperationResultNone
+		if k8serrors.IsNotFound(err) {
+			certificate = &certapiv1alpha2.Certificate{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       certificateKind,
+					APIVersion: certificateAPIVersion,
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: istioNamespace,
+					Name:      certName,
+				}}
 
-	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, certificate, func() error {
-		if certName == "" {
-			return errors.New("certificate name not generated successfully")
-		}
-		r.Log.Info("Updating certificate spec with secret")
-		secretName = fmt.Sprintf("%s-secret", certName)
-		appDomainName, err := buildAppDomainName(r, trait)
-		if err != nil {
-			return err
-		}
-		certificate.Spec = certapiv1alpha2.CertificateSpec{
-			DNSNames:   []string{fmt.Sprintf("*.%s", appDomainName)},
-			SecretName: secretName,
-			IssuerRef: certv1.ObjectReference{
-				Name: verrazzanoClusterIssuer,
-				Kind: "ClusterIssuer",
-			},
-		}
+			res, err = controllerutil.CreateOrUpdate(ctx, r.Client, certificate, func() error {
+				r.Log.Info("Updating certificate spec with secret")
+				appDomainName, err := buildAppDomainName(r, trait)
+				if err != nil {
+					return err
+				}
+				certificate.Spec = certapiv1alpha2.CertificateSpec{
+					DNSNames:   []string{fmt.Sprintf("*.%s", appDomainName)},
+					SecretName: secretName,
+					IssuerRef: certv1.ObjectReference{
+						Name: verrazzanoClusterIssuer,
+						Kind: "ClusterIssuer",
+					},
+				}
 
-		return nil
-	})
-	ref := vzapi.QualifiedResourceRelation{APIVersion: certificateAPIVersion, Kind: certificateKind, Name: certificate.Name, Role: "certificate"}
-	status.Relations = append(status.Relations, ref)
-	status.Results = append(status.Results, res)
-	status.Errors = append(status.Errors, err)
+				// Set the owner reference.
+				controllerutil.SetControllerReference(trait, certificate, r.Scheme)
+				secret := &corev1.Secret{}
+				if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: istioNamespace}, secret); err != nil {
+					controllerutil.SetControllerReference(trait, secret, r.Scheme)
+				}
+
+				return nil
+			})
+		} else {
+			status.Errors = append(status.Errors, err)
+		}
+		ref := vzapi.QualifiedResourceRelation{APIVersion: certificateAPIVersion, Kind: certificateKind, Name: certificate.Name, Role: "certificate"}
+		status.Relations = append(status.Relations, ref)
+		status.Results = append(status.Results, res)
+		status.Errors = append(status.Errors, err)
+	}
 
 	if err != nil {
 		r.Log.Error(err, "failed to create or update gateway secret containing certificate")
@@ -332,7 +362,7 @@ func (r *Reconciler) validateConfiguredSecret(trait *vzapi.IngressTrait, status 
 func buildCertificateNameFromIngressTrait(trait *vzapi.IngressTrait) (string, error) {
 	appName, ok := trait.Labels[oam.LabelAppName]
 	if !ok {
-		return "", errors.New("OAM app name label missing from metadata, unable to add ingress trait")
+		return "", errors.New("OAM app name label missing from metadata, unable to generate certificate name")
 	}
 	return fmt.Sprintf("%s-%s-cert", trait.Namespace, appName), nil
 }
@@ -373,6 +403,15 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 		return err
 	}
 
+	existingGateway, err := r.fetchGateway(context.TODO(), types.NamespacedName{Namespace: gateway.Namespace, Name: gateway.Name})
+	if err != nil {
+		return err
+	}
+	if existingGateway != nil {
+		existingHosts := existingGateway.Spec.Servers[0].Hosts
+		hosts = appendToConfiguredHosts(hosts, existingHosts)
+	}
+
 	if secretName != "" {
 		// Set the spec content.
 		gateway.Spec.Selector = map[string]string{"istio": "ingressgateway"}
@@ -398,6 +437,44 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 	}
 
 	return nil
+}
+
+// appendToConfiguredHosts appends the host lists ensuring uniqueness of entries
+func appendToConfiguredHosts(hostsToAppend []string, existingHosts []string) []string {
+	for _, newHost := range hostsToAppend {
+		_, hostFound := findHost(existingHosts, newHost)
+		if !hostFound {
+			existingHosts = append(existingHosts, newHost)
+		}
+	}
+	return existingHosts
+}
+
+// findHost searches for a host in the provided list. If found it will
+// return it's key, otherwise it will return -1 and a bool of false.
+func findHost(hosts []string, newHost string) (int, bool) {
+	for i, host := range hosts {
+		if host == newHost {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+// fetchGateway attempts to get a gateway given a namespaced name.
+// Will return nil for the gateway and no error if the trait does not exist.
+func (r *Reconciler) fetchGateway(ctx context.Context, name types.NamespacedName) (*istioclient.Gateway, error) {
+	gateway := &istioclient.Gateway{}
+	r.Log.Info("Fetch gateway", "gateway", name)
+	if err := r.Get(ctx, name, gateway); err != nil {
+		if k8serrors.IsNotFound(err) {
+			r.Log.Info("Gateway has been deleted")
+			return nil, nil
+		}
+		r.Log.Info("Failed to fetch Gateway")
+		return nil, err
+	}
+	return gateway, nil
 }
 
 // createOrUpdateVirtualService creates or updates the VirtualService child resource of the trait.

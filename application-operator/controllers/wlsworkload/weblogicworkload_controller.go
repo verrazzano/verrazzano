@@ -19,8 +19,17 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+const specField = "spec"
+
+var specServerPodFields = []string{specField, "serverPod"}
+var specServerPodLabelsFields = append(specServerPodFields, "labels")
+var specServerPodContainersFields = append(specServerPodFields, "containers")
+var specServerPodVolumesFields = append(specServerPodFields, "volumes")
+var specServerPodVolumeMountsFields = append(specServerPodFields, "volumeMounts")
 
 // this struct allows us to extract information from the unstructured WebLogic spec
 // so we can interface with the FLUENTD code
@@ -88,6 +97,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
+	// set controller reference so the WebLogic domain CR gets deleted when the workload is deleted
+	if err = controllerutil.SetControllerReference(workload, u, r.Scheme); err != nil {
+		log.Error(err, "Unable to set controller ref")
+		return reconcile.Result{}, err
+	}
+
 	// write out the WebLogic domain resource
 	if err = r.Client.Create(ctx, u); err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
@@ -119,7 +134,7 @@ func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedNam
 // copyLabels copies specific labels from the Verrazzano workload to the contained WebLogic resource
 func copyLabels(log logr.Logger, workloadLabels map[string]string, weblogic *unstructured.Unstructured) error {
 	// the WebLogic domain spec/serverPod/labels field has labels that get propagated to the pods
-	labels, found, _ := unstructured.NestedStringMap(weblogic.Object, "spec", "serverPod", "labels")
+	labels, found, _ := unstructured.NestedStringMap(weblogic.Object, specServerPodLabelsFields...)
 	if !found {
 		labels = map[string]string{}
 	}
@@ -133,7 +148,7 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, weblogic *uns
 		labels[oam.LabelAppName] = appName
 	}
 
-	err := unstructured.SetNestedStringMap(weblogic.Object, labels, "spec", "serverPod", "labels")
+	err := unstructured.SetNestedStringMap(weblogic.Object, labels, specServerPodLabelsFields...)
 	if err != nil {
 		log.Error(err, "Unable to set labels in spec serverPod")
 		return err
@@ -157,7 +172,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 	// extract just enough of the WebLogic data into concrete types so we can merge with
 	// the FLUENTD data
 	var extracted containersMountsVolumes
-	if serverPod, found, _ := unstructured.NestedMap(weblogic.Object, "spec", "serverPod"); found {
+	if serverPod, found, _ := unstructured.NestedMap(weblogic.Object, specServerPodFields...); found {
 		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(serverPod, &extracted); err != nil {
 			return errors.New("unable to extract containers, volumes, and volume mounts from WebLogic spec")
 		}
@@ -175,6 +190,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 		Volumes:      extracted.Volumes,
 		VolumeMounts: extracted.VolumeMounts,
 		LogPath:      loggingscope.BuildWLSLogPath(name),
+		HandlerEnv:   loggingscope.GetWlsSpecificContainerEnv(),
 	}
 	fluentdManager := loggingscope.GetFluentd(ctx, r.Log, r.Client)
 
@@ -195,29 +211,29 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 		return err
 	}
 
-	err = unstructured.SetNestedSlice(weblogic.Object, fluentdPodUnstructured["containers"].([]interface{}), "spec", "serverPod", "containers")
+	err = unstructured.SetNestedSlice(weblogic.Object, fluentdPodUnstructured["containers"].([]interface{}), specServerPodContainersFields...)
 	if err != nil {
 		log.Error(err, "Unable to set serverPod containers")
 		return err
 	}
-	err = unstructured.SetNestedSlice(weblogic.Object, fluentdPodUnstructured["volumes"].([]interface{}), "spec", "serverPod", "volumes")
+	err = unstructured.SetNestedSlice(weblogic.Object, fluentdPodUnstructured["volumes"].([]interface{}), specServerPodVolumesFields...)
 	if err != nil {
 		log.Error(err, "Unable to set serverPod volumes")
 		return err
 	}
-	err = unstructured.SetNestedField(weblogic.Object, fluentdPodUnstructured["volumeMounts"].([]interface{}), "spec", "serverPod", "volumeMounts")
+	err = unstructured.SetNestedField(weblogic.Object, fluentdPodUnstructured["volumeMounts"].([]interface{}), specServerPodVolumeMountsFields...)
 	if err != nil {
 		log.Error(err, "Unable to set serverPod volumeMounts")
 		return err
 	}
 
 	// logHome and logHomeEnabled fields need to be set to turn on logging
-	err = unstructured.SetNestedField(weblogic.Object, loggingscope.BuildWLSLogHome(name), "spec", "logHome")
+	err = unstructured.SetNestedField(weblogic.Object, loggingscope.BuildWLSLogHome(name), specField, "logHome")
 	if err != nil {
 		log.Error(err, "Unable to set logHome")
 		return err
 	}
-	err = unstructured.SetNestedField(weblogic.Object, true, "spec", "logHomeEnabled")
+	err = unstructured.SetNestedField(weblogic.Object, true, specField, "logHomeEnabled")
 	if err != nil {
 		log.Error(err, "Unable to set logHomeEnabled")
 		return err

@@ -130,12 +130,12 @@ func TestUpdateValidatingWebhookConfigurationFail(t *testing.T) {
 	assert.Error(err, "error should be returned updating validation webhook configuration")
 }
 
-// TestUpdateMutatingWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-application-operator
-// validatingWebhookConfiguration resource.
-// GIVEN a validatingWebhookConfiguration resource with the CA Bundle set
-//  WHEN I call UpdateValidatingnWebhookConfiguration
-//  THEN the validatingWebhookConfiguration resource set the CA Bundle as expected
-func TestUpdateMutatingWebhookConfiguration(t *testing.T) {
+// TestUpdateAppConfigMutatingWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-application-operator
+// mutatingWebhookConfiguration resource.
+// GIVEN a mutatingWebhookConfiguration resource with the CA Bundle set
+//  WHEN I call UpdateAppConfigMutatingWebhookConfiguration
+//  THEN the mutatingWebhookConfiguration resource set the CA Bundle as expected
+func TestUpdateAppConfigMutatingWebhookConfiguration(t *testing.T) {
 	assert := assert.New(t)
 
 	kubeClient := fake.NewSimpleClientset()
@@ -151,7 +151,7 @@ func TestUpdateMutatingWebhookConfiguration(t *testing.T) {
 	webhook := adminv1beta1.MutatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: MutatingWebhookName,
+			Name: AppConfigMutatingWebhookName,
 		},
 		Webhooks: []adminv1beta1.MutatingWebhook{
 			{
@@ -166,19 +166,19 @@ func TestUpdateMutatingWebhookConfiguration(t *testing.T) {
 	_, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
-	err = UpdateMutatingWebhookConfiguration(kubeClient, &caCert)
+	err = UpdateAppConfigMutatingWebhookConfiguration(kubeClient, &caCert)
 	assert.Nil(err, "error should not be returned updating validation webhook configuration")
 
-	updatedWebhook, _ := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.TODO(), MutatingWebhookName, metav1.GetOptions{})
+	updatedWebhook, _ := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.TODO(), AppConfigMutatingWebhookName, metav1.GetOptions{})
 	assert.Equal(caCert.Bytes(), updatedWebhook.Webhooks[0].ClientConfig.CABundle, "Expected CA bundle name did not match")
 }
 
-// TestUpdateMutatingWebhookConfigurationFail tests that the CA Bundle is not updated in the
-// verrazzano-application-operator validatingWebhookConfiguration resource.
-// GIVEN an invalid validatingWebhookConfiguration resource with the CA Bundle set
-//  WHEN I call UpdateValidatingnWebhookConfiguration
-//  THEN the validatingWebhookConfiguration resource will fail to be updated
-func TestUpdateMutatingWebhookConfigurationFail(t *testing.T) {
+// TestUpdateAppConfigMutatingWebhookConfigurationFail tests that the CA Bundle is not updated in the
+// verrazzano-application-operator mutatingWebhookConfiguration resource.
+// GIVEN an invalid mutatingWebhookConfiguration resource with the CA Bundle set
+//  WHEN I call UpdateAppConfigMutatingWebhookConfiguration
+//  THEN the mutatingWebhookConfiguration resource will fail to be updated
+func TestUpdateAppConfigMutatingWebhookConfigurationFail(t *testing.T) {
 	assert := assert.New(t)
 
 	kubeClient := fake.NewSimpleClientset()
@@ -209,6 +209,89 @@ func TestUpdateMutatingWebhookConfigurationFail(t *testing.T) {
 	_, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
-	err = UpdateMutatingWebhookConfiguration(kubeClient, &caCert)
+	err = UpdateAppConfigMutatingWebhookConfiguration(kubeClient, &caCert)
+	assert.Error(err, "error should be returned updating validation webhook configuration")
+}
+
+// TestUpdateIstioMutatingWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-application-operator
+// mutatingWebhookConfiguration resource.
+// GIVEN a mutatingWebhookConfiguration resource with the CA Bundle set
+//  WHEN I call UpdateIstioMutatingWebhookConfiguration
+//  THEN the mutatingWebhookConfiguration resource set the CA Bundle as expected
+func TestUpdateIstioMutatingWebhookConfiguration(t *testing.T) {
+	assert := assert.New(t)
+
+	kubeClient := fake.NewSimpleClientset()
+
+	var caCert bytes.Buffer
+	caCert.WriteString("Fake CABundle")
+	path := "/istio-defaulter"
+	service := adminv1beta1.ServiceReference{
+		Name:      OperatorName,
+		Namespace: OperatorNamespace,
+		Path:      &path,
+	}
+	webhook := adminv1beta1.MutatingWebhookConfiguration{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: IstioMutatingWebhookName,
+		},
+		Webhooks: []adminv1beta1.MutatingWebhook{
+			{
+				Name: "install.verrazzano.io",
+				ClientConfig: adminv1beta1.WebhookClientConfig{
+					Service: &service,
+				},
+			},
+		},
+	}
+
+	_, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
+	assert.Nil(err, "error should not be returned creating validation webhook configuration")
+
+	err = UpdateIstioMutatingWebhookConfiguration(kubeClient, &caCert)
+	assert.Nil(err, "error should not be returned updating validation webhook configuration")
+
+	updatedWebhook, _ := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.TODO(), IstioMutatingWebhookName, metav1.GetOptions{})
+	assert.Equal(caCert.Bytes(), updatedWebhook.Webhooks[0].ClientConfig.CABundle, "Expected CA bundle name did not match")
+}
+
+// TestUpdateIstioMutatingWebhookConfigurationFail tests that the CA Bundle is not updated in the
+// verrazzano-application-operator mutatingWebhookConfiguration resource.
+// GIVEN an invalid mutatingWebhookConfiguration resource with the CA Bundle set
+//  WHEN I call UpdateIstioMutatingWebhookConfiguration
+//  THEN the mutatingWebhookConfiguration resource will fail to be updated
+func TestUpdateIstioMutatingWebhookConfigurationFail(t *testing.T) {
+	assert := assert.New(t)
+
+	kubeClient := fake.NewSimpleClientset()
+
+	var caCert bytes.Buffer
+	caCert.WriteString("Fake CABundle")
+	path := "/istio-defaulter"
+	service := adminv1beta1.ServiceReference{
+		Name:      OperatorName,
+		Namespace: OperatorNamespace,
+		Path:      &path,
+	}
+	webhook := adminv1beta1.MutatingWebhookConfiguration{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "InvalidName",
+		},
+		Webhooks: []adminv1beta1.MutatingWebhook{
+			{
+				Name: "install.verrazzano.io",
+				ClientConfig: adminv1beta1.WebhookClientConfig{
+					Service: &service,
+				},
+			},
+		},
+	}
+
+	_, err := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
+	assert.Nil(err, "error should not be returned creating validation webhook configuration")
+
+	err = UpdateIstioMutatingWebhookConfiguration(kubeClient, &caCert)
 	assert.Error(err, "error should be returned updating validation webhook configuration")
 }

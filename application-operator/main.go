@@ -7,13 +7,25 @@ import (
 	"flag"
 	"os"
 
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustercomponent"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustersecret"
-	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
-
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterapplicationconfiguration"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustercomponent"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterconfigmap"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterloggingscope"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustersecret"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/helidonworkload"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/webhooks"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
+	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
+	"github.com/verrazzano/verrazzano/application-operator/mcagent"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -22,15 +34,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/webhooks"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -128,10 +131,15 @@ func main() {
 			os.Exit(1)
 		}
 
-		setupLog.Info("Updating webhook configuration")
-		err = certificates.UpdateMutatingWebhookConfiguration(kubeClient, caCert)
+		setupLog.Info("Updating webhook configurations")
+		err = certificates.UpdateAppConfigMutatingWebhookConfiguration(kubeClient, caCert)
 		if err != nil {
-			setupLog.Error(err, "unable to update mutating webhook configuration")
+			setupLog.Error(err, "unable to update appconfig mutating webhook configuration")
+			os.Exit(1)
+		}
+		err = certificates.UpdateIstioMutatingWebhookConfiguration(kubeClient, caCert)
+		if err != nil {
+			setupLog.Error(err, "unable to update pod mutating webhook configuration")
 			os.Exit(1)
 		}
 		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert)
@@ -150,6 +158,7 @@ func main() {
 			&webhooks.LoggingScopeDefaulter{Client: mgr.GetClient()},
 		}}
 		mgr.GetWebhookServer().Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})
+		mgr.GetWebhookServer().Register(webhooks.IstioDefaulterPath, &webhook.Admission{Handler: &webhooks.IstioWebhook{Client: mgr.GetClient()}})
 
 	}
 	reconciler := loggingscope.NewReconciler(
@@ -176,6 +185,14 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoWebLogicWorkload")
 		os.Exit(1)
 	}
+	if err = (&helidonworkload.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoHelidonWorkload"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoHelidonWorkload")
+		os.Exit(1)
+	}
 	if err = (&multiclustersecret.Reconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterSecret"),
@@ -192,7 +209,34 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterComponent")
 		os.Exit(1)
 	}
+	if err = (&multiclusterconfigmap.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterConfigMap"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterConfigMap")
+		os.Exit(1)
+	}
+	if err = (&multiclusterloggingscope.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterLoggingScope"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterLoggingScope")
+		os.Exit(1)
+	}
+	if err = (&multiclusterapplicationconfiguration.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterApplicationConfiguration"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterApplicationConfiguration")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
+
+	setupLog.Info("Starting agent for syncing multi-cluster objects")
+	go mcagent.StartAgent(mgr.GetClient(), ctrl.Log.WithName("multi-cluster agent"))
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

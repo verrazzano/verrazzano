@@ -26,9 +26,6 @@ type Reconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=multiclustersecrets,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=multiclustersecrets/status,verbs=get;update;patch
-
 // Reconcile reconciles a MultiClusterSecret resource. It fetches the embedded Secret, mutates it
 // based on the MultiClusterSecret, and updates the status of the MultiClusterSecret to reflect the
 // success or failure of the changes to the embedded Secret
@@ -52,7 +49,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 func (r *Reconciler) updateStatus(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {
-	condition, state := clusters.GetConditionAndStateFromResult(err, opResult, "OAM Component")
+	condition, state := clusters.GetConditionAndStateFromResult(err, opResult, "Secret")
 	if clusters.StatusNeedsUpdate(mcSecret.Status.Conditions, state, condition, state) {
 		mcSecret.Status.State = state
 		mcSecret.Status.Conditions = append(mcSecret.Status.Conditions, condition)
