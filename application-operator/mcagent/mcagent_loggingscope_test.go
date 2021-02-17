@@ -79,7 +79,7 @@ func TestCreateMCLoggingScope(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -148,7 +148,7 @@ func TestUpdateMCLoggingScope(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -193,7 +193,7 @@ func TestMCLoggingScopePlacement(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),

@@ -38,7 +38,7 @@ func (s *Syncer) createOrUpdateMCComponent(mcComponent clustersv1alpha1.MultiClu
 	mcComponentNew.Name = mcComponent.Name
 
 	// Create or update on the local cluster
-	return controllerutil.CreateOrUpdate(s.Context, s.MCClient, &mcComponentNew, func() error {
+	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &mcComponentNew, func() error {
 		mutateMCComponent(mcComponent, &mcComponentNew)
 		return nil
 	})

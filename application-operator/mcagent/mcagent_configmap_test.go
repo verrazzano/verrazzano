@@ -78,7 +78,7 @@ func TestCreateMCConfigMap(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -147,7 +147,7 @@ func TestUpdateMCConfigMap(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -192,7 +192,7 @@ func TestMCConfigMapPlacement(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),

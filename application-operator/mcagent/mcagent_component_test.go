@@ -78,7 +78,7 @@ func TestCreateMCComponent(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -150,7 +150,7 @@ func TestUpdateMCComponent(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -195,7 +195,7 @@ func TestMCComponentPlacement(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),

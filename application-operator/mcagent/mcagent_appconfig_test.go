@@ -77,7 +77,7 @@ func TestCreateMCAppConfig(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -154,7 +154,7 @@ func TestUpdateMCAppConfig(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -201,7 +201,7 @@ func TestMCAppConfigPlacement(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
