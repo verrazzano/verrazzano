@@ -20,12 +20,12 @@ rules:
   - apiGroups:
       - clusters.verrazzano.io
     resources:
-      - multiclusterapplicationconfiguration
-      - multiclustercomponent
-      - multiclusterconfigmap
-      - multiclusterloggingscope
-      - multiclustersecret
-      - verrazzanoproject
+      - multiclusterapplicationconfigurations
+      - multiclustercomponents
+      - multiclusterconfigmaps
+      - multiclusterloggingscopes
+      - multiclustersecrets
+      - verrazzanoprojects
     verbs:
       - get
       - list
@@ -33,12 +33,12 @@ rules:
   - apiGroups:
       - clusters.verrazzano.io
     resources:
-      - multiclusterapplicationconfiguration/status
-      - multiclustercomponent/status
-      - multiclusterconfigmap/status
-      - multiclusterloggingscope/status
-      - multiclustersecret/status
-      - verrazzanoproject/status
+      - multiclusterapplicationconfigurations/status
+      - multiclustercomponents/status
+      - multiclusterconfigmaps/status
+      - multiclusterloggingscopes/status
+      - multiclustersecrets/status
+      - verrazzanoprojects/status
     verbs:
       - get
       - list
