@@ -38,7 +38,7 @@ func (s *Syncer) createOrUpdateMCConfigMap(mcConfigMap clustersv1alpha1.MultiClu
 	mcConfigMapNew.Name = mcConfigMap.Name
 
 	// Create or update on the local cluster
-	return controllerutil.CreateOrUpdate(s.Context, s.MCClient, &mcConfigMapNew, func() error {
+	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &mcConfigMapNew, func() error {
 		mutateMCConfigMap(mcConfigMap, &mcConfigMapNew)
 		return nil
 	})

@@ -38,7 +38,7 @@ func (s *Syncer) createOrUpdateMCLoggingScope(mcLoggingScope clustersv1alpha1.Mu
 	mcLoggingScopeNew.Name = mcLoggingScope.Name
 
 	// Create or update on the local cluster
-	return controllerutil.CreateOrUpdate(s.Context, s.MCClient, &mcLoggingScopeNew, func() error {
+	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &mcLoggingScopeNew, func() error {
 		mutateMCLoggingScope(mcLoggingScope, &mcLoggingScopeNew)
 		return nil
 	})

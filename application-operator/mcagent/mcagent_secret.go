@@ -38,7 +38,7 @@ func (s *Syncer) createOrUpdateMCSecret(mcSecret clustersv1alpha1.MultiClusterSe
 	mcSecretNew.Name = mcSecret.Name
 
 	// Create or update on the local cluster
-	return controllerutil.CreateOrUpdate(s.Context, s.MCClient, &mcSecretNew, func() error {
+	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &mcSecretNew, func() error {
 		mutateMCSecret(mcSecret, &mcSecretNew)
 		return nil
 	})

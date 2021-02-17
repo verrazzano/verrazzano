@@ -34,7 +34,7 @@ func (s *Syncer) createOrUpdateMCAppConfig(mcAppConfig clustersv1alpha1.MultiClu
 	mcAppConfigNew.Name = mcAppConfig.Name
 
 	// Create or update on the local cluster
-	return controllerutil.CreateOrUpdate(s.Context, s.MCClient, &mcAppConfigNew, func() error {
+	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &mcAppConfigNew, func() error {
 		mutateMCAppConfig(mcAppConfig, &mcAppConfigNew)
 		return nil
 	})
