@@ -14,9 +14,9 @@ import (
 
 const clusterAdmin = "cluster-admin"
 const platformOperator = "verrazzano-platform-operator"
-const managedCluster = "verrazzano-managed-cluster1"
+const managedCluster = "cluster1-managed-cluster"
 const installNamespace = "verrazzano-install"
-const mcNamespace = "verrazzano-mc"
+const vzMcNamespace = "verrazzano-mc"
 const prometheusSecret = "prometheus-cluster1"
 
 var K8sClient k8s.Client
@@ -90,7 +90,7 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 			"The verrazzano-platform-operator pod should be in the Running state")
 	})
 	ginkgo.It("Create multi-cluster namespace ", func() {
-		_, stderr := util.Kubectl(fmt.Sprintf("create namespace %s", mcNamespace))
+		_, stderr := util.Kubectl(fmt.Sprintf("create namespace %s", vzMcNamespace))
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
 	ginkgo.It("Missing secret name validation ", func() {
@@ -100,11 +100,11 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 	ginkgo.It("Missing secret validation ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/vmc_sample.yaml")
 		gomega.Expect(stderr).To(gomega.ContainSubstring(
-			fmt.Sprintf(fmt.Sprintf("The Prometheus secret %s does not exist in namespace %s", prometheusSecret, mcNamespace))))
+			fmt.Sprintf(fmt.Sprintf("The Prometheus secret %s does not exist in namespace %s", prometheusSecret, vzMcNamespace))))
 	})
 	ginkgo.It("Create Prometheus secret ", func() {
 		_, stderr := util.Kubectl(
-			fmt.Sprintf("create secret generic %s -n %s --from-literal=password=mypw --from-literal=username=myuser", prometheusSecret, mcNamespace))
+			fmt.Sprintf("create secret generic %s -n %s --from-literal=password=mypw --from-literal=username=myuser", prometheusSecret, vzMcNamespace))
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
 	ginkgo.It("VerrazzanoManagedCluster can be created ", func() {
@@ -113,7 +113,7 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 	})
 	ginkgo.It("ServiceAccount exists ", func() {
 		serviceAccountExists := func() bool {
-			return K8sClient.DoesServiceAccountExist(managedCluster, mcNamespace)
+			return K8sClient.DoesServiceAccountExist(managedCluster, vzMcNamespace)
 		}
 		gomega.Eventually(serviceAccountExists, "30s", "5s").Should(gomega.BeTrue(),
 			"The ServiceAccount should exist")
