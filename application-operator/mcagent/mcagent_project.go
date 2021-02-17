@@ -32,7 +32,7 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 					return nil
 				})
 				if err != nil {
-					s.Log.Error(err, "Error creatig/updating namespace", namespace)
+					s.Log.Error(err, "Error creating/updating namespace", namespace)
 				}
 			}
 		}
