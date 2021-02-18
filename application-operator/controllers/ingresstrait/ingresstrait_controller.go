@@ -36,7 +36,7 @@ import (
 )
 
 const (
-	istioNamespace  = "istio-system"
+	istioNamespace           = "istio-system"
 	gatewayAPIVersion        = "networking.istio.io/v1alpha3"
 	gatewayKind              = "Gateway"
 	virtualServiceAPIVersion = "networking.istio.io/v1alpha3"
@@ -290,7 +290,6 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 		return ""
 	}
 	secretName = fmt.Sprintf("%s-secret", certName)
-	res := controllerutil.OperationResultNone
 	certificate := &certapiv1alpha2.Certificate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       certificateKind,
@@ -301,7 +300,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 			Name:      certName,
 		}}
 
-	res, err = controllerutil.CreateOrUpdate(ctx, r.Client, certificate, func() error {
+	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, certificate, func() error {
 		appDomainName, err := buildNamespacedDomainName(r, trait)
 		if err != nil {
 			return err
@@ -321,7 +320,6 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 	status.Relations = append(status.Relations, ref)
 	status.Results = append(status.Results, res)
 	status.Errors = append(status.Errors, err)
-
 
 	if err != nil {
 		r.Log.Error(err, "failed to create or update gateway secret containing certificate")
@@ -430,7 +428,7 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 	appName, ok := trait.Labels[oam.LabelAppName]
 	if ok {
 		appConfig := &v1alpha2.ApplicationConfiguration{}
-		err := r.Get(context.TODO(), types.NamespacedName{Namespace: trait.Namespace, Name: appName}, appConfig )
+		err := r.Get(context.TODO(), types.NamespacedName{Namespace: trait.Namespace, Name: appName}, appConfig)
 		if err != nil {
 			return err
 		}
