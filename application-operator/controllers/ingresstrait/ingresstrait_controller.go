@@ -456,22 +456,6 @@ func findHost(hosts []string, newHost string) (int, bool) {
 	return -1, false
 }
 
-// fetchGateway attempts to get a gateway given a namespaced name.
-// Will return nil for the gateway and no error if the gateway does not exist.
-func (r *Reconciler) fetchGateway(ctx context.Context, name types.NamespacedName) (*istioclient.Gateway, error) {
-	gateway := &istioclient.Gateway{}
-	r.Log.Info("Fetch gateway", "gateway", name)
-	if err := r.Get(ctx, name, gateway); err != nil {
-		if k8serrors.IsNotFound(err) {
-			r.Log.Info("Gateway has been deleted")
-			return nil, nil
-		}
-		r.Log.Info("Failed to fetch Gateway")
-		return nil, err
-	}
-	return gateway, nil
-}
-
 // createOrUpdateVirtualService creates or updates the VirtualService child resource of the trait.
 // Results are added to the status object.
 func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, service *corev1.Service, gateway *istioclient.Gateway, status *reconcileresults.ReconcileResults) {
