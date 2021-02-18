@@ -43,7 +43,7 @@ type MultiClusterSecretStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:shortName=mcsecret
+// +kubebuilder:resource:shortName=mcsecret;mcsecrets
 // +kubebuilder:subresource:status
 
 // MultiClusterSecret is the Schema for the multiclustersecrets API, which will be used by a user
