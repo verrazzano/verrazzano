@@ -23,7 +23,7 @@ type VerrazzanoProjectStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:shortName=vp
+// +kubebuilder:resource:shortName=vp;vps
 // +kubebuilder:subresource:status
 
 // VerrazzanoProject is the Schema for the verrazzanoprojects API

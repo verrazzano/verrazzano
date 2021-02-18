@@ -17,6 +17,7 @@ spec:
     plural: verrazzanoprojects
     shortNames:
     - vp
+    - vps
     singular: verrazzanoproject
   scope: Namespaced
   versions:
