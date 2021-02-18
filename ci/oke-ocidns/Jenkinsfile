@@ -5,7 +5,7 @@
 // This will eventually be replaced by the new multi-cluster job!
 
 def DEFAULT_REPO_URL
-def zoneId = "z" + UUID.randomUUID().toString().substring(0,3).replace('-','')
+def zoneId = UUID.randomUUID().toString().substring(0,3).replace('-','')
 def dns_zone_ocid = 'dummy'
 // for different Jenkins jobs sharing this Jenkins file, the default TEST_ENV (the first in testEnvironments) is different.
 def testEnvironments = env.JOB_NAME.contains('oci-dns-acceptance')
@@ -111,8 +111,8 @@ pipeline {
         INSTALL_CONFIG_FILE_OCIDNS = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
         INSTALL_CONFIG_FILE_XIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-xipio.yaml"
         INSTALL_CONFIG_FILE_NODEPORT = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nodeport.yaml"
-        OCI_DNS_ZONE = credentials('oci-dns-zone')
-        OCI_DNS_ZONE_NAME='${zoneId}.${OCI_DNS_ZONE}'
+        //OCI_DNS_ZONE = credentials('oci-dns-zone')
+        OCI_DNS_ZONE_NAME="z${zoneId}.v8o.oracledx.com"
 
         VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'ocidns_oke' ? 'b' + env.BUILD_NUMBER : 'default'}"
     }
