@@ -1,0 +1,717 @@
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+
+// This runs the acceptance tests on an OKE cluster with OCI DNS
+// This is used during the release process
+// This will eventually be replaced by the new multi-cluster job!
+
+def DEFAULT_REPO_URL
+def zoneId = "z" + UUID.randomUUID().toString().substring(0,3).replace('-','')
+def dns_zone_ocid = 'dummy'
+// for different Jenkins jobs sharing this Jenkins file, the default TEST_ENV (the first in testEnvironments) is different.
+def testEnvironments = env.JOB_NAME.contains('oci-dns-acceptance')
+                       ? ["ocidns_oke", "magicdns_oke", "kind"]
+                       : env.JOB_NAME.contains('magic-dns')
+                       ? ["magicdns_oke", "ocidns_oke", "kind"]
+                       : ["kind", "magicdns_oke", "ocidns_oke"]
+
+def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : "VM.Standard2.8"
+def availableRegions = [ "us-ashburn-1", "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
+                          "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
+                          "sa-saopaulo-1", "uk-london-1", "us-phoenix-1" ]
+Collections.shuffle(availableRegions)
+
+pipeline {
+
+    agent {
+        docker {
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            label "${agentLabel}"
+        }
+    }
+
+    parameters {
+        string defaultValue: 'master', description: 'Branch or tag or commit to clone and checkout, of the acceptance tests repo', name: 'ACCEPTANCE_TESTS_BRANCH', trim: true
+        string defaultValue: 'develop', description: 'Branch or tag or commit to clone and checkout, of the verrazzano repo', name: 'VERRAZZANO_BRANCH', trim: true
+        string defaultValue: 'master', description: 'Branch or tag or commit to clone and checkout, of the verrazzano-application-operator repo', name: 'APPLICATION_OPERATOR_BRANCH', trim: true
+        choice (description: 'OCI region to launch OKE clusters in', name: 'OKE_CLUSTER_REGION',
+            // 1st choice is the default value
+            choices: availableRegions )
+        choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
+            // 1st choice is the default value
+            choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
+        choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
+                // 1st choice is the default value
+                choices: [ "v1.17.13", "v1.16.15", "v1.18.10" ])
+        string defaultValue: 'dev', description: 'Verrazzano install profile name', name: "INSTALL_PROFILE", trim: true
+        string defaultValue: 'NONE', description: 'Verrazzano platform operator image name (within ghcr.io/verrazzano repo)', name: 'VERRAZZANO_OPERATOR_IMAGE', trim: true
+        choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
+                choices: testEnvironments)
+        booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+    }
+
+    environment {
+        CLUSTER_NAME = 'byok8s-kind'
+        OCR_CREDS = credentials('ocr-pull-and-push-account')
+        NETRC_FILE = credentials('netrc')
+        OCR_REPO = 'container-registry.oracle.com'
+        GHCR_REPO = 'ghcr.io'
+        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
+        TEST_ENV = "${params.TEST_ENV}"
+        INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
+        GITHUB_PKGS_CREDS = credentials('github-packages-credentials-rw')
+        OCIR_CREDS = credentials('ocir-pull-and-push-account')
+        WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // needed by install_todo.sh OAM example test
+        DATABASE_PSW = credentials('todo-mysql-password') // needed by install_todo.sh OAM example test
+        IMAGE_PULL_SECRET = 'verrazzano-container-registry'
+        OCIR_PHX_REPO = 'phx.ocir.io'
+        POST_DUMP_FAILED = 'false'
+
+        TF_VAR_tenancy_id = credentials('oci-tenancy')
+        TF_VAR_user_id = credentials('oci-user-ocid')
+        TF_VAR_region = "${params.OKE_CLUSTER_REGION}"
+        TF_VAR_kubernetes_version = "${params.OKE_CLUSTER_VERSION}"
+        TF_VAR_nodepool_config = "${params.OKE_NODE_POOL}"
+        TF_VAR_api_fingerprint = credentials('oci-api-key-fingerprint')
+        TF_VAR_api_private_key_path = credentials('oci-api-key')
+        TF_VAR_s3_bucket_access_key = credentials('oci-s3-bucket-access-key')
+        TF_VAR_s3_bucket_secret_key = credentials('oci-s3-bucket-secret-key')
+        TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
+
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
+        OCI_CLI_USER = credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-api-key')
+        OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
+
+        TEST_CONFIG_FILE = "${HOME}/testConfigOke.yaml"
+        CLUSTER_TYPE = getTestClusterType("${TEST_ENV}")
+        KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
+        VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
+
+        TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
+
+        SOCKS_MODEL_FILE = "${WORKSPACE}/examples/sock-shop/sock-shop-model.yaml"
+        SOCKS_BINDING_FILE = "${WORKSPACE}/examples/sock-shop/sock-shop-binding.yaml"
+        BOBS_MODEL_FILE = "${WORKSPACE}/examples/bobs-books/bobs-books-model.yaml"
+        BOBS_BINDING_FILE = "${WORKSPACE}/examples/bobs-books/bobs-books-binding.yaml"
+        BOBS_MYSQL_DEPLOY_FILE = "${WORKSPACE}/examples/bobs-books/mysql.yaml"
+        HELIDON_UPGRADE_MODEL_FILE = "${WORKSPACE}/examples/hello-helidon/hello-world-model.yaml"
+        HELIDON_UPGRADE_BINDING_FILE = "${WORKSPACE}/examples/hello-helidon/hello-world-binding.yaml"
+
+        DISABLE_SPINNER=1
+        OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
+
+        TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+        GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
+
+        SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
+
+        IMG_LIST_FILE = "${WORKSPACE}/verrazzano_images.txt"
+        POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
+
+        INSTALL_CONFIG_FILE_OCIDNS = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
+        INSTALL_CONFIG_FILE_XIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-xipio.yaml"
+        INSTALL_CONFIG_FILE_NODEPORT = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nodeport.yaml"
+        OCI_DNS_ZONE = credentials('oci-dns-zone')
+        OCI_DNS_ZONE_NAME="${zoneId}.${OCI_DNS_ZONE}"
+
+        VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'ocidns_oke' ? 'b' + env.BUILD_NUMBER : 'default'}"
+    }
+
+    stages {
+
+        stage('Initialize') {
+            steps {
+                sh """
+                    find $WORKSPACE -mindepth 1 -maxdepth 1 | xargs rm -rf
+                """
+                sh """
+                    cp -f "${NETRC_FILE}" $HOME/.netrc
+                    chmod 600 $HOME/.netrc
+                """
+                println("${params.OKE_CLUSTER_REGION}")
+                println("agentlabel: ${agentLabel}")
+                sh """
+                    echo "${NODE_LABELS}"
+                """
+            }
+        }
+
+        stage("install-oke") {
+            when { expression { return params.TEST_ENV != 'kind' } }
+            steps {
+                sh "TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/verrazzano-acceptance-test-suite/scripts/create_oke_cluster.sh"
+            }
+        }
+
+        stage('install-kind') {
+            when { expression { return params.TEST_ENV == 'kind' } }
+            steps {
+                sh """
+                    cd ${WORKSPACE}/verrazzano-acceptance-test-suite
+                    ${WORKSPACE}/verrazzano-acceptance-test-suite/scripts/install_kind.sh
+                """
+            }
+        }
+
+        stage("create-image-pull-secrets") {
+            steps {
+                sh """
+                    # Create image pull secret for Verrazzano docker images
+                    cd ${WORKSPACE}
+                    ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
+                    ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
+                    ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+                """
+            }
+        }
+
+        stage("install-platform-operator") {
+            steps {
+                sh """
+                    cd ${WORKSPACE}/platform-operator
+                    if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ] && [ -f ${WORKSPACE}/platform-operator/deploy/operator.yaml ]; then
+                        echo "Using operator.yaml from Verrazzano repo"
+                        cp ${WORKSPACE}/platform-operator/deploy/operator.yaml /tmp/operator.yaml
+                    else
+                        echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
+                        ${WORKSPACE}/tests/e2e/config/scripts/process_operator_yaml.sh . "${VERRAZZANO_OPERATOR_IMAGE}"
+                    fi
+                    cat /tmp/operator.yaml
+                    kubectl apply -f /tmp/operator.yaml
+                    # make sure ns exists
+                    ${WORKSPACE}/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+                    # create secret in verrazzano-install ns
+                    ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}" "verrazzano-install"
+                """
+            }
+        }
+
+        stage("create-dns-zone") {
+            when { expression { return params.TEST_ENV == 'ocidns_oke' } }
+            steps {
+                script {
+                    dns_zone_ocid = sh(script: "${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId}", returnStdout: true)
+                }
+            }
+        }
+
+        stage("setup-oci-dns-config") {
+            when { expression { return params.TEST_ENV == 'ocidns_oke' } }
+            environment {
+                OCI_DNS_COMPARTMENT_OCID = credentials('oci-dns-compartment')
+                OCI_PRIVATE_KEY_FILE = credentials('oci-api-key')
+                OCI_DNS_ZONE_OCID = "${dns_zone_ocid}"
+            }
+            steps {
+                script {
+                    sh """
+                        echo "Installing yq"
+                        GO111MODULE=on go get github.com/mikefarah/yq/v4
+                        export PATH=${HOME}/go/bin:${PATH}
+                        ${WORKSPACE}/tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $INSTALL_CONFIG_FILE_OCIDNS
+                    """
+                }
+            }
+        }
+
+        stage("create-oci-config-secret") {
+            when { expression { return params.TEST_ENV == 'ocidns_oke' } }
+            steps {
+                script {
+                    sh """
+                        ${WORKSPACE}/tests/e2e/config/scripts/create-test-oci-config-secret.sh
+                    """
+                }
+            }
+        }
+
+        stage("setup-xip-io-config") {
+            when { expression { return params.TEST_ENV == 'magicdns_oke' } }
+            steps {
+                script {
+                    sh """
+                        echo "Installing yq"
+                        GO111MODULE=on go get github.com/mikefarah/yq/v4
+                        export PATH=${HOME}/go/bin:${PATH}
+                        ${WORKSPACE}/tests/e2e/config/scripts/process_xipio_install_yaml.sh $INSTALL_CONFIG_FILE_XIPIO
+                    """
+                }
+            }
+        }
+
+        stage("setup-nodeport-config") {
+            when { expression { return params.TEST_ENV == 'kind' } }
+            steps {
+                script {
+                    sh """
+                        echo "Installing yq"
+                        GO111MODULE=on go get github.com/mikefarah/yq/v4
+                        export PATH=${HOME}/go/bin:${PATH}
+                        ${WORKSPACE}/tests/e2e/config/scripts/process_nodeport_install_yaml.sh $INSTALL_CONFIG_FILE_NODEPORT
+                    """
+                }
+            }
+        }
+
+        stage("install-verrazzano") {
+            steps {
+                sh """
+                    echo "Waiting for Operator to be ready"
+                    kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+                    echo "Installing Verrazzano on ${TEST_ENV}"
+                    # apply config to create cluster
+                    if [ "${TEST_ENV}" == "magicdns_oke" ]; then
+                      kubectl apply -f ${INSTALL_CONFIG_FILE_XIPIO}
+                    elif [ "${TEST_ENV}" == "ocidns_oke" ]; then
+                      kubectl apply -f ${INSTALL_CONFIG_FILE_OCIDNS}
+                    elif [ "${TEST_ENV}" == "kind" ]; then
+                      kubectl apply -f ${INSTALL_CONFIG_FILE_NODEPORT}
+                    fi
+                    # wait for Verrazzano install to complete
+                    ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+                    # Create acceptance test configuration file
+                    ${WORKSPACE}/tests/e2e/config/scripts/common-test-setup-script.sh "${WORKSPACE}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "${VZ_ENVIRONMENT_NAME}"
+
+                    # edit DNS info in the test config file
+                    if [ "${TEST_ENV}" == "magicdns_oke" ]; then
+                      ${WORKSPACE}/tests/e2e/config/scripts/get_ingress_ip.sh ${TEST_CONFIG_FILE}
+                    elif [ "${TEST_ENV}" == "ocidns_oke" ]; then
+                      ${WORKSPACE}/tests/e2e/config/scripts/get_oci_dns_zone.sh ${TEST_CONFIG_FILE} ${OCI_DNS_ZONE_NAME}
+                    elif [ "${TEST_ENV}" == "kind" ]; then
+                      ${WORKSPACE}/tests/e2e/config/scripts/get_node_ip.sh ${CLUSTER_NAME} ${TEST_CONFIG_FILE}
+                    fi
+                    echo "----------Test config file:-------------"
+                    cat ${TEST_CONFIG_FILE}
+                    echo "----------------------------------------"
+                """
+            }
+            post {
+                always {
+                    sh """
+                        ## dump out install logs
+                        mkdir -p ${WORKSPACE}/platform-operator/scripts/install/build/logs
+                        kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
+                        kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
+                        echo "Verrazzano Installation logs dumped to verrazzano-install.log"
+                        echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
+                        echo "------------------------------------------"
+                    """
+                }
+            }
+        }
+
+        stage('acceptance-tests-1') {
+            parallel {
+                // Quick fix for Bob's Books test failure that reports "Webpage is NOT Robert's Books Greetings from Verrazzano!"
+                //     Do not run this in parallel with Bob's Books because both specify a mapping for "/" path.
+                // Real fix may be to have each app use a different dnsName in the ingress binding section of the binding file
+                // and put a host header in the corresponding calls to the app.
+                stage('generic-springboot') {
+                    environment {
+                        DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/generic-springboot-test.log"
+                    }
+                    steps {
+                        script {
+                            runGinkgo('deploy-demo-app/springboot')
+                            runGinkgoFailFast('verify-demo-app/springboot')
+                        }
+                    }
+                    post {
+                        // Cleanup stage is guaranteed to run AFTER always, so diagnostic dumps
+                        // will occur before deletion of the app
+                        cleanup {
+                            runGinkgo('delete-demo-app/springboot')
+                        }
+                        always {
+                            dumpGenericSpringbootObjects()
+                            dumpGenericSpringbootLogs()
+                        }
+                    }
+                }
+                // Quick fix for OAM test failures that reports "Connect to application endpoint http://129.159.73.20:8080/greet failed with code 56. Retrying after delay."
+                //     Do not run this in parallel with "helidon-app-upgrade" because both specify a mapping for "/greet" path.
+                // Real fix may be to have each app use a different dnsName in the ingress binding section of the binding file
+                // and put a host header in the corresponding calls to the app.
+// VZ-1971: Commenting out stage until tests are stabilized.
+//                stage('oam') {
+//                    environment {
+//                        TODO_APP_IMAGE = "phx.ocir.io/stevengreenberginc/will.hopkins/todo-domain:1" // needed by install-todo.sh
+//                    }
+//                    steps {
+//                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+//                            sh """
+//                                echo "Waiting for the application operator to be ready"
+//                                kubectl -n verrazzano-system rollout status deployment/verrazzano-application-operator
+//                                cd ${WORKSPACE}/verrazzano-acceptance-test-suite
+//                                ${WORKSPACE}/verrazzano/application-operator/build/scripts/create-image-pull-secret.sh "github-packages" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
+//                                ginkgo -v -keepGoing --noColor verify-infra/oam/...
+//                                ${WORKSPACE}/verrazzano/application-operator/examples/hello-helidon/install-hello-world.sh
+//                                ginkgo -v -keepGoing --noColor verify-demo-app/hello-helidon-oam/...
+//                                ${WORKSPACE}/verrazzano/application-operator/examples/todo/install-todo.sh
+//                                ginkgo -v -keepGoing --noColor verify-demo-app/todo-oam/...
+//                            """
+//                        }
+//                    }
+//                    post {
+//                        always {
+//                            dumpVerrazzanoApplicationOperatorLogs()
+//                            sh """
+//                                ${WORKSPACE}/verrazzano/application-operator/examples/todo/uninstall-todo.sh
+//                                ${WORKSPACE}/verrazzano/application-operator/examples/hello-helidon/uninstall-hello-world.sh
+//                            """
+//                        }
+//                    }
+//                }
+            }
+        }
+
+        stage('acceptance-tests-2') {
+            parallel {
+                stage('verify-install') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            sh """
+                                cd ${WORKSPACE}/tests/e2e
+                                ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor verify-install/...
+                            """
+                        }
+                    }
+                }
+                stage('helidon-app-upgrade') {
+                    steps {
+                        script {
+                            runGinkgoFailFast('verify-infra/helidon-app-upgrade')
+                        }
+                    }
+                }
+                stage('restapi') {
+                    steps {
+                        script {
+                            runGinkgo('verify-infra/restapi')
+                        }
+                    }
+                }
+                stage('vmi') {
+                    steps {
+                        script {
+                            runGinkgo('verify-infra/vmi')
+                        }
+                    }
+                }
+                stage('lift-and-shift') {
+                    environment {
+                        DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/lift-and-shift-test.log"
+                    }
+                    steps {
+                        script {
+                            runGinkgo('deploy-demo-app/lift-and-shift')
+                            runGinkgoFailFast('verify-demo-app/lift-and-shift')
+                        }
+                    }
+                    post {
+                        // Cleanup stage is guaranteed to run AFTER failure, so if we want we can
+                        // do diagnostic dumps in a failure block before app is deleted
+                        cleanup {
+                            runGinkgo('delete-demo-app/lift-and-shift')
+                        }
+                    }
+                }
+                stage('bobs-books') {
+                    environment {
+                        DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/bobs-book-test.log"
+                    }
+                    steps {
+                        script {
+                            runGinkgo('deploy-demo-app/bobs-books')
+                            runGinkgoFailFast('verify-demo-app/bobs-books')
+                        }
+                        sh """
+                            ${WORKSPACE}/tests/e2e/config/scripts/get_verrazzano_image.sh bob >> ${IMG_LIST_FILE}
+                            ${WORKSPACE}/tests/e2e/config/scripts/get_verrazzano_image.sh bobby >> ${IMG_LIST_FILE}
+                            ${WORKSPACE}/tests/e2e/config/scripts/get_verrazzano_image.sh robert >> ${IMG_LIST_FILE}
+                        """
+                    }
+                    post {
+                        // Cleanup stage is guaranteed to run AFTER always, so diagnostic dumps
+                        // will occur before deletion of the app
+                        cleanup {
+                            runGinkgo('delete-demo-app/bobs-books')
+                        }
+                        always {
+                            dumpBobObjects()
+                            dumpBobLogs()
+                        }
+                    }
+                }
+                stage('socks') {
+                    environment {
+                        DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/socks-test.log"
+                    }
+                    steps {
+                        script {
+                            runGinkgo('deploy-demo-app/socks')
+                            runGinkgoFailFast('verify-demo-app/socks')
+                        }
+                        sh """
+                            ${WORKSPACE}/tests/e2e/config/scripts/create_verrazzano_image_list.sh ${IMG_LIST_FILE}
+                            # make necessary substitutions
+                            sed -i 's/example-hello-world-helidon/example-helidon-greet-app-v1/' ${IMG_LIST_FILE}
+                            sed -i 's/example-bobs-books-order-manager/example-bobs-bookstore-order-manager/' ${IMG_LIST_FILE}
+                        """
+                   }
+                    post {
+                        // Cleanup stage is guaranteed to run AFTER always, so diagnostic dumps
+                        // will occur before deletion of the app
+                        cleanup {
+                            runGinkgo('delete-demo-app/socks')
+                        }
+                        always {
+                            dumpSockObjects()
+                            dumpSockLogs()
+                        }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
+                    dumpK8sCluster('oke-acceptance-tests-cluster-dump.tar.gz')
+                }
+            }
+
+            dumpVerrazzanoSystemPods()
+            dumpCattleSystemPods()
+            dumpNginxIngressControllerLogs()
+            dumpVerrazzanoPlatformOperatorLogs()
+
+            sh """
+                echo "sorting the images file prior to archiving"
+                if [ -f ${IMG_LIST_FILE} ];
+                then
+                    sort -u -o ${IMG_LIST_FILE} ${IMG_LIST_FILE}
+                fi
+            """
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump.tar.gz', allowEmptyArchive: true
+            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+            sh """
+                if [ "${TEST_ENV}" == "ocidns_oke" ]; then
+                  ${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
+                fi
+                if [ "${TEST_ENV}" == "kind" ]; then
+                  ${WORKSPACE}/tests/e2e/config/scripts/delete-kind-cluster.sh
+                else
+                  TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh
+                fi
+                if [ -f ${POST_DUMP_FAILED_FILE} ]; then
+                  echo "Failures seen during dumping of artifacts, treat post as failed"
+                  exit 1
+                fi
+            """
+       }
+       failure {
+            script {
+                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME == "verrazzano/develop") {
+                    emailext recipientProviders: [[$class: 'CulpritsRecipientProvider'],[$class: 'RequesterRecipientProvider']],
+                       subject: "Verrazzano: ${env.JOB_NAME} - Failed",
+                       body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
+                    pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+                    slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
+                }
+           }
+       }
+    }
+}
+
+def getTestClusterType(testEnv) {
+    if("kind".equalsIgnoreCase(testEnv)) {
+        return "KIND"
+    } else {
+        return "OKE"
+    }
+}
+
+def runGinkgo(testSuitePath) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${WORKSPACE}/tests/e2e
+            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
+        """
+    }
+}
+
+def runGinkgoFailFast(testSuitePath) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${WORKSPACE}/tests/e2e
+            ginkgo -v -failFast --noColor ${testSuitePath}/...
+        """
+    }
+}
+
+def dumpK8sCluster(archiveFilePath) {
+    sh """
+        ${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh -z ${archiveFilePath}
+    """
+}
+
+def dumpBobObjects() {
+    sh """
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n bobby -r "bobbys-helidon-stock-application-*" -m "bobby helidon stock apps" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n bobby -r "bobbys-coherence-storage-*" -m "bobbys coherence storage" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n robert -r "roberts-helidon-stock-application-*" -m "robert helidon stock apps" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n robert -r "roberts-coherence-storage-*" -m "robert coherence storage" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-bobs-books-binding-es-*" -m "bob elastic search" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n bob -r "bobs-bookstore-*" -m "bob's servers" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n bobby -r "bobbys-front-end-*" -m "bobby's weblogic servers" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o nodes -n default -m "describing nodes" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+
+        kubectl get event -A || echo "failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def dumpBobLogs() {
+    dumpVerrazzanoOperatorLogs()
+    dumpVerrazzanoApiLogs()
+    sh """
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/bobs-bookstore-adminserver.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n bob -r "bobs-bookstore-adminserver*" -m "bob admin server" -l -c weblogic-server || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/bobs-bookstore-managed-server1.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n bob -r "bobs-bookstore-managed-server1*" -m "bob managed server 1" -l -c weblogic-server || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/bobs-bookstore-managed-server2.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n bob -r "bobs-bookstore-managed-server2*" -m "bob managed server 2" -l -c weblogic-server || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/bobbys-front-end-adminserver.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n bobby -r "bobbys-front-end-adminserver*" -m "bobby admin server" -l -c weblogic-server || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/bobbys-front-end-managed-server1.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n bobby -r "bobbys-front-end-managed-server1*" -m "bobby managed server 1" -l -c weblogic-server || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/bobbys-helidon-stock-application.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n bobby -r "bobbys-helidon-stock-application-*" -m "bobby helidon stock apps" -l -c bobbys-helidon-stock-application || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/roberts-helidon-stock-application.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n robert -r "roberts-helidon-stock-application-*" -m "robert helidon stock apps" -l -c roberts-helidon-stock-application || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/weblogic-operator.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-bobs-books-binding -r "weblogic-operator-*" -m "weblogic operator" -l -c weblogic-operator || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-system-ingresses.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o ingress -n verrazzano-system -m "verrazzano system ingresses" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-bobs-books-binding-prometheus.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-bobs-books-binding-prometheus-0-*" -m "verrazzano system bobs books binding prometheus log" -l -c prometheus || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-bobs-books-binding-prometheus-gw.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-bobs-books-binding-prometheus-gw-*" -m "verrazzano system bobs books binding prometheus-gw log" -l -c prometheus-gw || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/monitoring-prom-pusher-bobs-books-binding.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n monitoring -r "prom-pusher-bobs-books-binding-*" -m "monitoring prom pusher bobs books binding" -l -c prometheus-pusher || echo "failed" > ${POST_DUMP_FAILED_FILE}
+     """
+}
+
+def dumpGenericSpringbootObjects() {
+    sh """
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n springboot -r "verrazzano-springboot-*" -m "generic springboot app" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o nodes -n default -m "describing nodes" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+
+        kubectl get event -A || echo "failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def dumpGenericSpringbootLogs() {
+    dumpVerrazzanoOperatorLogs()
+    dumpVerrazzanoApiLogs()
+    sh """
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-springboot.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n springboot -r "verrazzano-springboot-*" -m "verrazzano springboot" -l -c verrazzano-springboot || echo "failed" > ${POST_DUMP_FAILED_FILE}
+     """
+}
+
+def dumpSockObjects() {
+    sh """
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n sockshop -m "sockshop" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-sock-shop-binding-es-*" -m "sock elastic search" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o nodes -n default -m "describing nodes" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+
+        kubectl get event -A || echo "failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def dumpSockLogs() {
+    dumpVerrazzanoOperatorLogs()
+    dumpVerrazzanoApiLogs()
+}
+
+def dumpVerrazzanoOperatorLogs() {
+    sh """
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-operator.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-operator-*" -m "verrazzano operator" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def dumpVerrazzanoSystemPods() {
+    sh """
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-system-pods.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-system-certs.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-system-kibana.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-system-es-master.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def dumpCertManagerNamespaceLogs() {
+    sh """
+        kubectl logs --selector=app=cert-manager -n cert-manager > ${WORKSPACE}/platform-operator/scripts/install/build/logs/cert-manager.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl logs --selector=app.kubernetes.io/name=external-dns -n cert-manager > ${WORKSPACE}/platform-operator/scripts/install/build/logs/external-dns.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def dumpCattleSystemPods() {
+    sh """
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/cattle-system-pods.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/rancher.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def dumpNginxIngressControllerLogs() {
+    sh """
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/nginx-ingress-controller.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def dumpVerrazzanoPlatformOperatorLogs() {
+    sh """
+        ## dump out verrazzano-platform-operator logs
+        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
+        kubectl -n verrazzano-install logs --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        echo "verrazzano-platform-operator logs dumped to verrazzano-platform-operator-pod.log"
+        echo "verrazzano-platform-operator pod description dumped to verrazzano-platform-operator-pod.out"
+        echo "------------------------------------------"
+    """
+}
+
+def dumpVerrazzanoApplicationOperatorLogs() {
+    sh """
+        ## dump out verrazzano-application-operator logs
+        mkdir -p ${WORKSPACE}/verrazzano-application-operator/logs
+        kubectl -n verrazzano-system logs --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > ${WORKSPACE}/verrazzano-application-operator/logs/verrazzano-application-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        echo "verrazzano-application-operator logs dumped to verrazzano-application-operator-pod.log"
+        echo "verrazzano-application-operator pod description dumped to verrazzano-application-operator-pod.out"
+        echo "------------------------------------------"
+    """
+}
+
+def dumpVerrazzanoApiLogs() {
+    sh """
+        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-api.log"
+        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
