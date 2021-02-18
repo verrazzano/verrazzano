@@ -66,8 +66,9 @@ kubectl --kubeconfig=${TEST_KUBECONFIG} config use-context "$context" >/dev/null
 kubectl -n ${TEST_NAMESPACE} create role podreader --verb=get,list,watch --resource=pods,pods/status
 kubectl -n istio-system create role istioservicereader --verb=get,list,watch --resource=services
 kubectl -n verrazzano-system create role verrazzanosecretreader --verb=get,list,watch --resource=secrets
+kubectl -n verrazzano-system create role verrazzanoingressreader --verb=get,list,watch --resource=ingresses
 kubectl -n ${TEST_NAMESPACE} create rolebinding podreader-binding --role=podreader --serviceaccount=${TEST_NAMESPACE}:${TEST_SERVICEACCOUNT}
 kubectl -n istio-system create rolebinding istioservicereader-binding --role=istioservicereader --serviceaccount=${TEST_NAMESPACE}:${TEST_SERVICEACCOUNT}
 kubectl -n verrazzano-system create rolebinding verrazzanosecretreader-binding --role=verrazzanosecretreader --serviceaccount=${TEST_NAMESPACE}:${TEST_SERVICEACCOUNT}
-
+kubectl -n verrazzano-system create rolebinding verrazzanoingressreader-binding --role=verrazzanoingressreader --serviceaccount=${TEST_NAMESPACE}:${TEST_SERVICEACCOUNT}
 
