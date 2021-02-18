@@ -125,9 +125,6 @@ pipeline {
         stage('Initialize') {
             steps {
                 sh """
-                    find $WORKSPACE -mindepth 1 -maxdepth 1 | xargs rm -rf
-                """
-                sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
                 """
