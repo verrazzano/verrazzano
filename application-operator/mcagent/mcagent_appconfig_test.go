@@ -61,7 +61,7 @@ func TestCreateMCAppConfig(t *testing.T) {
 	//                   Return the resource does not exist
 	mcMock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testMCAppConfigNamespace, Name: testMCAppConfigName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: testMCAppConfigNamespace, Resource: "MultiClusterApplicationConfiguration"}, testMCAppConfigName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "MultiClusterApplicationConfiguration"}, testMCAppConfigName))
 
 	// Managed Cluster - expect call to create a MultiClusterApplicationConfiguration
 	mcMock.EXPECT().

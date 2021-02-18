@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -22,9 +23,8 @@ func (s *Syncer) syncMCApplicationConfigurationObjects() error {
 	for _, mcAppConfig := range allMCApplicationConfigurations.Items {
 		if s.isThisCluster(mcAppConfig.Spec.Placement) {
 			_, err := s.createOrUpdateMCAppConfig(mcAppConfig)
-			if err != nil {
-				return err
-			}
+			s.Log.Error(err, "Error syncing MultiClusterApplicationConfiguration object",
+				types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name})
 		}
 	}
 

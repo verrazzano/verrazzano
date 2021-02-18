@@ -84,7 +84,7 @@ func TestReconcileCreateConfigMap(t *testing.T) {
 	// expect a call to fetch existing K8S ConfigMap, and return not found error, to test create case
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ConfigMap"}, crName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ConfigMap"}, crName))
 
 	// expect a call to create the K8S ConfigMap
 	cli.EXPECT().
@@ -178,7 +178,7 @@ func TestReconcileCreateConfigMapFailed(t *testing.T) {
 	// expect a call to fetch existing K8S ConfigMap and return not found error, to simulate create case
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ConfigMap"}, crName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ConfigMap"}, crName))
 
 	// expect a call to create the K8S ConfigMap and fail the call
 	cli.EXPECT().

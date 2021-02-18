@@ -61,7 +61,7 @@ func TestCreateMCLoggingScope(t *testing.T) {
 	//                   Return the resource does not exist
 	mcMock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testMCLoggingScopeNamespace, Name: testMCLoggingScopeName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: testMCLoggingScopeNamespace, Resource: "MultiClusterLoggingScope"}, testMCLoggingScopeName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "MultiClusterLoggingScope"}, testMCLoggingScopeName))
 
 	// Managed Cluster - expect call to create a MultiClusterLoggingScope
 	mcMock.EXPECT().

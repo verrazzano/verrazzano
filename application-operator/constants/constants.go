@@ -6,5 +6,8 @@ package constants
 // VerrazzanoSystemNamespace is the system namespace for verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
 
+// VerrazzanoMultiClusterNamespace is the multi-cluster namespace for verrazzano
+const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
+
 // MCRegistrationSecret - the name of the secret that contains the cluster registration information
 const MCRegistrationSecret = "verrazzano-cluster"
