@@ -588,29 +588,76 @@ pipeline {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
-                        // yes i know this is ugly - working on cleaning it up
                         stage('examples todo') {
+                            environment {
+                                TEST_ROLE_BINDING = "todo-list-binding"
+                                TEST_ROLE = "verrazzano-project-admin"
+                                TEST_NAMESPACE = "todo-list"
+                                TEST_SERVICEACCOUNT= "todo-list"
+                                TS = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                                TEST_KUBECONFIG= "/tmp/" + "${TS}"
+                            }
                             when {
                                 expression {params.RUN_EXAMPLE_TESTS == true}
                             }
                             steps {
-                                runGinkgo('examples/todo-list')
+                                runGinkgoWithKubeClient('examples/todo-list')
+                            }
+                            post {
+                                always {
+                                    sh """
+                                        cd ${GO_REPO_PATH}/verrazzano
+                                        ./tools/scripts/remove-test-kube-client.sh
+                                    """
+                                }
                             }
                         }
                         stage('examples socks') {
+                            environment {
+                                TEST_ROLE_BINDING = "sock-shop-binding"
+                                TEST_ROLE = "verrazzano-project-admin"
+                                TEST_NAMESPACE = "sockshop"
+                                TEST_SERVICEACCOUNT= "sockshop"
+                                TS = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                                TEST_KUBECONFIG= "/tmp/" + "${TS}"
+                            }
                             when {
                                 expression {params.RUN_EXAMPLE_TESTS == true}
                             }
                             steps {
-                                runGinkgo('examples/sock-shop')
+                                runGinkgoWithKubeClient('examples/sock-shop')
+                            }
+                            post {
+                                always {
+                                    sh """
+                                        cd ${GO_REPO_PATH}/verrazzano
+                                        ./tools/scripts/remove-test-kube-client.sh
+                                    """
+                                }
                             }
                         }
                         stage('examples spring') {
+                            environment {
+                                TEST_ROLE_BINDING = "springboot-app-binding"
+                                TEST_ROLE = "verrazzano-project-admin"
+                                TEST_NAMESPACE = "springboot"
+                                TEST_SERVICEACCOUNT= "springboot"
+                                TS = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                                TEST_KUBECONFIG= "/tmp/" + "${TS}"
+                            }
                             when {
                                 expression {params.RUN_EXAMPLE_TESTS == true}
                             }
                             steps {
-                                runGinkgo('examples/springboot-app')
+                                runGinkgoWithKubeClient('examples/springboot-app')
+                            }
+                            post {
+                                always {
+                                    sh """
+                                        cd ${GO_REPO_PATH}/verrazzano
+                                        ./tools/scripts/remove-test-kube-client.sh
+                                    """
+                                }
                             }
                         }
                         stage('examples helidon') {
@@ -638,11 +685,27 @@ pipeline {
                             }
                         }
 			            stage('examples bobs') {
+                            environment {
+                                TEST_ROLE_BINDING = "bobs-books-binding"
+                                TEST_ROLE = "verrazzano-project-admin"
+                                TEST_NAMESPACE = "bobs-books"
+                                TEST_SERVICEACCOUNT= "bobs-books"
+                                TS = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                                TEST_KUBECONFIG= "/tmp/" + "${TS}"
+                            }
                             when {
                                 expression {params.RUN_EXAMPLE_TESTS == true}
                             }
                             steps {
-                                runGinkgo('examples/bobs-books')
+                                runGinkgoWithKubeClient('examples/bobs-books')
+                            }
+                            post {
+                                always {
+                                    sh """
+                                        cd ${GO_REPO_PATH}/verrazzano
+                                        ./tools/scripts/remove-test-kube-client.sh
+                                    """
+                                }
                             }
                         }
                     }

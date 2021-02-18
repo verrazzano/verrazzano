@@ -20,10 +20,9 @@ const (
 )
 
 var _ = ginkgo.BeforeSuite(func() {
-	/*	if _, err := pkg.CreateNamespace("oam-hello-helidon", map[string]string{"verrazzano-managed": "true"}); err != nil {
-			ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
-		}
-	*/
+	if _, err := pkg.CreateNamespace("oam-hello-helidon", map[string]string{"verrazzano-managed": "true"}); err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
+	}
 	if err := pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-comp.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create hello-helidon component resources: %v", err))
 	}
@@ -43,10 +42,10 @@ var _ = ginkgo.AfterSuite(func() {
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not delete hello-helidon component resource: %v\n", err.Error()))
 	}
-	/*err = pkg.DeleteNamespace("oam-hello-helidon")
+	err = pkg.DeleteNamespace("oam-hello-helidon")
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not delete oam-hello-helidon namespace: %v\n", err.Error()))
-	}*/
+	}
 })
 
 var (
