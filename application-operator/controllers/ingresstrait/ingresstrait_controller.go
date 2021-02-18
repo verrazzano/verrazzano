@@ -36,6 +36,7 @@ import (
 )
 
 const (
+	istioNamespace  = "istio-system"
 	gatewayAPIVersion        = "networking.istio.io/v1alpha3"
 	gatewayKind              = "Gateway"
 	virtualServiceAPIVersion = "networking.istio.io/v1alpha3"
@@ -271,9 +272,8 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 	var secretName string
 	var err error
 	var certName string
-	const istioNamespace = "istio-system"
 
-	//ensure trait does not specify hosts
+	//ensure trait does not specify hosts.  should be moved to ingress trait validating webhook
 	for _, rule := range trait.Spec.Rules {
 		if len(rule.Hosts) != 0 {
 			r.Log.Info("host(s) specified in the trait rules will likely not correlate to the generated certificate CN." +
@@ -289,55 +289,39 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 		status.Results = append(status.Results, controllerutil.OperationResultNone)
 		return ""
 	}
-	// check if certificate already exists and skip creation if it does
-	certificate := &certapiv1alpha2.Certificate{}
-	err = r.Get(context.TODO(), types.NamespacedName{Name: certName, Namespace: istioNamespace}, certificate)
 	secretName = fmt.Sprintf("%s-secret", certName)
-	if err != nil {
-		res := controllerutil.OperationResultNone
-		if k8serrors.IsNotFound(err) {
-			certificate = &certapiv1alpha2.Certificate{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       certificateKind,
-					APIVersion: certificateAPIVersion,
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: istioNamespace,
-					Name:      certName,
-				}}
+	res := controllerutil.OperationResultNone
+	certificate := &certapiv1alpha2.Certificate{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       certificateKind,
+			APIVersion: certificateAPIVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: istioNamespace,
+			Name:      certName,
+		}}
 
-			res, err = controllerutil.CreateOrUpdate(ctx, r.Client, certificate, func() error {
-				r.Log.Info("Updating certificate spec with secret")
-				appDomainName, err := buildNamespacedDomainName(r, trait)
-				if err != nil {
-					return err
-				}
-				certificate.Spec = certapiv1alpha2.CertificateSpec{
-					DNSNames:   []string{fmt.Sprintf("*.%s", appDomainName)},
-					SecretName: secretName,
-					IssuerRef: certv1.ObjectReference{
-						Name: verrazzanoClusterIssuer,
-						Kind: "ClusterIssuer",
-					},
-				}
-
-				// Set the owner reference.
-				controllerutil.SetControllerReference(trait, certificate, r.Scheme)
-				secret := &corev1.Secret{}
-				if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: istioNamespace}, secret); err != nil {
-					controllerutil.SetControllerReference(trait, secret, r.Scheme)
-				}
-
-				return nil
-			})
-		} else {
-			status.Errors = append(status.Errors, err)
+	res, err = controllerutil.CreateOrUpdate(ctx, r.Client, certificate, func() error {
+		appDomainName, err := buildNamespacedDomainName(r, trait)
+		if err != nil {
+			return err
 		}
-		ref := vzapi.QualifiedResourceRelation{APIVersion: certificateAPIVersion, Kind: certificateKind, Name: certificate.Name, Role: "certificate"}
-		status.Relations = append(status.Relations, ref)
-		status.Results = append(status.Results, res)
-		status.Errors = append(status.Errors, err)
-	}
+		certificate.Spec = certapiv1alpha2.CertificateSpec{
+			DNSNames:   []string{fmt.Sprintf("*.%s", appDomainName)},
+			SecretName: secretName,
+			IssuerRef: certv1.ObjectReference{
+				Name: verrazzanoClusterIssuer,
+				Kind: "ClusterIssuer",
+			},
+		}
+
+		return nil
+	})
+	ref := vzapi.QualifiedResourceRelation{APIVersion: certificateAPIVersion, Kind: certificateKind, Name: certificate.Name, Role: "certificate"}
+	status.Relations = append(status.Relations, ref)
+	status.Results = append(status.Results, res)
+	status.Errors = append(status.Errors, err)
+
 
 	if err != nil {
 		r.Log.Error(err, "failed to create or update gateway secret containing certificate")
@@ -443,8 +427,18 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 				Protocol: "HTTP"},
 		}}
 	// Set the owner reference.
-	controllerutil.SetControllerReference(trait, gateway, r.Scheme)
-
+	appName, ok := trait.Labels[oam.LabelAppName]
+	if ok {
+		appConfig := &v1alpha2.ApplicationConfiguration{}
+		err := r.Get(context.TODO(), types.NamespacedName{Namespace: trait.Namespace, Name: appName}, appConfig )
+		if err != nil {
+			return err
+		}
+		err = controllerutil.SetControllerReference(appConfig, gateway, r.Scheme)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -453,7 +447,7 @@ func appendToConfiguredHosts(hostsToAppend []string, existingHosts []string) []s
 	for _, newHost := range hostsToAppend {
 		_, hostFound := findHost(existingHosts, newHost)
 		if !hostFound {
-			existingHosts = append(existingHosts, newHost)
+			existingHosts = append(existingHosts, strings.ToLower(newHost))
 		}
 	}
 	return existingHosts
@@ -463,7 +457,7 @@ func appendToConfiguredHosts(hostsToAppend []string, existingHosts []string) []s
 // return it's key, otherwise it will return -1 and a bool of false.
 func findHost(hosts []string, newHost string) (int, bool) {
 	for i, host := range hosts {
-		if host == newHost {
+		if strings.EqualFold(host, newHost) {
 			return i, true
 		}
 	}

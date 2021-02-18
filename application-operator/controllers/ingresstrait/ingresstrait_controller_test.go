@@ -12,6 +12,7 @@ import (
 	"time"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
+	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/golang/mock/gomock"
@@ -141,10 +142,6 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 						UID:        "test-workload-uid",
 					}}}})
 		})
-	// Expect a call to get the certificate related to the ingress trait
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert"}, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Certificate"}, "test-space-myapp-cert"))
 	// Expect a call to create the certificate and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
@@ -168,11 +165,16 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
 			return nil
 		})
+	// Expect a call to get the app config and return that it is not found.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert-secret"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *v1.Secret) error {
-			return nil
-		})
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "myapp"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, app *v1alpha2.ApplicationConfiguration) error {
+		app.TypeMeta = metav1.TypeMeta{
+			APIVersion: "core.oam.dev/v1alpha2",
+			Kind:       "ApplicationConfiguration",
+		}
+		return nil
+	})
 	// Expect a call to get the gateway resource related to the ingress trait and return that it is not found.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-space-myapp-gw"}, gomock.Not(gomock.Nil())).
@@ -315,6 +317,16 @@ func TestSuccessfullyCreateNewIngressWithCertSecret(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-space-myapp-gw"}, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Gateway"}, "test-space-myapp-gw"))
+	// Expect a call to get the app config and return that it is not found.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "myapp"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, app *v1alpha2.ApplicationConfiguration) error {
+			app.TypeMeta = metav1.TypeMeta{
+				APIVersion: "core.oam.dev/v1alpha2",
+				Kind:       "ApplicationConfiguration",
+			}
+			return nil
+		})
 	// Expect a call to get the virtual service resource related to the ingress trait and return that it is not found.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-trait-name-rule-0-vs"}, gomock.Not(gomock.Nil())).
@@ -443,7 +455,7 @@ func TestSuccessfullyUpdateIngressWithCertSecret(t *testing.T) {
 						Name:     "https",
 						Number:   443,
 						Protocol: "HTTPS"},
-					Hosts: []string{"test2-host", "test3-host"},
+					Hosts: []string{"Test-host", "test2-host", "test3-host"},
 				}}}
 			return nil
 		})
@@ -476,6 +488,16 @@ func TestSuccessfullyUpdateIngressWithCertSecret(t *testing.T) {
 			assert.Contains(gateway.Spec.Servers[0].Hosts, "test-host", "doesn't contain expected host")
 			assert.Contains(gateway.Spec.Servers[0].Hosts, "test2-host", "doesn't contain expected host")
 			assert.Contains(gateway.Spec.Servers[0].Hosts, "test3-host", "doesn't contain expected host")
+			return nil
+		})
+	// Expect a call to get the app config and return that it is not found.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "myapp"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, app *v1alpha2.ApplicationConfiguration) error {
+			app.TypeMeta = metav1.TypeMeta{
+				APIVersion: "core.oam.dev/v1alpha2",
+				Kind:       "ApplicationConfiguration",
+			}
 			return nil
 		})
 	// Expect a call to get the virtual service resource related to the ingress trait and return that it is not found.
@@ -813,10 +835,16 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 						UID:        "test-workload-uid",
 					}}}})
 		})
-	// Expect a call to get the certificate related to the ingress trait
+	// Expect a call to get the app config and return that it is not found.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert"}, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Certificate"}, "test-space-myapp-cert"))
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "myapp"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, app *v1alpha2.ApplicationConfiguration) error {
+			app.TypeMeta = metav1.TypeMeta{
+				APIVersion: "core.oam.dev/v1alpha2",
+				Kind:       "ApplicationConfiguration",
+			}
+			return nil
+		})
 	// Expect a call to create the certificate and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
@@ -834,11 +862,6 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 				Namespace:   name.Namespace,
 				Name:        name.Name,
 				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
-			return nil
-		})
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert-secret"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *v1.Secret) error {
 			return nil
 		})
 	// Expect a call to get the gateway resource related to the ingress trait and return that it is not found.
@@ -1074,10 +1097,16 @@ func TestFailureToUpdateStatus(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert"}, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Certificate"}, "test-space-myapp-cert"))
-	// Expect a call to get the certificate related to the ingress trait
+	// Expect a call to get the app config and return that it is not found.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert"}, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Certificate"}, "test-space-myapp-cert"))
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "myapp"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, app *v1alpha2.ApplicationConfiguration) error {
+			app.TypeMeta = metav1.TypeMeta{
+				APIVersion: "core.oam.dev/v1alpha2",
+				Kind:       "ApplicationConfiguration",
+			}
+			return nil
+		})
 	// Expect a call to create the certificate and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
@@ -1095,11 +1124,6 @@ func TestFailureToUpdateStatus(t *testing.T) {
 				Namespace:   name.Namespace,
 				Name:        name.Name,
 				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
-			return nil
-		})
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert-secret"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *v1.Secret) error {
 			return nil
 		})
 	// Expect a call to get the gateway resource related to the ingress trait and return that it is not found.
@@ -1824,7 +1848,7 @@ func TestExtractServiceMultipleServices(t *testing.T) {
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	//_ = clientgoscheme.AddToScheme(scheme)
-	//_ = core.AddToScheme(scheme)
+	core.AddToScheme(scheme)
 	vzapi.AddToScheme(scheme)
 	return scheme
 }
