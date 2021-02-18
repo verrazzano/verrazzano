@@ -24,4 +24,4 @@ spec:
         - arrayVal2
   placement:
     clusters:
-      - name: managed1
+      - name: cluster1

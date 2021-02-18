@@ -12,7 +12,7 @@ import (
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -322,7 +322,7 @@ func getSampleMCAppConfig(filePath string) (clustersv1alpha1.MultiClusterApplica
 		return mcAppConfig, err
 	}
 
-	rawResource, err := clusters.ReadYaml2Json(sampleAppConfigFile)
+	rawResource, err := clusterstest.ReadYaml2Json(sampleAppConfigFile)
 	if err != nil {
 		return mcAppConfig, err
 	}
