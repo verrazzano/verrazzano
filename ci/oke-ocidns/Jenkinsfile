@@ -32,9 +32,6 @@ pipeline {
     }
 
     parameters {
-        string defaultValue: 'master', description: 'Branch or tag or commit to clone and checkout, of the acceptance tests repo', name: 'ACCEPTANCE_TESTS_BRANCH', trim: true
-        string defaultValue: 'develop', description: 'Branch or tag or commit to clone and checkout, of the verrazzano repo', name: 'VERRAZZANO_BRANCH', trim: true
-        string defaultValue: 'master', description: 'Branch or tag or commit to clone and checkout, of the verrazzano-application-operator repo', name: 'APPLICATION_OPERATOR_BRANCH', trim: true
         choice (description: 'OCI region to launch OKE clusters in', name: 'OKE_CLUSTER_REGION',
             // 1st choice is the default value
             choices: availableRegions )
@@ -139,7 +136,7 @@ pipeline {
         stage("install-oke") {
             when { expression { return params.TEST_ENV != 'kind' } }
             steps {
-                sh "TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/verrazzano-acceptance-test-suite/scripts/create_oke_cluster.sh"
+                sh "TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/create_oke_cluster.sh"
             }
         }
 
