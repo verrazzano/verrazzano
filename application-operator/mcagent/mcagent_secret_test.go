@@ -228,6 +228,80 @@ func TestMCSecretPlacement(t *testing.T) {
 	assert.NoError(err)
 }
 
+// TestDeleteMCSecret tests the synchronization method for the following use case.
+// GIVEN a request to sync MultiClusterSecret objects
+// WHEN the object exists on the local cluster but not on the admin cluster
+// THEN ensure that the MultiClusterSecret is deleted.
+func TestDeleteMCSecret(t *testing.T) {
+	assert := asserts.New(t)
+	log := ctrl.Log.WithName("test")
+
+	// Managed cluster mocks
+	mcMocker := gomock.NewController(t)
+	mcMock := mocks.NewMockClient(mcMocker)
+
+	// Admin cluster mocks
+	adminMocker := gomock.NewController(t)
+	adminMock := mocks.NewMockClient(adminMocker)
+
+	// Test data
+	testMCSecret, err := getSampleMCSecret("testdata/multicluster-secret.yaml")
+	if err != nil {
+		assert.NoError(err, "failed to read sample data for MultiClusterSecret")
+	}
+	testMCSecretOrphan, err := getSampleMCSecret("testdata/multicluster-secret.yaml")
+	if err != nil {
+		assert.NoError(err, "failed to read sample data for MultiClusterSecret")
+	}
+	testMCSecretOrphan.Name = "orphaned-resource"
+
+	// Admin Cluster - expect call to list MultiClusterSecret objects - return list with one object
+	adminMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
+			return nil
+		})
+
+	// Managed Cluster - expect call to get a MultiClusterSecret from the list returned by the admin cluster
+	//                   Return the resource
+	mcMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testMCSecretNamespace, Name: testMCSecretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcSecret *clustersv1alpha1.MultiClusterSecret) error {
+			testMCSecret.DeepCopyInto(mcSecret)
+			return nil
+		})
+
+	// Managed Cluster - expect call to list MultiClusterSecret objects - return list including an orphaned object
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecretOrphan)
+			return nil
+		})
+
+	// Managed Cluster - expect a call to delete a MultiClusterSecret object
+	mcMock.EXPECT().
+		Delete(gomock.Any(), gomock.Eq(&testMCSecretOrphan), gomock.Any()).
+		Return(nil)
+
+	// Make the request
+	s := &Syncer{
+		AdminClient:        adminMock,
+		LocalClient:        mcMock,
+		Log:                log,
+		ManagedClusterName: testClusterName,
+		Context:            context.TODO(),
+	}
+	err = s.syncMCApplicationConfigurationObjects()
+
+	// Validate the results
+	adminMocker.Finish()
+	mcMocker.Finish()
+	assert.NoError(err)
+}
+
 // getSampleMCSecret creates and returns a sample MultiClusterSecret used in tests
 func getSampleMCSecret(filePath string) (clustersv1alpha1.MultiClusterSecret, error) {
 	mcSecret := clustersv1alpha1.MultiClusterSecret{}
