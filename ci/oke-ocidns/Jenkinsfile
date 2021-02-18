@@ -309,56 +309,16 @@ pipeline {
                     }
                     steps {
                         script {
-                            runGinkgo('deploy-demo-app/springboot')
-                            runGinkgoFailFast('verify-demo-app/springboot')
+                            runGinkgo('examples/springboot-app')
                         }
                     }
                     post {
-                        // Cleanup stage is guaranteed to run AFTER always, so diagnostic dumps
-                        // will occur before deletion of the app
-                        cleanup {
-                            runGinkgo('delete-demo-app/springboot')
-                        }
                         always {
                             dumpGenericSpringbootObjects()
                             dumpGenericSpringbootLogs()
                         }
                     }
                 }
-                // Quick fix for OAM test failures that reports "Connect to application endpoint http://129.159.73.20:8080/greet failed with code 56. Retrying after delay."
-                //     Do not run this in parallel with "helidon-app-upgrade" because both specify a mapping for "/greet" path.
-                // Real fix may be to have each app use a different dnsName in the ingress binding section of the binding file
-                // and put a host header in the corresponding calls to the app.
-// VZ-1971: Commenting out stage until tests are stabilized.
-//                stage('oam') {
-//                    environment {
-//                        TODO_APP_IMAGE = "phx.ocir.io/stevengreenberginc/will.hopkins/todo-domain:1" // needed by install-todo.sh
-//                    }
-//                    steps {
-//                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-//                            sh """
-//                                echo "Waiting for the application operator to be ready"
-//                                kubectl -n verrazzano-system rollout status deployment/verrazzano-application-operator
-//                                cd ${WORKSPACE}/verrazzano-acceptance-test-suite
-//                                ${WORKSPACE}/verrazzano/application-operator/build/scripts/create-image-pull-secret.sh "github-packages" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
-//                                ginkgo -v -keepGoing --noColor verify-infra/oam/...
-//                                ${WORKSPACE}/verrazzano/application-operator/examples/hello-helidon/install-hello-world.sh
-//                                ginkgo -v -keepGoing --noColor verify-demo-app/hello-helidon-oam/...
-//                                ${WORKSPACE}/verrazzano/application-operator/examples/todo/install-todo.sh
-//                                ginkgo -v -keepGoing --noColor verify-demo-app/todo-oam/...
-//                            """
-//                        }
-//                    }
-//                    post {
-//                        always {
-//                            dumpVerrazzanoApplicationOperatorLogs()
-//                            sh """
-//                                ${WORKSPACE}/verrazzano/application-operator/examples/todo/uninstall-todo.sh
-//                                ${WORKSPACE}/verrazzano/application-operator/examples/hello-helidon/uninstall-hello-world.sh
-//                            """
-//                        }
-//                    }
-//                }
             }
         }
 
@@ -374,10 +334,10 @@ pipeline {
                         }
                     }
                 }
-                stage('helidon-app-upgrade') {
+                stage('hello-helidon') {
                     steps {
                         script {
-                            runGinkgoFailFast('verify-infra/helidon-app-upgrade')
+                            runGinkgoFailFast('examples/hello-helidon')
                         }
                     }
                 }
@@ -395,21 +355,20 @@ pipeline {
                         }
                     }
                 }
+                stage('oam') {
+                    steps {
+                        script {
+                            runGinkgo('verify-infra/oam')
+                        }
+                    }
+                }
                 stage('lift-and-shift') {
                     environment {
                         DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/lift-and-shift-test.log"
                     }
                     steps {
                         script {
-                            runGinkgo('deploy-demo-app/lift-and-shift')
-                            runGinkgoFailFast('verify-demo-app/lift-and-shift')
-                        }
-                    }
-                    post {
-                        // Cleanup stage is guaranteed to run AFTER failure, so if we want we can
-                        // do diagnostic dumps in a failure block before app is deleted
-                        cleanup {
-                            runGinkgo('delete-demo-app/lift-and-shift')
+                            runGinkgo('examples/todo-list')
                         }
                     }
                 }
@@ -419,8 +378,7 @@ pipeline {
                     }
                     steps {
                         script {
-                            runGinkgo('deploy-demo-app/bobs-books')
-                            runGinkgoFailFast('verify-demo-app/bobs-books')
+                            runGinkgo('examples/bobs-books')
                         }
                         sh """
                             ${WORKSPACE}/tests/e2e/config/scripts/get_verrazzano_image.sh bob >> ${IMG_LIST_FILE}
@@ -429,11 +387,6 @@ pipeline {
                         """
                     }
                     post {
-                        // Cleanup stage is guaranteed to run AFTER always, so diagnostic dumps
-                        // will occur before deletion of the app
-                        cleanup {
-                            runGinkgo('delete-demo-app/bobs-books')
-                        }
                         always {
                             dumpBobObjects()
                             dumpBobLogs()
@@ -446,8 +399,7 @@ pipeline {
                     }
                     steps {
                         script {
-                            runGinkgo('deploy-demo-app/socks')
-                            runGinkgoFailFast('verify-demo-app/socks')
+                            runGinkgo('examples/sock-shop')
                         }
                         sh """
                             ${WORKSPACE}/tests/e2e/config/scripts/create_verrazzano_image_list.sh ${IMG_LIST_FILE}
@@ -457,11 +409,6 @@ pipeline {
                         """
                    }
                     post {
-                        // Cleanup stage is guaranteed to run AFTER always, so diagnostic dumps
-                        // will occur before deletion of the app
-                        cleanup {
-                            runGinkgo('delete-demo-app/socks')
-                        }
                         always {
                             dumpSockObjects()
                             dumpSockLogs()
