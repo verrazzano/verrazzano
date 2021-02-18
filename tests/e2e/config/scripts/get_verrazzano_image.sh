@@ -2,7 +2,7 @@
 
 set -e
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
-WORKSPACE_ROOT=${SCRIPT_DIR}/../..
+WORKSPACE_ROOT=${SCRIPT_DIR}/../../../..
 IMG_LIST_FILE=$1
 
 if [ -z "${KUBECONFIG}" ] ; then

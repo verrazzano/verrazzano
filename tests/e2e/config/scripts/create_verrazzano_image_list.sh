@@ -2,7 +2,7 @@
 
 set -e
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
-WORKSPACE_ROOT=${SCRIPT_DIR}/../..
+WORKSPACE_ROOT=${SCRIPT_DIR}/../../../..
 IMG_LIST_FILE=$1
 
 if [ -z "${KUBECONFIG}" ] ; then
@@ -10,7 +10,7 @@ if [ -z "${KUBECONFIG}" ] ; then
     exit 1
 fi
 
-source ${WORKSPACE_ROOT}/platform-operator/scripts/install/common.sh
+source ${WORKSPACE}/platform-operator/scripts/install/common.sh
 # get image list from cluster and persist to output file
 echo "Inspecting cluster pods for verrazzano release images"
 kubectl get pods --all-namespaces -o jsonpath="{..image}" |\tr -s '[[:space:]]' '\n' |\sort |\uniq | grep verrazzano | grep / | cut -d/ -f2- >> ${IMG_LIST_FILE} || exit 1
