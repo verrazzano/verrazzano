@@ -343,11 +343,15 @@ rules:
     - verrazzano.io
     - oam.verrazzano.io
     - install.verrazzano.io
+    - core.oam.dev
   resources:
     - "*"
   verbs:
     - put
     - post
+    - create
+    - update
+    - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole

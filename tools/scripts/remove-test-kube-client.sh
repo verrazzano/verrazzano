@@ -24,11 +24,15 @@ if [[ -z "${TEST_ROLE_BINDING}" ]]; then
     exit 1
 fi
 
-set -e
+kubectl delete clusterrolebinding $TEST_ROLE_BINDING || true
+kubectl -n ${TEST_NAMESPACE} delete rolebinding podreader-binding || true
+kubectl -n istio-system delete rolebinding istioservicereader-binding || true
+kubectl -n verrazzano-system delete rolebinding verrazzanosecretreader-binding || true
+kubectl -n ${TEST_NAMESPACE} delete role podreader || true
+kubectl -n istio-system delete role istioservicereader || true
+kubectl -n verrazzano-system delete role verrazzanosecretreader || true
+kubectl -n $TEST_NAMESPACE delete serviceaccount $TEST_SERVICEACCOUNT || true
+kubectl delete ns $TEST_NAMESPACE || true
+rm -rf $TEST_KUBECONFIG || true
 
-kubectl delete clusterrolebinding $TEST_ROLE_BINDING
-kubectl -n $TEST_NAMESPACE delete serviceaccount $TEST_SERVICEACCOUNT
-kubectl delete ns $TEST_NAMESPACE
-rm -rf $TEST_KUBECONFIG
 
-set +e
