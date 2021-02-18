@@ -237,7 +237,13 @@ func TestDeleteMCAppConfig(t *testing.T) {
 		})
 
 	// Managed Cluster - expect a call to delete a MultiClusterApplicationConfiguration object
-	mcMock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	mcMock.EXPECT().
+		Delete(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration, opts ...*client.ListOptions) error {
+			assert.Equal(testMCAppConfigOrphan.Name, mcAppConfig.Name, "unexpected object being deleted")
+			assert.Equal(testMCAppConfigOrphan.Namespace, mcAppConfig.Namespace, "unexpected object being deleted")
+			return nil
+		})
 
 	// Make the request
 	s := &Syncer{
