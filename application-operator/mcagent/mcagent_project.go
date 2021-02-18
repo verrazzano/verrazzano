@@ -6,6 +6,7 @@ package mcagent
 import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -24,9 +25,8 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 	for _, vp := range allProjects.Items {
 		if vp.Namespace == constants.VerrazzanoMultiClusterNamespace {
 			_, err := s.createOrUpdateVerrazzanoProject(vp)
-			if err != nil {
-				return err
-			}
+			s.Log.Error(err, "Error syncing VerrazzanoProject object",
+				types.NamespacedName{Namespace: vp.Namespace, Name: vp.Name})
 		}
 	}
 	return nil
@@ -40,7 +40,12 @@ func (s *Syncer) createOrUpdateVerrazzanoProject(vp clustersv1alpha1.VerrazzanoP
 
 	// Create or update on the local cluster
 	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &vpNew, func() error {
-		vpNew.Spec.Namespaces = vp.Spec.Namespaces
+		mutateVerrazzanoProject(vp, &vpNew)
 		return nil
 	})
+}
+
+// mutateVerrazzanoProject mutates the VerrazzanoProject to reflect the contents of the parent VerrazzanoProject
+func mutateVerrazzanoProject(vp clustersv1alpha1.VerrazzanoProject, vpNew *clustersv1alpha1.VerrazzanoProject) {
+	vpNew.Spec.Namespaces = vp.Spec.Namespaces
 }

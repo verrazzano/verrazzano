@@ -5,6 +5,7 @@ package mcagent
 
 import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -22,9 +23,8 @@ func (s *Syncer) syncMCComponentObjects() error {
 	for _, mcComponent := range allMCComponents.Items {
 		if s.isThisCluster(mcComponent.Spec.Placement) {
 			_, err := s.createOrUpdateMCComponent(mcComponent)
-			if err != nil {
-				return err
-			}
+			s.Log.Error(err, "Error syncing MultiClusterComponent object",
+				types.NamespacedName{Namespace: mcComponent.Namespace, Name: mcComponent.Name})
 		}
 	}
 
