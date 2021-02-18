@@ -75,6 +75,14 @@ func TestCreateMCConfigMap(t *testing.T) {
 			return nil
 		})
 
+	// Managed Cluster - expect call to list MultiClusterConfigMap objects - return same list as admin cluster
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, opts ...*client.ListOptions) error {
+			mcConfigMapList.Items = append(mcConfigMapList.Items, testMCConfigMap)
+			return nil
+		})
+
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
@@ -144,6 +152,14 @@ func TestUpdateMCConfigMap(t *testing.T) {
 			return nil
 		})
 
+	// Managed Cluster - expect call to list MultiClusterConfigMap objects - return same list as admin cluster
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, opts ...*client.ListOptions) error {
+			mcConfigMapList.Items = append(mcConfigMapList.Items, testMCConfigMap)
+			return nil
+		})
+
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
@@ -186,6 +202,14 @@ func TestMCConfigMapPlacement(t *testing.T) {
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, mCConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, opts ...*client.ListOptions) error {
 			mCConfigMapList.Items = append(mCConfigMapList.Items, testMCConfigMap)
+			return nil
+		})
+
+	// Managed Cluster - expect call to list MultiClusterConfigMap objects - return same list as admin cluster
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, opts ...*client.ListOptions) error {
+			mcConfigMapList.Items = append(mcConfigMapList.Items, testMCConfigMap)
 			return nil
 		})
 

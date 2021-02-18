@@ -73,9 +73,10 @@ func mutateMCComponent(mcComponent clustersv1alpha1.MultiClusterComponent, mcCom
 	mcComponentNew.Labels = mcComponent.Labels
 }
 
+// componentListContains returns boolean indicating if the list contains the object with the specified name and namespace
 func componentListContains(mcAdminList *clustersv1alpha1.MultiClusterComponentList, name string, namespace string) bool {
-	for _, mcComponent := range mcAdminList.Items {
-		if mcComponent.Name == name && mcComponent.Namespace == namespace {
+	for _, item := range mcAdminList.Items {
+		if item.Name == name && item.Namespace == namespace {
 			return true
 		}
 	}

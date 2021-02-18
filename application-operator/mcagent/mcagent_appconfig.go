@@ -69,9 +69,10 @@ func mutateMCAppConfig(mcAppConfig clustersv1alpha1.MultiClusterApplicationConfi
 	mcAppConfigNew.Labels = mcAppConfig.Labels
 }
 
+// appConfigListContains returns boolean indicating if the list contains the object with the specified name and namespace
 func appConfigListContains(mcAdminList *clustersv1alpha1.MultiClusterApplicationConfigurationList, name string, namespace string) bool {
-	for _, mcAppConfig := range mcAdminList.Items {
-		if mcAppConfig.Name == name && mcAppConfig.Namespace == namespace {
+	for _, item := range mcAdminList.Items {
+		if item.Name == name && item.Namespace == namespace {
 			return true
 		}
 	}
