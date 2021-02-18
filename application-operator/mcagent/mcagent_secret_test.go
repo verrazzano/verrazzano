@@ -75,6 +75,14 @@ func TestCreateMCSecret(t *testing.T) {
 			return nil
 		})
 
+	// Managed Cluster - expect call to list MultiClusterSecret objects - return same list as admin cluster
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
+			return nil
+		})
+
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
@@ -143,6 +151,14 @@ func TestUpdateMCSecret(t *testing.T) {
 			return nil
 		})
 
+	// Managed Cluster - expect call to list MultiClusterSecret objects - return same list as admin cluster
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
+			return nil
+		})
+
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
@@ -182,6 +198,14 @@ func TestMCSecretPlacement(t *testing.T) {
 
 	// Admin Cluster - expect call to list MultiClusterSecret objects - return list with one object
 	adminMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
+			return nil
+		})
+
+	// Managed Cluster - expect call to list MultiClusterSecret objects - return same list as admin cluster
+	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
 			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
