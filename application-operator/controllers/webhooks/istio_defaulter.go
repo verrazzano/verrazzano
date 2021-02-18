@@ -75,7 +75,7 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 	}
 
 	// If a pod is using the "default" service account then create a appconfig specific service account, if not already
-	// created. This service account will be referenced in an Istio authorization policy that we create/update.
+	// created.
 	serviceAccountName := pod.Spec.ServiceAccountName
 	if serviceAccountName == "default" {
 		serviceAccountName, err = a.createServiceAccount(req.Namespace, appConfigOwnerRef)
@@ -84,7 +84,8 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 		}
 	}
 
-	// Create/update Istio Authorization policy
+	// Create/update Istio Authorization policy.  The service account will be referenced in the
+	// Istio authorization policy that we create/update.
 	err = a.createUpdateAuthorizationPolicy(req.Namespace, serviceAccountName, appConfigOwnerRef)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
