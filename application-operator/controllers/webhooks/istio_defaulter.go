@@ -40,8 +40,8 @@ type IstioWebhook struct {
 
 var istioLogger = ctrl.Log.WithName("webhooks.istio-defaulter")
 
-// Handle identifies OAM created pods with a name selecter that matches istio-enabled:true,
-// mutates pods and adds additional resources as needed.
+// Handle is the entry point for the mutating webhook.
+// This function is called for any pods that are created in a namespace with the label istio-injection=enabled.
 func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
 	pod := &corev1.Pod{}
 	err := a.Decoder.Decode(req, pod)
@@ -56,6 +56,7 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 			return admission.Allowed("No action required, pod labeled with sidecar.istio.io/inject: false")
 		}
 	}
+
 	// Get all owner references for this pod
 	ownerRefList := a.flatten(nil, req.Namespace, pod.OwnerReferences)
 
@@ -70,12 +71,12 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 	}
 	// No ApplicationConfiguration ownerReference resource was found so there is no action required.
 	if appConfigOwnerRef == (metav1.OwnerReference{}) {
-		istioLogger.Info(fmt.Sprintf("Pod not created from an ApplicationConfiguration: %s:%s:%s", req.Namespace, pod.Name, pod.GenerateName))
-		return admission.Allowed("No action required, pod was not created from an ApplicationConfiguration resource")
+		istioLogger.Info(fmt.Sprintf("Pod is not a child of an ApplicationConfiguration: %s:%s:%s", req.Namespace, pod.Name, pod.GenerateName))
+		return admission.Allowed("No action required, pod is not a child of an ApplicationConfiguration resource")
 	}
 
-	// If a pod is using the "default" service account then create a appconfig specific service account, if not already
-	// created.
+	// If a pod is using the "default" service account then create a app specific service account, if not already
+	// created.  A service account is used as a principal in the Istio Authorization policy we create/update.
 	serviceAccountName := pod.Spec.ServiceAccountName
 	if serviceAccountName == "default" {
 		serviceAccountName, err = a.createServiceAccount(req.Namespace, appConfigOwnerRef)
@@ -84,8 +85,7 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 		}
 	}
 
-	// Create/update Istio Authorization policy.  The service account will be referenced in the
-	// Istio authorization policy that we create/update.
+	// Create/update Istio Authorization policy.
 	err = a.createUpdateAuthorizationPolicy(req.Namespace, serviceAccountName, appConfigOwnerRef)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
@@ -113,6 +113,7 @@ func (a *IstioWebhook) InjectDecoder(d *admission.Decoder) error {
 	return nil
 }
 
+// createUpdateAuthorizationPolicy will create/update an Istio authoriztion policy.
 func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, serviceAccountName string, ownerRef metav1.OwnerReference) error {
 	podPrincipal := fmt.Sprintf("cluster.local/ns/%s/sa/%s", namespace, serviceAccountName)
 	gwPrincipal := "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"
@@ -194,6 +195,7 @@ func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, service
 	return nil
 }
 
+// createServiceAccount will create a service account.
 func (a *IstioWebhook) createServiceAccount(namespace string, ownerRef metav1.OwnerReference) (string, error) {
 	// Check if service account exist.  The name of the service account is the owner reference name which happens
 	// to be the appconfig name.
@@ -230,6 +232,7 @@ func (a *IstioWebhook) createServiceAccount(namespace string, ownerRef metav1.Ow
 	return serviceAccount.Name, nil
 }
 
+// flatten traverses a nested array of owner references and returns a single array of owner references.
 func (a *IstioWebhook) flatten(list []metav1.OwnerReference, namespace string, ownerRefs []metav1.OwnerReference) []metav1.OwnerReference {
 	for _, ownerRef := range ownerRefs {
 		list = append(list, ownerRef)
@@ -256,7 +259,6 @@ func (a *IstioWebhook) flatten(list []metav1.OwnerReference, namespace string, o
 // convertAPIVersionToGroupAndVersion splits APIVersion into API and version parts.
 // An APIVersion takes the form api/version (e.g. networking.k8s.io/v1)
 // If the input does not contain a / the group is defaulted to the empty string.
-// apiVersion - The combined api and version to split
 func convertAPIVersionToGroupAndVersion(apiVersion string) (string, string) {
 	parts := strings.SplitN(apiVersion, "/", 2)
 	if len(parts) < 2 {
