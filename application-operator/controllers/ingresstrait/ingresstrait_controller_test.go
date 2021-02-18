@@ -185,10 +185,6 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, gateway *istioclient.Gateway, opts ...client.CreateOption) error {
 			return nil
 		})
-	// Expect a call to get the gateway resource related to the ingress trait and return that it is not found.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-space-myapp-gw"}, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Gateway"}, "test-space-myapp-gw"))
 	// Expect a call to get the virtual service resource related to the ingress trait and return that it is not found.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-trait-name-rule-0-vs"}, gomock.Not(gomock.Nil())).
@@ -313,10 +309,6 @@ func TestSuccessfullyCreateNewIngressWithCertSecret(t *testing.T) {
 			assert.Equal("cert-secret", gateway.Spec.Servers[0].Tls.CredentialName, "Wrong secret name")
 			return nil
 		})
-	// Expect a call to get the gateway resource related to the ingress trait and return that it is not found.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-space-myapp-gw"}, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Gateway"}, "test-space-myapp-gw"))
 	// Expect a call to get the app config and return that it is not found.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "myapp"}, gomock.Not(gomock.Nil())).
@@ -382,7 +374,7 @@ func TestSuccessfullyUpdateIngressWithCertSecret(t *testing.T) {
 				Name:      name.Name,
 				Labels:    map[string]string{oam.LabelAppName: "myapp"}}
 			trait.Spec.Rules = []vzapi.IngressRule{{
-				Hosts: []string{"test-host"},
+				Hosts: []string{"Test-host"},
 				Paths: []vzapi.IngressPath{{Path: "test-path"}}}}
 			trait.Spec.TLS = vzapi.IngressSecurity{SecretName: "cert-secret"}
 			trait.Spec.WorkloadReference = oamrt.TypedReference{
@@ -455,27 +447,7 @@ func TestSuccessfullyUpdateIngressWithCertSecret(t *testing.T) {
 						Name:     "https",
 						Number:   443,
 						Protocol: "HTTPS"},
-					Hosts: []string{"Test-host", "test2-host", "test3-host"},
-				}}}
-			return nil
-		})
-	// Expect a call to get the gateway resource related to the ingress trait and return it.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-space-myapp-gw"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, gateway *istioclient.Gateway) error {
-			gateway.TypeMeta = metav1.TypeMeta{
-				APIVersion: gatewayAPIVersion,
-				Kind:       gatewayKind}
-			gateway.ObjectMeta = metav1.ObjectMeta{
-				Namespace: "test-space",
-				Name:      "test-space-myapp-gw"}
-			gateway.Spec = istionet.Gateway{
-				Servers: []*istionet.Server{{
-					Port: &istionet.Port{
-						Name:     "https",
-						Number:   443,
-						Protocol: "HTTPS"},
-					Hosts: []string{"test2-host", "test3-host"},
+					Hosts: []string{"test-host", "test2-host", "test3-host"},
 				}}}
 			return nil
 		})
@@ -874,10 +846,6 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, gateway *istioclient.Gateway, opts ...client.CreateOption) error {
 			return nil
 		})
-	// Expect a call to get the gateway resource related to the ingress trait and return that it is not found.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-space-myapp-gw"}, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Gateway"}, "test-space-myapp-gw"))
 	// Expect a call to get the virtual service resource related to the ingress trait and return that it is not found.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-trait-name-rule-0-vs"}, gomock.Not(gomock.Nil())).
@@ -1136,10 +1104,6 @@ func TestFailureToUpdateStatus(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, gateway *istioclient.Gateway, opts ...client.CreateOption) error {
 			return nil
 		})
-	// Expect a call to get the gateway resource related to the ingress trait and return that it is not found.
-	mock.EXPECT(). // get ingress (for createOrUpdate)
-			Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-space-myapp-gw"}, gomock.Not(gomock.Nil())).
-			Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Gateway"}, "test-space-myapp-gw"))
 	// Expect a call to get the gateway resource related to the ingress trait and return that it is not found.
 	mock.EXPECT(). // get ingress (for createOrUpdate)
 			Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-trait-name-rule-0-vs"}, gomock.Not(gomock.Nil())).

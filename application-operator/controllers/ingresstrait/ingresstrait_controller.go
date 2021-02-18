@@ -395,14 +395,8 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 	if err != nil {
 		return err
 	}
-
-	existingGateway, err := r.fetchGateway(context.TODO(), types.NamespacedName{Namespace: gateway.Namespace, Name: gateway.Name})
-	if err != nil {
-		return err
-	}
-	if existingGateway != nil {
-		existingHosts := existingGateway.Spec.Servers[0].Hosts
-		hosts = appendToConfiguredHosts(hosts, existingHosts)
+	if len(gateway.Spec.Servers) > 0 {
+		hosts = appendToConfiguredHosts(hosts, gateway.Spec.Servers[0].Hosts)
 	}
 
 	// Set the spec content.
