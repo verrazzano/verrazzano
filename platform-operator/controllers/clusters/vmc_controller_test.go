@@ -57,7 +57,7 @@ func TestCreateVMC(t *testing.T) {
 	// Expect a call to get the ServiceAccount - return that it does not exist
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ServiceAccount"}, generateManagedResourceName(name)))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ServiceAccount"}, generateManagedResourceName(name)))
 
 	// Expect a call to create the ServiceAccount - return success
 	mock.EXPECT().
@@ -79,7 +79,7 @@ func TestCreateVMC(t *testing.T) {
 	// Expect a call to get the ClusterRoleBinding - return that it does not exist
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ServiceAccount"}, generateManagedResourceName(name)))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ServiceAccount"}, generateManagedResourceName(name)))
 
 	// Expect a call to create the ClusterRoleBinding - return success
 	mock.EXPECT().

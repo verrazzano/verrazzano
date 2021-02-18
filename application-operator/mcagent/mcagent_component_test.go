@@ -62,7 +62,7 @@ func TestCreateMCComponent(t *testing.T) {
 	//                   Return the resource does not exist
 	mcMock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testMCComponentNamespace, Name: testMCComponentName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: testMCComponentNamespace, Resource: "MultiClusterComponent"}, testMCComponentName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "MultiClusterComponent"}, testMCComponentName))
 
 	// Managed Cluster - expect call to create a MultiClusterComponent
 	mcMock.EXPECT().

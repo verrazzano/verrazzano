@@ -103,6 +103,8 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 					localMock.EXPECT().
 						Get(gomock.Any(), types.NamespacedName{Namespace: tt.fields.vpNamespace, Name: tt.fields.vpName}, gomock.Not(gomock.Nil())).
 						DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
+							vp.Namespace = tt.fields.vpNamespace
+							vp.Name = tt.fields.vpName
 							vp.Spec.Namespaces = []string{"existingNS1", "existingNS2", "existingNS3"}
 							return nil
 						})
@@ -120,7 +122,7 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 					// Managed Cluster - expect call to get VerrazzanoProject
 					localMock.EXPECT().
 						Get(gomock.Any(), types.NamespacedName{Namespace: tt.fields.vpNamespace, Name: tt.fields.vpName}, gomock.Not(gomock.Nil())).
-						Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "VerrazzanoProject"}, tt.fields.vpName))
+						Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "VerrazzanoProject"}, tt.fields.vpName))
 
 					// Managed Cluster - expect call to create a VerrazzanoProject
 					localMock.EXPECT().
