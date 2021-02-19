@@ -277,6 +277,27 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  name: verrazzano-install
+  labels:
+    verrazzano.io/aggregate-to-verrazzano-admin: "true"
+rules:
+- apiGroups:
+    - install.verrazzano.io
+  resources:
+    - "*"
+  verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete
+    - deletecollection
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
   name: verrazzano-system-read
   labels:
     verrazzano.io/aggregate-to-verrazzano-admin: "true"
@@ -285,7 +306,7 @@ rules:
 - apiGroups:
     - verrazzano.io
     - oam.verrazzano.io
-    - install.verrazzano.io
+    - core.oam.dev
   resources:
     - "*"
   verbs:
@@ -303,12 +324,15 @@ rules:
 - apiGroups:
     - verrazzano.io
     - oam.verrazzano.io
-    - install.verrazzano.io
+    - core.oam.dev
   resources:
     - "*"
   verbs:
-    - put
-    - post
+    - create
+    - update
+    - patch
+    - delete
+    - deletecollection
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -323,7 +347,7 @@ rules:
 - apiGroups:
     - verrazzano.io
     - oam.verrazzano.io
-    - install.verrazzano.io
+    - core.oam.dev
   resources:
     - "*"
   verbs:
@@ -342,12 +366,15 @@ rules:
 - apiGroups:
     - verrazzano.io
     - oam.verrazzano.io
-    - install.verrazzano.io
+    - core.oam.dev
   resources:
     - "*"
   verbs:
-    - put
-    - post
+    - create
+    - update
+    - patch
+    - delete
+    - deletecollection
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
