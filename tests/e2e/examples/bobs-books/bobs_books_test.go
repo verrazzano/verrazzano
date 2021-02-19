@@ -203,12 +203,12 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 				},
 				func() {
 					gomega.Eventually(func() bool {
-						return pkg.MetricsExist("wls_jvm_process_cpu_load", "app_oam_dev_name", "bobby-front-end")
+						return pkg.MetricsExist("wls_jvm_process_cpu_load", "app_oam_dev_component", "bobby-front-end")
 					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 				},
 				func() {
 					gomega.Eventually(func() bool {
-						return pkg.MetricsExist("wls_jvm_process_cpu_load", "app_oam_dev_name", "bobs-orders-wls")
+						return pkg.MetricsExist("wls_jvm_process_cpu_load", "app_oam_dev_component", "bobs-orders-wls")
 					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 				},
 			)
