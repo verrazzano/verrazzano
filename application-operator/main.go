@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/verrazzanoproject"
 	"os"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -231,6 +232,14 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterApplicationConfiguration")
+		os.Exit(1)
+	}
+	if err = (&verrazzanoproject.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoProject"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoProject")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

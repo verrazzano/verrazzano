@@ -26,8 +26,11 @@ func (s *Syncer) syncMCSecretObjects() error {
 	for _, mcSecret := range allAdminMCSecrets.Items {
 		if s.isThisCluster(mcSecret.Spec.Placement) {
 			_, err := s.createOrUpdateMCSecret(mcSecret)
-			s.Log.Error(err, "Error syncing MultiClusterSecret object",
-				types.NamespacedName{Namespace: mcSecret.Namespace, Name: mcSecret.Name})
+			if err != nil {
+				s.Log.Error(err, "Error syncing object",
+					"MultiClusterSecret",
+					types.NamespacedName{Namespace: mcSecret.Namespace, Name: mcSecret.Name})
+			}
 		}
 	}
 
