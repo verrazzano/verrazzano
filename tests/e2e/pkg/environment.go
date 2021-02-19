@@ -178,6 +178,8 @@ func GetHostnameFromGateway(namespace string, ingressTraitName string) string {
 	// if an optional ingressTraitName is provided, use the gateway that has a name that starts with
 	// ingressTraitName, otherwise just use the first gateway
 	for _, gateway := range gateways.Items {
+		fmt.Printf("Found an app ingress gateway with name: %s\n", gateway.ObjectMeta.Name)
+
 		if len(ingressTraitName) > 0 && !strings.HasPrefix(gateway.ObjectMeta.Name, ingressTraitName) {
 			continue
 		}
@@ -186,6 +188,8 @@ func GetHostnameFromGateway(namespace string, ingressTraitName string) string {
 		}
 	}
 
-	ginkgo.Fail(fmt.Sprintf("Could not find host in application ingress gateways in namespace: %s\n", namespace))
+	// this can happen if the app gateway has not been created yet, the caller should
+	// keep retrying and eventually we should get a gateway with a host
+	fmt.Printf("Could not find host in application ingress gateways in namespace: %s\n", namespace)
 	return ""
 }
