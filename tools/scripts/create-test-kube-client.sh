@@ -56,12 +56,12 @@ if [[ -z "$secret" ]]; then
   exit 2
 fi
 
-mkdir /tmp/${TEST_ID}
-cp ${KUBECONFIG} /tmp/${TEST_ID}/kubeconfig
-context="$(KUBECONFIG=/tmp/$TEST_ID/kubeconfig kubectl config current-context)"
-cluster="$(KUBECONFIG=/tmp/$TEST_ID/kubeconfig kubectl config view -o "jsonpath={.contexts[?(@.name==\"$context\")].context.cluster}")"
-server="$(KUBECONFIG=/tmp/$TEST_ID/kubeconfig kubectl config view -o "jsonpath={.clusters[?(@.name==\"$cluster\")].cluster.server}")"
-rm -rf /tmp/${TEST_ID}/kubeconfig
+mkdir -p /tmp/${TEST_ID}-kubeconfig
+cp ${KUBECONFIG} /tmp/${TEST_ID}-kubeconfig/kubeconfig
+context="$(KUBECONFIG=/tmp/$TEST_ID-kubeconfig/kubeconfig kubectl config current-context)"
+cluster="$(KUBECONFIG=/tmp/$TEST_ID-kubeconfig/kubeconfig kubectl config view -o "jsonpath={.contexts[?(@.name==\"$context\")].context.cluster}")"
+server="$(KUBECONFIG=/tmp/$TEST_ID-kubeconfig/kubeconfig kubectl config view -o "jsonpath={.clusters[?(@.name==\"$cluster\")].cluster.server}")"
+rm -rf /tmp/${TEST_ID}-kubeconfig
 
 ca_crt_data="$(kubectl -n $TEST_NAMESPACE get secret "$secret" -o "jsonpath={.data.ca\.crt}" | openssl enc -d -base64 -A)"
 namespace="$(kubectl -n $TEST_NAMESPACE get secret "$secret" -o "jsonpath={.data.namespace}" | openssl enc -d -base64 -A)"
