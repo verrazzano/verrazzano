@@ -12,7 +12,7 @@ import (
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -310,7 +310,7 @@ func getSampleMCSecret(filePath string) (clustersv1alpha1.MultiClusterSecret, er
 		return mcSecret, err
 	}
 
-	rawMcSecret, err := clusters.ReadYaml2Json(sampleSecretFile)
+	rawMcSecret, err := clusterstest.ReadYaml2Json(sampleSecretFile)
 	if err != nil {
 		return mcSecret, err
 	}

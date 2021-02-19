@@ -11,12 +11,14 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/test/integ/util"
 )
 
 const (
 	multiclusterTestNamespace = "multiclustertest"
+	managedClusterName        = "managed1"
 	crdDir                    = "../../config/crd/bases"
 	timeout                   = 2 * time.Minute
 	pollInterval              = 40 * time.Millisecond
@@ -149,12 +151,12 @@ func componentExistsWithFields(namespace string, name string, multiClusterComp *
 		fmt.Println("Retrieved component parameters don't match multi cluster component parameters")
 		return false
 	}
-	compWorkload, err := clusters.ReadContainerizedWorkload(component.Spec.Workload)
+	compWorkload, err := clusterstest.ReadContainerizedWorkload(component.Spec.Workload)
 	if err != nil {
 		fmt.Printf("Retrieved OAM component workload could not be read %v\n", err.Error())
 		return false
 	}
-	mcCompWorkload, err := clusters.ReadContainerizedWorkload(multiClusterComp.Spec.Template.Spec.Workload)
+	mcCompWorkload, err := clusterstest.ReadContainerizedWorkload(multiClusterComp.Spec.Template.Spec.Workload)
 	if err != nil {
 		fmt.Printf("MultiClusterComponent workload could not be read: %v\n", err.Error())
 	}
@@ -178,4 +180,27 @@ func configMapExistsMatchingMCConfigMap(namespace, name string, mcConfigMap *clu
 	return err == nil &&
 		reflect.DeepEqual(configMap.Data, mcConfigMap.Spec.Template.Data) &&
 		reflect.DeepEqual(configMap.BinaryData, mcConfigMap.Spec.Template.BinaryData)
+}
+
+func createManagedClusterSecret() {
+	createSecret := fmt.Sprintf(
+		"create secret generic %s --from-literal=%s=%s -n %s",
+		constants.MCRegistrationSecret,
+		constants.ClusterNameData,
+		managedClusterName,
+		constants.VerrazzanoSystemNamespace)
+
+	_, stderr := util.Kubectl(createSecret)
+	if stderr != "" {
+		ginkgo.Fail(fmt.Sprintf("failed to create secret %v: %v", constants.MCRegistrationSecret, stderr))
+	}
+}
+
+func setupMultiClusterTest() {
+	_, stderr := util.Kubectl("create ns " + multiclusterTestNamespace)
+	if stderr != "" {
+		ginkgo.Fail(fmt.Sprintf("failed to create namespace %v", multiclusterTestNamespace))
+	}
+
+	createManagedClusterSecret()
 }

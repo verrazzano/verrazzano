@@ -35,8 +35,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	err := r.fetchMultiClusterComponent(ctx, req.NamespacedName, &mcComp)
 	if err != nil {
-		logger.Info("Failed to fetch MultiClusterComponent", "err", err)
-		return result, client.IgnoreNotFound(err)
+		return result, clusters.IgnoreNotFoundWithLog("MultiClusterComponent", err, logger)
+	}
+
+	if !clusters.IsPlacedInThisCluster(ctx, r, mcComp.Spec.Placement) {
+		return ctrl.Result{}, nil
 	}
 
 	logger.Info("MultiClusterComponent create or update with underlying component",
@@ -74,6 +77,8 @@ func (r *Reconciler) createOrUpdateComponent(ctx context.Context, mcComp cluster
 // mutateComponent mutates the OAM component to reflect the contents of the parent MultiClusterComponent
 func (r *Reconciler) mutateComponent(mcComp clustersv1alpha1.MultiClusterComponent, oamComp *v1alpha2.Component) {
 	oamComp.Spec = mcComp.Spec.Template.Spec
+	oamComp.Labels = mcComp.Spec.Template.Metadata.Labels
+	oamComp.Annotations = mcComp.Spec.Template.Metadata.Annotations
 }
 
 func (r *Reconciler) updateStatus(ctx context.Context, mcComp *clustersv1alpha1.MultiClusterComponent, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {

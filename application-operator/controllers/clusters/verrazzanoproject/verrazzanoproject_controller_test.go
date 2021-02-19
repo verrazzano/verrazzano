@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
@@ -158,7 +159,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 			}
 
 			// Make the request
-			request := clusters.NewRequest(tt.fields.vpNamespace, tt.fields.vpName)
+			request := clusterstest.NewRequest(tt.fields.vpNamespace, tt.fields.vpName)
 			reconciler := newVerrazzanoProjectReconciler(mockClient)
 			_, err := reconciler.Reconcile(request)
 

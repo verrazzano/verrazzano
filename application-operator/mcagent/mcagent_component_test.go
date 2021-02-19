@@ -13,7 +13,7 @@ import (
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -314,7 +314,7 @@ func getSampleMCComponent(filePath string) (clustersv1alpha1.MultiClusterCompone
 		return mcComp, err
 	}
 
-	rawMcComp, err := clusters.ReadYaml2Json(sampleComponentFile)
+	rawMcComp, err := clusterstest.ReadYaml2Json(sampleComponentFile)
 	if err != nil {
 		return mcComp, err
 	}
