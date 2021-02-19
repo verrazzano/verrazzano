@@ -190,4 +190,29 @@ func TestFetchWorkloadFromTrait(t *testing.T) {
 	assert.Equal(containedAPIVersion, uns.GetAPIVersion())
 	assert.Equal(containedKind, uns.GetKind())
 	assert.Equal(containedName, uns.GetName())
+
+	// GIVEN a trait with a reference to a VerrazzanoHelidonWorkload that can be found
+	// WHEN the workload is fetched via the trait
+	// THEN verify the workload content is correct
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+	trait = &vzapi.IngressTrait{
+		TypeMeta:   metav1.TypeMeta{Kind: "IngressTrait", APIVersion: "oam.verrazzano.io/v1alpha1"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test-trait-name", Namespace: "test-trait-namespace"},
+		Spec: vzapi.IngressTraitSpec{WorkloadReference: oamrt.TypedReference{
+			APIVersion: "oam.verrazzano.io/v1alpha1", Kind: "VerrazzanoHelidonWorkload", Name: "test-helidon-workload"}}}
+	cli.EXPECT().
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "test-trait-namespace", Name: "test-helidon-workload"}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured) error {
+			obj.SetNamespace(key.Namespace)
+			obj.SetName(key.Name)
+			return nil
+		})
+	uns, err = FetchWorkloadFromTrait(ctx, cli, ctrl.Log, trait)
+	mocker.Finish()
+	assert.NoError(err)
+	assert.NotNil(uns)
+
+	assert.Equal("test-trait-namespace", uns.GetNamespace())
+	assert.Equal("test-helidon-workload", uns.GetName())
 }
