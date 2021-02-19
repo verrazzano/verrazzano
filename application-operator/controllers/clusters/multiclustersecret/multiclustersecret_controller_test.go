@@ -79,7 +79,7 @@ func TestReconcileCreateSecret(t *testing.T) {
 	// expect a call to fetch existing corev1.Secret and return not found error, to test create case
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Secret"}, crName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, crName))
 
 	// expect a call to create the K8S secret
 	cli.EXPECT().
@@ -173,7 +173,7 @@ func TestReconcileCreateSecretFailed(t *testing.T) {
 	// expect a call to fetch existing corev1.Secret and return not found error, to simulate create case
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Secret"}, crName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, crName))
 
 	// expect a call to create the K8S secret and fail the call
 	cli.EXPECT().

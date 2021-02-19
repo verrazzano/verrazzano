@@ -84,7 +84,7 @@ func TestReconcileCreateAppConfig(t *testing.T) {
 	// expect a call to fetch existing OAM app config, and return not found error, to test create case
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ApplicationConfiguration"}, crName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "core.oam.dev", Resource: "ApplicationConfiguration"}, crName))
 
 	// expect a call to create the OAM app config
 	cli.EXPECT().
@@ -184,7 +184,7 @@ func TestReconcileCreateAppConfigFailed(t *testing.T) {
 	// expect a call to fetch existing OAM app config and return not found error, to simulate create case
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ApplicationConfiguration"}, crName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "core.oam.dev", Resource: "ApplicationConfiguration"}, crName))
 
 	// expect a call to create the OAM app config and fail the call
 	cli.EXPECT().

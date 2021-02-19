@@ -84,7 +84,7 @@ func TestReconcileCreateComponent(t *testing.T) {
 	// expect a call to fetch existing OAM component, and return not found error, to test create case
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Component"}, crName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "core.oam.dev", Resource: "Component"}, crName))
 
 	// expect a call to create the OAM component
 	cli.EXPECT().
@@ -183,7 +183,7 @@ func TestReconcileCreateComponentFailed(t *testing.T) {
 	// expect a call to fetch existing OAM component and return not found error, to simulate create case
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Component"}, crName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "core.oam.dev", Resource: "Component"}, crName))
 
 	// expect a call to create the OAM component and fail the call
 	cli.EXPECT().
