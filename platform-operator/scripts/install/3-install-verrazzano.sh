@@ -27,8 +27,6 @@ fi
 DNS_TYPE=$(get_config_value ".dns.type")
 DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
-OAM_ENABLED=$(get_config_value ".oam.enabled")
-
 # Check if the nginx ingress ports are accessible
 function check_ingress_ports() {
   exitvalue=0
@@ -177,7 +175,8 @@ function install_verrazzano()
       --set clusterOperator.rancherURL=https://${RANCHER_HOSTNAME} \
       --set clusterOperator.rancherUserName="${token_array[0]}" \
       --set clusterOperator.rancherPassword="${token_array[1]}" \
-      --set clusterOperator.rancherHostname=$(get_rancher_in_cluster_host ${RANCHER_HOSTNAME}) \
+      --set clusterOperator.rancherHostname=$(get_nginx_hostip) \
+      --set clusterOperator.rancherHostPort=$(get_nginx_nodeport) \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)" \
       ${PROFILE_VALUES_OVERRIDE} \
       ${EXTRA_V8O_ARGUMENTS} || return $?
@@ -292,9 +291,7 @@ fi
 
 action "Creating admission controller cert" create_admission_controller_cert || exit 1
 action "Installing Verrazzano system components" install_verrazzano || exit 1
-if [ "${OAM_ENABLED}" == "true" ]; then
-  action "Installing Coherence Kubernetes operator" install_coherence_operator || exit 1
-  action "Installing WebLogic Kubernetes operator" install_weblogic_operator || exit 1
-  action "Installing OAM Kubernetes operator" install_oam_operator || exit 1
-  action "Installing Verrazzano Application Kubernetes operator" install_application_operator || exit 1
-fi
+action "Installing Coherence Kubernetes operator" install_coherence_operator || exit 1
+action "Installing WebLogic Kubernetes operator" install_weblogic_operator || exit 1
+action "Installing OAM Kubernetes operator" install_oam_operator || exit 1
+action "Installing Verrazzano Application Kubernetes operator" install_application_operator || exit 1

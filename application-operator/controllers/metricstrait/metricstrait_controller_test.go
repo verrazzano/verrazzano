@@ -85,8 +85,9 @@ func TestMetricsTraitCreatedForContainerizedWorkload(t *testing.T) {
 			Kind:       "Deployment",
 		},
 		ObjectMeta: k8smeta.ObjectMeta{
-			Name:      "test-deployment-name",
-			Namespace: "test-namespace",
+			Name:              "test-deployment-name",
+			Namespace:         "test-namespace",
+			CreationTimestamp: k8smeta.Now(),
 			OwnerReferences: []k8smeta.OwnerReference{{
 				APIVersion: oamcore.SchemeGroupVersion.Identifier(),
 				Kind:       oamcore.ContainerizedWorkloadKind,
@@ -233,8 +234,9 @@ func TestMetricsTraitCreatedForVerrazzanoWorkload(t *testing.T) {
 			Kind:       "Deployment",
 		},
 		ObjectMeta: k8smeta.ObjectMeta{
-			Name:      "test-deployment-name",
-			Namespace: "test-namespace",
+			Name:              "test-deployment-name",
+			Namespace:         "test-namespace",
+			CreationTimestamp: k8smeta.Now(),
 			OwnerReferences: []k8smeta.OwnerReference{{
 				APIVersion: oamcore.SchemeGroupVersion.Identifier(),
 				Kind:       oamcore.ContainerizedWorkloadKind,
@@ -284,7 +286,7 @@ func TestMetricsTraitCreatedForVerrazzanoWorkload(t *testing.T) {
 			workload.SetKind("VerrazzanoCoherenceWorkload")
 			workload.SetNamespace(name.Namespace)
 			workload.SetName(name.Name)
-			unstructured.SetNestedMap(workload.Object, containedResource, "spec", "coherence")
+			unstructured.SetNestedMap(workload.Object, containedResource, "spec", "template")
 			workload.SetUID("test-workload-uid")
 			return nil
 		})
@@ -495,6 +497,110 @@ func TestMetricsTraitDeletedForContainerizedWorkload(t *testing.T) {
 	assert.GreaterOrEqual(result.RequeueAfter.Seconds(), 45.0)
 }
 
+// TestMetricsTraitDeletedForContainerizedWorkload tests deletion of a metrics trait related to a containerized workload.
+// GIVEN a metrics trait with a non-zero deletion time
+// GIVEN the related deployment resource no longer exists
+// WHEN the metrics trait Reconcile method is invoked
+// THEN verify that metrics trait finalizer is removed
+// AND verify that the scraper configmap is cleanup up
+// AND verify that the scraper pod is restarted
+// AND verify that the finalizer is removed
+func TestMetricsTraitDeletedForContainerizedWorkloadWhenDeploymentDeleted(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	//mockStatus := mocks.NewMockStatusWriter(mocker)
+	var err error
+
+	params := map[string]string{
+		"##OAM_APP_NAME##":         "test-oam-app-name",
+		"##OAM_COMP_NAME##":        "test-oam-comp-name",
+		"##TRAIT_NAME##":           "test-trait-name",
+		"##TRAIT_NAMESPACE##":      "test-namespace",
+		"##WORKLOAD_APIVER##":      "core.oam.dev/v1alpha2",
+		"##WORKLOAD_KIND##":        "ContainerizedWorkload",
+		"##WORKLOAD_NAME##":        "test-workload-name",
+		"##PROMETHEUS_NAME##":      "vmi-system-prometheus-0",
+		"##PROMETHEUS_NAMESPACE##": "verrazzano-system",
+		"##DEPLOYMENT_NAMESPACE##": "test-namespace",
+		"##DEPLOYMENT_NAME##":      "test-workload-name",
+	}
+
+	// Expect a call to get the deleted trait resource.
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.MetricsTrait) error {
+		assert.Equal("test-namespace", name.Namespace)
+		assert.Equal("test-trait-name", name.Name)
+		assert.NoError(updateObjectFromYAMLTemplate(trait, "test/templates/containerized_workload_metrics_trait_deleted.yaml", params))
+		return nil
+	})
+	// Expect a call to get the child deployment resource
+	// Do not modify the provided Deployment object to simulate it no longer existing.
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *k8sapps.Deployment) error {
+		assert.Equal("test-namespace", name.Namespace)
+		assert.Equal("test-workload-name", name.Name)
+		assert.True(obj.CreationTimestamp.IsZero(), "Expected creationTimestamp to be zero.")
+		return nil
+	})
+	// Expect a call to get the prometheus deployment.
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
+		assert.Equal("verrazzano-system", name.Namespace)
+		assert.Equal("vmi-system-prometheus-0", name.Name)
+		assert.NoError(updateObjectFromYAMLTemplate(deployment, "test/templates/prometheus_deployment.yaml", params))
+		return nil
+	})
+	// Expect a call to get the prometheus configmap.
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, configmap *k8score.ConfigMap) error {
+		assert.Equal("verrazzano-system", name.Namespace)
+		assert.Equal("vmi-system-prometheus-0", name.Name)
+		assert.NoError(updateObjectFromYAMLTemplate(configmap, "test/templates/prometheus_configmap.yaml", params))
+		return nil
+	})
+	// Expect a call to update the prometheus configmap
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8score.ConfigMap) error {
+		assert.Equal("verrazzano-system", obj.Namespace)
+		assert.Equal("vmi-system-prometheus-0", obj.Name)
+		return nil
+	})
+	// Expect a call to list the prometheus replicasets
+	mock.EXPECT().List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
+		assert.Equal("ReplicaSet", list.GetKind())
+		pod := k8score.Pod{}
+		assert.NoError(updateObjectFromYAMLTemplate(&pod, "test/templates/prometheus_replicaset.yaml", params))
+		return appendAsUnstructured(list, pod)
+	})
+	// Expect a call to list the prometheus pods
+	mock.EXPECT().List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
+		assert.Equal("Pod", list.GetKind())
+		pod := k8score.Pod{}
+		assert.NoError(updateObjectFromYAMLTemplate(&pod, "test/templates/prometheus_pod.yaml", params))
+		return appendAsUnstructured(list, pod)
+	})
+	// Expect a call to delete the prometheus pods
+	mock.EXPECT().Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, uns *unstructured.Unstructured, opts ...client.DeleteOption) error {
+		assert.Equal("verrazzano-system", uns.GetNamespace())
+		assert.Equal("vmi-system-prometheus-0", uns.GetName())
+		return nil
+	})
+	// Expect a call to update the metrics trait to remove the finalizer
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.MetricsTrait) error {
+		assert.Equal("test-namespace", obj.Namespace)
+		assert.Equal("test-trait-name", obj.Name)
+		assert.Len(obj.Finalizers, 0)
+		return nil
+	})
+
+	// Create and make the request
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
+	reconciler := newMetricsTraitReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(true, result.Requeue)
+	assert.GreaterOrEqual(result.RequeueAfter.Seconds(), 45.0)
+}
+
 // TestFetchTraitError tests a failure to fetch the trait during reconcile.
 // GIVEN a valid new metrics trait
 // WHEN the the metrics trait Reconcile method is invoked
@@ -591,8 +697,9 @@ func TestDeploymentUpdateError(t *testing.T) {
 			Kind:       "Deployment",
 		},
 		ObjectMeta: k8smeta.ObjectMeta{
-			Name:      "test-deployment-name",
-			Namespace: "test-namespace",
+			Name:              "test-deployment-name",
+			Namespace:         "test-namespace",
+			CreationTimestamp: k8smeta.Now(),
 			OwnerReferences: []k8smeta.OwnerReference{{
 				APIVersion: oamcore.SchemeGroupVersion.Identifier(),
 				Kind:       oamcore.ContainerizedWorkloadKind,
@@ -721,8 +828,9 @@ func TestNoUpdatesRequired(t *testing.T) {
 			Kind:       "Deployment",
 		},
 		ObjectMeta: k8smeta.ObjectMeta{
-			Name:      "test-deployment-name",
-			Namespace: "test-namespace",
+			Name:              "test-deployment-name",
+			Namespace:         "test-namespace",
+			CreationTimestamp: k8smeta.Now(),
 			OwnerReferences: []k8smeta.OwnerReference{{
 				APIVersion: oamcore.SchemeGroupVersion.Identifier(),
 				Kind:       oamcore.ContainerizedWorkloadKind,
@@ -1229,8 +1337,9 @@ func TestMetricsTraitCreatedForCOHWorkload(t *testing.T) {
 			Kind:       "StatefulSet",
 		},
 		ObjectMeta: k8smeta.ObjectMeta{
-			Name:      "test-stateful-set-name",
-			Namespace: "test-namespace",
+			Name:              "test-stateful-set-name",
+			Namespace:         "test-namespace",
+			CreationTimestamp: k8smeta.Now(),
 			OwnerReferences: []k8smeta.OwnerReference{{
 				APIVersion: "coherence.oracle.com/v1",
 				Kind:       "Coherence",

@@ -88,7 +88,89 @@ func TestHelidoHandlerApply(t *testing.T) {
 		Client: mockClient,
 		Log:    log.NullLogger{},
 	}
-	err := h.Apply(context.Background(), workload, scope)
+	res, err := h.Apply(context.Background(), workload, scope)
+	asserts.Nil(t, res)
+	asserts.Nil(t, err)
+}
+
+// TestHelidoHandlerApplyErrorWaitingForDeploymentUpdate tests Apply waiting for Deployment update
+// GIVEN an application workload referred in a loggingScope
+// WHEN updating the appconfig
+// THEN ensure that the Apply call must error if the Deployment is not updated
+func TestHelidoHandlerApplyRequeueForDeploymentUpdate(t *testing.T) {
+	mocker := gomock.NewController(t)
+	mockClient := mocks.NewMockClient(mocker)
+	namespace := "hello-ns"
+	workloadName := "hello-workload"
+	esSecretName := "myEsSecret"
+	appContainerName := "testUpdate-app-container"
+	workload := workloadOf(namespace, workloadName)
+	scope := newLoggingScope(namespace, "esHost", esSecretName)
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
+			appContainer := kcore.Container{Name: appContainerName, Image: "test-app-container-image"}
+			fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, "appContainer", scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchHost)
+			deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, appContainer, fluentdContainer)
+			vol := kcore.Volume{
+				Name: "app-volume",
+				VolumeSource: kcore.VolumeSource{
+					HostPath: &kcore.HostPathVolumeSource{
+						Path: "/var/log",
+					},
+				},
+			}
+			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, vol, CreateFluentdConfigMapVolume(workload.Name))
+			volumes := CreateFluentdHostPathVolumes()
+			for _, volume := range volumes {
+				deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volume)
+			}
+			return nil
+		})
+
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: fluentdConfigMapName(workloadName)}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *kcore.ConfigMap) error {
+			return nil
+		})
+	mockClient.EXPECT().
+		Delete(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, conf *kcore.ConfigMap) error {
+			return nil
+		})
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: esSecretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *kcore.Secret) error {
+			return kerrs.NewNotFound(schema.ParseGroupResource("v1.ConfigMap"), fluentdConfigMapName(workloadName))
+		})
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *kcore.Secret) error {
+			vmiSecret(sec)
+			return nil
+		})
+	mockClient.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, sec *kcore.Secret, opt *client.CreateOptions) error {
+			return nil
+		})
+	mockClient.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, dep *kapps.Deployment) error {
+			appCon, fluentdFound := searchContainers(dep.Spec.Template.Spec.Containers)
+			asserts.Equal(t, appContainerName, appCon)
+			asserts.False(t, fluentdFound)
+			asserts.Equal(t, 1, len(dep.Spec.Template.Spec.Volumes))
+			return nil
+		})
+
+	h := &HelidonHandler{
+		Client: mockClient,
+		Log:    log.NullLogger{},
+	}
+	res, err := h.Apply(context.Background(), workload, scope)
+	asserts.NotNil(t, res)
+	asserts.True(t, res.Requeue)
 	asserts.Nil(t, err)
 }
 
@@ -202,7 +284,8 @@ func TestHelidoHandlerApplyNoDeployment(t *testing.T) {
 		Client: mockClient,
 		Log:    log.NullLogger{},
 	}
-	err := h.Apply(context.Background(), workload, scope)
+	res, err := h.Apply(context.Background(), workload, scope)
+	asserts.Nil(t, res)
 	asserts.NotNil(t, err)
 	asserts.True(t, kerrs.IsNotFound(err))
 }

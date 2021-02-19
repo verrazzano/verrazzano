@@ -24,9 +24,9 @@ func TestConfigDefaults(t *testing.T) {
 	asserts.True(conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
 	asserts.True(conf.WebhooksEnabled, "WebhooksEnabled is incorrect")
 	asserts.True(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
-	asserts.Equal("/verrazzano/operator/scripts/install", conf.VerrazzanoInstallDir, "VerrazzanoInstallDir is incorrect")
-	asserts.Equal("/verrazzano/thirdparty/charts", conf.ThirdpartyChartsDir, "ThirdpartyChartsDir is incorrect")
-	asserts.Equal("/verrazzano/helm_config", conf.HelmConfigDir, "HelmConfigdir is incorrect")
+	asserts.Equal("/verrazzano/platform-operator/scripts/install", conf.VerrazzanoInstallDir, "VerrazzanoInstallDir is incorrect")
+	asserts.Equal("/verrazzano/platform-operator/thirdparty/charts", conf.ThirdpartyChartsDir, "ThirdpartyChartsDir is incorrect")
+	asserts.Equal("/verrazzano/platform-operator/helm_config", conf.HelmConfigDir, "HelmConfigdir is incorrect")
 }
 
 // TestSetConfig tests setting config values

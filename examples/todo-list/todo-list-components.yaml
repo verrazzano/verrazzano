@@ -8,44 +8,45 @@ metadata:
   namespace: todo-list
 spec:
   workload:
-    apiVersion: weblogic.oracle/v8
-    kind: Domain
-    metadata:
-      name: todo-domain
-      namespace: todo-list
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoWebLogicWorkload
     spec:
-      domainUID: tododomain
-      domainHome: /u01/domains/tododomain
-      image: container-registry.oracle.com/verrazzano/example-todo:0.8.0
-      imagePullSecrets:
-        - name: tododomain-repo-credentials
-      logHomeEnabled: true
-      domainHomeSourceType: "FromModel"
-      includeServerOutInPodLog: true
-      replicas: 1
-      webLogicCredentialsSecret:
-        name: tododomain-weblogic-credentials
-      configuration:
-        istio:
-          enabled: false
-        introspectorJobActiveDeadlineSeconds: 900
-        model:
-          configMap: tododomain-jdbc-config
-          domainType: WLS
-          modelHome: /u01/wdt/models
-          runtimeEncryptionSecret: tododomain-runtime-encrypt-secret
-        secrets:
-          - tododomain-jdbc-tododb
-      serverPod:
-        env:
-          - name: JAVA_OPTIONS
-            value: "-Dweblogic.StdoutDebugEnabled=false"
-          - name: USER_MEM_ARGS
-            value: "-Djava.security.egd=file:/dev/./urandom -Xms64m -Xmx256m "
-          - name: WL_HOME
-            value: /u01/oracle/wlserver
-          - name: MW_HOME
-            value: /u01/oracle
+      template:
+        metadata:
+          name: todo-domain
+          namespace: todo-list
+        spec:
+          domainUID: tododomain
+          domainHome: /u01/domains/tododomain
+          image: container-registry.oracle.com/verrazzano/example-todo:0.8.0
+          imagePullSecrets:
+            - name: tododomain-repo-credentials
+          domainHomeSourceType: "FromModel"
+          includeServerOutInPodLog: true
+          replicas: 1
+          webLogicCredentialsSecret:
+            name: tododomain-weblogic-credentials
+          configuration:
+            istio:
+              enabled: false
+            introspectorJobActiveDeadlineSeconds: 900
+            model:
+              configMap: tododomain-jdbc-config
+              domainType: WLS
+              modelHome: /u01/wdt/models
+              runtimeEncryptionSecret: tododomain-runtime-encrypt-secret
+            secrets:
+              - tododomain-jdbc-tododb
+          serverPod:
+            env:
+              - name: JAVA_OPTIONS
+                value: "-Dweblogic.StdoutDebugEnabled=false"
+              - name: USER_MEM_ARGS
+                value: "-Djava.security.egd=file:/dev/./urandom -Xms64m -Xmx256m "
+              - name: WL_HOME
+                value: /u01/oracle/wlserver
+              - name: MW_HOME
+                value: /u01/oracle
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component

@@ -10,7 +10,7 @@ import (
 	"io/ioutil"
 	"reflect"
 
-	vzcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/component"
+	vzcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/semver"

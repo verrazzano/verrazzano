@@ -90,8 +90,9 @@ function delete_rancher() {
   while [ "$crd_content" ]
   do
     # remove finalizers from crds
+    # Ignore patch failures and attempt to delete the resources anyway.
     patch_k8s_resources crds ":metadata.name,:spec.group" "Could not remove finalizers from CustomResourceDefinitions in Rancher" '/coreos.com|cattle.io/ {print $1}' '{"metadata":{"finalizers":null}}' \
-      || return $? # return on pipefail
+      || true
 
     # delete crds
     # This process is backgrounded in order to timeout due to finalizers hanging

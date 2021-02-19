@@ -65,45 +65,74 @@ function create_secret {
 
 function install_istio()
 {
-    ISTIO_INIT_CHART_DIR=${CHARTS_DIR}/istio-init
     ISTIO_CHART_DIR=${CHARTS_DIR}/istio
 
-    # Install istio CRDs  using helm
-    EXTRA_ISTIO_ARGUMENTS=""
+    log "Installing Istio base"
+    helm upgrade istio-base ${ISTIO_CHART_DIR}/base \
+      --install \
+      --namespace istio-system \
+      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+      --wait \
+      || return $?
+
+    IMAGE_PULL_SECRETS_ARGUMENT=""
     if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
-      EXTRA_ISTIO_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
+      IMAGE_PULL_SECRETS_ARGUMENT=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
     fi
 
-    log "Installing istio CRDs"
-    helm install istio-init ${ISTIO_INIT_CHART_DIR} \
-        --namespace istio-system \
-        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-        ${EXTRA_ISTIO_ARGUMENTS} \
-        --wait \
-        || return $?
+    log "Installing Istio discovery"
+    helm upgrade istiod ${ISTIO_CHART_DIR}/istio-control/istio-discovery \
+      --install \
+      --namespace istio-system \
+      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+      ${IMAGE_PULL_SECRETS_ARGUMENT} \
+      || return $?
 
-    log "Wait for istio CRD creation jobs to complete"
-    if ! kubectl -n istio-system wait --for=condition=complete job --all --timeout=300s ; then
-      consoleerr "ERROR: Istio CRD creation failed"
-      return 1
-    fi
+    log "Generate Istio ingress specific configuration"
+    local EXTRA_INGRESS_ARGUMENTS=""
+    EXTRA_INGRESS_ARGUMENTS=$(get_istio_helm_args_from_config)
+    EXTRA_INGRESS_ARGUMENTS="$EXTRA_INGRESS_ARGUMENTS --set gateways.istio-ingressgateway.type=${INGRESS_TYPE}"
 
-    # Install istio using helm
-    log "Generate istio cluster specific configuration"
-    local EXTRA_HELM_ARGUMENTS=""
-    if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
-      EXTRA_HELM_ARGUMENTS=" --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
-    fi
-    EXTRA_HELM_ARGUMENTS="$EXTRA_HELM_ARGUMENTS $(get_istio_helm_args_from_config)"
+    log "Installing Istio ingress"
+    helm upgrade istio-ingress ${ISTIO_CHART_DIR}/gateways/istio-ingress \
+      --install \
+      --namespace istio-system \
+      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+      ${EXTRA_INGRESS_ARGUMENTS} \
+      ${IMAGE_PULL_SECRETS_ARGUMENT} \
+      || return $?
 
-    log "installing istio"
-    helm install istio ${ISTIO_CHART_DIR} \
-        --namespace istio-system \
-        -f $VZ_OVERRIDES_DIR/istio-values.yaml \
-        --set gateways.istio-ingressgateway.type="${INGRESS_TYPE}" \
-        --values ${ISTIO_CHART_DIR}/example-values/values-istio-multicluster-gateways.yaml \
-        ${EXTRA_HELM_ARGUMENTS} \
-        || return $?
+    log "Installing Istio egress"
+    helm upgrade istio-egress ${ISTIO_CHART_DIR}/gateways/istio-egress \
+      --install \
+      --namespace istio-system \
+      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+      ${IMAGE_PULL_SECRETS_ARGUMENT} \
+      || return $?
+
+    log "Installing istiocoredns"
+    helm upgrade istiocoredns ${ISTIO_CHART_DIR}/istiocoredns \
+      --install \
+      --namespace istio-system \
+      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+      ${IMAGE_PULL_SECRETS_ARGUMENT} \
+      || return $?
+
+    log "Installing Istio Grafana"
+    helm upgrade grafana ${ISTIO_CHART_DIR}/istio-telemetry/grafana \
+      --install \
+      --namespace istio-system \
+      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+      ${IMAGE_PULL_SECRETS_ARGUMENT} \
+      || return $?
+
+    log "Installing Istio Prometheus"
+    helm upgrade prometheus ${ISTIO_CHART_DIR}/istio-telemetry/prometheus \
+      --install \
+      --namespace istio-system \
+      -f $VZ_OVERRIDES_DIR/istio-values.yaml \
+      ${IMAGE_PULL_SECRETS_ARGUMENT} \
+      || return $?
 }
 
 function update_coredns()
@@ -123,7 +152,7 @@ function update_coredns()
     return 0
 }
 
-function check_kube_version {
+function log_kube_version {
     local kubeVer=$(kubectl version -o json)
     log "------Begin Kubernetes Version Info----"
     log "$kubeVer"
@@ -132,23 +161,6 @@ function check_kube_version {
     if [ "$servVer" == "null" ] || [ -z "$servVer" ]; then
         log "Could not retrieve Kubernetes server version"
         return 1
-    fi
-
-    local major=$(echo $kubeVer | jq -r '.serverVersion.major')
-    local minor=$(echo $kubeVer | jq -r '.serverVersion.minor')
-    local patch=$(echo $servVer | cut -d'.' -f 3)
-    VER_ERROR_MSG="Kubernetes serverVersion $servVer must be greater than or equal to v1.16.8 and less than or equal to v1.18.*"
-    if [ "$major" -ne 1 ] ; then
-      log $VER_ERROR_MSG
-      return 1
-    fi
-    if [ "$minor" -lt 16 ] || [ "$minor" -gt 18  ]; then
-      log $VER_ERROR_MSG
-      return 1
-    fi
-    if [ "$minor" -eq 16 ] && [ "$patch" -lt 8  ]; then
-      log $VER_ERROR_MSG
-      return 1
     fi
 }
 
@@ -179,7 +191,7 @@ function wait_for_nodes_to_exist {
     fi
 }
 
-action "Checking Kubernetes version" check_kube_version || exit 1
+action "Checking Kubernetes version" log_kube_version || exit 1
 action "Checking Helm version" check_helm_version || (error "Helm version must be v3.x! Your Helm version is: $(helm version --short)"; exit 1)
 
 # Wait for all cluster nodes to exist, and then to be ready

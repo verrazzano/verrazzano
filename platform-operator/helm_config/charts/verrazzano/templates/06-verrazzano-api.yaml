@@ -11,6 +11,8 @@ rules:
   - ""
   resources:
   - namespaces
+  - configmaps
+  - services
   verbs:
   - get
   - list
@@ -63,6 +65,9 @@ rules:
   resources:
   - ingresstraits
   - loggingscopes
+  - metricstraits
+  - verrazzanocoherenceworkloads
+  - verrazzanoweblogicworkloads
   verbs:
   - get
   - list
@@ -74,6 +79,7 @@ rules:
   - applicationconfigurations
   - containerizedworkloads
   - healthscopes
+  - manualscalertraits
   verbs:
   - get
   - list
@@ -81,13 +87,24 @@ rules:
 - apiGroups:
   - verrazzano.io
   resources:
-  - cohclusters
-  - helidonapps
-  - verrazzanobindings
   - verrazzanomanagedclusters
-  - verrazzanomodels
   - verrazzanomonitoringinstances
-  - wlsoperators
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - coherence.oracle.com
+  resources:
+  - coherences
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - weblogic.oracle
+  resources:
+  - domains
   verbs:
   - get
   - list
@@ -152,7 +169,7 @@ data:
 
     ngx.header["Access-Control-Allow-Origin"] =  ngx.req.get_headers()["origin"]
     ngx.header["Access-Control-Allow-Headers"] =  "authorization"
-  
+
     if ngx.req.get_method() == "OPTIONS" then
       ngx.status = 200
       ngx.exit(ngx.HTTP_OK)
@@ -176,7 +193,7 @@ data:
     local token = string.sub(h, 8)
     if not (token) then
       ngx.status = 401
-      logJsonMessage(ngx.ERR, "Invalid bearer token in authorization header")        
+      logJsonMessage(ngx.ERR, "Invalid bearer token in authorization header")
       ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
@@ -293,7 +310,7 @@ data:
             root     /opt/nginx/html;
             rewrite_by_lua_file /etc/nginx/conf.lua;
             #charset koi8-r;
-            
+
             #access_log  logs/host.access.log  main;
             expires           0;
             add_header        Cache-Control private;

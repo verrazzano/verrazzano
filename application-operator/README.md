@@ -1,47 +1,47 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/verrazzano/verrazzano-application-operator)](https://goreportcard.com/report/github.com/verrazzano/verrazzano-application-operator)
 
-# verrazzano-application-operator
+# Verrazzano Application Operator
 
 ## Prerequisites
-* kustomize v3.1.0+
-* kubebuilder 2.3.1+
-* go version v1.13+
+* `kustomize` v3.1.0+
+* `kubebuilder` 2.3.1+
+* `go` version v1.15.7
 * Docker
-* kubectl
+* `kubectl`
 
-## Building the Operator
+## Build the Verrazzano application operator
 
-* To generate manifests e.g. CRD, RBAC etc.
+* To generate manifests, for example, CRD, RBAC, and such:
     ```
     make manifests
     ```
 
-* To do all the source code checks, such as fmt, lint, etc
+* To do all the source code checks, such as `fmt`, `lint`, and such:
     ```
     make check
     ```
 
-* To build the operator and generated code
+* To build the operator and generated code:
     ```
     make go-install
     ```
 
-## Testing out the Operator
+## Test the Verrazzano application operator
 
-You’ll need a Kubernetes cluster to run against.
+You need a Kubernetes cluster to run against.
 
 * Install the CRDs into the cluster:
     ```
     make install-crds
     ```
 
-* Run the operator (this will run in the foreground, so switch to a new terminal if you want to leave it running):
+* Run the operator. This will run in the foreground, so switch to a new terminal if you want to leave it running.
     ```
     make run
     ```
-  
+
 * Run the operator with webhooks:
-  * Run installer/scripts/3-install-vz-oam.sh to create build/webhook-certs 
+  * Run `installer/scripts/3-install-vz-oam.sh` to create `build/webhook-certs`
   * Run the operator with webhooks enabled:
     ```
     go run main.go --kubeconfig=${KUBECONFIG} --cert-dir=build/webhook-certs
@@ -70,7 +70,7 @@ when the custom resource is deleted.
     make uninstall-crds
     ```
 
-## Building and pushing Docker images
+## Build and push Docker images
 
 * To build the Docker image:
     ```
@@ -81,28 +81,29 @@ when the custom resource is deleted.
     make docker-push
     ```  
 
-## Running kind based integration tests
-
+## Running KIND-based integration tests
+  ```
   make build  
   make docker-build  
-  make integ-test  
+  make integ-test
+  ```  
 
 ## Installing the OAM runtime and the Verrazzano application operator
 
-> **NOTE**: These are temporary install/uninstall scripts that will be removed before this repo is made public.
+> **NOTE**: These are temporary install and uninstall scripts that will be removed before this repo is made public.
 
 The `installer` directory has scripts that will
-install/uninstall both the OAM runtime and the Verrazzano application operator along
-with the custom Verrazzano application operator CRDs (e.g. traits).
+install and uninstall both the OAM runtime and the Verrazzano application operator, along
+with the custom Verrazzano application operator CRDs (for example, traits).
 
-First create the github packages secret in the verrazzano-system namespace:
+First, create the GitHub packages secret in the `verrazzano-system` namespace:
 
 ```
 kubectl create ns verrazzano-system
 kubectl create secret -n verrazzano-system  docker-registry github-packages --docker-username=<user@foo.com> --docker-password=<xyz> --docker-server=ghcr.io
 ```
 
-To install, set the env var for the application operator image, then run the install script.  For example:
+To install, set the `env` var for the application operator image, then run the install script.  For example:
 ```
 export VERRAZZANO_APP_OP_IMAGE=<docker-image-name>:<docker-image-tag>
 ./installer/install.sh

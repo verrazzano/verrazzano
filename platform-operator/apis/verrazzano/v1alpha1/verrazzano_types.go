@@ -65,6 +65,10 @@ type VerrazzanoSpec struct {
 	// +optional
 	Components ComponentSpec `json:"components,omitempty"`
 
+	// Security specifies Verrazzano security configuration
+	// +optional
+	Security SecuritySpec `json:"security,omitempty"`
+
 	// DefaultVolumeSource Defines the type of volume to be used for persistence, if not explicitly declared by a component;
 	// at present only EmptyDirVolumeSource or PersistentVolumeClaimVolumeSource are supported. If PersistentVolumeClaimVolumeSource
 	// is used, it must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates section.
@@ -74,6 +78,24 @@ type VerrazzanoSpec struct {
 	// VolumeClaimSpecTemplates Defines a named set of PVC configurations that can be referenced from components using persistent volumes.
 	// +optional
 	VolumeClaimSpecTemplates []VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty"`
+}
+
+// RoleBindingSubject specifes the kind and name of a subject to bind to
+type RoleBindingSubject struct {
+	// Kind specifies the kind value for an rbac subject for a RoleBinding
+	Kind string `json:"kind,omitempty"`
+	// Name specifies the name value for an rbac subject for a RoleBinding
+	Name string `json:"name,omitempty"`
+}
+
+// SecuritySpec defines the security configuration for Verrazzano
+type SecuritySpec struct {
+	// AdminBinding specifies the subject that should be bound to the verrazzano-admin role
+	// +optional
+	AdminBinding RoleBindingSubject `json:"adminBinding,omitempty"`
+	// MonitorBinding specifies the subject that should be bound to the verrazzano-monitor role
+	// +optional
+	MonitorBinding RoleBindingSubject `json:"monitorBinding,omitempty"`
 }
 
 // VolumeClaimSpecTemplate Contains common PVC configuration that can be referenced from Components; these
@@ -87,10 +109,30 @@ type VolumeClaimSpecTemplate struct {
 	Spec corev1.PersistentVolumeClaimSpec `json:"spec,omitempty"`
 }
 
+// InstanceInfo details of installed Verrazzano instance maintained in status field
+type InstanceInfo struct {
+	// Console The Console URL for this Verrazzano installation
+	Console *string `json:"consoleUrl,omitempty"`
+	// KeyCloakURL The KeyCloak URL for this Verrazzano installation
+	KeyCloakURL *string `json:"keyCloakUrl,omitempty"`
+	// RancherURL The Rancher URL for this Verrazzano installation
+	RancherURL *string `json:"rancherUrl,omitempty"`
+	// ElasticURL The Elasticsearch URL for this Verrazzano installation
+	ElasticURL *string `json:"elasticUrl,omitempty"`
+	// KibanaURL The Kibana URL for this Verrazzano installation
+	KibanaURL *string `json:"kibanaUrl,omitempty"`
+	// GrafanaURL The Grafana URL for this Verrazzano installation
+	GrafanaURL *string `json:"grafanaUrl,omitempty"`
+	// PrometheusURL The Prometheus URL for this Verrazzano installation
+	PrometheusURL *string `json:"prometheusUrl,omitempty"`
+}
+
 // VerrazzanoStatus defines the observed state of Verrazzano
 type VerrazzanoStatus struct {
 	// The version of Verrazzano that is installed
 	Version string `json:"version,omitempty"`
+	// The Verrazzano instance info
+	VerrazzanoInstance *InstanceInfo `json:"instance,omitempty"`
 	// The latest available observations of an object's current state.
 	Conditions []Condition `json:"conditions,omitempty"`
 	// State of the Verrazzano custom resource
@@ -180,9 +222,6 @@ type ComponentSpec struct {
 	// Keycloak contains the Keycloak component configuration
 	// +optional
 	Keycloak KeycloakComponent `json:"keycloak,omitempty"`
-	// OAM contains the OAM component configuration
-	// +optional
-	OAM OAMComponent `json:"oam,omitempty"`
 }
 
 // CertManagerComponent specifies the core CertManagerComponent config.
@@ -245,13 +284,6 @@ type MySQLComponent struct {
 	// is used, it must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates section.
 	// +optional
 	VolumeSource *corev1.VolumeSource `json:"volumeSource,omitempty"`
-}
-
-// OAMComponent specifies the OAM configuration
-type OAMComponent struct {
-	// Argument to enable installation of OAM components
-	// +optional
-	Enabled bool `json:"enabled,omitempty"`
 }
 
 // InstallArgs identifies a name/value or name/value list needed for install.

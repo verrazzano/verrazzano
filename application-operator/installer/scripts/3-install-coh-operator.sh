@@ -24,7 +24,7 @@ function install_coh_operator {
   fi
 
   log "Install the Coherence Kubernetes operator"
-  helm install --namespace verrazzano-system coherence coherence/coherence-operator --version 3.1.1 --wait
+  helm install --namespace verrazzano-system coherence coherence/coherence-operator --version 3.1.3 --wait
   if [ $? -ne 0 ]; then
     error "Failed to install the Coherence Kubernetes operator."
     return 1

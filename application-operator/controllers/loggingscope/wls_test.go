@@ -5,6 +5,8 @@ package loggingscope
 
 import (
 	"context"
+	"testing"
+
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
@@ -16,7 +18,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
 )
 
 const (
@@ -44,7 +45,7 @@ func TestApply(t *testing.T) {
 	scope := createTestLoggingScope(true)
 
 	wlsDomain := createWlsDomain(resource)
-	fluentdPod := toFluentdPod(wlsDomain.Spec.ServerPod, resource, buildWLSLogPath(resource.Name))
+	fluentdPod := toFluentdPod(wlsDomain.Spec.ServerPod, resource, BuildWLSLogPath(resource.Name))
 
 	mockClient.EXPECT().
 		Get(context.Background(), types.NamespacedName{Name: testResourceName, Namespace: testNamespace}, &wlsDomain).
@@ -71,7 +72,7 @@ func TestApply(t *testing.T) {
 		})
 
 	// invoke method being tested
-	err := wlsHandler.Apply(context.Background(), resource, scope)
+	_, err := wlsHandler.Apply(context.Background(), resource, scope)
 	asserts.Nil(t, err)
 
 	mocker.Finish()

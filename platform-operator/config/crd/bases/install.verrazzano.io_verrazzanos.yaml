@@ -6,7 +6,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.2.5
+    controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
   name: verrazzanos.install.verrazzano.io
 spec:
@@ -191,6 +191,7 @@ spec:
                               format: int32
                               type: integer
                             protocol:
+                              default: TCP
                               description: The IP protocol for this port. Supports
                                 "TCP", "UDP", and "SCTP". Default is TCP.
                               type: string
@@ -1633,13 +1634,6 @@ spec:
                             type: object
                         type: object
                     type: object
-                  oam:
-                    description: OAM contains the OAM component configuration
-                    properties:
-                      enabled:
-                        description: Argument to enable installation of OAM components
-                        type: boolean
-                    type: object
                 type: object
               defaultVolumeSource:
                 description: DefaultVolumeSource Defines the type of volume to be
@@ -2834,6 +2828,36 @@ spec:
                 description: Profile is the name of the profile to install.  Default
                   is "prod".
                 type: string
+              security:
+                description: Security specifies Verrazzano security configuration
+                properties:
+                  adminBinding:
+                    description: AdminBinding specifies the subject that should be
+                      bound to the verrazzano-admin role
+                    properties:
+                      kind:
+                        description: Kind specifies the kind value for an rbac subject
+                          for a RoleBinding
+                        type: string
+                      name:
+                        description: Name specifies the name value for an rbac subject
+                          for a RoleBinding
+                        type: string
+                    type: object
+                  monitorBinding:
+                    description: MonitorBinding specifies the subject that should
+                      be bound to the verrazzano-monitor role
+                    properties:
+                      kind:
+                        description: Kind specifies the kind value for an rbac subject
+                          for a RoleBinding
+                        type: string
+                      name:
+                        description: Name specifies the name value for an rbac subject
+                          for a RoleBinding
+                        type: string
+                    type: object
+                type: object
               version:
                 description: Version is the Verrazzano version
                 type: string
@@ -3010,6 +3034,34 @@ spec:
                   - type
                   type: object
                 type: array
+              instance:
+                description: The Verrazzano instance info
+                properties:
+                  consoleUrl:
+                    description: Console The Console URL for this Verrazzano installation
+                    type: string
+                  elasticUrl:
+                    description: ElasticURL The Elasticsearch URL for this Verrazzano
+                      installation
+                    type: string
+                  grafanaUrl:
+                    description: GrafanaURL The Grafana URL for this Verrazzano installation
+                    type: string
+                  keyCloakUrl:
+                    description: KeyCloakURL The KeyCloak URL for this Verrazzano
+                      installation
+                    type: string
+                  kibanaUrl:
+                    description: KibanaURL The Kibana URL for this Verrazzano installation
+                    type: string
+                  prometheusUrl:
+                    description: PrometheusURL The Prometheus URL for this Verrazzano
+                      installation
+                    type: string
+                  rancherUrl:
+                    description: RancherURL The Rancher URL for this Verrazzano installation
+                    type: string
+                type: object
               state:
                 description: State of the Verrazzano custom resource
                 type: string

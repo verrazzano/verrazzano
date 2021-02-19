@@ -7,13 +7,14 @@ import (
 	"context"
 	b64 "encoding/base64"
 	"fmt"
-	"github.com/hashicorp/go-retryablehttp"
 	"io/ioutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/hashicorp/go-retryablehttp"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -235,35 +236,16 @@ func sockshopPodsRunning() bool {
 
 // appMetricsExists checks whether app related metrics are available
 func appMetricsExists() bool {
-	return metricsExist("base_jvm_uptime_seconds", "cluster", "SockShop")
+	return pkg.MetricsExist("base_jvm_uptime_seconds", "cluster", "SockShop")
 }
 
 // appComponentMetricsExists checks whether component related metrics are available
 func appComponentMetricsExists() bool {
-	return metricsExist("vendor_requests_count_total", "app_oam_dev_name", "catalog-appconf")
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", "sockshop-appconf")
 }
 
 // appConfigMetricsExists checks whether config metrics are available
 func appConfigMetricsExists() bool {
-	return metricsExist("vendor_requests_count_total", "app_oam_dev_component", "orders")
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "orders")
 }
 
-// findMetric parses a Prometheus response to find a specified metric value
-func findMetric(metrics []interface{}, key, value string) bool {
-	for _, metric := range metrics {
-		if pkg.Jq(metric, "metric", key) == value {
-			return true
-		}
-	}
-	return false
-}
-
-// metricsExist validates the availability of a specified metric
-func metricsExist(metricsName, key, value string) bool {
-	metrics := pkg.JTq(pkg.QueryMetric(metricsName), "data", "result").([]interface{})
-	if metrics != nil {
-		return findMetric(metrics, key, value)
-	} else {
-		return false
-	}
-}

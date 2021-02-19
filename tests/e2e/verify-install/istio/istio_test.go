@@ -32,14 +32,9 @@ var _ = ginkgo.Describe("Istio", func() {
 		func(namespace string) {
 			expectedDeployments := []string{
 				"grafana",
-				"istio-citadel",
 				"istio-egressgateway",
-				"istio-galley",
 				"istio-ingressgateway",
-				"istio-pilot",
-				"istio-policy",
-				"istio-sidecar-injector",
-				"istio-telemetry",
+				"istiod",
 				"istiocoredns",
 				"prometheus",
 			}
@@ -63,14 +58,6 @@ var _ = ginkgo.Describe("Istio", func() {
 		ginkgoExt.Entry(fmt.Sprintf("%s namespace should contain expected list of deployments", istioNamespace), istioNamespace),
 	)
 
-	const istioJob = "istio-init-crd-14-1.4.6"
-	ginkgoExt.DescribeTable("job",
-		func(namespace string, name string) {
-			gomega.Expect(pkg.DoesJobExist(namespace, name)).To(gomega.BeTrue())
-		},
-		ginkgoExt.Entry(fmt.Sprintf("%s namespace should contain job %s", istioNamespace, istioJob), istioNamespace, istioJob),
-	)
-
 	ginkgoExt.DescribeTable("should be running with Mutual TLS enabled",
 		func(namespace string) {
 			ginkgo.By("Default mesh policy should have Mutual TLS enabled in permissive mode")
@@ -83,7 +70,7 @@ var _ = ginkgo.Describe("Istio", func() {
 
 			ginkgo.By("Multi-cluster destination rule configured for Mutual TLS")
 			dr, err := istioClient.NetworkingV1alpha3().DestinationRules("istio-system").
-				Get(context.TODO(), "istio-multicluster-destinationrule", metav1.GetOptions{})
+				Get(context.TODO(), "istio-multicluster-ingressgateway", metav1.GetOptions{})
 			gomega.Expect(err).Should(gomega.Not(gomega.HaveOccurred()))
 			gomega.Expect(dr.Spec.TrafficPolicy.GetTls().GetMode()).To(gomega.Equal(istionetworkingv1alpha3.ClientTLSSettings_ISTIO_MUTUAL))
 		},
@@ -93,7 +80,6 @@ var _ = ginkgo.Describe("Istio", func() {
 	ginkgoExt.DescribeTable("should have gateways configured",
 		func(namespace string) {
 			expectedGateways := []string{
-				"istio-multicluster-egressgateway",
 				"istio-multicluster-ingressgateway",
 			}
 			istioClient := getIstioClientset()

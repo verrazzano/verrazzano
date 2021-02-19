@@ -7,16 +7,21 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
+
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/go-logr/logr"
 
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 
-	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/rand"
 )
 
 const (
@@ -91,7 +96,7 @@ const HelidonFluentdConfiguration = `<label @FLUENT_LOG>
   port "#{ENV['ELASTICSEARCH_PORT']}"
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
-  index_name "oam-#{ENV['NAMESPACE']}-#{ENV['APP_CONF_NAME']}-#{ENV['COMPONENT_NAME']}"
+  index_name "` + ElasticSearchIndex + `"
   scheme http
   include_timestamp true
   flush_interval 10s
@@ -105,36 +110,42 @@ type HelidonHandler struct {
 }
 
 // Apply applies a logging scope to a Kubernetes Deployment
-func (h *HelidonHandler) Apply(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) error {
+func (h *HelidonHandler) Apply(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope) (*ctrl.Result, error) {
 	deploy, err := h.getDeployment(ctx, workload, scope)
 	if err != nil {
 		h.Log.Error(err, "Failed to fetch Deployment", "Deployment", workload.Name)
-		return err
+		return nil, err
 	}
 	appContainer, fluentdFound := searchContainers(deploy.Spec.Template.Spec.Containers)
-	if !fluentdFound {
-		err := h.ensureFluentdConfigMap(ctx, scope.GetNamespace(), workload.Name)
-		if err != nil {
-			return err
-		}
-		err = h.ensureEsSecret(ctx, scope.GetNamespace(), scope.Spec.SecretName)
-		if err != nil {
-			return err
-		}
-		volumes := CreateFluentdHostPathVolumes()
-		for _, volume := range volumes {
-			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volume)
-		}
-		deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdConfigMapVolume(workload.Name))
-		fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, appContainer, scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchHost)
-		deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, fluentdContainer)
-		err = h.Update(ctx, deploy)
-		if err != nil {
-			h.Log.V(1).Info("Update Deployment", "Deployment", deploy.Name, "error", err)
-			return err
-		}
+	h.Log.V(1).Info("Update Deployment", "Deployment", deploy.Name, "fluentdFound", fluentdFound)
+	if fluentdFound {
+		// If the Deployment does contain a FLUENTD container
+		// requeue with a jittered delay to account for situation where the Deployment should be
+		// updated by the oam-kubernetes-runtime
+		duration := time.Duration(rand.IntnRange(5, 10)) * time.Second
+		return &ctrl.Result{Requeue: true, RequeueAfter: duration}, nil
 	}
-	return nil
+	err = h.ensureFluentdConfigMap(ctx, scope.GetNamespace(), workload.Name)
+	if err != nil {
+		return nil, err
+	}
+	err = h.ensureEsSecret(ctx, scope.GetNamespace(), scope.Spec.SecretName)
+	if err != nil {
+		return nil, err
+	}
+	volumes := CreateFluentdHostPathVolumes()
+	for _, volume := range volumes {
+		deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volume)
+	}
+	deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdConfigMapVolume(workload.Name))
+	fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, appContainer, scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchHost)
+	deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, fluentdContainer)
+	err = h.Update(ctx, deploy)
+	if err != nil {
+		h.Log.V(1).Info("Failed to update Deployment", "Deployment", deploy.Name, "error", err)
+		return nil, err
+	}
+	return nil, nil
 }
 
 func searchContainers(containers []kcore.Container) (string, bool) {

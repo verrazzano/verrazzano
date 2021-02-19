@@ -1,0 +1,24 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: clusters.verrazzano.io/v1alpha1
+kind: MultiClusterApplicationConfiguration
+metadata:
+  name: unit-mcappconfig
+  namespace: unit-mcappconfig-namespace
+  labels:
+    label1: test1updated
+spec:
+  template:
+    metadata:
+      name: hello-app
+      namespace: default
+      annotations:
+        version: v1.0.0
+        description: "Hello application updated"
+    spec:
+      components:
+        - componentName: hello-component-updated
+        - componentName: hello-component-extra
+  placement:
+    clusters:
+      - name: managed1

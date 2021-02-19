@@ -1,9 +1,9 @@
-# Copyright 2020 Oracle Corporation and/or its affiliates.
+# Copyright 2020, 2021, Oracle Corporation and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at
 # http://oss.oracle.com/licenses/upl.
 
 # image is the Coherence Operator image
-image: "ghcr.io/oracle/coherence-operator:3.1.1"
+image: "ghcr.io/oracle/coherence-operator:3.1.3"
 
 # defaultCoherenceImage is the default application image that will be used if a Coherence
 # resource does not specify an image name.
@@ -11,7 +11,7 @@ defaultCoherenceImage: "oraclecoherence/coherence-ce:20.06.1"
 
 # defaultCoherenceUtilsImage is the Coherence Operator utils image that will be used when running
 # Coherence Pods. This image version should typically match the Operator version.
-defaultCoherenceUtilsImage: "ghcr.io/oracle/coherence-operator:3.1.1-utils"
+defaultCoherenceUtilsImage: "ghcr.io/oracle/coherence-operator:3.1.3-utils"
 
 # watchNamespaces is the comma delimited list of namespaces that the operator should
 # manage Coherence resources in. The default is to manage all namespaces.

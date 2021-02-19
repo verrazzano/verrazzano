@@ -16,9 +16,7 @@ import (
 var waitTimeout = 15 * time.Minute
 var pollingInterval = 30 * time.Second
 var expectedPodsCattleSystem = []string{
-	"rancher",
-	"cattle-node-agent",
-	"cattle-cluster-agent"}
+	"rancher"}
 
 var expectedPodsKeycloak = []string{
 	"mysql",
@@ -32,7 +30,6 @@ var expectedPodsIngressNginx = []string{
 	"ingress-controller-ingress-nginx-defaultbackend"}
 
 var expectedPodsVerrazzanoSystemMinimal = []string{
-	"verrazzano-admission-controller",
 	"verrazzano-cluster-operator",
 	"verrazzano-console",
 	"verrazzano-monitoring-operator",
@@ -56,13 +53,6 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 				for i := range nodes.Items {
 					logData = logData + nodes.Items[i].ObjectMeta.Name + "\n"
 				}
-			})
-
-		ginkgo.It("is a target Kubernetes version",
-			func() {
-				clientset := pkg.GetKubernetesClientset()
-				versionInfo, _ := clientset.ServerVersion()
-				gomega.Expect(versionInfo.GitVersion).Should(gomega.MatchRegexp(`(v1\.1[5-8]\.*)`))
 			})
 
 		ginkgo.It("has the expected namespaces",

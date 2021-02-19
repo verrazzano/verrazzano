@@ -1,149 +1,174 @@
-# Istio
+# Istio Installer
 
-[Istio](https://istio.io/) is an open platform for providing a uniform way to integrate microservices, manage traffic flow across microservices, enforce policies and aggregate telemetry data.
+Note: If making any changes to the charts or values.yaml in this dir, first read [UPDATING-CHARTS.md](UPDATING-CHARTS.md)
 
-The documentation here is for developers only, please follow the installation instructions from [istio.io](https://istio.io/docs/setup/kubernetes/install/helm/) for all other uses.
+Istio installer is a modular, 'a-la-carte' installer for Istio. It is based on a
+fork of the Istio helm templates, refactored to increase modularity and isolation.
 
-## Introduction
+Goals:
+- Improve upgrade experience: users should be able to gradually roll upgrades, with proper
+canary deployments for Istio components. It should be possible to deploy a new version while keeping the
+stable version in place and gradually migrate apps to the new version.
 
-This chart bootstraps all Istio [components](https://istio.io/docs/concepts/what-is-istio/) deployment on a [Kubernetes](http://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager.
+- More flexibility: the new installer allows multiple 'environments', allowing applications to select
+a set of control plane settings and components. While the entire mesh respects the same APIs and config,
+apps may target different 'environments' which contain different instances and variants of Istio.
 
-## Chart Details
+- Better security: separate Istio components reside in different namespaces, allowing different teams or
+roles to manage different parts of Istio. For example, a security team would maintain the
+root CA and policy, a telemetry team may only have access to Mixer-telemetry and Prometheus,
+and a different team may maintain the control plane components (which are highly security sensitive).
 
-This chart can install multiple Istio components as subcharts:
-- ingressgateway
-- egressgateway
-- sidecarInjectorWebhook
-- galley
-- mixer
-- pilot
-- security(citadel)
-- grafana
-- prometheus
-- tracing(jaeger)
-- kiali
+The install is organized in 'environments' - each environment consists of a set of components
+in different namespaces that are configured to work together. Regardless of 'environment',
+workloads can talk with each other and obey the Istio configuration resources, but each environment
+can use different Istio versions and different configuration defaults.
 
-To enable or disable each component, change the corresponding `enabled` flag.
+`istioctl kube-inject` or the automatic sidecar injector are used to select the environment.
+In the case of the sidecar injector, the namespace label `istio-env: <NAME_OF_ENV>` is used instead
+of the conventional `istio-injected: true`. The name of the environment is defined as the namespace
+where the corresponding control plane components (config, discovery, auto-injection) are running.
+In the examples below, by default this is the `istio-control` namespace. Pod annotations can also
+be used to select a different 'environment'.
 
-## Prerequisites
+## Installing
 
-- Kubernetes 1.9 or newer cluster with RBAC (Role-Based Access Control) enabled is required
-- Helm 2.7.2 or newer or alternately the ability to modify RBAC rules is also required
-- If you want to enable automatic sidecar injection, Kubernetes 1.9+ with `admissionregistration` API is required, and `kube-apiserver` process must have the `admission-control` flag set with the `MutatingAdmissionWebhook` and `ValidatingAdmissionWebhook` admission controllers added and listed in the correct order.
-- The `istio-init` chart must be run to completion prior to install the `istio` chart.
+The new installer is intended to be modular and very explicit about what is installed. It has
+far more steps than the Istio installer - but each step is smaller and focused on a specific
+feature, and can be performed by different people/teams at different times.
 
-## Resources Required
+It is strongly recommended that different namespaces are used, with different service accounts.
+In particular access to the security-critical production components (root CA, policy, control)
+should be locked down and restricted.  The new installer allows multiple instances of
+policy/control/telemetry - so testing/staging of new settings and versions can be performed
+by a different role than the prod version.
 
-The chart deploys pods that consume minimum resources as specified in the resources configuration parameter.
+The intended users of this repo are users running Istio in production who want to select, tune
+and understand each binary that gets deployed, and select which combination to use.
 
-## Installing the Chart
+Note: each component can be installed in parallel with an existing Istio 1.0 or 1.1 install in
+`istio-system`. The new components will not interfere with existing apps, but can interoperate
+and it is possible to gradually move apps from Istio 1.0/1.1 to the new environments and
+across environments ( for example canary -> prod )
 
-1. If a service account has not already been installed for Tiller, install one:
+Note: there are still some cluster roles that may need to be fixed, most likely cluster permissions
+will need to move to the security component.
 
-    ```bash
-    $ kubectl apply -f install/kubernetes/helm/helm-service-account.yaml
-    ```
+## Everything is Optional
 
-1. Install Tiller on your cluster with the service account:
+Each component in the new installer is optional. Users can install the component defined in the new installer,
+use the equivalent component in `istio-system`, configured with the official installer, or use a different
+version or implementation.
 
-    ```bash
-    $ helm init --service-account tiller
-    ```
+For example you may use your own Prometheus and Grafana installs, or you may use a specialized/custom
+certificate provisioning tool, or use components that are centrally managed and running in a different cluster.
 
-1. Set and create the namespace where Istio was installed:
+This is a work in progress - building on top of the multi-cluster installer.
 
-    ```bash
-    $ NAMESPACE=istio-system
-    $ kubectl create ns $NAMESPACE
-    ```
+As an extreme, the goal is to be possible to run Istio workloads in a cluster without installing any Istio component
+in that cluster. Currently the minimum we require is the security provider (node agent or citadel).
 
-1. If you are enabling `kiali`, you need to create the secret that contains the username and passphrase for `kiali` dashboard:
+### Install Istio CRDs
 
-    ```bash
-    $ echo -n 'admin' | base64
-    YWRtaW4=
-    $ echo -n '1f2d1e2e67df' | base64
-    MWYyZDFlMmU2N2Rm
-    $ cat <<EOF | kubectl apply -f -
-    apiVersion: v1
-    kind: Secret
-    metadata:
-      name: kiali
-      namespace: $NAMESPACE
-      labels:
-        app: kiali
-    type: Opaque
-    data:
-      username: YWRtaW4=
-      passphrase: MWYyZDFlMmU2N2Rm
-    EOF
-    ```
+This is the first step of the install. Please do not remove or edit any CRD - config currently requires
+all CRDs to be present. On each upgrade it is recommended to reapply the file, to make sure
+you get all CRDs.  CRDs are separated by release and by component type in the CRD directory.
 
-1. If you are using security mode for Grafana, create the secret first as follows:
-
-    - Encode username, you can change the username to the name as you want:
-
-        ```bash
-        $ echo -n 'admin' | base64
-        YWRtaW4=
-        ```
-
-    - Encode passphrase, you can change the passphrase to the passphrase as you want:
-
-        ```bash
-        $ echo -n '1f2d1e2e67df' | base64
-        MWYyZDFlMmU2N2Rm
-        ```
-
-    - Create secret for Grafana:
-
-        ```bash
-        $ cat <<EOF | kubectl apply -f -
-        apiVersion: v1
-        kind: Secret
-        metadata:
-          name: grafana
-          namespace: $NAMESPACE
-          labels:
-            app: grafana
-        type: Opaque
-        data:
-          username: YWRtaW4=
-          passphrase: MWYyZDFlMmU2N2Rm
-        EOF
-        ```
-
-1. To install the chart with the release name `istio` in namespace $NAMESPACE you defined above:
-
-    - With [automatic sidecar injection](https://istio.io/docs/setup/kubernetes/sidecar-injection/#automatic-sidecar-injection) (requires Kubernetes >=1.9.0):
-
-        ```bash
-        $ helm install istio --name istio --namespace $NAMESPACE
-        ```
-
-    - Without the sidecar injection webhook:
-
-        ```bash
-        $ helm install istio --name istio --namespace $NAMESPACE --set sidecarInjectorWebhook.enabled=false
-        ```
-
-## Configuration
-
-The Helm chart ships with reasonable defaults.  There may be circumstances in which defaults require overrides.
-To override Helm values, use `--set key=value` argument during the `helm install` command.  Multiple `--set` operations may be used in the same Helm operation.
-
-Helm charts expose configuration options which are currently in alpha.  The currently exposed options can be found [here](https://istio.io/docs/reference/config/installation-options/).
-
-## Uninstalling the Chart
-
-To uninstall/delete the `istio` release but continue to track the release:
+Istio has strong integration with certmanager.  Some operators may want to keep their current certmanager
+CRDs in place and not have Istio modify them.  In this case, it is necessary to apply CRD files individually.
 
 ```bash
-$ helm delete istio
+kubectl apply -k github.com/istio/installer/base
 ```
 
-To uninstall/delete the `istio` release completely and make its name free for later use:
+or
 
 ```bash
-$ helm delete --purge istio
+kubectl apply -f base/files
 ```
+
+### Install Istio-CNI
+
+This is an optional step - CNI must run in a dedicated namespace, it is a 'singleton' and extremely
+security sensitive. Access to the CNI namespace must be highly restricted.
+
+**NOTE:** The environment variable `ISTIO_CLUSTER_ISGKE` is assumed to be set to `true` if the cluster
+is a GKE cluster.
+
+```bash
+ISTIO_CNI_ARGS=
+# TODO: What k8s data can we use for this check for whether GKE?
+if [[ "${ISTIO_CLUSTER_ISGKE}" == "true" ]]; then
+    ISTIO_CNI_ARGS="--set cni.cniBinDir=/home/kubernetes/bin"
+fi
+iop kube-system istio-cni $IBASE/istio-cni/ ${ISTIO_CNI_ARGS}
+```
+
+TODO. It is possible to add Istio-CNI later, and gradually migrate.
+
+### Install Control plane
+
+This can run in any cluster. A mesh should have at least one cluster should run Pilot or equivalent XDS server,
+and it is recommended to have Pilot running in each region and in multiple availability zones for multi cluster.
+
+```bash
+iop istio-control istio-discovery $IBASE/istio-control/istio-discovery \
+            --set global.istioNamespace=istio-system \
+            --set global.telemetryNamespace=istio-telemetry \
+            --set global.policyNamespace=istio-policy
+
+# Second istio-discovery, using master version of istio
+TAG=latest HUB=gcr.io/istio-testing iop istio-master istio-discovery-master $IBASE/istio-control/istio-discovery \
+            --set policy.enable=false \
+            --set global.istioNamespace=istio-master \
+            --set global.telemetryNamespace=istio-telemetry-master \
+            --set global.policyNamespace=istio-policy-master
+```
+
+### Gateways
+
+A cluster may use multiple Gateways, each with a different load balancer IP, domains and certificates.
+
+Since the domain certificates are stored in the gateway namespace, it is recommended to keep each
+gateway in a dedicated namespace and restrict access.
+
+For large-scale gateways it is optionally possible to use a dedicated pilot in the gateway namespace.
+
+### Telemetry
+
+```bash
+iop istio-telemetry istio-grafana $IBASE/istio-telemetry/grafana/
+iop istio-telemetry istio-mixer $IBASE/istio-telemetry/mixer-telemetry/ \
+        --set global.istioNamespace=istio-system \
+        --set global.telemetryNamespace=istio-telemetry \
+        --set global.policyNamespace=istio-policy
+iop istio-telemetry istio-prometheus $IBASE/istio-telemetry/prometheus/ \
+        --set global.istioNamespace=istio-system \
+        --set global.telemetryNamespace=istio-telemetry \
+        --set global.policyNamespace=istio-policy
+
+TAG=latest HUB=gcr.io/istio-testing iop istio-telemetry-master istio-grafana $IBASE/istio-telemetry/grafana/ \
+TAG=latest HUB=gcr.io/istio-testing iop istio-telemetry-master istio-mixer $IBASE/istio-telemetry/mixer-telemetry/ \
+        --set global.istioNamespace=istio-master \
+        --set global.telemetryNamespace=istio-telemetry-master \
+        --set global.policyNamespace=istio-policy-master
+TAG=latest HUB=gcr.io/istio-testing iop istio-telemetry-master istio-prometheus $IBASE/istio-telemetry/prometheus/ \
+        --set global.istioNamespace=istio-master \
+        --set global.telemetryNamespace=istio-telemetry-master \
+        --set global.policyNamespace=istio-policy-master
+```
+
+### Kiali
+
+```bash
+iop istio-telemetry kiali $IBASE/istio-telemetry/kiali \
+        --set global.istioNamespace=istio-system \
+        --set global.telemetryNamespace=istio-telemetry \
+        --set global.policyNamespace=istio-policy \
+        --set global.prometheusNamespace=istio-telemetry
+```
+
+### Additional test templates
+
+A number of helm test setups are general-purpose and should be installable in any cluster, to confirm
+Istio works properly and allow testing the specific install.
