@@ -6,11 +6,12 @@ package sock_shop
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
 	. "github.com/onsi/gomega"
 )
@@ -23,11 +24,11 @@ const (
 
 // SockShop encapsulates all testing information related to interactions with the sock shop app
 type SockShop struct {
-	Cookies  	[]*http.Cookie
-	Ingress  	string
-	username 	string
-	password 	string
-	hostHeader 	string
+	Cookies    []*http.Cookie
+	Ingress    string
+	username   string
+	password   string
+	hostHeader string
 }
 
 // CatalogItem represents the information for an item in the catalog
@@ -64,13 +65,22 @@ type Id struct {
 }
 
 // NewSockShop creates a new sockshop instance
-func NewSockShop(username, password, ingress string, hostHeader string) SockShop {
+func NewSockShop(username, password, ingress string) SockShop {
 	var sockShop SockShop
 	sockShop.username = username
 	sockShop.password = password
 	sockShop.Ingress = ingress
-	sockShop.hostHeader = hostHeader
 	return sockShop
+}
+
+// SetHostHeader sets the ingress host
+func (s *SockShop) SetHostHeader(host string) {
+	s.hostHeader = host
+}
+
+// GetHostHeader returns the ingress host
+func (s *SockShop) GetHostHeader() string {
+	return s.hostHeader
 }
 
 // Post is a wrapper function for HTTP request with cookies POST
@@ -92,7 +102,7 @@ func (s *SockShop) Delete(url string) (int, string) {
 func (s *SockShop) RegisterUser(body string) {
 	ingress := s.Ingress
 	url := fmt.Sprintf("http://%v/register", ingress)
-	status, register := pkg.PostWithHostHeader(url,"application/json", s.hostHeader, strings.NewReader(body))
+	status, register := pkg.PostWithHostHeader(url, "application/json", s.hostHeader, strings.NewReader(body))
 	pkg.Log(Info, fmt.Sprintf("Finished register %v status: %v", register, status))
 	Expect(status).To(Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", ingress, status))
 	Expect(strings.Contains(register, "username")).To(Equal(true), fmt.Sprintf("Cannot register %v", register))

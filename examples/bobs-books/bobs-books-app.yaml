@@ -21,11 +21,11 @@ spec:
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: IngressTrait
+            metadata:
+              name: robert-ingress
             spec:
               rules:
-                - hosts:
-                    - "roberts-books.example.com"
-                  paths:
+                - paths:
                     - path: "/"
                       pathType: Prefix
     - componentName: robert-coh
@@ -47,11 +47,11 @@ spec:
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: IngressTrait
+            metadata:
+              name: bobby-ingress
             spec:
               rules:
-                - hosts:
-                    - "bobbys-books.example.com"
-                  paths:
+                - paths:
                     - path: "/bobbys-front-end"
                       pathType: Prefix
       scopes:
@@ -75,11 +75,11 @@ spec:
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: IngressTrait
+            metadata:
+              name: bob-ingress
             spec:
               rules:
-                - hosts:
-                    - "bobs-orders.example.com"
-                  paths:
+                - paths:
                     - path: "/bobs-bookstore-order-manager/orders"
                       pathType: Prefix
       scopes:
