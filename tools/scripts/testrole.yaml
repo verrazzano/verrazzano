@@ -22,3 +22,12 @@ rules:
       - get
       - list
       - watch
+  - apiGroups:
+      - '*'
+    resources:
+      # Access to create secrets, bobs-books and todo-list test create docker reg secret
+      - secrets
+    verbs:
+      - create
+      - update
+      - delete
