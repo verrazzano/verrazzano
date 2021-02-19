@@ -78,13 +78,6 @@ func CreateOrUpdateResourceFromBytes(data []byte) error {
 			return fmt.Errorf("failed to unmarshal resource: %w", err)
 		}
 
-		/*
-			// Check to make sure the namespace of the resource exists.
-			_, err = client.Resource(nsGvr).Get(context.TODO(), uns.GetNamespace(), metav1.GetOptions{})
-			if err != nil {
-				return fmt.Errorf("failed to find resource namespace: %w", err)
-			}
-		*/
 		// Map the object's GVK to a GVR
 		unsGvk := schema.FromAPIVersionAndKind(uns.GetAPIVersion(), uns.GetKind())
 		unsMap, err := mapper.RESTMapping(unsGvk.GroupKind(), unsGvk.Version)
