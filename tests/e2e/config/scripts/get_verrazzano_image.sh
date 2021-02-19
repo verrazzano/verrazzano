@@ -11,6 +11,6 @@ if [ -z "${KUBECONFIG}" ] ; then
 fi
 
 # get image list from cluster and persist to output file
-podlist=$(kubectl get pods -n $1 -o jsonpath="{..image}" |\tr -s '[[:space:]]' '\n' |\sort |\uniq | grep verrazzano | grep / | cut -d/ -f2- | grep -v fluentd || exit 1)
+podlist=$(kubectl get pods -n $1 -o jsonpath="{..image}" |\tr -s '[[:space:]]' '\n' |\sort |\uniq | grep verrazzano | grep / | cut -d/ -f2- | grep -v fluentd) ##DEBUGGING || exit 1)
 
 printf '%s\n' "${podlist[@]}"
