@@ -139,6 +139,13 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileKubeConfig(vmc *clusterapi
 		return err
 	}
 
+	// Save the KubeconfigSecret in the VMC
+	vmc.Spec.KubeconfigSecret = secretName
+	err = r.Update(context.TODO(), vmc)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

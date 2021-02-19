@@ -44,7 +44,7 @@ func TestCreateVMC(t *testing.T) {
 	asserts.NotNil(mockStatus)
 
 	getConfigFunc = fakeGetConfig
-	defer func(){getConfigFunc = ctrl.GetConfig}()
+	defer func() { getConfigFunc = ctrl.GetConfig }()
 
 	// Expect a call to get the VerrazzanoManagedCluster resource.
 	mock.EXPECT().
@@ -130,6 +130,14 @@ func TestCreateVMC(t *testing.T) {
 			return nil
 		})
 
+	// Expect a call to update the VerrazzanoManagedCluster kubeconfig secret name - return success
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(vmc.Spec.KubeconfigSecret, generateManagedResourceName(name), "KubeconfigSecret name did not match")
+			return nil
+		})
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVMCReconciler(mock)
@@ -212,7 +220,7 @@ func newVMCReconciler(c client.Client) VerrazzanoManagedClusterReconciler {
 
 func fakeGetConfig() (*rest.Config, error) {
 	conf := rest.Config{
-		TLSClientConfig:     rest.TLSClientConfig{
+		TLSClientConfig: rest.TLSClientConfig{
 			CAData: []byte("fakeCA"),
 		},
 	}
