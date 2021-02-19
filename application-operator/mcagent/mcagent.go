@@ -20,15 +20,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Syncer contains context for synchronize operations
-type Syncer struct {
-	AdminClient        client.Client
-	MCClient           client.Client
-	Log                logr.Logger
-	ManagedClusterName string
-	Context            context.Context
-}
-
 const adminKubeconfigData = "admin-kubeconfig"
 const clusterNameData = "managed-cluster-name"
 
@@ -67,7 +58,7 @@ func StartAgent(client client.Client, log logr.Logger) {
 	// Create the synchronization context structure
 	s := &Syncer{
 		AdminClient:        adminClient,
-		MCClient:           client,
+		LocalClient:        client,
 		Log:                log,
 		ManagedClusterName: managedClusterName,
 		Context:            context.TODO(),
@@ -83,7 +74,11 @@ func (s *Syncer) StartSync() {
 
 	// Periodically loop looking for multi-cluster objects
 	for {
-		err := s.syncMCSecretObjects()
+		err := s.syncVerrazzanoProjects()
+		if err != nil {
+			s.Log.Error(err, "Error syncing VerrazzanoProject objects")
+		}
+		err = s.syncMCSecretObjects()
 		if err != nil {
 			s.Log.Error(err, "Error syncing MultiClusterSecret objects")
 		}
@@ -151,15 +146,4 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	}
 
 	return clientset, nil
-}
-
-// Check if the placement is for this cluster
-func (s *Syncer) isThisCluster(placement clustersv1alpha1.Placement) bool {
-	// Loop through the cluster list looking for the cluster name
-	for _, cluster := range placement.Clusters {
-		if cluster.Name == s.ManagedClusterName {
-			return true
-		}
-	}
-	return false
 }

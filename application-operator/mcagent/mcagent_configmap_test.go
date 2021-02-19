@@ -61,7 +61,7 @@ func TestCreateMCConfigMap(t *testing.T) {
 	//                   Return the resource does not exist
 	mcMock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testMCConfigMapNamespace, Name: testMCConfigMapName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: testMCConfigMapNamespace, Resource: "MultiClusterConfigMap"}, testMCConfigMapName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "MultiClusterConfigMap"}, testMCConfigMapName))
 
 	// Managed Cluster - expect call to create a MultiClusterConfigMap
 	mcMock.EXPECT().
@@ -78,7 +78,7 @@ func TestCreateMCConfigMap(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -147,7 +147,7 @@ func TestUpdateMCConfigMap(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -192,7 +192,7 @@ func TestMCConfigMapPlacement(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),

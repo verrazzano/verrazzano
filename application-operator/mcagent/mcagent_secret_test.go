@@ -60,7 +60,7 @@ func TestCreateMCSecret(t *testing.T) {
 	//                   Return the resource does not exist
 	mcMock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testMCSecretNamespace, Name: testMCSecretName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: testMCSecretNamespace, Resource: "MultiClusterSecret"}, testMCSecretName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "MultiClusterSecret"}, testMCSecretName))
 
 	// Managed Cluster - expect call to create a MultiClusterSecret
 	mcMock.EXPECT().
@@ -78,7 +78,7 @@ func TestCreateMCSecret(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -146,7 +146,7 @@ func TestUpdateMCSecret(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -191,7 +191,7 @@ func TestMCSecretPlacement(t *testing.T) {
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),

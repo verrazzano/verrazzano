@@ -131,7 +131,8 @@ function full_k8s_cluster_dump() {
     kubectl get virtualservice --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/virtualservices.json || true
     kubectl describe verrazzano --all-namespaces > $CAPTURE_DIR/cluster-dump/verrazzano_resources.out || true
     kubectl api-resources -o wide > $CAPTURE_DIR/cluster-dump/api_resources.out || true
-    kubectl describe configmap --all-namespaces > $CAPTURE_DIR/cluster-dump/configmaps.out || true
+    # squelch the "too many clients" warnings from newer kubectl versions
+    kubectl describe configmap --all-namespaces > $CAPTURE_DIR/cluster-dump/configmaps.out 2> /dev/null || true
     helm version > $CAPTURE_DIR/cluster-dump/helm-version.out || true
     helm ls -A -o json > $CAPTURE_DIR/cluster-dump/helm-ls.json || true
     process_nodes_output || true

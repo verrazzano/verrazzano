@@ -5,6 +5,7 @@ package mcagent
 
 import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -23,9 +24,8 @@ func (s *Syncer) syncMCSecretObjects() error {
 	for _, mcSecret := range allMCSecrets.Items {
 		if s.isThisCluster(mcSecret.Spec.Placement) {
 			_, err := s.createOrUpdateMCSecret(mcSecret)
-			if err != nil {
-				return err
-			}
+			s.Log.Error(err, "Error syncing MultiClusterSecret object",
+				types.NamespacedName{Namespace: mcSecret.Namespace, Name: mcSecret.Name})
 		}
 	}
 	return nil
@@ -38,7 +38,7 @@ func (s *Syncer) createOrUpdateMCSecret(mcSecret clustersv1alpha1.MultiClusterSe
 	mcSecretNew.Name = mcSecret.Name
 
 	// Create or update on the local cluster
-	return controllerutil.CreateOrUpdate(s.Context, s.MCClient, &mcSecretNew, func() error {
+	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &mcSecretNew, func() error {
 		mutateMCSecret(mcSecret, &mcSecretNew)
 		return nil
 	})

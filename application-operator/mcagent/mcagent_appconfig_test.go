@@ -61,7 +61,7 @@ func TestCreateMCAppConfig(t *testing.T) {
 	//                   Return the resource does not exist
 	mcMock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testMCAppConfigNamespace, Name: testMCAppConfigName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: testMCAppConfigNamespace, Resource: "MultiClusterApplicationConfiguration"}, testMCAppConfigName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "MultiClusterApplicationConfiguration"}, testMCAppConfigName))
 
 	// Managed Cluster - expect call to create a MultiClusterApplicationConfiguration
 	mcMock.EXPECT().
@@ -74,10 +74,18 @@ func TestCreateMCAppConfig(t *testing.T) {
 			return nil
 		})
 
+	// Managed Cluster - expect call to list MultiClusterApplicationConfiguration objects - return same list as admin
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, opts ...*client.ListOptions) error {
+			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
+			return nil
+		})
+
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -151,10 +159,96 @@ func TestUpdateMCAppConfig(t *testing.T) {
 			return nil
 		})
 
+	// Managed Cluster - expect call to list MultiClusterApplicationConfiguration objects - return same list as admin
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, opts ...*client.ListOptions) error {
+			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
+			return nil
+		})
+
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
+		Log:                log,
+		ManagedClusterName: testClusterName,
+		Context:            context.TODO(),
+	}
+	err = s.syncMCApplicationConfigurationObjects()
+
+	// Validate the results
+	adminMocker.Finish()
+	mcMocker.Finish()
+	assert.NoError(err)
+}
+
+// TestDeleteMCAppConfig tests the synchronization method for the following use case.
+// GIVEN a request to sync MultiClusterApplicationConfiguration objects
+// WHEN the object exists on the local cluster but not on the admin cluster
+// THEN ensure that the MultiClusterApplicationConfiguration is deleted.
+func TestDeleteMCAppConfig(t *testing.T) {
+	assert := asserts.New(t)
+	log := ctrl.Log.WithName("test")
+
+	// Managed cluster mocks
+	mcMocker := gomock.NewController(t)
+	mcMock := mocks.NewMockClient(mcMocker)
+
+	// Admin cluster mocks
+	adminMocker := gomock.NewController(t)
+	adminMock := mocks.NewMockClient(adminMocker)
+
+	// Test data
+	testMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
+	if err != nil {
+		assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
+	}
+	testMCAppConfigOrphan, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
+	if err != nil {
+		assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
+	}
+	testMCAppConfigOrphan.Name = "orphaned-resource"
+
+	// Admin Cluster - expect call to list MultiClusterApplicationConfiguration objects - return list with one object
+	adminMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, opts ...*client.ListOptions) error {
+			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
+			return nil
+		})
+
+	// Managed Cluster - expect call to get a MultiClusterApplicationConfiguration from the list returned by the admin cluster
+	//                   Return the resource
+	mcMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testMCAppConfigNamespace, Name: testMCAppConfigName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration) error {
+			testMCAppConfig.DeepCopyInto(mcAppConfig)
+			return nil
+		})
+
+	// Managed Cluster - expect call to list MultiClusterApplicationConfiguration objects - return list including an orphaned object
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, opts ...*client.ListOptions) error {
+			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
+			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfigOrphan)
+			return nil
+		})
+
+	// Managed Cluster - expect a call to delete a MultiClusterApplicationConfiguration object
+	mcMock.EXPECT().
+		Delete(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration, opts ...*client.ListOptions) error {
+			assert.Equal(testMCAppConfigOrphan.Name, mcAppConfig.Name, "unexpected object being deleted")
+			assert.Equal(testMCAppConfigOrphan.Namespace, mcAppConfig.Namespace, "unexpected object being deleted")
+			return nil
+		})
+
+	// Make the request
+	s := &Syncer{
+		AdminClient:        adminMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
@@ -196,12 +290,18 @@ func TestMCAppConfigPlacement(t *testing.T) {
 			return nil
 		})
 
-	// Expect no calls on managed cluster since the app config was not targeted at this cluster
+	// Managed Cluster - expect call to list MultiClusterApplicationConfiguration objects - return same list as admin
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, opts ...*client.ListOptions) error {
+			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
+			return nil
+		})
 
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
-		MCClient:           mcMock,
+		LocalClient:        mcMock,
 		Log:                log,
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),

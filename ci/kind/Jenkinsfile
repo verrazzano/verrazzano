@@ -132,6 +132,11 @@ pipeline {
                 stage('Prepare AT environment') {
                     steps {
                         sh """
+                            cd ${GO_REPO_PATH}/verrazzano
+                            git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
+                            git config --global user.name $DOCKER_CREDS_USR
+                            git config --global user.email "${DOCKER_EMAIL}"
+                            git checkout -b ${env.BRANCH_NAME}
                             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
                             echo "Create Kind cluster"
                             cd ${TEST_SCRIPTS_DIR}
@@ -309,7 +314,7 @@ pipeline {
             subject: "Verrazzano: ${env.JOB_NAME} - Failed",
             body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
             script {
-                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME == "verrazzano/develop") {
+                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "develop") {
                     pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }

@@ -6,11 +6,12 @@ package controllers
 import (
 	"context"
 	"fmt"
-
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -24,6 +25,17 @@ type VerrazzanoManagedClusterReconciler struct {
 	Scheme *runtime.Scheme
 	log    *zap.SugaredLogger
 }
+
+// bindingParams used to mutate the ClusterRoleBinding
+type bindingParams struct {
+	vmc                     *clustersv1alpha1.VerrazzanoManagedCluster
+	roleBindingName         string
+	roleName                string
+	serviceAccountName      string
+	serviceAccountNamespace string
+}
+
+const mcRoleAndBindingName = "verrazzano-managed-cluster"
 
 // +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=verrazzanomanagedclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=verrazzanomanagedclusters/status,verbs=get;update;patch
@@ -61,6 +73,12 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
+	err = r.reconcileManagedRoleBinding(vmc)
+	if err != nil {
+		log.Infof("Failed to reconcile the ServiceAccount: %v", err)
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -72,7 +90,7 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileServiceAccount(vmc *cluste
 	}
 
 	// Does the VerrazzanoManagedCluster object contain the service account name?
-	saName := generateServiceAccountName(vmc.Name)
+	saName := generateManagedResourceName(vmc.Name)
 	if vmc.Spec.ServiceAccount != saName {
 		r.log.Infof("Updating ServiceAccount from %q to %q", vmc.Spec.ServiceAccount, saName)
 		vmc.Spec.ServiceAccount = saName
@@ -89,7 +107,7 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileServiceAccount(vmc *cluste
 func (r *VerrazzanoManagedClusterReconciler) createOrUpdateServiceAccount(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) (controllerutil.OperationResult, error) {
 	var serviceAccount corev1.ServiceAccount
 	serviceAccount.Namespace = vmc.Namespace
-	serviceAccount.Name = generateServiceAccountName(vmc.Name)
+	serviceAccount.Name = generateManagedResourceName(vmc.Name)
 
 	return controllerutil.CreateOrUpdate(ctx, r.Client, &serviceAccount, func() error {
 		r.mutateServiceAccount(vmc, &serviceAccount)
@@ -100,11 +118,68 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateServiceAccount(ctx co
 }
 
 func (r *VerrazzanoManagedClusterReconciler) mutateServiceAccount(vmc *clustersv1alpha1.VerrazzanoManagedCluster, serviceAccount *corev1.ServiceAccount) {
-	serviceAccount.Name = generateServiceAccountName(vmc.Name)
+	serviceAccount.Name = generateManagedResourceName(vmc.Name)
 }
 
-// Generate the service account name
-func generateServiceAccountName(clusterName string) string {
+// reconcileManagedRoleBinding reconciles the ClusterRoleBinding that binds the service account used by the managed cluster
+// to the role containing the permission
+func (r *VerrazzanoManagedClusterReconciler) reconcileManagedRoleBinding(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	const roleName = "verrazzano-managed-cluster"
+	bindingName := generateManagedResourceName(vmc.Name)
+	var binding rbacv1.ClusterRoleBinding
+	binding.Name = bindingName
+
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &binding, func() error {
+		mutateBinding(&binding, bindingParams{
+			vmc:                     vmc,
+			roleBindingName:         bindingName,
+			roleName:                roleName,
+			serviceAccountName:      vmc.Spec.ServiceAccount,
+			serviceAccountNamespace: vmc.Namespace,
+		})
+		return nil
+	})
+	return err
+}
+
+// mutateBinding mutes the ClusterRoleBinding to ensure it has the valid params
+func mutateBinding(binding *rbacv1.ClusterRoleBinding, p bindingParams) {
+	binding.ObjectMeta = metav1.ObjectMeta{
+		Name:   p.roleBindingName,
+		Labels: p.vmc.Labels,
+		// Set owner reference here instead of calling controllerutil.SetControllerReference
+		// which does not allow cluster-scoped resources.
+		// This reference will result in the clusterrolebinding resource being deleted
+		// when the verrazzano CR is deleted.
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				APIVersion: p.vmc.APIVersion,
+				Kind:       p.vmc.Kind,
+				Name:       p.vmc.Name,
+				UID:        p.vmc.UID,
+				Controller: func() *bool {
+					flag := true
+					return &flag
+				}(),
+			},
+		},
+	}
+	binding.RoleRef = rbacv1.RoleRef{
+		APIGroup: "rbac.authorization.k8s.io",
+		Kind:     "ClusterRole",
+		Name:     p.roleName,
+	}
+	binding.Subjects = []rbacv1.Subject{
+		{
+			Kind:      "ServiceAccount",
+			Name:      p.serviceAccountName,
+			Namespace: p.serviceAccountNamespace,
+		},
+	}
+}
+
+// Generate the common name used by all resources specific to a given managed cluster
+func generateManagedResourceName(clusterName string) string {
 	return fmt.Sprintf("%s-managed-cluster", clusterName)
 }
 

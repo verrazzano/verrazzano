@@ -5,6 +5,7 @@ package mcagent
 
 import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -22,9 +23,8 @@ func (s *Syncer) syncMCLoggingScopeObjects() error {
 	for _, mcLoggingScope := range allMCLoggingScopes.Items {
 		if s.isThisCluster(mcLoggingScope.Spec.Placement) {
 			_, err := s.createOrUpdateMCLoggingScope(mcLoggingScope)
-			if err != nil {
-				return err
-			}
+			s.Log.Error(err, "Error syncing MultiClusterLoggingScope object",
+				types.NamespacedName{Namespace: mcLoggingScope.Namespace, Name: mcLoggingScope.Name})
 		}
 	}
 
@@ -38,7 +38,7 @@ func (s *Syncer) createOrUpdateMCLoggingScope(mcLoggingScope clustersv1alpha1.Mu
 	mcLoggingScopeNew.Name = mcLoggingScope.Name
 
 	// Create or update on the local cluster
-	return controllerutil.CreateOrUpdate(s.Context, s.MCClient, &mcLoggingScopeNew, func() error {
+	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &mcLoggingScopeNew, func() error {
 		mutateMCLoggingScope(mcLoggingScope, &mcLoggingScopeNew)
 		return nil
 	})

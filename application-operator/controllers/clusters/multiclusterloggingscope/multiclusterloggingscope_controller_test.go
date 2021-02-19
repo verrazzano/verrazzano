@@ -84,7 +84,7 @@ func TestReconcileCreateLoggingScope(t *testing.T) {
 	// expect a call to fetch existing LoggingScope, and return not found error, to test create case
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "LoggingScope"}, crName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "oam.verrazzano.io", Resource: "LoggingScope"}, crName))
 
 	// expect a call to create the LoggingScope
 	cli.EXPECT().
@@ -183,7 +183,7 @@ func TestReconcileCreateLoggingScopeFailed(t *testing.T) {
 	// expect a call to fetch existing LoggingScope and return not found error, to simulate create case
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "LoggingScope"}, crName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "oam.verrazzano.io", Resource: "LoggingScope"}, crName))
 
 	// expect a call to create the LoggingScope and fail the call
 	cli.EXPECT().
