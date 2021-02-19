@@ -16,10 +16,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// These kubeconfig related structs represent the kubeconfig information needed to build kubeconfig
-// YAML.
-// client connection to a cluster using a service account token
-// The MC agents will use this kubeconfig to get access to the admin cluster
+// These kubeconfig related structs represent the kubeconfig information needed to build kubeconfig YAML.
 type kubeConfig struct {
 	Clusters       []kcCluster `json:"clusters"`
 	Users          []kcUser    `json:"users"`
@@ -50,7 +47,8 @@ type kcContextData struct {
 	Cluster string `json:"cluster"`
 }
 
-// These names are descriptive only and used internally in the genereated kubeconfig.
+// These names are used internally in the generated kubeconfig. The names
+// are meant to be descriptive and the actual values don't affect behavior.
 const clusterName = "admin"
 const userName = "managed"
 const contextName = "defaultContext"
@@ -62,14 +60,15 @@ func setConfigFunc(f func() (*rest.Config, error)) {
 	getConfigFunc = f
 }
 
-// Create a kubecconfig that has a token that allows access to the managed cluster with restricted access as defined
-// in the verrazzano-managed-cluster role.
+// Create a kubecconfig that has a token that allows access to the managed cluster
+// with restricted access as defined in the verrazzano-managed-cluster role.
 // The code does the following:
 //   1. get the service account for the managed cluster
-//   2. get the name of the service account token from the service account secret naem field
+//   2. get the name of the service account token from the service account secret name field
 //   3. get the in-memory client configuration used to access the admin cluster
-//   4. build a kubeconfig struct using data from the client config and the service token
+//   4. build a kubeconfig struct using data from the client config and the service account token
 //   5. save the kubeconfig as a secret
+//   6. update VMC with the kubeconfig secret name
 func (r *VerrazzanoManagedClusterReconciler) reconcileKubeConfig(vmc *clusterapi.VerrazzanoManagedCluster) error {
 
 	// The same managed name and  vmc namespace is used for the service account and the kubeconfig secret,
@@ -108,7 +107,7 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileKubeConfig(vmc *clusterapi
 		return err
 	}
 
-	// Load the kubeconfig struct and saved it to the secret.
+	// Load the kubeconfig struct
 	token := secret.Data["token"]
 	b64Cert := base64.StdEncoding.EncodeToString(config.CAData)
 	kc := kubeConfig{
@@ -135,7 +134,7 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileKubeConfig(vmc *clusterapi
 		CurrentContext: contextName,
 	}
 
-	// Convert the kubeconfig to yaml, base64 encode it, then write to a secret
+	// Convert the kubeconfig to yaml then write to a secret
 	kcBytes, err := yaml.Marshal(kc)
 	if err != nil {
 		return err
@@ -155,6 +154,7 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileKubeConfig(vmc *clusterapi
 	return nil
 }
 
+// Create the kubeconfig secret or update it if it already exists
 func (r *VerrazzanoManagedClusterReconciler) createOrUpdateSecret(vmc *clusterapi.VerrazzanoManagedCluster, kubeconfig string, name string, namespace string) (controllerutil.OperationResult, error) {
 	var secret corev1.Secret
 	secret.Namespace = namespace
@@ -168,6 +168,7 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateSecret(vmc *clusterap
 	})
 }
 
+// Mutate the secret, setting the kubeconfig data
 func (r *VerrazzanoManagedClusterReconciler) mutateSecret(secret *corev1.Secret, b64KubeConfig string) error {
 	secret.Type = corev1.SecretTypeOpaque
 	secret.Data = map[string][]byte{
