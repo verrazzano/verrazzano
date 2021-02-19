@@ -166,3 +166,26 @@ func ListIngresses(namespace string) (*extensionsv1beta1.IngressList, error) {
 	CreateLogFile(fmt.Sprintf("%v-ingresses", namespace), logData)
 	return ingresses, err
 }
+
+// GetHostnameFromGateway returns the host name from the application gateway that was
+// created by the ingress trait controller
+func GetHostnameFromGateway(namespace string, ingressTraitName string) string {
+	gateways, err := GetIstioClientset().NetworkingV1alpha3().Gateways(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Could not list application ingress gateways: %v\n", err.Error()))
+	}
+
+	// if an optional ingressTraitName is provided, use the gateway that has a name that starts with
+	// ingressTraitName, otherwise just use the first gateway
+	for _, gateway := range gateways.Items {
+		if len(ingressTraitName) > 0 && !strings.HasPrefix(gateway.ObjectMeta.Name, ingressTraitName) {
+			continue
+		}
+		if len(gateway.Spec.Servers) > 0 && len(gateway.Spec.Servers[0].Hosts) > 0 {
+			return gateway.Spec.Servers[0].Hosts[0]
+		}
+	}
+
+	ginkgo.Fail(fmt.Sprintf("Could not find host in application ingress gateways in namespace: %s\n", namespace))
+	return ""
+}
