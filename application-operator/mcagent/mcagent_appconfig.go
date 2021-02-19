@@ -15,12 +15,12 @@ import (
 // Synchronize MultiClusterApplicationConfiguration objects to the local cluster
 func (s *Syncer) syncMCApplicationConfigurationObjects() error {
 	// Get all the MultiClusterApplicationConfiguration objects from the admin cluster
-	allMCApplicationConfigurations := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
-	err := s.AdminClient.List(s.Context, &allMCApplicationConfigurations)
+	allAdminMCAppConfigs := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
+	err := s.AdminClient.List(s.Context, &allAdminMCAppConfigs)
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
-	for _, mcAppConfig := range allMCApplicationConfigurations.Items {
+	for _, mcAppConfig := range allAdminMCAppConfigs.Items {
 		if s.isThisCluster(mcAppConfig.Spec.Placement) {
 			_, err := s.createOrUpdateMCAppConfig(mcAppConfig)
 			s.Log.Error(err, "Error syncing MultiClusterApplicationConfiguration object",
@@ -32,15 +32,15 @@ func (s *Syncer) syncMCApplicationConfigurationObjects() error {
 	// Get the list of MultiClusterApplicationConfiguration resources on the
 	// local cluster and compare to the list received from the admin cluster.
 	// The admin cluster is the source of truth.
-	localMCApplicationConfiguration := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
-	err = s.LocalClient.List(s.Context, &localMCApplicationConfiguration)
+	allLocalMCAppConfigs := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
+	err = s.LocalClient.List(s.Context, &allLocalMCAppConfigs)
 	if err != nil {
 		s.Log.Error(err, "failed to list MultiClusterApplicationConfiguration on local cluster")
 		return nil
 	}
-	for _, mcAppConfig := range localMCApplicationConfiguration.Items {
+	for _, mcAppConfig := range allLocalMCAppConfigs.Items {
 		// Delete each MultiClusterApplicationConfiguration object that is not on the admin cluster
-		if !listContains(&allMCApplicationConfigurations, mcAppConfig.Name, mcAppConfig.Namespace) {
+		if !appConfigListContains(&allAdminMCAppConfigs, mcAppConfig.Name, mcAppConfig.Namespace) {
 			err := s.LocalClient.Delete(s.Context, &mcAppConfig)
 			if err != nil {
 				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterApplicationConfiguration with name %q and namespace %q", mcAppConfig.Name, mcAppConfig.Namespace))
@@ -69,9 +69,10 @@ func mutateMCAppConfig(mcAppConfig clustersv1alpha1.MultiClusterApplicationConfi
 	mcAppConfigNew.Labels = mcAppConfig.Labels
 }
 
-func listContains(mcAdminList *clustersv1alpha1.MultiClusterApplicationConfigurationList, name string, namespace string) bool {
-	for _, mcAppConfig := range mcAdminList.Items {
-		if mcAppConfig.Name == name && mcAppConfig.Namespace == namespace {
+// appConfigListContains returns boolean indicating if the list contains the object with the specified name and namespace
+func appConfigListContains(mcAdminList *clustersv1alpha1.MultiClusterApplicationConfigurationList, name string, namespace string) bool {
+	for _, item := range mcAdminList.Items {
+		if item.Name == name && item.Namespace == namespace {
 			return true
 		}
 	}

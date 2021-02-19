@@ -75,6 +75,14 @@ func TestCreateMCComponent(t *testing.T) {
 			return nil
 		})
 
+	// Managed Cluster - expect call to list MultiClusterComponent objects - return same list as admin
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, opts ...*client.ListOptions) error {
+			mcComponentList.Items = append(mcComponentList.Items, testMCComponent)
+			return nil
+		})
+
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
@@ -147,6 +155,88 @@ func TestUpdateMCComponent(t *testing.T) {
 			return nil
 		})
 
+	// Managed Cluster - expect call to list MultiClusterComponent objects - return same list as admin
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, opts ...*client.ListOptions) error {
+			mcComponentList.Items = append(mcComponentList.Items, testMCComponent)
+			return nil
+		})
+
+	// Make the request
+	s := &Syncer{
+		AdminClient:        adminMock,
+		LocalClient:        mcMock,
+		Log:                log,
+		ManagedClusterName: testClusterName,
+		Context:            context.TODO(),
+	}
+	err = s.syncMCComponentObjects()
+
+	// Validate the results
+	adminMocker.Finish()
+	mcMocker.Finish()
+	assert.NoError(err)
+}
+
+// TestDeleteMCComponent tests the synchronization method for the following use case.
+// GIVEN a request to sync MultiClusterComponent objects
+// WHEN the object exists on the local cluster but not on the admin cluster
+// THEN ensure that the MultiClusterComponent is deleted.
+func TestDeleteMCComponent(t *testing.T) {
+	assert := asserts.New(t)
+	log := ctrl.Log.WithName("test")
+
+	// Managed cluster mocks
+	mcMocker := gomock.NewController(t)
+	mcMock := mocks.NewMockClient(mcMocker)
+
+	// Admin cluster mocks
+	adminMocker := gomock.NewController(t)
+	adminMock := mocks.NewMockClient(adminMocker)
+
+	// Test data
+	testMCComponent, err := getSampleMCComponent("testdata/multicluster-component.yaml")
+	if err != nil {
+		assert.NoError(err, "failed to read sample data for MultiClusterComponent")
+	}
+	testMCComponentOrphan, err := getSampleMCComponent("testdata/multicluster-component.yaml")
+	if err != nil {
+		assert.NoError(err, "failed to read sample data for MultiClusterComponent")
+	}
+	testMCComponentOrphan.Name = "orphaned-resource"
+
+	// Admin Cluster - expect call to list MultiClusterComponent objects - return list with one object
+	adminMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, opts ...*client.ListOptions) error {
+			mcComponentList.Items = append(mcComponentList.Items, testMCComponent)
+			return nil
+		})
+
+	// Managed Cluster - expect call to get a MultiClusterComponent from the list returned by the admin cluster
+	//                   Return the resource
+	mcMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testMCComponentNamespace, Name: testMCComponentName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcComponent *clustersv1alpha1.MultiClusterComponent) error {
+			testMCComponent.DeepCopyInto(mcComponent)
+			return nil
+		})
+
+	// Managed Cluster - expect call to list MultiClusterComponent objects - return list including an orphaned object
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, opts ...*client.ListOptions) error {
+			mcComponentList.Items = append(mcComponentList.Items, testMCComponent)
+			mcComponentList.Items = append(mcComponentList.Items, testMCComponentOrphan)
+			return nil
+		})
+
+	// Managed Cluster - expect a call to delete a MultiClusterComponent object
+	mcMock.EXPECT().
+		Delete(gomock.Any(), gomock.Eq(&testMCComponentOrphan), gomock.Any()).
+		Return(nil)
+
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
@@ -186,6 +276,14 @@ func TestMCComponentPlacement(t *testing.T) {
 
 	// Admin Cluster - expect call to list MultiClusterComponent objects - return list with one object
 	adminMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, opts ...*client.ListOptions) error {
+			mcComponentList.Items = append(mcComponentList.Items, testMCComponent)
+			return nil
+		})
+
+	// Managed Cluster - expect call to list MultiClusterComponent objects - return same list as admin
+	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, opts ...*client.ListOptions) error {
 			mcComponentList.Items = append(mcComponentList.Items, testMCComponent)

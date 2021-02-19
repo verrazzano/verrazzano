@@ -11,20 +11,17 @@ import (
 	"path/filepath"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
-
-	"github.com/verrazzano/verrazzano/application-operator/constants"
-
-	"sigs.k8s.io/yaml"
-
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 // TestSyncer_syncVerrazzanoProjects tests the synchronization method for the following use case.
