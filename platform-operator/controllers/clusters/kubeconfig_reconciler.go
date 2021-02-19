@@ -10,6 +10,7 @@ import (
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
@@ -54,7 +55,12 @@ const clusterName = "admin"
 const userName = "managed"
 const contextName = "defaultContext"
 
+// Needed for unit testing
 var getConfigFunc = ctrl.GetConfig
+
+func setConfigFunc(f func() (*rest.Config, error)) {
+	getConfigFunc = f
+}
 
 // Create a kubecconfig that has a token that allows access to the managed cluster with restricted access as defined
 // in the verrazzano-managed-cluster role.
@@ -97,7 +103,7 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileKubeConfig(vmc *clusterapi
 	}
 
 	// Get client config, this has some of the info needed to build a kubeconfig
-	config, err := ctrl.GetConfig()
+	config, err := getConfigFunc()
 	if err != nil {
 		return err
 	}

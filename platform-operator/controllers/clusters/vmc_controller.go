@@ -39,8 +39,6 @@ type bindingParams struct {
 	serviceAccountNamespace string
 }
 
-const mcRoleAndBindingName = "verrazzano-managed-cluster"
-
 // +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=verrazzanomanagedclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=verrazzanomanagedclusters/status,verbs=get;update;patch
 

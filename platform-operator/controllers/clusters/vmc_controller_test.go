@@ -43,8 +43,8 @@ func TestCreateVMC(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	getConfigFunc = fakeGetConfig
-	defer func() { getConfigFunc = ctrl.GetConfig }()
+	defer setConfigFunc(getConfigFunc)
+	setConfigFunc(fakeGetConfig)
 
 	// Expect a call to get the VerrazzanoManagedCluster resource.
 	mock.EXPECT().
