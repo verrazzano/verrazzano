@@ -54,6 +54,8 @@ const clusterName = "admin"
 const userName = "managed"
 const contextName = "defaultContext"
 
+var getConfigFunc = ctrl.GetConfig
+
 // Create a kubecconfig that has a token that allows access to the managed cluster with restricted access as defined
 // in the verrazzano-managed-cluster role.
 // The code does the following:

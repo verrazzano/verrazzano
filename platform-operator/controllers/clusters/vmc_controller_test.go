@@ -6,6 +6,7 @@ package controllers
 import (
 	"context"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/client-go/rest"
 	"testing"
 	"time"
 
@@ -41,6 +42,9 @@ func TestCreateVMC(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
+
+	getConfigFunc = fakeGetConfig
+	defer func(){getConfigFunc = ctrl.GetConfig}()
 
 	// Expect a call to get the VerrazzanoManagedCluster resource.
 	mock.EXPECT().
@@ -204,4 +208,13 @@ func newVMCReconciler(c client.Client) VerrazzanoManagedClusterReconciler {
 		Client: c,
 		Scheme: scheme}
 	return reconciler
+}
+
+func fakeGetConfig() (*rest.Config, error) {
+	conf := rest.Config{
+		TLSClientConfig:     rest.TLSClientConfig{
+			CAData: []byte("fakeCA"),
+		},
+	}
+	return &conf, nil
 }
