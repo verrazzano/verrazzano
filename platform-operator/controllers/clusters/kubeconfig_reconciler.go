@@ -15,8 +15,10 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// These kubeconfig related structs represent the kubeconfig information needed to do
+// These kubeconfig related structs represent the kubeconfig information needed to build kubeconfig
+// YAML.
 // client connection to a cluster using a service account token
+// The MC agents will use this kubeconfig to get access to the admin cluster
 type kubeConfig struct {
 	Clusters       []kcCluster `json:"clusters"`
 	Users          []kcUser    `json:"users"`
@@ -47,8 +49,7 @@ type kcContextData struct {
 	Cluster string `json:"cluster"`
 }
 
-// These names are descriptive only and can be any value. The MC agents will use
-// this kubeconfig to get access to the admin cluster
+// These names are descriptive only and used internally in the genereated kubeconfig.
 const clusterName = "admin"
 const userName = "managed"
 const contextName = "defaultContext"
