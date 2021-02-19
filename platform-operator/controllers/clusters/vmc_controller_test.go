@@ -33,6 +33,8 @@ const kind = "VerrazzanoManagedCluster"
 func TestCreateVMC(t *testing.T) {
 	namespace := "verrazzano-mc"
 	name := "test"
+	saToken := "saToken"
+	saSecretName := "saSecret"
 	labels := map[string]string{"label1": "test"}
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -89,6 +91,38 @@ func TestCreateVMC(t *testing.T) {
 			asserts.Equalf("verrazzano-managed-cluster", binding.RoleRef.Name, "ClusterRoleBinding roleref did not match")
 			asserts.Equalf(generateManagedResourceName(name), binding.Subjects[0].Name, "Subject did not match")
 			asserts.Equalf(namespace, binding.Subjects[0].Namespace, "Subject namespace did not match")
+			return nil
+		})
+
+	// Expect a call to get the ServiceAccount, return one with the secret name set
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sa *corev1.ServiceAccount) error {
+			sa.Secrets = []corev1.ObjectReference{{
+				Name: saSecretName,
+			}}
+			return nil
+		})
+
+	// Expect a call to get the Secret with the service account token, return one with the token set
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: saSecretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				"kubeconfig": []byte(saToken),
+			}
+			return nil
+		})
+
+	// Expect a call to get the kubeconfig secret - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Secret"}, generateManagedResourceName(name)))
+
+	// Expect a call to create the kubeconfig secret
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
 			return nil
 		})
 

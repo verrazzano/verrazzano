@@ -7,7 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	vzclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -47,31 +47,39 @@ type kcContextData struct {
 	Cluster string `json:"cluster"`
 }
 
-// These name are descriptive only and can be any strings.  The user of this kubeconfig will
-// be the managed cluster and the kubeconfig provides access to the admin cluster
+// These names are descriptive only and can be any value. The MC agents will use
+// this kubeconfig to get access to the admin cluster
 const clusterName = "admin"
 const userName = "managed"
 const contextName = "defaultContext"
 
 // Create a kubecconfig that has a token that allows access to the managed cluster with restricted access as defined
 // in the verrazzano-managed-cluster role.
-func (r *VerrazzanoManagedClusterReconciler) reconcileKubeConfig(vmc *vzclusters.VerrazzanoManagedCluster) error {
+// The code does the following:
+//   1. get the service account for the managed cluster
+//   2. get the name of the service account token from the service account secret naem field
+//   3. get the in-memory client configuration used to access the admin cluster
+//   4. build a kubeconfig struct using data from the client config and the service token
+//   5. save the kubeconfig as a secret
+func (r *VerrazzanoManagedClusterReconciler) reconcileKubeConfig(vmc *clusterapi.VerrazzanoManagedCluster) error {
 
-	// The same managed name and  vmc namespace is used for the service account and the kubeconfig secret
-	managedName := generateManagedResourceName(vmc.Name)
+	// The same managed name and  vmc namespace is used for the service account and the kubeconfig secret,
+	// for clarity use different vars
+	saName := generateManagedResourceName(vmc.Name)
+	secretName := generateManagedResourceName(vmc.Name)
 	managedNamespace := vmc.Namespace
 
 	// Get the service account
 	var sa corev1.ServiceAccount
 	saNsn := types.NamespacedName{
 		Namespace: managedNamespace,
-		Name:      managedName,
+		Name:      saName,
 	}
 	if err := r.Get(context.TODO(), saNsn, &sa); err != nil {
-		return fmt.Errorf("Failed to fetch the service account for VMC %s/%s, %v", managedNamespace, managedName, err)
+		return fmt.Errorf("Failed to fetch the service account for VMC %s/%s, %v", managedNamespace, saName, err)
 	}
 	if len(sa.Secrets) == 0 {
-		return fmt.Errorf("Service account %s/%s is missing a secret name", managedNamespace, managedName)
+		return fmt.Errorf("Service account %s/%s is missing a secret name", managedNamespace, saName)
 	}
 
 	// Get the service account token from the secret
@@ -123,7 +131,7 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileKubeConfig(vmc *vzclusters
 	if err != nil {
 		return err
 	}
-	_, err = r.createOrUpdateSecret(vmc, string(kcBytes), managedName, managedNamespace)
+	_, err = r.createOrUpdateSecret(vmc, string(kcBytes), secretName, managedNamespace)
 	if err != nil {
 		return err
 	}
@@ -131,7 +139,7 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileKubeConfig(vmc *vzclusters
 	return nil
 }
 
-func (r *VerrazzanoManagedClusterReconciler) createOrUpdateSecret(vmc *vzclusters.VerrazzanoManagedCluster, kubeconfig string, name string, namespace string) (controllerutil.OperationResult, error) {
+func (r *VerrazzanoManagedClusterReconciler) createOrUpdateSecret(vmc *clusterapi.VerrazzanoManagedCluster, kubeconfig string, name string, namespace string) (controllerutil.OperationResult, error) {
 	var secret corev1.Secret
 	secret.Namespace = namespace
 	secret.Name = name

@@ -21,7 +21,9 @@ import (
 
 const roleForManagedClusterName = "verrazzano-managed-cluster"
 
-// VerrazzanoManagedClusterReconciler reconciles a VerrazzanoManagedCluster object
+// VerrazzanoManagedClusterReconciler reconciles a VerrazzanoManagedCluster object.
+// The reconciler will create a ServiceAcount, ClusterRoleBinding, and a Secret which
+// contains the kubeconfig to be used by the Multi-Cluster Agent to access the admin cluster.
 type VerrazzanoManagedClusterReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
@@ -83,7 +85,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 
 	err = r.reconcileKubeConfig(vmc)
 	if err != nil {
-		log.Infof("Failed to generate kubeconfig used by managed cluster: %v", err)
+		log.Infof("Failed to reconcile the kubeconfig used by managed cluster: %v", err)
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
