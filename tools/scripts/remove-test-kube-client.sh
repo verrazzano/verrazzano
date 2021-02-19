@@ -14,27 +14,28 @@ if [[ -z "${TEST_NAMESPACE}" ]]; then
     exit 1
 fi
 
-if [[ -z "${TEST_SERVICEACCOUNT}" ]]; then
-    echo "TEST_SERVICEACCOUNT is undefined."
+if [[ -z "${TEST_ID}" ]]; then
+    echo "TEST_ID is undefined."
     exit 1
 fi
 
-if [[ -z "${TEST_ROLE_BINDING}" ]]; then
-    echo "TEST_ROLE_BINDING is undefined."
+if [[ -z "${PROJECT_ADMIN_ROLE}" ]]; then
+    echo "PROJECT_ADMIN_ROLE is undefined."
     exit 1
 fi
 
-kubectl delete clusterrolebinding $TEST_ROLE_BINDING || true
-kubectl -n ${TEST_NAMESPACE} delete rolebinding podreader-binding || true
-kubectl -n istio-system delete rolebinding istioservicereader-binding || true
-kubectl -n verrazzano-system delete rolebinding verrazzanosecretreader-binding || true
-kubectl -n verrazzano-system delete rolebinding verrazzanoingressreader-binding || true
-kubectl -n ${TEST_NAMESPACE} delete role podreader || true
-kubectl -n istio-system delete role istioservicereader || true
-kubectl -n verrazzano-system delete role verrazzanosecretreader || true
-kubectl -n verrazzano-system delete role verrazzanoingressreader || true
-kubectl -n $TEST_NAMESPACE delete serviceaccount $TEST_SERVICEACCOUNT || true
+if [[ -z "${TEST_ROLE}" ]]; then
+    echo "TEST_ROLE is undefined."
+    exit 1
+fi
+
+
+
+kubectl -n ${TEST_NAMESPACE} delete clusterrolebinding ${TEST_ID}-${TEST_ROLE}-binding || true
+kubectl -n ${TEST_NAMESPACE} delete rolebinding ${TEST_ID}-${PROJECT_ADMIN_ROLE}-binding || true
+kubectl -n ${TEST_NAMESPACE} delete serviceaccount $TEST_ID-sa || true
 kubectl delete ns $TEST_NAMESPACE || true
 rm -rf $TEST_KUBECONFIG || true
+echo "Test kubeconfig ${TEST_KUBECONFIG} deleted."
 
 

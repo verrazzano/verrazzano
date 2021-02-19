@@ -326,6 +326,7 @@ rules:
     - verrazzano.io
     - oam.verrazzano.io
     - install.verrazzano.io
+    - core.oam.dev
   resources:
     - "*"
   verbs:
