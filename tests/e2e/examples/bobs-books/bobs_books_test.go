@@ -131,7 +131,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 				ingress := pkg.Ingress()
 				pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
 				url := fmt.Sprintf("http://%s", ingress)
-				host := pkg.GetHostnameFromGateway("bobs-books", "robert-ingress")
+				host := pkg.GetHostnameFromGateway("bobs-books", "robert")
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
 					Status:  status,
@@ -148,7 +148,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 				ingress := pkg.Ingress()
 				pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
 				url := fmt.Sprintf("http://%s/bobbys-front-end/", ingress)
-				host := pkg.GetHostnameFromGateway("bobs-books", "bobby-ingress")
+				host := pkg.GetHostnameFromGateway("bobs-books", "bobby")
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
 					Status:  status,
@@ -165,7 +165,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 				ingress := pkg.Ingress()
 				pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
 				url := fmt.Sprintf("http://%s/bobs-bookstore-order-manager/orders", ingress)
-				host := pkg.GetHostnameFromGateway("bobs-books", "bob-ingress")
+				host := pkg.GetHostnameFromGateway("bobs-books", "bobs")
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
 					Status:  status,
