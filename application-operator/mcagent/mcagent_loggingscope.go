@@ -23,8 +23,11 @@ func (s *Syncer) syncMCLoggingScopeObjects() error {
 	for _, mcLoggingScope := range allMCLoggingScopes.Items {
 		if s.isThisCluster(mcLoggingScope.Spec.Placement) {
 			_, err := s.createOrUpdateMCLoggingScope(mcLoggingScope)
-			s.Log.Error(err, "Error syncing MultiClusterLoggingScope object",
-				types.NamespacedName{Namespace: mcLoggingScope.Namespace, Name: mcLoggingScope.Name})
+			if err != nil {
+				s.Log.Error(err, "Error syncing object",
+					"MultiClusterLoggingScope",
+					types.NamespacedName{Namespace: mcLoggingScope.Namespace, Name: mcLoggingScope.Name})
+			}
 		}
 	}
 

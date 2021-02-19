@@ -42,10 +42,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	var vp clustersv1alpha1.VerrazzanoProject
 	result := reconcile.Result{}
 	ctx := context.Background()
-	logger.Info(" Fetching VerrazzanoProject", req.NamespacedName)
+	logger.Info("Fetching VerrazzanoProject")
 	err := r.Get(ctx, req.NamespacedName, &vp)
 	if err != nil {
-		logger.Info("Failed to fetch VerrazzanoProject", req.NamespacedName, "err", err)
+		logger.Error(err, "Failed to fetch VerrazzanoProject")
 		return result, client.IgnoreNotFound(err)
 	}
 
@@ -56,7 +56,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
 	if vp.Namespace == constants.VerrazzanoMultiClusterNamespace {
 		for _, namespace := range vp.Spec.Namespaces {
-			logger.Info("VerrazzanoProject", vp.Name, "create or update with underlying namespace", namespace)
+			logger.Info("create or update with underlying namespace", "namespace", namespace)
 			nsSpec := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
 			controllerutil.CreateOrUpdate(ctx, r.Client, nsSpec, func() error {
 				return nil

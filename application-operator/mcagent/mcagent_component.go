@@ -23,8 +23,11 @@ func (s *Syncer) syncMCComponentObjects() error {
 	for _, mcComponent := range allMCComponents.Items {
 		if s.isThisCluster(mcComponent.Spec.Placement) {
 			_, err := s.createOrUpdateMCComponent(mcComponent)
-			s.Log.Error(err, "Error syncing MultiClusterComponent object",
-				types.NamespacedName{Namespace: mcComponent.Namespace, Name: mcComponent.Name})
+			if err != nil {
+				s.Log.Error(err, "Error syncing object",
+					"MultiClusterComponent",
+					types.NamespacedName{Namespace: mcComponent.Namespace, Name: mcComponent.Name})
+			}
 		}
 	}
 

@@ -23,8 +23,11 @@ func (s *Syncer) syncMCConfigMapObjects() error {
 	for _, mcConfigMap := range allMCConfigMaps.Items {
 		if s.isThisCluster(mcConfigMap.Spec.Placement) {
 			_, err := s.createOrUpdateMCConfigMap(mcConfigMap)
-			s.Log.Error(err, "Error syncing MultiClusterConfigMap object",
-				types.NamespacedName{Namespace: mcConfigMap.Namespace, Name: mcConfigMap.Name})
+			if err != nil {
+				s.Log.Error(err, "Error syncing object",
+					"MultiClusterConfigMap",
+					types.NamespacedName{Namespace: mcConfigMap.Namespace, Name: mcConfigMap.Name})
+			}
 		}
 	}
 

@@ -23,8 +23,11 @@ func (s *Syncer) syncMCApplicationConfigurationObjects() error {
 	for _, mcAppConfig := range allMCApplicationConfigurations.Items {
 		if s.isThisCluster(mcAppConfig.Spec.Placement) {
 			_, err := s.createOrUpdateMCAppConfig(mcAppConfig)
-			s.Log.Error(err, "Error syncing MultiClusterApplicationConfiguration object",
-				types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name})
+			if err != nil {
+				s.Log.Error(err, "Error syncing object",
+					"MultiClusterApplicationConfiguration",
+					types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name})
+			}
 		}
 	}
 
