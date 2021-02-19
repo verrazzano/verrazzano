@@ -3,13 +3,6 @@
 
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
-def availableRegions = [ "us-ashburn-1", "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
-                          "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
-                          "sa-saopaulo-1", "uk-london-1", "us-phoenix-1" ]
-Collections.shuffle(availableRegions)
-def zoneId = UUID.randomUUID().toString().substring(0,3).replace('-','')
-def dns_zone_ocid = 'dummy'
-
 
 pipeline {
     options {
@@ -27,19 +20,6 @@ pipeline {
     }
 
     parameters {
-        choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
-                choices: ["kind", "magicdns_oke", "ocidns_oke"])
-        choice (description: 'OCI region to launch OKE clusters in', name: 'OKE_CLUSTER_REGION',
-            // 1st choice is the default value
-            choices: availableRegions )
-        choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
-            // 1st choice is the default value
-            choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2" ])
-        choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
-                // 1st choice is the default value
-                choices: [ "v1.17.13", "v1.18.10" ])
-        string defaultValue: 'dev', description: 'Verrazzano install profile name', name: "INSTALL_PROFILE", trim: true
-
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
         booleanParam (description: 'Whether to run example tests', name: 'RUN_EXAMPLE_TESTS', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
@@ -73,36 +53,12 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind.yaml"
+        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
+        INSTALL_PROFILE = "dev"
+        VZ_ENVIRONMENT_NAME = "default"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
-
-        TEST_ENV = "${params.TEST_ENV}"
-        INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
-
-        TF_VAR_tenancy_id = credentials('oci-tenancy')
-        TF_VAR_user_id = credentials('oci-user-ocid')
-        TF_VAR_region = "${params.OKE_CLUSTER_REGION}"
-        TF_VAR_kubernetes_version = "${params.OKE_CLUSTER_VERSION}"
-        TF_VAR_nodepool_config = "${params.OKE_NODE_POOL}"
-        TF_VAR_api_fingerprint = credentials('oci-api-key-fingerprint')
-        TF_VAR_api_private_key_path = credentials('oci-api-key')
-        TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
-        TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
-
-        OCI_CLI_TENANCY = credentials('oci-tenancy')
-        OCI_CLI_USER = credentials('oci-user-ocid')
-        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
-        OCI_CLI_KEY_FILE = credentials('oci-api-key')
-        OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
-        OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
-        INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
-        INSTALL_CONFIG_FILE_XIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-xipio.yaml"
-        OCI_DNS_ZONE_SUFFIX=credentials('oci-dns-zone')
-        OCI_DNS_ZONE_NAME="z${zoneId}." + "${OCI_DNS_ZONE_SUFFIX}"
-        VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'ocidns_oke' ? 'b' + env.BUILD_NUMBER : 'default'}"
-        TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
     }
 
     stages {
@@ -123,14 +79,14 @@ pipeline {
                 script {
 	            try {
 		        sh """
-                    echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
 		        """
 		    } catch(error) {
 		        echo "docker login failed, retrying after sleep"
 		        retry(4) {
 			    sleep(30)
 			    sh """
-                    echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
 			    """
 		        }
 		    }
@@ -138,14 +94,14 @@ pipeline {
                 script {
 	            try {
 		        sh """
-                    echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
+                            echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
 		        """
 		    } catch(error) {
 		        echo "OCR docker login failed, retrying after sleep"
 		        retry(4) {
 			    sleep(30)
 			    sh """
-                    echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
+                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
 			    """
 		        }
 		    }
@@ -373,183 +329,82 @@ pipeline {
             stages {
 
                 stage('Prepare AT environment') {
-                    stages {
-                        stage('Create Cluster') {
-                            steps {
-                                script {
-                                    sh """
-				                        echo "tests will execute" > ${TESTS_EXECUTED_FILE}
-                                        if [ "${env.TEST_ENV}" == "kind" ]
-                                        then
-                                            echo "Create Kind cluster"
-                                            cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                                            make create-cluster
+                    steps {
+                        sh """
+                            echo "tests will execute" > ${TESTS_EXECUTED_FILE}
+                            echo "Create Kind cluster"
+                            cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                            make create-cluster
 
-					                        echo "Install metallb"
-                            		        cd ${GO_REPO_PATH}/verrazzano
-                            		        ./tests/e2e/config/scripts/install-metallb.sh
-                                        else
-					                        echo "Create OKE cluster"
-                                            cd ${GO_REPO_PATH}/verrazzano
-                                            TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} ./tests/e2e/config/scripts/create_oke_cluster.sh
-                                        fi
-                                    """
-                                    }
-                                }
-                        }
-                        stage ('Install yq'){
-                            steps {
-                                script {
-                                    sh """
-                                        echo "Installing yq"
-                                        GO111MODULE=on go get github.com/mikefarah/yq/v4
-                                    """
-                                }
-                            }
-                        }
+                            echo "Install metallb"
+                            cd ${GO_REPO_PATH}/verrazzano
+                            ./tests/e2e/config/scripts/install-metallb.sh
 
-                        stage('Configure verrazzano prerequisites') {
-                            parallel {
-                                stage ('Install platform operator') {
-                                     steps {
-                                        script {
-                                            sh """
-                                                echo "Create Image Pull Secrets"
-                                                cd ${GO_REPO_PATH}/verrazzano
-                                                ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                                                ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                                                ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+                            echo "Create Image Pull Secrets"
+                            cd ${GO_REPO_PATH}/verrazzano
+                            ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                            ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                            ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
 
-                                                echo "Install Platform Operator"
-                                                cd ${GO_REPO_PATH}/verrazzano
+                            echo "Install Platform Operator"
+                            cd ${GO_REPO_PATH}/verrazzano
 
-                                                # Configure the deployment file to use an image pull secret for branches that have private images
-                                                if [ "${env.BRANCH_NAME}" == "master" ] || [ "${env.BRANCH_NAME}" == "develop" ]; then
-                                                    echo "Using operator.yaml from Verrazzano repo"
-                                                    cp platform-operator/deploy/operator.yaml /tmp/operator.yaml
-                                                else
-                                                    echo "Generating operator.yaml based on image name provided: ${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                                                    ./tests/e2e/config/scripts/process_operator_yaml.sh platform-operator "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                                                fi
+                            # Configure the deployment file to use an image pull secret for branches that have private images
+                            if [ "${env.BRANCH_NAME}" == "master" ] || [ "${env.BRANCH_NAME}" == "develop" ]; then
+                                echo "Using operator.yaml from Verrazzano repo"
+                                cp platform-operator/deploy/operator.yaml /tmp/operator.yaml
+                            else
+                                echo "Generating operator.yaml based on image name provided: ${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                                ./tests/e2e/config/scripts/process_operator_yaml.sh platform-operator "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                            fi
 
-                                                # Install the verrazzano-platform-operator
-                                                cat /tmp/operator.yaml
-                                                kubectl apply -f /tmp/operator.yaml
+                            # Install the verrazzano-platform-operator
+                            cat /tmp/operator.yaml
+                            kubectl apply -f /tmp/operator.yaml
 
-                                                # make sure ns exists
-                                                ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+                            # make sure ns exists
+                            ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
 
-                                                # create secret in verrazzano-install ns
-                                                ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
-                                            """
-                                            }
-                                        }
-                                }
+                            # create secret in verrazzano-install ns
+                            ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
-                                stage("Configure OCI DNS install prerequisites") {
-                                    when { expression { return params.TEST_ENV == 'ocidns_oke' } }
-                                    stages {
-                                        stage('Create dns zone') {
-                                            steps {
-                                                script {
-                                                    dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId}", returnStdout: true)
-                                                }
-                                            }
-                                        }
-                                        stage('Configure Install profile') {
-                                              environment {
-                                                OCI_DNS_COMPARTMENT_OCID = credentials('oci-dns-compartment')
-                                                OCI_PRIVATE_KEY_FILE = credentials('oci-api-key')
-                                                OCI_DNS_ZONE_OCID = "${dns_zone_ocid}"
-                                            }
-                                            steps {
-                                                script {
-                                                    sh """
-                                                        export PATH=${HOME}/go/bin:${PATH}
-                                                        cd ${GO_REPO_PATH}/verrazzano
-                                                        ./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $INSTALL_CONFIG_FILE_OCIDNS
-                                                        ./tests/e2e/config/scripts/create-test-oci-config-secret.sh
-                                                    """
-                                                }
-                                            }
-                                        }
-                                    }  
-                                }
+                            # Configure the custom resource to install verrazzano on Kind
+                            echo "Installing yq"
+                            GO111MODULE=on go get github.com/mikefarah/yq/v4
+                            export PATH=${HOME}/go/bin:${PATH}
+                            ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND}
 
-                                stage("Configure Magic DNS install prerequisites") {
-                                    when { expression { return params.TEST_ENV == 'magicdns_oke' } }
-                                    steps {
-                                        script {
-                                            sh """
-                                                export PATH=${HOME}/go/bin:${PATH}
-                                                cd ${GO_REPO_PATH}/verrazzano
-                                                ./tests/e2e/config/scripts/process_xipio_install_yaml.sh $INSTALL_CONFIG_FILE_XIPIO
-                                            """
-                                        }
-                                    }
-                                }
+                            echo "Wait for Operator to be ready"
+                            cd ${GO_REPO_PATH}/verrazzano
+                            kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
 
-                                stage("Configure Kind install prerequisites") {
-                                    when { expression { return params.TEST_ENV == 'kind' } }
-                                    steps {
-                                        script {
-                                            sh """
-                                                export PATH=${HOME}/go/bin:${PATH}
-                                                cd ${GO_REPO_PATH}/verrazzano
-                                                ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND}
-                                            """
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                            echo "Installing Verrazzano on Kind"
+                            kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}
 
-                        stage ('Install Verrazzano') {
-                            steps {
-                                script {
-                                    sh """
-                                        echo "Waiting for Operator to be ready"
-                                        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-                                        echo "Installing Verrazzano on ${TEST_ENV}"
-                                        # apply config to create cluster
-                                        if [ "${TEST_ENV}" == "magicdns_oke" ]; then
-                                        kubectl apply -f ${INSTALL_CONFIG_FILE_XIPIO}
-                                        elif [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                                        kubectl apply -f ${INSTALL_CONFIG_FILE_OCIDNS}
-                                        elif [ "${TEST_ENV}" == "kind" ]; then
-                                        kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}
-                                        fi
+                            # wait for Verrazzano install to complete
+                            ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
 
-                                        cd ${GO_REPO_PATH}/verrazzano
-                                        ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+                            # Hack
+                            # OCR images don't work with KIND.
+                            # The ToDoList example image currently cannot be pulled in KIND.
+                            docker pull container-registry.oracle.com/verrazzano/example-todo:0.8.0
+                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-todo:0.8.0
 
-                                        if [ "${TEST_ENV}" == "kind" ]; then
-                                            # Hack
-                                            # OCR images don't work with KIND.
-                                            # The ToDoList example image currently cannot be pulled in KIND.
-                                            docker pull container-registry.oracle.com/verrazzano/example-todo:0.8.0
-                                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-todo:0.8.0
-					    
-					                        # Hack
-                                            # The Bobs Books example image currently cannot be pulled in KIND.
-                                            docker pull container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.12-1-20210205215204-b624b86
-                                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.12-1-20210205215204-b624b86
-                                            docker pull container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210205215204-b624b86
-                                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210205215204-b624b86
-                                            docker pull container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.12-1-20210205215204-b624b86
-                                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.12-1-20210205215204-b624b86
-                                            docker pull container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210205215204-b624b86
-                                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210205215204-b624b86
-                                            docker pull container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210205215204-b624b86
-                                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210205215204-b624b86
-                                            docker pull container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210205215204-b624b86
-                                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210205215204-b624b86
-
-                                        fi  
-                                    """
-                                }
-                            }
-                        }
+                            # Hack
+                            # The Bobs Books example image currently cannot be pulled in KIND.
+                            docker pull container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.12-1-20210205215204-b624b86
+                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.12-1-20210205215204-b624b86
+                            docker pull container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210205215204-b624b86
+                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210205215204-b624b86
+                            docker pull container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.12-1-20210205215204-b624b86
+                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.12-1-20210205215204-b624b86
+                            docker pull container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210205215204-b624b86
+                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210205215204-b624b86
+                            docker pull container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210205215204-b624b86
+                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210205215204-b624b86
+                            docker pull container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210205215204-b624b86
+                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210205215204-b624b86
+                        """
                     }
                     post {
                         always {
@@ -568,6 +423,7 @@ pipeline {
 
                 stage('Run Acceptance Tests') {
                     environment {
+                        TEST_ENV = "KIND"
                         PROJECT_ADMIN_ROLE = "verrazzano-project-admin"
                         TEST_ROLE = "verrazzano-test-role"
                     }
@@ -762,17 +618,8 @@ pipeline {
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
             sh """
-                if [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                  cd ${GO_REPO_PATH}/verrazzano
-                  ./tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
-                fi
-                if [ "${TEST_ENV}" == "kind" ]; then
-                  cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                  make delete-cluster
-                else
-                  cd ${GO_REPO_PATH}/verrazzano
-                  TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} ./tests/e2e/config/scripts/delete_oke_cluster.sh
-                fi
+                cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                make delete-cluster
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                   echo "Failures seen during dumping of artifacts, treat post as failed"
                   exit 1
@@ -820,30 +667,33 @@ def dumpK8sCluster(dumpDirectory) {
 
 def dumpVerrazzanoSystemPods() {
     sh """
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-pods.log"
-        ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-certs.log"
-        ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ./scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "failed" > ${POST_DUMP_FAILED_FILE}
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-kibana.log"
-        ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "failed" > ${POST_DUMP_FAILED_FILE}
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-system-es-master.log"
-        ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
 def dumpCattleSystemPods() {
     sh """
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cattle-system-pods.log"
-        ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/rancher.log"
-        ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ./scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
 def dumpNginxIngressControllerLogs() {
     sh """
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/nginx-ingress-controller.log"
-        ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ./scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
@@ -885,8 +735,9 @@ def dumpOamKubernetesRuntimeLogs() {
 
 def dumpVerrazzanoApiLogs() {
     sh """
+        cd ${GO_REPO_PATH}/verrazzano/platform-operator
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-api.log"
-        ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 
