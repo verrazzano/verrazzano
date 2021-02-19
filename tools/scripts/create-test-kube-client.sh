@@ -41,7 +41,9 @@ fi
 
 kubectl create ns ${TEST_NAMESPACE}
 kubectl -n ${TEST_NAMESPACE} create serviceaccount ${TEST_ID}-sa
-kubectl -n ${TEST_NAMESPACE} create clusterrolebinding ${TEST_ID}-${TEST_ROLE}-binding --clusterrole=${TEST_ROLE} --serviceaccount=${TEST_NAMESPACE}:${TEST_ID}-sa
+kubectl -n verrazzano-system create rolebinding ${TEST_ID}-${TEST_ROLE}-binding --clusterrole=${TEST_ROLE} --serviceaccount=${TEST_NAMESPACE}:${TEST_ID}-sa
+kubectl -n istio-system create rolebinding ${TEST_ID}-${TEST_ROLE}-binding --clusterrole=${TEST_ROLE} --serviceaccount=${TEST_NAMESPACE}:${TEST_ID}-sa
+kubectl -n ${TEST_NAMESPACE} create rolebinding ${TEST_ID}-${TEST_ROLE}-binding --clusterrole=${TEST_ROLE} --serviceaccount=${TEST_NAMESPACE}:${TEST_ID}-sa
 kubectl -n ${TEST_NAMESPACE} create rolebinding ${TEST_ID}-${PROJECT_ADMIN_ROLE}-binding --clusterrole=${PROJECT_ADMIN_ROLE} --serviceaccount=${TEST_NAMESPACE}:${TEST_ID}-sa
 
 if ! secret="$(kubectl -n $TEST_NAMESPACE get serviceaccount "${TEST_ID}-sa" -o 'jsonpath={.secrets[0].name}' 2>/dev/null)"; then

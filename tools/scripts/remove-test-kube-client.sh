@@ -29,9 +29,9 @@ if [[ -z "${TEST_ROLE}" ]]; then
     exit 1
 fi
 
-
-
-kubectl -n ${TEST_NAMESPACE} delete clusterrolebinding ${TEST_ID}-${TEST_ROLE}-binding || true
+kubectl -n ${TEST_NAMESPACE} delete rolebinding ${TEST_ID}-${TEST_ROLE}-binding || true
+kubectl -n verrazzano-system delete rolebinding ${TEST_ID}-${TEST_ROLE}-binding || true
+kubectl -n istio-system delete rolebinding ${TEST_ID}-${TEST_ROLE}-binding || true
 kubectl -n ${TEST_NAMESPACE} delete rolebinding ${TEST_ID}-${PROJECT_ADMIN_ROLE}-binding || true
 kubectl -n ${TEST_NAMESPACE} delete serviceaccount $TEST_ID-sa || true
 kubectl delete ns $TEST_NAMESPACE || true
