@@ -19,7 +19,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// VerrazzanoManagedClusterReconciler reconciles a VerrazzanoManagedCluster object
+const roleForManagedClusterName = "verrazzano-managed-cluster"
+
+// VerrazzanoManagedClusterReconciler reconciles a VerrazzanoManagedCluster object.
+// The reconciler will create a ServiceAcount, ClusterRoleBinding, and a Secret which
+// contains the kubeconfig to be used by the Multi-Cluster Agent to access the admin cluster.
 type VerrazzanoManagedClusterReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
@@ -34,8 +38,6 @@ type bindingParams struct {
 	serviceAccountName      string
 	serviceAccountNamespace string
 }
-
-const mcRoleAndBindingName = "verrazzano-managed-cluster"
 
 // +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=verrazzanomanagedclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=verrazzanomanagedclusters/status,verbs=get;update;patch
@@ -79,6 +81,11 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
+	err = r.reconcileKubeConfig(vmc)
+	if err != nil {
+		log.Infof("Failed to reconcile the kubeconfig used by managed cluster: %v", err)
+		return ctrl.Result{}, err
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -124,7 +131,6 @@ func (r *VerrazzanoManagedClusterReconciler) mutateServiceAccount(vmc *clustersv
 // reconcileManagedRoleBinding reconciles the ClusterRoleBinding that binds the service account used by the managed cluster
 // to the role containing the permission
 func (r *VerrazzanoManagedClusterReconciler) reconcileManagedRoleBinding(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	const roleName = "verrazzano-managed-cluster"
 	bindingName := generateManagedResourceName(vmc.Name)
 	var binding rbacv1.ClusterRoleBinding
 	binding.Name = bindingName
@@ -133,7 +139,7 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileManagedRoleBinding(vmc *cl
 		mutateBinding(&binding, bindingParams{
 			vmc:                     vmc,
 			roleBindingName:         bindingName,
-			roleName:                roleName,
+			roleName:                roleForManagedClusterName,
 			serviceAccountName:      vmc.Spec.ServiceAccount,
 			serviceAccountNamespace: vmc.Namespace,
 		})
