@@ -582,129 +582,131 @@ pipeline {
                                 }
                             }
                         }
-                        parallel {
-                            stage('verify-install') {
-                                steps {
-                                    runGinkgoRandomize('verify-install')
-                                }
-                            }
-                            stage('verify-infra restapi') {
-                                steps {
-                                    runGinkgoRandomize('verify-infra/restapi')
-                                }
-                            }
-                            stage('verify-infra oam') {
-                                steps {
-                                    runGinkgoRandomize('verify-infra/oam')
-                                }
-                            }
-                            stage('verify-infra vmi') {
-                                steps {
-                                    runGinkgoRandomize('verify-infra/vmi')
-                                }
-                            }
-                            stage('examples todo') {
-                                environment {
-                                    TEST_ID = UUID.randomUUID().toString()
-                                    TEST_NAMESPACE = "todo-list"
-                                    TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
-                                }
-                                when {
-                                    expression {params.RUN_EXAMPLE_TESTS == true}
-                                }
-                                steps {
-                                    runGinkgoWithKubeClient('examples/todo-list')
-                                }
-                                post {
-                                    always {
-                                        sh """
-                                            cd ${GO_REPO_PATH}/verrazzano
-                                            ./tools/scripts/remove-test-kube-client.sh
-                                        """
+                        stage ('Run Tests') {
+                            parallel {
+                                stage('verify-install') {
+                                    steps {
+                                        runGinkgoRandomize('verify-install')
                                     }
                                 }
-                            }
-                            stage('examples socks') {
-                                environment {
-                                    TEST_ID = UUID.randomUUID().toString()
-                                    TEST_NAMESPACE = "sockshop"
-                                    TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
-                                }
-                                when {
-                                    expression {params.RUN_EXAMPLE_TESTS == true}
-                                }
-                                steps {
-                                    runGinkgoWithKubeClient('examples/sock-shop')
-                                }
-                                post {
-                                    always {
-                                        sh """
-                                            cd ${GO_REPO_PATH}/verrazzano
-                                            ./tools/scripts/remove-test-kube-client.sh
-                                        """
+                                stage('verify-infra restapi') {
+                                    steps {
+                                        runGinkgoRandomize('verify-infra/restapi')
                                     }
                                 }
-                            }
-                            stage('examples spring') {
-                                environment {
-                                    TEST_ID = UUID.randomUUID().toString()
-                                    TEST_NAMESPACE = "springboot"
-                                    TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
-                                }
-                                when {
-                                    expression {params.RUN_EXAMPLE_TESTS == true}
-                                }
-                                steps {
-                                    runGinkgoWithKubeClient('examples/springboot-app')
-                                }
-                                post {
-                                    always {
-                                        sh """
-                                            cd ${GO_REPO_PATH}/verrazzano
-                                            ./tools/scripts/remove-test-kube-client.sh
-                                        """
+                                stage('verify-infra oam') {
+                                    steps {
+                                        runGinkgoRandomize('verify-infra/oam')
                                     }
                                 }
-                            }
-                            stage('examples helidon') {
-                                environment {
-                                    TEST_ID = UUID.randomUUID().toString()
-                                    TEST_NAMESPACE = "oam-hello-helidon"
-                                    TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
-                                }
-                                when {
-                                    expression {params.RUN_EXAMPLE_TESTS == true}
-                                }
-                                steps {
-                                    runGinkgoWithKubeClient('examples/hello-helidon')
-                                }
-                                post {
-                                    always {
-                                        sh """
-                                            cd ${GO_REPO_PATH}/verrazzano
-                                            ./tools/scripts/remove-test-kube-client.sh
-                                        """
+                                stage('verify-infra vmi') {
+                                    steps {
+                                        runGinkgoRandomize('verify-infra/vmi')
                                     }
                                 }
-                            }
-                            stage('examples bobs') {
-                                environment {
-                                    TEST_ID = UUID.randomUUID().toString()
-                                    TEST_NAMESPACE = "bobs-books"
-                                    TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
+                                stage('examples todo') {
+                                    environment {
+                                        TEST_ID = UUID.randomUUID().toString()
+                                        TEST_NAMESPACE = "todo-list"
+                                        TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
+                                    }
+                                    when {
+                                        expression {params.RUN_EXAMPLE_TESTS == true}
+                                    }
+                                    steps {
+                                        runGinkgoWithKubeClient('examples/todo-list')
+                                    }
+                                    post {
+                                        always {
+                                            sh """
+                                                cd ${GO_REPO_PATH}/verrazzano
+                                                ./tools/scripts/remove-test-kube-client.sh
+                                            """
+                                        }
+                                    }
                                 }
-                                when {
-                                    expression {params.RUN_EXAMPLE_TESTS == true}
+                                stage('examples socks') {
+                                    environment {
+                                        TEST_ID = UUID.randomUUID().toString()
+                                        TEST_NAMESPACE = "sockshop"
+                                        TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
+                                    }
+                                    when {
+                                        expression {params.RUN_EXAMPLE_TESTS == true}
+                                    }
+                                    steps {
+                                        runGinkgoWithKubeClient('examples/sock-shop')
+                                    }
+                                    post {
+                                        always {
+                                            sh """
+                                                cd ${GO_REPO_PATH}/verrazzano
+                                                ./tools/scripts/remove-test-kube-client.sh
+                                            """
+                                        }
+                                    }
                                 }
-                                steps {
-                                    runGinkgoWithKubeClient('examples/bobs-books')
+                                stage('examples spring') {
+                                    environment {
+                                        TEST_ID = UUID.randomUUID().toString()
+                                        TEST_NAMESPACE = "springboot"
+                                        TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
+                                    }
+                                    when {
+                                        expression {params.RUN_EXAMPLE_TESTS == true}
+                                    }
+                                    steps {
+                                        runGinkgoWithKubeClient('examples/springboot-app')
+                                    }
+                                    post {
+                                        always {
+                                            sh """
+                                                cd ${GO_REPO_PATH}/verrazzano
+                                                ./tools/scripts/remove-test-kube-client.sh
+                                            """
+                                        }
+                                    }
                                 }
-                                post {
-                                    always {
-                                        sh """
-                                            cd ${GO_REPO_PATH}/verrazzano
-                                            ./tools/scripts/remove-test-kube-client.sh
-                                        """
+                                stage('examples helidon') {
+                                    environment {
+                                        TEST_ID = UUID.randomUUID().toString()
+                                        TEST_NAMESPACE = "oam-hello-helidon"
+                                        TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
+                                    }
+                                    when {
+                                        expression {params.RUN_EXAMPLE_TESTS == true}
+                                    }
+                                    steps {
+                                        runGinkgoWithKubeClient('examples/hello-helidon')
+                                    }
+                                    post {
+                                        always {
+                                            sh """
+                                                cd ${GO_REPO_PATH}/verrazzano
+                                                ./tools/scripts/remove-test-kube-client.sh
+                                            """
+                                        }
+                                    }
+                                }
+                                stage('examples bobs') {
+                                    environment {
+                                        TEST_ID = UUID.randomUUID().toString()
+                                        TEST_NAMESPACE = "bobs-books"
+                                        TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
+                                    }
+                                    when {
+                                        expression {params.RUN_EXAMPLE_TESTS == true}
+                                    }
+                                    steps {
+                                        runGinkgoWithKubeClient('examples/bobs-books')
+                                    }
+                                    post {
+                                        always {
+                                            sh """
+                                                cd ${GO_REPO_PATH}/verrazzano
+                                                ./tools/scripts/remove-test-kube-client.sh
+                                            """
+                                        }
                                     }
                                 }
                             }
