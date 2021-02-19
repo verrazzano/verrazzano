@@ -6,7 +6,6 @@ package controllers
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	vzclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -69,11 +68,10 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileKubeConfig(vmc *vzclusters
 		Name:      managedName,
 	}
 	if err := r.Get(context.TODO(), saNsn, &sa); err != nil {
-		fmt.Sprintf("Failed to fetch the service account for VMC %s/%s, %v", managedNamespace, managedName, err)
-		return err
+		return fmt.Errorf("Failed to fetch the service account for VMC %s/%s, %v", managedNamespace, managedName, err)
 	}
 	if len(sa.Secrets) == 0 {
-		return errors.New(fmt.Sprintf("Service account %s/%s is missing a secret name", managedNamespace, managedName))
+		return fmt.Errorf("Service account %s/%s is missing a secret name", managedNamespace, managedName)
 	}
 
 	// Get the service account token from the secret
@@ -84,8 +82,7 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileKubeConfig(vmc *vzclusters
 		Name:      tokenName,
 	}
 	if err := r.Get(context.TODO(), secretNsn, &secret); err != nil {
-		return errors.New(fmt.Sprintf("Failed to fetch the service account secret %s/%s, %v", managedNamespace, tokenName, err))
-		return err
+		return fmt.Errorf("Failed to fetch the service account secret %s/%s, %v", managedNamespace, tokenName, err)
 	}
 
 	// Get client config, this has some of the info needed to build a kubeconfig
