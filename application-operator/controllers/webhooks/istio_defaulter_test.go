@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	istiofake "istio.io/client-go/pkg/clientset/versioned/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -23,6 +24,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	"sigs.k8s.io/yaml"
 )
+
+var defaulter = &IstioWebhook{
+	DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
+	KubeClient:    fake.NewSimpleClientset(),
+	IstioClient:   istiofake.NewSimpleClientset(),
+}
 
 // TestHandleBadRequest tests handling an invalid admission.Request
 // GIVEN an IstioWebhook and an admission.Request
@@ -74,10 +81,6 @@ func TestHandleNoOnwerReference(t *testing.T) {
 //  THEN Handle should return an Allowed response with no action required
 func TestHandleNoAppConfigOnwerReference(t *testing.T) {
 	decoder := decoder()
-	defaulter := &IstioWebhook{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
-	}
 	u := newUnstructured("apps/v1", "Deployment", "test-deployment")
 	resource := schema.GroupVersionResource{
 		Group:    "apps",
