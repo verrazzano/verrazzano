@@ -77,7 +77,7 @@ func TestHandleNoOnwerReference(t *testing.T) {
 
 // TestHandleNoAppConfigOnwerReference tests handling an admission.Request
 // GIVEN a IstioWebhook and an admission.Request
-//  WHEN Handle is called with an admission.Request containing a pod resource with no appconfig owner references
+//  WHEN Handle is called with an admission.Request containing a pod resource with no parent appconfig owner references
 //  THEN Handle should return an Allowed response with no action required
 func TestHandleNoAppConfigOnwerReference(t *testing.T) {
 	decoder := decoder()
@@ -107,7 +107,7 @@ func TestHandleNoAppConfigOnwerReference(t *testing.T) {
 	_, err = defaulter.DynamicClient.Resource(resource).Namespace("default").Create(context.TODO(), u, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating replica set")
 
-	u = newUnstructured("v1", "Pod", "test-pod")
+	u = newUnstructured("v1", "Pod", "test-pod1")
 	ownerReferences = []metav1.OwnerReference{
 		{
 			Name:       "test-replicaSet",
@@ -135,12 +135,47 @@ func TestHandleNoAppConfigOnwerReference(t *testing.T) {
 	assert.Equal(t, v1.StatusReason("No action required, pod is not a child of an ApplicationConfiguration resource"), res.Result.Reason)
 }
 
-// TestCreateServiceAccount tests creating a service account
-// GIVEN a namespace and owner reference type
-//  WHEN Handle is called with an admission.Request containing a pod resource with no appconfig owner references
-//  THEN Handle should return an Allowed response with no action required
-func TestCreateServiceAccount(t *testing.T) {
+// TestHandleAppConfigOnwerReference tests handling an admission.Request
+// GIVEN a IstioWebhook and an admission.Request
+//  WHEN Handle is called with an admission.Request containing a pod resource with a parent appconfig owner references
+//  THEN Handle should return an Allowed response with patch values
+func TestHandleAppConfigOnwerReference(t *testing.T) {
+	decoder := decoder()
+	u := newUnstructured("core.oam.dev/v1alpha2", "ApplicationConfiguration", "test-appconfig")
+	resource := schema.GroupVersionResource{
+		Group:    "core.oam.dev",
+		Version:  "v1alpha2",
+		Resource: "applicationconfigurations",
+	}
+	_, err := defaulter.DynamicClient.Resource(resource).Namespace("default").Create(context.TODO(), u, metav1.CreateOptions{})
+	assert.NoError(t, err, "Unexpected error creating application config")
 
+	u = newUnstructured("v1", "Pod", "test-pod2")
+	ownerReferences := []metav1.OwnerReference{
+		{
+			Name:       "test-appconfig",
+			Kind:       "ApplicationConfiguration",
+			APIVersion: "core.oam.dev/v1alpha2",
+		},
+	}
+	u.SetOwnerReferences(ownerReferences)
+	resource = schema.GroupVersionResource{
+		Group:    "",
+		Version:  "v1",
+		Resource: "pods",
+	}
+	pod, err := defaulter.DynamicClient.Resource(resource).Namespace("default").Create(context.TODO(), u, metav1.CreateOptions{})
+	assert.NoError(t, err, "Unexpected error creating pod")
+
+	defaulter.InjectDecoder(decoder)
+	req := admission.Request{}
+	req.Namespace = "default"
+	marshaledPod, err := json.Marshal(pod)
+	assert.NoError(t, err, "Unexpected error marshaling pod")
+	req.Object = runtime.RawExtension{Raw: marshaledPod}
+	res := defaulter.Handle(context.TODO(), req)
+	assert.True(t, res.Allowed)
+	assert.NotEmpty(t, res.Patches)
 }
 
 func podReadYaml2Json(t *testing.T, path string) []byte {

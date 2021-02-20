@@ -79,7 +79,7 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 	// If a pod is using the "default" service account then create a app specific service account, if not already
 	// created.  A service account is used as a principal in the Istio Authorization policy we create/update.
 	serviceAccountName := pod.Spec.ServiceAccountName
-	if serviceAccountName == "default" {
+	if serviceAccountName == "default" || serviceAccountName == "" {
 		serviceAccountName, err = a.createServiceAccount(req.Namespace, appConfigOwnerRef)
 		if err != nil {
 			return admission.Errored(http.StatusInternalServerError, err)
@@ -93,6 +93,9 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 	}
 
 	// Add the label to the pod which is used as the match selector in the authorization policy we created/updated.
+	if pod.Labels == nil {
+		pod.Labels = make(map[string]string)
+	}
 	pod.Labels[istioAppLabel] = appConfigOwnerRef.Name
 
 	// Set the service account name for the pod which is used in the principal portion of the authorization policy we
