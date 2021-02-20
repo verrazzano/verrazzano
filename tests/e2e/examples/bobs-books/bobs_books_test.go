@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+x// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package bobs_books
@@ -203,12 +203,12 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 				},
 				func() {
 					gomega.Eventually(func() bool {
-						return pkg.MetricsExist("wls_jvm_process_cpu_load", "app_oam_dev_component", "bobby-front-end")
+						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", "bobbys-front-end")
 					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 				},
 				func() {
 					gomega.Eventually(func() bool {
-						return pkg.MetricsExist("wls_jvm_process_cpu_load", "app_oam_dev_component", "bobs-orders-wls")
+						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", "bobs-bookstore")
 					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 				},
 			)

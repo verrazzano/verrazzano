@@ -29,7 +29,7 @@ import (
 // IstioDefaulterPath specifies the path of Istio defaulter webhook
 const IstioDefaulterPath = "/istio-defaulter"
 
-const istioAppLabel = "verrazzano.io/istio"
+const IstioAppLabel = "verrazzano.io/istio"
 
 // IstioWebhook type for istio defaulter webhook
 type IstioWebhook struct {
@@ -59,7 +59,10 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 	}
 
 	// Get all owner references for this pod
-	ownerRefList := a.flatten(nil, req.Namespace, pod.OwnerReferences)
+	ownerRefList, err := a.flatten(nil, req.Namespace, pod.OwnerReferences)
+	if err != nil {
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
 
 	// Check if the pod was created from an ApplicationConfiguration resource.
 	// We do this by checking for the existence of an ApplicationConfiguration ownerReference resource.
@@ -96,7 +99,7 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 	if pod.Labels == nil {
 		pod.Labels = make(map[string]string)
 	}
-	pod.Labels[istioAppLabel] = appConfigOwnerRef.Name
+	pod.Labels[IstioAppLabel] = appConfigOwnerRef.Name
 
 	// Set the service account name for the pod which is used in the principal portion of the authorization policy we
 	// created/updated.
@@ -130,7 +133,7 @@ func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, service
 	if err != nil && errors.IsNotFound(err) {
 		selector := v1beta1.WorkloadSelector{
 			MatchLabels: map[string]string{
-				istioAppLabel: ownerRef.Name,
+				IstioAppLabel: ownerRef.Name,
 			},
 		}
 		fromRules := []*securityv1beta1.Rule_From{
@@ -149,7 +152,7 @@ func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, service
 				Name:      ownerRef.Name,
 				Namespace: namespace,
 				Labels: map[string]string{
-					istioAppLabel: ownerRef.Name,
+					IstioAppLabel: ownerRef.Name,
 				},
 				OwnerReferences: []metav1.OwnerReference{
 					{
@@ -199,7 +202,7 @@ func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, service
 	return nil
 }
 
-// createServiceAccount will create a service account.
+// createServiceAccount will create a service account to be referenced by the Istio authorization policy
 func (a *IstioWebhook) createServiceAccount(namespace string, ownerRef metav1.OwnerReference) (string, error) {
 	// Check if service account exist.  The name of the service account is the owner reference name which happens
 	// to be the appconfig name.
@@ -212,7 +215,7 @@ func (a *IstioWebhook) createServiceAccount(namespace string, ownerRef metav1.Ow
 				Name:      ownerRef.Name,
 				Namespace: namespace,
 				Labels: map[string]string{
-					istioAppLabel: ownerRef.Name,
+					IstioAppLabel: ownerRef.Name,
 				},
 				OwnerReferences: []metav1.OwnerReference{
 					{
@@ -237,7 +240,7 @@ func (a *IstioWebhook) createServiceAccount(namespace string, ownerRef metav1.Ow
 }
 
 // flatten traverses a nested array of owner references and returns a single array of owner references.
-func (a *IstioWebhook) flatten(list []metav1.OwnerReference, namespace string, ownerRefs []metav1.OwnerReference) []metav1.OwnerReference {
+func (a *IstioWebhook) flatten(list []metav1.OwnerReference, namespace string, ownerRefs []metav1.OwnerReference) ([]metav1.OwnerReference, error) {
 	for _, ownerRef := range ownerRefs {
 		list = append(list, ownerRef)
 
@@ -252,12 +255,15 @@ func (a *IstioWebhook) flatten(list []metav1.OwnerReference, namespace string, o
 		unst, err := a.DynamicClient.Resource(resource).Namespace(namespace).Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
 		if err != nil {
 			istioLogger.Error(err, "Dynamic API failed")
+			return nil, nil
 		}
 
-		//  TODO: Handle error dynamic client api call
 		if len(unst.GetOwnerReferences()) != 0 {
-			list = a.flatten(list, namespace, unst.GetOwnerReferences())
+			list, err = a.flatten(list, namespace, unst.GetOwnerReferences())
+			if err != nil {
+				return nil, nil
+			}
 		}
 	}
-	return list
+	return list, nil
 }
