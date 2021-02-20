@@ -6,6 +6,7 @@ package controllers
 import (
 	"context"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/client-go/rest"
 	"testing"
 	"time"
 
@@ -33,12 +34,17 @@ const kind = "VerrazzanoManagedCluster"
 func TestCreateVMC(t *testing.T) {
 	namespace := "verrazzano-mc"
 	name := "test"
+	saToken := "saToken"
+	saSecretName := "saSecret"
 	labels := map[string]string{"label1": "test"}
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
+
+	defer setConfigFunc(getConfigFunc)
+	setConfigFunc(fakeGetConfig)
 
 	// Expect a call to get the VerrazzanoManagedCluster resource.
 	mock.EXPECT().
@@ -57,7 +63,7 @@ func TestCreateVMC(t *testing.T) {
 	// Expect a call to get the ServiceAccount - return that it does not exist
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ServiceAccount"}, generateManagedResourceName(name)))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ServiceAccount"}, generateManagedResourceName(name)))
 
 	// Expect a call to create the ServiceAccount - return success
 	mock.EXPECT().
@@ -79,7 +85,7 @@ func TestCreateVMC(t *testing.T) {
 	// Expect a call to get the ClusterRoleBinding - return that it does not exist
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ServiceAccount"}, generateManagedResourceName(name)))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ServiceAccount"}, generateManagedResourceName(name)))
 
 	// Expect a call to create the ClusterRoleBinding - return success
 	mock.EXPECT().
@@ -89,6 +95,46 @@ func TestCreateVMC(t *testing.T) {
 			asserts.Equalf("verrazzano-managed-cluster", binding.RoleRef.Name, "ClusterRoleBinding roleref did not match")
 			asserts.Equalf(generateManagedResourceName(name), binding.Subjects[0].Name, "Subject did not match")
 			asserts.Equalf(namespace, binding.Subjects[0].Namespace, "Subject namespace did not match")
+			return nil
+		})
+
+	// Expect a call to get the ServiceAccount, return one with the secret name set
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sa *corev1.ServiceAccount) error {
+			sa.Secrets = []corev1.ObjectReference{{
+				Name: saSecretName,
+			}}
+			return nil
+		})
+
+	// Expect a call to get the Secret with the service account token, return one with the token set
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: saSecretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				"kubeconfig": []byte(saToken),
+			}
+			return nil
+		})
+
+	// Expect a call to get the kubeconfig secret - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Secret"}, generateManagedResourceName(name)))
+
+	// Expect a call to create the kubeconfig secret
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
+			return nil
+		})
+
+	// Expect a call to update the VerrazzanoManagedCluster kubeconfig secret name - return success
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(vmc.Spec.KubeconfigSecret, generateManagedResourceName(name), "KubeconfigSecret name did not match")
 			return nil
 		})
 
@@ -170,4 +216,13 @@ func newVMCReconciler(c client.Client) VerrazzanoManagedClusterReconciler {
 		Client: c,
 		Scheme: scheme}
 	return reconciler
+}
+
+func fakeGetConfig() (*rest.Config, error) {
+	conf := rest.Config{
+		TLSClientConfig: rest.TLSClientConfig{
+			CAData: []byte("fakeCA"),
+		},
+	}
+	return &conf, nil
 }

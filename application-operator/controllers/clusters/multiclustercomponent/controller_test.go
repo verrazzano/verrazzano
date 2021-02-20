@@ -14,6 +14,7 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -81,10 +82,13 @@ func TestReconcileCreateComponent(t *testing.T) {
 	// expect a call to fetch the MultiClusterComponent
 	doExpectGetMultiClusterComponent(cli, mcCompSample)
 
+	// expect a call to fetch the MCRegistration secret
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to fetch existing OAM component, and return not found error, to test create case
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Component"}, crName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "core.oam.dev", Resource: "Component"}, crName))
 
 	// expect a call to create the OAM component
 	cli.EXPECT().
@@ -98,7 +102,7 @@ func TestReconcileCreateComponent(t *testing.T) {
 	doExpectStatusUpdateSucceeded(cli, mockStatusWriter, assert)
 
 	// create a request and reconcile it
-	request := clusters.NewRequest(namespace, crName)
+	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 
@@ -132,6 +136,9 @@ func TestReconcileUpdateComponent(t *testing.T) {
 	// expect a call to fetch the MultiClusterComponent
 	doExpectGetMultiClusterComponent(cli, mcCompSample)
 
+	// expect a call to fetch the MCRegistration secret
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to fetch underlying OAM component, and return an existing component
 	doExpectGetComponentExists(cli, mcCompSample.ObjectMeta, existingOAMComp.Spec)
 
@@ -151,7 +158,7 @@ func TestReconcileUpdateComponent(t *testing.T) {
 		Return(nil)
 
 	// create a request and reconcile it
-	request := clusters.NewRequest(namespace, crName)
+	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 
@@ -180,10 +187,13 @@ func TestReconcileCreateComponentFailed(t *testing.T) {
 	// expect a call to fetch the MultiClusterComponent
 	doExpectGetMultiClusterComponent(cli, mcCompSample)
 
+	// expect a call to fetch the MCRegistration secret
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to fetch existing OAM component and return not found error, to simulate create case
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Component"}, crName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "core.oam.dev", Resource: "Component"}, crName))
 
 	// expect a call to create the OAM component and fail the call
 	cli.EXPECT().
@@ -197,7 +207,7 @@ func TestReconcileCreateComponentFailed(t *testing.T) {
 	doExpectStatusUpdateFailed(cli, mockStatusWriter, assert)
 
 	// create a request and reconcile it
-	request := clusters.NewRequest(namespace, crName)
+	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 
@@ -226,6 +236,9 @@ func TestReconcileUpdateComponentFailed(t *testing.T) {
 	// expect a call to fetch the MultiClusterComponent
 	doExpectGetMultiClusterComponent(cli, mcCompSample)
 
+	// expect a call to fetch the MCRegistration secret
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to fetch existing OAM component (simulate update case)
 	doExpectGetComponentExists(cli, mcCompSample.ObjectMeta, mcCompSample.Spec.Template.Spec)
 
@@ -241,7 +254,74 @@ func TestReconcileUpdateComponentFailed(t *testing.T) {
 	doExpectStatusUpdateFailed(cli, mockStatusWriter, assert)
 
 	// create a request and reconcile it
-	request := clusters.NewRequest(namespace, crName)
+	request := clusterstest.NewRequest(namespace, crName)
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+}
+
+// TestReconcilePlacementInDifferentCluster tests the path of reconciling a MultiClusterComponent which
+// is placed on a cluster other than the current cluster. We expect this MultiClusterComponent to
+// be ignored, and no OAM Component to be created
+// GIVEN a MultiClusterComponent resource is created with a placement in different cluster
+// WHEN the controller Reconcile function is called
+// THEN expect that no OAM Component is created
+func TestReconcilePlacementInDifferentCluster(t *testing.T) {
+	assert := asserts.New(t)
+
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	mcCompSample, err := getSampleMCComponent()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	mcCompSample.Spec.Placement.Clusters[0].Name = "not-my-cluster"
+
+	// expect a call to fetch the MultiClusterComponent
+	doExpectGetMultiClusterComponent(cli, mcCompSample)
+
+	// expect a call to fetch the MCRegistration secret
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
+	// Expect no further action
+
+	// create a request and reconcile it
+	request := clusterstest.NewRequest(namespace, crName)
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+}
+
+// TestReconcileResourceNotFound tests the path of reconciling a
+// MultiClusterComponent resource which is non-existent when reconcile is called,
+// possibly because it has been deleted.
+// GIVEN a MultiClusterComponent resource has been deleted
+// WHEN the controller Reconcile function is called
+// THEN expect that no action is taken
+func TestReconcileResourceNotFound(t *testing.T) {
+	assert := asserts.New(t)
+
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the MultiClusterComponent
+	// and return a not found error
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "MultiClusterComponent"}, crName))
+
+	// expect no further action to be taken
+
+	// create a request and reconcile it
+	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 
@@ -320,9 +400,9 @@ func assertComponentValid(assert *asserts.Assertions, c *v1alpha2.Component, mcC
 
 	// assert some fields on the component spec (e.g. in the case of update, these fields should
 	// be different from the mock pre existing OAM component)
-	expectedContainerizedWorkload, err := clusters.ReadContainerizedWorkload(mcComp.Spec.Template.Spec.Workload)
+	expectedContainerizedWorkload, err := clusterstest.ReadContainerizedWorkload(mcComp.Spec.Template.Spec.Workload)
 	assert.Nil(err)
-	actualContainerizedWorkload, err := clusters.ReadContainerizedWorkload(c.Spec.Workload)
+	actualContainerizedWorkload, err := clusterstest.ReadContainerizedWorkload(c.Spec.Workload)
 	assert.Nil(err)
 	assert.Equal(expectedContainerizedWorkload.Spec.Containers[0].Name, actualContainerizedWorkload.Spec.Containers[0].Name)
 	assert.Equal(expectedContainerizedWorkload.Name, actualContainerizedWorkload.Name)
@@ -342,7 +422,7 @@ func getSampleMCComponent() (clustersv1alpha1.MultiClusterComponent, error) {
 		return mcComp, err
 	}
 
-	rawMcComp, err := clusters.ReadYaml2Json(sampleComponentFile)
+	rawMcComp, err := clusterstest.ReadYaml2Json(sampleComponentFile)
 	if err != nil {
 		return mcComp, err
 	}
@@ -357,7 +437,7 @@ func getExistingOAMComponent() (v1alpha2.Component, error) {
 	if err != nil {
 		return oamComp, err
 	}
-	rawMcComp, err := clusters.ReadYaml2Json(existingComponentFile)
+	rawMcComp, err := clusterstest.ReadYaml2Json(existingComponentFile)
 	if err != nil {
 		return oamComp, err
 	}

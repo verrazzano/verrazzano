@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
+	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -17,6 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterconfigmap"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterloggingscope"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustersecret"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/verrazzanoproject"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/helidonworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
@@ -56,6 +58,7 @@ func init() {
 	_ = wls.AddToScheme(scheme)
 
 	_ = clustersv1alpha1.AddToScheme(scheme)
+	_ = certapiv1alpha2.AddToScheme(scheme)
 }
 
 const defaultScraperName = "verrazzano-system/vmi-system-prometheus-0"
@@ -265,6 +268,14 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterApplicationConfiguration")
+		os.Exit(1)
+	}
+	if err = (&verrazzanoproject.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoProject"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoProject")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
