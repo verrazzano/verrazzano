@@ -21,6 +21,9 @@ def availableRegions = [ "us-ashburn-1", "ap-chuncheon-1", "ap-hyderabad-1", "ap
 Collections.shuffle(availableRegions)
 
 pipeline {
+    options {
+        copyArtifactPermission('*');
+    }
 
     agent {
         docker {
