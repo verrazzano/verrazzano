@@ -530,11 +530,7 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            sh """
-                wget -O ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
-            """
-
-            archiveArtifacts artifacts: '**/build-console-output.log,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
             sh """
