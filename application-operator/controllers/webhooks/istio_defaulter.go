@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/gertd/go-pluralize"
+	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	securityv1beta1 "istio.io/api/security/v1beta1"
 	"istio.io/api/type/v1beta1"
 	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -32,7 +33,7 @@ const istioAppLabel = "verrazzano.io/istio"
 
 // IstioWebhook type for istio defaulter webhook
 type IstioWebhook struct {
-	IstioClient   *istioversionedclient.Clientset
+	IstioClient   istioversionedclient.Interface
 	Decoder       *admission.Decoder
 	KubeClient    kubernetes.Interface
 	DynamicClient dynamic.Interface
@@ -237,12 +238,14 @@ func (a *IstioWebhook) flatten(list []metav1.OwnerReference, namespace string, o
 	for _, ownerRef := range ownerRefs {
 		list = append(list, ownerRef)
 
-		group, version := convertAPIVersionToGroupAndVersion(ownerRef.APIVersion)
+		group, version := controllers.ConvertAPIVersionToGroupAndVersion(ownerRef.APIVersion)
 		resource := schema.GroupVersionResource{
 			Group:    group,
 			Version:  version,
 			Resource: pluralize.NewClient().Plural(strings.ToLower(ownerRef.Kind)),
 		}
+		istioLogger.Info(fmt.Sprintf("Dumping resource: %s", resource.String()))
+
 		unst, err := a.DynamicClient.Resource(resource).Namespace(namespace).Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
 		if err != nil {
 			istioLogger.Error(err, "Dynamic API failed")
@@ -254,16 +257,4 @@ func (a *IstioWebhook) flatten(list []metav1.OwnerReference, namespace string, o
 		}
 	}
 	return list
-}
-
-// convertAPIVersionToGroupAndVersion splits APIVersion into API and version parts.
-// An APIVersion takes the form api/version (e.g. networking.k8s.io/v1)
-// If the input does not contain a / the group is defaulted to the empty string.
-func convertAPIVersionToGroupAndVersion(apiVersion string) (string, string) {
-	parts := strings.SplitN(apiVersion, "/", 2)
-	if len(parts) < 2 {
-		// Use empty group for core types.
-		return "", parts[0]
-	}
-	return parts[0], parts[1]
 }
