@@ -29,6 +29,7 @@ import (
 // IstioDefaulterPath specifies the path of Istio defaulter webhook
 const IstioDefaulterPath = "/istio-defaulter"
 
+// IstioAppLabel label to be used for all pods that are istio enabled
 const IstioAppLabel = "verrazzano.io/istio"
 
 // IstioWebhook type for istio defaulter webhook
@@ -59,7 +60,7 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 	}
 
 	// Get all owner references for this pod
-	ownerRefList, err := a.flatten(nil, req.Namespace, pod.OwnerReferences)
+	ownerRefList, err := a.flattenOwnerReferences(nil, req.Namespace, pod.OwnerReferences)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
@@ -240,7 +241,7 @@ func (a *IstioWebhook) createServiceAccount(namespace string, ownerRef metav1.Ow
 }
 
 // flatten traverses a nested array of owner references and returns a single array of owner references.
-func (a *IstioWebhook) flatten(list []metav1.OwnerReference, namespace string, ownerRefs []metav1.OwnerReference) ([]metav1.OwnerReference, error) {
+func (a *IstioWebhook) flattenOwnerReferences(list []metav1.OwnerReference, namespace string, ownerRefs []metav1.OwnerReference) ([]metav1.OwnerReference, error) {
 	for _, ownerRef := range ownerRefs {
 		list = append(list, ownerRef)
 
@@ -250,7 +251,6 @@ func (a *IstioWebhook) flatten(list []metav1.OwnerReference, namespace string, o
 			Version:  version,
 			Resource: pluralize.NewClient().Plural(strings.ToLower(ownerRef.Kind)),
 		}
-		istioLogger.Info(fmt.Sprintf("Dumping resource: %s", resource.String()))
 
 		unst, err := a.DynamicClient.Resource(resource).Namespace(namespace).Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
 		if err != nil {
@@ -259,7 +259,7 @@ func (a *IstioWebhook) flatten(list []metav1.OwnerReference, namespace string, o
 		}
 
 		if len(unst.GetOwnerReferences()) != 0 {
-			list, err = a.flatten(list, namespace, unst.GetOwnerReferences())
+			list, err = a.flattenOwnerReferences(list, namespace, unst.GetOwnerReferences())
 			if err != nil {
 				return nil, nil
 			}
