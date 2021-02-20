@@ -10,13 +10,12 @@ import (
 	"reflect"
 	"strings"
 
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
-
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	pluralize "github.com/gertd/go-pluralize"
 	"github.com/go-logr/logr"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
