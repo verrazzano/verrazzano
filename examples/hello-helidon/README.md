@@ -44,7 +44,7 @@ Follow these steps to test the endpoints:
 1. Get the generated host name for the application.
 
    ```
-   $ HOST=$(kubectl get gateway hello-helidon-ingress-rule-0-gw -n hello-helidon -o jsonpath={.spec.servers[0].hosts[0]})
+   $ HOST=$(kubectl get gateway hello-helidon-hello-helidon-appconf-gw -n hello-helidon -o jsonpath={.spec.servers[0].hosts[0]})
    $ echo $HOST
    hello-helidon-appconf.hello-helidon.11.22.33.44.xip.io
    ```
@@ -130,6 +130,5 @@ the deployed Hello World Helidon application.  Accessing them may require the fo
     | Kibana | `https://[vmi-system-kibana ingress host]` | `verrazzano`/`telemetry-password` |
     | Grafana | `https://[vmi-system-grafana ingress host]` | `verrazzano`/`telemetry-password` |
     | Prometheus | `https://[vmi-system-prometheus ingress host]` | `verrazzano`/`telemetry-password` |    
-
 
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
