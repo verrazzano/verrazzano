@@ -1,6 +1,6 @@
 # Bob's Books
 
-The Bob's Books example is a set of three applications based on WebLogic, Helidon, and Coherence. For more information and the source code of this application, , see the [Verrazzano examples](https://github.com/verrazzano/examples).
+The Bob's Books example is a set of three applications based on WebLogic, Helidon, and Coherence. For more information and the source code of this application, see the [Verrazzano examples](https://github.com/verrazzano/examples).
 
 ## Prerequisites
 
@@ -34,7 +34,7 @@ The Bob's Books example is a set of three applications based on WebLogic, Helido
            -n bobs-books
    ```
    
-   Replace `YOUR_REGISTRY_USERNAME`, `YOUR_REGISTRY_PASSWORD` and `YOUR_REGISTRY_EMAIL` 
+   Replace `YOUR_REGISTRY_USERNAME`, `YOUR_REGISTRY_PASSWORD`, and `YOUR_REGISTRY_EMAIL`
    with the values you use to access the registry.  
       
 1. Create and label secrets for the WebLogic domains:
@@ -67,12 +67,12 @@ The Bob's Books example is a set of three applications based on WebLogic, Helido
 
 1. Wait for all of the pods in the Bob's Books example application to be ready.
    You may need to repeat this command several times before it is successful.
-   The WebLogic server and Coherence pods can take some time to be created and `Ready`.
+   The WebLogic Server and Coherence pods can take some time to be created and `Ready`.
    ```
    $ kubectl wait --for=condition=Ready pods --all -n bobs-books --timeout=600s
    ```
 
-1. Get the `EXTERNAL_IP` address of the istio-ingressgateway service.
+1. Get the `EXTERNAL_IP` address of the `istio-ingressgateway` service.
     ```
     $ kubectl get service -n "istio-system" "istio-ingressgateway" -o jsonpath={.status.loadBalancer.ingress[0].ip}
 
@@ -92,7 +92,7 @@ The Bob's Books example is a set of three applications based on WebLogic, Helido
    ```
 
 1. Access the applications. To access the applications in a browser, you will need to do one of the following:
-    * **Option 1:** If you are using `xip.io` you can just access the applications using the generated host names, for example:
+    * **Option 1:** If you are using `xip.io`, then you can just access the applications using the generated host names, for example:
 
       a. Robert's Books UI at `https://robert.bobs-books.11.22.33.44.xip.io/`.
 
@@ -100,7 +100,7 @@ The Bob's Books example is a set of three applications based on WebLogic, Helido
 
       c. Bob's order manager  UI at `https://bobs-orders-wls.bobs-books.11.22.33.44.xip.io/bobs-bookstore-order-manager/orders`.
 
-    * **Option 2:** Temporarily modify the `/etc/hosts` file (on Mac or Linux) or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10), to add entries mapping the hosts used by the applications to the external IP address assigned to your gateway. For example:
+    * **Option 2:** Temporarily, modify the `/etc/hosts` file (on Mac or Linux) or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10), to add entries mapping the hosts used by the applications to the external IP address assigned to your gateway. For example:
       ```
       11.22.33.44 roberts-books.example.com
       11.22.33.44 bobbys-books.example.com
@@ -117,15 +117,15 @@ The Bob's Books example is a set of three applications based on WebLogic, Helido
     * **Option 3:** Alternatively, point your own DNS name to the load balancer's external IP address. In this case, you would need to have edited the `bobs-books-app.yaml` file to use the appropriate values under the `hosts` section for each application (such as `your-roberts-books-host.your.domain`), before deploying the applications.
       Then, you can use a browser to access each of the applications as shown below:
 
-      a. Robert's Books UI at `http://<your-roberts-books-host.your.domain>/`
+      a. Robert's Books UI at `http://<your-roberts-books-host.your.domain>/`.
 
-      b. Bobby's Books UI at `http://<your-bobbys-books-host.your.domain>/bobbys-front-end`
+      b. Bobby's Books UI at `http://<your-bobbys-books-host.your.domain>/bobbys-front-end`.
 
-      a. Bob's order manager UI at `http://<your-bobs-orders-host.your.domain>/`
+      a. Bob's order manager UI at `http://<your-bobs-orders-host.your.domain>/`.
 
 ## Troubleshooting
     
-1. Verify that the application configuration, domains, coherence resources and ingress trait all exist.
+1. Verify that the application configuration, domains, Coherence resources, and ingress trait all exist.
    ```
    $ kubectl get ApplicationConfiguration -n bobs-books
    $ kubectl get Domain -n bobs-books
