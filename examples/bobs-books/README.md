@@ -81,13 +81,13 @@ The Bob's Books example is a set of three applications based on WebLogic, Helido
 
 1. Get the generated host names for the applications.
    ```
-   $ kubectl get gateway bob-ingress-rule-0-gw -n bobs-books -o jsonpath={.items[0].spec.servers[0].hosts[0]}
+   $ kubectl get gateway bobs-books-bobs-orders-wls-gw -n bobs-books -o jsonpath={.spec.servers[0].hosts[0]}
    bobs-orders-wls.bobs-books.11.22.33.44.xip.io
 
-   $ kubectl get gateway robert-ingress-rule-0-gw -n bobs-books -o jsonpath={.items[0].spec.servers[0].hosts[0]}
+   $ kubectl get gateway bobs-books-robert-gw -n bobs-books -o jsonpath={.spec.servers[0].hosts[0]}
    robert.bobs-books.11.22.33.44.xip.io
 
-   $ kubectl get gateway bobby-ingress-rule-0-gw -n bobs-books -o jsonpath={.items[0].spec.servers[0].hosts[0]}
+   $ kubectl get gateway bobs-books-bobby-front-end-gw -n bobs-books -o jsonpath={.spec.servers[0].hosts[0]}
    bobby-front-end.bobs-books.11.22.33.44.xip.io
    ```
 
@@ -151,3 +151,5 @@ The Bob's Books example is a set of three applications based on WebLogic, Helido
     roberts-coherence-0                                1/1     Running   0          10m
     roberts-coherence-1                                1/1     Running   0          14m
    ``` 
+
+Copyright (c) 2020, 2021, Oracle and/or its affiliates.
