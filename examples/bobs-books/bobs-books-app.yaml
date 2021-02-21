@@ -21,8 +21,6 @@ spec:
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: IngressTrait
-            metadata:
-              name: robert-ingress
             spec:
               rules:
                 - paths:
@@ -47,8 +45,6 @@ spec:
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: IngressTrait
-            metadata:
-              name: bobby-ingress
             spec:
               rules:
                 - paths:
@@ -75,8 +71,6 @@ spec:
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: IngressTrait
-            metadata:
-              name: bob-ingress
             spec:
               rules:
                 - paths:
