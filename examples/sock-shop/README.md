@@ -162,5 +162,4 @@ the deployed Sock Shop application.  Accessing them may require the following:
     | Grafana | `https://[vmi-system-grafana ingress host]` | `verrazzano`/`telemetry-password` |
     | Prometheus | `https://[vmi-system-prometheus ingress host]` | `verrazzano`/`telemetry-password` |    
 
-
-    Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+Copyright (c) 2020, 2021, Oracle and/or its affiliates.

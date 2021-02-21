@@ -173,4 +173,4 @@ The ToDo List application deployment artifacts are contained in the Verrazzano p
    tododomain-adminserver   2/2     Running   0          19h
    ```
 
-   Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+Copyright (c) 2020, 2021, Oracle and/or its affiliates.

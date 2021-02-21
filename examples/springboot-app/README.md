@@ -122,5 +122,4 @@ Install Verrazzano following the [installation instructions](https://verrazzano.
    $ kubectl delete namespace springboot
    ```
 
-
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
