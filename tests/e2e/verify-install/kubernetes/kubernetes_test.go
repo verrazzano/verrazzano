@@ -38,7 +38,7 @@ var expectedPodsVerrazzanoSystemMinimal = []string{
 	"vmi-system-es-master",
 	"vmi-system-grafana",
 	"vmi-system-kibana",}
-	// hacked out while testing 0.10.0 release
+	// comment out while debugging so it does not break master
     //"vmi-system-prometheus",
 	//"vmi-system-prometheus-gw"}
 
