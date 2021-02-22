@@ -59,6 +59,8 @@ pipeline {
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
+
+        JENKINS_READ = credentials('jenkins-auditor')
     }
 
     stages {
@@ -530,7 +532,10 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
+            sh """
+                wget -auth-no-challenge --user=${JENKINS_READ_USR} --password=${JENKINS_READ_PSW} -O ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleFull
+            """
+            archiveArtifacts artifacts: '**/build-console-output.log,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
             sh """
