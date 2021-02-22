@@ -162,6 +162,128 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 	}
 }
 
+// TestVerrazzanoProjectMulti tests the synchronization method for the following use case.
+// GIVEN a request to sync multiple VerrazzanoProject objects
+// WHEN the a new object exists
+// THEN ensure that the list of namespaces to watch is correct
+func TestVerrazzanoProjectMulti(t *testing.T) {
+	type fields struct {
+		vpNamespace string
+		vpName      string
+		nsNames     []string
+	}
+	tests := []struct {
+		name      string
+		vp1Fields fields
+		vp2Fields fields
+		wantErr   bool
+	}{
+		{
+			"TwoVP",
+			fields{
+				constants.VerrazzanoMultiClusterNamespace,
+				"newVP",
+				[]string{"ns1", "ns2"},
+			},
+			fields{
+				constants.VerrazzanoMultiClusterNamespace,
+				"newVP",
+				[]string{"ns3", "ns4"},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert := asserts.New(t)
+			log := ctrl.Log.WithName("test")
+
+			// Managed cluster mocks
+			localMocker := gomock.NewController(t)
+			localMock := mocks.NewMockClient(localMocker)
+
+			// Admin cluster mocks
+			adminMocker := gomock.NewController(t)
+			adminMock := mocks.NewMockClient(adminMocker)
+
+			// Test data
+			testProj1, err := getTestVerrazzanoProject(tt.vp1Fields.vpNamespace, tt.vp1Fields.vpName, tt.vp1Fields.nsNames)
+			assert.NoError(err, "failed to get sample project")
+			testProj2, err := getTestVerrazzanoProject(tt.vp2Fields.vpNamespace, tt.vp2Fields.vpName, tt.vp2Fields.nsNames)
+			assert.NoError(err, "failed to get sample project")
+
+			// Admin Cluster - expect call to list VerrazzanoProject objects - return list with two objects
+			adminMock.EXPECT().
+				List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
+					list.Items = append(list.Items, testProj1)
+					list.Items = append(list.Items, testProj2)
+					return nil
+				})
+
+			if tt.vp1Fields.vpNamespace == constants.VerrazzanoMultiClusterNamespace {
+				// Managed Cluster - expect call to get VerrazzanoProject
+				localMock.EXPECT().
+					Get(gomock.Any(), types.NamespacedName{Namespace: tt.vp1Fields.vpNamespace, Name: tt.vp1Fields.vpName}, gomock.Not(gomock.Nil())).
+					Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "VerrazzanoProject"}, tt.vp1Fields.vpName))
+
+				// Managed Cluster - expect call to create a VerrazzanoProject
+				localMock.EXPECT().
+					Create(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, vp *clustersv1alpha1.VerrazzanoProject, opts ...client.CreateOption) error {
+						assert.Equal(tt.vp1Fields.vpNamespace, vp.Namespace, "VerrazzanoProject namespace did not match")
+						assert.Equal(tt.vp1Fields.vpName, vp.Name, "VerrazzanoProject name did not match")
+						assert.ElementsMatch(tt.vp1Fields.nsNames, vp.Spec.Namespaces)
+						return nil
+					})
+
+				// Managed Cluster - expect call to get VerrazzanoProject
+				localMock.EXPECT().
+					Get(gomock.Any(), types.NamespacedName{Namespace: tt.vp2Fields.vpNamespace, Name: tt.vp2Fields.vpName}, gomock.Not(gomock.Nil())).
+					Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "VerrazzanoProject"}, tt.vp2Fields.vpName))
+
+				// Managed Cluster - expect call to create a VerrazzanoProject
+				localMock.EXPECT().
+					Create(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, vp *clustersv1alpha1.VerrazzanoProject, opts ...client.CreateOption) error {
+						assert.Equal(tt.vp2Fields.vpNamespace, vp.Namespace, "VerrazzanoProject namespace did not match")
+						assert.Equal(tt.vp2Fields.vpName, vp.Name, "VerrazzanoProject name did not match")
+						assert.ElementsMatch(tt.vp2Fields.nsNames, vp.Spec.Namespaces)
+						return nil
+					})
+
+			}
+
+			// Make the request
+			s := &Syncer{
+				AdminClient:        adminMock,
+				LocalClient:        localMock,
+				Log:                log,
+				ManagedClusterName: testClusterName,
+				Context:            context.TODO(),
+			}
+			err = s.syncVerrazzanoProjects()
+
+			// Validate the results
+			adminMocker.Finish()
+			localMocker.Finish()
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("syncVerrazzanoProjects() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			// Validate the namespace list that resulted from processing the VerrazzanoProject objects
+			assert.Equal(len(tt.vp1Fields.nsNames)+len(tt.vp2Fields.nsNames), len(s.ProjectNamespaces), "number of expected namespaces did not match")
+			for _, namespace := range tt.vp1Fields.nsNames {
+				assert.True(controllers.StringSliceContainsString(s.ProjectNamespaces, namespace), "expected namespace not being watched")
+			}
+			for _, namespace := range tt.vp2Fields.nsNames {
+				assert.True(controllers.StringSliceContainsString(s.ProjectNamespaces, namespace), "expected namespace not being watched")
+			}
+		})
+	}
+}
+
 // getTestVerrazzanoProject creates and returns VerrazzanoProject used in tests
 func getTestVerrazzanoProject(vpNamespace string, vpName string, nsNames []string) (clustersv1alpha1.VerrazzanoProject, error) {
 	proj := clustersv1alpha1.VerrazzanoProject{}
