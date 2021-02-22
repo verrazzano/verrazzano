@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/verrazzano/verrazzano/application-operator/controllers"
+
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -64,7 +66,7 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 			fields{
 				"random-namespace",
 				"vpInRandomNamespace",
-				newNamespaces,
+				[]string{},
 			},
 			false,
 		},
@@ -149,6 +151,12 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("syncVerrazzanoProjects() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			// Validate the namespace list that resulted from processing the VerrazzanoProject objects
+			assert.Equal(len(tt.fields.nsNames), len(s.ProjectNamespaces), "number of expected namespaces did not match")
+			for _, namespace := range tt.fields.nsNames {
+				assert.True(controllers.StringSliceContainsString(s.ProjectNamespaces, namespace), "expected namespace not being watched")
 			}
 		})
 	}
