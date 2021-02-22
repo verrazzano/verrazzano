@@ -1,6 +1,6 @@
 # Bob's Books
 
-The Bob's Books example is a set of three applications based on WebLogic, Helidon, and Coherence. For more information and the source code of this application, see the [Verrazzano examples](https://github.com/verrazzano/examples).
+The Bob's Books example is an application based on WebLogic, Helidon, and Coherence. For more information and the source code of this application, see the [Verrazzano examples](https://github.com/verrazzano/examples).
 
 ## Prerequisites
 
@@ -56,7 +56,7 @@ The Bob's Books example is a set of three applications based on WebLogic, Helido
         -n bobs-books
     ```
    Note that the example application is pre-configured to use specific credentials.
-   For the source code for the example applications, see
+   For the source code for the example application, see
    [Bob's Books example application page](https://github.com/verrazzano/examples/tree/master/bobs-books).
    If you want to use credentials that are different from what is specified in the source code, you will need to rebuild the Docker images for the example application.
 
@@ -79,43 +79,35 @@ The Bob's Books example is a set of three applications based on WebLogic, Helido
     11.22.33.44
     ```
 
-1. Get the generated host names for the applications.
+1. Get the generated host name for the application.
    ```
-   $ kubectl get gateway bobs-books-bobs-orders-wls-gw -n bobs-books -o jsonpath={.spec.servers[0].hosts[0]}
-   bobs-orders-wls.bobs-books.11.22.33.44.xip.io
-
-   $ kubectl get gateway bobs-books-robert-gw -n bobs-books -o jsonpath={.spec.servers[0].hosts[0]}
-   robert.bobs-books.11.22.33.44.xip.io
-
-   $ kubectl get gateway bobs-books-bobby-front-end-gw -n bobs-books -o jsonpath={.spec.servers[0].hosts[0]}
-   bobby-front-end.bobs-books.11.22.33.44.xip.io
+   $ kubectl get gateway bobs-books-bobs-books-gw -n bobs-books -o jsonpath={.spec.servers[0].hosts[0]}
+   bobs-books.bobs-books.11.22.33.44.xip.io
    ```
 
-1. Access the applications. To access the applications in a browser, you will need to do one of the following:
-    * **Option 1:** If you are using `xip.io`, then you can just access the applications using the generated host names, for example:
+1. Access the application. To access the application in a browser, you will need to do one of the following:
+    * **Option 1:** If you are using `xip.io`, then you can just access the application using the generated host name, for example:
 
-      a. Robert's Books UI at `https://robert.bobs-books.11.22.33.44.xip.io/`.
+      a. Robert's Books UI at `https://bobs-books.bobs-books.11.22.33.44.xip.io/`.
 
-      b. Bobby's Books UI at `https://bobby-front-end.bobs-books.11.22.33.44.xip.io/bobbys-front-end`.
+      b. Bobby's Books UI at `https://bobs-books.bobs-books.11.22.33.44.xip.io/bobbys-front-end`.
 
-      c. Bob's order manager  UI at `https://bobs-orders-wls.bobs-books.11.22.33.44.xip.io/bobs-bookstore-order-manager/orders`.
+      c. Bob's order manager  UI at `https://bobs-books.bobs-books.11.22.33.44.xip.io/bobs-bookstore-order-manager/orders`.
 
-    * **Option 2:** Temporarily, modify the `/etc/hosts` file (on Mac or Linux) or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10), to add entries mapping the hosts used by the applications to the external IP address assigned to your gateway. For example:
+    * **Option 2:** Temporarily, modify the `/etc/hosts` file (on Mac or Linux) or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10), to add an entry mapping the host used by the application to the external IP address assigned to your gateway. For example:
       ```
-      11.22.33.44 roberts-books.example.com
-      11.22.33.44 bobbys-books.example.com
-      11.22.33.44 bobs-orders.example.com
+      11.22.33.44 bobs-books.example.com
       ```
-      Then, you can use a browser to access each of the applications as shown below:
+      Then, you can use a browser to access the application as shown below:
       
-      a. Robert's Books UI at `https://roberts-books.example.com/`.
+      a. Robert's Books UI at `https://bobs-books.example.com/`.
 
-      b. Bobby's Books UI at `https://bobbys-books.example.com/bobbys-front-end`.
+      b. Bobby's Books UI at `https://bobs-books.example.com/bobbys-front-end`.
 
-      c. Bob's order manager  UI at `https://bobs-orders.example.com/bobs-bookstore-order-manager/orders`.
+      c. Bob's order manager  UI at `https://bobs-books.example.com/bobs-bookstore-order-manager/orders`.
 
-    * **Option 3:** Alternatively, point your own DNS name to the load balancer's external IP address. In this case, you would need to have edited the `bobs-books-app.yaml` file to use the appropriate values under the `hosts` section for each application (such as `your-roberts-books-host.your.domain`), before deploying the applications.
-      Then, you can use a browser to access each of the applications as shown below:
+    * **Option 3:** Alternatively, point your own DNS name to the load balancer's external IP address. In this case, you would need to have edited the `bobs-books-app.yaml` file to use the appropriate values under the `hosts` section for the application (such as `your-roberts-books-host.your.domain`), before deploying the application.
+      Then, you can use a browser to access the application as shown below:
 
       a. Robert's Books UI at `http://<your-roberts-books-host.your.domain>/`.
 
