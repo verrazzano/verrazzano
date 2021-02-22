@@ -277,7 +277,7 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: verrazzano-install
+  name: verrazzano-installer
   labels:
     verrazzano.io/aggregate-to-verrazzano-admin: "true"
 rules:
@@ -309,6 +309,7 @@ rules:
     - core.oam.dev
   resources:
     - "*"
+    - "*/status"
   verbs:
     - get
     - list
@@ -350,6 +351,25 @@ rules:
     - core.oam.dev
   resources:
     - "*"
+    - "*/status"
+  verbs:
+    - get
+    - list
+    - watch
+- apiGroups:
+    - weblogic.oracle
+  resources:
+    - domains
+    - domains/status
+  verbs:
+    - get
+    - list
+    - watch
+- apiGroups:
+    - coherence.oracle.com
+  resources:
+    - coherences
+    - coherences/status
   verbs:
     - get
     - list
@@ -369,6 +389,26 @@ rules:
     - core.oam.dev
   resources:
     - "*"
+  verbs:
+    - create
+    - update
+    - patch
+    - delete
+    - deletecollection
+- apiGroups:
+    - weblogic.oracle
+  resources:
+    - domains
+  verbs:
+    - create
+    - update
+    - patch
+    - delete
+    - deletecollection
+- apiGroups:
+    - coherence.oracle.com
+  resources:
+    - coherences
   verbs:
     - create
     - update
@@ -400,6 +440,19 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: verrazzano-admin-k8s
+subjects:
+- kind: {{ .Values.userrolebindings.admin.kind }}
+  name: {{ .Values.userrolebindings.admin.name }}
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: admin
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: verrazzano-monitor
@@ -420,6 +473,19 @@ subjects:
 roleRef:
   kind: ClusterRole
   name: verrazzano-monitor
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: verrazzano-monitor-k8s
+subjects:
+- kind: {{ .Values.userrolebindings.monitor.kind }}
+  name: {{ .Values.userrolebindings.monitor.name }}
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: view
   apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: rbac.authorization.k8s.io/v1
