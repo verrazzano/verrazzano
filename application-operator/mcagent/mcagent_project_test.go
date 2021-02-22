@@ -11,12 +11,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/application-operator/controllers"
-
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -173,10 +172,11 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 		nsNames     []string
 	}
 	tests := []struct {
-		name      string
-		vp1Fields fields
-		vp2Fields fields
-		wantErr   bool
+		name               string
+		vp1Fields          fields
+		vp2Fields          fields
+		expectedNamespaces int
+		wantErr            bool
 	}{
 		{
 			"TwoVP",
@@ -190,6 +190,22 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 				"newVP",
 				[]string{"ns3", "ns4"},
 			},
+			4,
+			false,
+		},
+		{
+			"DuplicateNamespace",
+			fields{
+				constants.VerrazzanoMultiClusterNamespace,
+				"newVP",
+				[]string{"ns1", "ns2"},
+			},
+			fields{
+				constants.VerrazzanoMultiClusterNamespace,
+				"newVP",
+				[]string{"ns3", "ns1"},
+			},
+			3,
 			false,
 		},
 	}
@@ -273,7 +289,7 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 			}
 
 			// Validate the namespace list that resulted from processing the VerrazzanoProject objects
-			assert.Equal(len(tt.vp1Fields.nsNames)+len(tt.vp2Fields.nsNames), len(s.ProjectNamespaces), "number of expected namespaces did not match")
+			assert.Equal(tt.expectedNamespaces, len(s.ProjectNamespaces), "number of expected namespaces did not match")
 			for _, namespace := range tt.vp1Fields.nsNames {
 				assert.True(controllers.StringSliceContainsString(s.ProjectNamespaces, namespace), "expected namespace not being watched")
 			}
