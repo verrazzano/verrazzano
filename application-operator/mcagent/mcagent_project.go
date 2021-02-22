@@ -25,8 +25,11 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 	for _, vp := range allProjects.Items {
 		if vp.Namespace == constants.VerrazzanoMultiClusterNamespace {
 			_, err := s.createOrUpdateVerrazzanoProject(vp)
-			s.Log.Error(err, "Error syncing VerrazzanoProject object",
-				types.NamespacedName{Namespace: vp.Namespace, Name: vp.Name})
+			if err != nil {
+				s.Log.Error(err, "Error syncing object",
+					"VerrazzanoProject",
+					types.NamespacedName{Namespace: vp.Namespace, Name: vp.Name})
+			}
 		}
 	}
 	return nil

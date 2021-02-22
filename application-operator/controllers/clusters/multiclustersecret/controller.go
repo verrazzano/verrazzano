@@ -36,8 +36,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	err := r.fetchMultiClusterSecret(ctx, req.NamespacedName, &mcSecret)
 	if err != nil {
-		logger.Info("Failed to fetch MultiClusterSecret", "err", err)
-		return result, client.IgnoreNotFound(err)
+		return result, clusters.IgnoreNotFoundWithLog("MultiClusterSecret", err, logger)
+	}
+
+	if !clusters.IsPlacedInThisCluster(ctx, r, mcSecret.Spec.Placement) {
+		return ctrl.Result{}, nil
 	}
 
 	logger.Info("MultiClusterSecret create or update with underlying secret",
@@ -88,4 +91,6 @@ func (r *Reconciler) mutateSecret(mcSecret clustersv1alpha1.MultiClusterSecret, 
 	secret.Type = mcSecret.Spec.Template.Type
 	secret.Data = mcSecret.Spec.Template.Data
 	secret.StringData = mcSecret.Spec.Template.StringData
+	secret.Labels = mcSecret.Spec.Template.Metadata.Labels
+	secret.Annotations = mcSecret.Spec.Template.Metadata.Annotations
 }

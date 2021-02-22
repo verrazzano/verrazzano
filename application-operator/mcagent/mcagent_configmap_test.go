@@ -12,7 +12,7 @@ import (
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -72,6 +72,14 @@ func TestCreateMCConfigMap(t *testing.T) {
 			assert.Equal(mcConfigMapTestLabels, mcConfigMap.Labels, "mcConfigMap labels did not match")
 			assert.Equal(testClusterName, mcConfigMap.Spec.Placement.Clusters[0].Name, "mcConfigMap does not contain expected placement")
 			assert.Equal("simplevalue", mcConfigMap.Spec.Template.Data["simple.key"])
+			return nil
+		})
+
+	// Managed Cluster - expect call to list MultiClusterConfigMap objects - return same list as admin cluster
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, opts ...*client.ListOptions) error {
+			mcConfigMapList.Items = append(mcConfigMapList.Items, testMCConfigMap)
 			return nil
 		})
 
@@ -144,6 +152,88 @@ func TestUpdateMCConfigMap(t *testing.T) {
 			return nil
 		})
 
+	// Managed Cluster - expect call to list MultiClusterConfigMap objects - return same list as admin cluster
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, opts ...*client.ListOptions) error {
+			mcConfigMapList.Items = append(mcConfigMapList.Items, testMCConfigMap)
+			return nil
+		})
+
+	// Make the request
+	s := &Syncer{
+		AdminClient:        adminMock,
+		LocalClient:        mcMock,
+		Log:                log,
+		ManagedClusterName: testClusterName,
+		Context:            context.TODO(),
+	}
+	err = s.syncMCConfigMapObjects()
+
+	// Validate the results
+	adminMocker.Finish()
+	mcMocker.Finish()
+	assert.NoError(err)
+}
+
+// TestDeleteMCConfigMap tests the synchronization method for the following use case.
+// GIVEN a request to sync MultiClusterConfigMap objects
+// WHEN the object exists on the local cluster but not on the admin cluster
+// THEN ensure that the MultiClusterConfigMap is deleted.
+func TestDeleteMCConfigMap(t *testing.T) {
+	assert := asserts.New(t)
+	log := ctrl.Log.WithName("test")
+
+	// Managed cluster mocks
+	mcMocker := gomock.NewController(t)
+	mcMock := mocks.NewMockClient(mcMocker)
+
+	// Admin cluster mocks
+	adminMocker := gomock.NewController(t)
+	adminMock := mocks.NewMockClient(adminMocker)
+
+	// Test data
+	testMCConfigMap, err := getSampleMCConfigMap("testdata/multicluster-configmap.yaml")
+	if err != nil {
+		assert.NoError(err, "failed to read sample data for MultiClusterConfigMap")
+	}
+	testMCConfigMapOrphan, err := getSampleMCConfigMap("testdata/multicluster-configmap.yaml")
+	if err != nil {
+		assert.NoError(err, "failed to read sample data for MultiClusterConfigMap")
+	}
+	testMCConfigMapOrphan.Name = "orphaned-resource"
+
+	// Admin Cluster - expect call to list MultiClusterConfigMap objects - return list with one object
+	adminMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, opts ...*client.ListOptions) error {
+			mcConfigMapList.Items = append(mcConfigMapList.Items, testMCConfigMap)
+			return nil
+		})
+
+	// Managed Cluster - expect call to get a MultiClusterConfigMap from the list returned by the admin cluster
+	//                   Return the resource
+	mcMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testMCConfigMapNamespace, Name: testMCConfigMapName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap) error {
+			testMCConfigMap.DeepCopyInto(mcConfigMap)
+			return nil
+		})
+
+	// Managed Cluster - expect call to list MultiClusterConfigMap objects - return list including an orphaned object
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, opts ...*client.ListOptions) error {
+			mcConfigMapList.Items = append(mcConfigMapList.Items, testMCConfigMap)
+			mcConfigMapList.Items = append(mcConfigMapList.Items, testMCConfigMapOrphan)
+			return nil
+		})
+
+	// Managed Cluster - expect a call to delete a MultiClusterConfigMap object
+	mcMock.EXPECT().
+		Delete(gomock.Any(), gomock.Eq(&testMCConfigMapOrphan), gomock.Any()).
+		Return(nil)
+
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
@@ -189,6 +279,14 @@ func TestMCConfigMapPlacement(t *testing.T) {
 			return nil
 		})
 
+	// Managed Cluster - expect call to list MultiClusterConfigMap objects - return same list as admin cluster
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, opts ...*client.ListOptions) error {
+			mcConfigMapList.Items = append(mcConfigMapList.Items, testMCConfigMap)
+			return nil
+		})
+
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
@@ -213,7 +311,7 @@ func getSampleMCConfigMap(filePath string) (clustersv1alpha1.MultiClusterConfigM
 		return mcComp, err
 	}
 
-	rawMcComp, err := clusters.ReadYaml2Json(sampleConfigMapFile)
+	rawMcComp, err := clusterstest.ReadYaml2Json(sampleConfigMapFile)
 	if err != nil {
 		return mcComp, err
 	}

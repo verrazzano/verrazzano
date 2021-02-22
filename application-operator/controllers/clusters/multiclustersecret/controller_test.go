@@ -11,6 +11,7 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -76,6 +77,9 @@ func TestReconcileCreateSecret(t *testing.T) {
 	// expect a call to fetch the MultiClusterSecret
 	doExpectGetMultiClusterSecret(cli, mcSecretSample)
 
+	// expect a call to fetch the managed cluster registration secret
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to fetch existing corev1.Secret and return not found error, to test create case
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
@@ -93,7 +97,7 @@ func TestReconcileCreateSecret(t *testing.T) {
 	doExpectStatusUpdateSucceeded(cli, mockStatusWriter, assert)
 
 	// create a request and reconcile it
-	request := clusters.NewRequest(namespace, crName)
+	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newSecretReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 
@@ -123,6 +127,9 @@ func TestReconcileUpdateSecret(t *testing.T) {
 	// expect a call to fetch the MultiClusterSecret
 	doExpectGetMultiClusterSecret(cli, mcSecretSample)
 
+	// expect a call to fetch the managed cluster registration secret
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to fetch underlying secret, and return an existing secret
 	doExpectGetSecretExists(cli, mcSecretSample.ObjectMeta, existingSecretData)
 
@@ -142,7 +149,7 @@ func TestReconcileUpdateSecret(t *testing.T) {
 		Return(nil)
 
 	// create a request and reconcile it
-	request := clusters.NewRequest(namespace, crName)
+	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newSecretReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 
@@ -170,6 +177,9 @@ func TestReconcileCreateSecretFailed(t *testing.T) {
 	// expect a call to fetch the MultiClusterSecret
 	doExpectGetMultiClusterSecret(cli, mcSecretSample)
 
+	// expect a call to fetch the managed cluster registration secret
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to fetch existing corev1.Secret and return not found error, to simulate create case
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
@@ -187,7 +197,7 @@ func TestReconcileCreateSecretFailed(t *testing.T) {
 	doExpectStatusUpdateFailed(cli, mockStatusWriter, assert)
 
 	// create a request and reconcile it
-	request := clusters.NewRequest(namespace, crName)
+	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newSecretReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 
@@ -211,6 +221,9 @@ func TestReconcileUpdateSecretFailed(t *testing.T) {
 	// expect a call to fetch the MultiClusterSecret
 	doExpectGetMultiClusterSecret(cli, mcSecretSample)
 
+	// expect a call to fetch the managed cluster registration secret
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to fetch existing corev1.Secret (simulate update case)
 	doExpectGetSecretExists(cli, mcSecretSample.ObjectMeta, existingSecretData)
 
@@ -226,7 +239,73 @@ func TestReconcileUpdateSecretFailed(t *testing.T) {
 	doExpectStatusUpdateFailed(cli, mockStatusWriter, assert)
 
 	// create a request and reconcile it
-	request := clusters.NewRequest(namespace, crName)
+	request := clusterstest.NewRequest(namespace, crName)
+	reconciler := newSecretReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+}
+
+// TestReconcilePlacementInDifferentCluster tests the path of reconciling a MultiClusterSecret which
+// is placed on a cluster other than the current cluster. We expect this MultiClusterSecret to
+// be ignored, and no K8S secret to be created
+// GIVEN a MultiClusterSecret resource is created with a placement in different cluster
+// WHEN the controller Reconcile function is called
+// THEN expect that no K8S Secret is created
+func TestReconcilePlacementInDifferentCluster(t *testing.T) {
+	assert := asserts.New(t)
+
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	secretData := map[string][]byte{"username": []byte("aaaaa")}
+
+	mcSecretSample := getSampleMCSecret(namespace, crName, secretData)
+
+	mcSecretSample.Spec.Placement.Clusters[0].Name = "not-my-cluster"
+
+	// expect a call to fetch the MultiClusterSecret
+	doExpectGetMultiClusterSecret(cli, mcSecretSample)
+
+	// expect a call to fetch the MCRegistration secret
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
+	// Expect no further action
+
+	// create a request and reconcile it
+	request := clusterstest.NewRequest(namespace, crName)
+	reconciler := newSecretReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+}
+
+// TestReconcileResourceNotFound tests the path of reconciling a
+// MultiClusterSecret resource which is non-existent when reconcile is called,
+// possibly because it has been deleted.
+// GIVEN a MultiClusterSecret resource has been deleted
+// WHEN the controller Reconcile function is called
+// THEN expect that no action is taken
+func TestReconcileResourceNotFound(t *testing.T) {
+	assert := asserts.New(t)
+
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the MultiClusterLoggingScope
+	// and return a not found error
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "MultiClusterSecret"}, crName))
+
+	// expect no further action to be taken
+
+	// create a request and reconcile it
+	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newSecretReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 
@@ -317,7 +396,7 @@ func getSampleMCSecret(ns string, name string, secretData map[string][]byte) clu
 	mcSecret.ObjectMeta.Name = crName
 	mcSecret.APIVersion = clustersv1alpha1.GroupVersion.String()
 	mcSecret.Kind = "MultiClusterSecret"
-	mcSecret.Spec.Placement.Clusters = []clustersv1alpha1.Cluster{{Name: "myCluster"}}
+	mcSecret.Spec.Placement.Clusters = []clustersv1alpha1.Cluster{{Name: "cluster1"}}
 	return mcSecret
 }
 
