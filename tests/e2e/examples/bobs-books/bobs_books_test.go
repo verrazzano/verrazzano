@@ -131,7 +131,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 				ingress := pkg.Ingress()
 				pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
 				url := fmt.Sprintf("http://%s", ingress)
-				host := "roberts-books.example.com"
+				host := pkg.GetHostnameFromGateway("bobs-books", "")
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
 					Status:  status,
@@ -148,7 +148,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 				ingress := pkg.Ingress()
 				pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
 				url := fmt.Sprintf("http://%s/bobbys-front-end/", ingress)
-				host := "bobbys-books.example.com"
+				host := pkg.GetHostnameFromGateway("bobs-books", "")
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
 					Status:  status,
@@ -165,7 +165,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 				ingress := pkg.Ingress()
 				pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
 				url := fmt.Sprintf("http://%s/bobs-bookstore-order-manager/orders", ingress)
-				host := "bobs-orders.example.com"
+				host := pkg.GetHostnameFromGateway("bobs-books", "")
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
 					Status:  status,
@@ -203,12 +203,12 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 				},
 				func() {
 					gomega.Eventually(func() bool {
-						return pkg.MetricsExist("wls_jvm_process_cpu_load", "app_oam_dev_name", "bobby-front-end")
+						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", "bobbys-front-end")
 					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 				},
 				func() {
 					gomega.Eventually(func() bool {
-						return pkg.MetricsExist("wls_jvm_process_cpu_load", "app_oam_dev_name", "bobs-orders-wls")
+						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", "bobs-bookstore")
 					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 				},
 			)
