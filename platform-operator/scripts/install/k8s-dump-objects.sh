@@ -7,7 +7,7 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
 export DIAGNOSTIC_LOG="${DIAGNOSTIC_LOG:-${SCRIPT_DIR}/build/logs/diagnostics.log}"
 export LOG_FILE="${DIAGNOSTIC_LOG}"
-. $SCRIPT_DIR/common.sh
+. ${SCRIPT_DIR}/logging.sh
 
 
 # Dump Diagnostic header with message

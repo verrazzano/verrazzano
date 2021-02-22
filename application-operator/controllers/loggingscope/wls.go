@@ -24,8 +24,8 @@ const (
 	storageVolumeMountPath = scratchVolMountPath
 )
 
-// FLUENTD parsing rules for WLS
-const wlsFluentdParsingRules = `<match fluent.**>
+// WlsFluentdParsingRules defines the FLUENTD parsing rules for WLS
+const WlsFluentdParsingRules = `<match fluent.**>
   @type null
 </match>
 <source>
@@ -93,7 +93,7 @@ const wlsFluentdParsingRules = `<match fluent.**>
 </match>
 `
 
-var getFluentdManager = getFluentd
+var getFluentdManager = GetFluentd
 
 // wlsHandler handles FLUENTD integration for WLS domains
 type wlsHandler struct {
@@ -113,7 +113,7 @@ func (h *wlsHandler) Apply(ctx context.Context, resource vzapi.QualifiedResource
 		return nil, err
 	}
 	serverPod := domain.Spec.ServerPod
-	fluentdPod := toFluentdPod(serverPod, resource, buildWLSLogPath(name))
+	fluentdPod := toFluentdPod(serverPod, resource, BuildWLSLogPath(name))
 	updated, err := getFluentdManager(ctx, h.Log, h).Apply(scope, resource, fluentdPod)
 
 	if updated && err == nil {
@@ -122,7 +122,7 @@ func (h *wlsHandler) Apply(ctx context.Context, resource vzapi.QualifiedResource
 		serverPod.VolumeMounts = fluentdPod.VolumeMounts
 		domain.Spec.ServerPod = serverPod
 		domain.Spec.Configuration.Istio.Enabled = false
-		domain.Spec.LogHome = buildWLSLogHome(name)
+		domain.Spec.LogHome = BuildWLSLogHome(name)
 		domain.Spec.LogHomeEnabled = true
 
 		err = h.Update(ctx, &domain)
@@ -155,12 +155,12 @@ func (h *wlsHandler) Remove(ctx context.Context, resource vzapi.QualifiedResourc
 	return removeVerified, err
 }
 
-// getFluentd creates an instance of FluentManager
-func getFluentd(ctx context.Context, log logr.Logger, client k8sclient.Client) FluentdManager {
+// GetFluentd creates an instance of FluentManager
+func GetFluentd(ctx context.Context, log logr.Logger, client k8sclient.Client) FluentdManager {
 	return &Fluentd{Context: ctx,
 		Log:                    log,
 		Client:                 client,
-		ParseRules:             wlsFluentdParsingRules,
+		ParseRules:             WlsFluentdParsingRules,
 		StorageVolumeName:      storageVolumeName,
 		StorageVolumeMountPath: storageVolumeMountPath,
 	}
@@ -179,12 +179,12 @@ func toFluentdPod(serverPod wls.ServerPod, workload vzapi.QualifiedResourceRelat
 		Volumes:      serverPod.Volumes,
 		VolumeMounts: serverPod.VolumeMounts,
 		LogPath:      logPath,
-		HandlerEnv:   getWlsSpecificContainerEnv(workload),
+		HandlerEnv:   GetWlsSpecificContainerEnv(),
 	}
 }
 
-// getWlsSpecificContainerEnv builds WLS specific env vars
-func getWlsSpecificContainerEnv(workload vzapi.QualifiedResourceRelation) []v1.EnvVar {
+// GetWlsSpecificContainerEnv builds WLS specific env vars
+func GetWlsSpecificContainerEnv() []v1.EnvVar {
 	return []v1.EnvVar{
 		{
 			Name: "DOMAIN_UID",
@@ -205,12 +205,12 @@ func getWlsSpecificContainerEnv(workload vzapi.QualifiedResourceRelation) []v1.E
 	}
 }
 
-// buildWLSLogPath builds a log path given a resource name
-func buildWLSLogPath(name string) string {
+// BuildWLSLogPath builds a log path given a resource name
+func BuildWLSLogPath(name string) string {
 	return fmt.Sprintf("%s/logs/%s/$(SERVER_NAME).log", scratchVolMountPath, name)
 }
 
-// buildWLSLogHome builds a log home give a resource name
-func buildWLSLogHome(name string) string {
+// BuildWLSLogHome builds a log home give a resource name
+func BuildWLSLogHome(name string) string {
 	return fmt.Sprintf("%s/logs/%s", scratchVolMountPath, name)
 }

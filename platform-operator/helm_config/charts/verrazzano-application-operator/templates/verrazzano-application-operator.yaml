@@ -91,7 +91,7 @@ metadata:
   labels:
     app: {{ .Values.name }}
 webhooks:
-  - name: verrazzano-application-appconfig-defaulter.oracle.com
+  - name: verrazzano-application-appconfig-defaulter.verrazzano.io
     clientConfig:
       service:
         name: {{ .Values.name }}
@@ -119,7 +119,7 @@ metadata:
   labels:
     app: {{ .Values.name }}
 webhooks:
-  - name: verrazzano-application-ingresstrait-validator.oracle.com
+  - name: verrazzano-application-ingresstrait-validator.verrazzano.io
     clientConfig:
       service:
         name: {{ .Values.name }}
@@ -135,5 +135,34 @@ webhooks:
           - UPDATE
         resources:
           - ingresstraits
+    sideEffects: None
+    failurePolicy: Fail
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: verrazzano-application-istio-defaulter
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}
+webhooks:
+  - name: verrazzano-application-istio-defaulter.verrazzano.io
+    namespaceSelector:
+      matchLabels:
+        istio-injection: enabled
+    clientConfig:
+      service:
+        name: {{ .Values.name }}
+        namespace: {{ .Values.namespace }}
+        path: "/istio-defaulter"
+    rules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+        resources:
+          - pods
     sideEffects: None
     failurePolicy: Fail

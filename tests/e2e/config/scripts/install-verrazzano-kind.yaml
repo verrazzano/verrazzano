@@ -6,20 +6,4 @@ kind: Verrazzano
 metadata:
   name: my-verrazzano
 spec:
-  components:
-    ingress:
-      type: NodePort
-      nginxInstallArgs:
-        - name: controller.kind
-          value: DaemonSet
-        - name: controller.hostPort.enabled
-          value: "true"
-        - name: controller.nodeSelector.ingress-ready
-          value: "true"
-          setString: true
-        - name: controller.tolerations[0].key
-          value: node-role.kubernetes.io/master
-        - name: controller.tolerations[0].operator
-          value: Equal
-        - name: controller.tolerations[0].effect
-          value: NoSchedule
+  profile: dev

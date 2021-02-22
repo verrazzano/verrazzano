@@ -10,10 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/test/integ/k8s"
 	"github.com/verrazzano/verrazzano/application-operator/test/integ/util"
 )
@@ -39,6 +38,10 @@ var _ = BeforeSuite(func() {
 	if err != nil {
 		Fail(fmt.Sprintf("Error creating Kubernetes client to access Verrazzano API objects: %v", err))
 	}
+
+	// Do set up for multi cluster tests
+	setupMultiClusterTest()
+
 })
 
 var _ = AfterSuite(func() {

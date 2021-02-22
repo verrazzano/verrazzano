@@ -1,0 +1,420 @@
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: robert-coh
+  namespace: bobs-books
+spec:
+  workload:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoCoherenceWorkload
+    spec:
+      template:
+        metadata:
+          name: roberts-coherence
+          namespace: bobs-books
+        spec:
+          replicas: 2
+          image: container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210205215204-b624b86
+          imagePullPolicy: IfNotPresent
+          imagePullSecrets:
+            - name: bobs-books-repo-credentials
+          env:
+            - name: BACKEND_PORT
+              value: "8001"
+            - name: BACKEND_HOSTNAME
+              value: bobs-bookstore-cluster-cluster-1.bobs-books.svc.cluster.local
+            - name: TRACING_HOST
+              value: "jaeger-collector"
+            - name: JAEGER_SAMPLER_TYPE
+              value: "const"
+            - name: JAEGER_SAMPLER_PARAM
+              value: "1"
+          jvm:
+            memory:
+              heapSize: 1g
+            args:
+              - "-Dcoherence.k8s.operator.health.wait.dcs=false"
+          ports:
+            - name: extend
+              port: 9000
+              service:
+                name: roberts-coherence-extend
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: robert-helidon
+  namespace: bobs-books
+spec:
+  workload:
+    apiVersion: core.oam.dev/v1alpha2
+    kind: ContainerizedWorkload
+    metadata:
+      name: robert-helidon
+      namespace: bobs-books
+      labels:
+        app: robert-helidon
+    spec:
+      containers:
+        - name: robert-helidon-stock-application
+          image: container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210205215204-b624b86
+          imagePullPolicy: IfNotPresent
+          imagePullSecret: bobs-books-repo-credentials
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: COH_CLUSTER
+              value: roberts-coherence
+            - name: COH_CACHE_CONFIG
+              value: coherence-cache-config.xml
+            - name: COH_POF_CONFIG
+              value: pof-config.xml
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: bobby-coh
+  namespace: bobs-books
+spec:
+  workload:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoCoherenceWorkload
+    spec:
+      template:
+        metadata:
+          name: bobbys-coherence
+          namespace: bobs-books
+        spec:
+          replicas: 1
+          image: container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.12-1-20210205215204-b624b86
+          imagePullPolicy: IfNotPresent
+          imagePullSecrets:
+            - name: bobs-books-repo-credentials
+          env:
+            - name: TRACING_HOST
+              value: "jaeger-collector"
+            - name: JAEGER_SAMPLER_TYPE
+              value: "const"
+            - name: JAEGER_SAMPLER_PARAM
+              value: "1"
+          jvm:
+            memory:
+              heapSize: 1g
+            args:
+              - "-Dcoherence.k8s.operator.health.wait.dcs=false"
+          ports:
+            - name: extend
+              port: 9000
+              service:
+                name: bobbys-coherence-extend
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: bobby-helidon
+  namespace: bobs-books
+spec:
+  workload:
+    apiVersion: core.oam.dev/v1alpha2
+    kind: ContainerizedWorkload
+    metadata:
+      name: bobbys-helidon-stock-application
+      namespace: bobs-books
+      labels:
+        app: bobbys-helidon-stock-application
+    spec:
+      containers:
+      - name: bobbys-helidon-stock-application
+        image: container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210205215204-b624b86
+        imagePullPolicy: IfNotPresent
+        imagePullSecret: bobs-books-repo-credentials
+        ports:
+          - containerPort: 8080
+            name: http
+        env:
+          - name: BACKEND_PORT
+            value: "8001"
+          - name: BACKEND_HOSTNAME
+            value: bobs-bookstore-cluster-cluster-1.bobs-books.svc.cluster.local
+          - name: COH_CLUSTER
+            value: bobbys-coherence
+          - name: COH_CACHE_CONFIG
+            value: coherence-cache-config.xml
+          - name: COH_POF_CONFIG
+            value: pof-config.xml
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: bobby-wls
+  namespace: bobs-books
+spec:
+  workload:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoWebLogicWorkload
+    spec:
+      template:
+        metadata:
+          name: bobbys-front-end
+          namespace: bobs-books
+          labels:
+            weblogic.resourceVersion: domain-v8
+            weblogic.domainUID: bobbys-front-end
+        spec:
+          domainUID: bobbys-front-end
+          domainHome: /u01/oracle/user_projects/domains/bobbys-front-end
+          image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.12-1-20210205215204-b624b86
+          imagePullSecrets:
+            - name: bobs-books-repo-credentials
+          domainHomeSourceType: "FromModel"
+          includeServerOutInPodLog: true
+          replicas: 1
+          webLogicCredentialsSecret:
+            name: bobbys-front-end-weblogic-credentials
+          clusters:
+            - clusterName: cluster-1
+          configuration:
+            istio:
+              enabled: false
+            introspectorJobActiveDeadlineSeconds: 300
+            model:
+              runtimeEncryptionSecret: bobbys-front-end-runtime-encrypt-secret
+          serverPod:
+            env:
+              - name: JAVA_OPTIONS
+                value: "-Dweblogic.StdoutDebugEnabled=false"
+              - name: USER_MEM_ARGS
+                value: "-Djava.security.egd=file:/dev/./urandom"
+              - name: HELIDON_HOSTNAME
+                value: "bobbys-helidon-stock-application.bobs-books.svc.cluster.local"
+              - name: HELIDON_PORT
+                value: "8080"
+              - name: WL_HOME
+                value: /u01/oracle/wlserver
+              - name: MW_HOME
+                value: /u01/oracle
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: bobs-mysql-configmap
+  namespace: bobs-books
+spec:
+  workload:
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: mysql-initdb-config
+      namespace: bobs-books
+    data:
+      initdb.sql: |
+        create table `orders` (
+            `id` int not null auto_increment,
+            `order_date` date,
+            `name` char(40),
+            `street` char(40),
+            `city` char(40),
+            `state` char(2),
+            primary key(`id`)
+        );
+        create table `order_books` (
+            `order_id` int,
+            `book_id` int,
+            `title` char(255),
+            foreign key (`order_id`)
+            references `orders`(`id`)
+            on delete cascade
+        );
+        insert into `orders` (`id`, `order_date`, `name`, `street`, `city`, `state`)
+        values (1, curdate(), "Bob Down", "12 Main Rd", "Mt Everest", "NJ");
+
+        insert into `order_books` (`order_id`, `book_id`, `title`)
+        values (1, 2, "Harry Potter");
+
+        insert into `order_books` (`order_id`, `book_id`, `title`)
+        values (1, 4, "Twilight");
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: bobs-mysql-service
+  namespace: bobs-books
+spec:
+  workload:
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: mysql
+      namespace: bobs-books
+    spec:
+      ports:
+        - port: 3306
+      selector:
+        app: mysql
+      clusterIP: None
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: bobs-mysql-deployment
+  namespace: bobs-books
+spec:
+  workload:
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: mysql
+      namespace: bobs-books
+    spec:
+      progressDeadlineSeconds: 600
+      replicas: 1
+      revisionHistoryLimit: 10
+      selector:
+        matchLabels:
+          app: mysql
+      strategy:
+        type: Recreate
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            app: mysql
+        spec:
+          containers:
+            - env:
+                - name: MYSQL_ROOT_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: mysql-credentials
+                      key: password
+                - name: MYSQL_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: mysql-credentials
+                      key: username
+                - name: MYSQL_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: mysql-credentials
+                      key: password
+                - name: MYSQL_DATABASE
+                  value: books
+              image: ghcr.io/verrazzano/mysql:8.0.20
+              imagePullPolicy: IfNotPresent
+              name: mysql
+              ports:
+                - containerPort: 3306
+                  name: mysql
+                  protocol: TCP
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+                - mountPath: /docker-entrypoint-initdb.d
+                  name: mysql-initdb
+          dnsPolicy: ClusterFirst
+          imagePullSecrets:
+            - name: bobs-books-repo-credentials
+          restartPolicy: Always
+          schedulerName: default-scheduler
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+          volumes:
+            - configMap:
+                defaultMode: 420
+                name: mysql-initdb-config
+              name: mysql-initdb
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: bobs-orders-configmap
+  namespace: bobs-books
+spec:
+  workload:
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      labels:
+        weblogic.domainUID: bobs-bookstore
+      name: bobs-bookstore-wdt-config-map
+      namespace: bobs-books
+    data:
+      datasource.yaml: |
+        resources:
+          JDBCSystemResource:
+            books:
+              Target: 'cluster-1'
+              JdbcResource:
+                JDBCDataSourceParams:
+                  JNDIName: [
+                    jdbc/books
+                  ]
+                JDBCDriverParams:
+                  DriverName: com.mysql.cj.jdbc.Driver
+                  URL: '@@SECRET:mysql-credentials:url@@'
+                  PasswordEncrypted: '@@SECRET:mysql-credentials:password@@'
+                  Properties:
+                    user:
+                      Value: '@@SECRET:mysql-credentials:username@@'
+                JDBCConnectionPoolParams:
+                  ConnectionReserveTimeoutSeconds: 10
+                  InitialCapacity: 0
+                  MaxCapacity: 5
+                  MinCapacity: 0
+                  TestConnectionsOnReserve: true
+                  TestTableName: SQL SELECT 1
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: bobs-orders-wls
+  namespace: bobs-books
+spec:
+  workload:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoWebLogicWorkload
+    spec:
+      template:
+        metadata:
+          name: bobs-orders-wls
+          namespace: bobs-books
+          labels:
+            weblogic.resourceVersion: domain-v8
+            weblogic.domainUID: bobs-bookstore
+        spec:
+          domainUID: bobs-bookstore
+          domainHome: /u01/oracle/user_projects/domains/bobs-bookstore
+          domainHomeSourceType: FromModel
+          image: container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210205215204-b624b86
+          includeServerOutInPodLog: true
+          replicas: 1
+          webLogicCredentialsSecret:
+            name: bobs-bookstore-weblogic-credentials
+          imagePullSecrets:
+            - name: bobs-books-repo-credentials
+          clusters:
+            - clusterName: cluster-1
+          configuration:
+            istio:
+              enabled: false
+            introspectorJobActiveDeadlineSeconds: 300
+            model:
+              configMap: bobs-bookstore-wdt-config-map
+              runtimeEncryptionSecret: bobs-bookstore-runtime-encrypt-secret
+            secrets:
+              - mysql-credentials
+          serverPod:
+            env:
+              - name: JAVA_OPTIONS
+                value: "-Dweblogic.StdoutDebugEnabled=false"
+              - name: USER_MEM_ARGS
+                value: "-Djava.security.egd=file:/dev/./urandom "
+              - name: WL_HOME
+                value: /u01/oracle/wlserver
+              - name: MW_HOME
+                value: /u01/oracle

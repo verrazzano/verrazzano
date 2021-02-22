@@ -11,6 +11,8 @@ rules:
   - ""
   resources:
   - namespaces
+  - configmaps
+  - services
   verbs:
   - get
   - list
@@ -63,6 +65,9 @@ rules:
   resources:
   - ingresstraits
   - loggingscopes
+  - metricstraits
+  - verrazzanocoherenceworkloads
+  - verrazzanoweblogicworkloads
   verbs:
   - get
   - list
@@ -74,6 +79,7 @@ rules:
   - applicationconfigurations
   - containerizedworkloads
   - healthscopes
+  - manualscalertraits
   verbs:
   - get
   - list
@@ -83,6 +89,22 @@ rules:
   resources:
   - verrazzanomanagedclusters
   - verrazzanomonitoringinstances
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - coherence.oracle.com
+  resources:
+  - coherences
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - weblogic.oracle
+  resources:
+  - domains
   verbs:
   - get
   - list

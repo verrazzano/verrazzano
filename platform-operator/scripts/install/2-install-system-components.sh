@@ -226,7 +226,6 @@ function install_rancher()
 
 function set_rancher_server_url
 {
-    local rancher_server_url="https://${RANCHER_HOSTNAME}"
     echo "Get Rancher admin password."
     rancher_admin_password=$(kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password})
     if [ $? -ne 0 ]; then
@@ -249,12 +248,12 @@ function set_rancher_server_url
       echo "Failed to get valid Rancher access token. Continuing without setting Rancher server URL."
       return 0
     fi
-    echo "Set Rancher server URL to ${rancher_server_url}"
-    curl_args=("${rancher_server_url}/v3/settings/server-url" $(get_rancher_resolve ${RANCHER_HOSTNAME}) \
+    echo "Set Rancher server URL to https://${RANCHER_HOSTNAME}"
+    curl_args=("https://${RANCHER_HOSTNAME}:$(get_nginx_nodeport)/v3/settings/server-url" $(get_rancher_resolve ${RANCHER_HOSTNAME}) \
           -H 'content-type: application/json' \
           -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" \
           -X PUT \
-          --data-binary '{"name":"server-url","value":"'${rancher_server_url}'"}' \
+          --data-binary '{"name":"server-url","value":"'https://${RANCHER_HOSTNAME}'"}' \
           --insecure)
     call_curl 200 http_response http_status curl_args || true
     if [ ${http_status:--1} -ne 200 ]; then

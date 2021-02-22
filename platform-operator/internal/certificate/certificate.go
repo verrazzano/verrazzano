@@ -79,6 +79,7 @@ func CreateWebhookCertificates(certDir string) (*bytes.Buffer, error) {
 
 	// server cert config
 	cert := &x509.Certificate{
+		DNSNames:     []string{commonName},
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			CommonName: commonName,
@@ -163,8 +164,11 @@ func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, caCe
 	if err != nil {
 		return err
 	}
-
+	if len(validatingWebhook.Webhooks) != 2 {
+		return fmt.Errorf("Expected 2 webhooks in %s ValidatingWebhookConfiguration, but found %v", OperatorName, len(validatingWebhook.Webhooks))
+	}
 	validatingWebhook.Webhooks[0].ClientConfig.CABundle = caCert.Bytes()
+	validatingWebhook.Webhooks[1].ClientConfig.CABundle = caCert.Bytes()
 	_, err = kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
 	if err != nil {
 		return err
