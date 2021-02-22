@@ -3,4 +3,4 @@
 
 image:
   repository: ghcr.io/verrazzano/oam-kubernetes-runtime
-  tag: v0.3.0
+  tag: 0.0-test
