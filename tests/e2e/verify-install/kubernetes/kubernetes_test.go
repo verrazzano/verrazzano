@@ -37,9 +37,10 @@ var expectedPodsVerrazzanoSystemMinimal = []string{
 	"vmi-system-api",
 	"vmi-system-es-master",
 	"vmi-system-grafana",
-	"vmi-system-kibana",
-	"vmi-system-prometheus",
-	"vmi-system-prometheus-gw"}
+	"vmi-system-kibana",}
+	// hacked out while testing 0.10.0 release
+    //"vmi-system-prometheus",
+	//"vmi-system-prometheus-gw"}
 
 var _ = ginkgo.Describe("Kubernetes Cluster",
 	func() {
