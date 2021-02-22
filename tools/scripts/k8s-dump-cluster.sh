@@ -116,12 +116,11 @@ function process_nodes_output() {
 }
 
 function dump_es_indexes() {
-  echo "DEBUG"
   kubectl get ingress -A -o json | jq .items[].spec.tls[].hosts[] | grep elasticsearch.vmi.system.default | sed -e 's;^";https://;' -e 's/"//'
   local ES_ENDPOINT=$(kubectl get ingress -A -o json | jq .items[].spec.tls[].hosts[] | grep elasticsearch.vmi.system.default | sed -e 's;^";https://;' -e 's/"//')
-  local ES_USER=$(kubectl get secret -n verrazzano-system verrazzano -o jsonpath={.data.username} | base64 --decode)
+  local ES_USER=$(kubectl get secret -n verrazzano-system verrazzano -o jsonpath={.data.user} | base64 --decode)
   local ES_PWD=$(kubectl get secret -n verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode)
-  curl -k -u $ES_USER:$ES_PWD $ES_ENDPOINT/_all 2> /dev/null
+  curl -k -u $ES_USER:$ES_PWD $ES_ENDPOINT/_all
 }
 
 function full_k8s_cluster_dump() {
