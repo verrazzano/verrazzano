@@ -12,7 +12,7 @@ import (
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -60,7 +60,7 @@ func TestCreateMCSecret(t *testing.T) {
 	//                   Return the resource does not exist
 	mcMock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testMCSecretNamespace, Name: testMCSecretName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: testMCSecretNamespace, Resource: "MultiClusterSecret"}, testMCSecretName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "MultiClusterSecret"}, testMCSecretName))
 
 	// Managed Cluster - expect call to create a MultiClusterSecret
 	mcMock.EXPECT().
@@ -72,6 +72,14 @@ func TestCreateMCSecret(t *testing.T) {
 			assert.Equal(testClusterName, mcSecret.Spec.Placement.Clusters[0].Name, "mcsecret does not contain expected placement")
 			assert.Equal([]byte("verrazzano"), mcSecret.Spec.Template.Data["username"], "mcsecret does not contain expected template data")
 			assert.Equal("test-stringdata", mcSecret.Spec.Template.StringData["test"], "mcsecret does not contain expected string data")
+			return nil
+		})
+
+	// Managed Cluster - expect call to list MultiClusterSecret objects - return same list as admin cluster
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
 			return nil
 		})
 
@@ -143,6 +151,14 @@ func TestUpdateMCSecret(t *testing.T) {
 			return nil
 		})
 
+	// Managed Cluster - expect call to list MultiClusterSecret objects - return same list as admin cluster
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
+			return nil
+		})
+
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
@@ -188,6 +204,14 @@ func TestMCSecretPlacement(t *testing.T) {
 			return nil
 		})
 
+	// Managed Cluster - expect call to list MultiClusterSecret objects - return same list as admin cluster
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
+			return nil
+		})
+
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
@@ -204,6 +228,80 @@ func TestMCSecretPlacement(t *testing.T) {
 	assert.NoError(err)
 }
 
+// TestDeleteMCSecret tests the synchronization method for the following use case.
+// GIVEN a request to sync MultiClusterSecret objects
+// WHEN the object exists on the local cluster but not on the admin cluster
+// THEN ensure that the MultiClusterSecret is deleted.
+func TestDeleteMCSecret(t *testing.T) {
+	assert := asserts.New(t)
+	log := ctrl.Log.WithName("test")
+
+	// Managed cluster mocks
+	mcMocker := gomock.NewController(t)
+	mcMock := mocks.NewMockClient(mcMocker)
+
+	// Admin cluster mocks
+	adminMocker := gomock.NewController(t)
+	adminMock := mocks.NewMockClient(adminMocker)
+
+	// Test data
+	testMCSecret, err := getSampleMCSecret("testdata/multicluster-secret.yaml")
+	if err != nil {
+		assert.NoError(err, "failed to read sample data for MultiClusterSecret")
+	}
+	testMCSecretOrphan, err := getSampleMCSecret("testdata/multicluster-secret.yaml")
+	if err != nil {
+		assert.NoError(err, "failed to read sample data for MultiClusterSecret")
+	}
+	testMCSecretOrphan.Name = "orphaned-resource"
+
+	// Admin Cluster - expect call to list MultiClusterSecret objects - return list with one object
+	adminMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
+			return nil
+		})
+
+	// Managed Cluster - expect call to get a MultiClusterSecret from the list returned by the admin cluster
+	//                   Return the resource
+	mcMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testMCSecretNamespace, Name: testMCSecretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcSecret *clustersv1alpha1.MultiClusterSecret) error {
+			testMCSecret.DeepCopyInto(mcSecret)
+			return nil
+		})
+
+	// Managed Cluster - expect call to list MultiClusterSecret objects - return list including an orphaned object
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
+			mcSecretList.Items = append(mcSecretList.Items, testMCSecretOrphan)
+			return nil
+		})
+
+	// Managed Cluster - expect a call to delete a MultiClusterSecret object
+	mcMock.EXPECT().
+		Delete(gomock.Any(), gomock.Eq(&testMCSecretOrphan), gomock.Any()).
+		Return(nil)
+
+	// Make the request
+	s := &Syncer{
+		AdminClient:        adminMock,
+		LocalClient:        mcMock,
+		Log:                log,
+		ManagedClusterName: testClusterName,
+		Context:            context.TODO(),
+	}
+	err = s.syncMCApplicationConfigurationObjects()
+
+	// Validate the results
+	adminMocker.Finish()
+	mcMocker.Finish()
+	assert.NoError(err)
+}
+
 // getSampleMCSecret creates and returns a sample MultiClusterSecret used in tests
 func getSampleMCSecret(filePath string) (clustersv1alpha1.MultiClusterSecret, error) {
 	mcSecret := clustersv1alpha1.MultiClusterSecret{}
@@ -212,7 +310,7 @@ func getSampleMCSecret(filePath string) (clustersv1alpha1.MultiClusterSecret, er
 		return mcSecret, err
 	}
 
-	rawMcSecret, err := clusters.ReadYaml2Json(sampleSecretFile)
+	rawMcSecret, err := clusterstest.ReadYaml2Json(sampleSecretFile)
 	if err != nil {
 		return mcSecret, err
 	}

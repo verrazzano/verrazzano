@@ -35,8 +35,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	err := r.fetchMultiClusterLoggingScope(ctx, req.NamespacedName, &mcLogScope)
 	if err != nil {
-		logger.Info("Failed to fetch MultiClusterLoggingScope", "err", err)
-		return result, client.IgnoreNotFound(err)
+		return result, clusters.IgnoreNotFoundWithLog("MultiClusterLoggingScope", err, logger)
+	}
+
+	if !clusters.IsPlacedInThisCluster(ctx, r, mcLogScope.Spec.Placement) {
+		return ctrl.Result{}, nil
 	}
 
 	logger.Info("MultiClusterLoggingScope create or update with underlying LoggingScope",
@@ -73,6 +76,8 @@ func (r *Reconciler) createOrUpdateLoggingScope(ctx context.Context, mcLogScope 
 
 func (r *Reconciler) mutateLoggingScope(mcLogScope clustersv1alpha1.MultiClusterLoggingScope, logScope *v1alpha1.LoggingScope) {
 	logScope.Spec = mcLogScope.Spec.Template.Spec
+	logScope.Labels = mcLogScope.Spec.Template.Metadata.Labels
+	logScope.Annotations = mcLogScope.Spec.Template.Metadata.Annotations
 }
 
 func (r *Reconciler) updateStatus(ctx context.Context, mcLogScope *clustersv1alpha1.MultiClusterLoggingScope, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {

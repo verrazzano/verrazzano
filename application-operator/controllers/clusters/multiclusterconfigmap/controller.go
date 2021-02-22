@@ -37,8 +37,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	err := r.fetchMultiClusterConfigMap(ctx, req.NamespacedName, &mcConfigMap)
 	if err != nil {
-		logger.Info("Failed to fetch MultiClusterConfigMap", "err", err)
-		return result, client.IgnoreNotFound(err)
+		return result, clusters.IgnoreNotFoundWithLog("MultiClusterConfigMap", err, logger)
+	}
+
+	if !clusters.IsPlacedInThisCluster(ctx, r, mcConfigMap.Spec.Placement) {
+		return ctrl.Result{}, nil
 	}
 
 	logger.Info("MultiClusterConfigMap create or update with underlying ConfigMap",
@@ -80,6 +83,8 @@ func (r *Reconciler) mutateConfigMap(mcConfigMap clustersv1alpha1.MultiClusterCo
 	configMap.Data = mcConfigMap.Spec.Template.Data
 	configMap.BinaryData = mcConfigMap.Spec.Template.BinaryData
 	configMap.Immutable = mcConfigMap.Spec.Template.Immutable
+	configMap.Labels = mcConfigMap.Spec.Template.Metadata.Labels
+	configMap.Annotations = mcConfigMap.Spec.Template.Metadata.Annotations
 }
 
 func (r *Reconciler) updateStatus(ctx context.Context, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {

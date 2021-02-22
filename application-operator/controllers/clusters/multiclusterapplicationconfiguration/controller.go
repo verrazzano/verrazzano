@@ -40,8 +40,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	err := r.fetchMultiClusterAppConfig(ctx, req.NamespacedName, &mcAppConfig)
 	if err != nil {
-		logger.Info("Failed to fetch MultiClusterApplicationConfiguration", "err", err)
-		return result, client.IgnoreNotFound(err)
+		return result, clusters.IgnoreNotFoundWithLog("MultiClusterApplicationConfiguration", err, logger)
+	}
+
+	if !clusters.IsPlacedInThisCluster(ctx, r, mcAppConfig.Spec.Placement) {
+		return ctrl.Result{}, nil
 	}
 
 	logger.Info("MultiClusterApplicationConfiguration create or update with underlying OAM applicationconfiguration",
@@ -80,6 +83,8 @@ func (r *Reconciler) createOrUpdateAppConfig(ctx context.Context, mcAppConfig cl
 // MultiClusterApplicationConfiguration
 func (r *Reconciler) mutateAppConfig(mcAppConfig clustersv1alpha1.MultiClusterApplicationConfiguration, oamAppConfig *v1alpha2.ApplicationConfiguration) {
 	oamAppConfig.Spec = mcAppConfig.Spec.Template.Spec
+	oamAppConfig.Labels = mcAppConfig.Spec.Template.Metadata.Labels
+	oamAppConfig.Annotations = mcAppConfig.Spec.Template.Metadata.Annotations
 }
 
 func (r *Reconciler) updateStatus(ctx context.Context, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {

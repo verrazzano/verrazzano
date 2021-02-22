@@ -20,9 +20,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const adminKubeconfigData = "admin-kubeconfig"
-const clusterNameData = "managed-cluster-name"
-
 // StartAgent - start the agent thread for syncing multi-cluster objects
 func StartAgent(client client.Client, log logr.Logger) {
 	// Wait for the existence of the verrazzano-cluster secret.  It contains the credentials
@@ -45,7 +42,7 @@ func StartAgent(client client.Client, log logr.Logger) {
 	}
 
 	// The cluster secret exists
-	managedClusterName := string(secret.Data[clusterNameData])
+	managedClusterName := string(secret.Data[constants.ClusterNameData])
 	log.Info(fmt.Sprintf("Found secret named %s in namespace %s for cluster named %q", secret.Name, secret.Namespace, managedClusterName))
 
 	// Create the client for accessing the admin cluster
@@ -74,7 +71,11 @@ func (s *Syncer) StartSync() {
 
 	// Periodically loop looking for multi-cluster objects
 	for {
-		err := s.syncMCSecretObjects()
+		err := s.syncVerrazzanoProjects()
+		if err != nil {
+			s.Log.Error(err, "Error syncing VerrazzanoProject objects")
+		}
+		err = s.syncMCSecretObjects()
 		if err != nil {
 			s.Log.Error(err, "Error syncing MultiClusterSecret objects")
 		}
@@ -101,15 +102,15 @@ func (s *Syncer) StartSync() {
 // Validate the cluster secret
 func validateClusterSecret(secret *corev1.Secret) error {
 	// The secret must contain a cluster name
-	_, ok := secret.Data[clusterNameData]
+	_, ok := secret.Data[constants.ClusterNameData]
 	if !ok {
-		return fmt.Errorf("the secret named %s in namespace %s is missing the required field %s", secret.Name, secret.Namespace, clusterNameData)
+		return fmt.Errorf("the secret named %s in namespace %s is missing the required field %s", secret.Name, secret.Namespace, constants.ClusterNameData)
 	}
 
 	// The secret must contain a kubeconfig
-	_, ok = secret.Data[adminKubeconfigData]
+	_, ok = secret.Data[constants.AdminKubeconfigData]
 	if !ok {
-		return fmt.Errorf("the secret named %s in namespace %s is missing the required field %s", secret.Name, secret.Namespace, adminKubeconfigData)
+		return fmt.Errorf("the secret named %s in namespace %s is missing the required field %s", secret.Name, secret.Namespace, constants.AdminKubeconfigData)
 	}
 
 	return nil
@@ -123,7 +124,7 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 		return nil, err
 	}
 
-	err = ioutil.WriteFile(tmpFile.Name(), secret.Data[adminKubeconfigData], 0600)
+	err = ioutil.WriteFile(tmpFile.Name(), secret.Data[constants.AdminKubeconfigData], 0600)
 	defer os.Remove(tmpFile.Name())
 	if err != nil {
 		return nil, err

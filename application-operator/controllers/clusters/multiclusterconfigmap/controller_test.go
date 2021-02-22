@@ -13,6 +13,7 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -81,10 +82,13 @@ func TestReconcileCreateConfigMap(t *testing.T) {
 	// expect a call to fetch the MultiClusterConfigMap
 	doExpectGetMultiClusterConfigMap(cli, mcConfigMap)
 
+	// expect a call to fetch the MCRegistration secret
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to fetch existing K8S ConfigMap, and return not found error, to test create case
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ConfigMap"}, crName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ConfigMap"}, crName))
 
 	// expect a call to create the K8S ConfigMap
 	cli.EXPECT().
@@ -98,7 +102,7 @@ func TestReconcileCreateConfigMap(t *testing.T) {
 	doExpectStatusUpdateSucceeded(cli, mockStatusWriter, assert)
 
 	// create a request and reconcile it
-	request := clusters.NewRequest(namespace, crName)
+	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 
@@ -127,6 +131,9 @@ func TestReconcileUpdateConfigMap(t *testing.T) {
 	// expect a call to fetch the MultiClusterConfigMap
 	doExpectGetMultiClusterConfigMap(cli, mcConfigMap)
 
+	// expect a call to fetch the MCRegistration secret
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to fetch underlying K8S ConfigMap, and return an existing ConfigMap
 	doExpectGetConfigMapExists(cli, mcConfigMap.ObjectMeta)
 
@@ -146,7 +153,7 @@ func TestReconcileUpdateConfigMap(t *testing.T) {
 		Return(nil)
 
 	// create a request and reconcile it
-	request := clusters.NewRequest(namespace, crName)
+	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 
@@ -175,10 +182,13 @@ func TestReconcileCreateConfigMapFailed(t *testing.T) {
 	// expect a call to fetch the MultiClusterConfigMap
 	doExpectGetMultiClusterConfigMap(cli, mcConfigMap)
 
+	// expect a call to fetch the MCRegistration secret
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to fetch existing K8S ConfigMap and return not found error, to simulate create case
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "ConfigMap"}, crName))
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ConfigMap"}, crName))
 
 	// expect a call to create the K8S ConfigMap and fail the call
 	cli.EXPECT().
@@ -192,7 +202,7 @@ func TestReconcileCreateConfigMapFailed(t *testing.T) {
 	doExpectStatusUpdateFailed(cli, mockStatusWriter, assert)
 
 	// create a request and reconcile it
-	request := clusters.NewRequest(namespace, crName)
+	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 
@@ -221,6 +231,9 @@ func TestReconcileUpdateConfigMapFailed(t *testing.T) {
 	// expect a call to fetch the MultiClusterConfigMap
 	doExpectGetMultiClusterConfigMap(cli, mcConfigMap)
 
+	// expect a call to fetch the MCRegistration secret
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to fetch existing K8S ConfigMap (simulate update case)
 	doExpectGetConfigMapExists(cli, mcConfigMap.ObjectMeta)
 
@@ -236,7 +249,74 @@ func TestReconcileUpdateConfigMapFailed(t *testing.T) {
 	doExpectStatusUpdateFailed(cli, mockStatusWriter, assert)
 
 	// create a request and reconcile it
-	request := clusters.NewRequest(namespace, crName)
+	request := clusterstest.NewRequest(namespace, crName)
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+}
+
+// TestReconcilePlacementInDifferentCluster tests the path of reconciling a MultiClusterConfigMap which
+// is placed on a cluster other than the current cluster. We expect this MultiClusterConfigMap to
+// be ignored, and no K8S ConfigMap to be created
+// GIVEN a MultiClusterConfigMap resource is created with a placement in different cluster
+// WHEN the controller Reconcile function is called
+// THEN expect that no K8S ConfigMap is created
+func TestReconcilePlacementInDifferentCluster(t *testing.T) {
+	assert := asserts.New(t)
+
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	mcConfigMap, err := getMCConfigMap(sampleMCConfigMapFile)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	mcConfigMap.Spec.Placement.Clusters[0].Name = "not-my-cluster"
+
+	// expect a call to fetch the MultiClusterConfigMap
+	doExpectGetMultiClusterConfigMap(cli, mcConfigMap)
+
+	// expect a call to fetch the MCRegistration secret
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
+	// Expect no further action
+
+	// create a request and reconcile it
+	request := clusterstest.NewRequest(namespace, crName)
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+}
+
+// TestReconcileResourceNotFound tests the path of reconciling a
+// MultiClusterConfigMap resource which is non-existent when reconcile is called,
+// possibly because it has been deleted.
+// GIVEN a MultiClusterConfigMap resource has been deleted
+// WHEN the controller Reconcile function is called
+// THEN expect that no action is taken
+func TestReconcileResourceNotFound(t *testing.T) {
+	assert := asserts.New(t)
+
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the MultiClusterConfigMap
+	// and return a not found error
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "MultiClusterConfigMap"}, crName))
+
+	// expect no further action to be taken
+
+	// create a request and reconcile it
+	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 
@@ -331,7 +411,7 @@ func getMCConfigMap(filename string) (clustersv1alpha1.MultiClusterConfigMap, er
 		return mcConfigMap, err
 	}
 
-	rawResource, err := clusters.ReadYaml2Json(sampleConfigMapFile)
+	rawResource, err := clusterstest.ReadYaml2Json(sampleConfigMapFile)
 	if err != nil {
 		return mcConfigMap, err
 	}
@@ -346,7 +426,7 @@ func getExistingConfigMap() (v1.ConfigMap, error) {
 	if err != nil {
 		return configMap, err
 	}
-	rawResource, err := clusters.ReadYaml2Json(existingConfigMapFile)
+	rawResource, err := clusterstest.ReadYaml2Json(existingConfigMapFile)
 	if err != nil {
 		return configMap, err
 	}

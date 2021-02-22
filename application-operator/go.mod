@@ -10,6 +10,7 @@ require (
 	github.com/go-logr/logr v0.1.0
 	github.com/golang/mock v1.4.4
 	github.com/gordonklaus/ineffassign v0.0.0-20210104184537-8eed68eb605f
+	github.com/jetstack/cert-manager v0.13.1
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.1
 	github.com/stretchr/testify v1.5.1
@@ -29,6 +30,8 @@ require (
 	sigs.k8s.io/yaml v1.2.0
 )
 
-replace gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
-
-replace k8s.io/client-go => k8s.io/client-go v0.18.6
+replace (
+	github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.3.1
+	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
+	k8s.io/client-go => k8s.io/client-go v0.18.6
+)
