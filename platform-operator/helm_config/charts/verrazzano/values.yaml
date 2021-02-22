@@ -59,10 +59,10 @@ monitoringOperator:
   alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
   esImage: ghcr.io/verrazzano/elasticsearch:7.6.1-20201130145440-5c76ab1
-  esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:0.9.0-20210121215221-0cea059
+  esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:0.10.0-20210211233714-f264b12
   esInitImage: ghcr.io/oracle/oraclelinux:7.8
   kibanaImage: ghcr.io/verrazzano/kibana:7.6.1-20201130145840-7717e73
-  monitoringInstanceApiImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-api:0.9.0-20210121214943-6246c50
+  monitoringInstanceApiImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-api:0.10.0-20210206160701-e89d9a7
   configReloaderImage: ghcr.io/verrazzano/configmap-reload:0.3-20201016205243-4f24a0e
   nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
   RequestMemory: 48Mi
