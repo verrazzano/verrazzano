@@ -1,0 +1,23 @@
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: springboot-frontend
+  namespace: foo
+spec:
+  workload:
+    apiVersion: core.oam.dev/v1alpha2
+    kind: ContainerizedWorkload
+    metadata:
+      name: springboot-frontend-workload
+      namespace: foo
+      labels:
+        app: springboot-frontend
+    spec:
+      containers:
+      - name: springboot-frontend
+        image: "ghcr.io/verrazzano/example-springboot:0.10.0"
+        ports:
+          - containerPort: 8080
+            name: http

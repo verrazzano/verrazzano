@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
@@ -72,6 +73,25 @@ func PodsRunning(namespace string, namePrefixes []string) bool {
 		}
 	}
 	return len(missing) == 0
+}
+
+//PodsNotRunning waits for all the pods in namePrefixes to be terminated
+func PodsNotRunning(namespace string, namePrefixes []string) bool {
+	pods := ListPods(namespace)
+	missing := notRunning(pods.Items, namePrefixes...)
+	var i int = 0
+	for len(missing) != len(namePrefixes) {
+		Log(Info, fmt.Sprintf("Pods %v were TERMINATED in %v", missing, namespace))
+		time.Sleep(15 * time.Second)
+		pods := ListPods(namespace)
+		missing = notRunning(pods.Items, namePrefixes...)
+		i++
+		if i > 10 {
+			break
+		}
+	}
+	Log(Info, fmt.Sprintf("ALL Pods %v were TERMINATED in %v", missing, namespace))
+	return len(missing) == len(namePrefixes)
 }
 
 // notRunning finds the pods not running
