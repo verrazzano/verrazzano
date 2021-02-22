@@ -78,7 +78,7 @@ func (s *Syncer) StartSync() {
 		}
 
 		// Synchronize objects one namespace at a time
-		for namespace, _ := range s.ProjectNamespaces {
+		for namespace := range s.ProjectNamespaces {
 			err = s.syncMCSecretObjects(namespace)
 			if err != nil {
 				s.Log.Error(err, "Error syncing MultiClusterSecret objects")
