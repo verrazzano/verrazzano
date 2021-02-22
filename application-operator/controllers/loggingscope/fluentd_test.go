@@ -22,13 +22,11 @@ const (
 	testLogPath     = "/foo/bar"
 	testParseRules  = "test-parse-rules"
 	testStorageName = "test-fluentd-volume"
-	testESHost      = "es-host"
+	testESURL       = "http://es-host:9999"
 	testESPort      = "9999"
 	testESSecret    = "test-secret"
 
-	testLogPathUpdate  = "/foo/bar/update"
-	testESHostUpdate   = "es-host-update"
-	testESPortUpdate   = "1111"
+	testESURLUpdate    = "http://es-host-update:1111"
 	testESSecretUpdate = "test-secret-update"
 
 	testWorkLoadType = "test-workload"
@@ -205,13 +203,11 @@ func testAssertFluentdPodForApply(t *testing.T, fluentdPod *FluentdPod) {
 			env := container.Env
 			for _, envVar := range env {
 				switch name := envVar.Name; name {
-				case "ELASTICSEARCH_HOST":
-					asserts.Equal(t, testESHost, envVar.Value)
-				case "ELASTICSEARCH_PORT":
-					asserts.Equal(t, testESPort, envVar.Value)
-				case "ELASTICSEARCH_USER":
+				case elasticSearchURLField:
+					asserts.Equal(t, testESURL, envVar.Value)
+				case elasticSearchUserField:
 					asserts.Equal(t, testESSecret, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
-				case "ELASTICSEARCH_PASSWORD":
+				case elasticSearchPwdField:
 					asserts.Equal(t, testESSecret, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
 				}
 
@@ -238,13 +234,11 @@ func testAssertFluentdPodForApplyUpdate(t *testing.T, fluentdPod *FluentdPod) {
 			env := container.Env
 			for _, envVar := range env {
 				switch name := envVar.Name; name {
-				case "ELASTICSEARCH_HOST":
-					asserts.Equal(t, testESHostUpdate, envVar.Value)
-				case "ELASTICSEARCH_PORT":
-					asserts.Equal(t, testESPortUpdate, envVar.Value)
-				case "ELASTICSEARCH_USER":
+				case elasticSearchURLField:
+					asserts.Equal(t, testESURLUpdate, envVar.Value)
+				case elasticSearchUserField:
 					asserts.Equal(t, testESSecretUpdate, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
-				case "ELASTICSEARCH_PASSWORD":
+				case elasticSearchPwdField:
 					asserts.Equal(t, testESSecretUpdate, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
 				}
 
@@ -278,22 +272,18 @@ func createFluentdESEnv() []v1.EnvVar {
 		},
 		{
 			Name:  "FLUENTD_CONF",
-			Value: "fluentd.conf",
+			Value: fluentdConfKey,
 		},
 		{
 			Name:  "FLUENT_ELASTICSEARCH_SED_DISABLE",
 			Value: "true",
 		},
 		{
-			Name:  "ELASTICSEARCH_HOST",
-			Value: testESHost,
+			Name:  elasticSearchURLField,
+			Value: testESURL,
 		},
 		{
-			Name:  "ELASTICSEARCH_PORT",
-			Value: testESPort,
-		},
-		{
-			Name: "ELASTICSEARCH_USER",
+			Name: elasticSearchUserField,
 			ValueFrom: &v1.EnvVarSource{
 				SecretKeyRef: &v1.SecretKeySelector{
 					LocalObjectReference: v1.LocalObjectReference{
@@ -307,7 +297,7 @@ func createFluentdESEnv() []v1.EnvVar {
 			},
 		},
 		{
-			Name: "ELASTICSEARCH_PASSWORD",
+			Name: elasticSearchPwdField,
 			ValueFrom: &v1.EnvVarSource{
 				SecretKeyRef: &v1.SecretKeySelector{
 					LocalObjectReference: v1.LocalObjectReference{

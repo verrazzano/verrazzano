@@ -43,8 +43,7 @@
 {{- if include "utils.verifyBoolean" (list $scope "elkIntegrationEnabled") -}}
 {{-   if $scope.elkIntegrationEnabled -}}
 {{-     $ignore := include "utils.verifyString" (list $scope "logStashImage") -}}
-{{-     $ignore := include "utils.verifyString" (list $scope "elasticSearchHost") -}}
-{{-     $ignore := include "utils.verifyInteger" (list $scope "elasticSearchPort") -}}
+{{-     $ignore := include "utils.verifyString" (list $scope "elasticSearchURL") -}}
 {{-   end -}}
 {{- end -}}
 {{- $ignore := include "utils.verifyOptionalBoolean" (list $scope "dedicated") -}}

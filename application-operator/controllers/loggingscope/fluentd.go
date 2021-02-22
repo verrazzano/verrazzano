@@ -6,8 +6,6 @@ package loggingscope
 import (
 	"context"
 	"fmt"
-	"strconv"
-
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -25,8 +23,7 @@ const (
 	configMapName        = "fluentd-config"
 	scratchVolMountPath  = "/scratch"
 
-	elasticSearchHostField = "ELASTICSEARCH_HOST"
-	elasticSearchPortField = "ELASTICSEARCH_PORT"
+	elasticSearchURLField  = "ELASTICSEARCH_URL"
 	elasticSearchUserField = "ELASTICSEARCH_USER"
 	elasticSearchPwdField  = "ELASTICSEARCH_PASSWORD"
 )
@@ -270,17 +267,10 @@ func (f *Fluentd) isFluentdContainerUpToDate(containers []v1.Container, scope *v
 		diffExists := false
 		for _, envvar := range container.Env {
 			switch name := envvar.Name; name {
-			case elasticSearchHostField:
+			case elasticSearchURLField:
 				host := envvar.Value
-				f.Log.Info("FLUENTD container ElasticSearch host", "host", host)
-				if host != scope.Spec.ElasticSearchHost {
-					diffExists = true
-					break
-				}
-			case elasticSearchPortField:
-				port, _ := strconv.ParseUint(envvar.Value, 10, 32)
-				f.Log.Info("FLUENTD container ElasticSearch port", "port", port)
-				if uint32(port) != scope.Spec.ElasticSearchPort {
+				f.Log.Info("FLUENTD container ElasticSearch url", "url", host)
+				if host != scope.Spec.ElasticSearchURL {
 					diffExists = true
 					break
 				}
@@ -324,22 +314,18 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 			},
 			{
 				Name:  "FLUENTD_CONF",
-				Value: "fluentd.conf",
+				Value: fluentdConfKey,
 			},
 			{
 				Name:  "FLUENT_ELASTICSEARCH_SED_DISABLE",
 				Value: "true",
 			},
 			{
-				Name:  "ELASTICSEARCH_HOST",
-				Value: scope.Spec.ElasticSearchHost,
+				Name:  elasticSearchURLField,
+				Value: scope.Spec.ElasticSearchURL,
 			},
 			{
-				Name:  "ELASTICSEARCH_PORT",
-				Value: fmt.Sprintf("%d", scope.Spec.ElasticSearchPort),
-			},
-			{
-				Name: "ELASTICSEARCH_USER",
+				Name: elasticSearchUserField,
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -353,7 +339,7 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 				},
 			},
 			{
-				Name: "ELASTICSEARCH_PASSWORD",
+				Name: elasticSearchPwdField,
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -390,8 +376,8 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				MountPath: "/fluentd/etc/fluentd.conf",
-				Name:      "fluentd-config-volume",
-				SubPath:   "fluentd.conf",
+				Name:      volumeConf,
+				SubPath:   fluentdConfKey,
 				ReadOnly:  true,
 			},
 			{

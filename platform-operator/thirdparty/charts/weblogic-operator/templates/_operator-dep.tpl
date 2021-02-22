@@ -109,10 +109,8 @@ spec:
         - name: "log-dir"
           mountPath: "/logs"
         env:
-        - name: "ELASTICSEARCH_HOST"
-          value: {{ .elasticSearchHost | quote }}
-        - name: "ELASTICSEARCH_PORT"
-          value: {{ .elasticSearchPort | quote }}
+        - name: "ELASTICSEARCH_URL"
+          value: {{ .elasticSearchURL | quote }}
       {{- end }}
       {{- if .imagePullSecrets }}
       imagePullSecrets:

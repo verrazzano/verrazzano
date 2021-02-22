@@ -111,7 +111,7 @@ func TestHelidoHandlerApplyRequeueForDeploymentUpdate(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
 			appContainer := kcore.Container{Name: appContainerName, Image: "test-app-container-image"}
-			fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, "appContainer", scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchHost)
+			fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, "appContainer", scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchURL)
 			deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, appContainer, fluentdContainer)
 			vol := kcore.Volume{
 				Name: "app-volume",
@@ -157,7 +157,7 @@ func TestHelidoHandlerRemove(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
 			appContainer := kcore.Container{Name: appContainerName, Image: "test-app-container-image"}
-			fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, "appContainer", scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchHost)
+			fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, "appContainer", scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchURL)
 			deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, appContainer, fluentdContainer)
 			vol := kcore.Volume{
 				Name: "app-volume",
@@ -275,8 +275,7 @@ func newLoggingScope(namespace, esHost, esSecret string) *vzapi.LoggingScope {
 	scope := vzapi.LoggingScope{}
 	scope.TypeMeta = kmeta.TypeMeta{APIVersion: vzapi.GroupVersion.Identifier(), Kind: vzapi.LoggingScopeKind}
 	scope.ObjectMeta = kmeta.ObjectMeta{Namespace: namespace, Name: "testScopeName"}
-	scope.Spec.ElasticSearchHost = esHost
-	scope.Spec.ElasticSearchPort = 9200
+	scope.Spec.ElasticSearchURL = "http://esHost:9200"
 	scope.Spec.SecretName = esSecret
 	scope.Spec.FluentdImage = "fluentd/image/location"
 	return &scope

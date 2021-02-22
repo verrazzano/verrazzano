@@ -11,8 +11,7 @@ spec:
   template:
     spec:
       fluentdImage: myFluentdImage:v123
-      elasticSearchHost: myLocalEsHost2
-      elasticSearchPort: 9200
+      elasticSearchURL: http://myLocalEsHost2:9200
       secretName: logScopeSecret2
       workloadRefs: []
   placement:

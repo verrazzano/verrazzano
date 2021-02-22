@@ -7,7 +7,6 @@ metadata:
   namespace: unit-mclogscope-namespace
 spec:
   fluentdImage: existingFluentdImage:xyztag
-  elasticSearchHost: existingEsHost
-  elasticSearchPort: 8888
+  elasticSearchURL: http://existingEsHost:8888
   secretName: existingSecret
   workloadRefs: []
