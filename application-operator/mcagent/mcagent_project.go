@@ -8,6 +8,7 @@ import (
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -24,7 +25,7 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 	}
 
 	// Rebuild the list of namespaces to watch for multi-cluster objects.
-	namespaces := map[string]bool{}
+	var namespaces []string
 
 	// Write each of the records in verrazzano-mc namespace
 	for _, vp := range allProjects.Items {
@@ -38,10 +39,10 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 				// Add the project namespaces to the list of namespaces to watch.
 				// Check for duplicates values, even though they should never exist.
 				for _, namespace := range vp.Spec.Namespaces {
-					if _, exists := namespaces[namespace]; exists {
+					if controllers.StringSliceContainsString(namespaces, namespace) {
 						s.Log.Info(fmt.Sprintf("the namespace %s in project %s is a duplicate", namespace, vp.Name))
 					} else {
-						namespaces[namespace] = true
+						namespaces = append(namespaces, namespace)
 					}
 				}
 			}

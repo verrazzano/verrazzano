@@ -59,7 +59,7 @@ func StartAgent(client client.Client, log logr.Logger) {
 		Log:                log,
 		ManagedClusterName: managedClusterName,
 		Context:            context.TODO(),
-		ProjectNamespaces:  map[string]bool{},
+		ProjectNamespaces:  []string{},
 	}
 
 	// Start syncing multi-cluster objects
@@ -78,7 +78,7 @@ func (s *Syncer) StartSync() {
 		}
 
 		// Synchronize objects one namespace at a time
-		for namespace := range s.ProjectNamespaces {
+		for _, namespace := range s.ProjectNamespaces {
 			err = s.syncMCSecretObjects(namespace)
 			if err != nil {
 				s.Log.Error(err, "Error syncing MultiClusterSecret objects")

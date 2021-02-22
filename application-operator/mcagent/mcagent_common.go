@@ -19,10 +19,8 @@ type Syncer struct {
 	ManagedClusterName string
 	Context            context.Context
 
-	// List of namespaces to watch for multi-cluster objects.  Using a map
-	// as a more efficient means of checking for duplicates.  The value in the
-	// map is ignored.
-	ProjectNamespaces map[string]bool
+	// List of namespaces to watch for multi-cluster objects.
+	ProjectNamespaces []string
 }
 
 // Check if the placement is for this cluster
