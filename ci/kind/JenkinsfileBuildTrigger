@@ -21,7 +21,7 @@ pipeline {
     }
 
     environment {
-        KUBERNETES_VERSION = '1.17,1.18,1.19,1.20'
+        KUBERNETES_VERSION = '1.17,1.19,1.20'
     }
 
     stages {
@@ -29,7 +29,7 @@ pipeline {
             steps {
                 script {
                     for (kversion in env.KUBERNETES_VERSION.tokenize(',')) {
-                        build job: 'verrazzano-new-kind-acceptance-tests/develop',
+                        build job: 'verrazzano-new-kind-acceptance-tests/master',
                             parameters: [
                                 string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
                                 string(name: 'KUBERNETES_CLUSTER_VERSION', value: kversion)
