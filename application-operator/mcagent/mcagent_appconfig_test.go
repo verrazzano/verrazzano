@@ -90,7 +90,7 @@ func TestCreateMCAppConfig(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCApplicationConfigurationObjects()
+	err = s.syncMCApplicationConfigurationObjects(testMCAppConfigNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -175,7 +175,7 @@ func TestUpdateMCAppConfig(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCApplicationConfigurationObjects()
+	err = s.syncMCApplicationConfigurationObjects(testMCAppConfigNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -249,7 +249,7 @@ func TestDeleteMCAppConfig(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCApplicationConfigurationObjects()
+	err = s.syncMCApplicationConfigurationObjects(testMCAppConfigNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -302,7 +302,7 @@ func TestMCAppConfigPlacement(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCApplicationConfigurationObjects()
+	err = s.syncMCApplicationConfigurationObjects(testMCAppConfigNamespace)
 
 	// Validate the results
 	adminMocker.Finish()

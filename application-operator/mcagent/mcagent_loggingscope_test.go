@@ -92,7 +92,7 @@ func TestCreateMCLoggingScope(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCLoggingScopeObjects()
+	err = s.syncMCLoggingScopeObjects(testMCLoggingScopeNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -169,7 +169,7 @@ func TestUpdateMCLoggingScope(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCLoggingScopeObjects()
+	err = s.syncMCLoggingScopeObjects(testMCLoggingScopeNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -243,7 +243,7 @@ func TestDeleteMCLoggingScope(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCLoggingScopeObjects()
+	err = s.syncMCLoggingScopeObjects(testMCLoggingScopeNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -296,7 +296,7 @@ func TestMCLoggingScopePlacement(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCLoggingScopeObjects()
+	err = s.syncMCLoggingScopeObjects(testMCLoggingScopeNamespace)
 
 	// Validate the results
 	adminMocker.Finish()

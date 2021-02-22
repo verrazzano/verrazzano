@@ -13,10 +13,10 @@ import (
 )
 
 // Synchronize MultiClusterSecret objects to the local cluster
-func (s *Syncer) syncMCSecretObjects() error {
+func (s *Syncer) syncMCSecretObjects(namespace string) error {
 	// Get all the MultiClusterSecret objects from the admin cluster
 	allAdminMCSecrets := clustersv1alpha1.MultiClusterSecretList{}
-	listOptions := &client.ListOptions{}
+	listOptions := &client.ListOptions{Namespace: namespace}
 	err := s.AdminClient.List(s.Context, &allAdminMCSecrets, listOptions)
 	if err != nil {
 		return client.IgnoreNotFound(err)
@@ -39,7 +39,7 @@ func (s *Syncer) syncMCSecretObjects() error {
 	// local cluster and compare to the list received from the admin cluster.
 	// The admin cluster is the source of truth.
 	allLocalMCSecrets := clustersv1alpha1.MultiClusterSecretList{}
-	err = s.LocalClient.List(s.Context, &allLocalMCSecrets)
+	err = s.LocalClient.List(s.Context, &allLocalMCSecrets, listOptions)
 	if err != nil {
 		s.Log.Error(err, "failed to list MultiClusterSecret on local cluster")
 		return nil

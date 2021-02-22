@@ -91,7 +91,7 @@ func TestCreateMCConfigMap(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCConfigMapObjects()
+	err = s.syncMCConfigMapObjects(testMCConfigMapNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -168,7 +168,7 @@ func TestUpdateMCConfigMap(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCConfigMapObjects()
+	err = s.syncMCConfigMapObjects(testMCConfigMapNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -242,7 +242,7 @@ func TestDeleteMCConfigMap(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCConfigMapObjects()
+	err = s.syncMCConfigMapObjects(testMCConfigMapNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -295,7 +295,7 @@ func TestMCConfigMapPlacement(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCConfigMapObjects()
+	err = s.syncMCConfigMapObjects(testMCConfigMapNamespace)
 
 	// Validate the results
 	adminMocker.Finish()

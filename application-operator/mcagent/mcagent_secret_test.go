@@ -91,7 +91,7 @@ func TestCreateMCSecret(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCSecretObjects()
+	err = s.syncMCSecretObjects(testMCSecretNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -167,7 +167,7 @@ func TestUpdateMCSecret(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCSecretObjects()
+	err = s.syncMCSecretObjects(testMCSecretNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -220,7 +220,7 @@ func TestMCSecretPlacement(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCSecretObjects()
+	err = s.syncMCSecretObjects(testMCSecretNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -294,7 +294,7 @@ func TestDeleteMCSecret(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCApplicationConfigurationObjects()
+	err = s.syncMCSecretObjects(testMCSecretNamespace)
 
 	// Validate the results
 	adminMocker.Finish()

@@ -91,7 +91,7 @@ func TestCreateMCComponent(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCComponentObjects()
+	err = s.syncMCComponentObjects(testMCComponentNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -171,7 +171,7 @@ func TestUpdateMCComponent(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCComponentObjects()
+	err = s.syncMCComponentObjects(testMCComponentNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -245,7 +245,7 @@ func TestDeleteMCComponent(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCComponentObjects()
+	err = s.syncMCComponentObjects(testMCComponentNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -298,7 +298,7 @@ func TestMCComponentPlacement(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCComponentObjects()
+	err = s.syncMCComponentObjects(testMCComponentNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
