@@ -52,7 +52,7 @@ Install Verrazzano following the [installation instructions](https://verrazzano.
    * **Using the command line**
      ```
      $ curl -sk https://${HOST} --resolve ${HOST}:443:${ADDRESS}
-	  $ curl -sk https://${HOST}/facts --resolve ${HOST}:443:${ADDRESS}
+     $ curl -sk https://${HOST}/facts --resolve ${HOST}:443:${ADDRESS}
      ```
      If you are using `xip.io` then you do not need to include `--resolve`.
    * **Local testing with a browser** \

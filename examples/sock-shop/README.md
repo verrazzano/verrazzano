@@ -17,7 +17,7 @@ The Sock Shop application deployment artifacts are contained in the Verrazzano p
 
 1. Create a namespace for the Sock Shop application and add a label identifying the namespace as managed by Verrazzano.
    ```
-   $kubectl create namespace sockshop
+   $ kubectl create namespace sockshop
    $ kubectl label namespace sockshop verrazzano-managed=true
    ```
 
