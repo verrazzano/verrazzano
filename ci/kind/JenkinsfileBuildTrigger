@@ -15,8 +15,8 @@ pipeline {
 
     parameters {
         string (name: 'VERRAZZANO_BRANCH',
-                        defaultValue: 'develop',
-                        description: 'Branch or tag or commit to clone and checkout, of the Verrazzano repo',
+                        defaultValue: 'master',
+                        description: 'Branch to clone and checkout the Verrazzano repo',
                         trim: true)
     }
 
