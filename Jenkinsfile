@@ -533,7 +533,7 @@ pipeline {
                 }
             }
             sh """
-                wget -auth-no-challenge --user=${JENKINS_READ_USR} --password=${JENKINS_READ_PSW} -O ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleFull
+                curl -vvv -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleFull
             """
             archiveArtifacts artifacts: '**/build-console-output.log,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
