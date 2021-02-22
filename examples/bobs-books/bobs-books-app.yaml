@@ -23,9 +23,7 @@ spec:
             kind: IngressTrait
             spec:
               rules:
-                - hosts:
-                    - "roberts-books.example.com"
-                  paths:
+                - paths:
                     - path: "/"
                       pathType: Prefix
     - componentName: robert-coh
@@ -38,9 +36,7 @@ spec:
             kind: IngressTrait
             spec:
               rules:
-                - hosts:
-                    - "bobbys-books.example.com"
-                  paths:
+                - paths:
                     - path: "/bobbys-front-end"
                       pathType: Prefix
       scopes:
@@ -55,9 +51,7 @@ spec:
             kind: IngressTrait
             spec:
               rules:
-                - hosts:
-                    - "bobs-orders.example.com"
-                  paths:
+                - paths:
                     - path: "/bobs-bookstore-order-manager/orders"
                       pathType: Prefix
       scopes:

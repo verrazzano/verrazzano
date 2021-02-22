@@ -10,13 +10,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	certclientv1alpha2 "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1alpha2"
 	"github.com/onsi/ginkgo"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vmoclient "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
+	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apixv1beta1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
-	certclientv1alpha2 "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1alpha2"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -189,7 +190,6 @@ func DoesServiceExist(namespace string, name string) bool {
 	return false
 }
 
-
 // GetKubernetesClientset returns the Kubernetes clienset for the cluster
 func GetKubernetesClientset() *kubernetes.Clientset {
 	// use the current context in the kubeconfig
@@ -287,8 +287,8 @@ func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, 
 
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Labels:    labels,
+			Name:   name,
+			Labels: labels,
 		},
 	}
 	ns, err := clientset.CoreV1().Namespaces().Create(context.TODO(), namespace, metav1.CreateOptions{})
@@ -307,4 +307,13 @@ func DeleteNamespace(name string) error {
 		Log(Error, fmt.Sprintf("DeleteNamespace %s error: %v", name, err))
 	}
 	return err
+}
+
+// GetIstioClientset returns the clientset object for Istio
+func GetIstioClientset() *istioClient.Clientset {
+	cs, err := istioClient.NewForConfig(GetKubeConfig())
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get Istio clientset: %v", err))
+	}
+	return cs
 }

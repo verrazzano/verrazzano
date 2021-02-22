@@ -19,9 +19,7 @@ spec:
               name: carts-ingress
             spec:
               rules:
-                - hosts:
-                    - "sockshop.example.com"
-                  paths:
+                - paths:
                     - path: "/carts"
                       pathType: Prefix
         - trait:
@@ -40,9 +38,7 @@ spec:
               name: catalog-ingress
             spec:
               rules:
-                - hosts:
-                    - "sockshop.example.com"
-                  paths:
+                - paths:
                     - path: "/catalogue"
                       pathType: Prefix
         - trait:
@@ -61,9 +57,7 @@ spec:
               name: orders-ingress
             spec:
               rules:
-                - hosts:
-                    - "sockshop.example.com"
-                  paths:
+                - paths:
                     - path: "/orders"
                       pathType: Prefix
         - trait:
@@ -82,9 +76,7 @@ spec:
               name: payment-ingress
             spec:
               rules:
-                - hosts:
-                    - "sockshop.example.com"
-                  paths:
+                - paths:
                     - path: "/payment"
                       pathType: Prefix
         - trait:
@@ -103,9 +95,7 @@ spec:
               name: shipping-ingress
             spec:
               rules:
-                - hosts:
-                    - "sockshop.example.com"
-                  paths:
+                - paths:
                     - path: "/shipping"
                       pathType: Prefix
         - trait:
@@ -124,9 +114,7 @@ spec:
               name: users-ingress
             spec:
               rules:
-                - hosts:
-                    - "sockshop.example.com"
-                  paths:
+                - paths:
                     - path: "/register"
                       pathType: Prefix
                     - path: "/login"

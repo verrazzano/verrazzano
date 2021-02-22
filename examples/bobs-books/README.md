@@ -1,6 +1,6 @@
 # Bob's Books
 
-The Bob's Books example is a set of three applications based on WebLogic, Helidon, and Coherence. For more information and the source code of this application, , see the [Verrazzano examples](https://github.com/verrazzano/examples).
+The Bob's Books example is a set of three applications based on WebLogic, Helidon, and Coherence. For more information and the source code of this application, see the [Verrazzano examples](https://github.com/verrazzano/examples).
 
 ## Prerequisites
 
@@ -20,13 +20,13 @@ The Bob's Books example is a set of three applications based on WebLogic, Helido
 1. Create a namespace for the example and add a label identifying the namespace as managed by Verrazzano.
 
     ```
-    kubectl create namespace bobs-books
-    kubectl label namespaces bobs-books verrazzano-managed=true
+    $ kubectl create namespace bobs-books
+    $ kubectl label namespaces bobs-books verrazzano-managed=true
     ```
 
 1. Create a `docker-registry` secret to enable pulling the example image from the registry.
    ```
-   kubectl create secret docker-registry bobs-books-repo-credentials \
+   $ kubectl create secret docker-registry bobs-books-repo-credentials \
            --docker-server=container-registry.oracle.com \
            --docker-username=YOUR_REGISTRY_USERNAME \
            --docker-password=YOUR_REGISTRY_PASSWORD \
@@ -34,22 +34,22 @@ The Bob's Books example is a set of three applications based on WebLogic, Helido
            -n bobs-books
    ```
    
-   Replace `YOUR_REGISTRY_USERNAME`, `YOUR_REGISTRY_PASSWORD` and `YOUR_REGISTRY_EMAIL` 
+   Replace `YOUR_REGISTRY_USERNAME`, `YOUR_REGISTRY_PASSWORD`, and `YOUR_REGISTRY_EMAIL`
    with the values you use to access the registry.  
       
 1. Create and label secrets for the WebLogic domains:
     ```
-    kubectl create secret generic bobbys-front-end-weblogic-credentials --from-literal=password=<password> --from-literal=username=<username> -n bobs-books
+    $ kubectl create secret generic bobbys-front-end-weblogic-credentials --from-literal=password=<password> --from-literal=username=<username> -n bobs-books
 
-    kubectl create secret generic bobbys-front-end-runtime-encrypt-secret --from-literal=password=<password> -n bobs-books
-    kubectl label secret bobbys-front-end-runtime-encrypt-secret weblogic.domainUID=bobbys-front-end -n bobs-books
+    $ kubectl create secret generic bobbys-front-end-runtime-encrypt-secret --from-literal=password=<password> -n bobs-books
+    $ kubectl label secret bobbys-front-end-runtime-encrypt-secret weblogic.domainUID=bobbys-front-end -n bobs-books
 
-    kubectl create secret generic bobs-bookstore-weblogic-credentials --from-literal=password=<password> --from-literal=username=<username> -n bobs-books
+    $ kubectl create secret generic bobs-bookstore-weblogic-credentials --from-literal=password=<password> --from-literal=username=<username> -n bobs-books
 
-    kubectl create secret generic bobs-bookstore-runtime-encrypt-secret --from-literal=password=<password> -n bobs-books
-    kubectl label secret bobs-bookstore-runtime-encrypt-secret weblogic.domainUID=bobs-bookstore -n bobs-books
+    $ kubectl create secret generic bobs-bookstore-runtime-encrypt-secret --from-literal=password=<password> -n bobs-books
+    $ kubectl label secret bobs-bookstore-runtime-encrypt-secret weblogic.domainUID=bobs-bookstore -n bobs-books
 
-    kubectl create secret generic mysql-credentials \
+    $ kubectl create secret generic mysql-credentials \
         --from-literal=username=<username> \
         --from-literal=password=<password> \
         --from-literal=url=jdbc:mysql://mysql.bobs-books.svc.cluster.local:3306/books \
@@ -62,24 +62,45 @@ The Bob's Books example is a set of three applications based on WebLogic, Helido
 
 1. Apply the example resources to deploy the application.
    ```
-   kubectl apply -f .
+   $ kubectl apply -f .
    ```
 
 1. Wait for all of the pods in the Bob's Books example application to be ready.
    You may need to repeat this command several times before it is successful.
-   The WebLogic server and Coherence pods can take some time to be created and `Ready`.
+   The WebLogic Server and Coherence pods can take some time to be created and `Ready`.
    ```
-   kubectl wait --for=condition=Ready pods --all -n bobs-books --timeout=600s
+   $ kubectl wait --for=condition=Ready pods --all -n bobs-books --timeout=600s
    ```
-1. Get the `EXTERNAL_IP` address of the istio-ingressgateway service.
+
+1. Get the `EXTERNAL_IP` address of the `istio-ingressgateway` service.
     ```
-    kubectl get service -n "istio-system" "istio-ingressgateway" -o jsonpath={.status.loadBalancer.ingress[0].ip}
+    $ kubectl get service -n "istio-system" "istio-ingressgateway" -o jsonpath={.status.loadBalancer.ingress[0].ip}
 
     11.22.33.44
     ```
 
+1. Get the generated host names for the applications.
+   ```
+   $ kubectl get gateway bobs-books-bobs-orders-wls-gw -n bobs-books -o jsonpath={.spec.servers[0].hosts[0]}
+   bobs-orders-wls.bobs-books.11.22.33.44.xip.io
+
+   $ kubectl get gateway bobs-books-robert-gw -n bobs-books -o jsonpath={.spec.servers[0].hosts[0]}
+   robert.bobs-books.11.22.33.44.xip.io
+
+   $ kubectl get gateway bobs-books-bobby-front-end-gw -n bobs-books -o jsonpath={.spec.servers[0].hosts[0]}
+   bobby-front-end.bobs-books.11.22.33.44.xip.io
+   ```
+
 1. Access the applications. To access the applications in a browser, you will need to do one of the following:
-    * **Option 1:** Temporarily modify the `/etc/hosts` file (on Mac or Linux) or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10), to add entries mapping the hosts used by the applications to the external IP address assigned to your gateway. For example:
+    * **Option 1:** If you are using `xip.io`, then you can just access the applications using the generated host names, for example:
+
+      a. Robert's Books UI at `https://robert.bobs-books.11.22.33.44.xip.io/`.
+
+      b. Bobby's Books UI at `https://bobby-front-end.bobs-books.11.22.33.44.xip.io/bobbys-front-end`.
+
+      c. Bob's order manager  UI at `https://bobs-orders-wls.bobs-books.11.22.33.44.xip.io/bobs-bookstore-order-manager/orders`.
+
+    * **Option 2:** Temporarily, modify the `/etc/hosts` file (on Mac or Linux) or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10), to add entries mapping the hosts used by the applications to the external IP address assigned to your gateway. For example:
       ```
       11.22.33.44 roberts-books.example.com
       11.22.33.44 bobbys-books.example.com
@@ -87,29 +108,29 @@ The Bob's Books example is a set of three applications based on WebLogic, Helido
       ```
       Then, you can use a browser to access each of the applications as shown below:
       
-      a. Robert's Books UI at `http://roberts-books.example.com/`.
+      a. Robert's Books UI at `https://roberts-books.example.com/`.
 
-      b. Bobby's Books UI at `http://bobbys-books.example.com/bobbys-front-end`.
+      b. Bobby's Books UI at `https://bobbys-books.example.com/bobbys-front-end`.
 
-      c. Bob's order manager  UI at `http://bobs-orders.example.com/bobs-bookstore-order-manager/orders`.
+      c. Bob's order manager  UI at `https://bobs-orders.example.com/bobs-bookstore-order-manager/orders`.
 
-    * **Option 2:** Alternatively, point your own DNS name to the load balancer's external IP address. In this case, you would need to have edited the `bobs-books-app.yaml` file to use the appropriate values under the `hosts` section for each application (such as `your-roberts-books-host.your.domain`), before deploying the applications.
+    * **Option 3:** Alternatively, point your own DNS name to the load balancer's external IP address. In this case, you would need to have edited the `bobs-books-app.yaml` file to use the appropriate values under the `hosts` section for each application (such as `your-roberts-books-host.your.domain`), before deploying the applications.
       Then, you can use a browser to access each of the applications as shown below:
 
-      a. Robert's Books UI at `http://<your-roberts-books-host.your.domain>/`
+      a. Robert's Books UI at `http://<your-roberts-books-host.your.domain>/`.
 
-      b. Bobby's Books UI at `http://<your-bobbys-books-host.your.domain>/bobbys-front-end`
+      b. Bobby's Books UI at `http://<your-bobbys-books-host.your.domain>/bobbys-front-end`.
 
-      a. Bob's order manager UI at `http://<your-bobs-orders-host.your.domain>/`
+      a. Bob's order manager UI at `http://<your-bobs-orders-host.your.domain>/`.
 
 ## Troubleshooting
     
-1. Verify that the application configuration, domains, coherence resources and ingress trait all exist.
+1. Verify that the application configuration, domains, Coherence resources, and ingress trait all exist.
    ```
-   kubectl get ApplicationConfiguration -n bobs-books
-   kubectl get Domain -n bobs-books
-   kubectl get Coherence -n bobs-books
-   kubectl get IngressTrait -n bobs-books
+   $ kubectl get ApplicationConfiguration -n bobs-books
+   $ kubectl get Domain -n bobs-books
+   $ kubectl get Coherence -n bobs-books
+   $ kubectl get IngressTrait -n bobs-books
    ```   
 
 1. Verify that the service pods are successfully created and transition to the ready state.
@@ -130,3 +151,5 @@ The Bob's Books example is a set of three applications based on WebLogic, Helido
     roberts-coherence-0                                1/1     Running   0          10m
     roberts-coherence-1                                1/1     Running   0          14m
    ``` 
+
+Copyright (c) 2020, 2021, Oracle and/or its affiliates.

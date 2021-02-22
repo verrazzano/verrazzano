@@ -4,7 +4,7 @@ apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
   name: hello-helidon-appconf
-  namespace: oam-hello-helidon
+  namespace: hello-helidon
   annotations:
     version: v1.0.0
     description: "Hello Helidon application"
@@ -24,8 +24,6 @@ spec:
               name: hello-helidon-ingress
             spec:
               rules:
-                - hosts:
-                    - "hello-helidon.example.com"
-                  paths:
+                - paths:
                     - path: "/greet"
                       pathType: Prefix
