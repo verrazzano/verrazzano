@@ -30,6 +30,7 @@ var specServerPodLabelsFields = append(specServerPodFields, "labels")
 var specServerPodContainersFields = append(specServerPodFields, "containers")
 var specServerPodVolumesFields = append(specServerPodFields, "volumes")
 var specServerPodVolumeMountsFields = append(specServerPodFields, "volumeMounts")
+var specConfigurationIstioEnabledFields = []string{specField, "configuation", "istio", "enabled"}
 
 // this struct allows us to extract information from the unstructured WebLogic spec
 // so we can interface with the FLUENTD code
@@ -97,6 +98,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
+	// Get the namespace resource that the domain resource is deployed to
+	namespace := &corev1.Namespace{}
+	if err = r.Client.Get(ctx, client.ObjectKey{Namespace: "", Name: req.NamespacedName.Namespace}, namespace); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if err = r.istioEnabled(namespace, u); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	// set controller reference so the WebLogic domain CR gets deleted when the workload is deleted
 	if err = controllerutil.SetControllerReference(workload, u, r.Scheme); err != nil {
 		log.Error(err, "Unable to set controller ref")
@@ -114,6 +125,25 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	log.Info("Successfully created WebLogic domain")
 	return reconcile.Result{}, nil
+}
+
+// istioEnabled sets the domain resource configuration.istio.enabled value based on the namespace label istio-injection
+func (r *Reconciler) istioEnabled(namespace *corev1.Namespace, u *unstructured.Unstructured) error {
+	// Check the value of the istio-injection label
+	istioEnabled := false
+	for key, value := range namespace.Labels {
+		if key == "istio-injection" && value == "enabled" {
+			istioEnabled = true
+		}
+	}
+
+	// Set the configuration.istio.enabled value for the domain resource
+	err := unstructured.SetNestedField(u.Object, istioEnabled, specConfigurationIstioEnabledFields...)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // fetchWorkload fetches the VerrazzanoWebLogicWorkload data given a namespaced name

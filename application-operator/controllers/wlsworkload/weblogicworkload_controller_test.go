@@ -17,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -95,6 +96,12 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
 			return nil
 		})
+	// expect a call to get the namespace for the domain
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+			return nil
+		})
 	// expect a call to create the WebLogic domain CR
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
@@ -105,6 +112,10 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 			// make sure the OAM component and app name labels were copied
 			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
 			assert.Equal(labels, specLabels)
+
+			// make sure configuration.istio.enabled is false
+			specIstioEnabled, _, _ := unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
+			assert.Equal(specIstioEnabled, false)
 			return nil
 		})
 
@@ -178,6 +189,12 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 			assert.Equal(loggingscope.WlsFluentdParsingRules, configMap.Data["fluentd.conf"])
 			return nil
 		})
+	// expect a call to get the namespace for the domain
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+			return nil
+		})
 	// expect a call to create the WebLogic domain CR
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
@@ -240,6 +257,12 @@ func TestReconcileAlreadyExists(t *testing.T) {
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
 			return nil
 		})
+	// expect a call to get the namespace for the domain
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+			return nil
+		})
 	// expect a call to create the WebLogic domain CR and return an AlreadyExists error
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
@@ -291,6 +314,12 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
 			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+			return nil
+		})
+	// expect a call to get the namespace for the domain
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
 	// expect a call to create the WebLogic domain CR and return an AlreadyExists error
@@ -456,6 +485,74 @@ func TestAddLoggingFailure(t *testing.T) {
 	assert.Error(err)
 	assert.True(k8serrors.IsNotFound(err))
 	assert.Equal(false, result.Requeue)
+}
+
+// TestIstioEnabled tests that domain resource spec.configuration.istio.enabled is set correctly.
+// GIVEN a namespace with the label istio-injection equals enabled
+// WHEN the label istio-injection equals enabled
+// THEN the domain resource to spec.configuration.istio.enabled is set to true
+func TestIstioEnabled(t *testing.T) {
+	assert := asserts.New(t)
+	reconciler := Reconciler{}
+
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+			Labels: map[string]string{
+				"istio-injection": "enabled",
+			},
+		},
+	}
+	u := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind": "Domain",
+		},
+	}
+	err := reconciler.istioEnabled(namespace, u)
+	assert.NoError(err, "Unexpected error setting istio enabled")
+	specIstioEnabled, _, _ := unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
+	assert.Equal(specIstioEnabled, true)
+}
+
+// TestIstioDisabled tests that domain resource spec.configuration.istio.enabled is set correctly.
+// GIVEN a namespace with the label istio-injection not set or set to disable
+// THEN the domain resource to spec.configuration.istio.enabled is set to false
+func TestIstioDisabled(t *testing.T) {
+	assert := asserts.New(t)
+	reconciler := Reconciler{}
+
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+			Labels: map[string]string{
+				"istio-injection": "disabled",
+			},
+		},
+	}
+	u := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind": "Domain",
+		},
+	}
+	err := reconciler.istioEnabled(namespace, u)
+	assert.NoError(err, "Unexpected error setting istio enabled")
+	specIstioEnabled, _, _ := unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
+	assert.Equal(specIstioEnabled, false)
+
+	namespace = &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+	}
+	u = &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind": "Domain",
+		},
+	}
+	err = reconciler.istioEnabled(namespace, u)
+	assert.NoError(err, "Unexpected error setting istio enabled")
+	specIstioEnabled, _, _ = unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
+	assert.Equal(specIstioEnabled, false)
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing
