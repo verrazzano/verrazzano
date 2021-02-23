@@ -4,18 +4,20 @@
 package integ_test
 
 import (
+	"context"
 	"fmt"
-
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/platform-operator/test/integ/k8s"
 	"github.com/verrazzano/verrazzano/platform-operator/test/integ/util"
+	"io/ioutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
 )
 
 const clusterAdmin = "cluster-admin"
 const platformOperator = "verrazzano-platform-operator"
 const managedGeneratedName_1 = "verrazzano-cluster-cluster1"
-const managedGeneratedName_2 = "verrazzano-cluster-cluster2"
 const installNamespace = "verrazzano-install"
 const vzMcNamespace = "verrazzano-mc"
 const prometheusSecret = "prometheus-cluster1"
@@ -24,7 +26,7 @@ var K8sClient k8s.Client
 
 var _ = ginkgo.BeforeSuite(func() {
 	var err error
-	K8sClient, err = k8s.NewClient()
+	K8sClient, err = k8s.NewClient(util.GetKubeconfig())
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Error creating Kubernetes client to access Verrazzano API objects: %v", err))
 	}
@@ -133,4 +135,44 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 		gomega.Eventually(secretExists, "30s", "5s").Should(gomega.BeTrue(),
 			fmt.Sprintf("The kubeconfig Secret %s should exist in %s", managedGeneratedName_1, vzMcNamespace))
 	})
+	ginkgo.It("Checking access to admin cluster using kubeconfig in the secret ", func() {
+		verifyKubeconfig()
+	})
 })
+
+// Verify that the kubeconfig can be used to restrict access to the admin cluster
+func verifyKubeconfig() {
+	secret, err := K8sClient.GetSecret(managedGeneratedName_1, vzMcNamespace)
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Unable to get cluster secret %s that contains kubeconfig: %v", managedGeneratedName_1, err))
+	}
+
+	// Get the kubeconfig from the secret and decode the base64
+	kubconfigBytes := secret.Data["admin-kubeconfig"]
+	if len(kubconfigBytes) == 0 {
+		ginkgo.Fail(fmt.Sprintf("Cluster secret %s does not contain kubeconfig", err))
+	}
+	fmt.Println(string(kubconfigBytes))
+
+	// Write kubeconfig to temp file
+	f, err := ioutil.TempFile("", "kubeconfig")
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create tempfile. Error: %v", err))
+	}
+	defer os.Remove(f.Name())
+	_, err = f.Write(kubconfigBytes)
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to write to tempfile.  Error: %v", err))
+	}
+	// Test access using the new client
+	client, err := k8s.NewClient(string(f.Name()))
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Error creating Kubernetes client to access Verrazzano API objects: %v", err))
+	}
+
+	// Verify that we get not permitted
+	_, err = client.Clientset.CoreV1().Namespaces().Get(context.TODO(), vzMcNamespace, metav1.GetOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Should not be able to access  %s namespace %v", vzMcNamespace, err))
+	}
+}

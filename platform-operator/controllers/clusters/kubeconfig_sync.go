@@ -49,9 +49,13 @@ type kcContextData struct {
 
 // These names are used internally in the generated kubeconfig. The names
 // are meant to be descriptive and the actual values don't affect behavior.
-const clusterName = "admin"
-const userName = "mcAgent"
-const contextName = "defaultContext"
+const (
+	clusterName           = "admin"
+	userName              = "mcAgent"
+	contextName           = "defaultContext"
+	kubeconfigKey         = "admin-kubeconfig"
+	managedClusterNameKey = "managed-cluster-name"
+)
 
 // Needed for unit testing
 var getConfigFunc = ctrl.GetConfig
@@ -161,7 +165,7 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateSecret(vmc *clusterap
 	secret.Name = name
 
 	return controllerutil.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
-		r.mutateSecret(&secret, kubeconfig, vmc.ClusterName)
+		r.mutateSecret(&secret, kubeconfig, vmc.Name)
 		// This SetControllerReference call will trigger garbage collection i.e. the secret
 		// will automatically get deleted when the VerrazzanoManagedCluster is deleted
 		return controllerutil.SetControllerReference(vmc, &secret, r.Scheme)
@@ -169,16 +173,11 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateSecret(vmc *clusterap
 }
 
 // Mutate the secret, setting the kubeconfig data
-func (r *VerrazzanoManagedClusterReconciler) mutateSecret(secret *corev1.Secret, b64KubeConfig string, manageClusterName string) error {
-	const (
-		kubeconfig         = "admin-kubeconfig"
-		managedClusterName = "managed-cluster-name"
-	)
-
+func (r *VerrazzanoManagedClusterReconciler) mutateSecret(secret *corev1.Secret, kubeconfig string, manageClusterName string) error {
 	secret.Type = corev1.SecretTypeOpaque
 	secret.Data = map[string][]byte{
-		kubeconfig:         []byte(b64KubeConfig),
-		managedClusterName: []byte(manageClusterName),
+		kubeconfigKey:         []byte(kubeconfig),
+		managedClusterNameKey: []byte(manageClusterName),
 	}
 	return nil
 }

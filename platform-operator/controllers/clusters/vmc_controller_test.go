@@ -34,7 +34,6 @@ const kind = "VerrazzanoManagedCluster"
 func TestCreateVMC(t *testing.T) {
 	namespace := "verrazzano-mc"
 	name := "test"
-	saToken := "saToken"
 	saSecretName := "saSecret"
 	labels := map[string]string{"label1": "test"}
 	asserts := assert.New(t)
@@ -112,9 +111,6 @@ func TestCreateVMC(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: saSecretName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				"kubeconfig": []byte(saToken),
-			}
 			return nil
 		})
 
@@ -127,6 +123,8 @@ func TestCreateVMC(t *testing.T) {
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
+			clusterName, _ := secret.Data[managedClusterNameKey]
+			asserts.Equalf(name, string(clusterName), "Incorrect cluster name in cluster secret ")
 			return nil
 		})
 
