@@ -697,7 +697,7 @@ func (r *Reconciler) newTraitDefaultsForCOHWorkload(ctx context.Context, workloa
 		Scraper: &r.Scraper}, nil
 }
 
-// newTraitDefaultsForHelidonWorkload creates metrics trait default values for a containerized workload.
+// newTraitDefaultsForHelidonWorkload creates metrics trait default values for a helidon workload.
 func (r *Reconciler) newTraitDefaultsForHelidonWorkload() (*vzapi.MetricsTraitSpec, error) {
 	port := defaultScrapePort
 	path := defaultScrapePath
