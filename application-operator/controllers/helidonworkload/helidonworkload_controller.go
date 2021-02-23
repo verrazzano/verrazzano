@@ -114,14 +114,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Prepare the list of resources to reference in status.
 	statusResources := []vzapi.QualifiedResourceRelation{
-		vzapi.QualifiedResourceRelation{
+		{
 			APIVersion: deploy.GetObjectKind().GroupVersionKind().GroupVersion().String(),
 			Kind:       deploy.GetObjectKind().GroupVersionKind().Kind,
 			Name:       deploy.GetName(),
 			Namespace:  deploy.GetNamespace(),
 			Role:       "Deployment",
 		},
-		vzapi.QualifiedResourceRelation{
+		{
 			APIVersion: service.GetObjectKind().GroupVersionKind().GroupVersion().String(),
 			Kind:       service.GetObjectKind().GroupVersionKind().Kind,
 			Name:       service.GetName(),
@@ -282,7 +282,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 
 	resource := vzapi.QualifiedResourceRelation{Name: deployment.Name, Namespace: deployment.Namespace}
 	handler := loggingscope.HelidonHandler{Client: r.Client, Log: r.Log}
-	_, err  = handler.ApplyToDeployment(ctx, resource, loggingScope, deployment)
+	_, err = handler.ApplyToDeployment(ctx, resource, loggingScope, deployment)
 	if err != nil {
 		log.Info("Failed to add logging to Deployment")
 		return err
