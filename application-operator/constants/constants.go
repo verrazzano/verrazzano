@@ -26,6 +26,6 @@ const ElasticsearchHostData = "elasticsearch-host"
 // Elasticsearch endpoint's port number
 const ElasticsearchPortData = "elasticsearch-port"
 
-// ElasticsearchSecretData - the field name in MCRegistrationSecret that contains the name of a
-// secret containing the credentials for the admin cluster's Elasticsearch endpoint
-const ElasticsearchSecretData = "elasticsearch-secret"
+// ElasticsearchSecretName - the name of the secret in the Verrazzano System namespace,
+// that contains credentials and other details for for the admin cluster's Elasticsearch endpoint
+const ElasticsearchSecretName = "verrazzano-cluster-elasticsearch"
