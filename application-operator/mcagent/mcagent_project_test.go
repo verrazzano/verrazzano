@@ -134,6 +134,118 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 				}
 			}
 
+			// Managed Cluster - expect call to list VerrazzanoProject objects on the local cluster
+			localMock.EXPECT().
+				List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
+					list.Items = append(list.Items, testProj)
+					return nil
+				})
+
+			// Make the request
+			s := &Syncer{
+				AdminClient:        adminMock,
+				LocalClient:        localMock,
+				Log:                log,
+				ManagedClusterName: testClusterName,
+				Context:            context.TODO(),
+			}
+			err = s.syncVerrazzanoProjects()
+
+			// Validate the results
+			adminMocker.Finish()
+			localMocker.Finish()
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("syncVerrazzanoProjects() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			// Validate the namespace list that resulted from processing the VerrazzanoProject objects
+			assert.Equal(len(tt.fields.nsNames), len(s.ProjectNamespaces), "number of expected namespaces did not match")
+			for _, namespace := range tt.fields.nsNames {
+				assert.True(controllers.StringSliceContainsString(s.ProjectNamespaces, namespace), "expected namespace not being watched")
+			}
+		})
+	}
+}
+
+// TestDeleteVerrazzanoProject tests the synchronization method for the following use case.
+// GIVEN a request to sync VerrazzanoProject objects
+// WHEN the object exists on the local cluster but not on the admin cluster
+// THEN ensure that the VerrazzanoProject is deleted.
+func TestDeleteVerrazzanoProject(t *testing.T) {
+	type fields struct {
+		vpNamespace string
+		vpName      string
+		nsNames     []string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr bool
+	}{
+		{
+			"Orphaned VP",
+			fields{
+				constants.VerrazzanoMultiClusterNamespace,
+				"TestVP",
+				[]string{"test"},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert := asserts.New(t)
+			log := ctrl.Log.WithName("test")
+
+			// Managed cluster mocks
+			localMocker := gomock.NewController(t)
+			localMock := mocks.NewMockClient(localMocker)
+
+			// Admin cluster mocks
+			adminMocker := gomock.NewController(t)
+			adminMock := mocks.NewMockClient(adminMocker)
+
+			// Test data
+			testProj, err := getTestVerrazzanoProject(tt.fields.vpNamespace, tt.fields.vpName, tt.fields.nsNames)
+			assert.NoError(err, "failed to get sample project")
+			testProjOrphan, err := getTestVerrazzanoProject(tt.fields.vpNamespace, tt.fields.vpName+"-orphan", tt.fields.nsNames)
+			assert.NoError(err, "failed to get sample project")
+
+			// Admin Cluster - expect call to list VerrazzanoProject objects - return list with one object
+			adminMock.EXPECT().
+				List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
+					list.Items = append(list.Items, testProj)
+					return nil
+				})
+
+			// Managed Cluster - expect call to get VerrazzanoProject
+			localMock.EXPECT().
+				Get(gomock.Any(), types.NamespacedName{Namespace: tt.fields.vpNamespace, Name: tt.fields.vpName}, gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
+					vp.Namespace = tt.fields.vpNamespace
+					vp.Name = tt.fields.vpName
+					vp.Spec.Namespaces = tt.fields.nsNames
+					return nil
+				})
+
+			// Managed Cluster - expect call to list VerrazzanoProject objects on the local cluster, return an object that
+			// does not exist on the admin cluster
+			localMock.EXPECT().
+				List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
+					list.Items = append(list.Items, testProj)
+					list.Items = append(list.Items, testProjOrphan)
+					return nil
+				})
+
+			// Managed Cluster - expect a call to delete a VerrazzanoProject object
+			localMock.EXPECT().
+				Delete(gomock.Any(), gomock.Eq(&testProjOrphan), gomock.Any()).
+				Return(nil)
+
 			// Make the request
 			s := &Syncer{
 				AdminClient:        adminMock,
@@ -265,6 +377,15 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 						assert.Equal(tt.vp2Fields.vpNamespace, vp.Namespace, "VerrazzanoProject namespace did not match")
 						assert.Equal(tt.vp2Fields.vpName, vp.Name, "VerrazzanoProject name did not match")
 						assert.ElementsMatch(tt.vp2Fields.nsNames, vp.Spec.Namespaces)
+						return nil
+					})
+
+				// Managed Cluster - expect call to list VerrazzanoProject objects on the local cluster
+				localMock.EXPECT().
+					List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
+					DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
+						list.Items = append(list.Items, testProj1)
+						list.Items = append(list.Items, testProj2)
 						return nil
 					})
 

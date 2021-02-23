@@ -18,8 +18,9 @@ import (
 // and create namespaces specified in the Project resources in the local cluster
 func (s *Syncer) syncVerrazzanoProjects() error {
 	// Get all the Project objects from the admin cluster
-	allProjects := &clustersv1alpha1.VerrazzanoProjectList{}
-	err := s.AdminClient.List(s.Context, allProjects)
+	allAdminProjects := &clustersv1alpha1.VerrazzanoProjectList{}
+	listOptions := &client.ListOptions{Namespace: constants.VerrazzanoMultiClusterNamespace}
+	err := s.AdminClient.List(s.Context, allAdminProjects, listOptions)
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
@@ -28,7 +29,7 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 	var namespaces []string
 
 	// Write each of the records in verrazzano-mc namespace
-	for _, vp := range allProjects.Items {
+	for _, vp := range allAdminProjects.Items {
 		if vp.Namespace == constants.VerrazzanoMultiClusterNamespace {
 			_, err := s.createOrUpdateVerrazzanoProject(vp)
 			if err != nil {
@@ -45,6 +46,26 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 						namespaces = append(namespaces, namespace)
 					}
 				}
+			}
+		}
+	}
+
+	// Delete orphaned VerrazzanoProject resources.
+	// Get the list of VerrazzanoProject resources on the
+	// local cluster and compare to the list received from the admin cluster.
+	// The admin cluster is the source of truth.
+	allLocalProjects := clustersv1alpha1.VerrazzanoProjectList{}
+	err = s.LocalClient.List(s.Context, &allLocalProjects, listOptions)
+	if err != nil {
+		s.Log.Error(err, "failed to list VerrazzanoProject on local cluster")
+		return nil
+	}
+	for _, project := range allLocalProjects.Items {
+		// Delete each VerrazzanoProject object that is not on the admin cluster
+		if !projectListContains(allAdminProjects, project.Name, project.Namespace) {
+			err := s.LocalClient.Delete(s.Context, &project)
+			if err != nil {
+				s.Log.Error(err, fmt.Sprintf("failed to delete VerrazzanoProject with name %q and namespace %q", project.Name, project.Namespace))
 			}
 		}
 	}
@@ -71,4 +92,14 @@ func (s *Syncer) createOrUpdateVerrazzanoProject(vp clustersv1alpha1.VerrazzanoP
 // mutateVerrazzanoProject mutates the VerrazzanoProject to reflect the contents of the parent VerrazzanoProject
 func mutateVerrazzanoProject(vp clustersv1alpha1.VerrazzanoProject, vpNew *clustersv1alpha1.VerrazzanoProject) {
 	vpNew.Spec.Namespaces = vp.Spec.Namespaces
+}
+
+// projectListContains returns boolean indicating if the list contains the object with the specified name and namespace
+func projectListContains(projectList *clustersv1alpha1.VerrazzanoProjectList, name string, namespace string) bool {
+	for _, item := range projectList.Items {
+		if item.Name == name && item.Namespace == namespace {
+			return true
+		}
+	}
+	return false
 }
