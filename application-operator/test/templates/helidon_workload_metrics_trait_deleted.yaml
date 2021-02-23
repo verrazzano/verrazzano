@@ -33,7 +33,7 @@ status:
       status: "True"
       type: Synced
   resources:
-    - apiversion: v1
+    - apiversion: apps/v1
       kind: Deployment
       name: ##DEPLOYMENT_NAME##
       namespace: ##DEPLOYMENT_NAMESPACE##
