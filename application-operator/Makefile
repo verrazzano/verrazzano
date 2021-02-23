@@ -217,8 +217,8 @@ export KUBECONFIG=${HOME}/.kube/config
 export VERRAZZANO_KUBECONFIG=${HOME}/.kube/config
 export VERRAZZANO_APP_OP_IMAGE=${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
-.PHONY: integ-test
-integ-test: create-cluster
+.PHONY: setup-cluster
+setup-cluster: create-cluster
 	echo 'Load Docker image for the OAM runtime...'
 	docker pull ${OAM_RUNTIME_IMAGE}
 	kind load docker-image --name ${CLUSTER_NAME} ${OAM_RUNTIME_IMAGE}
@@ -229,6 +229,8 @@ integ-test: create-cluster
 	echo 'Install OAM runtime and Verrazzano application operator...'
 	installer/install.sh || (echo 'Application operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
 
+.PHONY: integ-test
+integ-test: setup-cluster
 	echo 'Run tests...'
 	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Application operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
 
