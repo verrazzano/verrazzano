@@ -62,9 +62,9 @@ fi
 
 mkdir -p /tmp/${TEST_ID}-kubeconfig
 cp ${KUBECONFIG} /tmp/${TEST_ID}-kubeconfig/kubeconfig
-context="$(KUBECONFIG=/tmp/$TEST_ID-kubeconfig/kubeconfig kubectl config current-context)"
-cluster="$(KUBECONFIG=/tmp/$TEST_ID-kubeconfig/kubeconfig kubectl config view -o "jsonpath={.contexts[?(@.name==\"$context\")].context.cluster}")"
-server="$(KUBECONFIG=/tmp/$TEST_ID-kubeconfig/kubeconfig kubectl config view -o "jsonpath={.clusters[?(@.name==\"$cluster\")].cluster.server}")"
+context="$(kubectl --kubeconfig /tmp/$TEST_ID-kubeconfig/kubeconfig config current-context)"
+cluster="$(kubectl --kubeconfig /tmp/$TEST_ID-kubeconfig/kubeconfig config view -o "jsonpath={.contexts[?(@.name==\"$context\")].context.cluster}")"
+server="$(kubectl --kubeconfig /tmp/$TEST_ID-kubeconfig/kubeconfig config view -o "jsonpath={.clusters[?(@.name==\"$cluster\")].cluster.server}")"
 rm -rf /tmp/${TEST_ID}-kubeconfig
 
 ca_crt_data="$(kubectl -n $TEST_NAMESPACE get secret "$secret" -o "jsonpath={.data.ca\.crt}" | openssl enc -d -base64 -A)"
