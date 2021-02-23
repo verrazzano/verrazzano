@@ -23,9 +23,7 @@ spec:
             kind: IngressTrait
             spec:
               rules:
-                - hosts:
-                    - "todo.example.com"
-                  paths:
+                - paths:
                     - path: "/todo"
                       pathType: Prefix
       scopes:

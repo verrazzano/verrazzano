@@ -5,8 +5,9 @@ package springboot_test
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"time"
+
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -90,7 +91,8 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 			ingress := pkg.Ingress()
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
 			url := fmt.Sprintf("http://%s/", ingress)
-			status, content := pkg.GetWebPageWithCABundle(url, hostHeaderValue)
+			host := pkg.GetHostnameFromGateway(testNamespace, "")
+			status, content := pkg.GetWebPageWithCABundle(url, host)
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
 				gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
 		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
@@ -100,7 +102,8 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 		gomega.Eventually(func() bool {
 			ingress := pkg.Ingress()
 			url := fmt.Sprintf("http://%s/facts", ingress)
-			status, content := pkg.GetWebPageWithCABundle(url, hostHeaderValue)
+			host := pkg.GetHostnameFromGateway(testNamespace, "")
+			status, content := pkg.GetWebPageWithCABundle(url, host)
 			gomega.Expect(len(content) > 0, fmt.Sprintf("An empty string returned from /facts endpoint %v", content))
 			return gomega.Expect(status).To(gomega.Equal(200))
 		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
