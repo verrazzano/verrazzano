@@ -71,15 +71,22 @@ fi
 #		services.json
 #		directory per pod
 #			logs.txt
+#       api-resources.out
 #	application-configurations.json
+#       coherence.json
+#       configmaps.out
 #	crd.json
+#       es_indexex.out
 #	gateways.json
 #	helm-ls.json
 #	helm-version.out
+#       images-on-nodes.csv
 #	ingress.json
 #	ingress-traits.json
+#       kubectl-version.json
 #	nodes.json
 #	pv.json
+#       verrazzano_resources.out
 #	virtualservices.json
 #
 # REVIEW: We certainly could capture some of the above per-namespace into the hierarchy
