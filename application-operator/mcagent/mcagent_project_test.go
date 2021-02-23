@@ -134,6 +134,14 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 				}
 			}
 
+			// Managed Cluster - expect call to list VerrazzanoProject objects on the local cluster
+			localMock.EXPECT().
+				List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
+					list.Items = append(list.Items, testProj)
+					return nil
+				})
+
 			// Make the request
 			s := &Syncer{
 				AdminClient:        adminMock,
@@ -265,6 +273,15 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 						assert.Equal(tt.vp2Fields.vpNamespace, vp.Namespace, "VerrazzanoProject namespace did not match")
 						assert.Equal(tt.vp2Fields.vpName, vp.Name, "VerrazzanoProject name did not match")
 						assert.ElementsMatch(tt.vp2Fields.nsNames, vp.Spec.Namespaces)
+						return nil
+					})
+
+				// Managed Cluster - expect call to list VerrazzanoProject objects on the local cluster
+				localMock.EXPECT().
+					List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
+					DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
+						list.Items = append(list.Items, testProj1)
+						list.Items = append(list.Items, testProj2)
 						return nil
 					})
 
