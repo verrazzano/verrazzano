@@ -4,11 +4,11 @@
 apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
-  name: robert
+  name: bobs-books
   namespace: bobs-books
   annotations:
     version: v1.0.0
-    description: "Robert's Books"
+    description: "Bob's Books"
 spec:
   components:
     - componentName: robert-helidon
@@ -23,23 +23,10 @@ spec:
             kind: IngressTrait
             spec:
               rules:
-                - hosts:
-                    - "roberts-books.example.com"
-                  paths:
+                - paths:
                     - path: "/"
                       pathType: Prefix
     - componentName: robert-coh
----
-apiVersion: core.oam.dev/v1alpha2
-kind: ApplicationConfiguration
-metadata:
-  name: bobby-front-end
-  namespace: bobs-books
-  annotations:
-    version: v1.0.0
-    description: "Bobby front-end"
-spec:
-  components:
     - componentName: bobby-coh
     - componentName: bobby-helidon
     - componentName: bobby-wls
@@ -49,9 +36,7 @@ spec:
             kind: IngressTrait
             spec:
               rules:
-                - hosts:
-                    - "bobbys-books.example.com"
-                  paths:
+                - paths:
                     - path: "/bobbys-front-end"
                       pathType: Prefix
       scopes:
@@ -59,17 +44,6 @@ spec:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: LoggingScope
             name: logging-scope
----
-apiVersion: core.oam.dev/v1alpha2
-kind: ApplicationConfiguration
-metadata:
-  name: bobs-orders-wls
-  namespace: bobs-books
-  annotations:
-    version: v1.0.0
-    description: "Bob's Order Manager WebLogic"
-spec:
-  components:
     - componentName: bobs-orders-wls
       traits:
         - trait:
@@ -77,9 +51,7 @@ spec:
             kind: IngressTrait
             spec:
               rules:
-                - hosts:
-                    - "bobs-orders.example.com"
-                  paths:
+                - paths:
                     - path: "/bobs-bookstore-order-manager/orders"
                       pathType: Prefix
       scopes:

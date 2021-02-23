@@ -24,8 +24,6 @@ spec:
               name: springboot-ingress
             spec:
               rules:
-                - hosts:
-                    - "springboot.example.com"
-                  paths:
+                - paths:
                     - path: "/"
                       pathType: Prefix

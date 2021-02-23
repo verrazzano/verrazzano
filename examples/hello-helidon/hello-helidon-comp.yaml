@@ -4,20 +4,20 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: hello-helidon-component
-  namespace: oam-hello-helidon
+  namespace: hello-helidon
 spec:
   workload:
     apiVersion: core.oam.dev/v1alpha2
     kind: ContainerizedWorkload
     metadata:
       name: hello-helidon-workload
-      namespace: oam-hello-helidon
+      namespace: hello-helidon
       labels:
         app: hello-helidon
     spec:
       containers:
       - name: hello-helidon-container
-        image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4"
+        image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.12-1-20210218160249-d8db8f3"
         ports:
           - containerPort: 8080
             name: http

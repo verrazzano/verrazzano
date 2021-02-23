@@ -1542,35 +1542,6 @@ func TestGetNotFoundResource(t *testing.T) {
 	assert.Equal(time.Duration(0), result.RequeueAfter)
 }
 
-// TestConvertAPIVersionToGroupAndVersion tests multiple use cases for parsing APIVersion
-func TestConvertAPIVersionToGroupAndVersion(t *testing.T) {
-	assert := asserts.New(t)
-	var g, v string
-
-	// GIVEN a normal group/version string
-	// WHEN it is parsed into group and version parts
-	// THEN ensure the parts are correct.
-	g, v = convertAPIVersionToGroupAndVersion("group/version")
-	assert.Equal("group", g)
-	assert.Equal("version", v)
-
-	// GIVEN a normal group/version string with no group.
-	// WHEN it is parsed into group and version parts
-	// THEN ensure the group is the empty string and the version is correct.
-	// This is the case for older standard kubernetes core resources.
-	g, v = convertAPIVersionToGroupAndVersion("/version")
-	assert.Equal("", g)
-	assert.Equal("version", v)
-
-	// GIVEN a normal group/version string with no group.
-	// WHEN it is parsed into group and version parts
-	// THEN ensure the group is the empty string and the version is correct.
-	// This is the case for older standard kubernetes core resources.
-	g, v = convertAPIVersionToGroupAndVersion("version")
-	assert.Equal("", g)
-	assert.Equal("version", v)
-}
-
 // GIVEN a CRs APIVersion and Kind
 // WHEN converting to the related CRD namespaced name
 // THEN ensure the conversion is correct

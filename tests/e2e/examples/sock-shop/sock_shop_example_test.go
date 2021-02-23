@@ -33,7 +33,7 @@ var username, password string
 var _ = BeforeSuite(func() {
 	username = "username" + strconv.FormatInt(time.Now().Unix(), 10)
 	password = b64.StdEncoding.EncodeToString([]byte(time.Now().String()))
-	sockShop = NewSockShop(username, password, pkg.Ingress(), "sockshop.example.com")
+	sockShop = NewSockShop(username, password, pkg.Ingress())
 
 	// deploy the application here
 	if _, err := pkg.CreateNamespace("sockshop", map[string]string{"verrazzano-managed": "true"}); err != nil {
@@ -89,6 +89,11 @@ var _ = Describe("Sock Shop Application", func() {
 			func() {
 				Eventually(isSockShopServiceReady("user"), waitTimeout, pollingInterval).Should(BeTrue())
 			})
+	})
+
+	It("Determine ingress host name", func() {
+		hostname := pkg.GetHostnameFromGateway("sockshop", "")
+		sockShop.SetHostHeader(hostname)
 	})
 
 	It("SockShop can be accessed and user can be registered", func() {
@@ -150,7 +155,7 @@ var _ = Describe("Sock Shop Application", func() {
 		Eventually(func() bool {
 			ipAddress := pkg.Ingress()
 			url := fmt.Sprintf("http://%s/catalogue", ipAddress)
-			host := "sockshop.example.com"
+			host := sockShop.GetHostHeader()
 			status, content := pkg.GetWebPageWithCABundle(url, host)
 			return Expect(status).To(Equal(200)) &&
 				Expect(content).To(ContainSubstring("For all those leg lovers out there."))
@@ -248,4 +253,3 @@ func appComponentMetricsExists() bool {
 func appConfigMetricsExists() bool {
 	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "orders")
 }
-

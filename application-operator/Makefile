@@ -210,7 +210,7 @@ CLUSTER_NAME = verrazzano
 VERRAZZANO_NS = verrazzano-system
 DEPLOY = deploy
 OPERATOR_SETUP = test/operatorsetup
-OAM_RUNTIME_IMAGE="ghcr.io/verrazzano/oam-kubernetes-runtime:v0.3.0"
+OAM_RUNTIME_IMAGE="ghcr.io/verrazzano/oam-kubernetes-runtime:v0.3.0-20210222205541-9e8d4fb"
 
 # These exports are needed for the install.sh
 export KUBECONFIG=${HOME}/.kube/config
