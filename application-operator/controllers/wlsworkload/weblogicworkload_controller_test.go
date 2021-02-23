@@ -493,7 +493,6 @@ func TestAddLoggingFailure(t *testing.T) {
 // THEN the domain resource to spec.configuration.istio.enabled is set to true
 func TestIstioEnabled(t *testing.T) {
 	assert := asserts.New(t)
-	reconciler := Reconciler{}
 
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -508,7 +507,7 @@ func TestIstioEnabled(t *testing.T) {
 			"kind": "Domain",
 		},
 	}
-	err := reconciler.istioEnabled(namespace, u)
+	err := istioEnabled(namespace, u)
 	assert.NoError(err, "Unexpected error setting istio enabled")
 	specIstioEnabled, _, _ := unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
 	assert.Equal(specIstioEnabled, true)
@@ -519,7 +518,6 @@ func TestIstioEnabled(t *testing.T) {
 // THEN the domain resource to spec.configuration.istio.enabled is set to false
 func TestIstioDisabled(t *testing.T) {
 	assert := asserts.New(t)
-	reconciler := Reconciler{}
 
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -534,7 +532,7 @@ func TestIstioDisabled(t *testing.T) {
 			"kind": "Domain",
 		},
 	}
-	err := reconciler.istioEnabled(namespace, u)
+	err := istioEnabled(namespace, u)
 	assert.NoError(err, "Unexpected error setting istio enabled")
 	specIstioEnabled, _, _ := unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
 	assert.Equal(specIstioEnabled, false)
@@ -549,7 +547,7 @@ func TestIstioDisabled(t *testing.T) {
 			"kind": "Domain",
 		},
 	}
-	err = reconciler.istioEnabled(namespace, u)
+	err = istioEnabled(namespace, u)
 	assert.NoError(err, "Unexpected error setting istio enabled")
 	specIstioEnabled, _, _ = unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
 	assert.Equal(specIstioEnabled, false)

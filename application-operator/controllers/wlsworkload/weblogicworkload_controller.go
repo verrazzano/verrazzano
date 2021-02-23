@@ -6,14 +6,19 @@ package wlsworkload
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
+	istionet "istio.io/api/networking/v1alpha3"
+	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -23,14 +28,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const specField = "spec"
+const (
+	specField                 = "spec"
+	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
+	destinationRuleKind       = "DestinationRule"
+)
 
 var specServerPodFields = []string{specField, "serverPod"}
 var specServerPodLabelsFields = append(specServerPodFields, "labels")
 var specServerPodContainersFields = append(specServerPodFields, "containers")
 var specServerPodVolumesFields = append(specServerPodFields, "volumes")
 var specServerPodVolumeMountsFields = append(specServerPodFields, "volumeMounts")
-var specConfigurationIstioEnabledFields = []string{specField, "configuation", "istio", "enabled"}
+var specConfigurationIstioEnabledFields = []string{specField, "configuration", "istio", "enabled"}
 
 // this struct allows us to extract information from the unstructured WebLogic spec
 // so we can interface with the FLUENTD code
@@ -104,7 +113,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	if err = r.istioEnabled(namespace, u); err != nil {
+	if err = istioEnabled(namespace, u); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -123,12 +132,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, nil
 	}
 
+	if err = r.createOrUpdateDestinationRule(ctx, namespace, workload.ObjectMeta.Labels); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	log.Info("Successfully created WebLogic domain")
 	return reconcile.Result{}, nil
 }
 
 // istioEnabled sets the domain resource configuration.istio.enabled value based on the namespace label istio-injection
-func (r *Reconciler) istioEnabled(namespace *corev1.Namespace, u *unstructured.Unstructured) error {
+func istioEnabled(namespace *corev1.Namespace, u *unstructured.Unstructured) error {
 	// Check the value of the istio-injection label
 	istioEnabled := false
 	for key, value := range namespace.Labels {
@@ -139,6 +152,66 @@ func (r *Reconciler) istioEnabled(namespace *corev1.Namespace, u *unstructured.U
 
 	// Set the configuration.istio.enabled value for the domain resource
 	err := unstructured.SetNestedField(u.Object, istioEnabled, specConfigurationIstioEnabledFields...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// createOrUpdateDestinationRule creates or updates an Istio destinationRule required by WebLogic servers.
+// The destinationRule is only created when the namespace has the label istio-injection=enabled.
+// Results are added to the status object.
+func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, namespace *corev1.Namespace, workloadLabels map[string]string) error {
+	// Check the value of the istio-injection label
+	istioEnabled := false
+	for key, value := range namespace.Labels {
+		if key == "istio-injection" && value == "enabled" {
+			istioEnabled = true
+		}
+	}
+
+	if !istioEnabled {
+		return nil
+	}
+
+	// TODO: is this always valid?  Do we need to handle case where not found?
+	appName, _ := workloadLabels[oam.LabelAppName]
+
+	// Create a destinationRule populating only name metadata.
+	// This is used as default if the destinationRule needs to be created.
+	destinationRule := &istioclient.DestinationRule{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: destinationRuleAPIVersion,
+			Kind:       destinationRuleKind},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace.Name,
+			Name:      appName}}
+
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, destinationRule, func() error {
+		return r.mutateDestinationRule(destinationRule, namespace.Name, appName)
+	})
+
+	return err
+}
+
+// mutateDestinationRule mutates the output destinationRule.
+func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.DestinationRule, namespace string, appName string) error {
+	// Set the spec content.
+	destinationRule.Spec.Host = fmt.Sprintf("*.%s.svc.cluster.local", namespace)
+	destinationRule.Spec.TrafficPolicy = &istionet.TrafficPolicy{
+		Tls: &istionet.ClientTLSSettings{
+			Mode: istionet.ClientTLSSettings_ISTIO_MUTUAL,
+		},
+	}
+
+	// Set the owner reference.
+	appConfig := &v1alpha2.ApplicationConfiguration{}
+	err := r.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: appName}, appConfig)
+	if err != nil {
+		return err
+	}
+	err = controllerutil.SetControllerReference(appConfig, destinationRule, r.Scheme)
 	if err != nil {
 		return err
 	}
