@@ -8,7 +8,7 @@
 # $2 Retry limit (optional defaults to 5)
 # $3 Sleep time (optional defaults to 5 seconds)
 function docker_pull_retry () {
-  if [ ! -z "$1" ]; then
+  if [ -z "$1" ]; then
     echo "Image to pull needs to be specified"
     return 1
   fi
