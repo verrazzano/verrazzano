@@ -66,10 +66,10 @@ func (d *LoggingScopeDefaulter) Cleanup(appConfig *oamv1.ApplicationConfiguratio
 // CreateDefaultLoggingScope creates the default logging scope for the given namespace
 func CreateDefaultLoggingScope(name types.NamespacedName, esDetails clusters.ElasticsearchDetails) *vzapi.LoggingScope {
 	// If Elasticsearch are provided, use them. Otherwise use the defaults.
-	esUrl := defaultElasticSearchURL
+	esURL := defaultElasticSearchURL
 	esSecret := defaultSecretName
-	if esDetails.Host != "" && esDetails.Port > 0 && esDetails.SecretName != "" {
-		esUrl = fmt.Sprintf("http://%s:%d",esDetails.Host, esDetails.Port)
+	if esDetails.URL != "" && esDetails.SecretName != "" {
+		esURL = esDetails.URL
 		esSecret = esDetails.SecretName
 	}
 	return &vzapi.LoggingScope{
@@ -80,7 +80,7 @@ func CreateDefaultLoggingScope(name types.NamespacedName, esDetails clusters.Ela
 		},
 		Spec: vzapi.LoggingScopeSpec{
 			FluentdImage:       defaultFluentdImage,
-			ElasticSearchURL:   esUrl,
+			ElasticSearchURL:   esURL,
 			SecretName:         esSecret,
 			WorkloadReferences: []runtimev1alpha1.TypedReference{},
 		},
