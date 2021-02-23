@@ -70,9 +70,13 @@ multiline_flush_interval 20s
 </match>
 `
 
-const specField = "spec"
-const jvmField = "jvm"
-const argsField = "args"
+const (
+	specField = "spec"
+	jvmField  = "jvm"
+	argsField = "args"
+
+	workloadType = "coherence"
+)
 
 var specLabelsFields = []string{specField, "labels"}
 var specAnnotationsFields = []string{specField, "annotations"}
@@ -281,6 +285,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 		ParseRules:             fluentdParsingRules,
 		StorageVolumeName:      "logs",
 		StorageVolumeMountPath: "/logs",
+		WorkloadType:           workloadType,
 	}
 
 	// fluentdManager.Apply wants a QRR but it only cares about the namespace (at least for
@@ -330,7 +335,7 @@ func moveConfigMapVolume(log logr.Logger, fluentdPod *loggingscope.FluentdPod, c
 			fluentdVolMount = container.VolumeMounts[0]
 			// Coherence needs the vol mount to match the config map name, so fix it, need
 			// to see if we can just change name set by the FLUENTD code
-			fluentdVolMount.Name = "fluentd-config"
+			fluentdVolMount.Name = "fluentd-config" + "-" + workloadType
 			fluentdPod.Containers[0].VolumeMounts = nil
 			break
 		}
