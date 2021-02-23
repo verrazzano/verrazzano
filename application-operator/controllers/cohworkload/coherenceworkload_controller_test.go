@@ -191,6 +191,12 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), testESSecretFullName, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), esSecretName))
+	// needs cluster name, expect a call to get verrazzano-cluster secret
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano-cluster"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *corev1.Secret) error {
+			return nil
+		})
 
 	// expect a call to create an empty elasticsearch secret in app namespace (default behavior, so
 	// that fluentd volume mount works)
@@ -304,6 +310,12 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), testESSecretFullName, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), esSecretName))
+	// needs cluster name, expect a call to get verrazzano-cluster secret
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano-cluster"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *corev1.Secret) error {
+			return nil
+		})
 
 	// expect a call to create an empty elasticsearch secret in app namespace (default behavior, so
 	// that fluentd volume mount works)

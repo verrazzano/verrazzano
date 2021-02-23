@@ -212,6 +212,12 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 			return nil
 		})
 
+	// needs cluster name, expect a call to get verrazzano-cluster secret
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano-cluster"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *corev1.Secret) error {
+			return nil
+		})
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).

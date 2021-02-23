@@ -296,6 +296,12 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 			return nil
 		}).Times(1)
 
+	// needs cluster name, expect a call to get verrazzano-cluster secret
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano-cluster"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *v1.Secret) error {
+			return nil
+		})
 	// expect a call to get the elasticsearch secret in app namespace - return not found
 	testESSecretFullName := types.NamespacedName{Namespace: testNamespace, Name: esSecretName}
 	cli.EXPECT().

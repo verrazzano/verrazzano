@@ -387,6 +387,10 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 					},
 				},
 			},
+			{
+				Name:  "CLUSTER_NAME",
+				Value: clusters.GetClusterName(context.TODO(), f.Client),
+			},
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{

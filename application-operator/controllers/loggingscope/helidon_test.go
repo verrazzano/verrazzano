@@ -105,7 +105,7 @@ func TestHelidoHandlerApplyRequeueForDeploymentUpdate(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
 			appContainer := kcore.Container{Name: appContainerName, Image: "test-app-container-image"}
-			fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, "appContainer", scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchURL)
+			fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, "appContainer", scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchURL, "")
 			deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, appContainer, fluentdContainer)
 			vol := kcore.Volume{
 				Name: "app-volume",
@@ -151,7 +151,7 @@ func TestHelidoHandlerRemove(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
 			appContainer := kcore.Container{Name: appContainerName, Image: "test-app-container-image"}
-			fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, "appContainer", scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchURL)
+			fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, "appContainer", scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchURL, "cluster1")
 			deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, appContainer, fluentdContainer)
 			vol := kcore.Volume{
 				Name: "app-volume",
@@ -339,6 +339,14 @@ func expectationsForApplyUseManagedClusterSecret(t *testing.T, mockClient *mocks
 
 	managedClusterSecretNameInAppNS := types.NamespacedName{Namespace: namespace, Name: managedClusterVmiSecretKey.Name}
 
+	// Get cluster secret for cluster name
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano-cluster"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *kcore.Secret) error {
+			vmiSecret(sec)
+			return nil
+		})
+
 	// Check if managed cluster secret VMI secret is already in app namespace - return not found
 	mockClient.EXPECT().
 		Get(gomock.Any(), managedClusterSecretNameInAppNS, gomock.Not(gomock.Nil())).
@@ -379,6 +387,14 @@ func expectationsForApplyNonManagedCluster(t *testing.T, mockClient *mocks.MockC
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: esSecretName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *kcore.Secret) error {
 			return kerrs.NewNotFound(schema.ParseGroupResource("v1.Secret"), esSecretName)
+		})
+
+	// Get cluster secret for cluster name
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano-cluster"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *kcore.Secret) error {
+			vmiSecret(sec)
+			return nil
 		})
 
 	// Check if managed cluster secret VMI secret exists - return not-found since this is NOT a managed cluster
