@@ -131,7 +131,7 @@ func (h *HelidonHandler) Apply(ctx context.Context, workload vzapi.QualifiedReso
 	return nil, nil
 }
 
-// ApplyToDeployment applies a logging scope to an existing in-memory Kubernetes Deployment
+// Apply applies a logging scope to an existing in-memory Kubernetes Deployment
 func (h *HelidonHandler) ApplyToDeployment(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope, deploy *kapps.Deployment) (*ctrl.Result, error) {
 	appContainer, fluentdFound := searchContainers(deploy.Spec.Template.Spec.Containers)
 	h.Log.V(1).Info("Update Deployment", "Deployment", deploy.Name, "fluentdFound", fluentdFound)
