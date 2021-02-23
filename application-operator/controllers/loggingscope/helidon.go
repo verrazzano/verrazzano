@@ -88,6 +88,7 @@ const HelidonFluentdConfiguration = `<label @FLUENT_LOG>
     oam.applicationconfiguration.name "#{ENV['APP_CONF_NAME']}"
     oam.component.namespace "#{ENV['NAMESPACE']}"
     oam.component.name  "#{ENV['COMPONENT_NAME']}"
+    verrazzano.cluster.name  "#{ENV['CLUSTER_NAME']}"
   </record>
 </filter>
 <match **>
@@ -281,6 +282,10 @@ func CreateFluentdContainer(namespace, workloadName, containerName, fluentdImage
 						FieldPath: "metadata.labels['app.oam.dev/component']",
 					},
 				},
+			},
+			{
+				Name:  "CLUSTER_NAME",
+				Value: "",
 			},
 			{
 				Name:  elasticSearchURLField,
