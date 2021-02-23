@@ -32,6 +32,11 @@ fi
 kubectl -n ${TEST_NAMESPACE} delete rolebinding ${TEST_ID}-${TEST_ROLE}-binding || true
 kubectl -n verrazzano-system delete rolebinding ${TEST_ID}-${TEST_ROLE}-binding || true
 kubectl -n istio-system delete rolebinding ${TEST_ID}-${TEST_ROLE}-binding || true
+kubectl -n cert-manager delete rolebinding ${TEST_ID}-${TEST_ROLE}-binding || true
+kubectl -n cattle-system delete rolebinding ${TEST_ID}-${TEST_ROLE}-binding || true
+kubectl -n ingress-nginx delete rolebinding ${TEST_ID}-${TEST_ROLE}-binding || true
+kubectl -n keycloak delete rolebinding ${TEST_ID}-${TEST_ROLE}-binding || true
+
 kubectl -n ${TEST_NAMESPACE} delete rolebinding ${TEST_ID}-${PROJECT_ADMIN_ROLE}-binding || true
 kubectl -n ${TEST_NAMESPACE} delete serviceaccount $TEST_ID-sa || true
 kubectl delete ns $TEST_NAMESPACE || true

@@ -440,19 +440,86 @@ pipeline {
                         }
                         stage ('Run Tests') {
                             parallel {
-                                stage('verify-install') {
+                                stage('verify-install istio') {
+                                    environment {
+                                        TEST_ID = UUID.randomUUID().toString()
+                                        TEST_NAMESPACE = "installistio"
+                                        TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
+                                    }
                                     steps {
-                                        runGinkgoRandomize('verify-install')
+                                        runGinkgoWithKubeClient('verify-install/istio')
+                                    }
+                                    post {
+                                        always {
+                                            sh """
+                                                cd ${GO_REPO_PATH}/verrazzano
+                                                ./tools/scripts/remove-test-kube-client.sh
+                                            """
+                                        }
+                                    }
+                                }
+                                stage('verify-install web') {
+                                    environment {
+                                        TEST_ID = UUID.randomUUID().toString()
+                                        TEST_NAMESPACE = "installweb"
+                                        TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
+                                    }
+                                    steps {
+                                        runGinkgoWithKubeClient('verify-install/web')
+                                    }
+                                    post {
+                                        always {
+                                            sh """
+                                                cd ${GO_REPO_PATH}/verrazzano
+                                                ./tools/scripts/remove-test-kube-client.sh
+                                            """
+                                        }
+                                    }
+                                }
+                                stage('verify-install verrazzano') {
+                                    steps {
+                                        runGinkgoRandomize('verify-install/verrazzano')
+                                    }
+                                }
+                                stage('verify-install kubernetes') {
+                                    steps {
+                                        runGinkgoRandomize('verify-install/kubernetes')
                                     }
                                 }
                                 stage('verify-infra restapi') {
+                                    environment {
+                                        TEST_ID = UUID.randomUUID().toString()
+                                        TEST_NAMESPACE = "infrarestapi"
+                                        TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
+                                    }
                                     steps {
-                                        runGinkgoRandomize('verify-infra/restapi')
+                                        runGinkgoWithKubeClient('verify-infra/restapi')
+                                    }
+                                    post {
+                                        always {
+                                            sh """
+                                                cd ${GO_REPO_PATH}/verrazzano
+                                                ./tools/scripts/remove-test-kube-client.sh
+                                            """
+                                        }
                                     }
                                 }
                                 stage('verify-infra oam') {
+                                    environment {
+                                        TEST_ID = UUID.randomUUID().toString()
+                                        TEST_NAMESPACE = "infraoam"
+                                        TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
+                                    }
                                     steps {
-                                        runGinkgoRandomize('verify-infra/oam')
+                                        runGinkgoWithKubeClient('verify-infra/oam')
+                                    }
+                                    post {
+                                        always {
+                                            sh """
+                                                cd ${GO_REPO_PATH}/verrazzano
+                                                ./tools/scripts/remove-test-kube-client.sh
+                                            """
+                                        }
                                     }
                                 }
                                 stage('verify-infra vmi') {

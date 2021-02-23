@@ -18,6 +18,11 @@ rules:
       - services
       # Access to secrets, mostly for verrazzano secret in verrazzano-system to access vmi
       - secrets
+      - destinationrules
+      - namespaces
+      - deployments
+      - gateways
+      - verrazzanomonitoringinstances
     verbs:
       - get
       - list
