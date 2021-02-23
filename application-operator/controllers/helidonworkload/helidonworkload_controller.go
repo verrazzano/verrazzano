@@ -9,6 +9,8 @@ import (
 
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
+	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -76,6 +78,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
+	// Add the sidecars and configmaps required for logging to the Deployment.
+	if err = r.addLogging(ctx, log, req.NamespacedName.Namespace, workload.ObjectMeta.Labels, deploy); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	// set the controller reference so that we can watch this deployment and it will be deleted automatically
 	if err := ctrl.SetControllerReference(&workload, deploy, r.Scheme); err != nil {
 		return reconcile.Result{}, err
@@ -105,8 +112,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	workload.Status.Resources = nil
-	workload.Status.Resources = append(workload.Status.Resources,
+	// Prepare the list of resources to reference in status.
+	statusResources := []vzapi.QualifiedResourceRelation{
 		vzapi.QualifiedResourceRelation{
 			APIVersion: deploy.GetObjectKind().GroupVersionKind().GroupVersion().String(),
 			Kind:       deploy.GetObjectKind().GroupVersionKind().Kind,
@@ -121,10 +128,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			Namespace:  service.GetNamespace(),
 			Role:       "Service",
 		},
-	)
+	}
 
-	if err := r.Status().Update(ctx, &workload); err != nil {
-		return reconcile.Result{}, err
+	// Update status only if nothing has changed to avoid reconcile loop.
+	if !vzapi.QualifiedResourceRelationSlicesEquivalent(statusResources, workload.Status.Resources) {
+		workload.Status.Resources = statusResources
+		if err := r.Status().Update(ctx, &workload); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	log.Info("Successfully created Verrazzano Helidon workload")
@@ -255,4 +266,27 @@ func mergeMapOverrideWithDest(src, dst map[string]string) map[string]string {
 		}
 	}
 	return r
+}
+
+// addLogging adds a FLUENTD sidecar and updates the Coherence spec if there is an associated LoggingScope
+func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace string, labels map[string]string, deployment *appsv1.Deployment) error {
+	loggingScope, err := vznav.LoggingScopeFromWorkloadLabels(ctx, r.Client, namespace, labels)
+	if err != nil {
+		return err
+	}
+
+	if loggingScope == nil {
+		log.Info("No logging scope found for workload, nothing to do")
+		return nil
+	}
+
+	resource := vzapi.QualifiedResourceRelation{Name: deployment.Name, Namespace: deployment.Namespace}
+	handler := loggingscope.HelidonHandler{Client: r.Client, Log: r.Log}
+	_, err  = handler.ApplyToDeployment(ctx, resource, loggingScope, deployment)
+	if err != nil {
+		log.Info("Failed to add logging to Deployment")
+		return err
+	}
+
+	return nil
 }

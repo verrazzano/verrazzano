@@ -55,6 +55,12 @@ build: go-fmt go-vet
 # Run against the configured Kubernetes cluster in ~/.kube/config
 .PHONY: run
 run:
+	# The commands below should be executed to disable the in-cluster verrazzano-application-operator
+	# kubectl delete validatingwebhookconfigurations verrazzano-application-ingresstrait-validator
+	# kubectl delete mutatingwebhookconfigurations verrazzano-application-istio-defaulter
+	# kubectl delete mutatingwebhookconfigurations verrazzano-application-appconfig-defaulter
+	# kubectl scale deployment verrazzano-application-operator --replicas=0 -n verrazzano-system
+
 	# To enable webhooks: $(GO) run main.go --kubeconfig=${KUBECONFIG} --cert-dir=build/webhook-certs
 	$(GO) run main.go --kubeconfig=${KUBECONFIG} --enable-webhooks=false --metrics-addr=localhost:0
 
