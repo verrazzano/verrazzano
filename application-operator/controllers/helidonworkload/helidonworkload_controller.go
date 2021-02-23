@@ -268,7 +268,7 @@ func mergeMapOverrideWithDest(src, dst map[string]string) map[string]string {
 	return r
 }
 
-// addLogging adds a FLUENTD sidecar and updates the Coherence spec if there is an associated LoggingScope
+// addLogging adds a FLUENTD sidecar and configmap and updates the Deployment
 func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace string, labels map[string]string, deployment *appsv1.Deployment) error {
 	loggingScope, err := vznav.LoggingScopeFromWorkloadLabels(ctx, r.Client, namespace, labels)
 	if err != nil {
