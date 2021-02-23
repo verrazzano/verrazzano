@@ -273,10 +273,10 @@ func TestDeleteVerrazzanoProject(t *testing.T) {
 	}
 }
 
-// TestDeleteVerrazzanoProject tests the synchronization method for the following use case.
-// GIVEN a request to sync MultiClusterConfigMap objects
-// WHEN the object exists on the local cluster but not on the admin cluster
-// THEN ensure that the MultiClusterConfigMap is deleted.
+// TestVerrazzanoProjectMulti tests the synchronization method for the following use case.
+// GIVEN a request to sync multiple VerrazzanoProject objects
+// WHEN the a new object exists
+// THEN ensure that the list of namespaces to watch is correct
 func TestVerrazzanoProjectMulti(t *testing.T) {
 	type fields struct {
 		vpNamespace string
