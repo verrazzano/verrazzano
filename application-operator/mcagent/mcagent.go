@@ -59,6 +59,7 @@ func StartAgent(client client.Client, log logr.Logger) {
 		Log:                log,
 		ManagedClusterName: managedClusterName,
 		Context:            context.TODO(),
+		ProjectNamespaces:  []string{},
 	}
 
 	// Start syncing multi-cluster objects
@@ -75,26 +76,31 @@ func (s *Syncer) StartSync() {
 		if err != nil {
 			s.Log.Error(err, "Error syncing VerrazzanoProject objects")
 		}
-		err = s.syncMCSecretObjects()
-		if err != nil {
-			s.Log.Error(err, "Error syncing MultiClusterSecret objects")
+
+		// Synchronize objects one namespace at a time
+		for _, namespace := range s.ProjectNamespaces {
+			err = s.syncMCSecretObjects(namespace)
+			if err != nil {
+				s.Log.Error(err, "Error syncing MultiClusterSecret objects")
+			}
+			err = s.syncMCConfigMapObjects(namespace)
+			if err != nil {
+				s.Log.Error(err, "Error syncing MultiClusterConfigMap objects")
+			}
+			err = s.syncMCLoggingScopeObjects(namespace)
+			if err != nil {
+				s.Log.Error(err, "Error syncing MultiClusterLoggingScope objects")
+			}
+			err = s.syncMCComponentObjects(namespace)
+			if err != nil {
+				s.Log.Error(err, "Error syncing MultiClusterComponent objects")
+			}
+			err = s.syncMCApplicationConfigurationObjects(namespace)
+			if err != nil {
+				s.Log.Error(err, "Error syncing MultiClusterApplicationConfiguration objects")
+			}
 		}
-		err = s.syncMCConfigMapObjects()
-		if err != nil {
-			s.Log.Error(err, "Error syncing MultiClusterConfigMap objects")
-		}
-		err = s.syncMCLoggingScopeObjects()
-		if err != nil {
-			s.Log.Error(err, "Error syncing MultiClusterLoggingScope objects")
-		}
-		err = s.syncMCComponentObjects()
-		if err != nil {
-			s.Log.Error(err, "Error syncing MultiClusterComponent objects")
-		}
-		err = s.syncMCApplicationConfigurationObjects()
-		if err != nil {
-			s.Log.Error(err, "Error syncing MultiClusterApplicationConfiguration objects")
-		}
+
 		time.Sleep(1 * time.Minute)
 	}
 }

@@ -52,7 +52,8 @@ func TestCreateMCConfigMap(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterConfigMap objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCConfigMapNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcConfigMapList.Items = append(mcConfigMapList.Items, testMCConfigMap)
 			return nil
 		})
@@ -78,7 +79,8 @@ func TestCreateMCConfigMap(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterConfigMap objects - return same list as admin cluster
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCConfigMapNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcConfigMapList.Items = append(mcConfigMapList.Items, testMCConfigMap)
 			return nil
 		})
@@ -91,7 +93,7 @@ func TestCreateMCConfigMap(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCConfigMapObjects()
+	err = s.syncMCConfigMapObjects(testMCConfigMapNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -126,7 +128,8 @@ func TestUpdateMCConfigMap(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterConfigMap objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCConfigMapNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcConfigMapList.Items = append(mcConfigMapList.Items, testMCConfigMapUpdate)
 			return nil
 		})
@@ -155,7 +158,8 @@ func TestUpdateMCConfigMap(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterConfigMap objects - return same list as admin cluster
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCConfigMapNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcConfigMapList.Items = append(mcConfigMapList.Items, testMCConfigMap)
 			return nil
 		})
@@ -168,7 +172,7 @@ func TestUpdateMCConfigMap(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCConfigMapObjects()
+	err = s.syncMCConfigMapObjects(testMCConfigMapNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -206,7 +210,8 @@ func TestDeleteMCConfigMap(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterConfigMap objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCConfigMapNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcConfigMapList.Items = append(mcConfigMapList.Items, testMCConfigMap)
 			return nil
 		})
@@ -223,7 +228,8 @@ func TestDeleteMCConfigMap(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterConfigMap objects - return list including an orphaned object
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCConfigMapNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcConfigMapList.Items = append(mcConfigMapList.Items, testMCConfigMap)
 			mcConfigMapList.Items = append(mcConfigMapList.Items, testMCConfigMapOrphan)
 			return nil
@@ -242,7 +248,7 @@ func TestDeleteMCConfigMap(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCConfigMapObjects()
+	err = s.syncMCConfigMapObjects(testMCConfigMapNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -274,7 +280,8 @@ func TestMCConfigMapPlacement(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterConfigMap objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mCConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mCConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCConfigMapNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mCConfigMapList.Items = append(mCConfigMapList.Items, testMCConfigMap)
 			return nil
 		})
@@ -282,7 +289,8 @@ func TestMCConfigMapPlacement(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterConfigMap objects - return same list as admin cluster
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCConfigMapNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcConfigMapList.Items = append(mcConfigMapList.Items, testMCConfigMap)
 			return nil
 		})
@@ -295,7 +303,7 @@ func TestMCConfigMapPlacement(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCConfigMapObjects()
+	err = s.syncMCConfigMapObjects(testMCConfigMapNamespace)
 
 	// Validate the results
 	adminMocker.Finish()

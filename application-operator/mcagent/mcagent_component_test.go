@@ -53,7 +53,8 @@ func TestCreateMCComponent(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterComponent objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCComponentNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcComponentList.Items = append(mcComponentList.Items, testMCComponent)
 			return nil
 		})
@@ -78,7 +79,8 @@ func TestCreateMCComponent(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterComponent objects - return same list as admin
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCComponentNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcComponentList.Items = append(mcComponentList.Items, testMCComponent)
 			return nil
 		})
@@ -91,7 +93,7 @@ func TestCreateMCComponent(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCComponentObjects()
+	err = s.syncMCComponentObjects(testMCComponentNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -125,7 +127,8 @@ func TestUpdateMCComponent(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterComponent objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCComponentNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcComponentList.Items = append(mcComponentList.Items, testMCComponentUpdate)
 			return nil
 		})
@@ -158,7 +161,8 @@ func TestUpdateMCComponent(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterComponent objects - return same list as admin
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCComponentNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcComponentList.Items = append(mcComponentList.Items, testMCComponent)
 			return nil
 		})
@@ -171,7 +175,7 @@ func TestUpdateMCComponent(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCComponentObjects()
+	err = s.syncMCComponentObjects(testMCComponentNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -209,7 +213,8 @@ func TestDeleteMCComponent(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterComponent objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCComponentNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcComponentList.Items = append(mcComponentList.Items, testMCComponent)
 			return nil
 		})
@@ -226,7 +231,8 @@ func TestDeleteMCComponent(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterComponent objects - return list including an orphaned object
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCComponentNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcComponentList.Items = append(mcComponentList.Items, testMCComponent)
 			mcComponentList.Items = append(mcComponentList.Items, testMCComponentOrphan)
 			return nil
@@ -245,7 +251,7 @@ func TestDeleteMCComponent(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCComponentObjects()
+	err = s.syncMCComponentObjects(testMCComponentNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -277,7 +283,8 @@ func TestMCComponentPlacement(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterComponent objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCComponentNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcComponentList.Items = append(mcComponentList.Items, testMCComponent)
 			return nil
 		})
@@ -285,7 +292,8 @@ func TestMCComponentPlacement(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterComponent objects - return same list as admin
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCComponentNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcComponentList.Items = append(mcComponentList.Items, testMCComponent)
 			return nil
 		})
@@ -298,7 +306,7 @@ func TestMCComponentPlacement(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCComponentObjects()
+	err = s.syncMCComponentObjects(testMCComponentNamespace)
 
 	// Validate the results
 	adminMocker.Finish()

@@ -51,7 +51,8 @@ func TestCreateMCSecret(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterSecret objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCSecretNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
 			return nil
 		})
@@ -78,7 +79,8 @@ func TestCreateMCSecret(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterSecret objects - return same list as admin cluster
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCSecretNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
 			return nil
 		})
@@ -91,7 +93,7 @@ func TestCreateMCSecret(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCSecretObjects()
+	err = s.syncMCSecretObjects(testMCSecretNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -124,7 +126,8 @@ func TestUpdateMCSecret(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterSecret objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCSecretNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcSecretList.Items = append(mcSecretList.Items, testMCSecretUpdate)
 			return nil
 		})
@@ -154,7 +157,8 @@ func TestUpdateMCSecret(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterSecret objects - return same list as admin cluster
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCSecretNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
 			return nil
 		})
@@ -167,7 +171,7 @@ func TestUpdateMCSecret(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCSecretObjects()
+	err = s.syncMCSecretObjects(testMCSecretNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -199,7 +203,8 @@ func TestMCSecretPlacement(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterSecret objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCSecretNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
 			return nil
 		})
@@ -207,7 +212,8 @@ func TestMCSecretPlacement(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterSecret objects - return same list as admin cluster
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCSecretNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
 			return nil
 		})
@@ -220,7 +226,7 @@ func TestMCSecretPlacement(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCSecretObjects()
+	err = s.syncMCSecretObjects(testMCSecretNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -258,7 +264,8 @@ func TestDeleteMCSecret(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterSecret objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCSecretNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
 			return nil
 		})
@@ -275,7 +282,8 @@ func TestDeleteMCSecret(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterSecret objects - return list including an orphaned object
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCSecretNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
 			mcSecretList.Items = append(mcSecretList.Items, testMCSecretOrphan)
 			return nil
@@ -294,7 +302,7 @@ func TestDeleteMCSecret(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCApplicationConfigurationObjects()
+	err = s.syncMCSecretObjects(testMCSecretNamespace)
 
 	// Validate the results
 	adminMocker.Finish()

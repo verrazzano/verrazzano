@@ -197,7 +197,7 @@ endif
 #
 .PHONY: unit-test
 unit-test: go-install
-	$(GO) test -v ./apis/... ./controllers/... ./internal/...
+	$(GO) test -v ./apis/... ./controllers/... ./internal/... ./mcagent/...
 
 .PHONY: coverage
 coverage: unit-test

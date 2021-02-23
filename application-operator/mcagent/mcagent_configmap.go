@@ -13,10 +13,11 @@ import (
 )
 
 // Synchronize MultiClusterConfigMap objects to the local cluster
-func (s *Syncer) syncMCConfigMapObjects() error {
+func (s *Syncer) syncMCConfigMapObjects(namespace string) error {
 	// Get all the MultiClusterConfigMap objects from the admin cluster
 	allAdminMCConfigMaps := clustersv1alpha1.MultiClusterConfigMapList{}
-	err := s.AdminClient.List(s.Context, &allAdminMCConfigMaps)
+	listOptions := &client.ListOptions{Namespace: namespace}
+	err := s.AdminClient.List(s.Context, &allAdminMCConfigMaps, listOptions)
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
@@ -38,7 +39,7 @@ func (s *Syncer) syncMCConfigMapObjects() error {
 	// local cluster and compare to the list received from the admin cluster.
 	// The admin cluster is the source of truth.
 	allLocalMCConfigMaps := clustersv1alpha1.MultiClusterConfigMapList{}
-	err = s.LocalClient.List(s.Context, &allLocalMCConfigMaps)
+	err = s.LocalClient.List(s.Context, &allLocalMCConfigMaps, listOptions)
 	if err != nil {
 		s.Log.Error(err, "failed to list MultiClusterConfigMap on local cluster")
 		return nil

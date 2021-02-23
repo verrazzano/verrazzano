@@ -52,7 +52,8 @@ func TestCreateMCAppConfig(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterApplicationConfiguration objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCAppConfigNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
 			return nil
 		})
@@ -77,7 +78,8 @@ func TestCreateMCAppConfig(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterApplicationConfiguration objects - return same list as admin
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCAppConfigNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
 			return nil
 		})
@@ -90,7 +92,7 @@ func TestCreateMCAppConfig(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCApplicationConfigurationObjects()
+	err = s.syncMCApplicationConfigurationObjects(testMCAppConfigNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -124,7 +126,8 @@ func TestUpdateMCAppConfig(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterApplicationConfiguration objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCAppConfigNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfigUpdate)
 			return nil
 		})
@@ -162,7 +165,8 @@ func TestUpdateMCAppConfig(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterApplicationConfiguration objects - return same list as admin
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCAppConfigNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
 			return nil
 		})
@@ -175,7 +179,7 @@ func TestUpdateMCAppConfig(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCApplicationConfigurationObjects()
+	err = s.syncMCApplicationConfigurationObjects(testMCAppConfigNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -213,7 +217,8 @@ func TestDeleteMCAppConfig(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterApplicationConfiguration objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCAppConfigNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
 			return nil
 		})
@@ -230,7 +235,8 @@ func TestDeleteMCAppConfig(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterApplicationConfiguration objects - return list including an orphaned object
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCAppConfigNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
 			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfigOrphan)
 			return nil
@@ -249,7 +255,7 @@ func TestDeleteMCAppConfig(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCApplicationConfigurationObjects()
+	err = s.syncMCApplicationConfigurationObjects(testMCAppConfigNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
@@ -281,7 +287,8 @@ func TestMCAppConfigPlacement(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterApplicationConfiguration objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCAppConfigNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
 			return nil
 		})
@@ -289,7 +296,8 @@ func TestMCAppConfigPlacement(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterApplicationConfiguration objects - return same list as admin
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCAppConfigNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
 			return nil
 		})
@@ -302,7 +310,7 @@ func TestMCAppConfigPlacement(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 	}
-	err = s.syncMCApplicationConfigurationObjects()
+	err = s.syncMCApplicationConfigurationObjects(testMCAppConfigNamespace)
 
 	// Validate the results
 	adminMocker.Finish()
