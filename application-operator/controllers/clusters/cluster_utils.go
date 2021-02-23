@@ -137,7 +137,7 @@ func FetchManagedClusterElasticSearchDetails(ctx context.Context, rdr client.Rea
 		return ElasticsearchDetails{}
 	}
 	esDetails.Port = uint32(port)
-	esDetails.SecretName = string(clusterSecret.Data[constants.ElasticsearchSecretData])
+	esDetails.SecretName = constants.ElasticsearchSecretName
 	return esDetails
 }
 
