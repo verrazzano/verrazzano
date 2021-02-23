@@ -17,3 +17,15 @@ const AdminKubeconfigData = "admin-kubeconfig"
 
 // ClusterNameData - the field name in MCRegistrationSecret that contains this managed cluster's name
 const ClusterNameData = "managed-cluster-name"
+
+// ElasticsearchHostData - the field name in MCRegistrationSecret that contains the admin cluster's
+// Elasticsearch endpoint's host name
+const ElasticsearchHostData = "elasticsearch-host"
+
+// ElasticsearchPortData - the field name in MCRegistrationSecret that contains the admin cluster's
+// Elasticsearch endpoint's port number
+const ElasticsearchPortData = "elasticsearch-port"
+
+// ElasticsearchSecretData - the field name in MCRegistrationSecret that contains the name of a
+// secret containing the credentials for the admin cluster's Elasticsearch endpoint
+const ElasticsearchSecretData = "elasticsearch-secret"
