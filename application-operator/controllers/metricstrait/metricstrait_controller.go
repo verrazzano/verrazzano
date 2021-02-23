@@ -644,6 +644,10 @@ func (r *Reconciler) fetchTraitDefaults(ctx context.Context, workload *unstructu
 	if matched, _ := regexp.MatchString("^coherence.oracle.com/.*\\.Coherence$", apiVerKind); matched {
 		return r.newTraitDefaultsForCOHWorkload(ctx, workload)
 	}
+	// Match any version of APIVersion=coherence.oracle and Kind=Coherence
+	if matched, _ := regexp.MatchString("^oam.verrazzano.io/.*\\.VerrazzanoHelidonWorkload$", apiVerKind); matched {
+		return r.newTraitDefaultsForHelidonWorkload()
+	}
 	// Match any version of APIVersion=core.oam.dev and Kind=ContainerizedWorkload
 	if matched, _ := regexp.MatchString("^core.oam.dev/.*\\.ContainerizedWorkload$", apiVerKind); matched {
 		return r.newTraitDefaultsForOAMContainerizedWorkload()
@@ -690,6 +694,17 @@ func (r *Reconciler) newTraitDefaultsForCOHWorkload(ctx context.Context, workloa
 		Port:    &port,
 		Path:    &path,
 		Secret:  secret,
+		Scraper: &r.Scraper}, nil
+}
+
+// newTraitDefaultsForHelidonWorkload creates metrics trait default values for a containerized workload.
+func (r *Reconciler) newTraitDefaultsForHelidonWorkload() (*vzapi.MetricsTraitSpec, error) {
+	port := defaultScrapePort
+	path := defaultScrapePath
+	return &vzapi.MetricsTraitSpec{
+		Port:    &port,
+		Path:    &path,
+		Secret:  nil,
 		Scraper: &r.Scraper}, nil
 }
 
