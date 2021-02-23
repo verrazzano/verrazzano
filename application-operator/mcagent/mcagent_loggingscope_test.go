@@ -52,7 +52,8 @@ func TestCreateMCLoggingScope(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterLoggingScope objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterLoggingScopeList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcLoggingScopeList *clustersv1alpha1.MultiClusterLoggingScopeList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcLoggingScopeList *clustersv1alpha1.MultiClusterLoggingScopeList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCLoggingScopeNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcLoggingScopeList.Items = append(mcLoggingScopeList.Items, testMCLoggingScope)
 			return nil
 		})
@@ -79,7 +80,8 @@ func TestCreateMCLoggingScope(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterLoggingScope objects - return same list as admin cluster
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterLoggingScopeList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcLoggingScopeList *clustersv1alpha1.MultiClusterLoggingScopeList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcLoggingScopeList *clustersv1alpha1.MultiClusterLoggingScopeList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCLoggingScopeNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcLoggingScopeList.Items = append(mcLoggingScopeList.Items, testMCLoggingScope)
 			return nil
 		})
@@ -126,7 +128,8 @@ func TestUpdateMCLoggingScope(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterLoggingScope objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterLoggingScopeList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcLoggingScopeList *clustersv1alpha1.MultiClusterLoggingScopeList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcLoggingScopeList *clustersv1alpha1.MultiClusterLoggingScopeList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCLoggingScopeNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcLoggingScopeList.Items = append(mcLoggingScopeList.Items, testMCLoggingScopeUpdate)
 			return nil
 		})
@@ -156,7 +159,8 @@ func TestUpdateMCLoggingScope(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterLoggingScope objects - return same list as admin cluster
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterLoggingScopeList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcLoggingScopeList *clustersv1alpha1.MultiClusterLoggingScopeList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcLoggingScopeList *clustersv1alpha1.MultiClusterLoggingScopeList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCLoggingScopeNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcLoggingScopeList.Items = append(mcLoggingScopeList.Items, testMCLoggingScope)
 			return nil
 		})
@@ -207,7 +211,8 @@ func TestDeleteMCLoggingScope(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterLoggingScope objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterLoggingScopeList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcLoggingScopeList *clustersv1alpha1.MultiClusterLoggingScopeList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcLoggingScopeList *clustersv1alpha1.MultiClusterLoggingScopeList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCLoggingScopeNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcLoggingScopeList.Items = append(mcLoggingScopeList.Items, testMCLoggingScope)
 			return nil
 		})
@@ -224,7 +229,8 @@ func TestDeleteMCLoggingScope(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterLoggingScope objects - return list including an orphaned object
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterLoggingScopeList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcLoggingScopeList *clustersv1alpha1.MultiClusterLoggingScopeList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcLoggingScopeList *clustersv1alpha1.MultiClusterLoggingScopeList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCLoggingScopeNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcLoggingScopeList.Items = append(mcLoggingScopeList.Items, testMCLoggingScope)
 			mcLoggingScopeList.Items = append(mcLoggingScopeList.Items, testMCLoggingScopeOrphan)
 			return nil
@@ -275,7 +281,8 @@ func TestMCLoggingScopePlacement(t *testing.T) {
 	// Admin Cluster - expect call to list MultiClusterLoggingScope objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterLoggingScopeList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcLoggingScopeList *clustersv1alpha1.MultiClusterLoggingScopeList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcLoggingScopeList *clustersv1alpha1.MultiClusterLoggingScopeList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCLoggingScopeNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcLoggingScopeList.Items = append(mcLoggingScopeList.Items, testMCLoggingScope)
 			return nil
 		})
@@ -283,7 +290,8 @@ func TestMCLoggingScopePlacement(t *testing.T) {
 	// Managed Cluster - expect call to list MultiClusterLoggingScope objects - return same list as admin cluster
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterLoggingScopeList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, mcLoggingScopeList *clustersv1alpha1.MultiClusterLoggingScopeList, opts ...*client.ListOptions) error {
+		DoAndReturn(func(ctx context.Context, mcLoggingScopeList *clustersv1alpha1.MultiClusterLoggingScopeList, listOptions *client.ListOptions) error {
+			assert.Equal(testMCLoggingScopeNamespace, listOptions.Namespace, "list request did not have expected namespace")
 			mcLoggingScopeList.Items = append(mcLoggingScopeList.Items, testMCLoggingScope)
 			return nil
 		})
