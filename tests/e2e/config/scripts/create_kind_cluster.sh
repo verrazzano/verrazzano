@@ -14,6 +14,8 @@ KIND_IMAGE=""
 create_kind_cluster() {
   if [ ${K8S_VERSION} == 1.17 ]; then
     KIND_IMAGE="v1.17.11@sha256:5240a7a2c34bf241afb54ac05669f8a46661912eab05705d660971eeb12f6555"
+  elif [ ${K8S_VERSION} == 1.18 ]; then
+    KIND_IMAGE="v1.18.8@sha256:f4bcc97a0ad6e7abaf3f643d890add7efe6ee4ab90baeb374b4f41a4c95567eb"
   elif [ ${K8S_VERSION} == 1.19 ]; then
     KIND_IMAGE="v1.19.1@sha256:98cf5288864662e37115e362b23e4369c8c4a408f99cbc06e58ac30ddc721600"
   elif [ ${K8S_VERSION} == 1.20 ]; then
