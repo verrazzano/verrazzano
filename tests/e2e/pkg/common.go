@@ -48,13 +48,13 @@ func assert(wg *sync.WaitGroup, assertion func()) {
 }
 
 // AssertURLAccessibleAndAuthorized - Assert that a URL is accessible using the provided credentials
-func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, credentials *UsernamePassword) {
+func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, credentials *UsernamePassword, expectedHTTPStatuses []int) {
 	req, err := retryablehttp.NewRequest("GET", url, nil)
 	req.SetBasicAuth(credentials.Username, credentials.Password)
 	resp, err := client.Do(req)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "GET %s", url)
 	resp.Body.Close()
-	gomega.Expect(resp.StatusCode).To(gomega.Equal(http.StatusOK), "GET %s", url)
+	gomega.Expect(expectedHTTPStatuses).Should(gomega.ContainElement(resp.StatusCode), "GET %s", url)
 }
 
 //PodsRunning checks if all the pods identified by namePrefixes are ready and running

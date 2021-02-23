@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"net/http"
+
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -63,6 +65,6 @@ func verifySystemVMIComponent(sysVmiHttpClient *retryablehttp.Client, vmiCredent
 	ingress := api.GetIngress("verrazzano-system", ingressName)
 	vmiComponentURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
 	gomega.Expect(vmiComponentURL).Should(gomega.HavePrefix(expectedUrlPrefix))
-	pkg.AssertURLAccessibleAndAuthorized(sysVmiHttpClient, vmiComponentURL, vmiCredentials)
+	pkg.AssertURLAccessibleAndAuthorized(sysVmiHttpClient, vmiComponentURL, vmiCredentials, []int{http.StatusOK})
 	return true
 }

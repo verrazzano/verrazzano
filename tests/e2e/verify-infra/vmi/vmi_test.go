@@ -7,10 +7,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
 
 	"github.com/hashicorp/go-retryablehttp"
 
@@ -214,10 +215,15 @@ func jq(node interface{}, path ...string) interface{} {
 func assertIngressURL(key string) {
 	gomega.Expect(ingressURLs).To(gomega.HaveKey(key), fmt.Sprintf("Ingress %s not found", key))
 	assertURLAccessibleAndUnauthorized(ingressURLs[key])
-	assertURLAccessibleAndAuthorized(ingressURLs[key])
+	if key == "vmi-system-kibana" {
+		assertURLAccessibleAndAuthorized(ingressURLs[key], []int{http.StatusOK, http.StatusFound})
+	} else {
+		assertURLAccessibleAndAuthorized(ingressURLs[key], []int{http.StatusOK})
+	}
+
 }
-func assertURLAccessibleAndAuthorized(url string) {
-	pkg.AssertURLAccessibleAndAuthorized(sysVmiHttpClient, url, creds)
+func assertURLAccessibleAndAuthorized(url string, expectedHTTPStasuses []int) {
+	pkg.AssertURLAccessibleAndAuthorized(sysVmiHttpClient, url, creds, expectedHTTPStasuses)
 }
 
 func assertURLAccessibleAndUnauthorized(url string) {
