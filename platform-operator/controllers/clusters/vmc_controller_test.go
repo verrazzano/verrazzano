@@ -134,7 +134,7 @@ func TestCreateVMC(t *testing.T) {
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.Equal(vmc.Spec.KubeconfigSecret, generateManagedResourceName(name), "KubeconfigSecret name did not match")
+			asserts.Equal(vmc.Spec.ClusterRegistrationSecret, generateManagedResourceName(name), "ClusterRegistrationSecret name did not match")
 			return nil
 		})
 

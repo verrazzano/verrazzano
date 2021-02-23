@@ -14,7 +14,8 @@ import (
 
 const clusterAdmin = "cluster-admin"
 const platformOperator = "verrazzano-platform-operator"
-const managedGeneratedName = "cluster1-managed-cluster"
+const managedGeneratedName_1 = "verrazzano-cluster-cluster1"
+const managedGeneratedName_2 = "verrazzano-cluster-cluster2"
 const installNamespace = "verrazzano-install"
 const vzMcNamespace = "verrazzano-mc"
 const prometheusSecret = "prometheus-cluster1"
@@ -113,23 +114,23 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 	})
 	ginkgo.It("ServiceAccount exists ", func() {
 		serviceAccountExists := func() bool {
-			return K8sClient.DoesServiceAccountExist(managedGeneratedName, vzMcNamespace)
+			return K8sClient.DoesServiceAccountExist(managedGeneratedName_1, vzMcNamespace)
 		}
 		gomega.Eventually(serviceAccountExists, "30s", "5s").Should(gomega.BeTrue(),
 			"The ServiceAccount should exist")
 	})
 	ginkgo.It("ClusterRoleBinding exists ", func() {
 		bindingExists := func() bool {
-			return K8sClient.DoesClusterRoleBindingExist(managedGeneratedName)
+			return K8sClient.DoesClusterRoleBindingExist(managedGeneratedName_1)
 		}
 		gomega.Eventually(bindingExists, "30s", "5s").Should(gomega.BeTrue(),
 			"The ClusterRoleBinding should exist")
 	})
 	ginkgo.It("kubeconfig Secret exists ", func() {
 		secretExists := func() bool {
-			return K8sClient.DoesSecretExist(managedGeneratedName, vzMcNamespace)
+			return K8sClient.DoesSecretExist(managedGeneratedName_1, vzMcNamespace)
 		}
 		gomega.Eventually(secretExists, "30s", "5s").Should(gomega.BeTrue(),
-			fmt.Sprintf("The kubeconfig Secret %s should exist in %s", managedGeneratedName, vzMcNamespace))
+			fmt.Sprintf("The kubeconfig Secret %s should exist in %s", managedGeneratedName_1, vzMcNamespace))
 	})
 })
