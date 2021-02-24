@@ -42,5 +42,3 @@ rules:
       - namespaces
     verbs:
       - get
-      - list
-      - watch
