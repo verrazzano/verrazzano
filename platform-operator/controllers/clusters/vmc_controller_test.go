@@ -27,6 +27,18 @@ import (
 const apiVersion = "clusters.verrazzano.io/v1alpha1"
 const kind = "VerrazzanoManagedCluster"
 
+const kubeAdminData = `
+apiEndpoints:
+  oke-xyz:
+    advertiseAddress: 1.2.3.4
+    bindPort: 6443
+`
+const (
+	kubeSystem       = "kube-system"
+	kubeAdminConfig  = "kubeadm-config"
+	clusterStatusKey = "ClusterStatus"
+)
+
 // TestCreateVMC tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an VerrazzanoManagedCluster resource
 // WHEN a VerrazzanoManagedCluster resource has been applied
@@ -133,6 +145,16 @@ func TestCreateVMC(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.Equal(vmc.Spec.ClusterRegistrationSecret, generateManagedResourceName(name), "ClusterRegistrationSecret name did not match")
+			return nil
+		})
+
+	// Expect a call to get the kubeadmin configmap
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: kubeSystem, Name: kubeAdminConfig}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, cm *corev1.ConfigMap) error {
+			cm.Data = map[string]string{
+				clusterStatusKey: kubeAdminData,
+			}
 			return nil
 		})
 

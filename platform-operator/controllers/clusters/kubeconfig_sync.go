@@ -8,6 +8,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	vzk8s "github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
+
+	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -15,37 +18,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
 )
-
-// These kubeconfig related structs represent the kubeconfig information needed to build kubeconfig YAML.
-type kubeConfig struct {
-	Clusters       []kcCluster `json:"clusters"`
-	Users          []kcUser    `json:"users"`
-	Contexts       []kcContext `json:"contexts"`
-	CurrentContext string      `json:"current-context"`
-}
-type kcCluster struct {
-	Name    string        `json:"name"`
-	Cluster kcClusterData `json:"cluster"`
-}
-type kcClusterData struct {
-	Server   string `json:"server"`
-	CertAuth string `json:"certificate-authority-data"`
-}
-type kcUser struct {
-	Name string     `json:"name"`
-	User kcUserData `json:"user"`
-}
-type kcUserData struct {
-	Token string `json:"token"`
-}
-type kcContext struct {
-	Name    string        `json:"name"`
-	Context kcContextData `json:"context"`
-}
-type kcContextData struct {
-	User    string `json:"user"`
-	Cluster string `json:"cluster"`
-}
 
 // These names are used internally in the generated kubeconfig. The names
 // are meant to be descriptive and the actual values don't affect behavior.
@@ -113,32 +85,24 @@ func (r *VerrazzanoManagedClusterReconciler) syncKubeConfig(vmc *clusterapi.Verr
 
 	// Load the kubeconfig struct
 	token := secret.Data["token"]
-	b64Cert := base64.StdEncoding.EncodeToString(config.CAData)
-	kc := kubeConfig{
-		Clusters: []kcCluster{{
-			Name: clusterName,
-			Cluster: kcClusterData{
-				Server:   config.Host,
-				CertAuth: b64Cert,
-			},
-		}},
-		Users: []kcUser{{
-			Name: userName,
-			User: kcUserData{
-				Token: string(token),
-			},
-		}},
-		Contexts: []kcContext{{
-			Name: contextName,
-			Context: kcContextData{
-				User:    userName,
-				Cluster: clusterName,
-			},
-		}},
-		CurrentContext: contextName,
+	b64Cert, err := getB64CAData(config)
+	serverURL, err := vzk8s.GetApiServerURL(r)
+	if err != nil {
+		return err
 	}
 
-	// Convert the kubeconfig to yaml then write to a secret
+	kb := vzk8s.KubeconfigBuilder{
+		ClusterName: clusterName,
+		Server:      serverURL,
+		CertAuth:    b64Cert,
+		UserName:    userName,
+		UserToken:   string(token),
+		ContextName: contextName,
+	}
+	kc := kb.New()
+
+	// Convert the kubeconfig to yaml then write
+	//ite to a secret
 	kcBytes, err := yaml.Marshal(kc)
 	if err != nil {
 		return err
@@ -180,4 +144,16 @@ func (r *VerrazzanoManagedClusterReconciler) mutateSecret(secret *corev1.Secret,
 		managedClusterNameKey: []byte(manageClusterName),
 	}
 	return nil
+}
+
+// Get the CAData from memory or a file
+func getB64CAData(config *rest.Config) (string, error){
+	if len(config.CAData) > 0 {
+		return base64.StdEncoding.EncodeToString(config.CAData), nil
+	}
+	s, err := ioutil.ReadFile(config.CAFile)
+	if err != nil {
+		return "", fmt.Errorf("Error %v reading CAData file %s", err, config.CAFile)
+	}
+	return base64.StdEncoding.EncodeToString(s), nil
 }

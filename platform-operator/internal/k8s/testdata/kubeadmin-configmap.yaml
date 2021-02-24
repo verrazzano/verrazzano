@@ -1,0 +1,12 @@
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: v1
+data:
+  ClusterStatus: |
+    apiEndpoints:
+      oke-xyz:
+        advertiseAddress: 1.2.3.4
+        bindPort: 6443
+    apiVersion: kubeadm.k8s.io/v1beta2
+    kind: ClusterStatus
