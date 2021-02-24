@@ -13,7 +13,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	istionetworkingv1alpha3 "istio.io/api/networking/v1alpha3"
 	istioclientv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
-	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -61,7 +60,7 @@ var _ = ginkgo.Describe("Istio", func() {
 	ginkgoExt.DescribeTable("should be running with Mutual TLS enabled",
 		func(namespace string) {
 			ginkgo.By("Default mesh policy should have Mutual TLS enabled in permissive mode")
-			istioClient := getIstioClientset()
+			istioClient := pkg.GetIstioClientset()
 
 			// TODO: Need to resolve which version of API to use in go.mod
 			//			mp, err := istioClient.AuthenticationV1alpha1().MeshPolicies().Get("default", metav1.GetOptions{})
@@ -82,7 +81,7 @@ var _ = ginkgo.Describe("Istio", func() {
 			expectedGateways := []string{
 				"istio-multicluster-ingressgateway",
 			}
-			istioClient := getIstioClientset()
+			istioClient := pkg.GetIstioClientset()
 
 			gatewayNames := func(gatewayList *istioclientv1alpha3.GatewayList) []string {
 				gatewayNames := []string{}
@@ -103,12 +102,3 @@ var _ = ginkgo.Describe("Istio", func() {
 		ginkgoExt.Entry("check gateways configured", istioNamespace),
 	)
 })
-
-// getIstioClientset returns the clientset object for Istio
-func getIstioClientset() *istioClient.Clientset {
-	cs, err := istioClient.NewForConfig(pkg.GetKubeConfig())
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("failed to get Istio clientset: %v", err))
-	}
-	return cs
-}

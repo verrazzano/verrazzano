@@ -7,6 +7,7 @@ import (
 	"context"
 	"testing"
 
+	oamapi "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -160,6 +161,17 @@ func TestReconcileCreateHelidon(t *testing.T) {
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.GroupVersion.String()
 			workload.Kind = "VerrazzanoHelidonWorkload"
+			return nil
+		})
+	// expect a call to fetch the application configuration
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-app-config"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration) error {
+			appconf.Namespace = name.Namespace
+			appconf.Name = name.Name
+			appconf.APIVersion = oamapi.SchemeGroupVersion.String()
+			appconf.Kind = oamapi.ApplicationConfigurationKind
+			appconf.Spec.Components = []oamapi.ApplicationConfigurationComponent{{ComponentName: "unit-test-component"}}
 			return nil
 		})
 	// expect a call to create the Deployment

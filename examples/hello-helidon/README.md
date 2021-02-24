@@ -16,19 +16,19 @@ The Hello World Helidon application deployment artifacts are contained in the Ve
 
 1. Create a namespace for the example application and add a label identifying the namespace as managed by Verrazzano.
    ```
-   kubectl create namespace oam-hello-helidon
-   kubectl label namespace oam-hello-helidon verrazzano-managed=true
+   $ kubectl create namespace hello-helidon
+   $ kubectl label namespace hello-helidon verrazzano-managed=true
    ```
 
 1. Apply the `hello-helidon` OAM resources to deploy the application.
    ```
-   kubectl apply -f hello-helidon-comp.yaml
-   kubectl apply -f hello-helidon-app.yaml
+   $ kubectl apply -f hello-helidon-comp.yaml
+   $ kubectl apply -f hello-helidon-app.yaml
    ```
 
 1. Wait for the application to be ready.
    ```
-   kubectl wait --for=condition=Ready pods --all -n oam-hello-helidon --timeout=300s
+   $ kubectl wait --for=condition=Ready pods --all -n hello-helidon --timeout=300s
    ```
 
 ## Testing the example application
@@ -41,57 +41,59 @@ ports, and such.
 
 Follow these steps to test the endpoints:
 
-1. Get the `EXTERNAL_IP` address of the `istio-ingressgateway` service.  
+1. Get the generated host name for the application.
 
    ```
-   kubectl get service istio-ingressgateway -n istio-system
+   $ HOST=$(kubectl get gateway hello-helidon-hello-helidon-appconf-gw -n hello-helidon -o jsonpath={.spec.servers[0].hosts[0]})
+   $ echo $HOST
+   hello-helidon-appconf.hello-helidon.11.22.33.44.xip.io
+   ```
 
-   NAME                   TYPE           CLUSTER-IP    EXTERNAL-IP   PORT(S)                      AGE
-   istio-ingressgateway   LoadBalancer   10.96.97.98   11.22.33.44   80:31380/TCP,443:31390/TCP   13d
+1. Get the `EXTERNAL_IP` address of the `istio-ingressgateway` service.
+   ```
+   $ ADDRESS=$(kubectl get service -n istio-system istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+   $ echo $ADDRESS
+   11.22.33.44
    ```   
 
-1. By default, the application is deployed with a host value of `hello-helidon.example.com`.
+1. Access the application.
 
    There are several ways to access it:
    * **Using the command line**
-
-     To call the `/greet` endpoint, use the external IP provided by the previous step:
-
      ```
-     curl -s -X GET -H "Host: hello-helidon.example.com" http://<external IP>/greet
+     $ curl -sk -X GET https://${HOST}/greet --resolve ${HOST}:443:${ADDRESS}
      {"message":"Hello World!"}
      ```
+     If you are using `xip.io` then you do not need to include `--resolve`.
    * **Local testing with a browser**
-
      Temporarily, modify the `/etc/hosts` file (on Mac or Linux)
      or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10),
-     to add an entry mapping `hello-helidon.example.com` to the ingress gateway's `EXTERNAL-IP` address.
+     to add an entry mapping the host name to the ingress gateway's `EXTERNAL-IP` address.
      For example:
      ```
      11.22.33.44 hello-helidon.example.com
      ```
-     Then, you can access the application in a browser at `http://hello-helidon.example.com/greet`.
+     Then you can access the application in a browser at `https://<host>/greet`.
 
    * **Using your own DNS name:**
-
      * Point your own DNS name to the ingress gateway's `EXTERNAL-IP` address.
      * In this case, you would need to edit the `hello-helidon-app.yaml` file
        to use the appropriate value under the `hosts` section (such as `yourhost.your.domain`),
        before deploying the `hello-helidon` application.
-     * Then, you can use a browser to access the application at `http://<yourhost.your.domain>/greet`.
+     * Then, you can use a browser to access the application at `https://<yourhost.your.domain>/greet`.
 
 ## Troubleshooting
 
 1. Verify that the application configuration, domain, and ingress trait all exist.
    ```
-   kubectl get ApplicationConfiguration -n oam-hello-helidon
-   kubectl get IngressTrait -n oam-hello-helidon
+   $ kubectl get ApplicationConfiguration -n hello-helidon
+   $ kubectl get IngressTrait -n hello-helidon
    ```   
 
 1. Verify that the `hello-helidon` service pods are successfully created and transition to the ready state.
    Note that this may take a few minutes and that you may see some of the services terminate and restart.
    ```
-    kubectl get pods -n oam-hello-helidon
+    $ kubectl get pods -n hello-helidon
 
     NAME                                      READY   STATUS    RESTARTS   AGE
     hello-helidon-workload-676d97c7d4-wkrj2   2/2     Running   0          5m39s
@@ -101,7 +103,7 @@ the deployed Hello World Helidon application.  Accessing them may require the fo
 
     - Run this command to get the password that was generated for the telemetry components:
         ```
-        kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
+        $ kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
         ```
         The associated user name is `verrazzano`.
 
@@ -110,7 +112,7 @@ the deployed Hello World Helidon application.  Accessing them may require the fo
     You can retrieve the list of available ingresses with following command:
 
     ```
-    kubectl get ing -n verrazzano-system
+    $ kubectl get ing -n verrazzano-system
     NAME                         CLASS    HOSTS                                                    ADDRESS          PORTS     AGE
     verrazzano-console-ingress   <none>   verrazzano.default.140.238.94.217.xip.io                 140.238.94.217   80, 443   7d2h
     vmi-system-api               <none>   api.vmi.system.default.140.238.94.217.xip.io             140.238.94.217   80, 443   7d2h
@@ -128,6 +130,5 @@ the deployed Hello World Helidon application.  Accessing them may require the fo
     | Kibana | `https://[vmi-system-kibana ingress host]` | `verrazzano`/`telemetry-password` |
     | Grafana | `https://[vmi-system-grafana ingress host]` | `verrazzano`/`telemetry-password` |
     | Prometheus | `https://[vmi-system-prometheus ingress host]` | `verrazzano`/`telemetry-password` |    
-
 
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
