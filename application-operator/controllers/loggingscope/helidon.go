@@ -93,7 +93,7 @@ const HelidonFluentdConfiguration = `<label @FLUENT_LOG>
 <match **>
   @type elasticsearch
   hosts "#{ENV['ELASTICSEARCH_URL']}"
-  ca_file "#{ENV['ELASTICSEARCH_CA_BUNDLE']}"
+  ca_file /fluentd/secret/ca-bundle
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
   index_name "` + ElasticSearchIndex + `"
@@ -154,6 +154,7 @@ func (h *HelidonHandler) ApplyToDeployment(ctx context.Context, workload vzapi.Q
 		deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volume)
 	}
 	deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdConfigMapVolume(workload.Name))
+	deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdSecretVolume(scope.Spec.SecretName))
 	fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, appContainer, scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchURL)
 	deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, fluentdContainer)
 	return nil, nil
@@ -189,7 +190,7 @@ func (h *HelidonHandler) Remove(ctx context.Context, workload vzapi.QualifiedRes
 		existingValumes := deploy.Spec.Template.Spec.Volumes
 		deploy.Spec.Template.Spec.Volumes = []kcore.Volume{}
 		for _, vol := range existingValumes {
-			if vol.Name != volumeVarlog && vol.Name != volumeData && vol.Name != volumeConf {
+			if vol.Name != volumeVarlog && vol.Name != volumeData && vol.Name != volumeConf && vol.Name != volumeSecret {
 				deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, vol)
 			}
 		}
@@ -317,9 +318,14 @@ func CreateFluentdContainer(namespace, workloadName, containerName, fluentdImage
 		},
 		VolumeMounts: []kcore.VolumeMount{
 			{
-				MountPath: "/fluentd/etc/fluentd.conf",
+				MountPath: fluentdConfMountPath,
 				Name:      volumeConf,
 				SubPath:   fluentdConfKey,
+				ReadOnly:  true,
+			},
+			{
+				MountPath: secretMountPath,
+				Name:      volumeSecret,
 				ReadOnly:  true,
 			},
 			{
@@ -373,6 +379,17 @@ func CreateFluentdConfigMapVolume(workloadName string) kcore.Volume {
 					return &mode
 				}(420),
 			},
+		},
+	}
+}
+
+// CreateFluentdSecretVolume create a secret volume for FLUENTD.
+func CreateFluentdSecretVolume(secretName string) kcore.Volume {
+	return kcore.Volume{
+		Name: volumeSecret,
+		VolumeSource: kcore.VolumeSource{
+			Secret: &kcore.SecretVolumeSource{
+				SecretName: secretName},
 		},
 	}
 }

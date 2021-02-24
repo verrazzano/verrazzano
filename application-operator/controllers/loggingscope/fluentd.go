@@ -19,6 +19,7 @@ import (
 
 const (
 	fluentdConfKey       = "fluentd.conf"
+	fluentdConfMountPath = "/fluentd/etc/fluentd.conf"
 	fluentdContainerName = "fluentd"
 	configMapName        = "fluentd-config"
 	scratchVolMountPath  = "/scratch"
@@ -26,11 +27,11 @@ const (
 	elasticSearchURLEnv  = "ELASTICSEARCH_URL"
 	elasticSearchUserEnv = "ELASTICSEARCH_USER"
 	elasticSearchPwdEnv  = "ELASTICSEARCH_PASSWORD"
-	elasticSearchCAEnv   = "ELASTICSEARCH_CA_BUNDLE"
 
 	secretUserKey     = "username"
 	secretPasswordKey = "password"
-	secretCABundleKey = "ca-bundle"
+	volumeSecret      = "secret-volume"
+	secretMountPath   = "/fluentd/secret"
 )
 
 // ElasticSearchIndex defines the common index pattern
@@ -380,9 +381,14 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				MountPath: "/fluentd/etc/fluentd.conf",
+				MountPath: fluentdConfMountPath,
 				Name:      volumeConf,
 				SubPath:   fluentdConfKey,
+				ReadOnly:  true,
+			},
+			{
+				MountPath: secretMountPath,
+				Name:      volumeSecret,
 				ReadOnly:  true,
 			},
 			{
