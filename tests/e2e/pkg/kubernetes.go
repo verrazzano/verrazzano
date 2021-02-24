@@ -293,8 +293,17 @@ func GetNamespace(name string) (*corev1.Namespace, error) {
 func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, error) {
 
 	existingNamespace, err := GetNamespace(name)
+	if err != nil {
+		Log(Error, fmt.Sprintf("CreateNamespace %s, error while getting existing namespace: %v", name, err))
+		return nil, err
+	}
+
 	if existingNamespace != nil && existingNamespace.Name == name {
 		return existingNamespace, nil
+	}
+
+	if len(os.Getenv("TEST_KUBECONFIG")) > 0 {
+		return nil, fmt.Errorf("CreateNamespace %s, test is running with custom service account and namespace must be pre-created", name)
 	}
 
 	// Get the kubernetes clientset
@@ -309,20 +318,22 @@ func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, 
 	ns, err := clientset.CoreV1().Namespaces().Create(context.TODO(), namespace, metav1.CreateOptions{})
 	if err != nil {
 		Log(Error, fmt.Sprintf("CreateNamespace %s error: %v", name, err))
+		return nil, err
 	}
-	return ns, err
+
+	return ns, nil
 }
 
 // DeleteNamespace deletes a namespace
 func DeleteNamespace(name string) error {
+	if len(os.Getenv("TEST_KUBECONFIG")) > 0 {
+		Log(Info, fmt.Sprintf("DeleteNamespace %s, test is running with custom service account and therefore namespace won't be deletd by test", name))
+		return nil
+	}
+
 	// Get the kubernetes clientset
 	clientset := GetKubernetesClientset()
 	err := clientset.CoreV1().Namespaces().Delete(context.TODO(), name, metav1.DeleteOptions{})
-	/*if err != nil && errors.IsForbidden(err) && len(os.Getenv("TEST_KUBECONFIG")) > 0 {
-		Log(Info, fmt.Sprintf("DeleteNamespace %s error: %v, ignoring since running with custom serviceaccount.", name, err))
-		return nil
-	}*/
-
 	if err != nil {
 		Log(Error, fmt.Sprintf("DeleteNamespace %s error: %v", name, err))
 	}

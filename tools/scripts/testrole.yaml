@@ -38,8 +38,7 @@ rules:
   - apiGroups:
       - '*'
     resources:
-      # Access to get and delete namespaces
+      # Access to get namespaces
       - namespaces
     verbs:
       - get
-      - delete
