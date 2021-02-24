@@ -10,6 +10,7 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -19,7 +20,7 @@ import (
 const (
 	defaultFluentdImage      = "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-20201016214205-7f37ac6"
 	defaultElasticSearchHost = "vmi-system-es-ingest.verrazzano-system.svc.cluster.local"
-	defaultElasticSearchPort = 9200
+	defaultElasticSearchPort = uint32(9200)
 	defaultSecretName        = "verrazzano"
 	defaultLoggingScopeLabel = "default.logging.scope"
 	loggingScopeKind         = "LoggingScope"
@@ -64,7 +65,16 @@ func (d *LoggingScopeDefaulter) Cleanup(appConfig *oamv1.ApplicationConfiguratio
 }
 
 // CreateDefaultLoggingScope creates the default logging scope for the given namespace
-func CreateDefaultLoggingScope(name types.NamespacedName) *vzapi.LoggingScope {
+func CreateDefaultLoggingScope(name types.NamespacedName, esDetails clusters.ElasticsearchDetails) *vzapi.LoggingScope {
+	// If Elasticsearch are provided, use them. Otherwise use the defaults.
+	esHost := defaultElasticSearchHost
+	esPort := defaultElasticSearchPort
+	esSecret := defaultSecretName
+	if esDetails.Host != "" && esDetails.Port > 0 && esDetails.SecretName != "" {
+		esHost = esDetails.Host
+		esPort = esDetails.Port
+		esSecret = esDetails.SecretName
+	}
 	return &vzapi.LoggingScope{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name.Name,
@@ -73,9 +83,9 @@ func CreateDefaultLoggingScope(name types.NamespacedName) *vzapi.LoggingScope {
 		},
 		Spec: vzapi.LoggingScopeSpec{
 			FluentdImage:       defaultFluentdImage,
-			ElasticSearchHost:  defaultElasticSearchHost,
-			ElasticSearchPort:  defaultElasticSearchPort,
-			SecretName:         defaultSecretName,
+			ElasticSearchHost:  esHost,
+			ElasticSearchPort:  esPort,
+			SecretName:         esSecret,
 			WorkloadReferences: []runtimev1alpha1.TypedReference{},
 		},
 	}
@@ -115,7 +125,13 @@ func ensureDefaultLoggingScope(c client.Client, appConfig *oamv1.ApplicationConf
 		var scope *vzapi.LoggingScope
 		scope, err = fetchLoggingScope(context.TODO(), c, namespacedName)
 		if scope == nil && err == nil {
-			err = c.Create(context.TODO(), CreateDefaultLoggingScope(namespacedName), &client.CreateOptions{})
+			// We might be running in a managed cluster - fetch the Elasticsearch Details to use in
+			// that case
+			elasticSearchDetails := clusters.FetchManagedClusterElasticSearchDetails(context.TODO(), c, log)
+			err = c.Create(
+				context.TODO(),
+				CreateDefaultLoggingScope(namespacedName, elasticSearchDetails),
+				&client.CreateOptions{})
 		}
 	}
 	return
@@ -130,7 +146,10 @@ func cleanupDefaultLoggingScope(c client.Client, appConfig *oamv1.ApplicationCon
 		scope, err = fetchLoggingScope(context.TODO(), c, namespacedName)
 		if scope != nil && err == nil {
 			if scope.Labels != nil && scope.Labels[defaultLoggingScopeLabel] == "true" {
-				err = c.Delete(context.TODO(), CreateDefaultLoggingScope(namespacedName), &client.DeleteOptions{})
+				err = c.Delete(
+					context.TODO(),
+					CreateDefaultLoggingScope(namespacedName, clusters.ElasticsearchDetails{}),
+					&client.DeleteOptions{})
 			}
 		}
 	}

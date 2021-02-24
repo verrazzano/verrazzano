@@ -13,10 +13,11 @@ import (
 )
 
 // Synchronize MultiClusterLoggingScope objects to the local cluster
-func (s *Syncer) syncMCLoggingScopeObjects() error {
+func (s *Syncer) syncMCLoggingScopeObjects(namespace string) error {
 	// Get all the MultiClusterLoggingScope objects from the admin cluster
 	allAdminMCLoggingScopes := clustersv1alpha1.MultiClusterLoggingScopeList{}
-	err := s.AdminClient.List(s.Context, &allAdminMCLoggingScopes)
+	listOptions := &client.ListOptions{Namespace: namespace}
+	err := s.AdminClient.List(s.Context, &allAdminMCLoggingScopes, listOptions)
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
@@ -38,7 +39,7 @@ func (s *Syncer) syncMCLoggingScopeObjects() error {
 	// local cluster and compare to the list received from the admin cluster.
 	// The admin cluster is the source of truth.
 	allLocalMCLoggingScopes := clustersv1alpha1.MultiClusterLoggingScopeList{}
-	err = s.LocalClient.List(s.Context, &allLocalMCLoggingScopes)
+	err = s.LocalClient.List(s.Context, &allLocalMCLoggingScopes, listOptions)
 	if err != nil {
 		s.Log.Error(err, "failed to list MultiClusterLoggingScope on local cluster")
 		return nil

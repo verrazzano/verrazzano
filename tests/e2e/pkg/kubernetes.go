@@ -14,6 +14,7 @@ import (
 	"github.com/onsi/ginkgo"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vmoclient "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
+	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apixv1beta1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
@@ -336,4 +337,13 @@ func DeleteNamespace(name string) error {
 	}
 
 	return err
+}
+
+// GetIstioClientset returns the clientset object for Istio
+func GetIstioClientset() *istioClient.Clientset {
+	cs, err := istioClient.NewForConfig(GetKubeConfig())
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get Istio clientset: %v", err))
+	}
+	return cs
 }

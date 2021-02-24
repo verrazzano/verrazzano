@@ -166,3 +166,35 @@ func ListIngresses(namespace string) (*extensionsv1beta1.IngressList, error) {
 	CreateLogFile(fmt.Sprintf("%v-ingresses", namespace), logData)
 	return ingresses, err
 }
+
+// GetHostnameFromGateway returns the host name from the application gateway that was
+// created by the ingress trait controller
+func GetHostnameFromGateway(namespace string, appConfigName string) string {
+	gateways, err := GetIstioClientset().NetworkingV1alpha3().Gateways(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Could not list application ingress gateways: %v\n", err.Error()))
+	}
+
+	// if an optional appConfigName is provided, construct the gateway name from the namespace and
+	// appConfigName and look for that specific gateway, otherwise just use the first gateway
+	gatewayName := ""
+	if len(appConfigName) > 0 {
+		gatewayName = fmt.Sprintf("%s-%s-gw", namespace, appConfigName)
+	}
+
+	for _, gateway := range gateways.Items {
+		fmt.Printf("Found an app ingress gateway with name: %s\n", gateway.ObjectMeta.Name)
+
+		if len(gatewayName) > 0 && gatewayName != gateway.ObjectMeta.Name {
+			continue
+		}
+		if len(gateway.Spec.Servers) > 0 && len(gateway.Spec.Servers[0].Hosts) > 0 {
+			return gateway.Spec.Servers[0].Hosts[0]
+		}
+	}
+
+	// this can happen if the app gateway has not been created yet, the caller should
+	// keep retrying and eventually we should get a gateway with a host
+	fmt.Printf("Could not find host in application ingress gateways in namespace: %s\n", namespace)
+	return ""
+}

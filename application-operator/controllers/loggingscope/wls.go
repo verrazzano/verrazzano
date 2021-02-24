@@ -22,6 +22,7 @@ const (
 	wlsWorkloadKey         = "weblogic.oracle/v8/Domain"
 	storageVolumeName      = "weblogic-domain-storage-volume"
 	storageVolumeMountPath = scratchVolMountPath
+	workloadType           = "weblogic"
 )
 
 // WlsFluentdParsingRules defines the FLUENTD parsing rules for WLS
@@ -163,6 +164,7 @@ func GetFluentd(ctx context.Context, log logr.Logger, client k8sclient.Client) F
 		ParseRules:             WlsFluentdParsingRules,
 		StorageVolumeName:      storageVolumeName,
 		StorageVolumeMountPath: storageVolumeMountPath,
+		WorkloadType:           workloadType,
 	}
 }
 

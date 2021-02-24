@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"reflect"
 	"strings"
 
@@ -16,7 +15,9 @@ import (
 	pluralize "github.com/gertd/go-pluralize"
 	"github.com/go-logr/logr"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
 	istionet "istio.io/api/networking/v1alpha3"
@@ -658,7 +659,7 @@ func extractServiceFromUnstructuredChildren(children []*unstructured.Unstructure
 // apiVersion - The CR APIVersion
 // kind - The CR Kind
 func convertAPIVersionAndKindToNamespacedName(apiVersion string, kind string) types.NamespacedName {
-	grp, ver := convertAPIVersionToGroupAndVersion(apiVersion)
+	grp, ver := controllers.ConvertAPIVersionToGroupAndVersion(apiVersion)
 	res := pluralize.NewClient().Plural(strings.ToLower(kind))
 	grpVerRes := metav1.GroupVersionResource{
 		Group:    grp,
@@ -667,19 +668,6 @@ func convertAPIVersionAndKindToNamespacedName(apiVersion string, kind string) ty
 	}
 	name := grpVerRes.Resource + "." + grpVerRes.Group
 	return types.NamespacedName{Namespace: "", Name: name}
-}
-
-// convertAPIVersionToGroupAndVersion splits APIVersion into API and version parts.
-// An APIVersion takes the form api/version (e.g. networking.k8s.io/v1)
-// If the input does not contain a / the group is defaulted to the empty string.
-// apiVersion - The combined api and version to split
-func convertAPIVersionToGroupAndVersion(apiVersion string) (string, string) {
-	parts := strings.SplitN(apiVersion, "/", 2)
-	if len(parts) < 2 {
-		// Use empty group for core types.
-		return "", parts[0]
-	}
-	return parts[0], parts[1]
 }
 
 // buildAppFullyQualifiedHostName generates a DNS host name for the application using the following structure:

@@ -13,10 +13,11 @@ import (
 )
 
 // Synchronize MultiClusterComponent objects to the local cluster
-func (s *Syncer) syncMCComponentObjects() error {
+func (s *Syncer) syncMCComponentObjects(namespace string) error {
 	// Get all the MultiClusterComponent objects from the admin cluster
 	allAdminMCComponents := clustersv1alpha1.MultiClusterComponentList{}
-	err := s.AdminClient.List(s.Context, &allAdminMCComponents)
+	listOptions := &client.ListOptions{Namespace: namespace}
+	err := s.AdminClient.List(s.Context, &allAdminMCComponents, listOptions)
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
@@ -38,7 +39,7 @@ func (s *Syncer) syncMCComponentObjects() error {
 	// local cluster and compare to the list received from the admin cluster.
 	// The admin cluster is the source of truth.
 	allLocalMCComponents := clustersv1alpha1.MultiClusterComponentList{}
-	err = s.LocalClient.List(s.Context, &allLocalMCComponents)
+	err = s.LocalClient.List(s.Context, &allLocalMCComponents, listOptions)
 	if err != nil {
 		s.Log.Error(err, "failed to list MultiClusterComponent on local cluster")
 		return nil

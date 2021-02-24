@@ -18,6 +18,9 @@ type Syncer struct {
 	Log                logr.Logger
 	ManagedClusterName string
 	Context            context.Context
+
+	// List of namespaces to watch for multi-cluster objects.
+	ProjectNamespaces []string
 }
 
 // Check if the placement is for this cluster
