@@ -241,7 +241,7 @@ endif
 		--config=test/kind-config.yaml
 	kubectl config set-context kind-${CLUSTER_NAME}
 ifdef JENKINS_URL
-	# this ugly looking line of code will get the ip address of the container running the kube apiserver
+	# Get the ip address of the container running the kube apiserver
 	# and update the kubeconfig file to point to that address, instead of localhost
 	sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
 	cat ${KUBECONFIG} | grep server

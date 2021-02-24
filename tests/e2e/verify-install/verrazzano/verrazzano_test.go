@@ -8,7 +8,6 @@ import (
 	ginkgoExt "github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	v1 "k8s.io/api/rbac/v1"
 )
 
 var _ = ginkgo.Describe("Verrazzano", func() {
@@ -279,16 +278,3 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 	// add a test to make sure that out of band changes are corrected
 
 })
-
-func clusterroleContains(clusterrole *v1.ClusterRole, apigroup string, resource string, verb string) bool {
-	for _, role := range clusterrole.Rules {
-		if pkg.SliceContainsString(role.APIGroups, apigroup) {
-			if pkg.SliceContainsString(role.Resources, resource) {
-				if pkg.SliceContainsString(role.Verbs, verb) {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
