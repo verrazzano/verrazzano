@@ -17,7 +17,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -488,68 +487,36 @@ func TestAddLoggingFailure(t *testing.T) {
 }
 
 // TestIstioEnabled tests that domain resource spec.configuration.istio.enabled is set correctly.
-// GIVEN a namespace with the label istio-injection equals enabled
-// WHEN the label istio-injection equals enabled
+// GIVEN istio-injection is disabled
 // THEN the domain resource to spec.configuration.istio.enabled is set to true
 func TestIstioEnabled(t *testing.T) {
 	assert := asserts.New(t)
 
-	namespace := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test",
-			Labels: map[string]string{
-				"istio-injection": "enabled",
-			},
-		},
-	}
 	u := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind": "Domain",
 		},
 	}
-	err := istioEnabled(namespace, u)
+	err := updateIstioEnabled(true, u)
 	assert.NoError(err, "Unexpected error setting istio enabled")
 	specIstioEnabled, _, _ := unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
 	assert.Equal(specIstioEnabled, true)
 }
 
 // TestIstioDisabled tests that domain resource spec.configuration.istio.enabled is set correctly.
-// GIVEN a namespace with the label istio-injection not set or set to disable
+// GIVEN istio-injection is disabled
 // THEN the domain resource to spec.configuration.istio.enabled is set to false
 func TestIstioDisabled(t *testing.T) {
 	assert := asserts.New(t)
 
-	namespace := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test",
-			Labels: map[string]string{
-				"istio-injection": "disabled",
-			},
-		},
-	}
 	u := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind": "Domain",
 		},
 	}
-	err := istioEnabled(namespace, u)
+	err := updateIstioEnabled(false, u)
 	assert.NoError(err, "Unexpected error setting istio enabled")
 	specIstioEnabled, _, _ := unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
-	assert.Equal(specIstioEnabled, false)
-
-	namespace = &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test",
-		},
-	}
-	u = &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"kind": "Domain",
-		},
-	}
-	err = istioEnabled(namespace, u)
-	assert.NoError(err, "Unexpected error setting istio enabled")
-	specIstioEnabled, _, _ = unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
 	assert.Equal(specIstioEnabled, false)
 }
 
