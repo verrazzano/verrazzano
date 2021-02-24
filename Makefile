@@ -53,8 +53,8 @@ copyright-check-year: copyright-test
 	go run tools/copyright/copyright.go --enforce-current $(shell git log --since=01-01-${CURRENT_YEAR} --name-only --oneline --pretty="format:" | sort -u)
 
 .PHONY: copyright-check
-copyright-check: copyright-check-year
-	go run tools/copyright/copyright.go --verbose .
+copyright-check: copyright-test
+	go run tools/copyright/copyright.go --verbose --enforce-current .
 
 .PHONY: copyright-check-local
 copyright-check-local: copyright-test
