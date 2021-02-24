@@ -20,6 +20,13 @@ import (
 var _ = ginkgo.Describe("Istio", func() {
 	const istioNamespace = "istio-system"
 
+	ginkgoExt.DescribeTable("namespace",
+		func(name string) {
+			gomega.Expect(pkg.DoesNamespaceExist(name)).To(gomega.BeTrue())
+		},
+		ginkgoExt.Entry(fmt.Sprintf("%s namespace should exist", istioNamespace), istioNamespace),
+	)
+
 	ginkgoExt.DescribeTable("deployments",
 		func(namespace string) {
 			expectedDeployments := []string{

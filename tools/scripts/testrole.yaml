@@ -35,3 +35,11 @@ rules:
       - create
       - update
       - delete
+  - apiGroups:
+      - '*'
+    resources:
+      # Access to get and delete namespaces
+      - namespaces
+    verbs:
+      - get
+      - delete
