@@ -580,7 +580,7 @@ pipeline {
                                 stage('examples helidon') {
                                     environment {
                                         TEST_ID = UUID.randomUUID().toString()
-                                        TEST_NAMESPACE = "oam-hello-helidon"
+                                        TEST_NAMESPACE = "hello-helidon"
                                         TEST_KUBECONFIG= "/tmp/" + "${TEST_ID}"
                                     }
                                     when {
