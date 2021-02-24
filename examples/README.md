@@ -2,8 +2,8 @@
 
 Here are some example applications for use with Verrazzano:
 
-* [Bob's Books](../bobs-books/README.md)
-* [Hello World Helidon](../hello-helidon/README.md)
-* [Helidon Sock Shop](../sock-shop/README.md)
-* [Spring Boot Example](../springboot-app/README.md)
-* [ToDo List](../todo-list/README.md)
+* [Bob's Books](../examples/bobs-books/README.md)
+* [Hello World Helidon](../examples/hello-helidon/README.md)
+* [Helidon Sock Shop](../examples/sock-shop/README.md)
+* [Spring Boot Example](..examples//springboot-app/README.md)
+* [ToDo List](../examples/todo-list/README.md)
