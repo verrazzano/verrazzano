@@ -7,29 +7,28 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/go-logr/logr"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
-	"k8s.io/apimachinery/pkg/util/rand"
-
-	"strconv"
-
-	k8sapps "k8s.io/api/apps/v1"
-	k8score "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
+	k8sapps "k8s.io/api/apps/v1"
+	k8score "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/rand"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 const (
@@ -279,7 +278,8 @@ func (r *Reconciler) deleteOrUpdateObsoleteResources(ctx context.Context, trait 
 			case sourceRole:
 				update.RecordOutcomeIfError(r.deleteOrUpdateMetricSourceResource(ctx, trait, rel))
 			default:
-				update.RecordOutcome(rel, controllerutil.OperationResultNone, fmt.Errorf("unknown related resource role %s", rel.Role))
+				// Don't record an outcome for unknown role relations.
+				r.Log.Info("Skip delete or update of unknown resource role", "role", rel.Role)
 			}
 		}
 	}
@@ -309,7 +309,9 @@ func (r *Reconciler) deleteOrUpdateMetricSourceResource(ctx context.Context, tra
 	case "Pod":
 		return r.updateRelatedPod(ctx, trait, nil, nil, &child)
 	default:
-		return rel, controllerutil.OperationResultNone, fmt.Errorf("unknown source kind %s", rel.Kind)
+		// Return a NotFoundError to cause removal the resource relation from the status.
+		r.Log.Info("Skip delete or update of metrics source of unknown kind", "kind", rel.Kind)
+		return rel, controllerutil.OperationResultNone, apierrors.NewNotFound(schema.GroupResource{Group: rel.APIVersion, Resource: rel.Kind}, rel.Name)
 	}
 }
 
@@ -448,12 +450,17 @@ func (r *Reconciler) updateRelatedDeployment(ctx context.Context, trait *vzapi.M
 		ObjectMeta: metav1.ObjectMeta{Namespace: child.GetNamespace(), Name: child.GetName()},
 	}
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, deployment, func() error {
+		// If the deployment was not found don't attempt to create or update it.
+		if deployment.CreationTimestamp.IsZero() {
+			r.Log.Info("Workload child deployment not found")
+			return apierrors.NewNotFound(schema.GroupResource{Group: deployment.APIVersion, Resource: deployment.Kind}, deployment.Name)
+		}
 		deployment.Spec.Template.ObjectMeta.Annotations = mutateAnnotations(trait, workload, traitDefaults, deployment.Spec.Template.ObjectMeta.Annotations)
 		deployment.Spec.Template.ObjectMeta.Labels = mutateLabels(trait, workload, deployment.Spec.Template.ObjectMeta.Labels)
 		return nil
 	})
-	if err != nil {
-		r.Log.Error(err, "Failed to update workload deployment")
+	if err != nil && !apierrors.IsNotFound(err) {
+		r.Log.Info("Failed to update workload child deployment", "child", vznav.GetNamespacedNameFromObjectMeta(deployment.ObjectMeta), "error", err)
 	}
 	return ref, res, err
 }
@@ -468,12 +475,17 @@ func (r *Reconciler) updateRelatedStatefulSet(ctx context.Context, trait *vzapi.
 		ObjectMeta: metav1.ObjectMeta{Namespace: child.GetNamespace(), Name: child.GetName()},
 	}
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, statefulSet, func() error {
+		// If the statefulset was not found don't attempt to create or update it.
+		if statefulSet.CreationTimestamp.IsZero() {
+			r.Log.Info("Workload child statefulset not found")
+			return apierrors.NewNotFound(schema.GroupResource{Group: statefulSet.APIVersion, Resource: statefulSet.Kind}, statefulSet.Name)
+		}
 		statefulSet.Spec.Template.ObjectMeta.Annotations = mutateAnnotations(trait, workload, traitDefaults, statefulSet.Spec.Template.ObjectMeta.Annotations)
 		statefulSet.Spec.Template.ObjectMeta.Labels = mutateLabels(trait, workload, statefulSet.Spec.Template.ObjectMeta.Labels)
 		return nil
 	})
-	if err != nil {
-		r.Log.Error(err, "Failed to update workload stateful set")
+	if err != nil && !apierrors.IsNotFound(err) {
+		r.Log.Info("Failed to update workload child statefulset", "child", vznav.GetNamespacedNameFromObjectMeta(statefulSet.ObjectMeta), "error", err)
 	}
 	return ref, res, err
 }
@@ -488,12 +500,17 @@ func (r *Reconciler) updateRelatedPod(ctx context.Context, trait *vzapi.MetricsT
 		ObjectMeta: metav1.ObjectMeta{Namespace: child.GetNamespace(), Name: child.GetName()},
 	}
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, pod, func() error {
+		// If the pod was not found don't attempt to create or update it.
+		if pod.CreationTimestamp.IsZero() {
+			r.Log.Info("Workload child pod not found")
+			return apierrors.NewNotFound(schema.GroupResource{Group: pod.APIVersion, Resource: pod.Kind}, pod.Name)
+		}
 		pod.ObjectMeta.Annotations = mutateAnnotations(trait, workload, traitDefaults, pod.ObjectMeta.Annotations)
 		pod.ObjectMeta.Labels = mutateLabels(trait, workload, pod.ObjectMeta.Labels)
 		return nil
 	})
-	if err != nil {
-		r.Log.Error(err, "Failed to update workload pod")
+	if err != nil && !apierrors.IsNotFound(err) {
+		r.Log.Info("Failed to update workload child pod", "pod", vznav.GetNamespacedNameFromObjectMeta(pod.ObjectMeta), "error", err)
 	}
 	return rel, res, err
 }

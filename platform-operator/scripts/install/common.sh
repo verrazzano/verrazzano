@@ -9,11 +9,11 @@ SOURCE_DIR=$(cd $(dirname $BASH_SOURCE); pwd -P)
 SCRIPT_DIR=${SCRIPT_DIR:-$(cd $(dirname ${BASH_SOURCE[${#BASH_SOURCE[@]} - 1]}); pwd -P)}
 # The directory where any generated artifacts should be stored.
 BUILD_DIR="${SCRIPT_DIR}/build"
-CHARTS_DIR=$(cd $SOURCE_DIR/../../../thirdparty/charts; pwd -P)
-VZ_CHARTS_DIR=$(cd $SOURCE_DIR/../../../helm_config/charts; pwd -P)
-VZ_OVERRIDES_DIR=$(cd $SOURCE_DIR/../../../helm_config/overrides; pwd -P)
+CHARTS_DIR=$(cd $SOURCE_DIR/../../thirdparty/charts; pwd -P)
+VZ_CHARTS_DIR=$(cd $SOURCE_DIR/../../helm_config/charts; pwd -P)
+VZ_OVERRIDES_DIR=$(cd $SOURCE_DIR/../../helm_config/overrides; pwd -P)
 
-MANIFESTS_DIR=$(cd $SOURCE_DIR/../../../thirdparty/manifests; pwd -P)
+MANIFESTS_DIR=$(cd $SOURCE_DIR/../../thirdparty/manifests; pwd -P)
 
 . ${SOURCE_DIR}/logging.sh
 
@@ -63,7 +63,7 @@ function get_rancher_access_token {
     ARGS=(-k --connect-timeout 30 $(get_rancher_resolve ${rancher_hostname}) \
     -d '{"Username":"admin", "Password":"'$rancher_password'"}' \
     -H "Content-Type: application/json" \
-    -X POST https://$rancher_hostname/v3-public/localProviders/local?action=login)
+    -X POST https://$rancher_hostname:$(get_nginx_nodeport)/v3-public/localProviders/local?action=login)
     call_curl 201 response http_code ARGS
     if [ $? -eq 0 ]; then
       rancher_admin_token=$(echo $response | jq -r '.token')
@@ -94,7 +94,7 @@ function get_rancher_access_token {
     -d '{"type":"token", "description":"automation"}' \
     -H "Content-Type: application/json"
     -H "Authorization: Bearer ${rancher_admin_token}" \
-    -X POST https://$rancher_hostname/v3/token )
+    -X POST https://$rancher_hostname:$(get_nginx_nodeport)/v3/token )
     call_curl 201 response http_code ARGS
     if [ $? -eq 0 ]; then
       rancher_access_token=$(echo $response | jq -r '.token')

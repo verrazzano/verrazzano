@@ -10,7 +10,6 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	corev1 "k8s.io/api/core/v1"
@@ -20,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -70,7 +70,16 @@ multiline_flush_interval 20s
 </match>
 `
 
-const finalizer = "verrazzanocoherenceworkload.finalizers.verrazzano.io"
+const (
+	specField = "spec"
+	jvmField  = "jvm"
+	argsField = "args"
+
+	workloadType = "coherence"
+)
+
+var specLabelsFields = []string{specField, "labels"}
+var specAnnotationsFields = []string{specField, "annotations"}
 
 // additional JVM args that need to get added to the Coherence spec to enable logging
 var additionalJvmArgs = []interface{}{
@@ -138,15 +147,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	u.SetAPIVersion(apiVersion)
 	u.SetKind(kind)
 
-	// clean up resources that we've created on delete
-	if isDeleting, err := r.handleDelete(ctx, log, workload, u); isDeleting {
+	// mutate the Coherence resource, copy labels, add logging, etc.
+	if err = copyLabels(log, workload.ObjectMeta.GetLabels(), u); err != nil {
 		return reconcile.Result{}, err
 	}
 
-	// mutate the Coherence resource, copy labels, add logging, etc.
-	copyLabels(workload.ObjectMeta.GetLabels(), u)
-
-	spec, found, _ := unstructured.NestedMap(u.Object, "spec")
+	spec, found, _ := unstructured.NestedMap(u.Object, specField)
 	if !found {
 		return reconcile.Result{}, errors.New("Embedded Coherence resource is missing the required 'spec' field")
 	}
@@ -156,12 +162,18 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// spec has been updated with logging, need to set it back in the unstructured
-	if err = unstructured.SetNestedField(u.Object, spec, "spec"); err != nil {
+	if err = unstructured.SetNestedField(u.Object, spec, specField); err != nil {
 		return reconcile.Result{}, err
 	}
 
 	// set istio injection annotation to false for Coherence pods
 	if err = r.disableIstioInjection(log, u); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// set controller reference so the Coherence CR gets deleted when the workload is deleted
+	if err = controllerutil.SetControllerReference(workload, u, r.Scheme); err != nil {
+		log.Error(err, "Unable to set controller ref")
 		return reconcile.Result{}, err
 	}
 
@@ -194,8 +206,11 @@ func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedNam
 }
 
 // copyLabels copies specific labels from the Verrazzano workload to the contained Coherence resource
-func copyLabels(workloadLabels map[string]string, coherence *unstructured.Unstructured) {
-	labels := map[string]string{}
+func copyLabels(log logr.Logger, workloadLabels map[string]string, coherence *unstructured.Unstructured) error {
+	labels, found, _ := unstructured.NestedStringMap(coherence.Object, specLabelsFields...)
+	if !found {
+		labels = map[string]string{}
+	}
 
 	// copy the oam component and app name labels
 	if componentName, ok := workloadLabels[oam.LabelAppComponent]; ok {
@@ -206,12 +221,18 @@ func copyLabels(workloadLabels map[string]string, coherence *unstructured.Unstru
 		labels[oam.LabelAppName] = appName
 	}
 
-	coherence.SetLabels(labels)
+	err := unstructured.SetNestedStringMap(coherence.Object, labels, specLabelsFields...)
+	if err != nil {
+		log.Error(err, "Unable to set labels in spec")
+		return err
+	}
+
+	return nil
 }
 
 // disableIstioInjection sets the sidecar.istio.io/inject annotation to false since Coherence does not work with Istio
 func (r *Reconciler) disableIstioInjection(log logr.Logger, u *unstructured.Unstructured) error {
-	annotations, _, err := unstructured.NestedStringMap(u.Object, "spec", "annotations")
+	annotations, _, err := unstructured.NestedStringMap(u.Object, specAnnotationsFields...)
 	if err != nil {
 		return errors.New("unable to get annotations from Coherence spec")
 	}
@@ -222,7 +243,7 @@ func (r *Reconciler) disableIstioInjection(log logr.Logger, u *unstructured.Unst
 	}
 	annotations["sidecar.istio.io/inject"] = "false"
 
-	err = unstructured.SetNestedStringMap(u.Object, annotations, "spec", "annotations")
+	err = unstructured.SetNestedStringMap(u.Object, annotations, specAnnotationsFields...)
 	if err != nil {
 		return err
 	}
@@ -264,6 +285,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 		ParseRules:             fluentdParsingRules,
 		StorageVolumeName:      "logs",
 		StorageVolumeMountPath: "/logs",
+		WorkloadType:           workloadType,
 	}
 
 	// fluentdManager.Apply wants a QRR but it only cares about the namespace (at least for
@@ -313,7 +335,7 @@ func moveConfigMapVolume(log logr.Logger, fluentdPod *loggingscope.FluentdPod, c
 			fluentdVolMount = container.VolumeMounts[0]
 			// Coherence needs the vol mount to match the config map name, so fix it, need
 			// to see if we can just change name set by the FLUENTD code
-			fluentdVolMount.Name = "fluentd-config"
+			fluentdVolMount.Name = "fluentd-config" + "-" + workloadType
 			fluentdPod.Containers[0].VolumeMounts = nil
 			break
 		}
@@ -343,15 +365,15 @@ func moveConfigMapVolume(log logr.Logger, fluentdPod *loggingscope.FluentdPod, c
 // in the Coherence container
 func addJvmArgs(coherenceSpec map[string]interface{}) {
 	var jvm map[string]interface{}
-	if val, found := coherenceSpec["jvm"]; !found {
+	if val, found := coherenceSpec[jvmField]; !found {
 		jvm = make(map[string]interface{})
-		coherenceSpec["jvm"] = jvm
+		coherenceSpec[jvmField] = jvm
 	} else {
 		jvm = val.(map[string]interface{})
 	}
 
 	var args []interface{}
-	if val, found := jvm["args"]; !found {
+	if val, found := jvm[argsField]; !found {
 		args = additionalJvmArgs
 	} else {
 		// just append our logging args, this needs to be improved to handle
@@ -359,37 +381,5 @@ func addJvmArgs(coherenceSpec map[string]interface{}) {
 		args = val.([]interface{})
 		args = append(args, additionalJvmArgs...)
 	}
-	jvm["args"] = args
-}
-
-// handleDelete handles delete processing - we delete the Coherence CR when our VerrazzanoCoherenceWorkload is deleted.
-// returns true if our workload is being deleted, false otherwise
-func (r *Reconciler) handleDelete(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoCoherenceWorkload, coherence *unstructured.Unstructured) (bool, error) {
-	if !workload.ObjectMeta.DeletionTimestamp.IsZero() {
-		if controllers.StringSliceContainsString(workload.ObjectMeta.Finalizers, finalizer) {
-			log.Info("Deleting Coherence CR")
-			if err := r.Delete(ctx, coherence); err != nil {
-				return true, err
-			}
-
-			workload.ObjectMeta.Finalizers = controllers.RemoveStringFromStringSlice(workload.ObjectMeta.Finalizers, finalizer)
-			if err := r.Update(ctx, workload); err != nil {
-				// just log and keep going
-				r.Log.Info("Unable to remove finalizer from workload", "error", err)
-			}
-		}
-
-		return true, nil
-	}
-
-	// not deleting, so add our finalizer and update the workload if it's not already in the list
-	if !controllers.StringSliceContainsString(workload.ObjectMeta.Finalizers, finalizer) {
-		workload.ObjectMeta.Finalizers = append(workload.ObjectMeta.Finalizers, finalizer)
-		if err := r.Update(ctx, workload); err != nil {
-			// just log and keep going
-			r.Log.Info("Unable to add finalizer to workload", "error", err)
-		}
-	}
-
-	return false, nil
+	jvm[argsField] = args
 }

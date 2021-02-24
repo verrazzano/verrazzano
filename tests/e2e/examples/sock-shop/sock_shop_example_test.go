@@ -33,7 +33,7 @@ var username, password string
 var _ = BeforeSuite(func() {
 	username = "username" + strconv.FormatInt(time.Now().Unix(), 10)
 	password = b64.StdEncoding.EncodeToString([]byte(time.Now().String()))
-	sockShop = NewSockShop(username, password, pkg.Ingress(), "sockshop.example.com")
+	sockShop = NewSockShop(username, password, pkg.Ingress())
 
 	// deploy the application here
 	if _, err := pkg.CreateNamespace("sockshop", map[string]string{"verrazzano-managed": "true"}); err != nil {
@@ -89,6 +89,11 @@ var _ = Describe("Sock Shop Application", func() {
 			func() {
 				Eventually(isSockShopServiceReady("user"), waitTimeout, pollingInterval).Should(BeTrue())
 			})
+	})
+
+	It("Determine ingress host name", func() {
+		hostname := pkg.GetHostnameFromGateway("sockshop", "")
+		sockShop.SetHostHeader(hostname)
 	})
 
 	It("SockShop can be accessed and user can be registered", func() {
@@ -150,7 +155,7 @@ var _ = Describe("Sock Shop Application", func() {
 		Eventually(func() bool {
 			ipAddress := pkg.Ingress()
 			url := fmt.Sprintf("http://%s/catalogue", ipAddress)
-			host := "sockshop.example.com"
+			host := sockShop.GetHostHeader()
 			status, content := pkg.GetWebPageWithCABundle(url, host)
 			return Expect(status).To(Equal(200)) &&
 				Expect(content).To(ContainSubstring("For all those leg lovers out there."))
@@ -236,35 +241,15 @@ func sockshopPodsRunning() bool {
 
 // appMetricsExists checks whether app related metrics are available
 func appMetricsExists() bool {
-	return metricsExist("base_jvm_uptime_seconds", "cluster", "SockShop")
+	return pkg.MetricsExist("base_jvm_uptime_seconds", "cluster", "SockShop")
 }
 
 // appComponentMetricsExists checks whether component related metrics are available
 func appComponentMetricsExists() bool {
-	return metricsExist("vendor_requests_count_total", "app_oam_dev_name", "sockshop-appconf")
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", "sockshop-appconf")
 }
 
 // appConfigMetricsExists checks whether config metrics are available
 func appConfigMetricsExists() bool {
-	return metricsExist("vendor_requests_count_total", "app_oam_dev_component", "orders")
-}
-
-// findMetric parses a Prometheus response to find a specified metric value
-func findMetric(metrics []interface{}, key, value string) bool {
-	for _, metric := range metrics {
-		if pkg.Jq(metric, "metric", key) == value {
-			return true
-		}
-	}
-	return false
-}
-
-// metricsExist validates the availability of a specified metric
-func metricsExist(metricsName, key, value string) bool {
-	metrics := pkg.JTq(pkg.QueryMetric(metricsName), "data", "result").([]interface{})
-	if metrics != nil {
-		return findMetric(metrics, key, value)
-	} else {
-		return false
-	}
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "orders")
 }

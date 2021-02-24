@@ -336,6 +336,10 @@ pipeline {
                             cd ${GO_REPO_PATH}/verrazzano/platform-operator
                             make create-cluster
 
+                            echo "Install metallb"
+                            cd ${GO_REPO_PATH}/verrazzano
+                            ./tests/e2e/config/scripts/install-metallb.sh
+
                             echo "Create Image Pull Secrets"
                             cd ${GO_REPO_PATH}/verrazzano
                             ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
@@ -379,12 +383,6 @@ pipeline {
 
                             # wait for Verrazzano install to complete
                             ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
-
-                            # Hack
-                            # OCR images don't work with KIND.
-                            # The ToDoList example image currently cannot be pulled in KIND.
-                            docker pull container-registry.oracle.com/verrazzano/example-todo:0.8.0
-                            kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-todo:0.8.0
                         """
                     }
                     post {
@@ -433,6 +431,12 @@ pipeline {
                                 expression {params.RUN_EXAMPLE_TESTS == true}
                             }
                             steps {
+                                sh """
+                                      # The ToDoList example image currently cannot be pulled in KIND.
+                                      # Remove this block once the image can be pulled into KIND.
+                                      docker pull container-registry.oracle.com/verrazzano/example-todo:0.8.0
+                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-todo:0.8.0
+                                  """
                                 runGinkgo('examples/todo-list')
                             }
                         }
@@ -458,6 +462,30 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('examples/hello-helidon')
+                            }
+                        }
+                        stage('examples bobs') {
+                            when {
+                                expression {params.RUN_EXAMPLE_TESTS == true}
+                            }
+                            steps {
+                                sh """
+                                      # The Bobs Books example image currently cannot be pulled in KIND.
+                                      # Remove this block once the images can be pulled into KIND.
+                                      docker pull container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.12-1-20210205215204-b624b86
+                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.12-1-20210205215204-b624b86
+                                      docker pull container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210205215204-b624b86
+                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210205215204-b624b86
+                                      docker pull container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.12-1-20210205215204-b624b86
+                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.12-1-20210205215204-b624b86
+                                      docker pull container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210205215204-b624b86
+                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210205215204-b624b86
+                                      docker pull container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210205215204-b624b86
+                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210205215204-b624b86
+                                      docker pull container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210205215204-b624b86
+                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210205215204-b624b86
+                                  """
+                                runGinkgo('examples/bobs-books')
                             }
                         }
                     }

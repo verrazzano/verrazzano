@@ -5,20 +5,19 @@ package todo_list
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	"github.com/onsi/gomega/types"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
-	shortWaitTimeout     = 5 * time.Minute
+	ISO8601Layout        = "2006-01-02T15:04:05.999999999-07:00"
+	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
-	longWaitTimeout      = 10 * time.Minute
+	longWaitTimeout      = 15 * time.Minute
 	longPollingInterval  = 20 * time.Second
 )
 
@@ -33,11 +32,11 @@ var _ = ginkgo.AfterSuite(func() {
 func deployToDoListExample() {
 	pkg.Log(pkg.Info, "Deploy ToDoList example")
 	wlsUser := "weblogic"
-	wlsPass := getRequiredEnvVarOrFail("WEBLOGIC_PSW")
-	dbPass := getRequiredEnvVarOrFail("DATABASE_PSW")
-	regServ := getRequiredEnvVarOrFail("OCR_REPO")
-	regUser := getRequiredEnvVarOrFail("OCR_CREDS_USR")
-	regPass := getRequiredEnvVarOrFail("OCR_CREDS_PSW")
+	wlsPass := pkg.GetRequiredEnvVarOrFail("WEBLOGIC_PSW")
+	dbPass := pkg.GetRequiredEnvVarOrFail("DATABASE_PSW")
+	regServ := pkg.GetRequiredEnvVarOrFail("OCR_REPO")
+	regUser := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_USR")
+	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
 	pkg.Log(pkg.Info, "Create namespace")
 	if _, err := pkg.CreateNamespace("todo-list", map[string]string{"verrazzano-managed": "true"}); err != nil {
@@ -97,21 +96,6 @@ func undeployToDoListExample() {
 	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
 }
 
-type WebResponse struct {
-	status  int
-	content string
-}
-
-// HaveStatus asserts that a WebResponse has a given status.
-func HaveStatus(expected int) types.GomegaMatcher {
-	return gomega.WithTransform(func(response WebResponse) int { return response.status }, gomega.Equal(expected))
-}
-
-// ContainContent asserts that a WebResponse contains a given substring.
-func ContainContent(expected string) types.GomegaMatcher {
-	return gomega.WithTransform(func(response WebResponse) string { return response.content }, gomega.ContainSubstring(expected))
-}
-
 var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 
 	ginkgo.Context("Deployment.", func() {
@@ -131,17 +115,17 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 		// WHEN the UI is accessed
 		// THEN the expected returned page should contain an expected value.
 		ginkgo.It("Verify '/todo' UI endpoint is working.", func() {
-			gomega.Eventually(func() WebResponse {
+			gomega.Eventually(func() pkg.WebResponse {
 				ingress := pkg.Ingress()
 				pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
+				host := pkg.GetHostnameFromGateway("todo-list", "")
 				url := fmt.Sprintf("http://%s/todo/", ingress)
-				host := "todo.example.com"
 				status, content := pkg.GetWebPageWithCABundle(url, host)
-				return WebResponse{
-					status:  status,
-					content: content,
+				return pkg.WebResponse{
+					Status:  status,
+					Content: content,
 				}
-			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(HaveStatus(200), ContainContent("Derek")))
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HaveStatus(200), pkg.ContainContent("Derek")))
 		})
 
 		// Verify the application REST endpoint is working.
@@ -151,32 +135,32 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 		ginkgo.It("Verify '/todo/rest/items' REST endpoint is working.", func() {
 			ingress := pkg.Ingress()
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-			host := "todo.example.com"
 			task := fmt.Sprintf("test-task-%s", time.Now().Format("20060102150405.0000"))
-			gomega.Eventually(func() WebResponse {
+			host := pkg.GetHostnameFromGateway("todo-list", "")
+			gomega.Eventually(func() pkg.WebResponse {
 				url := fmt.Sprintf("http://%s/todo/rest/items", ingress)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
-				return WebResponse{
-					status:  status,
-					content: content,
+				return pkg.WebResponse{
+					Status:  status,
+					Content: content,
 				}
-			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(HaveStatus(200), ContainContent("[")))
-			gomega.Eventually(func() WebResponse {
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HaveStatus(200), pkg.ContainContent("[")))
+			gomega.Eventually(func() pkg.WebResponse {
 				url := fmt.Sprintf("http://%s/todo/rest/item/%s", ingress, task)
 				status, content := pkg.PutWithHostHeader(url, "application/json", host, nil)
-				return WebResponse{
-					status:  status,
-					content: content,
+				return pkg.WebResponse{
+					Status:  status,
+					Content: content,
 				}
-			}, shortWaitTimeout, shortPollingInterval).Should(HaveStatus(204))
-			gomega.Eventually(func() WebResponse {
+			}, shortWaitTimeout, shortPollingInterval).Should(pkg.HaveStatus(204))
+			gomega.Eventually(func() pkg.WebResponse {
 				url := fmt.Sprintf("http://%s/todo/rest/items", ingress)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
-				return WebResponse{
-					status:  status,
-					content: content,
+				return pkg.WebResponse{
+					Status:  status,
+					Content: content,
 				}
-			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(HaveStatus(200), ContainContent(task)))
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HaveStatus(200), pkg.ContainContent(task)))
 		})
 	})
 
@@ -197,7 +181,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 	//})
 
 	ginkgo.Context("Logging.", func() {
-		indexName := "todo-list--"
+		indexName := "todo-list-todo-appconf-todo-domain"
 
 		// GIVEN a WebLogic application with logging enabled via a logging scope
 		// WHEN the Elasticsearch index is retrieved
@@ -223,34 +207,5 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 
 // appMetricsExists confirms that a specific application metrics can be found.
 func appMetricsExists() bool {
-	return metricExist("wls_scrape_mbeans_count_total", "app_oam_dev_name", "todo")
-}
-
-// findMetric confirms a metric with the key and value can be found in a list of metrics.
-func findMetric(metrics []interface{}, key, value string) bool {
-	for _, metric := range metrics {
-		if pkg.Jq(metric, "metric", key) == value {
-			return true
-		}
-	}
-	return false
-}
-
-// metricExist confirms that a metric with the key and value can be found.
-func metricExist(metricsName, key, value string) bool {
-	metrics := pkg.JTq(pkg.QueryMetric(metricsName), "data", "result").([]interface{})
-	if metrics != nil {
-		return findMetric(metrics, key, value)
-	} else {
-		return false
-	}
-}
-
-// getRequiredEnvVarOrFail returns the values of the provided environment variable name or fails.
-func getRequiredEnvVarOrFail(name string) string {
-	value, found := os.LookupEnv(name)
-	if !found {
-		ginkgo.Fail(fmt.Sprintf("Environment variable '%s' required.", name))
-	}
-	return value
+	return pkg.MetricsExist("wls_scrape_mbeans_count_total", "app_oam_dev_name", "todo")
 }

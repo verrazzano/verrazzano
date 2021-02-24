@@ -1,0 +1,30 @@
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+environment:
+  name: XX_ENV_NAME_XX
+  dnsZone: XX_DNS_ZONE_XX
+  managementCluster:
+    clusterId: local
+    vmcName: local
+    kubeConfigFile: XX_MGMT_KUBECONFIG_XX
+containerRegistry:
+  uri: XX_CONTAINER_REGISTRY_XX
+  username: XX_OCR_USERNAME_XX
+  password: "XX_OCR_PASSWORD_XX"
+demoApps:
+  deleteDemoApps: true  ##delete the demo apps after running tests?
+  sockShop:
+    placement: local    ##name of cluster where the sockShop app is placed
+    modelFilePath: XX_SOCKS_MODEL_FILE_XX
+    bindingFilePath: XX_SOCKS_BINDING_FILE_XX
+  bobsBooks:
+    modelFilePath: XX_BOBS_MODEL_FILE_XX
+    bindingFilePath: XX_BOBS_BINDING_FILE_XX
+    mysqlFilePath: XX_BOBS_MYSQL_DEPLOY_FILE_XX
+  helidonUpgrade:
+    modelFilePath: XX_HELIDON_MODEL_FILE_XX
+    bindingFilePath: XX_HELIDON_BINDING_FILE_XX
+  helidonApp:
+    modelFilePath: XX_HELIDON_MODEL_FILE_XX
+    bindingFilePath: XX_HELIDON_BINDING_FILE_XX

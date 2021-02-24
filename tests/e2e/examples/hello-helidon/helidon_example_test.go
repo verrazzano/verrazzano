@@ -15,12 +15,12 @@ import (
 )
 
 const (
-	longWaitTimeout      = 10 * time.Minute
-	longPollingInterval  = 20 * time.Second
+	longWaitTimeout     = 10 * time.Minute
+	longPollingInterval = 20 * time.Second
 )
 
 var _ = ginkgo.BeforeSuite(func() {
-	if _, err := pkg.CreateNamespace("oam-hello-helidon", map[string]string{"verrazzano-managed": "true"}); err != nil {
+	if _, err := pkg.CreateNamespace("hello-helidon", map[string]string{"verrazzano-managed": "true"}); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
 	}
 
@@ -43,9 +43,9 @@ var _ = ginkgo.AfterSuite(func() {
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not delete hello-helidon component resource: %v\n", err.Error()))
 	}
-	err = pkg.DeleteNamespace("oam-hello-helidon")
+	err = pkg.DeleteNamespace("hello-helidon")
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not delete oam-hello-helidon namespace: %v\n", err.Error()))
+		ginkgo.Fail(fmt.Sprintf("Could not delete hello-helidon namespace: %v\n", err.Error()))
 	}
 })
 
@@ -56,8 +56,7 @@ var (
 )
 
 const (
-	testNamespace      = "oam-hello-helidon"
-	helloHostHeader    = "hello-helidon.example.com"
+	testNamespace      = "hello-helidon"
 	istioNamespace     = "istio-system"
 	ingressServiceName = "istio-ingressgateway"
 )
@@ -109,7 +108,7 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 	})
 
 	ginkgo.Context("Logging.", func() {
-		indexName := "oam-hello-helidon-hello-helidon-appconf-hello-helidon-component"
+		indexName := "hello-helidon-hello-helidon-appconf-hello-helidon-component"
 
 		// GIVEN an application with logging enabled via a logging scope
 		// WHEN the Elasticsearch index is retrieved
@@ -126,8 +125,8 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
 			gomega.Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"oam.applicationconfiguration.namespace":  "oam-hello-helidon",
-					"oam.applicationconfiguration.name": "hello-helidon-appconf"})
+					"oam.applicationconfiguration.namespace": "hello-helidon",
+					"oam.applicationconfiguration.name":      "hello-helidon-appconf"})
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 		})
 	})
@@ -138,7 +137,8 @@ func helloHelidonPodsRunning() bool {
 }
 
 func appEndpointAccessible(url string) bool {
-	status, webpage := pkg.GetWebPageWithBasicAuth(url, helloHostHeader, "", "")
+	hostname := pkg.GetHostnameFromGateway(testNamespace, "")
+	status, webpage := pkg.GetWebPageWithBasicAuth(url, hostname, "", "")
 	gomega.Expect(status).To(gomega.Equal(http.StatusOK), fmt.Sprintf("GET %v returns status %v expected 200.", url, status))
 	gomega.Expect(strings.Contains(webpage, "Hello World")).To(gomega.Equal(true), fmt.Sprintf("Webpage is NOT Hello World %v", webpage))
 	return true

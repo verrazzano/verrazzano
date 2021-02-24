@@ -1,12 +1,12 @@
-# Copyright 2020, Oracle Corporation and/or its affiliates.
+# Copyright 2020, 2021, Oracle Corporation and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at
 # http://oss.oracle.com/licenses/upl.
 
 name: coherence-operator
 description: A Kubernetes Operator for Coherence
 apiVersion: v1
-version: 3.1.1
-appVersion: 3.1.1
+version: 3.1.3
+appVersion: 3.1.3
 home: https://github.com/oracle/coherence-operator
 sources:
 - https://github.com/oracle/coherence-operator

@@ -1,0 +1,65 @@
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: core.oam.dev/v1alpha2
+kind: ApplicationConfiguration
+metadata:
+  name: bobs-books
+  namespace: bobs-books
+  annotations:
+    version: v1.0.0
+    description: "Bob's Books"
+spec:
+  components:
+    - componentName: robert-helidon
+      traits:
+        - trait:
+            apiVersion: core.oam.dev/v1alpha2
+            kind: ManualScalerTrait
+            spec:
+              replicaCount: 2
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: IngressTrait
+            spec:
+              rules:
+                - paths:
+                    - path: "/"
+                      pathType: Prefix
+    - componentName: robert-coh
+    - componentName: bobby-coh
+    - componentName: bobby-helidon
+    - componentName: bobby-wls
+      traits:
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: IngressTrait
+            spec:
+              rules:
+                - paths:
+                    - path: "/bobbys-front-end"
+                      pathType: Prefix
+      scopes:
+        - scopeRef:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: LoggingScope
+            name: logging-scope
+    - componentName: bobs-orders-wls
+      traits:
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: IngressTrait
+            spec:
+              rules:
+                - paths:
+                    - path: "/bobs-bookstore-order-manager/orders"
+                      pathType: Prefix
+      scopes:
+        - scopeRef:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: LoggingScope
+            name: logging-scope
+    - componentName: bobs-orders-configmap
+    - componentName: bobs-mysql-deployment
+    - componentName: bobs-mysql-service
+    - componentName: bobs-mysql-configmap

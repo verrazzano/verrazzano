@@ -115,6 +115,14 @@ function process_nodes_output() {
   fi
 }
 
+function dump_es_indexes() {
+  kubectl get ingress -A -o json | jq .items[].spec.tls[].hosts[] | grep elasticsearch.vmi.system.default | sed -e 's;^";https://;' -e 's/"//'
+  local ES_ENDPOINT=$(kubectl get ingress -A -o json | jq .items[].spec.tls[].hosts[] | grep elasticsearch.vmi.system.default | sed -e 's;^";https://;' -e 's/"//')
+  local ES_USER=$(kubectl get secret -n verrazzano-system verrazzano -o jsonpath={.data.username} | base64 --decode)
+  local ES_PWD=$(kubectl get secret -n verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode)
+  curl -k -u $ES_USER:$ES_PWD $ES_ENDPOINT/_all
+}
+
 function full_k8s_cluster_dump() {
   echo "Full capture of kubernetes cluster"
   # Get general cluster-info dump, this contains quite a bit but not everything, it also sets up the directory structure
@@ -131,9 +139,11 @@ function full_k8s_cluster_dump() {
     kubectl get virtualservice --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/virtualservices.json || true
     kubectl describe verrazzano --all-namespaces > $CAPTURE_DIR/cluster-dump/verrazzano_resources.out || true
     kubectl api-resources -o wide > $CAPTURE_DIR/cluster-dump/api_resources.out || true
-    kubectl describe configmap --all-namespaces > $CAPTURE_DIR/cluster-dump/configmaps.out || true
+    # squelch the "too many clients" warnings from newer kubectl versions
+    kubectl describe configmap --all-namespaces > $CAPTURE_DIR/cluster-dump/configmaps.out 2> /dev/null || true
     helm version > $CAPTURE_DIR/cluster-dump/helm-version.out || true
     helm ls -A -o json > $CAPTURE_DIR/cluster-dump/helm-ls.json || true
+    dump_es_indexes > $CAPTURE_DIR/cluster-dump/es_indexes.out || true
     process_nodes_output || true
   else
     echo "Failed to dump cluster, verify kubectl has access to the cluster"

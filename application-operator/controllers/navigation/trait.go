@@ -5,6 +5,7 @@ package navigation
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
@@ -47,7 +48,11 @@ func FetchWorkloadFromTrait(ctx context.Context, cli client.Reader, log logr.Log
 		return nil, err
 	}
 
-	if IsVerrazzanoWorkloadKind(workload) {
+	// Getting kind of helidon workload i.e. "VerrazzanoHelidonWorkload"
+	helidonWorkloadKind := reflect.TypeOf(vzapi.VerrazzanoHelidonWorkload{}).Name()
+
+	// This is required only if the workload wraps unstructured data
+	if IsVerrazzanoWorkloadKind(workload) && (helidonWorkloadKind != workload.GetKind()) {
 		// this is one of our wrapper workloads so we need to unwrap and pull out the real workload
 		workload, err = FetchContainedWorkload(ctx, cli, workload)
 		if err != nil {

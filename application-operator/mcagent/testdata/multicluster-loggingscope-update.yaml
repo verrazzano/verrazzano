@@ -1,0 +1,20 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: clusters.verrazzano.io/v1alpha1
+kind: MultiClusterLoggingScope
+metadata:
+  name: unit-mclogscope
+  namespace: unit-mclogscope-namespace
+  labels:
+    label1: test1updated
+spec:
+  template:
+    spec:
+      fluentdImage: myFluentdImage:v123
+      elasticSearchHost: myLocalEsHost2
+      elasticSearchPort: 9200
+      secretName: logScopeSecret2
+      workloadRefs: []
+  placement:
+    clusters:
+      - name: managed1
