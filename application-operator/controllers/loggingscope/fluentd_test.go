@@ -23,7 +23,6 @@ const (
 	testParseRules  = "test-parse-rules"
 	testStorageName = "test-fluentd-volume"
 	testESURL       = "http://es-host:9999"
-	testESPort      = "9999"
 	testESSecret    = "test-secret"
 
 	testESURLUpdate    = "http://es-host-update:1111"

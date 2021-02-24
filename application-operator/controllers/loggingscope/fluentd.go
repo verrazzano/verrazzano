@@ -30,7 +30,7 @@ const (
 
 	secretUserKey     = "username"
 	secretPasswordKey = "password"
-	volumeSecret      = "secret-volume"
+	secretVolume      = "secret-volume"
 	secretMountPath   = "/fluentd/secret"
 )
 
@@ -382,13 +382,13 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				MountPath: fluentdConfMountPath,
-				Name:      volumeConf,
+				Name:      confVolume,
 				SubPath:   fluentdConfKey,
 				ReadOnly:  true,
 			},
 			{
 				MountPath: secretMountPath,
-				Name:      volumeSecret,
+				Name:      secretVolume,
 				ReadOnly:  true,
 			},
 			{
