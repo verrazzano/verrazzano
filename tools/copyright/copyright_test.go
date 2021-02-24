@@ -15,7 +15,7 @@ import (
 func TestRunScan(t *testing.T) {
 	verbose = true
 	ec := runScan([]string{"test"})
-	assert.Equal(t, 0, ec)
+	assert.Equal(t, 1, ec)
 	assert.Equal(t, uint(6), numFilesAnalyzed)
 	assert.Equal(t, 5, len(filesWithErrors))
 	assert.Equal(t, uint(1), numFilesSkipped)
