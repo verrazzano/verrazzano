@@ -45,7 +45,7 @@ multiline_flush_interval 20s
 <filter coherence-cluster>                  
 @type record_transformer
 <record>
- coherence.cluster "#{ENV['COH_CLUSTER_NAME']}"
+ cluster "#{ENV['COH_CLUSTER_NAME']}"
  role "#{ENV['COH_ROLE']}"
  host "#{ENV['HOSTNAME']}"
  pod-uid "#{ENV['COH_POD_UID']}"
@@ -53,7 +53,6 @@ multiline_flush_interval 20s
  oam.applicationconfiguration.name "#{ENV['APP_CONF_NAME']}"
  oam.component.namespace "#{ENV['NAMESPACE']}"
  oam.component.name  "#{ENV['COMPONENT_NAME']}"
- verrazzano.cluster.name  "#{ENV['CLUSTER_NAME']}"
 </record>
 </filter>
 

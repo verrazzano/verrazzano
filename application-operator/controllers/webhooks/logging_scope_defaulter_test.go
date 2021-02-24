@@ -272,8 +272,8 @@ func TestLoggingScopeDefaulter_DefaultOnManagedCluster(t *testing.T) {
 	// assumed no managed cluster secret found)
 	esDetails := clusters.ElasticsearchDetails{URL: "http://some-es-host:9999", SecretName: constants.ElasticsearchSecretName}
 	mcSecret := v1.Secret{Data: map[string][]byte{
-		constants.ClusterNameData:      []byte("managed-cluster1"),
-		constants.ElasticsearchURLData: []byte(esDetails.URL)}}
+		constants.ClusterNameData:         []byte("managed-cluster1"),
+		constants.ElasticsearchURLData:    []byte(esDetails.URL)}}
 	doExpectGetManagedClusterSecretFound(cli, mcSecret)
 
 	// Expect get default logging scope
