@@ -49,8 +49,8 @@ copyright-test:
 	(cd tools/copyright; go test .)
 
 .PHONY: copyright-check-year
-copyright-check-year:
-	go run tools/copyright/copyright.go --enforce-current $(shell git log --since=01-01-2021 --name-only --oneline --pretty="format:" | sort -u)
+copyright-check-year: copyright-test
+	go run tools/copyright/copyright.go --enforce-current $(shell git log --since=01-01-${CURRENT_YEAR} --name-only --oneline --pretty="format:" | sort -u)
 
 .PHONY: copyright-check
 copyright-check: copyright-check-year

@@ -61,8 +61,6 @@ pipeline {
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
-
-        COPYRIGHT_SCAN_TARGET = "${env.BRANCH_NAME == 'master' ? 'copyright-check' : 'copyright-check-branch'}"
     }
 
     stages {
@@ -139,7 +137,7 @@ pipeline {
                     git diff --name-only "@{2001-01-01}" "@{now}"
                     git diff origin/master --name-only
                     git log --since=01-01-2021 --name-only --oneline --pretty="format:" | sort -u
-                    time make ${COPYRIGHT_SCAN_TARGET}
+                    time make copyright-check
                 """
             }
         }
