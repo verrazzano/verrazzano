@@ -187,7 +187,7 @@ func createTestFluentdPodForUpdate() *FluentdPod {
 
 // addFluentdArtifactsToFluentdPod adds FLUENTD artifacts to a FluentdPod
 func addFluentdArtifactsToFluentdPod(fluentd *Fluentd, fluentdPod *FluentdPod, scope *v1alpha1.LoggingScope, namespace string) {
-	fluentd.ensureFluentdVolumes(fluentdPod)
+	fluentd.ensureFluentdVolumes(fluentdPod, scope)
 	fluentdPod.VolumeMounts = append(fluentdPod.VolumeMounts, fluentd.createFluentdVolumeMount())
 	fluentdPod.Containers = append(fluentdPod.Containers, fluentd.createFluentdContainer(fluentdPod, scope, namespace))
 }
@@ -217,7 +217,7 @@ func testAssertFluentdPodForApply(t *testing.T, fluentdPod *FluentdPod) {
 	asserts.True(t, success)
 
 	volumes := fluentdPod.Volumes
-	asserts.Len(t, volumes, 3)
+	asserts.Len(t, volumes, 4)
 
 	volumeMounts := fluentdPod.VolumeMounts
 	asserts.Len(t, volumeMounts, 2)
@@ -248,7 +248,7 @@ func testAssertFluentdPodForApplyUpdate(t *testing.T, fluentdPod *FluentdPod) {
 	asserts.True(t, success)
 
 	volumes := fluentdPod.Volumes
-	asserts.Len(t, volumes, 3)
+	asserts.Len(t, volumes, 4)
 
 	volumeMounts := fluentdPod.VolumeMounts
 	asserts.Len(t, volumeMounts, 2)
@@ -258,7 +258,7 @@ func testAssertFluentdPodForApplyUpdate(t *testing.T, fluentdPod *FluentdPod) {
 func testAssertFluentdPodForRemove(t *testing.T, fluentdPod *FluentdPod) {
 	asserts.Len(t, fluentdPod.Containers, 1)
 	// WebLogic FLUENTD volumes don't get removed as a result of disassociation from scope
-	asserts.Len(t, fluentdPod.Volumes, 2)
+	asserts.Len(t, fluentdPod.Volumes, 3)
 	asserts.Len(t, fluentdPod.VolumeMounts, 2)
 }
 

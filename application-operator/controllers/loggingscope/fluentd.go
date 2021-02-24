@@ -73,7 +73,7 @@ func (f *Fluentd) Apply(scope *vzapi.LoggingScope, resource vzapi.QualifiedResou
 			return false, err
 		}
 
-		f.ensureFluentdVolumes(fluentdPod)
+		f.ensureFluentdVolumes(fluentdPod, scope)
 		f.ensureFluentdVolumeMountExists(fluentdPod)
 		f.ensureFluentdContainer(fluentdPod, scope, resource.Namespace)
 		return true, nil
@@ -120,19 +120,25 @@ func (f *Fluentd) ensureFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 // ensureFluentdVolumes ensures that the FLUENTD volumes exist. We expect 2 volumes, a FLUENTD volume and a
 // FLUENTD config map volume. If these already exist, nothing needs to be done. If they don't already exist,
 // create them and add to the FluentdPod.
-func (f *Fluentd) ensureFluentdVolumes(fluentdPod *FluentdPod) {
+func (f *Fluentd) ensureFluentdVolumes(fluentdPod *FluentdPod, scope *vzapi.LoggingScope) {
 	volumes := fluentdPod.Volumes
 	configMapVolumeExists := false
 	fluentdVolumeExists := false
+	secretVolumeExists := false
 	for _, volume := range volumes {
 		if volume.Name == f.StorageVolumeName {
 			fluentdVolumeExists = true
 		} else if volume.Name == fmt.Sprintf("%s-volume", configMapName) {
 			configMapVolumeExists = true
+		} else if volume.Name == secretVolume {
+			secretVolumeExists = true
 		}
 	}
 	if !configMapVolumeExists {
 		volumes = append(volumes, f.createFluentdConfigMapVolume(configMapName))
+	}
+	if !secretVolumeExists {
+		volumes = append(volumes, f.createFluentdSecretVolume(scope.Spec.SecretName))
 	}
 	if !fluentdVolumeExists {
 		volumes = append(volumes, f.createFluentdEmptyDirVolume())
@@ -428,6 +434,17 @@ func (f *Fluentd) createFluentdConfigMapVolume(name string) corev1.Volume {
 					return &mode
 				}(420),
 			},
+		},
+	}
+}
+
+// createFluentdSecretVolume creates a FLUENTD secret volume
+func (f *Fluentd) createFluentdSecretVolume(secretName string) corev1.Volume {
+	return corev1.Volume{
+		Name: secretVolume,
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: secretName},
 		},
 	}
 }
