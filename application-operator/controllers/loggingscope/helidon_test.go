@@ -285,8 +285,8 @@ func vmiSecret(sec *kcore.Secret) *kcore.Secret {
 	sec.Name = "verrazzano"
 	sec.Namespace = "verrazzano-system"
 	sec.Data = map[string][]byte{
-		"username": []byte("verrazzano"),
-		"password": []byte(genPassword(10)),
+		secretUserKey:     []byte("verrazzano"),
+		secretPasswordKey: []byte(genPassword(10)),
 	}
 	return sec
 }

@@ -203,11 +203,11 @@ func testAssertFluentdPodForApply(t *testing.T, fluentdPod *FluentdPod) {
 			env := container.Env
 			for _, envVar := range env {
 				switch name := envVar.Name; name {
-				case elasticSearchURLField:
+				case elasticSearchURLEnv:
 					asserts.Equal(t, testESURL, envVar.Value)
-				case elasticSearchUserField:
+				case elasticSearchUserEnv:
 					asserts.Equal(t, testESSecret, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
-				case elasticSearchPwdField:
+				case elasticSearchPwdEnv:
 					asserts.Equal(t, testESSecret, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
 				}
 
@@ -234,11 +234,11 @@ func testAssertFluentdPodForApplyUpdate(t *testing.T, fluentdPod *FluentdPod) {
 			env := container.Env
 			for _, envVar := range env {
 				switch name := envVar.Name; name {
-				case elasticSearchURLField:
+				case elasticSearchURLEnv:
 					asserts.Equal(t, testESURLUpdate, envVar.Value)
-				case elasticSearchUserField:
+				case elasticSearchUserEnv:
 					asserts.Equal(t, testESSecretUpdate, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
-				case elasticSearchPwdField:
+				case elasticSearchPwdEnv:
 					asserts.Equal(t, testESSecretUpdate, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
 				}
 
@@ -279,17 +279,17 @@ func createFluentdESEnv() []v1.EnvVar {
 			Value: "true",
 		},
 		{
-			Name:  elasticSearchURLField,
+			Name:  elasticSearchURLEnv,
 			Value: testESURL,
 		},
 		{
-			Name: elasticSearchUserField,
+			Name: elasticSearchUserEnv,
 			ValueFrom: &v1.EnvVarSource{
 				SecretKeyRef: &v1.SecretKeySelector{
 					LocalObjectReference: v1.LocalObjectReference{
 						Name: testESSecret,
 					},
-					Key: "username",
+					Key: secretUserKey,
 					Optional: func(opt bool) *bool {
 						return &opt
 					}(true),
@@ -297,13 +297,13 @@ func createFluentdESEnv() []v1.EnvVar {
 			},
 		},
 		{
-			Name: elasticSearchPwdField,
+			Name: elasticSearchPwdEnv,
 			ValueFrom: &v1.EnvVarSource{
 				SecretKeyRef: &v1.SecretKeySelector{
 					LocalObjectReference: v1.LocalObjectReference{
 						Name: testESSecret,
 					},
-					Key: "password",
+					Key: secretPasswordKey,
 					Optional: func(opt bool) *bool {
 						return &opt
 					}(true),

@@ -23,9 +23,14 @@ const (
 	configMapName        = "fluentd-config"
 	scratchVolMountPath  = "/scratch"
 
-	elasticSearchURLField  = "ELASTICSEARCH_URL"
-	elasticSearchUserField = "ELASTICSEARCH_USER"
-	elasticSearchPwdField  = "ELASTICSEARCH_PASSWORD"
+	elasticSearchURLEnv  = "ELASTICSEARCH_URL"
+	elasticSearchUserEnv = "ELASTICSEARCH_USER"
+	elasticSearchPwdEnv  = "ELASTICSEARCH_PASSWORD"
+	elasticSearchCAEnv   = "ELASTICSEARCH_CA_BUNDLE"
+
+	secretUserKey     = "username"
+	secretPasswordKey = "password"
+	secretCABundleKey = "ca-bundle"
 )
 
 // ElasticSearchIndex defines the common index pattern
@@ -267,21 +272,21 @@ func (f *Fluentd) isFluentdContainerUpToDate(containers []v1.Container, scope *v
 		diffExists := false
 		for _, envvar := range container.Env {
 			switch name := envvar.Name; name {
-			case elasticSearchURLField:
+			case elasticSearchURLEnv:
 				host := envvar.Value
 				f.Log.Info("FLUENTD container ElasticSearch url", "url", host)
 				if host != scope.Spec.ElasticSearchURL {
 					diffExists = true
 					break
 				}
-			case elasticSearchUserField:
+			case elasticSearchUserEnv:
 				secretName := envvar.ValueFrom.SecretKeyRef.LocalObjectReference.Name
 				f.Log.Info("FLUENTD container ElasticSearch user secret", "secret", secretName)
 				if secretName != scope.Spec.SecretName {
 					diffExists = true
 					break
 				}
-			case elasticSearchPwdField:
+			case elasticSearchPwdEnv:
 				secretName := envvar.ValueFrom.SecretKeyRef.LocalObjectReference.Name
 				f.Log.Info("FLUENTD container ElasticSearch password secret", "secret", secretName)
 				if secretName != scope.Spec.SecretName {
@@ -321,17 +326,17 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 				Value: "true",
 			},
 			{
-				Name:  elasticSearchURLField,
+				Name:  elasticSearchURLEnv,
 				Value: scope.Spec.ElasticSearchURL,
 			},
 			{
-				Name: elasticSearchUserField,
+				Name: elasticSearchUserEnv,
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: scope.Spec.SecretName,
 						},
-						Key: "username",
+						Key: secretUserKey,
 						Optional: func(opt bool) *bool {
 							return &opt
 						}(true),
@@ -339,13 +344,13 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 				},
 			},
 			{
-				Name: elasticSearchPwdField,
+				Name: elasticSearchPwdEnv,
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: scope.Spec.SecretName,
 						},
-						Key: "password",
+						Key: secretPasswordKey,
 						Optional: func(opt bool) *bool {
 							return &opt
 						}(true),

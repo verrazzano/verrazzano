@@ -283,17 +283,17 @@ func CreateFluentdContainer(namespace, workloadName, containerName, fluentdImage
 				},
 			},
 			{
-				Name:  elasticSearchURLField,
+				Name:  elasticSearchURLEnv,
 				Value: esURL,
 			},
 			{
-				Name: elasticSearchUserField,
+				Name: elasticSearchUserEnv,
 				ValueFrom: &kcore.EnvVarSource{
 					SecretKeyRef: &kcore.SecretKeySelector{
 						LocalObjectReference: kcore.LocalObjectReference{
 							Name: esSecret,
 						},
-						Key: "username",
+						Key: secretUserKey,
 						Optional: func(opt bool) *bool {
 							return &opt
 						}(true),
@@ -301,13 +301,13 @@ func CreateFluentdContainer(namespace, workloadName, containerName, fluentdImage
 				},
 			},
 			{
-				Name: elasticSearchPwdField,
+				Name: elasticSearchPwdEnv,
 				ValueFrom: &kcore.EnvVarSource{
 					SecretKeyRef: &kcore.SecretKeySelector{
 						LocalObjectReference: kcore.LocalObjectReference{
 							Name: esSecret,
 						},
-						Key: "password",
+						Key: secretPasswordKey,
 						Optional: func(opt bool) *bool {
 							return &opt
 						}(true),
