@@ -277,7 +277,7 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: verrazzano-installer
+  name: verrazzano-install
   labels:
     verrazzano.io/aggregate-to-verrazzano-admin: "true"
 rules:
