@@ -17,7 +17,7 @@ The Hello World Helidon application deployment artifacts are contained in the Ve
 1. Create a namespace for the example application and add a label identifying the namespace as managed by Verrazzano.
    ```
    $ kubectl create namespace hello-helidon
-   $ kubectl label namespace hello-helidon verrazzano-managed=true
+   $ kubectl label namespace hello-helidon verrazzano-managed=true istio-injection=enabled
    ```
 
 1. Apply the `hello-helidon` OAM resources to deploy the application.

@@ -21,7 +21,7 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
 
     ```
     $ kubectl create namespace bobs-books
-    $ kubectl label namespaces bobs-books verrazzano-managed=true
+    $ kubectl label namespace bobs-books verrazzano-managed=true istio-injection=enabled
     ```
 
 1. Create a `docker-registry` secret to enable pulling the example image from the registry.
