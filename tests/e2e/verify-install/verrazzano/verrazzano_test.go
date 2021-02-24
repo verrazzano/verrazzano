@@ -21,24 +21,74 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 		ginkgoExt.Entry("verrazzanomanagedclusters should exist in cluster", "verrazzanomanagedclusters.clusters.verrazzano.io"),
 	)
 
-	//ginkgoExt.DescribeTable("ClusterRole",
-	//	func(name string) {
-	//		gomega.Expect(pkg.DoesClusterRoleExist(name)).To(gomega.BeTrue())
-	//	},
-	//	ginkgoExt.Entry("verrazzano-admin should exist", "verrazzano-admin"),
-	//	ginkgoExt.Entry("verrazzano-app-admin should exist", "verrazzano-app-admin"),
-	//	ginkgoExt.Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
-	//)
-	//
-	//ginkgoExt.DescribeTable("ClusterRoleBinding",
-	//	func(name string) {
-	//		gomega.Expect(pkg.DoesClusterRoleBindingExist(name)).To(gomega.BeTrue())
-	//	},
-	//	ginkgoExt.Entry("verrazzano-admin should exist", "verrazzano-admin"),
-	//	ginkgoExt.Entry("verrazzano-app-admin should exist", "verrazzano-app-admin"),
-	//	ginkgoExt.Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
-	//)
-	//
+	ginkgoExt.DescribeTable("ClusterRole",
+		func(name string) {
+			gomega.Expect(pkg.DoesClusterRoleExist(name)).To(gomega.BeTrue())
+		},
+		ginkgoExt.Entry("verrazzano-admin should exist", "verrazzano-admin"),
+		ginkgoExt.Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
+		ginkgoExt.Entry("verrazzano-project-admin should exist", "verrazzano-project-admin"),
+		ginkgoExt.Entry("verrazzano-project-monitor should exist", "verrazzano-project-monitor"),
+	)
+
+	ginkgoExt.DescribeTable("ClusterRoleBinding",
+		func(name string) {
+			gomega.Expect(pkg.DoesClusterRoleBindingExist(name)).To(gomega.BeTrue())
+		},
+		ginkgoExt.Entry("verrazzano-admin should exist", "verrazzano-admin"),
+		ginkgoExt.Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
+	)
+
+	ginkgo.Describe("ClusterRole verrazzano-admin", func() {
+		ginkgo.It("has correct rules", func() {
+			cr := pkg.GetClusterRole("verrazzano-admin")
+			rules := cr.Rules
+			gomega.Expect(len(rules) == 2).To(gomega.BeTrue(),
+				"there should be two rules")
+
+			foundReadRule := false
+			foundWriteRule := false
+
+			for _, r := range rules {
+				gomega.Expect(r.NonResourceURLs).To(gomega.BeEmpty(),
+					"there should not be any non resource url rules")
+				gomega.Expect(r.ResourceNames).To(gomega.BeEmpty(),
+					"there should not be any resource names")
+				gomega.Expect(len(r.APIGroups) == 3).To(gomega.BeTrue(),
+					"there should be three entries in the ApiGroup")
+
+				gomega.Expect(pkg.SliceContainsString(r.APIGroups, "verrazzano.io")).To(gomega.BeTrue(),
+					"APIGroups should contain verrazzano.io")
+				gomega.Expect(pkg.SliceContainsString(r.APIGroups, "oam.verrazzano.io")).To(gomega.BeTrue(),
+					"APIGroups should contain oam.verrazzano.io")
+				gomega.Expect(pkg.SliceContainsString(r.APIGroups, "install.verrazzano.io")).To(gomega.BeTrue(),
+					"APIGroups should contain install.verrazzano.io")
+
+				gomega.Expect(len(r.Resources) == 1).To(gomega.BeTrue(),
+					"there should be one resource")
+				gomega.Expect(pkg.SliceContainsString(r.Resources, "*")).To(gomega.BeTrue(),
+					"the resource should be '*'")
+
+				verbs := r.Verbs
+				if pkg.SliceContainsString(verbs, "put") &&
+					pkg.SliceContainsString(verbs, "post") &&
+					len(verbs) == 2 {
+					foundWriteRule = true
+				} else if pkg.SliceContainsString(verbs, "get") &&
+					pkg.SliceContainsString(verbs, "list") &&
+					pkg.SliceContainsString(verbs, "watch") &&
+					len(verbs) == 3 {
+					foundReadRule = true
+				}
+			}
+
+			gomega.Expect(foundReadRule).To(gomega.BeTrue(),
+				"should be a rule that allows get,list,watch verbs")
+			gomega.Expect(foundWriteRule).To(gomega.BeTrue(),
+				"should be a rule that allows put,post verbs")
+		})
+	})
+
 	//ginkgoExt.DescribeTable("ClusterRoles have the correct Rules",
 	//	func(clusterrole string, apigroup string, resource string, verb string, expected bool) {
 	//		theClusterrole := pkg.GetClusterRole(clusterrole)
