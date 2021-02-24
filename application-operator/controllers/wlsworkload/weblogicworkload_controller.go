@@ -113,16 +113,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	// Get the value of the istio-injection label from the namespace
-	istioEnabled := false
-	for key, value := range namespace.Labels {
-		if key == "istio-injection" && value == "enabled" {
-			istioEnabled = true
-		}
-	}
-
 	// Set the domain resource configuration.istio.enabled value
-	if err = updateIstioEnabled(istioEnabled, u); err != nil {
+	if err = updateIstioEnabled(namespace.Labels, u); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -141,7 +133,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, nil
 	}
 
-	if err = r.createOrUpdateDestinationRule(ctx, istioEnabled, namespace.Name, workload.ObjectMeta.Labels); err != nil {
+	if err = r.createOrUpdateDestinationRule(ctx, namespace.Name, namespace.Labels, workload.ObjectMeta.Labels); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -275,20 +267,29 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 	return nil
 }
 
-// updateIstioEnabled sets the domain resource configuration.istio.enabled value based on the namespace label istio-injection
-func updateIstioEnabled(istioEnabled bool, u *unstructured.Unstructured) error {
-	// Set the configuration.istio.enabled value for the domain resource
-	err := unstructured.SetNestedField(u.Object, istioEnabled, specConfigurationIstioEnabledFields...)
-	if err != nil {
-		return err
+// updateIstioEnabled sets the domain resource configuration.istio.enabled value based
+// on the namespace label istio-injection
+func updateIstioEnabled(labels map[string]string, u *unstructured.Unstructured) error {
+	istioEnabled := false
+	for key, value := range labels {
+		if key == "istio-injection" && value == "enabled" {
+			istioEnabled = true
+		}
 	}
 
-	return nil
+	return unstructured.SetNestedField(u.Object, istioEnabled, specConfigurationIstioEnabledFields...)
 }
 
 // createOrUpdateDestinationRule creates or updates an Istio destinationRule required by WebLogic servers.
 // The destinationRule is only created when the namespace has the label istio-injection=enabled.
-func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, istioEnabled bool, namespace string, workloadLabels map[string]string) error {
+func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, namespace string, namespaceLabels map[string]string, workloadLabels map[string]string) error {
+	istioEnabled := false
+	for key, value := range namespaceLabels {
+		if key == "istio-injection" && value == "enabled" {
+			istioEnabled = true
+		}
+	}
+
 	if !istioEnabled {
 		return nil
 	}

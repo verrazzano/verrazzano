@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
+	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/golang/mock/gomock"
@@ -15,10 +16,13 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -97,7 +101,7 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 		})
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
@@ -486,8 +490,138 @@ func TestAddLoggingFailure(t *testing.T) {
 	assert.Equal(false, result.Requeue)
 }
 
+// TestCreateUpdateDestinationRuleCreate tests creation of a destination rule
+// GIVEN the destination rule does not exist
+// WHEN the controller createOrUpdateDestinationRule function is called
+// THEN expect no error to be returned and destination rule is created
+func TestCreateUpdateDestinationRuleCreate(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// Expect a call to get a destination rule and return that it is not found.
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-app"}, gomock.Not(gomock.Nil())).
+		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "DestinationRule"}, "test-space-myapp-dr"))
+
+	// Expect a call to get the appconfig resource to set the owner reference
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-app"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, app *oamcore.ApplicationConfiguration) error {
+			app.TypeMeta = metav1.TypeMeta{
+				APIVersion: "core.oam.dev/v1alpha2",
+				Kind:       "ApplicationConfiguration",
+			}
+			return nil
+		})
+
+	// Expect a call to create the destinationRule and return success
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, dr *istioclient.DestinationRule, opts ...client.CreateOption) error {
+			return nil
+		})
+
+	scheme := runtime.NewScheme()
+	istioclient.AddToScheme(scheme)
+	core.AddToScheme(scheme)
+	vzapi.AddToScheme(scheme)
+	reconciler := Reconciler{Client: cli, Scheme: scheme}
+
+	namespaceLabels := make(map[string]string)
+	namespaceLabels["istio-injection"] = "enabled"
+	workloadLabels := make(map[string]string)
+	workloadLabels["app.oam.dev/name"] = "test-app"
+	err := reconciler.createOrUpdateDestinationRule(context.Background(), "test-namespace", namespaceLabels, workloadLabels)
+	mocker.Finish()
+	assert.Nil(err)
+}
+
+// TestCreateUpdateDestinationRuleUpdate tests update of a destination rule
+// GIVEN the destination rule exist
+// WHEN the controller createOrUpdateDestinationRule function is called
+// THEN expect no error to be returned and destination rule is updated
+func TestCreateUpdateDestinationRuleUpdate(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// Expect a call to get a destination rule and return that it was found.
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-app"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dr *istioclient.DestinationRule) error {
+			dr.TypeMeta = metav1.TypeMeta{
+				APIVersion: destinationRuleAPIVersion,
+				Kind:       destinationRuleKind}
+			return nil
+		})
+
+	// Expect a call to get the appconfig resource to set the owner reference
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-app"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, app *oamcore.ApplicationConfiguration) error {
+			app.TypeMeta = metav1.TypeMeta{
+				APIVersion: "core.oam.dev/v1alpha2",
+				Kind:       "ApplicationConfiguration",
+			}
+			return nil
+		})
+
+	// Expect a call to update the destinationRule and return success
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, dr *istioclient.DestinationRule, opts ...client.CreateOption) error {
+			return nil
+		})
+
+	scheme := runtime.NewScheme()
+	istioclient.AddToScheme(scheme)
+	core.AddToScheme(scheme)
+	vzapi.AddToScheme(scheme)
+	reconciler := Reconciler{Client: cli, Scheme: scheme}
+
+	namespaceLabels := make(map[string]string)
+	namespaceLabels["istio-injection"] = "enabled"
+	workloadLabels := make(map[string]string)
+	workloadLabels["app.oam.dev/name"] = "test-app"
+	err := reconciler.createOrUpdateDestinationRule(context.Background(), "test-namespace", namespaceLabels, workloadLabels)
+	mocker.Finish()
+	assert.Nil(err)
+}
+
+// TestCreateUpdateDestinationRuleNoOamLabel tests creation of a destination rule with no oam label found
+// GIVEN no app.oam.dev/name label specified
+// WHEN the controller createOrUpdateDestinationRule function is called
+// THEN expect an error to be returned
+func TestCreateUpdateDestinationRuleNoOamLabel(t *testing.T) {
+	assert := asserts.New(t)
+
+	reconciler := Reconciler{}
+	namespaceLabels := make(map[string]string)
+	namespaceLabels["istio-injection"] = "enabled"
+	workloadLabels := make(map[string]string)
+	err := reconciler.createOrUpdateDestinationRule(context.Background(), "test-namespace", namespaceLabels, workloadLabels)
+	assert.Equal("OAM app name label missing from metadata, unable to generate destination rule name", err.Error())
+}
+
+// TestCreateUpdateDestinationRuleNoIstioLabel tests creation of a destination rule with no istio label found
+// GIVEN no istio-injection label specified
+// WHEN the controller createOrUpdateDestinationRule function is called
+// THEN expect an error to be returned
+func TestCreateUpdateDestinationRuleNoLabel(t *testing.T) {
+	assert := asserts.New(t)
+
+	reconciler := Reconciler{}
+	namespaceLabels := make(map[string]string)
+	workloadLabels := make(map[string]string)
+	err := reconciler.createOrUpdateDestinationRule(context.Background(), "test-namespace", namespaceLabels, workloadLabels)
+	assert.Nil(err)
+}
+
 // TestIstioEnabled tests that domain resource spec.configuration.istio.enabled is set correctly.
-// GIVEN istio-injection is disabled
+// GIVEN istio-injection is enabled
 // THEN the domain resource to spec.configuration.istio.enabled is set to true
 func TestIstioEnabled(t *testing.T) {
 	assert := asserts.New(t)
@@ -497,7 +631,9 @@ func TestIstioEnabled(t *testing.T) {
 			"kind": "Domain",
 		},
 	}
-	err := updateIstioEnabled(true, u)
+	namespaceLabels := make(map[string]string)
+	namespaceLabels["istio-injection"] = "enabled"
+	err := updateIstioEnabled(namespaceLabels, u)
 	assert.NoError(err, "Unexpected error setting istio enabled")
 	specIstioEnabled, _, _ := unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
 	assert.Equal(specIstioEnabled, true)
@@ -514,7 +650,9 @@ func TestIstioDisabled(t *testing.T) {
 			"kind": "Domain",
 		},
 	}
-	err := updateIstioEnabled(false, u)
+	namespaceLabels := make(map[string]string)
+	namespaceLabels["istio-injection"] = "disabled"
+	err := updateIstioEnabled(namespaceLabels, u)
 	assert.NoError(err, "Unexpected error setting istio enabled")
 	specIstioEnabled, _, _ := unstructured.NestedBool(u.Object, specConfigurationIstioEnabledFields...)
 	assert.Equal(specIstioEnabled, false)
