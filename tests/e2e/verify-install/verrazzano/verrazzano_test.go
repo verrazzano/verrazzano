@@ -232,78 +232,49 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 		})
 	})
 
+	ginkgo.Describe("ClusterRoleBinding verrazzano-admin", func() {
+		ginkgo.It("has correct subjects and refs", func() {
+			crb := pkg.GetClusterRoleBinding("verrazzano-admin")
+			gomega.Expect(crb.RoleRef.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
+				"the roleRef.apiGroup should be rbac.authorization.k8s.io")
+			gomega.Expect(crb.RoleRef.Name == "verrazzano-admin").To(gomega.BeTrue(),
+				"the roleRef.name should be verrazzano-admin")
+			gomega.Expect(crb.RoleRef.Kind == "ClusterRole").To(gomega.BeTrue(),
+				"the roleRef.kind shoudl be ClusterRole")
 
-	//ginkgoExt.DescribeTable("ClusterRoles have the correct Rules",
-	//	func(clusterrole string, apigroup string, resource string, verb string, expected bool) {
-	//		theClusterrole := pkg.GetClusterRole(clusterrole)
-	//		gomega.Expect(clusterroleContains(theClusterrole, apigroup, resource, verb)).To(gomega.Equal(expected))
-	//	},
-	//	ginkgoExt.Entry("verrazzano-admin", "verrazzano.io", "'*'", "get", true),
-	//	ginkgoExt.Entry("verrazzano-admin", "verrazzano.io", "'*'", "list", true),
-	//	ginkgoExt.Entry("verrazzano-admin", "verrazzano.io", "'*'", "watch", true),
-	//	ginkgoExt.Entry("verrazzano-admin", "verrazzano.io", "'*'", "put", true),
-	//	ginkgoExt.Entry("verrazzano-admin", "verrazzano.io", "'*'", "post", true),
-	//	ginkgoExt.Entry("verrazzano-admin", "oam.verrazzano.io", "'*'", "get", true),
-	//	ginkgoExt.Entry("verrazzano-admin", "oam.verrazzano.io", "'*'", "list", true),
-	//	ginkgoExt.Entry("verrazzano-admin", "oam.verrazzano.io", "'*'", "watch", true),
-	//	ginkgoExt.Entry("verrazzano-admin", "oam.verrazzano.io", "'*'", "put", true),
-	//	ginkgoExt.Entry("verrazzano-admin", "oam.verrazzano.io", "'*'", "post", true),
-	//	ginkgoExt.Entry("verrazzano-admin", "install.verrazzano.io", "'*'", "get", true),
-	//	ginkgoExt.Entry("verrazzano-admin", "install.verrazzano.io", "'*'", "list", true),
-	//	ginkgoExt.Entry("verrazzano-admin", "install.verrazzano.io", "'*'", "watch", true),
-	//	ginkgoExt.Entry("verrazzano-admin", "install.verrazzano.io", "'*'", "put", true),
-	//	ginkgoExt.Entry("verrazzano-admin", "install.verrazzano.io", "'*'", "post", true),
-	//
-	//	ginkgoExt.Entry("verrazzano-app-admin", "verrazzano.io", "'*'", "get", true),
-	//	ginkgoExt.Entry("verrazzano-app-admin", "verrazzano.io", "'*'", "list", true),
-	//	ginkgoExt.Entry("verrazzano-app-admin", "verrazzano.io", "'*'", "watch", true),
-	//	ginkgoExt.Entry("verrazzano-app-admin", "verrazzano.io", "'*'", "put", true),
-	//	ginkgoExt.Entry("verrazzano-app-admin", "verrazzano.io", "'*'", "post", true),
-	//	ginkgoExt.Entry("verrazzano-app-admin", "oam.verrazzano.io", "'*'", "get", true),
-	//	ginkgoExt.Entry("verrazzano-app-admin", "oam.verrazzano.io", "'*'", "list", true),
-	//	ginkgoExt.Entry("verrazzano-app-admin", "oam.verrazzano.io", "'*'", "watch", true),
-	//	ginkgoExt.Entry("verrazzano-app-admin", "oam.verrazzano.io", "'*'", "put", true),
-	//	ginkgoExt.Entry("verrazzano-app-admin", "oam.verrazzano.io", "'*'", "post", true),
-	//	ginkgoExt.Entry("verrazzano-app-admin", "install.verrazzano.io", "'*'", "get", true),
-	//	ginkgoExt.Entry("verrazzano-app-admin", "install.verrazzano.io", "'*'", "list", true),
-	//	ginkgoExt.Entry("verrazzano-app-admin", "install.verrazzano.io", "'*'", "watch", true),
-	//	ginkgoExt.Entry("verrazzano-app-admin", "install.verrazzano.io", "'*'", "put", true),
-	//	ginkgoExt.Entry("verrazzano-app-admin", "install.verrazzano.io", "'*'", "post", true),
-	//
-	//	ginkgoExt.Entry("verrazzano-monitor", "verrazzano.io", "'*'", "get", true),
-	//	ginkgoExt.Entry("verrazzano-monitor", "verrazzano.io", "'*'", "list", true),
-	//	ginkgoExt.Entry("verrazzano-monitor", "verrazzano.io", "'*'", "watch", true),
-	//	ginkgoExt.Entry("verrazzano-monitor", "verrazzano.io", "'*'", "put", false),
-	//	ginkgoExt.Entry("verrazzano-monitor", "verrazzano.io", "'*'", "post", false),
-	//	ginkgoExt.Entry("verrazzano-monitor", "oam.verrazzano.io", "'*'", "get", true),
-	//	ginkgoExt.Entry("verrazzano-monitor", "oam.verrazzano.io", "'*'", "list", true),
-	//	ginkgoExt.Entry("verrazzano-monitor", "oam.verrazzano.io", "'*'", "watch", true),
-	//	ginkgoExt.Entry("verrazzano-monitor", "oam.verrazzano.io", "'*'", "put", false),
-	//	ginkgoExt.Entry("verrazzano-monitor", "oam.verrazzano.io", "'*'", "post", false),
-	//	ginkgoExt.Entry("verrazzano-monitor", "install.verrazzano.io", "'*'", "get", true),
-	//	ginkgoExt.Entry("verrazzano-monitor", "install.verrazzano.io", "'*'", "list", true),
-	//	ginkgoExt.Entry("verrazzano-monitor", "install.verrazzano.io", "'*'", "watch", true),
-	//	ginkgoExt.Entry("verrazzano-monitor", "install.verrazzano.io", "'*'", "put", false),
-	//	ginkgoExt.Entry("verrazzano-monitor", "install.verrazzano.io", "'*'", "post", false),
-	//
-	//	ginkgoExt.Entry("verrazzano-app-monitor", "verrazzano.io", "'*'", "get", true),
-	//	ginkgoExt.Entry("verrazzano-app-monitor", "verrazzano.io", "'*'", "list", true),
-	//	ginkgoExt.Entry("verrazzano-app-monitor", "verrazzano.io", "'*'", "watch", true),
-	//	ginkgoExt.Entry("verrazzano-app-monitor", "verrazzano.io", "'*'", "put", false),
-	//	ginkgoExt.Entry("verrazzano-app-monitor", "verrazzano.io", "'*'", "post", false),
-	//	ginkgoExt.Entry("verrazzano-app-monitor", "oam.verrazzano.io", "'*'", "get", true),
-	//	ginkgoExt.Entry("verrazzano-app-monitor", "oam.verrazzano.io", "'*'", "list", true),
-	//	ginkgoExt.Entry("verrazzano-app-monitor", "oam.verrazzano.io", "'*'", "watch", true),
-	//	ginkgoExt.Entry("verrazzano-app-monitor", "oam.verrazzano.io", "'*'", "put", false),
-	//	ginkgoExt.Entry("verrazzano-app-monitor", "oam.verrazzano.io", "'*'", "post", false),
-	//	ginkgoExt.Entry("verrazzano-app-monitor", "install.verrazzano.io", "'*'", "get", true),
-	//	ginkgoExt.Entry("verrazzano-app-monitor", "install.verrazzano.io", "'*'", "list", true),
-	//	ginkgoExt.Entry("verrazzano-app-monitor", "install.verrazzano.io", "'*'", "watch", true),
-	//	ginkgoExt.Entry("verrazzano-app-monitor", "install.verrazzano.io", "'*'", "put", false),
-	//	ginkgoExt.Entry("verrazzano-app-monitor", "install.verrazzano.io", "'*'", "post", false),
-	//)
+			gomega.Expect(len(crb.Subjects) == 1).To(gomega.BeTrue(),
+				"there should be one subject")
+			s := crb.Subjects[0]
+			gomega.Expect(s.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
+				"the subject's apiGroup should be rbac.authorization.k8s.io")
+			gomega.Expect(s.Kind == "Group").To(gomega.BeTrue(),
+				"the subject's kind should be Group")
+			gomega.Expect(s.Name == "verrazzano-admins").To(gomega.BeTrue(),
+				"the subject's name should be verrazzano-admins")
+		})
+	})
 
-	// now add clusterrolebindings...
+	ginkgo.Describe("ClusterRoleBinding verrazzano-monitor", func() {
+		ginkgo.It("has correct subjects and refs", func() {
+			crb := pkg.GetClusterRoleBinding("verrazzano-monitor")
+			gomega.Expect(crb.RoleRef.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
+				"the roleRef.apiGroup should be rbac.authorization.k8s.io")
+			gomega.Expect(crb.RoleRef.Name == "verrazzano-monitor").To(gomega.BeTrue(),
+				"the roleRef.name should be verrazzano-monitor")
+			gomega.Expect(crb.RoleRef.Kind == "ClusterRole").To(gomega.BeTrue(),
+				"the roleRef.kind shoudl be ClusterRole")
+
+			gomega.Expect(len(crb.Subjects) == 1).To(gomega.BeTrue(),
+				"there should be one subject")
+			s := crb.Subjects[0]
+			gomega.Expect(s.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
+				"the subject's apiGroup should be rbac.authorization.k8s.io")
+			gomega.Expect(s.Kind == "Group").To(gomega.BeTrue(),
+				"the subject's kind should be Group")
+			gomega.Expect(s.Name == "verrazzano-monitors").To(gomega.BeTrue(),
+				"the subject's name should be verrazzano-mointors")
+		})
+	})
 
 	// add a test to make sure that out of band changes are corrected
 

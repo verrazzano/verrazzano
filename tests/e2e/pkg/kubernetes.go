@@ -349,6 +349,19 @@ func DoesClusterRoleBindingExist(name string) bool {
 	return clusterrolebinding != nil
 }
 
+// GetClusterRoleBinding returns the cluster role with the given name
+func GetClusterRoleBinding(name string) *v1.ClusterRoleBinding {
+	// Get the kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	crb, err := clientset.RbacV1().ClusterRoleBindings().Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get cluster role binding %s with error: %v", name, err))
+	}
+
+	return crb
+}
+
 // GetIstioClientset returns the clientset object for Istio
 func GetIstioClientset() *istioClient.Clientset {
 	cs, err := istioClient.NewForConfig(GetKubeConfig())
