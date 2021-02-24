@@ -50,6 +50,7 @@ kubectl -n keycloak create rolebinding ${TEST_ID}-${TEST_ROLE}-binding --cluster
 kubectl -n ${TEST_NAMESPACE} create rolebinding ${TEST_ID}-${TEST_ROLE}-binding --clusterrole=${TEST_ROLE} --serviceaccount=${TEST_NAMESPACE}:${TEST_ID}-sa
 kubectl -n ${TEST_NAMESPACE} create rolebinding ${TEST_ID}-${PROJECT_ADMIN_ROLE}-binding --clusterrole=${PROJECT_ADMIN_ROLE} --serviceaccount=${TEST_NAMESPACE}:${TEST_ID}-sa
 
+echo "Creating test kubeconfig at ${TEST_KUBECONFIG}"
 if ! secret="$(kubectl -n $TEST_NAMESPACE get serviceaccount "${TEST_ID}-sa" -o 'jsonpath={.secrets[0].name}' 2>/dev/null)"; then
   echo "serviceaccounts \"${TEST_ID}-sa\" not found."
   exit 2
@@ -60,15 +61,12 @@ if [[ -z "$secret" ]]; then
   exit 2
 fi
 
-export OLD_KUBECONFIG=${KUBECONFIG}
 mkdir -p /tmp/${TEST_ID}-kubeconfig
-cp ${OLD_KUBECONFIG} /tmp/${TEST_ID}-kubeconfig/kubeconfig
-export KUBECONFIG=/tmp/${TEST_ID}-kubeconfig/kubeconfig
-context="$(kubectl config current-context)"
-cluster="$(kubectl config view -o "jsonpath={.contexts[?(@.name==\"$context\")].context.cluster}")"
-server="$(kubectl config view -o "jsonpath={.clusters[?(@.name==\"$cluster\")].cluster.server}")"
+cp ${KUBECONFIG} /tmp/${TEST_ID}-kubeconfig/kubeconfig
+context="$(export KUBECONFIG=/tmp/${TEST_ID}-kubeconfig/kubeconfig;kubectl config current-context)"
+cluster="$(export KUBECONFIG=/tmp/${TEST_ID}-kubeconfig/kubeconfig;kubectl config view -o "jsonpath={.contexts[?(@.name==\"$context\")].context.cluster}")"
+server="$(export KUBECONFIG=/tmp/${TEST_ID}-kubeconfig/kubeconfig;kubectl config view -o "jsonpath={.clusters[?(@.name==\"$cluster\")].cluster.server}")"
 rm -rf /tmp/${TEST_ID}-kubeconfig
-export KUBECONFIG=$OLD_KUBECONFIG
 
 ca_crt_data="$(kubectl -n $TEST_NAMESPACE get secret "$secret" -o "jsonpath={.data.ca\.crt}" | openssl enc -d -base64 -A)"
 namespace="$(kubectl -n $TEST_NAMESPACE get secret "$secret" -o "jsonpath={.data.namespace}" | openssl enc -d -base64 -A)"
