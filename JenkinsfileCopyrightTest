@@ -138,6 +138,7 @@ pipeline {
                     git branch
                     git diff --name-only "@{2001-01-01}" "@{now}"
                     git diff origin/master --name-only
+                    git log --since=01-01-2021 --name-only --oneline --pretty="format:" | sort -u
                     time make ${COPYRIGHT_SCAN_TARGET}
                 """
             }
