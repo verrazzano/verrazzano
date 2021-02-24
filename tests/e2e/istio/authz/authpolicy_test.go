@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package authpolicy_test
+package authz_test
 
 import (
 	"fmt"
@@ -51,22 +51,22 @@ func deployFooApplication() {
 	}
 
 	pkg.Log(pkg.Info, "Create AuthPolicy App resources")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/authorization-policy/foo/istio-securitytest-app.yaml"); err != nil {
+	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/istio-securitytest-app.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy application resources: %v", err))
 	}
 
 	pkg.Log(pkg.Info, "Create Sleep Component")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/authorization-policy/foo/sleep-comp.yaml"); err != nil {
+	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/sleep-comp.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy Sleep component resources: %v", err))
 	}
 
 	pkg.Log(pkg.Info, "Create Backend Component")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/authorization-policy/foo/springboot-backend.yaml"); err != nil {
+	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/springboot-backend.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy BackEnd component resources: %v", err))
 	}
 
 	pkg.Log(pkg.Info, "Create Frontend Component")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/authorization-policy/foo/springboot-frontend.yaml"); err != nil {
+	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/springboot-frontend.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy FrontEnd component resources: %v", err))
 	}
 
@@ -81,22 +81,22 @@ func deployBarApplication() {
 	}
 
 	pkg.Log(pkg.Info, "Create AuthPolicy App resources")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/authorization-policy/bar/istio-securitytest-app.yaml"); err != nil {
+	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/istio-securitytest-app.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy application resources: %v", err))
 	}
 
 	pkg.Log(pkg.Info, "Create Sleep Component")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/authorization-policy/bar/sleep-comp.yaml"); err != nil {
+	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/sleep-comp.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy Sleep component resources: %v", err))
 	}
 
 	pkg.Log(pkg.Info, "Create Backend Component")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/authorization-policy/bar/springboot-backend.yaml"); err != nil {
+	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/springboot-backend.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy BackEnd component resources: %v", err))
 	}
 
 	pkg.Log(pkg.Info, "Create Frontend Component")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/authorization-policy/bar/springboot-frontend.yaml"); err != nil {
+	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/springboot-frontend.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy FrontEnd component resources: %v", err))
 	}
 
@@ -111,22 +111,22 @@ func deployNoIstioApplication() {
 	}
 
 	pkg.Log(pkg.Info, "Create AuthPolicy App resources")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/authorization-policy/noistio/istio-securitytest-app.yaml"); err != nil {
+	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/istio-securitytest-app.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy application resources: %v", err))
 	}
 
 	pkg.Log(pkg.Info, "Create Sleep Component")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/authorization-policy/noistio/sleep-comp.yaml"); err != nil {
+	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/sleep-comp.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy Sleep component resources: %v", err))
 	}
 
 	pkg.Log(pkg.Info, "Create Backend Component")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/authorization-policy/noistio/springboot-backend.yaml"); err != nil {
+	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/springboot-backend.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy BackEnd component resources: %v", err))
 	}
 
 	pkg.Log(pkg.Info, "Create Frontend Component")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/authorization-policy/noistio/springboot-frontend.yaml"); err != nil {
+	if err := pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/springboot-frontend.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create AuthPolicy FrontEnd component resources: %v", err))
 	}
 
@@ -136,17 +136,17 @@ func deployNoIstioApplication() {
 func undeployFooApplication() {
 	pkg.Log(pkg.Info, "Undeploy Auth Policy Application in foo namespace")
 	pkg.Log(pkg.Info, "Delete application")
-	if err := pkg.DeleteResourceFromFile("examples/authorization-policy/foo/istio-securitytest-app.yaml"); err != nil {
+	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/foo/istio-securitytest-app.yaml"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the application: %v", err))
 	}
 	pkg.Log(pkg.Info, "Delete components")
-	if err := pkg.DeleteResourceFromFile("examples/authorization-policy/foo/sleep-comp.yaml"); err != nil {
+	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/foo/sleep-comp.yaml"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
 	}
-	if err := pkg.DeleteResourceFromFile("examples/authorization-policy/foo/springboot-backend.yaml"); err != nil {
+	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/foo/springboot-backend.yaml"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
 	}
-	if err := pkg.DeleteResourceFromFile("examples/authorization-policy/foo/springboot-frontend.yaml"); err != nil {
+	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/foo/springboot-frontend.yaml"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
 	}
 
@@ -168,17 +168,17 @@ func undeployFooApplication() {
 func undeployBarApplication() {
 	pkg.Log(pkg.Info, "Undeploy Auth Policy Application in bar namespace")
 	pkg.Log(pkg.Info, "Delete application")
-	if err := pkg.DeleteResourceFromFile("examples/authorization-policy/bar/istio-securitytest-app.yaml"); err != nil {
+	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/bar/istio-securitytest-app.yaml"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the application: %v", err))
 	}
 	pkg.Log(pkg.Info, "Delete components")
-	if err := pkg.DeleteResourceFromFile("examples/authorization-policy/bar/sleep-comp.yaml"); err != nil {
+	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/bar/sleep-comp.yaml"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
 	}
-	if err := pkg.DeleteResourceFromFile("examples/authorization-policy/bar/springboot-backend.yaml"); err != nil {
+	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/bar/springboot-backend.yaml"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
 	}
-	if err := pkg.DeleteResourceFromFile("examples/authorization-policy/bar/springboot-frontend.yaml"); err != nil {
+	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/bar/springboot-frontend.yaml"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
 	}
 
@@ -200,17 +200,17 @@ func undeployBarApplication() {
 func undeployNoIstioApplication() {
 	pkg.Log(pkg.Info, "Undeploy Auth Policy Application in noistio namespace")
 	pkg.Log(pkg.Info, "Delete application")
-	if err := pkg.DeleteResourceFromFile("examples/authorization-policy/noistio/istio-securitytest-app.yaml"); err != nil {
+	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/istio-securitytest-app.yaml"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the application: %v", err))
 	}
 	pkg.Log(pkg.Info, "Delete components")
-	if err := pkg.DeleteResourceFromFile("examples/authorization-policy/noistio/sleep-comp.yaml"); err != nil {
+	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/sleep-comp.yaml"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
 	}
-	if err := pkg.DeleteResourceFromFile("examples/authorization-policy/noistio/springboot-backend.yaml"); err != nil {
+	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/springboot-backend.yaml"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
 	}
-	if err := pkg.DeleteResourceFromFile("examples/authorization-policy/noistio/springboot-frontend.yaml"); err != nil {
+	if err := pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/springboot-frontend.yaml"); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the component: %v", err))
 	}
 
@@ -418,7 +418,7 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 			client := &http.Client{
 			}
 			req, err := http.NewRequest("GET", url, nil)
-			if err  != nil {
+			if err != nil {
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to create http request: %v", err))
 			}
 			req.Host = noIstioHostHeaderValue
@@ -428,7 +428,7 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 			req.URL.RawQuery = q.Encode()
 
 			resp, err := client.Do(req)
-			if err  != nil {
+			if err != nil {
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to do http request: %v", err))
 			}
 			return gomega.Expect(resp.StatusCode).To(gomega.Equal(500))

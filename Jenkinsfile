@@ -469,7 +469,7 @@ pipeline {
                                 expression {params.RUN_EXAMPLE_TESTS == true}
                             }
                             steps {
-                                runGinkgo('examples/authorization-policy')
+                                runGinkgo('istio/authz')
                             }
                         }
                         stage('examples bobs') {
