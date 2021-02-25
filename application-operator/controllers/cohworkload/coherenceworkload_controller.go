@@ -198,7 +198,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	if err = r.createOrUpdateDestinationRule(log, ctx, namespace.Name, namespace.Labels, workload.ObjectMeta.Labels); err != nil {
+	if err = r.createOrUpdateDestinationRule(ctx, log, namespace.Name, namespace.Labels, workload.ObjectMeta.Labels); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -402,7 +402,7 @@ func addJvmArgs(coherenceSpec map[string]interface{}) {
 
 // createOrUpdateDestinationRule creates or updates an Istio destinationRule required by Coherence.
 // The destinationRule is only created when the namespace has the label istio-injection=enabled.
-func (r *Reconciler) createOrUpdateDestinationRule(log logr.Logger, ctx context.Context, namespace string, namespaceLabels map[string]string, workloadLabels map[string]string) error {
+func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, log logr.Logger, namespace string, namespaceLabels map[string]string, workloadLabels map[string]string) error {
 	istioEnabled := false
 	value, ok := namespaceLabels["istio-injection"]
 	if ok && value == "enabled" {
