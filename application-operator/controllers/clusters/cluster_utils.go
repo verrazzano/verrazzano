@@ -135,3 +135,9 @@ func FetchManagedClusterElasticSearchDetails(ctx context.Context, rdr client.Rea
 func fetchClusterSecret(ctx context.Context, rdr client.Reader, clusterSecret *corev1.Secret) error {
 	return rdr.Get(ctx, MCRegistrationSecretFullName, clusterSecret)
 }
+
+// GetManagedClusterElasticsearchSecretKey returns the object key for the managed cluster elastic
+// search secret
+func GetManagedClusterElasticsearchSecretKey() client.ObjectKey {
+	return client.ObjectKey{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.ElasticsearchSecretName}
+}
