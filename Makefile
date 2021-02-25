@@ -18,6 +18,10 @@ VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME ?= verrazzano-application-operator-de
 VERRAZZANO_PLATFORM_OPERATOR_IMAGE = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 VERRAZZANO_APPLICATION_OPERATOR_IMAGE = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
+CURRENT_YEAR = $(shell date +"%Y")
+
+PARENT_BRANCH ?= origin/master
+
 .PHONY: docker-push
 docker-push:
 	(cd application-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
@@ -40,3 +44,22 @@ test-platform-operator-remove:
 test-platform-operator-install-logs:
 	kubectl logs -f -n default $(shell kubectl get pods -n default --no-headers | grep "^verrazzano-install-" | cut -d ' ' -f 1)
 
+.PHONY: copyright-test
+copyright-test:
+	(cd tools/copyright; go test .)
+
+.PHONY: copyright-check-year
+copyright-check-year: copyright-test
+	go run tools/copyright/copyright.go --enforce-current $(shell git log --since=01-01-${CURRENT_YEAR} --name-only --oneline --pretty="format:" | sort -u)
+
+.PHONY: copyright-check
+copyright-check: copyright-test
+	go run tools/copyright/copyright.go --verbose --enforce-current .
+
+.PHONY: copyright-check-local
+copyright-check-local: copyright-test
+	go run tools/copyright/copyright.go --verbose --enforce-current  $(shell git status --short | cut -c 4-)
+
+.PHONY: copyright-check-branch
+copyright-check-branch: copyright-check
+	go run tools/copyright/copyright.go --verbose --enforce-current $(shell git diff --name-only ${PARENT_BRANCH})

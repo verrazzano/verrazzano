@@ -59,6 +59,8 @@ pipeline {
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
+
+        JENKINS_READ = credentials('jenkins-auditor')
     }
 
     stages {
@@ -200,6 +202,10 @@ pipeline {
                     make go-ineffassign
                     cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make go-ineffassign
+
+                    echo "copyright scan"
+                    cd ${GO_REPO_PATH}/verrazzano
+                    time make copyright-check
                 """
 
                 dir('platform-operator'){
@@ -210,10 +216,6 @@ pipeline {
                     echo "Third party license check application-operator"
                     thirdpartyCheck()
                 }
-                sh """
-                    echo "copyright"
-                """
-                copyrightScan "${WORKSPACE}"
             }
         }
 
@@ -434,7 +436,8 @@ pipeline {
                                 sh """
                                       # The ToDoList example image currently cannot be pulled in KIND.
                                       # Remove this block once the image can be pulled into KIND.
-                                      docker pull container-registry.oracle.com/verrazzano/example-todo:0.8.0
+                                      . ${GO_REPO_PATH}/verrazzano/tools/scripts/retry-utils.sh
+                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-todo:0.8.0
                                       kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-todo:0.8.0
                                   """
                                 runGinkgo('examples/todo-list')
@@ -472,17 +475,18 @@ pipeline {
                                 sh """
                                       # The Bobs Books example image currently cannot be pulled in KIND.
                                       # Remove this block once the images can be pulled into KIND.
-                                      docker pull container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.12-1-20210205215204-b624b86
+                                      . ${GO_REPO_PATH}/verrazzano/tools/scripts/retry-utils.sh
+                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.12-1-20210205215204-b624b86
                                       kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.12-1-20210205215204-b624b86
-                                      docker pull container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210205215204-b624b86
+                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210205215204-b624b86
                                       kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210205215204-b624b86
-                                      docker pull container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.12-1-20210205215204-b624b86
+                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.12-1-20210205215204-b624b86
                                       kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.12-1-20210205215204-b624b86
-                                      docker pull container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210205215204-b624b86
+                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210205215204-b624b86
                                       kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210205215204-b624b86
-                                      docker pull container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210205215204-b624b86
+                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210205215204-b624b86
                                       kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210205215204-b624b86
-                                      docker pull container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210205215204-b624b86
+                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210205215204-b624b86
                                       kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210205215204-b624b86
                                   """
                                 runGinkgo('examples/bobs-books')
@@ -541,9 +545,12 @@ pipeline {
                   exit 1
                 fi
             """
-            deleteDir()
         }
         failure {
+            sh """
+                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
+            """
+            archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
             mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
             subject: "Verrazzano: ${env.JOB_NAME} - Failed",
             body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
@@ -553,6 +560,9 @@ pipeline {
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }
             }
+        }
+        cleanup {
+            deleteDir()
         }
     }
 }

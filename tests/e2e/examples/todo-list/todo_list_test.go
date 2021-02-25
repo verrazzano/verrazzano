@@ -118,8 +118,8 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 			gomega.Eventually(func() pkg.WebResponse {
 				ingress := pkg.Ingress()
 				pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
+				host := pkg.GetHostnameFromGateway("todo-list", "")
 				url := fmt.Sprintf("http://%s/todo/", ingress)
-				host := "todo.example.com"
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
 					Status:  status,
@@ -135,8 +135,8 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 		ginkgo.It("Verify '/todo/rest/items' REST endpoint is working.", func() {
 			ingress := pkg.Ingress()
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-			host := "todo.example.com"
 			task := fmt.Sprintf("test-task-%s", time.Now().Format("20060102150405.0000"))
+			host := pkg.GetHostnameFromGateway("todo-list", "")
 			gomega.Eventually(func() pkg.WebResponse {
 				url := fmt.Sprintf("http://%s/todo/rest/items", ingress)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
