@@ -22,13 +22,10 @@ const (
 	testLogPath     = "/foo/bar"
 	testParseRules  = "test-parse-rules"
 	testStorageName = "test-fluentd-volume"
-	testESHost      = "es-host"
-	testESPort      = "9999"
+	testESURL       = "http://es-host:9999"
 	testESSecret    = "test-secret"
 
-	testLogPathUpdate  = "/foo/bar/update"
-	testESHostUpdate   = "es-host-update"
-	testESPortUpdate   = "1111"
+	testESURLUpdate    = "http://es-host-update:1111"
 	testESSecretUpdate = "test-secret-update"
 
 	testWorkLoadType = "test-workload"
@@ -190,7 +187,7 @@ func createTestFluentdPodForUpdate() *FluentdPod {
 
 // addFluentdArtifactsToFluentdPod adds FLUENTD artifacts to a FluentdPod
 func addFluentdArtifactsToFluentdPod(fluentd *Fluentd, fluentdPod *FluentdPod, scope *v1alpha1.LoggingScope, namespace string) {
-	fluentd.ensureFluentdVolumes(fluentdPod)
+	fluentd.ensureFluentdVolumes(fluentdPod, scope)
 	fluentdPod.VolumeMounts = append(fluentdPod.VolumeMounts, fluentd.createFluentdVolumeMount())
 	fluentdPod.Containers = append(fluentdPod.Containers, fluentd.createFluentdContainer(fluentdPod, scope, namespace))
 }
@@ -205,13 +202,11 @@ func testAssertFluentdPodForApply(t *testing.T, fluentdPod *FluentdPod) {
 			env := container.Env
 			for _, envVar := range env {
 				switch name := envVar.Name; name {
-				case "ELASTICSEARCH_HOST":
-					asserts.Equal(t, testESHost, envVar.Value)
-				case "ELASTICSEARCH_PORT":
-					asserts.Equal(t, testESPort, envVar.Value)
-				case "ELASTICSEARCH_USER":
+				case elasticSearchURLEnv:
+					asserts.Equal(t, testESURL, envVar.Value)
+				case elasticSearchUserEnv:
 					asserts.Equal(t, testESSecret, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
-				case "ELASTICSEARCH_PASSWORD":
+				case elasticSearchPwdEnv:
 					asserts.Equal(t, testESSecret, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
 				}
 
@@ -222,7 +217,7 @@ func testAssertFluentdPodForApply(t *testing.T, fluentdPod *FluentdPod) {
 	asserts.True(t, success)
 
 	volumes := fluentdPod.Volumes
-	asserts.Len(t, volumes, 3)
+	asserts.Len(t, volumes, 4)
 
 	volumeMounts := fluentdPod.VolumeMounts
 	asserts.Len(t, volumeMounts, 2)
@@ -238,13 +233,11 @@ func testAssertFluentdPodForApplyUpdate(t *testing.T, fluentdPod *FluentdPod) {
 			env := container.Env
 			for _, envVar := range env {
 				switch name := envVar.Name; name {
-				case "ELASTICSEARCH_HOST":
-					asserts.Equal(t, testESHostUpdate, envVar.Value)
-				case "ELASTICSEARCH_PORT":
-					asserts.Equal(t, testESPortUpdate, envVar.Value)
-				case "ELASTICSEARCH_USER":
+				case elasticSearchURLEnv:
+					asserts.Equal(t, testESURLUpdate, envVar.Value)
+				case elasticSearchUserEnv:
 					asserts.Equal(t, testESSecretUpdate, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
-				case "ELASTICSEARCH_PASSWORD":
+				case elasticSearchPwdEnv:
 					asserts.Equal(t, testESSecretUpdate, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
 				}
 
@@ -255,7 +248,7 @@ func testAssertFluentdPodForApplyUpdate(t *testing.T, fluentdPod *FluentdPod) {
 	asserts.True(t, success)
 
 	volumes := fluentdPod.Volumes
-	asserts.Len(t, volumes, 3)
+	asserts.Len(t, volumes, 4)
 
 	volumeMounts := fluentdPod.VolumeMounts
 	asserts.Len(t, volumeMounts, 2)
@@ -265,7 +258,7 @@ func testAssertFluentdPodForApplyUpdate(t *testing.T, fluentdPod *FluentdPod) {
 func testAssertFluentdPodForRemove(t *testing.T, fluentdPod *FluentdPod) {
 	asserts.Len(t, fluentdPod.Containers, 1)
 	// WebLogic FLUENTD volumes don't get removed as a result of disassociation from scope
-	asserts.Len(t, fluentdPod.Volumes, 2)
+	asserts.Len(t, fluentdPod.Volumes, 3)
 	asserts.Len(t, fluentdPod.VolumeMounts, 2)
 }
 
@@ -278,28 +271,24 @@ func createFluentdESEnv() []v1.EnvVar {
 		},
 		{
 			Name:  "FLUENTD_CONF",
-			Value: "fluentd.conf",
+			Value: fluentdConfKey,
 		},
 		{
 			Name:  "FLUENT_ELASTICSEARCH_SED_DISABLE",
 			Value: "true",
 		},
 		{
-			Name:  "ELASTICSEARCH_HOST",
-			Value: testESHost,
+			Name:  elasticSearchURLEnv,
+			Value: testESURL,
 		},
 		{
-			Name:  "ELASTICSEARCH_PORT",
-			Value: testESPort,
-		},
-		{
-			Name: "ELASTICSEARCH_USER",
+			Name: elasticSearchUserEnv,
 			ValueFrom: &v1.EnvVarSource{
 				SecretKeyRef: &v1.SecretKeySelector{
 					LocalObjectReference: v1.LocalObjectReference{
 						Name: testESSecret,
 					},
-					Key: "username",
+					Key: secretUserKey,
 					Optional: func(opt bool) *bool {
 						return &opt
 					}(true),
@@ -307,13 +296,13 @@ func createFluentdESEnv() []v1.EnvVar {
 			},
 		},
 		{
-			Name: "ELASTICSEARCH_PASSWORD",
+			Name: elasticSearchPwdEnv,
 			ValueFrom: &v1.EnvVarSource{
 				SecretKeyRef: &v1.SecretKeySelector{
 					LocalObjectReference: v1.LocalObjectReference{
 						Name: testESSecret,
 					},
-					Key: "password",
+					Key: secretPasswordKey,
 					Optional: func(opt bool) *bool {
 						return &opt
 					}(true),

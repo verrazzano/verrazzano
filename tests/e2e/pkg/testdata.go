@@ -19,7 +19,7 @@ func FindTestDataFile(file string) (string, error) {
 		if err != nil {
 			return find, err
 		}
-		for dir != "." {
+		for dir != "/" {
 			dir = filepath.Dir(dir)
 			find = filepath.Join(dir, file)
 			_, err = os.Stat(find)

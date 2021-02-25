@@ -73,7 +73,7 @@ func TestCreateMCLoggingScope(t *testing.T) {
 			assert.Equal(mcLoggingScopeTestLabels, mcLoggingScope.Labels, "mcloggingscope labels did not match")
 			assert.Equal(testClusterName, mcLoggingScope.Spec.Placement.Clusters[0].Name, "mcloggingscope does not contain expected placement")
 			assert.Equal("logScopeSecret", mcLoggingScope.Spec.Template.Spec.SecretName, "mcloggingscope does not contain expected secret")
-			assert.Equal("myLocalEsHost", mcLoggingScope.Spec.Template.Spec.ElasticSearchHost, "mcloggingscope does not contain expected elasticSearchHost")
+			assert.Equal("http://myLocalEsHost:9200", mcLoggingScope.Spec.Template.Spec.ElasticSearchURL, "mcloggingscope does not contain expected elasticSearchURL")
 			return nil
 		})
 
@@ -152,7 +152,7 @@ func TestUpdateMCLoggingScope(t *testing.T) {
 			assert.Equal(testMCLoggingScopeName, mcLoggingScope.Name, "mcloggingscope name did not match")
 			assert.Equal(mcLoggingScopeTestUpdatedLabels, mcLoggingScope.Labels, "mcloggingscope labels did not match")
 			assert.Equal("logScopeSecret2", mcLoggingScope.Spec.Template.Spec.SecretName, "mcloggingscope does not contain expected secret")
-			assert.Equal("myLocalEsHost2", mcLoggingScope.Spec.Template.Spec.ElasticSearchHost, "mcloggingscope does not contain expected elasticSearchHost")
+			assert.Equal("http://myLocalEsHost2:9200", mcLoggingScope.Spec.Template.Spec.ElasticSearchURL, "mcloggingscope does not contain expected elasticSearchURL")
 			return nil
 		})
 

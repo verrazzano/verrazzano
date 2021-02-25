@@ -6,7 +6,6 @@ package loggingscope
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"testing"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
@@ -274,9 +273,7 @@ func createTestLoggingScope(includeWorkload bool) *vzapi.LoggingScope {
 	scope.ObjectMeta = k8smeta.ObjectMeta{
 		Namespace: testNamespace,
 		Name:      testScopeName}
-	scope.Spec.ElasticSearchHost = testESHost
-	port, _ := strconv.ParseUint(testESPort, 10, 32)
-	scope.Spec.ElasticSearchPort = uint32(port)
+	scope.Spec.ElasticSearchURL = testESURL
 	scope.Spec.SecretName = testESSecret
 	scope.Spec.FluentdImage = "fluentd/image/location"
 	if includeWorkload {
@@ -290,8 +287,6 @@ func createTestLoggingScope(includeWorkload bool) *vzapi.LoggingScope {
 }
 
 func updateLoggingScope(scope *vzapi.LoggingScope) {
-	scope.Spec.ElasticSearchHost = testESHostUpdate
-	port, _ := strconv.ParseUint(testESPortUpdate, 10, 32)
-	scope.Spec.ElasticSearchPort = uint32(port)
+	scope.Spec.ElasticSearchURL = testESURLUpdate
 	scope.Spec.SecretName = testESSecretUpdate
 }

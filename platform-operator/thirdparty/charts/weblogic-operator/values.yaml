@@ -1,4 +1,4 @@
-# Copyright (c) 2018, 2020, Oracle Corporation and/or its affiliates.
+# Copyright (c) 2018, 2020, 2021, Oracle Corporation and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 # serviceAccount specifies the name of the ServiceAccount in the operator's namespace that the
@@ -109,13 +109,9 @@ elkIntegrationEnabled: false
 # This parameter is ignored if 'elkIntegrationEnabled' is false.
 logStashImage: "logstash:6.6.0"
 
-# elasticSearchHost specifies the hostname of where elasticsearch is running.
+# elasticSearchURL specifies the URL of where elasticsearch is running.
 # This parameter is ignored if 'elkIntegrationEnabled' is false.
-elasticSearchHost: "elasticsearch.default.svc.cluster.local"
-
-# elasticSearchPort specifies the port number of where elasticsearch is running.
-# This parameter is ignored if 'elkIntegrationEnabled' is false.
-elasticSearchPort: 9200
+elasticSearchURL: "http://elasticsearch.default.svc.cluster.local:9200"
 
 # javaLoggingLevel specifies the Java logging level for the operator.
 # Valid values are: "SEVERE", "WARNING", "INFO", "CONFIG", "FINE", "FINER", and "FINEST".

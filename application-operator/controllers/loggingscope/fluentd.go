@@ -6,8 +6,6 @@ package loggingscope
 import (
 	"context"
 	"fmt"
-	"strconv"
-
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -21,14 +19,19 @@ import (
 
 const (
 	fluentdConfKey       = "fluentd.conf"
+	fluentdConfMountPath = "/fluentd/etc/fluentd.conf"
 	fluentdContainerName = "fluentd"
 	configMapName        = "fluentd-config"
 	scratchVolMountPath  = "/scratch"
 
-	elasticSearchHostField = "ELASTICSEARCH_HOST"
-	elasticSearchPortField = "ELASTICSEARCH_PORT"
-	elasticSearchUserField = "ELASTICSEARCH_USER"
-	elasticSearchPwdField  = "ELASTICSEARCH_PASSWORD"
+	elasticSearchURLEnv  = "ELASTICSEARCH_URL"
+	elasticSearchUserEnv = "ELASTICSEARCH_USER"
+	elasticSearchPwdEnv  = "ELASTICSEARCH_PASSWORD"
+
+	secretUserKey     = "username"
+	secretPasswordKey = "password"
+	secretVolume      = "secret-volume"
+	secretMountPath   = "/fluentd/secret"
 )
 
 // ElasticSearchIndex defines the common index pattern
@@ -70,7 +73,7 @@ func (f *Fluentd) Apply(scope *vzapi.LoggingScope, resource vzapi.QualifiedResou
 			return false, err
 		}
 
-		f.ensureFluentdVolumes(fluentdPod)
+		f.ensureFluentdVolumes(fluentdPod, scope)
 		f.ensureFluentdVolumeMountExists(fluentdPod)
 		f.ensureFluentdContainer(fluentdPod, scope, resource.Namespace)
 		return true, nil
@@ -117,19 +120,25 @@ func (f *Fluentd) ensureFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 // ensureFluentdVolumes ensures that the FLUENTD volumes exist. We expect 2 volumes, a FLUENTD volume and a
 // FLUENTD config map volume. If these already exist, nothing needs to be done. If they don't already exist,
 // create them and add to the FluentdPod.
-func (f *Fluentd) ensureFluentdVolumes(fluentdPod *FluentdPod) {
+func (f *Fluentd) ensureFluentdVolumes(fluentdPod *FluentdPod, scope *vzapi.LoggingScope) {
 	volumes := fluentdPod.Volumes
 	configMapVolumeExists := false
 	fluentdVolumeExists := false
+	secretVolumeExists := false
 	for _, volume := range volumes {
 		if volume.Name == f.StorageVolumeName {
 			fluentdVolumeExists = true
 		} else if volume.Name == fmt.Sprintf("%s-volume", configMapName) {
 			configMapVolumeExists = true
+		} else if volume.Name == secretVolume {
+			secretVolumeExists = true
 		}
 	}
 	if !configMapVolumeExists {
 		volumes = append(volumes, f.createFluentdConfigMapVolume(configMapName))
+	}
+	if !secretVolumeExists {
+		volumes = append(volumes, f.createFluentdSecretVolume(scope.Spec.SecretName))
 	}
 	if !fluentdVolumeExists {
 		volumes = append(volumes, f.createFluentdEmptyDirVolume())
@@ -270,28 +279,21 @@ func (f *Fluentd) isFluentdContainerUpToDate(containers []v1.Container, scope *v
 		diffExists := false
 		for _, envvar := range container.Env {
 			switch name := envvar.Name; name {
-			case elasticSearchHostField:
+			case elasticSearchURLEnv:
 				host := envvar.Value
-				f.Log.Info("FLUENTD container ElasticSearch host", "host", host)
-				if host != scope.Spec.ElasticSearchHost {
+				f.Log.Info("FLUENTD container ElasticSearch url", "url", host)
+				if host != scope.Spec.ElasticSearchURL {
 					diffExists = true
 					break
 				}
-			case elasticSearchPortField:
-				port, _ := strconv.ParseUint(envvar.Value, 10, 32)
-				f.Log.Info("FLUENTD container ElasticSearch port", "port", port)
-				if uint32(port) != scope.Spec.ElasticSearchPort {
-					diffExists = true
-					break
-				}
-			case elasticSearchUserField:
+			case elasticSearchUserEnv:
 				secretName := envvar.ValueFrom.SecretKeyRef.LocalObjectReference.Name
 				f.Log.Info("FLUENTD container ElasticSearch user secret", "secret", secretName)
 				if secretName != scope.Spec.SecretName {
 					diffExists = true
 					break
 				}
-			case elasticSearchPwdField:
+			case elasticSearchPwdEnv:
 				secretName := envvar.ValueFrom.SecretKeyRef.LocalObjectReference.Name
 				f.Log.Info("FLUENTD container ElasticSearch password secret", "secret", secretName)
 				if secretName != scope.Spec.SecretName {
@@ -324,28 +326,24 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 			},
 			{
 				Name:  "FLUENTD_CONF",
-				Value: "fluentd.conf",
+				Value: fluentdConfKey,
 			},
 			{
 				Name:  "FLUENT_ELASTICSEARCH_SED_DISABLE",
 				Value: "true",
 			},
 			{
-				Name:  "ELASTICSEARCH_HOST",
-				Value: scope.Spec.ElasticSearchHost,
+				Name:  elasticSearchURLEnv,
+				Value: scope.Spec.ElasticSearchURL,
 			},
 			{
-				Name:  "ELASTICSEARCH_PORT",
-				Value: fmt.Sprintf("%d", scope.Spec.ElasticSearchPort),
-			},
-			{
-				Name: "ELASTICSEARCH_USER",
+				Name: elasticSearchUserEnv,
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: scope.Spec.SecretName,
 						},
-						Key: "username",
+						Key: secretUserKey,
 						Optional: func(opt bool) *bool {
 							return &opt
 						}(true),
@@ -353,13 +351,13 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 				},
 			},
 			{
-				Name: "ELASTICSEARCH_PASSWORD",
+				Name: elasticSearchPwdEnv,
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: scope.Spec.SecretName,
 						},
-						Key: "password",
+						Key: secretPasswordKey,
 						Optional: func(opt bool) *bool {
 							return &opt
 						}(true),
@@ -389,9 +387,9 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				MountPath: "/fluentd/etc/fluentd.conf",
-				Name:      "fluentd-config-volume",
-				SubPath:   "fluentd.conf",
+				MountPath: fluentdConfMountPath,
+				Name:      confVolume,
+				SubPath:   fluentdConfKey,
 				ReadOnly:  true,
 			},
 			{
@@ -431,6 +429,17 @@ func (f *Fluentd) createFluentdConfigMapVolume(name string) corev1.Volume {
 					return &mode
 				}(420),
 			},
+		},
+	}
+}
+
+// createFluentdSecretVolume creates a FLUENTD secret volume
+func (f *Fluentd) createFluentdSecretVolume(secretName string) corev1.Volume {
+	return corev1.Volume{
+		Name: secretVolume,
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: secretName},
 		},
 	}
 }
