@@ -29,7 +29,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// TestHelidoHandlerApply tests the creation of the FLUENTD sidecard in the application pod
+// TestHelidonHandlerApply_ManagedCluster tests the creation of the FLUENTD sidecar in the
+// application pod with default settings on a managed cluster
 // GIVEN an application workload referred in a loggingScope
 // WHEN Apply is called on a managed cluster with the default VMI secret of the managed cluster
 // THEN ensure that the expected FLUENTD sidecar container is created and managed cluster VMI secret
@@ -70,51 +71,13 @@ func TestHelidonHandlerApply_NonManagedCluster(t *testing.T) {
 	namespace := "hello-ns"
 	workloadName := "hello-workload"
 	appContainerName := "testApply-app-container"
-	esSecretName := "myEsSecret"
 	workload := workloadOf(namespace, workloadName)
+	esSecretName := "someEsSecret"
 	scope := newLoggingScope(namespace, "esHost", esSecretName)
 
-	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
-			appContainer := kcore.Container{Name: appContainerName, Image: "test-app-container-image"}
-			deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, appContainer)
-			return nil
-		})
-	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: fluentdConfigMapName(workloadName)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *kcore.ConfigMap) error {
-			return kerrs.NewNotFound(schema.ParseGroupResource("v1.ConfigMap"), fluentdConfigMapName(workloadName))
-		})
-	mockClient.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, conf *kcore.ConfigMap, opt *client.CreateOptions) error {
-			return nil
-		})
-	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: esSecretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *kcore.Secret) error {
-			return kerrs.NewNotFound(schema.ParseGroupResource("v1.ConfigMap"), fluentdConfigMapName(workloadName))
-		})
-	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *kcore.Secret) error {
-			vmiSecret(sec)
-			return nil
-		})
-	mockClient.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, sec *kcore.Secret, opt *client.CreateOptions) error {
-			return nil
-		})
-	mockClient.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, dep *kapps.Deployment) error {
-			appCon, fluentdFound := searchContainers(dep.Spec.Template.Spec.Containers)
-			asserts.Equal(t, appContainerName, appCon)
-			asserts.True(t, fluentdFound)
-			return nil
-		})
+	commonExpectationsForApply(mockClient, namespace, appContainerName, workloadName, esSecretName)
+	expectationsForApplyNonManagedCluster(t, mockClient, namespace, esSecretName)
+	expectDeploymentUpdatedWithFluentd(t, mockClient, appContainerName)
 
 	h := &HelidonHandler{
 		Client: mockClient,
@@ -123,7 +86,6 @@ func TestHelidonHandlerApply_NonManagedCluster(t *testing.T) {
 	res, err := h.Apply(context.Background(), workload, scope)
 	asserts.Nil(t, res)
 	asserts.Nil(t, err)
-	mocker.Finish()
 }
 
 // TestHelidoHandlerApplyErrorWaitingForDeploymentUpdate tests Apply waiting for Deployment update
@@ -170,7 +132,6 @@ func TestHelidoHandlerApplyRequeueForDeploymentUpdate(t *testing.T) {
 	asserts.NotNil(t, res)
 	asserts.True(t, res.Requeue)
 	asserts.Nil(t, err)
-	mocker.Finish()
 }
 
 // TestHelidoHandlerRemove tests the removal of the FLUENTD sidecard in the application pod
@@ -236,7 +197,6 @@ func TestHelidoHandlerRemove(t *testing.T) {
 	removed, err := h.Remove(context.Background(), workload, scope)
 	asserts.True(t, removed)
 	asserts.Nil(t, err)
-	mocker.Finish()
 }
 
 func workloadOf(namespace, workloadName string) vzapi.QualifiedResourceRelation {
