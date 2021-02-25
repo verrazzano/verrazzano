@@ -199,23 +199,47 @@ pipeline {
                     steps {
                         runGinkgoRandomize('multicluster/verify-install')
                     }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
                 }
             }
             post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                failure {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('multicluster-acceptance-tests-cluster-dump')
+                        }
+                    }
+                }
+                success {
+                    script {
+                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('multicluster-acceptance-tests-cluster-dump')
+                        }
+                    }
                 }
             }
+
         }
     }
     post {
-        failure {
+        always {
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
+            junit testResults: '**/*test-result.xml', allowEmptyResults: true
             script {
-                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                    dumpK8sCluster('multicluster-acceptance-tests-cluster-dump')
+                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                for(int count=1; count<=clusterCount; count++) {
+                    sh """
+                        kind delete cluster --name ${CLUSTER_NAME_PREFIX}-$count
+                    """
                 }
             }
+        }
+        failure {
             sh """
                 curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
             """
@@ -234,16 +258,6 @@ pipeline {
             script {
                 if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
                     dumpK8sCluster('multicluster-acceptance-tests-cluster-dump')
-                }
-            }
-        }
-        always {
-            script {
-                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                for(int count=1; count<=clusterCount; count++) {
-                    sh """
-                        kind delete cluster --name ${CLUSTER_NAME_PREFIX}-$count
-                    """
                 }
             }
         }
