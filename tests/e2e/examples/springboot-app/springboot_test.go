@@ -85,7 +85,7 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 	})
 
 
-	// Verify Sprint Boot application is working
+	// Verify Spring Boot application is working
 	// GIVEN springboot app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
@@ -141,14 +141,6 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 	})
 
 })
-
-func metricsExist() bool {
-	metrics := pkg.JTq(pkg.QueryMetric("http_server_requests_seconds_count"), "data", "result").([]interface{})
-	if metrics != nil {
-		return true
-	}
-	return false
-}
 
 // appComponentMetricsExists checks whether component related metrics are available
 func appComponentMetricsExists() bool {
