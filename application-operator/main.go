@@ -145,16 +145,29 @@ func main() {
 			setupLog.Error(err, "unable to update pod mutating webhook configuration")
 			os.Exit(1)
 		}
-		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert)
+
+		// IngressTrait validating webhook
+		err = certificates.UpdateIngressTraitValidatingWebhookConfiguration(kubeClient, caCert)
 		if err != nil {
-			setupLog.Error(err, "unable to update validation webhook configuration")
+			setupLog.Error(err, "unable to update ingresstrait validation webhook configuration")
 			os.Exit(1)
 		}
-
 		if err = (&vzapi.IngressTrait{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "IngressTrait")
 			os.Exit(1)
 		}
+
+		// VerrazzanoProject validating webhook
+		err = certificates.UpdateVerrazzanoProjectValidatingWebhookConfiguration(kubeClient, caCert)
+		if err != nil {
+			setupLog.Error(err, "unable to update verrazzanoproject validation webhook configuration")
+			os.Exit(1)
+		}
+		if err = (&clustersv1alpha1.VerrazzanoProject{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "VerrazzanoProject")
+			os.Exit(1)
+		}
+
 		mgr.GetWebhookServer().CertDir = certDir
 		appconfigWebhook := &webhooks.AppConfigWebhook{Defaulters: []webhooks.AppConfigDefaulter{
 			&webhooks.MetricsTraitDefaulter{},

@@ -84,7 +84,7 @@ func TestUpdateValidatingWebhookConfiguration(t *testing.T) {
 	webhook := adminv1beta1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: ValidatingWebhookName,
+			Name: IngressTraitValidatingWebhookName,
 		},
 		Webhooks: []adminv1beta1.ValidatingWebhook{
 			{
@@ -99,10 +99,10 @@ func TestUpdateValidatingWebhookConfiguration(t *testing.T) {
 	_, err := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
-	err = UpdateValidatingWebhookConfiguration(kubeClient, &caCert)
+	err = UpdateIngressTraitValidatingWebhookConfiguration(kubeClient, &caCert)
 	assert.Nil(err, "error should not be returned updating validation webhook configuration")
 
-	updatedWebhook, _ := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(context.TODO(), ValidatingWebhookName, metav1.GetOptions{})
+	updatedWebhook, _ := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(context.TODO(), IngressTraitValidatingWebhookName, metav1.GetOptions{})
 	assert.Equal(caCert.Bytes(), updatedWebhook.Webhooks[0].ClientConfig.CABundle, "Expected CA bundle name did not match")
 }
 
@@ -142,7 +142,7 @@ func TestUpdateValidatingWebhookConfigurationFail(t *testing.T) {
 	_, err := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
-	err = UpdateValidatingWebhookConfiguration(kubeClient, &caCert)
+	err = UpdateIngressTraitValidatingWebhookConfiguration(kubeClient, &caCert)
 	assert.Error(err, "error should be returned updating validation webhook configuration")
 }
 

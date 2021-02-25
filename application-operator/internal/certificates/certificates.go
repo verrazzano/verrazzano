@@ -26,12 +26,14 @@ const (
 	OperatorName = "verrazzano-application-operator"
 	// OperatorNamespace is the resource namespace for the Verrazzano platform operator
 	OperatorNamespace = "verrazzano-system"
-	// ValidatingWebhookName is the resource name for the Verrazzano ValidatingWebhook
-	ValidatingWebhookName = "verrazzano-application-ingresstrait-validator"
+	// IngressTraitValidatingWebhookName is the resource name for the Verrazzano ValidatingWebhook
+	IngressTraitValidatingWebhookName = "verrazzano-application-ingresstrait-validator"
 	// AppConfigMutatingWebhookName is the resource name for the Verrazzano MutatingWebhook for appconfigs
 	AppConfigMutatingWebhookName = "verrazzano-application-appconfig-defaulter"
 	// IstioMutatingWebhookName is the resource name for the Verrazzano MutatingWebhook for Istio pods
 	IstioMutatingWebhookName = "verrazzano-application-istio-defaulter"
+	// VerrazzanoProjectValidatingWebhookName is the resource name for the Verrazzano ValidatingWebhook
+	VerrazzanoProjectValidatingWebhookName = "verrazzano-application-verrazzanoproject-validator"
 )
 
 // SetupCertificates creates the needed certificates for the validating webhook
@@ -163,10 +165,25 @@ func writeFile(filepath string, pem *bytes.Buffer) error {
 	return nil
 }
 
-// UpdateValidatingWebhookConfiguration sets the CABundle
-func UpdateValidatingWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer) error {
+// UpdateIngressTraitValidatingWebhookConfiguration sets the CABundle
+func UpdateIngressTraitValidatingWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer) error {
 	var validatingWebhook *adminv1beta1.ValidatingWebhookConfiguration
-	validatingWebhook, err := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(context.TODO(), ValidatingWebhookName, metav1.GetOptions{})
+	validatingWebhook, err := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(context.TODO(), IngressTraitValidatingWebhookName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	validatingWebhook.Webhooks[0].ClientConfig.CABundle = caCert.Bytes()
+	_, err = kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// UpdateVerrazzanoProjectValidatingWebhookConfiguration sets the CABundle
+func UpdateVerrazzanoProjectValidatingWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer) error {
+	var validatingWebhook *adminv1beta1.ValidatingWebhookConfiguration
+	validatingWebhook, err := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(context.TODO(), VerrazzanoProjectValidatingWebhookName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
