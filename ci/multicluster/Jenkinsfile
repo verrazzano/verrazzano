@@ -223,19 +223,13 @@ pipeline {
                     }
                 }
             }
-
         }
     }
     post {
-        always {
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
-            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+        success {
             script {
-                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                for(int count=1; count<=clusterCount; count++) {
-                    sh """
-                        kind delete cluster --name ${CLUSTER_NAME_PREFIX}-$count
-                    """
+                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                    dumpK8sCluster('multicluster-acceptance-tests-cluster-dump')
                 }
             }
         }
@@ -254,14 +248,17 @@ pipeline {
             //    }
             //}
         }
-        success {
+        always {
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
+            junit testResults: '**/*test-result.xml', allowEmptyResults: true
             script {
-                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                    dumpK8sCluster('multicluster-acceptance-tests-cluster-dump')
+                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                for(int count=1; count<=clusterCount; count++) {
+                    sh """
+                        kind delete cluster --name ${CLUSTER_NAME_PREFIX}-$count
+                    """
                 }
             }
-        }
-        cleanup {
             deleteDir()
         }
     }
@@ -278,6 +275,18 @@ def runGinkgoRandomize(testSuitePath) {
                     ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor ${testSuitePath}/...
                 """
             }
+        }
+    }
+}
+
+def dumpK8sCluster(dumpDirectory) {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=1; count<=clusterCount; count++) {
+            sh """
+                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}-${count}
+            """
         }
     }
 }
