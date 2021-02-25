@@ -5,6 +5,7 @@ package controllers
 
 import (
 	"context"
+	vzk8s "github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/rest"
 	"testing"
@@ -27,6 +28,17 @@ import (
 const apiVersion = "clusters.verrazzano.io/v1alpha1"
 const kind = "VerrazzanoManagedCluster"
 
+const kubeAdminData = `
+apiEndpoints:
+  oke-xyz:
+    advertiseAddress: 1.2.3.4
+    bindPort: 6443
+`
+const (
+	tokenKey = "token"
+	token    = "tokenData"
+)
+
 // TestCreateVMC tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an VerrazzanoManagedCluster resource
 // WHEN a VerrazzanoManagedCluster resource has been applied
@@ -34,7 +46,6 @@ const kind = "VerrazzanoManagedCluster"
 func TestCreateVMC(t *testing.T) {
 	namespace := "verrazzano-mc"
 	name := "test"
-	saToken := "saToken"
 	saSecretName := "saSecret"
 	labels := map[string]string{"label1": "test"}
 	asserts := assert.New(t)
@@ -108,12 +119,12 @@ func TestCreateVMC(t *testing.T) {
 			return nil
 		})
 
-	// Expect a call to get the Secret with the service account token, return one with the token set
+	// Expect a call to get the service token secret, return the secret with the token
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: saSecretName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				"kubeconfig": []byte(saToken),
+				tokenKey: []byte(token),
 			}
 			return nil
 		})
@@ -127,6 +138,8 @@ func TestCreateVMC(t *testing.T) {
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
+			clusterName, _ := secret.Data[managedClusterNameKey]
+			asserts.Equalf(name, string(clusterName), "Incorrect cluster name in cluster secret ")
 			return nil
 		})
 
@@ -134,7 +147,17 @@ func TestCreateVMC(t *testing.T) {
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.Equal(vmc.Spec.KubeconfigSecret, generateManagedResourceName(name), "KubeconfigSecret name did not match")
+			asserts.Equal(vmc.Spec.ClusterRegistrationSecret, generateManagedResourceName(name), "ClusterRegistrationSecret name did not match")
+			return nil
+		})
+
+	// Expect a call to get the kubeadmin configmap
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vzk8s.KubeSystem, Name: vzk8s.KubeAdminConfig}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, cm *corev1.ConfigMap) error {
+			cm.Data = map[string]string{
+				vzk8s.ClusterStatusKey: kubeAdminData,
+			}
 			return nil
 		})
 
