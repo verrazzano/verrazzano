@@ -116,59 +116,28 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 		indexName := "springboot-springboot-appconf-springboot-component"
 		ginkgo.It("Verify Elasticsearch index exists", func() {
 			gomega.Eventually(func() bool {
-				return logIndexFound(indexName)
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for Spring Boot application")
+				return pkg.LogIndexFound(indexName)
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find Elasticsearch index for Spring Boot application.")
 		})
 
 		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
 			gomega.Eventually(func() bool {
-				return logRecordFound(indexName)
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+					"oam.component.name":  "springboot-component"})
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record.")
 		})
 	})
 
 	ginkgo.Context("Verify Prometheus scraped metrics.", func() {
-		ginkgo.It("Retrieve Prometheus scraped metrics for App Component Metrics", func() {
+		ginkgo.It("Retrieve Prometheus scraped metrics for App Component", func() {
 			gomega.Eventually(func() bool {
-				return appComponentMetricsExists()
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for Spring Boot application")
+				return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "springboot-appconf")
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find Prometheus scraped metrics for App Component.")
 		})
-		ginkgo.It("Retrieve Prometheus scraped metrics for App Config Metrics", func() {
+		ginkgo.It("Retrieve Prometheus scraped metrics for App Config", func() {
 			gomega.Eventually(func() bool {
-				return appConfigMetricsExists()
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for Spring Boot application")
+				return pkg.MetricsExist("tomcat_sessions_created_sessions_total", "app_oam_dev_component", "springboot-component")
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find Prometheus scraped metrics for App Config.")
 		})
 	})
-
 })
-
-// appComponentMetricsExists checks whether component related metrics are available
-func appComponentMetricsExists() bool {
-	return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "springboot-appconf")
-}
-
-// appConfigMetricsExists checks whether config metrics are available
-func appConfigMetricsExists() bool {
-	return pkg.MetricsExist("tomcat_sessions_created_sessions_total", "app_oam_dev_component", "springboot-component")
-}
-
-// logIndexFound confirms a named index can be found.
-func logIndexFound(indexName string) bool {
-	for _, name := range pkg.ListSystemElasticSearchIndices() {
-		if name == indexName {
-			return true
-		}
-	}
-	pkg.Log(pkg.Error, fmt.Sprintf("Expected to find log index %s", indexName))
-	return false
-}
-
-func logRecordFound(indexName string) bool {
-	searchResult := pkg.QuerySystemElasticSearch(indexName, map[string]string{})
-	hits := pkg.Jq(searchResult, "hits", "hits")
-	if hits == nil {
-		pkg.Log(pkg.Info, "Expected to find hits in log record query results")
-		return false
-	}
-	return true
-}
