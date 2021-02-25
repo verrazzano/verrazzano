@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package certificate
@@ -6,6 +6,8 @@ package certificate
 import (
 	"bytes"
 	"context"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -32,8 +34,23 @@ func TestCreateWebhookCertificates(t *testing.T) {
 	caBundle, err := CreateWebhookCertificates(dir)
 	assert.Nil(err, "error should not be returned setting up certificates")
 	assert.NotNil(caBundle, "CA bundle should be returned")
-	assert.FileExists(fmt.Sprintf("%s/%s", dir, "tls.crt"), "expected tls.crt file not found")
-	assert.FileExists(fmt.Sprintf("%s/%s", dir, "tls.key"), "expected tls.key file not found")
+
+	crtFile := fmt.Sprintf("%s/%s", dir, "tls.crt")
+	keyFile := fmt.Sprintf("%s/%s", dir, "tls.key")
+	assert.FileExists(crtFile, dir, "tls.crt", "expected tls.crt file not found")
+	assert.FileExists(keyFile, dir, "tls.key", "expected tls.key file not found")
+
+	crtBytes, err := ioutil.ReadFile(crtFile)
+	if assert.NoError(err) {
+		block, _ := pem.Decode(crtBytes)
+		assert.NotEmptyf(block, "failed to decode PEM block containing public key")
+		assert.Equal("CERTIFICATE", block.Type)
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if assert.NoError(err) {
+			assert.NotEmpty(cert.DNSNames, "Certificate DNSNames SAN field should not be empty")
+			assert.Equal("verrazzano-platform-operator.verrazzano-install.svc", cert.DNSNames[0])
+		}
+	}
 }
 
 // TestCreateWebhookCertificatesFail tests that the certificates needed for webhooks are not created
@@ -59,11 +76,17 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 
 	var caCert bytes.Buffer
 	caCert.WriteString("Fake CABundle")
-	path := "/validate-install-verrazzano-io-v1alpha1-verrazzano"
-	service := adminv1beta1.ServiceReference{
+	pathInstall := "/validate-install-verrazzano-io-v1alpha1-verrazzano"
+	serviceInstall := adminv1beta1.ServiceReference{
 		Name:      OperatorName,
 		Namespace: OperatorNamespace,
-		Path:      &path,
+		Path:      &pathInstall,
+	}
+	pathClusters := "/validate-clusters-verrazzano-io-v1alpha1-verrazzanomanagedcluster"
+	serviceClusters := adminv1beta1.ServiceReference{
+		Name:      OperatorName,
+		Namespace: OperatorNamespace,
+		Path:      &pathClusters,
 	}
 	webhook := adminv1beta1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
@@ -74,7 +97,13 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 			{
 				Name: "install.verrazzano.io",
 				ClientConfig: adminv1beta1.WebhookClientConfig{
-					Service: &service,
+					Service: &serviceInstall,
+				},
+			},
+			{
+				Name: "clusters.verrazzano.io",
+				ClientConfig: adminv1beta1.WebhookClientConfig{
+					Service: &serviceClusters,
 				},
 			},
 		},

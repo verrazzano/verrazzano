@@ -36,14 +36,10 @@ spec:
               value: {{ .Values.clusterOperator.rancherURL }}
             - name: rancherHost
               value: {{ .Values.clusterOperator.rancherHostname }}
+            - name: rancherPort
+              value: {{ .Values.clusterOperator.rancherHostPort | quote }}
             - name: USE_SYSTEM_VMI
               value: {{ .Values.appBinding.useSystemVMI | quote }}
-            - name: COH_MICRO_IMAGE
-              value: {{ .Values.verrazzanoOperator.cohMicroImage }}
-            - name: HELIDON_MICRO_IMAGE
-              value: {{ .Values.verrazzanoOperator.helidonMicroImage }}
-            - name: WLS_MICRO_IMAGE
-              value: {{ .Values.verrazzanoOperator.wlsMicroImage }}
             - name: PROMETHEUS_PUSHER_IMAGE
               value: {{ .Values.verrazzanoOperator.prometheusPusherImage }}
             - name: NODE_EXPORTER_IMAGE
@@ -52,16 +48,8 @@ spec:
               value: {{ .Values.verrazzanoOperator.filebeatImage }}
             - name: JOURNALBEAT_IMAGE
               value: {{ .Values.verrazzanoOperator.journalbeatImage }}
-            - name: WEBLOGIC_OPERATOR_IMAGE
-              value: {{ .Values.verrazzanoOperator.weblogicOperatorImage }}
             - name: FLUENTD_IMAGE
               value: {{ .Values.verrazzanoOperator.fluentdImage }}
-            - name: COH_MICRO_REQUEST_MEMORY
-              value: {{ .Values.verrazzanoOperator.cohMicroRequestMemory }}
-            - name: HELIDON_MICRO_REQUEST_MEMORY
-              value: {{ .Values.verrazzanoOperator.helidonMicroRequestMemory }}
-            - name: WLS_MICRO_REQUEST_MEMORY
-              value: {{ .Values.verrazzanoOperator.wlsMicroRequestMemory }}
             - name: ES_MASTER_NODE_REQUEST_MEMORY
               value: {{ .Values.elasticSearch.nodes.master.requests.memory }}
             - name: ES_INGEST_NODE_REQUEST_MEMORY
@@ -135,9 +123,6 @@ rules:
       - verrazzano.io
     resources:
       - verrazzanomonitoringinstances
-      - wlsoperators
-      - helidonapps
-      - cohclusters
     verbs:
       - get
       - list
@@ -185,14 +170,6 @@ rules:
       - statefulsets
     verbs:
       - '*'
-  - apiGroups:
-      - apps
-    resources:
-      - deployments/finalizers
-    resourceNames:
-      - coherence-operator
-    verbs:
-      - update
   - apiGroups:
       - extensions
     resources:
@@ -260,35 +237,6 @@ rules:
     verbs:
       - '*'
   - apiGroups:
-      - coherence.oracle.com
-    resources:
-      - '*'
-    verbs:
-      - '*'
-  - apiGroups:
-      - weblogic.oracle
-    resources:
-      - domains
-    verbs:
-      - get
-      - list
-      - watch
-      - update
-      - create
-      - delete
-      - patch
-      - deletecollection
-  - apiGroups:
-      - weblogic.oracle
-    resources:
-      - domains/status
-    verbs:
-      - get
-      - list
-      - watch
-      - update
-      - patch
-  - apiGroups:
       - batch
     resources:
       - jobs
@@ -325,3 +273,144 @@ subjects:
   - kind: ServiceAccount
     name: {{ .Values.verrazzanoOperator.name }}
     namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-system-read
+  labels:
+    verrazzano.io/aggregate-to-verrazzano-admin: "true"
+    verrazzano.io/aggregate-to-verrazzano-monitor: "true"
+rules:
+- apiGroups:
+    - verrazzano.io
+    - oam.verrazzano.io
+    - install.verrazzano.io
+  resources:
+    - "*"
+  verbs:
+    - get
+    - list
+    - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-system-write
+  labels:
+    verrazzano.io/aggregate-to-verrazzano-admin: "true"
+rules:
+- apiGroups:
+    - verrazzano.io
+    - oam.verrazzano.io
+    - install.verrazzano.io
+  resources:
+    - "*"
+  verbs:
+    - put
+    - post
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-application-read
+  labels:
+    verrazzano.io/aggregate-to-verrazzano-admin: "true"
+    verrazzano.io/aggregate-to-verrazzano-monitor: "true"
+    verrazzano.io/aggregate-to-verrazzano-project-admin: "true"
+    verrazzano.io/aggregate-to-verrazzano-project-monitor: "true"
+rules:
+- apiGroups:
+    - verrazzano.io
+    - oam.verrazzano.io
+    - install.verrazzano.io
+  resources:
+    - "*"
+  verbs:
+    - get
+    - list
+    - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-application-write
+  labels:
+    verrazzano.io/aggregate-to-verrazzano-admin: "true"
+    verrazzano.io/aggregate-to-verrazzano-project-admin: "true"
+rules:
+- apiGroups:
+    - verrazzano.io
+    - oam.verrazzano.io
+    - install.verrazzano.io
+  resources:
+    - "*"
+  verbs:
+    - put
+    - post
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-admin
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      verrazzano.io/aggregate-to-verrazzano-admin: "true"
+rules: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: verrazzano-admin
+subjects:
+- kind: {{ .Values.userrolebindings.admin.kind }}
+  name: {{ .Values.userrolebindings.admin.name }}
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: verrazzano-admin
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-monitor
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      verrazzano.io/aggregate-to-verrazzano-monitor: "true"
+rules: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: verrazzano-monitor
+subjects:
+- kind: {{ .Values.userrolebindings.monitor.kind }}
+  name: {{ .Values.userrolebindings.monitor.name }}
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: verrazzano-monitor
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-project-admin
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      verrazzano.io/aggregate-to-verrazzano-project-admin: "true"
+rules: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-project-monitor
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      verrazzano.io/aggregate-to-verrazzano-project-monitor: "true"
+rules: []

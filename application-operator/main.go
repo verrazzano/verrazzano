@@ -5,14 +5,20 @@ package main
 
 import (
 	"flag"
+	"log"
 	"os"
 
-	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
-
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
+	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterapplicationconfiguration"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustercomponent"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterconfigmap"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterloggingscope"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustersecret"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/verrazzanoproject"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/helidonworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
@@ -20,15 +26,19 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/webhooks"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
+	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
+	"github.com/verrazzano/verrazzano/application-operator/mcagent"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-	// +kubebuilder:scaffold:imports
 )
 
 var (
@@ -48,7 +58,7 @@ func init() {
 	_ = wls.AddToScheme(scheme)
 
 	_ = clustersv1alpha1.AddToScheme(scheme)
-	// +kubebuilder:scaffold:scheme
+	_ = certapiv1alpha2.AddToScheme(scheme)
 }
 
 const defaultScraperName = "verrazzano-system/vmi-system-prometheus-0"
@@ -124,10 +134,15 @@ func main() {
 			os.Exit(1)
 		}
 
-		setupLog.Info("Updating webhook configuration")
-		err = certificates.UpdateMutatingWebhookConfiguration(kubeClient, caCert)
+		setupLog.Info("Updating webhook configurations")
+		err = certificates.UpdateAppConfigMutatingWebhookConfiguration(kubeClient, caCert)
 		if err != nil {
-			setupLog.Error(err, "unable to update mutating webhook configuration")
+			setupLog.Error(err, "unable to update appconfig mutating webhook configuration")
+			os.Exit(1)
+		}
+		err = certificates.UpdateIstioMutatingWebhookConfiguration(kubeClient, caCert)
+		if err != nil {
+			setupLog.Error(err, "unable to update pod mutating webhook configuration")
 			os.Exit(1)
 		}
 		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert)
@@ -147,7 +162,42 @@ func main() {
 		}}
 		mgr.GetWebhookServer().Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})
 
+		// Get a Kubernetes dynamic client.
+		restConfig, err := clientcmd.BuildConfigFromFlags("", "")
+		if err != nil {
+			setupLog.Error(err, "unable to build kube config")
+			os.Exit(1)
+		}
+		dynamicClient, err := dynamic.NewForConfig(restConfig)
+		if err != nil {
+			setupLog.Error(err, "unable to create Kubernetes dynamic client")
+			os.Exit(1)
+		}
+
+		restConfig, err = clientcmd.BuildConfigFromFlags("", "")
+		if err != nil {
+			setupLog.Error(err, "unable to build kube config")
+			os.Exit(1)
+		}
+
+		clientSet, err := istioversionedclient.NewForConfig(restConfig)
+		if err != nil {
+			log.Fatalf("Failed to create istio client: %s", err)
+		}
+
+		// Register a webhook that listens on pods that are running in a istio enabled namespace.
+		mgr.GetWebhookServer().Register(
+			webhooks.IstioDefaulterPath,
+			&webhook.Admission{
+				Handler: &webhooks.IstioWebhook{
+					KubeClient:    kubeClient,
+					DynamicClient: dynamicClient,
+					IstioClient:   clientSet,
+				},
+			},
+		)
 	}
+
 	reconciler := loggingscope.NewReconciler(
 		mgr.GetClient(),
 		ctrl.Log.WithName("controllers").WithName("LoggingScope"),
@@ -164,14 +214,6 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoCoherenceWorkload")
 		os.Exit(1)
 	}
-	if err = (&helidonworkload.Reconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoHelidonWorkload"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoHelidonWorkload")
-		os.Exit(1)
-	}
 	if err = (&wlsworkload.Reconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoWebLogicWorkload"),
@@ -180,7 +222,66 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoWebLogicWorkload")
 		os.Exit(1)
 	}
+	if err = (&helidonworkload.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoHelidonWorkload"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoHelidonWorkload")
+		os.Exit(1)
+	}
+	if err = (&multiclustersecret.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterSecret"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterSecret")
+		os.Exit(1)
+	}
+	if err = (&multiclustercomponent.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterComponent"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterComponent")
+		os.Exit(1)
+	}
+	if err = (&multiclusterconfigmap.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterConfigMap"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterConfigMap")
+		os.Exit(1)
+	}
+	if err = (&multiclusterloggingscope.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterLoggingScope"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterLoggingScope")
+		os.Exit(1)
+	}
+	if err = (&multiclusterapplicationconfiguration.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterApplicationConfiguration"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterApplicationConfiguration")
+		os.Exit(1)
+	}
+	if err = (&verrazzanoproject.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoProject"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoProject")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
+
+	setupLog.Info("Starting agent for syncing multi-cluster objects")
+	go mcagent.StartAgent(mgr.GetClient(), ctrl.Log.WithName("multi-cluster agent"))
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

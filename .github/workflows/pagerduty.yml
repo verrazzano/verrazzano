@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 name: pagerduty-trigger
 on:
@@ -8,6 +8,7 @@ on:
     types: [created]
 jobs:
   pagerduty:
+    if: ${{ !github.event.issue.pull_request }}
     env:
       ROUTING_KEY: ${{ secrets.PAGERDUTY_ROUTING_KEY }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}

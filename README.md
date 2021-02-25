@@ -13,7 +13,7 @@ Verrazzano includes the following capabilities:
 
 This repository contains the following content:
 
-  - [Verrazzano platform operator](./operator) - a [Kubernetes operator](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/) that can
+  - [Verrazzano platform operator](./platform-operator) - a [Kubernetes operator](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/) that can
     be deployed to a Verrazzano cluster, and install and uninstall Verrazzano components from the cluster in which the operator is deployed.
 
   - [Examples](./examples) - manifest files for deploying example applications in a Verrazzano managed Kubernetes cluster.
@@ -22,6 +22,6 @@ For instructions on using Verrazzano, see the [Verrazzano documentation](https:/
 
 For detailed installation instructions, see the [Verrazzano Installation Guide](https://verrazzano.io/docs/setup/install/installation/).
 
-If you want to build and install Verrazzano from this repository, follow the instructions in the [operator](./operator) directory.  
+If you want to build and install Verrazzano from this repository, follow the instructions in the [platform-operator](./platform-operator) directory.
 
 If you are interested in contributing to this repository, see [CONTRIBUTING.md](./CONTRIBUTING.md).

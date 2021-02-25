@@ -9,8 +9,8 @@ import (
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers"
-	clusterscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzanomanagedcluster"
+	clusterscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
+	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/certificate"
 	config2 "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/log"
@@ -119,7 +119,7 @@ func main() {
 
 	// Setup the reconciler
 	_, dryRun := os.LookupEnv("VZ_DRY_RUN") // If this var is set, the install jobs are no-ops
-	reconciler := controllers.VerrazzanoReconciler{
+	reconciler := vzcontroller.Reconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 		DryRun: dryRun,
@@ -138,12 +138,11 @@ func main() {
 
 	// Setup the validation webhook
 	if config.WebhooksEnabled {
-		setupLog.Info("Setting up webhook with manager")
+		setupLog.Info("Setting up Verrazzano webhook with manager")
 		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Errorf("unable to setup webhook with manager: %v", err)
 			os.Exit(1)
 		}
-
 		mgr.GetWebhookServer().CertDir = config.CertDir
 	}
 
@@ -155,6 +154,17 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoManagedCluster")
 		os.Exit(1)
 	}
+
+	// Setup the validation webhook
+	if config.WebhooksEnabled {
+		setupLog.Info("Setting up VerrazzanoManagedCluster webhook with manager")
+		if err = (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Errorf("unable to setup webhook with manager: %v", err)
+			os.Exit(1)
+		}
+		mgr.GetWebhookServer().CertDir = config.CertDir
+	}
+
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")

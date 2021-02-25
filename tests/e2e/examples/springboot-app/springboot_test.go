@@ -5,8 +5,9 @@ package springboot_test
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"time"
+
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -25,11 +26,11 @@ var longWaitTimeout      = 10 * time.Minute
 var longPollingInterval  = 20 * time.Second
 
 var _ = ginkgo.BeforeSuite(func() {
-	// deploySpringBootApplication()
+	deploySpringBootApplication()
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	// undeploySpringBootApplication()
+	undeploySpringBootApplication()
 })
 
 func deploySpringBootApplication() {
@@ -83,37 +84,32 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 		})
 	})
 
+
 	// Verify Sprint Boot application is working
 	// GIVEN springboot app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
-	ginkgo.Context("Ingress.", func() {
-		ginkgo.It("Verify welcome page of Spring Boot application is working.", func() {
-			gomega.Eventually(func() bool {
-				ingress := pkg.Ingress()
-				pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-				url := fmt.Sprintf("http://%s/", ingress)
-				status, content := pkg.GetWebPageWithCABundle(url, hostHeaderValue)
-				return gomega.Expect(status).To(gomega.Equal(200)) &&
-					gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
-			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
-		})
-
-		ginkgo.It("Verify Verrazzano facts endpoint is working.", func() {
-			gomega.Eventually(func() bool {
-				ingress := pkg.Ingress()
-				url := fmt.Sprintf("http://%s/facts", ingress)
-				status, content := pkg.GetWebPageWithCABundle(url, hostHeaderValue)
-				gomega.Expect(len(content) > 0, fmt.Sprintf("An empty string returned from /facts endpoint %v", content))
-				return gomega.Expect(status).To(gomega.Equal(200))
-			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
-		})
+	ginkgo.It("Verify welcome page of Spring Boot application is working.", func() {
+		gomega.Eventually(func() bool {
+			ingress := pkg.Ingress()
+			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
+			url := fmt.Sprintf("http://%s/", ingress)
+			host := pkg.GetHostnameFromGateway(testNamespace, "")
+			status, content := pkg.GetWebPageWithCABundle(url, host)
+			return gomega.Expect(status).To(gomega.Equal(200)) &&
+				gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
+		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 	})
 
-	ginkgo.Context("Metrics.", func() {
-		ginkgo.It("Retrieve Prometheus metrics", func() {
-			gomega.Eventually(metricsExist, waitTimeout, pollingInterval).Should(gomega.BeTrue())
-		})
+	ginkgo.It("Verify Verrazzano facts endpoint is working.", func() {
+		gomega.Eventually(func() bool {
+			ingress := pkg.Ingress()
+			url := fmt.Sprintf("http://%s/facts", ingress)
+			host := pkg.GetHostnameFromGateway(testNamespace, "")
+			status, content := pkg.GetWebPageWithCABundle(url, host)
+			gomega.Expect(len(content) > 0, fmt.Sprintf("An empty string returned from /facts endpoint %v", content))
+			return gomega.Expect(status).To(gomega.Equal(200))
+		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 	})
 
 	ginkgo.Context("Logging.", func() {
@@ -121,7 +117,7 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 		ginkgo.It("Verify Elasticsearch index exists", func() {
 			gomega.Eventually(func() bool {
 				return logIndexFound(indexName)
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for todo-list")
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for Spring Boot application")
 		})
 
 		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
@@ -130,6 +126,20 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 		})
 	})
+
+	ginkgo.Context("Verify Prometheus scraped metrics.", func() {
+		ginkgo.It("Retrieve Prometheus scraped metrics for App Component Metrics", func() {
+			gomega.Eventually(func() bool {
+				return appComponentMetricsExists()
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for Spring Boot application")
+		})
+		ginkgo.It("Retrieve Prometheus scraped metrics for App Config Metrics", func() {
+			gomega.Eventually(func() bool {
+				return appConfigMetricsExists()
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for Spring Boot application")
+		})
+	})
+
 })
 
 func metricsExist() bool {
@@ -138,6 +148,16 @@ func metricsExist() bool {
 		return true
 	}
 	return false
+}
+
+// appComponentMetricsExists checks whether component related metrics are available
+func appComponentMetricsExists() bool {
+	return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "springboot-appconf")
+}
+
+// appConfigMetricsExists checks whether config metrics are available
+func appConfigMetricsExists() bool {
+	return pkg.MetricsExist("tomcat_sessions_created_sessions_total", "app_oam_dev_component", "springboot-component")
 }
 
 // logIndexFound confirms a named index can be found.

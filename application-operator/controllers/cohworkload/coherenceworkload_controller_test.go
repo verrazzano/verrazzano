@@ -5,9 +5,7 @@ package cohworkload
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
-	"time"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -19,7 +17,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -33,6 +30,8 @@ import (
 const namespace = "unit-test-namespace"
 const coherenceAPIVersion = "coherence.oracle.com/v1"
 const coherenceKind = "Coherence"
+
+var specJvmArgsFields = []string{specField, jvmField, argsField}
 
 // TestReconcilerSetupWithManager test the creation of the logging scope reconciler.
 // GIVEN a controller implementation
@@ -83,19 +82,11 @@ func TestReconcileCreateCoherence(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-coherence-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-			labelsJSON, _ := json.Marshal(labels)
-			coherenceJSON := `{"metadata":{"name":"unit-test-cluster","labels":` + string(labelsJSON) + `},"spec":{"replicas":3}}`
+			coherenceJSON := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(coherenceJSON)}
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.GroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
-			return nil
-		})
-	// expect a call to add a finalizer
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
-			assert.Equal(workload.ObjectMeta.Finalizers[0], finalizer)
 			return nil
 		})
 	// expect a call to fetch the oam application configuration
@@ -114,7 +105,12 @@ func TestReconcileCreateCoherence(t *testing.T) {
 			assert.Equal(coherenceKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied
-			assert.Equal(labels, u.GetLabels())
+			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specLabelsFields...)
+			assert.Equal(labels, specLabels)
+
+			// make sure sidecar.istio.io/inject annotation was added
+			annotations, _, _ := unstructured.NestedStringMap(u.Object, specAnnotationsFields...)
+			assert.Equal(annotations, map[string]string{"sidecar.istio.io/inject": "false"})
 			return nil
 		})
 
@@ -157,13 +153,6 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
-	// expect a call to add a finalizer
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
-			assert.Equal(workload.ObjectMeta.Finalizers[0], finalizer)
-			return nil
-		})
 	// expect a call to fetch the oam application configuration (and the component has an attached logging scope)
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
@@ -203,12 +192,16 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 			assert.Equal(coherenceKind, u.GetKind())
 
 			// make sure JVM args were added
-			jvmArgs, _, _ := unstructured.NestedSlice(u.Object, "spec", "jvm", "args")
+			jvmArgs, _, _ := unstructured.NestedSlice(u.Object, specJvmArgsFields...)
 			assert.Equal(additionalJvmArgs, jvmArgs)
 
 			// make sure side car was added
-			sideCars, _, _ := unstructured.NestedSlice(u.Object, "spec", "sideCars")
+			sideCars, _, _ := unstructured.NestedSlice(u.Object, specField, "sideCars")
 			assert.Equal(1, len(sideCars))
+
+			// make sure sidecar.istio.io/inject annotation was added
+			annotations, _, _ := unstructured.NestedStringMap(u.Object, specAnnotationsFields...)
+			assert.Equal(annotations, map[string]string{"sidecar.istio.io/inject": "false"})
 			return nil
 		})
 
@@ -253,13 +246,6 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
-	// expect a call to add a finalizer
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
-			assert.Equal(workload.ObjectMeta.Finalizers[0], finalizer)
-			return nil
-		})
 	// expect a call to fetch the oam application configuration (and the component has an attached logging scope)
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
@@ -299,77 +285,17 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			assert.Equal(coherenceKind, u.GetKind())
 
 			// make sure JVM args were added and that the existing arg is still present
-			jvmArgs, _, _ := unstructured.NestedStringSlice(u.Object, "spec", "jvm", "args")
+			jvmArgs, _, _ := unstructured.NestedStringSlice(u.Object, specJvmArgsFields...)
 			assert.Equal(len(additionalJvmArgs)+1, len(jvmArgs))
 			assert.True(controllers.StringSliceContainsString(jvmArgs, existingJvmArg))
 
 			// make sure side car was added
-			sideCars, _, _ := unstructured.NestedSlice(u.Object, "spec", "sideCars")
+			sideCars, _, _ := unstructured.NestedSlice(u.Object, specField, "sideCars")
 			assert.Equal(1, len(sideCars))
-			return nil
-		})
 
-	// create a request and reconcile it
-	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
-	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
-
-	mocker.Finish()
-	assert.NoError(err)
-	assert.Equal(false, result.Requeue)
-}
-
-// TestReconcileDeleteResources tests the happy path of reconciling a VerrazzanoCoherenceWorkload when
-// the workload is being deleted. We delete resources that were created for FLUENTD as well as
-// the Coherence CR we created.
-// GIVEN a VerrazzanoCoherenceWorkload resource is being deleted
-// WHEN the controller Reconcile function is called
-// THEN expect delete calls for resources we created
-func TestReconcileDeleteResources(t *testing.T) {
-	assert := asserts.New(t)
-
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
-
-	// expect a call to fetch the VerrazzanoCoherenceWorkload - set the deletion timestamp to trigger the
-	// delete workflow
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-coherence-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
-			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
-			workload.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now()}
-			workload.ObjectMeta.Finalizers = []string{finalizer}
-			workload.APIVersion = vzapi.GroupVersion.String()
-			workload.Kind = "VerrazzanoCoherenceWorkload"
-			return nil
-		})
-	// expect a call to list the FLUENTD config maps
-	cli.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
-			// one item in the list is enough to cause the FLUENTD code to try delete the config map
-			configMaps := list.(*unstructured.UnstructuredList)
-			configMaps.Items = []unstructured.Unstructured{{}}
-			return nil
-		})
-	// expect a call to delete the FLUENTD config map
-	cli.EXPECT().
-		Delete(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.DeleteOption) error {
-			return nil
-		})
-	// expect a call to delete the Coherence CR
-	cli.EXPECT().
-		Delete(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.DeleteOption) error {
-			return nil
-		})
-	// expect a call to update the workload to remove the finalizer
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
-			assert.Equal(0, len(workload.ObjectMeta.Finalizers))
+			// make sure sidecar.istio.io/inject annotation was added
+			annotations, _, _ := unstructured.NestedStringMap(u.Object, specAnnotationsFields...)
+			assert.Equal(annotations, map[string]string{"sidecar.istio.io/inject": "false"})
 			return nil
 		})
 
@@ -407,13 +333,6 @@ func TestReconcileAlreadyExists(t *testing.T) {
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.GroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
-			return nil
-		})
-	// expect a call to add a finalizer
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
-			assert.Equal(workload.ObjectMeta.Finalizers[0], finalizer)
 			return nil
 		})
 	// expect a call to fetch the oam application configuration
@@ -467,13 +386,6 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.GroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
-			return nil
-		})
-	// expect a call to add a finalizer
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload, opts ...client.UpdateOption) error {
-			assert.Equal(workload.ObjectMeta.Finalizers[0], finalizer)
 			return nil
 		})
 	// expect a call to fetch the oam application configuration

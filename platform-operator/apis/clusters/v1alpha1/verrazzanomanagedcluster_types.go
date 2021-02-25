@@ -20,10 +20,6 @@ type VerrazzanoManagedClusterSpec struct {
 	// the endpoint, username and password.
 	PrometheusSecret string `json:"prometheusSecret"`
 
-	// The generated identifier for the managed cluster.
-	// This field is managed by a Verrazzano Kubernetes operator.
-	ClusterID string `json:"clusterID,omitempty"`
-
 	// The name of the ServiceAccount that was generated for the managed cluster.
 	// This field is managed by a Verrazzano Kubernetes operator.
 	ServiceAccount string `json:"serviceAccount,omitempty"`

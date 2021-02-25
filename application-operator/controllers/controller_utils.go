@@ -3,6 +3,8 @@
 
 package controllers
 
+import "strings"
+
 // StringSliceContainsString determines if a string is found in a string slice.
 // slice is the string slice to search. May be nil.
 // find is the string to search for in the slice.
@@ -29,4 +31,17 @@ func RemoveStringFromStringSlice(slice []string, remove string) []string {
 		result = append(result, s)
 	}
 	return result
+}
+
+// ConvertAPIVersionToGroupAndVersion splits APIVersion into API and version parts.
+// An APIVersion takes the form api/version (e.g. networking.k8s.io/v1)
+// If the input does not contain a / the group is defaulted to the empty string.
+// apiVersion - The combined api and version to split
+func ConvertAPIVersionToGroupAndVersion(apiVersion string) (string, string) {
+	parts := strings.SplitN(apiVersion, "/", 2)
+	if len(parts) < 2 {
+		// Use empty group for core types.
+		return "", parts[0]
+	}
+	return parts[0], parts[1]
 }

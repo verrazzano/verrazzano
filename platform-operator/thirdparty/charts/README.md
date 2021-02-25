@@ -107,7 +107,7 @@ The `coherence-operator` folder was created by running the following commands:
 
 ```
 export COHERENCE_OPERATOR_CHART_REPO=https://oracle.github.io/coherence-operator/charts
-export COHERENCE_OPERATOR_CHART_VERSION=3.1.1
+export COHERENCE_OPERATOR_CHART_VERSION=3.1.3
 rm -rf coherence-operator
 helm repo add coherence ${COHERENCE_OPERATOR_CHART_REPO}
 helm repo update

@@ -116,6 +116,23 @@ func (h *HelidonHandler) Apply(ctx context.Context, workload vzapi.QualifiedReso
 		h.Log.Error(err, "Failed to fetch Deployment", "Deployment", workload.Name)
 		return nil, err
 	}
+	// Apply logging to the in-memory child Deployment resource.
+	result, err := h.ApplyToDeployment(ctx, workload, scope, deploy)
+	if result != nil || err != nil {
+		h.Log.V(1).Info("Failed to apply logging to Deployment", "Deployment", deploy.Name, "error", err)
+		return result, err
+	}
+	// Store the child Deployment resource.
+	err = h.Update(ctx, deploy)
+	if err != nil {
+		h.Log.V(1).Info("Failed to update Deployment", "Deployment", deploy.Name, "error", err)
+		return nil, err
+	}
+	return nil, nil
+}
+
+// ApplyToDeployment applies a logging scope to an existing in-memory Kubernetes Deployment
+func (h *HelidonHandler) ApplyToDeployment(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope, deploy *kapps.Deployment) (*ctrl.Result, error) {
 	appContainer, fluentdFound := searchContainers(deploy.Spec.Template.Spec.Containers)
 	h.Log.V(1).Info("Update Deployment", "Deployment", deploy.Name, "fluentdFound", fluentdFound)
 	if fluentdFound {
@@ -125,7 +142,7 @@ func (h *HelidonHandler) Apply(ctx context.Context, workload vzapi.QualifiedReso
 		duration := time.Duration(rand.IntnRange(5, 10)) * time.Second
 		return &ctrl.Result{Requeue: true, RequeueAfter: duration}, nil
 	}
-	err = h.ensureFluentdConfigMap(ctx, scope.GetNamespace(), workload.Name)
+	err := h.ensureFluentdConfigMap(ctx, scope.GetNamespace(), workload.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -140,11 +157,6 @@ func (h *HelidonHandler) Apply(ctx context.Context, workload vzapi.QualifiedReso
 	deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdConfigMapVolume(workload.Name))
 	fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, appContainer, scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchHost)
 	deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, fluentdContainer)
-	err = h.Update(ctx, deploy)
-	if err != nil {
-		h.Log.V(1).Info("Failed to update Deployment", "Deployment", deploy.Name, "error", err)
-		return nil, err
-	}
 	return nil, nil
 }
 
@@ -371,8 +383,10 @@ func CreateFluentdConfigMapVolume(workloadName string) kcore.Volume {
 }
 
 // fluentdConfigMapName returns the name of a components FLUENTD config map
+// This uses a different configmap name from other workload types.
+// The workload name is included so there is a configmap per component.
 func fluentdConfigMapName(workloadName string) string {
-	return fmt.Sprintf("%s-fluentd", workloadName)
+	return fmt.Sprintf("fluentd-config-helidon-%s", workloadName)
 }
 
 func replicateVmiSecret(vmiSec *kcore.Secret, namespace, name string) *kcore.Secret {

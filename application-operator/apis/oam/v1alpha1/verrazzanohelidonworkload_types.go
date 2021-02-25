@@ -4,7 +4,8 @@
 package v1alpha1
 
 import (
-	appsv1 "k8s.io/api/apps/v1"
+	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -17,17 +18,25 @@ type VerrazzanoHelidonWorkloadSpec struct {
 // DeploymentTemplate should have the metadata and spec of the underlying apps/Deployment
 type DeploymentTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Metadata metav1.ObjectMeta     `json:"metadata,omitempty"`
-	Spec     appsv1.DeploymentSpec `json:"spec,omitempty"`
+	Metadata metav1.ObjectMeta `json:"metadata,omitempty"`
+	// Number of desired pods. Defaults to 1.
+	// +optional
+	Replicas *int32     `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
+	PodSpec  v1.PodSpec `json:"podSpec,omitempty"`
 }
 
 // VerrazzanoHelidonWorkloadStatus defines the observed state of VerrazzanoHelidonWorkload
 type VerrazzanoHelidonWorkloadStatus struct {
+	// The reconcile status of this workload.
+	oamrt.ConditionedStatus `json:",inline"`
+
+	// Resources managed by this workload.
+	Resources []QualifiedResourceRelation `json:"resources,omitempty"`
 }
 
+// VerrazzanoHelidonWorkload is the Schema for verrazzanohelidonworkloads API
 // +kubebuilder:object:root=true
-
-// VerrazzanoHelidonWorkload is the Schema for the verrazzanohelidonworkloads API
+// +kubebuilder:subresource:status
 type VerrazzanoHelidonWorkload struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -36,9 +45,8 @@ type VerrazzanoHelidonWorkload struct {
 	Status VerrazzanoHelidonWorkloadStatus `json:"status,omitempty"`
 }
 
-// +kubebuilder:object:root=true
-
 // VerrazzanoHelidonWorkloadList contains a list of VerrazzanoHelidonWorkload
+// +kubebuilder:object:root=true
 type VerrazzanoHelidonWorkloadList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

@@ -17,6 +17,7 @@ spec:
             kind: MetricsTrait
             spec:
               scraper: verrazzano-system/vmi-system-prometheus-0
+              path: "/actuator/prometheus"
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: IngressTrait
@@ -24,8 +25,7 @@ spec:
               name: springboot-ingress
             spec:
               rules:
-                - hosts:
-                    - "springboot.example.com"
-                  paths:
-                    - path: "/"
+                - paths:
+                    - path: "/facts"
                       pathType: Prefix
+
