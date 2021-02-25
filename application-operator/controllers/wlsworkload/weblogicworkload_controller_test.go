@@ -73,8 +73,8 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 func TestReconcileCreateWebLogicDomain(t *testing.T) {
 	assert := asserts.New(t)
 
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -141,8 +141,8 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 	assert := asserts.New(t)
 
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -234,8 +234,8 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 func TestReconcileAlreadyExists(t *testing.T) {
 	assert := asserts.New(t)
 
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -293,8 +293,8 @@ func TestReconcileAlreadyExists(t *testing.T) {
 func TestReconcileErrorOnCreate(t *testing.T) {
 	assert := asserts.New(t)
 
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -353,8 +353,8 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 func TestReconcileWorkloadNotFound(t *testing.T) {
 	assert := asserts.New(t)
 
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
 	cli.EXPECT().
@@ -381,8 +381,8 @@ func TestReconcileWorkloadNotFound(t *testing.T) {
 func TestReconcileFetchWorkloadError(t *testing.T) {
 	assert := asserts.New(t)
 
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
 	cli.EXPECT().
@@ -409,8 +409,8 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 func TestCopyLabelsFailure(t *testing.T) {
 	assert := asserts.New(t)
 
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 
 	// expect a call to fetch the VerrazzanoWebLogicWorkload - return a malformed WebLogic resource (spec should be an object
 	// so when we attempt to set the labels field inside spec it will fail) - this is a contrived example but it's the easiest
@@ -443,8 +443,8 @@ func TestCopyLabelsFailure(t *testing.T) {
 func TestAddLoggingFailure(t *testing.T) {
 	assert := asserts.New(t)
 
-	var mocker *gomock.Controller = gomock.NewController(t)
-	var cli *mocks.MockClient = mocks.NewMockClient(mocker)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -490,11 +490,11 @@ func TestAddLoggingFailure(t *testing.T) {
 	assert.Equal(false, result.Requeue)
 }
 
-// TestCreateUpdateDestinationRuleCreate tests creation of a destination rule
+// TestCreateDestinationRuleCreate tests creation of a destination rule
 // GIVEN the destination rule does not exist
-// WHEN the controller createOrUpdateDestinationRule function is called
+// WHEN the controller createDestinationRule function is called
 // THEN expect no error to be returned and destination rule is created
-func TestCreateUpdateDestinationRuleCreate(t *testing.T) {
+func TestCreateDestinationRuleCreate(t *testing.T) {
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -533,16 +533,16 @@ func TestCreateUpdateDestinationRuleCreate(t *testing.T) {
 	namespaceLabels["istio-injection"] = "enabled"
 	workloadLabels := make(map[string]string)
 	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createOrUpdateDestinationRule(context.Background(), "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createDestinationRule(ctrl.Log, context.Background(), "test-namespace", namespaceLabels, workloadLabels)
 	mocker.Finish()
 	assert.Nil(err)
 }
 
-// TestCreateUpdateDestinationRuleUpdate tests update of a destination rule
+// TestCreateDestinationRuleNoCreate tests that a destination rule already exist
 // GIVEN the destination rule exist
-// WHEN the controller createOrUpdateDestinationRule function is called
-// THEN expect no error to be returned and destination rule is updated
-func TestCreateUpdateDestinationRuleUpdate(t *testing.T) {
+// WHEN the controller createDestinationRule function is called
+// THEN expect no error to be returned and destination rule is not created
+func TestCreateDestinationRuleNoCreate(t *testing.T) {
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -558,24 +558,6 @@ func TestCreateUpdateDestinationRuleUpdate(t *testing.T) {
 			return nil
 		})
 
-	// Expect a call to get the appconfig resource to set the owner reference
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-app"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, app *oamcore.ApplicationConfiguration) error {
-			app.TypeMeta = metav1.TypeMeta{
-				APIVersion: "core.oam.dev/v1alpha2",
-				Kind:       "ApplicationConfiguration",
-			}
-			return nil
-		})
-
-	// Expect a call to update the destinationRule and return success
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, dr *istioclient.DestinationRule, opts ...client.CreateOption) error {
-			return nil
-		})
-
 	scheme := runtime.NewScheme()
 	istioclient.AddToScheme(scheme)
 	core.AddToScheme(scheme)
@@ -586,37 +568,37 @@ func TestCreateUpdateDestinationRuleUpdate(t *testing.T) {
 	namespaceLabels["istio-injection"] = "enabled"
 	workloadLabels := make(map[string]string)
 	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createOrUpdateDestinationRule(context.Background(), "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createDestinationRule(ctrl.Log, context.Background(), "test-namespace", namespaceLabels, workloadLabels)
 	mocker.Finish()
 	assert.Nil(err)
 }
 
-// TestCreateUpdateDestinationRuleNoOamLabel tests creation of a destination rule with no oam label found
+// TestCreateDestinationRuleNoOamLabel tests creation of a destination rule with no oam label found
 // GIVEN no app.oam.dev/name label specified
-// WHEN the controller createOrUpdateDestinationRule function is called
+// WHEN the controller createDestinationRule function is called
 // THEN expect an error to be returned
-func TestCreateUpdateDestinationRuleNoOamLabel(t *testing.T) {
+func TestCreateDestinationRuleNoOamLabel(t *testing.T) {
 	assert := asserts.New(t)
 
 	reconciler := Reconciler{}
 	namespaceLabels := make(map[string]string)
 	namespaceLabels["istio-injection"] = "enabled"
 	workloadLabels := make(map[string]string)
-	err := reconciler.createOrUpdateDestinationRule(context.Background(), "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createDestinationRule(ctrl.Log, context.Background(), "test-namespace", namespaceLabels, workloadLabels)
 	assert.Equal("OAM app name label missing from metadata, unable to generate destination rule name", err.Error())
 }
 
-// TestCreateUpdateDestinationRuleNoIstioLabel tests creation of a destination rule with no istio label found
+// TestCreateDestinationRuleNoIstioLabel tests creation of a destination rule with no istio label found
 // GIVEN no istio-injection label specified
-// WHEN the controller createOrUpdateDestinationRule function is called
+// WHEN the controller createDestinationRule function is called
 // THEN expect an error to be returned
-func TestCreateUpdateDestinationRuleNoLabel(t *testing.T) {
+func TestCreateDestinationRuleNoIstioLabel(t *testing.T) {
 	assert := asserts.New(t)
 
 	reconciler := Reconciler{}
 	namespaceLabels := make(map[string]string)
 	workloadLabels := make(map[string]string)
-	err := reconciler.createOrUpdateDestinationRule(context.Background(), "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createDestinationRule(ctrl.Log, context.Background(), "test-namespace", namespaceLabels, workloadLabels)
 	assert.Nil(err)
 }
 
