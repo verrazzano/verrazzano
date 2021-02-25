@@ -103,6 +103,7 @@ var _ = ginkgo.Describe("Testing MultiClusterLoggingScope", func() {
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 })
+
 var _ = ginkgo.Describe("Testing MultiClusterApplicationConfiguration", func() {
 	ginkgo.It("MultiClusterApplicationConfiguration can be created ", func() {
 		// First apply the hello-component referenced in this MultiCluster application config
@@ -113,6 +114,14 @@ var _ = ginkgo.Describe("Testing MultiClusterApplicationConfiguration", func() {
 		gomega.Eventually(func() bool {
 			return appConfigExistsWithFields(multiclusterTestNamespace, "mymcappconf", mcAppConfig)
 		}, timeout, pollInterval).Should(gomega.BeTrue())
+	})
+})
+
+var _ = ginkgo.Describe("Testing VerrazzanoProject validation", func() {
+	ginkgo.It("VerrazzanoProject invalid namespace ", func() {
+		// First apply the hello-component referenced in this MultiCluster application config
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzano_project_invalid_namespace.yaml")
+		gomega.Expect(stderr).To(gomega.ContainElement(fmt.Sprintf("Namespace for the resource must be %q", constants.VerrazzanoMultiClusterNamespace)), "multicluster app config should be applied successfully")
 	})
 })
 
@@ -197,7 +206,12 @@ func createManagedClusterSecret() {
 }
 
 func setupMultiClusterTest() {
-	_, stderr := util.Kubectl("create ns " + multiclusterTestNamespace)
+	_, stderr := util.Kubectl("create ns " + constants.VerrazzanoMultiClusterNamespace)
+	if stderr != "" {
+		ginkgo.Fail(fmt.Sprintf("failed to create namespace %v", constants.VerrazzanoMultiClusterNamespace))
+	}
+
+	_, stderr = util.Kubectl("create ns " + multiclusterTestNamespace)
 	if stderr != "" {
 		ginkgo.Fail(fmt.Sprintf("failed to create namespace %v", multiclusterTestNamespace))
 	}
