@@ -1,3 +1,6 @@
+// Copyright (c) 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package k8s
 
 // KubeConfig represents a kubeconfig object used to connect using a token
@@ -40,8 +43,8 @@ type KubeconfigBuilder struct {
 	ContextName string
 }
 
-// New creates a KubeConfig object using the fields of the builder
-func (b *KubeconfigBuilder) New() KubeConfig {
+// Build creates a KubeConfig object using the fields of the builder
+func (b *KubeconfigBuilder) Build() KubeConfig {
 	return KubeConfig{
 		Clusters: []kcCluster{{
 			Name: b.ClusterName,

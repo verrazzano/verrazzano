@@ -11,7 +11,7 @@ import (
 
 // TestConfigDefaults tests the config default values
 // GIVEN a new OperatorConfig object
-//  WHEN I call New
+//  WHEN I call Build
 //  THEN the value returned are correct defaults
 func TestConfigDefaults(t *testing.T) {
 	asserts := assert.New(t)

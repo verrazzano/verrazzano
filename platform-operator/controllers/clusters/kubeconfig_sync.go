@@ -99,10 +99,9 @@ func (r *VerrazzanoManagedClusterReconciler) syncKubeConfig(vmc *clusterapi.Verr
 		UserToken:   string(token),
 		ContextName: contextName,
 	}
-	kc := kb.New()
+	kc := kb.Build()
 
-	// Convert the kubeconfig to yaml then write
-	//ite to a secret
+	// Convert the kubeconfig to yaml then write it to a secret
 	kcBytes, err := yaml.Marshal(kc)
 	if err != nil {
 		return err
@@ -147,7 +146,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateSecret(secret *corev1.Secret,
 }
 
 // Get the CAData from memory or a file
-func getB64CAData(config *rest.Config) (string, error){
+func getB64CAData(config *rest.Config) (string, error) {
 	if len(config.CAData) > 0 {
 		return base64.StdEncoding.EncodeToString(config.CAData), nil
 	}

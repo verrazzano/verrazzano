@@ -1,3 +1,6 @@
+// Copyright (c) 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package k8s
 
 import (
@@ -9,7 +12,7 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ClusterStatus contains the kubeadmin config ApiEndpoint map
+// ClusterStatus contains ApiEndpoint map stored in the kubeadmin config map
 type ClusterStatus struct {
 	ApiEndpoints map[string]ApiEndpoint `json:"apiEndpoints"`
 }
@@ -20,16 +23,15 @@ type ApiEndpoint struct {
 	BindPort         string `json:"bindPort"`
 }
 
-// GetApiServerURL gets the external host:port of the API server
-func GetApiServerURL(client clipkg.Client) (string, error) {
-	const (
-		kubeSystem       = "kube-system"
-		kubeAdminConfig  = "kubeadm-config"
-		clusterStatusKey = "ClusterStatus"
-		apiEndpointsKey  = "apiEndpoints"
-	)
+const (
+	kubeSystem       = "kube-system"
+	kubeAdminConfig  = "kubeadm-config"
+	clusterStatusKey = "ClusterStatus"
+)
 
-	// Get the service account token from the secret
+// GetApiServerURL gets the external hURL of the API server
+func GetApiServerURL(client clipkg.Client) (string, error) {
+	// Get the configmap which has the info needed to build the URL
 	var cm corev1.ConfigMap
 	nsn := types.NamespacedName{
 		Namespace: kubeSystem,
@@ -38,13 +40,12 @@ func GetApiServerURL(client clipkg.Client) (string, error) {
 	if err := client.Get(context.TODO(), nsn, &cm); err != nil {
 		return "", fmt.Errorf("Failed to fetch the kube adimin configmap %s/%s, %v", nsn.Namespace, nsn.Name, err)
 	}
-
 	statusData := cm.Data[clusterStatusKey]
 	if len(statusData) == 0 {
 		return "", fmt.Errorf("Missing ClusterStatus in the configmap %s/%s", kubeSystem, kubeAdminConfig)
 	}
 
-	// Convert the data into a cluster status
+	// Unmarshal the data then build the URL
 	var cs ClusterStatus
 	err := yaml.Unmarshal([]byte(statusData), &cs)
 	if err != nil {
