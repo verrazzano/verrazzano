@@ -41,7 +41,7 @@ var _ = BeforeSuite(func() {
 	}
 
 	// Do set up for multi cluster tests
-	// setupMultiClusterTest()
+	setupMultiClusterTest()
 
 })
 

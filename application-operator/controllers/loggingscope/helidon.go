@@ -439,6 +439,7 @@ func (h *HelidonHandler) ensureEsSecret(ctx context.Context, namespace, name str
 	secret := &kcore.Secret{}
 	err := h.Get(ctx, objKey(namespace, name), secret)
 	if kerrs.IsNotFound(err) {
+<<<<<<< HEAD
 		secretKey := client.ObjectKey{Name: "verrazzano", Namespace: "verrazzano-system"}
 		err = h.Get(ctx, secretKey, secret)
 		if err != nil {
@@ -447,12 +448,78 @@ func (h *HelidonHandler) ensureEsSecret(ctx context.Context, namespace, name str
 		secret = replicateVmiSecret(secret, namespace, name)
 		if err = h.Create(ctx, secret, &client.CreateOptions{}); err != nil {
 			return err
+=======
+		// If this is a managed cluster, and we are using the managed cluster ES secret, copy
+		// that secret to the app namespace
+		if h.shouldUseManagedClusterElasticsearchSecret(ctx, name) {
+			// The managed cluster ES secret is the one specified on the logging scope - copy it
+			// to the app namespace
+			return h.copyManagedClusterVMISecret(ctx, namespace, name)
+		} else {
+			// create an empty placeholder secret, which is required in order to mount the secret
+			// as a volume in fluentd. In certain cases (e.g. admin server using local elasticsearch),
+			// the secret is not required to have contents. In other cases, where user explicitly
+			// specifies a secret on the logging scope, they should have already created it in the app NS
+			return h.createPlaceholderSecret(ctx, namespace, name)
+>>>>>>> a520d9d3... fix logging scope copying, attempt 2
 		}
+	}
+	return err
+}
+
+<<<<<<< HEAD
+=======
+func (h *HelidonHandler) createPlaceholderSecret(ctx context.Context, namespace string, name string) error {
+	placeholderSecret := &kcore.Secret{
+		ObjectMeta: kmeta.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+	}
+	return h.Create(ctx, placeholderSecret, &client.CreateOptions{})
+}
+
+// copies the managed cluster Elasticsearch secret to the given namespace/name IF it exists
+func (h *HelidonHandler) copyManagedClusterVMISecret(ctx context.Context, namespace string, name string) error {
+	secretKey := clusters.GetManagedClusterElasticsearchSecretKey()
+	if name != secretKey.Name {
+		// The managed cluster ES secret is not the one specified on the logging scope
+		// nothing to copy
+		return nil
+	}
+	secret := &kcore.Secret{}
+	err := h.Get(ctx, secretKey, secret)
+	if kerrs.IsNotFound(err) {
+		// Not a managed cluster, nothing to replicate
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	secret = replicateVmiSecret(secret, namespace, name)
+	err = h.Create(ctx, secret, &client.CreateOptions{})
+	if kerrs.IsAlreadyExists(err) {
 		return nil
 	}
 	return err
 }
 
+func (h *HelidonHandler) shouldUseManagedClusterElasticsearchSecret(ctx context.Context, loggingScopeSecretName string) bool {
+	secretKey := clusters.GetManagedClusterElasticsearchSecretKey()
+	if loggingScopeSecretName != secretKey.Name {
+		// We are not using the managed cluster elasticsearch secret in our logging scope
+		return false
+	}
+	secret := &kcore.Secret{}
+	err := h.Get(ctx, secretKey, secret)
+	if kerrs.IsNotFound(err) {
+		// Not a managed cluster - can't use managed cluster ES secret
+		return false
+	}
+	return err != nil
+}
+
+>>>>>>> a520d9d3... fix logging scope copying, attempt 2
 func objKey(namespace, name string) client.ObjectKey {
 	return client.ObjectKey{Name: name, Namespace: namespace}
 }
