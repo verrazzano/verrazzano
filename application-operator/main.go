@@ -105,12 +105,14 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "IngressTrait")
 		os.Exit(1)
 	}
-	if err = (&metricstrait.Reconciler{
+	metricsReconciler := &metricstrait.Reconciler{
 		Client:  mgr.GetClient(),
 		Log:     ctrl.Log.WithName("controllers").WithName("MetricsTrait"),
 		Scheme:  mgr.GetScheme(),
 		Scraper: defaultMetricsScraper,
-	}).SetupWithManager(mgr); err != nil {
+	}
+
+	if err = metricsReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MetricsTrait")
 		os.Exit(1)
 	}
@@ -211,34 +213,38 @@ func main() {
 		)
 	}
 
-	reconciler := loggingscope.NewReconciler(
+	logReconciler := loggingscope.NewReconciler(
 		mgr.GetClient(),
 		ctrl.Log.WithName("controllers").WithName("LoggingScope"),
 		mgr.GetScheme())
-	if err = reconciler.SetupWithManager(mgr); err != nil {
+	if err = logReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LoggingScope")
 		os.Exit(1)
 	}
 	if err = (&cohworkload.Reconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoCoherenceWorkload"),
-		Scheme: mgr.GetScheme(),
+		Client:  mgr.GetClient(),
+		Log:     ctrl.Log.WithName("controllers").WithName("VerrazzanoCoherenceWorkload"),
+		Scheme:  mgr.GetScheme(),
+		Metrics: metricsReconciler,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoCoherenceWorkload")
 		os.Exit(1)
 	}
-	if err = (&wlsworkload.Reconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoWebLogicWorkload"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	wlsWorkloadReconciler := &wlsworkload.Reconciler{
+		Client:  mgr.GetClient(),
+		Log:     ctrl.Log.WithName("controllers").WithName("VerrazzanoWebLogicWorkload"),
+		Scheme:  mgr.GetScheme(),
+		Metrics: metricsReconciler,
+	}
+	if err = wlsWorkloadReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoWebLogicWorkload")
 		os.Exit(1)
 	}
 	if err = (&helidonworkload.Reconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoHelidonWorkload"),
-		Scheme: mgr.GetScheme(),
+		Client:  mgr.GetClient(),
+		Log:     ctrl.Log.WithName("controllers").WithName("VerrazzanoHelidonWorkload"),
+		Scheme:  mgr.GetScheme(),
+		Metrics: metricsReconciler,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoHelidonWorkload")
 		os.Exit(1)

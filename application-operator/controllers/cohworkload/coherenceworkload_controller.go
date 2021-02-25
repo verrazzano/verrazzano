@@ -13,6 +13,7 @@ import (
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -106,8 +107,9 @@ type containersMountsVolumes struct {
 // Reconciler reconciles a VerrazzanoCoherenceWorkload object
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log     logr.Logger
+	Scheme  *runtime.Scheme
+	Metrics *metricstrait.Reconciler
 }
 
 // SetupWithManager registers our controller with the manager
@@ -168,8 +170,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	// spec has been updated with logging, need to set it back in the unstructured
+	// spec has been updated with logging, set the new entries in the unstructured
 	if err = unstructured.SetNestedField(u.Object, spec, specField); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if err = r.addMetrics(ctx, log, req.NamespacedName.Namespace, workload, u); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -336,6 +342,57 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 	coherenceSpec["volumeMounts"] = fluentdPodUnstructured["volumeMounts"]
 
 	addJvmArgs(coherenceSpec)
+
+	return nil
+}
+
+// addMetrics adds the labels and annotations needed for metrics to the Coherence resource annotations which are propagated to the individual Coherence pods.
+// Returns the success fo the operation and any error occurred. If metrics were successfully added, true is return with a nil error.
+func (r *Reconciler) addMetrics(ctx context.Context, log logr.Logger, namespace string, workload *vzapi.VerrazzanoCoherenceWorkload, coherence *unstructured.Unstructured) error {
+	log.Info(fmt.Sprintf("Adding Metrics for: %s", workload.Name))
+	metricsTrait, err := vznav.MetricsTraitFromWorkloadLabels(ctx, r.Client, log, namespace, workload.ObjectMeta)
+	if err != nil {
+		return err
+	}
+
+	if metricsTrait == nil {
+		log.Info("Workload has no associated MetricTrait, nothing to do")
+		return nil
+	}
+	log.Info(fmt.Sprintf("Found associated metrics trait for workload: %s : %s", workload.Name, metricsTrait.Name))
+
+	traitDefaults, err := r.Metrics.NewTraitDefaultsForCOHWorkload(ctx, coherence)
+	if err != nil {
+		log.Error(err, "Unable to get default metric trait values")
+		return err
+	}
+
+	metricAnnotations, found, _ := unstructured.NestedStringMap(coherence.Object, specAnnotationsFields...)
+	if !found {
+		metricAnnotations = map[string]string{}
+	}
+
+	metricLabels, found, _ := unstructured.NestedStringMap(coherence.Object, specLabelsFields...)
+	if !found {
+		metricLabels = map[string]string{}
+	}
+
+	finalAnnotations := metricstrait.MutateAnnotations(metricsTrait, coherence, traitDefaults, metricAnnotations)
+	log.Info(fmt.Sprintf("Setting annotations on %s: %v", workload.Name, finalAnnotations))
+	err = unstructured.SetNestedStringMap(coherence.Object, finalAnnotations, specAnnotationsFields...)
+	if err != nil {
+		log.Error(err, "Unable to set metric annotations on Coherence resource")
+		return err
+	}
+
+	finalLabels := metricstrait.MutateLabels(metricsTrait, coherence, metricLabels)
+	log.Info(fmt.Sprintf("Setting labels on %s: %v", workload.Name, finalLabels))
+
+	err = unstructured.SetNestedStringMap(coherence.Object, finalLabels, specLabelsFields...)
+	if err != nil {
+		log.Error(err, "Unable to set metric labels on Coherence resource")
+		return err
+	}
 
 	return nil
 }

@@ -5,6 +5,8 @@ package helidonworkload
 
 import (
 	"context"
+	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"reflect"
 
 	"github.com/go-logr/logr"
@@ -37,8 +39,9 @@ var (
 // Reconciler reconciles a VerrazzanoHelidonWorkload object
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log     logr.Logger
+	Scheme  *runtime.Scheme
+	Metrics *metricstrait.Reconciler
 }
 
 // SetupWithManager registers our controller with the manager
@@ -80,6 +83,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Add the sidecars and configmaps required for logging to the Deployment.
 	if err = r.addLogging(ctx, log, req.NamespacedName.Namespace, workload.ObjectMeta.Labels, deploy); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if err = r.addMetrics(ctx, log, req.NamespacedName.Namespace, &workload, deploy); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -287,6 +294,47 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 		log.Info("Failed to add logging to Deployment")
 		return err
 	}
+
+	return nil
+}
+
+// addMetrics adds the labels and annotations needed for metrics to the Helidon resource annotations which are propagated to the individual Helidon pods.
+func (r *Reconciler) addMetrics(ctx context.Context, log logr.Logger, namespace string, workload *vzapi.VerrazzanoHelidonWorkload, helidon *appsv1.Deployment) error {
+	log.Info(fmt.Sprintf("Adding Metrics for workload: %s", workload.Name))
+	metricsTrait, err := vznav.MetricsTraitFromWorkloadLabels(ctx, r.Client, log, namespace, workload.ObjectMeta)
+	if err != nil {
+		return err
+	}
+
+	if metricsTrait == nil {
+		log.Info("Workload has no associated MetricTrait, nothing to do")
+		return nil
+	}
+	log.Info(fmt.Sprintf("Found associated metrics trait for workload: %s : %s", workload.Name, metricsTrait.Name))
+
+	traitDefaults, err := r.Metrics.NewTraitDefaultsForGenericWorkload()
+	if err != nil {
+		log.Error(err, "Unable to get default metric trait values")
+		return err
+	}
+
+	if helidon.Spec.Template.Labels == nil {
+		helidon.Spec.Template.Labels = make(map[string]string)
+	}
+
+	if helidon.Spec.Template.Annotations == nil {
+		helidon.Spec.Template.Annotations = make(map[string]string)
+	}
+
+	labels := metricstrait.MutateLabels(metricsTrait, nil, helidon.Spec.Template.Labels)
+	annotations := metricstrait.MutateAnnotations(metricsTrait, nil, traitDefaults, helidon.Spec.Template.Annotations)
+
+	finalLabels := mergeMapOverrideWithDest(helidon.Spec.Template.Labels, labels)
+	log.Info(fmt.Sprintf("Setting labels on %s: %v", workload.Name, finalLabels))
+	helidon.Spec.Template.Labels = finalLabels
+	finalAnnotations := mergeMapOverrideWithDest(helidon.Spec.Template.Annotations, annotations)
+	log.Info(fmt.Sprintf("Setting annotations on %s: %v", workload.Name, finalAnnotations))
+	helidon.Spec.Template.Annotations = finalAnnotations
 
 	return nil
 }
