@@ -77,21 +77,26 @@ func PodsRunning(namespace string, namePrefixes []string) bool {
 
 //PodsNotRunning waits for all the pods in namePrefixes to be terminated
 func PodsNotRunning(namespace string, namePrefixes []string) bool {
-	pods := ListPods(namespace)
-	missing := notRunning(pods.Items, namePrefixes...)
+	allPods := ListPods(namespace)
+	terminatedPods := notRunning(allPods.Items, namePrefixes...)
 	var i int = 0
-	for len(missing) != len(namePrefixes) {
-		Log(Info, fmt.Sprintf("Pods %v were TERMINATED in %v", missing, namespace))
+	for len(terminatedPods) != len(namePrefixes) {
+		Log(Info, fmt.Sprintf("Pods %v were TERMINATED in %v", terminatedPods, namespace))
 		time.Sleep(15 * time.Second)
 		pods := ListPods(namespace)
-		missing = notRunning(pods.Items, namePrefixes...)
+		terminatedPods = notRunning(pods.Items, namePrefixes...)
 		i++
 		if i > 10 {
 			break
 		}
 	}
-	Log(Info, fmt.Sprintf("ALL Pods %v were TERMINATED in %v", missing, namespace))
-	return len(missing) == len(namePrefixes)
+	if len(terminatedPods) != len(namePrefixes) {
+		runningPods := areRunning(allPods.Items, namePrefixes...)
+		Log(Info, fmt.Sprintf("Pods %v were RUNNING in %v", runningPods, namespace))
+		return false
+	}
+	Log(Info, fmt.Sprintf("ALL pods %v were TERMINATED in %v", terminatedPods, namespace))
+	return true
 }
 
 // notRunning finds the pods not running
@@ -104,6 +109,18 @@ func notRunning(pods []v1.Pod, podNames ...string) []string {
 		}
 	}
 	return notRunning
+}
+
+// areRunning finds the pods that are running
+func areRunning(pods []v1.Pod, podNames ...string) []string {
+	var runningPods []string
+	for _, name := range podNames {
+		running := isPodRunning(pods, name)
+		if running {
+			runningPods = append(runningPods, name)
+		}
+	}
+	return runningPods
 }
 
 // isPodRunning checks if the pod(s) with the name-prefix does exist and is running
