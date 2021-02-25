@@ -34,6 +34,7 @@ type kcContextData struct {
 	Cluster string `json:"cluster"`
 }
 
+// KubeconfigBuilder contains fields needed to build a KubeConfig object
 type KubeconfigBuilder struct {
 	ClusterName string
 	Server      string

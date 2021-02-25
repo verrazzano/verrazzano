@@ -12,25 +12,30 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ClusterStatus contains ApiEndpoint map stored in the kubeadmin config map
+// ClusterStatus contains APIEndpoint map stored in the kubeadmin config map
 type ClusterStatus struct {
-	ApiEndpoints map[string]ApiEndpoint `json:"apiEndpoints"`
+	APIEndpoints map[string]APIEndpoint `json:"apiEndpoints"`
 }
 
-// ApiEndpoint contains the kubeadmin config information needed to access the API server
-type ApiEndpoint struct {
+// APIEndpoint contains the kubeadmin config information needed to access the API server
+type APIEndpoint struct {
 	AdvertiseAddress string `json:"advertiseAddress"`
 	BindPort         string `json:"bindPort"`
 }
 
 const (
+	// KubeSystem is the namesapce that contains the kubeadmin configmap
 	KubeSystem       = "kube-system"
+
+	// KubeAdminConfig is the name of the kubeadmin config map that contains API server endpoint information
 	KubeAdminConfig  = "kubeadm-config"
+
+	// ClusterStatusKey is the key in the configmap that contains API server endpoint information
 	ClusterStatusKey = "ClusterStatus"
 )
 
-// GetApiServerURL gets the external hURL of the API server
-func GetApiServerURL(client clipkg.Client) (string, error) {
+// GetAPIServerURL gets the external hURL of the API server
+func GetAPIServerURL(client clipkg.Client) (string, error) {
 	// Get the configmap which has the info needed to build the URL
 	var cm corev1.ConfigMap
 	nsn := types.NamespacedName{
@@ -51,8 +56,8 @@ func GetApiServerURL(client clipkg.Client) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	for _, ep := range cs.ApiEndpoints {
+	for _, ep := range cs.APIEndpoints {
 		return fmt.Sprintf("https://%s:%v", ep.AdvertiseAddress, ep.BindPort), nil
 	}
-	return "", fmt.Errorf("Missing ClusterStatus ApiEndpoints in the configmap %s/%s", KubeSystem, KubeAdminConfig)
+	return "", fmt.Errorf("Missing ClusterStatus APIEndpoints in the configmap %s/%s", KubeSystem, KubeAdminConfig)
 }

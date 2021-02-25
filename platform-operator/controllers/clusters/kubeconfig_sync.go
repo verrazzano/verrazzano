@@ -86,7 +86,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncKubeConfig(vmc *clusterapi.Verr
 	// Load the kubeconfig struct
 	token := secret.Data["token"]
 	b64Cert, err := getB64CAData(config)
-	serverURL, err := vzk8s.GetApiServerURL(r)
+	serverURL, err := vzk8s.GetAPIServerURL(r)
 	if err != nil {
 		return err
 	}
