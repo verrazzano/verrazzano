@@ -24,6 +24,7 @@ const appService = "hello-workload"
 const appPodPrefix = "hello-workload"
 const appDeployment = "hello-workload"
 const appNamespace = "hello"
+const appLoggingScopeSecret = "log-scope-secret"
 
 var fewSeconds = 2 * time.Second
 var tenSeconds = 10 * time.Second
@@ -40,7 +41,7 @@ var _ = BeforeSuite(func() {
 	}
 
 	// Do set up for multi cluster tests
-	setupMultiClusterTest()
+	// setupMultiClusterTest()
 
 })
 
@@ -108,14 +109,15 @@ var _ = Describe("verrazzano-application namespace resources ", func() {
 })
 
 var _ = Describe("Testing hello app lifecycle", func() {
-	//FLUENTD sidecar needs verrazzano secret
-	It("verrazzano secret is created in verrazzano-system namespace", func() {
-		command := fmt.Sprintf("create secret generic verrazzano -n verrazzano-system --from-literal=password=%s --from-literal=username=verrazzano", genPassword(10))
+	It("application namespace is created", func() {
+		command := fmt.Sprintf("create ns %s", appNamespace)
 		_, stderr := util.Kubectl(command)
 		Expect(stderr).To(Equal(""))
 	})
-	It("application namespace is created", func() {
-		command := fmt.Sprintf("create ns %s", appNamespace)
+	//FLUENTD sidecar needs app's explicit logging scope secret to be present in app NS
+	It("Explicit logging scope secret is manually created in application namespace", func() {
+		command := fmt.Sprintf("create secret generic %s -n %s --from-literal=password=%s --from-literal=username=someUser",
+			appLoggingScopeSecret, appNamespace, genPassword(10))
 		_, stderr := util.Kubectl(command)
 		Expect(stderr).To(Equal(""))
 	})
@@ -143,7 +145,6 @@ var _ = Describe("Testing hello app lifecycle", func() {
 		Eventually(appServiceExists, tenSeconds).Should(BeTrue(),
 			"The hello service should exist")
 	})
-
 	It("update app config should result in a app config in app namespace", func() {
 		Eventually(updateAppConfig, threeMins).Should(BeTrue())
 		Eventually(appConfigExists, fewSeconds).Should(BeTrue())
@@ -164,8 +165,8 @@ var _ = Describe("Testing hello app lifecycle", func() {
 	It("deleting app loggingscope", func() {
 		Eventually(canDeleteAppLoggingScope, fiveMins).Should(BeTrue())
 	})
-	It("deleting verrazzano secret", func() {
-		command := fmt.Sprintf("delete secret verrazzano -n verrazzano-system")
+	It("deleting logging scope secret", func() {
+		command := fmt.Sprintf("delete secret %s -n %s", appLoggingScopeSecret, appNamespace)
 		_, stderr := util.Kubectl(command)
 		Expect(stderr).To(Equal(""))
 	})
