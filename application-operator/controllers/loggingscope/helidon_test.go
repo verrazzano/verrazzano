@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
@@ -464,4 +465,3 @@ func commonExpectationsForApply(mockClient *mocks.MockClient, namespace string, 
 			return nil
 		})
 }
-
