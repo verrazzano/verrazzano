@@ -15,7 +15,6 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -49,13 +48,16 @@ func assert(wg *sync.WaitGroup, assertion func()) {
 }
 
 // AssertURLAccessibleAndAuthorized - Assert that a URL is accessible using the provided credentials
-func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, credentials *UsernamePassword) {
+func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, credentials *UsernamePassword) bool {
 	req, err := retryablehttp.NewRequest("GET", url, nil)
 	req.SetBasicAuth(credentials.Username, credentials.Password)
 	resp, err := client.Do(req)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "GET %s", url)
+	if err != nil {
+		return false
+	}
 	resp.Body.Close()
-	gomega.Expect(resp.StatusCode).To(gomega.Equal(http.StatusOK), "GET %s", url)
+	Log(Info, fmt.Sprintf("AssertURLAccessibleAndAuthorized %v Response:%v Error:%v", url, resp.StatusCode, err))
+	return resp.StatusCode == http.StatusOK
 }
 
 //PodsRunning checks if all the pods identified by namePrefixes are ready and running
