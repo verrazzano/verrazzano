@@ -75,7 +75,7 @@ func (f *Fluentd) Apply(scope *vzapi.LoggingScope, resource vzapi.QualifiedResou
 			return false, err
 		}
 
-		ensureElasticsearchSecret(f.Context, f, resource.Namespace, scope.Name)
+		ensureElasticsearchSecret(f.Context, f, resource.Namespace, scope.Spec.SecretName)
 		f.ensureFluentdVolumes(fluentdPod, scope)
 		f.ensureFluentdVolumeMountExists(fluentdPod)
 		f.ensureFluentdContainer(fluentdPod, scope, resource.Namespace)
@@ -538,5 +538,6 @@ func shouldUseManagedClusterElasticsearchSecret(ctx context.Context, cli k8sclie
 		// Not a managed cluster - can't use managed cluster ES secret
 		return false
 	}
-	return err != nil
+	// we retrieved the secret and there were no errors - we should use it
+	return err == nil
 }

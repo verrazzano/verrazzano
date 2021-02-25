@@ -383,6 +383,19 @@ func expectationsForApplyUseManagedClusterSecret(t *testing.T, mockClient *mocks
 		Get(gomock.Any(), managedClusterSecretNameInAppNS, gomock.Not(gomock.Nil())).
 		Return(kerrs.NewNotFound(schema.ParseGroupResource("v1.Secret"), managedClusterSecretNameInAppNS.String()))
 
+	// simulate managed cluster ES secret existing (GET is called once to check if we should use
+	// managed cluster, and once to actually perform the copy over to app NS)
+	expectedData := map[string][]byte{"username": []byte("someuser")}
+	mockClient.EXPECT().
+		Get(gomock.Any(), managedClusterVmiSecretKey, gomock.Not(gomock.Nil())).
+		Times(2).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *kcore.Secret) error {
+			secret.Name = managedClusterVmiSecretKey.Name
+			secret.Namespace = managedClusterVmiSecretKey.Namespace
+			secret.Data = expectedData
+			return nil
+		})
+
 	// CREATE managed cluster VMI secret in app namespace
 	mockClient.EXPECT().
 		Create(gomock.Any(), gomock.AssignableToTypeOf(&kcore.Secret{}), gomock.Not(gomock.Nil())).
