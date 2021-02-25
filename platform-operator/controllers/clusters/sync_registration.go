@@ -22,11 +22,12 @@ import (
 // These names are used internally in the generated kubeconfig. The names
 // are meant to be descriptive and the actual values don't affect behavior.
 const (
-	clusterName           = "admin"
-	userName              = "mcAgent"
-	contextName           = "defaultContext"
-	kubeconfigKey         = "admin-kubeconfig"
-	managedClusterNameKey = "managed-cluster-name"
+	clusterName              = "admin"
+	userName                 = "mcAgent"
+	contextName              = "defaultContext"
+	kubeconfigKey            = "admin-kubeconfig"
+	managedClusterNameKey    = "managed-cluster-name"
+	registrationSecretSuffix = "-registration"
 )
 
 // Needed for unit testing
@@ -36,7 +37,7 @@ func setConfigFunc(f func() (*rest.Config, error)) {
 	getConfigFunc = f
 }
 
-// Create a kubeconfig that has a token allowing access to the managed cluster
+// Create a registration secret with a kubeconfig that has a token allowing access to the managed cluster
 // with restricted access as defined in the verrazzano-managed-cluster role.
 // The code does the following:
 //   1. get the service account for the managed cluster
@@ -45,12 +46,12 @@ func setConfigFunc(f func() (*rest.Config, error)) {
 //   4. build a kubeconfig struct using data from the client config and the service account token
 //   5. save the kubeconfig as a secret
 //   6. update VMC with the kubeconfig secret name
-func (r *VerrazzanoManagedClusterReconciler) syncKubeConfig(vmc *clusterapi.VerrazzanoManagedCluster) error {
+func (r *VerrazzanoManagedClusterReconciler) syncRegistrationSecret(vmc *clusterapi.VerrazzanoManagedCluster) error {
 
 	// The same managed name and  vmc namespace is used for the service account and the kubeconfig secret,
 	// for clarity use different vars
 	saName := generateManagedResourceName(vmc.Name)
-	secretName := generateManagedResourceName(vmc.Name)
+	secretName := getRegistrationSecretName(vmc.Name)
 	managedNamespace := vmc.Namespace
 
 	// Get the service account
@@ -131,7 +132,7 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateSecret(vmc *clusterap
 	secret.Name = name
 
 	return controllerutil.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
-		r.mutateSecret(&secret, kubeconfig, vmc.Name)
+		r.mutateRegistrationSecret(&secret, kubeconfig, vmc.Name)
 		// This SetControllerReference call will trigger garbage collection i.e. the secret
 		// will automatically get deleted when the VerrazzanoManagedCluster is deleted
 		return controllerutil.SetControllerReference(vmc, &secret, r.Scheme)
@@ -139,7 +140,7 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateSecret(vmc *clusterap
 }
 
 // Mutate the secret, setting the kubeconfig data
-func (r *VerrazzanoManagedClusterReconciler) mutateSecret(secret *corev1.Secret, kubeconfig string, manageClusterName string) error {
+func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *corev1.Secret, kubeconfig string, manageClusterName string) error {
 	secret.Type = corev1.SecretTypeOpaque
 	secret.Data = map[string][]byte{
 		kubeconfigKey:         []byte(kubeconfig),
@@ -158,4 +159,8 @@ func getB64CAData(config *rest.Config) (string, error) {
 		return "", fmt.Errorf("Error %v reading CAData file %s", err, config.CAFile)
 	}
 	return base64.StdEncoding.EncodeToString(s), nil
+}
+
+func getRegistrationSecretName(vmcName string) string {
+	return generateManagedResourceName(vmcName) + registrationSecretSuffix
 }
