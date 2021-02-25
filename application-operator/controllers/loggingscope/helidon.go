@@ -145,7 +145,7 @@ func (h *HelidonHandler) ApplyToDeployment(ctx context.Context, workload vzapi.Q
 	if err != nil {
 		return nil, err
 	}
-	err = h.ensureEsSecret(ctx, scope.GetNamespace(), scope.Spec.SecretName)
+	err = ensureElasticsearchSecret(ctx, h, scope.GetNamespace(), scope.Spec.SecretName)
 	if err != nil {
 		return nil, err
 	}
@@ -431,24 +431,6 @@ func (h *HelidonHandler) deleteFluentdConfigMap(ctx context.Context, namespace, 
 	err := h.Get(ctx, objKey(namespace, name), configMap)
 	if !kerrs.IsNotFound(err) || err == nil {
 		return h.Delete(ctx, configMap)
-	}
-	return err
-}
-
-func (h *HelidonHandler) ensureEsSecret(ctx context.Context, namespace, name string) error {
-	secret := &kcore.Secret{}
-	err := h.Get(ctx, objKey(namespace, name), secret)
-	if kerrs.IsNotFound(err) {
-		secretKey := client.ObjectKey{Name: "verrazzano", Namespace: "verrazzano-system"}
-		err = h.Get(ctx, secretKey, secret)
-		if err != nil {
-			return err
-		}
-		secret = replicateVmiSecret(secret, namespace, name)
-		if err = h.Create(ctx, secret, &client.CreateOptions{}); err != nil {
-			return err
-		}
-		return nil
 	}
 	return err
 }

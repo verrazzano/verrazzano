@@ -11,9 +11,13 @@ import (
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -64,13 +68,30 @@ func TestFluentdApply(t *testing.T) {
 			return nil
 		})
 
+	// simulate Elasticsearch secret not existing
+	testESSecretFullName := types.NamespacedName{Namespace: testNamespace, Name: scope.Spec.SecretName}
+	mockClient.EXPECT().
+		Get(fluentd.Context, testESSecretFullName, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.ParseGroupResource("v1.Secret"), scope.Spec.SecretName))
+
+	// expect empty Elasticsearch secret created in app namespace
+	mockClient.EXPECT().
+		Create(fluentd.Context, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, sec *v1.Secret, options *client.CreateOptions) error {
+			asserts.Equal(t, testNamespace, sec.Namespace)
+			asserts.Equal(t, scope.Spec.SecretName, sec.Name)
+			asserts.Nil(t, sec.Data)
+			asserts.Equal(t, client.CreateOptions{}, *options)
+			return nil
+		})
+
 	// invoke method being tested
 	changesMade, err := fluentd.Apply(scope, resource, fluentdPod)
 
 	asserts.True(t, changesMade)
 	asserts.Nil(t, err)
 
-	testAssertFluentdPodForApply(t, fluentdPod)
+	testAssertFluentdPodForApply(t, fluentdPod, testESSecret)
 
 	mocker.Finish()
 }
@@ -102,6 +123,17 @@ func TestFluentdApplyForUpdate(t *testing.T) {
 			// this represents the found configmap resource. Only the length is checked not the item details
 			resources.Items = append(resources.Items, unstructured.Unstructured{})
 
+			return nil
+		})
+
+	// simulate Elasticsearch secret existing
+	testESSecretFullName := types.NamespacedName{Namespace: testNamespace, Name: scope.Spec.SecretName}
+	mockClient.EXPECT().
+		Get(fluentd.Context, testESSecretFullName, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+			secret.Name = scope.Spec.SecretName
+			secret.Namespace = testNamespace
+			secret.Data = map[string][]byte{"username": []byte("someuser")}
 			return nil
 		})
 
@@ -160,6 +192,85 @@ func TestFluentdRemove(t *testing.T) {
 	mocker.Finish()
 }
 
+// TestFluentdApply_ManagedClusterElasticsearch tests the creation of all FLUENTD resources in the \
+// system for a resource on a MANAGED cluster
+// GIVEN a desired state for FLUENTD resources where no resources yet exist
+// WHEN Apply is called on a Managed Cluster using the default logging scope
+// THEN ensure that the expected FLUENTD resources are created and the managed cluster's elasticsearch
+// secret is used to determine the ES endpoint
+func TestFluentdApply_ManagedClusterElasticsearch(t *testing.T) {
+	mocker := gomock.NewController(t)
+	mockClient := mocks.NewMockClient(mocker)
+
+	managedClusterElasticsearchSecretKey := clusters.GetManagedClusterElasticsearchSecretKey()
+	scope := createTestLoggingScope(true)
+	// loggingscope uses managed cluster elasticsearch secret
+	scope.Spec.SecretName = managedClusterElasticsearchSecretKey.Name
+	resource := createTestResourceRelation()
+	fluentdPod := createTestFluentdPod()
+
+	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
+
+	// simulate config map not existing
+	mockClient.EXPECT().
+		List(fluentd.Context, gomock.Not(gomock.Nil()), client.InNamespace(testNamespace), client.MatchingFields{"metadata.name": configMapName + "-" + testWorkLoadType}).
+		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, inNamespace client.InNamespace, fields client.MatchingFields) error {
+			asserts.Equal(t, client.InNamespace(testNamespace), inNamespace)
+			asserts.Equal(t, client.MatchingFields{"metadata.name": configMapName + "-" + testWorkLoadType}, fields)
+			asserts.Equal(t, configMapAPIVersion, resources.GetAPIVersion())
+			asserts.Equal(t, configMapKind, resources.GetKind())
+			return nil
+		})
+
+	mockClient.EXPECT().
+		Create(fluentd.Context, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, configMap *v1.ConfigMap, options *client.CreateOptions) error {
+			asserts.Equal(t, *fluentd.createFluentdConfigMap(testNamespace), *configMap)
+			asserts.Equal(t, client.CreateOptions{}, *options)
+			return nil
+		})
+
+	// simulate Elasticsearch secret not existing in app NS
+	testESSecretFullName := types.NamespacedName{Namespace: testNamespace, Name: scope.Spec.SecretName}
+	mockClient.EXPECT().
+		Get(fluentd.Context, testESSecretFullName, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.ParseGroupResource("v1.Secret"), scope.Spec.SecretName))
+
+	// simulate managed cluster ES secret existing (GET is called once to check if we should use
+	// managed cluster, and once to actually perform the copy over to app NS)
+	expectedData := map[string][]byte{"username": []byte("someuser")}
+	mockClient.EXPECT().
+		Get(fluentd.Context, managedClusterElasticsearchSecretKey, gomock.Not(gomock.Nil())).
+		Times(2).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+			secret.Name = managedClusterElasticsearchSecretKey.Name
+			secret.Namespace = managedClusterElasticsearchSecretKey.Namespace
+			secret.Data = expectedData
+			return nil
+		})
+
+	// expect copy of managed cluster ES secret created in app namespace
+	mockClient.EXPECT().
+		Create(fluentd.Context, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, sec *v1.Secret, options *client.CreateOptions) error {
+			asserts.Equal(t, testNamespace, sec.Namespace)
+			asserts.Equal(t, managedClusterElasticsearchSecretKey.Name, sec.Name)
+			asserts.Equal(t, expectedData, sec.Data)
+			asserts.Equal(t, client.CreateOptions{}, *options)
+			return nil
+		})
+
+	// invoke method being tested
+	changesMade, err := fluentd.Apply(scope, resource, fluentdPod)
+
+	asserts.True(t, changesMade)
+	asserts.Nil(t, err)
+
+	testAssertFluentdPodForApply(t, fluentdPod, managedClusterElasticsearchSecretKey.Name)
+
+	mocker.Finish()
+}
+
 // createTestFluentdPod creates a test FluentdPod
 func createTestFluentdPod() *FluentdPod {
 	return &FluentdPod{
@@ -193,7 +304,7 @@ func addFluentdArtifactsToFluentdPod(fluentd *Fluentd, fluentdPod *FluentdPod, s
 }
 
 // testAssertFluentdPodForApply asserts FluentdPod state for Apply
-func testAssertFluentdPodForApply(t *testing.T, fluentdPod *FluentdPod) {
+func testAssertFluentdPodForApply(t *testing.T, fluentdPod *FluentdPod, esSecretName string) {
 	containers := fluentdPod.Containers
 	asserts.Len(t, containers, 2)
 	success := false
@@ -205,9 +316,9 @@ func testAssertFluentdPodForApply(t *testing.T, fluentdPod *FluentdPod) {
 				case elasticSearchURLEnv:
 					asserts.Equal(t, testESURL, envVar.Value)
 				case elasticSearchUserEnv:
-					asserts.Equal(t, testESSecret, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
+					asserts.Equal(t, esSecretName, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
 				case elasticSearchPwdEnv:
-					asserts.Equal(t, testESSecret, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
+					asserts.Equal(t, esSecretName, envVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name)
 				}
 
 			}
