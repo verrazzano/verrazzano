@@ -62,7 +62,7 @@ func TestHelidonHandlerApply_ManagedCluster(t *testing.T) {
 // GIVEN an application workload referred in a loggingScope
 // WHEN Apply is called on a non-managed cluster
 // THEN ensure that the expected FLUENTD sidecar container is created with the secret supplied in loggingscope
-// and only an empty placeholder secret is created in app NS
+// and only an empty secret is created in app NS for mounting on fluentd container
 func TestHelidonHandlerApply_NonManagedCluster(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mockClient := mocks.NewMockClient(mocker)
@@ -395,8 +395,8 @@ func expectationsForApplyUseManagedClusterSecret(t *testing.T, mockClient *mocks
 
 // expectationsForApplyNonManagedCluster - adds expectations for the case where this is NOT a managed cluster
 // i.e. the managed cluster registration secret does not exist. In this case, we don't expect any
-// secrets to be copied to app NS. We do expect a placeholder secret with no data to be created in
-// the app NS
+// secrets to be copied to app NS. We do expect an empty secret with no data to be created in
+// the app NS for volume mounting on fluentd
 func expectationsForApplyNonManagedCluster(t *testing.T, mockClient *mocks.MockClient, namespace string, esSecretName string) {
 	managedClusterVmiSecretKey := clusters.GetManagedClusterElasticsearchSecretKey()
 
@@ -412,7 +412,7 @@ func expectationsForApplyNonManagedCluster(t *testing.T, mockClient *mocks.MockC
 		Get(gomock.Any(), managedClusterVmiSecretKey, gomock.Not(gomock.Nil())).
 		Return(kerrs.NewNotFound(schema.ParseGroupResource("v1.Secret"), managedClusterVmiSecretKey.Name))
 
-	// Check that placeholder secret is created in app NS, with no data contents
+	// Check that empty secret is created in app NS, with no data contents
 	mockClient.EXPECT().
 		Create(gomock.Any(), gomock.AssignableToTypeOf(&kcore.Secret{}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, sec *kcore.Secret, opt *client.CreateOptions) error {

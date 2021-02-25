@@ -439,37 +439,23 @@ func (h *HelidonHandler) ensureEsSecret(ctx context.Context, namespace, name str
 	secret := &kcore.Secret{}
 	err := h.Get(ctx, objKey(namespace, name), secret)
 	if kerrs.IsNotFound(err) {
-<<<<<<< HEAD
-		secretKey := client.ObjectKey{Name: "verrazzano", Namespace: "verrazzano-system"}
-		err = h.Get(ctx, secretKey, secret)
-		if err != nil {
-			return err
-		}
-		secret = replicateVmiSecret(secret, namespace, name)
-		if err = h.Create(ctx, secret, &client.CreateOptions{}); err != nil {
-			return err
-=======
 		// If this is a managed cluster, and we are using the managed cluster ES secret, copy
 		// that secret to the app namespace
 		if h.shouldUseManagedClusterElasticsearchSecret(ctx, name) {
 			// The managed cluster ES secret is the one specified on the logging scope - copy it
 			// to the app namespace
 			return h.copyManagedClusterVMISecret(ctx, namespace, name)
-		} else {
-			// create an empty placeholder secret, which is required in order to mount the secret
-			// as a volume in fluentd. In certain cases (e.g. admin server using local elasticsearch),
-			// the secret is not required to have contents. In other cases, where user explicitly
-			// specifies a secret on the logging scope, they should have already created it in the app NS
-			return h.createPlaceholderSecret(ctx, namespace, name)
->>>>>>> a520d9d3... fix logging scope copying, attempt 2
 		}
+		// create an empty secret, which is required in order to mount the secret
+		// as a volume in fluentd. In certain cases (e.g. admin server using local elasticsearch),
+		// the secret is not required to have contents. In other cases, where user explicitly
+		// specifies a secret on the logging scope, they should have already created it in the app NS
+		return h.createEmptySecretForFluentdVolume(ctx, namespace, name)
 	}
 	return err
 }
 
-<<<<<<< HEAD
-=======
-func (h *HelidonHandler) createPlaceholderSecret(ctx context.Context, namespace string, name string) error {
+func (h *HelidonHandler) createEmptySecretForFluentdVolume(ctx context.Context, namespace string, name string) error {
 	placeholderSecret := &kcore.Secret{
 		ObjectMeta: kmeta.ObjectMeta{
 			Namespace: namespace,
@@ -519,7 +505,6 @@ func (h *HelidonHandler) shouldUseManagedClusterElasticsearchSecret(ctx context.
 	return err != nil
 }
 
->>>>>>> a520d9d3... fix logging scope copying, attempt 2
 func objKey(namespace, name string) client.ObjectKey {
 	return client.ObjectKey{Name: name, Namespace: namespace}
 }
