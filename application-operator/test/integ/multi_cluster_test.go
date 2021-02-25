@@ -22,6 +22,7 @@ const (
 	crdDir                    = "../../config/crd/bases"
 	timeout                   = 2 * time.Minute
 	pollInterval              = 40 * time.Millisecond
+	applicationOperator       = "verrazzano-application-operator"
 )
 
 var (
@@ -119,9 +120,9 @@ var _ = ginkgo.Describe("Testing MultiClusterApplicationConfiguration", func() {
 
 var _ = ginkgo.Describe("Testing VerrazzanoProject validation", func() {
 	ginkgo.It("VerrazzanoProject invalid namespace ", func() {
-		// First apply the hello-component referenced in this MultiCluster application config
+		// Apply VerrazzanoProject resource and expect to fail due to invalid namespace
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzano_project_invalid_namespace.yaml")
-		gomega.Expect(stderr).To(gomega.ContainElement(fmt.Sprintf("Namespace for the resource must be %q", constants.VerrazzanoMultiClusterNamespace)), "multicluster app config should be applied successfully")
+		gomega.Expect(stderr).To(gomega.ContainSubstring(fmt.Sprintf("Namespace for the resource must be %q", constants.VerrazzanoMultiClusterNamespace)))
 	})
 })
 
@@ -206,6 +207,12 @@ func createManagedClusterSecret() {
 }
 
 func setupMultiClusterTest() {
+	isPodRunningYet := func() bool {
+		return K8sClient.IsPodRunning(applicationOperator, constants.VerrazzanoSystemNamespace)
+	}
+	gomega.Eventually(isPodRunningYet, "2m", "5s").Should(gomega.BeTrue(),
+		fmt.Sprintf("The %s pod should be in the Running state", constants.VerrazzanoSystemNamespace))
+
 	_, stderr := util.Kubectl("create ns " + constants.VerrazzanoMultiClusterNamespace)
 	if stderr != "" {
 		ginkgo.Fail(fmt.Sprintf("failed to create namespace %v", constants.VerrazzanoMultiClusterNamespace))
