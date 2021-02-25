@@ -16,7 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
-var getClientFunc = getClient
 var _ webhook.Validator = &VerrazzanoProject{}
 
 // log is for logging in this package.
@@ -37,7 +36,7 @@ func (vp *VerrazzanoProject) ValidateCreate() error {
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (vp *VerrazzanoProject) ValidateUpdate() error {
+func (vp *VerrazzanoProject) ValidateUpdate(old runtime.Object) error {
 	log.Info("validate update", "name", vp.Name)
 
 	return vp.validateVerrazzanoProject()
@@ -55,6 +54,10 @@ func (vp *VerrazzanoProject) ValidateDelete() error {
 func (vp *VerrazzanoProject) validateVerrazzanoProject() error {
 	if vp.ObjectMeta.Namespace != constants.VerrazzanoMultiClusterNamespace {
 		return fmt.Errorf("Namespace for the resource must be %q", constants.VerrazzanoMultiClusterNamespace)
+	}
+
+	if len(vp.Spec.Namespaces) == 0 {
+		return fmt.Errorf("One or more namespaces must be provided")
 	}
 
 	return nil
