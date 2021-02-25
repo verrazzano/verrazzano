@@ -6,7 +6,6 @@ module github.com/verrazzano/verrazzano/platform-operator
 go 1.13
 
 require (
-	github.com/ghodss/yaml v1.0.0
 	github.com/golang/mock v1.4.4
 	github.com/gordonklaus/ineffassign v0.0.0-20210104184537-8eed68eb605f
 	github.com/onsi/ginkgo v1.12.0
