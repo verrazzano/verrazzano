@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
@@ -28,61 +29,26 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// TestHelidoHandlerApply tests the creation of the FLUENTD sidecard in the application pod
+// TestHelidonHandlerApply_ManagedCluster tests the creation of the FLUENTD sidecar in the
+// application pod with default settings on a managed cluster
 // GIVEN an application workload referred in a loggingScope
-// WHEN Apply is called
-// THEN ensure that the expected FLUENTD sidecar container is created
-func TestHelidoHandlerApply(t *testing.T) {
+// WHEN Apply is called on a managed cluster with the default VMI secret of the managed cluster
+// THEN ensure that the expected FLUENTD sidecar container is created and managed cluster VMI secret
+// copied to app NS
+func TestHelidonHandlerApply_ManagedCluster(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mockClient := mocks.NewMockClient(mocker)
 	namespace := "hello-ns"
 	workloadName := "hello-workload"
 	appContainerName := "testApply-app-container"
-	esSecretName := "myEsSecret"
 	workload := workloadOf(namespace, workloadName)
+	managedClusterVmiSecretKey := clusters.GetManagedClusterElasticsearchSecretKey()
+	esSecretName := managedClusterVmiSecretKey.Name
 	scope := newLoggingScope(namespace, "esHost", esSecretName)
 
-	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
-			appContainer := kcore.Container{Name: appContainerName, Image: "test-app-container-image"}
-			deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, appContainer)
-			return nil
-		})
-	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: fluentdConfigMapName(workloadName)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *kcore.ConfigMap) error {
-			return kerrs.NewNotFound(schema.ParseGroupResource("v1.ConfigMap"), fluentdConfigMapName(workloadName))
-		})
-	mockClient.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, conf *kcore.ConfigMap, opt *client.CreateOptions) error {
-			return nil
-		})
-	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: esSecretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *kcore.Secret) error {
-			return kerrs.NewNotFound(schema.ParseGroupResource("v1.ConfigMap"), fluentdConfigMapName(workloadName))
-		})
-	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *kcore.Secret) error {
-			vmiSecret(sec)
-			return nil
-		})
-	mockClient.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, sec *kcore.Secret, opt *client.CreateOptions) error {
-			return nil
-		})
-	mockClient.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, dep *kapps.Deployment) error {
-			appCon, fluentdFound := searchContainers(dep.Spec.Template.Spec.Containers)
-			asserts.Equal(t, appContainerName, appCon)
-			asserts.True(t, fluentdFound)
-			return nil
-		})
+	commonExpectationsForApply(mockClient, namespace, appContainerName, workloadName, esSecretName)
+	expectationsForApplyUseManagedClusterSecret(t, mockClient, namespace)
+	expectDeploymentUpdatedWithFluentd(t, mockClient, appContainerName)
 
 	h := &HelidonHandler{
 		Client: mockClient,
@@ -91,7 +57,35 @@ func TestHelidoHandlerApply(t *testing.T) {
 	res, err := h.Apply(context.Background(), workload, scope)
 	asserts.Nil(t, res)
 	asserts.Nil(t, err)
-	mocker.Finish()
+}
+
+// TestHelidonHandlerApply_NonManagedCluster tests the creation of the FLUENTD sidecar in the
+// application pod on a non-managed cluster
+// GIVEN an application workload referred in a loggingScope
+// WHEN Apply is called on a non-managed cluster
+// THEN ensure that the expected FLUENTD sidecar container is created with the secret supplied in loggingscope
+// and no secrets are created/copied
+func TestHelidonHandlerApply_NonManagedCluster(t *testing.T) {
+	mocker := gomock.NewController(t)
+	mockClient := mocks.NewMockClient(mocker)
+	namespace := "hello-ns"
+	workloadName := "hello-workload"
+	appContainerName := "testApply-app-container"
+	workload := workloadOf(namespace, workloadName)
+	esSecretName := "someEsSecret"
+	scope := newLoggingScope(namespace, "esHost", esSecretName)
+
+	commonExpectationsForApply(mockClient, namespace, appContainerName, workloadName, esSecretName)
+	expectationsForApplyNonManagedCluster(t, mockClient, namespace, esSecretName)
+	expectDeploymentUpdatedWithFluentd(t, mockClient, appContainerName)
+
+	h := &HelidonHandler{
+		Client: mockClient,
+		Log:    log.NullLogger{},
+	}
+	res, err := h.Apply(context.Background(), workload, scope)
+	asserts.Nil(t, res)
+	asserts.Nil(t, err)
 }
 
 // TestHelidoHandlerApplyErrorWaitingForDeploymentUpdate tests Apply waiting for Deployment update
@@ -111,7 +105,7 @@ func TestHelidoHandlerApplyRequeueForDeploymentUpdate(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
 			appContainer := kcore.Container{Name: appContainerName, Image: "test-app-container-image"}
-			fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, "appContainer", scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchHost)
+			fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, "appContainer", scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchURL)
 			deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, appContainer, fluentdContainer)
 			vol := kcore.Volume{
 				Name: "app-volume",
@@ -122,6 +116,7 @@ func TestHelidoHandlerApplyRequeueForDeploymentUpdate(t *testing.T) {
 				},
 			}
 			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, vol, CreateFluentdConfigMapVolume(workload.Name))
+			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdSecretVolume(scope.Spec.SecretName))
 			volumes := CreateFluentdHostPathVolumes()
 			for _, volume := range volumes {
 				deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volume)
@@ -137,7 +132,6 @@ func TestHelidoHandlerApplyRequeueForDeploymentUpdate(t *testing.T) {
 	asserts.NotNil(t, res)
 	asserts.True(t, res.Requeue)
 	asserts.Nil(t, err)
-	mocker.Finish()
 }
 
 // TestHelidoHandlerRemove tests the removal of the FLUENTD sidecard in the application pod
@@ -157,7 +151,7 @@ func TestHelidoHandlerRemove(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
 			appContainer := kcore.Container{Name: appContainerName, Image: "test-app-container-image"}
-			fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, "appContainer", scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchHost)
+			fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, "appContainer", scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchURL)
 			deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, appContainer, fluentdContainer)
 			vol := kcore.Volume{
 				Name: "app-volume",
@@ -168,6 +162,7 @@ func TestHelidoHandlerRemove(t *testing.T) {
 				},
 			}
 			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, vol, CreateFluentdConfigMapVolume(workload.Name))
+			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdSecretVolume(scope.Spec.SecretName))
 			volumes := CreateFluentdHostPathVolumes()
 			for _, volume := range volumes {
 				deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volume)
@@ -202,7 +197,6 @@ func TestHelidoHandlerRemove(t *testing.T) {
 	removed, err := h.Remove(context.Background(), workload, scope)
 	asserts.True(t, removed)
 	asserts.Nil(t, err)
-	mocker.Finish()
 }
 
 func workloadOf(namespace, workloadName string) vzapi.QualifiedResourceRelation {
@@ -275,8 +269,7 @@ func newLoggingScope(namespace, esHost, esSecret string) *vzapi.LoggingScope {
 	scope := vzapi.LoggingScope{}
 	scope.TypeMeta = kmeta.TypeMeta{APIVersion: vzapi.GroupVersion.Identifier(), Kind: vzapi.LoggingScopeKind}
 	scope.ObjectMeta = kmeta.ObjectMeta{Namespace: namespace, Name: "testScopeName"}
-	scope.Spec.ElasticSearchHost = esHost
-	scope.Spec.ElasticSearchPort = 9200
+	scope.Spec.ElasticSearchURL = "http://esHost:9200"
 	scope.Spec.SecretName = esSecret
 	scope.Spec.FluentdImage = "fluentd/image/location"
 	return &scope
@@ -286,8 +279,8 @@ func vmiSecret(sec *kcore.Secret) *kcore.Secret {
 	sec.Name = "verrazzano"
 	sec.Namespace = "verrazzano-system"
 	sec.Data = map[string][]byte{
-		"username": []byte("verrazzano"),
-		"password": []byte(genPassword(10)),
+		secretUserKey:     []byte("verrazzano"),
+		secretPasswordKey: []byte(genPassword(10)),
 	}
 	return sec
 }
@@ -301,4 +294,110 @@ func genPassword(passSize int) string {
 		b.WriteRune(passwordChars[rand.Intn(len(passwordChars))])
 	}
 	return b.String()
+}
+
+// expectDeploymentUpdatedWithFluentd - expect that the deployment is updated with a fluentd
+// sidecar container in addition to the app container
+func expectDeploymentUpdatedWithFluentd(t *testing.T, mockClient *mocks.MockClient, appContainerName string) {
+	// UPDATE deployment to add fluentd container
+	mockClient.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, dep *kapps.Deployment) error {
+			appCon, fluentdFound := searchContainers(dep.Spec.Template.Spec.Containers)
+			asserts.Equal(t, appContainerName, appCon)
+			asserts.True(t, fluentdFound)
+			return nil
+		})
+}
+
+// expectationsForApplyUseManagedClusterSecret - adds expectations when the esSecretName is the same
+// as the managed cluster's ES secret name
+func expectationsForApplyUseManagedClusterSecret(t *testing.T, mockClient *mocks.MockClient, namespace string) {
+	managedClusterVmiSecretKey := clusters.GetManagedClusterElasticsearchSecretKey()
+	esSecretName := managedClusterVmiSecretKey.Name
+
+	// GET supplied ES secret which we return as not found
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: esSecretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *kcore.Secret) error {
+			return kerrs.NewNotFound(schema.ParseGroupResource("v1.Secret"), esSecretName)
+		})
+
+	// Check if managed cluster secret VMI secret exists - return a valid secret
+	mockClient.EXPECT().
+		Get(gomock.Any(), managedClusterVmiSecretKey, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *kcore.Secret) error {
+			sec.Name = managedClusterVmiSecretKey.Name
+			sec.Namespace = managedClusterVmiSecretKey.Namespace
+			sec.Data = map[string][]byte{
+				"username": []byte("verrazzano"),
+				"password": []byte(genPassword(10)),
+				//todo ca-bundle
+			}
+			return nil
+		})
+
+	managedClusterSecretNameInAppNS := types.NamespacedName{Namespace: namespace, Name: managedClusterVmiSecretKey.Name}
+
+	// Check if managed cluster secret VMI secret is already in app namespace - return not found
+	mockClient.EXPECT().
+		Get(gomock.Any(), managedClusterSecretNameInAppNS, gomock.Not(gomock.Nil())).
+		Return(kerrs.NewNotFound(schema.ParseGroupResource("v1.Secret"), managedClusterSecretNameInAppNS.String()))
+
+	// CREATE managed cluster VMI secret in app namespace
+	mockClient.EXPECT().
+		Create(gomock.Any(), gomock.AssignableToTypeOf(&kcore.Secret{}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, sec *kcore.Secret, opt *client.CreateOptions) error {
+			asserts.Equal(t, managedClusterSecretNameInAppNS.Name, sec.Name)
+			asserts.Equal(t, managedClusterSecretNameInAppNS.Namespace, sec.Namespace)
+			return nil
+		})
+}
+
+// expectationsForApplyNonManagedCluster - adds expectations for the case where this is NOT a managed cluster
+// i.e. the managed cluster registration secret does not exist. In this case, we don't expect any
+// secrets to be created or copied to app NS
+func expectationsForApplyNonManagedCluster(t *testing.T, mockClient *mocks.MockClient, namespace string, esSecretName string) {
+	managedClusterVmiSecretKey := clusters.GetManagedClusterElasticsearchSecretKey()
+
+	// GET supplied ES secret which we return as not found
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: esSecretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *kcore.Secret) error {
+			return kerrs.NewNotFound(schema.ParseGroupResource("v1.Secret"), esSecretName)
+		})
+
+	// Check if managed cluster secret VMI secret exists - return not-found since this is NOT a managed cluster
+	mockClient.EXPECT().
+		Get(gomock.Any(), managedClusterVmiSecretKey, gomock.Not(gomock.Nil())).
+		Return(kerrs.NewNotFound(schema.ParseGroupResource("v1.Secret"), managedClusterVmiSecretKey.Name))
+
+	// No further action is expected on a non-managed cluster
+}
+
+// commonExpectationsForApply - adds expectations common to all vanilla apply use cases - we expect
+// apply to get the workload and the fluentd config map and create it if not found.
+func commonExpectationsForApply(mockClient *mocks.MockClient, namespace string, appContainerName string, workloadName string, esSecretName string) {
+	// GET workload
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
+			appContainer := kcore.Container{Name: appContainerName, Image: "test-app-container-image"}
+			deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, appContainer)
+			return nil
+		})
+
+	// GET fluentd config map which we return as not found
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: fluentdConfigMapName(workloadName)}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *kcore.ConfigMap) error {
+			return kerrs.NewNotFound(schema.ParseGroupResource("v1.ConfigMap"), fluentdConfigMapName(workloadName))
+		})
+
+	// CREATE fluentd config map since it was not found
+	mockClient.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, conf *kcore.ConfigMap, opt *client.CreateOptions) error {
+			return nil
+		})
 }
