@@ -23,16 +23,14 @@ type APIEndpoint struct {
 	BindPort         string `json:"bindPort"`
 }
 
-const (
-	// KubeSystem is the namesapce that contains the kubeadmin configmap
-	KubeSystem       = "kube-system"
+// KubeSystem is the namesapce that contains the kubeadmin configmap
+const KubeSystem = "kube-system"
 
-	// KubeAdminConfig is the name of the kubeadmin config map that contains API server endpoint information
-	KubeAdminConfig  = "kubeadm-config"
+// KubeAdminConfig is the name of the kubeadmin config map that contains API server endpoint information
+const KubeAdminConfig = "kubeadm-config"
 
-	// ClusterStatusKey is the key in the configmap that contains API server endpoint information
-	ClusterStatusKey = "ClusterStatus"
-)
+// ClusterStatusKey is the key in the configmap that contains API server endpoint information
+const ClusterStatusKey = "ClusterStatus"
 
 // GetAPIServerURL gets the external hURL of the API server
 func GetAPIServerURL(client clipkg.Client) (string, error) {
