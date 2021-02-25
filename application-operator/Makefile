@@ -55,6 +55,12 @@ build: go-fmt go-vet
 # Run against the configured Kubernetes cluster in ~/.kube/config
 .PHONY: run
 run:
+	# The commands below should be executed to disable the in-cluster verrazzano-application-operator
+	# kubectl delete validatingwebhookconfigurations verrazzano-application-ingresstrait-validator
+	# kubectl delete mutatingwebhookconfigurations verrazzano-application-istio-defaulter
+	# kubectl delete mutatingwebhookconfigurations verrazzano-application-appconfig-defaulter
+	# kubectl scale deployment verrazzano-application-operator --replicas=0 -n verrazzano-system
+
 	# To enable webhooks: $(GO) run main.go --kubeconfig=${KUBECONFIG} --cert-dir=build/webhook-certs
 	$(GO) run main.go --kubeconfig=${KUBECONFIG} --enable-webhooks=false --metrics-addr=localhost:0
 
@@ -197,7 +203,7 @@ endif
 #
 .PHONY: unit-test
 unit-test: go-install
-	$(GO) test -v ./apis/... ./controllers/... ./internal/...
+	$(GO) test -v ./apis/... ./controllers/... ./internal/... ./mcagent/...
 
 .PHONY: coverage
 coverage: unit-test
@@ -217,8 +223,8 @@ export KUBECONFIG=${HOME}/.kube/config
 export VERRAZZANO_KUBECONFIG=${HOME}/.kube/config
 export VERRAZZANO_APP_OP_IMAGE=${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
-.PHONY: integ-test
-integ-test: create-cluster
+.PHONY: setup-cluster
+setup-cluster: create-cluster
 	echo 'Load Docker image for the OAM runtime...'
 	docker pull ${OAM_RUNTIME_IMAGE}
 	kind load docker-image --name ${CLUSTER_NAME} ${OAM_RUNTIME_IMAGE}
@@ -229,6 +235,8 @@ integ-test: create-cluster
 	echo 'Install OAM runtime and Verrazzano application operator...'
 	installer/install.sh || (echo 'Application operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
 
+.PHONY: integ-test
+integ-test: setup-cluster
 	echo 'Run tests...'
 	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Application operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
 

@@ -10,19 +10,25 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	"strconv"
 	"testing"
 )
 
 // NotFoundError indicates an error caused by a StatusNotFound status
 type NotFoundError struct {
 }
+
+var emptyEsDetails = clusters.ElasticsearchDetails{}
 
 func (s NotFoundError) Error() string {
 	return "StatusNotFound"
@@ -63,11 +69,18 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 	// THEN Default should create the default logging scope and add it to the component of the appconfig
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
+
+	// First expect it to check for a managed cluster secret
+	doExpectGetManagedClusterSecretNotFound(cli)
+
+	// Expect get existing logging scope (non-existent)
 	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, scope *vzapi.LoggingScope) error {
 			return NotFoundError{}
 		})
-	cli.EXPECT().Create(gomock.Eq(context.TODO()), gomock.Eq(CreateDefaultLoggingScope(namespacedName)), gomock.Not(gomock.Nil())).
+
+	// Expect create logging scope
+	cli.EXPECT().Create(gomock.Eq(context.TODO()), gomock.Eq(CreateDefaultLoggingScope(namespacedName, emptyEsDetails)), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
 			return nil
 		})
@@ -78,6 +91,8 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 	// THEN Default should leave the existing logging scope on the appconfig
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
+
+	// Expect get default logging scope and since it exists, expect no other calls
 	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, scope *vzapi.LoggingScope) error {
 			return NotFoundError{}
@@ -89,13 +104,17 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 	// THEN Default should delete the default logging scope and leave the existing logging scope on the appconfig
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
+
+	// Expect get default logging scope
 	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, scope *vzapi.LoggingScope) error {
 			scope.Name = "default-hello-app-logging-scope"
 			scope.Labels = map[string]string{"default.logging.scope": "true"}
 			return nil
 		})
-	cli.EXPECT().Delete(gomock.Eq(context.TODO()), gomock.Eq(CreateDefaultLoggingScope(namespacedName)), gomock.Not(gomock.Nil())).
+
+	// Expect default logging scope delete
+	cli.EXPECT().Delete(gomock.Eq(context.TODO()), gomock.Eq(CreateDefaultLoggingScope(namespacedName, emptyEsDetails)), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, obj runtime.Object, opts ...client.DeleteOption) error {
 			return nil
 		})
@@ -107,6 +126,8 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 	//   on the others in the appconfig
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
+
+	// Expect get default logging scope and since it exists, expect no other calls
 	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, scope *vzapi.LoggingScope) error {
 			scope.Name = "default-hello-app-logging-scope"
@@ -122,11 +143,18 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 	//   set the default logging scope on the others in the appconfig
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
+
+	// Expect it to get managed cluster secret
+	doExpectGetManagedClusterSecretNotFound(cli)
+
+	// Expect get default logging scope
 	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, scope *vzapi.LoggingScope) error {
 			return NotFoundError{}
 		})
-	cli.EXPECT().Create(gomock.Eq(context.TODO()), gomock.Eq(CreateDefaultLoggingScope(namespacedName)), gomock.Not(gomock.Nil())).
+
+	// Expect create default logging scope
+	cli.EXPECT().Create(gomock.Eq(context.TODO()), gomock.Eq(CreateDefaultLoggingScope(namespacedName, emptyEsDetails)), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
 			return nil
 		})
@@ -139,11 +167,18 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 	//   on all of the components in the appconfig
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
+
+	// Expect it to get managed cluster secret
+	doExpectGetManagedClusterSecretNotFound(cli)
+
+	// Expect get default logging scope
 	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, scope *vzapi.LoggingScope) error {
 			return NotFoundError{}
 		})
-	cli.EXPECT().Create(gomock.Eq(context.TODO()), gomock.Eq(CreateDefaultLoggingScope(namespacedName)), gomock.Not(gomock.Nil())).
+
+	// Expect create default logging scope
+	cli.EXPECT().Create(gomock.Eq(context.TODO()), gomock.Eq(CreateDefaultLoggingScope(namespacedName, emptyEsDetails)), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
 			return nil
 		})
@@ -179,7 +214,7 @@ func TestLoggingScopeDefaulter_Cleanup(t *testing.T) {
 			scope.Labels = map[string]string{"default.logging.scope": "true"}
 			return nil
 		})
-	cli.EXPECT().Delete(gomock.Eq(context.TODO()), gomock.Eq(CreateDefaultLoggingScope(namespacedName)), gomock.Not(gomock.Nil())).
+	cli.EXPECT().Delete(gomock.Eq(context.TODO()), gomock.Eq(CreateDefaultLoggingScope(namespacedName, emptyEsDetails)), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, obj runtime.Object, opts ...client.DeleteOption) error {
 			return nil
 		})
@@ -192,6 +227,70 @@ func TestLoggingScopeDefaulter_Cleanup(t *testing.T) {
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
 	testLoggingScopeDefaulterCleanup(t, cli, "hello-conf.yaml", true)
+	mocker.Finish()
+}
+
+// TestCreateDefaultLoggingScope tests the behavior of CreateDefaultLoggingScope
+// GIVEN a managed cluster with Elasticsearch details specified
+// WHEN CreateDefaultLoggingScope is called with those ElasticsearchDetails
+// THEN it should create a default LoggingScope with the provided details
+func TestCreateDefaultLoggingScope(t *testing.T) {
+	scopeName := "default-hello-app-logging-scope"
+	namespacedName := types.NamespacedName{Name: scopeName, Namespace: "default"}
+
+	// WHEN CreateDefaultLoggingScope is called with empty ES details
+	// it should use the default values in the created logging scope
+	scope := CreateDefaultLoggingScope(namespacedName, emptyEsDetails)
+	asserts.Equal(t, defaultElasticSearchHost, scope.Spec.ElasticSearchHost)
+	asserts.Equal(t, defaultElasticSearchPort, scope.Spec.ElasticSearchPort)
+	asserts.Equal(t, defaultSecretName, scope.Spec.SecretName)
+
+	// WHEN CreateDefaultLoggingScope is called with non-empty ES details
+	// it should use the values provided instead of the defaults
+	esDetails := clusters.ElasticsearchDetails{Host: "some-other-es", Port: 9999, SecretName: "some-other-secret"}
+	scope = CreateDefaultLoggingScope(namespacedName, esDetails)
+	asserts.Equal(t, esDetails.Host, scope.Spec.ElasticSearchHost)
+	asserts.Equal(t, esDetails.Port, scope.Spec.ElasticSearchPort)
+	asserts.Equal(t, esDetails.SecretName, scope.Spec.SecretName)
+}
+
+// TestLoggingScopeDefaulter_DefaultManagedCluster tests adding a default LoggingScope to an
+// appconfig in a managed cluster (in this case the default logging scope should refer to the admin
+// cluster's Elasticsearch endpoint and secret)
+// GIVEN a AppConfigDefaulter and an appconfig in a managed cluster,
+// WHEN Default is called with an appconfig
+// THEN it should add a default LoggingScope to the appconfig which refers to the admin cluster ES
+func TestLoggingScopeDefaulter_DefaultOnManagedCluster(t *testing.T) {
+	var cli *mocks.MockClient
+	var mocker *gomock.Controller
+
+	scopeName := "default-hello-app-logging-scope"
+	namespacedName := types.NamespacedName{Name: scopeName, Namespace: "default"}
+
+	// The appconfig has one component with no scopes and the default scope does not exist
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+
+	// Expect it to get managed cluster secret and return a managed cluster secret (all other tests
+	// assumed no managed cluster secret found)
+	esDetails := clusters.ElasticsearchDetails{Host: "some-es-host", Port: 9999, SecretName: constants.ElasticsearchSecretName}
+	mcSecret := v1.Secret{Data: map[string][]byte{
+		constants.ClusterNameData:       []byte("managed-cluster1"),
+		constants.ElasticsearchHostData: []byte(esDetails.Host),
+		constants.ElasticsearchPortData: []byte(strconv.Itoa(int(esDetails.Port)))}}
+	doExpectGetManagedClusterSecretFound(cli, mcSecret)
+
+	// Expect get default logging scope
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, scope *vzapi.LoggingScope) error {
+			return NotFoundError{}
+		})
+
+	// Expect create logging scope with the esDetails specified in the managedClusterSecret (instead of the defaults)
+	cli.EXPECT().Create(gomock.Eq(context.TODO()), gomock.Eq(CreateDefaultLoggingScope(namespacedName, esDetails)), gomock.Not(gomock.Nil())).
+		Return(nil)
+
+	testLoggingScopeDefaulterDefault(t, cli, "hello-conf.yaml", map[string]string{"hello-component": scopeName}, false)
 	mocker.Finish()
 }
 
@@ -235,4 +334,19 @@ func testLoggingScopeDefaulterCleanup(t *testing.T, cli client.Client, configPat
 	if err != nil {
 		t.Fatalf("Error in defaulter.Default %v", err)
 	}
+}
+
+func doExpectGetManagedClusterSecretNotFound(cli *mocks.MockClient) {
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCRegistrationSecretFullName), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *v1.Secret) error {
+			return NotFoundError{}
+		})
+}
+
+func doExpectGetManagedClusterSecretFound(cli *mocks.MockClient, managedClusterSecret v1.Secret) {
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCRegistrationSecretFullName), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *v1.Secret) error {
+			secret.Data = managedClusterSecret.Data
+			return nil
+		})
 }

@@ -214,27 +214,45 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 			)
 		})
 	})
-	// disabling this test until we can fix the bug caused by the fact that we write a single FLUENTD configmap
-	// which causes a Coherence configmap to get loaded by WebLogic pods depending on timing of writing the configmap
-	// ginkgo.Context("Logging.", func() {
-	// 	indexName := "bobs-books-bobby-front-end-bobby-wls"
-	// 	// GIVEN a WebLogic application with logging enabled via a logging scope
-	// 	// WHEN the Elasticsearch index is retrieved
-	// 	// THEN verify that it is found
-	// 	ginkgo.It("Verify Elasticsearch index exists", func() {
-	// 		gomega.Eventually(func() bool {
-	// 			return pkg.LogIndexFound(indexName)
-	// 		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for bobs-books")
-	// 	})
-	// 	// GIVEN a WebLogic application with logging enabled via a logging scope
-	// 	// WHEN the log records are retrieved from the Elasticsearch index
-	// 	// THEN verify that at least one recent log record is found
-	// 	ginkgo.It("Verify recent Elasticsearch log record exists", func() {
-	// 		gomega.Eventually(func() bool {
-	// 			return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-	// 				"domainUID":  "bobbys-front-end",
-	// 				"serverName": "bobbys-front-end-adminserver"})
-	// 		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
-	// 	})
-	// })
+	ginkgo.Context("WebLogic logging.", func() {
+		indexName := "bobs-books-bobs-books-bobby-wls"
+		// GIVEN a WebLogic application with logging enabled via a logging scope
+		// WHEN the Elasticsearch index is retrieved
+		// THEN verify that it is found
+		ginkgo.It("Verify Elasticsearch index exists", func() {
+			gomega.Eventually(func() bool {
+				return pkg.LogIndexFound(indexName)
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find log index "+indexName)
+		})
+		// GIVEN a WebLogic application with logging enabled via a logging scope
+		// WHEN the log records are retrieved from the Elasticsearch index
+		// THEN verify that at least one recent log record is found
+		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
+			gomega.Eventually(func() bool {
+				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+					"domainUID":  "bobbys-front-end",
+					"serverName": "bobbys-front-end-adminserver"})
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+		})
+	})
+	ginkgo.Context("Coherence logging.", func() {
+		indexName := "bobs-books-bobs-books-robert-coh"
+		// GIVEN a Coherence application with logging enabled via a logging scope
+		// WHEN the Elasticsearch index is retrieved
+		// THEN verify that it is found
+		ginkgo.It("Verify Elasticsearch index exists", func() {
+			gomega.Eventually(func() bool {
+				return pkg.LogIndexFound(indexName)
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find log index "+indexName)
+		})
+		// GIVEN a Coherence application with logging enabled via a logging scope
+		// WHEN the log records are retrieved from the Elasticsearch index
+		// THEN verify that at least one recent log record is found
+		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
+			gomega.Eventually(func() bool {
+				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+					"cluster": "roberts-coherence"})
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+		})
+	})
 })

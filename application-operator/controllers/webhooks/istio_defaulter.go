@@ -240,7 +240,7 @@ func (a *IstioWebhook) createServiceAccount(namespace string, ownerRef metav1.Ow
 	return serviceAccount.Name, nil
 }
 
-// flatten traverses a nested array of owner references and returns a single array of owner references.
+// flattenOwnerReferences traverses a nested array of owner references and returns a single array of owner references.
 func (a *IstioWebhook) flattenOwnerReferences(list []metav1.OwnerReference, namespace string, ownerRefs []metav1.OwnerReference) ([]metav1.OwnerReference, error) {
 	for _, ownerRef := range ownerRefs {
 		list = append(list, ownerRef)

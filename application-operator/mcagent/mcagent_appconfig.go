@@ -13,10 +13,11 @@ import (
 )
 
 // Synchronize MultiClusterApplicationConfiguration objects to the local cluster
-func (s *Syncer) syncMCApplicationConfigurationObjects() error {
+func (s *Syncer) syncMCApplicationConfigurationObjects(namespace string) error {
 	// Get all the MultiClusterApplicationConfiguration objects from the admin cluster
 	allAdminMCAppConfigs := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
-	err := s.AdminClient.List(s.Context, &allAdminMCAppConfigs)
+	listOptions := &client.ListOptions{Namespace: namespace}
+	err := s.AdminClient.List(s.Context, &allAdminMCAppConfigs, listOptions)
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
@@ -36,7 +37,7 @@ func (s *Syncer) syncMCApplicationConfigurationObjects() error {
 	// local cluster and compare to the list received from the admin cluster.
 	// The admin cluster is the source of truth.
 	allLocalMCAppConfigs := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
-	err = s.LocalClient.List(s.Context, &allLocalMCAppConfigs)
+	err = s.LocalClient.List(s.Context, &allLocalMCAppConfigs, listOptions)
 	if err != nil {
 		s.Log.Error(err, "failed to list MultiClusterApplicationConfiguration on local cluster")
 		return nil

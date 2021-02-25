@@ -48,6 +48,7 @@ type Fluentd struct {
 	ParseRules             string
 	StorageVolumeName      string
 	StorageVolumeMountPath string
+	WorkloadType           string
 }
 
 // FluentdPod contains pod information for pods which require FLUENTD integration
@@ -161,7 +162,7 @@ func (f *Fluentd) ensureFluentdVolumeMountExists(fluentdPod *FluentdPod) {
 // to do. If it doesn't exist, create it.
 func (f *Fluentd) ensureFluentdConfigMapExists(namespace string) error {
 	// check if configmap exists
-	configMapExists, err := resourceExists(f.Context, f, configMapAPIVersion, configMapKind, configMapName, namespace)
+	configMapExists, err := resourceExists(f.Context, f, configMapAPIVersion, configMapKind, configMapName+"-"+f.WorkloadType, namespace)
 	if err != nil {
 		return err
 	}
@@ -178,7 +179,7 @@ func (f *Fluentd) ensureFluentdConfigMapExists(namespace string) error {
 func (f *Fluentd) createFluentdConfigMap(namespace string) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      configMapName,
+			Name:      configMapName + "-" + f.WorkloadType,
 			Namespace: namespace,
 		},
 		Data: func() map[string]string {
@@ -251,7 +252,7 @@ func (f *Fluentd) removeFluentdVolumes(fluentdPod *FluentdPod) bool {
 
 // removeFluentdConfigMap removes the FLUENTD configmap
 func (f *Fluentd) removeFluentdConfigMap(namespace string) bool {
-	configMapExists, err := resourceExists(f.Context, f, configMapAPIVersion, configMapKind, configMapName, namespace)
+	configMapExists, err := resourceExists(f.Context, f, configMapAPIVersion, configMapKind, configMapName+"-"+f.WorkloadType, namespace)
 
 	if configMapExists {
 		_ = f.Delete(f.Context, f.createFluentdConfigMap(namespace), &k8sclient.DeleteOptions{})
@@ -424,7 +425,7 @@ func (f *Fluentd) createFluentdConfigMapVolume(name string) corev1.Volume {
 		VolumeSource: corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: name,
+					Name: name + "-" + f.WorkloadType,
 				},
 				DefaultMode: func(mode int32) *int32 {
 					return &mode
