@@ -298,7 +298,24 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-secret-name"}, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(k8sschema.GroupResource{Group: "", Resource: "secret"}, "test-secret-name")).
 		Times(1)
-
+	// expect a call to fetch the Elasticsearch endpoint secret and return a not found error.
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *v1.Secret) error {
+			obj.Data = map[string][]byte{"test-data-key": []byte("test-data-value")}
+			return nil
+		}).
+		Times(1)
+	// expect a call to create a Secret
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, obj *v1.Secret, opts ...client.CreateOption) error {
+			assert.Equal(testNamespace, obj.Namespace)
+			assert.Equal("test-secret-name", obj.Name)
+			assert.Len(obj.Data, 1)
+			assert.Equal(obj.Data["test-data-key"], []byte("test-data-value"))
+			return nil
+		}).Times(1)
 	// expect a call to create the Deployment
 	cli.EXPECT().
 		Patch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).

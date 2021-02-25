@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/go-logr/logr"
@@ -440,39 +439,18 @@ func (h *HelidonHandler) ensureEsSecret(ctx context.Context, namespace, name str
 	secret := &kcore.Secret{}
 	err := h.Get(ctx, objKey(namespace, name), secret)
 	if kerrs.IsNotFound(err) {
-		// If this is a managed cluster, and the ES secret name is that of the managed cluster VMI
-		// secret, we should copy that secret to app NS. In all other cases, the secret should
-		// either be copied by the user or (in the case of a cluster-local ES), not needed at all
-		secretKey := clusters.GetManagedClusterElasticsearchSecretKey()
-		if name == secretKey.Name {
-			// The managed cluster ES secret is the one specified on the logging scope - copy it
-			// to the app namespace
-			return h.copyManagedClusterVMISecret(ctx, namespace, name)
+		secretKey := client.ObjectKey{Name: "verrazzano", Namespace: "verrazzano-system"}
+		err = h.Get(ctx, secretKey, secret)
+		if err != nil {
+			return err
+		}
+		secret = replicateVmiSecret(secret, namespace, name)
+		if err = h.Create(ctx, secret, &client.CreateOptions{}); err != nil {
+			return err
 		}
 		return nil
 	}
 	return err
-}
-
-// copies the managed cluster Elasticsearch secret to the given namespace/name IF it exists
-func (h *HelidonHandler) copyManagedClusterVMISecret(ctx context.Context, namespace string, name string) error {
-	secretKey := clusters.GetManagedClusterElasticsearchSecretKey()
-	if name != secretKey.Name {
-		// The managed cluster ES secret is not the one specified on the logging scope
-		// nothing to copy
-		return nil
-	}
-	secret := &kcore.Secret{}
-	err := h.Get(ctx, secretKey, secret)
-	if kerrs.IsNotFound(err) {
-		// Not a managed cluster, nothing to replicate
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	secret = replicateVmiSecret(secret, namespace, name)
-	return h.Create(ctx, secret, &client.CreateOptions{})
 }
 
 func objKey(namespace, name string) client.ObjectKey {
