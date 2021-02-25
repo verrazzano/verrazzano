@@ -26,6 +26,6 @@ spec:
             spec:
               rules:
                 - paths:
-                    - path: "/facts"
+                    - path: "/"
                       pathType: Prefix
 
