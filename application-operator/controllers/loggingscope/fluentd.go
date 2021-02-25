@@ -393,11 +393,6 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 				ReadOnly:  true,
 			},
 			{
-				MountPath: secretMountPath,
-				Name:      secretVolume,
-				ReadOnly:  true,
-			},
-			{
 				MountPath: f.StorageVolumeMountPath,
 				Name:      f.StorageVolumeName,
 				ReadOnly:  true,
