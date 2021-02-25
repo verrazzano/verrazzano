@@ -5,6 +5,7 @@ package controllers
 
 import (
 	"context"
+	vzk8s "github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/rest"
 	"testing"
@@ -34,9 +35,8 @@ apiEndpoints:
     bindPort: 6443
 `
 const (
-	kubeSystem       = "kube-system"
-	kubeAdminConfig  = "kubeadm-config"
-	clusterStatusKey = "ClusterStatus"
+	tokenKey = "token"
+	token    = "tokenData"
 )
 
 // TestCreateVMC tests the Reconcile method for the following use case
@@ -119,10 +119,13 @@ func TestCreateVMC(t *testing.T) {
 			return nil
 		})
 
-	// Expect a call to get the Secret with the service account token, return one with the token set
+	// Expect a call to get the service token secret, return the secret with the token
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: saSecretName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				tokenKey: []byte(token),
+			}
 			return nil
 		})
 
@@ -150,10 +153,10 @@ func TestCreateVMC(t *testing.T) {
 
 	// Expect a call to get the kubeadmin configmap
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: kubeSystem, Name: kubeAdminConfig}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: vzk8s.KubeSystem, Name: vzk8s.KubeAdminConfig}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, cm *corev1.ConfigMap) error {
 			cm.Data = map[string]string{
-				clusterStatusKey: kubeAdminData,
+				vzk8s.ClusterStatusKey: kubeAdminData,
 			}
 			return nil
 		})

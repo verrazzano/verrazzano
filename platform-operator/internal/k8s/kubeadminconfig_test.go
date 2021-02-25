@@ -26,11 +26,11 @@ apiEndpoints:
 func TestGetApiServerURL(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      kubeAdminConfig,
-			Namespace: kubeSystem,
+			Name:      KubeAdminConfig,
+			Namespace: KubeSystem,
 		},
 		Data: map[string]string{
-			clusterStatusKey: kubeAdminData,
+			ClusterStatusKey: kubeAdminData,
 		},
 	})
 

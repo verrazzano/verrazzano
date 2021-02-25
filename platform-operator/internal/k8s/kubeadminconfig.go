@@ -24,9 +24,9 @@ type ApiEndpoint struct {
 }
 
 const (
-	kubeSystem       = "kube-system"
-	kubeAdminConfig  = "kubeadm-config"
-	clusterStatusKey = "ClusterStatus"
+	KubeSystem       = "kube-system"
+	KubeAdminConfig  = "kubeadm-config"
+	ClusterStatusKey = "ClusterStatus"
 )
 
 // GetApiServerURL gets the external hURL of the API server
@@ -34,15 +34,15 @@ func GetApiServerURL(client clipkg.Client) (string, error) {
 	// Get the configmap which has the info needed to build the URL
 	var cm corev1.ConfigMap
 	nsn := types.NamespacedName{
-		Namespace: kubeSystem,
-		Name:      kubeAdminConfig,
+		Namespace: KubeSystem,
+		Name:      KubeAdminConfig,
 	}
 	if err := client.Get(context.TODO(), nsn, &cm); err != nil {
 		return "", fmt.Errorf("Failed to fetch the kube adimin configmap %s/%s, %v", nsn.Namespace, nsn.Name, err)
 	}
-	statusData := cm.Data[clusterStatusKey]
+	statusData := cm.Data[ClusterStatusKey]
 	if len(statusData) == 0 {
-		return "", fmt.Errorf("Missing ClusterStatus in the configmap %s/%s", kubeSystem, kubeAdminConfig)
+		return "", fmt.Errorf("Missing ClusterStatus in the configmap %s/%s", KubeSystem, KubeAdminConfig)
 	}
 
 	// Unmarshal the data then build the URL
@@ -54,5 +54,5 @@ func GetApiServerURL(client clipkg.Client) (string, error) {
 	for _, ep := range cs.ApiEndpoints {
 		return fmt.Sprintf("https://%s:%v", ep.AdvertiseAddress, ep.BindPort), nil
 	}
-	return "", fmt.Errorf("Missing ClusterStatus ApiEndpoints in the configmap %s/%s", kubeSystem, kubeAdminConfig)
+	return "", fmt.Errorf("Missing ClusterStatus ApiEndpoints in the configmap %s/%s", KubeSystem, KubeAdminConfig)
 }
