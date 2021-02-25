@@ -23,40 +23,40 @@ var _ webhook.Validator = &VerrazzanoProject{}
 var log = logf.Log.WithName("ingresstrait-resource")
 
 // SetupWebhookWithManager is used to let the controller manager know about the webhook
-func (v *VerrazzanoProject) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (vp *VerrazzanoProject) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(v).
+		For(vp).
 		Complete()
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (v *VerrazzanoProject) ValidateCreate() error {
-	log.Info("validate create", "name", v.Name)
+func (vp *VerrazzanoProject) ValidateCreate() error {
+	log.Info("validate create", "name", vp.Name)
 
-	if v.ObjectMeta.Namespace != constants.VerrazzanoMultiClusterNamespace {
-		return fmt.Errorf("Namespace for the resource must be %q", constants.VerrazzanoMultiClusterNamespace)
-	}
-	/*
-		client, err := getClientFunc()
-		if err != nil {
-			return err
-		}
-	*/
-	return nil
+	return vp.validateVerrazzanoProject()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (v *VerrazzanoProject) ValidateUpdate(old runtime.Object) error {
-	log.Info("validate update", "name", v.Name)
+func (vp *VerrazzanoProject) ValidateUpdate() error {
+	log.Info("validate update", "name", vp.Name)
 
-	return nil
+	return vp.validateVerrazzanoProject()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (v *VerrazzanoProject) ValidateDelete() error {
-	log.Info("validate delete", "name", v.Name)
+func (vp *VerrazzanoProject) ValidateDelete() error {
+	log.Info("validate delete", "name", vp.Name)
 
 	// Webhook is not configured for deletes so function will not be called.
+	return nil
+}
+
+// Perform validation checks on the resource
+func (vp *VerrazzanoProject) validateVerrazzanoProject() error {
+	if vp.ObjectMeta.Namespace != constants.VerrazzanoMultiClusterNamespace {
+		return fmt.Errorf("Namespace for the resource must be %q", constants.VerrazzanoMultiClusterNamespace)
+	}
+
 	return nil
 }
 
