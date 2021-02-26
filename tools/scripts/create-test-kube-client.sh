@@ -72,6 +72,7 @@ namespace="$(kubectl -n $TEST_NAMESPACE get secret "$secret" -o "jsonpath={.data
 token="$(kubectl -n $TEST_NAMESPACE get secret "$secret" -o "jsonpath={.data.token}" | openssl enc -d -base64 -A)"
 
 touch ${TEST_KUBECONFIG}
+export KUBECONFIG=${TEST_KUBECONFIG}
 kubectl --kubeconfig=${TEST_KUBECONFIG} config set-credentials "${TEST_ID}-sa" --token="$token" >/dev/null
 ca_crt="$(mktemp)"; echo "$ca_crt_data" > $ca_crt
 kubectl --kubeconfig=${TEST_KUBECONFIG} config set-cluster "$cluster" --server="$server" --certificate-authority="$ca_crt" --embed-certs >/dev/null
