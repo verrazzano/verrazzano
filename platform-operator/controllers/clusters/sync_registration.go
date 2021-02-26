@@ -19,15 +19,9 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// These names are used internally in the generated kubeconfig. The names
-// are meant to be descriptive and the actual values don't affect behavior.
 const (
-	clusterName              = "admin"
-	userName                 = "mcAgent"
-	contextName              = "defaultContext"
-	kubeconfigKey            = "admin-kubeconfig"
-	managedClusterNameKey    = "managed-cluster-name"
-	registrationSecretSuffix = "-registration"
+	kubeconfigKey         = "admin-kubeconfig"
+	managedClusterNameKey = "managed-cluster-name"
 )
 
 // Needed for unit testing
@@ -47,11 +41,18 @@ func setConfigFunc(f func() (*rest.Config, error)) {
 //   5. save the kubeconfig as a secret
 //   6. update VMC with the kubeconfig secret name
 func (r *VerrazzanoManagedClusterReconciler) syncRegistrationSecret(vmc *clusterapi.VerrazzanoManagedCluster) error {
+	// These names are used internally in the generated kubeconfig. The names
+	// are meant to be descriptive and the actual values don't affect behavior.
+	const (
+		clusterName = "admin"
+		userName    = "mcAgent"
+		contextName = "defaultContext"
+	)
 
 	// The same managed name and  vmc namespace is used for the service account and the kubeconfig secret,
 	// for clarity use different vars
 	saName := generateManagedResourceName(vmc.Name)
-	secretName := getRegistrationSecretName(vmc.Name)
+	secretName := GetRegistrationSecretName(vmc.Name)
 	managedNamespace := vmc.Namespace
 
 	// Get the service account
@@ -161,6 +162,8 @@ func getB64CAData(config *rest.Config) (string, error) {
 	return base64.StdEncoding.EncodeToString(s), nil
 }
 
-func getRegistrationSecretName(vmcName string) string {
+// GetRegistrationSecretName returns the registration secret name
+func GetRegistrationSecretName(vmcName string) string {
+	const registrationSecretSuffix = "-registration"
 	return generateManagedResourceName(vmcName) + registrationSecretSuffix
 }

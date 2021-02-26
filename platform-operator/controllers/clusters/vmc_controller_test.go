@@ -149,8 +149,8 @@ func TestCreateVMC(t *testing.T) {
 
 	// Expect a call to get the registration secret - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getRegistrationSecretName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Secret"}, getRegistrationSecretName(name)))
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: GetRegistrationSecretName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Secret"}, GetRegistrationSecretName(name)))
 
 	// Expect a call to create the registration secret
 	mock.EXPECT().
@@ -165,7 +165,7 @@ func TestCreateVMC(t *testing.T) {
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.Equal(vmc.Spec.ClusterRegistrationSecret, getRegistrationSecretName(name), "Registration name did not match")
+			asserts.Equal(vmc.Spec.ClusterRegistrationSecret, GetRegistrationSecretName(name), "Registration name did not match")
 			return nil
 		})
 
@@ -173,7 +173,7 @@ func TestCreateVMC(t *testing.T) {
 	//
 	// Expect a call to get the registration secret
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getRegistrationSecretName(name)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: GetRegistrationSecretName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
 				kubeconfigKey:         []byte(kubeconfigData),
@@ -184,8 +184,8 @@ func TestCreateVMC(t *testing.T) {
 
 	// Expect a call to get the manifest secret - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getManifestSecretName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Secret"}, getManifestSecretName(name)))
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: GetManifestSecretName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Secret"}, GetManifestSecretName(name)))
 
 	// Expect a call to create the manifest secret
 	mock.EXPECT().
@@ -200,7 +200,7 @@ func TestCreateVMC(t *testing.T) {
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.Equal(vmc.Spec.ManagedClusterManifestSecret, getManifestSecretName(name), "Manifest secret name did not match")
+			asserts.Equal(vmc.Spec.ManagedClusterManifestSecret, GetManifestSecretName(name), "Manifest secret name did not match")
 			return nil
 		})
 

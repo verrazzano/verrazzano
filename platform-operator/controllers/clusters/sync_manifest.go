@@ -16,22 +16,24 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const (
-	manifestSecretSuffix = "-manifest"
-	yamlSep              = "---\n"
-	yamlKey              = "yaml"
-)
+const yamlKey = "yaml"
 
 // Create or update a secret that contains Kubernetes resource YAML which will be applied
 // on the managed cluster to create resources needed there. The YAML has multiple Kubernetes
 // resources separated by 3 hyphens ( --- ), so that applying the YAML will create/update multiple
 // resources at once.  This YAML is stored in the Verrazzano manifest secret.
 func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.VerrazzanoManagedCluster) error {
+	const (
+		yamlSep                           = "---\n"
+		targetRegistrationSecretName      = "verrazzano-cluster"
+		targetRegistrationSecretNamespace = "verrazzano-system"
+	)
+
 	// Builder used to build up the full YAML
 	var sb = strings.Builder{}
 
 	// generate YAML for each resource, then combine to a single YAML
-	y, err := r.getSecretAsYaml(getRegistrationSecretName(vmc.Name), vmc.Namespace)
+	y, err := r.getSecretAsYaml(GetRegistrationSecretName(vmc.Name), vmc.Namespace, targetRegistrationSecretName, targetRegistrationSecretNamespace)
 	if err != nil {
 		return err
 	}
@@ -45,7 +47,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.
 	}
 
 	// Save the ClusterRegistrationSecret name in the VMC
-	vmc.Spec.ManagedClusterManifestSecret = getManifestSecretName(vmc.Name)
+	vmc.Spec.ManagedClusterManifestSecret = GetManifestSecretName(vmc.Name)
 	err = r.Update(context.TODO(), vmc)
 	if err != nil {
 		return err
@@ -58,7 +60,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.
 func (r *VerrazzanoManagedClusterReconciler) createOrUpdateManifestSecret(vmc *clusterapi.VerrazzanoManagedCluster, yamlData string) (controllerutil.OperationResult, error) {
 	var secret corev1.Secret
 	secret.Namespace = vmc.Namespace
-	secret.Name = getManifestSecretName(vmc.Name)
+	secret.Name = GetManifestSecretName(vmc.Name)
 
 	return controllerutil.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
 		r.mutateManifestSecret(&secret, yamlData)
@@ -78,7 +80,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateManifestSecret(secret *corev1
 }
 
 // Get the specified secre then convert to YAML.
-func (r *VerrazzanoManagedClusterReconciler) getSecretAsYaml(name string, namespace string) (yamlData []byte, err error) {
+func (r *VerrazzanoManagedClusterReconciler) getSecretAsYaml(name string, namespace string, targetName string, targetNamespace string) (yamlData []byte, err error) {
 	var secret corev1.Secret
 	secretNsn := types.NamespacedName{
 		Namespace: namespace,
@@ -87,15 +89,17 @@ func (r *VerrazzanoManagedClusterReconciler) getSecretAsYaml(name string, namesp
 	if err := r.Get(context.TODO(), secretNsn, &secret); err != nil {
 		return []byte(""), fmt.Errorf("Failed to fetch the service account secret %s/%s, %v", namespace, name, err)
 	}
-	// Create a new ObjectMeta with just namespace and name
+	// Create a new ObjectMeta with target name and namespace
 	secret.ObjectMeta = metav1.ObjectMeta{
-		Namespace: namespace,
-		Name:      name,
+		Namespace: targetNamespace,
+		Name:      targetName,
 	}
 	yamlData, err = yaml.Marshal(secret)
 	return yamlData, err
 }
 
-func getManifestSecretName(vmcName string) string {
+// GetManifestSecretName returns the manifest secret name
+func GetManifestSecretName(vmcName string) string {
+	const manifestSecretSuffix = "-manifest"
 	return generateManagedResourceName(vmcName) + manifestSecretSuffix
 }
