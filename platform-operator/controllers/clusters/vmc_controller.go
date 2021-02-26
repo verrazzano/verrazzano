@@ -92,6 +92,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		log.Infof("Failed to sync the YAML manifest secret used by managed cluster: %v", err)
 		return ctrl.Result{}, err
 	}
+
 	return ctrl.Result{}, nil
 }
 
