@@ -157,7 +157,7 @@ func (f *Fluentd) ensureFluentdVolumeMountExists(fluentdPod *FluentdPod) {
 	for _, volumeMount := range volumeMounts {
 		if volumeMount.Name == f.StorageVolumeName {
 			storageVolumeMountExists = true
-		} else if volumeMount.Name == SecretVolume {
+		} else if volumeMount.Name == secretVolume {
 			secretVolumeMountExists = true
 		}
 	}
@@ -472,7 +472,7 @@ func (f *Fluentd) createStorageVolumeMount() corev1.VolumeMount {
 // createSecretVolumeMount creates a secret volume mount
 func (f *Fluentd) createSecretVolumeMount() corev1.VolumeMount {
 	return corev1.VolumeMount{
-		Name:      SecretVolume,
+		Name:      secretVolume,
 		MountPath: secretMountPath,
 	}
 }
