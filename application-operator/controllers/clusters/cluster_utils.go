@@ -6,7 +6,6 @@ package clusters
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -28,8 +27,7 @@ var MCRegistrationSecretFullName = types.NamespacedName{
 // ElasticsearchDetails represents all the details needed
 // to determine how to connect to an Elasticsearch instance
 type ElasticsearchDetails struct {
-	Host       string
-	Port       uint32
+	URL        string
 	SecretName string
 }
 
@@ -129,16 +127,15 @@ func FetchManagedClusterElasticSearchDetails(ctx context.Context, rdr client.Rea
 	if err != nil {
 		return esDetails
 	}
-	esDetails.Host = string(clusterSecret.Data[constants.ElasticsearchHostData])
-	port, err := strconv.Atoi(string(clusterSecret.Data[constants.ElasticsearchPortData]))
-	if err != nil {
-		logger.Error(err, fmt.Sprintf("Invalid value for %s in cluster secret %s",
-			constants.ElasticsearchPortData, MCRegistrationSecretFullName.Name))
-		return ElasticsearchDetails{}
-	}
-	esDetails.Port = uint32(port)
+	esDetails.URL = string(clusterSecret.Data[constants.ElasticsearchURLData])
 	esDetails.SecretName = constants.ElasticsearchSecretName
 	return esDetails
+}
+
+// GetManagedClusterElasticsearchSecretKey returns the object key for the managed cluster elastic
+// search secret
+func GetManagedClusterElasticsearchSecretKey() client.ObjectKey {
+	return client.ObjectKey{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.ElasticsearchSecretName}
 }
 
 func fetchClusterSecret(ctx context.Context, rdr client.Reader, clusterSecret *corev1.Secret) error {

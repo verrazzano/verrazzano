@@ -28,7 +28,7 @@ const (
 	helidonWorkloadKey = "core.oam.dev/v1alpha2/ContainerizedWorkload"
 	volumeVarlog       = "varlog"
 	volumeData         = "datadockercontainers"
-	volumeConf         = "fluentd-config-volume"
+	confVolume         = "fluentd-config-volume"
 )
 
 // HelidonFluentdConfiguration FLUENTD rules for reading/parsing generic component log files
@@ -92,12 +92,11 @@ const HelidonFluentdConfiguration = `<label @FLUENT_LOG>
 </filter>
 <match **>
   @type elasticsearch
-  host "#{ENV['ELASTICSEARCH_HOST']}"
-  port "#{ENV['ELASTICSEARCH_PORT']}"
+  hosts "#{ENV['ELASTICSEARCH_URL']}"
+  ca_file /fluentd/secret/ca-bundle
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
   index_name "` + ElasticSearchIndex + `"
-  scheme http
   include_timestamp true
   flush_interval 10s
 </match>
@@ -116,6 +115,23 @@ func (h *HelidonHandler) Apply(ctx context.Context, workload vzapi.QualifiedReso
 		h.Log.Error(err, "Failed to fetch Deployment", "Deployment", workload.Name)
 		return nil, err
 	}
+	// Apply logging to the in-memory child Deployment resource.
+	result, err := h.ApplyToDeployment(ctx, workload, scope, deploy)
+	if result != nil || err != nil {
+		h.Log.V(1).Info("Failed to apply logging to Deployment", "Deployment", deploy.Name, "error", err)
+		return result, err
+	}
+	// Store the child Deployment resource.
+	err = h.Update(ctx, deploy)
+	if err != nil {
+		h.Log.V(1).Info("Failed to update Deployment", "Deployment", deploy.Name, "error", err)
+		return nil, err
+	}
+	return nil, nil
+}
+
+// ApplyToDeployment applies a logging scope to an existing in-memory Kubernetes Deployment
+func (h *HelidonHandler) ApplyToDeployment(ctx context.Context, workload vzapi.QualifiedResourceRelation, scope *vzapi.LoggingScope, deploy *kapps.Deployment) (*ctrl.Result, error) {
 	appContainer, fluentdFound := searchContainers(deploy.Spec.Template.Spec.Containers)
 	h.Log.V(1).Info("Update Deployment", "Deployment", deploy.Name, "fluentdFound", fluentdFound)
 	if fluentdFound {
@@ -125,11 +141,11 @@ func (h *HelidonHandler) Apply(ctx context.Context, workload vzapi.QualifiedReso
 		duration := time.Duration(rand.IntnRange(5, 10)) * time.Second
 		return &ctrl.Result{Requeue: true, RequeueAfter: duration}, nil
 	}
-	err = h.ensureFluentdConfigMap(ctx, scope.GetNamespace(), workload.Name)
+	err := h.ensureFluentdConfigMap(ctx, scope.GetNamespace(), workload.Name)
 	if err != nil {
 		return nil, err
 	}
-	err = h.ensureEsSecret(ctx, scope.GetNamespace(), scope.Spec.SecretName)
+	err = ensureElasticsearchSecret(ctx, h, scope.GetNamespace(), scope.Spec.SecretName)
 	if err != nil {
 		return nil, err
 	}
@@ -138,13 +154,9 @@ func (h *HelidonHandler) Apply(ctx context.Context, workload vzapi.QualifiedReso
 		deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volume)
 	}
 	deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdConfigMapVolume(workload.Name))
-	fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, appContainer, scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchHost)
+	deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdSecretVolume(scope.Spec.SecretName))
+	fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, appContainer, scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchURL)
 	deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, fluentdContainer)
-	err = h.Update(ctx, deploy)
-	if err != nil {
-		h.Log.V(1).Info("Failed to update Deployment", "Deployment", deploy.Name, "error", err)
-		return nil, err
-	}
 	return nil, nil
 }
 
@@ -178,7 +190,7 @@ func (h *HelidonHandler) Remove(ctx context.Context, workload vzapi.QualifiedRes
 		existingValumes := deploy.Spec.Template.Spec.Volumes
 		deploy.Spec.Template.Spec.Volumes = []kcore.Volume{}
 		for _, vol := range existingValumes {
-			if vol.Name != volumeVarlog && vol.Name != volumeData && vol.Name != volumeConf {
+			if vol.Name != volumeVarlog && vol.Name != volumeData && vol.Name != confVolume && vol.Name != secretVolume {
 				deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, vol)
 			}
 		}
@@ -228,7 +240,7 @@ func CreateFluentdConfigMap(namespace, name, fluentdConfig string) *kcore.Config
 }
 
 // CreateFluentdContainer creates a FLUENTD sidecar container.
-func CreateFluentdContainer(namespace, workloadName, containerName, fluentdImage, esSecret, esHost string) kcore.Container {
+func CreateFluentdContainer(namespace, workloadName, containerName, fluentdImage, esSecret, esURL string) kcore.Container {
 	container := kcore.Container{
 		Name:            fluentdContainerName,
 		Args:            []string{"-c", "/etc/fluent.conf"},
@@ -272,21 +284,17 @@ func CreateFluentdContainer(namespace, workloadName, containerName, fluentdImage
 				},
 			},
 			{
-				Name:  "ELASTICSEARCH_HOST",
-				Value: esHost,
+				Name:  elasticSearchURLEnv,
+				Value: esURL,
 			},
 			{
-				Name:  "ELASTICSEARCH_PORT",
-				Value: "9200",
-			},
-			{
-				Name: "ELASTICSEARCH_USER",
+				Name: elasticSearchUserEnv,
 				ValueFrom: &kcore.EnvVarSource{
 					SecretKeyRef: &kcore.SecretKeySelector{
 						LocalObjectReference: kcore.LocalObjectReference{
 							Name: esSecret,
 						},
-						Key: "username",
+						Key: secretUserKey,
 						Optional: func(opt bool) *bool {
 							return &opt
 						}(true),
@@ -294,13 +302,13 @@ func CreateFluentdContainer(namespace, workloadName, containerName, fluentdImage
 				},
 			},
 			{
-				Name: "ELASTICSEARCH_PASSWORD",
+				Name: elasticSearchPwdEnv,
 				ValueFrom: &kcore.EnvVarSource{
 					SecretKeyRef: &kcore.SecretKeySelector{
 						LocalObjectReference: kcore.LocalObjectReference{
 							Name: esSecret,
 						},
-						Key: "password",
+						Key: secretPasswordKey,
 						Optional: func(opt bool) *bool {
 							return &opt
 						}(true),
@@ -310,9 +318,14 @@ func CreateFluentdContainer(namespace, workloadName, containerName, fluentdImage
 		},
 		VolumeMounts: []kcore.VolumeMount{
 			{
-				MountPath: "/fluentd/etc/fluentd.conf",
-				Name:      volumeConf,
+				MountPath: fluentdConfMountPath,
+				Name:      confVolume,
 				SubPath:   fluentdConfKey,
+				ReadOnly:  true,
+			},
+			{
+				MountPath: secretMountPath,
+				Name:      secretVolume,
 				ReadOnly:  true,
 			},
 			{
@@ -356,7 +369,7 @@ func CreateFluentdHostPathVolumes() []kcore.Volume {
 // CreateFluentdConfigMapVolume create a config map volume for FLUENTD.
 func CreateFluentdConfigMapVolume(workloadName string) kcore.Volume {
 	return kcore.Volume{
-		Name: volumeConf,
+		Name: confVolume,
 		VolumeSource: kcore.VolumeSource{
 			ConfigMap: &kcore.ConfigMapVolumeSource{
 				LocalObjectReference: kcore.LocalObjectReference{
@@ -370,9 +383,22 @@ func CreateFluentdConfigMapVolume(workloadName string) kcore.Volume {
 	}
 }
 
+// CreateFluentdSecretVolume create a secret volume for FLUENTD.
+func CreateFluentdSecretVolume(secretName string) kcore.Volume {
+	return kcore.Volume{
+		Name: secretVolume,
+		VolumeSource: kcore.VolumeSource{
+			Secret: &kcore.SecretVolumeSource{
+				SecretName: secretName},
+		},
+	}
+}
+
 // fluentdConfigMapName returns the name of a components FLUENTD config map
+// This uses a different configmap name from other workload types.
+// The workload name is included so there is a configmap per component.
 func fluentdConfigMapName(workloadName string) string {
-	return fmt.Sprintf("%s-fluentd", workloadName)
+	return fmt.Sprintf("fluentd-config-helidon-%s", workloadName)
 }
 
 func replicateVmiSecret(vmiSec *kcore.Secret, namespace, name string) *kcore.Secret {
@@ -405,24 +431,6 @@ func (h *HelidonHandler) deleteFluentdConfigMap(ctx context.Context, namespace, 
 	err := h.Get(ctx, objKey(namespace, name), configMap)
 	if !kerrs.IsNotFound(err) || err == nil {
 		return h.Delete(ctx, configMap)
-	}
-	return err
-}
-
-func (h *HelidonHandler) ensureEsSecret(ctx context.Context, namespace, name string) error {
-	secret := &kcore.Secret{}
-	err := h.Get(ctx, objKey(namespace, name), secret)
-	if kerrs.IsNotFound(err) {
-		secretKey := client.ObjectKey{Name: "verrazzano", Namespace: "verrazzano-system"}
-		err = h.Get(ctx, secretKey, secret)
-		if err != nil {
-			return err
-		}
-		secret = replicateVmiSecret(secret, namespace, name)
-		if err = h.Create(ctx, secret, &client.CreateOptions{}); err != nil {
-			return err
-		}
-		return nil
 	}
 	return err
 }

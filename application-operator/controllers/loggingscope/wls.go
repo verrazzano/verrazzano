@@ -82,12 +82,11 @@ const WlsFluentdParsingRules = `<match fluent.**>
 </filter>
 <match **>
   @type elasticsearch
-  host "#{ENV['ELASTICSEARCH_HOST']}"
-  port "#{ENV['ELASTICSEARCH_PORT']}"
+  hosts "#{ENV['ELASTICSEARCH_URL']}"
+  ca_file /fluentd/secret/ca-bundle
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
   index_name "` + ElasticSearchIndex + `"
-  scheme http
   key_name timestamp 
   types timestamp:time
   include_timestamp true

@@ -102,6 +102,7 @@ var _ = ginkgo.Describe("VMI", func() {
 		gomega.Eventually(elasticTlsSecret, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "tls-secret did not show up")
 		gomega.Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "certificate did not show up")
 		gomega.Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "ingress did not show up")
+		assertIngressURL("vmi-system-es-ingest")
 		pkg.Concurrently(
 			func() {
 				gomega.Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "never connected")
@@ -214,22 +215,33 @@ func jq(node interface{}, path ...string) interface{} {
 
 func assertIngressURL(key string) {
 	gomega.Expect(ingressURLs).To(gomega.HaveKey(key), fmt.Sprintf("Ingress %s not found", key))
-	assertURLAccessibleAndUnauthorized(ingressURLs[key])
-	if key == "vmi-system-kibana" {
-		assertURLAccessibleAndAuthorized(ingressURLs[key], []int{http.StatusOK, http.StatusFound})
-	} else {
-		assertURLAccessibleAndAuthorized(ingressURLs[key], []int{http.StatusOK})
+	assertUnAuthorized := assertURLAccessibleAndUnauthorized(ingressURLs[key])
+	assertAuthorized := assertURLAccessibleAndAuthorized(ingressURLs[key])
+	pkg.Concurrently(
+		func() {
+			gomega.Eventually(assertUnAuthorized, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		},
+		func() {
+			gomega.Eventually(assertAuthorized, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		},
+	)
+}
+
+func assertURLAccessibleAndAuthorized(url string) bool {
+	sysVmiHttpClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		pkg.Log(pkg.Info, fmt.Sprintf("assertURLAccessibleAndAuthorized redirect %v", req))
+		return nil
 	}
-
-}
-func assertURLAccessibleAndAuthorized(url string, expectedHTTPStasuses []int) {
-	pkg.AssertURLAccessibleAndAuthorized(sysVmiHttpClient, url, creds, expectedHTTPStasuses)
+	return pkg.AssertURLAccessibleAndAuthorized(sysVmiHttpClient, url, creds)
 }
 
-func assertURLAccessibleAndUnauthorized(url string) {
+func assertURLAccessibleAndUnauthorized(url string) bool {
 	resp, err := sysVmiHttpClient.Get(url)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "GET %s", url)
-	gomega.Expect(resp.StatusCode).To(gomega.Equal(http.StatusUnauthorized), "GET %s", url)
+	if err != nil {
+		return false
+	}
+	pkg.Log(pkg.Info, fmt.Sprintf("assertURLAccessibleAndUnauthorized %v Response:%v Error:%v", url, resp.StatusCode, err))
+	return resp.StatusCode == http.StatusUnauthorized
 }
 
 func elasticIndicesCreated() bool {
@@ -239,7 +251,6 @@ func elasticIndicesCreated() bool {
 
 func elasticConnected() bool {
 	if elastic.Connect() {
-		assertIngressURL("vmi-system-es-ingest")
 		return true
 	} else {
 		return false

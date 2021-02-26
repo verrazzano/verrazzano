@@ -18,11 +18,8 @@ type LoggingScopeSpec struct {
 	// The fluentd image
 	FluentdImage string `json:"fluentdImage"`
 
-	// Host for ElasticSearch
-	ElasticSearchHost string `json:"elasticSearchHost"`
-
-	// Port for ElasticSearch
-	ElasticSearchPort uint32 `json:"elasticSearchPort"`
+	// URL for ElasticSearch
+	ElasticSearchURL string `json:"elasticSearchURL"`
 
 	// Name of secret with ElasticSearch credentials
 	SecretName string `json:"secretName"`

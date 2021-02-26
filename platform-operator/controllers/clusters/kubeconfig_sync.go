@@ -8,6 +8,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	vzk8s "github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
+
+	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -16,42 +19,15 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// These kubeconfig related structs represent the kubeconfig information needed to build kubeconfig YAML.
-type kubeConfig struct {
-	Clusters       []kcCluster `json:"clusters"`
-	Users          []kcUser    `json:"users"`
-	Contexts       []kcContext `json:"contexts"`
-	CurrentContext string      `json:"current-context"`
-}
-type kcCluster struct {
-	Name    string        `json:"name"`
-	Cluster kcClusterData `json:"cluster"`
-}
-type kcClusterData struct {
-	Server   string `json:"server"`
-	CertAuth string `json:"certificate-authority-data"`
-}
-type kcUser struct {
-	Name string     `json:"name"`
-	User kcUserData `json:"user"`
-}
-type kcUserData struct {
-	Token string `json:"token"`
-}
-type kcContext struct {
-	Name    string        `json:"name"`
-	Context kcContextData `json:"context"`
-}
-type kcContextData struct {
-	User    string `json:"user"`
-	Cluster string `json:"cluster"`
-}
-
 // These names are used internally in the generated kubeconfig. The names
 // are meant to be descriptive and the actual values don't affect behavior.
-const clusterName = "admin"
-const userName = "managed"
-const contextName = "defaultContext"
+const (
+	clusterName           = "admin"
+	userName              = "mcAgent"
+	contextName           = "defaultContext"
+	kubeconfigKey         = "admin-kubeconfig"
+	managedClusterNameKey = "managed-cluster-name"
+)
 
 // Needed for unit testing
 var getConfigFunc = ctrl.GetConfig
@@ -60,7 +36,7 @@ func setConfigFunc(f func() (*rest.Config, error)) {
 	getConfigFunc = f
 }
 
-// Create a kubecconfig that has a token that allows access to the managed cluster
+// Create a kubeconfig that has a token allowing access to the managed cluster
 // with restricted access as defined in the verrazzano-managed-cluster role.
 // The code does the following:
 //   1. get the service account for the managed cluster
@@ -69,7 +45,7 @@ func setConfigFunc(f func() (*rest.Config, error)) {
 //   4. build a kubeconfig struct using data from the client config and the service account token
 //   5. save the kubeconfig as a secret
 //   6. update VMC with the kubeconfig secret name
-func (r *VerrazzanoManagedClusterReconciler) reconcileKubeConfig(vmc *clusterapi.VerrazzanoManagedCluster) error {
+func (r *VerrazzanoManagedClusterReconciler) syncKubeConfig(vmc *clusterapi.VerrazzanoManagedCluster) error {
 
 	// The same managed name and  vmc namespace is used for the service account and the kubeconfig secret,
 	// for clarity use different vars
@@ -109,32 +85,26 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileKubeConfig(vmc *clusterapi
 
 	// Load the kubeconfig struct
 	token := secret.Data["token"]
-	b64Cert := base64.StdEncoding.EncodeToString(config.CAData)
-	kc := kubeConfig{
-		Clusters: []kcCluster{{
-			Name: clusterName,
-			Cluster: kcClusterData{
-				Server:   config.Host,
-				CertAuth: b64Cert,
-			},
-		}},
-		Users: []kcUser{{
-			Name: userName,
-			User: kcUserData{
-				Token: string(token),
-			},
-		}},
-		Contexts: []kcContext{{
-			Name: contextName,
-			Context: kcContextData{
-				User:    userName,
-				Cluster: clusterName,
-			},
-		}},
-		CurrentContext: contextName,
+	b64Cert, err := getB64CAData(config)
+	if err != nil {
+		return err
+	}
+	serverURL, err := vzk8s.GetAPIServerURL(r)
+	if err != nil {
+		return err
 	}
 
-	// Convert the kubeconfig to yaml then write to a secret
+	kb := vzk8s.KubeconfigBuilder{
+		ClusterName: clusterName,
+		Server:      serverURL,
+		CertAuth:    b64Cert,
+		UserName:    userName,
+		UserToken:   string(token),
+		ContextName: contextName,
+	}
+	kc := kb.Build()
+
+	// Convert the kubeconfig to yaml then write it to a secret
 	kcBytes, err := yaml.Marshal(kc)
 	if err != nil {
 		return err
@@ -144,8 +114,8 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileKubeConfig(vmc *clusterapi
 		return err
 	}
 
-	// Save the KubeconfigSecret in the VMC
-	vmc.Spec.KubeconfigSecret = secretName
+	// Save the ClusterRegistrationSecret in the VMC
+	vmc.Spec.ClusterRegistrationSecret = secretName
 	err = r.Update(context.TODO(), vmc)
 	if err != nil {
 		return err
@@ -154,14 +124,14 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileKubeConfig(vmc *clusterapi
 	return nil
 }
 
-// Create the kubeconfig secret or update it if it already exists
+// Create or update the kubeconfig secret
 func (r *VerrazzanoManagedClusterReconciler) createOrUpdateSecret(vmc *clusterapi.VerrazzanoManagedCluster, kubeconfig string, name string, namespace string) (controllerutil.OperationResult, error) {
 	var secret corev1.Secret
 	secret.Namespace = namespace
 	secret.Name = name
 
 	return controllerutil.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
-		r.mutateSecret(&secret, kubeconfig)
+		r.mutateSecret(&secret, kubeconfig, vmc.Name)
 		// This SetControllerReference call will trigger garbage collection i.e. the secret
 		// will automatically get deleted when the VerrazzanoManagedCluster is deleted
 		return controllerutil.SetControllerReference(vmc, &secret, r.Scheme)
@@ -169,10 +139,23 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateSecret(vmc *clusterap
 }
 
 // Mutate the secret, setting the kubeconfig data
-func (r *VerrazzanoManagedClusterReconciler) mutateSecret(secret *corev1.Secret, b64KubeConfig string) error {
+func (r *VerrazzanoManagedClusterReconciler) mutateSecret(secret *corev1.Secret, kubeconfig string, manageClusterName string) error {
 	secret.Type = corev1.SecretTypeOpaque
 	secret.Data = map[string][]byte{
-		"kubeconfig": []byte(b64KubeConfig),
+		kubeconfigKey:         []byte(kubeconfig),
+		managedClusterNameKey: []byte(manageClusterName),
 	}
 	return nil
+}
+
+// Get the CAData from memory or a file
+func getB64CAData(config *rest.Config) (string, error) {
+	if len(config.CAData) > 0 {
+		return base64.StdEncoding.EncodeToString(config.CAData), nil
+	}
+	s, err := ioutil.ReadFile(config.CAFile)
+	if err != nil {
+		return "", fmt.Errorf("Error %v reading CAData file %s", err, config.CAFile)
+	}
+	return base64.StdEncoding.EncodeToString(s), nil
 }

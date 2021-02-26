@@ -178,8 +178,6 @@ spec:
           clusters:
             - clusterName: cluster-1
           configuration:
-            istio:
-              enabled: false
             introspectorJobActiveDeadlineSeconds: 300
             model:
               runtimeEncryptionSecret: bobbys-front-end-runtime-encrypt-secret
@@ -400,8 +398,6 @@ spec:
           clusters:
             - clusterName: cluster-1
           configuration:
-            istio:
-              enabled: false
             introspectorJobActiveDeadlineSeconds: 300
             model:
               configMap: bobs-bookstore-wdt-config-map
