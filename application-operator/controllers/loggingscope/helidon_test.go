@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -57,6 +58,7 @@ func TestHelidonHandlerApply_ManagedCluster(t *testing.T) {
 	res, err := h.Apply(context.Background(), workload, scope)
 	asserts.Nil(t, res)
 	asserts.Nil(t, err)
+	mocker.Finish()
 }
 
 // TestHelidonHandlerApply_NonManagedCluster tests the creation of the FLUENTD sidecar in the
@@ -86,6 +88,7 @@ func TestHelidonHandlerApply_NonManagedCluster(t *testing.T) {
 	res, err := h.Apply(context.Background(), workload, scope)
 	asserts.Nil(t, res)
 	asserts.Nil(t, err)
+	mocker.Finish()
 }
 
 // TestHelidoHandlerApplyErrorWaitingForDeploymentUpdate tests Apply waiting for Deployment update
@@ -132,6 +135,7 @@ func TestHelidoHandlerApplyRequeueForDeploymentUpdate(t *testing.T) {
 	asserts.NotNil(t, res)
 	asserts.True(t, res.Requeue)
 	asserts.Nil(t, err)
+	mocker.Finish()
 }
 
 // TestHelidoHandlerRemove tests the removal of the FLUENTD sidecard in the application pod
@@ -197,6 +201,7 @@ func TestHelidoHandlerRemove(t *testing.T) {
 	removed, err := h.Remove(context.Background(), workload, scope)
 	asserts.True(t, removed)
 	asserts.Nil(t, err)
+	mocker.Finish()
 }
 
 func workloadOf(namespace, workloadName string) vzapi.QualifiedResourceRelation {
@@ -279,8 +284,8 @@ func vmiSecret(sec *kcore.Secret) *kcore.Secret {
 	sec.Name = "verrazzano"
 	sec.Namespace = "verrazzano-system"
 	sec.Data = map[string][]byte{
-		secretUserKey:     []byte("verrazzano"),
-		secretPasswordKey: []byte(genPassword(10)),
+		constants.ElasticsearchUsernameData: []byte("verrazzano"),
+		constants.ElasticsearchPasswordData: []byte(genPassword(10)),
 	}
 	return sec
 }
@@ -324,8 +329,11 @@ func expectationsForApplyUseManagedClusterSecret(t *testing.T, mockClient *mocks
 		})
 
 	// Check if managed cluster secret VMI secret exists - return a valid secret
+	// (GET is called once to check if we should use managed cluster, and once to actually
+	// perform the copy over to app NS)
 	mockClient.EXPECT().
 		Get(gomock.Any(), managedClusterVmiSecretKey, gomock.Not(gomock.Nil())).
+		Times(2).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *kcore.Secret) error {
 			sec.Name = managedClusterVmiSecretKey.Name
 			sec.Namespace = managedClusterVmiSecretKey.Namespace
@@ -339,38 +347,20 @@ func expectationsForApplyUseManagedClusterSecret(t *testing.T, mockClient *mocks
 
 	managedClusterSecretNameInAppNS := types.NamespacedName{Namespace: namespace, Name: managedClusterVmiSecretKey.Name}
 
-	// Get cluster secret for cluster name
-	mockClient.EXPECT().
-		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *kcore.Secret) error {
-			vmiSecret(sec)
-			return nil
-		})
-
-	// Check if managed cluster secret VMI secret is already in app namespace - return not found
-	mockClient.EXPECT().
-		Get(gomock.Any(), managedClusterSecretNameInAppNS, gomock.Not(gomock.Nil())).
-		Return(kerrs.NewNotFound(schema.ParseGroupResource("v1.Secret"), managedClusterSecretNameInAppNS.String()))
-
-	// simulate managed cluster ES secret existing (GET is called once to check if we should use
-	// managed cluster, and once to actually perform the copy over to app NS)
-	expectedData := map[string][]byte{"username": []byte("someuser")}
-	mockClient.EXPECT().
-		Get(gomock.Any(), managedClusterVmiSecretKey, gomock.Not(gomock.Nil())).
-		Times(2).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *kcore.Secret) error {
-			secret.Name = managedClusterVmiSecretKey.Name
-			secret.Namespace = managedClusterVmiSecretKey.Namespace
-			secret.Data = expectedData
-			return nil
-		})
-
 	// CREATE managed cluster VMI secret in app namespace
 	mockClient.EXPECT().
 		Create(gomock.Any(), gomock.AssignableToTypeOf(&kcore.Secret{}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, sec *kcore.Secret, opt *client.CreateOptions) error {
 			asserts.Equal(t, managedClusterSecretNameInAppNS.Name, sec.Name)
 			asserts.Equal(t, managedClusterSecretNameInAppNS.Namespace, sec.Namespace)
+			return nil
+		})
+
+	// Get cluster secret for cluster name in log records
+	mockClient.EXPECT().
+		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *kcore.Secret) error {
+			vmiSecret(sec)
 			return nil
 		})
 }
@@ -380,8 +370,6 @@ func expectationsForApplyUseManagedClusterSecret(t *testing.T, mockClient *mocks
 // secrets to be copied to app NS. We do expect an empty secret with no data to be created in
 // the app NS for volume mounting on fluentd
 func expectationsForApplyNonManagedCluster(t *testing.T, mockClient *mocks.MockClient, namespace string, esSecretName string) {
-	managedClusterVmiSecretKey := clusters.GetManagedClusterElasticsearchSecretKey()
-
 	// GET supplied ES secret which we return as not found
 	mockClient.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: esSecretName}, gomock.Not(gomock.Nil())).
@@ -396,11 +384,6 @@ func expectationsForApplyNonManagedCluster(t *testing.T, mockClient *mocks.MockC
 			vmiSecret(sec)
 			return nil
 		})
-
-	// Check if managed cluster secret VMI secret exists - return not-found since this is NOT a managed cluster
-	mockClient.EXPECT().
-		Get(gomock.Any(), managedClusterVmiSecretKey, gomock.Not(gomock.Nil())).
-		Return(kerrs.NewNotFound(schema.ParseGroupResource("v1.Secret"), managedClusterVmiSecretKey.Name))
 
 	// Check that empty secret is created in app NS, with no data contents
 	mockClient.EXPECT().
