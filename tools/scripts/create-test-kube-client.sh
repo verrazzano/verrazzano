@@ -61,11 +61,10 @@ if [[ -z "$secret" ]]; then
   exit 2
 fi
 
-mkdir -p /tmp/${TEST_ID}-kubeconfig
-cp ${KUBECONFIG} /tmp/${TEST_ID}-kubeconfig/kubeconfig
-context="$(export KUBECONFIG=/tmp/${TEST_ID}-kubeconfig/kubeconfig;kubectl config current-context)"
-cluster="$(export KUBECONFIG=/tmp/${TEST_ID}-kubeconfig/kubeconfig;kubectl config view -o "jsonpath={.contexts[?(@.name==\"$context\")].context.cluster}")"
-server="$(export KUBECONFIG=/tmp/${TEST_ID}-kubeconfig/kubeconfig;kubectl config view -o "jsonpath={.clusters[?(@.name==\"$cluster\")].cluster.server}")"
+kubectl config  view -o json > /tmp/${TEST_ID}-kubeconfig
+context="$(cat /tmp/${TEST_ID}-kubeconfig | jq '."current-context"')"
+cluster="$(cat /tmp/${TEST_ID}-kubeconfig | jq -r '.contexts[] | select(.name == '$context') | .context.cluster')"
+server="$(cat /tmp/${TEST_ID}-kubeconfig | jq -r '.clusters[] | select(.name == '\"$cluster\"') | .cluster.server')"
 rm -rf /tmp/${TEST_ID}-kubeconfig
 
 ca_crt_data="$(kubectl -n $TEST_NAMESPACE get secret "$secret" -o "jsonpath={.data.ca\.crt}" | openssl enc -d -base64 -A)"
