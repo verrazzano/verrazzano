@@ -10,7 +10,7 @@ import (
 // VerrazzanoProjectSpec defines the desired state of VerrazzanoProject - a VerrazzanoProject
 // contains a list of Kubernetes namespaces which are part of the project
 type VerrazzanoProjectSpec struct {
-	Namespaces []string `json:"namespaces,omitempty"`
+	Namespaces []string `json:"namespaces"`
 }
 
 // VerrazzanoProjectStatus defines the observed state of VerrazzanoProject
@@ -31,7 +31,7 @@ type VerrazzanoProject struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VerrazzanoProjectSpec   `json:"spec,omitempty"`
+	Spec   VerrazzanoProjectSpec   `json:"spec"`
 	Status VerrazzanoProjectStatus `json:"status,omitempty"`
 }
 

@@ -59,6 +59,7 @@ run:
 	# kubectl delete validatingwebhookconfigurations verrazzano-application-ingresstrait-validator
 	# kubectl delete mutatingwebhookconfigurations verrazzano-application-istio-defaulter
 	# kubectl delete mutatingwebhookconfigurations verrazzano-application-appconfig-defaulter
+	# kubectl delete validatingwebhookconfigurations verrazzano-application-verrazzanoproject
 	# kubectl scale deployment verrazzano-application-operator --replicas=0 -n verrazzano-system
 
 	# To enable webhooks: $(GO) run main.go --kubeconfig=${KUBECONFIG} --cert-dir=build/webhook-certs
