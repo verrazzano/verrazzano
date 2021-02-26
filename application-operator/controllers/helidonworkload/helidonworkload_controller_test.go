@@ -232,6 +232,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	testNamespace := "test-namespace"
+	esSecretName := "test-secret-name"
 
 	params := map[string]string{
 		"##APPCONF_NAME##":          "test-appconf",
@@ -241,7 +242,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 		"##SCOPE_NAMESPACE##":       testNamespace,
 		"##INJEST_HOST##":           "test-injest-host",
 		"##INJEST_PORT##":           "9200",
-		"##INJEST_SECRET_NAME##":    "test-secret-name",
+		"##INJEST_SECRET_NAME##":    esSecretName,
 		"##FLUENTD_IMAGE##":         "test-fluentd-image-name",
 		"##WORKLOAD_APIVER##":       "oam.verrazzano.io/v1alpha1",
 		"##WORKLOAD_KIND##":         "VerrazzanoHelidonWorkload",
@@ -283,6 +284,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "fluentd-config-helidon-test-deployment"}, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(k8sschema.GroupResource{Group: "", Resource: "configmap"}, "fluentd-config-helidon-test-deployment")).
 		Times(1)
+
 	// expect a call to create a Configmap
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -293,29 +295,24 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 			assert.Contains(config.Data["fluentd.conf"], "label")
 			return nil
 		}).Times(1)
-	// expect a call to fetch the Elasticsearch endpoint secret and return a not found error.
+
+	// expect a call to get the elasticsearch secret in app namespace - return not found
+	testESSecretFullName := types.NamespacedName{Namespace: testNamespace, Name: esSecretName}
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-secret-name"}, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(k8sschema.GroupResource{Group: "", Resource: "secret"}, "test-secret-name")).
-		Times(1)
-	// expect a call to fetch the Elasticsearch endpoint secret and return a not found error.
+		Get(gomock.Any(), testESSecretFullName, gomock.Not(gomock.Nil())).
+		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), esSecretName))
+
+	// expect a call to create an empty elasticsearch secret in app namespace (default behavior, so
+	// that fluentd volume mount works)
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *v1.Secret) error {
-			obj.Data = map[string][]byte{"test-data-key": []byte("test-data-value")}
+		Create(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, sec *v1.Secret, options *client.CreateOptions) error {
+			asserts.Equal(t, testNamespace, sec.Namespace)
+			asserts.Equal(t, esSecretName, sec.Name)
+			asserts.Nil(t, sec.Data)
+			asserts.Equal(t, client.CreateOptions{}, *options)
 			return nil
-		}).
-		Times(1)
-	// expect a call to create a Secret
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, obj *v1.Secret, opts ...client.CreateOption) error {
-			assert.Equal(testNamespace, obj.Namespace)
-			assert.Equal("test-secret-name", obj.Name)
-			assert.Len(obj.Data, 1)
-			assert.Equal(obj.Data["test-data-key"], []byte("test-data-value"))
-			return nil
-		}).Times(1)
+		})
 	// expect a call to create the Deployment
 	cli.EXPECT().
 		Patch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
