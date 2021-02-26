@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -302,7 +303,7 @@ func CreateFluentdContainer(namespace, workloadName, containerName, fluentdImage
 						LocalObjectReference: kcore.LocalObjectReference{
 							Name: esSecret,
 						},
-						Key: secretUserKey,
+						Key: constants.ElasticsearchUsernameData,
 						Optional: func(opt bool) *bool {
 							return &opt
 						}(true),
@@ -316,7 +317,7 @@ func CreateFluentdContainer(namespace, workloadName, containerName, fluentdImage
 						LocalObjectReference: kcore.LocalObjectReference{
 							Name: esSecret,
 						},
-						Key: secretPasswordKey,
+						Key: constants.ElasticsearchPasswordData,
 						Optional: func(opt bool) *bool {
 							return &opt
 						}(true),

@@ -6,8 +6,10 @@ package loggingscope
 import (
 	"context"
 	"fmt"
+
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -30,8 +32,6 @@ const (
 	elasticSearchUserEnv = "ELASTICSEARCH_USER"
 	elasticSearchPwdEnv  = "ELASTICSEARCH_PASSWORD"
 
-	secretUserKey     = "username"
-	secretPasswordKey = "password"
 	secretVolume      = "secret-volume"
 	secretMountPath   = "/fluentd/secret"
 )
@@ -346,7 +346,7 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: scope.Spec.SecretName,
 						},
-						Key: secretUserKey,
+						Key: constants.ElasticsearchUsernameData,
 						Optional: func(opt bool) *bool {
 							return &opt
 						}(true),
@@ -360,7 +360,7 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: scope.Spec.SecretName,
 						},
-						Key: secretPasswordKey,
+						Key: constants.ElasticsearchPasswordData,
 						Optional: func(opt bool) *bool {
 							return &opt
 						}(true),

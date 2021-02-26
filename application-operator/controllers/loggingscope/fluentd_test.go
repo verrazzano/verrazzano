@@ -11,6 +11,7 @@ import (
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	v1 "k8s.io/api/core/v1"
@@ -147,7 +148,7 @@ func TestFluentdApplyForUpdate(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
 			secret.Name = scope.Spec.SecretName
 			secret.Namespace = testNamespace
-			secret.Data = map[string][]byte{"username": []byte("someuser")}
+			secret.Data = map[string][]byte{constants.ElasticsearchUsernameData: []byte("someuser")}
 			return nil
 		})
 
@@ -268,7 +269,7 @@ func TestFluentdApply_ManagedClusterElasticsearch(t *testing.T) {
 
 	// simulate managed cluster ES secret existing (GET is called once to check if we should use
 	// managed cluster, and once to actually perform the copy over to app NS)
-	expectedData := map[string][]byte{"username": []byte("someuser")}
+	expectedData := map[string][]byte{constants.ElasticsearchUsernameData: []byte("someuser")}
 	mockClient.EXPECT().
 		Get(fluentd.Context, managedClusterElasticsearchSecretKey, gomock.Not(gomock.Nil())).
 		Times(2).
@@ -429,7 +430,7 @@ func createFluentdESEnv() []v1.EnvVar {
 					LocalObjectReference: v1.LocalObjectReference{
 						Name: testESSecret,
 					},
-					Key: secretUserKey,
+					Key: constants.ElasticsearchUsernameData,
 					Optional: func(opt bool) *bool {
 						return &opt
 					}(true),
@@ -443,7 +444,7 @@ func createFluentdESEnv() []v1.EnvVar {
 					LocalObjectReference: v1.LocalObjectReference{
 						Name: testESSecret,
 					},
-					Key: secretPasswordKey,
+					Key: constants.ElasticsearchPasswordData,
 					Optional: func(opt bool) *bool {
 						return &opt
 					}(true),

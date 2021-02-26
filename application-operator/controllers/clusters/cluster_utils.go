@@ -24,6 +24,13 @@ var MCRegistrationSecretFullName = types.NamespacedName{
 	Namespace: constants.VerrazzanoSystemNamespace,
 	Name:      constants.MCRegistrationSecret}
 
+// MCElasticsearchSecretFullName is the full NamespacedName of the managed cluster's Elasticsearch
+// secret
+var MCElasticsearchSecretFullName = types.NamespacedName{
+	Namespace: constants.VerrazzanoSystemNamespace,
+	Name:      constants.ElasticsearchSecretName}
+
+
 // ElasticsearchDetails represents all the details needed
 // to determine how to connect to an Elasticsearch instance
 type ElasticsearchDetails struct {
@@ -122,12 +129,12 @@ func IgnoreNotFoundWithLog(resourceType string, err error, logger logr.Logger) e
 // have the managed cluster secret), an empty ElasticsearchDetails will be returned
 func FetchManagedClusterElasticSearchDetails(ctx context.Context, rdr client.Reader, logger logr.Logger) ElasticsearchDetails {
 	esDetails := ElasticsearchDetails{}
-	clusterSecret := corev1.Secret{}
-	err := fetchClusterSecret(ctx, rdr, &clusterSecret)
+	esSecret := corev1.Secret{}
+	err := fetchElasticsearchSecret(ctx, rdr, &esSecret)
 	if err != nil {
 		return esDetails
 	}
-	esDetails.URL = string(clusterSecret.Data[constants.ElasticsearchURLData])
+	esDetails.URL = string(esSecret.Data[constants.ElasticsearchURLData])
 	esDetails.SecretName = constants.ElasticsearchSecretName
 	return esDetails
 }
@@ -148,6 +155,9 @@ func GetClusterName(ctx context.Context, rdr client.Reader) string {
 	return string(clusterSecret.Data[constants.ClusterNameData])
 }
 
+func fetchElasticsearchSecret(ctx context.Context, rdr client.Reader, secret *corev1.Secret) error {
+	return rdr.Get(ctx, MCElasticsearchSecretFullName, secret)
+}
 func fetchClusterSecret(ctx context.Context, rdr client.Reader, clusterSecret *corev1.Secret) error {
 	return rdr.Get(ctx, MCRegistrationSecretFullName, clusterSecret)
 }

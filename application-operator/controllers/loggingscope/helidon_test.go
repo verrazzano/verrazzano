@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -283,8 +284,8 @@ func vmiSecret(sec *kcore.Secret) *kcore.Secret {
 	sec.Name = "verrazzano"
 	sec.Namespace = "verrazzano-system"
 	sec.Data = map[string][]byte{
-		secretUserKey:     []byte("verrazzano"),
-		secretPasswordKey: []byte(genPassword(10)),
+		constants.ElasticsearchUsernameData: []byte("verrazzano"),
+		constants.ElasticsearchPasswordData: []byte(genPassword(10)),
 	}
 	return sec
 }
