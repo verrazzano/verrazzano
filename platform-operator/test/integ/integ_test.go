@@ -5,16 +5,16 @@ package integ_test
 
 import (
 	"fmt"
-
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/platform-operator/test/integ/k8s"
 	"github.com/verrazzano/verrazzano/platform-operator/test/integ/util"
 )
 
+const managedClusterName = "cluster1"
 const clusterAdmin = "cluster-admin"
 const platformOperator = "verrazzano-platform-operator"
-const managedGeneratedName = "cluster1-managed-cluster"
+const managedGeneratedName_1 = "verrazzano-cluster-cluster1"
 const installNamespace = "verrazzano-install"
 const vzMcNamespace = "verrazzano-mc"
 const prometheusSecret = "prometheus-cluster1"
@@ -23,7 +23,7 @@ var K8sClient k8s.Client
 
 var _ = ginkgo.BeforeSuite(func() {
 	var err error
-	K8sClient, err = k8s.NewClient()
+	K8sClient, err = k8s.NewClient(util.GetKubeconfig())
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Error creating Kubernetes client to access Verrazzano API objects: %v", err))
 	}
@@ -113,23 +113,46 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 	})
 	ginkgo.It("ServiceAccount exists ", func() {
 		serviceAccountExists := func() bool {
-			return K8sClient.DoesServiceAccountExist(managedGeneratedName, vzMcNamespace)
+			return K8sClient.DoesServiceAccountExist(managedGeneratedName_1, vzMcNamespace)
 		}
 		gomega.Eventually(serviceAccountExists, "30s", "5s").Should(gomega.BeTrue(),
 			"The ServiceAccount should exist")
 	})
 	ginkgo.It("ClusterRoleBinding exists ", func() {
 		bindingExists := func() bool {
-			return K8sClient.DoesClusterRoleBindingExist(managedGeneratedName)
+			return K8sClient.DoesClusterRoleBindingExist(managedGeneratedName_1)
 		}
 		gomega.Eventually(bindingExists, "30s", "5s").Should(gomega.BeTrue(),
 			"The ClusterRoleBinding should exist")
 	})
 	ginkgo.It("kubeconfig Secret exists ", func() {
 		secretExists := func() bool {
-			return K8sClient.DoesSecretExist(managedGeneratedName, vzMcNamespace)
+			return K8sClient.DoesSecretExist(managedGeneratedName_1, vzMcNamespace)
 		}
 		gomega.Eventually(secretExists, "30s", "5s").Should(gomega.BeTrue(),
-			fmt.Sprintf("The kubeconfig Secret %s should exist in %s", managedGeneratedName, vzMcNamespace))
+			fmt.Sprintf("The kubeconfig Secret %s should exist in %s", managedGeneratedName_1, vzMcNamespace))
+	})
+	ginkgo.It("Checking access to admin cluster using kubeconfig in the secret ", func() {
+		verifyClusterSecret()
 	})
 })
+
+// Verify the cluster secret
+func verifyClusterSecret() {
+	secret, err := K8sClient.GetSecret(managedGeneratedName_1, vzMcNamespace)
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Unable to get cluster secret %s that contains kubeconfig: %v", managedGeneratedName_1, err))
+	}
+
+	// Get the kubeconfig from the secret
+	kubconfigBytes := secret.Data["admin-kubeconfig"]
+	if len(kubconfigBytes) == 0 {
+		ginkgo.Fail(fmt.Sprintf("Cluster secret %s does not contain kubeconfig", err))
+	}
+
+	// check the cluster name
+	clusterName := secret.Data["managed-cluster-name"]
+	if string(clusterName) != managedClusterName {
+		ginkgo.Fail(fmt.Sprintf("The managed cluster name %s in the kubeconfig is incorrect", clusterName))
+	}
+}

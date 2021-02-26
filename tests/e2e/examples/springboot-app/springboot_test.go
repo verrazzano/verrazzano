@@ -22,6 +22,8 @@ var waitTimeout = 10 * time.Minute
 var pollingInterval = 30 * time.Second
 var shortPollingInterval = 10 * time.Second
 var shortWaitTimeout = 5 * time.Minute
+var longWaitTimeout      = 10 * time.Minute
+var longPollingInterval  = 20 * time.Second
 
 var _ = ginkgo.BeforeSuite(func() {
 	deploySpringBootApplication()
@@ -82,7 +84,8 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 		})
 	})
 
-	// Verify Sprint Boot application is working
+
+	// Verify Spring Boot application is working
 	// GIVEN springboot app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
@@ -109,6 +112,32 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 	})
 
-	// Check whether the Istio Gateway is up
-	// verify Prometheus scraped metrics
+	ginkgo.Context("Logging.", func() {
+		indexName := "springboot-springboot-appconf-springboot-component"
+		ginkgo.It("Verify Elasticsearch index exists", func() {
+			gomega.Eventually(func() bool {
+				return pkg.LogIndexFound(indexName)
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find Elasticsearch index for Spring Boot application.")
+		})
+
+		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
+			gomega.Eventually(func() bool {
+				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+					"oam.component.name":  "springboot-component"})
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record.")
+		})
+	})
+
+	ginkgo.Context("Verify Prometheus scraped metrics.", func() {
+		ginkgo.It("Retrieve Prometheus scraped metrics for App Component", func() {
+			gomega.Eventually(func() bool {
+				return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "springboot-appconf")
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find Prometheus scraped metrics for App Component.")
+		})
+		ginkgo.It("Retrieve Prometheus scraped metrics for App Config", func() {
+			gomega.Eventually(func() bool {
+				return pkg.MetricsExist("tomcat_sessions_created_sessions_total", "app_oam_dev_component", "springboot-component")
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find Prometheus scraped metrics for App Config.")
+		})
+	})
 })

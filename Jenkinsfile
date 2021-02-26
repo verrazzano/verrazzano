@@ -467,6 +467,14 @@ pipeline {
                                 runGinkgo('examples/hello-helidon')
                             }
                         }
+                        stage('examples authorization policy') {
+                            when {
+                                expression {params.RUN_EXAMPLE_TESTS == true}
+                            }
+                            steps {
+                                runGinkgo('istio/authz')
+                            }
+                        }
                         stage('examples bobs') {
                             when {
                                 expression {params.RUN_EXAMPLE_TESTS == true}
