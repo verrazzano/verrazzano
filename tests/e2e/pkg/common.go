@@ -11,10 +11,10 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -48,13 +48,16 @@ func assert(wg *sync.WaitGroup, assertion func()) {
 }
 
 // AssertURLAccessibleAndAuthorized - Assert that a URL is accessible using the provided credentials
-func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, credentials *UsernamePassword) {
+func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, credentials *UsernamePassword) bool {
 	req, err := retryablehttp.NewRequest("GET", url, nil)
 	req.SetBasicAuth(credentials.Username, credentials.Password)
 	resp, err := client.Do(req)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "GET %s", url)
+	if err != nil {
+		return false
+	}
 	resp.Body.Close()
-	gomega.Expect(resp.StatusCode).To(gomega.Equal(http.StatusOK), "GET %s", url)
+	Log(Info, fmt.Sprintf("AssertURLAccessibleAndAuthorized %v Response:%v Error:%v", url, resp.StatusCode, err))
+	return resp.StatusCode == http.StatusOK
 }
 
 //PodsRunning checks if all the pods identified by namePrefixes are ready and running
@@ -74,6 +77,30 @@ func PodsRunning(namespace string, namePrefixes []string) bool {
 	return len(missing) == 0
 }
 
+//PodsNotRunning waits for all the pods in namePrefixes to be terminated
+func PodsNotRunning(namespace string, namePrefixes []string) bool {
+	allPods := ListPods(namespace)
+	terminatedPods := notRunning(allPods.Items, namePrefixes...)
+	var i int = 0
+	for len(terminatedPods) != len(namePrefixes) {
+		Log(Info, fmt.Sprintf("Pods %v were TERMINATED in %v", terminatedPods, namespace))
+		time.Sleep(15 * time.Second)
+		pods := ListPods(namespace)
+		terminatedPods = notRunning(pods.Items, namePrefixes...)
+		i++
+		if i > 10 {
+			break
+		}
+	}
+	if len(terminatedPods) != len(namePrefixes) {
+		runningPods := areRunning(allPods.Items, namePrefixes...)
+		Log(Info, fmt.Sprintf("Pods %v were RUNNING in %v", runningPods, namespace))
+		return false
+	}
+	Log(Info, fmt.Sprintf("ALL pods %v were TERMINATED in %v", terminatedPods, namespace))
+	return true
+}
+
 // notRunning finds the pods not running
 func notRunning(pods []v1.Pod, podNames ...string) []string {
 	var notRunning []string
@@ -84,6 +111,18 @@ func notRunning(pods []v1.Pod, podNames ...string) []string {
 		}
 	}
 	return notRunning
+}
+
+// areRunning finds the pods that are running
+func areRunning(pods []v1.Pod, podNames ...string) []string {
+	var runningPods []string
+	for _, name := range podNames {
+		running := isPodRunning(pods, name)
+		if running {
+			runningPods = append(runningPods, name)
+		}
+	}
+	return runningPods
 }
 
 // isPodRunning checks if the pod(s) with the name-prefix does exist and is running
