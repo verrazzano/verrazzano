@@ -33,4 +33,3 @@ const ElasticsearchUsernameData = "username"
 // ElasticsearchPasswordData - the field name in ElasticsearchSecret that contains the admin
 // cluster's Elasticsearch password
 const ElasticsearchPasswordData = "password"
-

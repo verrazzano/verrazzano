@@ -30,7 +30,6 @@ var MCElasticsearchSecretFullName = types.NamespacedName{
 	Namespace: constants.VerrazzanoSystemNamespace,
 	Name:      constants.ElasticsearchSecretName}
 
-
 // ElasticsearchDetails represents all the details needed
 // to determine how to connect to an Elasticsearch instance
 type ElasticsearchDetails struct {
