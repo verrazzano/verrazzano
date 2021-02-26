@@ -61,18 +61,19 @@ if [[ -z "$secret" ]]; then
   exit 2
 fi
 
-kubectl config  view -o json > /tmp/${TEST_ID}-kubeconfig
-context="$(cat /tmp/${TEST_ID}-kubeconfig | jq '."current-context"')"
-cluster="$(cat /tmp/${TEST_ID}-kubeconfig | jq -r '.contexts[] | select(.name == '$context') | .context.cluster')"
-server="$(cat /tmp/${TEST_ID}-kubeconfig | jq -r '.clusters[] | select(.name == '\"$cluster\"') | .cluster.server')"
-rm -rf /tmp/${TEST_ID}-kubeconfig
+cp ${KUBECONFIG} /tmp/${TEST_ID}-kubeconfig
+export KUBECONFIG=/tmp/${TEST_ID}-kubeconfig
+kubectl config  view -o json > /tmp/${TEST_ID}-kubeconfig.json
+context="$(cat /tmp/${TEST_ID}-kubeconfig.json | jq '."current-context"')"
+cluster="$(cat /tmp/${TEST_ID}-kubeconfig.json | jq -r '.contexts[] | select(.name == '$context') | .context.cluster')"
+server="$(cat /tmp/${TEST_ID}-kubeconfig.json | jq -r '.clusters[] | select(.name == '\"$cluster\"') | .cluster.server')"
+rm -rf /tmp/${TEST_ID}-kubeconfig.json
 
 ca_crt_data="$(kubectl -n $TEST_NAMESPACE get secret "$secret" -o "jsonpath={.data.ca\.crt}" | openssl enc -d -base64 -A)"
 namespace="$(kubectl -n $TEST_NAMESPACE get secret "$secret" -o "jsonpath={.data.namespace}" | openssl enc -d -base64 -A)"
 token="$(kubectl -n $TEST_NAMESPACE get secret "$secret" -o "jsonpath={.data.token}" | openssl enc -d -base64 -A)"
 
 touch ${TEST_KUBECONFIG}
-export KUBECONFIG=${TEST_KUBECONFIG}
 kubectl --kubeconfig=${TEST_KUBECONFIG} config set-credentials "${TEST_ID}-sa" --token="$token" >/dev/null
 ca_crt="$(mktemp)"; echo "$ca_crt_data" > $ca_crt
 kubectl --kubeconfig=${TEST_KUBECONFIG} config set-cluster "$cluster" --server="$server" --certificate-authority="$ca_crt" --embed-certs >/dev/null
