@@ -31,7 +31,6 @@ const (
 	helidonWorkloadKey = "core.oam.dev/v1alpha2/ContainerizedWorkload"
 	volumeVarlog       = "varlog"
 	volumeData         = "datadockercontainers"
-	confVolume         = "fluentd-config-volume"
 )
 
 // HelidonFluentdConfiguration FLUENTD rules for reading/parsing generic component log files
@@ -195,7 +194,7 @@ func (h *HelidonHandler) Remove(ctx context.Context, workload vzapi.QualifiedRes
 		existingValumes := deploy.Spec.Template.Spec.Volumes
 		deploy.Spec.Template.Spec.Volumes = []kcore.Volume{}
 		for _, vol := range existingValumes {
-			if vol.Name != volumeVarlog && vol.Name != volumeData && vol.Name != confVolume && vol.Name != secretVolume {
+			if vol.Name != volumeVarlog && vol.Name != volumeData && vol.Name != ConfVolume && vol.Name != SecretVolume {
 				deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, vol)
 			}
 		}
@@ -328,13 +327,13 @@ func CreateFluentdContainer(namespace, workloadName, containerName, fluentdImage
 		VolumeMounts: []kcore.VolumeMount{
 			{
 				MountPath: fluentdConfMountPath,
-				Name:      confVolume,
+				Name:      ConfVolume,
 				SubPath:   fluentdConfKey,
 				ReadOnly:  true,
 			},
 			{
 				MountPath: secretMountPath,
-				Name:      secretVolume,
+				Name:      SecretVolume,
 				ReadOnly:  true,
 			},
 			{
@@ -378,7 +377,7 @@ func CreateFluentdHostPathVolumes() []kcore.Volume {
 // CreateFluentdConfigMapVolume create a config map volume for FLUENTD.
 func CreateFluentdConfigMapVolume(workloadName string) kcore.Volume {
 	return kcore.Volume{
-		Name: confVolume,
+		Name: ConfVolume,
 		VolumeSource: kcore.VolumeSource{
 			ConfigMap: &kcore.ConfigMapVolumeSource{
 				LocalObjectReference: kcore.LocalObjectReference{
@@ -395,7 +394,7 @@ func CreateFluentdConfigMapVolume(workloadName string) kcore.Volume {
 // CreateFluentdSecretVolume create a secret volume for FLUENTD.
 func CreateFluentdSecretVolume(secretName string) kcore.Volume {
 	return kcore.Volume{
-		Name: secretVolume,
+		Name: SecretVolume,
 		VolumeSource: kcore.VolumeSource{
 			Secret: &kcore.SecretVolumeSource{
 				SecretName: secretName},
