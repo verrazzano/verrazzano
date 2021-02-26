@@ -344,42 +344,35 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 // for the FLUENTD config map stored in "configMapVolumes", so we will pull the mount out from the
 // FLUENTD container and put it in its new home in the Coherence spec (this should all be handled
 // by the FLUENTD code at some point but I tried to limit the surgery for now)
-// In addition, we want to keep the secret mount
 func moveConfigMapVolume(log logr.Logger, fluentdPod *loggingscope.FluentdPod, coherenceSpec map[string]interface{}) error {
+	var fluentdVolMount corev1.VolumeMount
+
 	for _, container := range fluentdPod.Containers {
 		if container.Name == "fluentd" {
-			for _, volMount := range container.VolumeMounts {
-				if volMount.Name == loggingscope.ConfVolume {
-					configMapVolMount := volMount
-					// Coherence needs the vol mount to match the config map name, so fix it, need
-					// to see if we can just change name set by the FLUENTD code
-					configMapVolMount.Name = "fluentd-config" + "-" + workloadType
-					configMapVolMountUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&configMapVolMount)
-					if err != nil {
-						return err
-					}
-					if configMapVolumes, found := coherenceSpec["configMapVolumes"]; !found {
-						coherenceSpec["configMapVolumes"] = []interface{}{configMapVolMountUnstructured}
-					} else {
-						vols := configMapVolumes.([]interface{})
-						coherenceSpec["configMapVolumes"] = append(vols, configMapVolMountUnstructured)
-					}
-				} else if volMount.Name == loggingscope.SecretVolume {
-					secretVolMount := volMount
-					secretVolMountUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&secretVolMount)
-					if err != nil {
-						return err
-					}
-					if volumeMounts, found := coherenceSpec["volumeMounts"]; !found {
-						coherenceSpec["volumeMounts"] = []interface{}{secretVolMountUnstructured}
-					} else {
-						vols := volumeMounts.([]interface{})
-						coherenceSpec["volumeMounts"] = append(vols, secretVolMountUnstructured)
-					}
-				}
-			}
+			fluentdVolMount = container.VolumeMounts[0]
+			// Coherence needs the vol mount to match the config map name, so fix it, need
+			// to see if we can just change name set by the FLUENTD code
+			fluentdVolMount.Name = "fluentd-config" + "-" + workloadType
 			fluentdPod.Containers[0].VolumeMounts = nil
+			break
 		}
+	}
+
+	// add the config map volume mount to "configMapVolumes" in the spec
+	if fluentdVolMount.Name != "" {
+		fluentdVolMountUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&fluentdVolMount)
+		if err != nil {
+			return err
+		}
+
+		if configMapVolumes, found := coherenceSpec["configMapVolumes"]; !found {
+			coherenceSpec["configMapVolumes"] = []interface{}{fluentdVolMountUnstructured}
+		} else {
+			vols := configMapVolumes.([]interface{})
+			coherenceSpec["configMapVolumes"] = append(vols, fluentdVolMountUnstructured)
+		}
+	} else {
+		log.Info("Expected to find config map volume mount in fluentd container but did not")
 	}
 
 	return nil

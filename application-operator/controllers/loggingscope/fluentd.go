@@ -22,11 +22,6 @@ import (
 )
 
 const (
-	// ConfVolume is the volume name of the fluentd configmap
-	ConfVolume = "fluentd-config-volume"
-	// SecretVolume is the volume name of the fluentd secret
-	SecretVolume = "secret-volume"
-
 	fluentdConfKey       = "fluentd.conf"
 	fluentdConfMountPath = "/fluentd/etc/fluentd.conf"
 	fluentdContainerName = "fluentd"
@@ -137,7 +132,7 @@ func (f *Fluentd) ensureFluentdVolumes(fluentdPod *FluentdPod, scope *vzapi.Logg
 			fluentdVolumeExists = true
 		} else if volume.Name == fmt.Sprintf("%s-volume", configMapName) {
 			configMapVolumeExists = true
-		} else if volume.Name == SecretVolume {
+		} else if volume.Name == secretVolume {
 			secretVolumeExists = true
 		}
 	}
@@ -405,13 +400,13 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				MountPath: fluentdConfMountPath,
-				Name:      ConfVolume,
+				Name:      confVolume,
 				SubPath:   fluentdConfKey,
 				ReadOnly:  true,
 			},
 			{
 				MountPath: secretMountPath,
-				Name:      SecretVolume,
+				Name:      secretVolume,
 				ReadOnly:  true,
 			},
 			{
@@ -458,7 +453,7 @@ func (f *Fluentd) createFluentdConfigMapVolume(name string) corev1.Volume {
 // createFluentdSecretVolume creates a FLUENTD secret volume
 func (f *Fluentd) createFluentdSecretVolume(secretName string) corev1.Volume {
 	return corev1.Volume{
-		Name: SecretVolume,
+		Name: secretVolume,
 		VolumeSource: corev1.VolumeSource{
 			Secret: &corev1.SecretVolumeSource{
 				SecretName: secretName},
