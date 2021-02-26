@@ -16,6 +16,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -524,6 +525,15 @@ func TestCreateUpdateDestinationRuleCreate(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, dr *istioclient.DestinationRule, opts ...client.CreateOption) error {
+			assert.Equal(destinationRuleKind, dr.Kind)
+			assert.Equal(destinationRuleAPIVersion, dr.APIVersion)
+			assert.Equal("*.test-namespace.svc.cluster.local", dr.Spec.Host)
+			assert.Equal(istionet.ClientTLSSettings_ISTIO_MUTUAL, dr.Spec.TrafficPolicy.Tls.Mode)
+			assert.Equal(uint32(coherenceExtendPort), dr.Spec.TrafficPolicy.PortLevelSettings[0].Port.Number)
+			assert.Equal(istionet.ClientTLSSettings_DISABLE, dr.Spec.TrafficPolicy.PortLevelSettings[0].Tls.Mode)
+			assert.Equal(1, len(dr.OwnerReferences))
+			assert.Equal("ApplicationConfiguration", dr.OwnerReferences[0].Kind)
+			assert.Equal("core.oam.dev/v1alpha2", dr.OwnerReferences[0].APIVersion)
 			return nil
 		})
 
@@ -539,7 +549,7 @@ func TestCreateUpdateDestinationRuleCreate(t *testing.T) {
 	workloadLabels["app.oam.dev/name"] = "test-app"
 	err := reconciler.createOrUpdateDestinationRule(context.Background(), ctrl.Log, "test-namespace", namespaceLabels, workloadLabels)
 	mocker.Finish()
-	assert.Nil(err)
+	assert.NoError(err)
 }
 
 // TestCreateUpdateDestinationRuleUpdate tests update of a destination rule
@@ -577,6 +587,15 @@ func TestCreateUpdateDestinationRuleUpdate(t *testing.T) {
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, dr *istioclient.DestinationRule, opts ...client.CreateOption) error {
+			assert.Equal(destinationRuleKind, dr.Kind)
+			assert.Equal(destinationRuleAPIVersion, dr.APIVersion)
+			assert.Equal("*.test-namespace.svc.cluster.local", dr.Spec.Host)
+			assert.Equal(istionet.ClientTLSSettings_ISTIO_MUTUAL, dr.Spec.TrafficPolicy.Tls.Mode)
+			assert.Equal(uint32(coherenceExtendPort), dr.Spec.TrafficPolicy.PortLevelSettings[0].Port.Number)
+			assert.Equal(istionet.ClientTLSSettings_DISABLE, dr.Spec.TrafficPolicy.PortLevelSettings[0].Tls.Mode)
+			assert.Equal(1, len(dr.OwnerReferences))
+			assert.Equal("ApplicationConfiguration", dr.OwnerReferences[0].Kind)
+			assert.Equal("core.oam.dev/v1alpha2", dr.OwnerReferences[0].APIVersion)
 			return nil
 		})
 
@@ -592,7 +611,7 @@ func TestCreateUpdateDestinationRuleUpdate(t *testing.T) {
 	workloadLabels["app.oam.dev/name"] = "test-app"
 	err := reconciler.createOrUpdateDestinationRule(context.Background(), ctrl.Log, "test-namespace", namespaceLabels, workloadLabels)
 	mocker.Finish()
-	assert.Nil(err)
+	assert.NoError(err)
 }
 
 // TestCreateUpdateDestinationRuleNoOamLabel tests creation of a destination rule with no oam label found
@@ -621,7 +640,7 @@ func TestCreateUpdateDestinationRuleNoLabel(t *testing.T) {
 	namespaceLabels := make(map[string]string)
 	workloadLabels := make(map[string]string)
 	err := reconciler.createOrUpdateDestinationRule(context.Background(), ctrl.Log, "test-namespace", namespaceLabels, workloadLabels)
-	assert.Nil(err)
+	assert.NoError(err)
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing

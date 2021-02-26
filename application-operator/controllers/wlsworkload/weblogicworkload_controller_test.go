@@ -16,6 +16,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -520,6 +521,13 @@ func TestCreateDestinationRuleCreate(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, dr *istioclient.DestinationRule, opts ...client.CreateOption) error {
+			assert.Equal(destinationRuleKind, dr.Kind)
+			assert.Equal(destinationRuleAPIVersion, dr.APIVersion)
+			assert.Equal("*.test-namespace.svc.cluster.local", dr.Spec.Host)
+			assert.Equal(istionet.ClientTLSSettings_ISTIO_MUTUAL, dr.Spec.TrafficPolicy.Tls.Mode)
+			assert.Equal(1, len(dr.OwnerReferences))
+			assert.Equal("ApplicationConfiguration", dr.OwnerReferences[0].Kind)
+			assert.Equal("core.oam.dev/v1alpha2", dr.OwnerReferences[0].APIVersion)
 			return nil
 		})
 
@@ -535,7 +543,7 @@ func TestCreateDestinationRuleCreate(t *testing.T) {
 	workloadLabels["app.oam.dev/name"] = "test-app"
 	err := reconciler.createDestinationRule(context.Background(), ctrl.Log, "test-namespace", namespaceLabels, workloadLabels)
 	mocker.Finish()
-	assert.Nil(err)
+	assert.NoError(err)
 }
 
 // TestCreateDestinationRuleNoCreate tests that a destination rule already exist
@@ -570,7 +578,7 @@ func TestCreateDestinationRuleNoCreate(t *testing.T) {
 	workloadLabels["app.oam.dev/name"] = "test-app"
 	err := reconciler.createDestinationRule(context.Background(), ctrl.Log, "test-namespace", namespaceLabels, workloadLabels)
 	mocker.Finish()
-	assert.Nil(err)
+	assert.NoError(err)
 }
 
 // TestCreateDestinationRuleNoOamLabel tests creation of a destination rule with no oam label found
@@ -599,7 +607,7 @@ func TestCreateDestinationRuleNoIstioLabel(t *testing.T) {
 	namespaceLabels := make(map[string]string)
 	workloadLabels := make(map[string]string)
 	err := reconciler.createDestinationRule(context.Background(), ctrl.Log, "test-namespace", namespaceLabels, workloadLabels)
-	assert.Nil(err)
+	assert.NoError(err)
 }
 
 // TestIstioEnabled tests that domain resource spec.configuration.istio.enabled is set correctly.

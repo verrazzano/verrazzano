@@ -75,13 +75,13 @@ multiline_flush_interval 20s
 `
 
 const (
-	specField = "spec"
-	jvmField  = "jvm"
-	argsField = "args"
-
+	specField                 = "spec"
+	jvmField                  = "jvm"
+	argsField                 = "args"
 	workloadType              = "coherence"
 	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
 	destinationRuleKind       = "DestinationRule"
+	coherenceExtendPort       = 9000
 )
 
 var specLabelsFields = []string{specField, "labels"}
@@ -449,8 +449,9 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 	}
 	destinationRule.Spec.TrafficPolicy.PortLevelSettings = []*istionet.TrafficPolicy_PortTrafficPolicy{
 		{
+			// Disable mutual TLS for the Coherence extend port
 			Port: &istionet.PortSelector{
-				Number: 9000,
+				Number: coherenceExtendPort,
 			},
 			Tls: &istionet.ClientTLSSettings{
 				Mode: istionet.ClientTLSSettings_DISABLE,
