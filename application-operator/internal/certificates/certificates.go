@@ -33,7 +33,7 @@ const (
 	// IstioMutatingWebhookName is the resource name for the Verrazzano MutatingWebhook for Istio pods
 	IstioMutatingWebhookName = "verrazzano-application-istio-defaulter"
 	// VerrazzanoProjectValidatingWebhookName is the resource name for the Verrazzano ValidatingWebhook
-	VerrazzanoProjectValidatingWebhookName = "verrazzano-application-verrazzanoproject-validator"
+	VerrazzanoProjectValidatingWebhookName = "verrazzano-application-verrazzanoproject"
 )
 
 // SetupCertificates creates the needed certificates for the validating webhook

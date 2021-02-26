@@ -171,7 +171,7 @@ webhooks:
 apiVersion: admissionregistration.k8s.io/v1beta1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: verrazzano-application-verrazzanoproject-validator
+  name: verrazzano-application-verrazzanoproject
   namespace: verrazzano-system
   labels:
     app: verrazzano-application-operator
