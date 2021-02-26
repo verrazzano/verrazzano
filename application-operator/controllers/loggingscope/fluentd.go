@@ -32,6 +32,7 @@ const (
 	elasticSearchUserEnv = "ELASTICSEARCH_USER"
 	elasticSearchPwdEnv  = "ELASTICSEARCH_PASSWORD"
 
+	secretVolume    = "secret-volume"
 	secretMountPath = "/fluentd/secret"
 )
 
