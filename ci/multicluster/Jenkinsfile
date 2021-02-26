@@ -174,7 +174,8 @@ pipeline {
                                         echo "tests will execute" > ${TESTS_EXECUTED_FILE}
                                     """
                                     int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                    boolean isFirstCluster = true
+                                    boolean cleanupKindContainers = true
+                                    boolean connectJenkinsRunnerToNetwork = true
                                     for(int count=1; count<=clusterCount; count++) {
                                         sh """
                                             echo ${CLUSTER_NAME_PREFIX}-$count
@@ -183,12 +184,13 @@ pipeline {
                                             export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                                             echo "Create Kind cluster"
                                             cd ${TEST_SCRIPTS_DIR}
-                                            ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KUBERNETES_CLUSTER_VERSION}" "$isFirstCluster"
+                                            ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KUBERNETES_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork"
                                             echo "Install metallb"
                                             cd ${GO_REPO_PATH}/verrazzano
                                             ./tests/e2e/config/scripts/install-metallb.sh
                                         """
-                                        isFirstCluster = false
+                                        cleanupKindContainers = false
+                                        connectJenkinsRunnerToNetwork = false
                                     }
                                 }
                             }
@@ -290,3 +292,4 @@ def dumpK8sCluster(dumpDirectory) {
         }
     }
 }
+
