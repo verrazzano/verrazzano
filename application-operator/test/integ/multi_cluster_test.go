@@ -121,8 +121,13 @@ var _ = ginkgo.Describe("Testing MultiClusterApplicationConfiguration", func() {
 var _ = ginkgo.Describe("Testing VerrazzanoProject validation", func() {
 	ginkgo.It("VerrazzanoProject invalid namespace ", func() {
 		// Apply VerrazzanoProject resource and expect to fail due to invalid namespace
-		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzano_project_invalid_namespace.yaml")
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_invalid_namespace.yaml")
 		gomega.Expect(stderr).To(gomega.ContainSubstring(fmt.Sprintf("Namespace for the resource must be %q", constants.VerrazzanoMultiClusterNamespace)))
+	})
+	ginkgo.It("VerrazzanoProject invalid namespaces list", func() {
+		// Apply VerrazzanoProject resource and expect to fail due to invalid namespaces list
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_invalid_namespaces_list.yaml")
+		gomega.Expect(stderr).To(gomega.ContainSubstring("One or more namespaces must be provided"))
 	})
 })
 
