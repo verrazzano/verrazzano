@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/go-logr/logr"
@@ -88,6 +90,7 @@ const HelidonFluentdConfiguration = `<label @FLUENT_LOG>
     oam.applicationconfiguration.name "#{ENV['APP_CONF_NAME']}"
     oam.component.namespace "#{ENV['NAMESPACE']}"
     oam.component.name  "#{ENV['COMPONENT_NAME']}"
+    verrazzano.cluster.name  "#{ENV['CLUSTER_NAME']}"
   </record>
 </filter>
 <match **>
@@ -155,7 +158,8 @@ func (h *HelidonHandler) ApplyToDeployment(ctx context.Context, workload vzapi.Q
 	}
 	deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdConfigMapVolume(workload.Name))
 	deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdSecretVolume(scope.Spec.SecretName))
-	fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, appContainer, scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchURL)
+	fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, appContainer, scope.Spec.FluentdImage,
+		scope.Spec.SecretName, scope.Spec.ElasticSearchURL, clusters.GetClusterName(context.TODO(), h.Client))
 	deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, fluentdContainer)
 	return nil, nil
 }
@@ -240,7 +244,7 @@ func CreateFluentdConfigMap(namespace, name, fluentdConfig string) *kcore.Config
 }
 
 // CreateFluentdContainer creates a FLUENTD sidecar container.
-func CreateFluentdContainer(namespace, workloadName, containerName, fluentdImage, esSecret, esURL string) kcore.Container {
+func CreateFluentdContainer(namespace, workloadName, containerName, fluentdImage, esSecret, esURL string, clusterName string) kcore.Container {
 	container := kcore.Container{
 		Name:            fluentdContainerName,
 		Args:            []string{"-c", "/etc/fluent.conf"},
@@ -286,6 +290,10 @@ func CreateFluentdContainer(namespace, workloadName, containerName, fluentdImage
 			{
 				Name:  elasticSearchURLEnv,
 				Value: esURL,
+			},
+			{
+				Name:  "CLUSTER_NAME",
+				Value: clusterName,
 			},
 			{
 				Name: elasticSearchUserEnv,
