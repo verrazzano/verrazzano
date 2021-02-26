@@ -341,7 +341,7 @@ func expectationsForApplyUseManagedClusterSecret(t *testing.T, mockClient *mocks
 
 	// Get cluster secret for cluster name
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano-cluster"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *kcore.Secret) error {
 			vmiSecret(sec)
 			return nil
@@ -391,7 +391,7 @@ func expectationsForApplyNonManagedCluster(t *testing.T, mockClient *mocks.MockC
 
 	// Get cluster secret for cluster name
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano-cluster"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *kcore.Secret) error {
 			vmiSecret(sec)
 			return nil

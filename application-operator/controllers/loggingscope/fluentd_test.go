@@ -61,7 +61,7 @@ func TestFluentdApply(t *testing.T) {
 		})
 
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano-cluster"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *v1.Secret) error {
 			vmiSecret(sec)
 			return nil
@@ -119,7 +119,7 @@ func TestFluentdApplyForUpdate(t *testing.T) {
 	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
 
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano-cluster"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *v1.Secret) error {
 			vmiSecret(sec)
 			return nil
@@ -176,7 +176,7 @@ func TestFluentdRemove(t *testing.T) {
 	fluentdPod := createTestFluentdPod()
 
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano-cluster"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *v1.Secret) error {
 			vmiSecret(sec)
 			return nil
@@ -254,7 +254,7 @@ func TestFluentdApply_ManagedClusterElasticsearch(t *testing.T) {
 
 	// Get cluster secret for cluster name
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "verrazzano-cluster"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *v1.Secret) error {
 			vmiSecret(sec)
 			return nil
