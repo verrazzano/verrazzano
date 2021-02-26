@@ -6,3 +6,4 @@ metadata:
   name: myvzproj
   namespace: verrazzano-mc
 spec:
+  namespaces:

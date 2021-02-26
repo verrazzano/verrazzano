@@ -127,7 +127,7 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject validation", func() {
 	ginkgo.It("VerrazzanoProject invalid namespaces list", func() {
 		// Apply VerrazzanoProject resource and expect to fail due to invalid namespaces list
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_invalid_namespaces_list.yaml")
-		gomega.Expect(stderr).To(gomega.ContainSubstring("One or more namespaces must be provided"))
+		gomega.Expect(stderr).To(gomega.ContainSubstring("missing required field \"namespaces\""))
 	})
 })
 
