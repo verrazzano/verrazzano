@@ -37,7 +37,7 @@ pipeline {
             // 1st choice is the default value
             choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2" ])
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
-                        description: 'Kubernetes Version for KinD Cluster',
+                        description: 'Kubernetes Version',
                         // 1st choice is the default value
                         choices: [ "1.18", "1.17" ])
         string defaultValue: 'dev', description: 'Verrazzano install profile name', name: "INSTALL_PROFILE", trim: true
@@ -261,6 +261,8 @@ pipeline {
                     """
                 }
             }
+        }
+        cleanup {
             deleteDir()
         }
     }
