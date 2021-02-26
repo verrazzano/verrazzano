@@ -6,6 +6,7 @@ package helidonworkload
 import (
 	"bufio"
 	"context"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"io/ioutil"
 	"strings"
 	"testing"
