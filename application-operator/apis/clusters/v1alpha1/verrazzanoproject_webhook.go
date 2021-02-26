@@ -19,7 +19,7 @@ import (
 var _ webhook.Validator = &VerrazzanoProject{}
 
 // log is for logging in this package.
-var log = logf.Log.WithName("ingresstrait-resource")
+var log = logf.Log.WithName("verrazzanoproject-resource")
 
 // SetupWebhookWithManager is used to let the controller manager know about the webhook
 func (vp *VerrazzanoProject) SetupWebhookWithManager(mgr ctrl.Manager) error {
