@@ -653,7 +653,7 @@ func TestCreateUpdateDestinationRuleUpdate(t *testing.T) {
 	assert.NoError(err)
 }
 
-// TestCreateUpdateDestinationRuleNoOamLabel tests creation of a destination rule with no oam label found
+// TestCreateUpdateDestinationRuleNoOamLabel tests failure when no oam label found
 // GIVEN no app.oam.dev/name label specified
 // WHEN the controller createOrUpdateDestinationRule function is called
 // THEN expect an error to be returned
@@ -668,7 +668,7 @@ func TestCreateUpdateDestinationRuleNoOamLabel(t *testing.T) {
 	assert.Equal("OAM app name label missing from metadata, unable to generate destination rule name", err.Error())
 }
 
-// TestCreateUpdateDestinationRuleNoIstioLabel tests creation of a destination rule with no istio label found
+// TestCreateUpdateDestinationRuleNoIstioLabel tests failure when no istio label found
 // GIVEN no istio-injection label specified
 // WHEN the controller createOrUpdateDestinationRule function is called
 // THEN expect an error to be returned
