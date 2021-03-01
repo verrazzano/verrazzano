@@ -9,6 +9,8 @@ CLUSTER_NAME=$1
 PLATFORM_OPERATOR_DIR=$2
 KUBECONFIG=$3
 K8S_VERSION=$4
+CLEANUP_KIND_CONTAINERS=${5:-true}
+CONNECT_JENKINS_RUNNER_TO_NETWORK=${6:-true}
 KIND_IMAGE=""
 
 create_kind_cluster() {
@@ -25,17 +27,34 @@ create_kind_cluster() {
     exit 1
   fi
 
-  cd ${PLATFORM_OPERATOR_DIR}/build/scripts
-  ./cleanup.sh ${CLUSTER_NAME}
+  # Set CLEANUP_KIND_CONTAINERS to true, while second cluster and onwards
+  if [ ${CLEANUP_KIND_CONTAINERS} == true ]; then
+    cd ${PLATFORM_OPERATOR_DIR}/build/scripts
+    ./cleanup.sh ${CLUSTER_NAME}
+  else
+    echo "Delete the cluster and kube config in multi-cluster environment"
+    kind delete cluster --name ${CLUSTER_NAME}
+    if [ -f "${KUBECONFIG}" ]
+    then
+      echo "Deleting the kubeconfig '${KUBECONFIG}' ..."
+      rm ${KUBECONFIG}
+    fi
+  fi
 
+  export KUBECONFIG=$KUBECONFIG
+  echo "Kubeconfig ${KUBECONFIG}"
+  echo "KIND Image : ${KIND_IMAGE}"
   cd ${SCRIPT_DIR}/
-  echo "KinD Image : ${KIND_IMAGE}"
   sed -i "s/KIND_IMAGE/${KIND_IMAGE}/g" kind-config.yaml
   HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 --name ${CLUSTER_NAME} --wait 5m --config=kind-config.yaml
   kubectl config set-context kind-${CLUSTER_NAME}
   sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
   cat ${KUBECONFIG} | grep server
-  $(docker network connect kind $(docker ps | grep "jenkins-runner" | awk '{ print $1 }'))
+  if [ ${CONNECT_JENKINS_RUNNER_TO_NETWORK} == true ]; then
+    $(docker network connect kind $(docker ps | grep "jenkins-runner" | awk '{ print $1 }'))
+  else
+    echo "Ignore connecting jenkins-runner to a network."
+  fi
 }
 
 create_kind_cluster
