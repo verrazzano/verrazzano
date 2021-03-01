@@ -6,8 +6,10 @@ package loggingscope
 import (
 	"context"
 	"fmt"
+
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -30,10 +32,8 @@ const (
 	elasticSearchUserEnv = "ELASTICSEARCH_USER"
 	elasticSearchPwdEnv  = "ELASTICSEARCH_PASSWORD"
 
-	secretUserKey     = "username"
-	secretPasswordKey = "password"
-	secretVolume      = "secret-volume"
-	secretMountPath   = "/fluentd/secret"
+	secretVolume    = "secret-volume"
+	secretMountPath = "/fluentd/secret"
 )
 
 // ElasticSearchIndex defines the common index pattern
@@ -153,18 +153,24 @@ func (f *Fluentd) ensureFluentdVolumes(fluentdPod *FluentdPod, scope *vzapi.Logg
 // needs to be done. If it doesn't already exist create one and add it to the FluentdPod.
 func (f *Fluentd) ensureFluentdVolumeMountExists(fluentdPod *FluentdPod) {
 	volumeMounts := fluentdPod.VolumeMounts
-	fluentdVolumeMountExists := false
+	storageVolumeMountExists := false
+	secretVolumeMountExists := false
 	for _, volumeMount := range volumeMounts {
 		if volumeMount.Name == f.StorageVolumeName {
-			fluentdVolumeMountExists = true
-			break
+			storageVolumeMountExists = true
+		} else if volumeMount.Name == secretVolume {
+			secretVolumeMountExists = true
 		}
 	}
 
-	// If no FLUENTD volume mount exists create one and add it to the list.
-	// If a FLUENTD volume mount already exists there is no need to to update it as this information doesn't change.
-	if !fluentdVolumeMountExists {
-		volumeMounts = append(volumeMounts, f.createFluentdVolumeMount())
+	// If no storage volume mount exists create one and add it to the list.
+	if !storageVolumeMountExists {
+		volumeMounts = append(volumeMounts, f.createStorageVolumeMount())
+	}
+
+	// If no secret volume mount exists create one and add it to the list.
+	if !secretVolumeMountExists {
+		volumeMounts = append(volumeMounts, f.createSecretVolumeMount())
 	}
 
 	fluentdPod.VolumeMounts = volumeMounts
@@ -346,7 +352,7 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: scope.Spec.SecretName,
 						},
-						Key: secretUserKey,
+						Key: constants.ElasticsearchUsernameData,
 						Optional: func(opt bool) *bool {
 							return &opt
 						}(true),
@@ -360,7 +366,7 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: scope.Spec.SecretName,
 						},
-						Key: secretPasswordKey,
+						Key: constants.ElasticsearchPasswordData,
 						Optional: func(opt bool) *bool {
 							return &opt
 						}(true),
@@ -386,6 +392,10 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 						FieldPath: "metadata.labels['" + oam.LabelAppComponent + "']",
 					},
 				},
+			},
+			{
+				Name:  "CLUSTER_NAME",
+				Value: clusters.GetClusterName(context.TODO(), f.Client),
 			},
 		},
 		VolumeMounts: []corev1.VolumeMount{
@@ -452,11 +462,19 @@ func (f *Fluentd) createFluentdSecretVolume(secretName string) corev1.Volume {
 	}
 }
 
-// createFluentdVolumeMount creates a FLUENTD volume mount
-func (f *Fluentd) createFluentdVolumeMount() corev1.VolumeMount {
+// createStorageVolumeMount creates a storage volume mount
+func (f *Fluentd) createStorageVolumeMount() corev1.VolumeMount {
 	return corev1.VolumeMount{
 		Name:      f.StorageVolumeName,
 		MountPath: f.StorageVolumeMountPath,
+	}
+}
+
+// createSecretVolumeMount creates a secret volume mount
+func (f *Fluentd) createSecretVolumeMount() corev1.VolumeMount {
+	return corev1.VolumeMount{
+		Name:      secretVolume,
+		MountPath: secretMountPath,
 	}
 }
 

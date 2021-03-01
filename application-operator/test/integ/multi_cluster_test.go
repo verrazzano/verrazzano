@@ -22,6 +22,7 @@ const (
 	crdDir                    = "../../config/crd/bases"
 	timeout                   = 2 * time.Minute
 	pollInterval              = 40 * time.Millisecond
+	applicationOperator       = "verrazzano-application-operator"
 )
 
 var (
@@ -103,6 +104,7 @@ var _ = ginkgo.Describe("Testing MultiClusterLoggingScope", func() {
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 })
+
 var _ = ginkgo.Describe("Testing MultiClusterApplicationConfiguration", func() {
 	ginkgo.It("MultiClusterApplicationConfiguration can be created ", func() {
 		// First apply the hello-component referenced in this MultiCluster application config
@@ -113,6 +115,19 @@ var _ = ginkgo.Describe("Testing MultiClusterApplicationConfiguration", func() {
 		gomega.Eventually(func() bool {
 			return appConfigExistsWithFields(multiclusterTestNamespace, "mymcappconf", mcAppConfig)
 		}, timeout, pollInterval).Should(gomega.BeTrue())
+	})
+})
+
+var _ = ginkgo.Describe("Testing VerrazzanoProject validation", func() {
+	ginkgo.It("VerrazzanoProject invalid namespace ", func() {
+		// Apply VerrazzanoProject resource and expect to fail due to invalid namespace
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_invalid_namespace.yaml")
+		gomega.Expect(stderr).To(gomega.ContainSubstring(fmt.Sprintf("Namespace for the resource must be %q", constants.VerrazzanoMultiClusterNamespace)))
+	})
+	ginkgo.It("VerrazzanoProject invalid namespaces list", func() {
+		// Apply VerrazzanoProject resource and expect to fail due to invalid namespaces list
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_invalid_namespaces_list.yaml")
+		gomega.Expect(stderr).To(gomega.ContainSubstring("missing required field \"namespaces\""))
 	})
 })
 
@@ -197,7 +212,18 @@ func createManagedClusterSecret() {
 }
 
 func setupMultiClusterTest() {
-	_, stderr := util.Kubectl("create ns " + multiclusterTestNamespace)
+	isPodRunningYet := func() bool {
+		return K8sClient.IsPodRunning(applicationOperator, constants.VerrazzanoSystemNamespace)
+	}
+	gomega.Eventually(isPodRunningYet, "2m", "5s").Should(gomega.BeTrue(),
+		fmt.Sprintf("The %s pod should be in the Running state", constants.VerrazzanoSystemNamespace))
+
+	_, stderr := util.Kubectl("create ns " + constants.VerrazzanoMultiClusterNamespace)
+	if stderr != "" {
+		ginkgo.Fail(fmt.Sprintf("failed to create namespace %v", constants.VerrazzanoMultiClusterNamespace))
+	}
+
+	_, stderr = util.Kubectl("create ns " + multiclusterTestNamespace)
 	if stderr != "" {
 		ginkgo.Fail(fmt.Sprintf("failed to create namespace %v", multiclusterTestNamespace))
 	}

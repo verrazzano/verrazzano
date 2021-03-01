@@ -69,8 +69,8 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
 
-	// First expect it to check for a managed cluster secret
-	doExpectGetManagedClusterSecretNotFound(cli)
+	// First expect it to check for a managed cluster Elasticsearch secret
+	doExpectGetManagedClusterElasticsearchSecretNotFound(cli)
 
 	// Expect get existing logging scope (non-existent)
 	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
@@ -144,7 +144,7 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 	cli = mocks.NewMockClient(mocker)
 
 	// Expect it to get managed cluster secret
-	doExpectGetManagedClusterSecretNotFound(cli)
+	doExpectGetManagedClusterElasticsearchSecretNotFound(cli)
 
 	// Expect get default logging scope
 	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
@@ -168,7 +168,7 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 	cli = mocks.NewMockClient(mocker)
 
 	// Expect it to get managed cluster secret
-	doExpectGetManagedClusterSecretNotFound(cli)
+	doExpectGetManagedClusterElasticsearchSecretNotFound(cli)
 
 	// Expect get default logging scope
 	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
@@ -268,13 +268,15 @@ func TestLoggingScopeDefaulter_DefaultOnManagedCluster(t *testing.T) {
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
 
-	// Expect it to get managed cluster secret and return a managed cluster secret (all other tests
-	// assumed no managed cluster secret found)
+	// Expect it to get managed cluster Elasticsearch secret and return a valid one (all other tests
+	// assumed no managed cluster Elasticsearch secret found)
 	esDetails := clusters.ElasticsearchDetails{URL: "http://some-es-host:9999", SecretName: constants.ElasticsearchSecretName}
-	mcSecret := v1.Secret{Data: map[string][]byte{
-		constants.ClusterNameData:      []byte("managed-cluster1"),
-		constants.ElasticsearchURLData: []byte(esDetails.URL)}}
-	doExpectGetManagedClusterSecretFound(cli, mcSecret)
+	mcElasticsearchSecret := v1.Secret{Data: map[string][]byte{
+		constants.ElasticsearchURLData:      []byte(esDetails.URL),
+		constants.ElasticsearchUsernameData: []byte("someUser"),
+		constants.ElasticsearchPasswordData: []byte("somePass"),
+	}}
+	doExpectGetManagedClusterElasticsearchSecretFound(cli, mcElasticsearchSecret)
 
 	// Expect get default logging scope
 	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
@@ -332,15 +334,15 @@ func testLoggingScopeDefaulterCleanup(t *testing.T, cli client.Client, configPat
 	}
 }
 
-func doExpectGetManagedClusterSecretNotFound(cli *mocks.MockClient) {
-	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCRegistrationSecretFullName), gomock.Not(gomock.Nil())).
+func doExpectGetManagedClusterElasticsearchSecretNotFound(cli *mocks.MockClient) {
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCElasticsearchSecretFullName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *v1.Secret) error {
 			return NotFoundError{}
 		})
 }
 
-func doExpectGetManagedClusterSecretFound(cli *mocks.MockClient, managedClusterSecret v1.Secret) {
-	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCRegistrationSecretFullName), gomock.Not(gomock.Nil())).
+func doExpectGetManagedClusterElasticsearchSecretFound(cli *mocks.MockClient, managedClusterSecret v1.Secret) {
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCElasticsearchSecretFullName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *v1.Secret) error {
 			secret.Data = managedClusterSecret.Data
 			return nil

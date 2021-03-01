@@ -78,6 +78,7 @@ const WlsFluentdParsingRules = `<match fluent.**>
     oam.applicationconfiguration.name "#{ENV['APP_CONF_NAME']}"
     oam.component.namespace "#{ENV['NAMESPACE']}"
     oam.component.name  "#{ENV['COMPONENT_NAME']}"
+    verrazzano.cluster.name  "#{ENV['CLUSTER_NAME']}"
   </record>
 </filter>
 <match **>

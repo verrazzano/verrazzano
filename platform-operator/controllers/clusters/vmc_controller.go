@@ -71,21 +71,28 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 	// Sync the service account
 	err = r.syncServiceAccount(vmc)
 	if err != nil {
-		log.Infof("Failed to reconcile the ServiceAccount: %v", err)
+		log.Infof("Failed to sync the ServiceAccount: %v", err)
 		return ctrl.Result{}, err
 	}
 
 	err = r.syncManagedRoleBinding(vmc)
 	if err != nil {
-		log.Infof("Failed to reconcile the ServiceAccount: %v", err)
+		log.Infof("Failed to sync the ServiceAccount: %v", err)
 		return ctrl.Result{}, err
 	}
 
-	err = r.syncKubeConfig(vmc)
+	err = r.syncRegistrationSecret(vmc)
 	if err != nil {
-		log.Infof("Failed to reconcile the kubeconfig used by managed cluster: %v", err)
+		log.Infof("Failed to sync the kubeconfig used by managed cluster: %v", err)
 		return ctrl.Result{}, err
 	}
+
+	err = r.syncManifestSecret(vmc)
+	if err != nil {
+		log.Infof("Failed to sync the YAML manifest secret used by managed cluster: %v", err)
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 

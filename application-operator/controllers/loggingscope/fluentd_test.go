@@ -11,6 +11,7 @@ import (
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	v1 "k8s.io/api/core/v1"
@@ -57,6 +58,13 @@ func TestFluentdApply(t *testing.T) {
 			asserts.Equal(t, client.MatchingFields{"metadata.name": configMapName + "-" + testWorkLoadType}, fields)
 			asserts.Equal(t, configMapAPIVersion, resources.GetAPIVersion())
 			asserts.Equal(t, configMapKind, resources.GetKind())
+			return nil
+		})
+
+	mockClient.EXPECT().
+		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *v1.Secret) error {
+			vmiSecret(sec)
 			return nil
 		})
 
@@ -111,6 +119,13 @@ func TestFluentdApplyForUpdate(t *testing.T) {
 
 	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
 
+	mockClient.EXPECT().
+		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *v1.Secret) error {
+			vmiSecret(sec)
+			return nil
+		})
+
 	// simulate config map existing
 	mockClient.EXPECT().
 		List(fluentd.Context, gomock.Not(gomock.Nil()), client.InNamespace(testNamespace), client.MatchingFields{"metadata.name": configMapName + "-" + testWorkLoadType}).
@@ -133,7 +148,7 @@ func TestFluentdApplyForUpdate(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
 			secret.Name = scope.Spec.SecretName
 			secret.Namespace = testNamespace
-			secret.Data = map[string][]byte{"username": []byte("someuser")}
+			secret.Data = map[string][]byte{constants.ElasticsearchUsernameData: []byte("someuser")}
 			return nil
 		})
 
@@ -160,6 +175,14 @@ func TestFluentdRemove(t *testing.T) {
 	scope := createTestLoggingScope(true)
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
+
+	mockClient.EXPECT().
+		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *v1.Secret) error {
+			vmiSecret(sec)
+			return nil
+		})
+
 	addFluentdArtifactsToFluentdPod(fluentd, fluentdPod, scope, resource.Namespace)
 
 	// simulate config map existing
@@ -230,6 +253,14 @@ func TestFluentdApply_ManagedClusterElasticsearch(t *testing.T) {
 			return nil
 		})
 
+	// Get cluster secret for cluster name
+	mockClient.EXPECT().
+		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *v1.Secret) error {
+			vmiSecret(sec)
+			return nil
+		})
+
 	// simulate Elasticsearch secret not existing in app NS
 	testESSecretFullName := types.NamespacedName{Namespace: testNamespace, Name: scope.Spec.SecretName}
 	mockClient.EXPECT().
@@ -238,7 +269,7 @@ func TestFluentdApply_ManagedClusterElasticsearch(t *testing.T) {
 
 	// simulate managed cluster ES secret existing (GET is called once to check if we should use
 	// managed cluster, and once to actually perform the copy over to app NS)
-	expectedData := map[string][]byte{"username": []byte("someuser")}
+	expectedData := map[string][]byte{constants.ElasticsearchUsernameData: []byte("someuser")}
 	mockClient.EXPECT().
 		Get(fluentd.Context, managedClusterElasticsearchSecretKey, gomock.Not(gomock.Nil())).
 		Times(2).
@@ -299,7 +330,8 @@ func createTestFluentdPodForUpdate() *FluentdPod {
 // addFluentdArtifactsToFluentdPod adds FLUENTD artifacts to a FluentdPod
 func addFluentdArtifactsToFluentdPod(fluentd *Fluentd, fluentdPod *FluentdPod, scope *v1alpha1.LoggingScope, namespace string) {
 	fluentd.ensureFluentdVolumes(fluentdPod, scope)
-	fluentdPod.VolumeMounts = append(fluentdPod.VolumeMounts, fluentd.createFluentdVolumeMount())
+	fluentdPod.VolumeMounts = append(fluentdPod.VolumeMounts, fluentd.createStorageVolumeMount())
+	fluentdPod.VolumeMounts = append(fluentdPod.VolumeMounts, fluentd.createSecretVolumeMount())
 	fluentdPod.Containers = append(fluentdPod.Containers, fluentd.createFluentdContainer(fluentdPod, scope, namespace))
 }
 
@@ -331,7 +363,7 @@ func testAssertFluentdPodForApply(t *testing.T, fluentdPod *FluentdPod, esSecret
 	asserts.Len(t, volumes, 4)
 
 	volumeMounts := fluentdPod.VolumeMounts
-	asserts.Len(t, volumeMounts, 2)
+	asserts.Len(t, volumeMounts, 3)
 }
 
 // testAssertFluentdPodForApply asserts FluentdPod state for Apply updates
@@ -362,7 +394,7 @@ func testAssertFluentdPodForApplyUpdate(t *testing.T, fluentdPod *FluentdPod) {
 	asserts.Len(t, volumes, 4)
 
 	volumeMounts := fluentdPod.VolumeMounts
-	asserts.Len(t, volumeMounts, 2)
+	asserts.Len(t, volumeMounts, 3)
 }
 
 // testAssertFluentdPodForRemove asserts FluendPod state for Remove
@@ -370,7 +402,7 @@ func testAssertFluentdPodForRemove(t *testing.T, fluentdPod *FluentdPod) {
 	asserts.Len(t, fluentdPod.Containers, 1)
 	// WebLogic FLUENTD volumes don't get removed as a result of disassociation from scope
 	asserts.Len(t, fluentdPod.Volumes, 3)
-	asserts.Len(t, fluentdPod.VolumeMounts, 2)
+	asserts.Len(t, fluentdPod.VolumeMounts, 3)
 }
 
 // createFluentdESEnv creates Env Var set
@@ -399,7 +431,7 @@ func createFluentdESEnv() []v1.EnvVar {
 					LocalObjectReference: v1.LocalObjectReference{
 						Name: testESSecret,
 					},
-					Key: secretUserKey,
+					Key: constants.ElasticsearchUsernameData,
 					Optional: func(opt bool) *bool {
 						return &opt
 					}(true),
@@ -413,7 +445,7 @@ func createFluentdESEnv() []v1.EnvVar {
 					LocalObjectReference: v1.LocalObjectReference{
 						Name: testESSecret,
 					},
-					Key: secretPasswordKey,
+					Key: constants.ElasticsearchPasswordData,
 					Optional: func(opt bool) *bool {
 						return &opt
 					}(true),

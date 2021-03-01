@@ -47,6 +47,8 @@ spec:
                 items:
                   type: string
                 type: array
+            required:
+            - namespaces
             type: object
           status:
             description: VerrazzanoProjectStatus defines the observed state of VerrazzanoProject
@@ -81,6 +83,8 @@ spec:
                 description: State of the MultiClusterSecret custom resource
                 type: string
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

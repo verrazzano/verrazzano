@@ -30,7 +30,7 @@ elasticSearch:
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: ghcr.io/verrazzano/verrazzano-operator
-  imageVersion: 0.11.0-20210223214108-d42a86d
+  imageVersion: 0.12.0-20210227194926-ba090ba
   prometheusPusherImage: ghcr.io/verrazzano/prometheus-pusher:1.0.1-20201016212958-5b64612
   nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
   filebeatImage: ghcr.io/verrazzano/filebeat:6.8.3-20201016212236-05eabe44b
@@ -48,7 +48,7 @@ verrazzanoOperator:
 monitoringOperator:
   name: verrazzano-monitoring-operator
   imageName: ghcr.io/verrazzano/verrazzano-monitoring-operator
-  imageVersion: 0.11.0-20210223213924-6abcf63
+  imageVersion: 0.12.0-20210227195022-3b5640f
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
@@ -59,10 +59,10 @@ monitoringOperator:
   alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
   esImage: ghcr.io/verrazzano/elasticsearch:7.6.1-20201130145440-5c76ab1
-  esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:0.11.0-20210223213924-6abcf63
+  esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:0.12.0-20210227195022-3b5640f
   esInitImage: ghcr.io/oracle/oraclelinux:7.8
   kibanaImage: ghcr.io/verrazzano/kibana:7.6.1-20201130145840-7717e73
-  monitoringInstanceApiImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-api:0.11.0-20210223213521-b5902c5
+  monitoringInstanceApiImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-api:0.12.0-20210227200534-fe15cbb
   configReloaderImage: ghcr.io/verrazzano/configmap-reload:0.3-20201016205243-4f24a0e
   nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
   RequestMemory: 48Mi
@@ -70,7 +70,7 @@ monitoringOperator:
 clusterOperator:
   name: verrazzano-cluster-operator
   imageName: ghcr.io/verrazzano/verrazzano-cluster-operator
-  imageVersion: 0.11.0-20210223213519-8aa2b59
+  imageVersion: 0.12.0-20210227194701-ff1a7f3
   RequestMemory: 27Mi
   rancherURL:
   rancherUserName:
@@ -81,7 +81,7 @@ clusterOperator:
 console:
   name: verrazzano-console
   imageName: ghcr.io/verrazzano/console
-  imageVersion: 0.11.0-20210223230540-3effaee
+  imageVersion: 0.12.0-20210227195125-808a4c7
 
 api:
   name: verrazzano-api

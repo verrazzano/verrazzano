@@ -167,3 +167,30 @@ webhooks:
           - pods
     sideEffects: None
     failurePolicy: Fail
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: verrazzano-application-verrazzanoproject
+  namespace: verrazzano-system
+  labels:
+    app: verrazzano-application-operator
+webhooks:
+  - name: verrazzano-clusters-verrazzanoproject-validator.verrazzano.io
+    clientConfig:
+      service:
+        name: verrazzano-application-operator
+        namespace: verrazzano-system
+        path: "/validate-clusters-verrazzano-io-v1alpha1-verrazzanoproject"
+    rules:
+      - apiGroups:
+          - clusters.verrazzano.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - verrazzanoprojects
+    sideEffects: None
+    failurePolicy: Fail

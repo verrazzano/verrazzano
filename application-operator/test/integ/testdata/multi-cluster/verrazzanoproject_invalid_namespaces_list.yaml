@@ -7,5 +7,3 @@ metadata:
   namespace: verrazzano-mc
 spec:
   namespaces:
-    - multiclustertest
-    - some-other-ns

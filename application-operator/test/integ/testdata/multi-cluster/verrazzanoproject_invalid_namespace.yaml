@@ -3,9 +3,9 @@
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: VerrazzanoProject
 metadata:
-  name: myvzproj
-  namespace: verrazzano-mc
+  name: test
+  namespace: multiclustertest
 spec:
   namespaces:
-    - multiclustertest
-    - some-other-ns
+    - cluster1
+    - cluster2
