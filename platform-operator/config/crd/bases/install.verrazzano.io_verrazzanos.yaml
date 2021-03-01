@@ -125,6 +125,18 @@ spec:
                         description: DNS type of xip.io.  This is the default.
                         type: object
                     type: object
+                  elasticsearch:
+                    description: Elasticsearch configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
+                  grafana:
+                    description: Grafana configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   ingress:
                     description: Ingress contains the ingress-nginx component configuration
                     properties:
@@ -1633,6 +1645,18 @@ spec:
                                 type: object
                             type: object
                         type: object
+                    type: object
+                  kibana:
+                    description: Grafana configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
+                  prometheus:
+                    description: Prometheus configuration
+                    properties:
+                      enabled:
+                        type: boolean
                     type: object
                 type: object
               defaultVolumeSource:

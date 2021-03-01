@@ -16,6 +16,8 @@ const (
 	Dev ProfileType = "dev"
 	// Prod identifies the production install profile
 	Prod ProfileType = "prod"
+	// ManagedCluster identifies the production managed-cluster install profile
+	ManagedCluster ProfileType = "managed-cluster"
 )
 const (
 	// LoadBalancer is an ingress type of LoadBalancer.  This is the default value.
@@ -222,6 +224,44 @@ type ComponentSpec struct {
 	// Keycloak contains the Keycloak component configuration
 	// +optional
 	Keycloak KeycloakComponent `json:"keycloak,omitempty"`
+	// Elasticsearch configuration
+	// +optional
+	Elasticsearch *ElasticsearchComponent `json:"elasticsearch,omitempty"`
+	// Prometheus configuration
+	// +optional
+	Prometheus *PrometheusComponent `json:"prometheus,omitempty"`
+	// Grafana configuration
+	// +optional
+	Kibana *KibanaComponent `json:"kibana,omitempty"`
+	// Grafana configuration
+	// +optional
+	Grafana *GrafanaComponent `json:"grafana,omitempty"`
+}
+
+// MonitoringComponent Common configuration for monitoring components
+type MonitoringComponent struct {
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
+}
+
+// ElasticsearchComponent specifies the Elasticsearch configuration.
+type ElasticsearchComponent struct {
+	MonitoringComponent `json:",inline"`
+}
+
+// KibanaComponent specifies the Kibana configuration.
+type KibanaComponent struct {
+	MonitoringComponent `json:",inline"`
+}
+
+// GrafanaComponent specifies the Grafana configuration.
+type GrafanaComponent struct {
+	MonitoringComponent `json:",inline"`
+}
+
+// PrometheusComponent specifies the Prometheus configuration.
+type PrometheusComponent struct {
+	MonitoringComponent `json:",inline"`
 }
 
 // CertManagerComponent specifies the core CertManagerComponent config.

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
+	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	"testing"
 	"time"
 
@@ -182,6 +183,14 @@ func TestSuccessfulInstall(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 1)
+			return nil
+		})
+
+	// Expect a call to get the verrazzano resource.
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, ingressList *extv1beta1.IngressList) error {
+			ingressList.Items = []extv1beta1.Ingress{}
 			return nil
 		})
 

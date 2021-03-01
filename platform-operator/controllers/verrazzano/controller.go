@@ -221,7 +221,7 @@ func (r *Reconciler) createConfigMap(ctx context.Context, log *zap.SugaredLogger
 
 	err = r.Get(ctx, types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}, configMapFound)
 	if err != nil && errors.IsNotFound(err) {
-		config, err := installjob.GetInstallConfig(vz, log)
+		config, err := installjob.GetInstallConfig(vz)
 		if err != nil {
 			return err
 		}
@@ -432,13 +432,7 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 	case installv1alpha1.UpgradeStarted:
 		cr.Status.State = installv1alpha1.Upgrading
 	case installv1alpha1.InstallComplete:
-		domain, err := buildDomain(r.Client, cr)
-		if err != nil {
-			// An error building the instance info is non-fatal, log and continue
-			log.Errorf("Error obtaining DNS domain for installed instance, %v", err)
-		} else {
-			cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(domain)
-		}
+		cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client)
 		fallthrough
 	case installv1alpha1.UninstallComplete, installv1alpha1.UpgradeComplete:
 		cr.Status.State = installv1alpha1.Ready
