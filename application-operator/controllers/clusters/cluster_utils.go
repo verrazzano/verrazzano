@@ -42,9 +42,6 @@ type ElasticsearchDetails struct {
 // needs to be done
 func StatusNeedsUpdate(curConditions []clustersv1alpha1.Condition, curState clustersv1alpha1.StateType,
 	newCondition clustersv1alpha1.Condition, newState clustersv1alpha1.StateType) bool {
-	if newState == clustersv1alpha1.Failed {
-		return true
-	}
 	if newState != curState {
 		return true
 	}
@@ -54,6 +51,7 @@ func StatusNeedsUpdate(curConditions []clustersv1alpha1.Condition, curState clus
 			existingCond.Message == newCondition.Message &&
 			existingCond.Type == newCondition.Type {
 			foundStatus = true
+			break
 		}
 	}
 	return !foundStatus
