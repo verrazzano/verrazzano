@@ -4,13 +4,18 @@
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// VerrazzanoProjectSpec defines the desired state of VerrazzanoProject - a VerrazzanoProject
-// contains a list of Kubernetes namespaces which are part of the project
+// ProjectTemplate contains the resources for a project
+type ProjectTemplate struct {
+	Namespaces []corev1.Namespace `json:"namespaces"`
+}
+
+// VerrazzanoProjectSpec defines the desired state of VerrazzanoProject
 type VerrazzanoProjectSpec struct {
-	Namespaces []string `json:"namespaces"`
+	Template ProjectTemplate `json:"template"`
 }
 
 // VerrazzanoProjectStatus defines the observed state of VerrazzanoProject
