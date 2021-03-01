@@ -161,7 +161,6 @@ pipeline {
                                 echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
                                 ./tests/e2e/config/scripts/process_operator_yaml.sh platform-operator "${VERRAZZANO_OPERATOR_IMAGE}"
                             fi
-                            cat /tmp/operator.yaml
                             kubectl apply -f /tmp/operator.yaml
 
                             # make sure ns exists
