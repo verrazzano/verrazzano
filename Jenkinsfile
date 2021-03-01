@@ -361,7 +361,6 @@ pipeline {
                             fi
 
                             # Install the verrazzano-platform-operator
-                            cat /tmp/operator.yaml
                             kubectl apply -f /tmp/operator.yaml
 
                             # make sure ns exists
