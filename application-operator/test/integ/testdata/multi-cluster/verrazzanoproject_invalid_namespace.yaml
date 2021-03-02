@@ -8,5 +8,7 @@ metadata:
 spec:
   template:
     namespaces:
-      - name: cluster1
-      - name: cluster2
+      - metadata:
+          name: cluster1
+      - metadata:
+          name: cluster2

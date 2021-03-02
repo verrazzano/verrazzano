@@ -6,6 +6,9 @@ metadata:
   name: myvzproj
   namespace: verrazzano-mc
 spec:
-  namespaces:
-    - multiclustertest
-    - some-other-ns
+  template:
+    namespaces:
+      - metadata:
+         name: multiclustertest
+      - metadata:
+          name: some-other-ns
