@@ -1,3 +1,6 @@
+// Copyright (c) 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package controllers
 
 import (
@@ -32,7 +35,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncElasticsearchSecret(vmc *cluste
 	if err != nil {
 		return err
 	}
-	tlsSecret, err := r.getTlsSecret()
+	tlsSecret, err := r.getTLSSecret()
 	if err != nil {
 		return err
 	}
@@ -108,7 +111,7 @@ func (r *VerrazzanoManagedClusterReconciler) getVzSecret() (corev1.Secret, error
 }
 
 // Get the system-tls secret
-func (r *VerrazzanoManagedClusterReconciler) getTlsSecret() (corev1.Secret, error) {
+func (r *VerrazzanoManagedClusterReconciler) getTLSSecret() (corev1.Secret, error) {
 	var secret corev1.Secret
 	nsn := types.NamespacedName{
 		Namespace: constants.VerrazzanoSystemNamespace,
