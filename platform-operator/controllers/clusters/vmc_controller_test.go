@@ -48,14 +48,6 @@ const (
 func TestCreateVMC(t *testing.T) {
 	namespace := "verrazzano-mc"
 	name := "test"
-	saSecretName := "saSecret"
-	kubeconfigData := "fakekubeconfig"
-	clusterName := "cluster1"
-	caData := "ca"
-	userData := "user"
-	passwordData := "pw"
-	hostdata := "testhost"
-	urlData := "https://testhost:443"
 	labels := map[string]string{"label1": "test"}
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -80,206 +72,11 @@ func TestCreateVMC(t *testing.T) {
 			return nil
 		})
 
-	// The following calls are used by syncServiceAccount
-
-	// Expect a call to get the ServiceAccount - return that it does not exist
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ServiceAccount"}, generateManagedResourceName(name)))
-
-	// Expect a call to create the ServiceAccount - return success
-	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, serviceAccount *corev1.ServiceAccount, opts ...client.CreateOption) error {
-			asserts.Equalf(namespace, serviceAccount.Namespace, "ServiceAccount namespace did not match")
-			asserts.Equalf(generateManagedResourceName(name), serviceAccount.Name, "ServiceAccount name did not match")
-			return nil
-		})
-
-	// Expect a call to update the VerrazzanoManagedCluster service account name - return success
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.Equal(vmc.Spec.ServiceAccount, generateManagedResourceName(name), "ServiceAccount name did not match")
-			return nil
-		})
-
-	// The following calls are used by syncManagedRoleBinding
-
-	// Expect a call to get the ClusterRoleBinding - return that it does not exist
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ServiceAccount"}, generateManagedResourceName(name)))
-
-	// Expect a call to create the ClusterRoleBinding - return success
-	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, binding *rbacv1.ClusterRoleBinding, opts ...client.CreateOption) error {
-			asserts.Equalf(generateManagedResourceName(name), binding.Name, "ClusterRoleBinding name did not match")
-			asserts.Equalf("verrazzano-managed-cluster", binding.RoleRef.Name, "ClusterRoleBinding roleref did not match")
-			asserts.Equalf(generateManagedResourceName(name), binding.Subjects[0].Name, "Subject did not match")
-			asserts.Equalf(namespace, binding.Subjects[0].Namespace, "Subject namespace did not match")
-			return nil
-		})
-
-	// The following calls are used by syncRegistrationSecret
-
-	// Expect a call to get the ServiceAccount, return one with the secret name set
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sa *corev1.ServiceAccount) error {
-			sa.Secrets = []corev1.ObjectReference{{
-				Name: saSecretName,
-			}}
-			return nil
-		})
-
-	// Expect a call to get the service token secret, return the secret with the token
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: saSecretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				tokenKey: []byte(token),
-			}
-			return nil
-		})
-
-	// Expect a call to get the kubeadmin configmap
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vzk8s.KubeSystem, Name: vzk8s.KubeAdminConfig}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, cm *corev1.ConfigMap) error {
-			cm.Data = map[string]string{
-				vzk8s.ClusterStatusKey: kubeAdminData,
-			}
-			return nil
-		})
-
-	// Expect a call to get the registration secret - return that it does not exist
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: GetRegistrationSecretName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Secret"}, GetRegistrationSecretName(name)))
-
-	// Expect a call to create the registration secret
-	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
-			clusterName, _ := secret.Data[managedClusterNameKey]
-			asserts.Equalf(name, string(clusterName), "Incorrect cluster name in cluster secret ")
-			return nil
-		})
-
-	// Expect a call to update the VerrazzanoManagedCluster registration secret name - return success
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.Equal(vmc.Spec.ClusterRegistrationSecret, GetRegistrationSecretName(name), "Registration name did not match")
-			return nil
-		})
-
-	// The following calls are used by syncElasticsearchSecret
-
-	// Expect a call to get the tls ingress and return the ingress.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: vmiIngest}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
-			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
-				Kind:       "ingress"}
-			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name}
-			ingress.Spec.Rules = []k8net.IngressRule{{
-				Host: hostdata,
-			}}
-			return nil
-		})
-
-	// Expect a call to get the Verrazzano secret, return the secret with the fields set
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.Verrazzano}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				usernameKey: []byte(userData),
-				passwordKey: []byte(passwordData),
-			}
-			return nil
-		})
-
-	// Expect a call to get the system-tls secret, return the secret with the fields set
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.SystemTLS}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				caKey: []byte(caData),
-			}
-			return nil
-		})
-
-	// Expect a call to get the Elasticsearch secret - return that it does not exist
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetElasticsearchSecretName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, GetElasticsearchSecretName(name)))
-
-	// Expect a call to create the Elasticsearch secret
-	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
-			ca, _ := secret.Data[caKey]
-			asserts.Equalf(caData, string(ca), "Incorrect cadata in Elasticsearch secret ")
-			user, _ := secret.Data[usernameKey]
-			asserts.Equalf(userData, string(user), "Incorrect user in Elasticsearch secret ")
-			pw, _ := secret.Data[passwordKey]
-			asserts.Equalf(passwordData, string(pw), "Incorrect password in Elasticsearch secret ")
-			url, _ := secret.Data[urlKey]
-			asserts.Equalf(urlData, string(url), "Incorrect URL in Elasticsearch secret ")
-			return nil
-		})
-
-	// The following calls are used by sync_manifest
-	//
-	// Expect a call to get the registration secret
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: GetRegistrationSecretName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				kubeconfigKey:         []byte(kubeconfigData),
-				managedClusterNameKey: []byte(clusterName),
-			}
-			return nil
-		})
-	// Expect a call to get the Elasticsearch secret
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: GetElasticsearchSecretName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				caKey:       []byte(caData),
-				usernameKey: []byte(userData),
-				passwordKey: []byte(passwordData),
-				urlKey:      []byte(urlData),
-			}
-			return nil
-		})
-	// Expect a call to get the manifest secret - return that it does not exist
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: GetManifestSecretName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Secret"}, GetManifestSecretName(name)))
-
-	// Expect a call to create the manifest secret
-	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
-			data, _ := secret.Data[yamlKey]
-			asserts.NotZero(len(data), "Expected yaml data in manifest secret")
-			return nil
-		})
-
-	// Expect a call to update the VerrazzanoManagedCluster kubeconfig secret name - return success
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.Equal(vmc.Spec.ManagedClusterManifestSecret, GetManifestSecretName(name), "Manifest secret name did not match")
-			return nil
-		})
+	expectSyncServiceAccount(t, mock, name, namespace)
+	expectSyncRoleBinding(t, mock, name, namespace)
+	expectSyncRegistration(t, mock, name, namespace)
+	expectSyncElasticsearch(t, mock, name)
+	expectSyncManifest(t, mock, name, namespace)
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -368,4 +165,234 @@ func fakeGetConfig() (*rest.Config, error) {
 		},
 	}
 	return &conf, nil
+}
+
+// Expect syncRegistration related calls
+func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, namespace string) {
+	asserts := assert.New(t)
+	saSecretName := "saSecret"
+
+	// Expect a call to get the ServiceAccount, return one with the secret name set
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sa *corev1.ServiceAccount) error {
+			sa.Secrets = []corev1.ObjectReference{{
+				Name: saSecretName,
+			}}
+			return nil
+		})
+
+	// Expect a call to get the service token secret, return the secret with the token
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: saSecretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				tokenKey: []byte(token),
+			}
+			return nil
+		})
+
+	// Expect a call to get the kubeadmin configmap
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vzk8s.KubeSystem, Name: vzk8s.KubeAdminConfig}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, cm *corev1.ConfigMap) error {
+			cm.Data = map[string]string{
+				vzk8s.ClusterStatusKey: kubeAdminData,
+			}
+			return nil
+		})
+
+	// Expect a call to get the registration secret - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: GetRegistrationSecretName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Secret"}, GetRegistrationSecretName(name)))
+
+	// Expect a call to create the registration secret
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
+			clusterName, _ := secret.Data[managedClusterNameKey]
+			asserts.Equalf(name, string(clusterName), "Incorrect cluster name in cluster secret ")
+			return nil
+		})
+
+	// Expect a call to update the VerrazzanoManagedCluster registration secret name - return success
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(vmc.Spec.ClusterRegistrationSecret, GetRegistrationSecretName(name), "Registration name did not match")
+			return nil
+		})
+}
+
+// Expect syncRoleBinding related calls
+func expectSyncRoleBinding(t *testing.T, mock *mocks.MockClient, name string, namespace string) {
+	asserts := assert.New(t)
+
+	// Expect a call to get the ClusterRoleBinding - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ServiceAccount"}, generateManagedResourceName(name)))
+
+	// Expect a call to create the ClusterRoleBinding - return success
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, binding *rbacv1.ClusterRoleBinding, opts ...client.CreateOption) error {
+			asserts.Equalf(generateManagedResourceName(name), binding.Name, "ClusterRoleBinding name did not match")
+			asserts.Equalf("verrazzano-managed-cluster", binding.RoleRef.Name, "ClusterRoleBinding roleref did not match")
+			asserts.Equalf(generateManagedResourceName(name), binding.Subjects[0].Name, "Subject did not match")
+			asserts.Equalf(namespace, binding.Subjects[0].Namespace, "Subject namespace did not match")
+			return nil
+		})
+}
+
+// Expect syncServiceAccount related calls
+func expectSyncServiceAccount(t *testing.T, mock *mocks.MockClient, name string, namespace string) {
+	asserts := assert.New(t)
+
+	// Expect a call to get the ServiceAccount - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ServiceAccount"}, generateManagedResourceName(name)))
+
+	// Expect a call to create the ServiceAccount - return success
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, serviceAccount *corev1.ServiceAccount, opts ...client.CreateOption) error {
+			asserts.Equalf(namespace, serviceAccount.Namespace, "ServiceAccount namespace did not match")
+			asserts.Equalf(generateManagedResourceName(name), serviceAccount.Name, "ServiceAccount name did not match")
+			return nil
+		})
+
+	// Expect a call to update the VerrazzanoManagedCluster service account name - return success
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(vmc.Spec.ServiceAccount, generateManagedResourceName(name), "ServiceAccount name did not match")
+			return nil
+		})
+}
+
+// Expect syncElasticSearch related calls
+func expectSyncElasticsearch(t *testing.T, mock *mocks.MockClient, name string) {
+	asserts := assert.New(t)
+	caData := "ca"
+	userData := "user"
+	passwordData := "pw"
+	hostdata := "testhost"
+	urlData := "https://testhost:443"
+
+	// Expect a call to get the tls ingress and return the ingress.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: vmiIngest}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name}
+			ingress.Spec.Rules = []k8net.IngressRule{{
+				Host: hostdata,
+			}}
+			return nil
+		})
+
+	// Expect a call to get the Verrazzano secret, return the secret with the fields set
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.Verrazzano}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				usernameKey: []byte(userData),
+				passwordKey: []byte(passwordData),
+			}
+			return nil
+		})
+
+	// Expect a call to get the system-tls secret, return the secret with the fields set
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.SystemTLS}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				caKey: []byte(caData),
+			}
+			return nil
+		})
+
+	// Expect a call to get the Elasticsearch secret - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetElasticsearchSecretName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, GetElasticsearchSecretName(name)))
+
+	// Expect a call to create the Elasticsearch secret
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
+			ca, _ := secret.Data[caKey]
+			asserts.Equalf(caData, string(ca), "Incorrect cadata in Elasticsearch secret ")
+			user, _ := secret.Data[usernameKey]
+			asserts.Equalf(userData, string(user), "Incorrect user in Elasticsearch secret ")
+			pw, _ := secret.Data[passwordKey]
+			asserts.Equalf(passwordData, string(pw), "Incorrect password in Elasticsearch secret ")
+			url, _ := secret.Data[urlKey]
+			asserts.Equalf(urlData, string(url), "Incorrect URL in Elasticsearch secret ")
+			return nil
+		})
+}
+
+// Expect syncManifest related calls
+func expectSyncManifest(t *testing.T, mock *mocks.MockClient, name string, namespace string) {
+	asserts := assert.New(t)
+	clusterName := "cluster1"
+	caData := "ca"
+	userData := "user"
+	passwordData := "pw"
+	kubeconfigData := "fakekubeconfig"
+	urlData := "https://testhost:443"
+
+	// Expect a call to get the registration secret
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: GetRegistrationSecretName(name)}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				kubeconfigKey:         []byte(kubeconfigData),
+				managedClusterNameKey: []byte(clusterName),
+			}
+			return nil
+		})
+
+	// Expect a call to get the Elasticsearch secret
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: GetElasticsearchSecretName(name)}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				caKey:       []byte(caData),
+				usernameKey: []byte(userData),
+				passwordKey: []byte(passwordData),
+				urlKey:      []byte(urlData),
+			}
+			return nil
+		})
+
+	// Expect a call to get the manifest secret - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: GetManifestSecretName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Secret"}, GetManifestSecretName(name)))
+
+	// Expect a call to create the manifest secret
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
+			data, _ := secret.Data[yamlKey]
+			asserts.NotZero(len(data), "Expected yaml data in manifest secret")
+			return nil
+		})
+
+	// Expect a call to update the VerrazzanoManagedCluster kubeconfig secret name - return success
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(vmc.Spec.ManagedClusterManifestSecret, GetManifestSecretName(name), "Manifest secret name did not match")
+			return nil
+		})
 }
