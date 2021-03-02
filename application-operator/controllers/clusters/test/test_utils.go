@@ -97,4 +97,3 @@ func AssertMultiClusterResourceStatus(assert *assert.Assertions,
 	assert.Equal(expectedConditionType, actualConditions[0].Type)
 	assert.Equal(UnitTestClusterName, actualConditions[0].ClusterName)
 }
-

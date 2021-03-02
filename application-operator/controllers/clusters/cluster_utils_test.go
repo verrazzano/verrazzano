@@ -31,12 +31,12 @@ func TestFetchManagedClusterElasticSearchDetails_Exists(t *testing.T) {
 	mocker := gomock.NewController(t)
 	cli := mocks.NewMockClient(mocker)
 
-	esUrl := "https://someEsUrl"
+	esURL := "https://someEsUrl"
 	esUser := "someEsUser"
 	esPwd := "xyzabc"
 	esSecret1 := v1.Secret{
 		Data: map[string][]byte{
-			constants.ElasticsearchURLData:      []byte(esUrl),
+			constants.ElasticsearchURLData:      []byte(esURL),
 			constants.ElasticsearchUsernameData: []byte(esUser),
 			constants.ElasticsearchPasswordData: []byte(esPwd)},
 	}
@@ -54,7 +54,7 @@ func TestFetchManagedClusterElasticSearchDetails_Exists(t *testing.T) {
 
 	esDetails := FetchManagedClusterElasticSearchDetails(context.TODO(), cli)
 
-	asserts.Equal(t, esUrl, esDetails.URL)
+	asserts.Equal(t, esURL, esDetails.URL)
 	asserts.Equal(t, esSecret1.Name, esDetails.SecretName)
 	mocker.Finish()
 }
