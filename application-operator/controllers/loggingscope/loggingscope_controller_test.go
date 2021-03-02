@@ -390,7 +390,7 @@ func TestFetchLoggingScopeWithDefaults(t *testing.T) {
 			return nil
 		})
 	// logging scope URL and secret are empty so expect a call to get the cluster secret, return NotFound
-	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCRegistrationSecretFullName), gomock.Not(gomock.Nil())).
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCElasticsearchSecretFullName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *v1.Secret) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
@@ -435,7 +435,7 @@ func TestApplyDefaults(t *testing.T) {
 	}
 
 	// logging scope URL and secret are empty so expect a call to get the cluster secret, return NotFound
-	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCRegistrationSecretFullName), gomock.Not(gomock.Nil())).
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCElasticsearchSecretFullName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *v1.Secret) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
@@ -464,7 +464,7 @@ func TestApplyDefaults(t *testing.T) {
 	}
 
 	// logging scope URL and secret are empty so expect a call to get the cluster secret, return NotFound
-	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCRegistrationSecretFullName), gomock.Not(gomock.Nil())).
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCElasticsearchSecretFullName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *v1.Secret) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
@@ -557,7 +557,7 @@ func TestApplyDefaultsForManagedCluster(t *testing.T) {
 		constants.ElasticsearchURLData: []byte(adminClusterESURL)}}
 
 	// logging scope URL and secret are empty so expect a call to get the cluster secret
-	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCRegistrationSecretFullName), gomock.Not(gomock.Nil())).
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCElasticsearchSecretFullName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *v1.Secret) error {
 			secret.Data = mcSecret.Data
 			return nil
