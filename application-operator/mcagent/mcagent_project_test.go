@@ -6,6 +6,7 @@ package mcagent
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -96,7 +97,7 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 			false,
 		},
 		{
-			"VP not in verrazzano-mc namespace",
+			fmt.Sprintf("VP not in %s namespace", constants.VerrazzanoMultiClusterNamespace),
 			fields{
 				"random-namespace",
 				"vpInRandomNamespace",

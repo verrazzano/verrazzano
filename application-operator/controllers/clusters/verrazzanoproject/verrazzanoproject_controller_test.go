@@ -5,6 +5,7 @@ package verrazzanoproject
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -108,7 +109,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 			false,
 		},
 		{
-			"VP not in verrazzano-mc namespace",
+			fmt.Sprintf("VP not in %s namespace", constants.VerrazzanoMultiClusterNamespace),
 			fields{
 				"random-namespace",
 				existingVP,
