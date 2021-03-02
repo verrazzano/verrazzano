@@ -68,12 +68,6 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
 
-<<<<<<< HEAD
-	// First expect it to check for a managed cluster Elasticsearch secret
-	doExpectGetManagedClusterElasticsearchSecretNotFound(cli)
-
-=======
->>>>>>> 7aae8a19... Default all logging scope fields if they are not specified
 	// Expect get existing logging scope (non-existent)
 	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, scope *vzapi.LoggingScope) error {
