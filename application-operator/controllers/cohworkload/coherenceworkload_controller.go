@@ -276,7 +276,7 @@ func (r *Reconciler) disableIstioInjection(log logr.Logger, u *unstructured.Unst
 
 // addLogging adds a FLUENTD sidecar and updates the Coherence spec if there is an associated LoggingScope
 func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace string, labels map[string]string, coherenceSpec map[string]interface{}) error {
-	loggingScope, err := vznav.LoggingScopeFromWorkloadLabels(ctx, r.Client, namespace, labels)
+	loggingScope, err := loggingscope.FromWorkloadLabels(ctx, r.Client, namespace, labels)
 	if err != nil {
 		return err
 	}

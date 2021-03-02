@@ -12,7 +12,6 @@ import (
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
-	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -277,7 +276,7 @@ func mergeMapOverrideWithDest(src, dst map[string]string) map[string]string {
 
 // addLogging adds a FLUENTD sidecar and configmap and updates the Deployment
 func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace string, labels map[string]string, deployment *appsv1.Deployment) error {
-	loggingScope, err := vznav.LoggingScopeFromWorkloadLabels(ctx, r.Client, namespace, labels)
+	loggingScope, err := loggingscope.FromWorkloadLabels(ctx, r.Client, namespace, labels)
 	if err != nil {
 		return err
 	}
