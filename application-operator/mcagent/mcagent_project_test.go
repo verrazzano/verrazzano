@@ -208,7 +208,7 @@ func TestDeleteVerrazzanoProject(t *testing.T) {
 	type fields struct {
 		vpNamespace string
 		vpName      string
-		nsNames     []corev1.Namespace
+		nsList      []corev1.Namespace
 	}
 	tests := []struct {
 		name    string
@@ -239,9 +239,9 @@ func TestDeleteVerrazzanoProject(t *testing.T) {
 			adminMock := mocks.NewMockClient(adminMocker)
 
 			// Test data
-			testProj, err := getTestVerrazzanoProject(tt.fields.vpNamespace, tt.fields.vpName, tt.fields.nsNames)
+			testProj, err := getTestVerrazzanoProject(tt.fields.vpNamespace, tt.fields.vpName, tt.fields.nsList)
 			assert.NoError(err, "failed to get sample project")
-			testProjOrphan, err := getTestVerrazzanoProject(tt.fields.vpNamespace, tt.fields.vpName+"-orphan", tt.fields.nsNames)
+			testProjOrphan, err := getTestVerrazzanoProject(tt.fields.vpNamespace, tt.fields.vpName+"-orphan", tt.fields.nsList)
 			assert.NoError(err, "failed to get sample project")
 
 			// Admin Cluster - expect call to list VerrazzanoProject objects - return list with one object
@@ -258,7 +258,7 @@ func TestDeleteVerrazzanoProject(t *testing.T) {
 				DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
 					vp.Namespace = tt.fields.vpNamespace
 					vp.Name = tt.fields.vpName
-					vp.Spec.Template.Namespaces = tt.fields.nsNames
+					vp.Spec.Template.Namespaces = tt.fields.nsList
 					return nil
 				})
 
@@ -296,8 +296,8 @@ func TestDeleteVerrazzanoProject(t *testing.T) {
 			}
 
 			// Validate the namespace list that resulted from processing the VerrazzanoProject objects
-			assert.Equal(len(tt.fields.nsNames), len(s.ProjectNamespaces), "number of expected namespaces did not match")
-			for _, namespace := range tt.fields.nsNames {
+			assert.Equal(len(tt.fields.nsList), len(s.ProjectNamespaces), "number of expected namespaces did not match")
+			for _, namespace := range tt.fields.nsList {
 				assert.True(controllers.StringSliceContainsString(s.ProjectNamespaces, namespace.Name), "expected namespace not being watched")
 			}
 		})
@@ -312,7 +312,7 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 	type fields struct {
 		vpNamespace string
 		vpName      string
-		nsNames     []corev1.Namespace
+		nsList      []corev1.Namespace
 	}
 	tests := []struct {
 		name               string
@@ -366,9 +366,9 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 			adminMock := mocks.NewMockClient(adminMocker)
 
 			// Test data
-			testProj1, err := getTestVerrazzanoProject(tt.vp1Fields.vpNamespace, tt.vp1Fields.vpName, tt.vp1Fields.nsNames)
+			testProj1, err := getTestVerrazzanoProject(tt.vp1Fields.vpNamespace, tt.vp1Fields.vpName, tt.vp1Fields.nsList)
 			assert.NoError(err, "failed to get sample project")
-			testProj2, err := getTestVerrazzanoProject(tt.vp2Fields.vpNamespace, tt.vp2Fields.vpName, tt.vp2Fields.nsNames)
+			testProj2, err := getTestVerrazzanoProject(tt.vp2Fields.vpNamespace, tt.vp2Fields.vpName, tt.vp2Fields.nsList)
 			assert.NoError(err, "failed to get sample project")
 
 			// Admin Cluster - expect call to list VerrazzanoProject objects - return list with two objects
@@ -392,7 +392,7 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 					DoAndReturn(func(ctx context.Context, vp *clustersv1alpha1.VerrazzanoProject, opts ...client.CreateOption) error {
 						assert.Equal(tt.vp1Fields.vpNamespace, vp.Namespace, "VerrazzanoProject namespace did not match")
 						assert.Equal(tt.vp1Fields.vpName, vp.Name, "VerrazzanoProject name did not match")
-						assert.ElementsMatch(tt.vp1Fields.nsNames, vp.Spec.Template.Namespaces)
+						assert.ElementsMatch(tt.vp1Fields.nsList, vp.Spec.Template.Namespaces)
 						return nil
 					})
 
@@ -407,7 +407,7 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 					DoAndReturn(func(ctx context.Context, vp *clustersv1alpha1.VerrazzanoProject, opts ...client.CreateOption) error {
 						assert.Equal(tt.vp2Fields.vpNamespace, vp.Namespace, "VerrazzanoProject namespace did not match")
 						assert.Equal(tt.vp2Fields.vpName, vp.Name, "VerrazzanoProject name did not match")
-						assert.ElementsMatch(tt.vp2Fields.nsNames, vp.Spec.Template.Namespaces)
+						assert.ElementsMatch(tt.vp2Fields.nsList, vp.Spec.Template.Namespaces)
 						return nil
 					})
 
@@ -442,10 +442,10 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 
 			// Validate the namespace list that resulted from processing the VerrazzanoProject objects
 			assert.Equal(tt.expectedNamespaces, len(s.ProjectNamespaces), "number of expected namespaces did not match")
-			for _, namespace := range tt.vp1Fields.nsNames {
+			for _, namespace := range tt.vp1Fields.nsList {
 				assert.True(controllers.StringSliceContainsString(s.ProjectNamespaces, namespace.Name), "expected namespace not being watched")
 			}
-			for _, namespace := range tt.vp2Fields.nsNames {
+			for _, namespace := range tt.vp2Fields.nsList {
 				assert.True(controllers.StringSliceContainsString(s.ProjectNamespaces, namespace.Name), "expected namespace not being watched")
 			}
 		})

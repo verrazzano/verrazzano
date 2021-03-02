@@ -82,7 +82,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 	type fields struct {
 		vpNamespace string
 		vpName      string
-		nsNames     []corev1.Namespace
+		nsList      []corev1.Namespace
 	}
 	tests := []struct {
 		name    string
@@ -140,29 +140,29 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 					DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
 						vp.Namespace = tt.fields.vpNamespace
 						vp.Name = tt.fields.vpName
-						vp.Spec.Template.Namespaces = tt.fields.nsNames
+						vp.Spec.Template.Namespaces = tt.fields.nsList
 						return nil
 					})
 
 				if tt.fields.vpNamespace == constants.VerrazzanoMultiClusterNamespace {
-					if tt.fields.nsNames[0].Name == existingNS.Name {
+					if tt.fields.nsList[0].Name == existingNS.Name {
 						// expect call to get a namespace
 						mockClient.EXPECT().
-							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: tt.fields.nsNames[0].Name}, gomock.Not(gomock.Nil())).
+							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: tt.fields.nsList[0].Name}, gomock.Not(gomock.Nil())).
 							DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
 								return nil
 							})
 					} else {
 						// expect call to get a namespace that returns namespace not found
 						mockClient.EXPECT().
-							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: tt.fields.nsNames[0].Name}, gomock.Not(gomock.Nil())).
-							Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Namespace"}, tt.fields.nsNames[0].Name))
+							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: tt.fields.nsList[0].Name}, gomock.Not(gomock.Nil())).
+							Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Namespace"}, tt.fields.nsList[0].Name))
 
 						// expect call to create a namespace
 						mockClient.EXPECT().
 							Create(gomock.Any(), gomock.Any()).
 							DoAndReturn(func(ctx context.Context, ns *corev1.Namespace) error {
-								assert.Equal(tt.fields.nsNames[0].Name, ns.Name, "namespace name did not match")
+								assert.Equal(tt.fields.nsList[0].Name, ns.Name, "namespace name did not match")
 								return nil
 							})
 					}
