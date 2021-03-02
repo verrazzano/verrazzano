@@ -5,6 +5,8 @@ package helidonworkload
 
 import (
 	"context"
+	"reflect"
+
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
@@ -15,7 +17,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
