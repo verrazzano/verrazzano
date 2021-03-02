@@ -66,6 +66,8 @@ spec:
                                 type: string
                               type: array
                           type: object
+                      required:
+                      - metadata
                       type: object
                     type: array
                 required:
