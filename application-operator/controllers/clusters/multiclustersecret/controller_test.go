@@ -142,11 +142,7 @@ func TestReconcileUpdateSecret(t *testing.T) {
 		})
 
 	// expect a call to update the status of the multicluster secret
-	cli.EXPECT().Status().Return(mockStatusWriter)
-
-	mockStatusWriter.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&mcSecretSample)).
-		Return(nil)
+	doExpectStatusUpdateSucceeded(cli, mockStatusWriter, assert)
 
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
@@ -327,6 +323,9 @@ func doExpectGetSecretExists(cli *mocks.MockClient, metadata metav1.ObjectMeta, 
 
 // doExpectStatusUpdateFailed expects a call to update status of MultiClusterSecret to failure
 func doExpectStatusUpdateFailed(cli *mocks.MockClient, mockStatusWriter *mocks.MockStatusWriter, assert *asserts.Assertions) {
+	// expect a call to fetch the MCRegistration secret to get the cluster name for status update
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to update the status of the multicluster secret
 	cli.EXPECT().Status().Return(mockStatusWriter)
 
@@ -334,13 +333,17 @@ func doExpectStatusUpdateFailed(cli *mocks.MockClient, mockStatusWriter *mocks.M
 	mockStatusWriter.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterSecret{})).
 		DoAndReturn(func(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret) error {
-			assertMultiClusterSecretStatus(assert, mcSecret, clustersv1alpha1.Failed, clustersv1alpha1.DeployFailed, v1.ConditionTrue)
+			clusterstest.AssertMultiClusterResourceStatus(assert, mcSecret.Status.State, mcSecret.Status.Conditions,
+				clustersv1alpha1.Failed, clustersv1alpha1.DeployFailed, v1.ConditionTrue)
 			return nil
 		})
 }
 
 // doExpectStatusUpdateSucceeded expects a call to update status of MultiClusterSecret to success
 func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mocks.MockStatusWriter, assert *asserts.Assertions) {
+	// expect a call to fetch the MCRegistration secret to get the cluster name for status update
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to update the status of the multicluster secret
 	cli.EXPECT().Status().Return(mockStatusWriter)
 
@@ -348,7 +351,8 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 	mockStatusWriter.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterSecret{})).
 		DoAndReturn(func(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret) error {
-			assertMultiClusterSecretStatus(assert, mcSecret, clustersv1alpha1.Ready, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
+			clusterstest.AssertMultiClusterResourceStatus(assert, mcSecret.Status.State, mcSecret.Status.Conditions,
+				clustersv1alpha1.Ready, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
 			return nil
 		})
 }
@@ -364,15 +368,6 @@ func doExpectGetMultiClusterSecret(cli *mocks.MockClient, mcSecretSample cluster
 			mcSecret.Spec = mcSecretSample.Spec
 			return nil
 		})
-}
-
-// assertMultiClusterSecretStatus asserts that the status and conditions on the MultiClusterSecret
-// are as expected
-func assertMultiClusterSecretStatus(assert *asserts.Assertions, mcSecret *clustersv1alpha1.MultiClusterSecret, state clustersv1alpha1.StateType, condition clustersv1alpha1.ConditionType, conditionStatus v1.ConditionStatus) {
-	assert.Equal(state, mcSecret.Status.State)
-	assert.Equal(1, len(mcSecret.Status.Conditions))
-	assert.Equal(conditionStatus, mcSecret.Status.Conditions[0].Status)
-	assert.Equal(condition, mcSecret.Status.Conditions[0].Type)
 }
 
 // assertSecretValid asserts that the metadata and content of the created/updated K8S secret
@@ -396,7 +391,7 @@ func getSampleMCSecret(ns string, name string, secretData map[string][]byte) clu
 	mcSecret.ObjectMeta.Name = crName
 	mcSecret.APIVersion = clustersv1alpha1.GroupVersion.String()
 	mcSecret.Kind = "MultiClusterSecret"
-	mcSecret.Spec.Placement.Clusters = []clustersv1alpha1.Cluster{{Name: "cluster1"}}
+	mcSecret.Spec.Placement.Clusters = []clustersv1alpha1.Cluster{{Name: clusterstest.UnitTestClusterName}}
 	return mcSecret
 }
 

@@ -123,7 +123,7 @@ func ensureDefaultLoggingScope(c client.Client, appConfig *oamv1.ApplicationConf
 		if scope == nil && err == nil {
 			// We might be running in a managed cluster - fetch the Elasticsearch Details to use in
 			// that case
-			elasticSearchDetails := clusters.FetchManagedClusterElasticSearchDetails(context.TODO(), c, log)
+			elasticSearchDetails := clusters.FetchManagedClusterElasticSearchDetails(context.TODO(), c)
 			err = c.Create(
 				context.TODO(),
 				CreateDefaultLoggingScope(namespacedName, elasticSearchDetails),

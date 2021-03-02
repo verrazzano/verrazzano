@@ -49,7 +49,8 @@ func StatusNeedsUpdate(curConditions []clustersv1alpha1.Condition, curState clus
 	for _, existingCond := range curConditions {
 		if existingCond.Status == newCondition.Status &&
 			existingCond.Message == newCondition.Message &&
-			existingCond.Type == newCondition.Type {
+			existingCond.Type == newCondition.Type &&
+			existingCond.ClusterName == newCondition.ClusterName {
 			foundStatus = true
 			break
 		}
@@ -60,13 +61,14 @@ func StatusNeedsUpdate(curConditions []clustersv1alpha1.Condition, curState clus
 // GetConditionAndStateFromResult - Based on the result of a create/update operation on the
 // embedded resource, returns the Condition and State that must be set on a MultiCluster
 // resource's Status
-func GetConditionAndStateFromResult(err error, opResult controllerutil.OperationResult, msgPrefix string) (clustersv1alpha1.Condition, clustersv1alpha1.StateType) {
+func GetConditionAndStateFromResult(err error, opResult controllerutil.OperationResult, msgPrefix string, clusterName string) (clustersv1alpha1.Condition, clustersv1alpha1.StateType) {
 	var condition clustersv1alpha1.Condition
 	var state clustersv1alpha1.StateType
 	if err != nil {
 		condition = clustersv1alpha1.Condition{
 			Type:               clustersv1alpha1.DeployFailed,
 			Status:             corev1.ConditionTrue,
+			ClusterName:        clusterName,
 			Message:            err.Error(),
 			LastTransitionTime: time.Now().Format(time.RFC3339),
 		}
@@ -76,6 +78,7 @@ func GetConditionAndStateFromResult(err error, opResult controllerutil.Operation
 		condition = clustersv1alpha1.Condition{
 			Type:               clustersv1alpha1.DeployComplete,
 			Status:             corev1.ConditionTrue,
+			ClusterName:        clusterName,
 			Message:            msg,
 			LastTransitionTime: time.Now().Format(time.RFC3339),
 		}
@@ -124,7 +127,7 @@ func IgnoreNotFoundWithLog(resourceType string, err error, logger logr.Logger) e
 // FetchManagedClusterElasticSearchDetails fetches Elasticsearch details to use for system and
 // application logs on this managed cluster. If this cluster is NOT a managed cluster (i.e. does not
 // have the managed cluster secret), an empty ElasticsearchDetails will be returned
-func FetchManagedClusterElasticSearchDetails(ctx context.Context, rdr client.Reader, logger logr.Logger) ElasticsearchDetails {
+func FetchManagedClusterElasticSearchDetails(ctx context.Context, rdr client.Reader) ElasticsearchDetails {
 	esDetails := ElasticsearchDetails{}
 	esSecret := corev1.Secret{}
 	err := fetchElasticsearchSecret(ctx, rdr, &esSecret)

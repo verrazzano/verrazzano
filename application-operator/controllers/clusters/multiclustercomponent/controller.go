@@ -82,7 +82,8 @@ func (r *Reconciler) mutateComponent(mcComp clustersv1alpha1.MultiClusterCompone
 }
 
 func (r *Reconciler) updateStatus(ctx context.Context, mcComp *clustersv1alpha1.MultiClusterComponent, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {
-	condition, state := clusters.GetConditionAndStateFromResult(err, opResult, "OAM Component")
+	clusterName := clusters.GetClusterName(ctx, r.Client)
+	condition, state := clusters.GetConditionAndStateFromResult(err, opResult, "OAM Component", clusterName)
 	if clusters.StatusNeedsUpdate(mcComp.Status.Conditions, mcComp.Status.State, condition, state) {
 		mcComp.Status.State = state
 		mcComp.Status.Conditions = append(mcComp.Status.Conditions, condition)
