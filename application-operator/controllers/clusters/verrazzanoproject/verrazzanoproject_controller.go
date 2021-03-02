@@ -6,11 +6,8 @@ package verrazzanoproject
 import (
 	"context"
 
-	"github.com/verrazzano/verrazzano/application-operator/constants"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/go-logr/logr"
-	corev1 "k8s.io/api/core/v1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -55,10 +52,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
 	if vp.Namespace == constants.VerrazzanoMultiClusterNamespace {
-		for _, namespace := range vp.Spec.Namespaces {
-			logger.Info("create or update with underlying namespace", "namespace", namespace)
-			nsSpec := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
-			controllerutil.CreateOrUpdate(ctx, r.Client, nsSpec, func() error {
+		for _, namespace := range vp.Spec.Template.Namespaces {
+			logger.Info("create or update with underlying namespace", "namespace", namespace.Name)
+			controllerutil.CreateOrUpdate(ctx, r.Client, &namespace, func() error {
 				return nil
 			})
 		}
