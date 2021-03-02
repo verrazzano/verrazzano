@@ -82,7 +82,7 @@ func (r *Reconciler) mutateLoggingScope(mcLogScope clustersv1alpha1.MultiCluster
 
 func (r *Reconciler) updateStatus(ctx context.Context, mcLogScope *clustersv1alpha1.MultiClusterLoggingScope, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {
 	condition, state := clusters.GetConditionAndStateFromResult(err, opResult, "LoggingScope")
-	if clusters.StatusNeedsUpdate(mcLogScope.Status.Conditions, state, condition, state) {
+	if clusters.StatusNeedsUpdate(mcLogScope.Status.Conditions, mcLogScope.Status.State, condition, state) {
 		mcLogScope.Status.State = state
 		mcLogScope.Status.Conditions = append(mcLogScope.Status.Conditions, condition)
 		return reconcile.Result{}, r.Status().Update(ctx, mcLogScope)

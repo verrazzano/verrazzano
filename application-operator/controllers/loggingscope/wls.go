@@ -78,16 +78,16 @@ const WlsFluentdParsingRules = `<match fluent.**>
     oam.applicationconfiguration.name "#{ENV['APP_CONF_NAME']}"
     oam.component.namespace "#{ENV['NAMESPACE']}"
     oam.component.name  "#{ENV['COMPONENT_NAME']}"
+    verrazzano.cluster.name  "#{ENV['CLUSTER_NAME']}"
   </record>
 </filter>
 <match **>
   @type elasticsearch
-  host "#{ENV['ELASTICSEARCH_HOST']}"
-  port "#{ENV['ELASTICSEARCH_PORT']}"
+  hosts "#{ENV['ELASTICSEARCH_URL']}"
+  ca_file /fluentd/secret/ca-bundle
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
   index_name "` + ElasticSearchIndex + `"
-  scheme http
   key_name timestamp 
   types timestamp:time
   include_timestamp true

@@ -29,9 +29,7 @@ func StartAgent(client client.Client, log logr.Logger) {
 
 	for {
 		err := client.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}, &secret)
-		if err != nil {
-			time.Sleep(60 * time.Second)
-		} else {
+		if err == nil {
 			err := validateClusterSecret(&secret)
 			if err != nil {
 				log.Error(err, "Secret validation failed")
@@ -39,6 +37,7 @@ func StartAgent(client client.Client, log logr.Logger) {
 				break
 			}
 		}
+		time.Sleep(60 * time.Second)
 	}
 
 	// The cluster secret exists

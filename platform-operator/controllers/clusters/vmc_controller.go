@@ -68,28 +68,35 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	// Reconcile the service account
-	err = r.reconcileServiceAccount(vmc)
+	// Sync the service account
+	err = r.syncServiceAccount(vmc)
 	if err != nil {
-		log.Infof("Failed to reconcile the ServiceAccount: %v", err)
+		log.Infof("Failed to sync the ServiceAccount: %v", err)
 		return ctrl.Result{}, err
 	}
 
-	err = r.reconcileManagedRoleBinding(vmc)
+	err = r.syncManagedRoleBinding(vmc)
 	if err != nil {
-		log.Infof("Failed to reconcile the ServiceAccount: %v", err)
+		log.Infof("Failed to sync the ServiceAccount: %v", err)
 		return ctrl.Result{}, err
 	}
 
-	err = r.reconcileKubeConfig(vmc)
+	err = r.syncRegistrationSecret(vmc)
 	if err != nil {
-		log.Infof("Failed to reconcile the kubeconfig used by managed cluster: %v", err)
+		log.Infof("Failed to sync the kubeconfig used by managed cluster: %v", err)
 		return ctrl.Result{}, err
 	}
+
+	err = r.syncManifestSecret(vmc)
+	if err != nil {
+		log.Infof("Failed to sync the YAML manifest secret used by managed cluster: %v", err)
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
-func (r *VerrazzanoManagedClusterReconciler) reconcileServiceAccount(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+func (r *VerrazzanoManagedClusterReconciler) syncServiceAccount(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 	// Create or update the service account
 	_, err := r.createOrUpdateServiceAccount(context.TODO(), vmc)
 	if err != nil {
@@ -128,9 +135,9 @@ func (r *VerrazzanoManagedClusterReconciler) mutateServiceAccount(vmc *clustersv
 	serviceAccount.Name = generateManagedResourceName(vmc.Name)
 }
 
-// reconcileManagedRoleBinding reconciles the ClusterRoleBinding that binds the service account used by the managed cluster
+// syncManagedRoleBinding syncs the ClusterRoleBinding that binds the service account used by the managed cluster
 // to the role containing the permission
-func (r *VerrazzanoManagedClusterReconciler) reconcileManagedRoleBinding(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+func (r *VerrazzanoManagedClusterReconciler) syncManagedRoleBinding(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 	bindingName := generateManagedResourceName(vmc.Name)
 	var binding rbacv1.ClusterRoleBinding
 	binding.Name = bindingName
@@ -148,7 +155,7 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileManagedRoleBinding(vmc *cl
 	return err
 }
 
-// mutateBinding mutes the ClusterRoleBinding to ensure it has the valid params
+// mutateBinding mutates the ClusterRoleBinding to ensure it has the valid params
 func mutateBinding(binding *rbacv1.ClusterRoleBinding, p bindingParams) {
 	binding.ObjectMeta = metav1.ObjectMeta{
 		Name:   p.roleBindingName,
@@ -186,7 +193,7 @@ func mutateBinding(binding *rbacv1.ClusterRoleBinding, p bindingParams) {
 
 // Generate the common name used by all resources specific to a given managed cluster
 func generateManagedResourceName(clusterName string) string {
-	return fmt.Sprintf("%s-managed-cluster", clusterName)
+	return fmt.Sprintf("verrazzano-cluster-%s", clusterName)
 }
 
 // SetupWithManager creates a new controller and adds it to the manager

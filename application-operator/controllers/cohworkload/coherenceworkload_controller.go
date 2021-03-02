@@ -6,14 +6,19 @@ package cohworkload
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
+	istionet "istio.io/api/networking/v1alpha3"
+	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -45,7 +50,7 @@ multiline_flush_interval 20s
 <filter coherence-cluster>                  
 @type record_transformer
 <record>
- cluster "#{ENV['COH_CLUSTER_NAME']}"
+ coherence.cluster.name "#{ENV['COH_CLUSTER_NAME']}"
  role "#{ENV['COH_ROLE']}"
  host "#{ENV['HOSTNAME']}"
  pod-uid "#{ENV['COH_POD_UID']}"
@@ -53,17 +58,17 @@ multiline_flush_interval 20s
  oam.applicationconfiguration.name "#{ENV['APP_CONF_NAME']}"
  oam.component.namespace "#{ENV['NAMESPACE']}"
  oam.component.name  "#{ENV['COMPONENT_NAME']}"
+ verrazzano.cluster.name  "#{ENV['CLUSTER_NAME']}"
 </record>
 </filter>
 
 <match coherence-cluster>
   @type elasticsearch
-  host "#{ENV['ELASTICSEARCH_HOST']}"
-  port "#{ENV['ELASTICSEARCH_PORT']}"
+  hosts "#{ENV['ELASTICSEARCH_URL']}"
+  ca_file /fluentd/secret/ca-bundle
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
   index_name "` + loggingscope.ElasticSearchIndex + `"
-  scheme http
   key_name timestamp 
   types timestamp:time
   include_timestamp true
@@ -71,11 +76,13 @@ multiline_flush_interval 20s
 `
 
 const (
-	specField = "spec"
-	jvmField  = "jvm"
-	argsField = "args"
-
-	workloadType = "coherence"
+	specField                 = "spec"
+	jvmField                  = "jvm"
+	argsField                 = "args"
+	workloadType              = "coherence"
+	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
+	destinationRuleKind       = "DestinationRule"
+	coherenceExtendPort       = 9000
 )
 
 var specLabelsFields = []string{specField, "labels"}
@@ -184,6 +191,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 		log.Info("Coherence CR already exists, ignoring error on create")
 		return reconcile.Result{}, nil
+	}
+
+	// Get the namespace resource that the VerrazzanoCoherenceWorkload resource is deployed to
+	namespace := &corev1.Namespace{}
+	if err = r.Client.Get(ctx, client.ObjectKey{Namespace: "", Name: req.NamespacedName.Namespace}, namespace); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if err = r.createOrUpdateDestinationRule(ctx, log, namespace.Name, namespace.Labels, workload.ObjectMeta.Labels); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	log.Info("Successfully created Verrazzano Coherence workload")
@@ -382,4 +399,77 @@ func addJvmArgs(coherenceSpec map[string]interface{}) {
 		args = append(args, additionalJvmArgs...)
 	}
 	jvm[argsField] = args
+}
+
+// createOrUpdateDestinationRule creates or updates an Istio destinationRule required by Coherence.
+// The destinationRule is only created when the namespace has the label istio-injection=enabled.
+func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, log logr.Logger, namespace string, namespaceLabels map[string]string, workloadLabels map[string]string) error {
+	istioEnabled := false
+	value, ok := namespaceLabels["istio-injection"]
+	if ok && value == "enabled" {
+		istioEnabled = true
+	}
+
+	if !istioEnabled {
+		return nil
+	}
+
+	appName, ok := workloadLabels[oam.LabelAppName]
+	if !ok {
+		return errors.New("OAM app name label missing from metadata, unable to generate destination rule name")
+	}
+
+	// Create a destinationRule populating only name metadata.
+	// This is used as default if the destinationRule needs to be created.
+	destinationRule := &istioclient.DestinationRule{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: destinationRuleAPIVersion,
+			Kind:       destinationRuleKind},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      appName,
+		},
+	}
+
+	log.Info(fmt.Sprintf("Creating/updating destination rule %s:%s", namespace, appName))
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, destinationRule, func() error {
+		return r.mutateDestinationRule(destinationRule, namespace, appName)
+	})
+
+	return err
+}
+
+// mutateDestinationRule mutates the output destinationRule.
+func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.DestinationRule, namespace string, appName string) error {
+	// Set the spec content.
+	destinationRule.Spec.Host = fmt.Sprintf("*.%s.svc.cluster.local", namespace)
+	destinationRule.Spec.TrafficPolicy = &istionet.TrafficPolicy{
+		Tls: &istionet.ClientTLSSettings{
+			Mode: istionet.ClientTLSSettings_ISTIO_MUTUAL,
+		},
+	}
+	destinationRule.Spec.TrafficPolicy.PortLevelSettings = []*istionet.TrafficPolicy_PortTrafficPolicy{
+		{
+			// Disable mutual TLS for the Coherence extend port
+			Port: &istionet.PortSelector{
+				Number: coherenceExtendPort,
+			},
+			Tls: &istionet.ClientTLSSettings{
+				Mode: istionet.ClientTLSSettings_DISABLE,
+			},
+		},
+	}
+
+	// Set the owner reference.
+	appConfig := &v1alpha2.ApplicationConfiguration{}
+	err := r.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: appName}, appConfig)
+	if err != nil {
+		return err
+	}
+	err = controllerutil.SetControllerReference(appConfig, destinationRule, r.Scheme)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

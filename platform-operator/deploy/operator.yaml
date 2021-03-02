@@ -79,7 +79,7 @@ spec:
     spec:
       initContainers:
         - name: webhook-init
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.10.0-20210223230330-62d740b
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.12.0-20210302040242-8627637
           imagePullPolicy: IfNotPresent
           args:
             - --zap-log-level=info
@@ -93,7 +93,7 @@ spec:
       containers:
         - name: verrazzano-platform-operator
           imagePullPolicy: IfNotPresent
-          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.10.0-20210223230330-62d740b
+          image: ghcr.io/verrazzano/verrazzano-platform-operator:0.12.0-20210302040242-8627637
           ports:
             - containerPort: 9443
               name: webhook
@@ -116,7 +116,7 @@ spec:
             - name: MODE
               value: RUN_OPERATOR
             - name: VZ_INSTALL_IMAGE
-              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.10.0-20210223230330-62d740b
+              value: ghcr.io/verrazzano/verrazzano-platform-operator:0.12.0-20210302040242-8627637
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
@@ -3314,14 +3314,15 @@ spec:
             description: VerrazzanoManagedClusterSpec defines the desired state of
               VerrazzanoManagedCluster
             properties:
+              clusterRegistrationSecret:
+                description: The name of the generated secret that contains the kubeconfig
+                  to be used by the cluster agent to connect to admin cluster.  This
+                  secret will also contain other fields needed by the agent, such
+                  as the managed cluster name. This field is managed by a Verrazzano
+                  Kubernetes operator.
+                type: string
               description:
                 description: The description of the managed cluster.
-                type: string
-              kubeconfigSecret:
-                description: The name of the generated secret for the kubeconfig to
-                  be used by the managed cluster for connecting to management cluster
-                  to synchronize multi-cluster objects. This field is managed by a
-                  Verrazzano Kubernetes operator.
                 type: string
               managedClusterManifestSecret:
                 description: The name of the secret containing generated YAML manifest

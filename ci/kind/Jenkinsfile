@@ -161,7 +161,6 @@ pipeline {
                                 echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
                                 ./tests/e2e/config/scripts/process_operator_yaml.sh platform-operator "${VERRAZZANO_OPERATOR_IMAGE}"
                             fi
-                            cat /tmp/operator.yaml
                             kubectl apply -f /tmp/operator.yaml
 
                             # make sure ns exists
@@ -189,7 +188,8 @@ pipeline {
                             # Hack
                             # OCR images don't work with KIND.
                             # The ToDoList example image currently cannot be pulled in KIND.
-                            docker pull container-registry.oracle.com/verrazzano/example-todo:0.8.0
+                            . ${GO_REPO_PATH}/verrazzano/tools/scripts/retry-utils.sh
+                            docker_pull_retry container-registry.oracle.com/verrazzano/example-todo:0.8.0
                             kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-todo:0.8.0
                         """
                     }

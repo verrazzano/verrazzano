@@ -37,8 +37,17 @@ var clientset *kubernetes.Clientset
 func GetKubeConfig() *restclient.Config {
 	if config == nil {
 		kubeconfig := ""
-		// if the KUBECONFIG environment variable is set, use that
-		kubeconfigEnvVar := os.Getenv("KUBECONFIG")
+		kubeconfigEnvVar := ""
+		testKubeConfigEnvVar := os.Getenv("TEST_KUBECONFIG")
+		if len(testKubeConfigEnvVar) > 0 {
+			kubeconfigEnvVar = testKubeConfigEnvVar
+		}
+
+		if kubeconfigEnvVar == "" {
+			// if the KUBECONFIG environment variable is set, use that
+			kubeconfigEnvVar = os.Getenv("KUBECONFIG")
+		}
+
 		if len(kubeconfigEnvVar) > 0 {
 			kubeconfig = kubeconfigEnvVar
 		} else if home := homedir.HomeDir(); home != "" {
@@ -283,6 +292,20 @@ func GetNamespace(name string) (*corev1.Namespace, error) {
 
 // CreateNamespace creates a namespace
 func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, error) {
+	if len(os.Getenv("TEST_KUBECONFIG")) > 0 {
+		existingNamespace, err := GetNamespace(name)
+		if err != nil {
+			Log(Error, fmt.Sprintf("CreateNamespace %s, error while getting existing namespace: %v", name, err))
+			return nil, err
+		}
+
+		if existingNamespace != nil && existingNamespace.Name == name {
+			return existingNamespace, nil
+		}
+
+		return nil, fmt.Errorf("CreateNamespace %s, test is running with custom service account and namespace must be pre-created", name)
+	}
+
 	// Get the kubernetes clientset
 	clientset := GetKubernetesClientset()
 
@@ -295,18 +318,26 @@ func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, 
 	ns, err := clientset.CoreV1().Namespaces().Create(context.TODO(), namespace, metav1.CreateOptions{})
 	if err != nil {
 		Log(Error, fmt.Sprintf("CreateNamespace %s error: %v", name, err))
+		return nil, err
 	}
-	return ns, err
+
+	return ns, nil
 }
 
 // DeleteNamespace deletes a namespace
 func DeleteNamespace(name string) error {
+	if len(os.Getenv("TEST_KUBECONFIG")) > 0 {
+		Log(Info, fmt.Sprintf("DeleteNamespace %s, test is running with custom service account and therefore namespace won't be deletd by test", name))
+		return nil
+	}
+
 	// Get the kubernetes clientset
 	clientset := GetKubernetesClientset()
 	err := clientset.CoreV1().Namespaces().Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {
 		Log(Error, fmt.Sprintf("DeleteNamespace %s error: %v", name, err))
 	}
+
 	return err
 }
 

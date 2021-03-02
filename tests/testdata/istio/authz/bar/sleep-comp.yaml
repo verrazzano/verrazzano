@@ -1,0 +1,26 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: sleep
+  namespace: bar
+spec:
+  workload:
+    apiVersion: core.oam.dev/v1alpha2
+    kind: ContainerizedWorkload
+    metadata:
+      name: sleep-workload
+      namespace: bar
+      labels:
+        app: sleep
+    spec:
+      containers:
+      - name: sleep
+        image: "ghcr.io/oracle/oraclelinux:7-slim"
+        command:
+        - "/bin/sleep"
+        - "3650d"
+        ports:
+          - containerPort: 80
+            name: http
