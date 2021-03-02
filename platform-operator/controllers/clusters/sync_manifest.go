@@ -16,7 +16,10 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const yamlKey = "yaml"
+const (
+	yamlKey = "yaml"
+	yamlSep = "---\n"
+)
 
 // Create or update a secret that contains Kubernetes resource YAML which will be applied
 // on the managed cluster to create resources needed there. The YAML has multiple Kubernetes
@@ -24,21 +27,32 @@ const yamlKey = "yaml"
 // resources at once.  This YAML is stored in the Verrazzano manifest secret.
 func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.VerrazzanoManagedCluster) error {
 	const (
-		yamlSep                           = "---\n"
-		targetRegistrationSecretName      = "verrazzano-cluster"
-		targetRegistrationSecretNamespace = "verrazzano-system"
+		yamlSep                            = "---\n"
+		targetRegistrationSecretName       = "verrazzano-cluster"
+		targetRegistrationSecretNamespace  = "verrazzano-system"
+		targetElasticsearchSecretName      = "verrazzano-cluster-elasticsearch"
+		targetElasticsearchSecretNamespace = "verrazzano-system"
 	)
 
 	// Builder used to build up the full YAML
+	// For each secret, generate the YAML and append to the full YAML which contais multiple resources
 	var sb = strings.Builder{}
 
-	// generate YAML for each resource, then combine to a single YAML
-	y, err := r.getSecretAsYaml(GetRegistrationSecretName(vmc.Name), vmc.Namespace, targetRegistrationSecretName, targetRegistrationSecretNamespace)
+	//  Registration secret YAML
+	regYaml, err := r.getSecretAsYaml(GetRegistrationSecretName(vmc.Name), vmc.Namespace, targetRegistrationSecretName, targetRegistrationSecretNamespace)
 	if err != nil {
 		return err
 	}
 	sb.Write([]byte(yamlSep))
-	sb.Write(y)
+	sb.Write(regYaml)
+
+	//  Elasticsearch secret YAML
+	esYaml, err := r.getSecretAsYaml(GetElasticsearchSecretName(vmc.Name), vmc.Namespace, targetElasticsearchSecretName, targetElasticsearchSecretNamespace)
+	if err != nil {
+		return err
+	}
+	sb.Write([]byte(yamlSep))
+	sb.Write(esYaml)
 
 	// create/update the manifest secret with the YAML
 	_, err = r.createOrUpdateManifestSecret(vmc, sb.String())
@@ -79,7 +93,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateManifestSecret(secret *corev1
 	return nil
 }
 
-// Get the specified secre then convert to YAML.
+// Get the specified secret then convert to YAML.
 func (r *VerrazzanoManagedClusterReconciler) getSecretAsYaml(name string, namespace string, targetName string, targetNamespace string) (yamlData []byte, err error) {
 	var secret corev1.Secret
 	secretNsn := types.NamespacedName{

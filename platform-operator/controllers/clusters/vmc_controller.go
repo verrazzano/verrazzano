@@ -87,6 +87,12 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
+	err = r.syncElasticsearchSecret(vmc)
+	if err != nil {
+		log.Infof("Failed to sync the YAML manifest secret used by managed cluster: %v", err)
+		return ctrl.Result{}, err
+	}
+
 	err = r.syncManifestSecret(vmc)
 	if err != nil {
 		log.Infof("Failed to sync the YAML manifest secret used by managed cluster: %v", err)
