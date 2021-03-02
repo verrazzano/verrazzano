@@ -135,6 +135,9 @@ spec:
                   description: Condition describes current state of a multi cluster
                     resource.
                   properties:
+                    clusterName:
+                      description: Name of the cluster where the update originated
+                      type: string
                     lastTransitionTime:
                       description: Last time the condition transitioned from one status
                         to another.
