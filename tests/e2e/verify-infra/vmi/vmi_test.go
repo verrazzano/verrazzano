@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
@@ -114,39 +115,39 @@ var _ = ginkgo.Describe("VMI", func() {
 	})
 
 	ginkgo.PIt("Elasticsearch filebeat Index should be accessible", func() {
-		//Disabled for KiND. See VZ-1918
-		return
+		var filebeatIndexName string
+		var filebeatIndex interface{}
 
-		//var filebeatIndexName string
-		//var filebeatIndex interface{}
-		//for name, esIndex := range elastic.GetIndices() {
-		//	if strings.Contains(name, "filebeat") {
-		//		filebeatIndexName = name
-		//		filebeatIndex = esIndex
-		//	}
-		//}
-		//gomega.Expect(filebeatIndexName).NotTo(gomega.Equal(""), "Found filebeatIndex")
-		//dynamicTemplates := jq(filebeatIndex, "mappings", "dynamic_templates").([]interface{})
-		//var messageField interface{}
-		//for _, dynamicTemp := range dynamicTemplates {
-		//	found := dynamicTemp.(map[string]interface{})["message_field"]
-		//	if found != nil {
-		//		messageField = found
-		//	}
-		//}
-		//messagePath := jq(messageField, "path_match")
-		//gomega.Expect(messagePath).To(gomega.Equal("log.message"), "log message path")
-		//messageType := jq(messageField, "mapping", "type")
-		//gomega.Expect(messageType).To(gomega.Equal("text"), "log message type")
-		//
-		//searchResult := elastic.Search(filebeatIndexName,
-		//	Field{"kubernetes.namespace", "verrazzano-system"},
-		//	Field{"kubernetes.container.name", "verrazzano-monitoring-operator"})
-		//hits := jq(searchResult, "hits", "hits")
-		//for _, hit := range hits.([]interface{}) {
-		//	caller := jq(hit, "_source", "log", "caller")
-		//	gomega.Expect(caller).NotTo(gomega.Equal(""), "caller field should be found on log message")
-		//}
+		gomega.Eventually(func() bool {
+			for name, esIndex := range elastic.GetIndices() {
+				if strings.Contains(name, "filebeat") {
+					filebeatIndexName = name
+					filebeatIndex = esIndex
+					return true
+				}
+			}
+			return false
+		}, 5 * time.Minute, 10 * time.Second).Should(gomega.BeTrue(), "Expected to find a filebeat index")
+
+		gomega.Expect(filebeatIndexName).NotTo(gomega.Equal(""), "Found filebeatIndex")
+		dynamicTemplates := jq(filebeatIndex, "mappings", "dynamic_templates").([]interface{})
+		var messageField interface{}
+		for _, dynamicTemp := range dynamicTemplates {
+			found := dynamicTemp.(map[string]interface{})["message_field"]
+			if found != nil {
+				messageField = found
+			}
+		}
+		messagePath := jq(messageField, "path_match")
+		gomega.Expect(messagePath).To(gomega.Equal("log.message"), "log message path")
+		messageType := jq(messageField, "mapping", "type")
+		gomega.Expect(messageType).To(gomega.Equal("text"), "log message type")
+
+		gomega.Eventually(func() bool {
+			return pkg.LogRecordFound(filebeatIndexName, time.Now().Add(-24*time.Hour), map[string]string{
+				"kubernetes.namespace":  "verrazzano-system",
+				"kubernetes.container.name": "verrazzano-monitoring-operator"})
+		}, 5 * time.Minute, 10 * time.Second).Should(gomega.BeTrue(), "Expected to find a filebeat log record")
 	})
 
 	ginkgo.It("Kibana endpoint should be accessible", func() {
