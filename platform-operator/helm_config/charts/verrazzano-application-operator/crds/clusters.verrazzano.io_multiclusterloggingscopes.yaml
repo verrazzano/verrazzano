@@ -107,9 +107,6 @@ spec:
                           type: object
                         type: array
                     required:
-                    - elasticSearchURL
-                    - fluentdImage
-                    - secretName
                     - workloadRefs
                     type: object
                 type: object
