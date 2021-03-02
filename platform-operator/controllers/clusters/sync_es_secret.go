@@ -5,12 +5,10 @@ import (
 	"fmt"
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	ext "k8s.io/api/extensions/v1beta1"
+	k8net "k8s.io/api/networking/v1beta1"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -19,19 +17,12 @@ const (
 	passwordKey = "password"
 	usernameKey = "username"
 	urlKey      = "url"
+	vmiIngest   = "vmi-system-es-ingest"
 )
-
-// Needed for unit testing
-var sgetConfigFunc = ctrl.GetConfig
-
-func ssetConfigFunc(f func() (*rest.Config, error)) {
-	getConfigFunc = f
-}
 
 // Create a Elasticsearch secret that has the fields needed to send logs from the
 // managed cluster to Elasticsearch running in the admin cluster.
 func (r *VerrazzanoManagedClusterReconciler) syncElasticsearchSecret(vmc *clusterapi.VerrazzanoManagedCluster) error {
-
 	// Get the info needed to build the elasicsearch secret
 	url, err := r.getElasticsearchURL()
 	if err != nil {
@@ -47,7 +38,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncElasticsearchSecret(vmc *cluste
 	}
 
 	// Build the secret data
-	var secretData map[string][]byte
+	secretData := make(map[string][]byte)
 	secretData[caKey] = tlsSecret.Data[caKey]
 	secretData[usernameKey] = vzSecret.Data[usernameKey]
 	secretData[passwordKey] = vzSecret.Data[passwordKey]
@@ -85,8 +76,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateElasticsearchSecret(secret *c
 
 // Get the Elasticsearch URL.
 func (r *VerrazzanoManagedClusterReconciler) getElasticsearchURL() (URL string, err error) {
-	const vmiIngest = "vmi-system-es-ingest"
-	var Ingress ext.Ingress
+	var Ingress k8net.Ingress
 	nsn := types.NamespacedName{
 		Namespace: constants.VerrazzanoSystemNamespace,
 		Name:      vmiIngest,
@@ -123,19 +113,6 @@ func (r *VerrazzanoManagedClusterReconciler) getTlsSecret() (corev1.Secret, erro
 	nsn := types.NamespacedName{
 		Namespace: constants.VerrazzanoSystemNamespace,
 		Name:      constants.SystemTLS,
-	}
-	if err := r.Get(context.TODO(), nsn, &secret); err != nil {
-		return corev1.Secret{}, fmt.Errorf("Failed to fetch the secret %s/%s, %v", nsn.Namespace, nsn.Name, err)
-	}
-	return secret, nil
-}
-
-// Get the secret
-func (r *VerrazzanoManagedClusterReconciler) getSecret(name string, namespace string) (corev1.Secret, error) {
-	var secret corev1.Secret
-	nsn := types.NamespacedName{
-		Namespace: namespace,
-		Name:      name,
 	}
 	if err := r.Get(context.TODO(), nsn, &secret); err != nil {
 		return corev1.Secret{}, fmt.Errorf("Failed to fetch the secret %s/%s, %v", nsn.Namespace, nsn.Name, err)

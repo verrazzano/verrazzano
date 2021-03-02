@@ -5,7 +5,9 @@ package controllers
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	vzk8s "github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
+	k8net "k8s.io/api/networking/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/rest"
 	"testing"
@@ -49,6 +51,11 @@ func TestCreateVMC(t *testing.T) {
 	saSecretName := "saSecret"
 	kubeconfigData := "fakekubeconfig"
 	clusterName := "cluster1"
+	caData := "ca"
+	userData := "user"
+	passwordData := "pw"
+	hostdata := "testhost"
+	urlData := "https://testhost:443"
 	labels := map[string]string{"label1": "test"}
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -169,6 +176,65 @@ func TestCreateVMC(t *testing.T) {
 			return nil
 		})
 
+	// The following calls are used by syncElasticsearchSecret
+
+	// Expect a call to get the tls ingress and return the ingress.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: vmiIngest}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name}
+			ingress.Spec.Rules = []k8net.IngressRule{{
+				Host: hostdata,
+			}}
+			return nil
+		})
+
+	// Expect a call to get the Verrazzano secret, return the secret with the fields set
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.Verrazzano}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				usernameKey: []byte(userData),
+				passwordKey: []byte(passwordData),
+			}
+			return nil
+		})
+
+	// Expect a call to get the system-tls secret, return the secret with the fields set
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.SystemTLS}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				caKey: []byte(caData),
+			}
+			return nil
+		})
+
+	// Expect a call to get the Elasticsearch secret - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetElasticsearchSecretName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, GetElasticsearchSecretName(name)))
+
+	// Expect a call to create the Elasticsearch secret
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
+			ca, _ := secret.Data[caKey]
+			asserts.Equalf(caData, string(ca), "Incorrect cadata in Elasticsearch secret ")
+			user, _ := secret.Data[usernameKey]
+			asserts.Equalf(userData, string(user), "Incorrect user in Elasticsearch secret ")
+			pw, _ := secret.Data[passwordKey]
+			asserts.Equalf(passwordData, string(pw), "Incorrect password in Elasticsearch secret ")
+			url, _ := secret.Data[urlKey]
+			asserts.Equalf(urlData, string(url), "Incorrect URL in Elasticsearch secret ")
+			return nil
+		})
+
 	// The following calls are used by sync_manifest
 	//
 	// Expect a call to get the registration secret
@@ -181,7 +247,18 @@ func TestCreateVMC(t *testing.T) {
 			}
 			return nil
 		})
-
+	// Expect a call to get the Elasticsearch secret
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: GetElasticsearchSecretName(name)}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				caKey:       []byte(caData),
+				usernameKey: []byte(userData),
+				passwordKey: []byte(passwordData),
+				urlKey:      []byte(urlData),
+			}
+			return nil
+		})
 	// Expect a call to get the manifest secret - return that it does not exist
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: GetManifestSecretName(name)}, gomock.Not(gomock.Nil())).

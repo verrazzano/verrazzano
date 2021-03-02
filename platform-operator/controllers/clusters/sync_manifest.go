@@ -38,7 +38,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.
 	// For each secret, generate the YAML and append to the full YAML which contais multiple resources
 	var sb = strings.Builder{}
 
-	//  Registration secret YAML
+	// get registration secret YAML
 	regYaml, err := r.getSecretAsYaml(GetRegistrationSecretName(vmc.Name), vmc.Namespace, targetRegistrationSecretName, targetRegistrationSecretNamespace)
 	if err != nil {
 		return err
@@ -46,7 +46,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.
 	sb.Write([]byte(yamlSep))
 	sb.Write(regYaml)
 
-	//  Elasticsearch secret YAML
+	// get Elasticsearch secret YAML
 	esYaml, err := r.getSecretAsYaml(GetElasticsearchSecretName(vmc.Name), vmc.Namespace, targetElasticsearchSecretName, targetElasticsearchSecretNamespace)
 	if err != nil {
 		return err
