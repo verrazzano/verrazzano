@@ -275,6 +275,4 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 		})
 	})
 
-	// add a test to make sure that out of band changes are corrected
-
 })
