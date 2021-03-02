@@ -131,7 +131,14 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 			return K8sClient.DoesSecretExist(vzclusters.GetRegistrationSecretName(managedClusterName), vzMcNamespace)
 		}
 		gomega.Eventually(secretExists, "30s", "5s").Should(gomega.BeTrue(),
-			fmt.Sprintf("The kubeconfig Secret %s should exist in %s", vzclusters.GetRegistrationSecretName(managedClusterName), vzMcNamespace))
+			fmt.Sprintf("The registration Secret %s should exist in %s", vzclusters.GetRegistrationSecretName(managedClusterName), vzMcNamespace))
+	})
+	ginkgo.It("Elasticsearch secret exists ", func() {
+		secretExists := func() bool {
+			return K8sClient.DoesSecretExist(vzclusters.GetElasticsearchSecretName(managedClusterName), vzMcNamespace)
+		}
+		gomega.Eventually(secretExists, "30s", "5s").Should(gomega.BeTrue(),
+			fmt.Sprintf("The Elasticsearch Secret %s should exist in %s", vzclusters.GetElasticsearchSecretName(managedClusterName), vzMcNamespace))
 	})
 	ginkgo.It("manifest secret exists ", func() {
 		secretExists := func() bool {
