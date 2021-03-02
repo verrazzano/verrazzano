@@ -26,25 +26,29 @@ import (
 )
 
 var testLabels = map[string]string{"label1": "test1", "label2": "test2"}
+var testAnnotations = map[string]string{"annot1": "test1", "annot2": "test2"}
 
 var testNamespace1 = corev1.Namespace{
 	ObjectMeta: metav1.ObjectMeta{
-		Name:   "newNS1",
-		Labels: testLabels,
+		Name:        "newNS1",
+		Labels:      testLabels,
+		Annotations: testAnnotations,
 	},
 }
 
 var testNamespace2 = corev1.Namespace{
 	ObjectMeta: metav1.ObjectMeta{
-		Name:   "newNS2",
-		Labels: testLabels,
+		Name:        "newNS2",
+		Labels:      testLabels,
+		Annotations: testAnnotations,
 	},
 }
 
 var testNamespace3 = corev1.Namespace{
 	ObjectMeta: metav1.ObjectMeta{
-		Name:   "newNS3",
-		Labels: testLabels,
+		Name:        "newNS3",
+		Labels:      testLabels,
+		Annotations: testAnnotations,
 	},
 }
 

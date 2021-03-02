@@ -9,6 +9,8 @@ spec:
   template:
     namespaces:
       - metadata:
-         name: multiclustertest
+          name: multiclustertest
+          labels:
+            label1: test1
       - metadata:
           name: some-other-ns
