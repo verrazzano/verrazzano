@@ -11,6 +11,12 @@ spec:
       - metadata:
           name: multiclustertest
           labels:
-            label1: test1
+            label1: "test1"
+          annotations:
+            annot1: "test1"
       - metadata:
           name: some-other-ns
+          labels:
+            label2: "test2"
+          annotations:
+            annot2: "test2"

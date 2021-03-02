@@ -8,9 +8,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// NamespaceTemplate has the metadata and spec of the underlying namespace
+type NamespaceTemplate struct {
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Metadata metav1.ObjectMeta    `json:"metadata,omitempty"`
+	Spec     corev1.NamespaceSpec `json:"spec,omitempty"`
+}
+
 // ProjectTemplate contains the resources for a project
 type ProjectTemplate struct {
-	Namespaces []corev1.Namespace `json:"namespaces"`
+	Namespaces []NamespaceTemplate `json:"namespaces"`
 }
 
 // VerrazzanoProjectSpec defines the desired state of VerrazzanoProject

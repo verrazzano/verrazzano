@@ -40,10 +40,10 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 				// Add the project namespaces to the list of namespaces to watch.
 				// Check for duplicates values, even though they should never exist.
 				for _, namespace := range vp.Spec.Template.Namespaces {
-					if controllers.StringSliceContainsString(namespaces, namespace.Name) {
-						s.Log.Info(fmt.Sprintf("the namespace %s in project %s is a duplicate", namespace.Name, vp.Name))
+					if controllers.StringSliceContainsString(namespaces, namespace.Metadata.Name) {
+						s.Log.Info(fmt.Sprintf("the namespace %s in project %s is a duplicate", namespace.Metadata.Name, vp.Name))
 					} else {
-						namespaces = append(namespaces, namespace.Name)
+						namespaces = append(namespaces, namespace.Metadata.Name)
 					}
 				}
 			}

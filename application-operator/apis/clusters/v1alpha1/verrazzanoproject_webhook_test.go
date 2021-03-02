@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -20,9 +19,9 @@ var testProject = VerrazzanoProject{
 	},
 	Spec: VerrazzanoProjectSpec{
 		Template: ProjectTemplate{
-			Namespaces: []corev1.Namespace{
+			Namespaces: []NamespaceTemplate{
 				{
-					ObjectMeta: metav1.ObjectMeta{
+					Metadata: metav1.ObjectMeta{
 						Name: "newNS1",
 					},
 				},
@@ -77,7 +76,7 @@ func TestInvalidNamespaces(t *testing.T) {
 
 	// Test data
 	testVP := testProject
-	testVP.Spec.Template.Namespaces = []corev1.Namespace{}
+	testVP.Spec.Template.Namespaces = []NamespaceTemplate{}
 
 	// Test create
 	err := testVP.ValidateCreate()
