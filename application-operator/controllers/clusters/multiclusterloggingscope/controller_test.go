@@ -151,11 +151,7 @@ func TestReconcileUpdateLoggingScope(t *testing.T) {
 		})
 
 	// expect a call to update the status of the multicluster loggingscope
-	cli.EXPECT().Status().Return(mockStatusWriter)
-
-	mockStatusWriter.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&mcLogScopeSample)).
-		Return(nil)
+	doExpectStatusUpdateSucceeded(cli, mockStatusWriter, assert)
 
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
@@ -343,6 +339,9 @@ func doExpectGetLoggingScopeExists(cli *mocks.MockClient, metadata metav1.Object
 
 // doExpectStatusUpdateFailed expects a call to update status of MultiClusterLoggingScope to failure
 func doExpectStatusUpdateFailed(cli *mocks.MockClient, mockStatusWriter *mocks.MockStatusWriter, assert *asserts.Assertions) {
+	// expect a call to fetch the MCRegistration secret to get the cluster name for status update
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to update the status of the MultiClusterLoggingScope
 	cli.EXPECT().Status().Return(mockStatusWriter)
 
@@ -350,13 +349,17 @@ func doExpectStatusUpdateFailed(cli *mocks.MockClient, mockStatusWriter *mocks.M
 	mockStatusWriter.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterLoggingScope{})).
 		DoAndReturn(func(ctx context.Context, mcLogScope *clustersv1alpha1.MultiClusterLoggingScope) error {
-			assertMultiClusterLoggingScopeStatus(assert, mcLogScope, clustersv1alpha1.Failed, clustersv1alpha1.DeployFailed, v1.ConditionTrue)
+			clusterstest.AssertMultiClusterResourceStatus(assert, mcLogScope.Status.State, mcLogScope.Status.Conditions,
+				clustersv1alpha1.Failed, clustersv1alpha1.DeployFailed, v1.ConditionTrue)
 			return nil
 		})
 }
 
 // doExpectStatusUpdateSucceeded expects a call to update status of MultiClusterLoggingScope to success
 func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mocks.MockStatusWriter, assert *asserts.Assertions) {
+	// expect a call to fetch the MCRegistration secret to get the cluster name for status update
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to update the status of the MultiClusterLoggingScope
 	cli.EXPECT().Status().Return(mockStatusWriter)
 
@@ -364,7 +367,8 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 	mockStatusWriter.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterLoggingScope{})).
 		DoAndReturn(func(ctx context.Context, mcLogScope *clustersv1alpha1.MultiClusterLoggingScope) error {
-			assertMultiClusterLoggingScopeStatus(assert, mcLogScope, clustersv1alpha1.Ready, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
+			clusterstest.AssertMultiClusterResourceStatus(assert, mcLogScope.Status.State, mcLogScope.Status.Conditions,
+				clustersv1alpha1.Ready, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
 			return nil
 		})
 }
@@ -380,15 +384,6 @@ func doExpectGetMultiClusterLoggingScope(cli *mocks.MockClient, mcLogScopeSample
 			mcLogScope.Spec = mcLogScopeSample.Spec
 			return nil
 		})
-}
-
-// assertMultiClusterLoggingScopeStatus asserts that the status and conditions on the MultiClusterLoggingScope
-// are as expected
-func assertMultiClusterLoggingScopeStatus(assert *asserts.Assertions, mcLogScope *clustersv1alpha1.MultiClusterLoggingScope, state clustersv1alpha1.StateType, condition clustersv1alpha1.ConditionType, conditionStatus v1.ConditionStatus) {
-	assert.Equal(state, mcLogScope.Status.State)
-	assert.Equal(1, len(mcLogScope.Status.Conditions))
-	assert.Equal(conditionStatus, mcLogScope.Status.Conditions[0].Status)
-	assert.Equal(condition, mcLogScope.Status.Conditions[0].Type)
 }
 
 // assertLoggingScopeValid asserts that the metadata and content of the created/updated LoggingScope

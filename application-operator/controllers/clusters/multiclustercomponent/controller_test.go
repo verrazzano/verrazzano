@@ -151,11 +151,7 @@ func TestReconcileUpdateComponent(t *testing.T) {
 		})
 
 	// expect a call to update the status of the multicluster component
-	cli.EXPECT().Status().Return(mockStatusWriter)
-
-	mockStatusWriter.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&mcCompSample)).
-		Return(nil)
+	doExpectStatusUpdateSucceeded(cli, mockStatusWriter, assert)
 
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
@@ -343,6 +339,9 @@ func doExpectGetComponentExists(cli *mocks.MockClient, metadata metav1.ObjectMet
 
 // doExpectStatusUpdateFailed expects a call to update status of MultiClusterComponent to failure
 func doExpectStatusUpdateFailed(cli *mocks.MockClient, mockStatusWriter *mocks.MockStatusWriter, assert *asserts.Assertions) {
+	// expect a call to fetch the MCRegistration secret to get the cluster name for status update
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to update the status of the MultiClusterComponent
 	cli.EXPECT().Status().Return(mockStatusWriter)
 
@@ -350,13 +349,17 @@ func doExpectStatusUpdateFailed(cli *mocks.MockClient, mockStatusWriter *mocks.M
 	mockStatusWriter.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterComponent{})).
 		DoAndReturn(func(ctx context.Context, mcComp *clustersv1alpha1.MultiClusterComponent) error {
-			assertMultiClusterComponentStatus(assert, mcComp, clustersv1alpha1.Failed, clustersv1alpha1.DeployFailed, v1.ConditionTrue)
+			clusterstest.AssertMultiClusterResourceStatus(assert, mcComp.Status.State, mcComp.Status.Conditions,
+				clustersv1alpha1.Failed, clustersv1alpha1.DeployFailed, v1.ConditionTrue)
 			return nil
 		})
 }
 
 // doExpectStatusUpdateSucceeded expects a call to update status of MultiClusterComponent to success
 func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mocks.MockStatusWriter, assert *asserts.Assertions) {
+	// expect a call to fetch the MCRegistration secret to get the cluster name for status update
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to update the status of the MultiClusterComponent
 	cli.EXPECT().Status().Return(mockStatusWriter)
 
@@ -364,7 +367,8 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 	mockStatusWriter.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterComponent{})).
 		DoAndReturn(func(ctx context.Context, mcComp *clustersv1alpha1.MultiClusterComponent) error {
-			assertMultiClusterComponentStatus(assert, mcComp, clustersv1alpha1.Ready, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
+			clusterstest.AssertMultiClusterResourceStatus(assert, mcComp.Status.State, mcComp.Status.Conditions,
+				clustersv1alpha1.Ready, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
 			return nil
 		})
 }
@@ -380,15 +384,6 @@ func doExpectGetMultiClusterComponent(cli *mocks.MockClient, mcCompSample cluste
 			mcComp.Spec = mcCompSample.Spec
 			return nil
 		})
-}
-
-// assertMultiClusterComponentStatus asserts that the status and conditions on the MultiClusterComponent
-// are as expected
-func assertMultiClusterComponentStatus(assert *asserts.Assertions, mcComp *clustersv1alpha1.MultiClusterComponent, state clustersv1alpha1.StateType, condition clustersv1alpha1.ConditionType, conditionStatus v1.ConditionStatus) {
-	assert.Equal(state, mcComp.Status.State)
-	assert.Equal(1, len(mcComp.Status.Conditions))
-	assert.Equal(conditionStatus, mcComp.Status.Conditions[0].Status)
-	assert.Equal(condition, mcComp.Status.Conditions[0].Type)
 }
 
 // assertComponentValid asserts that the metadata and content of the created/updated OAM component

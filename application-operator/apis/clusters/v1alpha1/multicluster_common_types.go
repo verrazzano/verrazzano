@@ -27,6 +27,9 @@ type Condition struct {
 	// Last time the condition transitioned from one status to another.
 	// +optional
 	LastTransitionTime string `json:"lastTransitionTime,omitempty"`
+	// Name of the cluster where the update originated
+	// +optional
+	ClusterName string `json:"message,omitempty"`
 	// Human readable message indicating details about last transition.
 	// +optional
 	Message string `json:"message,omitempty"`
