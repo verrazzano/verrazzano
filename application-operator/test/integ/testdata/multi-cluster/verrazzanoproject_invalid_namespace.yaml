@@ -6,6 +6,7 @@ metadata:
   name: test
   namespace: multiclustertest
 spec:
-  namespaces:
-    - cluster1
-    - cluster2
+  template:
+    namespaces:
+      - name: cluster1
+      - name: cluster2
