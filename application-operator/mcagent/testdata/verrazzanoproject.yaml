@@ -7,4 +7,5 @@ metadata:
   name: VP_NAME
   namespace: VP_NS
 spec:
-  namespaces:
+  template:
+    namespaces:
