@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	caKey       = "ca.crt"
+	caKey       = "ca-bundle"
 	passwordKey = "password"
 	usernameKey = "username"
 	urlKey      = "url"
