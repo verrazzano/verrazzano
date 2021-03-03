@@ -6,12 +6,13 @@ package helidonworkload
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"reflect"
 
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
+	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
