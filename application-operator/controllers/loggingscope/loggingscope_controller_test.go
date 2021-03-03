@@ -270,7 +270,7 @@ func TestFromWorkloadLabels(t *testing.T) {
 			return nil
 		})
 
-	loggingScope, err := FromWorkloadLabels(ctx, cli, "unit-test-namespace", labels)
+	loggingScope, err := FromWorkloadLabels(ctx, cli, ctrl.Log.WithName("test"), "unit-test-namespace", labels)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -306,7 +306,7 @@ func TestFromWorkloadLabels(t *testing.T) {
 			return nil
 		})
 
-	loggingScope, err = FromWorkloadLabels(ctx, cli, "unit-test-namespace", labels)
+	loggingScope, err = FromWorkloadLabels(ctx, cli, ctrl.Log.WithName("test"), "unit-test-namespace", labels)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -338,7 +338,7 @@ func TestFromWorkloadLabels(t *testing.T) {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 
-	loggingScope, err = FromWorkloadLabels(ctx, cli, "unit-test-namespace", labels)
+	loggingScope, err = FromWorkloadLabels(ctx, cli, ctrl.Log.WithName("test"), "unit-test-namespace", labels)
 
 	mocker.Finish()
 	assert.True(k8serrors.IsNotFound(err))
@@ -395,7 +395,7 @@ func TestFetchLoggingScopeWithDefaults(t *testing.T) {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 
-	loggingScope, err := FromWorkloadLabels(ctx, cli, "unit-test-namespace", labels)
+	loggingScope, err := FromWorkloadLabels(ctx, cli, ctrl.Log.WithName("test"), "unit-test-namespace", labels)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -535,9 +535,10 @@ func TestApplyDefaultsForManagedCluster(t *testing.T) {
 	var mocker *gomock.Controller
 	var cli *mocks.MockClient
 
-	// GIVEN a logging scope with no spec fields populated
+	// GIVEN a logging scope in a managed cluster with no spec fields populated
 	// WHEN we apply defaults
-	// THEN the logging scope spec fields are populated with all of the default values
+	// THEN the logging scope spec fields are populated with the cluster data
+	// AND the FLUENTD image is defaulted
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
 
@@ -565,13 +566,43 @@ func TestApplyDefaultsForManagedCluster(t *testing.T) {
 
 	assertApplyDefaults(cli, expected, loggingScope, t)
 	mocker.Finish()
+
+	// GIVEN a logging scope in a managed cluster with no spec fields populated
+	// WHEN we apply defaults
+	// AND the Elasticsearch secret is misconfigured
+	// THEN the logging scope spec fields are populated with all of the default (non-cluster) values
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+
+	loggingScope = &vzapi.LoggingScope{}
+	expected = &vzapi.LoggingScope{
+		Spec: vzapi.LoggingScopeSpec{
+			FluentdImage:     DefaultFluentdImage,
+			ElasticSearchURL: DefaultElasticSearchURL,
+			SecretName:       DefaultSecretName,
+		},
+	}
+
+	mcSecret = v1.Secret{Data: map[string][]byte{
+		constants.ClusterNameData:      []byte("managed-cluster1"),
+		constants.ElasticsearchURLData: []byte("")}}
+
+	// logging scope URL and secret are empty so expect a call to get the cluster secret
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCElasticsearchSecretFullName), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *v1.Secret) error {
+			secret.Data = mcSecret.Data
+			return nil
+		})
+
+	assertApplyDefaults(cli, expected, loggingScope, t)
+	mocker.Finish()
 }
 
 // assertApplyDefaults applies defaults to the passed in actual logging scope and
 // asserts that it is equal to the expected logging scope
 func assertApplyDefaults(cli client.Reader, expected, actual *vzapi.LoggingScope, t *testing.T) {
 	assert := asserts.New(t)
-	applyDefaults(cli, actual)
+	applyDefaults(cli, ctrl.Log.WithName("test"), actual)
 	assert.Equal(expected, actual)
 }
 

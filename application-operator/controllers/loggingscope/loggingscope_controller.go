@@ -74,7 +74,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
-	applyDefaults(r.Client, scope)
+	applyDefaults(r.Client, log, scope)
 
 	var errors []string
 	var resources []vzapi.QualifiedResourceRelation
@@ -214,7 +214,7 @@ func toResource(workload *unstructured.Unstructured) vzapi.QualifiedResourceRela
 
 // FromWorkloadLabels returns the LoggingScope object associated with the workload or nil if
 // there is no associated logging scope. The workload lookup is done using the OAM labels from the workload metadata.
-func FromWorkloadLabels(ctx context.Context, cli client.Reader, namespace string, labels map[string]string) (*vzapi.LoggingScope, error) {
+func FromWorkloadLabels(ctx context.Context, cli client.Reader, log logr.Logger, namespace string, labels map[string]string) (*vzapi.LoggingScope, error) {
 	component, err := vznav.ComponentFromWorkloadLabels(ctx, cli, namespace, labels)
 	if err != nil {
 		return nil, err
@@ -233,7 +233,7 @@ func FromWorkloadLabels(ctx context.Context, cli client.Reader, namespace string
 				return nil, err
 			}
 
-			applyDefaults(cli, &scope)
+			applyDefaults(cli, log, &scope)
 			return &scope, nil
 		}
 	}
@@ -243,13 +243,18 @@ func FromWorkloadLabels(ctx context.Context, cli client.Reader, namespace string
 
 // applyDefaults fills in any empty fields in the logging scope - also handle the case
 // where we are running in a managed cluster
-func applyDefaults(cli client.Reader, scope *vzapi.LoggingScope) {
+func applyDefaults(cli client.Reader, log logr.Logger, scope *vzapi.LoggingScope) {
 	if scope.Spec.ElasticSearchURL == "" && scope.Spec.SecretName == "" {
 		// if we're running in a managed cluster, use the multicluster ES URL and secret, and if we're
 		// not the fields will be empty and we will set these fields to defaults below
 		elasticSearchDetails := clusters.FetchManagedClusterElasticSearchDetails(context.TODO(), cli)
-		scope.Spec.ElasticSearchURL = elasticSearchDetails.URL
-		scope.Spec.SecretName = elasticSearchDetails.SecretName
+		if elasticSearchDetails.URL != "" && elasticSearchDetails.SecretName != "" {
+			scope.Spec.ElasticSearchURL = elasticSearchDetails.URL
+			scope.Spec.SecretName = elasticSearchDetails.SecretName
+		} else if elasticSearchDetails.SecretName != "" && elasticSearchDetails.URL == "" {
+			// Elasticsearch secret is misconfigured, log it and set defaults below
+			log.Info("Unable to set defaults in logging scope for managed cluster because URL is empty")
+		}
 	}
 
 	if scope.Spec.FluentdImage == "" {

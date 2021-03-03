@@ -186,7 +186,7 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, weblogic *uns
 
 // addLogging adds a FLUENTD sidecar and updates the WebLogic spec if there is an associated LoggingScope
 func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace string, labels map[string]string, weblogic *unstructured.Unstructured) error {
-	loggingScope, err := loggingscope.FromWorkloadLabels(ctx, r.Client, namespace, labels)
+	loggingScope, err := loggingscope.FromWorkloadLabels(ctx, r.Client, log, namespace, labels)
 	if err != nil {
 		return err
 	}
