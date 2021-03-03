@@ -27,12 +27,19 @@ type Condition struct {
 	// Last time the condition transitioned from one status to another.
 	// +optional
 	LastTransitionTime string `json:"lastTransitionTime,omitempty"`
-	// Name of the cluster where the update originated
-	// +optional
-	ClusterName string `json:"clusterName,omitempty"`
 	// Human readable message indicating details about last transition.
 	// +optional
 	Message string `json:"message,omitempty"`
+}
+
+// ClusterLevelStatus describes the status of the multi cluster resource in a specific cluster
+type ClusterLevelStatus struct {
+	// Name of the cluster
+	Name string `json:"name"`
+	// State of the resource in this cluster
+	State StateType `json:"state"`
+	// LastUpdateTime of the resource state in this cluster
+	LastUpdateTime string `json:"lastUpdateTime"`
 }
 
 // ConditionType identifies the condition of the multi-cluster resource which can be checked with kubectl wait
@@ -62,3 +69,13 @@ const (
 	// Failed is the state when deploy to specified cluster has failed
 	Failed StateType = "Failed"
 )
+
+type MultiClusterResourceStatus struct {
+	// The latest available observations of an object's current state.
+	Conditions []Condition `json:"conditions,omitempty"`
+
+	// State of the multi cluster resource
+	State StateType `json:"state,omitempty"`
+
+	Clusters []ClusterLevelStatus `json:"clusters,omitempty"`
+}
