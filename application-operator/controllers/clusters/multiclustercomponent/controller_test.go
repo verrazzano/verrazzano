@@ -368,7 +368,7 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterComponent{})).
 		DoAndReturn(func(ctx context.Context, mcComp *clustersv1alpha1.MultiClusterComponent) error {
 			clusterstest.AssertMultiClusterResourceStatus(assert, mcComp.Status,
-				clustersv1alpha1.Ready, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
+				clustersv1alpha1.Succeeded, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
 			return nil
 		})
 }

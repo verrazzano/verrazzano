@@ -46,8 +46,8 @@ type ClusterLevelStatus struct {
 type ConditionType string
 
 const (
-	// DeployStarted means deployment to specified cluster is in progress.
-	DeployStarted ConditionType = "DeployStarted"
+	// DeployPending means deployment to specified cluster is in progress.
+	DeployPending ConditionType = "DeployPending"
 
 	// DeployComplete means deployment to specified cluster completed successfully
 	DeployComplete ConditionType = "DeployComplete"
@@ -60,11 +60,11 @@ const (
 type StateType string
 
 const (
-	// Deploying is the state when deploy to specified cluster is in progress
-	Deploying StateType = "Deploying"
+	// Pending is the state when deploy to specified cluster is in progress
+	Pending StateType = "Pending"
 
-	// Ready is the state when deploy to specified cluster is completed
-	Ready StateType = "Ready"
+	// Succeeded is the state when deploy to specified cluster is completed
+	Succeeded StateType = "Succeeded"
 
 	// Failed is the state when deploy to specified cluster has failed
 	Failed StateType = "Failed"

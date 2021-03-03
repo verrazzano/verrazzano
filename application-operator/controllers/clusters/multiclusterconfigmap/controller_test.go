@@ -363,7 +363,7 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 	mockStatusWriter.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterConfigMap{})).
 		DoAndReturn(func(ctx context.Context, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap) error {
-			clusterstest.AssertMultiClusterResourceStatus(assert, mcConfigMap.Status, clustersv1alpha1.Ready, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
+			clusterstest.AssertMultiClusterResourceStatus(assert, mcConfigMap.Status, clustersv1alpha1.Succeeded, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
 			return nil
 		})
 }

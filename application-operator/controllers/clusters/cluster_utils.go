@@ -41,12 +41,8 @@ type ElasticsearchDetails struct {
 // resource, as well as the new state and condition to be set, whether the status update
 // needs to be done
 func StatusNeedsUpdate(curStatus clustersv1alpha1.MultiClusterResourceStatus,
-	newCondition clustersv1alpha1.Condition, newState clustersv1alpha1.StateType,
+	newCondition clustersv1alpha1.Condition,
 	newClusterStatus clustersv1alpha1.ClusterLevelStatus) bool {
-
-	if newState != curStatus.State {
-		return true
-	}
 
 	foundClusterLevelStatus := false
 	for _, existingClusterStatus := range curStatus.Clusters {
@@ -69,15 +65,15 @@ func StatusNeedsUpdate(curStatus clustersv1alpha1.MultiClusterResourceStatus,
 			break
 		}
 	}
+
 	return !foundCondition
 }
 
-// GetConditionAndStateFromResult - Based on the result of a create/update operation on the
+// GetConditionFromResult - Based on the result of a create/update operation on the
 // embedded resource, returns the Condition and State that must be set on a MultiCluster
 // resource's Status
-func GetConditionAndStateFromResult(err error, opResult controllerutil.OperationResult, msgPrefix string) (clustersv1alpha1.Condition, clustersv1alpha1.StateType) {
+func GetConditionFromResult(err error, opResult controllerutil.OperationResult, msgPrefix string) clustersv1alpha1.Condition {
 	var condition clustersv1alpha1.Condition
-	var state clustersv1alpha1.StateType
 	if err != nil {
 		condition = clustersv1alpha1.Condition{
 			Type:               clustersv1alpha1.DeployFailed,
@@ -85,7 +81,6 @@ func GetConditionAndStateFromResult(err error, opResult controllerutil.Operation
 			Message:            err.Error(),
 			LastTransitionTime: time.Now().Format(time.RFC3339),
 		}
-		state = clustersv1alpha1.Failed
 	} else {
 		msg := fmt.Sprintf("%v %v", msgPrefix, opResult)
 		condition = clustersv1alpha1.Condition{
@@ -94,14 +89,73 @@ func GetConditionAndStateFromResult(err error, opResult controllerutil.Operation
 			Message:            msg,
 			LastTransitionTime: time.Now().Format(time.RFC3339),
 		}
-		state = clustersv1alpha1.Ready
 	}
-	return condition, state
+	return condition
 }
 
-func CreateClusterLevelStatus(condition clustersv1alpha1.Condition, state clustersv1alpha1.StateType, clusterName string) clustersv1alpha1.ClusterLevelStatus {
+func CreateClusterLevelStatus(condition clustersv1alpha1.Condition, clusterName string) clustersv1alpha1.ClusterLevelStatus {
+	var state clustersv1alpha1.StateType
+	if condition.Type == clustersv1alpha1.DeployComplete {
+		state = clustersv1alpha1.Succeeded
+	} else if condition.Type == clustersv1alpha1.DeployFailed {
+		state = clustersv1alpha1.Failed
+	} else {
+		state = clustersv1alpha1.Pending
+	}
 	return clustersv1alpha1.ClusterLevelStatus{
 		Name: clusterName, State: state, LastUpdateTime: condition.LastTransitionTime}
+}
+
+// ComputeEffectiveState computes the overall state of the multi cluster resource from the statuses
+// at the level of the individual clusters it is placed in
+func ComputeEffectiveState(status clustersv1alpha1.MultiClusterResourceStatus, placement clustersv1alpha1.Placement) clustersv1alpha1.StateType {
+	clustersSucceeded := 0
+	clustersFound := 0
+	clustersPending := 0
+	clustersFailed := 0
+	for _, cluster := range placement.Clusters {
+		for _, clusterStatus := range status.Clusters {
+			if clusterStatus.Name == cluster.Name {
+				clustersFound++
+				if clusterStatus.State == clustersv1alpha1.Pending {
+					clustersPending++
+				} else if clusterStatus.State == clustersv1alpha1.Succeeded {
+					clustersSucceeded++
+				} else if clusterStatus.State == clustersv1alpha1.Failed {
+					clustersFailed++
+				}
+			}
+		}
+	}
+	// If any cluster has a failed status, mark the overall state as failed
+	if clustersFailed > 0 {
+		return clustersv1alpha1.Failed
+	}
+
+	// if all clusters succeeded, mark the overall state as succeeded
+	if clustersSucceeded == len(placement.Clusters) {
+		return clustersv1alpha1.Succeeded
+	}
+
+	// otherwise, overall state is pending
+	return clustersv1alpha1.Pending
+}
+
+// UpdateClusterLevelStatus - given a multi cluster resource status object, and a new cluster status
+// to be updated, either add or update the cluster status as appropriate
+func UpdateClusterLevelStatus(status *clustersv1alpha1.MultiClusterResourceStatus, newClusterStatus clustersv1alpha1.ClusterLevelStatus) {
+	foundClusterIdx := -1
+	for i, clusterStatus := range status.Clusters {
+		if clusterStatus.Name == newClusterStatus.Name {
+			foundClusterIdx = i
+		}
+	}
+	if foundClusterIdx == -1 {
+		status.Clusters = append(status.Clusters, newClusterStatus)
+	} else {
+		status.Clusters[foundClusterIdx] = newClusterStatus
+		status.Clusters[foundClusterIdx].LastUpdateTime = time.Now().Format(time.RFC3339)
+	}
 }
 
 // NewScheme creates a new scheme that includes this package's object to use for testing

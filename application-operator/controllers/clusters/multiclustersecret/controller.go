@@ -53,12 +53,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 func (r *Reconciler) updateStatus(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {
 	clusterName := clusters.GetClusterName(ctx, r.Client)
-	condition, state := clusters.GetConditionAndStateFromResult(err, opResult, "Secret")
-	clusterLevelStatus := clusters.CreateClusterLevelStatus(condition, state, clusterName)
-	if clusters.StatusNeedsUpdate(mcSecret.Status, condition, state, clusterLevelStatus) {
-		mcSecret.Status.State = state
+	condition := clusters.GetConditionFromResult(err, opResult, "Secret")
+	clusterLevelStatus := clusters.CreateClusterLevelStatus(condition, clusterName)
+	if clusters.StatusNeedsUpdate(mcSecret.Status, condition, clusterLevelStatus) {
 		mcSecret.Status.Conditions = append(mcSecret.Status.Conditions, condition)
-		mcSecret.Status.Clusters = append(mcSecret.Status.Clusters, clusterLevelStatus)
+		clusters.UpdateClusterLevelStatus(&mcSecret.Status, clusterLevelStatus)
+		mcSecret.Status.State = clusters.ComputeEffectiveState(mcSecret.Status, mcSecret.Spec.Placement)
 		return reconcile.Result{}, r.Status().Update(ctx, mcSecret)
 	}
 	return reconcile.Result{}, nil
