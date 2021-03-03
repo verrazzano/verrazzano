@@ -104,33 +104,6 @@ func ComponentFromWorkloadLabels(ctx context.Context, cli client.Reader, namespa
 	return nil, errors.New("Unable to find application component for workload")
 }
 
-// LoggingScopeFromWorkloadLabels returns the LoggingScope object associated with the workload or nil if
-// there is no associated logging scope. The workload lookup is done using the OAM labels from the workload metadata.
-func LoggingScopeFromWorkloadLabels(ctx context.Context, cli client.Reader, namespace string, labels map[string]string) (*vzapi.LoggingScope, error) {
-	component, err := ComponentFromWorkloadLabels(ctx, cli, namespace, labels)
-	if err != nil {
-		return nil, err
-	}
-
-	// fetch the first logging scope - do we need to handle multiple logging scopes?
-	for _, s := range component.Scopes {
-		if s.ScopeReference.Kind == vzapi.LoggingScopeKind {
-			scope := vzapi.LoggingScope{}
-			name := types.NamespacedName{
-				Namespace: namespace,
-				Name:      s.ScopeReference.Name,
-			}
-			err = cli.Get(ctx, name, &scope)
-			if err != nil {
-				return nil, err
-			}
-			return &scope, nil
-		}
-	}
-
-	return nil, nil
-}
-
 // MetricsTraitFromWorkloadLabels returns the MetricsTrait object associated with the workload or nil if
 // there is no associated metrics trait for the workload. If there is an associated metrics trait and the lookup of the
 // trait fails, an error is returned and the reconcile should be retried.

@@ -124,7 +124,7 @@ func IgnoreNotFoundWithLog(resourceType string, err error, logger logr.Logger) e
 // FetchManagedClusterElasticSearchDetails fetches Elasticsearch details to use for system and
 // application logs on this managed cluster. If this cluster is NOT a managed cluster (i.e. does not
 // have the managed cluster secret), an empty ElasticsearchDetails will be returned
-func FetchManagedClusterElasticSearchDetails(ctx context.Context, rdr client.Reader, logger logr.Logger) ElasticsearchDetails {
+func FetchManagedClusterElasticSearchDetails(ctx context.Context, rdr client.Reader) ElasticsearchDetails {
 	esDetails := ElasticsearchDetails{}
 	esSecret := corev1.Secret{}
 	err := fetchElasticsearchSecret(ctx, rdr, &esSecret)
