@@ -6,10 +6,10 @@ package k8s
 import (
 	"context"
 	"fmt"
-	"github.com/ghodss/yaml"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 // ClusterStatus contains APIEndpoint map stored in the kubeadmin config map
