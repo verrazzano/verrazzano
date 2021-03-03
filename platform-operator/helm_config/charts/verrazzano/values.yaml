@@ -47,11 +47,12 @@ verrazzanoOperator:
 
 monitoringOperator:
   name: verrazzano-monitoring-operator
-  imageName: ghcr.io/verrazzano/verrazzano-monitoring-operator
-  imageVersion: 0.12.0-20210227195022-3b5640f
+  imageName: phx.ocir.io/stevengreenberginc/verrazzano/verrazzano-monitoring-operator-dev
+  imageVersion: 2505
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
+  istioProxyImage: ghcr.io/verrazzano/proxyv2:1.7.3
   grafanaImage: ghcr.io/verrazzano/grafana:v6.4.4
   prometheusImage: ghcr.io/verrazzano/prometheus:v2.13.1
   prometheusInitImage: ghcr.io/oracle/oraclelinux:7-slim
