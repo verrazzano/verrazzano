@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 
@@ -27,11 +28,10 @@ const (
 // resources at once.  This YAML is stored in the Verrazzano manifest secret.
 func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.VerrazzanoManagedCluster) error {
 	const (
-		yamlSep                            = "---\n"
 		targetRegistrationSecretName       = "verrazzano-cluster"
-		targetRegistrationSecretNamespace  = "verrazzano-system"
+		targetRegistrationSecretNamespace  = constants.VerrazzanoSystemNamespace
 		targetElasticsearchSecretName      = "verrazzano-cluster-elasticsearch"
-		targetElasticsearchSecretNamespace = "verrazzano-system"
+		targetElasticsearchSecretNamespace = constants.VerrazzanoSystemNamespace
 	)
 
 	// Builder used to build up the full YAML
