@@ -288,16 +288,22 @@ func (r *Reconciler) createOrUpdateRelatedResources(ctx context.Context, trait *
 	for _, child := range children {
 		switch child.GroupVersionKind() {
 		case k8sapps.SchemeGroupVersion.WithKind(deploymentKind):
-			// in the case of VerrazzanoHelidonWorkload, it isn't unwrapped so we need to check to see
-			// if the workload is a wrapper type in addition to checking to see if the owner is a wrapper type.
+			// In the case of VerrazzanoHelidonWorkload, it isn't unwrapped so we need to check to see
+			// if the workload is a wrapper kind in addition to checking to see if the owner is a wrapper kind.
+			// In the case of a wrapper kind or owner, the status is not being updated here as this is handled by the
+			// wrapper owner which is the corresponding Verrazzano wrapper resource/controller.
 			if !vznav.IsOwnedByVerrazzanoWorkloadKind(workload) && !vznav.IsVerrazzanoWorkloadKind(workload) {
 				status.RecordOutcome(r.updateRelatedDeployment(ctx, trait, workload, traitDefaults, child))
 			}
 		case k8sapps.SchemeGroupVersion.WithKind(statefulSetKind):
+			// In the case of a workload having an owner that is a wrapper kind, the status is not being updated here
+			// as this is handled by the wrapper owner which is the corresponding Verrazzano wrapper resource/controller.
 			if !vznav.IsOwnedByVerrazzanoWorkloadKind(workload) {
 				status.RecordOutcome(r.updateRelatedStatefulSet(ctx, trait, workload, traitDefaults, child))
 			}
 		case k8score.SchemeGroupVersion.WithKind(podKind):
+			// In the case of a workload having an owner that is a wrapper kind, the status is not being updated here
+			// as this is handled by the wrapper owner which is the corresponding Verrazzano wrapper resource/controller.
 			if !vznav.IsOwnedByVerrazzanoWorkloadKind(workload) {
 				status.RecordOutcome(r.updateRelatedPod(ctx, trait, workload, traitDefaults, child))
 			}

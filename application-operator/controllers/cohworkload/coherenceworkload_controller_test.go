@@ -86,7 +86,7 @@ func TestReconcileCreateCoherence(t *testing.T) {
 	componentName := "unit-test-component"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
 
-	// expect a call to fetch the oam application configuration
+	// expect a call to fetch the OAM application configuration
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
@@ -106,7 +106,7 @@ func TestReconcileCreateCoherence(t *testing.T) {
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
-	// expect a call to fetch the oam application configuration
+	// expect a call to fetch the OAM application configuration
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
@@ -166,7 +166,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 	esSecretName := "es-secret"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
 
-	// expect a call to fetch the oam application configuration (and the component has an attached logging scope)
+	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
@@ -187,7 +187,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
-	// expect a call to fetch the oam application configuration (and the component has an attached logging scope)
+	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
@@ -301,7 +301,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 	esSecretName := "es-secret"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
 
-	// expect a call to fetch the oam application configuration (and the component has an attached logging scope)
+	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
@@ -322,7 +322,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
-	// expect a call to fetch the oam application configuration (and the component has an attached logging scope)
+	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
@@ -430,7 +430,7 @@ func TestReconcileAlreadyExists(t *testing.T) {
 	componentName := "unit-test-component"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
 
-	// expect a call to fetch the oam application configuration
+	// expect a call to fetch the OAM application configuration
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
@@ -449,7 +449,7 @@ func TestReconcileAlreadyExists(t *testing.T) {
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
-	// expect a call to fetch the oam application configuration
+	// expect a call to fetch the OAM application configuration
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
@@ -491,7 +491,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 	componentName := "unit-test-component"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
 
-	// expect a call to fetch the oam application configuration
+	// expect a call to fetch the OAM application configuration
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
@@ -510,7 +510,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
-	// expect a call to fetch the oam application configuration
+	// expect a call to fetch the OAM application configuration
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
@@ -713,7 +713,7 @@ func TestCreateUpdateDestinationRuleUpdate(t *testing.T) {
 	assert.NoError(err)
 }
 
-// TestCreateUpdateDestinationRuleNoOamLabel tests failure when no oam label found
+// TestCreateUpdateDestinationRuleNoOamLabel tests failure when no OAM label found
 // GIVEN no app.oam.dev/name label specified
 // WHEN the controller createOrUpdateDestinationRule function is called
 // THEN expect an error to be returned
