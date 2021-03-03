@@ -70,6 +70,8 @@ const (
 	Failed StateType = "Failed"
 )
 
+// MultiClusterResourceStatus represents the status of a multi-cluster resource, including
+// cluster-level status information
 type MultiClusterResourceStatus struct {
 	// The latest available observations of an object's current state.
 	Conditions []Condition `json:"conditions,omitempty"`

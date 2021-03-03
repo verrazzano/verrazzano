@@ -93,6 +93,8 @@ func GetConditionFromResult(err error, opResult controllerutil.OperationResult, 
 	return condition
 }
 
+// CreateClusterLevelStatus creates and returns a ClusterLevelStatus object based on the condition
+// of an operation on a cluster
 func CreateClusterLevelStatus(condition clustersv1alpha1.Condition, clusterName string) clustersv1alpha1.ClusterLevelStatus {
 	var state clustersv1alpha1.StateType
 	if condition.Type == clustersv1alpha1.DeployComplete {

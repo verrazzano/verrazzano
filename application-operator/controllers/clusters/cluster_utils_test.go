@@ -191,32 +191,32 @@ func TestStatusNeedsUpdate(t *testing.T) {
 	curStatus := clustersv1alpha1.MultiClusterResourceStatus{
 		Conditions: curConditions,
 		State:      curState,
-		Clusters:   []clustersv1alpha1.ClusterLevelStatus {curCluster1Status, curCluster2Status},
+		Clusters:   []clustersv1alpha1.ClusterLevelStatus{curCluster1Status, curCluster2Status},
 	}
 
 	otherTimestamp := conditionTimestamp.AddDate(0, 0, 1).Format(time.RFC3339)
 	newCond := clustersv1alpha1.Condition{Type: clustersv1alpha1.DeployFailed, Status: v1.ConditionTrue}
 	existingCond := curConditions[0]
 	newCluster1Status := clustersv1alpha1.ClusterLevelStatus{
-		Name: curCluster1Status.Name,
-		State: clustersv1alpha1.Failed,
+		Name:           curCluster1Status.Name,
+		State:          clustersv1alpha1.Failed,
 		LastUpdateTime: formattedConditionTimestamp}
 	newCluster2Status := clustersv1alpha1.ClusterLevelStatus{
-		Name: curCluster2Status.Name,
-		State: clustersv1alpha1.Succeeded,
+		Name:           curCluster2Status.Name,
+		State:          clustersv1alpha1.Succeeded,
 		LastUpdateTime: formattedConditionTimestamp}
 
 	existingCondDiffTimestampCluster1 := clustersv1alpha1.Condition{
 		Type: curConditions[0].Type, Status: curConditions[0].Status, LastTransitionTime: otherTimestamp}
 
 	cluster1StatusDiffTimestamp := clustersv1alpha1.ClusterLevelStatus{
-		Name: curCluster1Status.Name,
-		State: curCluster1Status.State,
+		Name:           curCluster1Status.Name,
+		State:          curCluster1Status.State,
 		LastUpdateTime: otherTimestamp}
 
 	newClusterStatus := clustersv1alpha1.ClusterLevelStatus{
-		Name: "newCluster",
-		State: clustersv1alpha1.Succeeded,
+		Name:           "newCluster",
+		State:          clustersv1alpha1.Succeeded,
 		LastUpdateTime: otherTimestamp}
 
 	// Asserts new condition, same cluster status for each cluster- needs update
@@ -280,37 +280,37 @@ func TestComputeEffectiveState(t *testing.T) {
 		},
 	}
 	allSucceededStatus := clustersv1alpha1.MultiClusterResourceStatus{
-		Clusters: []clustersv1alpha1.ClusterLevelStatus {
+		Clusters: []clustersv1alpha1.ClusterLevelStatus{
 			{Name: "cluster1", State: clustersv1alpha1.Succeeded},
 			{Name: "cluster2", State: clustersv1alpha1.Succeeded},
 		},
 	}
 	somePendingStatus := clustersv1alpha1.MultiClusterResourceStatus{
-		Clusters: []clustersv1alpha1.ClusterLevelStatus {
+		Clusters: []clustersv1alpha1.ClusterLevelStatus{
 			{Name: "cluster1", State: clustersv1alpha1.Succeeded},
 			{Name: "cluster2", State: clustersv1alpha1.Pending},
 		},
 	}
 	someFailedSomePendingStatus := clustersv1alpha1.MultiClusterResourceStatus{
-		Clusters: []clustersv1alpha1.ClusterLevelStatus {
+		Clusters: []clustersv1alpha1.ClusterLevelStatus{
 			{Name: "cluster1", State: clustersv1alpha1.Failed},
 			{Name: "cluster2", State: clustersv1alpha1.Pending},
 		},
 	}
 	someFailedSomeSucceededStatus := clustersv1alpha1.MultiClusterResourceStatus{
-		Clusters: []clustersv1alpha1.ClusterLevelStatus {
+		Clusters: []clustersv1alpha1.ClusterLevelStatus{
 			{Name: "cluster1", State: clustersv1alpha1.Succeeded},
 			{Name: "cluster2", State: clustersv1alpha1.Failed},
 		},
 	}
 	failedWithUnknownClusterSucceededStatus := clustersv1alpha1.MultiClusterResourceStatus{
-		Clusters: []clustersv1alpha1.ClusterLevelStatus {
+		Clusters: []clustersv1alpha1.ClusterLevelStatus{
 			{Name: "cluster3", State: clustersv1alpha1.Succeeded},
 			{Name: "cluster2", State: clustersv1alpha1.Failed},
 		},
 	}
 	pendingWithUnknownClusterSucceededStatus := clustersv1alpha1.MultiClusterResourceStatus{
-		Clusters: []clustersv1alpha1.ClusterLevelStatus {
+		Clusters: []clustersv1alpha1.ClusterLevelStatus{
 			{Name: "cluster3", State: clustersv1alpha1.Succeeded},
 			{Name: "cluster2", State: clustersv1alpha1.Pending},
 		},
@@ -325,7 +325,7 @@ func TestComputeEffectiveState(t *testing.T) {
 
 func TestUpdateClusterLevelStatus(t *testing.T) {
 	resourceStatus := clustersv1alpha1.MultiClusterResourceStatus{
-		Clusters: []clustersv1alpha1.ClusterLevelStatus {
+		Clusters: []clustersv1alpha1.ClusterLevelStatus{
 			{Name: "cluster1", State: clustersv1alpha1.Failed},
 			{Name: "cluster2", State: clustersv1alpha1.Pending},
 		},
