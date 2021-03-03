@@ -160,6 +160,8 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 							DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
 								assert.Equal(tt.fields.nsList[0].Metadata.Name, namespace.Name, "namespace name did not match")
 								assert.Equal(tt.fields.nsList[0].Metadata.Labels, namespace.Labels, "namespace labels did not match")
+								_, labelExists := namespace.Labels[constants.LabelVerrazzanoManaged]
+								assert.True(labelExists, fmt.Sprintf("the label %s does not exist", constants.LabelVerrazzanoManaged))
 								return nil
 							})
 					} else {
