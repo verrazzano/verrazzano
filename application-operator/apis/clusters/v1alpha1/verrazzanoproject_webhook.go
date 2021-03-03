@@ -56,7 +56,7 @@ func (vp *VerrazzanoProject) validateVerrazzanoProject() error {
 		return fmt.Errorf("Namespace for the resource must be %q", constants.VerrazzanoMultiClusterNamespace)
 	}
 
-	if len(vp.Spec.Namespaces) == 0 {
+	if len(vp.Spec.Template.Namespaces) == 0 {
 		return fmt.Errorf("One or more namespaces must be provided")
 	}
 

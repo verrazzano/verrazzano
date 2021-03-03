@@ -83,7 +83,13 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 
 	err = r.syncRegistrationSecret(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the kubeconfig used by managed cluster: %v", err)
+		log.Infof("Failed to sync the registration used by managed cluster: %v", err)
+		return ctrl.Result{}, err
+	}
+
+	err = r.syncElasticsearchSecret(vmc)
+	if err != nil {
+		log.Infof("Failed to sync the Elasticsearch secret used by managed cluster: %v", err)
 		return ctrl.Result{}, err
 	}
 
