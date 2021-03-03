@@ -25,7 +25,8 @@ ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 # by default yum tries to install a version that is non-existent on the OEL 7 yum mirrors
 # Use both olcne11 and olcne12 versions since helm-3.1.1 is available only on olcne11 and
 # kubectl 1.18.10-3 only on olcne12
-RUN yum update -y \
+RUN yum-config-manager --disable ol7_ociyum_config && \
+    yum update -y \
     && yum install -y openssl jq patch \
     && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne11/x86_64/ \
     && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne12/x86_64/ \
