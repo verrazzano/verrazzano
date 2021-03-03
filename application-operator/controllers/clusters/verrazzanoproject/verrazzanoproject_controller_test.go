@@ -153,6 +153,15 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 							DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
 								return nil
 							})
+
+						// expect call to update the namespace
+						mockClient.EXPECT().
+							Update(gomock.Any(), gomock.Any()).
+							DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
+								assert.Equal(tt.fields.nsList[0].Metadata.Name, namespace.Name, "namespace name did not match")
+								assert.Equal(tt.fields.nsList[0].Metadata.Labels, namespace.Labels, "namespace labels did not match")
+								return nil
+							})
 					} else {
 						// expect call to get a namespace that returns namespace not found
 						mockClient.EXPECT().

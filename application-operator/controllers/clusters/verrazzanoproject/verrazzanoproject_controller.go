@@ -48,21 +48,31 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, client.IgnoreNotFound(err)
 	}
 
-	err = r.createOrUpdateNamespaces(ctx, vp, logger)
+	err = r.createOrUpdateNamespaces(ctx, vp)
 	return result, err
 }
 
-func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
+func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1alpha1.VerrazzanoProject) error {
 	if vp.Namespace == constants.VerrazzanoMultiClusterNamespace {
-		for _, namespace := range vp.Spec.Template.Namespaces {
-			logger.Info("create or update with underlying namespace", "namespace", namespace.Metadata.Name)
-			corev1Namespace := corev1.Namespace{}
-			corev1Namespace.ObjectMeta = namespace.Metadata
-			corev1Namespace.Spec = namespace.Spec
-			controllerutil.CreateOrUpdate(ctx, r.Client, &corev1Namespace, func() error {
+		for _, nsTemplate := range vp.Spec.Template.Namespaces {
+			r.Log.Info("create or update with underlying namespace", "namespace", nsTemplate.Metadata.Name)
+			var namespace corev1.Namespace
+			namespace.Name = nsTemplate.Metadata.Name
+
+			opResult, err := controllerutil.CreateOrUpdate(ctx, r.Client, &namespace, func() error {
+				r.mutateNamespace(nsTemplate, &namespace)
 				return nil
 			})
+			if err != nil {
+				r.Log.Info("create or update namespace %s failed with result %q and error %v", nsTemplate.Metadata.Name, opResult, err)
+			}
 		}
 	}
 	return nil
+}
+
+func (r *Reconciler) mutateNamespace(nsTemplate clustersv1alpha1.NamespaceTemplate, namespace *corev1.Namespace) {
+	namespace.Labels = nsTemplate.Metadata.Labels
+	namespace.Annotations = nsTemplate.Metadata.Annotations
+	namespace.Spec = nsTemplate.Spec
 }
