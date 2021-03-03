@@ -212,9 +212,9 @@ func toResource(workload *unstructured.Unstructured) vzapi.QualifiedResourceRela
 	}
 }
 
-// FromWorkloadLabels returns the LoggingScope object associated with the workload or nil if
+// FetchLoggingScopeFromWorkloadLabels returns the LoggingScope object associated with the workload or nil if
 // there is no associated logging scope. The workload lookup is done using the OAM labels from the workload metadata.
-func FromWorkloadLabels(ctx context.Context, cli client.Reader, log logr.Logger, namespace string, labels map[string]string) (*vzapi.LoggingScope, error) {
+func FetchLoggingScopeFromWorkloadLabels(ctx context.Context, cli client.Reader, log logr.Logger, namespace string, labels map[string]string) (*vzapi.LoggingScope, error) {
 	component, err := vznav.ComponentFromWorkloadLabels(ctx, cli, namespace, labels)
 	if err != nil {
 		return nil, err

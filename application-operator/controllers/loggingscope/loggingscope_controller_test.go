@@ -270,7 +270,7 @@ func TestFromWorkloadLabels(t *testing.T) {
 			return nil
 		})
 
-	loggingScope, err := FromWorkloadLabels(ctx, cli, ctrl.Log.WithName("test"), "unit-test-namespace", labels)
+	loggingScope, err := FetchLoggingScopeFromWorkloadLabels(ctx, cli, ctrl.Log.WithName("test"), "unit-test-namespace", labels)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -306,7 +306,7 @@ func TestFromWorkloadLabels(t *testing.T) {
 			return nil
 		})
 
-	loggingScope, err = FromWorkloadLabels(ctx, cli, ctrl.Log.WithName("test"), "unit-test-namespace", labels)
+	loggingScope, err = FetchLoggingScopeFromWorkloadLabels(ctx, cli, ctrl.Log.WithName("test"), "unit-test-namespace", labels)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -338,7 +338,7 @@ func TestFromWorkloadLabels(t *testing.T) {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 
-	loggingScope, err = FromWorkloadLabels(ctx, cli, ctrl.Log.WithName("test"), "unit-test-namespace", labels)
+	loggingScope, err = FetchLoggingScopeFromWorkloadLabels(ctx, cli, ctrl.Log.WithName("test"), "unit-test-namespace", labels)
 
 	mocker.Finish()
 	assert.True(k8serrors.IsNotFound(err))
@@ -395,7 +395,7 @@ func TestFetchLoggingScopeWithDefaults(t *testing.T) {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 
-	loggingScope, err := FromWorkloadLabels(ctx, cli, ctrl.Log.WithName("test"), "unit-test-namespace", labels)
+	loggingScope, err := FetchLoggingScopeFromWorkloadLabels(ctx, cli, ctrl.Log.WithName("test"), "unit-test-namespace", labels)
 
 	mocker.Finish()
 	assert.NoError(err)

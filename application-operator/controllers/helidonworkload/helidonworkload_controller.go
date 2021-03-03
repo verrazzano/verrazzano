@@ -276,7 +276,7 @@ func mergeMapOverrideWithDest(src, dst map[string]string) map[string]string {
 
 // addLogging adds a FLUENTD sidecar and configmap and updates the Deployment
 func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace string, labels map[string]string, deployment *appsv1.Deployment) error {
-	loggingScope, err := loggingscope.FromWorkloadLabels(ctx, r.Client, log, namespace, labels)
+	loggingScope, err := loggingscope.FetchLoggingScopeFromWorkloadLabels(ctx, r.Client, log, namespace, labels)
 	if err != nil {
 		return err
 	}
