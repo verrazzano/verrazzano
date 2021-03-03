@@ -82,18 +82,20 @@ func DoExpectGetMCRegistrationSecret(cli *mocks.MockClient) {
 		})
 }
 
-// AssertMultiClusterResourceStatus asserts that the status and conditions on the MultiClusterApplicationConfiguration
-// are as expected
+// AssertMultiClusterResourceStatus asserts that the status, conditions and cluster level status
+// on the MultiClusterResourceStatus are as expected
 func AssertMultiClusterResourceStatus(assert *assert.Assertions,
-	actualState v1alpha1.StateType,
-	actualConditions []v1alpha1.Condition,
+	actualStatus v1alpha1.MultiClusterResourceStatus,
 	expectedState v1alpha1.StateType,
 	expectedConditionType v1alpha1.ConditionType,
 	expectedConditionStatus v1.ConditionStatus) {
 
-	assert.Equal(expectedState, actualState)
-	assert.Equal(1, len(actualConditions))
-	assert.Equal(expectedConditionStatus, actualConditions[0].Status)
-	assert.Equal(expectedConditionType, actualConditions[0].Type)
-	assert.Equal(UnitTestClusterName, actualConditions[0].ClusterName)
+	assert.Equal(expectedState, actualStatus.State)
+	assert.Equal(1, len(actualStatus.Conditions))
+	assert.Equal(expectedConditionStatus, actualStatus.Conditions[0].Status)
+	assert.Equal(expectedConditionType, actualStatus.Conditions[0].Type)
+
+	assert.Equal(1, len(actualStatus.Clusters))
+	assert.Equal(UnitTestClusterName, actualStatus.Clusters[0].Name)
+	assert.Equal(expectedState, actualStatus.Clusters[0].State)
 }
