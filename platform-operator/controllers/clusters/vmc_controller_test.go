@@ -314,7 +314,7 @@ func expectSyncElasticsearch(t *testing.T, mock *mocks.MockClient, name string) 
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.SystemTLS}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				caKey: []byte(caData),
+				caCrtKey: []byte(caData),
 			}
 			return nil
 		})
@@ -328,7 +328,7 @@ func expectSyncElasticsearch(t *testing.T, mock *mocks.MockClient, name string) 
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
-			ca, _ := secret.Data[caKey]
+			ca, _ := secret.Data[caCrtKey]
 			asserts.Equalf(caData, string(ca), "Incorrect cadata in Elasticsearch secret ")
 			user, _ := secret.Data[usernameKey]
 			asserts.Equalf(userData, string(user), "Incorrect user in Elasticsearch secret ")
@@ -366,7 +366,7 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, name string, names
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: GetElasticsearchSecretName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				caKey:       []byte(caData),
+				caCrtKey:    []byte(caData),
 				usernameKey: []byte(userData),
 				passwordKey: []byte(passwordData),
 				urlKey:      []byte(urlData),

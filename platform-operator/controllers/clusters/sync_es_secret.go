@@ -16,7 +16,8 @@ import (
 )
 
 const (
-	caKey       = "ca-bundle"
+	caCrtKey    = "ca.crt"
+	caBundleKey = "ca-bundle"
 	passwordKey = "password"
 	usernameKey = "username"
 	urlKey      = "url"
@@ -42,7 +43,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncElasticsearchSecret(vmc *cluste
 
 	// Build the secret data
 	secretData := make(map[string][]byte)
-	secretData[caKey] = tlsSecret.Data[caKey]
+	secretData[caBundleKey] = tlsSecret.Data[caCrtKey]
 	secretData[usernameKey] = vzSecret.Data[usernameKey]
 	secretData[passwordKey] = vzSecret.Data[passwordKey]
 	secretData[urlKey] = []byte(url)

@@ -4,12 +4,16 @@
 package integ_test
 
 import (
+	"context"
 	"fmt"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	vzclusters "github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/platform-operator/test/integ/k8s"
 	"github.com/verrazzano/verrazzano/platform-operator/test/integ/util"
+	k8net "k8s.io/api/networking/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const managedClusterName = "cluster1"
@@ -19,6 +23,8 @@ const managedGeneratedName_1 = "verrazzano-cluster-cluster1"
 const installNamespace = "verrazzano-install"
 const vzMcNamespace = "verrazzano-mc"
 const prometheusSecret = "prometheus-cluster1"
+const vmiESIngest = "vmi-system-es-ingest"
+const hostdata = "testhost"
 
 var K8sClient k8s.Client
 
@@ -91,8 +97,12 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 			"The verrazzano-platform-operator pod should be in the Running state")
 	})
 	ginkgo.It("Create multi-cluster namespace ", func() {
-		_, stderr := util.Kubectl(fmt.Sprintf("create namespace %s", vzMcNamespace))
-		gomega.Expect(stderr).To(gomega.Equal(""))
+		err := K8sClient.EnsureNamespace(vzMcNamespace)
+		gomega.Expect(err).To(gomega.BeNil())
+	})
+	ginkgo.It("Create verrazzano-system namespace ", func() {
+		err := K8sClient.EnsureNamespace(constants.VerrazzanoSystemNamespace)
+		gomega.Expect(err).To(gomega.BeNil())
 	})
 	ginkgo.It("Missing secret name validation ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/vmc_missing_secret_name.yaml")
@@ -107,6 +117,25 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 		_, stderr := util.Kubectl(
 			fmt.Sprintf("create secret generic %s -n %s --from-literal=password=mypw --from-literal=username=myuser", prometheusSecret, vzMcNamespace))
 		gomega.Expect(stderr).To(gomega.Equal(""))
+	})
+	ginkgo.It("Create Verrazzano secret needed to create ES secret ", func() {
+		_, stderr := util.Kubectl(
+			fmt.Sprintf("create secret generic %s -n %s --from-literal=password=mypw --from-literal=username=myuser", constants.Verrazzano, constants.VerrazzanoSystemNamespace))
+		gomega.Expect(stderr).To(gomega.Equal(""))
+	})
+	ginkgo.It("Create system tls secret needed to create ES secret ", func() {
+		_, stderr := util.Kubectl(
+			// a generic secret is ok for testing
+			fmt.Sprintf("create secret generic %s -n %s --from-literal=cr.crt=fakeCA", constants.SystemTLS, constants.VerrazzanoSystemNamespace))
+		gomega.Expect(stderr).To(gomega.Equal(""))
+	})
+	ginkgo.It("Create Elasticsearch ingress needed to create ES secret", func() {
+		ingressExists := func() bool {
+			return K8sClient.DoesIngressExist(vmiESIngest, constants.VerrazzanoSystemNamespace)
+		}
+		createFakeElasticsearchIngress()
+		gomega.Eventually(ingressExists(), "10s", "5s").Should(gomega.BeTrue(),
+			"The Elasticsearch ingress should exist")
 	})
 	ginkgo.It("VerrazzanoManagedCluster can be created ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/vmc_sample.yaml")
@@ -185,5 +214,24 @@ func verifyManifestSecret() {
 	kubconfigBytes := secret.Data["yaml"]
 	if len(kubconfigBytes) == 0 {
 		ginkgo.Fail(fmt.Sprintf("Manifest secret %s does not contain yaml", err))
+	}
+}
+
+// Create a fake ES ingress in Verrazzano system so that we can build the ES secret
+func createFakeElasticsearchIngress() {
+	// Create the ingress
+	ing := k8net.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: vmiESIngest,
+		},
+		Spec: k8net.IngressSpec{
+			Rules: []k8net.IngressRule{{
+				Host: hostdata,
+			}},
+		},
+	}
+	_, err := K8sClient.Clientset.NetworkingV1beta1().Ingresses(constants.VerrazzanoSystemNamespace).Create(context.TODO(), &ing, metav1.CreateOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Unable to create fake Elasticsearch ingress: %v", err))
 	}
 }
