@@ -110,6 +110,22 @@ func (c Client) DoesServiceAccountExist(name string, namespace string) bool {
 	return procExistsStatus(err, "ServiceAccount")
 }
 
+// DoesIngressExist returns true if the given Ingress exists
+func (c Client) DoesIngressExist(name string, namespace string) bool {
+	_, err := c.Clientset.NetworkingV1beta1().Ingresses(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	return procExistsStatus(err, "Ingress")
+}
+
+// EnsureNamespace ensures that a namespace exists
+func (c Client) EnsureNamespace(namespace string) error {
+	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
+	_, err := c.Clientset.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
+	if err == nil || errors.IsNotFound(err) {
+		return nil
+	}
+	return err
+}
+
 func procExistsStatus(err error, msg string) bool {
 	if err == nil {
 		return true
