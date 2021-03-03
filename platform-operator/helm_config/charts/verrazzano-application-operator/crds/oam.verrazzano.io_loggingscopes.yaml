@@ -39,13 +39,13 @@ spec:
             description: LoggingScopeSpec defines the desired state of LoggingScope
             properties:
               elasticSearchURL:
-                description: URL for ElasticSearch
+                description: URL for Elasticsearch
                 type: string
               fluentdImage:
                 description: The fluentd image
                 type: string
               secretName:
-                description: Name of secret with ElasticSearch credentials
+                description: Name of secret with Elasticsearch credentials
                 type: string
               workloadRefs:
                 description: WorkloadReferences to the workloads this scope applies
