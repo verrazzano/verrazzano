@@ -433,13 +433,6 @@ pipeline {
                         }
                         stage('examples todo') {
                             steps {
-                                sh """
-                                      # The ToDoList example image currently cannot be pulled in KIND.
-                                      # Remove this block once the image can be pulled into KIND.
-                                      . ${GO_REPO_PATH}/verrazzano/tools/scripts/retry-utils.sh
-                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-todo:0.8.0
-                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-todo:0.8.0
-                                  """
                                 runGinkgo('examples/todo-list')
                             }
                         }
@@ -463,23 +456,6 @@ pipeline {
                                 expression {params.RUN_SLOW_TESTS == true}
                             }
                             steps {
-                                sh """
-                                      # The Bobs Books example image currently cannot be pulled in KIND.
-                                      # Remove this block once the images can be pulled into KIND.
-                                      . ${GO_REPO_PATH}/verrazzano/tools/scripts/retry-utils.sh
-                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.12-1-20210205215204-b624b86
-                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.12-1-20210205215204-b624b86
-                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210205215204-b624b86
-                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210205215204-b624b86
-                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.12-1-20210205215204-b624b86
-                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.12-1-20210205215204-b624b86
-                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210205215204-b624b86
-                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210205215204-b624b86
-                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210205215204-b624b86
-                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210205215204-b624b86
-                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210205215204-b624b86
-                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210205215204-b624b86
-                                  """
                                 runGinkgo('examples/bobs-books')
                             }
                         }
