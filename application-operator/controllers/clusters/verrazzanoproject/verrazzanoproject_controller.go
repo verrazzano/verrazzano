@@ -77,5 +77,8 @@ func (r *Reconciler) mutateNamespace(nsTemplate clustersv1alpha1.NamespaceTempla
 	namespace.Spec = nsTemplate.Spec
 
 	// Add verrazzano generated labels if not already present
+	if namespace.Labels == nil {
+		namespace.Labels = map[string]string{}
+	}
 	namespace.Labels[constants.LabelVerrazzanoManaged] = "true"
 }

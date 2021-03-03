@@ -36,10 +36,10 @@ var existingNS = clustersv1alpha1.NamespaceTemplate{
 	},
 }
 
+// Omit labels on this namespace to handle test case of starting with an empty label
 var newNS = clustersv1alpha1.NamespaceTemplate{
 	Metadata: metav1.ObjectMeta{
-		Name:   "newNS",
-		Labels: testLabels,
+		Name: "newNS",
 	},
 }
 
