@@ -60,7 +60,7 @@ func (d *LoggingScopeDefaulter) Cleanup(appConfig *oamv1.ApplicationConfiguratio
 	return
 }
 
-// CreateDefaultLoggingScope creates the default logging scope for the given namespace
+// createDefaultLoggingScope creates the default logging scope for the given namespace
 func createDefaultLoggingScope(name types.NamespacedName) *vzapi.LoggingScope {
 	scope := &vzapi.LoggingScope{
 		ObjectMeta: metav1.ObjectMeta{
