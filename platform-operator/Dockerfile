@@ -27,6 +27,7 @@ ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 # kubectl 1.18.10-3 only on olcne12
 RUN yum-config-manager --disable ol7_ociyum_config \
     && yum update -y \
+    && yum-config-manager --disable ol7_ociyum_config \
     && yum install -y openssl jq patch \
     && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne11/x86_64/ \
     && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne12/x86_64/ \
