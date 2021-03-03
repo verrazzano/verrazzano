@@ -21,7 +21,7 @@ pipeline {
 
     parameters {
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
-        booleanParam (description: 'Whether to run example tests', name: 'RUN_EXAMPLE_TESTS', defaultValue: true)
+        booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
     }
 
@@ -426,11 +426,12 @@ pipeline {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
-                        // yes i know this is ugly - working on cleaning it up
-                        stage('examples todo') {
-                            when {
-                                expression {params.RUN_EXAMPLE_TESTS == true}
+                        stage('examples authorization policy') {
+                            steps {
+                                runGinkgo('istio/authz')
                             }
+                        }
+                        stage('examples todo') {
                             steps {
                                 sh """
                                       # The ToDoList example image currently cannot be pulled in KIND.
@@ -443,40 +444,23 @@ pipeline {
                             }
                         }
                         stage('examples socks') {
-                            when {
-                                expression {params.RUN_EXAMPLE_TESTS == true}
-                            }
                             steps {
                                 runGinkgo('examples/sock-shop')
                             }
                         }
                         stage('examples spring') {
-                            when {
-                                expression {params.RUN_EXAMPLE_TESTS == true}
-                            }
                             steps {
                                 runGinkgo('examples/springboot-app')
                             }
                         }
                         stage('examples helidon') {
-                            when {
-                                expression {params.RUN_EXAMPLE_TESTS == true}
-                            }
                             steps {
                                 runGinkgo('examples/hello-helidon')
                             }
                         }
-                        stage('examples authorization policy') {
-                            when {
-                                expression {params.RUN_EXAMPLE_TESTS == true}
-                            }
-                            steps {
-                                runGinkgo('istio/authz')
-                            }
-                        }
                         stage('examples bobs') {
                             when {
-                                expression {params.RUN_EXAMPLE_TESTS == true}
+                                expression {params.RUN_SLOW_TESTS == true}
                             }
                             steps {
                                 sh """
