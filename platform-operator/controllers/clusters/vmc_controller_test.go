@@ -328,7 +328,7 @@ func expectSyncElasticsearch(t *testing.T, mock *mocks.MockClient, name string) 
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
-			ca, _ := secret.Data[caCrtKey]
+			ca, _ := secret.Data[caBundleKey]
 			asserts.Equalf(caData, string(ca), "Incorrect cadata in Elasticsearch secret ")
 			user, _ := secret.Data[usernameKey]
 			asserts.Equalf(userData, string(user), "Incorrect user in Elasticsearch secret ")
