@@ -18,7 +18,15 @@ var testProject = VerrazzanoProject{
 		Namespace: constants.VerrazzanoMultiClusterNamespace,
 	},
 	Spec: VerrazzanoProjectSpec{
-		Namespaces: []string{"bob"},
+		Template: ProjectTemplate{
+			Namespaces: []NamespaceTemplate{
+				{
+					Metadata: metav1.ObjectMeta{
+						Name: "newNS1",
+					},
+				},
+			},
+		},
 	},
 }
 
@@ -68,7 +76,7 @@ func TestInvalidNamespaces(t *testing.T) {
 
 	// Test data
 	testVP := testProject
-	testVP.Spec.Namespaces = []string{}
+	testVP.Spec.Template.Namespaces = []NamespaceTemplate{}
 
 	// Test create
 	err := testVP.ValidateCreate()
