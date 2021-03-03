@@ -138,15 +138,14 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 		})
 	})
 
-	ginkgo.Describe("ClusterRole verrazzano-project-admin", func() {
+	ginkgo.Describe("ClusterRole verrazzano-monitor", func() {
 		ginkgo.It("has correct rules", func() {
 			cr := pkg.GetClusterRole("verrazzano-project-admin")
 			rules := cr.Rules
-			gomega.Expect(len(rules) == 2).To(gomega.BeTrue(),
-				"there should be two rules")
+			gomega.Expect(len(rules) == 1).To(gomega.BeTrue(),
+				"there should be one rule")
 
 			foundReadRule := false
-			foundWriteRule := false
 
 			for _, r := range rules {
 				gomega.Expect(r.NonResourceURLs).To(gomega.BeEmpty(),
@@ -169,11 +168,7 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 					"the resource should be '*'")
 
 				verbs := r.Verbs
-				if pkg.SliceContainsString(verbs, "put") &&
-					pkg.SliceContainsString(verbs, "post") &&
-					len(verbs) == 2 {
-					foundWriteRule = true
-				} else if pkg.SliceContainsString(verbs, "get") &&
+				if pkg.SliceContainsString(verbs, "get") &&
 					pkg.SliceContainsString(verbs, "list") &&
 					pkg.SliceContainsString(verbs, "watch") &&
 					len(verbs) == 3 {
@@ -183,8 +178,6 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 
 			gomega.Expect(foundReadRule).To(gomega.BeTrue(),
 				"should be a rule that allows get,list,watch verbs")
-			gomega.Expect(foundWriteRule).To(gomega.BeTrue(),
-				"should be a rule that allows put,post verbs")
 		})
 	})
 
@@ -193,7 +186,7 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 			cr := pkg.GetClusterRole("verrazzano-project-monitor")
 			rules := cr.Rules
 			gomega.Expect(len(rules) == 1).To(gomega.BeTrue(),
-				"there should be two rules")
+				"there should be one rule")
 
 			foundReadRule := false
 
