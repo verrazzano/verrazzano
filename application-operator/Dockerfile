@@ -14,8 +14,7 @@ RUN chmod 500 /usr/local/bin/verrazzano-application-operator
 # Create the verrazzano-application-operator image
 FROM ghcr.io/oracle/oraclelinux:7-slim
 
-RUN yum-config-manager --disable ol7_ociyum_config \
-    && yum update -y \
+RUN yum update -y \
     && yum clean all \
     && rm -rf /var/cache/yum
 
