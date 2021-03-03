@@ -70,6 +70,36 @@ spec:
                       - metadata
                       type: object
                     type: array
+                  security:
+                    description: Security specifies the project security configuration
+                    properties:
+                      projectAdminBinding:
+                        description: ProjectAdminBinding specifies the subject that
+                          should be bound to the verrazzano-project-admins role
+                        properties:
+                          kind:
+                            description: Kind specifies the kind value for an RBAC
+                              subject for a RoleBinding
+                            type: string
+                          name:
+                            description: Name specifies the name value for an RBAC
+                              subject for a RoleBinding
+                            type: string
+                        type: object
+                      projectMonitorBinding:
+                        description: ProjectMonitorBinding specifies the subject that
+                          should be bound to the verrazzano-project-monitors role
+                        properties:
+                          kind:
+                            description: Kind specifies the kind value for an RBAC
+                              subject for a RoleBinding
+                            type: string
+                          name:
+                            description: Name specifies the name value for an RBAC
+                              subject for a RoleBinding
+                            type: string
+                        type: object
+                    type: object
                 required:
                 - namespaces
                 type: object

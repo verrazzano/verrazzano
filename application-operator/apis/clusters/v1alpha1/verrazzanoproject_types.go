@@ -15,9 +15,31 @@ type NamespaceTemplate struct {
 	Spec     corev1.NamespaceSpec `json:"spec,omitempty"`
 }
 
+// RoleBindingSubject specifies the kind and name of a subject to bind to
+type RoleBindingSubject struct {
+	// Kind specifies the kind value for an RBAC subject for a RoleBinding
+	Kind string `json:"kind,omitempty"`
+	// Name specifies the name value for an RBAC subject for a RoleBinding
+	Name string `json:"name,omitempty"`
+}
+
+// SecuritySpec defines the security configuration for a project
+type SecuritySpec struct {
+	// ProjectAdminBinding specifies the subject that should be bound to the verrazzano-project-admins role
+	// +optional
+	ProjectAdminBinding RoleBindingSubject `json:"projectAdminBinding,omitempty"`
+	// ProjectMonitorBinding specifies the subject that should be bound to the verrazzano-project-monitors role
+	// +optional
+	ProjectMonitorBinding RoleBindingSubject `json:"projectMonitorBinding,omitempty"`
+}
+
 // ProjectTemplate contains the resources for a project
 type ProjectTemplate struct {
 	Namespaces []NamespaceTemplate `json:"namespaces"`
+
+	// Security specifies the project security configuration
+	// +optional
+	Security SecuritySpec `json:"security,omitempty"`
 }
 
 // VerrazzanoProjectSpec defines the desired state of VerrazzanoProject
