@@ -5,6 +5,7 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -15,22 +16,14 @@ type NamespaceTemplate struct {
 	Spec     corev1.NamespaceSpec `json:"spec,omitempty"`
 }
 
-// RoleBindingSubject specifies the kind and name of a subject to bind to
-type RoleBindingSubject struct {
-	// Kind specifies the kind value for an RBAC subject for a RoleBinding
-	Kind string `json:"kind,omitempty"`
-	// Name specifies the name value for an RBAC subject for a RoleBinding
-	Name string `json:"name,omitempty"`
-}
-
 // SecuritySpec defines the security configuration for a project
 type SecuritySpec struct {
-	// ProjectAdminBinding specifies the subject that should be bound to the verrazzano-project-admins role
+	// ProjectAdminSubjects specifies the list of subjects that should be bound to the verrazzano-project-admins role
 	// +optional
-	ProjectAdminBinding RoleBindingSubject `json:"projectAdminBinding,omitempty"`
+	ProjectAdminSubjects []rbacv1.Subject `json:"projectAdminSubjects,omitempty"`
 	// ProjectMonitorBinding specifies the subject that should be bound to the verrazzano-project-monitors role
 	// +optional
-	ProjectMonitorBinding RoleBindingSubject `json:"projectMonitorBinding,omitempty"`
+	ProjectMonitorSubjects []rbacv1.Subject `json:"projectMonitorSubjects,omitempty"`
 }
 
 // ProjectTemplate contains the resources for a project
