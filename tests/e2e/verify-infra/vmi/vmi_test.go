@@ -113,13 +113,12 @@ var _ = ginkgo.Describe("VMI", func() {
 		)
 	})
 
-	ginkgo.PIt("Elasticsearch filebeat Index should be accessible", func() {
+	ginkgo.It("Elasticsearch filebeat Index should be accessible", func() {
 		gomega.Eventually(func() bool {
 			return pkg.LogRecordFound("vmo-local-journalbeat-"+time.Now().Format("2006.01.02"),
 				time.Now().Add(-24*time.Hour),
 				map[string]string{
-					"kubernetes.namespace":      "verrazzano-system",
-					"kubernetes.container.name": "verrazzano-application-operator"})
+					"beat.version":      "6.8.3"})
 		}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a filebeat log record")
 	})
 
