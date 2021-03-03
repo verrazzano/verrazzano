@@ -25,15 +25,6 @@ type VerrazzanoProjectSpec struct {
 	Template ProjectTemplate `json:"template"`
 }
 
-// VerrazzanoProjectStatus defines the observed state of VerrazzanoProject
-type VerrazzanoProjectStatus struct {
-	// The latest available observations of an object's current state.
-	Conditions []Condition `json:"conditions,omitempty"`
-
-	// State of the MultiClusterSecret custom resource
-	State StateType `json:"state,omitempty"`
-}
-
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=vp;vps
 // +kubebuilder:subresource:status
@@ -43,8 +34,8 @@ type VerrazzanoProject struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VerrazzanoProjectSpec   `json:"spec"`
-	Status VerrazzanoProjectStatus `json:"status,omitempty"`
+	Spec   VerrazzanoProjectSpec      `json:"spec"`
+	Status MultiClusterResourceStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
