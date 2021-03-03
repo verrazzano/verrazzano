@@ -339,6 +339,8 @@ spec:
             - template
             type: object
           status:
+            description: MultiClusterResourceStatus represents the status of a multi-cluster
+              resource, including cluster-level status information
             properties:
               clusters:
                 items:
