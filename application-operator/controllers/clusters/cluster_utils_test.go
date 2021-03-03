@@ -110,24 +110,22 @@ func TestGetClusterName(t *testing.T) {
 // GIVEN a nil or non-nil err
 // WHEN GetConditionAndStateFromResult is called
 // The returned condition and state show success or failure depending on err == nil or not,
-// and the message and cluster name are correctly populated
+// and the message is correctly populated
 func TestGetConditionAndStateFromResult(t *testing.T) {
 	// GIVEN err == nil
-	condition, stateType := GetConditionAndStateFromResult(nil, controllerutil.OperationResultCreated, "myresource type", "mytestcluster")
+	condition, stateType := GetConditionAndStateFromResult(nil, controllerutil.OperationResultCreated, "myresource type")
 	asserts.Equal(t, clustersv1alpha1.Ready, stateType)
 	asserts.Equal(t, clustersv1alpha1.DeployComplete, condition.Type)
 	asserts.Equal(t, v1.ConditionTrue, condition.Status)
-	asserts.Equal(t, "mytestcluster", condition.ClusterName)
 	asserts.Contains(t, condition.Message, "myresource type")
 	asserts.Contains(t, condition.Message, controllerutil.OperationResultCreated)
 
 	// GIVEN err != nil
 	someerr := errors.New("some error msg")
-	condition, stateType = GetConditionAndStateFromResult(someerr, controllerutil.OperationResultCreated, "myresource type", "mytestcluster")
+	condition, stateType = GetConditionAndStateFromResult(someerr, controllerutil.OperationResultCreated, "myresource type")
 	asserts.Equal(t, clustersv1alpha1.Failed, stateType)
 	asserts.Equal(t, clustersv1alpha1.DeployFailed, condition.Type)
 	asserts.Equal(t, v1.ConditionTrue, condition.Status)
-	asserts.Equal(t, "mytestcluster", condition.ClusterName)
 	asserts.Contains(t, condition.Message, someerr.Error())
 }
 
@@ -175,56 +173,103 @@ func TestIsPlacedInThisCluster(t *testing.T) {
 	mocker.Finish()
 }
 
-// TestStatusNeedsUpdate tests the StatusNeedsUpdate function
-// GIVEN a current state and a list of current conditions present on the resource
-// WHEN StatusNeedsUpdate is called with a new condition and state
-// THEN it returns true if the new condition's content (including cluster name) are already present
-// in the list of existing conditions AND the new state matches the current state, false otherwise
+// TestStatusNeedsUpdate tests various combinations of input to the StatusNeedsUpdate function
+// GIVEN a current status present on the resource
+// WHEN StatusNeedsUpdate is called with a new condition, state and cluster level status
+// THEN it returns false if the new condition and cluster level status are already present
+// in the status, AND the new state matches the current state, true otherwise
 func TestStatusNeedsUpdate(t *testing.T) {
 	conditionTimestamp := time.Now()
 	formattedConditionTimestamp := conditionTimestamp.Format(time.RFC3339)
 	curConditions := []clustersv1alpha1.Condition{
-		{Type: clustersv1alpha1.DeployComplete, Status: v1.ConditionTrue, ClusterName: "cluster1", LastTransitionTime: formattedConditionTimestamp},
-		{Type: clustersv1alpha1.DeployFailed, Status: v1.ConditionTrue, ClusterName: "cluster2", LastTransitionTime: formattedConditionTimestamp},
+		{Type: clustersv1alpha1.DeployComplete, Status: v1.ConditionTrue, LastTransitionTime: formattedConditionTimestamp},
 	}
-	curState := clustersv1alpha1.Ready
+	curState := clustersv1alpha1.Failed
+	curCluster1Status := clustersv1alpha1.ClusterLevelStatus{Name: "cluster1", State: clustersv1alpha1.Ready, LastUpdateTime: formattedConditionTimestamp}
+	curCluster2Status := clustersv1alpha1.ClusterLevelStatus{Name: "cluster2", State: clustersv1alpha1.Failed, LastUpdateTime: formattedConditionTimestamp}
 
-	otherState := clustersv1alpha1.Failed
+	curStatus := clustersv1alpha1.MultiClusterResourceStatus{
+		Conditions: curConditions,
+		State:      curState,
+		Clusters:   []clustersv1alpha1.ClusterLevelStatus {curCluster1Status, curCluster2Status},
+	}
+
+	otherState := clustersv1alpha1.Ready
 	otherTimestamp := conditionTimestamp.AddDate(0, 0, 1).Format(time.RFC3339)
-	newCondCluster1 := clustersv1alpha1.Condition{Type: clustersv1alpha1.DeployFailed, Status: v1.ConditionTrue, ClusterName: "cluster1"}
-	existingCondCluster1 := curConditions[0]
-	existingCondNewCluster := clustersv1alpha1.Condition{Type: clustersv1alpha1.DeployComplete, Status: v1.ConditionTrue, ClusterName: "newCluster"}
-	newCondCluster2 := clustersv1alpha1.Condition{Type: clustersv1alpha1.DeployFailed, Status: v1.ConditionFalse, ClusterName: "cluster2"}
-	existingCondCluster2 := curConditions[1]
+	newCond := clustersv1alpha1.Condition{Type: clustersv1alpha1.DeployFailed, Status: v1.ConditionTrue}
+	existingCond := curConditions[0]
+	newCluster1Status := clustersv1alpha1.ClusterLevelStatus{
+		Name: curCluster1Status.Name,
+		State: clustersv1alpha1.Failed,
+		LastUpdateTime: formattedConditionTimestamp}
+	newCluster2Status := clustersv1alpha1.ClusterLevelStatus{
+		Name: curCluster2Status.Name,
+		State: clustersv1alpha1.Ready,
+		LastUpdateTime: formattedConditionTimestamp}
 
 	existingCondDiffTimestampCluster1 := clustersv1alpha1.Condition{
-		Type: curConditions[0].Type, Status: curConditions[0].Status, ClusterName: curConditions[0].ClusterName, LastTransitionTime: otherTimestamp}
-	existingCondDiffTimestampCluster2 := clustersv1alpha1.Condition{
-		Type: curConditions[1].Type, Status: curConditions[1].Status, ClusterName: curConditions[1].ClusterName, LastTransitionTime: otherTimestamp}
+		Type: curConditions[0].Type, Status: curConditions[0].Status, LastTransitionTime: otherTimestamp}
 
-	// Asserts for BOTH of the clusters already present in conditions (cluster1 and cluster2)
-	// new condition, same state - needs update
-	asserts.True(t, StatusNeedsUpdate(curConditions, curState, newCondCluster1, curState))
-	asserts.True(t, StatusNeedsUpdate(curConditions, curState, newCondCluster2, curState))
+	cluster1StatusDiffTimestamp := clustersv1alpha1.ClusterLevelStatus{
+		Name: curCluster1Status.Name,
+		State: curCluster1Status.State,
+		LastUpdateTime: otherTimestamp}
 
-	// new condition, different state - needs update
-	asserts.True(t, StatusNeedsUpdate(curConditions, curState, newCondCluster1, otherState))
-	asserts.True(t, StatusNeedsUpdate(curConditions, curState, newCondCluster2, otherState))
+	newClusterStatus := clustersv1alpha1.ClusterLevelStatus{
+		Name: "newCluster",
+		State: clustersv1alpha1.Ready,
+		LastUpdateTime: otherTimestamp}
 
-	// same condition, different state - needs update
-	asserts.True(t, StatusNeedsUpdate(curConditions, curState, existingCondCluster1, otherState))
-	asserts.True(t, StatusNeedsUpdate(curConditions, curState, existingCondCluster2, otherState))
+	// Asserts new condition, same state and cluster status for each cluster- needs update
+	asserts.True(t, StatusNeedsUpdate(curStatus, newCond, curState, curCluster1Status))
+	asserts.True(t, StatusNeedsUpdate(curStatus, newCond, curState, curCluster2Status))
 
-	// same condition, same state - does not need update
-	asserts.False(t, StatusNeedsUpdate(curConditions, curState, existingCondCluster1, curState))
-	asserts.False(t, StatusNeedsUpdate(curConditions, curState, existingCondCluster2, curState))
+	// new condition, different state, same cluster status for each cluster - needs update
+	asserts.True(t, StatusNeedsUpdate(curStatus, newCond, otherState, curCluster1Status))
+	asserts.True(t, StatusNeedsUpdate(curStatus, newCond, otherState, curCluster2Status))
 
-	// same condition and state, differing in timestamp - does not need update
-	asserts.False(t, StatusNeedsUpdate(curConditions, curState, existingCondDiffTimestampCluster1, curState))
-	asserts.False(t, StatusNeedsUpdate(curConditions, curState, existingCondDiffTimestampCluster2, curState))
+	// same condition, different state, same cluster status for each cluster - needs update
+	asserts.True(t, StatusNeedsUpdate(curStatus, existingCond, otherState, curCluster1Status))
+	asserts.True(t, StatusNeedsUpdate(curStatus, existingCond, otherState, curCluster2Status))
+
+
+	// same condition, same state, same cluster status for each clusters - does not need update
+	asserts.False(t, StatusNeedsUpdate(curStatus, existingCond, curState, curCluster1Status))
+	asserts.False(t, StatusNeedsUpdate(curStatus, existingCond, curState, curCluster2Status))
+
+	// same condition, same state, different cluster status for each cluster - needs update
+	asserts.True(t, StatusNeedsUpdate(curStatus, existingCond, curState, newCluster1Status))
+	asserts.True(t, StatusNeedsUpdate(curStatus, existingCond, curState, newCluster2Status))
+
+	// same condition and state, differing in condition timestamp - does not need update
+	asserts.False(t, StatusNeedsUpdate(curStatus, existingCondDiffTimestampCluster1, curState, curCluster1Status))
+
+	// same condition and state, differing in cluster status timestamp - does not need update
+	asserts.False(t, StatusNeedsUpdate(curStatus, existingCondDiffTimestampCluster1, curState, cluster1StatusDiffTimestamp))
 
 	// same condition, same state, new cluster not present in conditions - needs update
-	asserts.True(t, StatusNeedsUpdate(curConditions, curState, existingCondNewCluster, curState))
+	asserts.True(t, StatusNeedsUpdate(curStatus, existingCond, curState, newClusterStatus))
+}
+
+// TestCreateClusterLevelStatus tests the CreateClusterLevelStatus function
+// GIVEN a condition and state
+// WHEN CreateClusterLevelStatus is called
+// THEN it returns a cluster state correctly populated
+func TestCreateClusterLevelStatus(t *testing.T) {
+	formattedConditionTimestamp := time.Now().Format(time.RFC3339)
+	condition1 := clustersv1alpha1.Condition{
+		Type: clustersv1alpha1.DeployComplete, Status: v1.ConditionTrue, LastTransitionTime: formattedConditionTimestamp,
+	}
+
+	clusterState1 := CreateClusterLevelStatus(condition1, clustersv1alpha1.Failed, "cluster1")
+	asserts.Equal(t, "cluster1", clusterState1.Name)
+	asserts.Equal(t, clustersv1alpha1.Failed, clusterState1.State)
+	asserts.Equal(t, formattedConditionTimestamp, clusterState1.LastUpdateTime)
+
+	clusterState2 := CreateClusterLevelStatus(condition1, clustersv1alpha1.Ready, "somecluster")
+	asserts.Equal(t, "somecluster", clusterState2.Name)
+	asserts.Equal(t, clustersv1alpha1.Ready, clusterState2.State)
+	asserts.Equal(t, formattedConditionTimestamp, clusterState2.LastUpdateTime)
 }
 
 func expectMCRegistrationSecret(cli *mocks.MockClient, clusterName string, times int) {

@@ -92,17 +92,10 @@ var _ = ginkgo.Describe("Testing MultiClusterConfigMap", func() {
 			return err == nil && mcConfigMap.Status.State == clustersv1alpha1.Failed
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 		gomega.Consistently(func() bool {
-			// Verify the controller is not updating the status more than once with the failure.
+			// Verify the controller is not updating the status more than once with the failure,
+			// and is adding exactly one cluster level status entry
 			mcConfigMap, err := K8sClient.GetMultiClusterConfigMap(multiclusterTestNamespace, "invalid-mccm")
-			count := 0
-			if err == nil {
-				for _, condition := range mcConfigMap.Status.Conditions {
-					if condition.Type == clustersv1alpha1.DeployFailed {
-						count++
-					}
-				}
-			}
-			return err == nil && count == 1
+			return err == nil && isStatusAsExpected(mcConfigMap.Status, clustersv1alpha1.DeployFailed, clustersv1alpha1.Failed, managedClusterName)
 		}, duration, pollInterval).Should(gomega.BeTrue())
 	})
 })
@@ -223,6 +216,26 @@ func createManagedClusterSecret() {
 	if stderr != "" {
 		ginkgo.Fail(fmt.Sprintf("failed to create secret %v: %v", constants.MCRegistrationSecret, stderr))
 	}
+}
+
+func isStatusAsExpected(status clustersv1alpha1.MultiClusterResourceStatus,
+	expectedConditionType clustersv1alpha1.ConditionType, expectedState clustersv1alpha1.StateType,
+	expectedClusterName string) bool {
+	matchingConditionCount := 0
+	matchingClusterStatusCount := 0
+	for _, condition := range status.Conditions {
+		if condition.Type == clustersv1alpha1.DeployFailed {
+			matchingConditionCount++
+		}
+	}
+	for _, clusterStatus := range status.Clusters {
+		if clusterStatus.State == clustersv1alpha1.Failed &&
+			clusterStatus.Name == managedClusterName &&
+			clusterStatus.LastUpdateTime != "" {
+			matchingClusterStatusCount++
+		}
+	}
+	return matchingConditionCount == 1 && matchingClusterStatusCount == 1
 }
 
 func setupMultiClusterTest() {

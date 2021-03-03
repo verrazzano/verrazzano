@@ -333,7 +333,7 @@ func doExpectStatusUpdateFailed(cli *mocks.MockClient, mockStatusWriter *mocks.M
 	mockStatusWriter.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterSecret{})).
 		DoAndReturn(func(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret) error {
-			clusterstest.AssertMultiClusterResourceStatus(assert, mcSecret.Status.State, mcSecret.Status.Conditions,
+			clusterstest.AssertMultiClusterResourceStatus(assert, mcSecret.Status,
 				clustersv1alpha1.Failed, clustersv1alpha1.DeployFailed, v1.ConditionTrue)
 			return nil
 		})
@@ -351,7 +351,7 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 	mockStatusWriter.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterSecret{})).
 		DoAndReturn(func(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret) error {
-			clusterstest.AssertMultiClusterResourceStatus(assert, mcSecret.Status.State, mcSecret.Status.Conditions,
+			clusterstest.AssertMultiClusterResourceStatus(assert, mcSecret.Status,
 				clustersv1alpha1.Ready, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
 			return nil
 		})

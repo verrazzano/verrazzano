@@ -89,10 +89,12 @@ func (r *Reconciler) mutateConfigMap(mcConfigMap clustersv1alpha1.MultiClusterCo
 
 func (r *Reconciler) updateStatus(ctx context.Context, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {
 	clusterName := clusters.GetClusterName(ctx, r.Client)
-	condition, state := clusters.GetConditionAndStateFromResult(err, opResult, "ConfigMap", clusterName)
-	if clusters.StatusNeedsUpdate(mcConfigMap.Status.Conditions, mcConfigMap.Status.State, condition, state) {
+	condition, state := clusters.GetConditionAndStateFromResult(err, opResult, "ConfigMap")
+	clusterLevelStatus := clusters.CreateClusterLevelStatus(condition, state, clusterName)
+	if clusters.StatusNeedsUpdate(mcConfigMap.Status, condition, state, clusterLevelStatus) {
 		mcConfigMap.Status.State = state
 		mcConfigMap.Status.Conditions = append(mcConfigMap.Status.Conditions, condition)
+		mcConfigMap.Status.Clusters = append(mcConfigMap.Status.Clusters, clusterLevelStatus)
 		return reconcile.Result{}, r.Status().Update(ctx, mcConfigMap)
 	}
 	return reconcile.Result{}, nil

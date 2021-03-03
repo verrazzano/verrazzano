@@ -40,35 +40,48 @@ type ElasticsearchDetails struct {
 // StatusNeedsUpdate determines based on the current state and conditions of a MultiCluster
 // resource, as well as the new state and condition to be set, whether the status update
 // needs to be done
-func StatusNeedsUpdate(curConditions []clustersv1alpha1.Condition, curState clustersv1alpha1.StateType,
-	newCondition clustersv1alpha1.Condition, newState clustersv1alpha1.StateType) bool {
-	if newState != curState {
+func StatusNeedsUpdate(curStatus clustersv1alpha1.MultiClusterResourceStatus,
+	newCondition clustersv1alpha1.Condition, newState clustersv1alpha1.StateType,
+	newClusterStatus clustersv1alpha1.ClusterLevelStatus) bool {
+
+	if newState != curStatus.State {
 		return true
 	}
-	foundStatus := false
-	for _, existingCond := range curConditions {
+
+	foundClusterLevelStatus := false
+	for _, existingClusterStatus := range curStatus.Clusters {
+		if existingClusterStatus.Name == newClusterStatus.Name &&
+			existingClusterStatus.State == newClusterStatus.State {
+			foundClusterLevelStatus = true
+		}
+	}
+
+	if !foundClusterLevelStatus {
+		return true
+	}
+
+	foundCondition := false
+	for _, existingCond := range curStatus.Conditions {
 		if existingCond.Status == newCondition.Status &&
 			existingCond.Message == newCondition.Message &&
-			existingCond.Type == newCondition.Type &&
-			existingCond.ClusterName == newCondition.ClusterName {
-			foundStatus = true
+			existingCond.Type == newCondition.Type {
+			foundCondition = true
 			break
 		}
 	}
-	return !foundStatus
+	return !foundCondition
 }
 
 // GetConditionAndStateFromResult - Based on the result of a create/update operation on the
 // embedded resource, returns the Condition and State that must be set on a MultiCluster
 // resource's Status
-func GetConditionAndStateFromResult(err error, opResult controllerutil.OperationResult, msgPrefix string, clusterName string) (clustersv1alpha1.Condition, clustersv1alpha1.StateType) {
+func GetConditionAndStateFromResult(err error, opResult controllerutil.OperationResult, msgPrefix string) (clustersv1alpha1.Condition, clustersv1alpha1.StateType) {
 	var condition clustersv1alpha1.Condition
 	var state clustersv1alpha1.StateType
 	if err != nil {
 		condition = clustersv1alpha1.Condition{
 			Type:               clustersv1alpha1.DeployFailed,
 			Status:             corev1.ConditionTrue,
-			ClusterName:        clusterName,
 			Message:            err.Error(),
 			LastTransitionTime: time.Now().Format(time.RFC3339),
 		}
@@ -78,14 +91,17 @@ func GetConditionAndStateFromResult(err error, opResult controllerutil.Operation
 		condition = clustersv1alpha1.Condition{
 			Type:               clustersv1alpha1.DeployComplete,
 			Status:             corev1.ConditionTrue,
-			ClusterName:        clusterName,
 			Message:            msg,
 			LastTransitionTime: time.Now().Format(time.RFC3339),
 		}
 		state = clustersv1alpha1.Ready
 	}
-
 	return condition, state
+}
+
+func CreateClusterLevelStatus(condition clustersv1alpha1.Condition, state clustersv1alpha1.StateType, clusterName string) clustersv1alpha1.ClusterLevelStatus {
+	return clustersv1alpha1.ClusterLevelStatus{
+		Name: clusterName, State: state, LastUpdateTime: condition.LastTransitionTime}
 }
 
 // NewScheme creates a new scheme that includes this package's object to use for testing
