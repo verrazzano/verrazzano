@@ -7,6 +7,7 @@ metadata:
   name: logging-scope
   namespace: bobs-books
 spec:
+  fluentdImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-20201016214205-7f37ac6
   elasticSearchURL: http://vmi-system-es-ingest.verrazzano-system.svc.cluster.local:9200
   secretName: verrazzano
   workloadRefs: []
