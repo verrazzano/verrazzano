@@ -207,7 +207,7 @@ pipeline {
                     cd ${GO_REPO_PATH}/verrazzano
                     time make copyright-check
 
-                    echo "Third party license check platform-operator"
+                    echo "Third party license check"
                     thirdpartyCheck()
                 """
             }
