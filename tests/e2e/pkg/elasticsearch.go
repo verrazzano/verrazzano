@@ -96,8 +96,11 @@ func LogRecordFound(indexName string, after time.Time, fields map[string]string)
 		timestamp := Jq(hit, "_source", "@timestamp")
 		t, err := time.Parse(ISO8601Layout, timestamp.(string))
 		if err != nil {
-			Log(Error, fmt.Sprintf("Failed to parse timestamp: %s", timestamp))
-			return false
+			t, err = time.Parse(time.RFC3339Nano, timestamp.(string))
+			if err != nil {
+				Log(Error, fmt.Sprintf("Failed to parse timestamp: %s", timestamp))
+				return false
+			}
 		}
 		if t.After(after) {
 			Log(Info, fmt.Sprintf("Found recent record: %s", timestamp))
