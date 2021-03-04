@@ -7,12 +7,11 @@ go 1.13
 
 require (
 	github.com/aws/aws-sdk-go v1.37.23 // indirect
-	github.com/ghodss/yaml v1.0.0
 	github.com/golang/mock v1.4.4
 	github.com/gordonklaus/ineffassign v0.0.0-20210104184537-8eed68eb605f
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
-	github.com/prometheus/common v0.4.1
+	github.com/prometheus/common v0.7.0
 	github.com/prometheus/prometheus v1.8.2
 	github.com/stretchr/testify v1.5.1
 	go.uber.org/zap v1.16.0

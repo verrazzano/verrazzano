@@ -42,9 +42,6 @@ type ElasticsearchDetails struct {
 // needs to be done
 func StatusNeedsUpdate(curConditions []clustersv1alpha1.Condition, curState clustersv1alpha1.StateType,
 	newCondition clustersv1alpha1.Condition, newState clustersv1alpha1.StateType) bool {
-	if newState == clustersv1alpha1.Failed {
-		return true
-	}
 	if newState != curState {
 		return true
 	}
@@ -54,6 +51,7 @@ func StatusNeedsUpdate(curConditions []clustersv1alpha1.Condition, curState clus
 			existingCond.Message == newCondition.Message &&
 			existingCond.Type == newCondition.Type {
 			foundStatus = true
+			break
 		}
 	}
 	return !foundStatus
@@ -126,7 +124,7 @@ func IgnoreNotFoundWithLog(resourceType string, err error, logger logr.Logger) e
 // FetchManagedClusterElasticSearchDetails fetches Elasticsearch details to use for system and
 // application logs on this managed cluster. If this cluster is NOT a managed cluster (i.e. does not
 // have the managed cluster secret), an empty ElasticsearchDetails will be returned
-func FetchManagedClusterElasticSearchDetails(ctx context.Context, rdr client.Reader, logger logr.Logger) ElasticsearchDetails {
+func FetchManagedClusterElasticSearchDetails(ctx context.Context, rdr client.Reader) ElasticsearchDetails {
 	esDetails := ElasticsearchDetails{}
 	esSecret := corev1.Secret{}
 	err := fetchElasticsearchSecret(ctx, rdr, &esSecret)

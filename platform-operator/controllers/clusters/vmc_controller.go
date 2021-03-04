@@ -10,6 +10,7 @@ import (
 	promconfig "github.com/prometheus/prometheus/config"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -20,7 +21,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/yaml"
 	"time"
 )
 
@@ -109,7 +109,13 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 
 	err = r.syncRegistrationSecret(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the kubeconfig used by managed cluster: %v", err)
+		log.Infof("Failed to sync the registration used by managed cluster: %v", err)
+		return ctrl.Result{}, err
+	}
+
+	err = r.syncElasticsearchSecret(vmc)
+	if err != nil {
+		log.Infof("Failed to sync the Elasticsearch secret used by managed cluster: %v", err)
 		return ctrl.Result{}, err
 	}
 
@@ -257,7 +263,7 @@ func (r *VerrazzanoManagedClusterReconciler) setupPrometheusScraper(ctx context.
 		}
 		// marshal the data into the prometheus info struct
 		prometheusConfig := prometheusInfo{}
-		err := yaml.UnmarshalStrict(config, &prometheusConfig)
+		err := yaml.Unmarshal(config, &prometheusConfig)
 		if err != nil {
 			return fmt.Errorf("Unable to umarshal the configuration data")
 		}
@@ -286,7 +292,7 @@ func (r *VerrazzanoManagedClusterReconciler) setupPrometheusScraper(ctx context.
 // mutatePrometheusConfigMap will add a scraper configuration and a CA cert entry to the prometheus config map
 func (r *VerrazzanoManagedClusterReconciler) mutatePrometheusConfigMap(vmc *clustersv1alpha1.VerrazzanoManagedCluster, configMap *corev1.ConfigMap, info prometheusInfo) error {
 	cfg := &promconfig.Config{}
-	err := yaml.UnmarshalStrict([]byte(configMap.Data[prometheusYamlKey]), cfg)
+	err := yaml.Unmarshal([]byte(configMap.Data[prometheusYamlKey]), cfg)
 	if err != nil {
 		r.log.Errorf("Failed to unmarshal prometheus configuration: %v", err)
 		return err

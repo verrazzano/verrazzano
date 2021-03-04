@@ -5,7 +5,6 @@ package cohworkload
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"testing"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
@@ -16,6 +15,8 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -58,7 +59,8 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	cli = mocks.NewMockClient(mocker)
 	scheme = runtime.NewScheme()
 	vzapi.AddToScheme(scheme)
-	reconciler = Reconciler{Client: cli, Scheme: scheme}
+	metricsReconciler := &metricstrait.Reconciler{Client: cli, Scheme: scheme, Scraper: "verrazzano-system/vmi-system-prometheus-0"}
+	reconciler = Reconciler{Client: cli, Scheme: scheme, Metrics: metricsReconciler}
 	mgr.EXPECT().GetConfig().Return(&rest.Config{})
 	mgr.EXPECT().GetScheme().Return(scheme)
 	mgr.EXPECT().GetLogger().Return(log.NullLogger{})
@@ -84,6 +86,15 @@ func TestReconcileCreateCoherence(t *testing.T) {
 	componentName := "unit-test-component"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
 
+	// expect a call to fetch the OAM application configuration
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+			return nil
+		})
+
 	// expect a call to fetch the VerrazzanoCoherenceWorkload
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-coherence-workload"}, gomock.Not(gomock.Nil())).
@@ -95,7 +106,7 @@ func TestReconcileCreateCoherence(t *testing.T) {
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
-	// expect a call to fetch the oam application configuration
+	// expect a call to fetch the OAM application configuration
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
@@ -155,6 +166,16 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 	esSecretName := "es-secret"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
 
+	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
+			loggingScope := oamcore.ComponentScope{ScopeReference: oamrt.TypedReference{Kind: vzapi.LoggingScopeKind, Name: loggingScopeName}}
+			component.Scopes = []oamcore.ComponentScope{loggingScope}
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+			return nil
+		})
 	// expect a call to fetch the VerrazzanoCoherenceWorkload
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-coherence-workload"}, gomock.Not(gomock.Nil())).
@@ -166,7 +187,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
-	// expect a call to fetch the oam application configuration (and the component has an attached logging scope)
+	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
@@ -280,6 +301,16 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 	esSecretName := "es-secret"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
 
+	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
+			loggingScope := oamcore.ComponentScope{ScopeReference: oamrt.TypedReference{Kind: vzapi.LoggingScopeKind, Name: loggingScopeName}}
+			component.Scopes = []oamcore.ComponentScope{loggingScope}
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+			return nil
+		})
 	// expect a call to fetch the VerrazzanoCoherenceWorkload
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-coherence-workload"}, gomock.Not(gomock.Nil())).
@@ -291,7 +322,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
-	// expect a call to fetch the oam application configuration (and the component has an attached logging scope)
+	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
@@ -399,6 +430,14 @@ func TestReconcileAlreadyExists(t *testing.T) {
 	componentName := "unit-test-component"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
 
+	// expect a call to fetch the OAM application configuration
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+			return nil
+		})
 	// expect a call to fetch the VerrazzanoCoherenceWorkload
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-coherence-workload"}, gomock.Not(gomock.Nil())).
@@ -410,7 +449,7 @@ func TestReconcileAlreadyExists(t *testing.T) {
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
-	// expect a call to fetch the oam application configuration
+	// expect a call to fetch the OAM application configuration
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
@@ -452,6 +491,14 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 	componentName := "unit-test-component"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
 
+	// expect a call to fetch the OAM application configuration
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+			return nil
+		})
 	// expect a call to fetch the VerrazzanoCoherenceWorkload
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-coherence-workload"}, gomock.Not(gomock.Nil())).
@@ -463,7 +510,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			return nil
 		})
-	// expect a call to fetch the oam application configuration
+	// expect a call to fetch the OAM application configuration
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
@@ -666,7 +713,7 @@ func TestCreateUpdateDestinationRuleUpdate(t *testing.T) {
 	assert.NoError(err)
 }
 
-// TestCreateUpdateDestinationRuleNoOamLabel tests failure when no oam label found
+// TestCreateUpdateDestinationRuleNoOamLabel tests failure when no OAM label found
 // GIVEN no app.oam.dev/name label specified
 // WHEN the controller createOrUpdateDestinationRule function is called
 // THEN expect an error to be returned
@@ -705,10 +752,13 @@ func newScheme() *runtime.Scheme {
 // newReconciler creates a new reconciler for testing
 // c - The K8s client to inject into the reconciler
 func newReconciler(c client.Client) Reconciler {
+	scheme := newScheme()
+	metricsReconciler := &metricstrait.Reconciler{Client: c, Scheme: scheme, Scraper: "verrazzano-system/vmi-system-prometheus-0"}
 	return Reconciler{
-		Client: c,
-		Log:    ctrl.Log.WithName("test"),
-		Scheme: newScheme(),
+		Client:  c,
+		Log:     ctrl.Log.WithName("test"),
+		Scheme:  scheme,
+		Metrics: metricsReconciler,
 	}
 }
 
