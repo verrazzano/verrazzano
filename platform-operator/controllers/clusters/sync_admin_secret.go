@@ -31,7 +31,7 @@ func setConfigFunc(f func() (*rest.Config, error)) {
 	getConfigFunc = f
 }
 
-// Create a registration secret with a kubeconfig that has a token allowing access to the managed cluster
+// Create an admin secret with a kubeconfig that has a token allowing access to the managed cluster
 // with restricted access as defined in the verrazzano-managed-cluster role.
 // The code does the following:
 //   1. get the service account for the managed cluster
@@ -39,8 +39,8 @@ func setConfigFunc(f func() (*rest.Config, error)) {
 //   3. get the in-memory client configuration used to access the admin cluster
 //   4. build a kubeconfig struct using data from the client config and the service account token
 //   5. save the kubeconfig as a secret
-//   6. update VMC with the kubeconfig secret name
-func (r *VerrazzanoManagedClusterReconciler) syncRegistrationSecret(vmc *clusterapi.VerrazzanoManagedCluster) error {
+//   6. update VMC with the admin secret name
+func (r *VerrazzanoManagedClusterReconciler) syncAdminSecret(vmc *clusterapi.VerrazzanoManagedCluster) error {
 	// These names are used internally in the generated kubeconfig. The names
 	// are meant to be descriptive and the actual values don't affect behavior.
 	const (
@@ -52,7 +52,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncRegistrationSecret(vmc *cluster
 	// The same managed name and  vmc namespace is used for the service account and the kubeconfig secret,
 	// for clarity use different vars
 	saName := generateManagedResourceName(vmc.Name)
-	secretName := GetRegistrationSecretName(vmc.Name)
+	secretName := GetAdminSecretName(vmc.Name)
 	managedNamespace := vmc.Namespace
 
 	// Get the service account
@@ -111,14 +111,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncRegistrationSecret(vmc *cluster
 	if err != nil {
 		return err
 	}
-	_, err = r.createOrUpdateSecret(vmc, string(kcBytes), secretName, managedNamespace)
-	if err != nil {
-		return err
-	}
-
-	// Save the ClusterRegistrationSecret in the VMC
-	vmc.Spec.ClusterRegistrationSecret = secretName
-	err = r.Update(context.TODO(), vmc)
+	_, err = r.createOrUpdateAdminSecret(vmc, string(kcBytes), secretName, managedNamespace)
 	if err != nil {
 		return err
 	}
@@ -127,13 +120,13 @@ func (r *VerrazzanoManagedClusterReconciler) syncRegistrationSecret(vmc *cluster
 }
 
 // Create or update the kubeconfig secret
-func (r *VerrazzanoManagedClusterReconciler) createOrUpdateSecret(vmc *clusterapi.VerrazzanoManagedCluster, kubeconfig string, name string, namespace string) (controllerutil.OperationResult, error) {
+func (r *VerrazzanoManagedClusterReconciler) createOrUpdateAdminSecret(vmc *clusterapi.VerrazzanoManagedCluster, kubeconfig string, name string, namespace string) (controllerutil.OperationResult, error) {
 	var secret corev1.Secret
 	secret.Namespace = namespace
 	secret.Name = name
 
 	return controllerutil.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
-		r.mutateRegistrationSecret(&secret, kubeconfig, vmc.Name)
+		r.mutateAdminSecret(&secret, kubeconfig, vmc.Name)
 		// This SetControllerReference call will trigger garbage collection i.e. the secret
 		// will automatically get deleted when the VerrazzanoManagedCluster is deleted
 		return controllerutil.SetControllerReference(vmc, &secret, r.Scheme)
@@ -141,11 +134,10 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateSecret(vmc *clusterap
 }
 
 // Mutate the secret, setting the kubeconfig data
-func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *corev1.Secret, kubeconfig string, manageClusterName string) error {
+func (r *VerrazzanoManagedClusterReconciler) mutateAdminSecret(secret *corev1.Secret, kubeconfig string, manageClusterName string) error {
 	secret.Type = corev1.SecretTypeOpaque
 	secret.Data = map[string][]byte{
-		kubeconfigKey:         []byte(kubeconfig),
-		managedClusterNameKey: []byte(manageClusterName),
+		kubeconfigKey: []byte(kubeconfig),
 	}
 	return nil
 }
@@ -162,8 +154,8 @@ func getB64CAData(config *rest.Config) (string, error) {
 	return base64.StdEncoding.EncodeToString(s), nil
 }
 
-// GetRegistrationSecretName returns the registration secret name
-func GetRegistrationSecretName(vmcName string) string {
-	const registrationSecretSuffix = "-registration"
-	return generateManagedResourceName(vmcName) + registrationSecretSuffix
+// GetAdminSecretName returns the admin secret name
+func GetAdminSecretName(vmcName string) string {
+	const adminSecretSuffix = "-admin"
+	return generateManagedResourceName(vmcName) + adminSecretSuffix
 }

@@ -28,7 +28,7 @@ func StartAgent(client client.Client, log logr.Logger) {
 	secret := corev1.Secret{}
 
 	for {
-		err := client.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}, &secret)
+		err := client.Get(context.TODO(), types.NamespacedName{Name: constants.MCAdminSecret, Namespace: constants.VerrazzanoSystemNamespace}, &secret)
 		if err == nil {
 			err := validateClusterSecret(&secret)
 			if err != nil {

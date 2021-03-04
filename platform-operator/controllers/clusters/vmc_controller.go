@@ -81,9 +81,15 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
+	err = r.syncAdminSecret(vmc)
+	if err != nil {
+		log.Infof("Failed to sync the admin secret used by managed cluster: %v", err)
+		return ctrl.Result{}, err
+	}
+
 	err = r.syncRegistrationSecret(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the registration used by managed cluster: %v", err)
+		log.Infof("Failed to sync the registration secret used by managed cluster: %v", err)
 		return ctrl.Result{}, err
 	}
 

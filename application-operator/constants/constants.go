@@ -9,8 +9,12 @@ const VerrazzanoSystemNamespace = "verrazzano-system"
 // VerrazzanoMultiClusterNamespace is the multi-cluster namespace for verrazzano
 const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
 
+// MCAdminSecret contains information to access the admin cluster, such as the admin kubeconfig.
+// This secret is used by the MC agent running on the managed cluster.
+const MCAdminSecret = "verrazzano-cluster-admin"
+
 // MCRegistrationSecret - the name of the secret that contains the cluster registration information
-const MCRegistrationSecret = "verrazzano-cluster"
+const MCRegistrationSecret = "verrazzano-cluster-registration"
 
 // AdminKubeconfigData - the field name in MCRegistrationSecret that contains the admin cluster's kubeconfig
 const AdminKubeconfigData = "admin-kubeconfig"

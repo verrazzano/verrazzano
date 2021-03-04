@@ -27,27 +27,31 @@ const (
 // resources separated by 3 hyphens ( --- ), so that applying the YAML will create/update multiple
 // resources at once.  This YAML is stored in the Verrazzano manifest secret.
 func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.VerrazzanoManagedCluster) error {
-	const (
-		targetRegistrationSecretName       = "verrazzano-cluster"
-		targetRegistrationSecretNamespace  = constants.VerrazzanoSystemNamespace
-		targetElasticsearchSecretName      = "verrazzano-cluster-elasticsearch"
-		targetElasticsearchSecretNamespace = constants.VerrazzanoSystemNamespace
-	)
-
 	// Builder used to build up the full YAML
 	// For each secret, generate the YAML and append to the full YAML which contais multiple resources
 	var sb = strings.Builder{}
 
-	// get registration secret YAML
-	regYaml, err := r.getSecretAsYaml(GetRegistrationSecretName(vmc.Name), vmc.Namespace, targetRegistrationSecretName, targetRegistrationSecretNamespace)
+	// add admin secret YAML
+	adminYaml, err := r.getSecretAsYaml(GetAdminSecretName(vmc.Name), vmc.Namespace,
+		constants.MCAdminSecret, constants.VerrazzanoSystemNamespace)
+	if err != nil {
+		return err
+	}
+	sb.Write([]byte(yamlSep))
+	sb.Write(adminYaml)
+
+	// add registration secret YAML
+	regYaml, err := r.getSecretAsYaml(GetRegistrationSecretName(vmc.Name), vmc.Namespace,
+		constants.MCRegistrationSecret, constants.VerrazzanoSystemNamespace)
 	if err != nil {
 		return err
 	}
 	sb.Write([]byte(yamlSep))
 	sb.Write(regYaml)
 
-	// get Elasticsearch secret YAML
-	esYaml, err := r.getSecretAsYaml(GetElasticsearchSecretName(vmc.Name), vmc.Namespace, targetElasticsearchSecretName, targetElasticsearchSecretNamespace)
+	// add Elasticsearch secret YAML
+	esYaml, err := r.getSecretAsYaml(GetElasticsearchSecretName(vmc.Name), vmc.Namespace,
+		constants.MCElasticsearchSecret, constants.VerrazzanoSystemNamespace)
 	if err != nil {
 		return err
 	}
