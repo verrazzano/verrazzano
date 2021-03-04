@@ -15,9 +15,10 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 function usage {
     echo ""
     echo "usage: $0 -z tar_gz_file"
-    echo " You must specify at least a tar file or a directory to capture into (specifying both is valid as well)"
+    echo " You must specify at least a tar file or a directory to capture into"
+    echo " Specifying both -z and -d is valid as well, but note they are independent of each other"
     echo " -z tar_gz_file   Name of the compressed tar file to generate. Ie: capture.tar.gz"
-    echo " -d directory     Directory to capture dump into"
+    echo " -d directory     Directory to capture an expanded dump into. This does not affect a tar_gz_file if that is also specified"
     echo " -h               Help"
     echo ""
     exit 1
@@ -127,7 +128,9 @@ function dump_es_indexes() {
   local ES_ENDPOINT=$(kubectl get ingress -A -o json | jq .items[].spec.tls[].hosts[] | grep elasticsearch.vmi.system.default | sed -e 's;^";https://;' -e 's/"//')
   local ES_USER=$(kubectl get secret -n verrazzano-system verrazzano -o jsonpath={.data.username} | base64 --decode)
   local ES_PWD=$(kubectl get secret -n verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode)
-  curl -k -u $ES_USER:$ES_PWD $ES_ENDPOINT/_all
+  if [ ! -z $ES_ENDPOINT ] && [ ! -z $ES_USER ] && [ ! -z $ES_PWD ]; then
+    curl -k -u $ES_USER:$ES_PWD $ES_ENDPOINT/_all
+  fi
 }
 
 function full_k8s_cluster_dump() {
@@ -146,6 +149,9 @@ function full_k8s_cluster_dump() {
     kubectl get virtualservice --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/virtualservices.json || true
     kubectl describe verrazzano --all-namespaces > $CAPTURE_DIR/cluster-dump/verrazzano_resources.out || true
     kubectl api-resources -o wide > $CAPTURE_DIR/cluster-dump/api_resources.out || true
+    kubectl get rolebindings --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/role-bindings.json || true
+    kubectl get clusterrolebindings --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/cluster-role-bindings.json || true
+    kubectl get clusterroles --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/cluster-roles.json || true
     # squelch the "too many clients" warnings from newer kubectl versions
     kubectl describe configmap --all-namespaces > $CAPTURE_DIR/cluster-dump/configmaps.out 2> /dev/null || true
     helm version > $CAPTURE_DIR/cluster-dump/helm-version.out || true
@@ -158,7 +164,7 @@ function full_k8s_cluster_dump() {
 }
 
 function save_dump_file() {
-  # This will save the dump to a targ gz file if that was specified
+  # This will save the dump to a tar gz file if that was specified
   if [ ! -z $TAR_GZ_FILE ]; then
     # We only save files into cluster-dump and below we do not save the temp directory portion
     if [ -d $CAPTURE_DIR/cluster-dump ]; then

@@ -10,13 +10,19 @@ import (
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	v1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -237,6 +243,367 @@ func TestLoggingScopeReconcileRemoveAndForget(t *testing.T) {
 	asserts.Nil(t, err)
 
 	mocker.Finish()
+}
+
+// TestFromWorkloadLabels tests the FromWorkloadLabels function.
+func TestFromWorkloadLabels(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker *gomock.Controller
+	var cli *mocks.MockClient
+	var ctx = context.TODO()
+
+	// GIVEN workload labels
+	// WHEN an attempt is made to get the logging scopes from the app component but there are no scopes
+	// THEN expect no error and a nil logging scope is returned
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+	componentName := "unit-test-component"
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: "unit-test-app-config"}
+
+	// expect a call to fetch the oam application configuration
+	cli.EXPECT().
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "unit-test-namespace", Name: "unit-test-app-config"}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+			return nil
+		})
+
+	loggingScope, err := FetchLoggingScopeFromWorkloadLabels(ctx, cli, ctrl.Log.WithName("test"), "unit-test-namespace", labels)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Nil(loggingScope)
+
+	// GIVEN workload labels
+	// WHEN an attempt is made to get the logging scopes from the app component and there is a logging scope
+	// THEN expect no error and a logging scope is returned
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+	loggingScopeName := "unit-test-logging-scope"
+	fluentdImage := "unit-test-image:latest"
+	esURL := "localhost"
+	esSecretName := "unit-test-secret"
+
+	// expect a call to fetch the oam application configuration
+	cli.EXPECT().
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "unit-test-namespace", Name: "unit-test-app-config"}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
+			loggingScope := oamcore.ComponentScope{ScopeReference: oamrt.TypedReference{Kind: vzapi.LoggingScopeKind, Name: loggingScopeName}}
+			component.Scopes = []oamcore.ComponentScope{loggingScope}
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+			return nil
+		})
+	// expect a call to fetch the logging scope
+	cli.EXPECT().
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "unit-test-namespace", Name: loggingScopeName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, loggingScope *vzapi.LoggingScope) error {
+			loggingScope.Spec.FluentdImage = fluentdImage
+			loggingScope.Spec.ElasticSearchURL = esURL
+			loggingScope.Spec.SecretName = esSecretName
+			return nil
+		})
+
+	loggingScope, err = FetchLoggingScopeFromWorkloadLabels(ctx, cli, ctrl.Log.WithName("test"), "unit-test-namespace", labels)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.NotNil(loggingScope)
+	assert.Equal(fluentdImage, loggingScope.Spec.FluentdImage)
+	assert.Equal(esURL, loggingScope.Spec.ElasticSearchURL)
+	assert.Equal(esSecretName, loggingScope.Spec.SecretName)
+
+	// GIVEN workload labels
+	// WHEN an attempt is made to get the logging scopes from the app component and we cannot fetch the logging scope details
+	// THEN expect a NotFound error is returned
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the oam application configuration
+	cli.EXPECT().
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "unit-test-namespace", Name: "unit-test-app-config"}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
+			loggingScope := oamcore.ComponentScope{ScopeReference: oamrt.TypedReference{Kind: vzapi.LoggingScopeKind, Name: loggingScopeName}}
+			component.Scopes = []oamcore.ComponentScope{loggingScope}
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+			return nil
+		})
+	// expect a call to fetch the logging scope
+	cli.EXPECT().
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "unit-test-namespace", Name: loggingScopeName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, loggingScope *vzapi.LoggingScope) error {
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
+		})
+
+	loggingScope, err = FetchLoggingScopeFromWorkloadLabels(ctx, cli, ctrl.Log.WithName("test"), "unit-test-namespace", labels)
+
+	mocker.Finish()
+	assert.True(k8serrors.IsNotFound(err))
+	assert.Nil(loggingScope)
+}
+
+// TestFetchLoggingScopeWithDefaults tests that defaults are correctly applied when
+// fetching a logging scope
+func TestFetchLoggingScopeWithDefaults(t *testing.T) {
+	assert := asserts.New(t)
+
+	// set the logging scope default FLUENTD image for this test and then put it back when we're done
+	oldDefaultFluentdImage := DefaultFluentdImage
+	defer func() {
+		DefaultFluentdImage = oldDefaultFluentdImage
+	}()
+
+	DefaultFluentdImage = "default-unit-test-image:latest"
+
+	var mocker *gomock.Controller
+	var cli *mocks.MockClient
+	var ctx = context.TODO()
+
+	loggingScopeName := "unit-test-logging-scope"
+	componentName := "unit-test-component"
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: "unit-test-app-config"}
+
+	// GIVEN workload labels
+	// WHEN an attempt is made to get the logging scopes from the app component and there is a logging scope
+	// AND the logging scope has no spec fields populated
+	// THEN expect no error and a logging scope with populated defaults is returned
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the oam application configuration
+	cli.EXPECT().
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "unit-test-namespace", Name: "unit-test-app-config"}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
+			loggingScope := oamcore.ComponentScope{ScopeReference: oamrt.TypedReference{Kind: vzapi.LoggingScopeKind, Name: loggingScopeName}}
+			component.Scopes = []oamcore.ComponentScope{loggingScope}
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+			return nil
+		})
+	// expect a call to fetch the logging scope
+	cli.EXPECT().
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: "unit-test-namespace", Name: loggingScopeName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, loggingScope *vzapi.LoggingScope) error {
+			return nil
+		})
+	// logging scope URL and secret are empty so expect a call to get the cluster secret, return NotFound
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCElasticsearchSecretFullName), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *v1.Secret) error {
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
+		})
+
+	loggingScope, err := FetchLoggingScopeFromWorkloadLabels(ctx, cli, ctrl.Log.WithName("test"), "unit-test-namespace", labels)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.NotNil(loggingScope)
+	assert.Equal(DefaultFluentdImage, loggingScope.Spec.FluentdImage)
+	assert.Equal(DefaultElasticSearchURL, loggingScope.Spec.ElasticSearchURL)
+	assert.Equal(DefaultSecretName, loggingScope.Spec.SecretName)
+}
+
+// TestApplyDefaults tests various combinations of applied defaults
+func TestApplyDefaults(t *testing.T) {
+
+	// set the logging scope default FLUENTD image for this test and then put it back when we're done
+	oldDefaultFluentdImage := DefaultFluentdImage
+	defer func() {
+		DefaultFluentdImage = oldDefaultFluentdImage
+	}()
+
+	DefaultFluentdImage = "default-unit-test-image:latest"
+
+	var mocker *gomock.Controller
+	var cli *mocks.MockClient
+
+	// GIVEN a logging scope with no spec fields populated
+	// WHEN we apply defaults
+	// THEN the logging scope spec fields are populated with all of the default values
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+
+	loggingScope := &vzapi.LoggingScope{}
+	expected := &vzapi.LoggingScope{
+		Spec: vzapi.LoggingScopeSpec{
+			FluentdImage:     DefaultFluentdImage,
+			ElasticSearchURL: DefaultElasticSearchURL,
+			SecretName:       DefaultSecretName,
+		},
+	}
+
+	// logging scope URL and secret are empty so expect a call to get the cluster secret, return NotFound
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCElasticsearchSecretFullName), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *v1.Secret) error {
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
+		})
+
+	assertApplyDefaults(cli, expected, loggingScope, t)
+	mocker.Finish()
+
+	// GIVEN a logging scope with just the fluentd image in the spec
+	// WHEN we apply defaults
+	// THEN the remaining logging scope spec fields are populated with default values
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+
+	fluentdImage := "unit-test-image:1.0"
+	loggingScope = &vzapi.LoggingScope{
+		Spec: vzapi.LoggingScopeSpec{
+			FluentdImage: fluentdImage,
+		},
+	}
+	expected = &vzapi.LoggingScope{
+		Spec: vzapi.LoggingScopeSpec{
+			FluentdImage:     fluentdImage,
+			ElasticSearchURL: DefaultElasticSearchURL,
+			SecretName:       DefaultSecretName,
+		},
+	}
+
+	// logging scope URL and secret are empty so expect a call to get the cluster secret, return NotFound
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCElasticsearchSecretFullName), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *v1.Secret) error {
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
+		})
+
+	assertApplyDefaults(cli, expected, loggingScope, t)
+	mocker.Finish()
+
+	// GIVEN a logging scope with the fluentd image and ES URL in the spec
+	// WHEN we apply defaults
+	// THEN the remaining logging scope spec fields are populated with default values
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+
+	esURL := "localhost:9200"
+	loggingScope = &vzapi.LoggingScope{
+		Spec: vzapi.LoggingScopeSpec{
+			FluentdImage:     fluentdImage,
+			ElasticSearchURL: esURL,
+		},
+	}
+	expected = &vzapi.LoggingScope{
+		Spec: vzapi.LoggingScopeSpec{
+			FluentdImage:     fluentdImage,
+			ElasticSearchURL: esURL,
+			SecretName:       DefaultSecretName,
+		},
+	}
+	assertApplyDefaults(cli, expected, loggingScope, t)
+	mocker.Finish()
+
+	// GIVEN a logging scope with all spec fields populated
+	// WHEN we apply defaults
+	// THEN none of the spec fields
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+
+	esSecretName := "sssshhhhhhh"
+	loggingScope = &vzapi.LoggingScope{
+		Spec: vzapi.LoggingScopeSpec{
+			FluentdImage:     fluentdImage,
+			ElasticSearchURL: esURL,
+			SecretName:       esSecretName,
+		},
+	}
+	expected = &vzapi.LoggingScope{
+		Spec: vzapi.LoggingScopeSpec{
+			FluentdImage:     fluentdImage,
+			ElasticSearchURL: esURL,
+			SecretName:       esSecretName,
+		},
+	}
+	assertApplyDefaults(cli, expected, loggingScope, t)
+	mocker.Finish()
+}
+
+// TestApplyDefaultsForManagedCluster tests applying defaults when the
+// logging scope is in a multi-cluster managed cluster
+func TestApplyDefaultsForManagedCluster(t *testing.T) {
+
+	// set the logging scope default FLUENTD image for this test and then put it back when we're done
+	oldDefaultFluentdImage := DefaultFluentdImage
+	defer func() {
+		DefaultFluentdImage = oldDefaultFluentdImage
+	}()
+
+	DefaultFluentdImage = "default-unit-test-image:latest"
+
+	var mocker *gomock.Controller
+	var cli *mocks.MockClient
+
+	// GIVEN a logging scope in a managed cluster with no spec fields populated
+	// WHEN we apply defaults
+	// THEN the logging scope spec fields are populated with the cluster data
+	// AND the FLUENTD image is defaulted
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+
+	adminClusterESURL := "http://some-es-host:9999"
+
+	loggingScope := &vzapi.LoggingScope{}
+	expected := &vzapi.LoggingScope{
+		Spec: vzapi.LoggingScopeSpec{
+			FluentdImage:     DefaultFluentdImage,
+			ElasticSearchURL: adminClusterESURL,
+			SecretName:       constants.ElasticsearchSecretName,
+		},
+	}
+
+	mcSecret := v1.Secret{Data: map[string][]byte{
+		constants.ClusterNameData:      []byte("managed-cluster1"),
+		constants.ElasticsearchURLData: []byte(adminClusterESURL)}}
+
+	// logging scope URL and secret are empty so expect a call to get the cluster secret
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCElasticsearchSecretFullName), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *v1.Secret) error {
+			secret.Data = mcSecret.Data
+			return nil
+		})
+
+	assertApplyDefaults(cli, expected, loggingScope, t)
+	mocker.Finish()
+
+	// GIVEN a logging scope in a managed cluster with no spec fields populated
+	// WHEN we apply defaults
+	// AND the Elasticsearch secret is misconfigured
+	// THEN the logging scope spec fields are populated with all of the default (non-cluster) values
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+
+	loggingScope = &vzapi.LoggingScope{}
+	expected = &vzapi.LoggingScope{
+		Spec: vzapi.LoggingScopeSpec{
+			FluentdImage:     DefaultFluentdImage,
+			ElasticSearchURL: DefaultElasticSearchURL,
+			SecretName:       DefaultSecretName,
+		},
+	}
+
+	mcSecret = v1.Secret{Data: map[string][]byte{
+		constants.ClusterNameData:      []byte("managed-cluster1"),
+		constants.ElasticsearchURLData: []byte("")}}
+
+	// logging scope URL and secret are empty so expect a call to get the cluster secret
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(clusters.MCElasticsearchSecretFullName), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, secret *v1.Secret) error {
+			secret.Data = mcSecret.Data
+			return nil
+		})
+
+	assertApplyDefaults(cli, expected, loggingScope, t)
+	mocker.Finish()
+}
+
+// assertApplyDefaults applies defaults to the passed in actual logging scope and
+// asserts that it is equal to the expected logging scope
+func assertApplyDefaults(cli client.Reader, expected, actual *vzapi.LoggingScope, t *testing.T) {
+	assert := asserts.New(t)
+	applyDefaults(cli, ctrl.Log.WithName("test"), actual)
+	assert.Equal(expected, actual)
 }
 
 // createTestLoggingScopeRequest creates a test logging scope reconcile request

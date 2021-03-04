@@ -16,106 +16,201 @@ spec:
     listKind: VerrazzanoProjectList
     plural: verrazzanoprojects
     shortNames:
-      - vp
-      - vps
+    - vp
+    - vps
     singular: verrazzanoproject
   scope: Namespaced
   versions:
-    - name: v1alpha1
-      schema:
-        openAPIV3Schema:
-          description: VerrazzanoProject is the Schema for the verrazzanoprojects API
-          properties:
-            apiVersion:
-              description: 'APIVersion defines the versioned schema of this representation
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: VerrazzanoProject is the Schema for the verrazzanoprojects API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
               of an object. Servers should convert recognized schemas to the latest
               internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-              type: string
-            kind:
-              description: 'Kind is a string value representing the REST resource this
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
               object represents. Servers may infer this from the endpoint the client
               submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-              type: string
-            metadata:
-              type: object
-            spec:
-              description: VerrazzanoProjectSpec defines the desired state of VerrazzanoProject
-              properties:
-                template:
-                  description: ProjectTemplate contains the resources for a project
-                  properties:
-                    namespaces:
-                      items:
-                        description: NamespaceTemplate has the metadata and spec of
-                          the underlying namespace
-                        properties:
-                          metadata:
-                            type: object
-                            x-kubernetes-preserve-unknown-fields: true
-                          spec:
-                            description: NamespaceSpec describes the attributes on a
-                              Namespace.
-                            properties:
-                              finalizers:
-                                description: 'Finalizers is an opaque list of values
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: VerrazzanoProjectSpec defines the desired state of VerrazzanoProject
+            properties:
+              template:
+                description: ProjectTemplate contains the resources for a project
+                properties:
+                  namespaces:
+                    items:
+                      description: NamespaceTemplate has the metadata and spec of
+                        the underlying namespace
+                      properties:
+                        metadata:
+                          type: object
+                          x-kubernetes-preserve-unknown-fields: true
+                        spec:
+                          description: NamespaceSpec describes the attributes on a
+                            Namespace.
+                          properties:
+                            finalizers:
+                              description: 'Finalizers is an opaque list of values
                                 that must be empty to permanently remove object from
                                 storage. More info: https://kubernetes.io/docs/tasks/administer-cluster/namespaces/'
-                                items:
-                                  description: FinalizerName is the name identifying
-                                    a finalizer during namespace lifecycle.
-                                  type: string
-                                type: array
-                            type: object
-                        required:
-                          - metadata
-                        type: object
-                      type: array
-                  required:
-                    - namespaces
-                  type: object
-              required:
-                - template
-              type: object
-            status:
-              description: VerrazzanoProjectStatus defines the observed state of VerrazzanoProject
-              properties:
-                conditions:
-                  description: The latest available observations of an object's current
-                    state.
-                  items:
-                    description: Condition describes current state of a multi cluster
-                      resource.
+                              items:
+                                description: FinalizerName is the name identifying
+                                  a finalizer during namespace lifecycle.
+                                type: string
+                              type: array
+                          type: object
+                      required:
+                      - metadata
+                      type: object
+                    type: array
+                  security:
+                    description: Security specifies the project security configuration
                     properties:
-                      lastTransitionTime:
-                        description: Last time the condition transitioned from one status
-                          to another.
-                        type: string
-                      message:
-                        description: Human readable message indicating details about
-                          last transition.
-                        type: string
-                      status:
-                        description: Status of the condition, one of True, False, Unknown.
-                        type: string
-                      type:
-                        description: Type of condition.
-                        type: string
-                    required:
-                      - status
-                      - type
+                      projectAdminSubjects:
+                        description: ProjectAdminSubjects specifies the list of subjects
+                          that should be bound to the verrazzano-project-admins role
+                        items:
+                          description: Subject contains a reference to the object
+                            or user identities a role binding applies to.  This can
+                            either hold a direct API object reference, or a value
+                            for non-objects such as user and group names.
+                          properties:
+                            apiGroup:
+                              description: APIGroup holds the API group of the referenced
+                                subject. Defaults to "" for ServiceAccount subjects.
+                                Defaults to "rbac.authorization.k8s.io" for User and
+                                Group subjects.
+                              type: string
+                            kind:
+                              description: Kind of object being referenced. Values
+                                defined by this API group are "User", "Group", and
+                                "ServiceAccount". If the Authorizer does not recognized
+                                the kind value, the Authorizer should report an error.
+                              type: string
+                            name:
+                              description: Name of the object being referenced.
+                              type: string
+                            namespace:
+                              description: Namespace of the referenced object.  If
+                                the object kind is non-namespace, such as "User" or
+                                "Group", and this value is not empty the Authorizer
+                                should report an error.
+                              type: string
+                          required:
+                          - kind
+                          - name
+                          type: object
+                        type: array
+                      projectMonitorSubjects:
+                        description: ProjectMonitorBinding specifies the subject that
+                          should be bound to the verrazzano-project-monitors role
+                        items:
+                          description: Subject contains a reference to the object
+                            or user identities a role binding applies to.  This can
+                            either hold a direct API object reference, or a value
+                            for non-objects such as user and group names.
+                          properties:
+                            apiGroup:
+                              description: APIGroup holds the API group of the referenced
+                                subject. Defaults to "" for ServiceAccount subjects.
+                                Defaults to "rbac.authorization.k8s.io" for User and
+                                Group subjects.
+                              type: string
+                            kind:
+                              description: Kind of object being referenced. Values
+                                defined by this API group are "User", "Group", and
+                                "ServiceAccount". If the Authorizer does not recognized
+                                the kind value, the Authorizer should report an error.
+                              type: string
+                            name:
+                              description: Name of the object being referenced.
+                              type: string
+                            namespace:
+                              description: Namespace of the referenced object.  If
+                                the object kind is non-namespace, such as "User" or
+                                "Group", and this value is not empty the Authorizer
+                                should report an error.
+                              type: string
+                          required:
+                          - kind
+                          - name
+                          type: object
+                        type: array
                     type: object
-                  type: array
-                state:
-                  description: State of the MultiClusterSecret custom resource
-                  type: string
-              type: object
-          required:
-            - spec
-          type: object
-      served: true
-      storage: true
-      subresources:
-        status: {}
+                required:
+                - namespaces
+                type: object
+            required:
+            - template
+            type: object
+          status:
+            description: MultiClusterResourceStatus represents the status of a multi-cluster
+              resource, including cluster-level status information
+            properties:
+              clusters:
+                items:
+                  description: ClusterLevelStatus describes the status of the multi
+                    cluster resource in a specific cluster
+                  properties:
+                    lastUpdateTime:
+                      description: LastUpdateTime of the resource state in this cluster
+                      type: string
+                    name:
+                      description: Name of the cluster
+                      type: string
+                    state:
+                      description: State of the resource in this cluster
+                      type: string
+                  required:
+                  - lastUpdateTime
+                  - name
+                  - state
+                  type: object
+                type: array
+              conditions:
+                description: The latest available observations of an object's current
+                  state.
+                items:
+                  description: Condition describes current state of a multi cluster
+                    resource.
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another.
+                      type: string
+                    message:
+                      description: Human readable message indicating details about
+                        last transition.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of condition.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              state:
+                description: State of the multi cluster resource
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
 status:
   acceptedNames:
     kind: ""

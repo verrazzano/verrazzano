@@ -6,6 +6,7 @@ package integ_test
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -57,6 +58,21 @@ var _ = ginkgo.Describe("Testing Multi-Cluster CRDs", func() {
 			return secretExistsWithData(multiclusterTestNamespace, "mymcsecret", mcsecret.Spec.Template.Data)
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
+	ginkgo.It("Apply MultiClusterSecret with 2 placements remains pending", func() {
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_secret_2placements.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""))
+		mcsecret, err := K8sClient.GetMultiClusterSecret(multiclusterTestNamespace, "mymcsecret2")
+		gomega.Expect(err).To(gomega.BeNil())
+		gomega.Eventually(func() bool {
+			return secretExistsWithData(multiclusterTestNamespace, "mymcsecret2", mcsecret.Spec.Template.Data)
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			// Verify we have the expected status update
+			mcRetrievedSecret, err := K8sClient.GetMultiClusterSecret(multiclusterTestNamespace, "mymcsecret2")
+			return err == nil && mcRetrievedSecret.Status.State == clustersv1alpha1.Pending &&
+				isStatusAsExpected(mcRetrievedSecret.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, "managed1")
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+	})
 	ginkgo.It("Apply MultiClusterComponent creates OAM component ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_component_sample.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""))
@@ -81,6 +97,11 @@ var _ = ginkgo.Describe("Testing MultiClusterConfigMap", func() {
 				mcConfigMap,
 			)
 		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			// Verify we have the expected status update
+			mcConfigMap, err := K8sClient.GetMultiClusterConfigMap(multiclusterTestNamespace, "mymcconfigmap")
+			return err == nil && isStatusAsExpected(mcConfigMap.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, managedClusterName)
+		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 	ginkgo.It("Apply Invalid MultiClusterConfigMap results in Failed Status", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/multicluster_configmap_INVALID.yaml")
@@ -92,17 +113,10 @@ var _ = ginkgo.Describe("Testing MultiClusterConfigMap", func() {
 			return err == nil && mcConfigMap.Status.State == clustersv1alpha1.Failed
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 		gomega.Consistently(func() bool {
-			// Verify the controller is not updating the status more than once with the failure.
+			// Verify the controller is not updating the status more than once with the failure,
+			// and is adding exactly one cluster level status entry
 			mcConfigMap, err := K8sClient.GetMultiClusterConfigMap(multiclusterTestNamespace, "invalid-mccm")
-			count := 0
-			if err == nil {
-				for _, condition := range mcConfigMap.Status.Conditions {
-					if condition.Type == clustersv1alpha1.DeployFailed {
-						count++
-					}
-				}
-			}
-			return err == nil && count == 1
+			return err == nil && isStatusAsExpected(mcConfigMap.Status, clustersv1alpha1.DeployFailed, "", clustersv1alpha1.Failed, managedClusterName)
 		}, duration, pollInterval).Should(gomega.BeTrue())
 	})
 })
@@ -223,6 +237,27 @@ func createManagedClusterSecret() {
 	if stderr != "" {
 		ginkgo.Fail(fmt.Sprintf("failed to create secret %v: %v", constants.MCRegistrationSecret, stderr))
 	}
+}
+
+func isStatusAsExpected(status clustersv1alpha1.MultiClusterResourceStatus,
+	expectedConditionType clustersv1alpha1.ConditionType, conditionMsgContains string,
+	expectedClusterState clustersv1alpha1.StateType,
+	expectedClusterName string) bool {
+	matchingConditionCount := 0
+	matchingClusterStatusCount := 0
+	for _, condition := range status.Conditions {
+		if condition.Type == expectedConditionType && strings.Contains(condition.Message, conditionMsgContains) {
+			matchingConditionCount++
+		}
+	}
+	for _, clusterStatus := range status.Clusters {
+		if clusterStatus.State == expectedClusterState &&
+			clusterStatus.Name == expectedClusterName &&
+			clusterStatus.LastUpdateTime != "" {
+			matchingClusterStatusCount++
+		}
+	}
+	return matchingConditionCount == 1 && matchingClusterStatusCount == 1
 }
 
 func setupMultiClusterTest() {

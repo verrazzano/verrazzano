@@ -12,3 +12,5 @@ image:
 imagePullPolicy: IfNotPresent
 
 requestMemory: 72Mi
+
+fluentdImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-20201016214205-7f37ac6

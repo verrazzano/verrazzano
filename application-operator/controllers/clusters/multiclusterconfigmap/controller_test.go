@@ -145,12 +145,8 @@ func TestReconcileUpdateConfigMap(t *testing.T) {
 			return nil
 		})
 
-	// expect a call to update the status of the multicluster ConfigMap
-	cli.EXPECT().Status().Return(mockStatusWriter)
-
-	mockStatusWriter.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&mcConfigMap)).
-		Return(nil)
+	// expect a call to update the status of the multicluster ConfigMap\
+	doExpectStatusUpdateSucceeded(cli, mockStatusWriter, assert)
 
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
@@ -340,6 +336,9 @@ func doExpectGetConfigMapExists(cli *mocks.MockClient, metadata metav1.ObjectMet
 
 // doExpectStatusUpdateFailed expects a call to update status of MultiClusterConfigMap to failure
 func doExpectStatusUpdateFailed(cli *mocks.MockClient, mockStatusWriter *mocks.MockStatusWriter, assert *asserts.Assertions) {
+	// expect a call to fetch the MCRegistration secret to get the cluster name for status update
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to update the status of the MultiClusterConfigMap
 	cli.EXPECT().Status().Return(mockStatusWriter)
 
@@ -347,13 +346,16 @@ func doExpectStatusUpdateFailed(cli *mocks.MockClient, mockStatusWriter *mocks.M
 	mockStatusWriter.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterConfigMap{})).
 		DoAndReturn(func(ctx context.Context, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap) error {
-			assertMultiClusterConfigMapStatus(assert, mcConfigMap, clustersv1alpha1.Failed, clustersv1alpha1.DeployFailed, v1.ConditionTrue)
+			clusterstest.AssertMultiClusterResourceStatus(assert, mcConfigMap.Status, clustersv1alpha1.Failed, clustersv1alpha1.DeployFailed, v1.ConditionTrue)
 			return nil
 		})
 }
 
 // doExpectStatusUpdateSucceeded expects a call to update status of MultiClusterConfigMap to success
 func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mocks.MockStatusWriter, assert *asserts.Assertions) {
+	// expect a call to fetch the MCRegistration secret to get the cluster name for status update
+	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
 	// expect a call to update the status of the MultiClusterConfigMap
 	cli.EXPECT().Status().Return(mockStatusWriter)
 
@@ -361,7 +363,7 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 	mockStatusWriter.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.MultiClusterConfigMap{})).
 		DoAndReturn(func(ctx context.Context, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap) error {
-			assertMultiClusterConfigMapStatus(assert, mcConfigMap, clustersv1alpha1.Ready, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
+			clusterstest.AssertMultiClusterResourceStatus(assert, mcConfigMap.Status, clustersv1alpha1.Succeeded, clustersv1alpha1.DeployComplete, v1.ConditionTrue)
 			return nil
 		})
 }
@@ -377,15 +379,6 @@ func doExpectGetMultiClusterConfigMap(cli *mocks.MockClient, mcConfigMapSample c
 			mcConfigMap.Spec = mcConfigMapSample.Spec
 			return nil
 		})
-}
-
-// assertMultiClusterConfigMapStatus asserts that the status and conditions on the MultiClusterConfigMap
-// are as expected
-func assertMultiClusterConfigMapStatus(assert *asserts.Assertions, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap, state clustersv1alpha1.StateType, condition clustersv1alpha1.ConditionType, conditionStatus v1.ConditionStatus) {
-	assert.Equal(state, mcConfigMap.Status.State)
-	assert.Equal(1, len(mcConfigMap.Status.Conditions))
-	assert.Equal(conditionStatus, mcConfigMap.Status.Conditions[0].Status)
-	assert.Equal(condition, mcConfigMap.Status.Conditions[0].Type)
 }
 
 // assertConfigMapValid asserts that the metadata and content of the created/updated K8S ConfigMap
