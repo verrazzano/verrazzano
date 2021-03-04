@@ -10,7 +10,7 @@ require (
 	github.com/crossplane/crossplane-runtime v0.10.0
 	github.com/crossplane/oam-kubernetes-runtime v0.3.2
 	github.com/gertd/go-pluralize v0.1.7
-	github.com/go-logr/logr v0.2.0
+	github.com/go-logr/logr v0.1.0
 	github.com/golang/mock v1.4.4
 	github.com/gordonklaus/ineffassign v0.0.0-20210104184537-8eed68eb605f
 	github.com/hashicorp/go-retryablehttp v0.6.8
