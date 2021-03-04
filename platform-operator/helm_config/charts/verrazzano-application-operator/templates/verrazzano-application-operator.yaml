@@ -78,6 +78,9 @@ spec:
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/certs
+          env:
+            - name: DEFAULT_FLUENTD_IMAGE
+              value: {{ .Values.fluentdImage }}
       volumes:
         - name: webhook-certs
           emptyDir: {}

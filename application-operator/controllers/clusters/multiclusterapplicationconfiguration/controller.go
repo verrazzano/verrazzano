@@ -89,7 +89,7 @@ func (r *Reconciler) mutateAppConfig(mcAppConfig clustersv1alpha1.MultiClusterAp
 
 func (r *Reconciler) updateStatus(ctx context.Context, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {
 	condition, state := clusters.GetConditionAndStateFromResult(err, opResult, "OAM Application Configuration")
-	if clusters.StatusNeedsUpdate(mcAppConfig.Status.Conditions, state, condition, state) {
+	if clusters.StatusNeedsUpdate(mcAppConfig.Status.Conditions, mcAppConfig.Status.State, condition, state) {
 		mcAppConfig.Status.State = state
 		mcAppConfig.Status.Conditions = append(mcAppConfig.Status.Conditions, condition)
 		return reconcile.Result{}, r.Status().Update(ctx, mcAppConfig)

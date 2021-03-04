@@ -13,6 +13,7 @@ import (
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -52,8 +53,9 @@ type containersMountsVolumes struct {
 // Reconciler reconciles a VerrazzanoWebLogicWorkload object
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log     logr.Logger
+	Scheme  *runtime.Scheme
+	Metrics *metricstrait.Reconciler
 }
 
 // SetupWithManager registers our controller with the manager
@@ -184,7 +186,7 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, weblogic *uns
 
 // addLogging adds a FLUENTD sidecar and updates the WebLogic spec if there is an associated LoggingScope
 func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace string, labels map[string]string, weblogic *unstructured.Unstructured) error {
-	loggingScope, err := vznav.LoggingScopeFromWorkloadLabels(ctx, r.Client, namespace, labels)
+	loggingScope, err := loggingscope.FetchLoggingScopeFromWorkloadLabels(ctx, r.Client, log, namespace, labels)
 	if err != nil {
 		return err
 	}

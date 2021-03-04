@@ -736,6 +736,7 @@ data:
         source_labels:
         - name
         target_label: webapp
+    - job_name: test-oam-app-name_default_test-namespace_test-oam-comp-name
 kind: ConfigMap
 metadata:
   creationTimestamp: "2020-11-23T15:11:41Z"

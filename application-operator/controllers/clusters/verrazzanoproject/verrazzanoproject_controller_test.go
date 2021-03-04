@@ -5,18 +5,19 @@ package verrazzanoproject
 
 import (
 	"context"
+	"fmt"
 	"testing"
-
-	"github.com/verrazzano/verrazzano/application-operator/constants"
-	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -25,6 +26,22 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+var testLabels = map[string]string{"label1": "test1", "label2": "test2"}
+
+var existingNS = clustersv1alpha1.NamespaceTemplate{
+	Metadata: metav1.ObjectMeta{
+		Name:   "existingNS",
+		Labels: testLabels,
+	},
+}
+
+var newNS = clustersv1alpha1.NamespaceTemplate{
+	Metadata: metav1.ObjectMeta{
+		Name:   "newNS",
+		Labels: testLabels,
+	},
+}
 
 // TestReconcilerSetupWithManager test the creation of the Reconciler.
 // GIVEN a controller implementation
@@ -62,12 +79,11 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 // THEN namespaces are created
 func TestReconcileVerrazzanoProject(t *testing.T) {
 	const existingVP = "existingVP"
-	const existingNS = "existingNS"
 
 	type fields struct {
 		vpNamespace string
 		vpName      string
-		nsNames     []string
+		nsList      []clustersv1alpha1.NamespaceTemplate
 	}
 	tests := []struct {
 		name    string
@@ -79,7 +95,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 			fields{
 				constants.VerrazzanoMultiClusterNamespace,
 				existingVP,
-				[]string{existingNS},
+				[]clustersv1alpha1.NamespaceTemplate{existingNS},
 			},
 			false,
 		},
@@ -88,16 +104,16 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 			fields{
 				constants.VerrazzanoMultiClusterNamespace,
 				existingVP,
-				[]string{"test-ns"},
+				[]clustersv1alpha1.NamespaceTemplate{newNS},
 			},
 			false,
 		},
 		{
-			"VP not in verrazzano-mc namespace",
+			fmt.Sprintf("VP not in %s namespace", constants.VerrazzanoMultiClusterNamespace),
 			fields{
 				"random-namespace",
 				existingVP,
-				[]string{"test-ns"},
+				[]clustersv1alpha1.NamespaceTemplate{newNS},
 			},
 			false,
 		},
@@ -106,7 +122,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 			fields{
 				constants.VerrazzanoMultiClusterNamespace,
 				"not-found-vp",
-				[]string{existingNS},
+				[]clustersv1alpha1.NamespaceTemplate{existingNS},
 			},
 			false,
 		},
@@ -125,29 +141,29 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 					DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
 						vp.Namespace = tt.fields.vpNamespace
 						vp.Name = tt.fields.vpName
-						vp.Spec.Namespaces = tt.fields.nsNames
+						vp.Spec.Template.Namespaces = tt.fields.nsList
 						return nil
 					})
 
 				if tt.fields.vpNamespace == constants.VerrazzanoMultiClusterNamespace {
-					if tt.fields.nsNames[0] == existingNS {
+					if tt.fields.nsList[0].Metadata.Name == existingNS.Metadata.Name {
 						// expect call to get a namespace
 						mockClient.EXPECT().
-							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: tt.fields.nsNames[0]}, gomock.Not(gomock.Nil())).
-							DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *v1.Namespace) error {
+							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: tt.fields.nsList[0].Metadata.Name}, gomock.Not(gomock.Nil())).
+							DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
 								return nil
 							})
 					} else {
 						// expect call to get a namespace that returns namespace not found
 						mockClient.EXPECT().
-							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: tt.fields.nsNames[0]}, gomock.Not(gomock.Nil())).
-							Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Namespace"}, tt.fields.nsNames[0]))
+							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: tt.fields.nsList[0].Metadata.Name}, gomock.Not(gomock.Nil())).
+							Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Namespace"}, tt.fields.nsList[0].Metadata.Name))
 
 						// expect call to create a namespace
 						mockClient.EXPECT().
 							Create(gomock.Any(), gomock.Any()).
-							DoAndReturn(func(ctx context.Context, ns *v1.Namespace) error {
-								assert.Equal(tt.fields.nsNames[0], ns.Name, "namespace name did not match")
+							DoAndReturn(func(ctx context.Context, ns *corev1.Namespace) error {
+								assert.Equal(tt.fields.nsList[0].Metadata.Name, ns.Name, "namespace name did not match")
 								return nil
 							})
 					}

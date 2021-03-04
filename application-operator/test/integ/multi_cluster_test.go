@@ -23,6 +23,7 @@ const (
 	timeout                   = 2 * time.Minute
 	pollInterval              = 40 * time.Millisecond
 	applicationOperator       = "verrazzano-application-operator"
+	duration                  = 1 * time.Minute
 )
 
 var (
@@ -90,6 +91,19 @@ var _ = ginkgo.Describe("Testing MultiClusterConfigMap", func() {
 			mcConfigMap, err := K8sClient.GetMultiClusterConfigMap(multiclusterTestNamespace, "invalid-mccm")
 			return err == nil && mcConfigMap.Status.State == clustersv1alpha1.Failed
 		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Consistently(func() bool {
+			// Verify the controller is not updating the status more than once with the failure.
+			mcConfigMap, err := K8sClient.GetMultiClusterConfigMap(multiclusterTestNamespace, "invalid-mccm")
+			count := 0
+			if err == nil {
+				for _, condition := range mcConfigMap.Status.Conditions {
+					if condition.Type == clustersv1alpha1.DeployFailed {
+						count++
+					}
+				}
+			}
+			return err == nil && count == 1
+		}, duration, pollInterval).Should(gomega.BeTrue())
 	})
 })
 
