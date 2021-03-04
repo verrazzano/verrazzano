@@ -36,10 +36,7 @@ var _ = BeforeSuite(func() {
 	sockShop = NewSockShop(username, password, pkg.Ingress())
 
 	// deploy the application here
-	nsLabels := map[string]string{
-		"verrazzano-managed": "true",
-		"istio-injection":    "enabled"}
-	if _, err := pkg.CreateNamespace("sockshop", nsLabels); err != nil {
+	if _, err := pkg.CreateNamespace("sockshop", map[string]string{"verrazzano-managed": "true"}); err != nil {
 		Fail(fmt.Sprintf("Failed to create namespace: %v", err))
 	}
 	if err := pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-comp.yaml"); err != nil {
