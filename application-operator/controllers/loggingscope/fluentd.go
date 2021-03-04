@@ -6,6 +6,7 @@ package loggingscope
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
@@ -38,6 +39,21 @@ const (
 
 // ElasticSearchIndex defines the common index pattern
 const ElasticSearchIndex = "#{ENV['NAMESPACE']}-#{ENV['APP_CONF_NAME']}-#{ENV['COMPONENT_NAME']}"
+
+const (
+	// DefaultElasticSearchURL defines the default Elasticsearch URL used if it is not specified in the logging scope
+	DefaultElasticSearchURL = "http://vmi-system-es-ingest.verrazzano-system.svc.cluster.local:9200"
+
+	// DefaultSecretName defines the default Elasticsearch secret name used if it is not specified in the logging scope
+	DefaultSecretName = "verrazzano"
+)
+
+// DefaultFluentdImage holds the default FLUENTD image that will be used if it is not specified in the logging scope
+var DefaultFluentdImage string
+
+func init() {
+	DefaultFluentdImage = os.Getenv("DEFAULT_FLUENTD_IMAGE")
+}
 
 // FluentdManager is a general interface to interact with FLUENTD related resources
 type FluentdManager interface {
@@ -499,7 +515,7 @@ func ensureElasticsearchSecret(ctx context.Context, cli k8sclient.Client, namesp
 			return copyManagedClusterVMISecret(ctx, cli, namespace, name)
 		}
 		// create an empty secret, which is required in order to mount the secret
-		// as a volume in fluentd. In certain cases (e.g. admin server using local elasticsearch),
+		// as a volume in fluentd. In certain cases (e.g. admin server using local Elasticsearch),
 		// the secret is not required to have contents. In other cases, where user explicitly
 		// specifies a secret on the logging scope, they should have already created it in the app NS
 		return createEmptySecretForFluentdVolume(ctx, cli, namespace, name)
@@ -547,7 +563,7 @@ func copyManagedClusterVMISecret(ctx context.Context, cli k8sclient.Client, name
 func shouldUseManagedClusterElasticsearchSecret(ctx context.Context, cli k8sclient.Client, loggingScopeSecretName string) bool {
 	secretKey := clusters.GetManagedClusterElasticsearchSecretKey()
 	if loggingScopeSecretName != secretKey.Name {
-		// We are not using the managed cluster elasticsearch secret in our logging scope
+		// We are not using the managed cluster Elasticsearch secret in our logging scope
 		return false
 	}
 	secret := &corev1.Secret{}

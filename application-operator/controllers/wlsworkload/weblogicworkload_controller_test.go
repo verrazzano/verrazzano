@@ -16,6 +16,7 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -685,10 +686,13 @@ func newScheme() *runtime.Scheme {
 // newReconciler creates a new reconciler for testing
 // c - The K8s client to inject into the reconciler
 func newReconciler(c client.Client) Reconciler {
+	scheme := newScheme()
+	metricsReconciler := &metricstrait.Reconciler{Client: c, Scheme: scheme, Scraper: "verrazzano-system/vmi-system-prometheus-0"}
 	return Reconciler{
-		Client: c,
-		Log:    ctrl.Log.WithName("test"),
-		Scheme: newScheme(),
+		Client:  c,
+		Log:     ctrl.Log.WithName("test"),
+		Scheme:  scheme,
+		Metrics: metricsReconciler,
 	}
 }
 
