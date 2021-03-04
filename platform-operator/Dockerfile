@@ -55,7 +55,7 @@ COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/ver
 RUN sed -i"" -e "s|image:|image: ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}|g" /verrazzano/platform-operator/helm_config/overrides/verrazzano-application-operator-values.yaml
 
 # Copy source tree to image
-COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/platform-operator/THIRD_PARTY_LICENSES.txt /licenses
+COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/THIRD_PARTY_LICENSES.txt /licenses
 
 USER 1000
 
