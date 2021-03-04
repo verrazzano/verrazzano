@@ -115,7 +115,7 @@ var _ = ginkgo.Describe("VMI", func() {
 
 	ginkgo.It("Elasticsearch filebeat Index should be accessible", func() {
 		gomega.Eventually(func() bool {
-			return pkg.LogRecordFound("vmo-local-journalbeat-"+time.Now().Format("2006.01.02"),
+			return pkg.LogRecordFound("vmo-local-filebeat-"+time.Now().Format("2006.01.02"),
 				time.Now().Add(-24*time.Hour),
 				map[string]string{
 					"beat.version":      "6.8.3"})
