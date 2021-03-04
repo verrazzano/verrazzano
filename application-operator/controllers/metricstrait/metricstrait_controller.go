@@ -209,6 +209,7 @@ relabel_configs:
   regex: '.*/(.*)$'
   replacement: $1
 `
+
 // prometheusWLSScrapeConfigTemplate configuration for WebLogic prometheus scrape target template
 // Used to add new WebLogic scrape config to a pormetheus configmap
 const prometheusHttpsWLSScrapeConfigTemplate = `job_name: ##JOB_NAME##
@@ -254,7 +255,6 @@ relabel_configs:
   regex: '.*/(.*)$'
   replacement: $1
 `
-
 
 // Reconciler reconciles a MetricsTrait object
 type Reconciler struct {
@@ -877,10 +877,8 @@ func updateStatusIfRequired(status *vzapi.MetricsTraitStatus, results *reconcile
 // mutatePrometheusScrapeConfig mutates the prometheus scrape configuration.
 // Scrap configuration rules will be added, updated, deleted depending on the state of the trait.
 func mutatePrometheusScrapeConfig(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, prometheusScrapeConfig *gabs.Container, secret *k8score.Secret, workload *unstructured.Unstructured, ctx context.Context, c client.Client) (*gabs.Container, error) {
-	fmt.Println("CDD Mutate Prometheus ScrapeConfig")
 	oldScrapeConfigs := prometheusScrapeConfig.Search(prometheusScrapeConfigsLabel).Children()
 	prometheusScrapeConfig.Array(prometheusScrapeConfigsLabel) // zero out the array of scrape configs
-	fmt.Println("CDD Call Create Scrape Config From Trait")
 	newScrapeJob, newScrapeConfig, err := createScrapeConfigFromTrait(trait, traitDefaults, secret, workload, ctx, c)
 	if err != nil {
 		return prometheusScrapeConfig, err
@@ -962,7 +960,6 @@ func MutateLabels(trait *vzapi.MetricsTrait, workload *unstructured.Unstructured
 	return mutated
 }
 
-
 // schemaScrapeTarget returns the type of scheme (https, http) to use in a scrape target
 func useHttpsForScrapeTarget(ctx context.Context, c client.Client, trait *vzapi.MetricsTrait) (bool, error) {
 	if trait.Spec.WorkloadReference.Kind == "VerrazzanoCoherenceWorkload" || trait.Spec.WorkloadReference.Kind == "Coherence" {
@@ -1001,7 +998,7 @@ func createPrometheusScrapeConfigMapJobName(trait *vzapi.MetricsTrait) (string, 
 // The job name is returned.
 // The YAML container populated from the prometheus scrape config template is returned.
 func createScrapeConfigFromTrait(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, secret *k8score.Secret, workload *unstructured.Unstructured, ctx context.Context, c client.Client) (string, *gabs.Container, error) {
-	fmt.Println("CDD IN Create Scrape Config From Trait")
+
 	job, err := createPrometheusScrapeConfigMapJobName(trait)
 	if err != nil {
 		return "", nil, err
@@ -1017,8 +1014,7 @@ func createScrapeConfigFromTrait(trait *vzapi.MetricsTrait, traitDefaults *vzapi
 			namespaceHolder: trait.Namespace}
 
 		var configTemplate string
-		https, err  := useHttpsForScrapeTarget(ctx, c, trait)
-		fmt.Printf("CDD use Https = %v and err = %s\n", https, err)
+		https, err := useHttpsForScrapeTarget(ctx, c, trait)
 		if err != nil {
 			return "", nil, err
 		}
@@ -1041,7 +1037,7 @@ func createScrapeConfigFromTrait(trait *vzapi.MetricsTrait, traitDefaults *vzapi
 				configTemplate = prometheusHttpWLSScrapeConfigTemplate
 			}
 		}
-		fmt.Printf("CDD Config Template = %=v\n", https, err)
+
 		// Populate the prometheus scrape config template
 		template := mergeTemplateWithContext(configTemplate, context)
 
