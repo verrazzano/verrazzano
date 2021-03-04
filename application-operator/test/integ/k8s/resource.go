@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 
@@ -180,6 +181,11 @@ func (c Client) GetMultiClusterSecret(namespace, name string) (*clustersv1alpha1
 // GetSecret gets the specified K8S secret
 func (c Client) GetSecret(namespace, name string) (*corev1.Secret, error) {
 	return c.clientset.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// GetSecret gets the specified K8S namespace
+func (c Client) GetNamespace(name string) (*corev1.Namespace, error) {
+	return c.clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 // GetMultiClusterComponent gets the specified MultiClusterComponent

@@ -159,6 +159,21 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject validation", func() {
 	})
 })
 
+var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func() {
+	ginkgo.It("Apply VerrazzanoProject with default namespace labels", func() {
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_namespace_default_labels.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""), "VerrazzanoProject should be created successfully")
+		gomega.Eventually(func() bool {
+			namespace, err := K8sClient.GetNamespace("test-namespace-1")
+			return appConfigExistsWithFields(multiclusterTestNamespace, "mymcappconf", mcAppConfig)
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+	})
+	ginkgo.It("Apply VerrazzanoProject with default namespace labels", func() {
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_namespace_override_labels.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""), "VerrazzanoProject should be updated successfully")
+	})
+})
+
 func appConfigExistsWithFields(namespace string, name string, multiClusterAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration) bool {
 	fmt.Printf("Looking for OAM app config %v/%v\n", namespace, name)
 	appConfig, err := K8sClient.GetOAMAppConfig(namespace, name)
