@@ -137,7 +137,8 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateAdminSecret(vmc *clus
 func (r *VerrazzanoManagedClusterReconciler) mutateAdminSecret(secret *corev1.Secret, kubeconfig string, manageClusterName string) error {
 	secret.Type = corev1.SecretTypeOpaque
 	secret.Data = map[string][]byte{
-		kubeconfigKey: []byte(kubeconfig),
+		kubeconfigKey:         []byte(kubeconfig),
+		managedClusterNameKey: []byte(manageClusterName),
 	}
 	return nil
 }

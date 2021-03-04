@@ -13,13 +13,6 @@ import (
 // Create a registration secret with the managed cluster information.  This secret will
 // be used on the managed cluster to get information about itself, like the cluster name
 func (r *VerrazzanoManagedClusterReconciler) syncRegistrationSecret(vmc *clusterapi.VerrazzanoManagedCluster) error {
-	// These names are used internally in the generated kubeconfig. The names
-	// are meant to be descriptive and the actual values don't affect behavior.
-	const (
-		clusterName = "admin"
-		userName    = "mcAgent"
-		contextName = "defaultContext"
-	)
 	secretName := GetRegistrationSecretName(vmc.Name)
 	managedNamespace := vmc.Namespace
 
