@@ -36,6 +36,16 @@ pipeline {
         choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
             // 1st choice is the default value
             choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2" ])
+        choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
+                // 1st choice is the default value
+                choices: [ "v1.17.13", "v1.18.10" ])
+         choice (name: 'KUBERNETES_CLUSTER_VERSION',
+                         description: 'Kubernetes Version for KinD Cluster',
+                         // 1st choice is the default value
+                         choices: [ "1.18", "1.17" ])
+        string defaultValue: 'dev', description: 'Verrazzano install profile name', name: "INSTALL_PROFILE", trim: true
+        booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+    }
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                         description: 'Kubernetes Version',
                         // 1st choice is the default value
@@ -77,6 +87,21 @@ pipeline {
 
         TEST_ENV = "${params.TEST_ENV}"
         INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
+
+        // Find a better way to handle this
+        OKE_CLUSTER_VERSION = "${params.KUBERNETES_VERSION == '1.17' ? 'v1.17.13' : 'v1.18.10'}"
+        TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
+        TF_VAR_tenancy_id = credentials('oci-tenancy')
+        TF_VAR_tenancy_name = credentials('oci-tenancy-name')
+        TF_VAR_user_id = credentials('oci-user-ocid')
+        TF_VAR_region = "${params.OKE_CLUSTER_REGION}"
+        TF_VAR_kubernetes_version = "${params.OKE_CLUSTER_VERSION}"
+        TF_VAR_nodepool_config = "${params.OKE_NODE_POOL}"
+        TF_VAR_api_fingerprint = credentials('oci-api-key-fingerprint')
+        TF_VAR_api_private_key_path = credentials('oci-api-key')
+        TF_VAR_s3_bucket_access_key = credentials('oci-s3-bucket-access-key')
+        TF_VAR_s3_bucket_secret_key = credentials('oci-s3-bucket-secret-key')
+        TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
 
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
@@ -174,24 +199,34 @@ pipeline {
                                         echo "tests will execute" > ${TESTS_EXECUTED_FILE}
                                     """
                                     int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                    boolean cleanupKindContainers = true
-                                    boolean connectJenkinsRunnerToNetwork = true
-                                    for(int count=1; count<=clusterCount; count++) {
+                                    if (env.TEST_ENV == "kind") {
+                                        boolean cleanupKindContainers = true
+                                        boolean connectJenkinsRunnerToNetwork = true
+                                        for(int count=1; count<=clusterCount; count++) {
+                                            sh """
+                                                echo ${CLUSTER_NAME_PREFIX}-$count
+                                                echo ${KUBECONFIG_DIR}/$count/kube_config
+                                                mkdir -p ${KUBECONFIG_DIR}/$count
+                                                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+                                                echo "Create Kind cluster"
+                                                cd ${TEST_SCRIPTS_DIR}
+                                                ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KUBERNETES_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork"
+                                                echo "Install metallb"
+                                                cd ${GO_REPO_PATH}/verrazzano
+                                                ./tests/e2e/config/scripts/install-metallb.sh
+                                            """
+                                            cleanupKindContainers = false
+                                            connectJenkinsRunnerToNetwork = false
+                                        }
+                                    } else {
                                         sh """
-                                            echo ${CLUSTER_NAME_PREFIX}-$count
-                                            echo ${KUBECONFIG_DIR}/$count/kube_config
-                                            mkdir -p ${KUBECONFIG_DIR}/$count
-                                            export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-                                            echo "Create Kind cluster"
+                                            mkdir -p ${KUBECONFIG_DIR}
+                                            echo "Create OKE cluster"
                                             cd ${TEST_SCRIPTS_DIR}
-                                            ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KUBERNETES_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork"
-                                            echo "Install metallb"
-                                            cd ${GO_REPO_PATH}/verrazzano
-                                            ./tests/e2e/config/scripts/install-metallb.sh
+                                            TF_VAR_label_prefix=multicluster-${env.BUILD_NUMBER} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./create_oke_multi_cluster.sh "$count" "${KUBECONFIG_DIR}"
                                         """
-                                        cleanupKindContainers = false
-                                        connectJenkinsRunnerToNetwork = false
                                     }
+
                                 }
                             }
                         }
@@ -239,6 +274,7 @@ pipeline {
             sh """
                 curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
             """
+
             archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
             //mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
             //subject: "Verrazzano: ${env.JOB_NAME} - Failed",
@@ -251,13 +287,25 @@ pipeline {
             //}
         }
         always {
+            archiveArtifacts artifacts: '**/kube_config,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             script {
                 int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                for(int count=1; count<=clusterCount; count++) {
+                if (env.TEST_ENV == "kind") {
+                    for(int count=1; count<=clusterCount; count++) {
+                        sh """
+                            if [ "${env.TEST_ENV}" == "kind" ]
+                            then
+                                kind delete cluster --name ${CLUSTER_NAME_PREFIX}-$count
+                            fi
+                        """
+                    }
+                } else {
                     sh """
-                        kind delete cluster --name ${CLUSTER_NAME_PREFIX}-$count
+                        mkdir -p ${KUBECONFIG_DIR}
+                        cd ${TEST_SCRIPTS_DIR}
+                        TF_VAR_label_prefix=multicluster-${env.BUILD_NUMBER} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$count" "${KUBECONFIG_DIR}"
                     """
                 }
             }
@@ -294,4 +342,3 @@ def dumpK8sCluster(dumpDirectory) {
         }
     }
 }
-
