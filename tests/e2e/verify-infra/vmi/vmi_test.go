@@ -113,40 +113,22 @@ var _ = ginkgo.Describe("VMI", func() {
 		)
 	})
 
-	ginkgo.PIt("Elasticsearch filebeat Index should be accessible", func() {
-		//Disabled for KiND. See VZ-1918
-		return
+	ginkgo.It("Elasticsearch filebeat Index should be accessible", func() {
+		gomega.Eventually(func() bool {
+			return pkg.LogRecordFound("vmo-local-filebeat-"+time.Now().Format("2006.01.02"),
+				time.Now().Add(-24*time.Hour),
+				map[string]string{
+					"beat.version":      "6.8.3"})
+		}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a filebeat log record")
+	})
 
-		//var filebeatIndexName string
-		//var filebeatIndex interface{}
-		//for name, esIndex := range elastic.GetIndices() {
-		//	if strings.Contains(name, "filebeat") {
-		//		filebeatIndexName = name
-		//		filebeatIndex = esIndex
-		//	}
-		//}
-		//gomega.Expect(filebeatIndexName).NotTo(gomega.Equal(""), "Found filebeatIndex")
-		//dynamicTemplates := jq(filebeatIndex, "mappings", "dynamic_templates").([]interface{})
-		//var messageField interface{}
-		//for _, dynamicTemp := range dynamicTemplates {
-		//	found := dynamicTemp.(map[string]interface{})["message_field"]
-		//	if found != nil {
-		//		messageField = found
-		//	}
-		//}
-		//messagePath := jq(messageField, "path_match")
-		//gomega.Expect(messagePath).To(gomega.Equal("log.message"), "log message path")
-		//messageType := jq(messageField, "mapping", "type")
-		//gomega.Expect(messageType).To(gomega.Equal("text"), "log message type")
-		//
-		//searchResult := elastic.Search(filebeatIndexName,
-		//	Field{"kubernetes.namespace", "verrazzano-system"},
-		//	Field{"kubernetes.container.name", "verrazzano-monitoring-operator"})
-		//hits := jq(searchResult, "hits", "hits")
-		//for _, hit := range hits.([]interface{}) {
-		//	caller := jq(hit, "_source", "log", "caller")
-		//	gomega.Expect(caller).NotTo(gomega.Equal(""), "caller field should be found on log message")
-		//}
+	ginkgo.It("Elasticsearch journalbeat Index should be accessible", func() {
+		gomega.Eventually(func() bool {
+			return pkg.LogRecordFound("vmo-local-journalbeat-"+time.Now().Format("2006.01.02"),
+				time.Now().Add(-24*time.Hour),
+				map[string]string{
+					"beat.version":      "6.8.3"})
+		}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a journalbeat log record")
 	})
 
 	ginkgo.It("Kibana endpoint should be accessible", func() {
