@@ -34,5 +34,8 @@ const ElasticsearchUsernameData = "username"
 // cluster's Elasticsearch password
 const ElasticsearchPasswordData = "password"
 
-// LabelVerrazzanoManaged - constant for a kubernetes label that is applied by Verrazzano
+// LabelVerrazzanoManaged - constant for a Kubernetes label that is applied by Verrazzano
 const LabelVerrazzanoManaged = "verrazzano-managed"
+
+// LabelIstioInjection - constant for a Kubernetes label that is applied by Verrazzano
+const LabelIstioInjection = "istio-injection"

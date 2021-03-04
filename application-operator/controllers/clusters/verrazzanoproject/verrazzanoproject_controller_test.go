@@ -162,6 +162,8 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 								assert.Equal(tt.fields.nsList[0].Metadata.Labels, namespace.Labels, "namespace labels did not match")
 								_, labelExists := namespace.Labels[constants.LabelVerrazzanoManaged]
 								assert.True(labelExists, fmt.Sprintf("the label %s does not exist", constants.LabelVerrazzanoManaged))
+								_, labelExists = namespace.Labels[constants.LabelIstioInjection]
+								assert.True(labelExists, fmt.Sprintf("the label %s does not exist", constants.LabelIstioInjection))
 								return nil
 							})
 					} else {

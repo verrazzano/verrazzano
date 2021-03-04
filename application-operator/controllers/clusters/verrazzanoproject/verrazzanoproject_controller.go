@@ -80,5 +80,13 @@ func (r *Reconciler) mutateNamespace(nsTemplate clustersv1alpha1.NamespaceTempla
 	if namespace.Labels == nil {
 		namespace.Labels = map[string]string{}
 	}
+
+	// Apply the standard Verrazzano labels
 	namespace.Labels[constants.LabelVerrazzanoManaged] = "true"
+	namespace.Labels[constants.LabelIstioInjection] = "enabled"
+
+	// Apply user specified labels, which may override standard Verrazzano labels
+	for label, value := range nsTemplate.Metadata.Labels {
+		namespace.Labels[label] = value
+	}
 }
