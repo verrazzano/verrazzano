@@ -86,7 +86,7 @@ const (
 
 // prometheusScrapeConfigTemplate configuration for general prometheus scrape target template
 // Used to add new scrape config to a pormetheus configmap
-const prometheusHttpScrapeConfigTemplate = `job_name: ##JOB_NAME##
+const prometheusHTTPScrapeConfigTemplate = `job_name: ##JOB_NAME##
 kubernetes_sd_configs:
 - role: pod
   namespaces:
@@ -126,7 +126,7 @@ relabel_configs:
 
 // prometheusScrapeConfigTemplate configuration for general prometheus scrape target template
 // Used to add new scrape config to a pormetheus configmap
-const prometheusHttpsScrapeConfigTemplate = `job_name: ##JOB_NAME##
+const prometheusHTTPSScrapeConfigTemplate = `job_name: ##JOB_NAME##
 scheme: https
 tls_config:
   ca_file: /etc/istio-certs/root-cert.pem
@@ -172,7 +172,7 @@ relabel_configs:
 
 // prometheusWLSScrapeConfigTemplate configuration for WebLogic prometheus scrape target template
 // Used to add new WebLogic scrape config to a pormetheus configmap
-const prometheusHttpWLSScrapeConfigTemplate = `job_name: ##JOB_NAME##
+const prometheusHTTPWLSScrapeConfigTemplate = `job_name: ##JOB_NAME##
 kubernetes_sd_configs:
 - role: pod
   namespaces:
@@ -212,7 +212,7 @@ relabel_configs:
 
 // prometheusWLSScrapeConfigTemplate configuration for WebLogic prometheus scrape target template
 // Used to add new WebLogic scrape config to a pormetheus configmap
-const prometheusHttpsWLSScrapeConfigTemplate = `job_name: ##JOB_NAME##
+const prometheusHTTPSWLSScrapeConfigTemplate = `job_name: ##JOB_NAME##
 scheme: https
 tls_config:
   ca_file: /etc/istio-certs/root-cert.pem
@@ -510,7 +510,7 @@ func (r *Reconciler) updatePrometheusScraperConfigMap(ctx context.Context, trait
 		if err != nil {
 			return err
 		}
-		prometheusConf, err = mutatePrometheusScrapeConfig(trait, traitDefaults, prometheusConf, secret, workload, ctx, r.Client)
+		prometheusConf, err = mutatePrometheusScrapeConfig(ctx, trait, traitDefaults, prometheusConf, secret, workload, r.Client)
 		if err != nil {
 			return err
 		}
@@ -876,10 +876,10 @@ func updateStatusIfRequired(status *vzapi.MetricsTraitStatus, results *reconcile
 
 // mutatePrometheusScrapeConfig mutates the prometheus scrape configuration.
 // Scrap configuration rules will be added, updated, deleted depending on the state of the trait.
-func mutatePrometheusScrapeConfig(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, prometheusScrapeConfig *gabs.Container, secret *k8score.Secret, workload *unstructured.Unstructured, ctx context.Context, c client.Client) (*gabs.Container, error) {
+func mutatePrometheusScrapeConfig(ctx context.Context, trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, prometheusScrapeConfig *gabs.Container, secret *k8score.Secret, workload *unstructured.Unstructured, c client.Client) (*gabs.Container, error) {
 	oldScrapeConfigs := prometheusScrapeConfig.Search(prometheusScrapeConfigsLabel).Children()
 	prometheusScrapeConfig.Array(prometheusScrapeConfigsLabel) // zero out the array of scrape configs
-	newScrapeJob, newScrapeConfig, err := createScrapeConfigFromTrait(trait, traitDefaults, secret, workload, ctx, c)
+	newScrapeJob, newScrapeConfig, err := createScrapeConfigFromTrait(ctx, trait, traitDefaults, secret, workload, c)
 	if err != nil {
 		return prometheusScrapeConfig, err
 	}
@@ -961,7 +961,7 @@ func MutateLabels(trait *vzapi.MetricsTrait, workload *unstructured.Unstructured
 }
 
 // schemaScrapeTarget returns the type of scheme (https, http) to use in a scrape target
-func useHttpsForScrapeTarget(ctx context.Context, c client.Client, trait *vzapi.MetricsTrait) (bool, error) {
+func useHTTPSForScrapeTarget(ctx context.Context, c client.Client, trait *vzapi.MetricsTrait) (bool, error) {
 	if trait.Spec.WorkloadReference.Kind == "VerrazzanoCoherenceWorkload" || trait.Spec.WorkloadReference.Kind == "Coherence" {
 		return false, nil
 	}
@@ -997,7 +997,7 @@ func createPrometheusScrapeConfigMapJobName(trait *vzapi.MetricsTrait) (string, 
 // This populates the prometheus scrape config template.
 // The job name is returned.
 // The YAML container populated from the prometheus scrape config template is returned.
-func createScrapeConfigFromTrait(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, secret *k8score.Secret, workload *unstructured.Unstructured, ctx context.Context, c client.Client) (string, *gabs.Container, error) {
+func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, secret *k8score.Secret, workload *unstructured.Unstructured, c client.Client) (string, *gabs.Container, error) {
 
 	job, err := createPrometheusScrapeConfigMapJobName(trait)
 	if err != nil {
@@ -1014,15 +1014,15 @@ func createScrapeConfigFromTrait(trait *vzapi.MetricsTrait, traitDefaults *vzapi
 			namespaceHolder: trait.Namespace}
 
 		var configTemplate string
-		https, err := useHttpsForScrapeTarget(ctx, c, trait)
+		https, err := useHTTPSForScrapeTarget(ctx, c, trait)
 		if err != nil {
 			return "", nil, err
 		}
 
 		if https {
-			configTemplate = prometheusHttpsScrapeConfigTemplate
+			configTemplate = prometheusHTTPSScrapeConfigTemplate
 		} else {
-			configTemplate = prometheusHttpScrapeConfigTemplate
+			configTemplate = prometheusHTTPScrapeConfigTemplate
 		}
 
 		apiVerKind, err := vznav.GetAPIVersionKindOfUnstructured(workload)
@@ -1032,9 +1032,9 @@ func createScrapeConfigFromTrait(trait *vzapi.MetricsTrait, traitDefaults *vzapi
 		// Match any version of APIVersion=weblogic.oracle and Kind=Domain
 		if matched, _ := regexp.MatchString("^weblogic.oracle/.*\\.Domain$", apiVerKind); matched {
 			if https {
-				configTemplate = prometheusHttpsWLSScrapeConfigTemplate
+				configTemplate = prometheusHTTPSWLSScrapeConfigTemplate
 			} else {
-				configTemplate = prometheusHttpWLSScrapeConfigTemplate
+				configTemplate = prometheusHTTPWLSScrapeConfigTemplate
 			}
 		}
 
