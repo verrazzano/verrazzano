@@ -12,12 +12,12 @@ spec:
     metadata:
       name: hello-helidon-workload
       namespace: hello-helidon
+      labels:
+        app: hello-helidon
     spec:
       deploymentTemplate:
         metadata:
           name: hello-helidon-deployment
-          labels:
-            app: hello-helidon-deploy
         podSpec:
           containers:
             - name: hello-helidon-container
