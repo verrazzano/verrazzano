@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	certclientv1alpha2 "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1alpha2"
 	"github.com/onsi/ginkgo"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vmoclient "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
@@ -243,16 +242,16 @@ func ApiExtensionsClientSet() *apixv1beta1client.ApiextensionsV1beta1Client {
 }
 
 // CertManagerClient returns a CertmanagerV1alpha2Client for this cluster
-func CertManagerClient() *certclientv1alpha2.CertmanagerV1alpha2Client {
-	config := GetKubeConfig()
-
-	client, err := certclientv1alpha2.NewForConfig(config)
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create cert-manager client: %v", err))
-	}
-
-	return client
-}
+//func CertManagerClient() *certclientv1alpha2.CertmanagerV1alpha2Client {
+//	config := GetKubeConfig()
+//
+//	client, err := certclientv1alpha2.NewForConfig(config)
+//	if err != nil {
+//		ginkgo.Fail(fmt.Sprintf("Failed to create cert-manager client: %v", err))
+//	}
+//
+//	return client
+//}
 
 // ListServices returns the list of services in a given namespace for the cluster
 func ListServices(namespace string) *corev1.ServiceList {
