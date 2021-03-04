@@ -33,15 +33,6 @@ type SecretTemplate struct {
 	Type corev1.SecretType `json:"type,omitempty"`
 }
 
-// MultiClusterSecretStatus defines the observed state of MultiClusterSecret
-type MultiClusterSecretStatus struct {
-	// The latest available observations of an object's current state.
-	Conditions []Condition `json:"conditions,omitempty"`
-
-	// State of the MultiClusterSecret custom resource
-	State StateType `json:"state,omitempty"`
-}
-
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=mcsecret;mcsecrets
 // +kubebuilder:subresource:status
@@ -52,8 +43,8 @@ type MultiClusterSecret struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MultiClusterSecretSpec   `json:"spec,omitempty"`
-	Status MultiClusterSecretStatus `json:"status,omitempty"`
+	Spec   MultiClusterSecretSpec     `json:"spec,omitempty"`
+	Status MultiClusterResourceStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

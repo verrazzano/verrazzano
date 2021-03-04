@@ -24,15 +24,6 @@ type ComponentTemplate struct {
 	Spec     v1alpha2.ComponentSpec `json:"spec,omitempty"`
 }
 
-// MultiClusterComponentStatus defines the observed state of MultiClusterComponent
-type MultiClusterComponentStatus struct {
-	// The latest available observations of an object's current state.
-	Conditions []Condition `json:"conditions,omitempty"`
-
-	// State of the MultiClusterComponent custom resource
-	State StateType `json:"state,omitempty"`
-}
-
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=mccomp;mccomps
 // +kubebuilder:subresource:status
@@ -43,8 +34,8 @@ type MultiClusterComponent struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MultiClusterComponentSpec   `json:"spec,omitempty"`
-	Status MultiClusterComponentStatus `json:"status,omitempty"`
+	Spec   MultiClusterComponentSpec  `json:"spec,omitempty"`
+	Status MultiClusterResourceStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
