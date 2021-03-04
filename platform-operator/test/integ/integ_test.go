@@ -177,23 +177,33 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 			fmt.Sprintf("The kubeconfig Secret %s should exist in %s", vzclusters.GetManifestSecretName(managedClusterName), vzMcNamespace))
 	})
 	ginkgo.It("Checking the VMC related secrets ", func() {
+		verifyAdminSecret()
 		verifyRegistrationSecret()
 		verifyManifestSecret()
 	})
 })
 
-// Verify the secrets
-func verifyRegistrationSecret() {
-	// Get the registration secret
-	secret, err := K8sClient.GetSecret(vzclusters.GetRegistrationSecretName(managedClusterName), vzMcNamespace)
+// Verify the admin secret
+func verifyAdminSecret() {
+	// Get the admin secret
+	secret, err := K8sClient.GetSecret(vzclusters.GetAdminSecretName(managedClusterName), vzMcNamespace)
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Unable to get registration secret %s: %v", vzclusters.GetRegistrationSecretName(managedClusterName), err))
+		ginkgo.Fail(fmt.Sprintf("Unable to get registration secret %s: %v", vzclusters.GetAdminSecretName(managedClusterName), err))
 	}
 
 	// Get the kubeconfig from the secret
 	kubconfigBytes := secret.Data["admin-kubeconfig"]
 	if len(kubconfigBytes) == 0 {
 		ginkgo.Fail(fmt.Sprintf("Cluster secret %s does not contain kubeconfig", err))
+	}
+}
+
+// Verify the registration secret
+func verifyRegistrationSecret() {
+	// Get the registration secret
+	secret, err := K8sClient.GetSecret(vzclusters.GetRegistrationSecretName(managedClusterName), vzMcNamespace)
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Unable to get registration secret %s: %v", vzclusters.GetRegistrationSecretName(managedClusterName), err))
 	}
 
 	// check the cluster name
