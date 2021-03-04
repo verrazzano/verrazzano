@@ -43,14 +43,15 @@ spec:
             description: VerrazzanoManagedClusterSpec defines the desired state of
               VerrazzanoManagedCluster
             properties:
+              clusterRegistrationSecret:
+                description: The name of the generated secret that contains the kubeconfig
+                  to be used by the cluster agent to connect to admin cluster.  This
+                  secret will also contain other fields needed by the agent, such
+                  as the managed cluster name. This field is managed by a Verrazzano
+                  Kubernetes operator.
+                type: string
               description:
                 description: The description of the managed cluster.
-                type: string
-              kubeconfigSecret:
-                description: The name of the generated secret for the kubeconfig to
-                  be used by the managed cluster for connecting to management cluster
-                  to synchronize multi-cluster objects. This field is managed by a
-                  Verrazzano Kubernetes operator.
                 type: string
               managedClusterManifestSecret:
                 description: The name of the secret containing generated YAML manifest

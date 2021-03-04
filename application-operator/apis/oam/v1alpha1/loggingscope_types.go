@@ -16,16 +16,13 @@ const LoggingScopeKind string = "LoggingScope"
 // LoggingScopeSpec defines the desired state of LoggingScope
 type LoggingScopeSpec struct {
 	// The fluentd image
-	FluentdImage string `json:"fluentdImage"`
+	FluentdImage string `json:"fluentdImage,omitempty"`
 
-	// Host for ElasticSearch
-	ElasticSearchHost string `json:"elasticSearchHost"`
+	// URL for Elasticsearch
+	ElasticSearchURL string `json:"elasticSearchURL,omitempty"`
 
-	// Port for ElasticSearch
-	ElasticSearchPort uint32 `json:"elasticSearchPort"`
-
-	// Name of secret with ElasticSearch credentials
-	SecretName string `json:"secretName"`
+	// Name of secret with Elasticsearch credentials
+	SecretName string `json:"secretName,omitempty"`
 
 	// WorkloadReferences to the workloads this scope applies to.
 	WorkloadReferences []runtimev1alpha1.TypedReference `json:"workloadRefs"`

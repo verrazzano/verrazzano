@@ -40,13 +40,41 @@ spec:
             type: object
           spec:
             description: VerrazzanoProjectSpec defines the desired state of VerrazzanoProject
-              - a VerrazzanoProject contains a list of Kubernetes namespaces which
-              are part of the project
             properties:
-              namespaces:
-                items:
-                  type: string
-                type: array
+              template:
+                description: ProjectTemplate contains the resources for a project
+                properties:
+                  namespaces:
+                    items:
+                      description: NamespaceTemplate has the metadata and spec of
+                        the underlying namespace
+                      properties:
+                        metadata:
+                          type: object
+                          x-kubernetes-preserve-unknown-fields: true
+                        spec:
+                          description: NamespaceSpec describes the attributes on a
+                            Namespace.
+                          properties:
+                            finalizers:
+                              description: 'Finalizers is an opaque list of values
+                                that must be empty to permanently remove object from
+                                storage. More info: https://kubernetes.io/docs/tasks/administer-cluster/namespaces/'
+                              items:
+                                description: FinalizerName is the name identifying
+                                  a finalizer during namespace lifecycle.
+                                type: string
+                              type: array
+                          type: object
+                      required:
+                      - metadata
+                      type: object
+                    type: array
+                required:
+                - namespaces
+                type: object
+            required:
+            - template
             type: object
           status:
             description: VerrazzanoProjectStatus defines the observed state of VerrazzanoProject
@@ -81,6 +109,8 @@ spec:
                 description: State of the MultiClusterSecret custom resource
                 type: string
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

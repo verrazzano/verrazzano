@@ -4,13 +4,25 @@
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// VerrazzanoProjectSpec defines the desired state of VerrazzanoProject - a VerrazzanoProject
-// contains a list of Kubernetes namespaces which are part of the project
+// NamespaceTemplate has the metadata and spec of the underlying namespace
+type NamespaceTemplate struct {
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Metadata metav1.ObjectMeta    `json:"metadata"`
+	Spec     corev1.NamespaceSpec `json:"spec,omitempty"`
+}
+
+// ProjectTemplate contains the resources for a project
+type ProjectTemplate struct {
+	Namespaces []NamespaceTemplate `json:"namespaces"`
+}
+
+// VerrazzanoProjectSpec defines the desired state of VerrazzanoProject
 type VerrazzanoProjectSpec struct {
-	Namespaces []string `json:"namespaces,omitempty"`
+	Template ProjectTemplate `json:"template"`
 }
 
 // VerrazzanoProjectStatus defines the observed state of VerrazzanoProject
@@ -31,7 +43,7 @@ type VerrazzanoProject struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VerrazzanoProjectSpec   `json:"spec,omitempty"`
+	Spec   VerrazzanoProjectSpec   `json:"spec"`
 	Status VerrazzanoProjectStatus `json:"status,omitempty"`
 }
 

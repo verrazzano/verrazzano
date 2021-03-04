@@ -13,6 +13,7 @@ import (
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -52,8 +53,9 @@ type containersMountsVolumes struct {
 // Reconciler reconciles a VerrazzanoWebLogicWorkload object
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log     logr.Logger
+	Scheme  *runtime.Scheme
+	Metrics *metricstrait.Reconciler
 }
 
 // SetupWithManager registers our controller with the manager
@@ -133,7 +135,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, nil
 	}
 
-	if err = r.createOrUpdateDestinationRule(ctx, namespace.Name, namespace.Labels, workload.ObjectMeta.Labels); err != nil {
+	if err = r.createDestinationRule(ctx, log, namespace.Name, namespace.Labels, workload.ObjectMeta.Labels); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -184,7 +186,7 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, weblogic *uns
 
 // addLogging adds a FLUENTD sidecar and updates the WebLogic spec if there is an associated LoggingScope
 func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace string, labels map[string]string, weblogic *unstructured.Unstructured) error {
-	loggingScope, err := vznav.LoggingScopeFromWorkloadLabels(ctx, r.Client, namespace, labels)
+	loggingScope, err := loggingscope.FetchLoggingScopeFromWorkloadLabels(ctx, r.Client, log, namespace, labels)
 	if err != nil {
 		return err
 	}
@@ -267,9 +269,9 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 	return nil
 }
 
-// createOrUpdateDestinationRule creates or updates an Istio destinationRule required by WebLogic servers.
+// createDestinationRule creates an Istio destinationRule required by WebLogic servers.
 // The destinationRule is only created when the namespace has the label istio-injection=enabled.
-func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, namespace string, namespaceLabels map[string]string, workloadLabels map[string]string) error {
+func (r *Reconciler) createDestinationRule(ctx context.Context, log logr.Logger, namespace string, namespaceLabels map[string]string, workloadLabels map[string]string) error {
 	istioEnabled := false
 	value, ok := namespaceLabels["istio-injection"]
 	if ok && value == "enabled" {
@@ -285,43 +287,46 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, namespac
 		return errors.New("OAM app name label missing from metadata, unable to generate destination rule name")
 	}
 
-	// Create a destinationRule populating only name metadata.
-	// This is used as default if the destinationRule needs to be created.
-	destinationRule := &istioclient.DestinationRule{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: destinationRuleAPIVersion,
-			Kind:       destinationRuleKind},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      appName}}
+	// Create a destination rule if it does not already exist
+	destinationRule := &istioclient.DestinationRule{}
+	err := r.Get(ctx, client.ObjectKey{Namespace: namespace, Name: appName}, destinationRule)
+	if err != nil && k8serrors.IsNotFound(err) {
+		destinationRule = &istioclient.DestinationRule{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: destinationRuleAPIVersion,
+				Kind:       destinationRuleKind},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: namespace,
+				Name:      appName,
+			},
+		}
+		destinationRule.Spec.Host = fmt.Sprintf("*.%s.svc.cluster.local", namespace)
+		destinationRule.Spec.TrafficPolicy = &istionet.TrafficPolicy{
+			Tls: &istionet.ClientTLSSettings{
+				Mode: istionet.ClientTLSSettings_ISTIO_MUTUAL,
+			},
+		}
 
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, destinationRule, func() error {
-		return r.mutateDestinationRule(destinationRule, namespace, appName)
-	})
+		// Set the owner reference.
+		appConfig := &v1alpha2.ApplicationConfiguration{}
+		err := r.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: appName}, appConfig)
+		if err != nil {
+			return err
+		}
+		err = controllerutil.SetControllerReference(appConfig, destinationRule, r.Scheme)
+		if err != nil {
+			return err
+		}
 
-	return err
-}
-
-// mutateDestinationRule mutates the output destinationRule.
-func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.DestinationRule, namespace string, appName string) error {
-	// Set the spec content.
-	destinationRule.Spec.Host = fmt.Sprintf("*.%s.svc.cluster.local", namespace)
-	destinationRule.Spec.TrafficPolicy = &istionet.TrafficPolicy{
-		Tls: &istionet.ClientTLSSettings{
-			Mode: istionet.ClientTLSSettings_ISTIO_MUTUAL,
-		},
-	}
-
-	// Set the owner reference.
-	appConfig := &v1alpha2.ApplicationConfiguration{}
-	err := r.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: appName}, appConfig)
-	if err != nil {
+		log.Info(fmt.Sprintf("Creating Istio destination rule %s:%s", namespace, appName))
+		err = r.Create(ctx, destinationRule)
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
 		return err
 	}
-	err = controllerutil.SetControllerReference(appConfig, destinationRule, r.Scheme)
-	if err != nil {
-		return err
-	}
+	log.Info(fmt.Sprintf("Istio destination rule %s:%s already exist", namespace, appName))
 
 	return nil
 }

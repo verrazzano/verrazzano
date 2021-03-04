@@ -9,8 +9,7 @@ spec:
   template:
     spec:
       fluentdImage: myFluentdImage:v123
-      elasticSearchHost: myLocalEsHost
-      elasticSearchPort: 9200
+      elasticSearchURL: http://myLocalEsHost:9200
       secretName: logScopeSecret
       workloadRefs: []
   placement:

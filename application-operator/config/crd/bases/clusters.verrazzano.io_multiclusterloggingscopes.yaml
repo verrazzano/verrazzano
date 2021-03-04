@@ -70,18 +70,14 @@ spec:
                   spec:
                     description: LoggingScopeSpec defines the desired state of LoggingScope
                     properties:
-                      elasticSearchHost:
-                        description: Host for ElasticSearch
+                      elasticSearchURL:
+                        description: URL for Elasticsearch
                         type: string
-                      elasticSearchPort:
-                        description: Port for ElasticSearch
-                        format: int32
-                        type: integer
                       fluentdImage:
                         description: The fluentd image
                         type: string
                       secretName:
-                        description: Name of secret with ElasticSearch credentials
+                        description: Name of secret with Elasticsearch credentials
                         type: string
                       workloadRefs:
                         description: WorkloadReferences to the workloads this scope
@@ -111,10 +107,6 @@ spec:
                           type: object
                         type: array
                     required:
-                    - elasticSearchHost
-                    - elasticSearchPort
-                    - fluentdImage
-                    - secretName
                     - workloadRefs
                     type: object
                 type: object

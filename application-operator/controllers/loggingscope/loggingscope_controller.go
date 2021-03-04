@@ -22,6 +22,7 @@ import (
 	oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 )
 
@@ -72,6 +73,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if scope == nil || err != nil {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
+
+	applyDefaults(r.Client, log, scope)
 
 	var errors []string
 	var resources []vzapi.QualifiedResourceRelation
@@ -206,5 +209,61 @@ func toResource(workload *unstructured.Unstructured) vzapi.QualifiedResourceRela
 		Name:       workload.GetName(),
 		Namespace:  workload.GetNamespace(),
 		Kind:       workload.GetKind(),
+	}
+}
+
+// FetchLoggingScopeFromWorkloadLabels returns the LoggingScope object associated with the workload or nil if
+// there is no associated logging scope. The workload lookup is done using the OAM labels from the workload metadata.
+func FetchLoggingScopeFromWorkloadLabels(ctx context.Context, cli client.Reader, log logr.Logger, namespace string, labels map[string]string) (*vzapi.LoggingScope, error) {
+	component, err := vznav.ComponentFromWorkloadLabels(ctx, cli, namespace, labels)
+	if err != nil {
+		return nil, err
+	}
+
+	// fetch the first logging scope - do we need to handle multiple logging scopes?
+	for _, s := range component.Scopes {
+		if s.ScopeReference.Kind == vzapi.LoggingScopeKind {
+			scope := vzapi.LoggingScope{}
+			name := types.NamespacedName{
+				Namespace: namespace,
+				Name:      s.ScopeReference.Name,
+			}
+			err = cli.Get(ctx, name, &scope)
+			if err != nil {
+				return nil, err
+			}
+
+			applyDefaults(cli, log, &scope)
+			return &scope, nil
+		}
+	}
+
+	return nil, nil
+}
+
+// applyDefaults fills in any empty fields in the logging scope - also handle the case
+// where we are running in a managed cluster
+func applyDefaults(cli client.Reader, log logr.Logger, scope *vzapi.LoggingScope) {
+	if scope.Spec.ElasticSearchURL == "" && scope.Spec.SecretName == "" {
+		// if we're running in a managed cluster, use the multicluster ES URL and secret, and if we're
+		// not the fields will be empty and we will set these fields to defaults below
+		elasticSearchDetails := clusters.FetchManagedClusterElasticSearchDetails(context.TODO(), cli)
+		if elasticSearchDetails.URL != "" && elasticSearchDetails.SecretName != "" {
+			scope.Spec.ElasticSearchURL = elasticSearchDetails.URL
+			scope.Spec.SecretName = elasticSearchDetails.SecretName
+		} else if elasticSearchDetails.SecretName != "" && elasticSearchDetails.URL == "" {
+			// Elasticsearch secret is misconfigured, log it and set defaults below
+			log.Info("Unable to set defaults in logging scope for managed cluster because URL is empty")
+		}
+	}
+
+	if scope.Spec.FluentdImage == "" {
+		scope.Spec.FluentdImage = DefaultFluentdImage
+	}
+	if scope.Spec.ElasticSearchURL == "" {
+		scope.Spec.ElasticSearchURL = DefaultElasticSearchURL
+	}
+	if scope.Spec.SecretName == "" {
+		scope.Spec.SecretName = DefaultSecretName
 	}
 }

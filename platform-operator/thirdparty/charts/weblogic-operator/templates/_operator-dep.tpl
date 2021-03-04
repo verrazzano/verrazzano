@@ -1,4 +1,4 @@
-# Copyright (c) 2018, 2020, Oracle Corporation and/or its affiliates.
+# Copyright (c) 2018, 2020, 2021, Oracle Corporation and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 {{- define "operator.operatorDeployment" }}
@@ -109,10 +109,8 @@ spec:
         - name: "log-dir"
           mountPath: "/logs"
         env:
-        - name: "ELASTICSEARCH_HOST"
-          value: {{ .elasticSearchHost | quote }}
-        - name: "ELASTICSEARCH_PORT"
-          value: {{ .elasticSearchPort | quote }}
+        - name: "ELASTICSEARCH_URL"
+          value: {{ .elasticSearchURL | quote }}
       {{- end }}
       {{- if .imagePullSecrets }}
       imagePullSecrets:
