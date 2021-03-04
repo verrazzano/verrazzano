@@ -21,7 +21,7 @@ pipeline {
 
     parameters {
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
-        booleanParam (description: 'Whether to run example tests', name: 'RUN_EXAMPLE_TESTS', defaultValue: true)
+        booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
     }
 
@@ -361,7 +361,6 @@ pipeline {
                             fi
 
                             # Install the verrazzano-platform-operator
-                            cat /tmp/operator.yaml
                             kubectl apply -f /tmp/operator.yaml
 
                             # make sure ns exists
@@ -427,68 +426,36 @@ pipeline {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
-                        // yes i know this is ugly - working on cleaning it up
-                        stage('examples todo') {
-                            when {
-                                expression {params.RUN_EXAMPLE_TESTS == true}
-                            }
+                        stage('examples authorization policy') {
                             steps {
-                                sh """
-                                      # The ToDoList example image currently cannot be pulled in KIND.
-                                      # Remove this block once the image can be pulled into KIND.
-                                      . ${GO_REPO_PATH}/verrazzano/tools/scripts/retry-utils.sh
-                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-todo:0.8.0
-                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-todo:0.8.0
-                                  """
+                                runGinkgo('istio/authz')
+                            }
+                        }
+                        stage('examples todo') {
+                            steps {
                                 runGinkgo('examples/todo-list')
                             }
                         }
                         stage('examples socks') {
-                            when {
-                                expression {params.RUN_EXAMPLE_TESTS == true}
-                            }
                             steps {
                                 runGinkgo('examples/sock-shop')
                             }
                         }
                         stage('examples spring') {
-                            when {
-                                expression {params.RUN_EXAMPLE_TESTS == true}
-                            }
                             steps {
                                 runGinkgo('examples/springboot-app')
                             }
                         }
                         stage('examples helidon') {
-                            when {
-                                expression {params.RUN_EXAMPLE_TESTS == true}
-                            }
                             steps {
                                 runGinkgo('examples/hello-helidon')
                             }
                         }
                         stage('examples bobs') {
                             when {
-                                expression {params.RUN_EXAMPLE_TESTS == true}
+                                expression {params.RUN_SLOW_TESTS == true}
                             }
                             steps {
-                                sh """
-                                      # The Bobs Books example image currently cannot be pulled in KIND.
-                                      # Remove this block once the images can be pulled into KIND.
-                                      . ${GO_REPO_PATH}/verrazzano/tools/scripts/retry-utils.sh
-                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.12-1-20210205215204-b624b86
-                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-coherence:0.1.12-1-20210205215204-b624b86
-                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210205215204-b624b86
-                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210205215204-b624b86
-                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.12-1-20210205215204-b624b86
-                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobbys-front-end:0.1.12-1-20210205215204-b624b86
-                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210205215204-b624b86
-                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210205215204-b624b86
-                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210205215204-b624b86
-                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210205215204-b624b86
-                                      docker_pull_retry container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210205215204-b624b86
-                                      kind load docker-image --name ${CLUSTER_NAME} container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210205215204-b624b86
-                                  """
                                 runGinkgo('examples/bobs-books')
                             }
                         }

@@ -254,7 +254,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
 			gomega.Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"cluster": "roberts-coherence"})
+					"coherence.cluster.name": "roberts-coherence"})
 			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 		})
 	})

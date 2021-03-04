@@ -78,6 +78,9 @@ spec:
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/certs
+          env:
+            - name: DEFAULT_FLUENTD_IMAGE
+              value: {{ .Values.fluentdImage }}
       volumes:
         - name: webhook-certs
           emptyDir: {}
@@ -164,5 +167,32 @@ webhooks:
           - CREATE
         resources:
           - pods
+    sideEffects: None
+    failurePolicy: Fail
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: verrazzano-application-verrazzanoproject
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}
+webhooks:
+  - name: verrazzano-clusters-verrazzanoproject-validator.verrazzano.io
+    clientConfig:
+      service:
+        name: {{ .Values.name }}
+        namespace: {{ .Values.namespace }}
+        path: "/validate-clusters-verrazzano-io-v1alpha1-verrazzanoproject"
+    rules:
+      - apiGroups:
+          - clusters.verrazzano.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - verrazzanoprojects
     sideEffects: None
     failurePolicy: Fail

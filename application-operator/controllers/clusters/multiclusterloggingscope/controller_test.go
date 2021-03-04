@@ -400,9 +400,8 @@ func assertLoggingScopeValid(assert *asserts.Assertions, logScope *v1alpha1.Logg
 
 	// assert fields on the LoggingScope spec (e.g. in the case of update, these fields should
 	// be different from the mock pre existing LoggingScope)
-	assert.Equal(mcLogScope.Spec.Template.Spec.ElasticSearchHost, logScope.Spec.ElasticSearchHost)
+	assert.Equal(mcLogScope.Spec.Template.Spec.ElasticSearchURL, logScope.Spec.ElasticSearchURL)
 	assert.Equal(mcLogScope.Spec.Template.Spec.FluentdImage, logScope.Spec.FluentdImage)
-	assert.Equal(mcLogScope.Spec.Template.Spec.ElasticSearchPort, logScope.Spec.ElasticSearchPort)
 	assert.Equal(mcLogScope.Spec.Template.Spec.SecretName, logScope.Spec.SecretName)
 
 	// assert that the owner reference points to a MultiClusterLoggingScope

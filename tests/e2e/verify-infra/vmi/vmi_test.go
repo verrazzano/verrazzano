@@ -7,10 +7,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
 
 	"github.com/hashicorp/go-retryablehttp"
 
@@ -101,6 +102,7 @@ var _ = ginkgo.Describe("VMI", func() {
 		gomega.Eventually(elasticTlsSecret, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "tls-secret did not show up")
 		gomega.Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "certificate did not show up")
 		gomega.Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "ingress did not show up")
+		assertIngressURL("vmi-system-es-ingest")
 		pkg.Concurrently(
 			func() {
 				gomega.Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "never connected")
@@ -111,40 +113,22 @@ var _ = ginkgo.Describe("VMI", func() {
 		)
 	})
 
-	ginkgo.PIt("Elasticsearch filebeat Index should be accessible", func() {
-		//Disabled for KiND. See VZ-1918
-		return
+	ginkgo.It("Elasticsearch filebeat Index should be accessible", func() {
+		gomega.Eventually(func() bool {
+			return pkg.LogRecordFound("vmo-local-filebeat-"+time.Now().Format("2006.01.02"),
+				time.Now().Add(-24*time.Hour),
+				map[string]string{
+					"beat.version":      "6.8.3"})
+		}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a filebeat log record")
+	})
 
-		//var filebeatIndexName string
-		//var filebeatIndex interface{}
-		//for name, esIndex := range elastic.GetIndices() {
-		//	if strings.Contains(name, "filebeat") {
-		//		filebeatIndexName = name
-		//		filebeatIndex = esIndex
-		//	}
-		//}
-		//gomega.Expect(filebeatIndexName).NotTo(gomega.Equal(""), "Found filebeatIndex")
-		//dynamicTemplates := jq(filebeatIndex, "mappings", "dynamic_templates").([]interface{})
-		//var messageField interface{}
-		//for _, dynamicTemp := range dynamicTemplates {
-		//	found := dynamicTemp.(map[string]interface{})["message_field"]
-		//	if found != nil {
-		//		messageField = found
-		//	}
-		//}
-		//messagePath := jq(messageField, "path_match")
-		//gomega.Expect(messagePath).To(gomega.Equal("log.message"), "log message path")
-		//messageType := jq(messageField, "mapping", "type")
-		//gomega.Expect(messageType).To(gomega.Equal("text"), "log message type")
-		//
-		//searchResult := elastic.Search(filebeatIndexName,
-		//	Field{"kubernetes.namespace", "verrazzano-system"},
-		//	Field{"kubernetes.container.name", "verrazzano-monitoring-operator"})
-		//hits := jq(searchResult, "hits", "hits")
-		//for _, hit := range hits.([]interface{}) {
-		//	caller := jq(hit, "_source", "log", "caller")
-		//	gomega.Expect(caller).NotTo(gomega.Equal(""), "caller field should be found on log message")
-		//}
+	ginkgo.It("Elasticsearch journalbeat Index should be accessible", func() {
+		gomega.Eventually(func() bool {
+			return pkg.LogRecordFound("vmo-local-journalbeat-"+time.Now().Format("2006.01.02"),
+				time.Now().Add(-24*time.Hour),
+				map[string]string{
+					"beat.version":      "6.8.3"})
+		}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a journalbeat log record")
 	})
 
 	ginkgo.It("Kibana endpoint should be accessible", func() {
@@ -213,17 +197,33 @@ func jq(node interface{}, path ...string) interface{} {
 
 func assertIngressURL(key string) {
 	gomega.Expect(ingressURLs).To(gomega.HaveKey(key), fmt.Sprintf("Ingress %s not found", key))
-	assertURLAccessibleAndUnauthorized(ingressURLs[key])
-	assertURLAccessibleAndAuthorized(ingressURLs[key])
-}
-func assertURLAccessibleAndAuthorized(url string) {
-	pkg.AssertURLAccessibleAndAuthorized(sysVmiHttpClient, url, creds)
+	assertUnAuthorized := assertURLAccessibleAndUnauthorized(ingressURLs[key])
+	assertAuthorized := assertURLAccessibleAndAuthorized(ingressURLs[key])
+	pkg.Concurrently(
+		func() {
+			gomega.Eventually(assertUnAuthorized, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		},
+		func() {
+			gomega.Eventually(assertAuthorized, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		},
+	)
 }
 
-func assertURLAccessibleAndUnauthorized(url string) {
+func assertURLAccessibleAndAuthorized(url string) bool {
+	sysVmiHttpClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		pkg.Log(pkg.Info, fmt.Sprintf("assertURLAccessibleAndAuthorized redirect %v", req))
+		return nil
+	}
+	return pkg.AssertURLAccessibleAndAuthorized(sysVmiHttpClient, url, creds)
+}
+
+func assertURLAccessibleAndUnauthorized(url string) bool {
 	resp, err := sysVmiHttpClient.Get(url)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "GET %s", url)
-	gomega.Expect(resp.StatusCode).To(gomega.Equal(http.StatusUnauthorized), "GET %s", url)
+	if err != nil {
+		return false
+	}
+	pkg.Log(pkg.Info, fmt.Sprintf("assertURLAccessibleAndUnauthorized %v Response:%v Error:%v", url, resp.StatusCode, err))
+	return resp.StatusCode == http.StatusUnauthorized
 }
 
 func elasticIndicesCreated() bool {
@@ -233,7 +233,6 @@ func elasticIndicesCreated() bool {
 
 func elasticConnected() bool {
 	if elastic.Connect() {
-		assertIngressURL("vmi-system-es-ingest")
 		return true
 	} else {
 		return false

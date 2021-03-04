@@ -39,10 +39,11 @@ const (
 	podKind         = "Pod"
 
 	// In code defaults for metrics trait configuration
-	defaultScrapePort    = 8080
-	defaultCohScrapePort = 9612
-	defaultScrapePath    = "/metrics"
-	defaultWLSScrapePath = "/wls-exporter/metrics"
+	defaultWLSAdminScrapePort = 7001
+	defaultCohScrapePort      = 9612
+	defaultScrapePort         = 8080
+	defaultScrapePath         = "/metrics"
+	defaultWLSScrapePath      = "/wls-exporter/metrics"
 
 	// The finalizer name used by this controller
 	finalizerName = "metricstrait.finalizers.verrazzano.io"
@@ -101,6 +102,46 @@ relabel_configs:
   regex: (.+)
 - action: replace
   source_labels: [__address__, __meta_kubernetes_pod_annotation_verrazzano_io_metricsPort]
+  target_label: __address__
+  regex: ([^:]+)(?::\d+)?;(\d+)
+  replacement: $1:$2
+- action: replace
+  source_labels: [__meta_kubernetes_namespace]
+  target_label: namespace
+  regex: (.*)
+  replacement: $1
+- action: labelmap
+  regex: __meta_kubernetes_pod_label_(.+)
+- action: replace
+  source_labels: [__meta_kubernetes_pod_name]
+  target_label: pod_name
+- action: labeldrop
+  regex: '(controller_revision_hash)'
+- action: replace
+  source_labels: [name]
+  target_label: webapp
+  regex: '.*/(.*)$'
+  replacement: $1
+`
+
+// prometheusWLSScrapeConfigTemplate configuration for WebLogic prometheus scrape target template
+// Used to add new WebLogic scrape config to a pormetheus configmap
+const prometheusWLSScrapeConfigTemplate = `job_name: ##JOB_NAME##
+kubernetes_sd_configs:
+- role: pod
+  namespaces:
+    names:
+    - ##NAMESPACE##
+relabel_configs:
+- action: keep
+  source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape,__meta_kubernetes_pod_label_app_oam_dev_name,__meta_kubernetes_pod_label_app_oam_dev_component]
+  regex: true;##APP_NAME##;##COMP_NAME##
+- action: replace
+  source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+  target_label: __metrics_path__
+  regex: (.+)
+- action: replace
+  source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
   target_label: __address__
   regex: ([^:]+)(?::\d+)?;(\d+)
   replacement: $1:$2
@@ -247,11 +288,25 @@ func (r *Reconciler) createOrUpdateRelatedResources(ctx context.Context, trait *
 	for _, child := range children {
 		switch child.GroupVersionKind() {
 		case k8sapps.SchemeGroupVersion.WithKind(deploymentKind):
-			status.RecordOutcome(r.updateRelatedDeployment(ctx, trait, workload, traitDefaults, child))
+			// In the case of VerrazzanoHelidonWorkload, it isn't unwrapped so we need to check to see
+			// if the workload is a wrapper kind in addition to checking to see if the owner is a wrapper kind.
+			// In the case of a wrapper kind or owner, the status is not being updated here as this is handled by the
+			// wrapper owner which is the corresponding Verrazzano wrapper resource/controller.
+			if !vznav.IsOwnedByVerrazzanoWorkloadKind(workload) && !vznav.IsVerrazzanoWorkloadKind(workload) {
+				status.RecordOutcome(r.updateRelatedDeployment(ctx, trait, workload, traitDefaults, child))
+			}
 		case k8sapps.SchemeGroupVersion.WithKind(statefulSetKind):
-			status.RecordOutcome(r.updateRelatedStatefulSet(ctx, trait, workload, traitDefaults, child))
+			// In the case of a workload having an owner that is a wrapper kind, the status is not being updated here
+			// as this is handled by the wrapper owner which is the corresponding Verrazzano wrapper resource/controller.
+			if !vznav.IsOwnedByVerrazzanoWorkloadKind(workload) {
+				status.RecordOutcome(r.updateRelatedStatefulSet(ctx, trait, workload, traitDefaults, child))
+			}
 		case k8score.SchemeGroupVersion.WithKind(podKind):
-			status.RecordOutcome(r.updateRelatedPod(ctx, trait, workload, traitDefaults, child))
+			// In the case of a workload having an owner that is a wrapper kind, the status is not being updated here
+			// as this is handled by the wrapper owner which is the corresponding Verrazzano wrapper resource/controller.
+			if !vznav.IsOwnedByVerrazzanoWorkloadKind(workload) {
+				status.RecordOutcome(r.updateRelatedPod(ctx, trait, workload, traitDefaults, child))
+			}
 		}
 	}
 	status.RecordOutcome(r.updatePrometheusScraperConfigMap(ctx, trait, workload, traitDefaults, deployment))
@@ -363,7 +418,7 @@ func (r *Reconciler) updatePrometheusScraperConfigMap(ctx context.Context, trait
 		if err != nil {
 			return err
 		}
-		prometheusConf, err = mutatePrometheusScrapeConfig(trait, traitDefaults, prometheusConf, secret)
+		prometheusConf, err = mutatePrometheusScrapeConfig(trait, traitDefaults, prometheusConf, secret, workload)
 		if err != nil {
 			return err
 		}
@@ -455,8 +510,8 @@ func (r *Reconciler) updateRelatedDeployment(ctx context.Context, trait *vzapi.M
 			r.Log.Info("Workload child deployment not found")
 			return apierrors.NewNotFound(schema.GroupResource{Group: deployment.APIVersion, Resource: deployment.Kind}, deployment.Name)
 		}
-		deployment.Spec.Template.ObjectMeta.Annotations = mutateAnnotations(trait, workload, traitDefaults, deployment.Spec.Template.ObjectMeta.Annotations)
-		deployment.Spec.Template.ObjectMeta.Labels = mutateLabels(trait, workload, deployment.Spec.Template.ObjectMeta.Labels)
+		deployment.Spec.Template.ObjectMeta.Annotations = MutateAnnotations(trait, workload, traitDefaults, deployment.Spec.Template.ObjectMeta.Annotations)
+		deployment.Spec.Template.ObjectMeta.Labels = MutateLabels(trait, workload, deployment.Spec.Template.ObjectMeta.Labels)
 		return nil
 	})
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -480,8 +535,8 @@ func (r *Reconciler) updateRelatedStatefulSet(ctx context.Context, trait *vzapi.
 			r.Log.Info("Workload child statefulset not found")
 			return apierrors.NewNotFound(schema.GroupResource{Group: statefulSet.APIVersion, Resource: statefulSet.Kind}, statefulSet.Name)
 		}
-		statefulSet.Spec.Template.ObjectMeta.Annotations = mutateAnnotations(trait, workload, traitDefaults, statefulSet.Spec.Template.ObjectMeta.Annotations)
-		statefulSet.Spec.Template.ObjectMeta.Labels = mutateLabels(trait, workload, statefulSet.Spec.Template.ObjectMeta.Labels)
+		statefulSet.Spec.Template.ObjectMeta.Annotations = MutateAnnotations(trait, workload, traitDefaults, statefulSet.Spec.Template.ObjectMeta.Annotations)
+		statefulSet.Spec.Template.ObjectMeta.Labels = MutateLabels(trait, workload, statefulSet.Spec.Template.ObjectMeta.Labels)
 		return nil
 	})
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -505,8 +560,8 @@ func (r *Reconciler) updateRelatedPod(ctx context.Context, trait *vzapi.MetricsT
 			r.Log.Info("Workload child pod not found")
 			return apierrors.NewNotFound(schema.GroupResource{Group: pod.APIVersion, Resource: pod.Kind}, pod.Name)
 		}
-		pod.ObjectMeta.Annotations = mutateAnnotations(trait, workload, traitDefaults, pod.ObjectMeta.Annotations)
-		pod.ObjectMeta.Labels = mutateLabels(trait, workload, pod.ObjectMeta.Labels)
+		pod.ObjectMeta.Annotations = MutateAnnotations(trait, workload, traitDefaults, pod.ObjectMeta.Annotations)
+		pod.ObjectMeta.Labels = MutateLabels(trait, workload, pod.ObjectMeta.Labels)
 		return nil
 	})
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -638,24 +693,31 @@ func (r *Reconciler) fetchTraitDefaults(ctx context.Context, workload *unstructu
 	}
 	// Match any version of APIVersion=weblogic.oracle and Kind=Domain
 	if matched, _ := regexp.MatchString("^weblogic.oracle/.*\\.Domain$", apiVerKind); matched {
-		return r.newTraitDefaultsForWLSDomainWorkload(ctx, workload)
+		return r.NewTraitDefaultsForWLSDomainWorkload(ctx, workload)
 	}
 	// Match any version of APIVersion=coherence.oracle and Kind=Coherence
 	if matched, _ := regexp.MatchString("^coherence.oracle.com/.*\\.Coherence$", apiVerKind); matched {
-		return r.newTraitDefaultsForCOHWorkload(ctx, workload)
+		return r.NewTraitDefaultsForCOHWorkload(ctx, workload)
 	}
+
+	// Match any version of APIVersion=coherence.oracle and Kind=VerrazzanoHelidonWorkload
+	// In the case of Helidon, the workload isn't currently being unwrapped
+	if matched, _ := regexp.MatchString("^oam.verrazzano.io/.*\\.VerrazzanoHelidonWorkload$", apiVerKind); matched {
+		return r.NewTraitDefaultsForGenericWorkload()
+	}
+
 	// Match any version of APIVersion=core.oam.dev and Kind=ContainerizedWorkload
 	if matched, _ := regexp.MatchString("^core.oam.dev/.*\\.ContainerizedWorkload$", apiVerKind); matched {
-		return r.newTraitDefaultsForOAMContainerizedWorkload()
+		return r.NewTraitDefaultsForGenericWorkload()
 	}
 	gvk, _ := vznav.GetAPIVersionKindOfUnstructured(workload)
 	return nil, fmt.Errorf("unsupported kind %s of workload %s", gvk, vznav.GetNamespacedNameFromUnstructured(workload))
 }
 
-// newTraitDefaultsForWLSDomainWorkload creates metrics trait default values for a WLS domain workload.
-func (r *Reconciler) newTraitDefaultsForWLSDomainWorkload(ctx context.Context, workload *unstructured.Unstructured) (*vzapi.MetricsTraitSpec, error) {
+// NewTraitDefaultsForWLSDomainWorkload creates metrics trait default values for a WLS domain workload.
+func (r *Reconciler) NewTraitDefaultsForWLSDomainWorkload(ctx context.Context, workload *unstructured.Unstructured) (*vzapi.MetricsTraitSpec, error) {
 	// Port precedence: trait, workload annotation, default
-	port := defaultScrapePort
+	port := defaultWLSAdminScrapePort
 	path := defaultWLSScrapePath
 	secret, err := r.fetchWLSDomainCredentialsSecretName(ctx, workload)
 	if err != nil {
@@ -668,8 +730,8 @@ func (r *Reconciler) newTraitDefaultsForWLSDomainWorkload(ctx context.Context, w
 		Scraper: &r.Scraper}, nil
 }
 
-// newTraitDefaultsForCOHWorkload creates metrics trait default values for a Coherence workload.
-func (r *Reconciler) newTraitDefaultsForCOHWorkload(ctx context.Context, workload *unstructured.Unstructured) (*vzapi.MetricsTraitSpec, error) {
+// NewTraitDefaultsForCOHWorkload creates metrics trait default values for a Coherence workload.
+func (r *Reconciler) NewTraitDefaultsForCOHWorkload(ctx context.Context, workload *unstructured.Unstructured) (*vzapi.MetricsTraitSpec, error) {
 	path := defaultScrapePath
 	port := defaultCohScrapePort
 	var secret *string = nil
@@ -693,8 +755,8 @@ func (r *Reconciler) newTraitDefaultsForCOHWorkload(ctx context.Context, workloa
 		Scraper: &r.Scraper}, nil
 }
 
-// newTraitDefaultsForOAMContainerizedWorkload creates metrics trait default values for a containerized workload.
-func (r *Reconciler) newTraitDefaultsForOAMContainerizedWorkload() (*vzapi.MetricsTraitSpec, error) {
+// NewTraitDefaultsForGenericWorkload creates metrics trait default values for a containerized workload.
+func (r *Reconciler) NewTraitDefaultsForGenericWorkload() (*vzapi.MetricsTraitSpec, error) {
 	port := defaultScrapePort
 	path := defaultScrapePath
 	return &vzapi.MetricsTraitSpec{
@@ -722,10 +784,10 @@ func updateStatusIfRequired(status *vzapi.MetricsTraitStatus, results *reconcile
 
 // mutatePrometheusScrapeConfig mutates the prometheus scrape configuration.
 // Scrap configuration rules will be added, updated, deleted depending on the state of the trait.
-func mutatePrometheusScrapeConfig(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, prometheusScrapeConfig *gabs.Container, secret *k8score.Secret) (*gabs.Container, error) {
+func mutatePrometheusScrapeConfig(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, prometheusScrapeConfig *gabs.Container, secret *k8score.Secret, workload *unstructured.Unstructured) (*gabs.Container, error) {
 	oldScrapeConfigs := prometheusScrapeConfig.Search(prometheusScrapeConfigsLabel).Children()
 	prometheusScrapeConfig.Array(prometheusScrapeConfigsLabel) // zero out the array of scrape configs
-	newScrapeJob, newScrapeConfig, err := createScrapeConfigFromTrait(trait, traitDefaults, secret)
+	newScrapeJob, newScrapeConfig, err := createScrapeConfigFromTrait(trait, traitDefaults, secret, workload)
 	if err != nil {
 		return prometheusScrapeConfig, err
 	}
@@ -737,8 +799,8 @@ func mutatePrometheusScrapeConfig(trait *vzapi.MetricsTrait, traitDefaults *vzap
 			// This will occur in two situations.
 			// 1. The trait is being deleted.
 			// 2. The trait scraper has been changed and the old scrape config is being updated.
-			//    In this case the traitDefaults will be nil.
-			if trait.DeletionTimestamp.IsZero() && traitDefaults != nil {
+			//    In this case the traitDefaults and newScrapeConfig will be nil.
+			if trait.DeletionTimestamp.IsZero() && traitDefaults != nil && newScrapeConfig != nil {
 				prometheusScrapeConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
 			}
 			existingReplaced = true
@@ -746,15 +808,16 @@ func mutatePrometheusScrapeConfig(trait *vzapi.MetricsTrait, traitDefaults *vzap
 			prometheusScrapeConfig.ArrayAppendP(oldScrapeConfig.Data(), prometheusScrapeConfigsLabel)
 		}
 	}
-	if !existingReplaced {
+	// If an existing config was not replaced and there is new config (i.e. newScrapeConfig != nil) then add the new config.
+	if !existingReplaced && newScrapeConfig != nil {
 		prometheusScrapeConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
 	}
 	return prometheusScrapeConfig, nil
 }
 
-// mutateAnnotations mutates annotations with values used by the scraper config.
+// MutateAnnotations mutates annotations with values used by the scraper config.
 // Annotations are either set or removed depending on the state of the trait.
-func mutateAnnotations(trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, annotations map[string]string) map[string]string {
+func MutateAnnotations(trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, annotations map[string]string) map[string]string {
 	mutated := annotations
 
 	// If the trait is being deleted, remove the annotations.
@@ -795,8 +858,8 @@ func mutateAnnotations(trait *vzapi.MetricsTrait, workload *unstructured.Unstruc
 	return mutated
 }
 
-// mutateLabels mutates the labels associated with a related resources.
-func mutateLabels(trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, labels map[string]string) map[string]string {
+// MutateLabels mutates the labels associated with a related resources.
+func MutateLabels(trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, labels map[string]string) map[string]string {
 	mutated := labels
 	// If the trait is not being deleted, copy specific labels from the trait.
 	if trait.DeletionTimestamp.IsZero() {
@@ -825,39 +888,53 @@ func createPrometheusScrapeConfigMapJobName(trait *vzapi.MetricsTrait) (string, 
 // This populates the prometheus scrape config template.
 // The job name is returned.
 // The YAML container populated from the prometheus scrape config template is returned.
-func createScrapeConfigFromTrait(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, secret *k8score.Secret) (string, *gabs.Container, error) {
+func createScrapeConfigFromTrait(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, secret *k8score.Secret, workload *unstructured.Unstructured) (string, *gabs.Container, error) {
 	job, err := createPrometheusScrapeConfigMapJobName(trait)
 	if err != nil {
 		return "", nil, err
 	}
 
-	// Populate the prometheus scrape config template
-	context := map[string]string{
-		appNameHolder:   trait.Labels[appObjectMetaLabel],
-		compNameHolder:  trait.Labels[compObjectMetaLabel],
-		jobNameHolder:   job,
-		namespaceHolder: trait.Namespace}
+	// If workload is nil then the trait is being deleted so no config is required
+	if workload != nil {
+		// Populate the prometheus scrape config template
+		context := map[string]string{
+			appNameHolder:   trait.Labels[appObjectMetaLabel],
+			compNameHolder:  trait.Labels[compObjectMetaLabel],
+			jobNameHolder:   job,
+			namespaceHolder: trait.Namespace}
 
-	// Populate the prometheus scrape config template
-	template := mergeTemplateWithContext(prometheusScrapeConfigTemplate, context)
+		configTemplate := prometheusScrapeConfigTemplate
+		apiVerKind, err := vznav.GetAPIVersionKindOfUnstructured(workload)
+		if err != nil {
+			return "", nil, err
+		}
+		// Match any version of APIVersion=weblogic.oracle and Kind=Domain
+		if matched, _ := regexp.MatchString("^weblogic.oracle/.*\\.Domain$", apiVerKind); matched {
+			configTemplate = prometheusWLSScrapeConfigTemplate
+		}
 
-	// Parse the populate the prometheus scrape config template.
-	config, err := parseYAMLString(template)
-	if err != nil {
-		return job, nil, fmt.Errorf("failed to parse built-in prometheus scrape config template: %w", err)
+		// Populate the prometheus scrape config template
+		template := mergeTemplateWithContext(configTemplate, context)
+
+		// Parse the populate the prometheus scrape config template.
+		config, err := parseYAMLString(template)
+		if err != nil {
+			return job, nil, fmt.Errorf("failed to parse built-in prometheus scrape config template: %w", err)
+		}
+		// Add basic auth credentials if provided
+		if secret != nil {
+			username, secretFound := secret.Data["username"]
+			if secretFound {
+				config.Set(string(username), basicAuthLabel, basicAuthUsernameLabel)
+			}
+			password, passwordFound := secret.Data["password"]
+			if passwordFound {
+				config.Set(string(password), basicAuthLabel, basicPathPasswordLabel)
+			}
+		}
+		return job, config, nil
 	}
 
-	// Add basic auth credentials if provided
-	if secret != nil {
-		username, secretFound := secret.Data["username"]
-		if secretFound {
-			config.Set(string(username), basicAuthLabel, basicAuthUsernameLabel)
-		}
-		password, passwordFound := secret.Data["password"]
-		if passwordFound {
-			config.Set(string(password), basicAuthLabel, basicPathPasswordLabel)
-		}
-	}
-
-	return job, config, nil
+	// If the trait is being deleted (i.e. workload==nil) then no config is required.
+	return job, nil, nil
 }

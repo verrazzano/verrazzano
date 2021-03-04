@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -299,13 +300,25 @@ func printScanReport() {
 
 	if len(filesWithErrors) > 0 {
 		fmt.Printf("\nThe following files have errors:\n")
-		for path, errors := range filesWithErrors {
+
+		// Sort the keys so the files are grouped lexicographically in the output,
+		// instead of randomized by just walking the map
+		keys := make([]string, 0, len(filesWithErrors))
+		for key := range filesWithErrors {
+			if len(key) > 0 {
+				keys = append(keys, key)
+			}
+		}
+		sort.Strings(keys)
+
+		for _, key := range keys {
+			errors := filesWithErrors[key]
 			buff := new(bytes.Buffer)
 			writer := csv.NewWriter(buff)
 			writer.Write(errors)
 			writer.Flush()
 
-			fmt.Printf("\tFile: %s, Errors: %s\n", path, buff.String())
+			fmt.Printf("\tFile: %s, Errors: %s\n", key, buff.String())
 		}
 
 		fmt.Println("\nExamples of valid comments:")

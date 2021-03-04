@@ -14,6 +14,7 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -103,30 +104,58 @@ func ComponentFromWorkloadLabels(ctx context.Context, cli client.Reader, namespa
 	return nil, errors.New("Unable to find application component for workload")
 }
 
-// LoggingScopeFromWorkloadLabels returns the LoggingScope object associated with the workload or nil if
-// there is no associated logging scope. The workload lookup is done using the OAM labels from the workload metadata.
-func LoggingScopeFromWorkloadLabels(ctx context.Context, cli client.Reader, namespace string, labels map[string]string) (*vzapi.LoggingScope, error) {
-	component, err := ComponentFromWorkloadLabels(ctx, cli, namespace, labels)
+// MetricsTraitFromWorkloadLabels returns the MetricsTrait object associated with the workload or nil if
+// there is no associated metrics trait for the workload. If there is an associated metrics trait and the lookup of the
+// trait fails, an error is returned and the reconcile should be retried.
+func MetricsTraitFromWorkloadLabels(ctx context.Context, cli client.Reader, log logr.Logger, namespace string, workloadMeta v1.ObjectMeta) (*vzapi.MetricsTrait, error) {
+	log.Info(fmt.Sprintf("Getting metrics trait from OAM labels: %v", workloadMeta.Labels))
+	component, err := ComponentFromWorkloadLabels(ctx, cli, namespace, workloadMeta.Labels)
 	if err != nil {
 		return nil, err
 	}
 
-	// fetch the first logging scope - do we need to handle multiple logging scopes?
-	for _, s := range component.Scopes {
-		if s.ScopeReference.Kind == vzapi.LoggingScopeKind {
-			scope := vzapi.LoggingScope{}
-			name := types.NamespacedName{
-				Namespace: namespace,
-				Name:      s.ScopeReference.Name,
-			}
-			err = cli.Get(ctx, name, &scope)
-			if err != nil {
+	hasMetricsTrait := false
+	for _, t := range component.Traits {
+		u, err := ConvertRawExtensionToUnstructured(&t.Trait)
+		if err != nil {
+			return nil, err
+		}
+
+		if u.GetKind() == vzapi.MetricsTraitKind {
+			hasMetricsTrait = true
+			metricsTraitList := &vzapi.MetricsTraitList{}
+			metricsTraitList.APIVersion = u.GetAPIVersion()
+			metricsTraitList.Kind = u.GetKind()
+
+			if err := cli.List(ctx, metricsTraitList, client.InNamespace(namespace)); err != nil {
 				return nil, err
 			}
-			return &scope, nil
+
+			ownerUIDs := make(map[types.UID]struct{}, len(workloadMeta.OwnerReferences))
+			for _, owner := range workloadMeta.OwnerReferences {
+				ownerUIDs[owner.UID] = struct{}{}
+			}
+			log.Info(fmt.Sprintf("Workload owner UID's: %v", ownerUIDs))
+
+			for _, item := range metricsTraitList.Items {
+				for _, owner := range item.GetOwnerReferences() {
+					log.Info(fmt.Sprintf("Comparing metrics trait owner with UID: %s and name: %s", owner.UID, item.Spec.WorkloadReference.Name))
+					if _, ok := ownerUIDs[owner.UID]; ok {
+						if workloadMeta.Name == item.Spec.WorkloadReference.Name {
+							log.Info("Matched Trait")
+							return &item, nil
+						}
+					}
+				}
+			}
 		}
 	}
 
+	if hasMetricsTrait {
+		log.Info(fmt.Sprintf("Unable to lookup associated MetricTrait for workload %s", workloadMeta.Name))
+		return nil, fmt.Errorf("lookup of MetricTrait failed for workload %s", workloadMeta.Name)
+	}
+	log.Info(fmt.Sprintf("Workload %s has no associated metric trait", workloadMeta.Name))
 	return nil, nil
 }
 
@@ -135,6 +164,16 @@ func LoggingScopeFromWorkloadLabels(ctx context.Context, cli client.Reader, name
 func IsVerrazzanoWorkloadKind(workload *unstructured.Unstructured) bool {
 	kind := workload.GetKind()
 	return strings.HasPrefix(kind, "Verrazzano") && strings.HasSuffix(kind, "Workload")
+}
+
+// IsOwnedByVerrazzanoWorkloadKind returns true if the workloads owner is a Verrazzano workload kind
+func IsOwnedByVerrazzanoWorkloadKind(workload *unstructured.Unstructured) bool {
+	for _, owner := range workload.GetOwnerReferences() {
+		if strings.HasPrefix(owner.Kind, "Verrazzano") && strings.HasSuffix(owner.Kind, "Workload") {
+			return true
+		}
+	}
+	return false
 }
 
 // APIVersionAndKindToContainedGVK returns the GroupVersionKind of the contained resource

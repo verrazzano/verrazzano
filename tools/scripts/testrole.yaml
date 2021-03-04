@@ -1,0 +1,44 @@
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-test-role
+rules:
+  - apiGroups:
+      - '*'
+    resources:
+      # Access to pods for verifying application deployed in test namespace mostly
+      - pods
+      - pods/status
+      # Access to ingresses, mostly required for verrazzano-system namespaces to find ingress for system vmi's and console ingress
+      - ingresses
+      # Access to ingresses, mostly required for istio-system namespaces to find ingress ip from istio-ingressgateway service
+      - services
+      # Access to secrets, mostly for verrazzano secret in verrazzano-system to access vmi
+      - secrets
+      - destinationrules
+      - deployments
+      - gateways
+      - verrazzanomonitoringinstances
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - '*'
+    resources:
+      # Access to create secrets, bobs-books and todo-list test create docker reg secret
+      - secrets
+    verbs:
+      - create
+      - update
+      - delete
+  - apiGroups:
+      - '*'
+    resources:
+      # Access to get namespaces
+      - namespaces
+    verbs:
+      - get

@@ -1,0 +1,43 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: core.oam.dev/v1alpha2
+kind: ApplicationConfiguration
+metadata:
+  name: authpolicy-appconf
+  namespace: foo
+  annotations:
+    version: v1.0.0
+    description: "Authorization Policy Test App"
+spec:
+  components:
+    - componentName: springboot-frontend
+      traits:
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: MetricsTrait
+            spec:
+              path: "/actuator/prometheus"
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: IngressTrait
+            metadata:
+              name: springboot-ingress
+            spec:
+              rules:
+                - hosts:
+                    - "authpolicy.foo.com"
+                  paths:
+                    - path: "/"
+                      pathType: Prefix
+                    - path: "/verrazzanoFact"
+                      pathType: Prefix
+                    - path: "/externalCall"
+                      pathType: Prefix
+    - componentName: springboot-backend
+      traits:
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: MetricsTrait
+    - componentName: sleep
+
+

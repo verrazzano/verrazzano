@@ -6,7 +6,6 @@ package clusters
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -25,11 +24,16 @@ var MCRegistrationSecretFullName = types.NamespacedName{
 	Namespace: constants.VerrazzanoSystemNamespace,
 	Name:      constants.MCRegistrationSecret}
 
+// MCElasticsearchSecretFullName is the full NamespacedName of the managed cluster's Elasticsearch
+// secret
+var MCElasticsearchSecretFullName = types.NamespacedName{
+	Namespace: constants.VerrazzanoSystemNamespace,
+	Name:      constants.ElasticsearchSecretName}
+
 // ElasticsearchDetails represents all the details needed
 // to determine how to connect to an Elasticsearch instance
 type ElasticsearchDetails struct {
-	Host       string
-	Port       uint32
+	URL        string
 	SecretName string
 }
 
@@ -38,9 +42,6 @@ type ElasticsearchDetails struct {
 // needs to be done
 func StatusNeedsUpdate(curConditions []clustersv1alpha1.Condition, curState clustersv1alpha1.StateType,
 	newCondition clustersv1alpha1.Condition, newState clustersv1alpha1.StateType) bool {
-	if newState == clustersv1alpha1.Failed {
-		return true
-	}
 	if newState != curState {
 		return true
 	}
@@ -50,6 +51,7 @@ func StatusNeedsUpdate(curConditions []clustersv1alpha1.Condition, curState clus
 			existingCond.Message == newCondition.Message &&
 			existingCond.Type == newCondition.Type {
 			foundStatus = true
+			break
 		}
 	}
 	return !foundStatus
@@ -122,25 +124,37 @@ func IgnoreNotFoundWithLog(resourceType string, err error, logger logr.Logger) e
 // FetchManagedClusterElasticSearchDetails fetches Elasticsearch details to use for system and
 // application logs on this managed cluster. If this cluster is NOT a managed cluster (i.e. does not
 // have the managed cluster secret), an empty ElasticsearchDetails will be returned
-func FetchManagedClusterElasticSearchDetails(ctx context.Context, rdr client.Reader, logger logr.Logger) ElasticsearchDetails {
+func FetchManagedClusterElasticSearchDetails(ctx context.Context, rdr client.Reader) ElasticsearchDetails {
 	esDetails := ElasticsearchDetails{}
-	clusterSecret := corev1.Secret{}
-	err := fetchClusterSecret(ctx, rdr, &clusterSecret)
+	esSecret := corev1.Secret{}
+	err := fetchElasticsearchSecret(ctx, rdr, &esSecret)
 	if err != nil {
 		return esDetails
 	}
-	esDetails.Host = string(clusterSecret.Data[constants.ElasticsearchHostData])
-	port, err := strconv.Atoi(string(clusterSecret.Data[constants.ElasticsearchPortData]))
-	if err != nil {
-		logger.Error(err, fmt.Sprintf("Invalid value for %s in cluster secret %s",
-			constants.ElasticsearchPortData, MCRegistrationSecretFullName.Name))
-		return ElasticsearchDetails{}
-	}
-	esDetails.Port = uint32(port)
+	esDetails.URL = string(esSecret.Data[constants.ElasticsearchURLData])
 	esDetails.SecretName = constants.ElasticsearchSecretName
 	return esDetails
 }
 
+// GetManagedClusterElasticsearchSecretKey returns the object key for the managed cluster elastic
+// search secret
+func GetManagedClusterElasticsearchSecretKey() client.ObjectKey {
+	return client.ObjectKey{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.ElasticsearchSecretName}
+}
+
+// GetClusterName returns the cluster name for a managed cluster, empty string otherwise
+func GetClusterName(ctx context.Context, rdr client.Reader) string {
+	clusterSecret := corev1.Secret{}
+	err := fetchClusterSecret(ctx, rdr, &clusterSecret)
+	if err != nil {
+		return ""
+	}
+	return string(clusterSecret.Data[constants.ClusterNameData])
+}
+
+func fetchElasticsearchSecret(ctx context.Context, rdr client.Reader, secret *corev1.Secret) error {
+	return rdr.Get(ctx, MCElasticsearchSecretFullName, secret)
+}
 func fetchClusterSecret(ctx context.Context, rdr client.Reader, clusterSecret *corev1.Secret) error {
 	return rdr.Get(ctx, MCRegistrationSecretFullName, clusterSecret)
 }

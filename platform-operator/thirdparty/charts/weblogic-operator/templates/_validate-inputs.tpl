@@ -1,4 +1,4 @@
-# Copyright (c) 2018, 2020, Oracle Corporation and/or its affiliates.
+# Copyright (c) 2018, 2020, 2021, Oracle Corporation and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 {{- define "operator.validateInputs" -}}
@@ -43,8 +43,7 @@
 {{- if include "utils.verifyBoolean" (list $scope "elkIntegrationEnabled") -}}
 {{-   if $scope.elkIntegrationEnabled -}}
 {{-     $ignore := include "utils.verifyString" (list $scope "logStashImage") -}}
-{{-     $ignore := include "utils.verifyString" (list $scope "elasticSearchHost") -}}
-{{-     $ignore := include "utils.verifyInteger" (list $scope "elasticSearchPort") -}}
+{{-     $ignore := include "utils.verifyString" (list $scope "elasticSearchURL") -}}
 {{-   end -}}
 {{- end -}}
 {{- $ignore := include "utils.verifyOptionalBoolean" (list $scope "dedicated") -}}

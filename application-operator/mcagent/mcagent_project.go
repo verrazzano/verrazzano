@@ -39,11 +39,11 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 			} else {
 				// Add the project namespaces to the list of namespaces to watch.
 				// Check for duplicates values, even though they should never exist.
-				for _, namespace := range vp.Spec.Namespaces {
-					if controllers.StringSliceContainsString(namespaces, namespace) {
-						s.Log.Info(fmt.Sprintf("the namespace %s in project %s is a duplicate", namespace, vp.Name))
+				for _, namespace := range vp.Spec.Template.Namespaces {
+					if controllers.StringSliceContainsString(namespaces, namespace.Metadata.Name) {
+						s.Log.Info(fmt.Sprintf("the namespace %s in project %s is a duplicate", namespace.Metadata.Name, vp.Name))
 					} else {
-						namespaces = append(namespaces, namespace)
+						namespaces = append(namespaces, namespace.Metadata.Name)
 					}
 				}
 			}
@@ -91,7 +91,7 @@ func (s *Syncer) createOrUpdateVerrazzanoProject(vp clustersv1alpha1.VerrazzanoP
 
 // mutateVerrazzanoProject mutates the VerrazzanoProject to reflect the contents of the parent VerrazzanoProject
 func mutateVerrazzanoProject(vp clustersv1alpha1.VerrazzanoProject, vpNew *clustersv1alpha1.VerrazzanoProject) {
-	vpNew.Spec.Namespaces = vp.Spec.Namespaces
+	vpNew.Spec.Template = vp.Spec.Template
 }
 
 // projectListContains returns boolean indicating if the list contains the object with the specified name and namespace
