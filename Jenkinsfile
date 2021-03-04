@@ -208,8 +208,8 @@ pipeline {
                     time make copyright-check
 
                     echo "Third party license check"
-                    thirdpartyCheck()
                 """
+                thirdpartyCheck()
             }
         }
 
