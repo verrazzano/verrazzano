@@ -6,6 +6,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/prometheus/common/model"
+	promconfig "github.com/prometheus/prometheus/config"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -13,13 +15,25 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/yaml"
+	"time"
 )
 
-const roleForManagedClusterName = "verrazzano-managed-cluster"
+const (
+	roleForManagedClusterName = "verrazzano-managed-cluster"
+	managedClusterYamlKey     = "managed-cluster.yaml"
+	configMapKind             = "ConfigMap"
+	configMapVersion          = "v1"
+	verrazzanoSystemNamespace = "verrazzano-system"
+	prometheusConfigMapName   = "vmi-system-prometheus-config"
+	prometheusYamlKey         = "prometheus.yml"
+	prometheusConfigBasePath  = "/etc/prometheus/config/"
+)
 
 // VerrazzanoManagedClusterReconciler reconciles a VerrazzanoManagedCluster object.
 // The reconciler will create a ServiceAcount, ClusterRoleBinding, and a Secret which
@@ -37,6 +51,18 @@ type bindingParams struct {
 	roleName                string
 	serviceAccountName      string
 	serviceAccountNamespace string
+}
+
+// prometheusConfig contains the information required to create a scrape configuration
+type prometheusConfig struct {
+	AuthPasswd string `yaml:"authpasswd"`
+	Host       string `yaml:"host"`
+	CaCrt      string `yaml:"cacrt"`
+}
+
+// prometheusInfo wraps the prometheus configuration info
+type prometheusInfo struct {
+	Prometheus prometheusConfig `yaml:"prometheus"`
 }
 
 // +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=verrazzanomanagedclusters,verbs=get;list;watch;create;update;patch;delete
@@ -90,6 +116,12 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 	err = r.syncManifestSecret(vmc)
 	if err != nil {
 		log.Infof("Failed to sync the YAML manifest secret used by managed cluster: %v", err)
+		return ctrl.Result{}, err
+	}
+
+	err = r.setupPrometheusScraper(ctx, vmc)
+	if err != nil {
+		log.Infof("Failed to setup the prometheus scraper for managed cluster: %v", err)
 		return ctrl.Result{}, err
 	}
 
@@ -201,4 +233,118 @@ func (r *VerrazzanoManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager) 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clustersv1alpha1.VerrazzanoManagedCluster{}).
 		Complete(r)
+}
+
+// setupPrometheusScraper will create a scrape configuration for the cluster and update the prometheus config map.  There will also be an
+// entry for the cluster's CA cert added to the prometheus config map to allow for lookup of the CA cert by the scraper's HTTP client.
+func (r *VerrazzanoManagedClusterReconciler) setupPrometheusScraper(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	// read the configuration secret specified
+	if vmc.Spec.PrometheusSecret != "" {
+		var secret corev1.Secret
+		secretNsn := types.NamespacedName{
+			Namespace: vmc.Namespace,
+			Name:      vmc.Spec.PrometheusSecret,
+		}
+		if err := r.Get(context.TODO(), secretNsn, &secret); err != nil {
+			return fmt.Errorf("Failed to fetch the managed cluster prometheus secret %s/%s, %v", vmc.Namespace, vmc.Spec.PrometheusSecret, err)
+		}
+		// mutate the prometheus system configuration config map, adding the scraper config for the managed cluster
+
+		// obtain the configuration data from the prometheus secret
+		config, ok := secret.Data[managedClusterYamlKey]
+		if !ok {
+			return fmt.Errorf("Managed clsuter yaml configuration not found")
+		}
+		// marshal the data into the prometheus info struct
+		prometheusConfig := prometheusInfo{}
+		err := yaml.UnmarshalStrict(config, &prometheusConfig)
+		if err != nil {
+			return fmt.Errorf("Unable to umarshal the configuration data")
+		}
+
+		// get and mutate the prometheus config map
+		promConfigMap := &corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       configMapKind,
+				APIVersion: configMapVersion,
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: verrazzanoSystemNamespace,
+				Name:      prometheusConfigMapName,
+			}}
+		controllerutil.CreateOrUpdate(ctx, r.Client, promConfigMap, func() error {
+			err := r.mutatePrometheusConfigMap(vmc, promConfigMap, prometheusConfig)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+	}
+	return nil
+}
+
+// mutatePrometheusConfigMap will add a scraper configuration and a CA cert entry to the prometheus config map
+func (r *VerrazzanoManagedClusterReconciler) mutatePrometheusConfigMap(vmc *clustersv1alpha1.VerrazzanoManagedCluster, configMap *corev1.ConfigMap, info prometheusInfo) error {
+	cfg := &promconfig.Config{}
+	err := yaml.UnmarshalStrict([]byte(configMap.Data[prometheusYamlKey]), cfg)
+	if err != nil {
+		r.log.Errorf("Failed to unmarshal prometheus configuration: %v", err)
+		return err
+	}
+	scrapeConfig := r.getScrapeConfig(vmc, info)
+	// see if an entry exists - if it does, update it
+	found := false
+	for i := range cfg.ScrapeConfigs {
+		if cfg.ScrapeConfigs[i].JobName == vmc.ClusterName {
+			found = true
+			cfg.ScrapeConfigs[i] = &scrapeConfig
+			break
+		}
+	}
+	if !found {
+		cfg.ScrapeConfigs = append(cfg.ScrapeConfigs, &scrapeConfig)
+	}
+	newConfig, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	configMap.Data[prometheusYamlKey] = string(newConfig)
+	// add the ca entry to the configmap
+	configMap.Data[getCAKey(vmc)] = info.Prometheus.CaCrt
+
+	return nil
+}
+
+// getCAKey returns the key by which the CA cert will be retrieved by the scaper HTTP client
+func getCAKey(vmc *clustersv1alpha1.VerrazzanoManagedCluster) string {
+	return "ca-" + vmc.ClusterName
+}
+
+// getScraperConfig creates and returns a configuration based on the data available in the cluster's prometheus secret
+func (r *VerrazzanoManagedClusterReconciler) getScrapeConfig(vmc *clustersv1alpha1.VerrazzanoManagedCluster, info prometheusInfo) promconfig.ScrapeConfig {
+	scrapeConfig := promconfig.ScrapeConfig{
+		JobName:        vmc.ClusterName,
+		ScrapeInterval: model.Duration(20 * time.Second),
+		ScrapeTimeout:  model.Duration(15 * time.Second),
+		Scheme:         "https",
+		HTTPClientConfig: promconfig.HTTPClientConfig{
+			BasicAuth: &promconfig.BasicAuth{
+				Username: "verrazzano",
+				Password: promconfig.Secret(info.Prometheus.AuthPasswd),
+			},
+			TLSConfig: promconfig.TLSConfig{
+				CAFile: prometheusConfigBasePath + getCAKey(vmc),
+			},
+		},
+		ServiceDiscoveryConfig: promconfig.ServiceDiscoveryConfig{
+			StaticConfigs: []*promconfig.TargetGroup{
+				{
+					Targets: []model.LabelSet{
+						{model.AddressLabel: model.LabelValue(info.Prometheus.Host)},
+					},
+				},
+			},
+		},
+	}
+	return scrapeConfig
 }

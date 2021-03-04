@@ -5,7 +5,9 @@ package controllers
 
 import (
 	"context"
+	promconfig "github.com/prometheus/prometheus/config"
 	vzk8s "github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
+	"gopkg.in/yaml.v2"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/rest"
 	"testing"
@@ -47,7 +49,13 @@ func TestCreateVMC(t *testing.T) {
 	namespace := "verrazzano-mc"
 	name := "test"
 	saSecretName := "saSecret"
-	kubeconfigData := "fakekubeconfig"
+	promData := "prometheus:\n" +
+		"  authpasswd: nRXlxXgMwN\n" +
+		"  host: prometheus.vmi.system.default.152.67.141.181.xip.io\n" +
+		"  cacrt: |\n" +
+		"    -----BEGIN CERTIFICATE-----\n" +
+		"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
+		"    -----END CERTIFICATE-----"
 	clusterName := "cluster1"
 	labels := map[string]string{"label1": "test"}
 	asserts := assert.New(t)
@@ -70,9 +78,166 @@ func TestCreateVMC(t *testing.T) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Labels:    labels}
+			vmc.Spec = clustersapi.VerrazzanoManagedClusterSpec{
+				PrometheusSecret: getPrometheusSecretName(),
+			}
+			vmc.ClusterName = clusterName
 			return nil
 		})
 
+	setupStandardCreationMockInteractions(mock, namespace, name, asserts, saSecretName, promData, clusterName)
+
+	// following are calls from setupPrometheusScraper
+
+	// Expect a call to get the prometheus secret - return return it
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getPrometheusSecretName()}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				"managed-cluster.yaml": []byte(promData),
+			}
+			return nil
+		})
+
+	// Expect a call to get the prometheus configmap and return a new one in this case (not testing existing entries)
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "vmi-system-prometheus-config"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+			configMap.Data = map[string]string{}
+			return nil
+		})
+
+	// Expect a call to Update the configmap
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.UpdateOption) error {
+			asserts.Len(configMap.Data, 2, "no data found")
+			asserts.NotNil(configMap.Data["ca-cluster1"], "No cert entry found")
+			prometheusYaml := configMap.Data["prometheus.yml"]
+			asserts.NotNil(prometheusYaml, "No prometheus config yaml found")
+			asserts.Contains(prometheusYaml, "prometheus.vmi.system.default.152.67.141.181.xip.io", "No host entry found")
+			return nil
+		})
+
+	// Create and make the request
+	request := newRequest(namespace, name)
+	reconciler := newVMCReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestCreateVMCWithExistingScrapeConfiguration tests the Reconcile method for the following use case
+// GIVEN a request to reconcile an VerrazzanoManagedCluster resource
+// WHEN a VerrazzanoManagedCluster resource has been applied and prometheus is already configured with a scrape config for the cluster
+// THEN ensure all the objects are created
+func TestCreateVMCWithExistingScrapeConfiguration(t *testing.T) {
+	namespace := "verrazzano-mc"
+	name := "test"
+	saSecretName := "saSecret"
+	promData := "prometheus:\n" +
+		"  authpasswd: nRXlxXgMwN\n" +
+		"  host: prometheus.vmi.system.default.152.67.141.181.xip.io\n" +
+		"  cacrt: |\n" +
+		"    -----BEGIN CERTIFICATE-----\n" +
+		"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
+		"    -----END CERTIFICATE-----"
+	clusterName := "cluster1"
+	labels := map[string]string{"label1": "test"}
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	defer setConfigFunc(getConfigFunc)
+	setConfigFunc(fakeGetConfig)
+
+	// Expect a call to get the VerrazzanoManagedCluster resource.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			vmc.TypeMeta = metav1.TypeMeta{
+				APIVersion: apiVersion,
+				Kind:       kind}
+			vmc.ObjectMeta = metav1.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name,
+				Labels:    labels}
+			vmc.Spec = clustersapi.VerrazzanoManagedClusterSpec{
+				PrometheusSecret: getPrometheusSecretName(),
+			}
+			vmc.ClusterName = clusterName
+			return nil
+		})
+
+	setupStandardCreationMockInteractions(mock, namespace, name, asserts, saSecretName, promData, clusterName)
+
+	// following are calls from setupPrometheusScraper
+
+	// Expect a call to get the prometheus secret - return return it
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getPrometheusSecretName()}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				"managed-cluster.yaml": []byte(promData),
+			}
+			return nil
+		})
+
+	// Expect a call to get the prometheus configmap and return a new one in this case (not testing existing entries)
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "vmi-system-prometheus-config"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+			// setup a scaled down existing scrape config entry for cluster1
+			cfg := &promconfig.Config{ScrapeConfigs: []*promconfig.ScrapeConfig{
+				{
+					JobName: "cluster1",
+					Scheme:  "http",
+				},
+			}}
+			newConfig, _ := yaml.Marshal(cfg)
+			configMap.Data = map[string]string{
+				"prometheus.yml": string(newConfig),
+			}
+			return nil
+		})
+
+	// Expect a call to Update the configmap
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.UpdateOption) error {
+			// check for the modified entry
+			asserts.Len(configMap.Data, 2, "no data found")
+			asserts.NotNil(configMap.Data["ca-cluster1"], "No cert entry found")
+			prometheusYaml := configMap.Data["prometheus.yml"]
+			asserts.NotNil(prometheusYaml, "No prometheus config yaml found")
+			asserts.Contains(prometheusYaml, "prometheus.vmi.system.default.152.67.141.181.xip.io", "No host entry found")
+			return nil
+		})
+
+	// Create and make the request
+	request := newRequest(namespace, name)
+	reconciler := newVMCReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+func getPrometheusSecretName() string {
+	return "cluster1-secret"
+}
+
+// setupStandardCreationMockInteractions performs the mock setup calls that do not change for creation test methods
+func setupStandardCreationMockInteractions(mock *mocks.MockClient, namespace string, name string, asserts *assert.Assertions, saSecretName string, promData string, clusterName string) {
 	// The following calls are used by syncServiceAccount
 
 	// Expect a call to get the ServiceAccount - return that it does not exist
@@ -176,7 +341,7 @@ func TestCreateVMC(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: GetRegistrationSecretName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				kubeconfigKey:         []byte(kubeconfigData),
+				kubeconfigKey:         []byte(promData),
 				managedClusterNameKey: []byte(clusterName),
 			}
 			return nil
@@ -203,17 +368,6 @@ func TestCreateVMC(t *testing.T) {
 			asserts.Equal(vmc.Spec.ManagedClusterManifestSecret, GetManifestSecretName(name), "Manifest secret name did not match")
 			return nil
 		})
-
-	// Create and make the request
-	request := newRequest(namespace, name)
-	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(request)
-
-	// Validate the results
-	mocker.Finish()
-	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
 // TestDeleteVMC tests the Reconcile method for the following use case
