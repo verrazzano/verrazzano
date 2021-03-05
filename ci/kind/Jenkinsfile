@@ -130,17 +130,18 @@ pipeline {
         stage('Acceptance Tests') {
             stages {
                 stage('Prepare AT environment') {
+                    environment {
+                        OCI_CLI_AUTH="instance_principal"
+                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                        OCI_OS_BUCKET="verrazzano-builds"
+                    }
                     steps {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
-                            git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
-                            git config --global user.name $DOCKER_CREDS_USR
-                            git config --global user.email "${DOCKER_EMAIL}"
-                            git checkout -b ${env.BRANCH_NAME}
                             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
                             echo "Create Kind cluster"
                             cd ${TEST_SCRIPTS_DIR}
-                            ./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KUBERNETES_CLUSTER_VERSION}"
+                            ./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${params.KUBERNETES_CLUSTER_VERSION}"
 
                             echo "Install metallb"
                             cd ${GO_REPO_PATH}/verrazzano
@@ -155,13 +156,14 @@ pipeline {
                             echo "Install Platform Operator"
                             cd ${GO_REPO_PATH}/verrazzano
                             if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
-                                echo "Using operator.yaml from Verrazzano repo"
-                                cp platform-operator/deploy/operator.yaml /tmp/operator.yaml
+                                echo "Using operator.yaml from object storage"
+                                oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                                cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                             else
                                 echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
-                                ./tests/e2e/config/scripts/process_operator_yaml.sh platform-operator "${VERRAZZANO_OPERATOR_IMAGE}"
+                                ./tests/e2e/config/scripts/process_operator_yaml.sh platform-operator "${VERRAZZANO_OPERATOR_IMAGE}" verrazzano-container-registry ghcr.io ${WORKSPACE}/acceptance-test-operator.yaml
                             fi
-                            kubectl apply -f /tmp/operator.yaml
+                            kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
 
                             # make sure ns exists
                             ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
@@ -189,6 +191,7 @@ pipeline {
                     }
                     post {
                         always {
+                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
                             sh """
                                 ## dump out install logs
                                 mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs

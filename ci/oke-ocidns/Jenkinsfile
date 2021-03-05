@@ -167,22 +167,33 @@ pipeline {
         }
 
         stage("install-platform-operator") {
+            environment {
+                OCI_CLI_AUTH="instance_principal"
+                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                OCI_OS_BUCKET="verrazzano-builds"
+            }
             steps {
                 sh """
                     cd ${WORKSPACE}/platform-operator
                     if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ] && [ -f ${WORKSPACE}/platform-operator/deploy/operator.yaml ]; then
-                        echo "Using operator.yaml from Verrazzano repo"
-                        cp ${WORKSPACE}/platform-operator/deploy/operator.yaml /tmp/operator.yaml
+                        echo "Using operator.yaml from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                        cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                     else
                         echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
-                        ${WORKSPACE}/tests/e2e/config/scripts/process_operator_yaml.sh . "${VERRAZZANO_OPERATOR_IMAGE}"
+                        ${WORKSPACE}/tests/e2e/config/scripts/process_operator_yaml.sh platform-operator "${VERRAZZANO_OPERATOR_IMAGE}" verrazzano-container-registry ghcr.io ${WORKSPACE}/acceptance-test-operator.yaml
                     fi
-                    kubectl apply -f /tmp/operator.yaml
+                    kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
                     # make sure ns exists
                     ${WORKSPACE}/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
                     # create secret in verrazzano-install ns
                     ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}" "verrazzano-install"
                 """
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
+                }
             }
         }
 
