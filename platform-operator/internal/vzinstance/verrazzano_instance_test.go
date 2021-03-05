@@ -35,6 +35,7 @@ func TestGetInstanceInfo(t *testing.T) {
 	const kibanaURL = "kibana." + dnsDomain
 	const rancherURL = "rancher." + dnsDomain
 	const consoleURL = "verrazzano." + dnsDomain
+	const apiURL = "api." + dnsDomain
 
 	// Expect a call to get the verrazzano resource.
 	mock.EXPECT().
@@ -97,6 +98,14 @@ func TestGetInstanceInfo(t *testing.T) {
 						},
 					},
 				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-api"},
+					Spec: extv1beta1.IngressSpec{
+						Rules: []extv1beta1.IngressRule{
+							{Host: apiURL},
+						},
+					},
+				},
 			}
 			return nil
 		})
@@ -104,13 +113,14 @@ func TestGetInstanceInfo(t *testing.T) {
 	instanceInfo := GetInstanceInfo(mock)
 	mocker.Finish()
 	assert.NotNil(t, instanceInfo)
-	assert.Equal(t, "https://"+consoleURL, *instanceInfo.Console)
+	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)
 	assert.Equal(t, "https://"+rancherURL, *instanceInfo.RancherURL)
 	assert.Equal(t, "https://"+keycloakURL, *instanceInfo.KeyCloakURL)
 	assert.Equal(t, "https://"+esURL, *instanceInfo.ElasticURL)
 	assert.Equal(t, "https://"+grafanaURL, *instanceInfo.GrafanaURL)
 	assert.Equal(t, "https://"+kibanaURL, *instanceInfo.KibanaURL)
 	assert.Equal(t, "https://"+promURL, *instanceInfo.PrometheusURL)
+	assert.Equal(t, "https://"+apiURL, *instanceInfo.SystemURL)
 }
 
 // TestGetInstanceInfoManagedCluster tests GetInstanceInfo method
@@ -130,6 +140,7 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 	const promURL = "prometheus." + dnsDomain
 	const rancherURL = "rancher." + dnsDomain
 	const consoleURL = "verrazzano." + dnsDomain
+	const apiURL = "api." + dnsDomain
 
 	// Expect a call to get the verrazzano resource.
 	mock.EXPECT().
@@ -168,6 +179,14 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 						},
 					},
 				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-api"},
+					Spec: extv1beta1.IngressSpec{
+						Rules: []extv1beta1.IngressRule{
+							{Host: apiURL},
+						},
+					},
+				},
 			}
 			return nil
 		})
@@ -175,13 +194,14 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 	instanceInfo := GetInstanceInfo(mock)
 	mocker.Finish()
 	assert.NotNil(t, instanceInfo)
-	assert.Equal(t, "https://"+consoleURL, *instanceInfo.Console)
+	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)
 	assert.Equal(t, "https://"+rancherURL, *instanceInfo.RancherURL)
 	assert.Equal(t, "https://"+keycloakURL, *instanceInfo.KeyCloakURL)
 	assert.Nil(t, instanceInfo.ElasticURL)
 	assert.Nil(t, instanceInfo.GrafanaURL)
 	assert.Nil(t, instanceInfo.KibanaURL)
 	assert.Equal(t, "https://"+promURL, *instanceInfo.PrometheusURL)
+	assert.Equal(t, "https://"+apiURL, *instanceInfo.SystemURL)
 }
 
 // TestGetInstanceInfoManagedCluster tests GetInstanceInfo method

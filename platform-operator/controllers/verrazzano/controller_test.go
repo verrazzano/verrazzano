@@ -118,7 +118,7 @@ func TestSuccessfulInstall(t *testing.T) {
 			verrazzano.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name}
-			verrazzano.Spec.Components.DNS.External.Suffix = "mydomain.com"
+			verrazzano.Spec.Components.DNS = &vzapi.DNSComponent{External: &vzapi.External{Suffix: "mydomain.com"}}
 			savedVerrazzano = verrazzano
 			return nil
 		})
@@ -365,11 +365,13 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Labels:    labels}
-			verrazzano.Spec.Components.DNS.OCI = vzapi.OCI{
-				OCIConfigSecret:        "test-oci-config-secret",
-				DNSZoneCompartmentOCID: "test-dns-zone-ocid",
-				DNSZoneOCID:            "test-dns-zone-ocid",
-				DNSZoneName:            "test-dns-zone-name",
+			verrazzano.Spec.Components.DNS = &vzapi.DNSComponent{
+				OCI: &vzapi.OCI{
+					OCIConfigSecret:        "test-oci-config-secret",
+					DNSZoneCompartmentOCID: "test-dns-zone-ocid",
+					DNSZoneOCID:            "test-dns-zone-ocid",
+					DNSZoneName:            "test-dns-zone-name",
+				},
 			}
 			return nil
 		})
@@ -1336,11 +1338,13 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Labels:    labels}
-			verrazzano.Spec.Components.DNS.OCI = vzapi.OCI{
-				OCIConfigSecret:        "test-oci-config-secret",
-				DNSZoneCompartmentOCID: "test-dns-zone-ocid",
-				DNSZoneOCID:            "test-dns-zone-ocid",
-				DNSZoneName:            "test-dns-zone-name",
+			verrazzano.Spec.Components.DNS = &vzapi.DNSComponent{
+				OCI: &vzapi.OCI{
+					OCIConfigSecret:        "test-oci-config-secret",
+					DNSZoneCompartmentOCID: "test-dns-zone-ocid",
+					DNSZoneOCID:            "test-dns-zone-ocid",
+					DNSZoneName:            "test-dns-zone-name",
+				},
 			}
 			savedVerrazzano = verrazzano
 			return nil
@@ -1774,7 +1778,7 @@ func TestBuildOCIDNSDomain(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
-				DNS: vzapi.DNSComponent{OCI: vzapi.OCI{DNSZoneName: "my.zone.com"}},
+				DNS: &vzapi.DNSComponent{OCI: &vzapi.OCI{DNSZoneName: "my.zone.com"}},
 			},
 		},
 	})
@@ -1786,7 +1790,7 @@ func TestBuildOCIDNSDomain(t *testing.T) {
 		Spec: vzapi.VerrazzanoSpec{
 			EnvironmentName: "myenv",
 			Components: vzapi.ComponentSpec{
-				DNS: vzapi.DNSComponent{OCI: vzapi.OCI{DNSZoneName: "my.zone.com"}},
+				DNS: &vzapi.DNSComponent{OCI: &vzapi.OCI{DNSZoneName: "my.zone.com"}},
 			},
 		},
 	})
@@ -1814,7 +1818,7 @@ func TestBuildExternalDNSDomain(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
-				DNS: vzapi.DNSComponent{External: vzapi.External{Suffix: "my.external.com"}},
+				DNS: &vzapi.DNSComponent{External: &vzapi.External{Suffix: "my.external.com"}},
 			},
 		},
 	})
@@ -1826,7 +1830,7 @@ func TestBuildExternalDNSDomain(t *testing.T) {
 		Spec: vzapi.VerrazzanoSpec{
 			EnvironmentName: "myenv",
 			Components: vzapi.ComponentSpec{
-				DNS: vzapi.DNSComponent{External: vzapi.External{Suffix: "my.external.com"}},
+				DNS: &vzapi.DNSComponent{External: &vzapi.External{Suffix: "my.external.com"}},
 			},
 		},
 	})

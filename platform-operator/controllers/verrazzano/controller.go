@@ -114,7 +114,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// if an OCI DNS installation, make sure the secret required exists before proceeding
-	if vz.Spec.Components.DNS.OCI != (installv1alpha1.OCI{}) {
+	if vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil {
 		err := r.doesOCIDNSConfigSecretExist(vz)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -639,10 +639,10 @@ func buildDomain(c client.Client, vz *installv1alpha1.Verrazzano) (string, error
 // buildDomainSuffix Get the configured domain suffix, or compute the xip.io domain
 func buildDomainSuffix(c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
 	dns := vz.Spec.Components.DNS
-	if dns.OCI != (installv1alpha1.OCI{}) {
+	if dns != nil && dns.OCI != nil {
 		return dns.OCI.DNSZoneName, nil
 	}
-	if dns.External != (installv1alpha1.External{}) {
+	if dns != nil && dns.External != nil {
 		return dns.External.Suffix, nil
 	}
 	ipAddress, err := getIngressIP(c)

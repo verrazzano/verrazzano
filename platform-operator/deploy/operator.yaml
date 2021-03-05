@@ -3251,7 +3251,7 @@ spec:
                 description: The Verrazzano instance info
                 properties:
                   consoleUrl:
-                    description: Console The Console URL for this Verrazzano installation
+                    description: ConsoleURL The Console URL for this Verrazzano installation
                     type: string
                   elasticUrl:
                     description: ElasticURL The Elasticsearch URL for this Verrazzano
@@ -3273,6 +3273,10 @@ spec:
                     type: string
                   rancherUrl:
                     description: RancherURL The Rancher URL for this Verrazzano installation
+                    type: string
+                  systemApi:
+                    description: SystemURL The System API URL for this Verrazzano
+                      installation
                     type: string
                 type: object
               state:

@@ -44,10 +44,10 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 			Profile:         "dev",
 			EnvironmentName: "testEnv",
 			Components: installv1alpha1.ComponentSpec{
-				DNS: installv1alpha1.DNSComponent{
-					XIPIO: installv1alpha1.XIPIO{},
+				DNS: &installv1alpha1.DNSComponent{
+					XIPIO: &installv1alpha1.XIPIO{},
 				},
-				Ingress: installv1alpha1.IngressNginxComponent{
+				Ingress: &installv1alpha1.IngressNginxComponent{
 					Type: installv1alpha1.LoadBalancer,
 					NGINXInstallArgs: []installv1alpha1.InstallArgs{
 						{
@@ -65,7 +65,7 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 						},
 					},
 				},
-				Istio: installv1alpha1.IstioComponent{
+				Istio: &installv1alpha1.IstioComponent{
 					IstioInstallArgs: []installv1alpha1.InstallArgs{
 						{
 							Name:  "name2",
@@ -73,7 +73,7 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 						},
 					},
 				},
-				CertManager: installv1alpha1.CertManagerComponent{
+				CertManager: &installv1alpha1.CertManagerComponent{
 					Certificate: installv1alpha1.Certificate{
 						CA: installv1alpha1.CA{
 							SecretName:               "customSecret",
@@ -81,7 +81,7 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 						},
 					},
 				},
-				Keycloak: installv1alpha1.KeycloakComponent{
+				Keycloak: &installv1alpha1.KeycloakComponent{
 					KeycloakInstallArgs: []installv1alpha1.InstallArgs{
 						{
 							Name:  "keycloak-name",
@@ -143,12 +143,12 @@ func TestExternalInstall(t *testing.T) {
 			Profile:         "prod",
 			EnvironmentName: "external",
 			Components: installv1alpha1.ComponentSpec{
-				DNS: installv1alpha1.DNSComponent{
-					External: installv1alpha1.External{
+				DNS: &installv1alpha1.DNSComponent{
+					External: &installv1alpha1.External{
 						Suffix: "abc.def.com",
 					},
 				},
-				Ingress: installv1alpha1.IngressNginxComponent{
+				Ingress: &installv1alpha1.IngressNginxComponent{
 					Type: installv1alpha1.LoadBalancer,
 					NGINXInstallArgs: []installv1alpha1.InstallArgs{
 						{
@@ -189,7 +189,7 @@ func TestExternalInstall(t *testing.T) {
 						},
 					},
 				},
-				Istio: installv1alpha1.IstioComponent{
+				Istio: &installv1alpha1.IstioComponent{
 					IstioInstallArgs: []installv1alpha1.InstallArgs{
 						{
 							Name:  "name4",
@@ -260,7 +260,7 @@ func TestOCIDNSInstall(t *testing.T) {
 			Profile:         "prod",
 			EnvironmentName: "oci",
 			Components: installv1alpha1.ComponentSpec{
-				CertManager: installv1alpha1.CertManagerComponent{
+				CertManager: &installv1alpha1.CertManagerComponent{
 					Certificate: installv1alpha1.Certificate{
 						Acme: installv1alpha1.Acme{
 							Provider:     installv1alpha1.LetsEncrypt,
@@ -268,15 +268,15 @@ func TestOCIDNSInstall(t *testing.T) {
 						},
 					},
 				},
-				DNS: installv1alpha1.DNSComponent{
-					OCI: installv1alpha1.OCI{
+				DNS: &installv1alpha1.DNSComponent{
+					OCI: &installv1alpha1.OCI{
 						OCIConfigSecret:        "oci-config-secret",
 						DNSZoneCompartmentOCID: "test-dns-zone-compartment-ocid",
 						DNSZoneOCID:            "test-dns-zone-ocid",
 						DNSZoneName:            "test-dns-zone-name",
 					},
 				},
-				Ingress: installv1alpha1.IngressNginxComponent{
+				Ingress: &installv1alpha1.IngressNginxComponent{
 					Type: installv1alpha1.NodePort,
 					NGINXInstallArgs: []installv1alpha1.InstallArgs{
 						{
@@ -294,7 +294,7 @@ func TestOCIDNSInstall(t *testing.T) {
 						},
 					},
 				},
-				Istio: installv1alpha1.IstioComponent{
+				Istio: &installv1alpha1.IstioComponent{
 					IstioInstallArgs: []installv1alpha1.InstallArgs{
 						{
 							Name:  "name2",
@@ -345,11 +345,11 @@ func TestNodePortInstall(t *testing.T) {
 			Profile:         "dev",
 			EnvironmentName: "kind",
 			Components: installv1alpha1.ComponentSpec{
-				CertManager: installv1alpha1.CertManagerComponent{},
-				DNS: installv1alpha1.DNSComponent{
-					XIPIO: installv1alpha1.XIPIO{},
+				CertManager: &installv1alpha1.CertManagerComponent{},
+				DNS: &installv1alpha1.DNSComponent{
+					XIPIO: &installv1alpha1.XIPIO{},
 				},
-				Ingress: installv1alpha1.IngressNginxComponent{
+				Ingress: &installv1alpha1.IngressNginxComponent{
 					Type: installv1alpha1.NodePort,
 					NGINXInstallArgs: []installv1alpha1.InstallArgs{
 						{
@@ -375,7 +375,7 @@ func TestNodePortInstall(t *testing.T) {
 						},
 					},
 				},
-				Istio: installv1alpha1.IstioComponent{},
+				Istio: &installv1alpha1.IstioComponent{},
 			},
 		},
 	}
@@ -870,7 +870,7 @@ func TestGetVerrazzanoInstallArgsSomeVMIDisabled(t *testing.T) {
 func TestGetKeycloakEmptyDirVolumeSourceNoDefaultVolumeSource(t *testing.T) {
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Components: installv1alpha1.ComponentSpec{
-			Keycloak: installv1alpha1.KeycloakComponent{
+			Keycloak: &installv1alpha1.KeycloakComponent{
 				MySQL: installv1alpha1.MySQLComponent{
 					MySQLInstallArgs: nil,
 					VolumeSource: &corev1.VolumeSource{
@@ -907,7 +907,7 @@ func TestGetKeycloakPVCVolumeSourceOverrideDefaultVolumeSource(t *testing.T) {
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 		Components: installv1alpha1.ComponentSpec{
-			Keycloak: installv1alpha1.KeycloakComponent{
+			Keycloak: &installv1alpha1.KeycloakComponent{
 				MySQL: installv1alpha1.MySQLComponent{
 					MySQLInstallArgs: nil,
 					VolumeSource: &corev1.VolumeSource{
@@ -964,7 +964,7 @@ func TestGetKeycloakPVCVolumeSourceNoAccessModes(t *testing.T) {
 	storageClass := "mystorageclass"
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Components: installv1alpha1.ComponentSpec{
-			Keycloak: installv1alpha1.KeycloakComponent{
+			Keycloak: &installv1alpha1.KeycloakComponent{
 				MySQL: installv1alpha1.MySQLComponent{
 					MySQLInstallArgs: nil,
 					VolumeSource: &corev1.VolumeSource{
@@ -1008,7 +1008,7 @@ func TestGetKeycloakPVCVolumeSourceNoAccessModes(t *testing.T) {
 func TestGetKeycloakPVCVolumeSourceNoTemplates(t *testing.T) {
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Components: installv1alpha1.ComponentSpec{
-			Keycloak: installv1alpha1.KeycloakComponent{
+			Keycloak: &installv1alpha1.KeycloakComponent{
 				MySQL: installv1alpha1.MySQLComponent{
 					MySQLInstallArgs: nil,
 					VolumeSource: &corev1.VolumeSource{
@@ -1039,7 +1039,7 @@ func TestGetKeycloakPVCVolumeSourceStorageSizeOnly(t *testing.T) {
 	resourceList["storage"] = q
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Components: installv1alpha1.ComponentSpec{
-			Keycloak: installv1alpha1.KeycloakComponent{
+			Keycloak: &installv1alpha1.KeycloakComponent{
 				MySQL: installv1alpha1.MySQLComponent{
 					MySQLInstallArgs: nil,
 					VolumeSource: &corev1.VolumeSource{
@@ -1084,7 +1084,7 @@ func TestGetKeycloakPVCVolumeSourceZeroStorageSize(t *testing.T) {
 	resourceList["storage"] = q
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Components: installv1alpha1.ComponentSpec{
-			Keycloak: installv1alpha1.KeycloakComponent{
+			Keycloak: &installv1alpha1.KeycloakComponent{
 				MySQL: installv1alpha1.MySQLComponent{
 					MySQLInstallArgs: nil,
 					VolumeSource: &corev1.VolumeSource{
@@ -1120,7 +1120,7 @@ func TestGetKeycloakPVCVolumeSourceZeroStorageSize(t *testing.T) {
 func TestGetKeycloakPVCVolumeSourceEmptyPVCConfiguration(t *testing.T) {
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Components: installv1alpha1.ComponentSpec{
-			Keycloak: installv1alpha1.KeycloakComponent{
+			Keycloak: &installv1alpha1.KeycloakComponent{
 				MySQL: installv1alpha1.MySQLComponent{
 					MySQLInstallArgs: nil,
 					VolumeSource: &corev1.VolumeSource{
@@ -1178,7 +1178,7 @@ func TestNewExternalDNSInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 	vzSpec := installv1alpha1.Verrazzano{
 		Spec: installv1alpha1.VerrazzanoSpec{
 			Components: installv1alpha1.ComponentSpec{
-				Keycloak: installv1alpha1.KeycloakComponent{
+				Keycloak: &installv1alpha1.KeycloakComponent{
 					MySQL: installv1alpha1.MySQLComponent{
 						MySQLInstallArgs: nil,
 						VolumeSource: &corev1.VolumeSource{
@@ -1229,7 +1229,7 @@ func TestNewXipIoInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 	vzSpec := installv1alpha1.Verrazzano{
 		Spec: installv1alpha1.VerrazzanoSpec{
 			Components: installv1alpha1.ComponentSpec{
-				Keycloak: installv1alpha1.KeycloakComponent{
+				Keycloak: &installv1alpha1.KeycloakComponent{
 					MySQL: installv1alpha1.MySQLComponent{
 						MySQLInstallArgs: nil,
 						VolumeSource: &corev1.VolumeSource{
@@ -1280,7 +1280,7 @@ func TestNewOCIDNSInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 	vzSpec := installv1alpha1.Verrazzano{
 		Spec: installv1alpha1.VerrazzanoSpec{
 			Components: installv1alpha1.ComponentSpec{
-				Keycloak: installv1alpha1.KeycloakComponent{
+				Keycloak: &installv1alpha1.KeycloakComponent{
 					MySQL: installv1alpha1.MySQLComponent{
 						MySQLInstallArgs: nil,
 						VolumeSource: &corev1.VolumeSource{

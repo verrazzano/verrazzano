@@ -177,14 +177,15 @@ type InstallConfiguration struct {
 // GetInstallConfig returns an install configuration in the json format required by the
 // bash installer scripts.
 func GetInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
-	if vz.Spec.Components.DNS.External != (installv1alpha1.External{}) {
-		return newExternalDNSInstallConfig(vz)
+	dns := vz.Spec.Components.DNS
+	if dns != nil {
+		if dns.External != nil {
+			return newExternalDNSInstallConfig(vz)
+		}
+		if dns.OCI != nil {
+			return newOCIDNSInstallConfig(vz)
+		}
 	}
-
-	if vz.Spec.Components.DNS.OCI != (installv1alpha1.OCI{}) {
-		return newOCIDNSInstallConfig(vz)
-	}
-
 	return newXipIoInstallConfig(vz)
 }
 
@@ -197,6 +198,16 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfigurati
 	if err != nil {
 		return nil, err
 	}
+
+	var acmeConfig *CertificateACME = &CertificateACME{}
+	if vz.Spec.Components.CertManager != nil {
+		acmeConfig = &CertificateACME{
+			Provider:     string(vz.Spec.Components.CertManager.Certificate.Acme.Provider),
+			EmailAddress: vz.Spec.Components.CertManager.Certificate.Acme.EmailAddress,
+			Environment:  vz.Spec.Components.CertManager.Certificate.Acme.Environment,
+		}
+	}
+
 	return &InstallConfiguration{
 		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
@@ -213,11 +224,7 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfigurati
 		Ingress: getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
 		Certificates: Certificate{
 			IssuerType: CertIssuerTypeAcme,
-			ACME: &CertificateACME{
-				Provider:     string(vz.Spec.Components.CertManager.Certificate.Acme.Provider),
-				EmailAddress: vz.Spec.Components.CertManager.Certificate.Acme.EmailAddress,
-				Environment:  vz.Spec.Components.CertManager.Certificate.Acme.Environment,
-			},
+			ACME:       acmeConfig,
 		},
 		Keycloak: keycloak,
 	}, nil
@@ -245,8 +252,8 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguratio
 		Certificates: Certificate{
 			IssuerType: CertIssuerTypeCA,
 			CA: &CertificateCA{
-				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager.Certificate.CA),
-				SecretName:               getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
+				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager),
+				SecretName:               getCASecretName(vz.Spec.Components.CertManager),
 			},
 		},
 		Keycloak: keycloak,
@@ -279,8 +286,8 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfig
 		Certificates: Certificate{
 			IssuerType: CertIssuerTypeCA,
 			CA: &CertificateCA{
-				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager.Certificate.CA),
-				SecretName:               getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
+				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager),
+				SecretName:               getCASecretName(vz.Spec.Components.CertManager),
 			},
 		},
 		Keycloak: keycloak,
@@ -346,7 +353,11 @@ func getInstallArgs(args []installv1alpha1.InstallArgs) []InstallArg {
 }
 
 // getKeycloak returns the json representation for the keycloak configuration
-func getKeycloak(keycloak installv1alpha1.KeycloakComponent, templates []installv1alpha1.VolumeClaimSpecTemplate, defaultVolumeSpec *corev1.VolumeSource) (Keycloak, error) {
+func getKeycloak(keycloak *installv1alpha1.KeycloakComponent, templates []installv1alpha1.VolumeClaimSpecTemplate, defaultVolumeSpec *corev1.VolumeSource) (Keycloak, error) {
+
+	if keycloak == nil {
+		return Keycloak{}, nil
+	}
 
 	// Get the explicit helm args for MySQL
 	mySQLArgs := getInstallArgs(keycloak.MySQL.MySQLInstallArgs)
@@ -415,17 +426,21 @@ func getKeycloak(keycloak installv1alpha1.KeycloakComponent, templates []install
 }
 
 // getIngress returns the json representation for the ingress
-func getIngress(ingress installv1alpha1.IngressNginxComponent, istio installv1alpha1.IstioComponent) Ingress {
-	return Ingress{
-		Type: getIngressType(ingress.Type),
-		Verrazzano: Verrazzano{
+func getIngress(ingress *installv1alpha1.IngressNginxComponent, istio *installv1alpha1.IstioComponent) Ingress {
+	ingressConfig := Ingress{Type: getIngressType("")}
+	if ingress != nil {
+		ingressConfig.Type = getIngressType(ingress.Type)
+		ingressConfig.Verrazzano = Verrazzano{
 			NginxInstallArgs: getInstallArgs(ingress.NGINXInstallArgs),
 			Ports:            getIngressPorts(ingress.Ports),
-		},
-		Application: Application{
-			IstioInstallArgs: getInstallArgs(istio.IstioInstallArgs),
-		},
+		}
 	}
+	if istio != nil {
+		ingressConfig.Application = Application{
+			IstioInstallArgs: getInstallArgs(istio.IstioInstallArgs),
+		}
+	}
+	return ingressConfig
 }
 
 // getIngressType returns the install ingress type
@@ -439,17 +454,24 @@ func getIngressType(ingressType installv1alpha1.IngressType) IngressType {
 }
 
 // getCAClusterResourceNamespace returns the cluster resource name for a CA certificate
-func getCAClusterResourceNamespace(ca installv1alpha1.CA) string {
+func getCAClusterResourceNamespace(cmConfig *installv1alpha1.CertManagerComponent) string {
+	if cmConfig == nil {
+		return defaultCAClusterResourceName
+	}
+	ca := cmConfig.Certificate.CA
 	// Use default value if not specified
 	if ca.ClusterResourceNamespace == "" {
 		return defaultCAClusterResourceName
 	}
-
 	return ca.ClusterResourceNamespace
 }
 
 // getCASecretName returns the secret name for a CA certificate
-func getCASecretName(ca installv1alpha1.CA) string {
+func getCASecretName(cmConfig *installv1alpha1.CertManagerComponent) string {
+	if cmConfig == nil {
+		return defaultCASecretName
+	}
+	ca := cmConfig.Certificate.CA
 	// Use default value if not specified
 	if ca.SecretName == "" {
 		return defaultCASecretName
