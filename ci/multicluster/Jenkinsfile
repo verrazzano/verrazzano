@@ -40,16 +40,9 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "v1.17.13", "v1.18.10" ])
          choice (name: 'KUBERNETES_CLUSTER_VERSION',
-                         description: 'Kubernetes Version for KinD Cluster',
+                         description: 'Kubernetes Version for KIND Cluster',
                          // 1st choice is the default value
                          choices: [ "1.18", "1.17" ])
-        string defaultValue: 'dev', description: 'Verrazzano install profile name', name: "INSTALL_PROFILE", trim: true
-        booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
-    }
-        choice (name: 'KUBERNETES_CLUSTER_VERSION',
-                        description: 'Kubernetes Version',
-                        // 1st choice is the default value
-                        choices: [ "1.18", "1.17" ])
         string defaultValue: 'dev', description: 'Verrazzano install profile name', name: "INSTALL_PROFILE", trim: true
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
     }
@@ -76,9 +69,7 @@ pipeline {
 
         CLUSTER_NAME_PREFIX = 'verrazzano'
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
-
         KUBECONFIG_DIR = "${WORKSPACE}/kubeconfig"
-        // VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
 
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
@@ -89,7 +80,7 @@ pipeline {
         INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
 
         // Find a better way to handle this
-        OKE_CLUSTER_VERSION = "${params.KUBERNETES_VERSION == '1.17' ? 'v1.17.13' : 'v1.18.10'}"
+        // OKE_CLUSTER_VERSION = "${params.KUBERNETES_VERSION == '1.17' ? 'v1.17.13' : 'v1.18.10'}"
         TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
         TF_VAR_tenancy_id = credentials('oci-tenancy')
         TF_VAR_tenancy_name = credentials('oci-tenancy-name')

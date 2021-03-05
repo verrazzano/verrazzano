@@ -5,6 +5,7 @@
 #
 
 CLUSTER_COUNT=${1:-1}
+CLUSTER_NAME_PREFIX=${2:-""}
 . ./init.sh
 
 # retry 3 times, 30 seconds apart
@@ -32,16 +33,16 @@ echo "updating OKE private_workers_seclist to allow pub_lb_subnet access to work
 # the script would return 0 even if it fails to update OKE private_workers_seclist
 # because the OKE still could work if it didn't hit the rate limiting
 
+
 for i in $(seq 1 $CLUSTER_COUNT)
 do
   # find vcn id "${var.label_prefix}-${var.vcn_name}"
   VCN_ID=$(oci network vcn list \
     --compartment-id "${TF_VAR_compartment_id}" \
-    --display-name "${CLUSTER_NAME_PREFIX}-$i-vcn" \
+    --display-name "${TF_VAR_label_prefix}-${CLUSTER_NAME_PREFIX}-$i-vcn" \
     | jq -r '.data[0].id')
-
   if [ -z "$VCN_ID" ]; then
-      echo "Failed to get the id for OKE cluster vcn $CLUSTER_NAME_PREFIX-$i-vcn"
+      echo "Failed to get the id for OKE cluster vcn ${TF_VAR_label_prefix}-${CLUSTER_NAME_PREFIX}-$i-vcn"
       exit 0
   fi
 

@@ -42,11 +42,6 @@ if [ -z "$TF_VAR_compartment_id" ] ; then
     exit 1
 fi
 
-#if [ -z "${KUBECONFIG}" ] ; then
-#    echo "KUBECONFIG env var must be set!"
-#    exit 1
-#fi
-
 echo "Check OCI CLI is working..."
 # If OCI CLI is not configured correctly, the following command will have a non-zero return code
 # which will cause the job to fail at this point
@@ -67,13 +62,13 @@ do
   cat /tmp/main.tf.tmp >> /tmp/main.tf
 done
 
-# TODO : For debugging only, remove this
 echo "REQUIRED_VNC_COUNT --> ${REQUIRED_VNC_COUNT}"
 echo "REQUIRED_LB_COUNT --> ${REQUIRED_LB_COUNT}"
 cat /tmp/main.tf
 
 cp /tmp/main.tf ${SCRIPT_DIR}/terraform/cluster/main.tf
 rm /tmp/main.tf
+rm -rf ${KUBECONFIG_DIR}/*
 
 # Known issues
 # The generated main.tf will contain the copyright CLUSTER_COUNT no. of times
@@ -86,18 +81,18 @@ check_for_resources LB load-balancer lb-100mbps-count $REQUIRED_LB_COUNT
 echo 'Install OKE...'
 echo 'Create cluster...'
 cd ${SCRIPT_DIR}/terraform/cluster
-./create-multi-cluster.sh $CLUSTER_COUNT
+./create-multi-cluster.sh $CLUSTER_COUNT $CLUSTER_NAME_PREFIX
 status_code=$?
 
 if [ ${status_code:-1} -eq 0 ]; then
     echo "OKE Cluster creation request submitted."
     for i in $(seq 1 $CLUSTER_COUNT)
     do
-      echo "Create kube config for cluster $CLUSTER_NAME_PREFIX-$i ..."
-      CLUSTER_OCID=$(oci ce cluster list --compartment-id "${TF_VAR_compartment_id}" --name "$CLUSTER_NAME_PREFIX-$i" | jq -r '.data[0]."id"')
+      echo "Create kube config for cluster ${TF_VAR_label_prefix}-$CLUSTER_NAME_PREFIX-$i ..."
+      CLUSTER_OCID=$(oci ce cluster list --compartment-id "${TF_VAR_compartment_id}" --name "${TF_VAR_label_prefix}-${CLUSTER_NAME_PREFIX}-$i" --lifecycle-state "ACTIVE" | jq -r '.data[0]."id"')
       echo "OCID of the cluster $CLUSTER_NAME_PREFIX-$i : ${CLUSTER_OCID}."
       mkdir -p "${KUBECONFIG_DIR}/$i"
-      oci ce cluster create-kubeconfig --cluster-id ${CLUSTER_OCID} --file ${KUBECONFIG_DIR}/$i/kube_config --region "${TF_VAR_region}" --token-version 2.0.0
+      oci ce cluster create-kubeconfig --cluster-id ${CLUSTER_OCID} --file "${KUBECONFIG_DIR}/$i/kube_config" --region "${TF_VAR_region}" --token-version 2.0.0
       export KUBECONFIG="${KUBECONFIG_DIR}/$i/kube_config"
       # Adding a Service Account Authentication Token to kubeconfig
       # https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Tasks/contengaddingserviceaccttoken.htm
