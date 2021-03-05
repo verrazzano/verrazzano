@@ -40,7 +40,7 @@ func ListSystemElasticSearchIndices() []string {
 	var indexMap map[string]interface{}
 	json.Unmarshal([]byte(body), &indexMap)
 	list := []string{}
-	for name, _ := range indexMap {
+	for name := range indexMap {
 		list = append(list, name)
 	}
 	return list

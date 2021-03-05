@@ -92,7 +92,7 @@ func (e *Elastic) getVmiHttpClient() *retryablehttp.Client {
 //Lists elasticsearch indices
 func (e *Elastic) ListIndices() []string {
 	idx := []string{}
-	for i, _ := range e.GetIndices() {
+	for i := range e.GetIndices() {
 		idx = append(idx, i)
 	}
 	return idx
