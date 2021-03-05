@@ -822,6 +822,7 @@ func TestNoUpdatesRequired(t *testing.T) {
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
+
 	testDeployment := k8sapps.Deployment{
 		TypeMeta: k8smeta.TypeMeta{
 			APIVersion: k8sapps.SchemeGroupVersion.Identifier(),
@@ -847,6 +848,42 @@ func TestNoUpdatesRequired(t *testing.T) {
 		"verrazzano.io/metricsPort":    "8080",
 		"verrazzano.io/metricsPath":    "/metrics"}
 	testDeployment.Spec.Template.ObjectMeta.Annotations = annotations
+
+	testNamespace := k8score.Namespace{
+		TypeMeta: k8smeta.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: "",
+		},
+		ObjectMeta: k8smeta.ObjectMeta{
+			Name:            "test-namespace",
+			GenerateName:    "",
+			Namespace:       "",
+			SelfLink:        "",
+			UID:             "",
+			ResourceVersion: "",
+			Generation:      0,
+			CreationTimestamp: k8smeta.Time{
+				Time: time.Time{},
+			},
+			DeletionTimestamp: &k8smeta.Time{
+				Time: time.Time{},
+			},
+			DeletionGracePeriodSeconds: nil,
+			Labels:                     nil,
+			Annotations:                nil,
+			OwnerReferences:            nil,
+			Finalizers:                 nil,
+			ClusterName:                "",
+			ManagedFields:              nil,
+		},
+		Spec: k8score.NamespaceSpec{
+			Finalizers: nil,
+		},
+		Status: k8score.NamespaceStatus{
+			Phase:      "",
+			Conditions: nil,
+		},
+	}
 
 	// Expect a call to get the trait resource.
 	mock.EXPECT().
@@ -976,7 +1013,14 @@ func TestNoUpdatesRequired(t *testing.T) {
 			configmap.Data = map[string]string{prometheusConfigKey: scrapeConfigs}
 			return nil
 		})
-
+	// Expect a call to get the namespace definition
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, namespace *k8score.Namespace) error {
+			namespace.TypeMeta = testNamespace.TypeMeta
+			namespace.ObjectMeta = testNamespace.ObjectMeta
+			return nil
+		})
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(mock)
@@ -1021,6 +1065,42 @@ func TestMetricsTraitCreatedForWLSWorkload(t *testing.T) {
 		"##SECRET_PASSWORD##":      base64.StdEncoding.EncodeToString([]byte("test-secret-password")),
 		"##POD_NAMESPACE##":        "test-namespace",
 		"##POD_NAME##":             "test-pod-name",
+	}
+
+	testNamespace := k8score.Namespace{
+		TypeMeta: k8smeta.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: "",
+		},
+		ObjectMeta: k8smeta.ObjectMeta{
+			Name:            "test-namespace",
+			GenerateName:    "",
+			Namespace:       "",
+			SelfLink:        "",
+			UID:             "",
+			ResourceVersion: "",
+			Generation:      0,
+			CreationTimestamp: k8smeta.Time{
+				Time: time.Time{},
+			},
+			DeletionTimestamp: &k8smeta.Time{
+				Time: time.Time{},
+			},
+			DeletionGracePeriodSeconds: nil,
+			Labels:                     nil,
+			Annotations:                nil,
+			OwnerReferences:            nil,
+			Finalizers:                 nil,
+			ClusterName:                "",
+			ManagedFields:              nil,
+		},
+		Spec: k8score.NamespaceSpec{
+			Finalizers: nil,
+		},
+		Status: k8score.NamespaceStatus{
+			Phase:      "",
+			Conditions: nil,
+		},
 	}
 
 	// Expect a call to get the trait resource.
@@ -1162,6 +1242,14 @@ func TestMetricsTraitCreatedForWLSWorkload(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
 			assert.Len(trait.Status.Conditions, 1)
+			return nil
+		})
+	// Expect a call to get the namespace definition
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, namespace *k8score.Namespace) error {
+			namespace.TypeMeta = testNamespace.TypeMeta
+			namespace.ObjectMeta = testNamespace.ObjectMeta
 			return nil
 		})
 
