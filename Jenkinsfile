@@ -419,22 +419,22 @@ pipeline {
                         }
                         stage('examples todo') {
                             steps {
-                                runGinkgo('examples/todo-list')
+                                runGinkgo('examples/todo')
                             }
                         }
                         stage('examples socks') {
                             steps {
-                                runGinkgo('examples/sock-shop')
+                                runGinkgo('examples/socks')
                             }
                         }
                         stage('examples spring') {
                             steps {
-                                runGinkgo('examples/springboot-app')
+                                runGinkgo('examples/springboot')
                             }
                         }
                         stage('examples helidon') {
                             steps {
-                                runGinkgo('examples/hello-helidon')
+                                runGinkgo('examples/helidon')
                             }
                         }
                         stage('examples bobs') {
@@ -442,7 +442,7 @@ pipeline {
                                 expression {params.RUN_SLOW_TESTS == true}
                             }
                             steps {
-                                runGinkgo('examples/bobs-books')
+                                runGinkgo('examples/bobsbooks')
                             }
                         }
                     }
