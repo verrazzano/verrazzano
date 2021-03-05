@@ -13,6 +13,7 @@ import (
 	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterapplicationconfiguration"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustercomponent"
@@ -252,7 +253,7 @@ func main() {
 	}
 
 	// Create a buffered channel of size 10 for the multi cluster agent to receive messages
-	agentChannel := make(chan clusters.StatusUpdateMessage, 10)
+	agentChannel := make(chan clusters.StatusUpdateMessage, constants.StatusUpdateChannelBufferSize)
 
 	if err = (&multiclustersecret.Reconciler{
 		Client: mgr.GetClient(),

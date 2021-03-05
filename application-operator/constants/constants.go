@@ -56,3 +56,12 @@ const LabelIstioInjection = "istio-injection"
 
 // LabelIstioInjectionDefault - default value for LabelIstioInjection
 const LabelIstioInjectionDefault = "enabled"
+
+// StatusUpdateChannelBufferSize - the number of status update messages that will be buffered
+// by the agent channel before controllers trying to send more status updates will start blocking
+const StatusUpdateChannelBufferSize = 10
+
+// StatusUpdateBatchSize - the number of status update messages the multi cluster agent should
+// process each time it wakes up
+const StatusUpdateBatchSize = 10
+
