@@ -186,6 +186,8 @@ docker-clean:
 
 .PHONY: docker-build
 docker-build: go-build-linux
+	# the TPL file needs to be copied into this dir so it is in the docker build context
+	cp ../THIRD_PARTY_LICENSES.txt .
 	docker build --pull \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 

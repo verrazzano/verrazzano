@@ -355,6 +355,8 @@ spec:
             requests:
               memory: {{ .Values.monitoringOperator.RequestMemory }}
           env:
+            - name: ISTIO_PROXY_IMAGE
+              value: {{ .Values.monitoringOperator.istioProxyImage }}
             - name: GRAFANA_IMAGE
               value: {{ .Values.monitoringOperator.grafanaImage }}
             - name: PROMETHEUS_IMAGE

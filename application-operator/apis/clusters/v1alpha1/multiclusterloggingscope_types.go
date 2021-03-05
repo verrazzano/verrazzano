@@ -24,15 +24,6 @@ type LoggingScopeTemplate struct {
 	Spec     v1alpha1.LoggingScopeSpec `json:"spec,omitempty"`
 }
 
-// MultiClusterLoggingScopeStatus defines the observed state of MultiClusterLoggingScope
-type MultiClusterLoggingScopeStatus struct {
-	// The latest available observations of an object's current state.
-	Conditions []Condition `json:"conditions,omitempty"`
-
-	// State of the MultiClusterLoggingScopeStatus custom resource
-	State StateType `json:"state,omitempty"`
-}
-
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=mcloggingscope;mcloggingscopes
 // +kubebuilder:subresource:status
@@ -43,8 +34,8 @@ type MultiClusterLoggingScope struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MultiClusterLoggingScopeSpec   `json:"spec,omitempty"`
-	Status MultiClusterLoggingScopeStatus `json:"status,omitempty"`
+	Spec   MultiClusterLoggingScopeSpec `json:"spec,omitempty"`
+	Status MultiClusterResourceStatus   `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
