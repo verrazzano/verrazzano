@@ -82,7 +82,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncAgentSecret(vmc *clusterapi.Ver
 	// Get client config, this has some of the info needed to build a kubeconfig
 	config, err := getConfigFunc()
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to get the client config, %v", err)
 	}
 
 	// Load the kubeconfig struct

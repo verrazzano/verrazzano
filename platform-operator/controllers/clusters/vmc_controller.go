@@ -68,39 +68,45 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 	}
 
 	// Sync the service account
+	log.Infof("Syncing the ServiceAccount: %v", err)
 	err = r.syncServiceAccount(vmc)
 	if err != nil {
 		log.Infof("Failed to sync the ServiceAccount: %v", err)
 		return ctrl.Result{}, err
 	}
 
+	log.Infof("Syncing the RoleBinding: %v", err)
 	err = r.syncManagedRoleBinding(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the ServiceAccount: %v", err)
+		log.Infof("Failed to sync the RoleBinding: %v", err)
 		return ctrl.Result{}, err
 	}
 
+	log.Infof("Syncing the Agent secret: %v", err)
 	err = r.syncAgentSecret(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the admin secret used by managed cluster: %v", err)
+		log.Infof("Failed to sync the agent secret: %v", err)
 		return ctrl.Result{}, err
 	}
 
+	log.Infof("Syncing the Registration secret: %v", err)
 	err = r.syncRegistrationSecret(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the registration secret used by managed cluster: %v", err)
+		log.Infof("Failed to sync the registration secret: %v", err)
 		return ctrl.Result{}, err
 	}
 
+	log.Infof("Syncing the Elasticsearch secret: %v", err)
 	err = r.syncElasticsearchSecret(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the Elasticsearch secret used by managed cluster: %v", err)
+		log.Infof("Failed to sync the Elasticsearch secret: %v", err)
 		return ctrl.Result{}, err
 	}
 
+	log.Infof("Syncing the Manifest secret: %v", err)
 	err = r.syncManifestSecret(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the YAML manifest secret used by managed cluster: %v", err)
+		log.Infof("Failed to sync the Manifest secret: %v", err)
 		return ctrl.Result{}, err
 	}
 
