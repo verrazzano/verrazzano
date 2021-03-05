@@ -6,17 +6,15 @@ package verrazzanoproject
 import (
 	"context"
 
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/go-logr/logr"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 )
 
 // Reconciler reconciles a VerrazzanoProject object
@@ -48,21 +46,44 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, client.IgnoreNotFound(err)
 	}
 
-	err = r.createOrUpdateNamespaces(ctx, vp, logger)
+	err = r.createOrUpdateNamespaces(ctx, vp)
 	return result, err
 }
 
-func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
+func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1alpha1.VerrazzanoProject) error {
 	if vp.Namespace == constants.VerrazzanoMultiClusterNamespace {
-		for _, namespace := range vp.Spec.Template.Namespaces {
-			logger.Info("create or update with underlying namespace", "namespace", namespace.Metadata.Name)
-			corev1Namespace := corev1.Namespace{}
-			corev1Namespace.ObjectMeta = namespace.Metadata
-			corev1Namespace.Spec = namespace.Spec
-			controllerutil.CreateOrUpdate(ctx, r.Client, &corev1Namespace, func() error {
+		for _, nsTemplate := range vp.Spec.Template.Namespaces {
+			r.Log.Info("create or update with underlying namespace", "namespace", nsTemplate.Metadata.Name)
+			var namespace corev1.Namespace
+			namespace.Name = nsTemplate.Metadata.Name
+
+			opResult, err := controllerutil.CreateOrUpdate(ctx, r.Client, &namespace, func() error {
+				r.mutateNamespace(nsTemplate, &namespace)
 				return nil
 			})
+			if err != nil {
+				r.Log.Info("create or update namespace %s failed with result %q and error %v", nsTemplate.Metadata.Name, opResult, err)
+			}
 		}
 	}
 	return nil
+}
+
+func (r *Reconciler) mutateNamespace(nsTemplate clustersv1alpha1.NamespaceTemplate, namespace *corev1.Namespace) {
+	namespace.Annotations = nsTemplate.Metadata.Annotations
+	namespace.Spec = nsTemplate.Spec
+
+	// Add verrazzano generated labels if not already present
+	if namespace.Labels == nil {
+		namespace.Labels = map[string]string{}
+	}
+
+	// Apply the standard Verrazzano labels
+	namespace.Labels[constants.LabelVerrazzanoManaged] = constants.LabelVerrazzanoManagedDefault
+	namespace.Labels[constants.LabelIstioInjection] = constants.LabelIstioInjectionDefault
+
+	// Apply user specified labels, which may override standard Verrazzano labels
+	for label, value := range nsTemplate.Metadata.Labels {
+		namespace.Labels[label] = value
+	}
 }
