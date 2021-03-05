@@ -5,11 +5,13 @@ package helidonworkload
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -18,7 +20,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/yaml"
 )
@@ -37,14 +41,17 @@ var (
 // Reconciler reconciles a VerrazzanoHelidonWorkload object
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log     logr.Logger
+	Scheme  *runtime.Scheme
+	Metrics *metricstrait.Reconciler
 }
 
 // SetupWithManager registers our controller with the manager
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&vzapi.VerrazzanoHelidonWorkload{}).
+		Owns(&appsv1.Deployment{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		Owns(&corev1.Service{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)
 }
 
@@ -80,6 +87,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Add the sidecars and configmaps required for logging to the Deployment.
 	if err = r.addLogging(ctx, log, req.NamespacedName.Namespace, workload.ObjectMeta.Labels, deploy); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if err = r.addMetrics(ctx, log, req.NamespacedName.Namespace, &workload, deploy); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -270,7 +281,7 @@ func mergeMapOverrideWithDest(src, dst map[string]string) map[string]string {
 
 // addLogging adds a FLUENTD sidecar and configmap and updates the Deployment
 func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace string, labels map[string]string, deployment *appsv1.Deployment) error {
-	loggingScope, err := vznav.LoggingScopeFromWorkloadLabels(ctx, r.Client, namespace, labels)
+	loggingScope, err := loggingscope.FetchLoggingScopeFromWorkloadLabels(ctx, r.Client, log, namespace, labels)
 	if err != nil {
 		return err
 	}
@@ -287,6 +298,47 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 		log.Info("Failed to add logging to Deployment")
 		return err
 	}
+
+	return nil
+}
+
+// addMetrics adds the labels and annotations needed for metrics to the Helidon resource annotations which are propagated to the individual Helidon pods.
+func (r *Reconciler) addMetrics(ctx context.Context, log logr.Logger, namespace string, workload *vzapi.VerrazzanoHelidonWorkload, helidon *appsv1.Deployment) error {
+	log.Info(fmt.Sprintf("Adding Metrics for workload: %s", workload.Name))
+	metricsTrait, err := vznav.MetricsTraitFromWorkloadLabels(ctx, r.Client, log, namespace, workload.ObjectMeta)
+	if err != nil {
+		return err
+	}
+
+	if metricsTrait == nil {
+		log.Info("Workload has no associated MetricTrait, nothing to do")
+		return nil
+	}
+	log.Info(fmt.Sprintf("Found associated metrics trait for workload: %s : %s", workload.Name, metricsTrait.Name))
+
+	traitDefaults, err := r.Metrics.NewTraitDefaultsForGenericWorkload()
+	if err != nil {
+		log.Error(err, "Unable to get default metric trait values")
+		return err
+	}
+
+	if helidon.Spec.Template.Labels == nil {
+		helidon.Spec.Template.Labels = make(map[string]string)
+	}
+
+	if helidon.Spec.Template.Annotations == nil {
+		helidon.Spec.Template.Annotations = make(map[string]string)
+	}
+
+	labels := metricstrait.MutateLabels(metricsTrait, nil, helidon.Spec.Template.Labels)
+	annotations := metricstrait.MutateAnnotations(metricsTrait, nil, traitDefaults, helidon.Spec.Template.Annotations)
+
+	finalLabels := mergeMapOverrideWithDest(helidon.Spec.Template.Labels, labels)
+	log.Info(fmt.Sprintf("Setting labels on %s: %v", workload.Name, finalLabels))
+	helidon.Spec.Template.Labels = finalLabels
+	finalAnnotations := mergeMapOverrideWithDest(helidon.Spec.Template.Annotations, annotations)
+	log.Info(fmt.Sprintf("Setting annotations on %s: %v", workload.Name, finalAnnotations))
+	helidon.Spec.Template.Annotations = finalAnnotations
 
 	return nil
 }

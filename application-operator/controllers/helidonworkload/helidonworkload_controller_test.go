@@ -20,6 +20,7 @@ import (
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -159,6 +160,17 @@ func TestReconcileCreateHelidon(t *testing.T) {
 			},
 		},
 	}
+	// expect a call to fetch the application configuration
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-app-config"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration) error {
+			appconf.Namespace = name.Namespace
+			appconf.Name = name.Name
+			appconf.APIVersion = oamapi.SchemeGroupVersion.String()
+			appconf.Kind = oamapi.ApplicationConfigurationKind
+			appconf.Spec.Components = []oamapi.ApplicationConfigurationComponent{{ComponentName: "unit-test-component"}}
+			return nil
+		})
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
@@ -258,7 +270,13 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 		"##INGRESS_TRAIT_NAME##":    "test-ingress-trait",
 		"##INGRESS_TRAIT_PATH##":    "/test-ingress-path",
 	}
-
+	// expect a call to fetch the application configuration
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-appconf"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appconf *oamapi.ApplicationConfiguration) error {
+			assert.NoError(updateObjectFromYAMLTemplate(appconf, "test/templates/helidon_appconf_with_ingress_and_logging.yaml", params))
+			return nil
+		}).Times(1)
 	// expect a call to fetch the VerrazzanoHelidonWorkload
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
@@ -368,10 +386,13 @@ func newScheme() *runtime.Scheme {
 // newReconciler creates a new reconciler for testing
 // c - The K8s client to inject into the reconciler
 func newReconciler(c client.Client) Reconciler {
+	scheme := newScheme()
+	metricsReconciler := &metricstrait.Reconciler{Client: c, Scheme: scheme, Scraper: "verrazzano-system/vmi-system-prometheus-0"}
 	return Reconciler{
-		Client: c,
-		Log:    ctrl.Log.WithName("test"),
-		Scheme: newScheme(),
+		Client:  c,
+		Log:     ctrl.Log.WithName("test"),
+		Scheme:  scheme,
+		Metrics: metricsReconciler,
 	}
 }
 

@@ -7,7 +7,7 @@ metadata:
   finalizers:
     - metricstrait.finalizers.verrazzano.io
   labels:
-    app.oam.dev/component: ###OAM_COMP_NAME##
+    app.oam.dev/component: ##OAM_COMP_NAME##
     app.oam.dev/name: ##OAM_APP_NAME##
     app.oam.dev/resourceType: TRAIT
     app.oam.dev/revision: todo-wls-v1

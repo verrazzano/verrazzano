@@ -70,6 +70,80 @@ spec:
                       - metadata
                       type: object
                     type: array
+                  security:
+                    description: Security specifies the project security configuration
+                    properties:
+                      projectAdminSubjects:
+                        description: ProjectAdminSubjects specifies the list of subjects
+                          that should be bound to the verrazzano-project-admins role
+                        items:
+                          description: Subject contains a reference to the object
+                            or user identities a role binding applies to.  This can
+                            either hold a direct API object reference, or a value
+                            for non-objects such as user and group names.
+                          properties:
+                            apiGroup:
+                              description: APIGroup holds the API group of the referenced
+                                subject. Defaults to "" for ServiceAccount subjects.
+                                Defaults to "rbac.authorization.k8s.io" for User and
+                                Group subjects.
+                              type: string
+                            kind:
+                              description: Kind of object being referenced. Values
+                                defined by this API group are "User", "Group", and
+                                "ServiceAccount". If the Authorizer does not recognized
+                                the kind value, the Authorizer should report an error.
+                              type: string
+                            name:
+                              description: Name of the object being referenced.
+                              type: string
+                            namespace:
+                              description: Namespace of the referenced object.  If
+                                the object kind is non-namespace, such as "User" or
+                                "Group", and this value is not empty the Authorizer
+                                should report an error.
+                              type: string
+                          required:
+                          - kind
+                          - name
+                          type: object
+                        type: array
+                      projectMonitorSubjects:
+                        description: ProjectMonitorBinding specifies the subject that
+                          should be bound to the verrazzano-project-monitors role
+                        items:
+                          description: Subject contains a reference to the object
+                            or user identities a role binding applies to.  This can
+                            either hold a direct API object reference, or a value
+                            for non-objects such as user and group names.
+                          properties:
+                            apiGroup:
+                              description: APIGroup holds the API group of the referenced
+                                subject. Defaults to "" for ServiceAccount subjects.
+                                Defaults to "rbac.authorization.k8s.io" for User and
+                                Group subjects.
+                              type: string
+                            kind:
+                              description: Kind of object being referenced. Values
+                                defined by this API group are "User", "Group", and
+                                "ServiceAccount". If the Authorizer does not recognized
+                                the kind value, the Authorizer should report an error.
+                              type: string
+                            name:
+                              description: Name of the object being referenced.
+                              type: string
+                            namespace:
+                              description: Namespace of the referenced object.  If
+                                the object kind is non-namespace, such as "User" or
+                                "Group", and this value is not empty the Authorizer
+                                should report an error.
+                              type: string
+                          required:
+                          - kind
+                          - name
+                          type: object
+                        type: array
+                    type: object
                 required:
                 - namespaces
                 type: object
@@ -77,8 +151,29 @@ spec:
             - template
             type: object
           status:
-            description: VerrazzanoProjectStatus defines the observed state of VerrazzanoProject
+            description: MultiClusterResourceStatus represents the status of a multi-cluster
+              resource, including cluster-level status information
             properties:
+              clusters:
+                items:
+                  description: ClusterLevelStatus describes the status of the multi
+                    cluster resource in a specific cluster
+                  properties:
+                    lastUpdateTime:
+                      description: LastUpdateTime of the resource state in this cluster
+                      type: string
+                    name:
+                      description: Name of the cluster
+                      type: string
+                    state:
+                      description: State of the resource in this cluster
+                      type: string
+                  required:
+                  - lastUpdateTime
+                  - name
+                  - state
+                  type: object
+                type: array
               conditions:
                 description: The latest available observations of an object's current
                   state.
@@ -106,7 +201,7 @@ spec:
                   type: object
                 type: array
               state:
-                description: State of the MultiClusterSecret custom resource
+                description: State of the multi cluster resource
                 type: string
             type: object
         required:
