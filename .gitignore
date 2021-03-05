@@ -36,5 +36,5 @@ out/
 **/*test-result.xml
 **/*-cluster-dump
 **/*.log
-paltform-operator/THIRD_PARTY_LICENSES.txt
+platform-operator/THIRD_PARTY_LICENSES.txt
 application-operator/THIRD_PARTY_LICENSES.txt
