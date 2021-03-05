@@ -177,14 +177,14 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 			fmt.Sprintf("The kubeconfig Secret %s should exist in %s", vzclusters.GetManifestSecretName(managedClusterName), vzMcNamespace))
 	})
 	ginkgo.It("Checking the VMC related secrets ", func() {
-		verifyAdminSecret()
+		verifyAgentSecret()
 		verifyRegistrationSecret()
 		verifyManifestSecret()
 	})
 })
 
-// Verify the admin secret
-func verifyAdminSecret() {
+// Verify the agent secret
+func verifyAgentSecret() {
 	// Get the admin secret
 	secret, err := K8sClient.GetSecret(vzclusters.GetAgentSecretName(managedClusterName), vzMcNamespace)
 	if err != nil {
@@ -195,6 +195,12 @@ func verifyAdminSecret() {
 	kubconfigBytes := secret.Data["admin-kubeconfig"]
 	if len(kubconfigBytes) == 0 {
 		ginkgo.Fail(fmt.Sprintf("Cluster secret %s does not contain kubeconfig", err))
+	}
+
+	// check the cluster name
+	clusterName := secret.Data["managed-cluster-name"]
+	if string(clusterName) != managedClusterName {
+		ginkgo.Fail(fmt.Sprintf("The managed cluster name %s in the kubeconfig is incorrect", clusterName))
 	}
 }
 
