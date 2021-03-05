@@ -175,31 +175,19 @@ pipeline {
             steps {
                 sh """
                     echo "fmt"
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    make go-fmt
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
+                    cd ${GO_REPO_PATH}/verrazzano
                     make go-fmt
 
                     echo "vet"
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    make go-vet
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make go-vet
 
                     echo "lint"
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    make go-lint
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make go-lint
 
                     echo "ineffassign"
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    make go-ineffassign
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make go-ineffassign
 
                     echo "copyright scan"
-                    cd ${GO_REPO_PATH}/verrazzano
                     time make copyright-check
 
                     echo "Third party license check"
