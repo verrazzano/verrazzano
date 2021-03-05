@@ -88,7 +88,7 @@ var _ = ginkgo.Describe("Custom Resource Definition for verrazzano install", fun
 	})
 })
 
-var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
+var _ = ginkgo.Describe("Testing VMC creation and auto secret generation", func() {
 	ginkgo.It("Platform operator pod is eventually running", func() {
 		isPodRunningYet := func() bool {
 			return K8sClient.IsPodRunning(platformOperator, installNamespace)
@@ -155,19 +155,12 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 		gomega.Eventually(bindingExists, "30s", "5s").Should(gomega.BeTrue(),
 			"The ClusterRoleBinding should exist")
 	})
-	ginkgo.It("registration secret exists ", func() {
+	ginkgo.It("Registration secret exists ", func() {
 		secretExists := func() bool {
 			return K8sClient.DoesSecretExist(vzclusters.GetRegistrationSecretName(managedClusterName), vzMcNamespace)
 		}
 		gomega.Eventually(secretExists, "30s", "5s").Should(gomega.BeTrue(),
 			fmt.Sprintf("The registration Secret %s should exist in %s", vzclusters.GetRegistrationSecretName(managedClusterName), vzMcNamespace))
-	})
-	ginkgo.It("agent secret exists ", func() {
-		secretExists := func() bool {
-			return K8sClient.DoesSecretExist(vzclusters.GetAgentSecretName(managedClusterName), vzMcNamespace)
-		}
-		gomega.Eventually(secretExists, "30s", "5s").Should(gomega.BeTrue(),
-			fmt.Sprintf("The registration Secret %s should exist in %s", vzclusters.GetAgentSecretName(managedClusterName), vzMcNamespace))
 	})
 	ginkgo.It("Elasticsearch secret exists ", func() {
 		secretExists := func() bool {
@@ -176,12 +169,19 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 		gomega.Eventually(secretExists, "30s", "5s").Should(gomega.BeTrue(),
 			fmt.Sprintf("The Elasticsearch Secret %s should exist in %s", vzclusters.GetElasticsearchSecretName(managedClusterName), vzMcNamespace))
 	})
-	ginkgo.It("manifest secret exists ", func() {
+	ginkgo.It("Agent secret exists ", func() {
+		secretExists := func() bool {
+			return K8sClient.DoesSecretExist(vzclusters.GetAgentSecretName(managedClusterName), vzMcNamespace)
+		}
+		gomega.Eventually(secretExists, "30s", "5s").Should(gomega.BeTrue(),
+			fmt.Sprintf("The agent Secret %s should exist in %s", vzclusters.GetAgentSecretName(managedClusterName), vzMcNamespace))
+	})
+	ginkgo.It("Manifest secret exists ", func() {
 		secretExists := func() bool {
 			return K8sClient.DoesSecretExist(vzclusters.GetManifestSecretName(managedClusterName), vzMcNamespace)
 		}
 		gomega.Eventually(secretExists, "30s", "5s").Should(gomega.BeTrue(),
-			fmt.Sprintf("The kubeconfig Secret %s should exist in %s", vzclusters.GetManifestSecretName(managedClusterName), vzMcNamespace))
+			fmt.Sprintf("The manigest Secret %s should exist in %s", vzclusters.GetManifestSecretName(managedClusterName), vzMcNamespace))
 	})
 	ginkgo.It("Checking the VMC related secrets ", func() {
 		verifyAgentSecret()
