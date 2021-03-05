@@ -159,6 +159,57 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject validation", func() {
 	})
 })
 
+var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func() {
+	ginkgo.It("Apply VerrazzanoProject with default namespace labels", func() {
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_namespace_default_labels.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""), "VerrazzanoProject should be created successfully")
+		gomega.Eventually(func() bool {
+			namespace, err := K8sClient.GetNamespace("test-namespace-1")
+			if err == nil {
+				return namespace.Labels[constants.LabelIstioInjection] == constants.LabelIstioInjectionDefault &&
+					namespace.Labels[constants.LabelVerrazzanoManaged] == constants.LabelVerrazzanoManagedDefault &&
+					namespace.Labels["label1"] == "test1" &&
+					len(namespace.Labels) == 3
+			}
+			return false
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			namespace, err := K8sClient.GetNamespace("test-namespace-2")
+			if err == nil {
+				return namespace.Labels[constants.LabelIstioInjection] == constants.LabelIstioInjectionDefault &&
+					namespace.Labels[constants.LabelVerrazzanoManaged] == constants.LabelVerrazzanoManagedDefault &&
+					namespace.Labels["label2"] == "test2" &&
+					len(namespace.Labels) == 3
+			}
+			return false
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+	})
+	ginkgo.It("Apply VerrazzanoProject to override default verrazzano labels", func() {
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_namespace_override_labels.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""), "VerrazzanoProject should be updated successfully")
+		gomega.Eventually(func() bool {
+			namespace, err := K8sClient.GetNamespace("test-namespace-1")
+			if err == nil {
+				return namespace.Labels[constants.LabelIstioInjection] == "disabled" &&
+					namespace.Labels[constants.LabelVerrazzanoManaged] == "false" &&
+					namespace.Labels["label1"] == "test1" &&
+					len(namespace.Labels) == 3
+			}
+			return false
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			namespace, err := K8sClient.GetNamespace("test-namespace-2")
+			if err == nil {
+				return namespace.Labels[constants.LabelIstioInjection] == constants.LabelIstioInjectionDefault &&
+					namespace.Labels[constants.LabelVerrazzanoManaged] == constants.LabelVerrazzanoManagedDefault &&
+					namespace.Labels["label2"] == "test2" &&
+					len(namespace.Labels) == 3
+			}
+			return false
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+	})
+})
+
 func appConfigExistsWithFields(namespace string, name string, multiClusterAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration) bool {
 	fmt.Printf("Looking for OAM app config %v/%v\n", namespace, name)
 	appConfig, err := K8sClient.GetOAMAppConfig(namespace, name)
