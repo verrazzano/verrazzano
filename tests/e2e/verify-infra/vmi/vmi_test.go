@@ -100,7 +100,7 @@ var _ = ginkgo.Describe("VMI", func() {
 		}
 		gomega.Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "pods did not all show up")
 		gomega.Eventually(elasticTlsSecret, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "tls-secret did not show up")
-		gomega.Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "certificate did not show up")
+		//gomega.Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "certificate did not show up")
 		gomega.Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "ingress did not show up")
 		assertIngressURL("vmi-system-es-ingest")
 		pkg.Concurrently(
@@ -243,9 +243,9 @@ func elasticTlsSecret() bool {
 	return elastic.CheckTlsSecret()
 }
 
-func elasticCertificate() bool {
-	return elastic.CheckCertificate()
-}
+//func elasticCertificate() bool {
+//	return elastic.CheckCertificate()
+//}
 
 func elasticIngress() bool {
 	return elastic.CheckIngress()

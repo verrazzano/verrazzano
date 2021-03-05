@@ -117,22 +117,22 @@ func (e *Elastic) CheckTlsSecret() bool {
 	return pkg.SecretsCreated("verrazzano-system", secretName)
 }
 
-//Check the Elasticsearch certificate
-func (e *Elastic) CheckCertificate() bool {
-	certList, _ := pkg.ListCertificates("verrazzano-system")
-	for _, cert := range certList.Items {
-		if cert.Name == fmt.Sprintf("%v-tls", e.binding) {
-			pkg.Log(pkg.Info, fmt.Sprintf("Found Certificate %v for binding %v", cert.Name, e.binding))
-			for _, condition := range cert.Status.Conditions {
-				if condition.Type == "Ready" {
-					pkg.Log(pkg.Info, fmt.Sprintf("Certificate %v status: Ready = %v", cert.Name, condition.Status))
-					return condition.Status == "True"
-				}
-			}
-		}
-	}
-	return false
-}
+////Check the Elasticsearch certificate
+//func (e *Elastic) CheckCertificate() bool {
+//	certList, _ := pkg.ListCertificates("verrazzano-system")
+//	for _, cert := range certList.Items {
+//		if cert.Name == fmt.Sprintf("%v-tls", e.binding) {
+//			pkg.Log(pkg.Info, fmt.Sprintf("Found Certificate %v for binding %v", cert.Name, e.binding))
+//			for _, condition := range cert.Status.Conditions {
+//				if condition.Type == "Ready" {
+//					pkg.Log(pkg.Info, fmt.Sprintf("Certificate %v status: Ready = %v", cert.Name, condition.Status))
+//					return condition.Status == "True"
+//				}
+//			}
+//		}
+//	}
+//	return false
+//}
 
 //Check the Elasticsearch Ingress
 func (e *Elastic) CheckIngress() bool {
