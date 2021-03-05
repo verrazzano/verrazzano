@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package springboot_test
+package springboot
 
 import (
 	"fmt"
@@ -22,8 +22,8 @@ var waitTimeout = 10 * time.Minute
 var pollingInterval = 30 * time.Second
 var shortPollingInterval = 10 * time.Second
 var shortWaitTimeout = 5 * time.Minute
-var longWaitTimeout      = 10 * time.Minute
-var longPollingInterval  = 20 * time.Second
+var longWaitTimeout = 10 * time.Minute
+var longPollingInterval = 20 * time.Second
 
 var _ = ginkgo.BeforeSuite(func() {
 	deploySpringBootApplication()
@@ -84,7 +84,6 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 		})
 	})
 
-
 	// Verify Spring Boot application is working
 	// GIVEN springboot app is deployed
 	// WHEN the component and appconfig with ingress trait are created
@@ -123,7 +122,7 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
 			gomega.Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"oam.component.name":  "springboot-component"})
+					"oam.component.name": "springboot-component"})
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record.")
 		})
 	})

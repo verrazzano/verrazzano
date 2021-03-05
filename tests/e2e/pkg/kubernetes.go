@@ -228,8 +228,8 @@ func GetVMOClientset() *vmoclient.Clientset {
 	return clientset
 }
 
-// ApiExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
-func ApiExtensionsClientSet() *apixv1beta1client.ApiextensionsV1beta1Client {
+// APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
+func APIExtensionsClientSet() *apixv1beta1client.ApiextensionsV1beta1Client {
 	config := GetKubeConfig()
 
 	// create the clientset
@@ -265,7 +265,7 @@ func ListServices(namespace string) *corev1.ServiceList {
 	return services
 }
 
-// GetServices returns a service in a given namespace for the cluster
+// GetService returns a service in a given namespace for the cluster
 func GetService(namespace string, name string) *corev1.Service {
 	services := ListServices(namespace)
 	if services == nil {

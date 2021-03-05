@@ -18,6 +18,17 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
+const (
+	// NumRetries - maximum number of retries
+	NumRetries = 7
+
+	// RetryWaitMin - minimum retry wait
+	RetryWaitMin = 1 * time.Second
+
+	// RetryWaitMax - maximum retry wait
+	RetryWaitMax = 30 * time.Second
+)
+
 // UsernamePassword - Username and Password credentials
 type UsernamePassword struct {
 	Username string
@@ -50,6 +61,9 @@ func assert(wg *sync.WaitGroup, assertion func()) {
 // AssertURLAccessibleAndAuthorized - Assert that a URL is accessible using the provided credentials
 func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, credentials *UsernamePassword) bool {
 	req, err := retryablehttp.NewRequest("GET", url, nil)
+	if err != nil {
+		return false
+	}
 	req.SetBasicAuth(credentials.Username, credentials.Password)
 	resp, err := client.Do(req)
 	if err != nil {
@@ -173,6 +187,7 @@ func isReadyAndRunning(pod v1.Pod) bool {
 	return false
 }
 
+// GetRetryPolicy returns the standard retry policy
 func GetRetryPolicy(url string) func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 	return func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 		if resp != nil {
@@ -200,9 +215,8 @@ func MetricsExist(metricsName, key, value string) bool {
 	metrics := JTq(QueryMetric(metricsName), "data", "result").([]interface{})
 	if metrics != nil {
 		return findMetric(metrics, key, value)
-	} else {
-		return false
 	}
+	return false
 }
 
 // JTq queries JSON text with a JSON path

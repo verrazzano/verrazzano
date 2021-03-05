@@ -45,7 +45,7 @@ func vmiIngressURLs() (map[string]string, error) {
 }
 
 func verrazzanoMonitoringInstanceCRD() (*apiextensionsv1beta1.CustomResourceDefinition, error) {
-	crd, err := pkg.ApiExtensionsClientSet().CustomResourceDefinitions().Get(context.TODO(), "verrazzanomonitoringinstances.verrazzano.io", v1.GetOptions{})
+	crd, err := pkg.APIExtensionsClientSet().CustomResourceDefinitions().Get(context.TODO(), "verrazzanomonitoringinstances.verrazzano.io", v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	}
 	elastic = vmi.GetElastic("system")
 
-	sysVmiHttpClient = pkg.GetSystemVmiHttpClient()
+	sysVmiHttpClient = pkg.GetSystemVmiHTTPClient()
 })
 
 var _ = ginkgo.Describe("VMI", func() {
@@ -118,7 +118,7 @@ var _ = ginkgo.Describe("VMI", func() {
 			return pkg.LogRecordFound("vmo-local-filebeat-"+time.Now().Format("2006.01.02"),
 				time.Now().Add(-24*time.Hour),
 				map[string]string{
-					"beat.version":      "6.8.3"})
+					"beat.version": "6.8.3"})
 		}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a filebeat log record")
 	})
 
@@ -127,7 +127,7 @@ var _ = ginkgo.Describe("VMI", func() {
 			return pkg.LogRecordFound("vmo-local-journalbeat-"+time.Now().Format("2006.01.02"),
 				time.Now().Add(-24*time.Hour),
 				map[string]string{
-					"beat.version":      "6.8.3"})
+					"beat.version": "6.8.3"})
 		}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a journalbeat log record")
 	})
 
@@ -240,7 +240,7 @@ func elasticConnected() bool {
 }
 
 func elasticTlsSecret() bool {
-	return elastic.CheckTlsSecret()
+	return elastic.CheckTLSSecret()
 }
 
 //func elasticCertificate() bool {

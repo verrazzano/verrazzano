@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package hello_helidon
+package helidon
 
 import (
 	"fmt"
@@ -159,9 +159,8 @@ func metricsExist(metricsName, key, value string) bool {
 	metrics := pkg.JTq(pkg.QueryMetric(metricsName), "data", "result").([]interface{})
 	if metrics != nil {
 		return findMetric(metrics, key, value)
-	} else {
-		return false
 	}
+	return false
 }
 
 func appMetricsExists() bool {

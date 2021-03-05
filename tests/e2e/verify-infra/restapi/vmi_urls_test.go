@@ -16,13 +16,13 @@ import (
 var _ = ginkgo.Describe("vmi urls test", func() {
 
 	var _ = ginkgo.BeforeEach(func() {
-		api = pkg.GetApiEndpoint()
+		api = pkg.GetAPIEndpoint()
 	})
 
 	ginkgo.Context("Fetching the system vmi using api and test urls", func() {
 		ginkgo.It("Fetches vmi", func() {
 			response, err := api.Get("apis/verrazzano.io/v1/namespaces/verrazzano-system/verrazzanomonitoringinstances/system")
-			pkg.ExpectHttpOk(response, err, fmt.Sprintf("Error fetching system vmi from api, error: %v, response: %v", err, response))
+			pkg.ExpectHTTPOk(response, err, fmt.Sprintf("Error fetching system vmi from api, error: %v, response: %v", err, response))
 
 			var vmi map[string]interface{}
 			err = json.Unmarshal(response.Body, &vmi)
@@ -37,7 +37,7 @@ var _ = ginkgo.Describe("vmi urls test", func() {
 			gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Error retrieving system VMI credentials: %v", err))
 
 			// Test VMI endpoints
-			sysVmiHttpClient := pkg.GetSystemVmiHttpClient()
+			sysVmiHttpClient := pkg.GetSystemVmiHTTPClient()
 
 			if isEsEnabled {
 				gomega.Expect(verifySystemVMIComponent(sysVmiHttpClient, vmiCredentials, "vmi-system-es-ingest", "https://elasticsearch.vmi.system")).To(gomega.BeTrue(), fmt.Sprintf("Unable to access ElasticSearch VMI url"))
