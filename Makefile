@@ -44,6 +44,10 @@ test-platform-operator-remove:
 test-platform-operator-install-logs:
 	kubectl logs -f -n default $(shell kubectl get pods -n default --no-headers | grep "^verrazzano-install-" | cut -d ' ' -f 1)
 
+#
+#  Compliance check targets
+#
+
 .PHONY: copyright-test
 copyright-test:
 	(cd tools/copyright; go test .)
@@ -63,3 +67,40 @@ copyright-check-local: copyright-test
 .PHONY: copyright-check-branch
 copyright-check-branch: copyright-check
 	go run tools/copyright/copyright.go --verbose --enforce-current $(shell git diff --name-only ${PARENT_BRANCH})
+
+#
+#  Code quality targets
+#
+
+.PHONY: go-fmt
+go-fmt:
+	gofmt -s -e -d $(shell find . -name "*.go" | grep -v /vendor/ | grep -v /pkg/assets/) > error.txt
+	if [ -s error.txt ]; then\
+		cat error.txt;\
+		rm error.txt;\
+		exit 1;\
+	fi
+	rm error.txt
+
+.PHONY: go-vet
+go-vet:
+	$(GO) vet $(shell go list ./... | grep -v github.com/verrazzano/verrazzano-application-operator/pkg/assets)
+
+.PHONY: go-lint
+go-lint:
+	@{ \
+	set -eu ; \
+	GOLINT_VERSION=$$(go list -m -f '{{.Version}}' golang.org/x/lint) ; \
+	${GO} get golang.org/x/lint/golint@$${GOLINT_VERSION} ; \
+	}
+	golint -set_exit_status $(shell go list ./... | grep -v github.com/verrazzano/verrazzano-application-operator/pkg/assets)
+
+
+.PHONY: go-ineffassign
+go-ineffassign:
+	@{ \
+	set -eu ; \
+	INEFFASSIGN_VERSION=$$(go list -m -f '{{.Version}}' github.com/gordonklaus/ineffassign) ; \
+	${GO} get github.com/gordonklaus/ineffassign@$${INEFFASSIGN_VERSION} ; \
+	}
+	ineffassign $(shell go list ./...)

@@ -89,38 +89,6 @@ go-build-linux:
 go-install:
 	$(GO) install ./...
 
-.PHONY: go-fmt
-go-fmt:
-	gofmt -s -e -d $(shell find . -name "*.go" | grep -v /vendor/) > error.txt
-	if [ -s error.txt ]; then\
-		cat error.txt;\
-		rm error.txt;\
-		exit 1;\
-	fi
-	rm error.txt
-
-.PHONY: go-vet
-go-vet:
-	$(GO) vet $(shell go list ./...)
-
-.PHONY: go-lint
-go-lint:
-	@{ \
-	set -eu ; \
-	GOLINT_VERSION=$$(go list -m -f '{{.Version}}' golang.org/x/lint) ; \
-	${GO} get golang.org/x/lint/golint@$${GOLINT_VERSION} ; \
-	}
-	golint -set_exit_status $(shell go list ./...)
-
-.PHONY: go-ineffassign
-go-ineffassign:
-	@{ \
-	set -eu ; \
-	INEFFASSIGN_VERSION=$$(go list -m -f '{{.Version}}' github.com/gordonklaus/ineffassign) ; \
-	${GO} get github.com/gordonklaus/ineffassign@$${INEFFASSIGN_VERSION} ; \
-	}
-	ineffassign $(shell go list ./...)
-
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: manifests
 manifests: controller-gen
