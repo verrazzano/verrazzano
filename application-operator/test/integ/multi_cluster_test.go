@@ -165,12 +165,24 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 		gomega.Expect(stderr).To(gomega.Equal(""), "VerrazzanoProject should be created successfully")
 		gomega.Eventually(func() bool {
 			namespace, err := K8sClient.GetNamespace("test-namespace-1")
-			return appConfigExistsWithFields(multiclusterTestNamespace, "mymcappconf", mcAppConfig)
+			if err == nil {
+				return namespace.Labels[constants.LabelIstioInjection] == constants.LabelIstioInjectionDefault &&
+					namespace.Labels[constants.LabelVerrazzanoManaged] == constants.LabelVerrazzanoManagedDefault
+			}
+			return false
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
-	ginkgo.It("Apply VerrazzanoProject with default namespace labels", func() {
+	ginkgo.It("Apply VerrazzanoProject to override default verrazzano labels", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_namespace_override_labels.yaml")
 		gomega.Expect(stderr).To(gomega.Equal(""), "VerrazzanoProject should be updated successfully")
+		gomega.Eventually(func() bool {
+			namespace, err := K8sClient.GetNamespace("test-namespace-1")
+			if err == nil {
+				return namespace.Labels[constants.LabelIstioInjection] == "disabled" &&
+					namespace.Labels[constants.LabelVerrazzanoManaged] == "false"
+			}
+			return false
+		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 })
 

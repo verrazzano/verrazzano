@@ -72,7 +72,6 @@ func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1
 }
 
 func (r *Reconciler) mutateNamespace(nsTemplate clustersv1alpha1.NamespaceTemplate, namespace *corev1.Namespace) {
-	namespace.Labels = nsTemplate.Metadata.Labels
 	namespace.Annotations = nsTemplate.Metadata.Annotations
 	namespace.Spec = nsTemplate.Spec
 
@@ -82,8 +81,8 @@ func (r *Reconciler) mutateNamespace(nsTemplate clustersv1alpha1.NamespaceTempla
 	}
 
 	// Apply the standard Verrazzano labels
-	namespace.Labels[constants.LabelVerrazzanoManaged] = "true"
-	namespace.Labels[constants.LabelIstioInjection] = "enabled"
+	namespace.Labels[constants.LabelVerrazzanoManaged] = constants.LabelVerrazzanoManagedDefault
+	namespace.Labels[constants.LabelIstioInjection] = constants.LabelIstioInjectionDefault
 
 	// Apply user specified labels, which may override standard Verrazzano labels
 	for label, value := range nsTemplate.Metadata.Labels {

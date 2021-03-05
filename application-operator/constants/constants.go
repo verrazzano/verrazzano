@@ -36,6 +36,8 @@ const ElasticsearchPasswordData = "password"
 
 // LabelVerrazzanoManaged - constant for a Kubernetes label that is applied by Verrazzano
 const LabelVerrazzanoManaged = "verrazzano-managed"
+const LabelVerrazzanoManagedDefault = "true"
 
 // LabelIstioInjection - constant for a Kubernetes label that is applied by Verrazzano
 const LabelIstioInjection = "istio-injection"
+const LabelIstioInjectionDefault = "enabled"
