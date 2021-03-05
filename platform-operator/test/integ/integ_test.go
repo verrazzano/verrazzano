@@ -173,7 +173,7 @@ var _ = ginkgo.Describe("Testing VMC creation and auto secret generation", func(
 		secretExists := func() bool {
 			return K8sClient.DoesSecretExist(vzclusters.GetAgentSecretName(managedClusterName), vzMcNamespace)
 		}
-		gomega.Eventually(secretExists, "30s", "5s").Should(gomega.BeTrue(),
+		gomega.Eventually(secretExists, "60s", "5s").Should(gomega.BeTrue(),
 			fmt.Sprintf("The agent Secret %s should exist in %s", vzclusters.GetAgentSecretName(managedClusterName), vzMcNamespace))
 	})
 	ginkgo.It("Manifest secret exists ", func() {
