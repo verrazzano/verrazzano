@@ -162,6 +162,13 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 		gomega.Eventually(secretExists, "30s", "5s").Should(gomega.BeTrue(),
 			fmt.Sprintf("The registration Secret %s should exist in %s", vzclusters.GetRegistrationSecretName(managedClusterName), vzMcNamespace))
 	})
+	ginkgo.It("agent secret exists ", func() {
+		secretExists := func() bool {
+			return K8sClient.DoesSecretExist(vzclusters.GetAgentSecretName(managedClusterName), vzMcNamespace)
+		}
+		gomega.Eventually(secretExists, "30s", "5s").Should(gomega.BeTrue(),
+			fmt.Sprintf("The registration Secret %s should exist in %s", vzclusters.GetAgentSecretName(managedClusterName), vzMcNamespace))
+	})
 	ginkgo.It("Elasticsearch secret exists ", func() {
 		secretExists := func() bool {
 			return K8sClient.DoesSecretExist(vzclusters.GetElasticsearchSecretName(managedClusterName), vzMcNamespace)
@@ -185,7 +192,7 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 
 // Verify the agent secret
 func verifyAgentSecret() {
-	// Get the admin secret
+	// Get the agent secret
 	secret, err := K8sClient.GetSecret(vzclusters.GetAgentSecretName(managedClusterName), vzMcNamespace)
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Unable to get registration secret %s: %v", vzclusters.GetAgentSecretName(managedClusterName), err))
