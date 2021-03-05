@@ -101,7 +101,7 @@ func CreateOrUpdateResourceFromBytes(data []byte) error {
 			return fmt.Errorf("failed to create or update resource: %w", err)
 		}
 	}
-	return nil
+	// no return since you can't get here
 }
 
 // DeleteResourceFromFile deletes Kubernetes resources using names found in a YAML test data file.

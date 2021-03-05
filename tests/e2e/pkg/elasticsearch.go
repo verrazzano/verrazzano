@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	// ISO8601Layout defines the timestamp format
 	ISO8601Layout = "2006-01-02T15:04:05.999999999-07:00"
 )
 

@@ -1,6 +1,8 @@
 # Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+include ../make/quality.mk
+
 NAME:=verrazzano-application-operator
 REPO_NAME:=verrazzano-application-operator
 
@@ -74,9 +76,6 @@ install-crds: manifests
 .PHONY: uninstall-crds
 uninstall-crds: manifests
 	kustomize build config/crd | kubectl delete -f -
-
-.PHONY: check
-check: go-fmt go-vet go-ineffassign go-lint
 
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: manifests

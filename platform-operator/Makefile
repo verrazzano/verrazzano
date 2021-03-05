@@ -1,6 +1,8 @@
 # Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+include ../make/quality.mk
+
 NAME:=verrazzano-platform-operator
 REPO_NAME:=verrazzano-platform-operator
 
@@ -65,8 +67,6 @@ install-crds:
 uninstall-crds:
 	kustomize build config/crd | kubectl delete -f -
 
-.PHONY: check
-check: go-fmt go-vet go-ineffassign go-lint
 
 #
 # Go build related tasks

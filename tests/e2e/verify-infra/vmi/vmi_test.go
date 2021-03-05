@@ -45,7 +45,7 @@ func vmiIngressURLs() (map[string]string, error) {
 }
 
 func verrazzanoMonitoringInstanceCRD() (*apiextensionsv1beta1.CustomResourceDefinition, error) {
-	crd, err := pkg.ApiExtensionsClientSet().CustomResourceDefinitions().Get(context.TODO(), "verrazzanomonitoringinstances.verrazzano.io", v1.GetOptions{})
+	crd, err := pkg.APIExtensionsClientSet().CustomResourceDefinitions().Get(context.TODO(), "verrazzanomonitoringinstances.verrazzano.io", v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	}
 	elastic = vmi.GetElastic("system")
 
-	sysVmiHttpClient = pkg.GetSystemVmiHttpClient()
+	sysVmiHttpClient = pkg.GetSystemVmiHTTPClient()
 })
 
 var _ = ginkgo.Describe("VMI", func() {
@@ -240,7 +240,7 @@ func elasticConnected() bool {
 }
 
 func elasticTlsSecret() bool {
-	return elastic.CheckTlsSecret()
+	return elastic.CheckTLSSecret()
 }
 
 //func elasticCertificate() bool {

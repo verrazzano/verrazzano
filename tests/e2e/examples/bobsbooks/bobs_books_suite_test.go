@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package hello_helidon
+package bobsbooks
 
 import (
 	"fmt"
@@ -13,8 +13,8 @@ import (
 	"github.com/onsi/gomega"
 )
 
-func TestHelidonExample(t *testing.T) {
+func TestBobsBooksExample(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("hello-helidon-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Hello Helidon Suite", []ginkgo.Reporter{junitReporter})
+	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("bobs-books-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
+	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Bobs Books Example Test Suite", []ginkgo.Reporter{junitReporter})
 }

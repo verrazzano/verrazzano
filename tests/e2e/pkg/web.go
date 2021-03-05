@@ -28,23 +28,15 @@ const (
 	// EnvName - default environment name
 	EnvName = "default"
 
-	// NumRetries - maximum number of retries
-	NumRetries = 7
-
-	// RetryWaitMin - minimum retry wait
-	RetryWaitMin = 1 * time.Second
-
-	// RetryWaitMax - maximum retry wait
-	RetryWaitMax = 30 * time.Second
-
+	// Username - the username of the verrazzano admin user
 	Username               = "verrazzano"
-	clientId               = "admin-cli"
+	clientID               = "admin-cli"
 	realm                  = "verrazzano-system"
-	verrazzanoApiUriPrefix = "20210501"
+	verrazzanoAPIURLPrefix = "20210501"
 )
 
-// The HTTP response
-type HttpResponse struct {
+// HTTPResponse represents an HTTP response
+type HTTPResponse struct {
 	StatusCode int
 	Body       []byte
 	BodyErr    error
@@ -93,13 +85,13 @@ func GetKeycloakHTTPClient() *retryablehttp.Client {
 	return newRetryableHTTPClient(keycloakRawClient)
 }
 
-// ExpectHttpStatusOk validates that this is no error and a that the status is 200
-func ExpectHttpOk(resp *HttpResponse, err error, msg string) {
-	ExpectHttpStatus(http.StatusOK, resp, err, msg)
+// ExpectHTTPOk validates that this is no error and a that the status is 200
+func ExpectHTTPOk(resp *HTTPResponse, err error, msg string) {
+	ExpectHTTPStatus(http.StatusOK, resp, err, msg)
 }
 
-// ExpectHttpStatus validates that this is no error and a that the status matchs
-func ExpectHttpStatus(status int, resp *HttpResponse, err error, msg string) {
+// ExpectHTTPStatus validates that this is no error and a that the status matchs
+func ExpectHTTPStatus(status int, resp *HTTPResponse, err error, msg string) {
 	gomega.Expect(err).To(gomega.BeNil(), msg)
 
 	if resp.StatusCode != status {
@@ -113,12 +105,12 @@ func ExpectHttpStatus(status int, resp *HttpResponse, err error, msg string) {
 // ExpectHTTPGetOk submits a GET request and expect a status 200 response
 func ExpectHTTPGetOk(httpClient *retryablehttp.Client, url string) {
 	resp, err := httpClient.Get(url)
-	httpResp := ProcHttpResponse(resp, err)
-	ExpectHttpOk(httpResp, err, "Error doing http(s) get from "+url)
+	httpResp := ProcHTTPResponse(resp, err)
+	ExpectHTTPOk(httpResp, err, "Error doing http(s) get from "+url)
 }
 
-// GetSystemVmiHttpClient returns an HTTP client configured with the system vmi CA cert
-func GetSystemVmiHttpClient() *retryablehttp.Client {
+// GetSystemVmiHTTPClient returns an HTTP client configured with the system vmi CA cert
+func GetSystemVmiHTTPClient() *retryablehttp.Client {
 	vmiRawClient := getHTTPClientWIthCABundle(getSystemVMICACert())
 	return newRetryableHTTPClient(vmiRawClient)
 }
@@ -298,6 +290,7 @@ func rootCertPool(caData []byte) *x509.CertPool {
 	return certPool
 }
 
+// WebResponse contains the response from a web request
 type WebResponse struct {
 	Status  int
 	Content string
