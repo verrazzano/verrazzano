@@ -16,6 +16,6 @@ log "Application operator image is ${VERRAZZANO_APP_OP_IMAGE}"
 
 set -e
 "$SCRIPT_DIR"/scripts/1-install-oam-runtime.sh
-"$SCRIPT_DIR"/scripts/2-install-wls-operator.sh
-"$SCRIPT_DIR"/scripts/3-install-coh-operator.sh
+# Skip as not required by integ tests "$SCRIPT_DIR"/scripts/2-install-wls-operator.sh
+# Skip as not required by integ tests "$SCRIPT_DIR"/scripts/3-install-coh-operator.sh
 "$SCRIPT_DIR"/scripts/4-install-vz-oam.sh
