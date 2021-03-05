@@ -169,8 +169,6 @@ docker-clean:
 docker-build: go-build-linux
 	@echo Building verrazzano-platform-operator image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	@echo using verrazzano-application-operator image ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}
-	# the TPL file needs to be copied into this dir so it is in the docker build context
-	cp ../THIRD_PARTY_LICENSES.txt .
 	docker build --pull -f Dockerfile \
 		--build-arg VERRAZZANO_APPLICATION_OPERATOR_IMAGE="${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}" \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
