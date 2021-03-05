@@ -326,7 +326,7 @@ func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, 
 // DeleteNamespace deletes a namespace
 func DeleteNamespace(name string) error {
 	if len(os.Getenv("TEST_KUBECONFIG")) > 0 {
-		Log(Info, fmt.Sprintf("DeleteNamespace %s, test is running with custom service account and therefore namespace won't be deletd by test", name))
+		Log(Info, fmt.Sprintf("DeleteNamespace %s, test is running with custom service account and therefore namespace won't be deleted by the test", name))
 		return nil
 	}
 
