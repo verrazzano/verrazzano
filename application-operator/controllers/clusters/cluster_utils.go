@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime"
@@ -42,6 +43,15 @@ var MCElasticsearchSecretFullName = types.NamespacedName{
 type ElasticsearchDetails struct {
 	URL        string
 	SecretName string
+}
+
+// StatusUpdateMessage represents a message sent to the Multi Cluster agent by the controllers
+// when a MultiCluster Resource's status is updated, with the updates
+type StatusUpdateMessage struct {
+	NewCondition      clustersv1alpha1.Condition
+	NewClusterStatus  clustersv1alpha1.ClusterLevelStatus
+	ResourceName      string
+	ResourceNamespace string
 }
 
 // StatusNeedsUpdate determines based on the current state and conditions of a MultiCluster
@@ -254,11 +264,7 @@ func fetchClusterSecret(ctx context.Context, rdr client.Reader, clusterSecret *c
 // UpdateStatus determines whether a status update is needed for the specified mcStatus, given the new
 // Condition to be added, and if so, computes the state and calls the callback function to perform
 // the status update
-func UpdateStatus(mcStatus *clustersv1alpha1.MultiClusterResourceStatus,
-	placement clustersv1alpha1.Placement,
-	newCondition clustersv1alpha1.Condition,
-	clusterName string,
-	updateFunc func() error) (controllerruntime.Result, error) {
+func UpdateStatus(metadata metav1.ObjectMeta, mcStatus *clustersv1alpha1.MultiClusterResourceStatus, placement clustersv1alpha1.Placement, newCondition clustersv1alpha1.Condition, clusterName string, agentChannel chan StatusUpdateMessage, updateFunc func() error) (controllerruntime.Result, error) {
 
 	clusterLevelStatus := CreateClusterLevelStatus(newCondition, clusterName)
 
@@ -266,8 +272,19 @@ func UpdateStatus(mcStatus *clustersv1alpha1.MultiClusterResourceStatus,
 		mcStatus.Conditions = append(mcStatus.Conditions, newCondition)
 		UpdateClusterLevelStatus(mcStatus, clusterLevelStatus)
 		mcStatus.State = ComputeEffectiveState(*mcStatus, placement)
-		return reconcile.Result{}, updateFunc()
-		// put the status update itself in a queue for the agent. may need to do a deep copy for the cross-thread dereferencing to work
+		err := updateFunc()
+		if err != nil {
+			// put the status update itself on the agent channel. TODO may need to do a deep copy for the cross-thread dereferencing to work
+			// note that the send will block if the channel buffer is full
+			msg := StatusUpdateMessage{
+				NewCondition: newCondition,
+				NewClusterStatus: clusterLevelStatus,
+				ResourceName: metadata.Name,
+				ResourceNamespace: metadata.Namespace,
+			}
+			agentChannel <- msg
+		}
+		return reconcile.Result{}, err
 	}
 	return reconcile.Result{}, nil
 }

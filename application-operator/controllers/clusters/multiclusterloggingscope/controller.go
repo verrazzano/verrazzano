@@ -23,6 +23,7 @@ type Reconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
+	AgentChannel chan clusters.StatusUpdateMessage
 }
 
 // Reconcile reconciles a MultiClusterLoggingScope resource. It fetches the embedded LoggingScope,
@@ -83,6 +84,6 @@ func (r *Reconciler) mutateLoggingScope(mcLogScope clustersv1alpha1.MultiCluster
 func (r *Reconciler) updateStatus(ctx context.Context, mcLogScope *clustersv1alpha1.MultiClusterLoggingScope, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {
 	clusterName := clusters.GetClusterName(ctx, r.Client)
 	newCondition := clusters.GetConditionFromResult(err, opResult, "LoggingScope")
-	return clusters.UpdateStatus(&mcLogScope.Status, mcLogScope.Spec.Placement, newCondition, clusterName,
-		func() error { return r.Status().Update(ctx, mcLogScope) })
+	return clusters.UpdateStatus(mcLogScope.ObjectMeta, &mcLogScope.Status, mcLogScope.Spec.Placement, newCondition, clusterName,
+		r.AgentChannel, func() error { return r.Status().Update(ctx, mcLogScope) })
 }

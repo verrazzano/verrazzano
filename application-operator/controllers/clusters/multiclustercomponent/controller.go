@@ -23,6 +23,7 @@ type Reconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
+	AgentChannel chan clusters.StatusUpdateMessage
 }
 
 // Reconcile reconciles a MultiClusterComponent resource. It fetches the embedded OAM Component,
@@ -85,6 +86,6 @@ func (r *Reconciler) updateStatus(ctx context.Context, mcComp *clustersv1alpha1.
 	clusterName := clusters.GetClusterName(ctx, r.Client)
 	newCondition := clusters.GetConditionFromResult(err, opResult, "OAM Component")
 
-	return clusters.UpdateStatus(&mcComp.Status, mcComp.Spec.Placement, newCondition, clusterName,
-		func() error { return r.Status().Update(ctx, mcComp) })
+	return clusters.UpdateStatus(mcComp.ObjectMeta, &mcComp.Status, mcComp.Spec.Placement, newCondition, clusterName,
+		r.AgentChannel, func() error { return r.Status().Update(ctx, mcComp) })
 }

@@ -5,9 +5,11 @@ package mcagent
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -22,7 +24,8 @@ type Syncer struct {
 	SecretResourceVersion string
 
 	// List of namespaces to watch for multi-cluster objects.
-	ProjectNamespaces []string
+	ProjectNamespaces   []string
+	StatusUpdateChannel chan clusters.StatusUpdateMessage
 }
 
 // Check if the placement is for this cluster
@@ -34,4 +37,21 @@ func (s *Syncer) isThisCluster(placement clustersv1alpha1.Placement) bool {
 		}
 	}
 	return false
+}
+
+// processStatusUpdates monitors the StatusUpdateChannel for any 
+// received messages and processes a batch of 10
+func (s *Syncer) processStatusUpdates() {
+	s.Log.Info("processStatusUpdates: starting")
+	for i:=0;i<10;i++ {
+		// Use a select with default so as to not block on the channel if there are no updates
+		select {
+		case msg := <-s.StatusUpdateChannel:
+			s.Log.Info(fmt.Sprintf("processStatusUpdates: Received status update %s with condition type %s for %s/%s from cluster %s",
+				msg.NewClusterStatus.State, msg.NewCondition.Type, msg.ResourceNamespace, msg.ResourceName, msg.NewClusterStatus.Name))
+		default:
+			s.Log.Info("No status updates available, exiting processStatusUpdates")
+			break
+		}
+	}
 }

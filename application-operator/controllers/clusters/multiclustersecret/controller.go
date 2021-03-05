@@ -24,6 +24,7 @@ type Reconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
+	AgentChannel chan clusters.StatusUpdateMessage
 }
 
 // Reconcile reconciles a MultiClusterSecret resource. It fetches the embedded Secret, mutates it
@@ -54,8 +55,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *Reconciler) updateStatus(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {
 	clusterName := clusters.GetClusterName(ctx, r.Client)
 	newCondition := clusters.GetConditionFromResult(err, opResult, "Secret")
-	return clusters.UpdateStatus(&mcSecret.Status, mcSecret.Spec.Placement, newCondition, clusterName,
-		func() error { return r.Status().Update(ctx, mcSecret) })
+	return clusters.UpdateStatus(mcSecret.ObjectMeta, &mcSecret.Status, mcSecret.Spec.Placement, newCondition, clusterName,
+		r.AgentChannel, func() error { return r.Status().Update(ctx, mcSecret) })
 }
 
 // SetupWithManager registers our controller with the manager

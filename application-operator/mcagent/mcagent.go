@@ -31,7 +31,7 @@ const managedClusterNameEnvName = "MANAGED_CLUSTER_NAME"
 const elasticsearchSecretVersionEnvName = "ES_SECRET_VERSION"
 
 // StartAgent - start the agent thread for syncing multi-cluster objects
-func StartAgent(client client.Client, log logr.Logger) {
+func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUpdateMessage, log logr.Logger) {
 	// Wait for the existence of the verrazzano-cluster-agent secret.  It contains the credentials
 	// for connecting to a managed cluster.
 	log.Info("Starting multi-cluster agent")
@@ -44,6 +44,7 @@ func StartAgent(client client.Client, log logr.Logger) {
 		ProjectNamespaces:     []string{},
 		AgentSecretFound:      false,
 		SecretResourceVersion: "",
+		StatusUpdateChannel: statusUpdateChannel,
 	}
 
 	for {
@@ -83,6 +84,7 @@ func (s *Syncer) ProcessAgentThread() error {
 	if managedClusterName != s.ManagedClusterName {
 		s.Log.Info(fmt.Sprintf("Found secret named %s in namespace %s, cluster name changed from %q to %q", secret.Name, secret.Namespace, s.ManagedClusterName, managedClusterName))
 		s.ManagedClusterName = managedClusterName
+
 	}
 
 	// Create the client for accessing the admin cluster when there is a change in the secret
@@ -129,6 +131,9 @@ func (s *Syncer) SyncMultiClusterResources() {
 		if err != nil {
 			s.Log.Error(err, "Error syncing MultiClusterApplicationConfiguration objects")
 		}
+
+		s.processStatusUpdates()
+
 	}
 }
 
