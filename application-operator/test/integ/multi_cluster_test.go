@@ -167,7 +167,9 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 			namespace, err := K8sClient.GetNamespace("test-namespace-1")
 			if err == nil {
 				return namespace.Labels[constants.LabelIstioInjection] == constants.LabelIstioInjectionDefault &&
-					namespace.Labels[constants.LabelVerrazzanoManaged] == constants.LabelVerrazzanoManagedDefault
+					namespace.Labels[constants.LabelVerrazzanoManaged] == constants.LabelVerrazzanoManagedDefault &&
+					namespace.Labels["label1"] == "test1" &&
+					len(namespace.Labels) == 3
 			}
 			return false
 		}, timeout, pollInterval).Should(gomega.BeTrue())
@@ -179,7 +181,9 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 			namespace, err := K8sClient.GetNamespace("test-namespace-1")
 			if err == nil {
 				return namespace.Labels[constants.LabelIstioInjection] == "disabled" &&
-					namespace.Labels[constants.LabelVerrazzanoManaged] == "false"
+					namespace.Labels[constants.LabelVerrazzanoManaged] == "false" &&
+					namespace.Labels["label1"] == "test1" &&
+					len(namespace.Labels) == 3
 			}
 			return false
 		}, timeout, pollInterval).Should(gomega.BeTrue())
