@@ -47,7 +47,7 @@ func deployFooApplication() {
 
 	pkg.Log(pkg.Info, "Create namespace")
 	if _, err := pkg.CreateNamespace(fooNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"}); err != nil {
-			ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
+		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
 	}
 
 	pkg.Log(pkg.Info, "Create AuthPolicy App resources")
@@ -76,7 +76,7 @@ func deployBarApplication() {
 	pkg.Log(pkg.Info, "Deploy Auth Policy Application in bar namespace")
 
 	pkg.Log(pkg.Info, "Create namespace")
-	if _, err := pkg.CreateNamespace(barNamespace, map[string]string{"verrazzano-managed": "true" , "istio-injection": "enabled"}); err != nil {
+	if _, err := pkg.CreateNamespace(barNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"}); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
 	}
 
@@ -106,7 +106,7 @@ func deployNoIstioApplication() {
 	pkg.Log(pkg.Info, "Deploy Auth Policy Application in NoIstio namespace")
 
 	pkg.Log(pkg.Info, "Create namespace")
-	if _, err := pkg.CreateNamespace(noIstioNamespace, map[string]string{"verrazzano-managed": "true" }); err != nil {
+	if _, err := pkg.CreateNamespace(noIstioNamespace, map[string]string{"verrazzano-managed": "true"}); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
 	}
 
@@ -131,7 +131,6 @@ func deployNoIstioApplication() {
 	}
 
 }
-
 
 func undeployFooApplication() {
 	pkg.Log(pkg.Info, "Undeploy Auth Policy Application in foo namespace")
@@ -164,7 +163,6 @@ func undeployFooApplication() {
 	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
 }
 
-
 func undeployBarApplication() {
 	pkg.Log(pkg.Info, "Undeploy Auth Policy Application in bar namespace")
 	pkg.Log(pkg.Info, "Delete application")
@@ -195,7 +193,6 @@ func undeployBarApplication() {
 		return ns == nil && err != nil && errors.IsNotFound(err)
 	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
 }
-
 
 func undeployNoIstioApplication() {
 	pkg.Log(pkg.Info, "Undeploy Auth Policy Application in noistio namespace")
@@ -228,7 +225,6 @@ func undeployNoIstioApplication() {
 	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
 }
 
-
 var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 	// Verify springboot-workload pod is running
 	// GIVEN springboot app is deployed
@@ -242,7 +238,6 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 		})
 	})
 
-
 	ginkgo.Context("Deployment.", func() {
 		ginkgo.It("and waiting for expected pods must be running", func() {
 			gomega.Eventually(func() bool {
@@ -250,7 +245,6 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 	})
-
 
 	ginkgo.Context("Deployment.", func() {
 		ginkgo.It("and waiting for expected pods must be running", func() {
@@ -271,12 +265,11 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 			url := fmt.Sprintf("http://%s/", ingress)
 			status, content := pkg.GetWebPageWithCABundle(url, fooHostHeaderValue)
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
-			//	gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
-			// Because I am using the old Springbbot Container for the FrontEnd
-			    gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
+				//	gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
+				// Because I am using the old Springbbot Container for the FrontEnd
+				gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
 		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 	})
-
 
 	// Verify application in namespace bar is working
 	// GIVEN authorization test app is deployed
@@ -295,7 +288,6 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 	})
 
-
 	// Verify application in namespace bar is working
 	// GIVEN authorization test app is deployed
 	// WHEN the component and appconfig with ingress trait are created
@@ -313,7 +305,6 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 	})
 
-
 	// Verify Frontend can call Backend in foo
 	// GIVEN authorization test app is deployed
 	// WHEN the component and appconfig with ingress trait are created
@@ -327,7 +318,7 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 			status, content := pkg.GetWebPageWithCABundle(url, fooHostHeaderValue)
 			pkg.Log(pkg.Info, fmt.Sprintf("Frontend Http return code: %d, Backend Http return code : %s", status, content))
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
-				   gomega.Expect(content).To(gomega.Equal("200"))
+				gomega.Expect(content).To(gomega.Equal("200"))
 		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 	})
 
@@ -344,10 +335,9 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 			status, content := pkg.GetWebPageWithCABundle(url, barHostHeaderValue)
 			pkg.Log(pkg.Info, fmt.Sprintf("Frontend Http return code: %d, Backend Http return code : %s", status, content))
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
-				   gomega.Expect(content).To(gomega.Equal("200"))
+				gomega.Expect(content).To(gomega.Equal("200"))
 		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 	})
-
 
 	// Verify Foo Frontend can't call bar Backend
 	// GIVEN authorization test app is deployed
@@ -362,10 +352,9 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 			status, content := pkg.GetWebPageWithCABundle(url, fooHostHeaderValue)
 			pkg.Log(pkg.Info, fmt.Sprintf("Frontend Http return code: %d, Backend Http return code : %s", status, content))
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
-				   gomega.Expect(content).To(gomega.Equal("403"))
+				gomega.Expect(content).To(gomega.Equal("403"))
 		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 	})
-
 
 	// Verify Bar Frontend can't call Foo Backend
 	// GIVEN authorization test app is deployed
@@ -380,7 +369,7 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 			status, content := pkg.GetWebPageWithCABundle(url, barHostHeaderValue)
 			pkg.Log(pkg.Info, fmt.Sprintf("Frontend Http return code: %d, Backend Http return code : %s", status, content))
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
-				   gomega.Expect(content).To(gomega.Equal("403"))
+				gomega.Expect(content).To(gomega.Equal("403"))
 		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 	})
 
@@ -401,7 +390,6 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 	})
 
-
 	// Verify noistio Frontend can't call bar Backend
 	// GIVEN authorization test app is deployed
 	// WHEN the component and appconfig with ingress trait are created
@@ -415,8 +403,7 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
 			url := fmt.Sprintf("http://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", ingress)
 
-			client := &http.Client{
-			}
+			client := &http.Client{}
 			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to create http request: %v", err))

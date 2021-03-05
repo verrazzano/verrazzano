@@ -1,6 +1,8 @@
 # Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+include make/quality.mk
+
 ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),docker-push create-test-deploy))
 ifndef DOCKER_REPO
     $(error DOCKER_REPO must be defined as the name of the docker repository where image will be pushed)
@@ -21,6 +23,9 @@ VERRAZZANO_APPLICATION_OPERATOR_IMAGE = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${VER
 CURRENT_YEAR = $(shell date +"%Y")
 
 PARENT_BRANCH ?= origin/master
+
+GO ?= CGO_ENABLED=0 GO111MODULE=on GOPRIVATE=github.com/verrazzano go
+GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 
 .PHONY: docker-push
 docker-push:
@@ -44,6 +49,10 @@ test-platform-operator-remove:
 test-platform-operator-install-logs:
 	kubectl logs -f -n default $(shell kubectl get pods -n default --no-headers | grep "^verrazzano-install-" | cut -d ' ' -f 1)
 
+#
+#  Compliance check targets
+#
+
 .PHONY: copyright-test
 copyright-test:
 	(cd tools/copyright; go test .)
@@ -63,3 +72,4 @@ copyright-check-local: copyright-test
 .PHONY: copyright-check-branch
 copyright-check-branch: copyright-check
 	go run tools/copyright/copyright.go --verbose --enforce-current $(shell git diff --name-only ${PARENT_BRANCH})
+

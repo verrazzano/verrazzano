@@ -47,7 +47,7 @@ func CreateCredentialsSecret(namespace string, name string, username string, pw 
 	}, labels)
 }
 
-// CreateCredentialsSecret creates opaque secret from the given map of values
+// CreateCredentialsSecretFromMap creates opaque secret from the given map of values
 func CreateCredentialsSecretFromMap(namespace string, name string, values, labels map[string]string) (*corev1.Secret, error) {
 	Log(Info, fmt.Sprintf("CreateCredentialsSecret %s in %s", name, namespace))
 	// Get the kubernetes clientset
@@ -59,7 +59,7 @@ func CreateCredentialsSecretFromMap(namespace string, name string, values, label
 			Namespace: namespace,
 			Labels:    labels,
 		},
-		Type: corev1.SecretTypeOpaque,
+		Type:       corev1.SecretTypeOpaque,
 		StringData: values,
 	}
 	scr, err := clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
@@ -117,14 +117,14 @@ func CreateDockerSecret(namespace string, name string, server string, username s
 	return scr, err
 }
 
+// DeleteSecret deletes the specified secret in the specified namespace
 func DeleteSecret(namespace string, name string) error {
 	// Get the kubernetes clientset
 	clientset := GetKubernetesClientset()
 	return clientset.CoreV1().Secrets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
 }
 
-
-//SecretsCreated checks if all the secrets identified by names are created
+// SecretsCreated checks if all the secrets identified by names are created
 func SecretsCreated(namespace string, names ...string) bool {
 	secrets := ListSecrets(namespace)
 	missing := missingSecrets(secrets.Items, names...)

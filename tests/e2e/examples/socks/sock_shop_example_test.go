@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package sock_shop
+package socks
 
 import (
 	"context"
@@ -126,7 +126,7 @@ var _ = Describe("Sock Shop Application", func() {
 	It("SockShop can delete all cart items", func() {
 		cartItems := sockShop.GetCartItems()
 		sockShop.DeleteCartItems(cartItems)
-		cartItems = sockShop.GetCartItems()
+		//cartItems = sockShop.GetCartItems()
 
 		sockShop.CheckCartEmpty()
 	})

@@ -11,12 +11,12 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var api *pkg.ApiEndpoint
+var api *pkg.APIEndpoint
 
 var _ = ginkgo.Describe("rancher url test", func() {
 
 	var _ = ginkgo.BeforeEach(func() {
-		api = pkg.GetApiEndpoint()
+		api = pkg.GetAPIEndpoint()
 	})
 
 	ginkgo.Context("Fetching the rancher url using api and test ", func() {

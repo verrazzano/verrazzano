@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	// ISO8601Layout defines the timestamp format
 	ISO8601Layout = "2006-01-02T15:04:05.999999999-07:00"
 )
 
@@ -36,11 +37,11 @@ func ListSystemElasticSearchIndices() []string {
 	if status != 200 {
 		ginkgo.Fail(fmt.Sprintf("Error retrieving Elasticsearch indices: url=%s, status=%d", url, status))
 	}
-	Log(Debug,fmt.Sprintf("indices: %s", body))
+	Log(Debug, fmt.Sprintf("indices: %s", body))
 	var indexMap map[string]interface{}
 	json.Unmarshal([]byte(body), &indexMap)
 	list := []string{}
-	for name, _ := range indexMap {
+	for name := range indexMap {
 		list = append(list, name)
 	}
 	return list
@@ -62,7 +63,7 @@ func QuerySystemElasticSearch(index string, fields map[string]string) map[string
 	if status != 200 {
 		ginkgo.Fail(fmt.Sprintf("Error retrieving Elasticsearch query results: url=%s, status=%d", url, status))
 	}
-	Log(Debug,fmt.Sprintf("records: %s", body))
+	Log(Debug, fmt.Sprintf("records: %s", body))
 	var result map[string]interface{}
 	json.Unmarshal([]byte(body), &result)
 	return result
