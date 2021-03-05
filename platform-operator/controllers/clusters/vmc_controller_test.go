@@ -75,7 +75,7 @@ func TestCreateVMC(t *testing.T) {
 
 	expectSyncServiceAccount(t, mock, name)
 	expectSyncRoleBinding(t, mock, name)
-	expectSyncAdmin(t, mock, name)
+	expectSyncAgent(t, mock, name)
 	expectSyncRegistration(t, mock, name)
 	expectSyncElasticsearch(t, mock, name)
 	expectSyncManifest(t, mock, name)
@@ -217,8 +217,8 @@ func expectSyncServiceAccount(t *testing.T, mock *mocks.MockClient, name string)
 		})
 }
 
-// Expect syncAdmin related calls
-func expectSyncAdmin(t *testing.T, mock *mocks.MockClient, name string) {
+// Expect syncAgent related calls
+func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string) {
 	saSecretName := "saSecret"
 
 	// Expect a call to get the ServiceAccount, return one with the secret name set
@@ -251,12 +251,12 @@ func expectSyncAdmin(t *testing.T, mock *mocks.MockClient, name string) {
 			return nil
 		})
 
-	// Expect a call to get the admin secret - return that it does not exist
+	// Expect a call to get the Agent secret - return that it does not exist
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetAdminSecretName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, GetAdminSecretName(name)))
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetAgentSecretName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, GetAgentSecretName(name)))
 
-	// Expect a call to create the admin secret
+	// Expect a call to create the Agent secret
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
@@ -359,9 +359,9 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, name string) {
 	kubeconfigData := "fakekubeconfig"
 	urlData := "https://testhost:443"
 
-	// Expect a call to get the admin secret
+	// Expect a call to get the Agent secret
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetAdminSecretName(name)}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetAgentSecretName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
 				kubeconfigKey: []byte(kubeconfigData),

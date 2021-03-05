@@ -22,13 +22,13 @@ import (
 
 // StartAgent - start the agent thread for syncing multi-cluster objects
 func StartAgent(client client.Client, log logr.Logger) {
-	// Wait for the existence of the verrazzano-cluster secret.  It contains the credentials
+	// Wait for the existence of the verrazzano-cluster-agent secret.  It contains the credentials
 	// for connecting to a managed cluster.
 	log.Info("Starting multi-cluster agent")
 	secret := corev1.Secret{}
 
 	for {
-		err := client.Get(context.TODO(), types.NamespacedName{Name: constants.MCAdminSecret, Namespace: constants.VerrazzanoSystemNamespace}, &secret)
+		err := client.Get(context.TODO(), types.NamespacedName{Name: constants.MCAgentSecret, Namespace: constants.VerrazzanoSystemNamespace}, &secret)
 		if err == nil {
 			err := validateClusterSecret(&secret)
 			if err != nil {

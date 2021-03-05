@@ -186,9 +186,9 @@ var _ = ginkgo.Describe("Testing VerrazzanoManagedCluster CRDs", func() {
 // Verify the admin secret
 func verifyAdminSecret() {
 	// Get the admin secret
-	secret, err := K8sClient.GetSecret(vzclusters.GetAdminSecretName(managedClusterName), vzMcNamespace)
+	secret, err := K8sClient.GetSecret(vzclusters.GetAgentSecretName(managedClusterName), vzMcNamespace)
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Unable to get registration secret %s: %v", vzclusters.GetAdminSecretName(managedClusterName), err))
+		ginkgo.Fail(fmt.Sprintf("Unable to get registration secret %s: %v", vzclusters.GetAgentSecretName(managedClusterName), err))
 	}
 
 	// Get the kubeconfig from the secret

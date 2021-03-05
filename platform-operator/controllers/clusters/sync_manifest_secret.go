@@ -31,14 +31,14 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.
 	// For each secret, generate the YAML and append to the full YAML which contais multiple resources
 	var sb = strings.Builder{}
 
-	// add admin secret YAML
-	adminYaml, err := r.getSecretAsYaml(GetAdminSecretName(vmc.Name), vmc.Namespace,
-		constants.MCAdminSecret, constants.VerrazzanoSystemNamespace)
+	// add agent secret YAML
+	agentYaml, err := r.getSecretAsYaml(GetAgentSecretName(vmc.Name), vmc.Namespace,
+		constants.MCAgentSecret, constants.VerrazzanoSystemNamespace)
 	if err != nil {
 		return err
 	}
 	sb.Write([]byte(yamlSep))
-	sb.Write(adminYaml)
+	sb.Write(agentYaml)
 
 	// add registration secret YAML
 	regYaml, err := r.getSecretAsYaml(GetRegistrationSecretName(vmc.Name), vmc.Namespace,
