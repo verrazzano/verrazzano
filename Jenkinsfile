@@ -130,8 +130,8 @@ pipeline {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > $WORKSPACE/generated-operator.yaml
-                    cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
-                    cat config/crd/bases/clusters.verrazzano.io_verrazzanomanagedclusters.yaml >> deploy/operator.yaml
+                    cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> $WORKSPACE/generated-operator.yaml
+                    cat config/crd/bases/clusters.verrazzano.io_verrazzanomanagedclusters.yaml >> $WORKSPACE/generated-operator.yaml
                    """
             }
             post {
