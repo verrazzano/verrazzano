@@ -15,8 +15,10 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // MCLocalRegistrationSecretFullName is the full NamespacedName of the cluster local registration secret
@@ -247,4 +249,25 @@ func fetchClusterSecret(ctx context.Context, rdr client.Reader, clusterSecret *c
 		return err
 	}
 	return rdr.Get(ctx, MCLocalRegistrationSecretFullName, clusterSecret)
+}
+
+// UpdateStatus determines whether a status update is needed for the specified mcStatus, given the new
+// Condition to be added, and if so, computes the state and calls the callback function to perform
+// the status update
+func UpdateStatus(mcStatus *clustersv1alpha1.MultiClusterResourceStatus,
+	placement clustersv1alpha1.Placement,
+	newCondition clustersv1alpha1.Condition,
+	clusterName string,
+	updateFunc func() error) (controllerruntime.Result, error) {
+
+	clusterLevelStatus := CreateClusterLevelStatus(newCondition, clusterName)
+
+	if StatusNeedsUpdate(*mcStatus, newCondition, clusterLevelStatus) {
+		mcStatus.Conditions = append(mcStatus.Conditions, newCondition)
+		UpdateClusterLevelStatus(mcStatus, clusterLevelStatus)
+		mcStatus.State = ComputeEffectiveState(*mcStatus, placement)
+		return reconcile.Result{}, updateFunc()
+		// put the status update itself in a queue for the agent. may need to do a deep copy for the cross-thread dereferencing to work
+	}
+	return reconcile.Result{}, nil
 }

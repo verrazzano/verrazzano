@@ -53,15 +53,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 func (r *Reconciler) updateStatus(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {
 	clusterName := clusters.GetClusterName(ctx, r.Client)
-	condition := clusters.GetConditionFromResult(err, opResult, "Secret")
-	clusterLevelStatus := clusters.CreateClusterLevelStatus(condition, clusterName)
-	if clusters.StatusNeedsUpdate(mcSecret.Status, condition, clusterLevelStatus) {
-		mcSecret.Status.Conditions = append(mcSecret.Status.Conditions, condition)
-		clusters.UpdateClusterLevelStatus(&mcSecret.Status, clusterLevelStatus)
-		mcSecret.Status.State = clusters.ComputeEffectiveState(mcSecret.Status, mcSecret.Spec.Placement)
-		return reconcile.Result{}, r.Status().Update(ctx, mcSecret)
-	}
-	return reconcile.Result{}, nil
+	newCondition := clusters.GetConditionFromResult(err, opResult, "Secret")
+	return clusters.UpdateStatus(&mcSecret.Status, mcSecret.Spec.Placement, newCondition, clusterName,
+		func() error { return r.Status().Update(ctx, mcSecret) })
 }
 
 // SetupWithManager registers our controller with the manager
