@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 
-	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	"github.com/onsi/ginkgo"
 	v1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
@@ -137,20 +136,20 @@ func findIstioIngressGatewaySvc(requireLoadBalancer bool) v1.Service {
 	return ingressgateway
 }
 
-// ListCertificates lists certificates in namespace
-func ListCertificates(namespace string) (*certapiv1alpha2.CertificateList, error) {
-	certs, err := CertManagerClient().Certificates(namespace).List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not get list of certificates: %v\n", err.Error()))
-	}
-	// dump out namespace data to file
-	logData := ""
-	for i := range certs.Items {
-		logData = logData + certs.Items[i].Name + "\n"
-	}
-	CreateLogFile(fmt.Sprintf("%v-certificates", namespace), logData)
-	return certs, err
-}
+//// ListCertificates lists certificates in namespace
+//func ListCertificates(namespace string) (*certapiv1alpha2.CertificateList, error) {
+//	certs, err := CertManagerClient().Certificates(namespace).List(metav1.ListOptions{})
+//	if err != nil {
+//		ginkgo.Fail(fmt.Sprintf("Could not get list of certificates: %v\n", err.Error()))
+//	}
+//	// dump out namespace data to file
+//	logData := ""
+//	for i := range certs.Items {
+//		logData = logData + certs.Items[i].Name + "\n"
+//	}
+//	CreateLogFile(fmt.Sprintf("%v-certificates", namespace), logData)
+//	return certs, err
+//}
 
 // ListIngress lists ingresses in namespace
 func ListIngresses(namespace string) (*extensionsv1beta1.IngressList, error) {
