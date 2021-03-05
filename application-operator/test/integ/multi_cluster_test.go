@@ -173,6 +173,16 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 			}
 			return false
 		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			namespace, err := K8sClient.GetNamespace("test-namespace-2")
+			if err == nil {
+				return namespace.Labels[constants.LabelIstioInjection] == constants.LabelIstioInjectionDefault &&
+					namespace.Labels[constants.LabelVerrazzanoManaged] == constants.LabelVerrazzanoManagedDefault &&
+					namespace.Labels["label2"] == "test2" &&
+					len(namespace.Labels) == 3
+			}
+			return false
+		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 	ginkgo.It("Apply VerrazzanoProject to override default verrazzano labels", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_namespace_override_labels.yaml")
@@ -183,6 +193,16 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 				return namespace.Labels[constants.LabelIstioInjection] == "disabled" &&
 					namespace.Labels[constants.LabelVerrazzanoManaged] == "false" &&
 					namespace.Labels["label1"] == "test1" &&
+					len(namespace.Labels) == 3
+			}
+			return false
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			namespace, err := K8sClient.GetNamespace("test-namespace-2")
+			if err == nil {
+				return namespace.Labels[constants.LabelIstioInjection] == constants.LabelIstioInjectionDefault &&
+					namespace.Labels[constants.LabelVerrazzanoManaged] == constants.LabelVerrazzanoManagedDefault &&
+					namespace.Labels["label2"] == "test2" &&
 					len(namespace.Labels) == 3
 			}
 			return false
