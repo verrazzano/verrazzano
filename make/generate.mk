@@ -17,7 +17,7 @@ platform-manifests: controller-gen
 
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: application-manifests
-applicaiton-manifests: go-mod controller-gen
+application-manifests: go-mod controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./..." output:crd:artifacts:config=config/crd/bases
 	# Add copyright headers to the kubebuilder generated CRDs
 	./hack/add-crd-header.sh
