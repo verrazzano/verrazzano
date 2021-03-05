@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -18,8 +19,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
-const roleForManagedClusterName = "verrazzano-managed-cluster"
 
 // VerrazzanoManagedClusterReconciler reconciles a VerrazzanoManagedCluster object.
 // The reconciler will create a ServiceAcount, ClusterRoleBinding, and a Secret which
@@ -158,7 +157,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncManagedRoleBinding(vmc *cluster
 		mutateBinding(&binding, bindingParams{
 			vmc:                     vmc,
 			roleBindingName:         bindingName,
-			roleName:                roleForManagedClusterName,
+			roleName:                constants.MCClusterRole,
 			serviceAccountName:      vmc.Spec.ServiceAccount,
 			serviceAccountNamespace: vmc.Namespace,
 		})

@@ -24,7 +24,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncRegistrationSecret(vmc *cluster
 	return nil
 }
 
-// Create or update the kubeconfig secret
+// Create or update the registration secret
 func (r *VerrazzanoManagedClusterReconciler) createOrUpdateRegistrationSecret(vmc *clusterapi.VerrazzanoManagedCluster, name string, namespace string) (controllerutil.OperationResult, error) {
 	var secret corev1.Secret
 	secret.Namespace = namespace

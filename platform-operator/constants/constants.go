@@ -25,3 +25,6 @@ const MCElasticsearchSecret = "verrazzano-cluster-elasticsearch"
 // MCRegistrationSecret contains information which related to the managed cluster itself, such as the
 // managed cluster name.
 const MCRegistrationSecret = "verrazzano-cluster-registration"
+
+// MCClusterRole is the role name for the role used during VMC reconcile
+const MCClusterRole = "verrazzano-managed-cluster"

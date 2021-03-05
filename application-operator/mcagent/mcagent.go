@@ -30,7 +30,7 @@ func StartAgent(client client.Client, log logr.Logger) {
 	for {
 		err := client.Get(context.TODO(), types.NamespacedName{Name: constants.MCAgentSecret, Namespace: constants.VerrazzanoSystemNamespace}, &secret)
 		if err == nil {
-			err := validateClusterSecret(&secret)
+			err := validateAgentSecret(&secret)
 			if err != nil {
 				log.Error(err, "Secret validation failed")
 			} else {
@@ -104,8 +104,8 @@ func (s *Syncer) StartSync() {
 	}
 }
 
-// Validate the cluster secret
-func validateClusterSecret(secret *corev1.Secret) error {
+// Validate the agent secret
+func validateAgentSecret(secret *corev1.Secret) error {
 	// The secret must contain a cluster name
 	_, ok := secret.Data[constants.ClusterNameData]
 	if !ok {
