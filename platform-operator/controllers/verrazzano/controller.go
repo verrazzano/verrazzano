@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -157,7 +158,11 @@ func (r *Reconciler) doesOCIDNSConfigSecretExist(vz *installv1alpha1.Verrazzano)
 // createServiceAccount creates a required service account
 func (r *Reconciler) createServiceAccount(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Define a new service account resource
-	serviceAccount := installjob.NewServiceAccount(vz.Namespace, buildServiceAccountName(vz.Name), os.Getenv("IMAGE_PULL_SECRET"), vz.Labels)
+	imagePullSecrets := strings.Split(os.Getenv("IMAGE_PULL_SECRETS"), ",")
+	for i := range imagePullSecrets {
+		imagePullSecrets[i] = strings.TrimSpace(imagePullSecrets[i])
+	}
+	serviceAccount := installjob.NewServiceAccount(vz.Namespace, buildServiceAccountName(vz.Name), imagePullSecrets, vz.Labels)
 
 	// Set verrazzano resource as the owner and controller of the service account resource.
 	// This reference will result in the service account resource being deleted when the verrazzano CR is deleted.

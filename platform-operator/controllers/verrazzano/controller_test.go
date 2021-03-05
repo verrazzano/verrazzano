@@ -127,7 +127,7 @@ func TestSuccessfulInstall(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, "", labels)
+			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		})
@@ -1016,7 +1016,7 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, "", labels)
+			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		})
@@ -1070,7 +1070,7 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, "", labels)
+			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		})
@@ -1131,7 +1131,7 @@ func TestConfigMapGetError(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, "", labels)
+			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		})
@@ -1198,7 +1198,7 @@ func TestConfigMapCreateError(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, "", labels)
+			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		})
@@ -1270,7 +1270,7 @@ func TestJobGetError(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, "", labels)
+			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		})
@@ -1354,7 +1354,7 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, "", labels)
+			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		})
@@ -1421,7 +1421,7 @@ func TestJobCreateError(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, "", labels)
+			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		})
