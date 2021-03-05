@@ -202,7 +202,7 @@ func getHTTPClientWIthCABundle(caData []byte) *http.Client {
 				// resolve to the nginx node ip if address contains 127.0.0.1, for node port installation
 				addr = ipResolve + ":443"
 				Log(Debug, fmt.Sprintf("modified address %s", addr))
-			} else if strings.Contains(addr, "xip.io") && strings.Contains(addr, ":443")  {
+			} else if strings.Contains(addr, "xip.io") && strings.Contains(addr, ":443") {
 				// resolve xip.io ourselves
 				resolving := strings.TrimSuffix(strings.TrimSuffix(addr, ":443"), ".xip.io")
 				four := resolving[strings.LastIndex(resolving, "."):]

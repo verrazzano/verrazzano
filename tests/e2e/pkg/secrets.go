@@ -59,7 +59,7 @@ func CreateCredentialsSecretFromMap(namespace string, name string, values, label
 			Namespace: namespace,
 			Labels:    labels,
 		},
-		Type: corev1.SecretTypeOpaque,
+		Type:       corev1.SecretTypeOpaque,
 		StringData: values,
 	}
 	scr, err := clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
@@ -122,7 +122,6 @@ func DeleteSecret(namespace string, name string) error {
 	clientset := GetKubernetesClientset()
 	return clientset.CoreV1().Secrets(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
 }
-
 
 //SecretsCreated checks if all the secrets identified by names are created
 func SecretsCreated(namespace string, names ...string) bool {

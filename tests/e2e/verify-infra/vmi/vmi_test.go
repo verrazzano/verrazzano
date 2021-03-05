@@ -118,7 +118,7 @@ var _ = ginkgo.Describe("VMI", func() {
 			return pkg.LogRecordFound("vmo-local-filebeat-"+time.Now().Format("2006.01.02"),
 				time.Now().Add(-24*time.Hour),
 				map[string]string{
-					"beat.version":      "6.8.3"})
+					"beat.version": "6.8.3"})
 		}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a filebeat log record")
 	})
 
@@ -127,7 +127,7 @@ var _ = ginkgo.Describe("VMI", func() {
 			return pkg.LogRecordFound("vmo-local-journalbeat-"+time.Now().Format("2006.01.02"),
 				time.Now().Add(-24*time.Hour),
 				map[string]string{
-					"beat.version":      "6.8.3"})
+					"beat.version": "6.8.3"})
 		}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a journalbeat log record")
 	})
 

@@ -11,8 +11,8 @@ import (
 	"io"
 	"io/ioutil"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
@@ -162,7 +162,7 @@ func DeleteResourceFromBytes(data []byte) error {
 		// Delete the resource.
 		err = client.Resource(unsMap.Resource).Namespace(uns.GetNamespace()).Delete(context.TODO(), uns.GetName(), metav1.DeleteOptions{})
 		if err != nil && !errors.IsNotFound(err) {
-			fmt.Printf("Failed to delete %s/%v", uns.GetNamespace(), uns.GroupVersionKind() )
+			fmt.Printf("Failed to delete %s/%v", uns.GetNamespace(), uns.GroupVersionKind())
 		}
 	}
 }

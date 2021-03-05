@@ -18,7 +18,7 @@ func QueryMetric(metricsName string) string {
 	if status != 200 {
 		ginkgo.Fail(fmt.Sprintf("Error retrieving metric %s, status %d", metricsName, status))
 	}
-	Log(Info,fmt.Sprintf("metric: %s", content))
+	Log(Info, fmt.Sprintf("metric: %s", content))
 	return content
 }
 
