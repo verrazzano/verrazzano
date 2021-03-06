@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	certclientv1alpha2 "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1alpha2"
 	"github.com/onsi/ginkgo"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vmoclient "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
@@ -230,8 +229,8 @@ func GetVMOClientset() *vmoclient.Clientset {
 	return clientset
 }
 
-// ApiExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
-func ApiExtensionsClientSet() *apixv1beta1client.ApiextensionsV1beta1Client {
+// APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
+func APIExtensionsClientSet() *apixv1beta1client.ApiextensionsV1beta1Client {
 	config := GetKubeConfig()
 
 	// create the clientset
@@ -244,16 +243,16 @@ func ApiExtensionsClientSet() *apixv1beta1client.ApiextensionsV1beta1Client {
 }
 
 // CertManagerClient returns a CertmanagerV1alpha2Client for this cluster
-func CertManagerClient() *certclientv1alpha2.CertmanagerV1alpha2Client {
-	config := GetKubeConfig()
-
-	client, err := certclientv1alpha2.NewForConfig(config)
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create cert-manager client: %v", err))
-	}
-
-	return client
-}
+//func CertManagerClient() *certclientv1alpha2.CertmanagerV1alpha2Client {
+//	config := GetKubeConfig()
+//
+//	client, err := certclientv1alpha2.NewForConfig(config)
+//	if err != nil {
+//		ginkgo.Fail(fmt.Sprintf("Failed to create cert-manager client: %v", err))
+//	}
+//
+//	return client
+//}
 
 // ListServices returns the list of services in a given namespace for the cluster
 func ListServices(namespace string) *corev1.ServiceList {
@@ -267,7 +266,7 @@ func ListServices(namespace string) *corev1.ServiceList {
 	return services
 }
 
-// GetServices returns a service in a given namespace for the cluster
+// GetService returns a service in a given namespace for the cluster
 func GetService(namespace string, name string) *corev1.Service {
 	services := ListServices(namespace)
 	if services == nil {
@@ -327,7 +326,7 @@ func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, 
 // DeleteNamespace deletes a namespace
 func DeleteNamespace(name string) error {
 	if len(os.Getenv("TEST_KUBECONFIG")) > 0 {
-		Log(Info, fmt.Sprintf("DeleteNamespace %s, test is running with custom service account and therefore namespace won't be deletd by test", name))
+		Log(Info, fmt.Sprintf("DeleteNamespace %s, test is running with custom service account and therefore namespace won't be deleted by the test", name))
 		return nil
 	}
 

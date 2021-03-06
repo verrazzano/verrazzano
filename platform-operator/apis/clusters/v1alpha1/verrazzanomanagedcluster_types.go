@@ -24,12 +24,6 @@ type VerrazzanoManagedClusterSpec struct {
 	// This field is managed by a Verrazzano Kubernetes operator.
 	ServiceAccount string `json:"serviceAccount,omitempty"`
 
-	// The name of the generated secret that contains the kubeconfig to be used
-	// by the cluster agent to connect to admin cluster.  This secret will also
-	// contain other fields needed by the agent, such as the managed cluster name.
-	// This field is managed by a Verrazzano Kubernetes operator.
-	ClusterRegistrationSecret string `json:"clusterRegistrationSecret,omitempty"`
-
 	// The name of the secret containing generated YAML manifest to be applied by the user to the managed cluster.
 	// This field is managed by a Verrazzano Kubernetes operator.
 	ManagedClusterManifestSecret string `json:"managedClusterManifestSecret,omitempty"`
