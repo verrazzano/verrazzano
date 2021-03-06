@@ -358,7 +358,7 @@ func setupMultiClusterTest() {
 		return K8sClient.IsPodRunning(applicationOperator, constants.VerrazzanoSystemNamespace)
 	}
 	gomega.Eventually(isPodRunningYet, "2m", "5s").Should(gomega.BeTrue(),
-		fmt.Sprintf("The %s pod should be in the Running state", constants.VerrazzanoSystemNamespace))
+		fmt.Sprintf("The pod %s in namespace %s should be in the Running state", applicationOperator, constants.VerrazzanoSystemNamespace))
 
 	_, stderr := util.Kubectl("create ns " + constants.VerrazzanoMultiClusterNamespace)
 	if stderr != "" {
