@@ -214,7 +214,7 @@ pipeline {
                                             mkdir -p ${KUBECONFIG_DIR}
                                             echo "Create OKE cluster"
                                             cd ${TEST_SCRIPTS_DIR}
-                                            TF_VAR_label_prefix=multicluster-${env.BUILD_NUMBER} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./create_oke_multi_cluster.sh "$count" "${KUBECONFIG_DIR}"
+                                            TF_VAR_label_prefix=multicluster-${env.BUILD_NUMBER} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./create_oke_multi_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}"
                                         """
                                     }
 
@@ -296,7 +296,7 @@ pipeline {
                     sh """
                         mkdir -p ${KUBECONFIG_DIR}
                         cd ${TEST_SCRIPTS_DIR}
-                        TF_VAR_label_prefix=multicluster-${env.BUILD_NUMBER} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$count" "${KUBECONFIG_DIR}"
+                        TF_VAR_label_prefix=multicluster-${env.BUILD_NUMBER} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}"
                     """
                 }
             }
