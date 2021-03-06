@@ -321,7 +321,7 @@ func configMapExistsMatchingMCConfigMap(namespace, name string, mcConfigMap *clu
 func createRegistrationSecret() {
 	createSecret := fmt.Sprintf(
 		"create secret generic %s --from-literal=%s=%s -n %s",
-		constants.MCRegistrationSecret,
+		constants.MCAgentSecret,
 		constants.ClusterNameData,
 		managedClusterName,
 		constants.VerrazzanoSystemNamespace)

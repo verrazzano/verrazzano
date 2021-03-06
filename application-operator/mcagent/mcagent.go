@@ -10,6 +10,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -27,6 +29,7 @@ func StartAgent(client client.Client, log logr.Logger) {
 	log.Info("Starting multi-cluster agent")
 	secret := corev1.Secret{}
 	secretResourceVersion := ""
+	mcAgentSecretFound := false
 
 	// Initialize the syncer object
 	s := &Syncer{
@@ -41,13 +44,22 @@ func StartAgent(client client.Client, log logr.Logger) {
 
 		// Get the secret
 		err := client.Get(context.TODO(), types.NamespacedName{Name: constants.MCAgentSecret, Namespace: constants.VerrazzanoSystemNamespace}, &secret)
-		if err == nil {
+		if err != nil {
+			if clusters.IgnoreNotFoundWithLog("secret", err, s.Log) == nil && mcAgentSecretFound {
+				s.Log.Info(fmt.Sprintf("the secret %s in namespace %s was deleted", constants.MCAgentSecret, constants.VerrazzanoSystemNamespace))
+				mcAgentSecretFound = false
+			}
+			continue
+		} else {
 			err := validateAgentSecret(&secret)
 			if err != nil {
 				log.Error(err, "Secret validation failed")
-				break
+				continue
 			}
 		}
+
+		// Remember the secret had been found in order to notice if it gets deleted
+		mcAgentSecretFound = true
 
 		// The cluster secret exists - log the cluster name only if it changes
 		managedClusterName := string(secret.Data[constants.ClusterNameData])
@@ -61,7 +73,7 @@ func StartAgent(client client.Client, log logr.Logger) {
 			adminClient, err := getAdminClient(&secret)
 			if err != nil {
 				log.Error(err, fmt.Sprintf("Failed to get the client for cluster %q", managedClusterName))
-				break
+				continue
 			}
 			s.AdminClient = adminClient
 			secretResourceVersion = secret.ResourceVersion
