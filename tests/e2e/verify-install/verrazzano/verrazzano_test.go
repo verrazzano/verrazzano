@@ -8,9 +8,56 @@ import (
 	ginkgoExt "github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	rbacv1 "k8s.io/api/rbac/v1"
 )
 
 var _ = ginkgo.Describe("Verrazzano", func() {
+
+	//	vzInstallReadRule := rbacv1.PolicyRule{
+	//		Verbs:     []string{"get", "list", "watch"},
+	//		APIGroups: []string{"install.verrazzano.io"},
+	//		Resources: []string{"*", "*/status"},
+	//	}
+	//	vzInstallWriteRule := rbacv1.PolicyRule{
+	//		Verbs:     []string{"create", "update", "patch", "delete", "deletecollection"},
+	//		APIGroups: []string{"install.verrazzano.io"},
+	//		Resources: []string{"*"},
+	//	}
+	vzInstallAllRule := rbacv1.PolicyRule{
+		Verbs:     []string{"get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"},
+		APIGroups: []string{"install.verrazzano.io"},
+		Resources: []string{"*"},
+	}
+	vzAppReadRule := rbacv1.PolicyRule{
+		Verbs:     []string{"get", "list", "watch"},
+		APIGroups: []string{"verrazzano.io", "oam.verrazzano.io", "core.oam.dev"},
+		Resources: []string{"*", "*/status"},
+	}
+	vzAppWriteRule := rbacv1.PolicyRule{
+		Verbs:     []string{"create", "update", "patch", "delete", "deletecollection"},
+		APIGroups: []string{"verrazzano.io", "oam.verrazzano.io", "core.oam.dev"},
+		Resources: []string{"*"},
+	}
+	vzWebLogicReadRule := rbacv1.PolicyRule{
+		Verbs:     []string{"get", "list", "watch"},
+		APIGroups: []string{"weblogic.oracle"},
+		Resources: []string{"domains", "domains/status"},
+	}
+	vzWebLogicWriteRule := rbacv1.PolicyRule{
+		Verbs:     []string{"create", "update", "patch", "delete", "deletecollection"},
+		APIGroups: []string{"weblogic.oracle"},
+		Resources: []string{"domains"},
+	}
+	vzCoherenceReadRule := rbacv1.PolicyRule{
+		Verbs:     []string{"get", "list", "watch"},
+		APIGroups: []string{"coherence.oracle.com"},
+		Resources: []string{"coherences", "coherences/status"},
+	}
+	vzCoherenceWriteRule := rbacv1.PolicyRule{
+		Verbs:     []string{"create", "update", "patch", "delete", "deletecollection"},
+		APIGroups: []string{"coherence.oracle.com"},
+		Resources: []string{"coherences"},
+	}
 
 	ginkgoExt.DescribeTable("CRD for",
 		func(name string) {
@@ -39,189 +86,88 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 	)
 
 	ginkgo.Describe("ClusterRole verrazzano-admin", func() {
-		ginkgo.It("has correct rules", func() {
-			cr := pkg.GetClusterRole("verrazzano-admin")
-			rules := cr.Rules
-			gomega.Expect(len(rules) == 2).To(gomega.BeTrue(),
-				"there should be two rules")
+		cr := pkg.GetClusterRole("verrazzano-admin")
+		rules := cr.Rules
 
-			foundReadRule := false
-			foundWriteRule := false
-
-			for _, r := range rules {
-				gomega.Expect(r.NonResourceURLs).To(gomega.BeEmpty(),
-					"there should not be any non resource url rules")
-				gomega.Expect(r.ResourceNames).To(gomega.BeEmpty(),
-					"there should not be any resource names")
-				gomega.Expect(len(r.APIGroups) == 3).To(gomega.BeTrue(),
-					"there should be three entries in the ApiGroup")
-
-				gomega.Expect(pkg.SliceContainsString(r.APIGroups, "verrazzano.io")).To(gomega.BeTrue(),
-					"APIGroups should contain verrazzano.io")
-				gomega.Expect(pkg.SliceContainsString(r.APIGroups, "oam.verrazzano.io")).To(gomega.BeTrue(),
-					"APIGroups should contain oam.verrazzano.io")
-				gomega.Expect(pkg.SliceContainsString(r.APIGroups, "install.verrazzano.io")).To(gomega.BeTrue(),
-					"APIGroups should contain install.verrazzano.io")
-
-				gomega.Expect(len(r.Resources) == 1).To(gomega.BeTrue(),
-					"there should be one resource")
-				gomega.Expect(pkg.SliceContainsString(r.Resources, "*")).To(gomega.BeTrue(),
-					"the resource should be '*'")
-
-				verbs := r.Verbs
-				if pkg.SliceContainsString(verbs, "put") &&
-					pkg.SliceContainsString(verbs, "post") &&
-					len(verbs) == 2 {
-					foundWriteRule = true
-				} else if pkg.SliceContainsString(verbs, "get") &&
-					pkg.SliceContainsString(verbs, "list") &&
-					pkg.SliceContainsString(verbs, "watch") &&
-					len(verbs) == 3 {
-					foundReadRule = true
-				}
-			}
-
-			gomega.Expect(foundReadRule).To(gomega.BeTrue(),
-				"should be a rule that allows get,list,watch verbs")
-			gomega.Expect(foundWriteRule).To(gomega.BeTrue(),
-				"should be a rule that allows put,post verbs")
+		ginkgo.It("has correct number of rules", func() {
+			gomega.Expect(len(rules)).To(gomega.Equal(7),
+				"there should be seven rules")
 		})
-	})
 
-	ginkgo.Describe("ClusterRole verrazzano-project-admin", func() {
-		ginkgo.It("has correct rules", func() {
-			cr := pkg.GetClusterRole("verrazzano-project-admin")
-			rules := cr.Rules
-			gomega.Expect(len(rules) == 2).To(gomega.BeTrue(),
-				"there should be two rules")
-
-			foundReadRule := false
-			foundWriteRule := false
-
-			for _, r := range rules {
-				gomega.Expect(r.NonResourceURLs).To(gomega.BeEmpty(),
-					"there should not be any non resource url rules")
-				gomega.Expect(r.ResourceNames).To(gomega.BeEmpty(),
-					"there should not be any resource names")
-				gomega.Expect(len(r.APIGroups) == 3).To(gomega.BeTrue(),
-					"there should be three entries in the ApiGroup")
-
-				gomega.Expect(pkg.SliceContainsString(r.APIGroups, "verrazzano.io")).To(gomega.BeTrue(),
-					"APIGroups should contain verrazzano.io")
-				gomega.Expect(pkg.SliceContainsString(r.APIGroups, "oam.verrazzano.io")).To(gomega.BeTrue(),
-					"APIGroups should contain oam.verrazzano.io")
-				gomega.Expect(pkg.SliceContainsString(r.APIGroups, "install.verrazzano.io")).To(gomega.BeTrue(),
-					"APIGroups should contain install.verrazzano.io")
-
-				gomega.Expect(len(r.Resources) == 1).To(gomega.BeTrue(),
-					"there should be one resource")
-				gomega.Expect(pkg.SliceContainsString(r.Resources, "*")).To(gomega.BeTrue(),
-					"the resource should be '*'")
-
-				verbs := r.Verbs
-				if pkg.SliceContainsString(verbs, "put") &&
-					pkg.SliceContainsString(verbs, "post") &&
-					len(verbs) == 2 {
-					foundWriteRule = true
-				} else if pkg.SliceContainsString(verbs, "get") &&
-					pkg.SliceContainsString(verbs, "list") &&
-					pkg.SliceContainsString(verbs, "watch") &&
-					len(verbs) == 3 {
-					foundReadRule = true
-				}
-			}
-
-			gomega.Expect(foundReadRule).To(gomega.BeTrue(),
-				"should be a rule that allows get,list,watch verbs")
-			gomega.Expect(foundWriteRule).To(gomega.BeTrue(),
-				"should be a rule that allows put,post verbs")
-		})
+		ginkgoExt.DescribeTable("PolicyRule",
+			func(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRule) {
+				gomega.Expect(pkg.SliceContainsPolicyRule(ruleSlice, rule)).To(gomega.BeTrue())
+			},
+			//ginkgoExt.Entry("vzInstallReadRule should exist", rules, vzInstallReadRule),
+			//ginkgoExt.Entry("vzInstallWriteRule should exist", rules, vzInstallWriteRule),
+			ginkgoExt.Entry("vzInstallAllRule should exist", rules, vzInstallAllRule),
+			ginkgoExt.Entry("vzAppReadRule should exist", rules, vzAppReadRule),
+			ginkgoExt.Entry("vzAppWriteRule should exist", rules, vzAppWriteRule),
+			ginkgoExt.Entry("vzWebLogicReadRule should exist", rules, vzWebLogicReadRule),
+			ginkgoExt.Entry("vzWebLogicWriteRule should exist", rules, vzWebLogicWriteRule),
+			ginkgoExt.Entry("vzCoherenceReadRule should exist", rules, vzCoherenceReadRule),
+			ginkgoExt.Entry("vzCoherenceWriteRule should exist", rules, vzCoherenceWriteRule),
+		)
 	})
 
 	ginkgo.Describe("ClusterRole verrazzano-monitor", func() {
+		cr := pkg.GetClusterRole("verrazzano-monitor")
+		rules := cr.Rules
+
 		ginkgo.It("has correct rules", func() {
-			cr := pkg.GetClusterRole("verrazzano-project-admin")
-			rules := cr.Rules
-			gomega.Expect(len(rules) == 1).To(gomega.BeTrue(),
-				"there should be one rule")
-
-			foundReadRule := false
-
-			for _, r := range rules {
-				gomega.Expect(r.NonResourceURLs).To(gomega.BeEmpty(),
-					"there should not be any non resource url rules")
-				gomega.Expect(r.ResourceNames).To(gomega.BeEmpty(),
-					"there should not be any resource names")
-				gomega.Expect(len(r.APIGroups) == 3).To(gomega.BeTrue(),
-					"there should be three entries in the ApiGroup")
-
-				gomega.Expect(pkg.SliceContainsString(r.APIGroups, "verrazzano.io")).To(gomega.BeTrue(),
-					"APIGroups should contain verrazzano.io")
-				gomega.Expect(pkg.SliceContainsString(r.APIGroups, "oam.verrazzano.io")).To(gomega.BeTrue(),
-					"APIGroups should contain oam.verrazzano.io")
-				gomega.Expect(pkg.SliceContainsString(r.APIGroups, "install.verrazzano.io")).To(gomega.BeTrue(),
-					"APIGroups should contain install.verrazzano.io")
-
-				gomega.Expect(len(r.Resources) == 1).To(gomega.BeTrue(),
-					"there should be one resource")
-				gomega.Expect(pkg.SliceContainsString(r.Resources, "*")).To(gomega.BeTrue(),
-					"the resource should be '*'")
-
-				verbs := r.Verbs
-				if pkg.SliceContainsString(verbs, "get") &&
-					pkg.SliceContainsString(verbs, "list") &&
-					pkg.SliceContainsString(verbs, "watch") &&
-					len(verbs) == 3 {
-					foundReadRule = true
-				}
-			}
-
-			gomega.Expect(foundReadRule).To(gomega.BeTrue(),
-				"should be a rule that allows get,list,watch verbs")
+			gomega.Expect(len(rules)).To(gomega.Equal(3),
+				"there should be three rules")
 		})
+
+		ginkgoExt.DescribeTable("PolicyRule",
+			func(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRule) {
+				gomega.Expect(pkg.SliceContainsPolicyRule(ruleSlice, rule)).To(gomega.BeTrue())
+			},
+			ginkgoExt.Entry("vzAppReadRule should exist", rules, vzAppReadRule),
+			ginkgoExt.Entry("vzWebLogicReadRule should exist", rules, vzWebLogicReadRule),
+			ginkgoExt.Entry("vzCoherenceReadRule should exist", rules, vzCoherenceReadRule),
+		)
+	})
+
+	ginkgo.Describe("ClusterRole verrazzano-project-admin", func() {
+		cr := pkg.GetClusterRole("verrazzano-project-admin")
+		rules := cr.Rules
+
+		ginkgo.It("has correct number of rules", func() {
+			gomega.Expect(len(rules)).To(gomega.Equal(6),
+				"there should be six rules")
+		})
+
+		ginkgoExt.DescribeTable("PolicyRule",
+			func(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRule) {
+				gomega.Expect(pkg.SliceContainsPolicyRule(ruleSlice, rule)).To(gomega.BeTrue())
+			},
+			ginkgoExt.Entry("vzAppReadRule should exist", rules, vzAppReadRule),
+			ginkgoExt.Entry("vzAppWriteRule should exist", rules, vzAppWriteRule),
+			ginkgoExt.Entry("vzWebLogicReadRule should exist", rules, vzWebLogicReadRule),
+			ginkgoExt.Entry("vzWebLogicWriteRule should exist", rules, vzWebLogicWriteRule),
+			ginkgoExt.Entry("vzCoherenceReadRule should exist", rules, vzCoherenceReadRule),
+			ginkgoExt.Entry("vzCoherenceWriteRule should exist", rules, vzCoherenceWriteRule),
+		)
 	})
 
 	ginkgo.Describe("ClusterRole verrazzano-project-monitor", func() {
+		cr := pkg.GetClusterRole("verrazzano-project-monitor")
+		rules := cr.Rules
+
 		ginkgo.It("has correct rules", func() {
-			cr := pkg.GetClusterRole("verrazzano-project-monitor")
-			rules := cr.Rules
-			gomega.Expect(len(rules) == 1).To(gomega.BeTrue(),
-				"there should be one rule")
-
-			foundReadRule := false
-
-			for _, r := range rules {
-				gomega.Expect(r.NonResourceURLs).To(gomega.BeEmpty(),
-					"there should not be any non resource url rules")
-				gomega.Expect(r.ResourceNames).To(gomega.BeEmpty(),
-					"there should not be any resource names")
-				gomega.Expect(len(r.APIGroups) == 3).To(gomega.BeTrue(),
-					"there should be three entries in the ApiGroup")
-
-				gomega.Expect(pkg.SliceContainsString(r.APIGroups, "verrazzano.io")).To(gomega.BeTrue(),
-					"APIGroups should contain verrazzano.io")
-				gomega.Expect(pkg.SliceContainsString(r.APIGroups, "oam.verrazzano.io")).To(gomega.BeTrue(),
-					"APIGroups should contain oam.verrazzano.io")
-				gomega.Expect(pkg.SliceContainsString(r.APIGroups, "install.verrazzano.io")).To(gomega.BeTrue(),
-					"APIGroups should contain install.verrazzano.io")
-
-				gomega.Expect(len(r.Resources) == 1).To(gomega.BeTrue(),
-					"there should be one resource")
-				gomega.Expect(pkg.SliceContainsString(r.Resources, "*")).To(gomega.BeTrue(),
-					"the resource should be '*'")
-
-				verbs := r.Verbs
-				if pkg.SliceContainsString(verbs, "get") &&
-					pkg.SliceContainsString(verbs, "list") &&
-					pkg.SliceContainsString(verbs, "watch") &&
-					len(verbs) == 3 {
-					foundReadRule = true
-				}
-			}
-
-			gomega.Expect(foundReadRule).To(gomega.BeTrue(),
-				"should be a rule that allows get,list,watch verbs")
+			gomega.Expect(len(rules)).To(gomega.Equal(3),
+				"there should be three rules")
 		})
+
+		ginkgoExt.DescribeTable("PolicyRule",
+			func(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRule) {
+				gomega.Expect(pkg.SliceContainsPolicyRule(ruleSlice, rule)).To(gomega.BeTrue())
+			},
+			ginkgoExt.Entry("vzAppReadRule should exist", rules, vzAppReadRule),
+			ginkgoExt.Entry("vzWebLogicReadRule should exist", rules, vzWebLogicReadRule),
+			ginkgoExt.Entry("vzCoherenceReadRule should exist", rules, vzCoherenceReadRule),
+		)
 	})
 
 	ginkgo.Describe("ClusterRoleBinding verrazzano-admin", func() {
@@ -264,7 +210,7 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 			gomega.Expect(s.Kind == "Group").To(gomega.BeTrue(),
 				"the subject's kind should be Group")
 			gomega.Expect(s.Name == "verrazzano-monitors").To(gomega.BeTrue(),
-				"the subject's name should be verrazzano-mointors")
+				"the subject's name should be verrazzano-monitors")
 		})
 	})
 

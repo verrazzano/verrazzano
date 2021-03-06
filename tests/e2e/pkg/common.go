@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
 	v1 "k8s.io/api/core/v1"
+	v1rbac "k8s.io/api/rbac/v1"
 )
 
 // UsernamePassword - Username and Password credentials
@@ -238,4 +240,46 @@ func GetRequiredEnvVarOrFail(name string) string {
 		ginkgo.Fail(fmt.Sprintf("Environment variable '%s' required.", name))
 	}
 	return value
+}
+
+// SlicesContainSameStrings compares two slices and returns true if they contain the same strings in any order
+func SlicesContainSameStrings(strings1, strings2 []string) bool {
+	if len(strings1) != len(strings2) {
+		return false
+	}
+	if len(strings1) == 0 {
+		return true
+	}
+	// count how many times each string occurs in case there are duplicates
+	m1 := map[string]int32{}
+	for _, s := range strings1 {
+		m1[s]++
+	}
+	m2 := map[string]int32{}
+	for _, s := range strings2 {
+		m2[s]++
+	}
+	return reflect.DeepEqual(m1, m2)
+}
+
+// PolicyRulesEqual compares two RBAC PolicyRules for semantic equality
+func PolicyRulesEqual(rule1, rule2 v1rbac.PolicyRule) bool {
+	if SlicesContainSameStrings(rule1.Verbs, rule2.Verbs) &&
+		SlicesContainSameStrings(rule1.APIGroups, rule2.APIGroups) &&
+		SlicesContainSameStrings(rule1.Resources, rule2.Resources) &&
+		SlicesContainSameStrings(rule1.ResourceNames, rule2.ResourceNames) &&
+		SlicesContainSameStrings(rule1.NonResourceURLs, rule2.NonResourceURLs) {
+		return true
+	}
+	return false
+}
+
+// SliceContainsPolicyRule determines if a given rule is in a slice of rules
+func SliceContainsPolicyRule(ruleSlice []v1rbac.PolicyRule, rule v1rbac.PolicyRule) bool {
+	for _, r := range ruleSlice {
+		if PolicyRulesEqual(rule, r) {
+			return true
+		}
+	}
+	return false
 }
