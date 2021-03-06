@@ -20,3 +20,11 @@ spec:
             label2: "test2"
           annotations:
             annot2: "test2"
+    security:
+      projectAdminSubjects:
+        - kind: User
+          name: test-user
+      projectMonitorSubjects:
+        - kind: Group
+          name: test-viewers
+

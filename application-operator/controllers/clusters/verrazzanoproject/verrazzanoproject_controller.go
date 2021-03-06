@@ -10,11 +10,20 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+)
+
+const (
+	projectAdminRole      = "verrazzano-project-admin"
+	projectAdminK8sRole   = "admin"
+	projectMonitorRole    = "verrazzano-project-monitor"
+	projectMonitorK8sRole = "view"
 )
 
 // Reconciler reconciles a VerrazzanoProject object
@@ -46,14 +55,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, client.IgnoreNotFound(err)
 	}
 
-	err = r.createOrUpdateNamespaces(ctx, vp)
+	err = r.createOrUpdateNamespaces(ctx, &vp, logger)
 	return result, err
 }
 
-func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1alpha1.VerrazzanoProject) error {
+func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp *clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
 	if vp.Namespace == constants.VerrazzanoMultiClusterNamespace {
 		for _, nsTemplate := range vp.Spec.Template.Namespaces {
-			r.Log.Info("create or update with underlying namespace", "namespace", nsTemplate.Metadata.Name)
+			logger.Info("create or update with underlying namespace", "namespace", nsTemplate.Metadata.Name)
 			var namespace corev1.Namespace
 			namespace.Name = nsTemplate.Metadata.Name
 
@@ -62,7 +71,11 @@ func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1
 				return nil
 			})
 			if err != nil {
-				r.Log.Info("create or update namespace %s failed with result %q and error %v", nsTemplate.Metadata.Name, opResult, err)
+				logger.Error(err, "create or update namespace failed", "namespace", nsTemplate.Metadata.Name, "opResult", opResult)
+			}
+
+			if err = r.createOrUpdateRoleBindings(ctx, nsTemplate.Metadata.Name, vp, logger); err != nil {
+				return err
 			}
 		}
 	}
@@ -85,5 +98,75 @@ func (r *Reconciler) mutateNamespace(nsTemplate clustersv1alpha1.NamespaceTempla
 	// Apply user specified labels, which may override standard Verrazzano labels
 	for label, value := range nsTemplate.Metadata.Labels {
 		namespace.Labels[label] = value
+	}
+}
+
+// createOrUpdateRoleBindings creates project role bindings if there are security subjects specified in
+// the project spec
+func (r *Reconciler) createOrUpdateRoleBindings(ctx context.Context, namespace string, vp *clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
+	logger.Info("Create or update role bindings", "namespace", namespace)
+
+	// if there are any project admin subjects, create two role bindings, one for the project admin role and
+	// one for the k8s admin role
+	if len(vp.Spec.Template.Security.ProjectAdminSubjects) > 0 {
+		rb := newRoleBinding(namespace, projectAdminRole, vp.Spec.Template.Security.ProjectAdminSubjects)
+		if err := r.createOrUpdateRoleBinding(ctx, rb, vp, logger); err != nil {
+			return err
+		}
+		rb = newRoleBinding(namespace, projectAdminK8sRole, vp.Spec.Template.Security.ProjectAdminSubjects)
+		if err := r.createOrUpdateRoleBinding(ctx, rb, vp, logger); err != nil {
+			return err
+		}
+	}
+	// if there are any project monitor subjects, create two role bindings, one for the project monitor role and
+	// one for the k8s monitor role
+	if len(vp.Spec.Template.Security.ProjectMonitorSubjects) > 0 {
+		rb := newRoleBinding(namespace, projectMonitorRole, vp.Spec.Template.Security.ProjectMonitorSubjects)
+		if err := r.createOrUpdateRoleBinding(ctx, rb, vp, logger); err != nil {
+			return err
+		}
+		rb = newRoleBinding(namespace, projectMonitorK8sRole, vp.Spec.Template.Security.ProjectMonitorSubjects)
+		if err := r.createOrUpdateRoleBinding(ctx, rb, vp, logger); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// createOrUpdateRoleBinding creates or updates a role binding
+func (r *Reconciler) createOrUpdateRoleBinding(ctx context.Context, roleBinding *rbacv1.RoleBinding, vp *clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
+	logger.Info("Create or update role binding", "roleName", roleBinding.ObjectMeta.Name)
+
+	// deep copy the rolebinding so we can use the data in the mutate function
+	rbCopy := roleBinding.DeepCopy()
+
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, roleBinding, func() error {
+		// overwrite the roleref and subjects in case they changed out of band
+		roleBinding.RoleRef = rbCopy.RoleRef
+		roleBinding.Subjects = rbCopy.Subjects
+		return nil
+	})
+	if err != nil {
+		logger.Error(err, "Unable to create or update rolebinding", "roleName", roleBinding.ObjectMeta.Name)
+		return err
+	}
+
+	return err
+}
+
+// newRoleBinding returns a populated RoleBinding struct
+func newRoleBinding(namespace string, roleName string, subjects []rbacv1.Subject) *rbacv1.RoleBinding {
+	return &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      roleName,
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "ClusterRole",
+			Name:     roleName,
+		},
+		Subjects: subjects,
 	}
 }
