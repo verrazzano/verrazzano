@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package controllers
+package clusters
 
 import (
 	"context"
@@ -18,7 +18,6 @@ import (
 )
 
 const (
-	yamlKey = "yaml"
 	yamlSep = "---\n"
 )
 
@@ -92,7 +91,7 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateManifestSecret(vmc *c
 func (r *VerrazzanoManagedClusterReconciler) mutateManifestSecret(secret *corev1.Secret, yamlData string) error {
 	secret.Type = corev1.SecretTypeOpaque
 	secret.Data = map[string][]byte{
-		yamlKey: []byte(yamlData),
+		YamlKey: []byte(yamlData),
 	}
 	return nil
 }

@@ -28,3 +28,6 @@ const MCRegistrationSecret = "verrazzano-cluster-registration"
 
 // MCClusterRole is the role name for the role used during VMC reconcile
 const MCClusterRole = "verrazzano-managed-cluster"
+
+// MCLocalCluster is the name of the local cluster
+const MCLocalCluster = "local"
