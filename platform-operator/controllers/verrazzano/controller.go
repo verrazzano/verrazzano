@@ -94,6 +94,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, nil
 	}
 
+	// Sync the local cluster registration secret that allows the use of MCxyz resources on the
+	// admin cluster without needing a VMC.
+	if err := r.syncLocalRegistrationSecret(vz); err != nil {
+		log.Errorf("Failed to sync the local registration secret: %v", err)
+		return reconcile.Result{}, err
+	}
+
 	// If Verrazzano is installed see if upgrade is needed
 	if isInstalled(vz.Status) {
 		// If the version is specified and different than the current version of the installation
