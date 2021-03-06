@@ -114,7 +114,7 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 		cr := pkg.GetClusterRole("verrazzano-monitor")
 		rules := cr.Rules
 
-		ginkgo.It("has correct rules", func() {
+		ginkgo.It("has correct number of rules", func() {
 			gomega.Expect(len(rules)).To(gomega.Equal(3),
 				"there should be three rules")
 		})
@@ -155,7 +155,7 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 		cr := pkg.GetClusterRole("verrazzano-project-monitor")
 		rules := cr.Rules
 
-		ginkgo.It("has correct rules", func() {
+		ginkgo.It("has correct number of rules", func() {
 			gomega.Expect(len(rules)).To(gomega.Equal(3),
 				"there should be three rules")
 		})
@@ -192,6 +192,28 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 		})
 	})
 
+	ginkgo.Describe("ClusterRoleBinding verrazzano-admin-k8s", func() {
+		ginkgo.It("has correct subjects and refs", func() {
+			crb := pkg.GetClusterRoleBinding("verrazzano-admin-k8s")
+			gomega.Expect(crb.RoleRef.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
+				"the roleRef.apiGroup should be rbac.authorization.k8s.io")
+			gomega.Expect(crb.RoleRef.Name == "admin").To(gomega.BeTrue(),
+				"the roleRef.name should be admin")
+			gomega.Expect(crb.RoleRef.Kind == "ClusterRole").To(gomega.BeTrue(),
+				"the roleRef.kind shoudl be ClusterRole")
+
+			gomega.Expect(len(crb.Subjects) == 1).To(gomega.BeTrue(),
+				"there should be one subject")
+			s := crb.Subjects[0]
+			gomega.Expect(s.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
+				"the subject's apiGroup should be rbac.authorization.k8s.io")
+			gomega.Expect(s.Kind == "Group").To(gomega.BeTrue(),
+				"the subject's kind should be Group")
+			gomega.Expect(s.Name == "verrazzano-admins").To(gomega.BeTrue(),
+				"the subject's name should be verrazzano-admins")
+		})
+	})
+
 	ginkgo.Describe("ClusterRoleBinding verrazzano-monitor", func() {
 		ginkgo.It("has correct subjects and refs", func() {
 			crb := pkg.GetClusterRoleBinding("verrazzano-monitor")
@@ -199,6 +221,28 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 				"the roleRef.apiGroup should be rbac.authorization.k8s.io")
 			gomega.Expect(crb.RoleRef.Name == "verrazzano-monitor").To(gomega.BeTrue(),
 				"the roleRef.name should be verrazzano-monitor")
+			gomega.Expect(crb.RoleRef.Kind == "ClusterRole").To(gomega.BeTrue(),
+				"the roleRef.kind shoudl be ClusterRole")
+
+			gomega.Expect(len(crb.Subjects) == 1).To(gomega.BeTrue(),
+				"there should be one subject")
+			s := crb.Subjects[0]
+			gomega.Expect(s.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
+				"the subject's apiGroup should be rbac.authorization.k8s.io")
+			gomega.Expect(s.Kind == "Group").To(gomega.BeTrue(),
+				"the subject's kind should be Group")
+			gomega.Expect(s.Name == "verrazzano-monitors").To(gomega.BeTrue(),
+				"the subject's name should be verrazzano-monitors")
+		})
+	})
+
+	ginkgo.Describe("ClusterRoleBinding verrazzano-monitor-k8s", func() {
+		ginkgo.It("has correct subjects and refs", func() {
+			crb := pkg.GetClusterRoleBinding("verrazzano-monitor-k8s")
+			gomega.Expect(crb.RoleRef.APIGroup == "rbac.authorization.k8s.io").To(gomega.BeTrue(),
+				"the roleRef.apiGroup should be rbac.authorization.k8s.io")
+			gomega.Expect(crb.RoleRef.Name == "view").To(gomega.BeTrue(),
+				"the roleRef.name should be view")
 			gomega.Expect(crb.RoleRef.Kind == "ClusterRole").To(gomega.BeTrue(),
 				"the roleRef.kind shoudl be ClusterRole")
 
