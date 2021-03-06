@@ -13,19 +13,24 @@ import (
 
 var _ = ginkgo.Describe("Verrazzano", func() {
 
-	//	vzInstallReadRule := rbacv1.PolicyRule{
-	//		Verbs:     []string{"get", "list", "watch"},
-	//		APIGroups: []string{"install.verrazzano.io"},
-	//		Resources: []string{"*", "*/status"},
-	//	}
-	//	vzInstallWriteRule := rbacv1.PolicyRule{
-	//		Verbs:     []string{"create", "update", "patch", "delete", "deletecollection"},
-	//		APIGroups: []string{"install.verrazzano.io"},
-	//		Resources: []string{"*"},
-	//	}
-	vzInstallAllRule := rbacv1.PolicyRule{
-		Verbs:     []string{"get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"},
+	vzInstallReadRule := rbacv1.PolicyRule{
+		Verbs:     []string{"get", "list", "watch"},
 		APIGroups: []string{"install.verrazzano.io"},
+		Resources: []string{"*", "*/status"},
+	}
+	vzInstallWriteRule := rbacv1.PolicyRule{
+		Verbs:     []string{"create", "update", "patch", "delete", "deletecollection"},
+		APIGroups: []string{"install.verrazzano.io"},
+		Resources: []string{"*"},
+	}
+	vzSystemReadRule := rbacv1.PolicyRule{
+		Verbs:     []string{"get", "list", "watch"},
+		APIGroups: []string{"clusters.verrazzano.io"},
+		Resources: []string{"*", "*/status"},
+	}
+	vzSystemWriteRule := rbacv1.PolicyRule{
+		Verbs:     []string{"create", "update", "patch", "delete", "deletecollection"},
+		APIGroups: []string{"clusters.verrazzano.io"},
 		Resources: []string{"*"},
 	}
 	vzAppReadRule := rbacv1.PolicyRule{
@@ -57,6 +62,11 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 		Verbs:     []string{"create", "update", "patch", "delete", "deletecollection"},
 		APIGroups: []string{"coherence.oracle.com"},
 		Resources: []string{"coherences"},
+	}
+	vzIstioReadRule := rbacv1.PolicyRule{
+		Verbs:     []string{"get", "list", "watch"},
+		APIGroups: []string{"config.istio.io", "networking.istio.io", "security.istio.io"},
+		Resources: []string{"*", "*/status"},
 	}
 
 	ginkgoExt.DescribeTable("CRD for",
@@ -90,23 +100,25 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 		rules := cr.Rules
 
 		ginkgo.It("has correct number of rules", func() {
-			gomega.Expect(len(rules)).To(gomega.Equal(7),
-				"there should be seven rules")
+			gomega.Expect(len(rules)).To(gomega.Equal(11),
+				"there should be eleven rules")
 		})
 
 		ginkgoExt.DescribeTable("PolicyRule",
 			func(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRule) {
 				gomega.Expect(pkg.SliceContainsPolicyRule(ruleSlice, rule)).To(gomega.BeTrue())
 			},
-			//ginkgoExt.Entry("vzInstallReadRule should exist", rules, vzInstallReadRule),
-			//ginkgoExt.Entry("vzInstallWriteRule should exist", rules, vzInstallWriteRule),
-			ginkgoExt.Entry("vzInstallAllRule should exist", rules, vzInstallAllRule),
+			ginkgoExt.Entry("vzInstallReadRule should exist", rules, vzInstallReadRule),
+			ginkgoExt.Entry("vzInstallWriteRule should exist", rules, vzInstallWriteRule),
+			ginkgoExt.Entry("vzSystemReadRule should exist", rules, vzSystemReadRule),
+			ginkgoExt.Entry("vzSystemWriteRule should exist", rules, vzSystemWriteRule),
 			ginkgoExt.Entry("vzAppReadRule should exist", rules, vzAppReadRule),
 			ginkgoExt.Entry("vzAppWriteRule should exist", rules, vzAppWriteRule),
 			ginkgoExt.Entry("vzWebLogicReadRule should exist", rules, vzWebLogicReadRule),
 			ginkgoExt.Entry("vzWebLogicWriteRule should exist", rules, vzWebLogicWriteRule),
 			ginkgoExt.Entry("vzCoherenceReadRule should exist", rules, vzCoherenceReadRule),
-			ginkgoExt.Entry("vzCoherenceWriteRule should exist", rules, vzCoherenceWriteRule),
+			ginkgoExt.Entry("vzCoherenceReadRule should exist", rules, vzCoherenceReadRule),
+			ginkgoExt.Entry("vzIstioReadRule should exist", rules, vzIstioReadRule),
 		)
 	})
 
@@ -115,17 +127,19 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 		rules := cr.Rules
 
 		ginkgo.It("has correct number of rules", func() {
-			gomega.Expect(len(rules)).To(gomega.Equal(3),
-				"there should be three rules")
+			gomega.Expect(len(rules)).To(gomega.Equal(5),
+				"there should be five rules")
 		})
 
 		ginkgoExt.DescribeTable("PolicyRule",
 			func(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRule) {
 				gomega.Expect(pkg.SliceContainsPolicyRule(ruleSlice, rule)).To(gomega.BeTrue())
 			},
+			ginkgoExt.Entry("vzSystemReadRule should exist", rules, vzSystemReadRule),
 			ginkgoExt.Entry("vzAppReadRule should exist", rules, vzAppReadRule),
 			ginkgoExt.Entry("vzWebLogicReadRule should exist", rules, vzWebLogicReadRule),
 			ginkgoExt.Entry("vzCoherenceReadRule should exist", rules, vzCoherenceReadRule),
+			ginkgoExt.Entry("vzIstioReadRule should exist", rules, vzIstioReadRule),
 		)
 	})
 
