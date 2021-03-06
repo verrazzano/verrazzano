@@ -41,7 +41,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncElasticsearchSecret(vmc *cluste
 	secretData[CaBundleKey] = tlsSecret.Data[CaCrtKey]
 	secretData[UsernameKey] = vzSecret.Data[UsernameKey]
 	secretData[PasswordKey] = vzSecret.Data[PasswordKey]
-	secretData[UrlKey] = []byte(url)
+	secretData[URLKey] = []byte(url)
 
 	// Create/update the Elasticsearch secret
 	_, err = r.createOrUpdateElasticsearchSecret(vmc, secretData)
