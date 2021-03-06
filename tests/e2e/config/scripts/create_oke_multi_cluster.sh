@@ -19,7 +19,6 @@ check_for_resources() {
   local min_required=$4
 
   local count=$(${SCRIPT_DIR}/get_resource_availability.sh $service_name $limit_name)
-
   local status_code=$?
   if [ ${status_code:-1} -eq 0 ]; then
     # OCI query succeeded, proceed with value evaluation
@@ -51,7 +50,7 @@ if [ -f /tmp/main.tf ]; then
   rm /tmp/main.tf
 fi
 
-# Create main.tf for the multi-cluster configuration
+# Create main.tf for the multi-cluster configuration, and evaluate the VNC and LB counts
 for i in $(seq 1 $CLUSTER_COUNT)
 do
   let REQUIRED_VNC_COUNT=$REQUIRED_VNC_COUNT+1
@@ -62,24 +61,21 @@ do
   cat /tmp/main.tf.tmp >> /tmp/main.tf
 done
 
-echo "REQUIRED_VNC_COUNT --> ${REQUIRED_VNC_COUNT}"
-echo "REQUIRED_LB_COUNT --> ${REQUIRED_LB_COUNT}"
-cat /tmp/main.tf
+echo "Minimum required VNC count: ${REQUIRED_VNC_COUNT}"
+echo "Minimum required Load Balancer count: ${REQUIRED_LB_COUNT}"
 
+# Copy the temporary file as main.tf
+cat /tmp/main.tf
 cp /tmp/main.tf ${SCRIPT_DIR}/terraform/cluster/main.tf
+
 rm /tmp/main.tf
 rm -rf ${KUBECONFIG_DIR}/*
-
-# Known issues
-# The generated main.tf will contain the copyright CLUSTER_COUNT no. of times
-# The CIDR block of VCNs and subnets will be same, which should be fine as long as we don't want to pair subnets
 
 # check available resources
 check_for_resources VCN vcn vcn-count $REQUIRED_VNC_COUNT
 check_for_resources LB load-balancer lb-100mbps-count $REQUIRED_LB_COUNT
 
-echo 'Install OKE...'
-echo 'Create cluster...'
+echo 'Create OKE cluster...'
 cd ${SCRIPT_DIR}/terraform/cluster
 ./create-multi-cluster.sh $CLUSTER_COUNT $CLUSTER_NAME_PREFIX
 status_code=$?
@@ -90,7 +86,7 @@ if [ ${status_code:-1} -eq 0 ]; then
     do
       echo "Create kube config for cluster ${TF_VAR_label_prefix}-$CLUSTER_NAME_PREFIX-$i ..."
       CLUSTER_OCID=$(oci ce cluster list --compartment-id "${TF_VAR_compartment_id}" --name "${TF_VAR_label_prefix}-${CLUSTER_NAME_PREFIX}-$i" --lifecycle-state "ACTIVE" | jq -r '.data[0]."id"')
-      echo "OCID of the cluster $CLUSTER_NAME_PREFIX-$i : ${CLUSTER_OCID}."
+      echo "OCID of the cluster ${TF_VAR_label_prefix}-$CLUSTER_NAME_PREFIX-$i : ${CLUSTER_OCID}."
       mkdir -p "${KUBECONFIG_DIR}/$i"
       oci ce cluster create-kubeconfig --cluster-id ${CLUSTER_OCID} --file "${KUBECONFIG_DIR}/$i/kube_config" --region "${TF_VAR_region}" --token-version 2.0.0
       export KUBECONFIG="${KUBECONFIG_DIR}/$i/kube_config"
