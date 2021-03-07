@@ -6,7 +6,6 @@ package pkg
 import (
 	"context"
 	"fmt"
-	v1 "k8s.io/api/rbac/v1"
 	"os"
 	"path/filepath"
 	"strings"
