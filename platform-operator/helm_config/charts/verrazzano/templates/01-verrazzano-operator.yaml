@@ -285,10 +285,16 @@ rules:
     - install.verrazzano.io
   resources:
     - "*"
+    - "*/status"
   verbs:
     - get
     - list
     - watch
+- apiGroups:
+    - install.verrazzano.io
+  resources:
+    - "*"
+  verbs:
     - create
     - update
     - patch
@@ -304,9 +310,18 @@ metadata:
     verrazzano.io/aggregate-to-verrazzano-monitor: "true"
 rules:
 - apiGroups:
-    - verrazzano.io
-    - oam.verrazzano.io
-    - core.oam.dev
+    - clusters.verrazzano.io
+  resources:
+    - "*"
+    - "*/status"
+  verbs:
+    - get
+    - list
+    - watch
+- apiGroups:
+    - config.istio.io
+    - networking.istio.io
+    - security.istio.io
   resources:
     - "*"
     - "*/status"
@@ -323,9 +338,7 @@ metadata:
     verrazzano.io/aggregate-to-verrazzano-admin: "true"
 rules:
 - apiGroups:
-    - verrazzano.io
-    - oam.verrazzano.io
-    - core.oam.dev
+    - clusters.verrazzano.io
   resources:
     - "*"
   verbs:
