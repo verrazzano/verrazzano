@@ -6,10 +6,11 @@ package pkg
 import (
 	"context"
 	"fmt"
-	v1 "k8s.io/api/rbac/v1"
 	"os"
 	"path/filepath"
 	"strings"
+
+	rbacv1 "k8s.io/api/rbac/v1"
 
 	"github.com/onsi/ginkgo"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -354,7 +355,7 @@ func DoesClusterRoleExist(name string) bool {
 }
 
 // GetClusterRole returns the cluster role with the given name
-func GetClusterRole(name string) *v1.ClusterRole {
+func GetClusterRole(name string) *rbacv1.ClusterRole {
 	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 
@@ -380,7 +381,7 @@ func DoesClusterRoleBindingExist(name string) bool {
 }
 
 // GetClusterRoleBinding returns the cluster role with the given name
-func GetClusterRoleBinding(name string) *v1.ClusterRoleBinding {
+func GetClusterRoleBinding(name string) *rbacv1.ClusterRoleBinding {
 	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 
