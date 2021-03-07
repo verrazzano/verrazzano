@@ -20,20 +20,21 @@ import (
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 )
 
-type ApiEndpoint struct {
+// APIEndpoint contains information needed to access an API
+type APIEndpoint struct {
 	AccessToken string `json:"access_token"`
-	apiUrl      string
-	httpClient  *retryablehttp.Client
+	APIURL      string
+	HTTPClient  *retryablehttp.Client
 }
 
-// GetApiEndpoint returns the ApiEndpoint stub with AccessToken
-func GetApiEndpoint() *ApiEndpoint {
+// GetAPIEndpoint returns the APIEndpoint stub with AccessToken
+func GetAPIEndpoint() *APIEndpoint {
 	ingress, _ := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
 	var ingressRules []extensionsv1beta1.IngressRule = ingress.Spec.Rules
 	keycloakURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", ingressRules[0].Host, realm)
-	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", Username, GetVerrazzanoPassword(), clientId)
+	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", Username, GetVerrazzanoPassword(), clientID)
 	status, resp := postWithClient(keycloakURL, "application/x-www-form-urlencoded", strings.NewReader(body), GetKeycloakHTTPClient())
-	var api ApiEndpoint
+	var api APIEndpoint
 	if status == http.StatusOK {
 		json.Unmarshal([]byte(resp), &api)
 	} else {
@@ -41,8 +42,8 @@ func GetApiEndpoint() *ApiEndpoint {
 			ginkgo.Fail(fmt.Sprintf("%v error getting API access token from %v", status, keycloakURL))
 		}
 	}
-	api.apiUrl = getAPIURL()
-	api.httpClient = GetVerrazzanoHTTPClient()
+	api.APIURL = getAPIURL()
+	api.HTTPClient = GetVerrazzanoHTTPClient()
 	return &api
 }
 
@@ -50,46 +51,46 @@ func GetApiEndpoint() *ApiEndpoint {
 func getAPIURL() string {
 	ingress, _ := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-console-ingress", v1.GetOptions{})
 	var ingressRules []extensionsv1beta1.IngressRule = ingress.Spec.Rules
-	return fmt.Sprintf("https://%s/%s", ingressRules[0].Host, verrazzanoApiUriPrefix)
+	return fmt.Sprintf("https://%s/%s", ingressRules[0].Host, verrazzanoAPIURLPrefix)
 }
 
 // Get Invoke GET API Request
-func (api *ApiEndpoint) Get(path string) (*HttpResponse, error) {
+func (api *APIEndpoint) Get(path string) (*HTTPResponse, error) {
 	return api.Request(http.MethodGet, path, nil)
 }
 
 // Post Invoke POST API Request
-func (api *ApiEndpoint) Post(path string, body io.Reader) (*HttpResponse, error) {
+func (api *APIEndpoint) Post(path string, body io.Reader) (*HTTPResponse, error) {
 	return api.Request(http.MethodPost, path, body)
 }
 
 // Patch Invoke POST API Request
-func (api *ApiEndpoint) Patch(path string, body io.Reader) (*HttpResponse, error) {
+func (api *APIEndpoint) Patch(path string, body io.Reader) (*HTTPResponse, error) {
 	return api.Request(http.MethodPut, path, body)
 }
 
 // Delete Invoke DELETE API Request
-func (api *ApiEndpoint) Delete(path string) (*HttpResponse, error) {
+func (api *APIEndpoint) Delete(path string) (*HTTPResponse, error) {
 	return api.Request(http.MethodDelete, path, nil)
 }
 
 // Request Invoke API
-func (api *ApiEndpoint) Request(method, path string, body io.Reader) (*HttpResponse, error) {
-	url := fmt.Sprintf("%s/%s", api.apiUrl, path)
+func (api *APIEndpoint) Request(method, path string, body io.Reader) (*HTTPResponse, error) {
+	url := fmt.Sprintf("%s/%s", api.APIURL, path)
 	req, _ := retryablehttp.NewRequest(method, url, body)
 	if api.AccessToken != "" {
 		value := fmt.Sprintf("Bearer %v", api.AccessToken)
 		req.Header.Set("Authorization", value)
 	}
-	resp, err := api.httpClient.Do(req)
+	resp, err := api.HTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	return ProcHttpResponse(resp, err), nil
+	return ProcHTTPResponse(resp, err), nil
 }
 
-// Process the HTTP response by reading and closing the body, then returning
-// the HttpResponse object.  This function is used to prevent file descriptor leaks
+// ProcHTTPResponse processes the HTTP response by reading and closing the body, then returning
+// the HTTPResponse object.  This function is used to prevent file descriptor leaks
 // and other problems.
 // See https://github.com/golang/go/blob/master/src/net/http/response.go
 //
@@ -99,15 +100,15 @@ func (api *ApiEndpoint) Request(method, path string, body io.Reader) (*HttpRespo
 // Returns
 //   HttpReponse which has the body and status code.
 //
-func ProcHttpResponse(resp *http.Response, httpErr error) *HttpResponse {
+func ProcHTTPResponse(resp *http.Response, httpErr error) *HTTPResponse {
 	if httpErr != nil {
-		return &HttpResponse{}
+		return &HTTPResponse{}
 	}
 
 	// Must read entire body and close it.  See http.Response.Body doc
 	defer resp.Body.Close()
 	body, bodyErr := ioutil.ReadAll(resp.Body)
-	return &HttpResponse{
+	return &HTTPResponse{
 		StatusCode: resp.StatusCode,
 		Body:       body,
 		BodyErr:    bodyErr,
@@ -115,9 +116,9 @@ func ProcHttpResponse(resp *http.Response, httpErr error) *HttpResponse {
 }
 
 //GetIngress fetches ingress from api
-func (api *ApiEndpoint) GetIngress(namespace, name string) extensionsv1beta1.Ingress {
+func (api *APIEndpoint) GetIngress(namespace, name string) extensionsv1beta1.Ingress {
 	response, err := api.Get(fmt.Sprintf("apis/extensions/v1beta1/namespaces/%s/ingresses/%s", namespace, name))
-	ExpectHttpOk(response, err, fmt.Sprintf("Error fetching ingress %s/%s from api, error: %v, response: %v", namespace, name, err, response))
+	ExpectHTTPOk(response, err, fmt.Sprintf("Error fetching ingress %s/%s from api, error: %v, response: %v", namespace, name, err, response))
 	ingress := extensionsv1beta1.Ingress{}
 	err = json.Unmarshal(response.Body, &ingress)
 	gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Invalid response for ingress %s/%s from api, error: %v", namespace, name, err))
@@ -125,7 +126,7 @@ func (api *ApiEndpoint) GetIngress(namespace, name string) extensionsv1beta1.Ing
 }
 
 //GetElasticURL fetches ElasticSearch endpoint URL
-func (api *ApiEndpoint) GetElasticURL() string {
+func (api *APIEndpoint) GetElasticURL() string {
 	ingress := api.GetIngress("verrazzano-system", "vmi-system-es-ingest")
 	return fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
 }

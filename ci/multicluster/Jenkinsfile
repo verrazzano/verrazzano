@@ -38,7 +38,7 @@ pipeline {
             choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2" ])
         choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
                 // 1st choice is the default value
-                choices: [ "v1.17.13", "v1.18.10" ])
+                choices: [ "v1.18.10", "v1.17.13" ])
          choice (name: 'KUBERNETES_CLUSTER_VERSION',
                          description: 'Kubernetes Version for KIND Cluster',
                          // 1st choice is the default value

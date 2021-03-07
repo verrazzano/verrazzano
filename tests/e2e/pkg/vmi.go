@@ -5,16 +5,7 @@ package pkg
 
 import (
 	"fmt"
-	"net/http"
-	"time"
-
 	"github.com/hashicorp/go-retryablehttp"
-)
-
-const (
-	NUM_RETRIES    = 7
-	RETRY_WAIT_MIN = 1 * time.Second
-	RETRY_WAIT_MAX = 30 * time.Second
 )
 
 // GetSystemVMICredentials - Obtain VMI system credentials
@@ -41,19 +32,11 @@ func GetSystemVMICredentials() (*UsernamePassword, error) {
 	}, nil
 }
 
-func newRetryableHttpClient(client *http.Client) *retryablehttp.Client {
-	retryableClient := retryablehttp.NewClient() //default of 4 retries is sufficient for us
-	retryableClient.RetryMax = NUM_RETRIES
-	retryableClient.RetryWaitMin = RETRY_WAIT_MIN
-	retryableClient.RetryWaitMax = RETRY_WAIT_MAX
-	retryableClient.HTTPClient = client
-	return retryableClient
-}
-
-func GetBindingVmiHttpClient(bindingName string) *retryablehttp.Client {
+// GetBindingVmiHTTPClient returns the VMI client for the prided binding
+func GetBindingVmiHTTPClient(bindingName string) *retryablehttp.Client {
 	bindingVmiCaCert := getBindingVMICACert(bindingName)
 	vmiRawClient := getHTTPClientWIthCABundle(bindingVmiCaCert)
-	return newRetryableHttpClient(vmiRawClient)
+	return newRetryableHTTPClient(vmiRawClient)
 }
 
 func getBindingVMICACert(bindingName string) []byte {
