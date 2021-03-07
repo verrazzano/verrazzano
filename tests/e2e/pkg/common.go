@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
 	v1 "k8s.io/api/core/v1"
-	v1rbac "k8s.io/api/rbac/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 )
 
 const (
@@ -277,7 +277,7 @@ func SlicesContainSameStrings(strings1, strings2 []string) bool {
 }
 
 // PolicyRulesEqual compares two RBAC PolicyRules for semantic equality
-func PolicyRulesEqual(rule1, rule2 v1rbac.PolicyRule) bool {
+func PolicyRulesEqual(rule1, rule2 rbacv1.PolicyRule) bool {
 	if SlicesContainSameStrings(rule1.Verbs, rule2.Verbs) &&
 		SlicesContainSameStrings(rule1.APIGroups, rule2.APIGroups) &&
 		SlicesContainSameStrings(rule1.Resources, rule2.Resources) &&
@@ -289,7 +289,7 @@ func PolicyRulesEqual(rule1, rule2 v1rbac.PolicyRule) bool {
 }
 
 // SliceContainsPolicyRule determines if a given rule is in a slice of rules
-func SliceContainsPolicyRule(ruleSlice []v1rbac.PolicyRule, rule v1rbac.PolicyRule) bool {
+func SliceContainsPolicyRule(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRule) bool {
 	for _, r := range ruleSlice {
 		if PolicyRulesEqual(rule, r) {
 			return true
