@@ -41,7 +41,7 @@ const HelidonFluentdContainerConfigurationFormat = `<source>
   path "/var/log/containers/#{ENV['WORKLOAD_NAME']}*%s*.log"
   pos_file "/tmp/#{ENV['WORKLOAD_NAME']}-%s.log.pos"
   read_from_head true
-  tag %s-%s"
+  tag %s-%s
   # Helidon application messages are expected to look like this:
   # 2020.04.22 16:09:21 INFO org.books.bobby.Main Thread[main,5,main]: http://localhost:8080/books
   <parse>
