@@ -133,7 +133,10 @@ coverage: unit-test
 #
 # Test-related tasks
 #
-CLUSTER_NAME = verrazzano
+# On Jenkins we have pre-created clusters ready to go that are named specifically for the integ-test case
+# Not conditionalizing this here so the local and Jenkins builds will use the same cluster name, but we could
+# keep the local stuff the same as it was
+CLUSTER_NAME = vpo-integ
 VERRAZZANO_NS = verrazzano-install
 BUILD-DEPLOY = build/deploy
 DEPLOY = deploy
@@ -167,8 +170,14 @@ endif
 .PHONY: create-cluster
 create-cluster:
 ifdef JENKINS_URL
-	./build/scripts/cleanup.sh ${CLUSTER_NAME}
-endif
+	echo "Jenkins has pre-created vpo-integ cluster ready to use"
+	# Get the ip address of the container running the kube apiserver
+	# and update the kubeconfig file to point to that address, instead of localhost
+	sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
+	cat ${KUBECONFIG} | grep server
+
+	$$(X=$$(docker inspect $$(docker ps | grep "jenkins-runner" | awk '{ print $$1 }') | jq '.[].NetworkSettings.Networks' | grep -q kind ; echo $$?); if [[ ! $$X -eq "0" ]]; then docker network connect kind $$(docker ps | grep "jenkins-runner" | awk '{ print $$1 }'); fi)
+else
 	echo 'Create cluster...'
 	echo 'KUBECONFIG=${KUBECONFIG}'
 	HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 \
@@ -176,18 +185,15 @@ endif
 		--wait 5m \
 		--config=test/kind-config.yaml
 	kubectl config set-context kind-${CLUSTER_NAME}
-ifdef JENKINS_URL
-	# Get the ip address of the container running the kube apiserver
-	# and update the kubeconfig file to point to that address, instead of localhost
-	sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
-	cat ${KUBECONFIG} | grep server
-
-	$$(X=$$(docker inspect $$(docker ps | grep "jenkins-runner" | awk '{ print $$1 }') | jq '.[].NetworkSettings.Networks' | grep -q kind ; echo $$?); if [[ ! $$X -eq "0" ]]; then docker network connect kind $$(docker ps | grep "jenkins-runner" | awk '{ print $$1 }'); fi)
 endif
 
 .PHONY: delete-cluster
 delete-cluster:
+ifdef JENKINS_URL
+	echo "Don't bother deleting the cluster on Jenkins, it will not be re-used by anything else"
+else
 	kind delete cluster --name ${CLUSTER_NAME}
+endif
 
 .PHONY: push-tag
 push-tag:
