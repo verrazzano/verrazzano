@@ -210,6 +210,27 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 	})
 })
 
+var _ = ginkgo.Describe("Testing VerrazzanoProject rolebinding generation", func() {
+	ginkgo.It("Apply VerrazzanoProject and validate rolebindings are created", func() {
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_sample.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""), "VerrazzanoProject should be created successfully")
+
+		// expect two admin and two monitor rolebindings
+		gomega.Eventually(func() bool {
+			return K8sClient.DoesRoleBindingExist("verrazzano-project-admin", "multiclustertest")
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			return K8sClient.DoesRoleBindingExist("admin", "multiclustertest")
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			return K8sClient.DoesRoleBindingExist("verrazzano-project-monitor", "multiclustertest")
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			return K8sClient.DoesRoleBindingExist("view", "multiclustertest")
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+	})
+})
+
 func appConfigExistsWithFields(namespace string, name string, multiClusterAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration) bool {
 	fmt.Printf("Looking for OAM app config %v/%v\n", namespace, name)
 	appConfig, err := K8sClient.GetOAMAppConfig(namespace, name)

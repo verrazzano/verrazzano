@@ -44,6 +44,12 @@ func (c Client) DoesClusterRoleBindingExist(name string) bool {
 	return procExistsStatus(err, "ClusterRoleBinding")
 }
 
+// DoesRoleBindingExist returns true if the given RoleBinding exists
+func (c Client) DoesRoleBindingExist(name string, namespace string) bool {
+	_, err := c.clientset.RbacV1().RoleBindings(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	return procExistsStatus(err, "RoleBinding")
+}
+
 // DoesNamespaceExist returns true if the given Namespace exists
 func (c Client) DoesNamespaceExist(name string) bool {
 	_, err := c.clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
