@@ -389,9 +389,9 @@ def dumpVerrazzanoSystemPods() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
+            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
             sh """
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-                LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
                 mkdir -p ${LOG_DIR}
                 export DIAGNOSTIC_LOG="${LOG_DIR}/verrazzano-system-pods.log"
                 ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
@@ -410,9 +410,9 @@ def dumpCattleSystemPods() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
+            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
             sh """
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-                LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
                 mkdir -p ${LOG_DIR}
                 export DIAGNOSTIC_LOG="${LOG_DIR}/cattle-system-pods.log"
                 ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
@@ -427,9 +427,9 @@ def dumpNginxIngressControllerLogs() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
+            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
             sh """
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-                LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
                 mkdir -p ${LOG_DIR}
                 export DIAGNOSTIC_LOG="${LOG_DIR}/nginx-ingress-controller.log"
                 ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
@@ -442,10 +442,10 @@ def dumpVerrazzanoPlatformOperatorLogs() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
+            LOG_DIR="${WORKSPACE}/verrazzano-platform-operator/logs/cluster-$count"
             sh """
                 ## dump out verrazzano-platform-operator logs
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-                LOG_DIR="${WORKSPACE}/verrazzano-platform-operator/logs/cluster-$count"
                 mkdir -p ${LOG_DIR}
                 kubectl -n verrazzano-install logs --selector=app=verrazzano-platform-operator > ${LOG_DIR}/verrazzano-platform-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
                 kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${LOG_DIR}/verrazzano-platform-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
@@ -461,10 +461,10 @@ def dumpVerrazzanoApplicationOperatorLogs() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
+            LOG_DIR="${WORKSPACE}/verrazzano-application-operator/logs/cluster-$count"
             sh """
                 ## dump out verrazzano-application-operator logs
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-                LOG_DIR="${WORKSPACE}/verrazzano-application-operator/logs/cluster-$count"
                 mkdir -p ${LOG_DIR}
                 kubectl -n verrazzano-system logs --selector=app=verrazzano-application-operator > ${LOG_DIR}/verrazzano-application-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
                 kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > ${LOG_DIR}/verrazzano-application-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
@@ -480,10 +480,10 @@ def dumpOamKubernetesRuntimeLogs() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
+            LOG_DIR="${WORKSPACE}/oam-kubernetes-runtime/logs/cluster-$count"
             sh """
                 ## dump out oam-kubernetes-runtime logs
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-                LOG_DIR="${WORKSPACE}/oam-kubernetes-runtime/logs/cluster-$count"
                 mkdir -p ${LOG_DIR}
                 kubectl -n verrazzano-system logs --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${LOG_DIR}/oam-kubernetes-runtime-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
                 kubectl -n verrazzano-system describe pod --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${LOG_DIR}/oam-kubernetes-runtime-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
@@ -499,9 +499,9 @@ def dumpVerrazzanoApiLogs() {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         for(int count=1; count<=clusterCount; count++) {
+            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
             sh """
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-                LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
                 mkdir -p ${LOG_DIR}
                 export DIAGNOSTIC_LOG="${LOG_DIR}/verrazzano-api.log"
                 ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
