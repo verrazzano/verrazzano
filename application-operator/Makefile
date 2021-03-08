@@ -185,6 +185,7 @@ integ-test: setup-cluster
 create-cluster:
 ifdef JENKINS_URL
 	echo "Jenkins has pre-created vpo-integ cluster ready to use"
+	mkdir ${HOME}/.kube/ || true
 	kind get kubeconfig --name=${CLUSTER_NAME} > ${KUBECONFIG}
 	# Get the ip address of the container running the kube apiserver
 	# and update the kubeconfig file to point to that address, instead of localhost
