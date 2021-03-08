@@ -32,15 +32,6 @@ type ConfigMapTemplate struct {
 	BinaryData map[string][]byte `json:"binaryData,omitempty"`
 }
 
-// MultiClusterConfigMapStatus defines the observed state of MultiClusterConfigMap
-type MultiClusterConfigMapStatus struct {
-	// The latest available observations of an object's current state.
-	Conditions []Condition `json:"conditions,omitempty"`
-
-	// State of the MultiClusterConfigMap custom resource
-	State StateType `json:"state,omitempty"`
-}
-
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=mccm;mccms
 // +kubebuilder:subresource:status
@@ -51,8 +42,8 @@ type MultiClusterConfigMap struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MultiClusterConfigMapSpec   `json:"spec,omitempty"`
-	Status MultiClusterConfigMapStatus `json:"status,omitempty"`
+	Spec   MultiClusterConfigMapSpec  `json:"spec,omitempty"`
+	Status MultiClusterResourceStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

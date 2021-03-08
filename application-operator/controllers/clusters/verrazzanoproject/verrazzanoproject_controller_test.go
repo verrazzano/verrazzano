@@ -36,10 +36,10 @@ var existingNS = clustersv1alpha1.NamespaceTemplate{
 	},
 }
 
+// Omit labels on this namespace to handle test case of starting with an empty label
 var newNS = clustersv1alpha1.NamespaceTemplate{
 	Metadata: metav1.ObjectMeta{
-		Name:   "newNS",
-		Labels: testLabels,
+		Name: "newNS",
 	},
 }
 
@@ -151,6 +151,18 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 						mockClient.EXPECT().
 							Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: tt.fields.nsList[0].Metadata.Name}, gomock.Not(gomock.Nil())).
 							DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+								return nil
+							})
+
+						// expect call to update the namespace
+						mockClient.EXPECT().
+							Update(gomock.Any(), gomock.Any()).
+							DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
+								assert.Equal(tt.fields.nsList[0].Metadata.Name, namespace.Name, "namespace name did not match")
+								_, labelExists := namespace.Labels[constants.LabelVerrazzanoManaged]
+								assert.True(labelExists, fmt.Sprintf("the label %s does not exist", constants.LabelVerrazzanoManaged))
+								_, labelExists = namespace.Labels[constants.LabelIstioInjection]
+								assert.True(labelExists, fmt.Sprintf("the label %s does not exist", constants.LabelIstioInjection))
 								return nil
 							})
 					} else {

@@ -3,17 +3,28 @@
 
 package constants
 
+// SystemTLS is the name of the system-tls secret in the Verrazzano system namespace
+const SystemTLS = "system-tls"
+
 // VerrazzanoSystemNamespace is the system namespace for verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
 
 // Verrazzano is the name of the verrazzano secret in the Verrazzano system namespace
 const Verrazzano = "verrazzano"
 
-// SystemTLS is the name of the system-tls secret in the Verrazzano system namespace
-const SystemTLS = "system-tls"
-
 // VerrazzanoMultiClusterNamespace is the multi-cluster namespace for verrazzano
 const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
 
-// MCRegistrationSecret is the name of the secret that contains the cluster registration information
-const MCRegistrationSecret = "verrazzano-cluster"
+// MCAgentSecret contains information needed by the agent to access the admin cluster, such as the admin kubeconfig.
+// This secret is used by the MC agent running on the managed cluster.
+const MCAgentSecret = "verrazzano-cluster-agent"
+
+// MCElasticsearchSecret contains information to access the admin Elasticsearch from the managed cluster.
+const MCElasticsearchSecret = "verrazzano-cluster-elasticsearch"
+
+// MCRegistrationSecret contains information which related to the managed cluster itself, such as the
+// managed cluster name.
+const MCRegistrationSecret = "verrazzano-cluster-registration"
+
+// MCClusterRole is the role name for the role used during VMC reconcile
+const MCClusterRole = "verrazzano-managed-cluster"

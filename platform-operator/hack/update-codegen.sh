@@ -16,7 +16,7 @@ SCRIPT_ROOT=$(dirname $0)/..
 echo "script_root = ${SCRIPT_ROOT}"
 
 # Obtain k8s.io/code-generator version
-codeGenVer=$(grep "code-generator" go.mod | awk '{print $2}')
+codeGenVer=$(go list -m -f '{{.Version}}' k8s.io/code-generator)
 
 CODEGEN_PKG=${CODEGEN_PKG:-${GOPATH}/pkg/mod/${CODEGEN_PATH}@${codeGenVer}}
 echo "codegen_pkg = ${CODEGEN_PKG}"

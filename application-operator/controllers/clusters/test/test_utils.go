@@ -11,6 +11,8 @@ import (
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
@@ -20,6 +22,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/yaml"
 )
+
+// UnitTestClusterName - cluster name used in unit tests
+const UnitTestClusterName = "cluster1"
 
 // NewRequest creates a new reconciler request for testing
 // namespace - The namespace to use in the request
@@ -63,7 +68,7 @@ func ReadContainerizedWorkload(rawWorkload runtime.RawExtension) (v1alpha2.Conta
 // call for the managed cluster registration secret, and populate it with the cluster-name
 func DoExpectGetMCRegistrationSecret(cli *mocks.MockClient) {
 	// expect a call to fetch the MCRegistrationSecret and return a fake one with a specific cluster name
-	mockRegistrationSecretData := map[string][]byte{constants.ClusterNameData: []byte("cluster1")}
+	mockRegistrationSecretData := map[string][]byte{constants.ClusterNameData: []byte(UnitTestClusterName)}
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{
 			Namespace: clusters.MCRegistrationSecretFullName.Namespace,
@@ -75,4 +80,22 @@ func DoExpectGetMCRegistrationSecret(cli *mocks.MockClient) {
 			secret.ObjectMeta.Name = clusters.MCRegistrationSecretFullName.Name
 			return nil
 		})
+}
+
+// AssertMultiClusterResourceStatus asserts that the status, conditions and cluster level status
+// on the MultiClusterResourceStatus are as expected
+func AssertMultiClusterResourceStatus(assert *assert.Assertions,
+	actualStatus v1alpha1.MultiClusterResourceStatus,
+	expectedState v1alpha1.StateType,
+	expectedConditionType v1alpha1.ConditionType,
+	expectedConditionStatus v1.ConditionStatus) {
+
+	assert.Equal(expectedState, actualStatus.State)
+	assert.Equal(1, len(actualStatus.Conditions))
+	assert.Equal(expectedConditionStatus, actualStatus.Conditions[0].Status)
+	assert.Equal(expectedConditionType, actualStatus.Conditions[0].Type)
+
+	assert.Equal(1, len(actualStatus.Clusters))
+	assert.Equal(UnitTestClusterName, actualStatus.Clusters[0].Name)
+	assert.Equal(expectedState, actualStatus.Clusters[0].State)
 }

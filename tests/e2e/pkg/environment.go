@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 
-	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	"github.com/onsi/ginkgo"
 	v1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
@@ -17,8 +16,10 @@ import (
 )
 
 const (
-	CLUSTER_TYPE_KIND    = "kind"
-	CLUSTER_TYPE_OLCNE   = "OLCNE"
+	// ClusterTypeKind represents a Kind cluster
+	ClusterTypeKind = "kind"
+	// ClusterTypeOlcne represents an OLCNE cluster
+	ClusterTypeOlcne     = "OLCNE"
 	istioSystemNamespace = "istio-system"
 )
 
@@ -26,12 +27,12 @@ const (
 func Ingress() string {
 	clusterType, ok := os.LookupEnv("TEST_ENV")
 	if !ok {
-		clusterType = CLUSTER_TYPE_KIND
+		clusterType = ClusterTypeKind
 	}
 
-	if clusterType == CLUSTER_TYPE_KIND {
+	if clusterType == ClusterTypeKind {
 		return loadBalancerIngress()
-	} else if clusterType == CLUSTER_TYPE_OLCNE {
+	} else if clusterType == ClusterTypeOlcne {
 		return externalLoadBalancerIngress()
 	} else {
 		return loadBalancerIngress()
@@ -64,11 +65,12 @@ func nodePortIngress() string {
 	if addrHost == "" {
 		fmt.Println("node address is empty")
 		return ""
-	} else {
-		ingressAddr := fmt.Sprintf("%s:%d", addrHost, addrPort)
-		fmt.Printf("ingress address is %s\n", ingressAddr)
-		return ingressAddr
 	}
+
+	ingressAddr := fmt.Sprintf("%s:%d", addrHost, addrPort)
+	fmt.Printf("ingress address is %s\n", ingressAddr)
+	return ingressAddr
+
 }
 
 // loadBalancerIngress returns the ingress load balancer address
@@ -94,9 +96,9 @@ func externalLoadBalancerIngress() string {
 	fmt.Println("Obtaining ingressgateway info ...")
 	// Test a service for a dynamic address (.status.loadBalancer.ingress[0].ip),
 	// 	if that's not present then use .spec.externalIPs[0]
-	lb_ingressgateway := findIstioIngressGatewaySvc(true)
-	for i := range lb_ingressgateway.Status.LoadBalancer.Ingress {
-		ingress := lb_ingressgateway.Status.LoadBalancer.Ingress[i]
+	lbIngressgateway := findIstioIngressGatewaySvc(true)
+	for i := range lbIngressgateway.Status.LoadBalancer.Ingress {
+		ingress := lbIngressgateway.Status.LoadBalancer.Ingress[i]
 		if ingress.Hostname != "" {
 			fmt.Println("Returning Ingress Hostname: ", ingress.Hostname)
 			return ingress.Hostname
@@ -137,22 +139,22 @@ func findIstioIngressGatewaySvc(requireLoadBalancer bool) v1.Service {
 	return ingressgateway
 }
 
-// ListCertificates lists certificates in namespace
-func ListCertificates(namespace string) (*certapiv1alpha2.CertificateList, error) {
-	certs, err := CertManagerClient().Certificates(namespace).List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not get list of certificates: %v\n", err.Error()))
-	}
-	// dump out namespace data to file
-	logData := ""
-	for i := range certs.Items {
-		logData = logData + certs.Items[i].Name + "\n"
-	}
-	CreateLogFile(fmt.Sprintf("%v-certificates", namespace), logData)
-	return certs, err
-}
+//// ListCertificates lists certificates in namespace
+//func ListCertificates(namespace string) (*certapiv1alpha2.CertificateList, error) {
+//	certs, err := CertManagerClient().Certificates(namespace).List(metav1.ListOptions{})
+//	if err != nil {
+//		ginkgo.Fail(fmt.Sprintf("Could not get list of certificates: %v\n", err.Error()))
+//	}
+//	// dump out namespace data to file
+//	logData := ""
+//	for i := range certs.Items {
+//		logData = logData + certs.Items[i].Name + "\n"
+//	}
+//	CreateLogFile(fmt.Sprintf("%v-certificates", namespace), logData)
+//	return certs, err
+//}
 
-// ListIngress lists ingresses in namespace
+// ListIngresses lists ingresses in namespace
 func ListIngresses(namespace string) (*extensionsv1beta1.IngressList, error) {
 	ingresses, err := GetKubernetesClientset().ExtensionsV1beta1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {

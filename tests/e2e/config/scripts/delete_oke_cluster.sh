@@ -5,6 +5,8 @@
 #
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
+CLUSTER_COUNT=${1:-1}
+KUBECONFIG_DIR=${2:-""}
 
 set +e
 
@@ -21,30 +23,43 @@ function delete_lb() {
   fi
 }
 
-# get LB IP
-ISTIO_IP=$(kubectl get svc istio-ingressgateway -n istio-system -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
-echo "The LB IP address for istio-ingressgateway is ${ISTIO_IP}"
-NGINX_IP=$(kubectl get svc ingress-controller-ingress-nginx-controller -n ingress-nginx -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
-echo "The LB IP address for nginx-controller is ${NGINX_IP}"
+function cleanup_vz_resources() {
+  echo "Deleting the resources created by Verrazzano ..."
+  # get LB IP
+  ISTIO_IP=$(kubectl get svc istio-ingressgateway -n istio-system -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  echo "The LB IP address for istio-ingressgateway is ${ISTIO_IP}"
+  NGINX_IP=$(kubectl get svc ingress-controller-ingress-nginx-controller -n ingress-nginx -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  echo "The LB IP address for nginx-controller is ${NGINX_IP}"
 
-# uninstalling some services to release resources
-helm uninstall keycloak --namespace keycloak --timeout 5m0s
-helm uninstall verrazzano --namespace verrazzano-system --timeout 5m0s
-helm uninstall ingress-controller --namespace ingress-nginx --timeout 5m0s
-kubectl delete service istio-ingressgateway -n istio-system --timeout 2m
-kubectl delete deployment istio-ingressgateway -n istio-system --timeout 2m
+  # uninstalling some services to release resources
+  helm uninstall keycloak --namespace keycloak --timeout 5m0s
+  helm uninstall verrazzano --namespace verrazzano-system --timeout 5m0s
+  helm uninstall ingress-controller --namespace ingress-nginx --timeout 5m0s
+  kubectl delete service istio-ingressgateway -n istio-system --timeout 2m
+  kubectl delete deployment istio-ingressgateway -n istio-system --timeout 2m
 
-# delete LB if they are deleted by deleting the services
-delete_lb "${ISTIO_IP}"
-delete_lb "${NGINX_IP}"
+  # delete LB if they are deleted by deleting the services
+  delete_lb "${ISTIO_IP}"
+  delete_lb "${NGINX_IP}"
 
-# clean up PVC
-kubectl delete pvc --all -n keycloak --timeout 2m
-# wait until OKE cleans up the deleted resources
-timeout 2m bash -c 'until kubectl get pv -A 2>&1 | grep "No resources found"; do sleep 10; done'
+  # clean up PVC
+  kubectl delete pvc --all -n keycloak --timeout 2m
+  # wait until OKE cleans up the deleted resources
+  timeout 2m bash -c 'until kubectl get pv -A 2>&1 | grep "No resources found"; do sleep 10; done'
 
-# log what still exists, just in case
-kubectl get pvc,pv,svc -A
+  # log what still exists, just in case
+  kubectl get pvc,pv,svc -A
+}
+
+for i in $(seq 1 $CLUSTER_COUNT)
+do
+  if [ "$CLUSTER_COUNT" -gt 1 ]; then
+    echo "Setting ${KUBECONFIG_DIR}/$i/kube_config to KUBECONFIG"
+    export KUBECONFIG=${KUBECONFIG_DIR}/$i/kube_config
+    export VERRAZZANO_KUBECONFIG=$KUBECONFIG
+  fi
+  cleanup_vz_resources
+done
 
 # delete the OKE cluster
 cd $SCRIPT_DIR/terraform/cluster
