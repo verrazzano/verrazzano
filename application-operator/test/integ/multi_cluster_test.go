@@ -217,16 +217,37 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject rolebinding generation", func
 
 		// expect two admin and two monitor rolebindings
 		gomega.Eventually(func() bool {
-			return K8sClient.DoesRoleBindingExist("verrazzano-project-admin", "multiclustertest")
+			return K8sClient.DoesRoleBindingContainSubject("verrazzano-project-admin", "multiclustertest", "User", "test-user")
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 		gomega.Eventually(func() bool {
-			return K8sClient.DoesRoleBindingExist("admin", "multiclustertest")
+			return K8sClient.DoesRoleBindingContainSubject("admin", "multiclustertest", "User", "test-user")
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 		gomega.Eventually(func() bool {
-			return K8sClient.DoesRoleBindingExist("verrazzano-project-monitor", "multiclustertest")
+			return K8sClient.DoesRoleBindingContainSubject("verrazzano-project-monitor", "multiclustertest", "Group", "test-viewers")
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 		gomega.Eventually(func() bool {
-			return K8sClient.DoesRoleBindingExist("view", "multiclustertest")
+			return K8sClient.DoesRoleBindingContainSubject("view", "multiclustertest", "Group", "test-viewers")
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+	})
+	ginkgo.It("Apply VerrazzanoProject and validate rolebindings are updated", func() {
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_sample.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""), "VerrazzanoProject should be created successfully")
+
+		_, stderr = util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_update_rolebindings.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""), "VerrazzanoProject should be updated successfully")
+
+		// expect two admin and two monitor rolebindings and check that the subjects were updated
+		gomega.Eventually(func() bool {
+			return K8sClient.DoesRoleBindingContainSubject("verrazzano-project-admin", "multiclustertest", "User", "test-NEW-user")
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			return K8sClient.DoesRoleBindingContainSubject("admin", "multiclustertest", "User", "test-NEW-user")
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			return K8sClient.DoesRoleBindingContainSubject("verrazzano-project-monitor", "multiclustertest", "Group", "test-NEW-viewers")
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			return K8sClient.DoesRoleBindingContainSubject("view", "multiclustertest", "Group", "test-NEW-viewers")
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 })
