@@ -38,5 +38,10 @@ prometheus:
   hub: ghcr.io/verrazzano
   tag: v2.13.1
 
+meshConfig:
+  enablePrometheusMerge: false
+  defaultConfig:
+    proxyMetadata: {}
+
 sidecarInjectorWebhook:
   rewriteAppHTTPProbe: true
