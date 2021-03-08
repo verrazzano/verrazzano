@@ -960,7 +960,7 @@ func MutateLabels(trait *vzapi.MetricsTrait, workload *unstructured.Unstructured
 	return mutated
 }
 
-// schemaScrapeTarget returns the type of scheme (https, http) to use in a scrape target
+// useHTTPSForScrapeTarget returns true if https w istio certs should be used for scrape target. Otherwise return false, use http
 func useHTTPSForScrapeTarget(ctx context.Context, c client.Client, trait *vzapi.MetricsTrait) (bool, error) {
 	if trait.Spec.WorkloadReference.Kind == "VerrazzanoCoherenceWorkload" || trait.Spec.WorkloadReference.Kind == "Coherence" {
 		return false, nil
