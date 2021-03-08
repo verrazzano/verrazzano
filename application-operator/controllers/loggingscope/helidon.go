@@ -41,7 +41,7 @@ const HelidonFluentdContainerConfigurationFormat = `<source>
   path "/var/log/containers/#{ENV['WORKLOAD_NAME']}*%s*.log"
   pos_file "/tmp/#{ENV['WORKLOAD_NAME']}-%s.log.pos"
   read_from_head true
-  tag "#{ENV['WORKLOAD_NAME']}-%s"
+  tag %s-%s"
   # Helidon application messages are expected to look like this:
   # 2020.04.22 16:09:21 INFO org.books.bobby.Main Thread[main,5,main]: http://localhost:8080/books
   <parse>
@@ -59,7 +59,7 @@ const HelidonFluentdContainerConfigurationFormat = `<source>
     </pattern>
   </parse>
 </source>
-<filter #{ENV['WORKLOAD_NAME']}-%s>
+<filter %s-%s>
   @type record_transformer
   <record>
     oam.applicationconfiguration.namespace "#{ENV['NAMESPACE']}"
@@ -70,7 +70,7 @@ const HelidonFluentdContainerConfigurationFormat = `<source>
     verrazzano.cluster.name  "#{ENV['CLUSTER_NAME']}"
   </record>
 </filter>
-<match #{ENV['WORKLOAD_NAME']}-%s>
+<match %s-%s>
   @type elasticsearch
   hosts "#{ENV['ELASTICSEARCH_URL']}"
   ca_file /fluentd/secret/ca-bundle
@@ -429,7 +429,7 @@ func (h *HelidonHandler) ensureFluentdConfigMap(ctx context.Context, namespace, 
 	helidonFluentdConfiguration := HelidonFluentdConfiguration
 	// add the container specific configuration
 	for _, containerName := range appContainersNames {
-		helidonFluentdConfiguration += fmt.Sprintf(HelidonFluentdContainerConfigurationFormat, containerName, containerName, containerName, containerName, containerName, containerName, containerName)
+		helidonFluentdConfiguration += fmt.Sprintf(HelidonFluentdContainerConfigurationFormat, containerName, containerName, workloadName, containerName, workloadName, containerName, containerName, workloadName, containerName, containerName)
 	}
 	// check if configmap exists
 	name := fluentdConfigMapName(workloadName)
