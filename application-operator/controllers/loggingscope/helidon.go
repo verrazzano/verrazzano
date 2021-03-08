@@ -4,9 +4,11 @@
 package loggingscope
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -35,13 +37,13 @@ const (
 	varLogPath         = "/var/log"
 )
 
-// HelidonFluentdContainerConfigurationFormat format for container specific FLUENTD rules for reading/parsing generic component log files
-const HelidonFluentdContainerConfigurationFormat = `<source>
+// helidonFluentdContainerConfigurationTemplate template for container specific FLUENTD rules
+const helidonFluentdContainerConfigurationTemplate = `<source>
   @type tail
-  path "/var/log/containers/#{ENV['WORKLOAD_NAME']}*%s*.log"
-  pos_file "/tmp/#{ENV['WORKLOAD_NAME']}-%s.log.pos"
+  path "/var/log/containers/#{ENV['WORKLOAD_NAME']}*{{ .ContainerName}}*.log"
+  pos_file "/tmp/#{ENV['WORKLOAD_NAME']}-{{ .ContainerName}}.log.pos"
   read_from_head true
-  tag %s-%s
+  tag {{ .WorkloadName}}-{{ .ContainerName}}
   # Helidon application messages are expected to look like this:
   # 2020.04.22 16:09:21 INFO org.books.bobby.Main Thread[main,5,main]: http://localhost:8080/books
   <parse>
@@ -49,34 +51,34 @@ const HelidonFluentdContainerConfigurationFormat = `<source>
     <pattern>
       # Docker output
       format json
-      time_format %%Y-%%m-%%dT%%H:%%M:%%S.%%NZ
+      time_format %Y-%m-%dT%H:%M:%S.%NZ
     </pattern>
     <pattern>
       # cri-o output
       format regexp
       expression /^(?<timestamp>(.*?)) (?<stream>stdout|stderr) (?<log>.*)$/
-      time_format %%Y-%%m-%%dT%%H:%%M:%%S.%%N%%:z
+      time_format %Y-%m-%dT%H:%M:%S.%N%:z
     </pattern>
   </parse>
 </source>
-<filter %s-%s>
+<filter {{ .WorkloadName}}-{{ .ContainerName}}>
   @type record_transformer
   <record>
     oam.applicationconfiguration.namespace "#{ENV['NAMESPACE']}"
     oam.applicationconfiguration.name "#{ENV['APP_CONF_NAME']}"
     oam.component.namespace "#{ENV['NAMESPACE']}"
     oam.component.name  "#{ENV['COMPONENT_NAME']}"
-    oam.container.name  "%s"
+    oam.container.name  "{{ .ContainerName}}"
     verrazzano.cluster.name  "#{ENV['CLUSTER_NAME']}"
   </record>
 </filter>
-<match %s-%s>
+<match {{ .WorkloadName}}-{{ .ContainerName}}>
   @type elasticsearch
   hosts "#{ENV['ELASTICSEARCH_URL']}"
   ca_file /fluentd/secret/ca-bundle
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
-  index_name "#{ENV['NAMESPACE']}-#{ENV['APP_CONF_NAME']}-#{ENV['COMPONENT_NAME']}-%s"
+  index_name "#{ENV['NAMESPACE']}-#{ENV['APP_CONF_NAME']}-#{ENV['COMPONENT_NAME']}-{{ .ContainerName}}"
   include_timestamp true
   flush_interval 10s
 </match>
@@ -424,23 +426,38 @@ func replicateVmiSecret(vmiSec *kcore.Secret, namespace, name string) *kcore.Sec
 	return sec
 }
 
-func (h *HelidonHandler) ensureFluentdConfigMap(ctx context.Context, namespace, workloadName string, appContainersNames []string) (err error) {
+func (h *HelidonHandler) ensureFluentdConfigMap(ctx context.Context, namespace, workloadName string, appContainersNames []string) error {
 
 	helidonFluentdConfiguration := HelidonFluentdConfiguration
 	// add the container specific configuration
 	for _, containerName := range appContainersNames {
-		helidonFluentdConfiguration += fmt.Sprintf(HelidonFluentdContainerConfigurationFormat, containerName, containerName, workloadName, containerName, workloadName, containerName, containerName, workloadName, containerName, containerName)
+		tmpl, err := template.New("fluentdContainer").Parse(helidonFluentdContainerConfigurationTemplate)
+		if err != nil {
+			return err
+		}
+
+		data := struct {
+			WorkloadName  string
+			ContainerName string
+		}{workloadName, containerName}
+
+		var buf bytes.Buffer
+		err = tmpl.Execute(&buf, data)
+		if err != nil {
+			return err
+		}
+		helidonFluentdConfiguration += buf.String()
 	}
 	// check if configmap exists
 	name := fluentdConfigMapName(workloadName)
 	configMap := &kcore.ConfigMap{}
-	err = h.Get(ctx, objKey(namespace, name), configMap)
+	err := h.Get(ctx, objKey(namespace, name), configMap)
 	if kerrs.IsNotFound(err) {
 		if err = h.Create(ctx, CreateFluentdConfigMap(namespace, name, helidonFluentdConfiguration), &client.CreateOptions{}); err != nil {
-			return
+			return err
 		}
 	}
-	return
+	return nil
 }
 
 func (h *HelidonHandler) deleteFluentdConfigMap(ctx context.Context, namespace, workloadName string) error {
