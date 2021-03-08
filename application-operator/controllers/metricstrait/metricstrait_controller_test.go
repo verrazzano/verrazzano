@@ -1670,6 +1670,238 @@ func TestMetricsTraitDeletedForCOHWorkload(t *testing.T) {
 	assert.GreaterOrEqual(result.RequeueAfter.Seconds(), 45.0)
 }
 
+// TestUseHTTPSForScrapeTargetFalseConditions tests that false is returned for the following conditions
+// GIVEN a unlabeled istio namespace or a workload of kind VerrazzanoCoherenceWorkload or a workload of kind Coherence
+// WHEN the useHttpsForScrapeTarget method is invoked
+// THEN verify that the false boolean value is returned since all those conditions require an http scrape target
+func TestUseHTTPSForScrapeTargetFalseConditions(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	mtrait := vzapi.MetricsTrait{
+		TypeMeta: k8smeta.TypeMeta{
+			Kind:       "VerrazzanoCoherenceWorkload",
+			APIVersion: "",
+		},
+		ObjectMeta: k8smeta.ObjectMeta{
+			Name:            "",
+			GenerateName:    "",
+			Namespace:       "",
+			SelfLink:        "",
+			UID:             "",
+			ResourceVersion: "",
+			Generation:      0,
+			CreationTimestamp: k8smeta.Time{
+				Time: time.Time{},
+			},
+			DeletionTimestamp: &k8smeta.Time{
+				Time: time.Time{},
+			},
+			DeletionGracePeriodSeconds: nil,
+			Labels:                     nil,
+			Annotations:                nil,
+			OwnerReferences:            nil,
+			Finalizers:                 nil,
+			ClusterName:                "",
+			ManagedFields:              nil,
+		},
+		Spec: vzapi.MetricsTraitSpec{
+			Port:    nil,
+			Path:    nil,
+			Secret:  nil,
+			Scraper: nil,
+			WorkloadReference: oamrt.TypedReference{
+				APIVersion: "",
+				Kind:       "",
+				Name:       "",
+				UID:        "",
+			},
+		},
+		Status: vzapi.MetricsTraitStatus{
+			ConditionedStatus: oamrt.ConditionedStatus{
+				Conditions: nil,
+			},
+			Resources: nil,
+		},
+	}
+
+	testNamespace := k8score.Namespace{
+		TypeMeta: k8smeta.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: "",
+		},
+		ObjectMeta: k8smeta.ObjectMeta{
+			Name:            "test-namespace",
+			GenerateName:    "",
+			Namespace:       "",
+			SelfLink:        "",
+			UID:             "",
+			ResourceVersion: "",
+			Generation:      0,
+			CreationTimestamp: k8smeta.Time{
+				Time: time.Time{},
+			},
+			DeletionTimestamp: &k8smeta.Time{
+				Time: time.Time{},
+			},
+			DeletionGracePeriodSeconds: nil,
+			Labels:                     nil,
+			Annotations:                nil,
+			OwnerReferences:            nil,
+			Finalizers:                 nil,
+			ClusterName:                "",
+			ManagedFields:              nil,
+		},
+		Spec: k8score.NamespaceSpec{
+			Finalizers: nil,
+		},
+		Status: k8score.NamespaceStatus{
+			Phase:      "",
+			Conditions: nil,
+		},
+	}
+
+	// Expect a call to get the namespace definition
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, namespace *k8score.Namespace) error {
+			namespace.TypeMeta = testNamespace.TypeMeta
+			namespace.ObjectMeta = testNamespace.ObjectMeta
+			return nil
+		})
+
+	mtrait.Spec.WorkloadReference.Kind = "VerrazzanoCoherenceWorkload"
+	https, _ := useHTTPSForScrapeTarget(nil, nil, &mtrait)
+	// Expect https to be false for scrape target of Kind VerrazzanoCoherenceWorkload
+	assert.False(https, "Expected https to be false for Workload of Kind VerrazzanoCoherenceWorkload")
+
+	mtrait.Spec.WorkloadReference.Kind = "Coherence"
+	https, _ = useHTTPSForScrapeTarget(nil, nil, &mtrait)
+	// Expect https to be false for scrape target of Kind Coherence
+	assert.False(https, "Expected https to be false for Workload of Kind Coherence")
+
+	reconciler := newMetricsTraitReconciler(mock)
+
+	mtrait.Spec.WorkloadReference.Kind = ""
+	https, _ = useHTTPSForScrapeTarget(nil, reconciler.Client, &mtrait)
+	// Expect https to be false for namespaces NOT labeled for istio-injection
+	assert.False(https, "Expected https to be false for namespace NOT labeled for istio injection")
+}
+
+// TestUseHTTPSForScrapeTargetTrueCondition tests that true is returned for namespaces marked for istio injection
+// GIVEN a labeled istio namespace
+// WHEN the useHttpsForScrapeTarget method is invoked
+// THEN verify that the true boolean value is returned since pods in istio namespaces require an https scrape target because of MTLS
+func TestUseHTTPSForScrapeTargetTrueCondition(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	mtrait := vzapi.MetricsTrait{
+		TypeMeta: k8smeta.TypeMeta{
+			Kind:       "",
+			APIVersion: "",
+		},
+		ObjectMeta: k8smeta.ObjectMeta{
+			Name:            "",
+			GenerateName:    "",
+			Namespace:       "",
+			SelfLink:        "",
+			UID:             "",
+			ResourceVersion: "",
+			Generation:      0,
+			CreationTimestamp: k8smeta.Time{
+				Time: time.Time{},
+			},
+			DeletionTimestamp: &k8smeta.Time{
+				Time: time.Time{},
+			},
+			DeletionGracePeriodSeconds: nil,
+			Labels:                     nil,
+			Annotations:                nil,
+			OwnerReferences:            nil,
+			Finalizers:                 nil,
+			ClusterName:                "",
+			ManagedFields:              nil,
+		},
+		Spec: vzapi.MetricsTraitSpec{
+			Port:    nil,
+			Path:    nil,
+			Secret:  nil,
+			Scraper: nil,
+			WorkloadReference: oamrt.TypedReference{
+				APIVersion: "",
+				Kind:       "",
+				Name:       "",
+				UID:        "",
+			},
+		},
+		Status: vzapi.MetricsTraitStatus{
+			ConditionedStatus: oamrt.ConditionedStatus{
+				Conditions: nil,
+			},
+			Resources: nil,
+		},
+	}
+
+	testNamespace := k8score.Namespace{
+		TypeMeta: k8smeta.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: "",
+		},
+		ObjectMeta: k8smeta.ObjectMeta{
+			Name:            "test-namespace",
+			GenerateName:    "",
+			Namespace:       "",
+			SelfLink:        "",
+			UID:             "",
+			ResourceVersion: "",
+			Generation:      0,
+			CreationTimestamp: k8smeta.Time{
+				Time: time.Time{},
+			},
+			DeletionTimestamp: &k8smeta.Time{
+				Time: time.Time{},
+			},
+			DeletionGracePeriodSeconds: nil,
+			Labels:                     nil,
+			Annotations:                nil,
+			OwnerReferences:            nil,
+			Finalizers:                 nil,
+			ClusterName:                "",
+			ManagedFields:              nil,
+		},
+		Spec: k8score.NamespaceSpec{
+			Finalizers: nil,
+		},
+		Status: k8score.NamespaceStatus{
+			Phase:      "",
+			Conditions: nil,
+		},
+	}
+
+	// Expect a call to get the namespace definition
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, namespace *k8score.Namespace) error {
+			namespace.TypeMeta = testNamespace.TypeMeta
+			namespace.ObjectMeta = testNamespace.ObjectMeta
+			return nil
+		})
+
+	reconciler := newMetricsTraitReconciler(mock)
+
+	labels := map[string]string{
+		"istio-injection": "enabled",
+	}
+	testNamespace.ObjectMeta.Labels = labels
+	https, _ := useHTTPSForScrapeTarget(nil, reconciler.Client, &mtrait)
+	// Expect https to be true for namespaces labeled for istio-injection
+	assert.True(https, "Expected https to be true for namespaces labeled for istio injection")
+
+}
+
 // newMetricsTraitReconciler creates a new reconciler for testing
 // cli - The Kerberos client to inject into the reconciler
 func newMetricsTraitReconciler(cli client.Client) Reconciler {
