@@ -27,61 +27,68 @@ func StartAgent(client client.Client, log logr.Logger) {
 	// Wait for the existence of the verrazzano-cluster-agent secret.  It contains the credentials
 	// for connecting to a managed cluster.
 	log.Info("Starting multi-cluster agent")
-	secret := corev1.Secret{}
-	secretResourceVersion := ""
-	mcAgentSecretFound := false
 
 	// Initialize the syncer object
 	s := &Syncer{
-		LocalClient:       client,
-		Log:               log,
-		Context:           context.TODO(),
-		ProjectNamespaces: []string{},
+		LocalClient:           client,
+		Log:                   log,
+		Context:               context.TODO(),
+		ProjectNamespaces:     []string{},
+		AgentSecretFound:      false,
+		SecretResourceVersion: "",
 	}
 
 	for {
+		// Process one iteration of the agent thread
+		s.ProcessAgentThread()
 		time.Sleep(60 * time.Second)
-
-		// Get the secret
-		err := client.Get(context.TODO(), types.NamespacedName{Name: constants.MCAgentSecret, Namespace: constants.VerrazzanoSystemNamespace}, &secret)
-		if err != nil {
-			if clusters.IgnoreNotFoundWithLog("secret", err, s.Log) == nil && mcAgentSecretFound {
-				s.Log.Info(fmt.Sprintf("the secret %s in namespace %s was deleted", constants.MCAgentSecret, constants.VerrazzanoSystemNamespace))
-				mcAgentSecretFound = false
-			}
-			continue
-		} else {
-			err := validateAgentSecret(&secret)
-			if err != nil {
-				log.Error(err, "Secret validation failed")
-				continue
-			}
-		}
-
-		// Remember the secret had been found in order to notice if it gets deleted
-		mcAgentSecretFound = true
-
-		// The cluster secret exists - log the cluster name only if it changes
-		managedClusterName := string(secret.Data[constants.ClusterNameData])
-		if managedClusterName != s.ManagedClusterName {
-			log.Info(fmt.Sprintf("Found secret named %s in namespace %s for cluster named %q", secret.Name, secret.Namespace, managedClusterName))
-			s.ManagedClusterName = managedClusterName
-		}
-
-		// Create the client for accessing the admin cluster when there is a change in the secret
-		if secret.ResourceVersion != secretResourceVersion {
-			adminClient, err := getAdminClient(&secret)
-			if err != nil {
-				log.Error(err, fmt.Sprintf("Failed to get the client for cluster %q", managedClusterName))
-				continue
-			}
-			s.AdminClient = adminClient
-			secretResourceVersion = secret.ResourceVersion
-		}
-
-		// Sync multi-cluster objects
-		s.SyncMultiClusterResources()
 	}
+}
+
+// ProcessAgentThread - process one iteration of the agent thread
+func (s *Syncer) ProcessAgentThread() {
+	secret := corev1.Secret{}
+
+	// Get the secret
+	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCAgentSecret, Namespace: constants.VerrazzanoSystemNamespace}, &secret)
+	if err != nil {
+		if clusters.IgnoreNotFoundWithLog("secret", err, s.Log) == nil && s.AgentSecretFound {
+			s.Log.Info(fmt.Sprintf("the secret %s in namespace %s was deleted", constants.MCAgentSecret, constants.VerrazzanoSystemNamespace))
+			s.AgentSecretFound = false
+		}
+		return
+	} else {
+		err := validateAgentSecret(&secret)
+		if err != nil {
+			s.Log.Error(err, "Secret validation failed")
+			return
+		}
+	}
+
+	// Remember the secret had been found in order to notice if it gets deleted
+	s.AgentSecretFound = true
+
+	// The cluster secret exists - log the cluster name only if it changes
+	managedClusterName := string(secret.Data[constants.ClusterNameData])
+	if managedClusterName != s.ManagedClusterName {
+		s.Log.Info(fmt.Sprintf("Found secret named %s in namespace %s for cluster named %q", secret.Name, secret.Namespace, managedClusterName))
+		s.ManagedClusterName = managedClusterName
+	}
+
+	// Create the client for accessing the admin cluster when there is a change in the secret
+	if secret.ResourceVersion != s.SecretResourceVersion {
+		adminClient, err := getAdminClient(&secret)
+		if err != nil {
+			s.Log.Error(err, fmt.Sprintf("Failed to get the client for cluster %q", managedClusterName))
+			return
+		}
+		s.AdminClient = adminClient
+		s.SecretResourceVersion = secret.ResourceVersion
+	}
+
+	// Sync multi-cluster objects
+	s.SyncMultiClusterResources()
+
 }
 
 // SyncMultiClusterResources - sync multi-cluster objects
