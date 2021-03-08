@@ -402,23 +402,20 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 
 	// Set the spec content.
 	gateway.Spec.Selector = map[string]string{"istio": "ingressgateway"}
-	gateway.Spec.Servers = []*istionet.Server{{
-		Hosts: hosts,
-		Port: &istionet.Port{
-			Name:     "https",
-			Number:   443,
-			Protocol: "HTTPS"},
-		Tls: &istionet.ServerTLSSettings{
-			Mode:           istionet.ServerTLSSettings_SIMPLE,
-			CredentialName: secretName,
-		}},
+	gateway.Spec.Servers = []*istionet.Server{
 		{
 			Hosts: hosts,
 			Port: &istionet.Port{
-				Name:     "http",
-				Number:   80,
-				Protocol: "HTTP"},
-		}}
+				Name:     "https",
+				Number:   443,
+				Protocol: "HTTPS",
+			},
+			Tls: &istionet.ServerTLSSettings{
+				Mode:           istionet.ServerTLSSettings_SIMPLE,
+				CredentialName: secretName,
+			},
+		},
+	}
 	// Set the owner reference.
 	appName, ok := trait.Labels[oam.LabelAppName]
 	if ok {
