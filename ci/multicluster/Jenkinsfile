@@ -315,7 +315,6 @@ pipeline {
             //}
         }
         always {
-
             script {
                 if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                     int clusterCount = params.TOTAL_CLUSTERS.toInteger() {
@@ -406,7 +405,7 @@ def dumpVerrazzanoSystemPods(count) {
     """
 }
 
-def dumpCattleSystemPods(clusterCount) {
+def dumpCattleSystemPods(count) {
     sh """
         export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
         LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
@@ -418,7 +417,7 @@ def dumpCattleSystemPods(clusterCount) {
     """
 }
 
-def dumpNginxIngressControllerLogs(clusterCount) {
+def dumpNginxIngressControllerLogs(count) {
     sh """
         export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
         LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
@@ -428,7 +427,7 @@ def dumpNginxIngressControllerLogs(clusterCount) {
     """
 }
 
-def dumpVerrazzanoPlatformOperatorLogs(clusterCount) {
+def dumpVerrazzanoPlatformOperatorLogs(count) {
     sh """
         ## dump out verrazzano-platform-operator logs
         export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
@@ -442,7 +441,7 @@ def dumpVerrazzanoPlatformOperatorLogs(clusterCount) {
     """
 }
 
-def dumpVerrazzanoApplicationOperatorLogs(clusterCount) {
+def dumpVerrazzanoApplicationOperatorLogs(count) {
     sh """
         ## dump out verrazzano-application-operator logs
         export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
@@ -456,7 +455,7 @@ def dumpVerrazzanoApplicationOperatorLogs(clusterCount) {
     """
 }
 
-def dumpOamKubernetesRuntimeLogs(clusterCount) {
+def dumpOamKubernetesRuntimeLogs(count) {
     sh """
         ## dump out oam-kubernetes-runtime logs
         export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
@@ -470,7 +469,7 @@ def dumpOamKubernetesRuntimeLogs(clusterCount) {
     """
 }
 
-def dumpVerrazzanoApiLogs(clusterCount) {
+def dumpVerrazzanoApiLogs(count) {
     sh """
         export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
         LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
