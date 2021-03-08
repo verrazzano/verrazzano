@@ -1,0 +1,12 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: oam.verrazzano.io/v1alpha1
+kind: LoggingScope
+metadata:
+  name: logging-scope
+  namespace: helidon-logging
+spec:
+  fluentdImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-20201016214205-7f37ac6
+  elasticSearchURL: http://vmi-system-es-ingest.verrazzano-system.svc.cluster.local:9200
+  secretName: verrazzano
+  workloadRefs: []

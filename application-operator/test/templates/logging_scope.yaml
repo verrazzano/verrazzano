@@ -6,9 +6,8 @@ metadata:
   name: ##SCOPE_NAME##
   namespace: ##SCOPE_NAMESPACE##
 spec:
-  elasticSearchHost: ##INJEST_HOST##
-  elasticSearchPort: ##INJEST_PORT##
-  secretName: ##INJEST_SECRET_NAME##
+  elasticSearchURL: ##INGEST_URL##
+  secretName: ##INGEST_SECRET_NAME##
   fluentdImage: ##FLUENTD_IMAGE##
   workloadRefs:
     - apiVersion: ##WORKLOAD_APIVER##
