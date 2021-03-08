@@ -78,8 +78,8 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 	// THEN the application endpoint must be accessible
 	ginkgo.Describe("Verify Hello Helidon app is working.", func() {
 		ginkgo.It("Access /greet App Url.", func() {
-			ingress := pkg.Ingress()
-			url := fmt.Sprintf("https://%s/greet", ingress)
+			host := pkg.GetHostnameFromGateway(testNamespace, "")
+			url := fmt.Sprintf("https://%s/greet", host)
 			isEndpointAccessible := func() bool {
 				return appEndpointAccessible(url)
 			}

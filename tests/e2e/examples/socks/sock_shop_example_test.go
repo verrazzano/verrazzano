@@ -153,9 +153,8 @@ var _ = Describe("Sock Shop Application", func() {
 
 	It("Verify '/catalogue' UI endpoint is working.", func() {
 		Eventually(func() bool {
-			ipAddress := pkg.Ingress()
-			url := fmt.Sprintf("https://%s/catalogue", ipAddress)
 			host := sockShop.GetHostHeader()
+			url := fmt.Sprintf("https://%s/catalogue", host)
 			status, content := pkg.GetWebPageWithCABundle(url, host)
 			return Expect(status).To(Equal(200)) &&
 				Expect(content).To(ContainSubstring("For all those leg lovers out there."))

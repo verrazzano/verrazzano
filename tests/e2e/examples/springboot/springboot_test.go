@@ -90,10 +90,8 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 	// THEN the application endpoint must be accessible
 	ginkgo.It("Verify welcome page of Spring Boot application is working.", func() {
 		gomega.Eventually(func() bool {
-			ingress := pkg.Ingress()
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-			url := fmt.Sprintf("https://%s/", ingress)
 			host := pkg.GetHostnameFromGateway(testNamespace, "")
+			url := fmt.Sprintf("https://%s/", host)
 			status, content := pkg.GetWebPageWithCABundle(url, host)
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
 				gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
@@ -102,9 +100,8 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 
 	ginkgo.It("Verify Verrazzano facts endpoint is working.", func() {
 		gomega.Eventually(func() bool {
-			ingress := pkg.Ingress()
-			url := fmt.Sprintf("https://%s/facts", ingress)
 			host := pkg.GetHostnameFromGateway(testNamespace, "")
+			url := fmt.Sprintf("https://%s/facts", host)
 			status, content := pkg.GetWebPageWithCABundle(url, host)
 			gomega.Expect(len(content) > 0, fmt.Sprintf("An empty string returned from /facts endpoint %v", content))
 			return gomega.Expect(status).To(gomega.Equal(200))
