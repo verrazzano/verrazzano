@@ -273,7 +273,7 @@ func UpdateStatus(metadata metav1.ObjectMeta, mcStatus *clustersv1alpha1.MultiCl
 		UpdateClusterLevelStatus(mcStatus, clusterLevelStatus)
 		mcStatus.State = ComputeEffectiveState(*mcStatus, placement)
 		err := updateFunc()
-		if err != nil {
+		if err == nil {
 			// put the status update itself on the agent channel. TODO may need to do a deep copy for the cross-thread dereferencing to work
 			// note that the send will block if the channel buffer is full
 			msg := StatusUpdateMessage{
