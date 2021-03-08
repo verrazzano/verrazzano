@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	rbacv1 "k8s.io/api/rbac/v1"
+
 	"github.com/onsi/ginkgo"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vmoclient "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
@@ -91,7 +93,7 @@ func DoesCRDExist(crdName string) bool {
 
 // DoesNamespaceExist returns whether a namespace with the given name exists for the cluster
 func DoesNamespaceExist(name string) bool {
-	// Get the kubernetes clientset
+	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 
 	namespace, err := clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
@@ -104,7 +106,7 @@ func DoesNamespaceExist(name string) bool {
 
 // ListNamespaces returns whether a namespace with the given name exists for the cluster
 func ListNamespaces() *corev1.NamespaceList {
-	// Get the kubernetes clientset
+	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 
 	namespaces, err := clientset.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
@@ -117,7 +119,7 @@ func ListNamespaces() *corev1.NamespaceList {
 
 // DoesJobExist returns whether a job with the given name and namespace exists for the cluster
 func DoesJobExist(namespace string, name string) bool {
-	// Get the kubernetes clientset
+	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 
 	job, err := clientset.BatchV1().Jobs(namespace).Get(context.TODO(), name, metav1.GetOptions{})
@@ -130,7 +132,7 @@ func DoesJobExist(namespace string, name string) bool {
 
 // ListDeployments returns the list of deployments in a given namespace for the cluster
 func ListDeployments(namespace string) *appsv1.DeploymentList {
-	// Get the kubernetes clientset
+	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 
 	deployments, err := clientset.AppsV1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{})
@@ -142,7 +144,7 @@ func ListDeployments(namespace string) *appsv1.DeploymentList {
 
 // ListNodes returns the list of nodes for the cluster
 func ListNodes() *corev1.NodeList {
-	// Get the kubernetes clientset
+	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 
 	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
@@ -154,7 +156,7 @@ func ListNodes() *corev1.NodeList {
 
 // ListPods returns the list of pods in a given namespace for the cluster
 func ListPods(namespace string) *corev1.PodList {
-	// Get the kubernetes clientset
+	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 
 	pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
@@ -166,7 +168,7 @@ func ListPods(namespace string) *corev1.PodList {
 
 // GetVerrazzanoMonitoringInstance returns the a Verrazzano monitoring instance in a given namespace for the cluster
 func GetVerrazzanoMonitoringInstance(namespace string, name string) (*vmov1.VerrazzanoMonitoringInstance, error) {
-	// Get the kubernetes clientset
+	// Get the Kubernetes clientset
 	clientset := GetVMOClientset()
 
 	vmi, err := clientset.VerrazzanoV1().VerrazzanoMonitoringInstances(namespace).Get(context.TODO(), name, metav1.GetOptions{})
@@ -255,7 +257,7 @@ func APIExtensionsClientSet() *apixv1beta1client.ApiextensionsV1beta1Client {
 
 // ListServices returns the list of services in a given namespace for the cluster
 func ListServices(namespace string) *corev1.ServiceList {
-	// Get the kubernetes clientset
+	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 
 	services, err := clientset.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{})
@@ -282,7 +284,7 @@ func GetService(namespace string, name string) *corev1.Service {
 
 // GetNamespace returns a namespace
 func GetNamespace(name string) (*corev1.Namespace, error) {
-	// Get the kubernetes clientset
+	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 
 	return clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
@@ -304,7 +306,7 @@ func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, 
 		return nil, fmt.Errorf("CreateNamespace %s, test is running with custom service account and namespace must be pre-created", name)
 	}
 
-	// Get the kubernetes clientset
+	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 
 	namespace := &corev1.Namespace{
@@ -329,7 +331,7 @@ func DeleteNamespace(name string) error {
 		return nil
 	}
 
-	// Get the kubernetes clientset
+	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
 	err := clientset.CoreV1().Namespaces().Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {
@@ -337,6 +339,58 @@ func DeleteNamespace(name string) error {
 	}
 
 	return err
+}
+
+// DoesClusterRoleExist returns whether a cluster role with the given name exists in the cluster
+func DoesClusterRoleExist(name string) bool {
+	// Get the Kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	clusterrole, err := clientset.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get cluster role %s with error: %v", name, err))
+	}
+
+	return clusterrole != nil
+}
+
+// GetClusterRole returns the cluster role with the given name
+func GetClusterRole(name string) *rbacv1.ClusterRole {
+	// Get the Kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	clusterrole, err := clientset.RbacV1().ClusterRoles().Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get cluster role %s with error: %v", name, err))
+	}
+
+	return clusterrole
+}
+
+// DoesClusterRoleBindingExist returns whether a cluster role with the given name exists in the cluster
+func DoesClusterRoleBindingExist(name string) bool {
+	// Get the Kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	clusterrolebinding, err := clientset.RbacV1().ClusterRoleBindings().Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get cluster role binding %s with error: %v", name, err))
+	}
+
+	return clusterrolebinding != nil
+}
+
+// GetClusterRoleBinding returns the cluster role with the given name
+func GetClusterRoleBinding(name string) *rbacv1.ClusterRoleBinding {
+	// Get the Kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	crb, err := clientset.RbacV1().ClusterRoleBindings().Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get cluster role binding %s with error: %v", name, err))
+	}
+
+	return crb
 }
 
 // GetIstioClientset returns the clientset object for Istio
