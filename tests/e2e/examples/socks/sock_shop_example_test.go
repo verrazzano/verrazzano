@@ -154,7 +154,7 @@ var _ = Describe("Sock Shop Application", func() {
 	It("Verify '/catalogue' UI endpoint is working.", func() {
 		Eventually(func() bool {
 			ipAddress := pkg.Ingress()
-			url := fmt.Sprintf("http://%s/catalogue", ipAddress)
+			url := fmt.Sprintf("https://%s/catalogue", ipAddress)
 			host := sockShop.GetHostHeader()
 			status, content := pkg.GetWebPageWithCABundle(url, host)
 			return Expect(status).To(Equal(200)) &&
@@ -213,7 +213,7 @@ func isSockShopServiceReady(name string) bool {
 // login logs in to the sockshop application
 func login(username string, password string) []*http.Cookie {
 	ingress := pkg.Ingress()
-	url := fmt.Sprintf("http://%v/login", ingress)
+	url := fmt.Sprintf("https://%v/login", ingress)
 	httpClient := retryablehttp.NewClient()
 	req, _ := retryablehttp.NewRequest("GET", url, nil)
 	req.SetBasicAuth(username, password)

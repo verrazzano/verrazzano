@@ -102,7 +102,7 @@ func (s *SockShop) Delete(url string) (int, string) {
 // RegisterUser interacts with sock shop to create a user
 func (s *SockShop) RegisterUser(body string) {
 	ingress := s.Ingress
-	url := fmt.Sprintf("http://%v/register", ingress)
+	url := fmt.Sprintf("https://%v/register", ingress)
 	status, register := pkg.PostWithHostHeader(url, "application/json", s.hostHeader, strings.NewReader(body))
 	pkg.Log(Info, fmt.Sprintf("Finished register %v status: %v", register, status))
 	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", ingress, status))
@@ -114,7 +114,7 @@ func (s *SockShop) ConnectToCatalog() string {
 	// connect to catalog
 	ingress := s.Ingress
 	pkg.Log(Info, fmt.Sprint("Connecting to Catalog"))
-	status, webpage := s.Get("http://" + ingress + "/catalogue")
+	status, webpage := s.Get("https://" + ingress + "/catalogue")
 	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", ingress, status))
 	gomega.Expect(strings.Contains(webpage, "/catalogue/")).To(gomega.Equal(true), fmt.Sprintf("Webpage found is NOT the Catalog %v", webpage))
 	return webpage
@@ -132,7 +132,7 @@ func (s *SockShop) VerifyCatalogItems(webpage string) {
 func (s *SockShop) GetCatalogItem() Catalog {
 	ingress := s.Ingress
 	pkg.Log(Info, fmt.Sprint("Connecting to Catalog"))
-	status, catalog := s.Get("http://" + ingress + "/catalogue")
+	status, catalog := s.Get("https://" + ingress + "/catalogue")
 	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", ingress, status))
 	gomega.Expect(strings.Contains(catalog, "/catalogue/")).To(gomega.Equal(true), fmt.Sprintf("Webpage found is NOT the Catalog %v", catalog))
 	var catalogItems []CatalogItem
@@ -145,8 +145,8 @@ func (s *SockShop) GetCatalogItem() Catalog {
 // AddToCart adds an item to the cart
 func (s *SockShop) AddToCart(item CatalogItem) {
 	ingress := s.Ingress
-	//cartURL := fmt.Sprintf("http://%v/cart", ingress)
-	cartURL := fmt.Sprintf("http://%v/carts/%v/items", ingress, s.username)
+	//cartURL := fmt.Sprintf("https://%v/cart", ingress)
+	cartURL := fmt.Sprintf("https://%v/carts/%v/items", ingress, s.username)
 	cartBody := fmt.Sprintf(`{"itemId": "%v","unitPrice": "%v"}`, item.ID, item.Price)
 	status, _ := s.Post(cartURL, "application/json", strings.NewReader(cartBody))
 	pkg.Log(Info, fmt.Sprintf("Finished adding to cart %v status: %v", cartBody, status))
@@ -156,7 +156,7 @@ func (s *SockShop) AddToCart(item CatalogItem) {
 // CheckCart makes sure that the added item in the cart is present
 func (s *SockShop) CheckCart(item CatalogItem, quantity int) {
 	ingress := s.Ingress
-	cartURL := fmt.Sprintf("http://%v/carts/%v/items", ingress, s.username)
+	cartURL := fmt.Sprintf("https://%v/carts/%v/items", ingress, s.username)
 	status, cart := s.Get(cartURL)
 	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("GET %v failed with status %v", cartURL, status))
 	pkg.Log(Info, fmt.Sprintf("Retreived cart: %v", cart))
@@ -177,7 +177,7 @@ func (s *SockShop) CheckCart(item CatalogItem, quantity int) {
 func (s *SockShop) GetCartItems() []CartItem {
 	ingress := s.Ingress
 	pkg.Log(Info, fmt.Sprint("Gathering cart items"))
-	cartURL := fmt.Sprintf("http://%v/carts/%v/items", ingress, s.username)
+	cartURL := fmt.Sprintf("https://%v/carts/%v/items", ingress, s.username)
 	status, toDelCart := s.Get(cartURL)
 
 	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", cartURL, status))
@@ -189,7 +189,7 @@ func (s *SockShop) GetCartItems() []CartItem {
 // DeleteCartItems deletes all cart items
 func (s *SockShop) DeleteCartItems(items []CartItem) {
 	ingress := s.Ingress
-	cartURL := fmt.Sprintf("http://%v/carts/%v/items", ingress, s.username)
+	cartURL := fmt.Sprintf("https://%v/carts/%v/items", ingress, s.username)
 	pkg.Log(Info, fmt.Sprintf("Deleting cart items: %v", items))
 	for _, item := range items {
 		status, cartDel := s.Delete(cartURL + "/" + item.ItemID)
@@ -200,7 +200,7 @@ func (s *SockShop) DeleteCartItems(items []CartItem) {
 // CheckCartEmpty checks whether the cart has no items
 func (s *SockShop) CheckCartEmpty() {
 	ingress := s.Ingress
-	cartURL := fmt.Sprintf("http://%v/carts/%v/items", ingress, s.username)
+	cartURL := fmt.Sprintf("https://%v/carts/%v/items", ingress, s.username)
 	status, cart := s.Get(cartURL)
 	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", cartURL, status))
 	var cartItems []CartItem
@@ -213,7 +213,7 @@ func (s *SockShop) AccessPath(path, expectedString string) {
 	// move to cart page
 	ingress := s.Ingress
 	pkg.Log(Info, fmt.Sprint("Moving into the cart page"))
-	basketURL := fmt.Sprintf("http://%v/%v", ingress, path)
+	basketURL := fmt.Sprintf("https://%v/%v", ingress, path)
 	status, basket := s.Get(basketURL)
 	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", basketURL, status))
 	gomega.Expect(basket).To(gomega.ContainSubstring(expectedString), fmt.Sprintf("website found is NOT the shopping cart"))
@@ -224,7 +224,7 @@ func (s *SockShop) ChangeAddress(username string) {
 	ingress := s.Ingress
 	pkg.Log(Info, fmt.Sprint("Attempting to change address to 100 Oracle Pkwy, Redwood City, CA 94065"))
 	addressData := fmt.Sprintf(`{"userID": "%v", "number":"100", "street":"Oracle Pkwy", "city":"Redwood City", "postcode":"94065", "country":"USA"}`, username)
-	addressURL := fmt.Sprintf("http://%v/addresses", ingress)
+	addressURL := fmt.Sprintf("https://%v/addresses", ingress)
 	status, address := s.Post(addressURL, "application/json", strings.NewReader(addressData))
 	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("POST %v returns status %v expected 200", addressURL, status))
 	var addressID *ID
@@ -246,7 +246,7 @@ func (s *SockShop) ChangePayment() {
 
 	cardData := fmt.Sprintf(`{"userID": "%v", "longNum":"00001111222223333", "expires":"01/23", "ccv":"123"}`, s.username)
 
-	cardURL := fmt.Sprintf("http://%v/cards", ingress)
+	cardURL := fmt.Sprintf("https://%v/cards", ingress)
 	status, card := s.Post(cardURL, "application/json", strings.NewReader(cardData))
 	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("POST %v returns status %v expected 200", cardURL, status))
 	pkg.Log(Info, fmt.Sprintf("Card with ID: %v has been implemented", card))
@@ -256,7 +256,7 @@ func (s *SockShop) ChangePayment() {
 func (s *SockShop) GetOrders() {
 	ingress := s.Ingress
 	pkg.Log(Info, fmt.Sprint("Attempting to locate orders"))
-	ordersURL := fmt.Sprintf("http://%v/orders", ingress)
+	ordersURL := fmt.Sprintf("https://%v/orders", ingress)
 	status, orders := s.Get(ordersURL)
 	gomega.Expect(status).To(gomega.Equal(201), fmt.Sprintf("Get %v returns status %v expected 201", ordersURL, status))
 	pkg.Log(Info, fmt.Sprintf("Orders: %v have been retrieved", orders))

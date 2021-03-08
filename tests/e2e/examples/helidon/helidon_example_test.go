@@ -79,7 +79,7 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 	ginkgo.Describe("Verify Hello Helidon app is working.", func() {
 		ginkgo.It("Access /greet App Url.", func() {
 			ingress := pkg.Ingress()
-			url := fmt.Sprintf("http://%s/greet", ingress)
+			url := fmt.Sprintf("https://%s/greet", ingress)
 			isEndpointAccessible := func() bool {
 				return appEndpointAccessible(url)
 			}

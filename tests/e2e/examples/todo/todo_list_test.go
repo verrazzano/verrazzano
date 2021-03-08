@@ -119,7 +119,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 				ingress := pkg.Ingress()
 				pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
 				host := pkg.GetHostnameFromGateway("todo-list", "")
-				url := fmt.Sprintf("http://%s/todo/", ingress)
+				url := fmt.Sprintf("https://%s/todo/", ingress)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
 					Status:  status,
@@ -138,7 +138,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 			task := fmt.Sprintf("test-task-%s", time.Now().Format("20060102150405.0000"))
 			host := pkg.GetHostnameFromGateway("todo-list", "")
 			gomega.Eventually(func() pkg.WebResponse {
-				url := fmt.Sprintf("http://%s/todo/rest/items", ingress)
+				url := fmt.Sprintf("https://%s/todo/rest/items", ingress)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
 					Status:  status,
@@ -146,7 +146,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 				}
 			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HaveStatus(200), pkg.ContainContent("[")))
 			gomega.Eventually(func() pkg.WebResponse {
-				url := fmt.Sprintf("http://%s/todo/rest/item/%s", ingress, task)
+				url := fmt.Sprintf("https://%s/todo/rest/item/%s", ingress, task)
 				status, content := pkg.PutWithHostHeader(url, "application/json", host, nil)
 				return pkg.WebResponse{
 					Status:  status,
@@ -154,7 +154,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 				}
 			}, shortWaitTimeout, shortPollingInterval).Should(pkg.HaveStatus(204))
 			gomega.Eventually(func() pkg.WebResponse {
-				url := fmt.Sprintf("http://%s/todo/rest/items", ingress)
+				url := fmt.Sprintf("https://%s/todo/rest/items", ingress)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
 					Status:  status,
