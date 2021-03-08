@@ -55,11 +55,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, client.IgnoreNotFound(err)
 	}
 
-	err = r.createOrUpdateNamespaces(ctx, &vp, logger)
+	err = r.createOrUpdateNamespaces(ctx, vp, logger)
 	return result, err
 }
 
-func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp *clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
+func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
 	if vp.Namespace == constants.VerrazzanoMultiClusterNamespace {
 		for _, nsTemplate := range vp.Spec.Template.Namespaces {
 			logger.Info("create or update with underlying namespace", "namespace", nsTemplate.Metadata.Name)
@@ -103,18 +103,18 @@ func (r *Reconciler) mutateNamespace(nsTemplate clustersv1alpha1.NamespaceTempla
 
 // createOrUpdateRoleBindings creates project role bindings if there are security subjects specified in
 // the project spec
-func (r *Reconciler) createOrUpdateRoleBindings(ctx context.Context, namespace string, vp *clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
+func (r *Reconciler) createOrUpdateRoleBindings(ctx context.Context, namespace string, vp clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
 	logger.Info("Create or update role bindings", "namespace", namespace)
 
 	// if there are any project admin subjects, create two role bindings, one for the project admin role and
 	// one for the k8s admin role
 	if len(vp.Spec.Template.Security.ProjectAdminSubjects) > 0 {
 		rb := newRoleBinding(namespace, projectAdminRole, vp.Spec.Template.Security.ProjectAdminSubjects)
-		if err := r.createOrUpdateRoleBinding(ctx, rb, vp, logger); err != nil {
+		if err := r.createOrUpdateRoleBinding(ctx, rb, logger); err != nil {
 			return err
 		}
 		rb = newRoleBinding(namespace, projectAdminK8sRole, vp.Spec.Template.Security.ProjectAdminSubjects)
-		if err := r.createOrUpdateRoleBinding(ctx, rb, vp, logger); err != nil {
+		if err := r.createOrUpdateRoleBinding(ctx, rb, logger); err != nil {
 			return err
 		}
 	}
@@ -122,11 +122,11 @@ func (r *Reconciler) createOrUpdateRoleBindings(ctx context.Context, namespace s
 	// one for the k8s monitor role
 	if len(vp.Spec.Template.Security.ProjectMonitorSubjects) > 0 {
 		rb := newRoleBinding(namespace, projectMonitorRole, vp.Spec.Template.Security.ProjectMonitorSubjects)
-		if err := r.createOrUpdateRoleBinding(ctx, rb, vp, logger); err != nil {
+		if err := r.createOrUpdateRoleBinding(ctx, rb, logger); err != nil {
 			return err
 		}
 		rb = newRoleBinding(namespace, projectMonitorK8sRole, vp.Spec.Template.Security.ProjectMonitorSubjects)
-		if err := r.createOrUpdateRoleBinding(ctx, rb, vp, logger); err != nil {
+		if err := r.createOrUpdateRoleBinding(ctx, rb, logger); err != nil {
 			return err
 		}
 	}
@@ -135,7 +135,7 @@ func (r *Reconciler) createOrUpdateRoleBindings(ctx context.Context, namespace s
 }
 
 // createOrUpdateRoleBinding creates or updates a role binding
-func (r *Reconciler) createOrUpdateRoleBinding(ctx context.Context, roleBinding *rbacv1.RoleBinding, vp *clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
+func (r *Reconciler) createOrUpdateRoleBinding(ctx context.Context, roleBinding *rbacv1.RoleBinding, logger logr.Logger) error {
 	logger.Info("Create or update role binding", "roleName", roleBinding.ObjectMeta.Name)
 
 	// deep copy the rolebinding so we can use the data in the mutate function
