@@ -41,6 +41,9 @@ ifndef RELEASE_BRANCH
 	RELEASE_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 endif
 
+export KUBECONFIG=${HOME}/.kube/vpo-integ-config
+export VERRAZZANO_KUBECONFIG=${HOME}/.kube/vpo-integ-config
+
 DIST_DIR:=dist
 K8S_NAMESPACE:=default
 WATCH_NAMESPACE:=
@@ -53,7 +56,7 @@ GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.b
 CRD_PATH=config/crd/bases
 CODEGEN_PATH = k8s.io/code-generator
 
-# Run against the configured Kubernetes cluster in ~/.kube/config
+# Run against the configured Kubernetes cluster specified by KUBECONFIG
 .PHONY: run
 run:
 	$(GO) run main.go --kubeconfig=${KUBECONFIG} --zap-log-level=debug
