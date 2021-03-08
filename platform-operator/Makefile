@@ -41,8 +41,10 @@ ifndef RELEASE_BRANCH
 	RELEASE_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 endif
 
+ifdef JENKINS_URL
 export KUBECONFIG=${HOME}/.kube/vpo-integ-config
 export VERRAZZANO_KUBECONFIG=${HOME}/.kube/vpo-integ-config
+endif
 
 DIST_DIR:=dist
 K8S_NAMESPACE:=default
@@ -189,6 +191,22 @@ else
 		--wait 5m \
 		--config=test/kind-config.yaml
 	kubectl config set-context kind-${CLUSTER_NAME}
+endif
+
+.PHONY: create-cluster-for-at
+create-cluster-for-at:
+ifdef JENKINS_URL
+	export CLUSTER_NAME=at-tests
+	export KUBECONFIG=${HOME}/.kube/at-tests-config
+	export VERRAZZANO_KUBECONFIG=${HOME}/.kube/at-tests-config
+	echo "Jenkins has pre-created at-tests cluster ready to use for AT tests"
+	mkdir ${HOME}/.kube/ || true
+	kind get kubeconfig --name=${CLUSTER_NAME} > ${KUBECONFIG}
+	# Get the ip address of the container running the kube apiserver
+	# and update the kubeconfig file to point to that address, instead of localhost
+	sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
+	cat ${KUBECONFIG} | grep server
+	docker network connect kind $$(docker ps | grep "jenkins-runner" | awk '{ print $$1 }') || true
 endif
 
 .PHONY: delete-cluster

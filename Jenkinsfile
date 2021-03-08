@@ -45,7 +45,7 @@ pipeline {
         GITHUB_RELEASE_EMAIL = credentials('github-email-release')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
-        CLUSTER_NAME = 'verrazzano'
+        CLUSTER_NAME = 'at-tests'
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
@@ -318,7 +318,7 @@ pipeline {
                             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
                             echo "Create Kind cluster"
                             cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                            make create-cluster
+                            make create-cluster-for-at
 
                             echo "Install metallb"
                             cd ${GO_REPO_PATH}/verrazzano
