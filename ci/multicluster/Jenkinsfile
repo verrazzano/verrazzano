@@ -69,6 +69,7 @@ pipeline {
 
         CLUSTER_NAME_PREFIX = 'verrazzano'
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
+        POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
         KUBECONFIG_DIR = "${WORKSPACE}/kubeconfig"
 
         OCR_CREDS = credentials('ocr-pull-and-push-account')
@@ -223,6 +224,43 @@ pipeline {
                         }
                     }
                 }
+
+                stage("Configure OCI DNS") {
+                    when { expression { return params.TEST_ENV == 'ocidns_oke' } }
+                    stages {
+                        stage('Create dns zone') {
+                            steps {
+                                script {
+                                    dns_zone_ocid = sh(script: "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId}", returnStdout: true)
+                                }
+                            }
+                        }
+                        stage('Configure Install profile') {
+                              environment {
+                                OCI_DNS_COMPARTMENT_OCID = credentials('oci-dns-compartment')
+                                OCI_PRIVATE_KEY_FILE = credentials('oci-api-key')
+                                OCI_DNS_ZONE_OCID = "${dns_zone_ocid}"
+                            }
+                            steps {
+                                script {
+                                    sh """
+                                        export PATH=${HOME}/go/bin:${PATH}
+                                        cd ${GO_REPO_PATH}/verrazzano
+                                        ./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $INSTALL_CONFIG_FILE_OCIDNS
+                                    """
+                                    int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                                    for(int count=1; count<=clusterCount; count++) {
+                                        sh """
+                                            export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+                                            cd ${GO_REPO_PATH}/verrazzano
+                                            ./tests/e2e/config/scripts/create-test-oci-config-secret.sh
+                                        """
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 stage ('Verify Multi-cluster installation') {
                     steps {
                         runGinkgoRandomize('multicluster/verify-install')
@@ -278,8 +316,18 @@ pipeline {
             //}
         }
         always {
+            script {
+                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                    dumpVerrazzanoSystemPods()
+                    dumpCattleSystemPods()
+                    dumpNginxIngressControllerLogs()
+                    dumpVerrazzanoPlatformOperatorLogs()
+                    dumpVerrazzanoApplicationOperatorLogs()
+                    dumpOamKubernetesRuntimeLogs()
+                    dumpVerrazzanoApiLogs()
+                }
+            }
             archiveArtifacts artifacts: '**/kube_config,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             script {
                 int clusterCount = params.TOTAL_CLUSTERS.toInteger()
@@ -295,10 +343,20 @@ pipeline {
                 } else {
                     sh """
                         mkdir -p ${KUBECONFIG_DIR}
+                        if [ "${TEST_ENV}" == "ocidns_oke" ]; then
+                          cd ${GO_REPO_PATH}/verrazzano
+                          ./tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
+                        fi
                         cd ${TEST_SCRIPTS_DIR}
                         TF_VAR_label_prefix=multicluster-${env.BUILD_NUMBER} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}"
                     """
                 }
+                sh """
+                    if [ -f ${POST_DUMP_FAILED_FILE} ]; then
+                        echo "Failures seen during dumping of artifacts, treat post as failed"
+                        exit 1
+                    fi
+                """
             }
         }
         cleanup {
@@ -329,6 +387,131 @@ def dumpK8sCluster(dumpDirectory) {
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}-${count}
+            """
+        }
+    }
+}
+
+def dumpVerrazzanoSystemPods() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=1; count<=clusterCount; count++) {
+            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            sh """
+                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+                mkdir -p ${LOG_DIR}
+                export DIAGNOSTIC_LOG="${LOG_DIR}/verrazzano-system-pods.log"
+                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                export DIAGNOSTIC_LOG="${LOG_DIR}/verrazzano-system-certs.log"
+                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                export DIAGNOSTIC_LOG="${LOG_DIR}/verrazzano-system-kibana.log"
+                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                export DIAGNOSTIC_LOG="${LOG_DIR}/verrazzano-system-es-master.log"
+                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
+            """
+        }
+    }
+}
+
+def dumpCattleSystemPods() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=1; count<=clusterCount; count++) {
+            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            sh """
+                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+                mkdir -p ${LOG_DIR}
+                export DIAGNOSTIC_LOG="${LOG_DIR}/cattle-system-pods.log"
+                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                export DIAGNOSTIC_LOG="${LOG_DIR}/rancher.log"
+                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+            """
+        }
+    }
+}
+
+def dumpNginxIngressControllerLogs() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=1; count<=clusterCount; count++) {
+            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            sh """
+                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+                mkdir -p ${LOG_DIR}
+                export DIAGNOSTIC_LOG="${LOG_DIR}/nginx-ingress-controller.log"
+                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+            """
+        }
+    }
+}
+
+def dumpVerrazzanoPlatformOperatorLogs() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=1; count<=clusterCount; count++) {
+            LOG_DIR="${WORKSPACE}/verrazzano-platform-operator/logs/cluster-$count"
+            sh """
+                ## dump out verrazzano-platform-operator logs
+                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+                mkdir -p ${LOG_DIR}
+                kubectl -n verrazzano-install logs --selector=app=verrazzano-platform-operator > ${LOG_DIR}/verrazzano-platform-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${LOG_DIR}/verrazzano-platform-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                echo "verrazzano-platform-operator logs dumped to verrazzano-platform-operator-pod.log"
+                echo "verrazzano-platform-operator pod description dumped to verrazzano-platform-operator-pod.out"
+                echo "------------------------------------------"
+            """
+        }
+    }
+}
+
+def dumpVerrazzanoApplicationOperatorLogs() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=1; count<=clusterCount; count++) {
+            LOG_DIR="${WORKSPACE}/verrazzano-application-operator/logs/cluster-$count"
+            sh """
+                ## dump out verrazzano-application-operator logs
+                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+                mkdir -p ${LOG_DIR}
+                kubectl -n verrazzano-system logs --selector=app=verrazzano-application-operator > ${LOG_DIR}/verrazzano-application-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > ${LOG_DIR}/verrazzano-application-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                echo "verrazzano-application-operator logs dumped to verrazzano-application-operator-pod.log"
+                echo "verrazzano-application-operator pod description dumped to verrazzano-application-operator-pod.out"
+                echo "------------------------------------------"
+            """
+        }
+    }
+}
+
+def dumpOamKubernetesRuntimeLogs() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=1; count<=clusterCount; count++) {
+            LOG_DIR="${WORKSPACE}/oam-kubernetes-runtime/logs/cluster-$count"
+            sh """
+                ## dump out oam-kubernetes-runtime logs
+                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+                mkdir -p ${LOG_DIR}
+                kubectl -n verrazzano-system logs --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${LOG_DIR}/oam-kubernetes-runtime-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                kubectl -n verrazzano-system describe pod --selector=app.kubernetes.io/instance=oam-kubernetes-runtime > ${LOG_DIR}/oam-kubernetes-runtime-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                echo "verrazzano-application-operator logs dumped to oam-kubernetes-runtime-pod.log"
+                echo "verrazzano-application-operator pod description dumped to oam-kubernetes-runtime-pod.out"
+                echo "------------------------------------------"
+            """
+        }
+    }
+}
+
+def dumpVerrazzanoApiLogs() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=1; count<=clusterCount; count++) {
+            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            sh """
+                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+                mkdir -p ${LOG_DIR}
+                export DIAGNOSTIC_LOG="${LOG_DIR}/verrazzano-api.log"
+                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
             """
         }
     }
