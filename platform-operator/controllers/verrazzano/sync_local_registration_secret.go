@@ -56,9 +56,9 @@ func (r *Reconciler) createOrUpdateLocalRegistrationSecret(vz *installv1alpha1.V
 
 	return controllerutil.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
 		r.mutateLocalRegistrationSecret(&secret)
-		// This SetControllerReference call will trigger garbage collection i.e. the secret
-		// will automatically get deleted when the VerrazzanoManagedCluster is deleted
-		return controllerutil.SetControllerReference(vz, &secret, r.Scheme)
+		// Verrrazzano resource cannot own this secret since it is in a different namespace
+		// The secret will get deleted when verrazzano-system namespace is deleted.
+		return nil
 	})
 }
 
