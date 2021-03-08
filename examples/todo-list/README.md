@@ -88,12 +88,13 @@ The ToDo List application deployment artifacts are contained in the Verrazzano p
 
 1. Access the ToDo List example application.
    There are several ways to access it:
-   * **Using the command line**
+   * **Using the command line**:
      ```
      $ curl -sk https://${HOST}/todo/ --resolve ${HOST}:443:${ADDRESS}
      ```
      If you are using `xip.io` then you do not need to include `--resolve`.
-   * **Local testing with a browser** \
+   * **Local testing with a browser**:
+
      Temporarily, modify the `/etc/hosts` file (on Mac or Linux)
      or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10),
      to add an entry mapping the host name to the ingress gateway's `EXTERNAL-IP` address.
@@ -102,7 +103,7 @@ The ToDo List application deployment artifacts are contained in the Verrazzano p
      11.22.33.44 todo.example.com
      ```
      Then, you can access the application in a browser at `https://todo.example.com/todo`.
-   * **Using your own DNS name:**
+   * **Using your own DNS name**:
      * Point your own DNS name to the ingress gateway's `EXTERNAL-IP` address.
      * In this case, you would need to have edited the `todo-list-application.yaml` file
        to use the appropriate value under the `hosts` section (such as `yourhost.your.domain`),
