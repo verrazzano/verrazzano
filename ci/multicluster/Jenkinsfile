@@ -69,6 +69,7 @@ pipeline {
 
         CLUSTER_NAME_PREFIX = 'verrazzano'
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
+        POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
         KUBECONFIG_DIR = "${WORKSPACE}/kubeconfig"
 
         OCR_CREDS = credentials('ocr-pull-and-push-account')
@@ -350,6 +351,12 @@ pipeline {
                         TF_VAR_label_prefix=multicluster-${env.BUILD_NUMBER} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}"
                     """
                 }
+                sh """
+                    if [ -f ${POST_DUMP_FAILED_FILE} ]; then
+                        echo "Failures seen during dumping of artifacts, treat post as failed"
+                        exit 1
+                    fi
+                """
             }
         }
         cleanup {
