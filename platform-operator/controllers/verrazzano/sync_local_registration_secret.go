@@ -40,7 +40,8 @@ func (r *Reconciler) syncLocalRegistrationSecret(vz *installv1alpha1.Verrazzano)
 		return fmt.Errorf("Failed fetching the agent secret %s/%s, %v", nsn.Namespace, nsn.Name, err)
 	}
 
-	_, err = r.createOrUpdateLocalRegistrationSecret(vz, constants.MCRegistrationSecret, constants.VerrazzanoSystemNamespace)
+	// create the local registration secret
+	_, err = r.createOrUpdateLocalRegistrationSecret(vz, constants.MCLocalRegistrationSecret, constants.VerrazzanoSystemNamespace)
 	if err != nil {
 		return err
 	}
