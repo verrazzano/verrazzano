@@ -128,10 +128,8 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 		// THEN the expected returned page should contain an expected value.
 		ginkgo.It("Verify roberts-books UI endpoint is working.", func() {
 			gomega.Eventually(func() pkg.WebResponse {
-				ingress := pkg.Ingress()
-				pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-				url := fmt.Sprintf("http://%s", ingress)
 				host := pkg.GetHostnameFromGateway("bobs-books", "")
+				url := fmt.Sprintf("https://%s", host)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
 					Status:  status,
@@ -145,10 +143,8 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 		// THEN the expected returned page should contain an expected value.
 		ginkgo.It("Verify bobbys-books UI endpoint is working.", func() {
 			gomega.Eventually(func() pkg.WebResponse {
-				ingress := pkg.Ingress()
-				pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-				url := fmt.Sprintf("http://%s/bobbys-front-end/", ingress)
 				host := pkg.GetHostnameFromGateway("bobs-books", "")
+				url := fmt.Sprintf("https://%s/bobbys-front-end/", host)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
 					Status:  status,
@@ -162,10 +158,8 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 		// THEN the expected returned page should contain an expected value.
 		ginkgo.It("Verify bobs-orders UI endpoint is working.", func() {
 			gomega.Eventually(func() pkg.WebResponse {
-				ingress := pkg.Ingress()
-				pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-				url := fmt.Sprintf("http://%s/bobs-bookstore-order-manager/orders", ingress)
 				host := pkg.GetHostnameFromGateway("bobs-books", "")
+				url := fmt.Sprintf("https://%s/bobs-bookstore-order-manager/orders", host)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
 					Status:  status,
