@@ -108,7 +108,7 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 	})
 
 	ginkgo.Context("Logging.", func() {
-		indexName := "hello-helidon-hello-helidon-appconf-hello-helidon-component"
+		indexName := "hello-helidon-hello-helidon-appconf-hello-helidon-component-hello-helidon-container"
 
 		// GIVEN an application with logging enabled via a logging scope
 		// WHEN the Elasticsearch index is retrieved
