@@ -35,8 +35,8 @@ const (
 	varLogPath         = "/var/log"
 )
 
-// HelidonFluentdContainerConfiguration container specific FLUENTD rules for reading/parsing generic component log files
-const HelidonFluentdContainerConfiguration = `<source>
+// HelidonFluentdContainerConfigurationFormat format for container specific FLUENTD rules for reading/parsing generic component log files
+const HelidonFluentdContainerConfigurationFormat = `<source>
   @type tail
   path "/var/log/containers/#{ENV['WORKLOAD_NAME']}*%s*.log"
   pos_file "/tmp/#{ENV['WORKLOAD_NAME']}-%s.log.pos"
@@ -427,10 +427,10 @@ func replicateVmiSecret(vmiSec *kcore.Secret, namespace, name string) *kcore.Sec
 func (h *HelidonHandler) ensureFluentdConfigMap(ctx context.Context, namespace, workloadName string, appContainersNames []string) (err error) {
 
 	helidonFluentdConfiguration := HelidonFluentdConfiguration
+	// add the container specific configuration
 	for _, containerName := range appContainersNames {
-		helidonFluentdConfiguration += fmt.Sprintf(HelidonFluentdContainerConfiguration, containerName, containerName, containerName, containerName, containerName, containerName, containerName)
+		helidonFluentdConfiguration += fmt.Sprintf(HelidonFluentdContainerConfigurationFormat, containerName, containerName, containerName, containerName, containerName, containerName, containerName)
 	}
-
 	// check if configmap exists
 	name := fluentdConfigMapName(workloadName)
 	configMap := &kcore.ConfigMap{}

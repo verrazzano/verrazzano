@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package hello_helidon
+package helidon
 
 import (
 	"fmt"
@@ -59,7 +59,7 @@ var (
 )
 
 const (
-	testNamespace      = "helidon-logging"
+	testNamespace = "helidon-logging"
 )
 
 var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
@@ -118,7 +118,7 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 				return pkg.LogRecordFound(indexNameContainer1, time.Now().Add(-24*time.Hour), map[string]string{
 					"oam.applicationconfiguration.namespace": "hello-helidon",
 					"oam.applicationconfiguration.name":      "hello-helidon-appconf",
-				  "oam.container.name":                     "hello-helidon-container"})
+					"oam.container.name":                     "hello-helidon-container"})
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record for container hello-helidon-container")
 		})
 
@@ -147,4 +147,3 @@ func appEndpointAccessible(url string) bool {
 	gomega.Expect(strings.Contains(webpage, "Hello World")).To(gomega.Equal(true), fmt.Sprintf("Webpage is NOT Hello World %v", webpage))
 	return true
 }
-
