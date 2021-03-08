@@ -40,13 +40,16 @@ func StartAgent(client client.Client, log logr.Logger) {
 
 	for {
 		// Process one iteration of the agent thread
-		s.ProcessAgentThread()
+		err := s.ProcessAgentThread()
+		if err != nil {
+			s.Log.Error(err, "error processing multi-cluster resources")
+		}
 		time.Sleep(60 * time.Second)
 	}
 }
 
 // ProcessAgentThread - process one iteration of the agent thread
-func (s *Syncer) ProcessAgentThread() {
+func (s *Syncer) ProcessAgentThread() error {
 	secret := corev1.Secret{}
 
 	// Get the secret
@@ -56,12 +59,11 @@ func (s *Syncer) ProcessAgentThread() {
 			s.Log.Info(fmt.Sprintf("the secret %s in namespace %s was deleted", constants.MCAgentSecret, constants.VerrazzanoSystemNamespace))
 			s.AgentSecretFound = false
 		}
-		return
+		return nil
 	} else {
 		err := validateAgentSecret(&secret)
 		if err != nil {
-			s.Log.Error(err, "Secret validation failed")
-			return
+			return fmt.Errorf("secret validation failed: %v", err)
 		}
 	}
 
@@ -79,8 +81,7 @@ func (s *Syncer) ProcessAgentThread() {
 	if secret.ResourceVersion != s.SecretResourceVersion {
 		adminClient, err := getAdminClient(&secret)
 		if err != nil {
-			s.Log.Error(err, fmt.Sprintf("Failed to get the client for cluster %q", managedClusterName))
-			return
+			return fmt.Errorf("Failed to get the client for cluster %q with error %v", managedClusterName, err)
 		}
 		s.AdminClient = adminClient
 		s.SecretResourceVersion = secret.ResourceVersion
@@ -88,7 +89,7 @@ func (s *Syncer) ProcessAgentThread() {
 
 	// Sync multi-cluster objects
 	s.SyncMultiClusterResources()
-
+	return nil
 }
 
 // SyncMultiClusterResources - sync multi-cluster objects
