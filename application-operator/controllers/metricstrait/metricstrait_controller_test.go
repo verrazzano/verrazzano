@@ -1671,7 +1671,7 @@ func TestMetricsTraitDeletedForCOHWorkload(t *testing.T) {
 }
 
 // TestUseHTTPSForScrapeTargetFalseConditions tests that false is returned for the following conditions
-// GIVEN a unlabeled istio namespace or a workload of kind VerrazzanoCoherenceWorkload or a workload of kind Coherence
+// GIVEN a unlabeled Istio namespace or a workload of kind VerrazzanoCoherenceWorkload or a workload of kind Coherence
 // WHEN the useHttpsForScrapeTarget method is invoked
 // THEN verify that the false boolean value is returned since all those conditions require an http scrape target
 func TestUseHTTPSForScrapeTargetFalseConditions(t *testing.T) {
@@ -1787,12 +1787,13 @@ func TestUseHTTPSForScrapeTargetFalseConditions(t *testing.T) {
 	https, _ = useHTTPSForScrapeTarget(nil, reconciler.Client, &mtrait)
 	// Expect https to be false for namespaces NOT labeled for istio-injection
 	assert.False(https, "Expected https to be false for namespace NOT labeled for istio injection")
+	mocker.Finish()
 }
 
-// TestUseHTTPSForScrapeTargetTrueCondition tests that true is returned for namespaces marked for istio injection
-// GIVEN a labeled istio namespace
+// TestUseHTTPSForScrapeTargetTrueCondition tests that true is returned for namespaces marked for Istio injection
+// GIVEN a labeled Istio namespace
 // WHEN the useHttpsForScrapeTarget method is invoked
-// THEN verify that the true boolean value is returned since pods in istio namespaces require an https scrape target because of MTLS
+// THEN verify that the true boolean value is returned since pods in Istio namespaces require an https scrape target because of MTLS
 func TestUseHTTPSForScrapeTargetTrueCondition(t *testing.T) {
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
@@ -1898,8 +1899,8 @@ func TestUseHTTPSForScrapeTargetTrueCondition(t *testing.T) {
 	testNamespace.ObjectMeta.Labels = labels
 	https, _ := useHTTPSForScrapeTarget(nil, reconciler.Client, &mtrait)
 	// Expect https to be true for namespaces labeled for istio-injection
-	assert.True(https, "Expected https to be true for namespaces labeled for istio injection")
-
+	assert.True(https, "Expected https to be true for namespaces labeled for Istio injection")
+	mocker.Finish()
 }
 
 // newMetricsTraitReconciler creates a new reconciler for testing
