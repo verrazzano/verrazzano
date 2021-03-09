@@ -48,6 +48,7 @@ type ElasticsearchDetails struct {
 // It is defined outside the api resources package since deep-copy code generation cannot handle
 // interface types
 type MultiClusterResource interface {
+	runtime.Object
 	GetName() string
 	GetNamespace() string
 	GetStatus() clustersv1alpha1.MultiClusterResourceStatus

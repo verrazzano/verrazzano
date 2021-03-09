@@ -49,7 +49,13 @@ func (s *Syncer) processStatusUpdates() {
 		select {
 		case msg := <-s.StatusUpdateChannel:
 			s.Log.Info(fmt.Sprintf("processStatusUpdates: Received status update %s with condition type %s for %s/%s from cluster %s",
-				msg.NewClusterStatus.State, msg.NewCondition.Type, msg.ResourceNamespace, msg.ResourceName, msg.NewClusterStatus.Name))
+				msg.NewClusterStatus.State, msg.NewCondition.Type, msg.Resource.GetNamespace(), msg.Resource.GetName(), msg.NewClusterStatus.Name))
+			err := s.AdminClient.Status().Update(s.Context, msg.Resource)
+			if err != nil {
+				s.Log.Info(fmt.Sprintf("processStatusUpdates: Status Update failed for %s/%s from cluster %s: %s",
+					msg.Resource.GetNamespace(), msg.Resource.GetName(),
+					msg.NewClusterStatus.Name, err.Error()))
+			}
 		default:
 			s.Log.Info("No status updates available, exiting processStatusUpdates")
 			break
