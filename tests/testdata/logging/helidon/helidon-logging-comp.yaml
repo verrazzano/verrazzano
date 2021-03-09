@@ -1,0 +1,29 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: hello-helidon-component
+  namespace: helidon-logging
+spec:
+  workload:
+    apiVersion: core.oam.dev/v1alpha2
+    kind: ContainerizedWorkload
+    metadata:
+      name: hello-helidon-workload
+      namespace: hello-helidon
+      labels:
+        app: hello-helidon
+    spec:
+      containers:
+        - name: hello-helidon-container
+          image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.12-1-20210218160249-d8db8f3"
+          ports:
+            - containerPort: 8080
+              name: http
+        - name: other-container
+          image: "ghcr.io/oracle/oraclelinux:7-slim"
+          command:
+            - "bin/bash"
+            - "-c"
+            - "while true; do echo $(date) | tee stdout ; sleep 1; done"

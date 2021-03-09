@@ -109,7 +109,7 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 	})
 
 	ginkgo.Context("Logging.", func() {
-		indexName := "springboot-springboot-appconf-springboot-component"
+		indexName := "springboot-springboot-appconf-springboot-component-springboot-container"
 		ginkgo.It("Verify Elasticsearch index exists", func() {
 			gomega.Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
