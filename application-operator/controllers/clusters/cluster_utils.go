@@ -22,7 +22,7 @@ import (
 // MCLocalRegistrationSecretFullName is the full NamespacedName of the cluster local registration secret
 var MCLocalRegistrationSecretFullName = types.NamespacedName{
 	Namespace: constants.VerrazzanoSystemNamespace,
-	Name:      constants.MCRegistrationSecret}
+	Name:      constants.MCLocalRegistrationSecret}
 
 // MCRegistrationSecretFullName is the full NamespacedName of the cluster registration secret
 var MCRegistrationSecretFullName = types.NamespacedName{
