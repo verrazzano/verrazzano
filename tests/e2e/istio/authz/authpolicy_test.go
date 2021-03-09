@@ -5,13 +5,13 @@ package authz_test
 
 import (
 	"fmt"
-	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 	"time"
 
 	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const fooNamespace string = "foo"
@@ -254,15 +254,38 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 		})
 	})
 
+	var fooHost = ""
+	ginkgo.It("Get foo host from gateway.", func() {
+		gomega.Eventually(func() string {
+			fooHost = pkg.GetHostnameFromGateway(fooNamespace, "")
+			return fooHost
+		}, waitTimeout, shortPollingInterval).Should(gomega.Not(gomega.BeEmpty()))
+	})
+
+	var barHost = ""
+	ginkgo.It("Get bar host from gateway.", func() {
+		gomega.Eventually(func() string {
+			barHost = pkg.GetHostnameFromGateway(barNamespace, "")
+			return barHost
+		}, waitTimeout, shortPollingInterval).Should(gomega.Not(gomega.BeEmpty()))
+	})
+
+	var noIstioHost = ""
+	ginkgo.It("Get noistio host from gateway.", func() {
+		gomega.Eventually(func() string {
+			noIstioHost = pkg.GetHostnameFromGateway(noIstioNamespace, "")
+			return noIstioHost
+		}, waitTimeout, shortPollingInterval).Should(gomega.Not(gomega.BeEmpty()))
+	})
+
 	// Verify application in namespace foo is working
 	// GIVEN authorization test app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
 	ginkgo.It("Verify welcome page of Foo Spring Boot FrontEnd is working.", func() {
 		gomega.Eventually(func() bool {
-			ingress := pkg.Ingress()
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-			url := fmt.Sprintf("http://%s/", ingress)
+			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", fooHost))
+			url := fmt.Sprintf("https://%s/", fooHost)
 			status, content := pkg.GetWebPageWithCABundle(url, fooHostHeaderValue)
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
 				//	gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
@@ -277,9 +300,8 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 	// THEN the application endpoint must be accessible
 	ginkgo.It("Verify welcome page of Bar Spring Boot FrontEnd is working.", func() {
 		gomega.Eventually(func() bool {
-			ingress := pkg.Ingress()
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-			url := fmt.Sprintf("http://%s/", ingress)
+			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
+			url := fmt.Sprintf("https://%s/", barHost)
 			status, content := pkg.GetWebPageWithCABundle(url, barHostHeaderValue)
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
 				//	gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
@@ -294,9 +316,8 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 	// THEN the application endpoint must be accessible
 	ginkgo.It("Verify welcome page of NoIstio Spring Boot FrontEnd is working.", func() {
 		gomega.Eventually(func() bool {
-			ingress := pkg.Ingress()
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-			url := fmt.Sprintf("http://%s/", ingress)
+			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", noIstioHost))
+			url := fmt.Sprintf("https://%s/", noIstioHost)
 			status, content := pkg.GetWebPageWithCABundle(url, noIstioHostHeaderValue)
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
 				//	gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
@@ -312,9 +333,8 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 	// the http code is returned in the response body and captured in content
 	ginkgo.It("Verify Foo Frontend can call Foo Backend.", func() {
 		gomega.Eventually(func() bool {
-			ingress := pkg.Ingress()
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-			url := fmt.Sprintf("http://%s/externalCall?inurl=http://springboot-backend-workload.foo:8080/", ingress)
+			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", fooHost))
+			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.foo:8080/", fooHost)
 			status, content := pkg.GetWebPageWithCABundle(url, fooHostHeaderValue)
 			pkg.Log(pkg.Info, fmt.Sprintf("Frontend Http return code: %d, Backend Http return code : %s", status, content))
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
@@ -329,9 +349,8 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 	// the http code is returned in the response body and captured in content
 	ginkgo.It("Verify Bar Frontend can call Bar Backend.", func() {
 		gomega.Eventually(func() bool {
-			ingress := pkg.Ingress()
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-			url := fmt.Sprintf("http://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", ingress)
+			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
+			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", barHost)
 			status, content := pkg.GetWebPageWithCABundle(url, barHostHeaderValue)
 			pkg.Log(pkg.Info, fmt.Sprintf("Frontend Http return code: %d, Backend Http return code : %s", status, content))
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
@@ -346,9 +365,8 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 	// the http code is returned in the response body and captured in content
 	ginkgo.It("Verify Foo Frontend canNOT call Bar Backend.", func() {
 		gomega.Eventually(func() bool {
-			ingress := pkg.Ingress()
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-			url := fmt.Sprintf("http://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", ingress)
+			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", fooHost))
+			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", fooHost)
 			status, content := pkg.GetWebPageWithCABundle(url, fooHostHeaderValue)
 			pkg.Log(pkg.Info, fmt.Sprintf("Frontend Http return code: %d, Backend Http return code : %s", status, content))
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
@@ -363,9 +381,8 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 	// the http code is returned in the response body and captured in content
 	ginkgo.It("Verify Bar Frontend canNOT call Foo Backend.", func() {
 		gomega.Eventually(func() bool {
-			ingress := pkg.Ingress()
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-			url := fmt.Sprintf("http://%s/externalCall?inurl=http://springboot-backend-workload.foo:8080/", ingress)
+			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
+			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.foo:8080/", barHost)
 			status, content := pkg.GetWebPageWithCABundle(url, barHostHeaderValue)
 			pkg.Log(pkg.Info, fmt.Sprintf("Frontend Http return code: %d, Backend Http return code : %s", status, content))
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
@@ -380,9 +397,8 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 	// the http code is returned in the response body and captured in content
 	ginkgo.It("Verify Bar Frontend can call NoIstio Backend.", func() {
 		gomega.Eventually(func() bool {
-			ingress := pkg.Ingress()
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-			url := fmt.Sprintf("http://%s/externalCall?inurl=http://springboot-backend-workload.noistio:8080/", ingress)
+			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
+			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.noistio:8080/", barHost)
 			status, content := pkg.GetWebPageWithCABundle(url, barHostHeaderValue)
 			pkg.Log(pkg.Info, fmt.Sprintf("Frontend Http return code: %d, Backend Http return code : %s", status, content))
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
@@ -399,9 +415,8 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 	// If this should fail because the call succeeded, verify that peerauthentication exists in istio-system and is set to STRICT
 	ginkgo.It("Verify NoIstio Frontend canNOT call Bar Backend.", func() {
 		gomega.Eventually(func() bool {
-			ingress := pkg.Ingress()
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-			url := fmt.Sprintf("http://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", ingress)
+			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", noIstioHost))
+			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", noIstioHost)
 
 			client := &http.Client{}
 			req, err := http.NewRequest("GET", url, nil)
@@ -411,7 +426,7 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 			req.Host = noIstioHostHeaderValue
 
 			q := req.URL.Query()
-			q.Add("inurl", "http://springboot-backend-workload.bar:8080/")
+			q.Add("inurl", "https://springboot-backend-workload.bar:8080/")
 			req.URL.RawQuery = q.Encode()
 
 			resp, err := client.Do(req)
