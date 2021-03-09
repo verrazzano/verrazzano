@@ -25,8 +25,8 @@ import (
 // failure of the changes to the embedded resource
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log          logr.Logger
+	Scheme       *runtime.Scheme
 	AgentChannel chan clusters.StatusUpdateMessage
 }
 

@@ -21,8 +21,8 @@ import (
 // Reconciler reconciles a MultiClusterLoggingScope object
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log          logr.Logger
+	Scheme       *runtime.Scheme
 	AgentChannel chan clusters.StatusUpdateMessage
 }
 

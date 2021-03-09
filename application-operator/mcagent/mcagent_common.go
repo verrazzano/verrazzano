@@ -44,7 +44,7 @@ func (s *Syncer) isThisCluster(placement clustersv1alpha1.Placement) bool {
 // received messages and processes a batch of them
 func (s *Syncer) processStatusUpdates() {
 	s.Log.Info("processStatusUpdates: starting")
-	for i:=0;i<constants.StatusUpdateBatchSize;i++ {
+	for i := 0; i < constants.StatusUpdateBatchSize; i++ {
 		// Use a select with default so as to not block on the channel if there are no updates
 		select {
 		case msg := <-s.StatusUpdateChannel:

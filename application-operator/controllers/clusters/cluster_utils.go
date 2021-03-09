@@ -57,9 +57,9 @@ type MultiClusterResource interface {
 // StatusUpdateMessage represents a message sent to the Multi Cluster agent by the controllers
 // when a MultiCluster Resource's status is updated, with the updates
 type StatusUpdateMessage struct {
-	NewCondition      clustersv1alpha1.Condition
-	NewClusterStatus  clustersv1alpha1.ClusterLevelStatus
-	Resource          MultiClusterResource
+	NewCondition     clustersv1alpha1.Condition
+	NewClusterStatus clustersv1alpha1.ClusterLevelStatus
+	Resource         MultiClusterResource
 }
 
 // StatusNeedsUpdate determines based on the current state and conditions of a MultiCluster
@@ -285,9 +285,9 @@ func UpdateStatus(resource MultiClusterResource, mcStatus *clustersv1alpha1.Mult
 			// put the status update itself on the agent channel. TODO may need to do a deep copy for the cross-thread dereferencing to work
 			// note that the send will block if the channel buffer is full
 			msg := StatusUpdateMessage{
-				NewCondition: newCondition,
+				NewCondition:     newCondition,
 				NewClusterStatus: clusterLevelStatus,
-				Resource: resource,
+				Resource:         resource,
 			}
 			agentChannel <- msg
 		}
