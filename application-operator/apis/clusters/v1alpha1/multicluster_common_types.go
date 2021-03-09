@@ -81,9 +81,3 @@ type MultiClusterResourceStatus struct {
 
 	Clusters []ClusterLevelStatus `json:"clusters,omitempty"`
 }
-
-type MultiClusterResource interface {
-	GetName() string
-	GetNamespace() string
-	GetStatus() MultiClusterResourceStatus
-}

@@ -45,6 +45,15 @@ type ElasticsearchDetails struct {
 	SecretName string
 }
 
+// MultiClusterResource interface abstracts methods common to all MultiClusterXXX resource types
+// It is defined outside the api resources package since deep-copy code generation cannot handle
+// interface types
+type MultiClusterResource interface {
+	GetName() string
+	GetNamespace() string
+	GetStatus() clustersv1alpha1.MultiClusterResourceStatus
+}
+
 // StatusUpdateMessage represents a message sent to the Multi Cluster agent by the controllers
 // when a MultiCluster Resource's status is updated, with the updates
 type StatusUpdateMessage struct {
