@@ -131,8 +131,10 @@ var _ = ginkgo.BeforeSuite(func() {
 
 func verrazzanoInstallResource() (*v1alpha1.Verrazzano, error) {
 	clientset, err := vpoClient.NewForConfig(pkg.GetKubeConfig())
+	if err != nil {
+		return nil, err
+	}
 	vzClient = clientset.VerrazzanoV1alpha1().Verrazzanos("")
-
 	vzList, err := vzClient.List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -161,10 +163,6 @@ var _ = ginkgo.Describe("VMI", func() {
 
 	ginkgo.It("api server should be accessible", func() {
 		assertIngressURLByName("vmi-system-api")
-	})
-
-	ginkgo.It("Verify the instance info endpoint URLs", func() {
-		verifyInstanceInfo()
 	})
 
 	if isManagedClusterProfile(installCR) {
@@ -427,34 +425,4 @@ func browseGrafanaDashboard(url string) error {
 		ginkgo.Fail(fmt.Sprintf("Expected a dashboard in response to system vmi dashboard query but received: %v", len(response)))
 	}
 	return nil
-}
-
-func verifyInstanceInfo() {
-
-	instanceInfo := installCR.Status.VerrazzanoInstance
-	switch installCR.Spec.Profile {
-	case v1alpha1.ManagedCluster:
-		gomega.Expect(instanceInfo.GrafanaURL).To(gomega.BeNil())
-		gomega.Expect(instanceInfo.ElasticURL).To(gomega.BeNil())
-		gomega.Expect(instanceInfo.KibanaURL).To(gomega.BeNil())
-	default:
-		gomega.Expect(instanceInfo.GrafanaURL).NotTo(gomega.BeNil())
-		gomega.Expect(instanceInfo.ElasticURL).NotTo(gomega.BeNil())
-		gomega.Expect(instanceInfo.KibanaURL).NotTo(gomega.BeNil())
-		if instanceInfo.ElasticURL != nil {
-			assertIngressURL(*instanceInfo.ElasticURL)
-		}
-		if instanceInfo.KibanaURL != nil {
-			assertIngressURL(*instanceInfo.KibanaURL)
-		}
-		if instanceInfo.GrafanaURL != nil {
-			assertGrafanaAccessible(*instanceInfo.GrafanaURL)
-		}
-	}
-	if instanceInfo.PrometheusURL != nil {
-		assertIngressURL(*instanceInfo.PrometheusURL)
-	}
-	if instanceInfo.SystemURL != nil {
-		assertIngressURL(*instanceInfo.SystemURL)
-	}
 }
