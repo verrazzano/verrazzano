@@ -109,11 +109,11 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
     * **Option 3:** Alternatively, point your own DNS name to the load balancer's external IP address. In this case, you would need to have edited the `bobs-books-app.yaml` file to use the appropriate values under the `hosts` section for the application (such as `your-roberts-books-host.your.domain`), before deploying the application.
       Then, you can use a browser to access the application as shown below:
 
-      a. Robert's Books UI at `http://<your-roberts-books-host.your.domain>/`.
+      a. Robert's Books UI at `https://<your-roberts-books-host.your.domain>/`.
 
-      b. Bobby's Books UI at `http://<your-bobbys-books-host.your.domain>/bobbys-front-end`.
+      b. Bobby's Books UI at `https://<your-bobbys-books-host.your.domain>/bobbys-front-end`.
 
-      a. Bob's order manager UI at `http://<your-bobs-orders-host.your.domain>/`.
+      a. Bob's order manager UI at `https://<your-bobs-orders-host.your.domain>/`.
 
 ## Troubleshooting
     

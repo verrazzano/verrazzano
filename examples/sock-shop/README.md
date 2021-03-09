@@ -74,7 +74,7 @@ Follow these steps to test the endpoints:
 
      ```
      # Get catalogue
-     $ curl -sk -X GET http://${HOST}/catalogue --resolve ${HOST}:443:${ADDRESS}
+     $ curl -sk -X GET https://${HOST}/catalogue --resolve ${HOST}:443:${ADDRESS}
      [{"count":115,"description":"For all those leg lovers out there....", ...}]
 
      # Add a new user (replace values of username and password)
@@ -97,7 +97,7 @@ Follow these steps to test the endpoints:
      ```
      11.22.33.44 sockshop.example.com
      ```
-     Then, you can access the application in a browser at `http://sockshop.example.com/catalogue`.
+     Then, you can access the application in a browser at `https://sockshop.example.com/catalogue`.
 
    * **Using your own DNS name:**
 
@@ -105,7 +105,7 @@ Follow these steps to test the endpoints:
      * In this case, you would need to edit the `sock-shop-app.yaml` file
        to use the appropriate value under the `hosts` section (such as `yourhost.your.domain`),
        before deploying the Sock Shop application.
-     * Then, you can use a browser to access the application at `http://<yourhost.your.domain>/catalogue`.
+     * Then, you can use a browser to access the application at `https://<yourhost.your.domain>/catalogue`.
 
 ## Troubleshooting
 

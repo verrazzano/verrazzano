@@ -7,12 +7,10 @@ import (
 	"context"
 	b64 "encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -213,30 +211,6 @@ func isSockShopServiceReady(name string) bool {
 		return svc.Spec.Ports[0].Port == 80 && svc.Spec.Ports[0].TargetPort == intstr.FromInt(7001)
 	}
 	return false
-}
-
-// login logs in to the sockshop application
-func login(username string, password string, hostname string) []*http.Cookie {
-	url := fmt.Sprintf("https://%v/login", hostname)
-	httpClient := retryablehttp.NewClient()
-	req, _ := retryablehttp.NewRequest("GET", url, nil)
-	req.SetBasicAuth(username, password)
-	req.Host = hostname
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		pkg.Log(Error, err.Error())
-		Fail("Could not log into " + url)
-	}
-
-	defer resp.Body.Close()
-
-	_, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		pkg.Log(Error, err.Error())
-		Fail("Could not read response body")
-	}
-
-	return resp.Cookies()
 }
 
 // sockshopPodsRunning checks whether the application pods are ready
