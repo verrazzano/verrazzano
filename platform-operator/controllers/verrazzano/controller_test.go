@@ -122,9 +122,6 @@ func TestSuccessfulInstall(t *testing.T) {
 			return nil
 		})
 
-	// Expect local registration calls
-	expectSyncLocalRegistration(t, mock, name)
-
 	// Expect a call to get the ServiceAccount - return that it exists
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
@@ -190,6 +187,9 @@ func TestSuccessfulInstall(t *testing.T) {
 
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
 
+	// Expect local registration calls
+	expectSyncLocalRegistration(t, mock, name)
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -230,9 +230,6 @@ func TestCreateVerrazzano(t *testing.T) {
 				Labels:    labels}
 			return nil
 		})
-
-	// Expect local registration calls
-	expectSyncLocalRegistration(t, mock, name)
 
 	// Expect a call to get the ServiceAccount - return that it does not exist
 	mock.EXPECT().
@@ -318,6 +315,9 @@ func TestCreateVerrazzano(t *testing.T) {
 
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
 
+	// Expect local registration calls
+	expectSyncLocalRegistration(t, mock, name)
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -364,9 +364,6 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 			}
 			return nil
 		})
-
-	// Expect local registration calls
-	expectSyncLocalRegistration(t, mock, name)
 
 	// Expect a call to get the ServiceAccount - return that it does not exist
 	mock.EXPECT().
@@ -471,6 +468,9 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 		})
 
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
+
+	// Expect local registration calls
+	expectSyncLocalRegistration(t, mock, name)
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -906,9 +906,6 @@ func TestServiceAccountGetError(t *testing.T) {
 			return nil
 		})
 
-	// Expect local registration calls
-	expectSyncLocalRegistration(t, mock, name)
-
 	// Expect a call to get the ServiceAccount - return a failure error
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
@@ -953,9 +950,6 @@ func TestServiceAccountCreateError(t *testing.T) {
 				Labels:    labels}
 			return nil
 		})
-
-	// Expect local registration calls
-	expectSyncLocalRegistration(t, mock, name)
 
 	// Expect a call to get the ServiceAccount - return not found
 	mock.EXPECT().
@@ -1006,9 +1000,6 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 				Labels:    labels}
 			return nil
 		})
-
-	// Expect local registration calls
-	expectSyncLocalRegistration(t, mock, name)
 
 	// Expect a call to get the ServiceAccount - return that it exists
 	mock.EXPECT().
@@ -1063,9 +1054,6 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 				Labels:    labels}
 			return nil
 		})
-
-	// Expect local registration calls
-	expectSyncLocalRegistration(t, mock, name)
 
 	// Expect a call to get the ServiceAccount - return that it exists
 	mock.EXPECT().
@@ -1127,9 +1115,6 @@ func TestConfigMapGetError(t *testing.T) {
 			savedVerrazzano = verrazzano
 			return nil
 		})
-
-	// Expect local registration calls
-	expectSyncLocalRegistration(t, mock, name)
 
 	// Expect a call to get the ServiceAccount - return that it exists
 	mock.EXPECT().
@@ -1197,9 +1182,6 @@ func TestConfigMapCreateError(t *testing.T) {
 			savedVerrazzano = verrazzano
 			return nil
 		})
-
-	// Expect local registration calls
-	expectSyncLocalRegistration(t, mock, name)
 
 	// Expect a call to get the ServiceAccount - return that it exists
 	mock.EXPECT().
@@ -1272,9 +1254,6 @@ func TestJobGetError(t *testing.T) {
 			savedVerrazzano = verrazzano
 			return nil
 		})
-
-	// Expect local registration calls
-	expectSyncLocalRegistration(t, mock, name)
 
 	// Expect a call to get the ServiceAccount - return that it exists
 	mock.EXPECT().
@@ -1358,9 +1337,6 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 			return nil
 		})
 
-	// Expect local registration calls
-	expectSyncLocalRegistration(t, mock, name)
-
 	// Expect a call to get the ServiceAccount - return that it exists
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
@@ -1427,9 +1403,6 @@ func TestJobCreateError(t *testing.T) {
 			savedVerrazzano = verrazzano
 			return nil
 		})
-
-	// Expect local registration calls
-	expectSyncLocalRegistration(t, mock, name)
 
 	// Expect a call to get the ServiceAccount - return that it exists
 	mock.EXPECT().
