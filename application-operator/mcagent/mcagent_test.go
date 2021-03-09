@@ -118,5 +118,26 @@ func TestProcessAgentThreadSecretDeleted(t *testing.T) {
 	adminMocker.Finish()
 	mcMocker.Finish()
 	assert.NoError(err)
+}
 
+// TestValidateSecret tests secret validation function
+func TestValidateSecret(t *testing.T) {
+	assert := asserts.New(t)
+
+	// Valid secret
+	err := validateAgentSecret(&validSecret)
+	assert.NoError(err)
+
+	// A secret without a cluster name
+	invalidSecret := validSecret
+	invalidSecret.Data = map[string][]byte{constants.AdminKubeconfigData: []byte("kubeconfig")}
+	err = validateAgentSecret(&invalidSecret)
+	assert.Error(err)
+	assert.Contains(err.Error(), fmt.Sprintf("missing the required field %s", constants.ClusterNameData))
+
+	// A secret without a kubeconfig
+	invalidSecret.Data = map[string][]byte{constants.ClusterNameData: []byte("cluster1")}
+	err = validateAgentSecret(&invalidSecret)
+	assert.Error(err)
+	assert.Contains(err.Error(), fmt.Sprintf("missing the required field %s", constants.AdminKubeconfigData))
 }

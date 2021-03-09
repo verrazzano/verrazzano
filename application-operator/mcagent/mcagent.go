@@ -60,11 +60,10 @@ func (s *Syncer) ProcessAgentThread() error {
 			s.AgentSecretFound = false
 		}
 		return nil
-	} else {
-		err := validateAgentSecret(&secret)
-		if err != nil {
-			return fmt.Errorf("secret validation failed: %v", err)
-		}
+	}
+	err = validateAgentSecret(&secret)
+	if err != nil {
+		return fmt.Errorf("secret validation failed: %v", err)
 	}
 
 	// Remember the secret had been found in order to notice if it gets deleted
