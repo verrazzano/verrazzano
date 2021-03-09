@@ -4,8 +4,10 @@
 package authz_test
 
 import (
+	"bufio"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -21,6 +23,15 @@ const noIstioNamespace string = "noistio"
 const fooHostHeaderValue string = "authpolicy.foo.com"
 const barHostHeaderValue string = "authpolicy.bar.com"
 const noIstioHostHeaderValue string = "authpolicy.noistio.com"
+
+const vmiPromConfigName string = "vmi-system-prometheus-config"
+const verrazzanoNamespace string = "verrazzano-system"
+const prometheusConfigMapName string = "prometheus.yml"
+const prometheusFooScrapeName string = "authpolicy-appconf_default_foo_springboot-frontend"
+const prometheusBarScrapeName string = "authpolicy-appconf_default_bar_springboot-frontend"
+const prometheusNoistioScrapeName string = "authpolicy-appconf_default_noistio_springboot-frontend"
+const prometheusJobName string = "job_name"
+const prometheusHTTPSScheme string = "scheme: https"
 
 var expectedPodsFoo = []string{"sleep-workload", "springboot-frontend-workload", "springboot-backend-workload"}
 var expectedPodsBar = []string{"sleep-workload", "springboot-frontend-workload", "springboot-backend-workload"}
@@ -434,6 +445,151 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to do http request: %v", err))
 			}
 			return gomega.Expect(resp.StatusCode).To(gomega.Equal(500))
+		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+	})
+
+})
+
+var _ = ginkgo.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
+	// Verify springboot-workload pod is running
+	// GIVEN springboot app is deployed
+	// WHEN the component and appconfig are created
+	// THEN the expected pod must be running in the test namespace
+	ginkgo.Context("Deployment.", func() {
+		ginkgo.It("and waiting for expected pods must be running", func() {
+			gomega.Eventually(func() bool {
+				return pkg.PodsRunning(fooNamespace, expectedPodsFoo)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
+	})
+
+	ginkgo.Context("Deployment.", func() {
+		ginkgo.It("and waiting for expected pods must be running", func() {
+			gomega.Eventually(func() bool {
+				return pkg.PodsRunning(barNamespace, expectedPodsBar)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
+	})
+
+	ginkgo.Context("Deployment.", func() {
+		ginkgo.It("and waiting for expected pods must be running", func() {
+			gomega.Eventually(func() bool {
+				return pkg.PodsRunning(noIstioNamespace, expectedPodsBar)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
+	})
+
+	ginkgo.Context("Deployment.", func() {
+		ginkgo.It("and waiting for expected pods must be running", func() {
+			gomega.Eventually(func() bool {
+				return pkg.PodsRunning(noIstioNamespace, expectedPodsBar)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
+	})
+
+	// Verify That Generated Prometheus Scrape Targets for authpolicy-appconf_default_foo_springboot-frontend is using https for scraping
+	// GIVEN that springboot deployed to Istio namespace foo
+	// WHEN the Prometheus scrape targets are created
+	// THEN they should be created to use the https protocol
+	ginkgo.It("Verify that Istio scrape target authpolicy-appconf_default_foo_springboot-frontend is using https for scraping.", func() {
+		gomega.Eventually(func() bool {
+			var httpsFound bool = false
+
+			configMap := pkg.GetConfigMap(vmiPromConfigName, verrazzanoNamespace)
+			dataMap := configMap.Data
+			v := dataMap[prometheusConfigMapName]
+			rdr := strings.NewReader(v)
+			scanner := bufio.NewScanner(rdr)
+			for scanner.Scan() {
+				currentString := scanner.Text()
+				if strings.Contains(currentString, prometheusFooScrapeName) {
+					for scanner.Scan() {
+						innerString := scanner.Text()
+						if strings.Contains(innerString, prometheusJobName) {
+							break
+						}
+						if strings.Contains(innerString, prometheusHTTPSScheme) {
+							httpsFound = true
+							break
+						}
+					}
+					if httpsFound {
+						break
+					}
+				}
+			}
+			return gomega.Expect(httpsFound).Should(gomega.BeTrue())
+		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+	})
+
+	// Verify That Generated Prometheus Scrape Targets for authpolicy-appconf_default_bar_springboot-frontend is using https for scraping
+	// GIVEN that springboot deployed to Istio namespace bar
+	// WHEN the Prometheus scrape targets are created
+	// THEN they should be created to use the https protocol
+	ginkgo.It("Verify that Istio scrape target authpolicy-appconf_default_bar_springboot-frontend is using https for scraping.", func() {
+		gomega.Eventually(func() bool {
+			var httpsFound bool = false
+
+			configMap := pkg.GetConfigMap(vmiPromConfigName, verrazzanoNamespace)
+			dataMap := configMap.Data
+			v := dataMap[prometheusConfigMapName]
+			rdr := strings.NewReader(v)
+			scanner := bufio.NewScanner(rdr)
+			for scanner.Scan() {
+				currentString := scanner.Text()
+				if strings.Contains(currentString, prometheusBarScrapeName) {
+					for scanner.Scan() {
+						innerString := scanner.Text()
+						if strings.Contains(innerString, prometheusJobName) {
+							break
+						}
+						if strings.Contains(innerString, prometheusHTTPSScheme) {
+							httpsFound = true
+							break
+						}
+					}
+					if httpsFound {
+						break
+					}
+				}
+			}
+			return gomega.Expect(httpsFound).Should(gomega.BeTrue())
+		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+	})
+
+	// Verify That Generated Prometheus Scrape Targets for authpolicy-appconf_default_noistio_springboot-frontend is using http for scraping
+	// GIVEN that springboot deployed to namespace noistio
+	// WHEN the Prometheus scrape targets are created
+	// THEN they should be created to use the http protocol
+	ginkgo.It("Verify that Istio scrape target authpolicy-appconf_default_noistio_springboot-frontend is using https for scraping.", func() {
+		gomega.Eventually(func() bool {
+			var httpsNotFound bool = true
+
+			configMap := pkg.GetConfigMap(vmiPromConfigName, verrazzanoNamespace)
+			dataMap := configMap.Data
+			v := dataMap[prometheusConfigMapName]
+			rdr := strings.NewReader(v)
+			scanner := bufio.NewScanner(rdr)
+			for scanner.Scan() {
+				//				fmt.Println(scanner.Text()) // Println will add back the final '\n'
+				currentString := scanner.Text()
+				if strings.Contains(currentString, prometheusNoistioScrapeName) {
+					for scanner.Scan() {
+						innerString := scanner.Text()
+						if strings.Contains(innerString, prometheusJobName) {
+							break
+						}
+						if strings.Contains(innerString, prometheusHTTPSScheme) {
+							httpsNotFound = false
+							break
+						}
+					}
+					if httpsNotFound {
+						break
+					}
+				}
+			}
+			return gomega.Expect(httpsNotFound).Should(gomega.BeTrue())
 		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 	})
 
