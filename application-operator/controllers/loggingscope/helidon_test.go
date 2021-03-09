@@ -47,7 +47,7 @@ func TestHelidonHandlerApply_ManagedCluster(t *testing.T) {
 	esSecretName := managedClusterVmiSecretKey.Name
 	scope := newLoggingScope(namespace, "esHost", esSecretName)
 
-	commonExpectationsForApply(mockClient, namespace, appContainerName, workloadName, esSecretName)
+	commonExpectationsForApply(mockClient, namespace, appContainerName, workloadName)
 	expectationsForApplyUseManagedClusterSecret(t, mockClient, namespace)
 	expectDeploymentUpdatedWithFluentd(t, mockClient, appContainerName)
 
@@ -77,7 +77,7 @@ func TestHelidonHandlerApply_NonManagedCluster(t *testing.T) {
 	esSecretName := "someEsSecret"
 	scope := newLoggingScope(namespace, "esHost", esSecretName)
 
-	commonExpectationsForApply(mockClient, namespace, appContainerName, workloadName, esSecretName)
+	commonExpectationsForApply(mockClient, namespace, appContainerName, workloadName)
 	expectationsForApplyNonManagedCluster(t, mockClient, namespace, esSecretName)
 	expectDeploymentUpdatedWithFluentd(t, mockClient, appContainerName)
 
@@ -108,7 +108,7 @@ func TestHelidoHandlerApplyRequeueForDeploymentUpdate(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
 			appContainer := kcore.Container{Name: appContainerName, Image: "test-app-container-image"}
-			fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, "appContainer", scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchURL, "")
+			fluentdContainer := CreateFluentdContainer(scope.Spec, workload.Namespace, workload.Name, "")
 			deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, appContainer, fluentdContainer)
 			vol := kcore.Volume{
 				Name: "app-volume",
@@ -138,7 +138,7 @@ func TestHelidoHandlerApplyRequeueForDeploymentUpdate(t *testing.T) {
 	mocker.Finish()
 }
 
-// TestHelidoHandlerRemove tests the removal of the FLUENTD sidecard in the application pod
+// TestHelidoHandlerRemove tests the removal of the FLUENTD sidecar in the application pod
 // GIVEN an application workload referred in a loggingScope
 // WHEN Remove is called
 // THEN ensure that the expected FLUENTD sidecar container is removed
@@ -155,7 +155,7 @@ func TestHelidoHandlerRemove(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
 			appContainer := kcore.Container{Name: appContainerName, Image: "test-app-container-image"}
-			fluentdContainer := CreateFluentdContainer(workload.Namespace, workload.Name, "appContainer", scope.Spec.FluentdImage, scope.Spec.SecretName, scope.Spec.ElasticSearchURL, "cluster1")
+			fluentdContainer := CreateFluentdContainer(scope.Spec, workload.Namespace, workload.Name, "cluster1")
 			deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, appContainer, fluentdContainer)
 			vol := kcore.Volume{
 				Name: "app-volume",
@@ -187,8 +187,8 @@ func TestHelidoHandlerRemove(t *testing.T) {
 	mockClient.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, dep *kapps.Deployment) error {
-			appCon, fluentdFound := searchContainers(dep.Spec.Template.Spec.Containers)
-			asserts.Equal(t, appContainerName, appCon)
+			appCons, fluentdFound := searchContainers(dep.Spec.Template.Spec.Containers)
+			asserts.Contains(t, appCons, appContainerName)
 			asserts.False(t, fluentdFound)
 			asserts.Equal(t, 1, len(dep.Spec.Template.Spec.Volumes))
 			return nil
@@ -213,7 +213,7 @@ func workloadOf(namespace, workloadName string) vzapi.QualifiedResourceRelation 
 	}
 }
 
-// TestHelidoHandlerApply tests the creation of the FLUENTD sidecard failed with missing deployment
+// TestHelidoHandlerApply tests the creation of the FLUENTD sidecar failed with missing deployment
 // GIVEN an application workload referred in a loggingScope
 // WHEN Apply is called
 // THEN ensure that Apply call returns a error
@@ -241,7 +241,7 @@ func TestHelidoHandlerApplyNoDeployment(t *testing.T) {
 	mocker.Finish()
 }
 
-// TestHelidoHandlerRemoveNoDeployment tests removal of the FLUENTD sidecard failed with missing deployment
+// TestHelidoHandlerRemoveNoDeployment tests removal of the FLUENTD sidecar failed with missing deployment
 // GIVEN an application workload referred in a loggingScope
 // WHEN Remove is called
 // THEN ensure that Remove call returns a error
@@ -308,8 +308,8 @@ func expectDeploymentUpdatedWithFluentd(t *testing.T, mockClient *mocks.MockClie
 	mockClient.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, dep *kapps.Deployment) error {
-			appCon, fluentdFound := searchContainers(dep.Spec.Template.Spec.Containers)
-			asserts.Equal(t, appContainerName, appCon)
+			appCons, fluentdFound := searchContainers(dep.Spec.Template.Spec.Containers)
+			asserts.Contains(t, appCons, appContainerName)
 			asserts.True(t, fluentdFound)
 			return nil
 		})
@@ -400,7 +400,7 @@ func expectationsForApplyNonManagedCluster(t *testing.T, mockClient *mocks.MockC
 
 // commonExpectationsForApply - adds expectations common to all vanilla apply use cases - we expect
 // apply to get the workload and the fluentd config map and create it if not found.
-func commonExpectationsForApply(mockClient *mocks.MockClient, namespace string, appContainerName string, workloadName string, esSecretName string) {
+func commonExpectationsForApply(mockClient *mocks.MockClient, namespace string, appContainerName string, workloadName string) {
 	// GET workload
 	mockClient.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).

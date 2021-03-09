@@ -16,6 +16,7 @@ import (
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -41,6 +42,26 @@ var newNS = clustersv1alpha1.NamespaceTemplate{
 	Metadata: metav1.ObjectMeta{
 		Name: "newNS",
 	},
+}
+
+// roleBindingMatcher is a gomock Matcher that matches a rbacv1.RoleBinding based on roleref name
+type roleBindingMatcher struct{ roleRefName string }
+
+func RoleBindingMatcher(roleName string) gomock.Matcher {
+	return &roleBindingMatcher{roleName}
+}
+
+func (r *roleBindingMatcher) Matches(x interface{}) bool {
+	if rb, ok := x.(*rbacv1.RoleBinding); ok {
+		if r.roleRefName == rb.RoleRef.Name {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *roleBindingMatcher) String() string {
+	return "rolebinding roleref name does not match expected name: " + r.roleRefName
 }
 
 // TestReconcilerSetupWithManager test the creation of the Reconciler.
@@ -80,10 +101,22 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 func TestReconcileVerrazzanoProject(t *testing.T) {
 	const existingVP = "existingVP"
 
+	adminSubjects := []rbacv1.Subject{
+		{Kind: "Group", Name: "project-admin-test-group"},
+		{Kind: "User", Name: "project-admin-test-user"},
+	}
+
+	monitorSubjects := []rbacv1.Subject{
+		{Kind: "Group", Name: "project-monitor-test-group"},
+		{Kind: "User", Name: "project-monitor-test-user"},
+	}
+
 	type fields struct {
-		vpNamespace string
-		vpName      string
-		nsList      []clustersv1alpha1.NamespaceTemplate
+		vpNamespace     string
+		vpName          string
+		nsList          []clustersv1alpha1.NamespaceTemplate
+		adminSubjects   []rbacv1.Subject
+		monitorSubjects []rbacv1.Subject
 	}
 	tests := []struct {
 		name    string
@@ -96,6 +129,8 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 				constants.VerrazzanoMultiClusterNamespace,
 				existingVP,
 				[]clustersv1alpha1.NamespaceTemplate{existingNS},
+				adminSubjects,
+				monitorSubjects,
 			},
 			false,
 		},
@@ -105,6 +140,30 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 				constants.VerrazzanoMultiClusterNamespace,
 				existingVP,
 				[]clustersv1alpha1.NamespaceTemplate{newNS},
+				nil,
+				nil,
+			},
+			false,
+		},
+		{
+			"Create project admin rolebindings",
+			fields{
+				constants.VerrazzanoMultiClusterNamespace,
+				existingVP,
+				[]clustersv1alpha1.NamespaceTemplate{newNS},
+				adminSubjects,
+				nil,
+			},
+			false,
+		},
+		{
+			"Create project monitor rolebindings",
+			fields{
+				constants.VerrazzanoMultiClusterNamespace,
+				existingVP,
+				[]clustersv1alpha1.NamespaceTemplate{newNS},
+				nil,
+				monitorSubjects,
 			},
 			false,
 		},
@@ -114,6 +173,8 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 				"random-namespace",
 				existingVP,
 				[]clustersv1alpha1.NamespaceTemplate{newNS},
+				nil,
+				nil,
 			},
 			false,
 		},
@@ -123,6 +184,8 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 				constants.VerrazzanoMultiClusterNamespace,
 				"not-found-vp",
 				[]clustersv1alpha1.NamespaceTemplate{existingNS},
+				nil,
+				nil,
 			},
 			false,
 		},
@@ -142,6 +205,8 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 						vp.Namespace = tt.fields.vpNamespace
 						vp.Name = tt.fields.vpName
 						vp.Spec.Template.Namespaces = tt.fields.nsList
+						vp.Spec.Template.Security.ProjectAdminSubjects = tt.fields.adminSubjects
+						vp.Spec.Template.Security.ProjectMonitorSubjects = tt.fields.monitorSubjects
 						return nil
 					})
 
@@ -165,6 +230,14 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 								assert.True(labelExists, fmt.Sprintf("the label %s does not exist", constants.LabelIstioInjection))
 								return nil
 							})
+
+						if len(tt.fields.adminSubjects) > 0 {
+							mockUpdatedRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectAdminRole, projectAdminK8sRole, tt.fields.adminSubjects)
+						}
+						if len(tt.fields.monitorSubjects) > 0 {
+							mockUpdatedRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectMonitorRole, projectMonitorK8sRole, tt.fields.monitorSubjects)
+						}
+
 					} else {
 						// expect call to get a namespace that returns namespace not found
 						mockClient.EXPECT().
@@ -178,6 +251,13 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 								assert.Equal(tt.fields.nsList[0].Metadata.Name, ns.Name, "namespace name did not match")
 								return nil
 							})
+
+						if len(tt.fields.adminSubjects) > 0 {
+							mockNewRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectAdminRole, projectAdminK8sRole, tt.fields.adminSubjects)
+						}
+						if len(tt.fields.monitorSubjects) > 0 {
+							mockNewRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectMonitorRole, projectMonitorK8sRole, tt.fields.monitorSubjects)
+						}
 					}
 				}
 			} else {
@@ -208,4 +288,78 @@ func newVerrazzanoProjectReconciler(c client.Client) Reconciler {
 		Log:    ctrl.Log.WithName("test"),
 		Scheme: clusters.NewScheme(),
 	}
+}
+
+// mockNewRoleBindingExpectations mocks the expections for project rolebindings when the rolebindings do not already exist
+func mockNewRoleBindingExpectations(assert *asserts.Assertions, mockClient *mocks.MockClient, namespace, role, k8sRole string, subjects []rbacv1.Subject) {
+	// expect a call to fetch a rolebinding for the specified role and return NotFound
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: role}, gomock.AssignableToTypeOf(&rbacv1.RoleBinding{})).
+		Return(errors.NewNotFound(schema.GroupResource{}, ""))
+
+	// expect a call to create a rolebinding for the subjects to the specified role
+	mockClient.EXPECT().
+		Create(gomock.Any(), RoleBindingMatcher(role)).
+		DoAndReturn(func(ctx context.Context, rb *rbacv1.RoleBinding) error {
+			assert.Equal(subjects, rb.Subjects)
+			return nil
+		})
+
+	// expect a call to fetch a rolebinding for the specified k8s role and return NotFound
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: k8sRole}, gomock.AssignableToTypeOf(&rbacv1.RoleBinding{})).
+		Return(errors.NewNotFound(schema.GroupResource{}, ""))
+
+	// expect a call to create a rolebinding for the subjects to the specified k8s role
+	mockClient.EXPECT().
+		Create(gomock.Any(), RoleBindingMatcher(k8sRole)).
+		DoAndReturn(func(ctx context.Context, rb *rbacv1.RoleBinding) error {
+			assert.Equal(subjects, rb.Subjects)
+			return nil
+		})
+}
+
+// mockUpdatedRoleBindingExpectations mocks the expections for project rolebindings when the rolebindings already exist
+func mockUpdatedRoleBindingExpectations(assert *asserts.Assertions, mockClient *mocks.MockClient, namespace, role, k8sRole string, subjects []rbacv1.Subject) {
+	// expect a call to fetch a rolebinding for the specified role and return an existing rolebinding
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: role}, gomock.AssignableToTypeOf(&rbacv1.RoleBinding{})).
+		DoAndReturn(func(ctx context.Context, ns types.NamespacedName, roleBinding *rbacv1.RoleBinding) error {
+			// simulate subjects and roleref being set our of band, we should reset them
+			roleBinding.RoleRef.Name = "changed"
+			roleBinding.Subjects = []rbacv1.Subject{
+				{Kind: "Group", Name: "I-manually-set-this"},
+			}
+			return nil
+		})
+
+	// expect a call to update the rolebinding
+	mockClient.EXPECT().
+		Update(gomock.Any(), RoleBindingMatcher(role)).
+		DoAndReturn(func(ctx context.Context, rb *rbacv1.RoleBinding) error {
+			assert.Equal(role, rb.RoleRef.Name)
+			assert.Equal(subjects, rb.Subjects)
+			return nil
+		})
+
+	// expect a call to fetch a rolebinding for the specified k8s role and return an existing rolebinding
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: k8sRole}, gomock.AssignableToTypeOf(&rbacv1.RoleBinding{})).
+		DoAndReturn(func(ctx context.Context, ns types.NamespacedName, roleBinding *rbacv1.RoleBinding) error {
+			// simulate subjects and roleref being set our of band, we should reset them
+			roleBinding.RoleRef.Name = "changed"
+			roleBinding.Subjects = []rbacv1.Subject{
+				{Kind: "Group", Name: "I-manually-set-this"},
+			}
+			return nil
+		})
+
+	// expect a call to update the rolebinding
+	mockClient.EXPECT().
+		Update(gomock.Any(), RoleBindingMatcher(k8sRole)).
+		DoAndReturn(func(ctx context.Context, rb *rbacv1.RoleBinding) error {
+			assert.Equal(k8sRole, rb.RoleRef.Name)
+			assert.Equal(subjects, rb.Subjects)
+			return nil
+		})
 }
