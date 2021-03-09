@@ -318,7 +318,7 @@ func configMapExistsMatchingMCConfigMap(namespace, name string, mcConfigMap *clu
 		reflect.DeepEqual(configMap.BinaryData, mcConfigMap.Spec.Template.BinaryData)
 }
 
-func createManagedClusterSecret() {
+func createRegistrationSecret() {
 	createSecret := fmt.Sprintf(
 		"create secret generic %s --from-literal=%s=%s -n %s",
 		constants.MCRegistrationSecret,
@@ -370,5 +370,5 @@ func setupMultiClusterTest() {
 		ginkgo.Fail(fmt.Sprintf("failed to create namespace %v", multiclusterTestNamespace))
 	}
 
-	createManagedClusterSecret()
+	createRegistrationSecret()
 }

@@ -7,6 +7,8 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	"testing"
 	"time"
 
@@ -185,6 +187,9 @@ func TestSuccessfulInstall(t *testing.T) {
 
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
 
+	// Expect local registration calls
+	expectSyncLocalRegistration(t, mock, name)
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -309,6 +314,9 @@ func TestCreateVerrazzano(t *testing.T) {
 		})
 
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
+
+	// Expect local registration calls
+	expectSyncLocalRegistration(t, mock, name)
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -460,6 +468,9 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 		})
 
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
+
+	// Expect local registration calls
+	expectSyncLocalRegistration(t, mock, name)
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -1861,6 +1872,29 @@ func setupInstallInternalConfigMapExpectations(mock *mocks.MockClient, name stri
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap) error {
+			return nil
+		})
+}
+
+// Expect syncLocalRegistration related calls
+func expectSyncLocalRegistration(t *testing.T, mock *mocks.MockClient, name string) {
+	// Expect a call to get the Agent secret in the verrazzano-system namespace - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+
+	// Expect a call to get the local registration secret in the verrazzano-system namespace - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCLocalRegistrationSecret}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCLocalRegistrationSecret))
+
+	// Expect a call to create the registration secret
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
+			secret.Data = map[string][]byte{
+				clusters.ManagedClusterNameKey: []byte("cluster1"),
+			}
 			return nil
 		})
 }
