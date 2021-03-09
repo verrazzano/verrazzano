@@ -14,23 +14,23 @@ import (
 // TestSyncer_AgentReadyToSync tests the AgentReadyToSync method of Syncer
 func TestSyncer_AgentReadyToSync(t *testing.T) {
 	type fields struct {
-		AgentSecretFound      bool
-		AgentSecretValid      bool
+		AgentSecretFound bool
+		AgentSecretValid bool
 	}
 	tests := []struct {
 		name   string
 		fields fields
 		want   bool
 	}{
-		{ "agent secret found not valid", fields{AgentSecretFound: true, AgentSecretValid: false}, false},
-		{ "agent secret not found", fields{AgentSecretFound: false, AgentSecretValid: false}, false},
-		{ "agent secret found and valid", fields{AgentSecretFound: true, AgentSecretValid: true}, true},
+		{"agent secret found not valid", fields{AgentSecretFound: true, AgentSecretValid: false}, false},
+		{"agent secret not found", fields{AgentSecretFound: false, AgentSecretValid: false}, false},
+		{"agent secret found and valid", fields{AgentSecretFound: true, AgentSecretValid: true}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Syncer{
-				AgentSecretFound:      tt.fields.AgentSecretFound,
-				AgentSecretValid:      tt.fields.AgentSecretValid,
+				AgentSecretFound: tt.fields.AgentSecretFound,
+				AgentSecretValid: tt.fields.AgentSecretValid,
 			}
 			if got := s.AgentReadyToSync(); got != tt.want {
 				t.Errorf("AgentReadyToSync() = %v, want %v", got, tt.want)
@@ -55,7 +55,7 @@ func TestSyncer_isThisCluster(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Syncer{
-				ManagedClusterName:    tt.managedClusterName,
+				ManagedClusterName: tt.managedClusterName,
 			}
 			if got := s.isThisCluster(tt.placement); got != tt.want {
 				t.Errorf("isThisCluster() = %v, want %v", got, tt.want)
@@ -96,10 +96,10 @@ func TestSyncer_processStatusUpdates(t *testing.T) {
 
 	// Make the request
 	s := &Syncer{
-		AdminClient: adminMock,
-		ManagedClusterName: "mycluster1",
+		AdminClient:         adminMock,
+		ManagedClusterName:  "mycluster1",
 		StatusUpdateChannel: statusUpdatesChan,
-		Log: ctrl.Log.WithName("statusUpdateUnitTest"),
+		Log:                 ctrl.Log.WithName("statusUpdateUnitTest"),
 	}
 	s.processStatusUpdates()
 

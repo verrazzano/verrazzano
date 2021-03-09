@@ -44,7 +44,7 @@ func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUp
 		ProjectNamespaces:     []string{},
 		AgentSecretFound:      false,
 		SecretResourceVersion: "",
-		StatusUpdateChannel: statusUpdateChannel,
+		StatusUpdateChannel:   statusUpdateChannel,
 	}
 
 	for {

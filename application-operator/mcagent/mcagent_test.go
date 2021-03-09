@@ -116,13 +116,13 @@ func TestProcessAgentThreadSecretDeleted(t *testing.T) {
 
 	// Make the request
 	s := &Syncer{
-		AdminClient:         adminMock,
-		LocalClient:         mcMock,
-		Log:                 log,
-		ManagedClusterName:  testClusterName,
-		Context:             context.TODO(),
-		AgentSecretFound:    true,
-		AgentSecretValid:    true,
+		AdminClient:        adminMock,
+		LocalClient:        mcMock,
+		Log:                log,
+		ManagedClusterName: testClusterName,
+		Context:            context.TODO(),
+		AgentSecretFound:   true,
+		AgentSecretValid:   true,
 	}
 
 	err := s.ProcessAgentThread()
