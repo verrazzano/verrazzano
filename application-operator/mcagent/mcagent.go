@@ -54,6 +54,11 @@ func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUp
 			s.Log.Error(err, "error processing multi-cluster resources")
 		}
 		s.configureBeats()
+		if !s.AgentReadyToSync() {
+			// there is no admin cluster we are connected to, so nowhere to send any status updates
+			// received - discard them
+			discardStatusMessages(s.StatusUpdateChannel)
+		}
 		time.Sleep(60 * time.Second)
 	}
 }
@@ -68,16 +73,19 @@ func (s *Syncer) ProcessAgentThread() error {
 		if clusters.IgnoreNotFoundWithLog("secret", err, s.Log) == nil && s.AgentSecretFound {
 			s.Log.Info(fmt.Sprintf("the secret %s in namespace %s was deleted", constants.MCAgentSecret, constants.VerrazzanoSystemNamespace))
 			s.AgentSecretFound = false
+			s.AgentSecretValid = false
 		}
 		return nil
 	}
 	err = validateAgentSecret(&secret)
 	if err != nil {
+		s.AgentSecretValid = false
 		return fmt.Errorf("secret validation failed: %v", err)
 	}
 
 	// Remember the secret had been found in order to notice if it gets deleted
 	s.AgentSecretFound = true
+	s.AgentSecretValid = true
 
 	// The cluster secret exists - log the cluster name only if it changes
 	managedClusterName := string(secret.Data[constants.ClusterNameData])
@@ -259,4 +267,13 @@ func updateEnvValue(envs []corev1.EnvVar, envName string, newValue string) []cor
 		}
 	}
 	return append(envs, corev1.EnvVar{Name: envName, Value: newValue})
+}
+
+// discardStatusMessages discards all messages in the statusUpdateChannel - this will
+// prevent the channel buffer from filling up in the case of a non-managed cluster
+func discardStatusMessages(statusUpdateChannel chan clusters.StatusUpdateMessage) {
+	length := len(statusUpdateChannel)
+	for i := 0; i < length; i++ {
+		<-statusUpdateChannel
+	}
 }

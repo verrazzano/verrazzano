@@ -22,6 +22,7 @@ type Syncer struct {
 	ManagedClusterName    string
 	Context               context.Context
 	AgentSecretFound      bool
+	AgentSecretValid      bool
 	SecretResourceVersion string
 
 	// List of namespaces to watch for multi-cluster objects.
@@ -61,4 +62,10 @@ func (s *Syncer) processStatusUpdates() {
 			break
 		}
 	}
+}
+
+// AgentReadyToSync - the agent has all the information it needs to sync resources i.e.
+// there is an agent secret and a kubernetes client to the Admin cluster was created
+func (s *Syncer) AgentReadyToSync() bool {
+	return s.AgentSecretFound && s.AgentSecretValid
 }
