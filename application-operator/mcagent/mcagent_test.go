@@ -23,9 +23,8 @@ import (
 
 var validSecret = corev1.Secret{
 	ObjectMeta: metav1.ObjectMeta{
-		Name:            constants.MCAgentSecret,
-		Namespace:       constants.VerrazzanoSystemNamespace,
-		ResourceVersion: "version1",
+		Name:      constants.MCAgentSecret,
+		Namespace: constants.VerrazzanoSystemNamespace,
 	},
 	Data: map[string][]byte{constants.ClusterNameData: []byte("cluster1"), constants.AdminKubeconfigData: []byte("kubeconfig")},
 }
@@ -52,7 +51,6 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.ObjectMeta = validSecret.ObjectMeta
 			secret.Data = validSecret.Data
-			secret.ResourceVersion = validSecret.ResourceVersion
 			return nil
 		})
 
