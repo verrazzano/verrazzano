@@ -132,8 +132,8 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 		// THEN the expected results should be returned
 		ginkgo.It("Verify '/todo/rest/items' REST endpoint is working.", func() {
 			task := fmt.Sprintf("test-task-%s", time.Now().Format("20060102150405.0000"))
-			host := pkg.GetHostnameFromGateway("todo-list", "")
 			gomega.Eventually(func() pkg.WebResponse {
+				host := pkg.GetHostnameFromGateway("todo-list", "")
 				url := fmt.Sprintf("https://%s/todo/rest/items", host)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
@@ -142,6 +142,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 				}
 			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HaveStatus(200), pkg.ContainContent("[")))
 			gomega.Eventually(func() pkg.WebResponse {
+				host := pkg.GetHostnameFromGateway("todo-list", "")
 				url := fmt.Sprintf("https://%s/todo/rest/item/%s", host, task)
 				status, content := pkg.PutWithHostHeader(url, "application/json", host, nil)
 				return pkg.WebResponse{
@@ -150,6 +151,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 				}
 			}, shortWaitTimeout, shortPollingInterval).Should(pkg.HaveStatus(204))
 			gomega.Eventually(func() pkg.WebResponse {
+				host := pkg.GetHostnameFromGateway("todo-list", "")
 				url := fmt.Sprintf("https://%s/todo/rest/items", host)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{

@@ -173,6 +173,8 @@ func ListIngresses(namespace string) (*extensionsv1beta1.IngressList, error) {
 // created by the ingress trait controller
 func GetHostnameFromGateway(namespace string, appConfigName string) string {
 	gateways, err := GetIstioClientset().NetworkingV1alpha3().Gateways(namespace).List(context.TODO(), metav1.ListOptions{})
+	Log(Info, fmt.Sprintf("Gateways returned for namespace %s: %v", namespace, gateways))
+
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not list application ingress gateways: %v\n", err.Error()))
 	}
