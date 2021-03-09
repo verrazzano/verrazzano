@@ -76,7 +76,7 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 
 	var host = ""
 	// Get the host from the Istio gateway resource.
-	// GIVEN the Istio gateway for the todo-list namespace
+	// GIVEN the Istio gateway for the hello-helidon namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
 	ginkgo.It("Get host from gateway.", func() {
@@ -94,7 +94,7 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 		ginkgo.It("Access /greet App Url.", func() {
 			url := fmt.Sprintf("https://%s/greet", host)
 			isEndpointAccessible := func() bool {
-				return appEndpointAccessible(url)
+				return appEndpointAccessible(url, host)
 			}
 			gomega.Eventually(isEndpointAccessible, 15*time.Second, 1*time.Second).Should(gomega.BeTrue())
 		})
@@ -149,8 +149,7 @@ func helloHelidonPodsRunning() bool {
 	return pkg.PodsRunning(testNamespace, expectedPodsHelloHelidon)
 }
 
-func appEndpointAccessible(url string) bool {
-	hostname := pkg.GetHostnameFromGateway(testNamespace, "")
+func appEndpointAccessible(url string, hostname string) bool {
 	status, webpage := pkg.GetWebPageWithBasicAuth(url, hostname, "", "")
 	gomega.Expect(status).To(gomega.Equal(http.StatusOK), fmt.Sprintf("GET %v returns status %v expected 200.", url, status))
 	gomega.Expect(strings.Contains(webpage, "Hello World")).To(gomega.Equal(true), fmt.Sprintf("Webpage is NOT Hello World %v", webpage))

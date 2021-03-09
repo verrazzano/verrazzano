@@ -77,7 +77,7 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 
 	var host = ""
 	// Get the host from the Istio gateway resource.
-	// GIVEN the Istio gateway for the todo-list namespace
+	// GIVEN the Istio gateway for the helidon-logging namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
 	ginkgo.It("Get host from gateway.", func() {

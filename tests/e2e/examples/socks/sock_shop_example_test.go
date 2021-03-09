@@ -13,12 +13,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -106,7 +105,9 @@ var _ = Describe("Sock Shop Application", func() {
 		sockShop.RegisterUser(fmt.Sprintf(registerTemp, username, password), hostname)
 	})
 	It("SockShop can log in with default user", func() {
-		sockShop.Cookies = login(username, password)
+		url := fmt.Sprintf("https://%v/login", hostname)
+		status, _ := pkg.GetWebPageWithBasicAuth(url, hostname, username, password)
+		Expect(status).To(Equal(http.StatusOK), fmt.Sprintf("GET %v returns status %v expected 200.", url, status))
 	})
 
 	It("SockShop can access Calatogue and choose item", func() {
@@ -215,12 +216,12 @@ func isSockShopServiceReady(name string) bool {
 }
 
 // login logs in to the sockshop application
-func login(username string, password string) []*http.Cookie {
-	ingress := pkg.Ingress()
-	url := fmt.Sprintf("http://%v/login", ingress)
+func login(username string, password string, hostname string) []*http.Cookie {
+	url := fmt.Sprintf("https://%v/login", hostname)
 	httpClient := retryablehttp.NewClient()
 	req, _ := retryablehttp.NewRequest("GET", url, nil)
 	req.SetBasicAuth(username, password)
+	req.Host = hostname
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		pkg.Log(Error, err.Error())

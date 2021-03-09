@@ -121,6 +121,17 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 		})
 	})
+	var host = ""
+	// Get the host from the Istio gateway resource.
+	// GIVEN the Istio gateway for the bobs-books namespace
+	// WHEN GetHostnameFromGateway is called
+	// THEN return the host name found in the gateway.
+	ginkgo.It("Get host from gateway.", func() {
+		gomega.Eventually(func() string {
+			host = pkg.GetHostnameFromGateway("bobs-books", "")
+			return host
+		}, shortWaitTimeout, shortPollingInterval).Should(gomega.Not(gomega.BeEmpty()))
+	})
 	ginkgo.Context("Ingress.", func() {
 		// Verify the application endpoint is working.
 		// GIVEN the Bobs Books app is deployed
@@ -128,7 +139,6 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 		// THEN the expected returned page should contain an expected value.
 		ginkgo.It("Verify roberts-books UI endpoint is working.", func() {
 			gomega.Eventually(func() pkg.WebResponse {
-				host := pkg.GetHostnameFromGateway("bobs-books", "")
 				url := fmt.Sprintf("https://%s", host)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
@@ -143,7 +153,6 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 		// THEN the expected returned page should contain an expected value.
 		ginkgo.It("Verify bobbys-books UI endpoint is working.", func() {
 			gomega.Eventually(func() pkg.WebResponse {
-				host := pkg.GetHostnameFromGateway("bobs-books", "")
 				url := fmt.Sprintf("https://%s/bobbys-front-end/", host)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
@@ -158,7 +167,6 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 		// THEN the expected returned page should contain an expected value.
 		ginkgo.It("Verify bobs-orders UI endpoint is working.", func() {
 			gomega.Eventually(func() pkg.WebResponse {
-				host := pkg.GetHostnameFromGateway("bobs-books", "")
 				url := fmt.Sprintf("https://%s/bobs-bookstore-order-manager/orders", host)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{

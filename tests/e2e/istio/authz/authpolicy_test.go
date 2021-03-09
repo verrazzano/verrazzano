@@ -286,10 +286,10 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 		gomega.Eventually(func() bool {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", fooHost))
 			url := fmt.Sprintf("https://%s/", fooHost)
-			status, content := pkg.GetWebPageWithCABundle(url, fooHostHeaderValue)
+			status, content := pkg.GetWebPageWithCABundle(url, fooHost)
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
 				//	gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
-				// Because I am using the old Springbbot Container for the FrontEnd
+				// Because I am using the old Springbboot Container for the FrontEnd
 				gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
 		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 	})
@@ -302,10 +302,10 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 		gomega.Eventually(func() bool {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
 			url := fmt.Sprintf("https://%s/", barHost)
-			status, content := pkg.GetWebPageWithCABundle(url, barHostHeaderValue)
+			status, content := pkg.GetWebPageWithCABundle(url, barHost)
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
 				//	gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
-				// Because I am using the old Springbbot Container for the FrontEnd
+				// Because I am using the old Springbboot Container for the FrontEnd
 				gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
 		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 	})
@@ -318,10 +318,10 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 		gomega.Eventually(func() bool {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", noIstioHost))
 			url := fmt.Sprintf("https://%s/", noIstioHost)
-			status, content := pkg.GetWebPageWithCABundle(url, noIstioHostHeaderValue)
+			status, content := pkg.GetWebPageWithCABundle(url, noIstioHost)
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
 				//	gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
-				// Because I am using the old Springbbot Container for the FrontEnd
+				// Because I am using the old Springbboot Container for the FrontEnd
 				gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
 		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 	})
@@ -335,7 +335,7 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 		gomega.Eventually(func() bool {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", fooHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.foo:8080/", fooHost)
-			status, content := pkg.GetWebPageWithCABundle(url, fooHostHeaderValue)
+			status, content := pkg.GetWebPageWithCABundle(url, fooHost)
 			pkg.Log(pkg.Info, fmt.Sprintf("Frontend Http return code: %d, Backend Http return code : %s", status, content))
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
 				gomega.Expect(content).To(gomega.Equal("200"))
@@ -351,7 +351,7 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 		gomega.Eventually(func() bool {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", barHost)
-			status, content := pkg.GetWebPageWithCABundle(url, barHostHeaderValue)
+			status, content := pkg.GetWebPageWithCABundle(url, barHost)
 			pkg.Log(pkg.Info, fmt.Sprintf("Frontend Http return code: %d, Backend Http return code : %s", status, content))
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
 				gomega.Expect(content).To(gomega.Equal("200"))
@@ -367,7 +367,7 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 		gomega.Eventually(func() bool {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", fooHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", fooHost)
-			status, content := pkg.GetWebPageWithCABundle(url, fooHostHeaderValue)
+			status, content := pkg.GetWebPageWithCABundle(url, fooHost)
 			pkg.Log(pkg.Info, fmt.Sprintf("Frontend Http return code: %d, Backend Http return code : %s", status, content))
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
 				gomega.Expect(content).To(gomega.Equal("403"))
@@ -383,7 +383,7 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 		gomega.Eventually(func() bool {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.foo:8080/", barHost)
-			status, content := pkg.GetWebPageWithCABundle(url, barHostHeaderValue)
+			status, content := pkg.GetWebPageWithCABundle(url, barHost)
 			pkg.Log(pkg.Info, fmt.Sprintf("Frontend Http return code: %d, Backend Http return code : %s", status, content))
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
 				gomega.Expect(content).To(gomega.Equal("403"))
@@ -399,7 +399,7 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 		gomega.Eventually(func() bool {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.noistio:8080/", barHost)
-			status, content := pkg.GetWebPageWithCABundle(url, barHostHeaderValue)
+			status, content := pkg.GetWebPageWithCABundle(url, barHost)
 			pkg.Log(pkg.Info, fmt.Sprintf("Frontend Http return code: %d, Backend Http return code : %s", status, content))
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
 				gomega.Expect(content).To(gomega.Equal("200"))
@@ -418,12 +418,12 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", noIstioHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", noIstioHost)
 
-			client := &http.Client{}
+			client := pkg.GetVerrazzanoNoRetryHTTPClient()
 			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to create http request: %v", err))
 			}
-			req.Host = noIstioHostHeaderValue
+			req.Host = noIstioHost
 
 			q := req.URL.Query()
 			q.Add("inurl", "https://springboot-backend-workload.bar:8080/")
