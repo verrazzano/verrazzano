@@ -3,6 +3,9 @@
 
 package constants
 
+// VerrazzanoClustersGroup - clusters group
+const VerrazzanoClustersGroup = "clusters.verrazzano.io"
+
 // VerrazzanoSystemNamespace is the system namespace for verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
 
