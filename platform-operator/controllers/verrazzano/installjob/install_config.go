@@ -425,7 +425,7 @@ func getKeycloak(keycloak *installv1alpha1.KeycloakComponent, templates []instal
 	return keycloakConfig, nil
 }
 
-// getIngress returns the json representation for the ingress
+// getIngress returns the representation for the ingress for the installer scripts
 func getIngress(ingress *installv1alpha1.IngressNginxComponent, istio *installv1alpha1.IstioComponent) Ingress {
 	ingressConfig := Ingress{Type: getIngressType("")}
 	if ingress != nil {
