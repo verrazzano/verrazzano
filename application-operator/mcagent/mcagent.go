@@ -10,11 +10,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -72,7 +71,7 @@ func (s *Syncer) ProcessAgentThread() error {
 	// The cluster secret exists - log the cluster name only if it changes
 	managedClusterName := string(secret.Data[constants.ClusterNameData])
 	if managedClusterName != s.ManagedClusterName {
-		s.Log.Info(fmt.Sprintf("Found secret named %s in namespace %s for cluster named %q", secret.Name, secret.Namespace, managedClusterName))
+		s.Log.Info(fmt.Sprintf("Found secret named %s in namespace %s, cluster name changed from %q to %q", secret.Name, secret.Namespace, s.ManagedClusterName, managedClusterName))
 		s.ManagedClusterName = managedClusterName
 	}
 

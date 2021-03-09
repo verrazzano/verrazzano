@@ -6,7 +6,6 @@ package mcagent
 import (
 	"context"
 	"fmt"
-	"os/exec"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -15,7 +14,9 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -58,7 +59,14 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
-			return fmt.Errorf("no project resources found %s", exec.ErrNotFound)
+			return nil
+		})
+
+	// Managed Cluster - expect call to list VerrazzanoProject objects - return an empty list
+	mcMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
+			return nil
 		})
 
 	// Make the request
@@ -98,7 +106,7 @@ func TestProcessAgentThreadSecretDeleted(t *testing.T) {
 	mcMock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			return fmt.Errorf("no project resources found %s", exec.ErrNotFound)
+			return (errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, name.Name))
 		})
 
 	// Do not expect any further calls because the registration secret no longer exists
