@@ -144,7 +144,6 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 		ginkgo.It("Verify '/todo/rest/items' REST endpoint is working.", func() {
 			task := fmt.Sprintf("test-task-%s", time.Now().Format("20060102150405.0000"))
 			gomega.Eventually(func() pkg.WebResponse {
-				host := pkg.GetHostnameFromGateway("todo-list", "")
 				url := fmt.Sprintf("https://%s/todo/rest/items", host)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{

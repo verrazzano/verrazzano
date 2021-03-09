@@ -100,8 +100,7 @@ func (s *SockShop) Delete(url string) (int, string) {
 }
 
 // RegisterUser interacts with sock shop to create a user
-func (s *SockShop) RegisterUser(body string) {
-	hostname := pkg.GetHostnameFromGateway("sockshop", "")
+func (s *SockShop) RegisterUser(body string, hostname string) {
 	url := fmt.Sprintf("https://%v/register", hostname)
 	status, register := pkg.PostWithHostHeader(url, "application/json", s.hostHeader, strings.NewReader(body))
 	pkg.Log(Info, fmt.Sprintf("Finished register %v status: %v", register, status))
@@ -110,9 +109,8 @@ func (s *SockShop) RegisterUser(body string) {
 }
 
 // ConnectToCatalog connects to the catalog page
-func (s *SockShop) ConnectToCatalog() string {
+func (s *SockShop) ConnectToCatalog(hostname string) string {
 	// connect to catalog
-	hostname := pkg.GetHostnameFromGateway("sockshop", "")
 	pkg.Log(Info, fmt.Sprint("Connecting to Catalog"))
 	status, webpage := s.Get("https://" + hostname + "/catalogue")
 	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", hostname, status))
@@ -129,8 +127,7 @@ func (s *SockShop) VerifyCatalogItems(webpage string) {
 }
 
 // GetCatalogItem retrieves the first catalog item
-func (s *SockShop) GetCatalogItem() Catalog {
-	hostname := pkg.GetHostnameFromGateway("sockshop", "")
+func (s *SockShop) GetCatalogItem(hostname string) Catalog {
 	pkg.Log(Info, fmt.Sprint("Connecting to Catalog"))
 	status, catalog := s.Get("https://" + hostname + "/catalogue")
 	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", hostname, status))
@@ -143,8 +140,7 @@ func (s *SockShop) GetCatalogItem() Catalog {
 }
 
 // AddToCart adds an item to the cart
-func (s *SockShop) AddToCart(item CatalogItem) {
-	hostname := pkg.GetHostnameFromGateway("sockshop", "")
+func (s *SockShop) AddToCart(item CatalogItem, hostname string) {
 	//cartURL := fmt.Sprintf("https://%v/cart", ingress)
 	cartURL := fmt.Sprintf("https://%v/carts/%v/items", hostname, s.username)
 	cartBody := fmt.Sprintf(`{"itemId": "%v","unitPrice": "%v"}`, item.ID, item.Price)
@@ -154,8 +150,7 @@ func (s *SockShop) AddToCart(item CatalogItem) {
 }
 
 // CheckCart makes sure that the added item in the cart is present
-func (s *SockShop) CheckCart(item CatalogItem, quantity int) {
-	hostname := pkg.GetHostnameFromGateway("sockshop", "")
+func (s *SockShop) CheckCart(item CatalogItem, quantity int, hostname string) {
 	cartURL := fmt.Sprintf("https://%v/carts/%v/items", hostname, s.username)
 	status, cart := s.Get(cartURL)
 	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("GET %v failed with status %v", cartURL, status))
@@ -174,8 +169,7 @@ func (s *SockShop) CheckCart(item CatalogItem, quantity int) {
 }
 
 // GetCartItems gathers all cart items
-func (s *SockShop) GetCartItems() []CartItem {
-	hostname := pkg.GetHostnameFromGateway("sockshop", "")
+func (s *SockShop) GetCartItems(hostname string) []CartItem {
 	pkg.Log(Info, fmt.Sprint("Gathering cart items"))
 	cartURL := fmt.Sprintf("https://%v/carts/%v/items", hostname, s.username)
 	status, toDelCart := s.Get(cartURL)
@@ -187,8 +181,7 @@ func (s *SockShop) GetCartItems() []CartItem {
 }
 
 // DeleteCartItems deletes all cart items
-func (s *SockShop) DeleteCartItems(items []CartItem) {
-	hostname := pkg.GetHostnameFromGateway("sockshop", "")
+func (s *SockShop) DeleteCartItems(items []CartItem, hostname string) {
 	cartURL := fmt.Sprintf("https://%v/carts/%v/items", hostname, s.username)
 	pkg.Log(Info, fmt.Sprintf("Deleting cart items: %v", items))
 	for _, item := range items {
@@ -198,8 +191,7 @@ func (s *SockShop) DeleteCartItems(items []CartItem) {
 }
 
 // CheckCartEmpty checks whether the cart has no items
-func (s *SockShop) CheckCartEmpty() {
-	hostname := pkg.GetHostnameFromGateway("sockshop", "")
+func (s *SockShop) CheckCartEmpty(hostname string) {
 	cartURL := fmt.Sprintf("https://%v/carts/%v/items", hostname, s.username)
 	status, cart := s.Get(cartURL)
 	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", cartURL, status))
@@ -209,9 +201,8 @@ func (s *SockShop) CheckCartEmpty() {
 }
 
 // AccessPath ensures the given path is accessible
-func (s *SockShop) AccessPath(path, expectedString string) {
+func (s *SockShop) AccessPath(path, expectedString string, hostname string) {
 	// move to cart page
-	hostname := pkg.GetHostnameFromGateway("sockshop", "")
 	pkg.Log(Info, fmt.Sprint("Moving into the cart page"))
 	basketURL := fmt.Sprintf("https://%v/%v", hostname, path)
 	status, basket := s.Get(basketURL)
@@ -220,8 +211,7 @@ func (s *SockShop) AccessPath(path, expectedString string) {
 }
 
 // ChangeAddress changes the address for the provided user
-func (s *SockShop) ChangeAddress(username string) {
-	hostname := pkg.GetHostnameFromGateway("sockshop", "")
+func (s *SockShop) ChangeAddress(username string, hostname string) {
 	pkg.Log(Info, fmt.Sprint("Attempting to change address to 100 Oracle Pkwy, Redwood City, CA 94065"))
 	addressData := fmt.Sprintf(`{"userID": "%v", "number":"100", "street":"Oracle Pkwy", "city":"Redwood City", "postcode":"94065", "country":"USA"}`, username)
 	addressURL := fmt.Sprintf("https://%v/addresses", hostname)
@@ -239,9 +229,8 @@ func (s *SockShop) ChangeAddress(username string) {
 }
 
 // ChangePayment changes the form of payment
-func (s *SockShop) ChangePayment() {
+func (s *SockShop) ChangePayment(hostname string) {
 	// change payment
-	hostname := pkg.GetHostnameFromGateway("sockshop", "")
 	pkg.Log(Info, fmt.Sprint("Attempting to change payment to 0000111122223333"))
 
 	cardData := fmt.Sprintf(`{"userID": "%v", "longNum":"00001111222223333", "expires":"01/23", "ccv":"123"}`, s.username)
@@ -253,8 +242,7 @@ func (s *SockShop) ChangePayment() {
 }
 
 // GetOrders retrieves the orders
-func (s *SockShop) GetOrders() {
-	hostname := pkg.GetHostnameFromGateway("sockshop", "")
+func (s *SockShop) GetOrders(hostname string) {
 	pkg.Log(Info, fmt.Sprint("Attempting to locate orders"))
 	ordersURL := fmt.Sprintf("https://%v/orders", hostname)
 	status, orders := s.Get(ordersURL)
