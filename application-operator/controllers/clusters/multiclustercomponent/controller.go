@@ -86,6 +86,6 @@ func (r *Reconciler) updateStatus(ctx context.Context, mcComp *clustersv1alpha1.
 	clusterName := clusters.GetClusterName(ctx, r.Client)
 	newCondition := clusters.GetConditionFromResult(err, opResult, "OAM Component")
 
-	return clusters.UpdateStatus(mcComp.ObjectMeta, &mcComp.Status, mcComp.Spec.Placement, newCondition, clusterName,
+	return clusters.UpdateStatus(mcComp, &mcComp.Status, mcComp.Spec.Placement, newCondition, clusterName,
 		r.AgentChannel, func() error { return r.Status().Update(ctx, mcComp) })
 }

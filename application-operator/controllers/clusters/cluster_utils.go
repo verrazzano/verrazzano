@@ -13,7 +13,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime"
@@ -59,8 +58,7 @@ type MultiClusterResource interface {
 type StatusUpdateMessage struct {
 	NewCondition      clustersv1alpha1.Condition
 	NewClusterStatus  clustersv1alpha1.ClusterLevelStatus
-	ResourceName      string
-	ResourceNamespace string
+	Resource          MultiClusterResource
 }
 
 // StatusNeedsUpdate determines based on the current state and conditions of a MultiCluster
@@ -273,7 +271,7 @@ func fetchClusterSecret(ctx context.Context, rdr client.Reader, clusterSecret *c
 // UpdateStatus determines whether a status update is needed for the specified mcStatus, given the new
 // Condition to be added, and if so, computes the state and calls the callback function to perform
 // the status update
-func UpdateStatus(metadata metav1.ObjectMeta, mcStatus *clustersv1alpha1.MultiClusterResourceStatus, placement clustersv1alpha1.Placement, newCondition clustersv1alpha1.Condition, clusterName string, agentChannel chan StatusUpdateMessage, updateFunc func() error) (controllerruntime.Result, error) {
+func UpdateStatus(resource MultiClusterResource, mcStatus *clustersv1alpha1.MultiClusterResourceStatus, placement clustersv1alpha1.Placement, newCondition clustersv1alpha1.Condition, clusterName string, agentChannel chan StatusUpdateMessage, updateFunc func() error) (controllerruntime.Result, error) {
 
 	clusterLevelStatus := CreateClusterLevelStatus(newCondition, clusterName)
 
@@ -288,8 +286,7 @@ func UpdateStatus(metadata metav1.ObjectMeta, mcStatus *clustersv1alpha1.MultiCl
 			msg := StatusUpdateMessage{
 				NewCondition: newCondition,
 				NewClusterStatus: clusterLevelStatus,
-				ResourceName: metadata.Name,
-				ResourceNamespace: metadata.Namespace,
+				Resource: resource,
 			}
 			agentChannel <- msg
 		}
