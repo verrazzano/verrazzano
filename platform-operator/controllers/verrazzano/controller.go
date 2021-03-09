@@ -114,7 +114,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// if an OCI DNS installation, make sure the secret required exists before proceeding
-	if vz.Spec.Components.DNS.OCI != (installv1alpha1.OCI{}) {
+	if vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil {
 		err := r.doesOCIDNSConfigSecretExist(vz)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -221,7 +221,7 @@ func (r *Reconciler) createConfigMap(ctx context.Context, log *zap.SugaredLogger
 
 	err = r.Get(ctx, types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}, configMapFound)
 	if err != nil && errors.IsNotFound(err) {
-		config, err := installjob.GetInstallConfig(vz, log)
+		config, err := installjob.GetInstallConfig(vz)
 		if err != nil {
 			return err
 		}
@@ -432,13 +432,7 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 	case installv1alpha1.UpgradeStarted:
 		cr.Status.State = installv1alpha1.Upgrading
 	case installv1alpha1.InstallComplete:
-		domain, err := buildDomain(r.Client, cr)
-		if err != nil {
-			// An error building the instance info is non-fatal, log and continue
-			log.Errorf("Error obtaining DNS domain for installed instance, %v", err)
-		} else {
-			cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(domain)
-		}
+		cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client)
 		fallthrough
 	case installv1alpha1.UninstallComplete, installv1alpha1.UpgradeComplete:
 		cr.Status.State = installv1alpha1.Ready
@@ -645,10 +639,10 @@ func buildDomain(c client.Client, vz *installv1alpha1.Verrazzano) (string, error
 // buildDomainSuffix Get the configured domain suffix, or compute the xip.io domain
 func buildDomainSuffix(c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
 	dns := vz.Spec.Components.DNS
-	if dns.OCI != (installv1alpha1.OCI{}) {
+	if dns != nil && dns.OCI != nil {
 		return dns.OCI.DNSZoneName, nil
 	}
-	if dns.External != (installv1alpha1.External{}) {
+	if dns != nil && dns.External != nil {
 		return dns.External.Suffix, nil
 	}
 	ipAddress, err := getIngressIP(c)

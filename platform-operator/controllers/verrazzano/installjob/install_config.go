@@ -19,6 +19,15 @@ import (
 const (
 	defaultCAClusterResourceName string = "cattle-system"
 	defaultCASecretName          string = "tls-rancher"
+
+	// Verrazzano Helm chart value names
+	esStorageValueName         string = "elasticSearch.nodes.data.requests.storage"
+	grafanaStorageValueName    string = "grafana.requests.storage"
+	prometheusStorageValueName string = "prometheus.requests.storage"
+	grafanaEnabledValueName    string = "grafana.enabled"
+	esEnabledValueName         string = "elasticSearch.enabled"
+	promEnabledValueName       string = "prometheus.enabled"
+	kibanaEnabledValueName     string = "kibana.enabled"
 )
 
 // DNSType identifies the DNS type
@@ -143,17 +152,6 @@ type DNS struct {
 	Oci      *DNSOCI      `json:"oci,omitempty"`
 }
 
-// InstallProfile type
-type InstallProfile string
-
-const (
-	// InstallProfileProd - production profile
-	InstallProfileProd InstallProfile = "prod"
-
-	// InstallProfileDev - development profile
-	InstallProfileDev InstallProfile = "dev"
-)
-
 // Keycloak configuration
 type Keycloak struct {
 	KeycloakInstallArgs []InstallArg `json:"keycloakInstallArgs,omitempty"`
@@ -167,38 +165,49 @@ type MySQL struct {
 
 // InstallConfiguration - Verrazzano installation configuration options
 type InstallConfiguration struct {
-	EnvironmentName string         `json:"environmentName"`
-	Profile         InstallProfile `json:"profile"`
-	DNS             DNS            `json:"dns"`
-	Ingress         Ingress        `json:"ingress"`
-	Certificates    Certificate    `json:"certificates"`
-	Keycloak        Keycloak       `json:"keycloak"`
-	VzInstallArgs   []InstallArg   `json:"verrazzanoInstallArgs,omitempty"`
+	EnvironmentName string                      `json:"environmentName"`
+	Profile         installv1alpha1.ProfileType `json:"profile"`
+	DNS             DNS                         `json:"dns"`
+	Ingress         Ingress                     `json:"ingress"`
+	Certificates    Certificate                 `json:"certificates"`
+	Keycloak        Keycloak                    `json:"keycloak"`
+	VzInstallArgs   []InstallArg                `json:"verrazzanoInstallArgs,omitempty"`
 }
 
 // GetInstallConfig returns an install configuration in the json format required by the
 // bash installer scripts.
-func GetInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (*InstallConfiguration, error) {
-	if vz.Spec.Components.DNS.External != (installv1alpha1.External{}) {
-		return newExternalDNSInstallConfig(vz, log)
+func GetInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
+	dns := vz.Spec.Components.DNS
+	if dns != nil {
+		if dns.External != nil {
+			return newExternalDNSInstallConfig(vz)
+		}
+		if dns.OCI != nil {
+			return newOCIDNSInstallConfig(vz)
+		}
 	}
-
-	if vz.Spec.Components.DNS.OCI != (installv1alpha1.OCI{}) {
-		return newOCIDNSInstallConfig(vz, log)
-	}
-
-	return newXipIoInstallConfig(vz, log)
+	return newXipIoInstallConfig(vz)
 }
 
-func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (*InstallConfiguration, error) {
-	vzArgs, err := getVerrazzanoInstallArgs(&vz.Spec, log)
+func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
+	vzArgs, err := getVerrazzanoInstallArgs(&vz.Spec)
 	if err != nil {
 		return nil, err
 	}
-	keycloak, err := getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource, log)
+	keycloak, err := getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource)
 	if err != nil {
 		return nil, err
 	}
+
+	var acmeConfig *CertificateACME = &CertificateACME{}
+	if vz.Spec.Components.CertManager != nil {
+		acmeConfig = &CertificateACME{
+			Provider:     string(vz.Spec.Components.CertManager.Certificate.Acme.Provider),
+			EmailAddress: vz.Spec.Components.CertManager.Certificate.Acme.EmailAddress,
+			Environment:  vz.Spec.Components.CertManager.Certificate.Acme.Environment,
+		}
+	}
+
 	return &InstallConfiguration{
 		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
@@ -215,11 +224,7 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogg
 		Ingress: getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
 		Certificates: Certificate{
 			IssuerType: CertIssuerTypeAcme,
-			ACME: &CertificateACME{
-				Provider:     string(vz.Spec.Components.CertManager.Certificate.Acme.Provider),
-				EmailAddress: vz.Spec.Components.CertManager.Certificate.Acme.EmailAddress,
-				Environment:  vz.Spec.Components.CertManager.Certificate.Acme.Environment,
-			},
+			ACME:       acmeConfig,
 		},
 		Keycloak: keycloak,
 	}, nil
@@ -227,12 +232,12 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogg
 
 // newXipIoInstallConfig returns an install configuration for a xip.io install in the
 // json format required by the bash installer scripts.
-func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (*InstallConfiguration, error) {
-	vzArgs, err := getVerrazzanoInstallArgs(&vz.Spec, log)
+func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
+	vzArgs, err := getVerrazzanoInstallArgs(&vz.Spec)
 	if err != nil {
 		return nil, err
 	}
-	keycloak, err := getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource, log)
+	keycloak, err := getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource)
 	if err != nil {
 		return nil, err
 	}
@@ -247,8 +252,8 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogge
 		Certificates: Certificate{
 			IssuerType: CertIssuerTypeCA,
 			CA: &CertificateCA{
-				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager.Certificate.CA),
-				SecretName:               getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
+				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager),
+				SecretName:               getCASecretName(vz.Spec.Components.CertManager),
 			},
 		},
 		Keycloak: keycloak,
@@ -258,12 +263,12 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogge
 // newExternalDNSInstallConfig returns an install configuration for an external DNS install
 // in the json format required by the bash installer scripts.
 // This type of install configuration would be used for an OLCNE install.
-func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (*InstallConfiguration, error) {
-	vzArgs, err := getVerrazzanoInstallArgs(&vz.Spec, log)
+func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
+	vzArgs, err := getVerrazzanoInstallArgs(&vz.Spec)
 	if err != nil {
 		return nil, err
 	}
-	keycloak, err := getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource, log)
+	keycloak, err := getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource)
 	if err != nil {
 		return nil, err
 	}
@@ -281,8 +286,8 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano, log *zap.Sugare
 		Certificates: Certificate{
 			IssuerType: CertIssuerTypeCA,
 			CA: &CertificateCA{
-				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager.Certificate.CA),
-				SecretName:               getCASecretName(vz.Spec.Components.CertManager.Certificate.CA),
+				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager),
+				SecretName:               getCASecretName(vz.Spec.Components.CertManager),
 			},
 		},
 		Keycloak: keycloak,
@@ -348,7 +353,11 @@ func getInstallArgs(args []installv1alpha1.InstallArgs) []InstallArg {
 }
 
 // getKeycloak returns the json representation for the keycloak configuration
-func getKeycloak(keycloak installv1alpha1.KeycloakComponent, templates []installv1alpha1.VolumeClaimSpecTemplate, defaultVolumeSpec *corev1.VolumeSource, log *zap.SugaredLogger) (Keycloak, error) {
+func getKeycloak(keycloak *installv1alpha1.KeycloakComponent, templates []installv1alpha1.VolumeClaimSpecTemplate, defaultVolumeSpec *corev1.VolumeSource) (Keycloak, error) {
+
+	if keycloak == nil {
+		return Keycloak{}, nil
+	}
 
 	// Get the explicit helm args for MySQL
 	mySQLArgs := getInstallArgs(keycloak.MySQL.MySQLInstallArgs)
@@ -416,18 +425,22 @@ func getKeycloak(keycloak installv1alpha1.KeycloakComponent, templates []install
 	return keycloakConfig, nil
 }
 
-// getIngress returns the json representation for the ingress
-func getIngress(ingress installv1alpha1.IngressNginxComponent, istio installv1alpha1.IstioComponent) Ingress {
-	return Ingress{
-		Type: getIngressType(ingress.Type),
-		Verrazzano: Verrazzano{
+// getIngress returns the representation for the ingress for the installer scripts
+func getIngress(ingress *installv1alpha1.IngressNginxComponent, istio *installv1alpha1.IstioComponent) Ingress {
+	ingressConfig := Ingress{Type: getIngressType("")}
+	if ingress != nil {
+		ingressConfig.Type = getIngressType(ingress.Type)
+		ingressConfig.Verrazzano = Verrazzano{
 			NginxInstallArgs: getInstallArgs(ingress.NGINXInstallArgs),
 			Ports:            getIngressPorts(ingress.Ports),
-		},
-		Application: Application{
-			IstioInstallArgs: getInstallArgs(istio.IstioInstallArgs),
-		},
+		}
 	}
+	if istio != nil {
+		ingressConfig.Application = Application{
+			IstioInstallArgs: getInstallArgs(istio.IstioInstallArgs),
+		}
+	}
+	return ingressConfig
 }
 
 // getIngressType returns the install ingress type
@@ -441,17 +454,24 @@ func getIngressType(ingressType installv1alpha1.IngressType) IngressType {
 }
 
 // getCAClusterResourceNamespace returns the cluster resource name for a CA certificate
-func getCAClusterResourceNamespace(ca installv1alpha1.CA) string {
+func getCAClusterResourceNamespace(cmConfig *installv1alpha1.CertManagerComponent) string {
+	if cmConfig == nil {
+		return defaultCAClusterResourceName
+	}
+	ca := cmConfig.Certificate.CA
 	// Use default value if not specified
 	if ca.ClusterResourceNamespace == "" {
 		return defaultCAClusterResourceName
 	}
-
 	return ca.ClusterResourceNamespace
 }
 
 // getCASecretName returns the secret name for a CA certificate
-func getCASecretName(ca installv1alpha1.CA) string {
+func getCASecretName(cmConfig *installv1alpha1.CertManagerComponent) string {
+	if cmConfig == nil {
+		return defaultCASecretName
+	}
+	ca := cmConfig.Certificate.CA
 	// Use default value if not specified
 	if ca.SecretName == "" {
 		return defaultCASecretName
@@ -471,33 +491,36 @@ func getEnvironmentName(envName string) string {
 }
 
 // getProfile returns the install profile name
-func getProfile(profileType installv1alpha1.ProfileType) InstallProfile {
+func getProfile(profileType installv1alpha1.ProfileType) installv1alpha1.ProfileType {
 	// Use the prod install profile if not specified
-	if profileType == "" || profileType == installv1alpha1.Prod {
-		return InstallProfileProd
+	switch profileType {
+	case installv1alpha1.Prod, installv1alpha1.Dev, installv1alpha1.ManagedCluster:
+		return profileType
+	default:
+		zap.S().Infof("Using profile %s, profile in resource either not found or unspecified: %s",
+			installv1alpha1.Prod, profileType)
+		return installv1alpha1.Prod
 	}
-
-	return InstallProfileDev
 }
 
 // getVerrazzanoInstallArgs Set custom helm args for the Verrazzano internal component as needed
-func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.SugaredLogger) ([]InstallArg, error) {
+func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]InstallArg, error) {
 	args := []InstallArg{}
 	if vzSpec.DefaultVolumeSource != nil {
 		if vzSpec.DefaultVolumeSource.EmptyDir != nil {
 			args = append(args, []InstallArg{
 				{
-					Name:      "verrazzanoOperator.esDataStorageSize",
+					Name:      esStorageValueName,
 					Value:     "",
 					SetString: true,
 				},
 				{
-					Name:      "verrazzanoOperator.grafanaDataStorageSize",
+					Name:      grafanaStorageValueName,
 					Value:     "",
 					SetString: true,
 				},
 				{
-					Name:      "verrazzanoOperator.prometheusDataStorageSize",
+					Name:      prometheusStorageValueName,
 					Value:     "",
 					SetString: true,
 				},
@@ -511,17 +534,17 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.S
 			}
 			args = append(args, []InstallArg{
 				{
-					Name:      "verrazzanoOperator.esDataStorageSize",
+					Name:      esStorageValueName,
 					Value:     storageSpec.Resources.Requests.Storage().String(),
 					SetString: true,
 				},
 				{
-					Name:      "verrazzanoOperator.grafanaDataStorageSize",
+					Name:      grafanaStorageValueName,
 					Value:     storageSpec.Resources.Requests.Storage().String(),
 					SetString: true,
 				},
 				{
-					Name:      "verrazzanoOperator.prometheusDataStorageSize",
+					Name:      prometheusStorageValueName,
 					Value:     storageSpec.Resources.Requests.Storage().String(),
 					SetString: true,
 				},
@@ -568,7 +591,37 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec, log *zap.S
 			SetString: true,
 		})
 	}
+	args = append(args, getVMIInstallArgs(vzSpec)...)
 	return args, nil
+}
+
+func getVMIInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) []InstallArg {
+	vmiArgs := []InstallArg{}
+	if vzSpec.Components.Elasticsearch != nil {
+		vmiArgs = append(vmiArgs, InstallArg{
+			Name:  esEnabledValueName,
+			Value: strconv.FormatBool(vzSpec.Components.Elasticsearch.Enabled),
+		})
+	}
+	if vzSpec.Components.Prometheus != nil {
+		vmiArgs = append(vmiArgs, InstallArg{
+			Name:  promEnabledValueName,
+			Value: strconv.FormatBool(vzSpec.Components.Prometheus.Enabled),
+		})
+	}
+	if vzSpec.Components.Kibana != nil {
+		vmiArgs = append(vmiArgs, InstallArg{
+			Name:  kibanaEnabledValueName,
+			Value: strconv.FormatBool(vzSpec.Components.Kibana.Enabled),
+		})
+	}
+	if vzSpec.Components.Grafana != nil {
+		vmiArgs = append(vmiArgs, InstallArg{
+			Name:  grafanaEnabledValueName,
+			Value: strconv.FormatBool(vzSpec.Components.Grafana.Enabled),
+		})
+	}
+	return vmiArgs
 }
 
 // findVolumeTemplate Find a named VolumeClaimTemplate in the list

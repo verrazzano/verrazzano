@@ -16,6 +16,8 @@ const (
 	Dev ProfileType = "dev"
 	// Prod identifies the production install profile
 	Prod ProfileType = "prod"
+	// ManagedCluster identifies the production managed-cluster install profile
+	ManagedCluster ProfileType = "managed-cluster"
 )
 const (
 	// LoadBalancer is an ingress type of LoadBalancer.  This is the default value.
@@ -111,8 +113,10 @@ type VolumeClaimSpecTemplate struct {
 
 // InstanceInfo details of installed Verrazzano instance maintained in status field
 type InstanceInfo struct {
-	// Console The Console URL for this Verrazzano installation
-	Console *string `json:"consoleUrl,omitempty"`
+	// ConsoleURL The Console URL for this Verrazzano installation
+	ConsoleURL *string `json:"consoleUrl,omitempty"`
+	// SystemURL The System API URL for this Verrazzano installation
+	SystemURL *string `json:"systemApi,omitempty"`
 	// KeyCloakURL The KeyCloak URL for this Verrazzano installation
 	KeyCloakURL *string `json:"keyCloakUrl,omitempty"`
 	// RancherURL The Rancher URL for this Verrazzano installation
@@ -209,19 +213,57 @@ const (
 type ComponentSpec struct {
 	// CertManager contains the CertManager component configuration
 	// +optional
-	CertManager CertManagerComponent `json:"certManager,omitempty"`
+	CertManager *CertManagerComponent `json:"certManager,omitempty"`
 	// DNS contains the DNS component configuration
 	// +optional
-	DNS DNSComponent `json:"dns,omitempty"`
+	DNS *DNSComponent `json:"dns,omitempty"`
 	// Ingress contains the ingress-nginx component configuration
 	// +optional
-	Ingress IngressNginxComponent `json:"ingress,omitempty"`
+	Ingress *IngressNginxComponent `json:"ingress,omitempty"`
 	// Istio contains the istio component configuration
 	// +optional
-	Istio IstioComponent `json:"istio,omitempty"`
+	Istio *IstioComponent `json:"istio,omitempty"`
 	// Keycloak contains the Keycloak component configuration
 	// +optional
-	Keycloak KeycloakComponent `json:"keycloak,omitempty"`
+	Keycloak *KeycloakComponent `json:"keycloak,omitempty"`
+	// Elasticsearch configuration
+	// +optional
+	Elasticsearch *ElasticsearchComponent `json:"elasticsearch,omitempty"`
+	// Prometheus configuration
+	// +optional
+	Prometheus *PrometheusComponent `json:"prometheus,omitempty"`
+	// Grafana configuration
+	// +optional
+	Kibana *KibanaComponent `json:"kibana,omitempty"`
+	// Grafana configuration
+	// +optional
+	Grafana *GrafanaComponent `json:"grafana,omitempty"`
+}
+
+// MonitoringComponent Common configuration for monitoring components
+type MonitoringComponent struct {
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
+}
+
+// ElasticsearchComponent specifies the Elasticsearch configuration.
+type ElasticsearchComponent struct {
+	MonitoringComponent `json:",inline"`
+}
+
+// KibanaComponent specifies the Kibana configuration.
+type KibanaComponent struct {
+	MonitoringComponent `json:",inline"`
+}
+
+// GrafanaComponent specifies the Grafana configuration.
+type GrafanaComponent struct {
+	MonitoringComponent `json:",inline"`
+}
+
+// PrometheusComponent specifies the Prometheus configuration.
+type PrometheusComponent struct {
+	MonitoringComponent `json:",inline"`
 }
 
 // CertManagerComponent specifies the core CertManagerComponent config.
@@ -235,13 +277,13 @@ type CertManagerComponent struct {
 type DNSComponent struct {
 	// DNS type of xip.io.  This is the default.
 	// +optional
-	XIPIO XIPIO `json:"xip.io,omitempty"`
+	XIPIO *XIPIO `json:"xip.io,omitempty"`
 	// DNS type of OCI (Oracle Cloud Infrastructure)
 	// +optional
-	OCI OCI `json:"oci,omitempty"`
+	OCI *OCI `json:"oci,omitempty"`
 	// DNS type of external. For example, OLCNE uses this type.
 	// +optional
-	External External `json:"external,omitempty"`
+	External *External `json:"external,omitempty"`
 }
 
 // IngressNginxComponent specifies the ingress-nginx configuration
