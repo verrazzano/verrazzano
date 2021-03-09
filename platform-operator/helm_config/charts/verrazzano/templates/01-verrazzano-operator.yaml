@@ -50,22 +50,30 @@ spec:
               value: {{ .Values.verrazzanoOperator.journalbeatImage }}
             - name: FLUENTD_IMAGE
               value: {{ .Values.verrazzanoOperator.fluentdImage }}
+            - name: ES_ENABLED
+              value: {{ .Values.elasticSearch.enabled | quote }}
             - name: ES_MASTER_NODE_REQUEST_MEMORY
               value: {{ .Values.elasticSearch.nodes.master.requests.memory }}
             - name: ES_INGEST_NODE_REQUEST_MEMORY
               value: {{ .Values.elasticSearch.nodes.ingest.requests.memory }}
             - name: ES_DATA_NODE_REQUEST_MEMORY
               value: {{ .Values.elasticSearch.nodes.data.requests.memory }}
+            - name: GRAFANA_ENABLED
+              value: {{ .Values.grafana.enabled | quote }}
             - name: GRAFANA_REQUEST_MEMORY
-              value: {{ .Values.verrazzanoOperator.grafanaRequestMemory }}
+              value: {{ .Values.grafana.requests.memory }}
             - name: GRAFANA_DATA_STORAGE
-              value: {{ .Values.verrazzanoOperator.grafanaDataStorageSize }}
+              value: {{ .Values.grafana.requests.storage }}
+            - name: PROMETHEUS_ENABLED
+              value: {{ .Values.prometheus.enabled | quote }}
             - name: PROMETHEUS_REQUEST_MEMORY
-              value: {{ .Values.verrazzanoOperator.prometheusRequestMemory }}
+              value: {{ .Values.prometheus.requests.memory }}
             - name: PROMETHEUS_DATA_STORAGE
-              value: {{ .Values.verrazzanoOperator.prometheusDataStorageSize }}
+              value: {{ .Values.prometheus.requests.storage }}
+            - name: KIBANA_ENABLED
+              value: {{ .Values.kibana.enabled | quote }}
             - name: KIBANA_REQUEST_MEMORY
-              value: {{ .Values.verrazzanoOperator.kibanaRequestMemory }}
+              value: {{ .Values.kibana.requests.memory }}
             - name: ES_MASTER_NODE_REPLICAS
               value: {{ .Values.elasticSearch.nodes.master.replicas | quote }}
             - name: ES_DATA_NODE_REPLICAS
@@ -73,7 +81,7 @@ spec:
             - name: ES_INGEST_NODE_REPLICAS
               value: {{ .Values.elasticSearch.nodes.ingest.replicas | quote }}
             - name: ES_DATA_STORAGE
-              value: {{ .Values.verrazzanoOperator.esDataStorageSize }}
+              value: {{ .Values.elasticSearch.nodes.data.requests.storage }}
       serviceAccount: {{ .Values.verrazzanoOperator.name }}
 ---
 kind: Service

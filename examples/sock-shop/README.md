@@ -34,9 +34,9 @@ The Sock Shop application deployment artifacts are contained in the Verrazzano p
 
 ## Explore the Sock Shop application
 
-The Sock Shop microservices application implements REST API endpoints including the following:
+The Sock Shop microservices application implements REST API endpoints including:
 
-- `/catalogue` - Returns the sockshop catalog.
+- `/catalogue` - Returns the Sock Shop catalog.
 This endpoint accepts the `GET` HTTP request method.
 - `/register` - POST `{
   "username":"xxx",
@@ -70,7 +70,7 @@ Follow these steps to test the endpoints:
 1. Access the Sock Shop example application.
 
    There are several ways to access it:
-   * **Using the command line**
+   * **Using the command line**:
 
      ```
      # Get catalogue
@@ -86,9 +86,9 @@ Follow these steps to test the endpoints:
      # Get cart items
      $ curl -i -k https://${HOST}/carts/{username}/items --resolve ${HOST}:443:${ADDRESS}
      ```
-     If you are using `xip.io` then you do not need to include `--resolve`.
+     If you are using `xip.io`, then you do not need to include `--resolve`.
 
-   * **Local testing with a browser**
+   * **Local testing with a browser**:
 
      Temporarily, modify the `/etc/hosts` file (on Mac or Linux)
      or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10),
@@ -99,7 +99,7 @@ Follow these steps to test the endpoints:
      ```
      Then, you can access the application in a browser at `https://sockshop.example.com/catalogue`.
 
-   * **Using your own DNS name:**
+   * **Using your own DNS name**:
 
      * Point your own DNS name to the ingress gateway's `EXTERNAL-IP` address.
      * In this case, you would need to edit the `sock-shop-app.yaml` file
@@ -116,8 +116,7 @@ Follow these steps to test the endpoints:
    $ kubectl get IngressTrait -n sockshop
    ```   
 
-1. Verify that the Sock Shop service pods are successfully created and transition to the ready state.
-   Note that this may take a few minutes and that you may see some of the services terminate and restart.
+1. Verify that the Sock Shop service pods are successfully created and transition to the `READY` state. Note that this may take a few minutes and that you may see some of the services terminate and restart.
    ```
     $ kubectl get pods -n sockshop
 

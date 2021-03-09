@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package controllers
+package clusters
 
 import (
 	"context"
@@ -37,7 +37,6 @@ apiEndpoints:
     bindPort: 6443
 `
 const (
-	tokenKey           = "token"
 	token              = "tokenData"
 	managedClusterData = "cluster1"
 )
@@ -236,7 +235,7 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: saSecretName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				tokenKey: []byte(token),
+				TokenKey: []byte(token),
 			}
 			return nil
 		})
@@ -276,7 +275,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string) {
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
 			secret.Data = map[string][]byte{
-				managedClusterNameKey: []byte(managedClusterData),
+				ManagedClusterNameKey: []byte(managedClusterData),
 			}
 			return nil
 		})
@@ -312,8 +311,8 @@ func expectSyncElasticsearch(t *testing.T, mock *mocks.MockClient, name string) 
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.Verrazzano}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				usernameKey: []byte(userData),
-				passwordKey: []byte(passwordData),
+				UsernameKey: []byte(userData),
+				PasswordKey: []byte(passwordData),
 			}
 			return nil
 		})
@@ -323,7 +322,7 @@ func expectSyncElasticsearch(t *testing.T, mock *mocks.MockClient, name string) 
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.SystemTLS}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				caCrtKey: []byte(caData),
+				CaCrtKey: []byte(caData),
 			}
 			return nil
 		})
@@ -337,13 +336,13 @@ func expectSyncElasticsearch(t *testing.T, mock *mocks.MockClient, name string) 
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
-			ca, _ := secret.Data[caBundleKey]
+			ca, _ := secret.Data[CaBundleKey]
 			asserts.Equalf(caData, string(ca), "Incorrect cadata in Elasticsearch secret ")
-			user, _ := secret.Data[usernameKey]
+			user, _ := secret.Data[UsernameKey]
 			asserts.Equalf(userData, string(user), "Incorrect user in Elasticsearch secret ")
-			pw, _ := secret.Data[passwordKey]
+			pw, _ := secret.Data[PasswordKey]
 			asserts.Equalf(passwordData, string(pw), "Incorrect password in Elasticsearch secret ")
-			url, _ := secret.Data[urlKey]
+			url, _ := secret.Data[URLKey]
 			asserts.Equalf(urlData, string(url), "Incorrect URL in Elasticsearch secret ")
 			return nil
 		})
@@ -364,7 +363,7 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, name string) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetAgentSecretName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				kubeconfigKey: []byte(kubeconfigData),
+				KubeconfigKey: []byte(kubeconfigData),
 			}
 			return nil
 		})
@@ -374,7 +373,7 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, name string) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetRegistrationSecretName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				managedClusterNameKey: []byte(clusterName),
+				ManagedClusterNameKey: []byte(clusterName),
 			}
 			return nil
 		})
@@ -384,10 +383,10 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, name string) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetElasticsearchSecretName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
-				caCrtKey:    []byte(caData),
-				usernameKey: []byte(userData),
-				passwordKey: []byte(passwordData),
-				urlKey:      []byte(urlData),
+				CaCrtKey:    []byte(caData),
+				UsernameKey: []byte(userData),
+				PasswordKey: []byte(passwordData),
+				URLKey:      []byte(urlData),
 			}
 			return nil
 		})
@@ -401,7 +400,7 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, name string) {
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
-			data, _ := secret.Data[yamlKey]
+			data, _ := secret.Data[YamlKey]
 			asserts.NotZero(len(data), "Expected yaml data in manifest secret")
 			return nil
 		})

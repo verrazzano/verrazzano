@@ -166,14 +166,14 @@ export VERRAZZANO_APP_OP_IMAGE=${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 .PHONY: setup-cluster
 setup-cluster: create-cluster
 	echo 'Load Docker image for the OAM runtime...'
-	docker pull ${OAM_RUNTIME_IMAGE}
-	kind load docker-image --name ${CLUSTER_NAME} ${OAM_RUNTIME_IMAGE}
+	time docker pull ${OAM_RUNTIME_IMAGE}
+	time kind load docker-image --name ${CLUSTER_NAME} ${OAM_RUNTIME_IMAGE}
 
 	echo 'Load Docker image for the Verrazzano application operator...'
-	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+	time kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 	echo 'Install OAM runtime and Verrazzano application operator...'
-	installer/install.sh || (echo 'Application operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
+	time installer/install.sh || (echo 'Application operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
 
 .PHONY: integ-test
 integ-test: setup-cluster

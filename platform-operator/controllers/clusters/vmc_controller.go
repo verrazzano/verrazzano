@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package controllers
+package clusters
 
 import (
 	"context"
@@ -71,42 +71,42 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 	log.Infof("Syncing the ServiceAccount for VMC %s", vmc.Name)
 	err = r.syncServiceAccount(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the ServiceAccount: %v", err)
+		log.Errorf("Failed to sync the ServiceAccount: %v", err)
 		return ctrl.Result{}, err
 	}
 
 	log.Infof("Syncing the RoleBinding for VMC %s", vmc.Name)
 	err = r.syncManagedRoleBinding(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the RoleBinding: %v", err)
+		log.Errorf("Failed to sync the RoleBinding: %v", err)
 		return ctrl.Result{}, err
 	}
 
 	log.Infof("Syncing the Agent secret for VMC %s", vmc.Name)
 	err = r.syncAgentSecret(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the agent secret: %v", err)
+		log.Errorf("Failed to sync the agent secret: %v", err)
 		return ctrl.Result{}, err
 	}
 
 	log.Infof("Syncing the Registration secret for VMC %s", vmc.Name)
 	err = r.syncRegistrationSecret(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the registration secret: %v", err)
+		log.Errorf("Failed to sync the registration secret: %v", err)
 		return ctrl.Result{}, err
 	}
 
 	log.Infof("Syncing the Elasticsearch secret for VMC %s", vmc.Name)
 	err = r.syncElasticsearchSecret(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the Elasticsearch secret: %v", err)
+		log.Errorf("Failed to sync the Elasticsearch secret: %v", err)
 		return ctrl.Result{}, err
 	}
 
 	log.Infof("Syncing the Manifest secret for VMC %s", vmc.Name)
 	err = r.syncManifestSecret(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the Manifest secret: %v", err)
+		log.Errorf("Failed to sync the Manifest secret: %v", err)
 		return ctrl.Result{}, err
 	}
 

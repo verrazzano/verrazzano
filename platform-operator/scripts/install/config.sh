@@ -31,7 +31,6 @@ function get_config_value() {
   fi
   if [ "$config_val" == "null" ]; then
     config_val=""
-    return 0
   fi
   echo $config_val
   return 0
