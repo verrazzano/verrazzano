@@ -417,6 +417,11 @@ pipeline {
                                 runGinkgo('istio/authz')
                             }
                         }
+                        stage('examples logging helidon') {
+                            steps {
+                                runGinkgo('logging/helidon')
+                            }
+                        }
                         stage('examples todo') {
                             steps {
                                 runGinkgo('examples/todo')
