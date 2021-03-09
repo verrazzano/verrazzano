@@ -59,3 +59,7 @@ type MultiClusterSecretList struct {
 func init() {
 	SchemeBuilder.Register(&MultiClusterSecret{}, &MultiClusterSecretList{})
 }
+
+func (in *MultiClusterSecret) GetStatus() MultiClusterResourceStatus {
+	return in.Status
+}

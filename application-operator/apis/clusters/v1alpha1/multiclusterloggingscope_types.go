@@ -50,3 +50,7 @@ type MultiClusterLoggingScopeList struct {
 func init() {
 	SchemeBuilder.Register(&MultiClusterLoggingScope{}, &MultiClusterLoggingScopeList{})
 }
+
+func (in *MultiClusterLoggingScope) GetStatus() MultiClusterResourceStatus {
+	return in.Status
+}

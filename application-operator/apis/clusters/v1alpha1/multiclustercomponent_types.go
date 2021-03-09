@@ -50,3 +50,7 @@ type MultiClusterComponentList struct {
 func init() {
 	SchemeBuilder.Register(&MultiClusterComponent{}, &MultiClusterComponentList{})
 }
+
+func (in *MultiClusterComponent) GetStatus() MultiClusterResourceStatus {
+	return in.Status
+}

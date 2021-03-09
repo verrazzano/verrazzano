@@ -58,3 +58,7 @@ type MultiClusterConfigMapList struct {
 func init() {
 	SchemeBuilder.Register(&MultiClusterConfigMap{}, &MultiClusterConfigMapList{})
 }
+
+func (in *MultiClusterConfigMap) GetStatus() MultiClusterResourceStatus {
+	return in.Status
+}

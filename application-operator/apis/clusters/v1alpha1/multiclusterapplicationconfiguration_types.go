@@ -50,3 +50,7 @@ type MultiClusterApplicationConfigurationList struct {
 func init() {
 	SchemeBuilder.Register(&MultiClusterApplicationConfiguration{}, &MultiClusterApplicationConfigurationList{})
 }
+
+func (in *MultiClusterApplicationConfiguration) GetStatus() MultiClusterResourceStatus {
+	return in.Status
+}
