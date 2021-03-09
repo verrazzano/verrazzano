@@ -64,4 +64,3 @@ const StatusUpdateChannelBufferSize = 10
 // StatusUpdateBatchSize - the number of status update messages the multi cluster agent should
 // process each time it wakes up
 const StatusUpdateBatchSize = 10
-

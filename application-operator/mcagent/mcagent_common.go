@@ -40,7 +40,7 @@ func (s *Syncer) isThisCluster(placement clustersv1alpha1.Placement) bool {
 	return false
 }
 
-// processStatusUpdates monitors the StatusUpdateChannel for any 
+// processStatusUpdates monitors the StatusUpdateChannel for any
 // received messages and processes a batch of them
 func (s *Syncer) processStatusUpdates() {
 	s.Log.Info("processStatusUpdates: starting")

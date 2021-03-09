@@ -60,6 +60,7 @@ func init() {
 	SchemeBuilder.Register(&MultiClusterSecret{}, &MultiClusterSecretList{})
 }
 
+// GetStatus returns the MultiClusterResourceStatus of this resource
 func (in *MultiClusterSecret) GetStatus() MultiClusterResourceStatus {
 	return in.Status
 }

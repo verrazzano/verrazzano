@@ -59,6 +59,7 @@ func init() {
 	SchemeBuilder.Register(&MultiClusterConfigMap{}, &MultiClusterConfigMapList{})
 }
 
+// GetStatus returns the MultiClusterResourceStatus of this resource
 func (in *MultiClusterConfigMap) GetStatus() MultiClusterResourceStatus {
 	return in.Status
 }

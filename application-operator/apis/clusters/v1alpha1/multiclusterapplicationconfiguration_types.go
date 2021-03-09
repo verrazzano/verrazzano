@@ -51,6 +51,7 @@ func init() {
 	SchemeBuilder.Register(&MultiClusterApplicationConfiguration{}, &MultiClusterApplicationConfigurationList{})
 }
 
+// GetStatus returns the MultiClusterResourceStatus of this resource
 func (in *MultiClusterApplicationConfiguration) GetStatus() MultiClusterResourceStatus {
 	return in.Status
 }

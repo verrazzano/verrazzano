@@ -51,6 +51,7 @@ func init() {
 	SchemeBuilder.Register(&MultiClusterLoggingScope{}, &MultiClusterLoggingScopeList{})
 }
 
+// GetStatus returns the MultiClusterResourceStatus of this resource
 func (in *MultiClusterLoggingScope) GetStatus() MultiClusterResourceStatus {
 	return in.Status
 }
