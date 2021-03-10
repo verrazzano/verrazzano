@@ -6,7 +6,13 @@ package webhooks
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"net/http"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	v1beta12 "k8s.io/api/admission/v1beta1"
 
@@ -18,13 +24,17 @@ import (
 var log = ctrl.Log.WithName("webhooks.appconfig-defaulter")
 
 // AppConfigDefaulterPath specifies the path of AppConfigDefaulter
-const AppConfigDefaulterPath = "/appconfig-defaulter"
+const (
+	AppConfigDefaulterPath = "/appconfig-defaulter"
+	istioSystemNamespace   = "istio-system"
+)
 
 // +kubebuilder:webhook:verbs=create;update,path=/appconfig-defaulter,mutating=true,failurePolicy=fail,groups=core.oam.dev,resources=ApplicationConfigurations,versions=v1alpha2,name=appconfig-defaulter.kb.io
 
 // AppConfigWebhook uses a list of AppConfigDefaulters to supply appconfig default values
 type AppConfigWebhook struct {
 	decoder    *admission.Decoder
+	Client     client.Client
 	Defaulters []AppConfigDefaulter
 }
 
@@ -63,6 +73,12 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 				return admission.Errored(http.StatusInternalServerError, err)
 			}
 		}
+		if !dryRun {
+			err = a.cleanupAppConfig(appConfig)
+			if err != nil {
+				log.Error(err, "error cleaning up app config", "appconfig.Name", appConfig.Name)
+			}
+		}
 		return admission.Allowed("cleaned up appconfig default")
 	}
 
@@ -84,4 +100,71 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledAppConfig)
+}
+
+// cleanupAppConfig cleans up the generated certificates and secrets associated with the given app config
+func (a *AppConfigWebhook) cleanupAppConfig(appConfig *oamv1.ApplicationConfiguration) (err error) {
+	err = a.cleanupCert(appConfig)
+	if err == nil {
+		err = a.cleanupSecret(appConfig)
+	}
+	return
+}
+
+// cleanupCert cleans up the generated certificate for the given app config
+func (a *AppConfigWebhook) cleanupCert(appConfig *oamv1.ApplicationConfiguration) (err error) {
+	gatewayCertName := fmt.Sprintf("%s-%s-cert", appConfig.Namespace, appConfig.Name)
+	namespacedName := types.NamespacedName{Name: gatewayCertName, Namespace: istioSystemNamespace}
+	var cert *certapiv1alpha2.Certificate
+	cert, err = fetchCert(context.TODO(), a.Client, namespacedName)
+	if err != nil {
+		return err
+	}
+	if cert != nil {
+		err = a.Client.Delete(context.TODO(), cert, &client.DeleteOptions{})
+	}
+	return
+}
+
+// cleanupSecret cleans up the generated secret for the given app config
+func (a *AppConfigWebhook) cleanupSecret(appConfig *oamv1.ApplicationConfiguration) (err error) {
+	gatewaySecretName := fmt.Sprintf("%s-%s-cert-secret", appConfig.Namespace, appConfig.Name)
+	namespacedName := types.NamespacedName{Name: gatewaySecretName, Namespace: istioSystemNamespace}
+	var secret *corev1.Secret
+	secret, err = fetchSecret(context.TODO(), a.Client, namespacedName)
+	if err != nil {
+		return err
+	}
+	if secret != nil {
+		err = a.Client.Delete(context.TODO(), secret, &client.DeleteOptions{})
+	}
+	return
+}
+
+func fetchCert(ctx context.Context, c client.Reader, name types.NamespacedName) (*certapiv1alpha2.Certificate, error) {
+	var cert certapiv1alpha2.Certificate
+	err := c.Get(ctx, name, &cert)
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			log.Info("cert does not exist", "cert", name)
+			return nil, nil
+		}
+		log.Info("failed to fetch cert", "cert", name)
+		return nil, err
+	}
+	return &cert, err
+}
+
+func fetchSecret(ctx context.Context, c client.Reader, name types.NamespacedName) (*corev1.Secret, error) {
+	var secret corev1.Secret
+	err := c.Get(ctx, name, &secret)
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			log.Info("secret does not exist", "secret", name)
+			return nil, nil
+		}
+		log.Info("failed to fetch secret", "secret", name)
+		return nil, err
+	}
+	return &secret, err
 }

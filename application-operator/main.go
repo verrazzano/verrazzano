@@ -171,7 +171,7 @@ func main() {
 		}
 
 		mgr.GetWebhookServer().CertDir = certDir
-		appconfigWebhook := &webhooks.AppConfigWebhook{Defaulters: []webhooks.AppConfigDefaulter{
+		appconfigWebhook := &webhooks.AppConfigWebhook{Client: mgr.GetClient(), Defaulters: []webhooks.AppConfigDefaulter{
 			&webhooks.MetricsTraitDefaulter{},
 			&webhooks.LoggingScopeDefaulter{Client: mgr.GetClient()},
 		}}
