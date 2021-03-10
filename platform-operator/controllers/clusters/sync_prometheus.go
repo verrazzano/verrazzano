@@ -100,10 +100,6 @@ func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.C
 	return nil
 }
 
-func getClusterYamlKey(name string) string {
-	return fmt.Sprintf("%s.yaml", name)
-}
-
 // mutatePrometheusConfigMap will add a scraper configuration and a CA cert entry to the prometheus config map
 func (r *VerrazzanoManagedClusterReconciler) mutatePrometheusConfigMap(vmc *clustersv1alpha1.VerrazzanoManagedCluster, configMap *corev1.ConfigMap, info *prometheusInfo) error {
 	prometheusConfig, err := parsePrometheusConfiguration(configMap.Data[prometheusYamlKey])
@@ -229,3 +225,10 @@ func parsePrometheusConfiguration(promConfigStr string) (*gabs.Container, error)
 func getCAKey(vmc *clustersv1alpha1.VerrazzanoManagedCluster) string {
 	return "ca-" + vmc.Name
 }
+
+// getClusterYamlKey returns the key to the cluster information yaml from the configured prometheus secret
+func getClusterYamlKey(name string) string {
+	return fmt.Sprintf("%s.yaml", name)
+}
+
+
