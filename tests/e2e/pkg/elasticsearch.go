@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/onsi/ginkgo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -33,14 +32,15 @@ func GetSystemElasticSearchIngressHost() string {
 // ListSystemElasticSearchIndices lists the system Elasticsearch indices
 func ListSystemElasticSearchIndices() []string {
 	url := fmt.Sprintf("https://%s/_all", GetSystemElasticSearchIngressHost())
-	status, body := GetWebPageWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPassword())
+	status, body := RetryGetWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPassword())
+	list := []string{}
 	if status != 200 {
-		ginkgo.Fail(fmt.Sprintf("Error retrieving Elasticsearch indices: url=%s, status=%d", url, status))
+		Log(Debug, fmt.Sprintf("Error retrieving Elasticsearch indices: url=%s, status=%d", url, status))
+		return list
 	}
 	Log(Debug, fmt.Sprintf("indices: %s", body))
 	var indexMap map[string]interface{}
 	json.Unmarshal([]byte(body), &indexMap)
-	list := []string{}
 	for name := range indexMap {
 		list = append(list, name)
 	}
@@ -59,12 +59,13 @@ func QuerySystemElasticSearch(index string, fields map[string]string) map[string
 		}
 	}
 	url := fmt.Sprintf("https://%s/%s/_doc/_search?q=%s", GetSystemElasticSearchIngressHost(), index, query)
-	status, body := GetWebPageWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPassword())
+	status, body := RetryGetWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPassword())
+	var result map[string]interface{}
 	if status != 200 {
-		ginkgo.Fail(fmt.Sprintf("Error retrieving Elasticsearch query results: url=%s, status=%d", url, status))
+		Log(Debug, fmt.Sprintf("Error retrieving Elasticsearch query results: url=%s, status=%d", url, status))
+		return result
 	}
 	Log(Debug, fmt.Sprintf("records: %s", body))
-	var result map[string]interface{}
 	json.Unmarshal([]byte(body), &result)
 	return result
 }
