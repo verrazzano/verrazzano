@@ -272,7 +272,7 @@ func fetchClusterSecret(ctx context.Context, rdr client.Reader, clusterSecret *c
 // UpdateStatus determines whether a status update is needed for the specified mcStatus, given the new
 // Condition to be added, and if so, computes the state and calls the callback function to perform
 // the status update
-func UpdateStatus(resource MultiClusterResource, mcStatus *clustersv1alpha1.MultiClusterResourceStatus, placement clustersv1alpha1.Placement, newCondition clustersv1alpha1.Condition, clusterName string, agentChannel chan StatusUpdateMessage, updateFunc func() error, getFunc func() MultiClusterResource) (controllerruntime.Result, error) {
+func UpdateStatus(resource MultiClusterResource, mcStatus *clustersv1alpha1.MultiClusterResourceStatus, placement clustersv1alpha1.Placement, newCondition clustersv1alpha1.Condition, clusterName string, agentChannel chan StatusUpdateMessage, updateFunc func() error) (controllerruntime.Result, error) {
 
 	clusterLevelStatus := CreateClusterLevelStatus(newCondition, clusterName)
 
@@ -286,19 +286,14 @@ func UpdateStatus(resource MultiClusterResource, mcStatus *clustersv1alpha1.Mult
 		if err == nil && agentChannel != nil {
 			// put the status update itself on the agent channel. TODO may need to do a deep copy for the cross-thread dereferencing to work
 			// note that the send will block if the channel buffer is full
-			updatedResource := getFunc()
-			if updatedResource == nil {
-				fmt.Printf("Could not get updated resource %s/%s on cluster %s\n", resource.GetNamespace(), resource.GetName(), clusterLevelStatus.Name)
-			} else {
-				fmt.Printf("UpdateStatus: Posting status msg on agent channel for %s/%s on cluster %s = %s\n", resource.GetNamespace(), resource.GetName(),
-					clusterLevelStatus.Name, clusterLevelStatus.State)
-				msg := StatusUpdateMessage{
-					NewCondition:     newCondition,
-					NewClusterStatus: clusterLevelStatus,
-					Resource:         updatedResource,
-				}
-				agentChannel <- msg
+			fmt.Printf("UpdateStatus: Posting status msg on agent channel for %s/%s on cluster %s = %s\n", resource.GetNamespace(), resource.GetName(),
+				clusterLevelStatus.Name, clusterLevelStatus.State)
+			msg := StatusUpdateMessage{
+				NewCondition:     newCondition,
+				NewClusterStatus: clusterLevelStatus,
+				Resource:         resource,
 			}
+			agentChannel <- msg
 		} else if err != nil {
 			fmt.Printf("UpdateStatus: error for %s/%s, err = %s\n", resource.GetNamespace(), resource.GetName(), err.Error())
 		}

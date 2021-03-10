@@ -85,14 +85,6 @@ func (r *Reconciler) mutateComponent(mcComp clustersv1alpha1.MultiClusterCompone
 func (r *Reconciler) updateStatus(ctx context.Context, mcComp *clustersv1alpha1.MultiClusterComponent, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {
 	clusterName := clusters.GetClusterName(ctx, r.Client)
 	newCondition := clusters.GetConditionFromResult(err, opResult, "OAM Component")
-	getFunc := func() clusters.MultiClusterResource {
-		var fetched clustersv1alpha1.MultiClusterComponent
-		fetchErr := r.fetchMultiClusterComponent(ctx, types.NamespacedName{Namespace: mcComp.Namespace, Name: mcComp.Name}, &fetched)
-		if fetchErr != nil {
-			return nil
-		}
-		return &fetched
-	}
 	return clusters.UpdateStatus(mcComp, &mcComp.Status, mcComp.Spec.Placement, newCondition, clusterName,
-		r.AgentChannel, func() error { return r.Status().Update(ctx, mcComp) }, getFunc)
+		r.AgentChannel, func() error { return r.Status().Update(ctx, mcComp) })
 }
