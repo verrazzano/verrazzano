@@ -230,5 +230,3 @@ func getCAKey(vmc *clustersv1alpha1.VerrazzanoManagedCluster) string {
 func getClusterYamlKey(name string) string {
 	return fmt.Sprintf("%s.yaml", name)
 }
-
-
