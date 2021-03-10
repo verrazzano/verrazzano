@@ -16,7 +16,7 @@ Install Verrazzano following the [installation instructions](https://verrazzano.
 1. Create a namespace for the Spring Boot application and add a label identifying the namespace as managed by Verrazzano.
    ```
    $ kubectl create namespace springboot
-   $ kubectl label namespace springboot verrazzano-managed=true
+   $ kubectl label namespace springboot verrazzano-managed=true istio-injection=enabled
    ```
 
 1. Apply the Spring Boot OAM resources to deploy the application.
