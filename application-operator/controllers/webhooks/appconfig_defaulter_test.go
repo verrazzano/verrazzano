@@ -6,11 +6,19 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	"github.com/golang/mock/gomock"
+	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"io/ioutil"
 	"k8s.io/api/admission/v1beta1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -62,21 +70,36 @@ func TestAppConfigDefaulterHandle(t *testing.T) {
 	assert.NotEqual(t, 0, len(res.Patches))
 }
 
-// TestAppConfigDefaulterHandle tests handling an appconfig Delete admission.Request
-// GIVEN a AppConfigDefaulter and an appconfig Delete admission.Request
+// TestAppConfigWebhookHandleDelete tests handling an appconfig Delete admission.Request
+// GIVEN a AppConfigWebhook and an appconfig Delete admission.Request
 //  WHEN Handle is called with an admission.Request containing appconfig
 //  THEN Handle should return an Allowed response with no patch
-func TestAppConfigDefaulterHandleDelete(t *testing.T) {
-	decoder := decoder()
-	defaulter := &AppConfigWebhook{}
-	defaulter.InjectDecoder(decoder)
-	req := admission.Request{
-		AdmissionRequest: admissionv1beta1.AdmissionRequest{Operation: v1beta1.Delete},
-	}
-	req.OldObject = runtime.RawExtension{Raw: readYaml2Json(t, "hello-conf.yaml")}
-	res := defaulter.Handle(context.TODO(), req)
-	assert.True(t, res.Allowed)
-	assert.Equal(t, 0, len(res.Patches))
+func TestAppConfigWebhookHandleDelete(t *testing.T) {
+	testAppConfigWebhookHandleDelete(t, true, true, false)
+}
+
+// TestAppConfigWebhookHandleDeleteDryRun tests handling a dry run appconfig Delete admission.Request
+// GIVEN a AppConfigWebhook and an appconfig Delete admission.Request
+//  WHEN Handle is called with an admission.Request containing appconfig and set for a dry run
+//  THEN Handle should return an Allowed response with no patch
+func TestAppConfigWebhookHandleDeleteDryRun(t *testing.T) {
+	testAppConfigWebhookHandleDelete(t, true, true, true)
+}
+
+// TestAppConfigWebhookHandleDeleteCertNotFound tests handling an appconfig Delete admission.Request where the app config cert is not found
+// GIVEN a AppConfigWebhook and an appconfig Delete admission.Request
+//  WHEN Handle is called with an admission.Request containing appconfig and the cert is not found
+//  THEN Handle should return an Allowed response with no patch
+func TestAppConfigWebhookHandleDeleteCertNotFound(t *testing.T) {
+	testAppConfigWebhookHandleDelete(t, false, true, false)
+}
+
+// TestAppConfigWebhookHandleDeleteSecretNotFound tests handling an appconfig Delete admission.Request where the app config secret is not found
+// GIVEN a AppConfigWebhook and an appconfig Delete admission.Request
+//  WHEN Handle is called with an admission.Request containing appconfig and the secret is not found
+//  THEN Handle should return an Allowed response with no patch
+func TestAppConfigWebhookHandleDeleteSecretNotFound(t *testing.T) {
+	testAppConfigWebhookHandleDelete(t, true, false, false)
 }
 
 // TestAppConfigDefaulterHandleMarshalError tests handling an appconfig with json marshal error
@@ -121,6 +144,77 @@ func TestAppConfigDefaulterHandleDefaultError(t *testing.T) {
 	res := defaulter.Handle(context.TODO(), req)
 	assert.False(t, res.Allowed)
 	assert.Equal(t, int32(http.StatusInternalServerError), res.Result.Code)
+}
+
+func testAppConfigWebhookHandleDelete(t *testing.T, certFound, secretFound, dryRun bool) {
+	const istioSystem = "istio-system"
+	const certName = "default-hello-app-cert"
+	const secretName = "default-hello-app-cert-secret"
+
+	mocker := gomock.NewController(t)
+	mockClient := mocks.NewMockClient(mocker)
+
+	if !dryRun {
+		// get cert
+		mockClient.EXPECT().
+			Get(gomock.Any(), types.NamespacedName{Namespace: istioSystem, Name: certName}, gomock.Not(gomock.Nil())).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, cert *certapiv1alpha2.Certificate) error {
+				if certFound {
+					cert.Namespace = istioSystem
+					cert.Name = certName
+					return nil
+				}
+				return k8serrors.NewNotFound(k8sschema.GroupResource{}, certName)
+			})
+
+		// delete cert
+		if certFound {
+			mockClient.EXPECT().
+				Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, cert *certapiv1alpha2.Certificate, opt *client.DeleteOptions) error {
+					assert.Equal(t, istioSystem, cert.Namespace)
+					assert.Equal(t, certName, cert.Name)
+					return nil
+				})
+		}
+
+		// get secret
+		mockClient.EXPECT().
+			Get(gomock.Any(), types.NamespacedName{Namespace: istioSystem, Name: secretName}, gomock.Not(gomock.Nil())).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *corev1.Secret) error {
+				if secretFound {
+					sec.Namespace = istioSystem
+					sec.Name = secretName
+					return nil
+				}
+				return k8serrors.NewNotFound(k8sschema.GroupResource{}, secretName)
+			})
+
+		// delete secret
+		if secretFound {
+			mockClient.EXPECT().
+				Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, sec *corev1.Secret, opt *client.DeleteOptions) error {
+					assert.Equal(t, istioSystem, sec.Namespace)
+					assert.Equal(t, secretName, sec.Name)
+					return nil
+				})
+		}
+	}
+	decoder := decoder()
+	webhook := &AppConfigWebhook{Client: mockClient}
+	webhook.InjectDecoder(decoder)
+	req := admission.Request{
+		AdmissionRequest: admissionv1beta1.AdmissionRequest{Operation: v1beta1.Delete},
+	}
+	req.OldObject = runtime.RawExtension{Raw: readYaml2Json(t, "hello-conf.yaml")}
+	if dryRun {
+		dryRun := true
+		req.DryRun = &dryRun
+	}
+	res := webhook.Handle(context.TODO(), req)
+	assert.True(t, res.Allowed)
+	assert.Equal(t, 0, len(res.Patches))
 }
 
 func readYaml2Json(t *testing.T, path string) []byte {
