@@ -851,37 +851,10 @@ func TestNoUpdatesRequired(t *testing.T) {
 
 	testNamespace := k8score.Namespace{
 		TypeMeta: k8smeta.TypeMeta{
-			Kind:       "Namespace",
-			APIVersion: "",
+			Kind: "Namespace",
 		},
 		ObjectMeta: k8smeta.ObjectMeta{
-			Name:            "test-namespace",
-			GenerateName:    "",
-			Namespace:       "",
-			SelfLink:        "",
-			UID:             "",
-			ResourceVersion: "",
-			Generation:      0,
-			CreationTimestamp: k8smeta.Time{
-				Time: time.Time{},
-			},
-			DeletionTimestamp: &k8smeta.Time{
-				Time: time.Time{},
-			},
-			DeletionGracePeriodSeconds: nil,
-			Labels:                     nil,
-			Annotations:                nil,
-			OwnerReferences:            nil,
-			Finalizers:                 nil,
-			ClusterName:                "",
-			ManagedFields:              nil,
-		},
-		Spec: k8score.NamespaceSpec{
-			Finalizers: nil,
-		},
-		Status: k8score.NamespaceStatus{
-			Phase:      "",
-			Conditions: nil,
+			Name: "test-namespace",
 		},
 	}
 
@@ -1069,37 +1042,10 @@ func TestMetricsTraitCreatedForWLSWorkload(t *testing.T) {
 
 	testNamespace := k8score.Namespace{
 		TypeMeta: k8smeta.TypeMeta{
-			Kind:       "Namespace",
-			APIVersion: "",
+			Kind: "Namespace",
 		},
 		ObjectMeta: k8smeta.ObjectMeta{
-			Name:            "test-namespace",
-			GenerateName:    "",
-			Namespace:       "",
-			SelfLink:        "",
-			UID:             "",
-			ResourceVersion: "",
-			Generation:      0,
-			CreationTimestamp: k8smeta.Time{
-				Time: time.Time{},
-			},
-			DeletionTimestamp: &k8smeta.Time{
-				Time: time.Time{},
-			},
-			DeletionGracePeriodSeconds: nil,
-			Labels:                     nil,
-			Annotations:                nil,
-			OwnerReferences:            nil,
-			Finalizers:                 nil,
-			ClusterName:                "",
-			ManagedFields:              nil,
-		},
-		Spec: k8score.NamespaceSpec{
-			Finalizers: nil,
-		},
-		Status: k8score.NamespaceStatus{
-			Phase:      "",
-			Conditions: nil,
+			Name: "test-namespace",
 		},
 	}
 
@@ -1728,37 +1674,10 @@ func TestUseHTTPSForScrapeTargetFalseConditions(t *testing.T) {
 
 	testNamespace := k8score.Namespace{
 		TypeMeta: k8smeta.TypeMeta{
-			Kind:       "Namespace",
-			APIVersion: "",
+			Kind: "Namespace",
 		},
 		ObjectMeta: k8smeta.ObjectMeta{
-			Name:            "test-namespace",
-			GenerateName:    "",
-			Namespace:       "",
-			SelfLink:        "",
-			UID:             "",
-			ResourceVersion: "",
-			Generation:      0,
-			CreationTimestamp: k8smeta.Time{
-				Time: time.Time{},
-			},
-			DeletionTimestamp: &k8smeta.Time{
-				Time: time.Time{},
-			},
-			DeletionGracePeriodSeconds: nil,
-			Labels:                     nil,
-			Annotations:                nil,
-			OwnerReferences:            nil,
-			Finalizers:                 nil,
-			ClusterName:                "",
-			ManagedFields:              nil,
-		},
-		Spec: k8score.NamespaceSpec{
-			Finalizers: nil,
-		},
-		Status: k8score.NamespaceStatus{
-			Phase:      "",
-			Conditions: nil,
+			Name: "test-namespace",
 		},
 	}
 
@@ -1848,37 +1767,10 @@ func TestUseHTTPSForScrapeTargetTrueCondition(t *testing.T) {
 
 	testNamespace := k8score.Namespace{
 		TypeMeta: k8smeta.TypeMeta{
-			Kind:       "Namespace",
-			APIVersion: "",
+			Kind: "Namespace",
 		},
 		ObjectMeta: k8smeta.ObjectMeta{
-			Name:            "test-namespace",
-			GenerateName:    "",
-			Namespace:       "",
-			SelfLink:        "",
-			UID:             "",
-			ResourceVersion: "",
-			Generation:      0,
-			CreationTimestamp: k8smeta.Time{
-				Time: time.Time{},
-			},
-			DeletionTimestamp: &k8smeta.Time{
-				Time: time.Time{},
-			},
-			DeletionGracePeriodSeconds: nil,
-			Labels:                     nil,
-			Annotations:                nil,
-			OwnerReferences:            nil,
-			Finalizers:                 nil,
-			ClusterName:                "",
-			ManagedFields:              nil,
-		},
-		Spec: k8score.NamespaceSpec{
-			Finalizers: nil,
-		},
-		Status: k8score.NamespaceStatus{
-			Phase:      "",
-			Conditions: nil,
+			Name: "test-namespace",
 		},
 	}
 
