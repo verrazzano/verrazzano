@@ -71,7 +71,7 @@ Install Verrazzano following the [installation instructions](https://verrazzano.
      * In this case, you would need to have edited the `springboot-app.yaml` file
        to use the appropriate value under the `hosts` section (such as `yourhost.your.domain`),
        before deploying the Spring Boot application.
-     * Then, you can use a browser to access the application at `http://<yourhost.your.domain>/` and `http://<yourhost.your.domain>/facts`.
+     * Then, you can use a browser to access the application at `https://<yourhost.your.domain>/` and `https://<yourhost.your.domain>/facts`.
 
     The actuator endpoint is accessible under the path `/actuator` and the Prometheus endpoint exposing metrics data in a format that can be scraped by a Prometheus server is accessible under the path `/actuator/prometheus`.
 
