@@ -191,9 +191,8 @@ ifdef JENKINS_URL
 	cp /etc/hosts temp_hosts
 	$$(docker inspect $${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed -e 's/"//g' -e 's/$$/  APOINTEGHOST/g' | cat $$1 >> temp_hosts)
 	sudo cp temp_hosts /etc/hosts
-	sed -i -e "s|127.0.0.1.*|VPOINTEGHOST:6443|g" ${KUBECONFIG}
+	sed -i -e "s|127.0.0.1.*|APOINTEGHOST:6443|g" ${KUBECONFIG}
 	cat ${KUBECONFIG} | grep server
-	cat /etc/hosts
 	docker network connect kind $$(docker ps | grep "jenkins-runner" | awk '{ print $$1 }') || true
 else
 	echo 'Create cluster...'
