@@ -6,11 +6,13 @@ package mcagent
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -50,7 +52,7 @@ func (s *Syncer) processStatusUpdates() {
 		case msg := <-s.StatusUpdateChannel:
 			s.Log.Info(fmt.Sprintf("processStatusUpdates: Received status update %s with condition type %s for %s/%s from cluster %s",
 				msg.NewClusterStatus.State, msg.NewCondition.Type, msg.Resource.GetNamespace(), msg.Resource.GetName(), msg.NewClusterStatus.Name))
-			err := s.AdminClient.Status().Update(s.Context, msg.Resource)
+			err := s.performAdminStatusUpdate(msg)
 			if err != nil {
 				s.Log.Error(err, fmt.Sprintf("processStatusUpdates: Status Update failed for %s/%s from cluster %s: %s",
 					msg.Resource.GetNamespace(), msg.Resource.GetName(),
@@ -66,4 +68,25 @@ func (s *Syncer) processStatusUpdates() {
 // there is an agent secret and a kubernetes client to the Admin cluster was created
 func (s *Syncer) AgentReadyToSync() bool {
 	return s.AgentSecretFound && s.AgentSecretValid
+}
+
+func (s *Syncer) performAdminStatusUpdate(msg clusters.StatusUpdateMessage) error {
+	fullName := types.NamespacedName{Name: msg.Resource.GetName(), Namespace: msg.Resource.GetNamespace()}
+	typeName := reflect.TypeOf(msg.Resource).Name()
+	switch typeName {
+	case reflect.TypeOf(clustersv1alpha1.MultiClusterApplicationConfiguration{}).Name():
+		return s.updateMultiClusterAppConfigStatus(fullName, msg.NewCondition, msg.NewClusterStatus)
+	case reflect.TypeOf(clustersv1alpha1.MultiClusterComponent{}).Name():
+		return s.updateMultiClusterComponentStatus(fullName, msg.NewCondition, msg.NewClusterStatus)
+	case reflect.TypeOf(clustersv1alpha1.MultiClusterConfigMap{}).Name():
+		return s.updateMultiClusterConfigMapStatus(fullName, msg.NewCondition, msg.NewClusterStatus)
+	case reflect.TypeOf(clustersv1alpha1.MultiClusterLoggingScope{}).Name():
+		return s.updateMultiClusterLoggingScopeStatus(fullName, msg.NewCondition, msg.NewClusterStatus)
+	case reflect.TypeOf(clustersv1alpha1.MultiClusterSecret{}).Name():
+		return s.updateMultiClusterSecretStatus(fullName, msg.NewCondition, msg.NewClusterStatus)
+	case reflect.TypeOf(clustersv1alpha1.VerrazzanoProject{}).Name():
+		return s.updateVerrazzanoProjectStatus(fullName, msg.NewCondition, msg.NewClusterStatus)
+	default:
+		return fmt.Errorf("received status update message for unknown resource type %s", typeName)
+	}
 }

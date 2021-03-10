@@ -70,6 +70,17 @@ func (s *Syncer) createOrUpdateMCComponent(mcComponent clustersv1alpha1.MultiClu
 	})
 }
 
+func (s *Syncer) updateMultiClusterComponentStatus(name types.NamespacedName, newCond clustersv1alpha1.Condition, newClusterStatus clustersv1alpha1.ClusterLevelStatus) error {
+	var fetched clustersv1alpha1.MultiClusterComponent
+	err := s.AdminClient.Get(s.Context, name, &fetched)
+	if err != nil {
+		fetched.Status.Conditions = append(fetched.Status.Conditions, newCond)
+		fetched.Status.Clusters = append(fetched.Status.Clusters, newClusterStatus)
+		err = s.AdminClient.Status().Update(s.Context, &fetched)
+	}
+	return err
+}
+
 // mutateMCComponent mutates the MultiClusterComponent to reflect the contents of the parent MultiClusterComponent
 func mutateMCComponent(mcComponent clustersv1alpha1.MultiClusterComponent, mcComponentNew *clustersv1alpha1.MultiClusterComponent) {
 	mcComponentNew.Spec.Placement = mcComponent.Spec.Placement
