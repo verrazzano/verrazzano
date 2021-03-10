@@ -1,12 +1,13 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package controllers
+package clusters
 
 import (
 	"context"
 	"fmt"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -18,8 +19,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
-const roleForManagedClusterName = "verrazzano-managed-cluster"
 
 // VerrazzanoManagedClusterReconciler reconciles a VerrazzanoManagedCluster object.
 // The reconciler will create a ServiceAcount, ClusterRoleBinding, and a Secret which
@@ -69,33 +68,45 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 	}
 
 	// Sync the service account
+	log.Infof("Syncing the ServiceAccount for VMC %s", vmc.Name)
 	err = r.syncServiceAccount(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the ServiceAccount: %v", err)
+		log.Errorf("Failed to sync the ServiceAccount: %v", err)
 		return ctrl.Result{}, err
 	}
 
+	log.Infof("Syncing the RoleBinding for VMC %s", vmc.Name)
 	err = r.syncManagedRoleBinding(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the ServiceAccount: %v", err)
+		log.Errorf("Failed to sync the RoleBinding: %v", err)
 		return ctrl.Result{}, err
 	}
 
+	log.Infof("Syncing the Agent secret for VMC %s", vmc.Name)
+	err = r.syncAgentSecret(vmc)
+	if err != nil {
+		log.Errorf("Failed to sync the agent secret: %v", err)
+		return ctrl.Result{}, err
+	}
+
+	log.Infof("Syncing the Registration secret for VMC %s", vmc.Name)
 	err = r.syncRegistrationSecret(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the registration used by managed cluster: %v", err)
+		log.Errorf("Failed to sync the registration secret: %v", err)
 		return ctrl.Result{}, err
 	}
 
+	log.Infof("Syncing the Elasticsearch secret for VMC %s", vmc.Name)
 	err = r.syncElasticsearchSecret(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the Elasticsearch secret used by managed cluster: %v", err)
+		log.Errorf("Failed to sync the Elasticsearch secret: %v", err)
 		return ctrl.Result{}, err
 	}
 
+	log.Infof("Syncing the Manifest secret for VMC %s", vmc.Name)
 	err = r.syncManifestSecret(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the YAML manifest secret used by managed cluster: %v", err)
+		log.Errorf("Failed to sync the Manifest secret: %v", err)
 		return ctrl.Result{}, err
 	}
 
@@ -152,7 +163,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncManagedRoleBinding(vmc *cluster
 		mutateBinding(&binding, bindingParams{
 			vmc:                     vmc,
 			roleBindingName:         bindingName,
-			roleName:                roleForManagedClusterName,
+			roleName:                constants.MCClusterRole,
 			serviceAccountName:      vmc.Spec.ServiceAccount,
 			serviceAccountNamespace: vmc.Namespace,
 		})

@@ -339,9 +339,29 @@ spec:
             - template
             type: object
           status:
-            description: MultiClusterApplicationConfigurationStatus defines the observed
-              state of MultiClusterApplicationConfiguration
+            description: MultiClusterResourceStatus represents the status of a multi-cluster
+              resource, including cluster-level status information
             properties:
+              clusters:
+                items:
+                  description: ClusterLevelStatus describes the status of the multi
+                    cluster resource in a specific cluster
+                  properties:
+                    lastUpdateTime:
+                      description: LastUpdateTime of the resource state in this cluster
+                      type: string
+                    name:
+                      description: Name of the cluster
+                      type: string
+                    state:
+                      description: State of the resource in this cluster
+                      type: string
+                  required:
+                  - lastUpdateTime
+                  - name
+                  - state
+                  type: object
+                type: array
               conditions:
                 description: The latest available observations of an object's current
                   state.
@@ -369,8 +389,7 @@ spec:
                   type: object
                 type: array
               state:
-                description: State of the MultiClusterApplicationConfiguration custom
-                  resource
+                description: State of the multi cluster resource
                 type: string
             type: object
         type: object

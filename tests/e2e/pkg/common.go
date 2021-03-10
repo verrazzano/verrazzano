@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -16,6 +17,18 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+)
+
+const (
+	// NumRetries - maximum number of retries
+	NumRetries = 7
+
+	// RetryWaitMin - minimum retry wait
+	RetryWaitMin = 1 * time.Second
+
+	// RetryWaitMax - maximum retry wait
+	RetryWaitMax = 30 * time.Second
 )
 
 // UsernamePassword - Username and Password credentials
@@ -50,6 +63,9 @@ func assert(wg *sync.WaitGroup, assertion func()) {
 // AssertURLAccessibleAndAuthorized - Assert that a URL is accessible using the provided credentials
 func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, credentials *UsernamePassword) bool {
 	req, err := retryablehttp.NewRequest("GET", url, nil)
+	if err != nil {
+		return false
+	}
 	req.SetBasicAuth(credentials.Username, credentials.Password)
 	resp, err := client.Do(req)
 	if err != nil {
@@ -173,6 +189,7 @@ func isReadyAndRunning(pod v1.Pod) bool {
 	return false
 }
 
+// GetRetryPolicy returns the standard retry policy
 func GetRetryPolicy(url string) func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 	return func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 		if resp != nil {
@@ -200,9 +217,8 @@ func MetricsExist(metricsName, key, value string) bool {
 	metrics := JTq(QueryMetric(metricsName), "data", "result").([]interface{})
 	if metrics != nil {
 		return findMetric(metrics, key, value)
-	} else {
-		return false
 	}
+	return false
 }
 
 // JTq queries JSON text with a JSON path
@@ -220,6 +236,17 @@ func Jq(node interface{}, path ...string) interface{} {
 	return node
 }
 
+// SliceContainsString checks if the input slice (an array of strings)
+// contains an entry which matches the string s
+func SliceContainsString(slice []string, s string) bool {
+	for _, str := range slice {
+		if str == s {
+			return true
+		}
+	}
+	return false
+}
+
 // GetRequiredEnvVarOrFail returns the values of the provided environment variable name or fails.
 func GetRequiredEnvVarOrFail(name string) string {
 	value, found := os.LookupEnv(name)
@@ -227,4 +254,46 @@ func GetRequiredEnvVarOrFail(name string) string {
 		ginkgo.Fail(fmt.Sprintf("Environment variable '%s' required.", name))
 	}
 	return value
+}
+
+// SlicesContainSameStrings compares two slices and returns true if they contain the same strings in any order
+func SlicesContainSameStrings(strings1, strings2 []string) bool {
+	if len(strings1) != len(strings2) {
+		return false
+	}
+	if len(strings1) == 0 {
+		return true
+	}
+	// count how many times each string occurs in case there are duplicates
+	m1 := map[string]int32{}
+	for _, s := range strings1 {
+		m1[s]++
+	}
+	m2 := map[string]int32{}
+	for _, s := range strings2 {
+		m2[s]++
+	}
+	return reflect.DeepEqual(m1, m2)
+}
+
+// PolicyRulesEqual compares two RBAC PolicyRules for semantic equality
+func PolicyRulesEqual(rule1, rule2 rbacv1.PolicyRule) bool {
+	if SlicesContainSameStrings(rule1.Verbs, rule2.Verbs) &&
+		SlicesContainSameStrings(rule1.APIGroups, rule2.APIGroups) &&
+		SlicesContainSameStrings(rule1.Resources, rule2.Resources) &&
+		SlicesContainSameStrings(rule1.ResourceNames, rule2.ResourceNames) &&
+		SlicesContainSameStrings(rule1.NonResourceURLs, rule2.NonResourceURLs) {
+		return true
+	}
+	return false
+}
+
+// SliceContainsPolicyRule determines if a given rule is in a slice of rules
+func SliceContainsPolicyRule(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRule) bool {
+	for _, r := range ruleSlice {
+		if PolicyRulesEqual(rule, r) {
+			return true
+		}
+	}
+	return false
 }

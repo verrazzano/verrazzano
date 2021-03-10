@@ -406,7 +406,7 @@ func skipFile(pathToFile string, info os.FileInfo) bool {
 
 // isFileOnIgnoredPath Returns true if the file is under one of the dirs specified in the ignore file
 func isFileOnIgnoredPath(filepath string) bool {
-	for index, _ := range directoriesToIgnore {
+	for index := range directoriesToIgnore {
 		if strings.Contains(filepath, directoriesToIgnore[index]) {
 			return true
 		}
@@ -416,7 +416,7 @@ func isFileOnIgnoredPath(filepath string) bool {
 
 // contains Search a list of strings for a value
 func contains(strings []string, value string) bool {
-	for i, _ := range strings {
+	for i := range strings {
 		if value == strings[i] {
 			return true
 		}

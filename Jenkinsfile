@@ -28,10 +28,10 @@ pipeline {
     environment {
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
-        DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
+        DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
         DOCKER_OAM_CI_IMAGE_NAME = 'verrazzano-application-operator-jenkins'
         DOCKER_OAM_PUBLISH_IMAGE_NAME = 'verrazzano-application-operator'
-        DOCKER_OAM_IMAGE_NAME = "${env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'master' ? env.DOCKER_OAM_PUBLISH_IMAGE_NAME : env.DOCKER_OAM_CI_IMAGE_NAME}"
+        DOCKER_OAM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_OAM_PUBLISH_IMAGE_NAME : env.DOCKER_OAM_CI_IMAGE_NAME}"
         CREATE_LATEST_TAG = "${env.BRANCH_NAME == 'master' ? '1' : '0'}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
@@ -79,35 +79,35 @@ pipeline {
                 """
 
                 script {
-	            try {
-		        sh """
+                    try {
+                        sh """
                             echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-		        """
-		    } catch(error) {
-		        echo "docker login failed, retrying after sleep"
-		        retry(4) {
-			    sleep(30)
-			    sh """
-                                echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-			    """
-		        }
-		    }
-	        }
+                        """
+                    } catch(error) {
+                        echo "docker login failed, retrying after sleep"
+                        retry(4) {
+                            sleep(30)
+                            sh """
+                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                            """
+                        }
+                    }
+                }
                 script {
-	            try {
-		        sh """
+                    try {
+                        sh """
                             echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-		        """
-		    } catch(error) {
-		        echo "OCR docker login failed, retrying after sleep"
-		        retry(4) {
-			    sleep(30)
-			    sh """
+                        """
+                    } catch(error) {
+                        echo "OCR docker login failed, retrying after sleep"
+                        retry(4) {
+                            sleep(30)
+                            sh """
                                 echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-			    """
-		        }
-		    }
-	        }
+                            """
+                        }
+                    }
+                }
                 sh """
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
@@ -129,11 +129,15 @@ pipeline {
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > deploy/operator.yaml
-                    cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> deploy/operator.yaml
-                    cat config/crd/bases/clusters.verrazzano.io_verrazzanomanagedclusters.yaml >> deploy/operator.yaml
-                    cat deploy/operator.yaml
+                    cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > $WORKSPACE/generated-operator.yaml
+                    cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> $WORKSPACE/generated-operator.yaml
+                    cat config/crd/bases/clusters.verrazzano.io_verrazzanomanagedclusters.yaml >> $WORKSPACE/generated-operator.yaml
                    """
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: "generated-operator.yaml", allowEmptyArchive: true
+                }
             }
         }
 
@@ -141,27 +145,18 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
-                    anyOf { branch 'master'; branch 'develop' }
                 }
+            }
+            environment {
+                OCI_CLI_AUTH="instance_principal"
+                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                OCI_OS_BUCKET="verrazzano-builds"
             }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
-                    git config --global user.name $DOCKER_CREDS_USR
-                    git config --global user.email "${DOCKER_EMAIL}"
-                    git checkout -b ${env.BRANCH_NAME}
-                    git add deploy/operator.yaml
-                    git commit -m "[verrazzano] Update verrazzano-platform-operator image version to ${DOCKER_IMAGE_TAG} in operator.yaml"
-                    git push origin ${env.BRANCH_NAME}
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/operator.yaml --file $WORKSPACE/generated-operator.yaml
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file $WORKSPACE/generated-operator.yaml
                    """
-            }
-            post {
-                unsuccessful {
-                    script {
-                        currentBuild.description = "Git commit of operator.yaml failed"
-                    }
-                }
             }
         }
 
@@ -180,42 +175,24 @@ pipeline {
             steps {
                 sh """
                     echo "fmt"
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    make go-fmt
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
+                    cd ${GO_REPO_PATH}/verrazzano
                     make go-fmt
 
                     echo "vet"
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    make go-vet
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make go-vet
 
                     echo "lint"
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    make go-lint
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make go-lint
 
                     echo "ineffassign"
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    make go-ineffassign
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make go-ineffassign
 
                     echo "copyright scan"
-                    cd ${GO_REPO_PATH}/verrazzano
                     time make copyright-check
-                """
 
-                dir('platform-operator'){
-                    echo "Third party license check platform-operator"
-                    thirdpartyCheck()
-                }
-                dir('application-operator'){
-                    echo "Third party license check application-operator"
-                    thirdpartyCheck()
-                }
+                    echo "Third party license check"
+                """
+                thirdpartyCheck()
             }
         }
 
@@ -322,7 +299,7 @@ pipeline {
                     not { buildingTag() }
                     anyOf {
                         branch 'master';
-                        branch 'develop';
+                        branch 'release-*';
                         expression {SKIP_ACCEPTANCE_TESTS == false};
                     }
                 }
@@ -331,6 +308,11 @@ pipeline {
             stages {
 
                 stage('Prepare AT environment') {
+                    environment {
+                        OCI_CLI_AUTH="instance_principal"
+                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                        OCI_OS_BUCKET="verrazzano-builds"
+                    }
                     steps {
                         sh """
                             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
@@ -352,16 +334,19 @@ pipeline {
                             cd ${GO_REPO_PATH}/verrazzano
 
                             # Configure the deployment file to use an image pull secret for branches that have private images
-                            if [ "${env.BRANCH_NAME}" == "master" ] || [ "${env.BRANCH_NAME}" == "develop" ]; then
-                                echo "Using operator.yaml from Verrazzano repo"
-                                cp platform-operator/deploy/operator.yaml /tmp/operator.yaml
-                            else
-                                echo "Generating operator.yaml based on image name provided: ${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                                ./tests/e2e/config/scripts/process_operator_yaml.sh platform-operator "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                            fi
+                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                            case "${env.BRANCH_NAME}" in
+                                master|release-*)
+                                    echo "Using operator.yaml from object storage"
+                                    cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+                                    ;;
+                                *)
+                                    echo "Generating operator.yaml based on image name provided: ${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                                    ./tests/e2e/config/scripts/process_operator_yaml.sh platform-operator "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}" verrazzano-container-registry ghcr.io ${WORKSPACE}/acceptance-test-operator.yaml
+                            esac
 
                             # Install the verrazzano-platform-operator
-                            kubectl apply -f /tmp/operator.yaml
+                            kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
 
                             # make sure ns exists
                             ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
@@ -388,6 +373,7 @@ pipeline {
                     }
                     post {
                         always {
+                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
                             sh """
                                 ## dump out install logs
                                 mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
@@ -431,24 +417,29 @@ pipeline {
                                 runGinkgo('istio/authz')
                             }
                         }
+                        stage('examples logging helidon') {
+                            steps {
+                                runGinkgo('logging/helidon')
+                            }
+                        }
                         stage('examples todo') {
                             steps {
-                                runGinkgo('examples/todo-list')
+                                runGinkgo('examples/todo')
                             }
                         }
                         stage('examples socks') {
                             steps {
-                                runGinkgo('examples/sock-shop')
+                                runGinkgo('examples/socks')
                             }
                         }
                         stage('examples spring') {
                             steps {
-                                runGinkgo('examples/springboot-app')
+                                runGinkgo('examples/springboot')
                             }
                         }
                         stage('examples helidon') {
                             steps {
-                                runGinkgo('examples/hello-helidon')
+                                runGinkgo('examples/helidon')
                             }
                         }
                         stage('examples bobs') {
@@ -456,7 +447,7 @@ pipeline {
                                 expression {params.RUN_SLOW_TESTS == true}
                             }
                             steps {
-                                runGinkgo('examples/bobs-books')
+                                runGinkgo('examples/bobsbooks')
                             }
                         }
                     }

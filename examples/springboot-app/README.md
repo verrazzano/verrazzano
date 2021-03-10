@@ -49,13 +49,14 @@ Install Verrazzano following the [installation instructions](https://verrazzano.
 1. Access the Springboot example application.
    There are several ways to access it:
 
-   * **Using the command line**
+   * **Using the command line**:
      ```
      $ curl -sk https://${HOST} --resolve ${HOST}:443:${ADDRESS}
      $ curl -sk https://${HOST}/facts --resolve ${HOST}:443:${ADDRESS}
      ```
-     If you are using `xip.io` then you do not need to include `--resolve`.
-   * **Local testing with a browser** \
+     If you are using `xip.io`, then you do not need to include `--resolve`.
+   * **Local testing with a browser**:
+
      Temporarily, modify the `/etc/hosts` file (on Mac or Linux)
      or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10),
      to add an entry mapping the host name to the ingress gateway's `EXTERNAL-IP` address.
@@ -64,12 +65,13 @@ Install Verrazzano following the [installation instructions](https://verrazzano.
      11.22.33.44 springboot.example.com
      ```
      Then, you can access the application in a browser at `https://springboot.example.com/` and `https://springboot.example.com/facts`.
-   * **Using your own DNS name:**
+     
+   * **Using your own DNS name**:
      * Point your own DNS name to the ingress gateway's `EXTERNAL-IP` address.
      * In this case, you would need to have edited the `springboot-app.yaml` file
        to use the appropriate value under the `hosts` section (such as `yourhost.your.domain`),
        before deploying the Spring Boot application.
-     * Then, you can use a browser to access the application at `http://<yourhost.your.domain>/` and `http://<yourhost.your.domain>/facts`.
+     * Then, you can use a browser to access the application at `https://<yourhost.your.domain>/` and `https://<yourhost.your.domain>/facts`.
 
     The actuator endpoint is accessible under the path `/actuator` and the Prometheus endpoint exposing metrics data in a format that can be scraped by a Prometheus server is accessible under the path `/actuator/prometheus`.
 
