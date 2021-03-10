@@ -184,7 +184,7 @@ ifdef JENKINS_URL
 	cp /etc/hosts temp_hosts
 	docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g' > temp_var
 	cat temp_var
-	$$(VPO_INTEG_API_SERVER_IP=$$(docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'); echo "${VPO_INTEG_API_SERVER_IP}  VPOINTEGHOST" >> temp_hosts)
+	$$(docker inspect $${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed -e 's/"//g' -e 's/$/  VPOINTEGHOST' | cat $$1 >> temp_hosts)
 	sudo cp temp_hosts /etc/hosts
 	sed -i -e "s|127.0.0.1.*|VPOINTEGHOST:6443|g" ${KUBECONFIG}
 	cat ${KUBECONFIG} | grep server
@@ -207,7 +207,7 @@ ifdef JENKINS_URL
 	kind get kubeconfig --name=at-tests > ${WORKSPACE}/test_kubeconfig
 	# Use pre-defined host name, but update the /etc/hosts to have the current IP Address
 	cp /etc/hosts temp_hosts
-	$$(AT_TEST_API_SERVER_IP=$$(docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'); echo "${AT_TEST_API_SERVER_IP}  ATTESTSHOST" >> temp_hosts)
+	$$(docker inspect at-tests-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed -e 's/"//g' -e 's/$/  ATTESTSHOST' | cat $$1 >> temp_hosts)
 	sudo cp temp_hosts /etc/hosts
 	sed -i -e "s|127.0.0.1.*|ATTESTSHOST:6443|g" ${WORKSPACE}/test_kubeconfig
 	cat ${WORKSPACE}/test_kubeconfig | grep server
