@@ -1,0 +1,4 @@
+managed-cluster:
+  name: default_managed_cluster
+  auth-password: 
+  ca-crt: |

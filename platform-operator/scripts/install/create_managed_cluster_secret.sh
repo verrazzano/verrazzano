@@ -33,17 +33,27 @@ do
     esac
 done
 
-OUTPUT_FILE=$OUTPUT_DIR/managed-cluster.yaml
-CA_CERT=$(kubectl -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"' | base64 -d)
+if [ "$#" -lt 4 ]; then
+    echo "Too few parameters"
+    usage
+fi
+
+OUTPUT_FILE=$OUTPUT_DIR/$CLUSTER_NAME.yaml
+TLS_SECRET=$(kubectl -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"')
+if [ ! -z "${TLS_SECRET%%*( )}" ] ; then
+  CA_CERT=$(kubectl -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"' | base64 -d)
+fi
 AUTH_PASSWORD=$(kubectl get secret verrazzano -n verrazzano-system -o jsonpath='{.data.password}' | base64 -d)
 HOST=$(kubectl get ing vmi-system-prometheus -n verrazzano-system -o jsonpath='{.spec.tls[0].hosts[0]}')
 
 #create the yaml file
 echo "prometheus:" > $OUTPUT_FILE
-echo "  auth-password: $AUTH_PASSWORD" >> $OUTPUT_FILE
+echo "  authpasswd: $AUTH_PASSWORD" >> $OUTPUT_FILE
 echo "  host: $HOST" >> $OUTPUT_FILE
-echo "  ca-crt: |" >> $OUTPUT_FILE
-echo -e "$CA_CERT" | sed 's/^/    /' >> $OUTPUT_FILE
+if [ ! -z "${CA_CERT}" ] ; then
+   echo "  cacrt: |" >> $OUTPUT_FILE
+   echo -e "$CA_CERT" | sed 's/^/    /' >> $OUTPUT_FILE
+fi
 
 exit 0
 

@@ -6,33 +6,25 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/prometheus/common/model"
-	promconfig "github.com/prometheus/prometheus/config"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"time"
 )
 
 const (
 	roleForManagedClusterName = "verrazzano-managed-cluster"
-	managedClusterYamlKey     = "managed-cluster.yaml"
 	configMapKind             = "ConfigMap"
 	configMapVersion          = "v1"
 	verrazzanoSystemNamespace = "verrazzano-system"
-	prometheusConfigMapName   = "vmi-system-prometheus-config"
-	prometheusYamlKey         = "prometheus.yml"
-	prometheusConfigBasePath  = "/etc/prometheus/config/"
+	finalizerName             = "managedcluster.verrazzano.io"
 )
 
 // VerrazzanoManagedClusterReconciler reconciles a VerrazzanoManagedCluster object.
@@ -89,9 +81,31 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		return reconcile.Result{}, err
 	}
 
-	// If the VerrazzanoManagedCluster is being deleted then return success
-	if vmc.GetDeletionTimestamp() != nil {
-		return ctrl.Result{}, nil
+	if !vmc.ObjectMeta.DeletionTimestamp.IsZero() {
+		// Finalizer is present, so lets do the uninstall
+		if containsString(vmc.ObjectMeta.Finalizers, finalizerName) {
+			if err := r.reconcileManagedClusterDelete(ctx, vmc); err != nil {
+				return reconcile.Result{}, err
+			}
+
+			// Remove the finalizer and update the verrazzano resource if the uninstall has finished.
+			log.Infof("Removing finalizer %s", finalizerName)
+			vmc.ObjectMeta.Finalizers = removeString(vmc.ObjectMeta.Finalizers, finalizerName)
+			err := r.Update(ctx, vmc)
+			if err != nil && !errors.IsConflict(err) {
+				return reconcile.Result{}, err
+			}
+		}
+		return reconcile.Result{}, nil
+	}
+
+	// Add our finalizer if not already added
+	if !containsString(vmc.ObjectMeta.Finalizers, finalizerName) {
+		log.Infof("Adding finalizer %s", finalizerName)
+		vmc.ObjectMeta.Finalizers = append(vmc.ObjectMeta.Finalizers, finalizerName)
+		if err := r.Update(ctx, vmc); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Sync the service account
@@ -125,7 +139,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	err = r.setupPrometheusScraper(ctx, vmc)
+	err = r.syncPrometheusScraper(ctx, vmc)
 	if err != nil {
 		log.Infof("Failed to setup the prometheus scraper for managed cluster: %v", err)
 		return ctrl.Result{}, err
@@ -241,116 +255,47 @@ func (r *VerrazzanoManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager) 
 		Complete(r)
 }
 
-// setupPrometheusScraper will create a scrape configuration for the cluster and update the prometheus config map.  There will also be an
-// entry for the cluster's CA cert added to the prometheus config map to allow for lookup of the CA cert by the scraper's HTTP client.
-func (r *VerrazzanoManagedClusterReconciler) setupPrometheusScraper(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	// read the configuration secret specified
-	if vmc.Spec.PrometheusSecret != "" {
-		var secret corev1.Secret
-		secretNsn := types.NamespacedName{
-			Namespace: vmc.Namespace,
-			Name:      vmc.Spec.PrometheusSecret,
-		}
-		if err := r.Get(context.TODO(), secretNsn, &secret); err != nil {
-			return fmt.Errorf("Failed to fetch the managed cluster prometheus secret %s/%s, %v", vmc.Namespace, vmc.Spec.PrometheusSecret, err)
-		}
-		// mutate the prometheus system configuration config map, adding the scraper config for the managed cluster
-
-		// obtain the configuration data from the prometheus secret
-		config, ok := secret.Data[managedClusterYamlKey]
-		if !ok {
-			return fmt.Errorf("Managed clsuter yaml configuration not found")
-		}
-		// marshal the data into the prometheus info struct
-		prometheusConfig := prometheusInfo{}
-		err := yaml.Unmarshal(config, &prometheusConfig)
+func (r *VerrazzanoManagedClusterReconciler) reconcileManagedClusterDelete(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	// get and mutate the prometheus config map
+	promConfigMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       configMapKind,
+			APIVersion: configMapVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: verrazzanoSystemNamespace,
+			Name:      prometheusConfigMapName,
+		}}
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, promConfigMap, func() error {
+		err := r.mutatePrometheusConfigMap(vmc, promConfigMap, nil)
 		if err != nil {
-			return fmt.Errorf("Unable to umarshal the configuration data")
+			return err
 		}
-
-		// get and mutate the prometheus config map
-		promConfigMap := &corev1.ConfigMap{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       configMapKind,
-				APIVersion: configMapVersion,
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: verrazzanoSystemNamespace,
-				Name:      prometheusConfigMapName,
-			}}
-		controllerutil.CreateOrUpdate(ctx, r.Client, promConfigMap, func() error {
-			err := r.mutatePrometheusConfigMap(vmc, promConfigMap, prometheusConfig)
-			if err != nil {
-				return err
-			}
-			return nil
-		})
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
-// mutatePrometheusConfigMap will add a scraper configuration and a CA cert entry to the prometheus config map
-func (r *VerrazzanoManagedClusterReconciler) mutatePrometheusConfigMap(vmc *clustersv1alpha1.VerrazzanoManagedCluster, configMap *corev1.ConfigMap, info prometheusInfo) error {
-	cfg := &promconfig.Config{}
-	err := yaml.Unmarshal([]byte(configMap.Data[prometheusYamlKey]), cfg)
-	if err != nil {
-		r.log.Errorf("Failed to unmarshal prometheus configuration: %v", err)
-		return err
-	}
-	scrapeConfig := r.getScrapeConfig(vmc, info)
-	// see if an entry exists - if it does, update it
-	found := false
-	for i := range cfg.ScrapeConfigs {
-		if cfg.ScrapeConfigs[i].JobName == vmc.ClusterName {
-			found = true
-			cfg.ScrapeConfigs[i] = &scrapeConfig
-			break
+// containsString checks for a string in a slice of strings
+func containsString(slice []string, s string) bool {
+	for _, item := range slice {
+		if item == s {
+			return true
 		}
 	}
-	if !found {
-		cfg.ScrapeConfigs = append(cfg.ScrapeConfigs, &scrapeConfig)
-	}
-	newConfig, err := yaml.Marshal(cfg)
-	if err != nil {
-		return err
-	}
-	configMap.Data[prometheusYamlKey] = string(newConfig)
-	// add the ca entry to the configmap
-	configMap.Data[getCAKey(vmc)] = info.Prometheus.CaCrt
-
-	return nil
+	return false
 }
 
-// getCAKey returns the key by which the CA cert will be retrieved by the scaper HTTP client
-func getCAKey(vmc *clustersv1alpha1.VerrazzanoManagedCluster) string {
-	return "ca-" + vmc.ClusterName
-}
-
-// getScraperConfig creates and returns a configuration based on the data available in the cluster's prometheus secret
-func (r *VerrazzanoManagedClusterReconciler) getScrapeConfig(vmc *clustersv1alpha1.VerrazzanoManagedCluster, info prometheusInfo) promconfig.ScrapeConfig {
-	scrapeConfig := promconfig.ScrapeConfig{
-		JobName:        vmc.ClusterName,
-		ScrapeInterval: model.Duration(20 * time.Second),
-		ScrapeTimeout:  model.Duration(15 * time.Second),
-		Scheme:         "https",
-		HTTPClientConfig: promconfig.HTTPClientConfig{
-			BasicAuth: &promconfig.BasicAuth{
-				Username: "verrazzano",
-				Password: promconfig.Secret(info.Prometheus.AuthPasswd),
-			},
-			TLSConfig: promconfig.TLSConfig{
-				CAFile: prometheusConfigBasePath + getCAKey(vmc),
-			},
-		},
-		ServiceDiscoveryConfig: promconfig.ServiceDiscoveryConfig{
-			StaticConfigs: []*promconfig.TargetGroup{
-				{
-					Targets: []model.LabelSet{
-						{model.AddressLabel: model.LabelValue(info.Prometheus.Host)},
-					},
-				},
-			},
-		},
+// removeString removes a string from a slice of strings
+func removeString(slice []string, s string) (result []string) {
+	for _, item := range slice {
+		if item == s {
+			continue
+		}
+		result = append(result, item)
 	}
-	return scrapeConfig
+	return
 }
