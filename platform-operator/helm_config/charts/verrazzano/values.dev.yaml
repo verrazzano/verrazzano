@@ -6,11 +6,6 @@ name: verrazzano
 # - single-node ES cluster
 # - with no persistent storage for ES, Prometheus, or Grafana
 
-verrazzanoOperator:
-  prometheusDataStorageSize: ""
-  grafanaDataStorageSize: ""
-  esDataStorageSize: ""
-
 elasticSearch:
   nodes:
     master:
@@ -19,5 +14,15 @@ elasticSearch:
         memory: 1Gi
     data:
       replicas: 0
+      requests:
+        storage: ""
     ingest:
       replicas: 0
+
+prometheus:
+  requests:
+    storage: ""
+
+grafana:
+  requests:
+    storage: ""

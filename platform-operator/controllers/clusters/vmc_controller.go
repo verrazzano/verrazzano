@@ -1,12 +1,13 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package controllers
+package clusters
 
 import (
 	"context"
 	"fmt"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -19,13 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const (
-	roleForManagedClusterName = "verrazzano-managed-cluster"
-	configMapKind             = "ConfigMap"
-	configMapVersion          = "v1"
-	verrazzanoSystemNamespace = "verrazzano-system"
-	finalizerName             = "managedcluster.verrazzano.io"
-)
+const finalizerName = "managedcluster.verrazzano.io"
 
 // VerrazzanoManagedClusterReconciler reconciles a VerrazzanoManagedCluster object.
 // The reconciler will create a ServiceAcount, ClusterRoleBinding, and a Secret which
@@ -43,18 +38,6 @@ type bindingParams struct {
 	roleName                string
 	serviceAccountName      string
 	serviceAccountNamespace string
-}
-
-// prometheusConfig contains the information required to create a scrape configuration
-type prometheusConfig struct {
-	AuthPasswd string `yaml:"authpasswd"`
-	Host       string `yaml:"host"`
-	CaCrt      string `yaml:"cacrt"`
-}
-
-// prometheusInfo wraps the prometheus configuration info
-type prometheusInfo struct {
-	Prometheus prometheusConfig `yaml:"prometheus"`
 }
 
 // +kubebuilder:rbac:groups=clusters.verrazzano.io,resources=verrazzanomanagedclusters,verbs=get;list;watch;create;update;patch;delete
@@ -109,39 +92,52 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 	}
 
 	// Sync the service account
+	log.Infof("Syncing the ServiceAccount for VMC %s", vmc.Name)
 	err = r.syncServiceAccount(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the ServiceAccount: %v", err)
+		log.Errorf("Failed to sync the ServiceAccount: %v", err)
 		return ctrl.Result{}, err
 	}
 
+	log.Infof("Syncing the RoleBinding for VMC %s", vmc.Name)
 	err = r.syncManagedRoleBinding(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the ServiceAccount: %v", err)
+		log.Errorf("Failed to sync the RoleBinding: %v", err)
 		return ctrl.Result{}, err
 	}
 
+	log.Infof("Syncing the Agent secret for VMC %s", vmc.Name)
+	err = r.syncAgentSecret(vmc)
+	if err != nil {
+		log.Errorf("Failed to sync the agent secret: %v", err)
+		return ctrl.Result{}, err
+	}
+
+	log.Infof("Syncing the Registration secret for VMC %s", vmc.Name)
 	err = r.syncRegistrationSecret(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the registration used by managed cluster: %v", err)
+		log.Errorf("Failed to sync the registration secret: %v", err)
 		return ctrl.Result{}, err
 	}
 
+	log.Infof("Syncing the Elasticsearch secret for VMC %s", vmc.Name)
 	err = r.syncElasticsearchSecret(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the Elasticsearch secret used by managed cluster: %v", err)
+		log.Errorf("Failed to sync the Elasticsearch secret: %v", err)
 		return ctrl.Result{}, err
 	}
 
+	log.Infof("Syncing the Manifest secret for VMC %s", vmc.Name)
 	err = r.syncManifestSecret(vmc)
 	if err != nil {
-		log.Infof("Failed to sync the YAML manifest secret used by managed cluster: %v", err)
+		log.Errorf("Failed to sync the Manifest secret: %v", err)
 		return ctrl.Result{}, err
 	}
 
+	log.Infof("Syncing the prometheus scraping for VMC %s", vmc.Name)
 	err = r.syncPrometheusScraper(ctx, vmc)
 	if err != nil {
-		log.Infof("Failed to setup the prometheus scraper for managed cluster: %v", err)
+		log.Errorf("Failed to setup the prometheus scraper for managed cluster: %v", err)
 		return ctrl.Result{}, err
 	}
 
@@ -198,7 +194,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncManagedRoleBinding(vmc *cluster
 		mutateBinding(&binding, bindingParams{
 			vmc:                     vmc,
 			roleBindingName:         bindingName,
-			roleName:                roleForManagedClusterName,
+			roleName:                constants.MCClusterRole,
 			serviceAccountName:      vmc.Spec.ServiceAccount,
 			serviceAccountNamespace: vmc.Namespace,
 		})
@@ -255,28 +251,9 @@ func (r *VerrazzanoManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager) 
 		Complete(r)
 }
 
+// reconcileManagedClusterDelete performs all necessary cleanup during cluster deletion
 func (r *VerrazzanoManagedClusterReconciler) reconcileManagedClusterDelete(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	// get and mutate the prometheus config map
-	promConfigMap := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       configMapKind,
-			APIVersion: configMapVersion,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: verrazzanoSystemNamespace,
-			Name:      prometheusConfigMapName,
-		}}
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, promConfigMap, func() error {
-		err := r.mutatePrometheusConfigMap(vmc, promConfigMap, nil)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	return nil
+	return r.deleteClusterPrometheusConfiguration(ctx, vmc)
 }
 
 // containsString checks for a string in a slice of strings

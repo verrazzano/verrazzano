@@ -13,11 +13,13 @@ import (
 
 // Syncer contains context for synchronize operations
 type Syncer struct {
-	AdminClient        client.Client
-	LocalClient        client.Client
-	Log                logr.Logger
-	ManagedClusterName string
-	Context            context.Context
+	AdminClient           client.Client
+	LocalClient           client.Client
+	Log                   logr.Logger
+	ManagedClusterName    string
+	Context               context.Context
+	AgentSecretFound      bool
+	SecretResourceVersion string
 
 	// List of namespaces to watch for multi-cluster objects.
 	ProjectNamespaces []string

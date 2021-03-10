@@ -1,13 +1,14 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package controllers
+package clusters
 
 import (
 	"context"
 	"fmt"
 	"github.com/Jeffail/gabs/v2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -22,6 +23,8 @@ const (
 	scrapeConfigsKey         = "scrape_configs"
 	jobNameKey               = "job_name"
 	prometheusConfigBasePath = "/etc/prometheus/config/"
+	configMapKind            = "ConfigMap"
+	configMapVersion         = "v1"
 	scrapeConfigTemplate     = `job_name: ##JOB_NAME##
 scrape_interval: 20s
 scrape_timeout: 15s
@@ -36,6 +39,18 @@ basic_auth:
   password: ##PASSWORD##
 `
 )
+
+// prometheusConfig contains the information required to create a scrape configuration
+type prometheusConfig struct {
+	AuthPasswd string `yaml:"authpasswd"`
+	Host       string `yaml:"host"`
+	CaCrt      string `yaml:"cacrt"`
+}
+
+// prometheusInfo wraps the prometheus configuration info
+type prometheusInfo struct {
+	Prometheus prometheusConfig `yaml:"prometheus"`
+}
 
 // syncPrometheusScraper will create a scrape configuration for the cluster and update the prometheus config map.  There will also be an
 // entry for the cluster's CA cert added to the prometheus config map to allow for lookup of the CA cert by the scraper's HTTP client.
@@ -71,7 +86,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.C
 				APIVersion: configMapVersion,
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: verrazzanoSystemNamespace,
+				Namespace: constants.VerrazzanoSystemNamespace,
 				Name:      prometheusConfigMapName,
 			}}
 		controllerutil.CreateOrUpdate(ctx, r.Client, promConfigMap, func() error {
@@ -159,6 +174,32 @@ func (r *VerrazzanoManagedClusterReconciler) getNewScrapeConfig(info *prometheus
 		}
 	}
 	return newScrapeConfig, nil
+}
+
+// deleteClusterPrometheusConfiguration deletes the managed cluster configuration from the prometheus configuration and updates the prometheus config
+// map
+func (r *VerrazzanoManagedClusterReconciler) deleteClusterPrometheusConfiguration(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	// get and mutate the prometheus config map
+	promConfigMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       configMapKind,
+			APIVersion: configMapVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      prometheusConfigMapName,
+		}}
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, promConfigMap, func() error {
+		err := r.mutatePrometheusConfigMap(vmc, promConfigMap, nil)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // parseScrapeConfig return an editable represenation of the prometheus scrape configuration

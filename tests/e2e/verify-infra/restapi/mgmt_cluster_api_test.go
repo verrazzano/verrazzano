@@ -15,13 +15,13 @@ import (
 var _ = ginkgo.Describe("managed cluster api test", func() {
 
 	var _ = ginkgo.BeforeEach(func() {
-		api = pkg.GetApiEndpoint()
+		api = pkg.GetAPIEndpoint()
 	})
 
 	ginkgo.Context("Fetching the managed clusters", func() {
 		ginkgo.It("Fetches managed clusters from api", func() {
 			response, err := api.Get("apis/verrazzano.io/v1beta1/verrazzanomanagedclusters")
-			pkg.ExpectHttpOk(response, err, fmt.Sprintf("Error fetching managed clusters from api, error: %v, response: %v", err, response))
+			pkg.ExpectHTTPOk(response, err, fmt.Sprintf("Error fetching managed clusters from api, error: %v, response: %v", err, response))
 
 			var managedClustersResponse map[string]interface{}
 			err = json.Unmarshal(response.Body, &managedClustersResponse)
