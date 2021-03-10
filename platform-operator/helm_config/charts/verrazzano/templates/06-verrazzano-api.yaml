@@ -8,6 +8,19 @@ metadata:
   name: {{ .Values.api.clusterRole }}
 rules:
 - apiGroups:
+  - clusters.verrazzano.io
+  resources:
+  - multiclusterapplicationconfigurations
+  - multiclustercomponents
+  - multiclusterconfigmaps
+  - multiclusterloggingscopes
+  - multiclustersecrets
+  - verrazzanoprojects
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - ""
   resources:
   - namespaces
