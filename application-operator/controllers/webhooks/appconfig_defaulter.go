@@ -141,6 +141,7 @@ func (a *AppConfigWebhook) cleanupSecret(appConfig *oamv1.ApplicationConfigurati
 	return
 }
 
+// fetchCert gets the cert for the given name; returns nil Certificate if not found
 func fetchCert(ctx context.Context, c client.Reader, name types.NamespacedName) (*certapiv1alpha2.Certificate, error) {
 	var cert certapiv1alpha2.Certificate
 	err := c.Get(ctx, name, &cert)
@@ -155,6 +156,7 @@ func fetchCert(ctx context.Context, c client.Reader, name types.NamespacedName) 
 	return &cert, err
 }
 
+// fetchSecret gets the secret for the given name; returns nil Secret if not found
 func fetchSecret(ctx context.Context, c client.Reader, name types.NamespacedName) (*corev1.Secret, error) {
 	var secret corev1.Secret
 	err := c.Get(ctx, name, &secret)
