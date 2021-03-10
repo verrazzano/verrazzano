@@ -26,8 +26,7 @@ pipeline {
     }
 
     parameters {
-        choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS',
-                        choices: ["1", "2", "3"])
+        choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS', choices: ["2", "1", "3"])
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
                 choices: ["kind", "magicdns_oke", "ocidns_oke"])
         choice (description: 'OCI region to launch OKE clusters', name: 'OKE_CLUSTER_REGION',
@@ -36,15 +35,21 @@ pipeline {
         choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
             // 1st choice is the default value
             choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2" ])
-        choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
+        choice (name: 'OKE_CLUSTER_VERSION',
+                description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
                 choices: [ "v1.18.10", "v1.17.13" ])
-         choice (name: 'KUBERNETES_CLUSTER_VERSION',
-                         description: 'Kubernetes Version for KIND Cluster',
-                         // 1st choice is the default value
-                         choices: [ "1.18", "1.17" ])
-        string defaultValue: 'dev', description: 'Verrazzano install profile name', name: "INSTALL_PROFILE", trim: true
-        booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        choice (name: 'KUBERNETES_CLUSTER_VERSION',
+                description: 'Kubernetes Version for KIND Cluster',
+                // 1st choice is the default value
+                choices: [ "1.18", "1.17" ])
+        string (name: 'VERRAZZANO_OPERATOR_IMAGE',
+                        defaultValue: 'NONE',
+                        description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the latest operator.yaml published to the Verrazzano Object Store will be used',
+                        trim: true)
+        string name: "ADMIN_CLUSTER_PROFILE", defaultValue: 'dev', description: 'Verrazzano install profile name',  trim: true
+        string name: "MANAGED_CLUSTER_PROFILE", defaultValue: 'managed-cluster', description: 'Verrazzano Managed Cluster install profile name', trim: true
+        booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', defaultValue: true)
     }
 
     environment {
@@ -78,7 +83,7 @@ pipeline {
         INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind.yaml"
 
         TEST_ENV = "${params.TEST_ENV}"
-        INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
+        ADMIN_CLUSTER_PROFILE = "${params.ADMIN_CLUSTER_PROFILE}"
 
         // Find a better way to handle this
         // OKE_CLUSTER_VERSION = "${params.KUBERNETES_VERSION == '1.17' ? 'v1.17.13' : 'v1.18.10'}"
@@ -108,6 +113,9 @@ pipeline {
         VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'ocidns_oke' ? 'b' + env.BUILD_NUMBER : 'default'}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
+
+        MANAGED_CLUSTER_INSTALL_CONFIG_FILE = "${WORKSPACE}/install-verrazzano-managed-cluster.yaml"
+        ADMIN_CLUSTER_INSTALL_CONFIG_FILE = "${WORKSPACE}/install-verrazzano-admin-cluster.yaml"
     }
 
     stages {
@@ -184,47 +192,57 @@ pipeline {
             stages {
                 stage('Prepare AT environment') {
                     stages {
-                        stage('Create Cluster') {
+                        stage('Create Kind Clusters') {
+                            when { expression { return params.TEST_ENV == 'kind' } }
+                            steps {
+                                script {
+                                    // NOTE: Eventually we should be able to parallelize the cluster creation, however
+                                    // we seem to be getting some kind of timing issue on cluster create; the 2nd
+                                    // cluster always seems to get a connect/timeout issue, so for now we are keeping
+                                    // the KinD cluster creation serial
+
+                                    // Can these for now, but eventually we should be able to build this based on
+                                    // inspecting the Docker bridge network CIDR and splitting up a range based on
+                                    // the cluster count
+                                    def addressRanges = [ "172.18.0.231-172.18.0.238", "172.18.0.239-172.18.0.246", "172.18.0.247-172.18.0.254" ]
+                                    def clusterInstallStages = [:]
+                                    boolean cleanupKindContainers = true
+                                    boolean connectJenkinsRunnerToNetwork = true
+                                    int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                                    for(int count=1; count<=clusterCount; count++) {
+                                        string metallbAddressRange = addressRanges.get(count-1)
+                                        def deployStep = "cluster-${count}"
+                                        // Create dictionary of steps for parallel execution
+                                        //clusterInstallStages[deployStep] = installKindCluster(count, metallbAddressRange, cleanupKindContainers, connectJenkinsRunnerToNetwork)
+                                        // For sequential execution of steps
+                                        installKindCluster(count, metallbAddressRange, cleanupKindContainers, connectJenkinsRunnerToNetwork)
+                                        cleanupKindContainers = false
+                                        connectJenkinsRunnerToNetwork = false
+                                    }
+                                    // Execute steps in parallel
+                                    //parallel clusterInstallStages
+                                }
+                            }
+                        }
+                        stage('Create OKE Clusters') {
+                            when { expression { return params.TEST_ENV == 'ocidns_oke' || params.TEST_ENV == 'magicdns_oke'} }
                             steps {
                                 script {
                                     sh """
                                         echo "tests will execute" > ${TESTS_EXECUTED_FILE}
                                     """
                                     int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                                    if (env.TEST_ENV == "kind") {
-                                        boolean cleanupKindContainers = true
-                                        boolean connectJenkinsRunnerToNetwork = true
-                                        for(int count=1; count<=clusterCount; count++) {
-                                            sh """
-                                                echo ${CLUSTER_NAME_PREFIX}-$count
-                                                echo ${KUBECONFIG_DIR}/$count/kube_config
-                                                mkdir -p ${KUBECONFIG_DIR}/$count
-                                                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-                                                echo "Create Kind cluster"
-                                                cd ${TEST_SCRIPTS_DIR}
-                                                ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KUBERNETES_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork"
-                                                echo "Install metallb"
-                                                cd ${GO_REPO_PATH}/verrazzano
-                                                ./tests/e2e/config/scripts/install-metallb.sh
-                                            """
-                                            cleanupKindContainers = false
-                                            connectJenkinsRunnerToNetwork = false
-                                        }
-                                    } else {
-                                        sh """
-                                            mkdir -p ${KUBECONFIG_DIR}
-                                            echo "Create OKE cluster"
-                                            cd ${TEST_SCRIPTS_DIR}
-                                            TF_VAR_label_prefix=multicluster-${env.BUILD_NUMBER} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./create_oke_multi_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}"
-                                        """
-                                    }
-
+                                    sh """
+                                        mkdir -p ${KUBECONFIG_DIR}
+                                        echo "Create OKE cluster"
+                                        cd ${TEST_SCRIPTS_DIR}
+                                        TF_VAR_label_prefix=multicluster-${env.BUILD_NUMBER} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./create_oke_multi_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}"
+                                    """
                                 }
                             }
                         }
                     }
                 }
-
                 stage("Configure OCI DNS") {
                     when { expression { return params.TEST_ENV == 'ocidns_oke' } }
                     stages {
@@ -235,7 +253,7 @@ pipeline {
                                 }
                             }
                         }
-                        stage('Configure Install profile') {
+                        stage('Configure OCI DNS Install profile') {
                               environment {
                                 OCI_DNS_COMPARTMENT_OCID = credentials('oci-dns-compartment')
                                 OCI_PRIVATE_KEY_FILE = credentials('oci-api-key')
@@ -244,9 +262,15 @@ pipeline {
                             steps {
                                 script {
                                     sh """
+                                        echo "Installing yq"
+                                        GO111MODULE=on go get github.com/mikefarah/yq/v4
                                         export PATH=${HOME}/go/bin:${PATH}
                                         cd ${GO_REPO_PATH}/verrazzano
-                                        ./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $INSTALL_CONFIG_FILE_OCIDNS
+                                        # Create Verrazzano install files for the admin and managed clusters
+                                        cp $INSTALL_CONFIG_FILE_KIND $ADMIN_CLUSTER_INSTALL_CONFIG_FILE
+                                        INSTALL_PROFILE=${ADMIN_CLUSTER_PROFILE} ./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $ADMIN_CLUSTER_INSTALL_CONFIG_FILE
+                                        cp $INSTALL_CONFIG_FILE_KIND $MANAGED_CLUSTER_INSTALL_CONFIG_FILE
+                                        INSTALL_PROFILE=${MANAGED_CLUSTER_PROFILE} ./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $MANAGED_CLUSTER_INSTALL_CONFIG_FILE
                                     """
                                     int clusterCount = params.TOTAL_CLUSTERS.toInteger()
                                     for(int count=1; count<=clusterCount; count++) {
@@ -261,9 +285,96 @@ pipeline {
                         }
                     }
                 }
-                stage ('Verify Multi-cluster installation') {
+                stage("Configure KinD") {
+                    when { expression { return params.TEST_ENV == 'kind' } }
+                    stages {
+                        stage('Configure KinD Install profile') {
+                            steps {
+                                script {
+                                    sh """
+                                        export PATH=${HOME}/go/bin:${PATH}
+                                        cd ${GO_REPO_PATH}/verrazzano
+                                        echo "Installing yq"
+                                        GO111MODULE=on go get github.com/mikefarah/yq/v4
+                                        export PATH=${HOME}/go/bin:${PATH}
+                                        // Copy the basic Kind config and edit it for the admin profile configuration
+                                        cp $INSTALL_CONFIG_FILE_KIND $ADMIN_CLUSTER_INSTALL_CONFIG_FILE
+                                        INSTALL_PROFILE=${ADMIN_CLUSTER_PROFILE} ./tests/e2e/config/scripts/process_kind_install_yaml.sh $ADMIN_CLUSTER_INSTALL_CONFIG_FILE
+                                        // Copy the basic Kind config over for the mgd cluster profile configuration
+                                        cp $INSTALL_CONFIG_FILE_KIND $MANAGED_CLUSTER_INSTALL_CONFIG_FILE
+                                        INSTALL_PROFILE=${MANAGED_CLUSTER_PROFILE} ./tests/e2e/config/scripts/process_kind_install_yaml.sh $MANAGED_CLUSTER_INSTALL_CONFIG_FILE
+                                    """
+                                }
+                            }
+                        }
+                    }
+                }
+                stage ('Install Verrazzano') {
+                    environment {
+                        OCI_CLI_AUTH="instance_principal"
+                        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                        OCI_OS_BUCKET="verrazzano-builds"
+                    }
                     steps {
-                        runGinkgoRandomize('multicluster/verify-install')
+                        script {
+                            // Either download the latest platform operator YAML from the master bucket, or create one
+                            // using the specific operator image provided by the user.
+                            sh """
+                                echo "Platform Operator Configuration"
+                                cd ${GO_REPO_PATH}/verrazzano
+                                if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
+                                    echo "Using the latest master branch operator.yaml from object storage"
+                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                                    cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+                                else
+                                    echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
+                                    ./tests/e2e/config/scripts/process_operator_yaml.sh platform-operator "${VERRAZZANO_OPERATOR_IMAGE}" verrazzano-container-registry ghcr.io ${WORKSPACE}/acceptance-test-operator.yaml
+                                fi
+                            """
+                        }
+                        script {
+                            // Create a dictionary of Verrazzano install steps to be executed in parallel
+                            // - the first one will always be the Admin cluster
+                            // - clusters 2-max are managed clusters
+                            def verrazzanoInstallStages = [:]
+                            verrazzanoInstallStages["vz-admin"] = installVerrazzano(1, "${ADMIN_CLUSTER_INSTALL_CONFIG_FILE}")
+                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                            for(int count=2; count<=clusterCount; count++) {
+                                verrazzanoInstallStages["vz-mgd-${count-1}"] = installVerrazzano(count, "${MANAGED_CLUSTER_INSTALL_CONFIG_FILE}")
+                            }
+                            parallel verrazzanoInstallStages
+                        }
+                    }
+                }
+                stage ('Verify Install') {
+                    // NOTE: The stages are executed in parallel, however the tests themselves are executed against
+                    //       each cluster in sequence.  But we should be able to parallelize even that
+                    parallel {
+                        stage ('multicluster/verify-install') {
+                            steps {
+                                runGinkgoRandomize('multicluster/verify-install')
+                            }
+                        }
+                        //stage('verify-install') {
+                        //    steps {
+                        //        runGinkgoRandomize('verify-install')
+                        //    }
+                        //}
+                        stage('verify-infra restapi') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/restapi')
+                            }
+                        }
+                        stage('verify-infra oam') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/oam')
+                            }
+                        }
+                        //stage('verify-infra vmi') {
+                        //    steps {
+                        //        runGinkgoRandomize('verify-infra/vmi')
+                        //    }
+                        //}
                     }
                     post {
                         always {
@@ -361,6 +472,56 @@ pipeline {
         }
         cleanup {
             deleteDir()
+        }
+    }
+}
+
+def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connectJenkinsRunnerToNetwork) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
+     return script {
+            sh """
+                echo ${CLUSTER_NAME_PREFIX}-$count
+                echo ${KUBECONFIG_DIR}/$count/kube_config
+                mkdir -p ${KUBECONFIG_DIR}/$count
+                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+                echo "Create Kind cluster \$1"
+                cd ${TEST_SCRIPTS_DIR}
+                ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KUBERNETES_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork"
+                echo "Install metallb"
+                cd ${GO_REPO_PATH}/verrazzano
+                ./tests/e2e/config/scripts/install-metallb.sh $metallbAddressRange
+            """
+        }
+}
+
+def installVerrazzano(count, verrazzanoConfig) {
+    return {
+        script {
+            sh """
+                echo "step 1"
+                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+                cd ${GO_REPO_PATH}/verrazzano
+                echo "Installing the Verrazzano Platform Operator"
+                kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
+
+                # make sure ns exists
+                echo "step 2"
+                ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+
+                # create secret in verrazzano-install ns
+                echo "step 4"
+                ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+
+                echo "Wait for Operator to be ready"
+                cd ${GO_REPO_PATH}/verrazzano
+                kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+
+                echo "Applying \$verrazzanoConfig"
+                kubectl apply -f ${verrazzanoConfig}
+
+                # wait for Verrazzano install to complete
+                ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+            """
         }
     }
 }
@@ -516,3 +677,4 @@ def dumpVerrazzanoApiLogs() {
         }
     }
 }
+
