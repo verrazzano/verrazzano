@@ -187,9 +187,12 @@ ifdef JENKINS_URL
 	echo "Jenkins has pre-created vpo-integ cluster ready to use"
 	mkdir ${HOME}/.kube/ || true
 	kind get kubeconfig --name=${CLUSTER_NAME} > ${KUBECONFIG}
-	# Get the ip address of the container running the kube apiserver
-	# and update the kubeconfig file to point to that address, instead of localhost
-	sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
+	# Use pre-defined host name, but update the /etc/hosts to have the current IP Address
+	APO_INTEG_API_SERVER_IP=$$(docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g')
+	cp /etc/hosts temp_hosts
+	echo "${APO_INTEG_API_SERVER_IP}  APOINTEGHOST" >> temp_hosts
+	sudo cp temp_hosts /etc/hosts
+	sed -i -e "s|127.0.0.1.*|VPOINTEGHOST:6443|g" ${KUBECONFIG}
 	cat ${KUBECONFIG} | grep server
 	docker network connect kind $$(docker ps | grep "jenkins-runner" | awk '{ print $$1 }') || true
 else
