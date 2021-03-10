@@ -7,23 +7,21 @@ import (
 	"context"
 	b64 "encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
-	waitTimeout     = 10 * time.Minute
-	pollingInterval = 30 * time.Second
+	shortPollingInterval = 10 * time.Second
+	waitTimeout          = 10 * time.Minute
+	pollingInterval      = 30 * time.Second
 )
 
 var sockShop SockShop
@@ -91,72 +89,77 @@ var _ = Describe("Sock Shop Application", func() {
 			})
 	})
 
-	It("Determine ingress host name", func() {
-		hostname := pkg.GetHostnameFromGateway("sockshop", "")
-		sockShop.SetHostHeader(hostname)
+	var hostname = ""
+	It("Get host from gateway.", func() {
+		Eventually(func() string {
+			hostname = pkg.GetHostnameFromGateway("sockshop", "")
+			return hostname
+		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
 
+	sockShop.SetHostHeader(hostname)
+
 	It("SockShop can be accessed and user can be registered", func() {
-		sockShop.RegisterUser(fmt.Sprintf(registerTemp, username, password))
+		sockShop.RegisterUser(fmt.Sprintf(registerTemp, username, password), hostname)
 	})
 	It("SockShop can log in with default user", func() {
-		sockShop.Cookies = login(username, password)
+		url := fmt.Sprintf("https://%v/login", hostname)
+		status, _ := pkg.GetWebPageWithBasicAuth(url, hostname, username, password)
+		Expect(status).To(Equal(http.StatusOK), fmt.Sprintf("GET %v returns status %v expected 200.", url, status))
 	})
 
 	It("SockShop can access Calatogue and choose item", func() {
-		webpage := sockShop.ConnectToCatalog()
+		webpage := sockShop.ConnectToCatalog(hostname)
 		sockShop.VerifyCatalogItems(webpage)
 	})
 
 	It("SockShop can add item to cart", func() {
-		cat := sockShop.GetCatalogItem()
+		cat := sockShop.GetCatalogItem(hostname)
 
-		sockShop.AddToCart(cat.Item[0])
-		sockShop.AddToCart(cat.Item[0])
-		sockShop.AddToCart(cat.Item[0])
-		sockShop.AddToCart(cat.Item[1])
-		sockShop.AddToCart(cat.Item[2])
-		sockShop.AddToCart(cat.Item[2])
+		sockShop.AddToCart(cat.Item[0], hostname)
+		sockShop.AddToCart(cat.Item[0], hostname)
+		sockShop.AddToCart(cat.Item[0], hostname)
+		sockShop.AddToCart(cat.Item[1], hostname)
+		sockShop.AddToCart(cat.Item[2], hostname)
+		sockShop.AddToCart(cat.Item[2], hostname)
 
-		sockShop.CheckCart(cat.Item[0], 3)
-		sockShop.CheckCart(cat.Item[1], 1)
-		sockShop.CheckCart(cat.Item[2], 2)
+		sockShop.CheckCart(cat.Item[0], 3, hostname)
+		sockShop.CheckCart(cat.Item[1], 1, hostname)
+		sockShop.CheckCart(cat.Item[2], 2, hostname)
 	})
 
 	It("SockShop can delete all cart items", func() {
-		cartItems := sockShop.GetCartItems()
-		sockShop.DeleteCartItems(cartItems)
+		cartItems := sockShop.GetCartItems(hostname)
+		sockShop.DeleteCartItems(cartItems, hostname)
 		//cartItems = sockShop.GetCartItems()
 
-		sockShop.CheckCartEmpty()
+		sockShop.CheckCartEmpty(hostname)
 	})
 
 	// INFO: Front-End will not allow for complete implementation of this test
 	It("SockShop can change address", func() {
-		sockShop.ChangeAddress(username)
+		sockShop.ChangeAddress(username, hostname)
 	})
 
 	// INFO: Front-End will not allow for complete implementation of this test
 	It("SockShop can change payment", func() {
-		sockShop.ChangePayment()
+		sockShop.ChangePayment(hostname)
 	})
 
 	It("SockShop can retrieve orders", func() {
 		//https://jira.oraclecorp.com/jira/browse/VZ-1026
-		cat := sockShop.GetCatalogItem()
-		sockShop.AddToCart(cat.Item[0])
-		sockShop.AddToCart(cat.Item[0])
-		sockShop.AddToCart(cat.Item[1])
-		sockShop.AddToCart(cat.Item[2])
-		sockShop.AddToCart(cat.Item[2])
+		cat := sockShop.GetCatalogItem(hostname)
+		sockShop.AddToCart(cat.Item[0], hostname)
+		sockShop.AddToCart(cat.Item[0], hostname)
+		sockShop.AddToCart(cat.Item[1], hostname)
+		sockShop.AddToCart(cat.Item[2], hostname)
+		sockShop.AddToCart(cat.Item[2], hostname)
 	})
 
 	It("Verify '/catalogue' UI endpoint is working.", func() {
 		Eventually(func() bool {
-			ipAddress := pkg.Ingress()
-			url := fmt.Sprintf("http://%s/catalogue", ipAddress)
-			host := sockShop.GetHostHeader()
-			status, content := pkg.GetWebPageWithCABundle(url, host)
+			url := fmt.Sprintf("https://%s/catalogue", hostname)
+			status, content := pkg.GetWebPageWithCABundle(url, hostname)
 			return Expect(status).To(Equal(200)) &&
 				Expect(content).To(ContainSubstring("For all those leg lovers out there."))
 		}, 3*time.Minute, 15*time.Second).Should(BeTrue())
@@ -208,30 +211,6 @@ func isSockShopServiceReady(name string) bool {
 		return svc.Spec.Ports[0].Port == 80 && svc.Spec.Ports[0].TargetPort == intstr.FromInt(7001)
 	}
 	return false
-}
-
-// login logs in to the sockshop application
-func login(username string, password string) []*http.Cookie {
-	ingress := pkg.Ingress()
-	url := fmt.Sprintf("http://%v/login", ingress)
-	httpClient := retryablehttp.NewClient()
-	req, _ := retryablehttp.NewRequest("GET", url, nil)
-	req.SetBasicAuth(username, password)
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		pkg.Log(Error, err.Error())
-		Fail("Could not log into " + url)
-	}
-
-	defer resp.Body.Close()
-
-	_, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		pkg.Log(Error, err.Error())
-		Fail("Could not read response body")
-	}
-
-	return resp.Cookies()
 }
 
 // sockshopPodsRunning checks whether the application pods are ready

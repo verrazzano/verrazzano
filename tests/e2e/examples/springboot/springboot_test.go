@@ -84,16 +84,25 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 		})
 	})
 
+	var host = ""
+	// Get the host from the Istio gateway resource.
+	// GIVEN the Istio gateway for the springboot namespace
+	// WHEN GetHostnameFromGateway is called
+	// THEN return the host name found in the gateway.
+	ginkgo.It("Get host from gateway.", func() {
+		gomega.Eventually(func() string {
+			host = pkg.GetHostnameFromGateway(testNamespace, "")
+			return host
+		}, shortWaitTimeout, shortPollingInterval).Should(gomega.Not(gomega.BeEmpty()))
+	})
+
 	// Verify Spring Boot application is working
 	// GIVEN springboot app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
 	ginkgo.It("Verify welcome page of Spring Boot application is working.", func() {
 		gomega.Eventually(func() bool {
-			ingress := pkg.Ingress()
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-			url := fmt.Sprintf("http://%s/", ingress)
-			host := pkg.GetHostnameFromGateway(testNamespace, "")
+			url := fmt.Sprintf("https://%s/", host)
 			status, content := pkg.GetWebPageWithCABundle(url, host)
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
 				gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
@@ -102,9 +111,7 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 
 	ginkgo.It("Verify Verrazzano facts endpoint is working.", func() {
 		gomega.Eventually(func() bool {
-			ingress := pkg.Ingress()
-			url := fmt.Sprintf("http://%s/facts", ingress)
-			host := pkg.GetHostnameFromGateway(testNamespace, "")
+			url := fmt.Sprintf("https://%s/facts", host)
 			status, content := pkg.GetWebPageWithCABundle(url, host)
 			gomega.Expect(len(content) > 0, fmt.Sprintf("An empty string returned from /facts endpoint %v", content))
 			return gomega.Expect(status).To(gomega.Equal(200))
