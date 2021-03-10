@@ -134,7 +134,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	log.Infof("Syncing the prometheus scraping for VMC %s", vmc.Name)
+	log.Infof("Syncing the prometheus scraper for VMC %s", vmc.Name)
 	err = r.syncPrometheusScraper(ctx, vmc)
 	if err != nil {
 		log.Errorf("Failed to setup the prometheus scraper for managed cluster: %v", err)
