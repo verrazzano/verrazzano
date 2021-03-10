@@ -310,7 +310,7 @@ NAME=$(get_config_value ".environmentName")
 DNS_TYPE=$(get_config_value ".dns.type")
 CERT_ISSUER_TYPE=$(get_config_value ".certificates.issuerType")
 
-#action "Installing NGINX Ingress Controller" install_nginx_ingress_controller || exit 1
+action "Installing NGINX Ingress Controller" install_nginx_ingress_controller || exit 1
 
 # We can only know the ingress IP after installing nginx ingress controller
 INGRESS_IP=$(get_verrazzano_ingress_ip)
@@ -320,8 +320,8 @@ DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
 RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
 
-#action "Installing cert manager" install_cert_manager || exit 1
-#action "Installing external DNS" install_external_dns || exit 1
-#action "Installing Rancher" install_rancher || exit 1
+action "Installing cert manager" install_cert_manager || exit 1
+action "Installing external DNS" install_external_dns || exit 1
+action "Installing Rancher" install_rancher || exit 1
 action "Setting Rancher Server URL" set_rancher_server_url || true
 action "Patching Rancher Agents" patch_rancher_agents || true
