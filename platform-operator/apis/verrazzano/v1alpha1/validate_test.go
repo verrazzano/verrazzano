@@ -266,7 +266,7 @@ func TestValidVersionWithCertManagerChange(t *testing.T) {
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
 		Components: ComponentSpec{
-			CertManager: CertManagerComponent{
+			CertManager: &CertManagerComponent{
 				Certificate: Certificate{
 					Acme: Acme{
 						Provider:     "MyProvider",
@@ -281,7 +281,7 @@ func TestValidVersionWithCertManagerChange(t *testing.T) {
 		Version: "v0.7.0",
 		Profile: "dev",
 		Components: ComponentSpec{
-			CertManager: CertManagerComponent{
+			CertManager: &CertManagerComponent{
 				Certificate: Certificate{
 					Acme: Acme{
 						Provider:     "MyProvider",
@@ -310,7 +310,7 @@ func TestValidVersionWithNewDNS(t *testing.T) {
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
 		Components: ComponentSpec{
-			CertManager: CertManagerComponent{
+			CertManager: &CertManagerComponent{
 				Certificate: Certificate{
 					Acme: Acme{
 						Provider:     "MyProvider",
@@ -325,7 +325,7 @@ func TestValidVersionWithNewDNS(t *testing.T) {
 		Version: "v0.7.0",
 		Profile: "dev",
 		Components: ComponentSpec{
-			CertManager: CertManagerComponent{
+			CertManager: &CertManagerComponent{
 				Certificate: Certificate{
 					Acme: Acme{
 						Provider:     "MyProvider",
@@ -334,8 +334,8 @@ func TestValidVersionWithNewDNS(t *testing.T) {
 					},
 				},
 			},
-			DNS: DNSComponent{
-				OCI: OCI{
+			DNS: &DNSComponent{
+				OCI: &OCI{
 					OCIConfigSecret:        "secret",
 					DNSZoneCompartmentOCID: "zonecompocid",
 					DNSZoneOCID:            "zoneOcid",
@@ -377,7 +377,7 @@ func runValidateWithIngressChangeTest() error {
 	currentSpec := &VerrazzanoSpec{
 		Profile: "dev",
 		Components: ComponentSpec{
-			Ingress: IngressNginxComponent{
+			Ingress: &IngressNginxComponent{
 				Type: "sometype",
 				NGINXInstallArgs: []InstallArgs{
 					{
@@ -400,7 +400,7 @@ func runValidateWithIngressChangeTest() error {
 		Version: "v0.7.0",
 		Profile: "dev",
 		Components: ComponentSpec{
-			Ingress: IngressNginxComponent{
+			Ingress: &IngressNginxComponent{
 				Type: "sometype",
 				NGINXInstallArgs: []InstallArgs{
 					{

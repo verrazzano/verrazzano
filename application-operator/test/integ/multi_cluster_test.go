@@ -210,6 +210,48 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 	})
 })
 
+var _ = ginkgo.Describe("Testing VerrazzanoProject rolebinding generation", func() {
+	ginkgo.It("Apply VerrazzanoProject and validate rolebindings are created", func() {
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_sample.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""), "VerrazzanoProject should be created successfully")
+
+		// expect two admin and two monitor rolebindings
+		gomega.Eventually(func() bool {
+			return K8sClient.DoesRoleBindingContainSubject("verrazzano-project-admin", "multiclustertest", "User", "test-user")
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			return K8sClient.DoesRoleBindingContainSubject("admin", "multiclustertest", "User", "test-user")
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			return K8sClient.DoesRoleBindingContainSubject("verrazzano-project-monitor", "multiclustertest", "Group", "test-viewers")
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			return K8sClient.DoesRoleBindingContainSubject("view", "multiclustertest", "Group", "test-viewers")
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+	})
+	ginkgo.It("Apply VerrazzanoProject and validate rolebindings are updated", func() {
+		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_sample.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""), "VerrazzanoProject should be created successfully")
+
+		_, stderr = util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_update_rolebindings.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""), "VerrazzanoProject should be updated successfully")
+
+		// expect two admin and two monitor rolebindings and check that the subjects were updated
+		gomega.Eventually(func() bool {
+			return K8sClient.DoesRoleBindingContainSubject("verrazzano-project-admin", "multiclustertest", "User", "test-NEW-user")
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			return K8sClient.DoesRoleBindingContainSubject("admin", "multiclustertest", "User", "test-NEW-user")
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			return K8sClient.DoesRoleBindingContainSubject("verrazzano-project-monitor", "multiclustertest", "Group", "test-NEW-viewers")
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			return K8sClient.DoesRoleBindingContainSubject("view", "multiclustertest", "Group", "test-NEW-viewers")
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+	})
+})
+
 func appConfigExistsWithFields(namespace string, name string, multiClusterAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration) bool {
 	fmt.Printf("Looking for OAM app config %v/%v\n", namespace, name)
 	appConfig, err := K8sClient.GetOAMAppConfig(namespace, name)
@@ -276,7 +318,7 @@ func configMapExistsMatchingMCConfigMap(namespace, name string, mcConfigMap *clu
 		reflect.DeepEqual(configMap.BinaryData, mcConfigMap.Spec.Template.BinaryData)
 }
 
-func createManagedClusterSecret() {
+func createRegistrationSecret() {
 	createSecret := fmt.Sprintf(
 		"create secret generic %s --from-literal=%s=%s -n %s",
 		constants.MCRegistrationSecret,
@@ -316,7 +358,7 @@ func setupMultiClusterTest() {
 		return K8sClient.IsPodRunning(applicationOperator, constants.VerrazzanoSystemNamespace)
 	}
 	gomega.Eventually(isPodRunningYet, "2m", "5s").Should(gomega.BeTrue(),
-		fmt.Sprintf("The %s pod should be in the Running state", constants.VerrazzanoSystemNamespace))
+		fmt.Sprintf("The pod %s in namespace %s should be in the Running state", applicationOperator, constants.VerrazzanoSystemNamespace))
 
 	_, stderr := util.Kubectl("create ns " + constants.VerrazzanoMultiClusterNamespace)
 	if stderr != "" {
@@ -328,5 +370,5 @@ func setupMultiClusterTest() {
 		ginkgo.Fail(fmt.Sprintf("failed to create namespace %v", multiclusterTestNamespace))
 	}
 
-	createManagedClusterSecret()
+	createRegistrationSecret()
 }

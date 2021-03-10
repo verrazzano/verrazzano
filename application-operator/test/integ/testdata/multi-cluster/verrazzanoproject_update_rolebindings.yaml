@@ -23,8 +23,8 @@ spec:
     security:
       projectAdminSubjects:
         - kind: User
-          name: test-user
+          name: test-NEW-user
       projectMonitorSubjects:
         - kind: Group
-          name: test-viewers
+          name: test-NEW-viewers
 

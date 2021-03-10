@@ -26,5 +26,12 @@ const MCElasticsearchSecret = "verrazzano-cluster-elasticsearch"
 // managed cluster name.
 const MCRegistrationSecret = "verrazzano-cluster-registration"
 
+// MCLocalRegistrationSecret - the name of the local secret that contains the cluster registration information.
+// Thos is created at Verrazzano install.
+const MCLocalRegistrationSecret = "verrazzano-local-registration"
+
 // MCClusterRole is the role name for the role used during VMC reconcile
 const MCClusterRole = "verrazzano-managed-cluster"
+
+// MCLocalCluster is the name of the local cluster
+const MCLocalCluster = "local"

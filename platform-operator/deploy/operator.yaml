@@ -314,6 +314,18 @@ spec:
                         description: DNS type of xip.io.  This is the default.
                         type: object
                     type: object
+                  elasticsearch:
+                    description: Elasticsearch configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
+                  grafana:
+                    description: Grafana configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   ingress:
                     description: Ingress contains the ingress-nginx component configuration
                     properties:
@@ -1823,6 +1835,18 @@ spec:
                             type: object
                         type: object
                     type: object
+                  kibana:
+                    description: Grafana configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
+                  prometheus:
+                    description: Prometheus configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                 type: object
               defaultVolumeSource:
                 description: DefaultVolumeSource Defines the type of volume to be
@@ -3227,7 +3251,7 @@ spec:
                 description: The Verrazzano instance info
                 properties:
                   consoleUrl:
-                    description: Console The Console URL for this Verrazzano installation
+                    description: ConsoleURL The Console URL for this Verrazzano installation
                     type: string
                   elasticUrl:
                     description: ElasticURL The Elasticsearch URL for this Verrazzano
@@ -3249,6 +3273,10 @@ spec:
                     type: string
                   rancherUrl:
                     description: RancherURL The Rancher URL for this Verrazzano installation
+                    type: string
+                  systemApi:
+                    description: SystemURL The System API URL for this Verrazzano
+                      installation
                     type: string
                 type: object
               state:
@@ -3314,13 +3342,6 @@ spec:
             description: VerrazzanoManagedClusterSpec defines the desired state of
               VerrazzanoManagedCluster
             properties:
-              clusterRegistrationSecret:
-                description: The name of the generated secret that contains the kubeconfig
-                  to be used by the cluster agent to connect to admin cluster.  This
-                  secret will also contain other fields needed by the agent, such
-                  as the managed cluster name. This field is managed by a Verrazzano
-                  Kubernetes operator.
-                type: string
               description:
                 description: The description of the managed cluster.
                 type: string

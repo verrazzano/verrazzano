@@ -19,6 +19,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// MCLocalRegistrationSecretFullName is the full NamespacedName of the cluster local registration secret
+var MCLocalRegistrationSecretFullName = types.NamespacedName{
+	Namespace: constants.VerrazzanoSystemNamespace,
+	Name:      constants.MCLocalRegistrationSecret}
+
 // MCRegistrationSecretFullName is the full NamespacedName of the cluster registration secret
 var MCRegistrationSecretFullName = types.NamespacedName{
 	Namespace: constants.VerrazzanoSystemNamespace,
@@ -230,6 +235,16 @@ func GetClusterName(ctx context.Context, rdr client.Reader) string {
 func fetchElasticsearchSecret(ctx context.Context, rdr client.Reader, secret *corev1.Secret) error {
 	return rdr.Get(ctx, MCElasticsearchSecretFullName, secret)
 }
+
+// Try to get the registration secret that was created via the registion YAML apply.  If it doesn't
+// exist then use the local registration secret that was created at install time.
 func fetchClusterSecret(ctx context.Context, rdr client.Reader, clusterSecret *corev1.Secret) error {
-	return rdr.Get(ctx, MCRegistrationSecretFullName, clusterSecret)
+	err := rdr.Get(ctx, MCRegistrationSecretFullName, clusterSecret)
+	if err == nil {
+		return nil
+	}
+	if !apierrors.IsNotFound(err) {
+		return err
+	}
+	return rdr.Get(ctx, MCLocalRegistrationSecretFullName, clusterSecret)
 }

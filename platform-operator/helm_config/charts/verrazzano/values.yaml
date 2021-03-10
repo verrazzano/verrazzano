@@ -13,6 +13,7 @@ appBinding:
   useSystemVMI: true
 
 elasticSearch:
+  enabled: true
   nodes:
     master:
       replicas: 3
@@ -22,10 +23,28 @@ elasticSearch:
       replicas: 2
       requests:
         memory: 4.8Gi
+        storage: 50Gi
     ingest:
       replicas: 1
       requests:
         memory: 2.5Gi
+
+prometheus:
+  enabled: true
+  requests:
+    memory: 128Mi
+    storage: 50Gi
+
+grafana:
+  enabled: true
+  requests:
+    memory: 48Mi
+    storage: 50Gi
+
+kibana:
+  enabled: true
+  requests:
+    memory: 192Mi
 
 verrazzanoOperator:
   name: verrazzano-operator
@@ -38,12 +57,6 @@ verrazzanoOperator:
   fluentdImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-20201016214205-7f37ac6
   apiServerRealm: verrazzano-system
   RequestMemory: 72Mi
-  esDataStorageSize: 50Gi
-  grafanaRequestMemory: 48Mi
-  grafanaDataStorageSize: 50Gi
-  prometheusRequestMemory: 128Mi
-  prometheusDataStorageSize: 50Gi
-  kibanaRequestMemory: 192Mi
 
 monitoringOperator:
   name: verrazzano-monitoring-operator

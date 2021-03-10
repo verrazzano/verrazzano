@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,10 +21,10 @@ import (
 //  THEN the xip.io install configuration is created and verified
 func TestXipIoInstallDefaults(t *testing.T) {
 	vz := installv1alpha1.Verrazzano{}
-	config, err := GetInstallConfig(&vz, zap.S())
+	config, err := GetInstallConfig(&vz)
 	assert.NoError(t, err)
 	assert.Equalf(t, "default", config.EnvironmentName, "Expected environment name did not match")
-	assert.Equalf(t, InstallProfileProd, config.Profile, "Expected profile did not match")
+	assert.Equalf(t, installv1alpha1.Prod, config.Profile, "Expected profile did not match")
 	assert.Equalf(t, DNSTypeXip, config.DNS.Type, "Expected DNS type did not match")
 	assert.Equalf(t, IngressTypeLoadBalancer, config.Ingress.Type, "Expected Ingress type did not match")
 	assert.Equalf(t, CertIssuerTypeCA, config.Certificates.IssuerType, "Expected certification issuer type did not match")
@@ -45,10 +44,10 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 			Profile:         "dev",
 			EnvironmentName: "testEnv",
 			Components: installv1alpha1.ComponentSpec{
-				DNS: installv1alpha1.DNSComponent{
-					XIPIO: installv1alpha1.XIPIO{},
+				DNS: &installv1alpha1.DNSComponent{
+					XIPIO: &installv1alpha1.XIPIO{},
 				},
-				Ingress: installv1alpha1.IngressNginxComponent{
+				Ingress: &installv1alpha1.IngressNginxComponent{
 					Type: installv1alpha1.LoadBalancer,
 					NGINXInstallArgs: []installv1alpha1.InstallArgs{
 						{
@@ -66,7 +65,7 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 						},
 					},
 				},
-				Istio: installv1alpha1.IstioComponent{
+				Istio: &installv1alpha1.IstioComponent{
 					IstioInstallArgs: []installv1alpha1.InstallArgs{
 						{
 							Name:  "name2",
@@ -74,7 +73,7 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 						},
 					},
 				},
-				CertManager: installv1alpha1.CertManagerComponent{
+				CertManager: &installv1alpha1.CertManagerComponent{
 					Certificate: installv1alpha1.Certificate{
 						CA: installv1alpha1.CA{
 							SecretName:               "customSecret",
@@ -82,7 +81,7 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 						},
 					},
 				},
-				Keycloak: installv1alpha1.KeycloakComponent{
+				Keycloak: &installv1alpha1.KeycloakComponent{
 					KeycloakInstallArgs: []installv1alpha1.InstallArgs{
 						{
 							Name:  "keycloak-name",
@@ -102,10 +101,10 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 		},
 	}
 
-	config, err := GetInstallConfig(&vz, zap.S())
+	config, err := GetInstallConfig(&vz)
 	assert.NoError(t, err)
 	assert.Equalf(t, "testEnv", config.EnvironmentName, "Expected environment name did not match")
-	assert.Equalf(t, InstallProfileDev, config.Profile, "Expected profile did not match")
+	assert.Equalf(t, installv1alpha1.Dev, config.Profile, "Expected profile did not match")
 	assert.Equalf(t, DNSTypeXip, config.DNS.Type, "Expected DNS type did not match")
 
 	assert.Equalf(t, IngressTypeLoadBalancer, config.Ingress.Type, "Expected Ingress type did not match")
@@ -144,12 +143,12 @@ func TestExternalInstall(t *testing.T) {
 			Profile:         "prod",
 			EnvironmentName: "external",
 			Components: installv1alpha1.ComponentSpec{
-				DNS: installv1alpha1.DNSComponent{
-					External: installv1alpha1.External{
+				DNS: &installv1alpha1.DNSComponent{
+					External: &installv1alpha1.External{
 						Suffix: "abc.def.com",
 					},
 				},
-				Ingress: installv1alpha1.IngressNginxComponent{
+				Ingress: &installv1alpha1.IngressNginxComponent{
 					Type: installv1alpha1.LoadBalancer,
 					NGINXInstallArgs: []installv1alpha1.InstallArgs{
 						{
@@ -190,7 +189,7 @@ func TestExternalInstall(t *testing.T) {
 						},
 					},
 				},
-				Istio: installv1alpha1.IstioComponent{
+				Istio: &installv1alpha1.IstioComponent{
 					IstioInstallArgs: []installv1alpha1.InstallArgs{
 						{
 							Name:  "name4",
@@ -208,10 +207,10 @@ func TestExternalInstall(t *testing.T) {
 		},
 	}
 
-	config, err := GetInstallConfig(&vz, zap.S())
+	config, err := GetInstallConfig(&vz)
 	assert.NoError(t, err)
 	assert.Equalf(t, "external", config.EnvironmentName, "Expected environment name did not match")
-	assert.Equalf(t, InstallProfileProd, config.Profile, "Expected profile did not match")
+	assert.Equalf(t, installv1alpha1.Prod, config.Profile, "Expected profile did not match")
 
 	assert.Equalf(t, DNSTypeExternal, config.DNS.Type, "Expected DNS type did not match")
 	assert.Equalf(t, "abc.def.com", config.DNS.External.Suffix, "Expected DNS external suffix did not match")
@@ -261,7 +260,7 @@ func TestOCIDNSInstall(t *testing.T) {
 			Profile:         "prod",
 			EnvironmentName: "oci",
 			Components: installv1alpha1.ComponentSpec{
-				CertManager: installv1alpha1.CertManagerComponent{
+				CertManager: &installv1alpha1.CertManagerComponent{
 					Certificate: installv1alpha1.Certificate{
 						Acme: installv1alpha1.Acme{
 							Provider:     installv1alpha1.LetsEncrypt,
@@ -269,15 +268,15 @@ func TestOCIDNSInstall(t *testing.T) {
 						},
 					},
 				},
-				DNS: installv1alpha1.DNSComponent{
-					OCI: installv1alpha1.OCI{
+				DNS: &installv1alpha1.DNSComponent{
+					OCI: &installv1alpha1.OCI{
 						OCIConfigSecret:        "oci-config-secret",
 						DNSZoneCompartmentOCID: "test-dns-zone-compartment-ocid",
 						DNSZoneOCID:            "test-dns-zone-ocid",
 						DNSZoneName:            "test-dns-zone-name",
 					},
 				},
-				Ingress: installv1alpha1.IngressNginxComponent{
+				Ingress: &installv1alpha1.IngressNginxComponent{
 					Type: installv1alpha1.NodePort,
 					NGINXInstallArgs: []installv1alpha1.InstallArgs{
 						{
@@ -295,7 +294,7 @@ func TestOCIDNSInstall(t *testing.T) {
 						},
 					},
 				},
-				Istio: installv1alpha1.IstioComponent{
+				Istio: &installv1alpha1.IstioComponent{
 					IstioInstallArgs: []installv1alpha1.InstallArgs{
 						{
 							Name:  "name2",
@@ -307,10 +306,10 @@ func TestOCIDNSInstall(t *testing.T) {
 		},
 	}
 
-	config, err := GetInstallConfig(&vz, zap.S())
+	config, err := GetInstallConfig(&vz)
 	assert.NoError(t, err)
 	assert.Equalf(t, "oci", config.EnvironmentName, "Expected environment name did not match")
-	assert.Equalf(t, InstallProfileProd, config.Profile, "Expected profile did not match")
+	assert.Equalf(t, installv1alpha1.Prod, config.Profile, "Expected profile did not match")
 
 	assert.Equalf(t, DNSTypeOci, config.DNS.Type, "Expected DNS type did not match")
 	assert.Equalf(t, "test-dns-zone-compartment-ocid", config.DNS.Oci.DNSZoneCompartmentOcid, "Expected dns zone compartment ocid did not match")
@@ -346,11 +345,11 @@ func TestNodePortInstall(t *testing.T) {
 			Profile:         "dev",
 			EnvironmentName: "kind",
 			Components: installv1alpha1.ComponentSpec{
-				CertManager: installv1alpha1.CertManagerComponent{},
-				DNS: installv1alpha1.DNSComponent{
-					XIPIO: installv1alpha1.XIPIO{},
+				CertManager: &installv1alpha1.CertManagerComponent{},
+				DNS: &installv1alpha1.DNSComponent{
+					XIPIO: &installv1alpha1.XIPIO{},
 				},
-				Ingress: installv1alpha1.IngressNginxComponent{
+				Ingress: &installv1alpha1.IngressNginxComponent{
 					Type: installv1alpha1.NodePort,
 					NGINXInstallArgs: []installv1alpha1.InstallArgs{
 						{
@@ -376,15 +375,15 @@ func TestNodePortInstall(t *testing.T) {
 						},
 					},
 				},
-				Istio: installv1alpha1.IstioComponent{},
+				Istio: &installv1alpha1.IstioComponent{},
 			},
 		},
 	}
 
-	config, err := GetInstallConfig(&vz, zap.S())
+	config, err := GetInstallConfig(&vz)
 	assert.NoError(t, err)
 	assert.Equalf(t, "kind", config.EnvironmentName, "Expected environment name did not match")
-	assert.Equalf(t, InstallProfileDev, config.Profile, "Expected profile did not match")
+	assert.Equalf(t, installv1alpha1.Dev, config.Profile, "Expected profile did not match")
 
 	assert.Equalf(t, DNSTypeXip, config.DNS.Type, "Expected DNS type did not match")
 
@@ -473,7 +472,7 @@ func TestGetVerrazzanoInstallArgsNilDefaultVolumeSource(t *testing.T) {
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		DefaultVolumeSource: nil,
 	}
-	args, err := getVerrazzanoInstallArgs(&vzSpec, zap.S())
+	args, err := getVerrazzanoInstallArgs(&vzSpec)
 	assert.Len(t, args, 0)
 	assert.Nil(t, err)
 }
@@ -488,7 +487,7 @@ func TestGetVerrazzanoInstallArgsUnspportedVolumeSource(t *testing.T) {
 			HostPath: &corev1.HostPathVolumeSource{},
 		},
 	}
-	args, err := getVerrazzanoInstallArgs(&vzSpec, zap.S())
+	args, err := getVerrazzanoInstallArgs(&vzSpec)
 	assert.Len(t, args, 0)
 	assert.Nil(t, err)
 }
@@ -503,16 +502,16 @@ func TestGetVerrazzanoInstallArgsEmptydirDefaultVolumeSource(t *testing.T) {
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 	}
-	args, err := getVerrazzanoInstallArgs(&vzSpec, zap.S())
+	args, err := getVerrazzanoInstallArgs(&vzSpec)
 	assert.Len(t, args, 3)
 	assert.Nil(t, err)
-	assert.Equal(t, "verrazzanoOperator.esDataStorageSize", args[0].Name)
+	assert.Equal(t, esStorageValueName, args[0].Name)
 	assert.Equal(t, "", args[0].Value)
 	assert.True(t, args[0].SetString)
-	assert.Equal(t, "verrazzanoOperator.grafanaDataStorageSize", args[1].Name)
+	assert.Equal(t, grafanaStorageValueName, args[1].Name)
 	assert.Equal(t, "", args[1].Value)
 	assert.True(t, args[1].SetString)
-	assert.Equal(t, "verrazzanoOperator.prometheusDataStorageSize", args[2].Name)
+	assert.Equal(t, prometheusStorageValueName, args[2].Name)
 	assert.Equal(t, "", args[2].Value)
 	assert.True(t, args[2].SetString)
 }
@@ -535,7 +534,7 @@ func TestGetVerrazzanoInstallArgsInvalidPVCVolumeSource(t *testing.T) {
 			},
 		},
 	}
-	args, err := getVerrazzanoInstallArgs(&vzSpec, zap.S())
+	args, err := getVerrazzanoInstallArgs(&vzSpec)
 	assert.Len(t, args, 0)
 	assert.NotNil(t, err)
 }
@@ -569,16 +568,16 @@ func TestGetVerrazzanoInstallArgsPVCVolumeSource(t *testing.T) {
 			},
 		},
 	}
-	args, err := getVerrazzanoInstallArgs(&vzSpec, zap.S())
+	args, err := getVerrazzanoInstallArgs(&vzSpec)
 	assert.Len(t, args, 3)
 	assert.Nil(t, err)
-	assert.Equal(t, "verrazzanoOperator.esDataStorageSize", args[0].Name)
+	assert.Equal(t, esStorageValueName, args[0].Name)
 	assert.Equal(t, "50Gi", args[0].Value)
 	assert.True(t, args[0].SetString)
-	assert.Equal(t, "verrazzanoOperator.grafanaDataStorageSize", args[1].Name)
+	assert.Equal(t, grafanaStorageValueName, args[1].Name)
 	assert.Equal(t, "50Gi", args[1].Value)
 	assert.True(t, args[1].SetString)
-	assert.Equal(t, "verrazzanoOperator.prometheusDataStorageSize", args[2].Name)
+	assert.Equal(t, prometheusStorageValueName, args[2].Name)
 	assert.Equal(t, "50Gi", args[2].Value)
 	assert.True(t, args[2].SetString)
 }
@@ -600,7 +599,7 @@ func TestGetVerrazzanoInstallArgsWithSecurity(t *testing.T) {
 			},
 		},
 	}
-	args, err := getVerrazzanoInstallArgs(&vzSpec, zap.S())
+	args, err := getVerrazzanoInstallArgs(&vzSpec)
 	assert.Len(t, args, 4)
 	assert.Nil(t, err)
 	assert.Equal(t, "userrolebindings.admin.name", args[0].Name)
@@ -630,7 +629,7 @@ func TestGetVerrazzanoInstallArgsWithSecurityInvalidSubjectKind(t *testing.T) {
 			},
 		},
 	}
-	args, err := getVerrazzanoInstallArgs(&vzSpec, zap.S())
+	args, err := getVerrazzanoInstallArgs(&vzSpec)
 	assert.Len(t, args, 0)
 	assert.NotNil(t, err)
 }
@@ -670,16 +669,16 @@ func TestGetVerrazzanoInstallArgsWithSecurityAndPVCVolumeSource(t *testing.T) {
 			},
 		},
 	}
-	args, err := getVerrazzanoInstallArgs(&vzSpec, zap.S())
+	args, err := getVerrazzanoInstallArgs(&vzSpec)
 	assert.Len(t, args, 5)
 	assert.Nil(t, err)
-	assert.Equal(t, "verrazzanoOperator.esDataStorageSize", args[0].Name)
+	assert.Equal(t, esStorageValueName, args[0].Name)
 	assert.Equal(t, "50Gi", args[0].Value)
 	assert.True(t, args[0].SetString)
-	assert.Equal(t, "verrazzanoOperator.grafanaDataStorageSize", args[1].Name)
+	assert.Equal(t, grafanaStorageValueName, args[1].Name)
 	assert.Equal(t, "50Gi", args[1].Value)
 	assert.True(t, args[1].SetString)
-	assert.Equal(t, "verrazzanoOperator.prometheusDataStorageSize", args[2].Name)
+	assert.Equal(t, prometheusStorageValueName, args[2].Name)
 	assert.Equal(t, "50Gi", args[2].Value)
 	assert.True(t, args[2].SetString)
 	assert.Equal(t, "userrolebindings.admin.name", args[3].Name)
@@ -690,6 +689,180 @@ func TestGetVerrazzanoInstallArgsWithSecurityAndPVCVolumeSource(t *testing.T) {
 	assert.True(t, args[4].SetString)
 }
 
+// TestGetVMIInstallArgsAllEnabled Test the getVMIInstallArgs function
+// GIVEN a call to getVMIInstallArgs
+// WHEN all VMI components are enabled in the vzSpec
+// THEN the correct set of InstallArg objects are returned and set to "true"
+func TestGetVMIInstallArgsAllEnabled(t *testing.T) {
+
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		Components: installv1alpha1.ComponentSpec{
+			Elasticsearch: &installv1alpha1.ElasticsearchComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: true}},
+			Kibana:        &installv1alpha1.KibanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: true}},
+			Prometheus:    &installv1alpha1.PrometheusComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: true}},
+			Grafana:       &installv1alpha1.GrafanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: true}},
+		},
+	}
+	vmiInstallArgs := getVMIInstallArgs(&vzSpec)
+	assert.NotNil(t, vmiInstallArgs)
+	assert.Equal(t, 4, len(vmiInstallArgs))
+
+	const (
+		esIndex      = 0
+		promIndex    = 1
+		kibanaIndex  = 2
+		grafanaIndex = 3
+	)
+
+	assert.Equal(t, esEnabledValueName, vmiInstallArgs[esIndex].Name)
+	assert.Equal(t, "true", vmiInstallArgs[esIndex].Value)
+	assert.False(t, vmiInstallArgs[esIndex].SetString)
+	assert.Equal(t, grafanaEnabledValueName, vmiInstallArgs[grafanaIndex].Name)
+	assert.Equal(t, "true", vmiInstallArgs[grafanaIndex].Value)
+	assert.False(t, vmiInstallArgs[grafanaIndex].SetString)
+	assert.Equal(t, promEnabledValueName, vmiInstallArgs[promIndex].Name)
+	assert.Equal(t, "true", vmiInstallArgs[promIndex].Value)
+	assert.False(t, vmiInstallArgs[promIndex].SetString)
+	assert.Equal(t, kibanaEnabledValueName, vmiInstallArgs[kibanaIndex].Name)
+	assert.Equal(t, "true", vmiInstallArgs[kibanaIndex].Value)
+	assert.False(t, vmiInstallArgs[kibanaIndex].SetString)
+}
+
+// TestGetVMIInstallArgsNoneEnabled Test the getVMIInstallArgs function
+// GIVEN a call to getVMIInstallArgs
+// WHEN all VMI components are disabled in the vzSpec
+// THEN the correct set of InstallArg objects are returned and set to "false"
+func TestGetVMIInstallArgsNoneEnabled(t *testing.T) {
+
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		Components: installv1alpha1.ComponentSpec{
+			Elasticsearch: &installv1alpha1.ElasticsearchComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
+			Kibana:        &installv1alpha1.KibanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
+			Prometheus:    &installv1alpha1.PrometheusComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
+			Grafana:       &installv1alpha1.GrafanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
+		},
+	}
+	vmiInstallArgs := getVMIInstallArgs(&vzSpec)
+	assert.NotNil(t, vmiInstallArgs)
+	assert.Equal(t, 4, len(vmiInstallArgs))
+
+	const (
+		esIndex      = 0
+		promIndex    = 1
+		kibanaIndex  = 2
+		grafanaIndex = 3
+	)
+
+	assert.Equal(t, esEnabledValueName, vmiInstallArgs[esIndex].Name)
+	assert.Equal(t, "false", vmiInstallArgs[esIndex].Value)
+	assert.False(t, vmiInstallArgs[esIndex].SetString)
+	assert.Equal(t, grafanaEnabledValueName, vmiInstallArgs[grafanaIndex].Name)
+	assert.Equal(t, "false", vmiInstallArgs[grafanaIndex].Value)
+	assert.False(t, vmiInstallArgs[grafanaIndex].SetString)
+	assert.Equal(t, promEnabledValueName, vmiInstallArgs[promIndex].Name)
+	assert.Equal(t, "false", vmiInstallArgs[promIndex].Value)
+	assert.False(t, vmiInstallArgs[promIndex].SetString)
+	assert.Equal(t, kibanaEnabledValueName, vmiInstallArgs[kibanaIndex].Name)
+	assert.Equal(t, "false", vmiInstallArgs[kibanaIndex].Value)
+	assert.False(t, vmiInstallArgs[kibanaIndex].SetString)
+}
+
+// TestGetVMIInstallManagedClusterSettings Test the getVMIInstallArgs function
+// GIVEN a call to getVMIInstallArgs
+// WHEN all VMI components are disabled in the vzSpec except Prometheus
+// THEN the correct set of InstallArg objects are returned and set to "false", minus the Prometheus setting
+func TestGetVMIInstallArgsSomeDisabled(t *testing.T) {
+	// Simulates the managed-cluster settings
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		Components: installv1alpha1.ComponentSpec{
+			Elasticsearch: &installv1alpha1.ElasticsearchComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
+			Kibana:        &installv1alpha1.KibanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
+			Grafana:       &installv1alpha1.GrafanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
+		},
+	}
+	vmiInstallArgs := getVMIInstallArgs(&vzSpec)
+	assert.NotNil(t, vmiInstallArgs)
+	assert.Equal(t, 3, len(vmiInstallArgs))
+
+	const (
+		esIndex      = 0
+		kibanaIndex  = 1
+		grafanaIndex = 2
+	)
+
+	assert.Equal(t, esEnabledValueName, vmiInstallArgs[esIndex].Name)
+	assert.Equal(t, "false", vmiInstallArgs[esIndex].Value)
+	assert.False(t, vmiInstallArgs[esIndex].SetString)
+	assert.Equal(t, grafanaEnabledValueName, vmiInstallArgs[grafanaIndex].Name)
+	assert.Equal(t, "false", vmiInstallArgs[grafanaIndex].Value)
+	assert.False(t, vmiInstallArgs[grafanaIndex].SetString)
+	assert.Equal(t, kibanaEnabledValueName, vmiInstallArgs[kibanaIndex].Name)
+	assert.Equal(t, "false", vmiInstallArgs[kibanaIndex].Value)
+	assert.False(t, vmiInstallArgs[kibanaIndex].SetString)
+}
+
+// TestGetVMIInstallArgsNonePresent Test the getVMIInstallArgs function
+// GIVEN a call to getVMIInstallArgs
+// WHEN no VMI components are present in the vzSpec
+// THEN an empty list is returned
+func TestGetVMIInstallArgsNonePresent(t *testing.T) {
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		Components: installv1alpha1.ComponentSpec{},
+	}
+	vmiInstallArgs := getVMIInstallArgs(&vzSpec)
+	assert.NotNil(t, vmiInstallArgs)
+	assert.Equal(t, 0, len(vmiInstallArgs))
+}
+
+// TestGetVerrazzanoInstallArgsNoArgs Test the getVerrazzanoInstallArgs function
+// GIVEN a call to getVMIInstallArgs
+// WHEN no VMI components are present in the vzSpec
+// THEN an empty list is returned
+func TestGetVerrazzanoInstallArgsNoArgs(t *testing.T) {
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		Components: installv1alpha1.ComponentSpec{},
+	}
+	installArgs, err := getVerrazzanoInstallArgs(&vzSpec)
+	assert.NoError(t, err)
+	assert.NotNil(t, installArgs)
+	assert.Equal(t, 0, len(installArgs))
+}
+
+// TestGetVerrazzanoInstallArgsSomeVMIDisabled Test the getVerrazzanoInstallArgs function
+// GIVEN a call to getVerrazzanoInstallArgs
+// WHEN all VMI components are disabled in the vzSpec except Prometheus
+// THEN the correct set of InstallArg objects are returned and set to "false", minus the Prometheus setting
+func TestGetVerrazzanoInstallArgsSomeVMIDisabled(t *testing.T) {
+	// Simulates the managed-cluster settings
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		Components: installv1alpha1.ComponentSpec{
+			Elasticsearch: &installv1alpha1.ElasticsearchComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
+			Kibana:        &installv1alpha1.KibanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
+			Grafana:       &installv1alpha1.GrafanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
+		},
+	}
+	installArgs, err := getVerrazzanoInstallArgs(&vzSpec)
+	assert.NoError(t, err)
+	assert.NotNil(t, installArgs)
+	assert.Equal(t, 3, len(installArgs))
+
+	const (
+		esIndex      = 0
+		kibanaIndex  = 1
+		grafanaIndex = 2
+	)
+
+	assert.Equal(t, esEnabledValueName, installArgs[esIndex].Name)
+	assert.Equal(t, "false", installArgs[esIndex].Value)
+	assert.False(t, installArgs[esIndex].SetString)
+	assert.Equal(t, grafanaEnabledValueName, installArgs[grafanaIndex].Name)
+	assert.Equal(t, "false", installArgs[grafanaIndex].Value)
+	assert.False(t, installArgs[grafanaIndex].SetString)
+	assert.Equal(t, kibanaEnabledValueName, installArgs[kibanaIndex].Name)
+	assert.Equal(t, "false", installArgs[kibanaIndex].Value)
+	assert.False(t, installArgs[kibanaIndex].SetString)
+}
+
 // TestGetKeycloakEmptyDirVolumeSourceNoDefaultVolumeSource Test the getKeycloak  function
 // GIVEN a call to getKeycloak
 // WHEN with an EmptyDirVolumeSource in the MySQL VolumeSource configuration
@@ -697,7 +870,7 @@ func TestGetVerrazzanoInstallArgsWithSecurityAndPVCVolumeSource(t *testing.T) {
 func TestGetKeycloakEmptyDirVolumeSourceNoDefaultVolumeSource(t *testing.T) {
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Components: installv1alpha1.ComponentSpec{
-			Keycloak: installv1alpha1.KeycloakComponent{
+			Keycloak: &installv1alpha1.KeycloakComponent{
 				MySQL: installv1alpha1.MySQLComponent{
 					MySQLInstallArgs: nil,
 					VolumeSource: &corev1.VolumeSource{
@@ -707,10 +880,11 @@ func TestGetKeycloakEmptyDirVolumeSourceNoDefaultVolumeSource(t *testing.T) {
 			},
 		},
 	}
-	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, []installv1alpha1.VolumeClaimSpecTemplate{}, nil, zap.S())
+	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, []installv1alpha1.VolumeClaimSpecTemplate{}, nil)
+	assert.Nil(t, err)
+	assert.NotNil(t, keycloak)
 	args := keycloak.MySQL.MySQLInstallArgs
 	assert.Len(t, args, 1)
-	assert.Nil(t, err)
 
 	assert.Equal(t, "persistence.enabled", args[0].Name)
 	assert.Equal(t, "false", args[0].Value)
@@ -733,7 +907,7 @@ func TestGetKeycloakPVCVolumeSourceOverrideDefaultVolumeSource(t *testing.T) {
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 		Components: installv1alpha1.ComponentSpec{
-			Keycloak: installv1alpha1.KeycloakComponent{
+			Keycloak: &installv1alpha1.KeycloakComponent{
 				MySQL: installv1alpha1.MySQLComponent{
 					MySQLInstallArgs: nil,
 					VolumeSource: &corev1.VolumeSource{
@@ -760,10 +934,11 @@ func TestGetKeycloakPVCVolumeSourceOverrideDefaultVolumeSource(t *testing.T) {
 			},
 		},
 	}
-	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, vzSpec.VolumeClaimSpecTemplates, vzSpec.DefaultVolumeSource, zap.S())
+	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, vzSpec.VolumeClaimSpecTemplates, vzSpec.DefaultVolumeSource)
+	assert.Nil(t, err)
+	assert.NotNil(t, keycloak)
 	args := keycloak.MySQL.MySQLInstallArgs
 	assert.Len(t, args, 3)
-	assert.Nil(t, err)
 
 	assert.Equal(t, "persistence.storageClass", args[0].Name)
 	assert.Equal(t, storageClass, args[0].Value)
@@ -789,7 +964,7 @@ func TestGetKeycloakPVCVolumeSourceNoAccessModes(t *testing.T) {
 	storageClass := "mystorageclass"
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Components: installv1alpha1.ComponentSpec{
-			Keycloak: installv1alpha1.KeycloakComponent{
+			Keycloak: &installv1alpha1.KeycloakComponent{
 				MySQL: installv1alpha1.MySQLComponent{
 					MySQLInstallArgs: nil,
 					VolumeSource: &corev1.VolumeSource{
@@ -812,10 +987,11 @@ func TestGetKeycloakPVCVolumeSourceNoAccessModes(t *testing.T) {
 			},
 		},
 	}
-	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, vzSpec.VolumeClaimSpecTemplates, vzSpec.DefaultVolumeSource, zap.S())
+	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, vzSpec.VolumeClaimSpecTemplates, vzSpec.DefaultVolumeSource)
+	assert.Nil(t, err)
+	assert.NotNil(t, keycloak)
 	args := keycloak.MySQL.MySQLInstallArgs
 	assert.Len(t, args, 2)
-	assert.Nil(t, err)
 
 	assert.Equal(t, "persistence.storageClass", args[0].Name)
 	assert.Equal(t, storageClass, args[0].Value)
@@ -832,7 +1008,7 @@ func TestGetKeycloakPVCVolumeSourceNoAccessModes(t *testing.T) {
 func TestGetKeycloakPVCVolumeSourceNoTemplates(t *testing.T) {
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Components: installv1alpha1.ComponentSpec{
-			Keycloak: installv1alpha1.KeycloakComponent{
+			Keycloak: &installv1alpha1.KeycloakComponent{
 				MySQL: installv1alpha1.MySQLComponent{
 					MySQLInstallArgs: nil,
 					VolumeSource: &corev1.VolumeSource{
@@ -844,10 +1020,11 @@ func TestGetKeycloakPVCVolumeSourceNoTemplates(t *testing.T) {
 			},
 		},
 	}
-	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, vzSpec.VolumeClaimSpecTemplates, vzSpec.DefaultVolumeSource, zap.S())
+	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, vzSpec.VolumeClaimSpecTemplates, vzSpec.DefaultVolumeSource)
+	assert.NotNil(t, err)
+	assert.NotNil(t, keycloak)
 	args := keycloak.MySQL.MySQLInstallArgs
 	assert.Len(t, args, 0)
-	assert.NotNil(t, err)
 }
 
 // TestGetKeycloakPVCVolumeSourceStorageSizeOnly Test the getKeycloak  function
@@ -862,7 +1039,7 @@ func TestGetKeycloakPVCVolumeSourceStorageSizeOnly(t *testing.T) {
 	resourceList["storage"] = q
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Components: installv1alpha1.ComponentSpec{
-			Keycloak: installv1alpha1.KeycloakComponent{
+			Keycloak: &installv1alpha1.KeycloakComponent{
 				MySQL: installv1alpha1.MySQLComponent{
 					MySQLInstallArgs: nil,
 					VolumeSource: &corev1.VolumeSource{
@@ -884,10 +1061,11 @@ func TestGetKeycloakPVCVolumeSourceStorageSizeOnly(t *testing.T) {
 			},
 		},
 	}
-	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, vzSpec.VolumeClaimSpecTemplates, vzSpec.DefaultVolumeSource, zap.S())
+	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, vzSpec.VolumeClaimSpecTemplates, vzSpec.DefaultVolumeSource)
+	assert.Nil(t, err)
+	assert.NotNil(t, keycloak)
 	args := keycloak.MySQL.MySQLInstallArgs
 	assert.Len(t, args, 1)
-	assert.Nil(t, err)
 
 	assert.Equal(t, "persistence.size", args[0].Name)
 	assert.Equal(t, "50Gi", args[0].Value)
@@ -906,7 +1084,7 @@ func TestGetKeycloakPVCVolumeSourceZeroStorageSize(t *testing.T) {
 	resourceList["storage"] = q
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Components: installv1alpha1.ComponentSpec{
-			Keycloak: installv1alpha1.KeycloakComponent{
+			Keycloak: &installv1alpha1.KeycloakComponent{
 				MySQL: installv1alpha1.MySQLComponent{
 					MySQLInstallArgs: nil,
 					VolumeSource: &corev1.VolumeSource{
@@ -928,10 +1106,11 @@ func TestGetKeycloakPVCVolumeSourceZeroStorageSize(t *testing.T) {
 			},
 		},
 	}
-	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, vzSpec.VolumeClaimSpecTemplates, vzSpec.DefaultVolumeSource, zap.S())
+	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, vzSpec.VolumeClaimSpecTemplates, vzSpec.DefaultVolumeSource)
+	assert.Nil(t, err)
+	assert.NotNil(t, keycloak)
 	args := keycloak.MySQL.MySQLInstallArgs
 	assert.Len(t, args, 0)
-	assert.Nil(t, err)
 }
 
 // TestGetKeycloakPVCVolumeSourceEmptyPVCConfiguration Test the getKeycloak  function
@@ -941,7 +1120,7 @@ func TestGetKeycloakPVCVolumeSourceZeroStorageSize(t *testing.T) {
 func TestGetKeycloakPVCVolumeSourceEmptyPVCConfiguration(t *testing.T) {
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Components: installv1alpha1.ComponentSpec{
-			Keycloak: installv1alpha1.KeycloakComponent{
+			Keycloak: &installv1alpha1.KeycloakComponent{
 				MySQL: installv1alpha1.MySQLComponent{
 					MySQLInstallArgs: nil,
 					VolumeSource: &corev1.VolumeSource{
@@ -959,10 +1138,11 @@ func TestGetKeycloakPVCVolumeSourceEmptyPVCConfiguration(t *testing.T) {
 			},
 		},
 	}
-	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, vzSpec.VolumeClaimSpecTemplates, vzSpec.DefaultVolumeSource, zap.S())
+	keycloak, err := getKeycloak(vzSpec.Components.Keycloak, vzSpec.VolumeClaimSpecTemplates, vzSpec.DefaultVolumeSource)
+	assert.Nil(t, err)
+	assert.NotNil(t, keycloak)
 	args := keycloak.MySQL.MySQLInstallArgs
 	assert.Len(t, args, 0)
-	assert.Nil(t, err)
 }
 
 // TestNewExternalDNSInstallConfigInvalidVZInstallArgs Test the getVerrazzanoInstallArgs  function
@@ -985,7 +1165,7 @@ func TestNewExternalDNSInstallConfigInvalidVZInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	config, err := newExternalDNSInstallConfig(&vzSpec, zap.S())
+	config, err := newExternalDNSInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
@@ -998,7 +1178,7 @@ func TestNewExternalDNSInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 	vzSpec := installv1alpha1.Verrazzano{
 		Spec: installv1alpha1.VerrazzanoSpec{
 			Components: installv1alpha1.ComponentSpec{
-				Keycloak: installv1alpha1.KeycloakComponent{
+				Keycloak: &installv1alpha1.KeycloakComponent{
 					MySQL: installv1alpha1.MySQLComponent{
 						MySQLInstallArgs: nil,
 						VolumeSource: &corev1.VolumeSource{
@@ -1011,7 +1191,7 @@ func TestNewExternalDNSInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 			},
 		},
 	}
-	config, err := newExternalDNSInstallConfig(&vzSpec, zap.S())
+	config, err := newExternalDNSInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
@@ -1036,7 +1216,7 @@ func TestNewXipIoInstallConfigInvalidVZInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	config, err := newXipIoInstallConfig(&vzSpec, zap.S())
+	config, err := newXipIoInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
@@ -1049,7 +1229,7 @@ func TestNewXipIoInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 	vzSpec := installv1alpha1.Verrazzano{
 		Spec: installv1alpha1.VerrazzanoSpec{
 			Components: installv1alpha1.ComponentSpec{
-				Keycloak: installv1alpha1.KeycloakComponent{
+				Keycloak: &installv1alpha1.KeycloakComponent{
 					MySQL: installv1alpha1.MySQLComponent{
 						MySQLInstallArgs: nil,
 						VolumeSource: &corev1.VolumeSource{
@@ -1062,7 +1242,7 @@ func TestNewXipIoInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 			},
 		},
 	}
-	config, err := newXipIoInstallConfig(&vzSpec, zap.S())
+	config, err := newXipIoInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
@@ -1087,7 +1267,7 @@ func TestNewOCIDNSInstallConfigInvalidVZInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	config, err := newOCIDNSInstallConfig(&vzSpec, zap.S())
+	config, err := newOCIDNSInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
@@ -1100,7 +1280,7 @@ func TestNewOCIDNSInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 	vzSpec := installv1alpha1.Verrazzano{
 		Spec: installv1alpha1.VerrazzanoSpec{
 			Components: installv1alpha1.ComponentSpec{
-				Keycloak: installv1alpha1.KeycloakComponent{
+				Keycloak: &installv1alpha1.KeycloakComponent{
 					MySQL: installv1alpha1.MySQLComponent{
 						MySQLInstallArgs: nil,
 						VolumeSource: &corev1.VolumeSource{
@@ -1113,7 +1293,7 @@ func TestNewOCIDNSInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 			},
 		},
 	}
-	config, err := newOCIDNSInstallConfig(&vzSpec, zap.S())
+	config, err := newOCIDNSInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }

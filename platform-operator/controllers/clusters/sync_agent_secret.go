@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package controllers
+package clusters
 
 import (
 	"context"
@@ -17,11 +17,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
-)
-
-const (
-	kubeconfigKey         = "admin-kubeconfig"
-	managedClusterNameKey = "managed-cluster-name"
 )
 
 // Needed for unit testing
@@ -86,7 +81,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncAgentSecret(vmc *clusterapi.Ver
 	}
 
 	// Load the kubeconfig struct
-	token := secret.Data["token"]
+	token := secret.Data[TokenKey]
 	b64Cert, err := getB64CAData(config)
 	if err != nil {
 		return err
@@ -137,8 +132,8 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateAgentSecret(vmc *clus
 func (r *VerrazzanoManagedClusterReconciler) mutateAgentSecret(secret *corev1.Secret, kubeconfig string, manageClusterName string) error {
 	secret.Type = corev1.SecretTypeOpaque
 	secret.Data = map[string][]byte{
-		kubeconfigKey:         []byte(kubeconfig),
-		managedClusterNameKey: []byte(manageClusterName),
+		KubeconfigKey:         []byte(kubeconfig),
+		ManagedClusterNameKey: []byte(manageClusterName),
 	}
 	return nil
 }

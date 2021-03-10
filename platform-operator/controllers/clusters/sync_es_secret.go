@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package controllers
+package clusters
 
 import (
 	"context"
@@ -16,12 +16,7 @@ import (
 )
 
 const (
-	caCrtKey    = "ca.crt"
-	caBundleKey = "ca-bundle"
-	passwordKey = "password"
-	usernameKey = "username"
-	urlKey      = "url"
-	vmiIngest   = "vmi-system-es-ingest"
+	vmiIngest = "vmi-system-es-ingest"
 )
 
 // Create a Elasticsearch secret that has the fields needed to send logs from the
@@ -43,10 +38,10 @@ func (r *VerrazzanoManagedClusterReconciler) syncElasticsearchSecret(vmc *cluste
 
 	// Build the secret data
 	secretData := make(map[string][]byte)
-	secretData[caBundleKey] = tlsSecret.Data[caCrtKey]
-	secretData[usernameKey] = vzSecret.Data[usernameKey]
-	secretData[passwordKey] = vzSecret.Data[passwordKey]
-	secretData[urlKey] = []byte(url)
+	secretData[CaBundleKey] = tlsSecret.Data[CaCrtKey]
+	secretData[UsernameKey] = vzSecret.Data[UsernameKey]
+	secretData[PasswordKey] = vzSecret.Data[PasswordKey]
+	secretData[URLKey] = []byte(url)
 
 	// Create/update the Elasticsearch secret
 	_, err = r.createOrUpdateElasticsearchSecret(vmc, secretData)

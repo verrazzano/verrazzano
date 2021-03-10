@@ -83,22 +83,39 @@ func TestFetchManagedClusterElasticSearchDetails_DoesNotExist(t *testing.T) {
 // GIVEN The managed cluster registration secret exists
 // WHEN GetClusterName function is called
 // THEN expect the managed-cluster-name from the secret to be returned
-// GIVEN the managed cluster secret does not exist
+// GIVEN the managed cluster secret does not exist but the local resgistration secret does
+// WHEN GetClusterName function is called
+// THEN expect that managed-cluster-name from the local secret to be returned
+// GIVEN the managed cluster secret and the local do not exist
 // WHEN GetClusterName function is called
 // THEN expect that empty string is returned
 func TestGetClusterName(t *testing.T) {
 	mocker := gomock.NewController(t)
 	cli := mocks.NewMockClient(mocker)
 
-	expectMCRegistrationSecret(cli, "mycluster1", 1)
+	expectMCRegistrationSecret(cli, "mycluster1", MCRegistrationSecretFullName, 1)
 
 	name := GetClusterName(context.TODO(), cli)
 	asserts.Equal(t, "mycluster1", name)
 
-	// Repeat test for registration secret not found
+	// Repeat test for registration secret not found, then local registration secret should be used
 	cli.EXPECT().
 		Get(gomock.Any(), MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
 		Return(kerr.NewNotFound(schema.ParseGroupResource("Secret"), MCRegistrationSecretFullName.Name))
+
+	expectMCRegistrationSecret(cli, "mycluster1", MCLocalRegistrationSecretFullName, 1)
+
+	name = GetClusterName(context.TODO(), cli)
+	asserts.Equal(t, "mycluster1", name)
+
+	// Repeat test for registration secret and local secret not found
+	cli.EXPECT().
+		Get(gomock.Any(), MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
+		Return(kerr.NewNotFound(schema.ParseGroupResource("Secret"), MCRegistrationSecretFullName.Name))
+
+	cli.EXPECT().
+		Get(gomock.Any(), MCLocalRegistrationSecretFullName, gomock.Not(gomock.Nil())).
+		Return(kerr.NewNotFound(schema.ParseGroupResource("Secret"), MCLocalRegistrationSecretFullName.Name))
 
 	name = GetClusterName(context.TODO(), cli)
 	asserts.Equal(t, "", name)
@@ -164,7 +181,7 @@ func TestIsPlacedInThisCluster(t *testing.T) {
 	placementWithMyCluster := clustersv1alpha1.Placement{Clusters: []clustersv1alpha1.Cluster{{Name: "othercluster"}, {Name: "mycluster"}}}
 	placementNotMyCluster := clustersv1alpha1.Placement{Clusters: []clustersv1alpha1.Cluster{{Name: "othercluster"}, {Name: "NOTmycluster"}}}
 
-	expectMCRegistrationSecret(cli, "mycluster", 3)
+	expectMCRegistrationSecret(cli, "mycluster", MCRegistrationSecretFullName, 3)
 
 	asserts.True(t, IsPlacedInThisCluster(context.TODO(), cli, placementOnlyMyCluster))
 	asserts.True(t, IsPlacedInThisCluster(context.TODO(), cli, placementWithMyCluster))
@@ -360,14 +377,14 @@ func TestUpdateClusterLevelStatus(t *testing.T) {
 
 }
 
-func expectMCRegistrationSecret(cli *mocks.MockClient, clusterName string, times int) {
+func expectMCRegistrationSecret(cli *mocks.MockClient, clusterName string, secreteNameFullName types.NamespacedName, times int) {
 	regSecretData := map[string][]byte{constants.ClusterNameData: []byte(clusterName)}
 	cli.EXPECT().
-		Get(gomock.Any(), MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), secreteNameFullName, gomock.Not(gomock.Nil())).
 		Times(times).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
-			secret.Name = MCRegistrationSecretFullName.Name
-			secret.Namespace = MCRegistrationSecretFullName.Namespace
+			secret.Name = secreteNameFullName.Name
+			secret.Namespace = secreteNameFullName.Namespace
 			secret.Data = regSecretData
 			return nil
 		})
