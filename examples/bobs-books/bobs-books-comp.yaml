@@ -20,7 +20,7 @@ spec:
           image: ghcr.io/verrazzano/example-roberts-coherence:20210309191349-8b98953 
           imagePullPolicy: IfNotPresent
           imagePullSecrets:
-            - name: bobs-books-repo-credentials
+            - name: bobs-books-secret
           env:
             - name: BACKEND_PORT
               value: "8001"
@@ -93,7 +93,7 @@ spec:
           image: ghcr.io/verrazzano/example-bobbys-coherence:20210309191349-8b98953 
           imagePullPolicy: IfNotPresent
           imagePullSecrets:
-            - name: bobs-books-repo-credentials
+            - name: bobs-books-secret
           env:
             - name: TRACING_HOST
               value: "jaeger-collector"

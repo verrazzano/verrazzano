@@ -42,7 +42,7 @@ func deployBobsBooksExample() {
 		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
 	}
 	pkg.Log(pkg.Info, "Create Docker repository secret")
-	if _, err := pkg.CreateDockerSecret("bobs-books", "bobs-books-repo-credentials", "ghcr.io", "skalyana-git", "a6d9d31669ba75fb1c0cad9a1118fff3a9478d03"); err != nil {
+	if _, err := pkg.CreateDockerSecret("bobs-books", "bobs-books-repo-credentials", regServ, regUser, regPass); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create Docker registry secret: %v", err))
 	}
 	pkg.Log(pkg.Info, "Create Bobbys front end Weblogic credentials secret")
