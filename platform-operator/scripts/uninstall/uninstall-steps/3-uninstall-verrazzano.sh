@@ -33,22 +33,22 @@ function delete_verrazzano() {
     || return $? # return on pipefail
 
   log "Deleting Verrazzano crds"
-  delete_k8s_resources crds ":metadata.name" "Could not delete CustomResourceDefinitions from Verrazzano" '/verrazzano.io/ && ! /verrazzanos.install.verrazzano.io/' \
+  delete_k8s_resources crds ":metadata.name" "Could not delete CustomResourceDefinitions from Verrazzano" '/verrazzano.io/ && ! /verrazzanos.install.verrazzano.io/ && ! /verrazzanomanagedclusters.clusters.verrazzano.io/' \
     || return $? # return on pipefail
 
   # deleting certificatesigningrequests
-  log "Deleting CertificateSigningRequests"
-  delete_k8s_resources csr ":metadata.name" "Could not delete CertificateSigningRequests from Verrazzano" '/csr-/' \
-    || return $? # return on pipefail
+  #log "Deleting CertificateSigningRequests"
+  #delete_k8s_resources csr ":metadata.name" "Could not delete CertificateSigningRequests from Verrazzano" '/csr-/' \
+  #  || return $? # return on pipefail
 
   log "Deleting ClusterRoleBindings"
   # deleting clusterrolebindings
-  delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Verrazzano" '/verrazzano/ && ! /verrazzano-platform-operator/ && ! /verrazzano-install/ {print $1}' \
+  delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Verrazzano" '/verrazzano/ && ! /verrazzano-platform-operator/ && ! /verrazzano-install/ && ! /verrazzano-managed-cluster/ {print $1}' \
     || return $? # return on pipefail
 
   # deleting clusterroles
   log "Deleting ClusterRoles"
-  delete_k8s_resources clusterrole ":metadata.name,:metadata.labels" "Could not delete ClusterRoles from Verrazzano" '/verrazzano/ {print $1}' \
+  delete_k8s_resources clusterrole ":metadata.name,:metadata.labels" "Could not delete ClusterRoles from Verrazzano" '/verrazzano/ && ! /verrazzano-managed-cluster/ {print $1}' \
     || return $? # return on pipefail
 
   # deleting namespaces
@@ -61,8 +61,7 @@ function delete_verrazzano() {
   delete_k8s_resources namespace ":metadata.name,:metadata.labels" "Could not delete Verrazzano namespaces" '/k8s-app:verrazzano.io|verrazzano-system/ {print $1}' \
     || return $? # return on pipefail
 
-  # Clean-up
-  log "Deleting leftover resources"
+  # Delete CRDS from all namespaces
   delete_k8s_resource_from_all_namespaces coherence.coherence.oracle.com
   delete_k8s_resource_from_all_namespaces components.core.oam.dev
   delete_k8s_resource_from_all_namespaces containerizedworkloads.core.oam.dev
@@ -71,6 +70,7 @@ function delete_verrazzano() {
   delete_k8s_resource_from_all_namespaces manualscalertraits.core.oam.dev
   delete_k8s_resource_from_all_namespaces traitdefinitions.core.oam.dev
   delete_k8s_resource_from_all_namespaces workloaddefinitions.core.oam.dev
+  delete_k8s_resource_from_all_namespaces scopedefinitions.core.oam.dev
 }
 
 function delete_oam_operator {
