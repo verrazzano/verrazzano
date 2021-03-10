@@ -60,6 +60,17 @@ function delete_verrazzano() {
   log "Deleting Verrazzano namespaces"
   delete_k8s_resources namespace ":metadata.name,:metadata.labels" "Could not delete Verrazzano namespaces" '/k8s-app:verrazzano.io|verrazzano-system/ {print $1}' \
     || return $? # return on pipefail
+
+  # Clean-up
+  log "Deleting leftover resources"
+  delete_k8s_resource_from_all_namespaces coherence.coherence.oracle.com
+  delete_k8s_resource_from_all_namespaces components.core.oam.dev
+  delete_k8s_resource_from_all_namespaces containerizedworkloads.core.oam.dev
+  delete_k8s_resource_from_all_namespaces domains.weblogic.oracle
+  delete_k8s_resource_from_all_namespaces healthscopes.core.oam.dev
+  delete_k8s_resource_from_all_namespaces manualscalertraits.core.oam.dev
+  delete_k8s_resource_from_all_namespaces traitdefinitions.core.oam.dev
+  delete_k8s_resource_from_all_namespaces workloaddefinitions.core.oam.dev
 }
 
 function delete_oam_operator {
@@ -110,6 +121,8 @@ function delete_coherence_operator {
       error "Failed to uninstall the Coherence Kubernetes operator."
     fi
   fi
+  kubectl delete validatingwebhookconfigurations.admissionregistration.k8s.io coherence-operator-validating-webhook-configuration --ignore-not-found
+  kubectl delete mutatingwebhookconfigurations.admissionregistration.k8s.io coherence-operator-mutating-webhook-configuration --ignore-not-found
 }
 
 action "Deleting Verrazzano Application Kubernetes operator" delete_application_operator || exit 1
