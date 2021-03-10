@@ -91,6 +91,15 @@ func (r *Reconciler) mutateAppConfig(mcAppConfig clustersv1alpha1.MultiClusterAp
 func (r *Reconciler) updateStatus(ctx context.Context, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {
 	clusterName := clusters.GetClusterName(ctx, r.Client)
 	newCondition := clusters.GetConditionFromResult(err, opResult, "OAM Application Configuration")
+	updateFunc := func() error { return r.Status().Update(ctx, mcAppConfig) }
+	getFunc := func() clusters.MultiClusterResource {
+		var fetchedAppConfig clustersv1alpha1.MultiClusterApplicationConfiguration
+		fetchErr := r.fetchMultiClusterAppConfig(ctx, types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name}, &fetchedAppConfig)
+		if fetchErr != nil {
+			return nil
+		}
+		return &fetchedAppConfig
+	}
 	return clusters.UpdateStatus(mcAppConfig, &mcAppConfig.Status, mcAppConfig.Spec.Placement, newCondition, clusterName,
-		r.AgentChannel, func() error { return r.Status().Update(ctx, mcAppConfig) })
+		r.AgentChannel, updateFunc, getFunc)
 }

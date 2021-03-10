@@ -44,7 +44,6 @@ func (s *Syncer) isThisCluster(placement clustersv1alpha1.Placement) bool {
 // processStatusUpdates monitors the StatusUpdateChannel for any
 // received messages and processes a batch of them
 func (s *Syncer) processStatusUpdates() {
-	s.Log.Info("processStatusUpdates: starting")
 	for i := 0; i < constants.StatusUpdateBatchSize; i++ {
 		// Use a select with default so as to not block on the channel if there are no updates
 		select {
@@ -53,12 +52,11 @@ func (s *Syncer) processStatusUpdates() {
 				msg.NewClusterStatus.State, msg.NewCondition.Type, msg.Resource.GetNamespace(), msg.Resource.GetName(), msg.NewClusterStatus.Name))
 			err := s.AdminClient.Status().Update(s.Context, msg.Resource)
 			if err != nil {
-				s.Log.Info(fmt.Sprintf("processStatusUpdates: Status Update failed for %s/%s from cluster %s: %s",
+				s.Log.Error(err, fmt.Sprintf("processStatusUpdates: Status Update failed for %s/%s from cluster %s: %s",
 					msg.Resource.GetNamespace(), msg.Resource.GetName(),
 					msg.NewClusterStatus.Name, err.Error()))
 			}
 		default:
-			s.Log.Info("No status updates available, exiting processStatusUpdates")
 			break
 		}
 	}
