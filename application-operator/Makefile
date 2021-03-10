@@ -188,9 +188,8 @@ ifdef JENKINS_URL
 	mkdir ${HOME}/.kube/ || true
 	kind get kubeconfig --name=${CLUSTER_NAME} > ${KUBECONFIG}
 	# Use pre-defined host name, but update the /etc/hosts to have the current IP Address
-	export APO_INTEG_API_SERVER_IP=$$(docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g')
 	cp /etc/hosts temp_hosts
-	echo "${APO_INTEG_API_SERVER_IP}  APOINTEGHOST" >> temp_hosts
+	$$(APO_INTEG_API_SERVER_IP=$$(docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'); echo "${APO_INTEG_API_SERVER_IP}  APOINTEGHOST" >> temp_hosts)
 	sudo cp temp_hosts /etc/hosts
 	sed -i -e "s|127.0.0.1.*|VPOINTEGHOST:6443|g" ${KUBECONFIG}
 	cat ${KUBECONFIG} | grep server
