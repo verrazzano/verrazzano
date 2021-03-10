@@ -20,10 +20,6 @@ const fooNamespace string = "foo"
 const barNamespace string = "bar"
 const noIstioNamespace string = "noistio"
 
-const fooHostHeaderValue string = "authpolicy.foo.com"
-const barHostHeaderValue string = "authpolicy.bar.com"
-const noIstioHostHeaderValue string = "authpolicy.noistio.com"
-
 const vmiPromConfigName string = "vmi-system-prometheus-config"
 const verrazzanoNamespace string = "verrazzano-system"
 const prometheusConfigMapName string = "prometheus.yml"
@@ -467,14 +463,6 @@ var _ = ginkgo.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 		ginkgo.It("and waiting for expected pods must be running", func() {
 			gomega.Eventually(func() bool {
 				return pkg.PodsRunning(barNamespace, expectedPodsBar)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
-		})
-	})
-
-	ginkgo.Context("Deployment.", func() {
-		ginkgo.It("and waiting for expected pods must be running", func() {
-			gomega.Eventually(func() bool {
-				return pkg.PodsRunning(noIstioNamespace, expectedPodsBar)
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 	})
