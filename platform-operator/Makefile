@@ -182,6 +182,8 @@ ifdef JENKINS_URL
 	kind get kubeconfig --name=${CLUSTER_NAME} > ${KUBECONFIG}
 	# Use pre-defined host name, but update the /etc/hosts to have the current IP Address
 	cp /etc/hosts temp_hosts
+	docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g' > temp_var
+	cat temp_var
 	$$(VPO_INTEG_API_SERVER_IP=$$(docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'); echo "${VPO_INTEG_API_SERVER_IP}  VPOINTEGHOST" >> temp_hosts)
 	sudo cp temp_hosts /etc/hosts
 	sed -i -e "s|127.0.0.1.*|VPOINTEGHOST:6443|g" ${KUBECONFIG}
