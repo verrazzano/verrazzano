@@ -1,0 +1,36 @@
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-managed-cluster
+rules:
+  - apiGroups:
+      - clusters.verrazzano.io
+    resources:
+      - multiclusterapplicationconfigurations
+      - multiclustercomponents
+      - multiclusterconfigmaps
+      - multiclusterloggingscopes
+      - multiclustersecrets
+      - verrazzanoprojects
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - clusters.verrazzano.io
+    resources:
+      - multiclusterapplicationconfigurations/status
+      - multiclustercomponents/status
+      - multiclusterconfigmaps/status
+      - multiclusterloggingscopes/status
+      - multiclustersecrets/status
+      - verrazzanoprojects/status
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - delete
