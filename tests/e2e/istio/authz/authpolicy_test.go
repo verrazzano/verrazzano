@@ -571,7 +571,6 @@ var _ = ginkgo.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 			rdr := strings.NewReader(v)
 			scanner := bufio.NewScanner(rdr)
 			for scanner.Scan() {
-				//				fmt.Println(scanner.Text()) // Println will add back the final '\n'
 				currentString := scanner.Text()
 				if strings.Contains(currentString, prometheusNoistioScrapeName) {
 					for scanner.Scan() {
