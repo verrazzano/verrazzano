@@ -83,17 +83,6 @@ monitoringOperator:
   oidcAuthEnabled: true
   RequestMemory: 48Mi
 
-clusterOperator:
-  name: verrazzano-cluster-operator
-  imageName: ghcr.io/verrazzano/verrazzano-cluster-operator
-  imageVersion: 0.12.0-20210227194701-ff1a7f3
-  RequestMemory: 27Mi
-  rancherURL:
-  rancherUserName:
-  rancherPassword:
-  rancherHostname:
-  rancherHostPort:
-
 console:
   name: verrazzano-console
   imageName: ghcr.io/verrazzano/console
