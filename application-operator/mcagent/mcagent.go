@@ -10,16 +10,21 @@ import (
 	"os"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const managedClusterNameEnvName = "MANAGED_CLUSTER_NAME"
 
 // StartAgent - start the agent thread for syncing multi-cluster objects
 func StartAgent(client client.Client, log logr.Logger) {
@@ -33,6 +38,7 @@ func StartAgent(client client.Client, log logr.Logger) {
 		Log:                   log,
 		Context:               context.TODO(),
 		ProjectNamespaces:     []string{},
+		ManagedClusterName:    "",
 		AgentSecretFound:      false,
 		SecretResourceVersion: "",
 	}
@@ -43,6 +49,7 @@ func StartAgent(client client.Client, log logr.Logger) {
 		if err != nil {
 			s.Log.Error(err, "error processing multi-cluster resources")
 		}
+		s.configureBeats()
 		time.Sleep(60 * time.Second)
 	}
 }
@@ -57,6 +64,7 @@ func (s *Syncer) ProcessAgentThread() error {
 		if clusters.IgnoreNotFoundWithLog("secret", err, s.Log) == nil && s.AgentSecretFound {
 			s.Log.Info(fmt.Sprintf("the secret %s in namespace %s was deleted", constants.MCAgentSecret, constants.VerrazzanoSystemNamespace))
 			s.AgentSecretFound = false
+			s.ManagedClusterName = ""
 		}
 		return nil
 	}
@@ -166,4 +174,49 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	}
 
 	return clientset, nil
+}
+
+// reconfigure beats by restarting Verrazzano Operator deployment if ManagedClusterName has been changed
+func (s *Syncer) configureBeats() {
+	// Get the verrazzano-operator deployment
+	deploymentName := types.NamespacedName{Name: "verrazzano-operator", Namespace: constants.VerrazzanoSystemNamespace}
+	deployment := appsv1.Deployment{}
+	err := s.LocalClient.Get(context.TODO(), deploymentName, &deployment)
+	if err == nil {
+		if len(deployment.Spec.Template.Spec.Containers) > 0 {
+			clusterNameEnv := getClusterNameEnvValue(deployment.Spec.Template.Spec.Containers[0].Env)
+			if clusterNameEnv != s.ManagedClusterName {
+				s.Log.Info(fmt.Sprintf("Restarting the deployment %s, cluster name changed from %q to %q", deploymentName, clusterNameEnv, s.ManagedClusterName))
+				controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &deployment, func() error {
+					deployment.Spec.Template.Spec.Containers[0].Env = updateClusterNameEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, s.ManagedClusterName)
+					return nil
+				})
+			}
+		} else {
+			s.Log.Info(fmt.Sprintf("No container defined in the deployment %s", deploymentName))
+		}
+	} else {
+		s.Log.Info(fmt.Sprintf("Failed to find the deployment %s, %s", deploymentName, err.Error()))
+	}
+}
+
+// get the value for env var MANAGED_CLUSTER_NAME
+func getClusterNameEnvValue(envs []corev1.EnvVar) string {
+	for _, env := range envs {
+		if env.Name == managedClusterNameEnvName {
+			return env.Value
+		}
+	}
+	return ""
+}
+
+// update the value for env var MANAGED_CLUSTER_NAME
+func updateClusterNameEnvValue(envs []corev1.EnvVar, newValue string) []corev1.EnvVar {
+	for i, env := range envs {
+		if env.Name == managedClusterNameEnvName {
+			envs[i].Value = newValue
+			return envs
+		}
+	}
+	return append(envs, corev1.EnvVar{Name: managedClusterNameEnvName, Value: newValue})
 }

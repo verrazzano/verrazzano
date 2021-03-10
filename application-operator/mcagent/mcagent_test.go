@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"testing"
 
+	appsv1 "k8s.io/api/apps/v1"
+
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -148,4 +150,177 @@ func TestValidateSecret(t *testing.T) {
 	err = validateAgentSecret(&invalidSecret)
 	assert.Error(err)
 	assert.Contains(err.Error(), fmt.Sprintf("missing the required field %s", constants.AdminKubeconfigData))
+}
+
+func Test_getClusterNameEnvValue(t *testing.T) {
+	testEnvs := []corev1.EnvVar{}
+	asserts.Equal(t, "", getClusterNameEnvValue(testEnvs), "expected cluster name")
+	testEnvs = []corev1.EnvVar{
+		{
+			Name:  managedClusterNameEnvName,
+			Value: "cluster1",
+		},
+	}
+	asserts.Equal(t, "cluster1", getClusterNameEnvValue(testEnvs), "expected cluster name")
+	testEnvs = []corev1.EnvVar{
+		{
+			Name:  "env1",
+			Value: "value1",
+		},
+		{
+			Name:  managedClusterNameEnvName,
+			Value: "cluster1",
+		},
+	}
+	asserts.Equal(t, "cluster1", getClusterNameEnvValue(testEnvs), "expected cluster name")
+}
+
+func Test_updateClusterNameEnvValue(t *testing.T) {
+	testEnvs := []corev1.EnvVar{}
+	newValue := "cluster2"
+	newEnvs := updateClusterNameEnvValue(testEnvs, newValue)
+	asserts.Equal(t, managedClusterNameEnvName, newEnvs[0].Name, "expected env")
+	asserts.Equal(t, newValue, newEnvs[0].Value, "expected env value")
+	testEnvs = []corev1.EnvVar{
+		{
+			Name:  managedClusterNameEnvName,
+			Value: "cluster1",
+		},
+	}
+	newValue = "cluster2"
+	newEnvs = updateClusterNameEnvValue(testEnvs, newValue)
+	asserts.Equal(t, managedClusterNameEnvName, newEnvs[0].Name, "expected env")
+	asserts.Equal(t, newValue, newEnvs[0].Value, "expected env value")
+	testEnvs = []corev1.EnvVar{
+		{
+			Name:  "env1",
+			Value: "value1",
+		},
+		{
+			Name:  managedClusterNameEnvName,
+			Value: "cluster1",
+		},
+	}
+	newEnvs = updateClusterNameEnvValue(testEnvs, newValue)
+	asserts.Equal(t, managedClusterNameEnvName, newEnvs[1].Name, "expected env")
+	asserts.Equal(t, newValue, newEnvs[1].Value, "expected env value")
+}
+
+func getTestDeploymentSpec(clusterName string) appsv1.DeploymentSpec {
+	return appsv1.DeploymentSpec{
+		Template: corev1.PodTemplateSpec{
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{
+						Env: []corev1.EnvVar{
+							{
+								Name:  "MANAGED_CLUSTER_NAME",
+								Value: clusterName,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func TestSyncer_configureBeats(t *testing.T) {
+	type fields struct {
+		oldClusterName string
+		newClusterName string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+	}{
+		{
+			name: "new registration",
+			fields: fields{
+				oldClusterName: "",
+				newClusterName: "testCluster1",
+			},
+		},
+		{
+			name: "delete registration",
+			fields: fields{
+				oldClusterName: "testCluster1",
+				newClusterName: "",
+			},
+		},
+		{
+			name: "update registration",
+			fields: fields{
+				oldClusterName: "testCluster1",
+				newClusterName: "testCluster2",
+			},
+		},
+		{
+			name: "no registration",
+			fields: fields{
+				oldClusterName: "",
+				newClusterName: "",
+			},
+		},
+		{
+			name: "same registration",
+			fields: fields{
+				oldClusterName: "testCluster1",
+				newClusterName: "testCluster1",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			oldClusterName := tt.fields.oldClusterName
+			newClusterName := tt.fields.newClusterName
+
+			// Managed cluster mocks
+			mcMocker := gomock.NewController(t)
+			mcMock := mocks.NewMockClient(mcMocker)
+
+			// Managed Cluster - expect call to get the verrazzano operator deployment.
+			mcMock.EXPECT().
+				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-operator"}, gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+					deployment.Name = "verrazzano-operator"
+					deployment.Namespace = constants.VerrazzanoSystemNamespace
+					deployment.Spec = getTestDeploymentSpec(oldClusterName)
+					return nil
+				})
+
+			// update only when registration is updated
+			if oldClusterName != newClusterName {
+				// Managed Cluster - expect another call to get the verrazzano operator deployment prior to updating it
+				mcMock.EXPECT().
+					Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-operator"}, gomock.Not(gomock.Nil())).
+					DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
+						deployment.Name = "verrazzano-operator"
+						deployment.Namespace = constants.VerrazzanoSystemNamespace
+						deployment.Spec = getTestDeploymentSpec(oldClusterName)
+						return nil
+					})
+
+				// Managed Cluster - expect call to update the verrazzano operator deployment.
+				mcMock.EXPECT().
+					Update(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment) error {
+						asserts.Equal(t, newClusterName, getClusterNameEnvValue(deployment.Spec.Template.Spec.Containers[0].Env), "expected env value")
+						return nil
+					})
+			}
+
+			// Make the request
+			s := &Syncer{
+				LocalClient:        mcMock,
+				Log:                ctrl.Log.WithName("test"),
+				ManagedClusterName: newClusterName,
+				Context:            context.TODO(),
+			}
+			s.configureBeats()
+
+			// Validate the results
+			mcMocker.Finish()
+		})
+	}
 }
