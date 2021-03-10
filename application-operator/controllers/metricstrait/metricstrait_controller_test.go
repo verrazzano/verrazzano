@@ -1627,48 +1627,7 @@ func TestUseHTTPSForScrapeTargetFalseConditions(t *testing.T) {
 
 	mtrait := vzapi.MetricsTrait{
 		TypeMeta: k8smeta.TypeMeta{
-			Kind:       "VerrazzanoCoherenceWorkload",
-			APIVersion: "",
-		},
-		ObjectMeta: k8smeta.ObjectMeta{
-			Name:            "",
-			GenerateName:    "",
-			Namespace:       "",
-			SelfLink:        "",
-			UID:             "",
-			ResourceVersion: "",
-			Generation:      0,
-			CreationTimestamp: k8smeta.Time{
-				Time: time.Time{},
-			},
-			DeletionTimestamp: &k8smeta.Time{
-				Time: time.Time{},
-			},
-			DeletionGracePeriodSeconds: nil,
-			Labels:                     nil,
-			Annotations:                nil,
-			OwnerReferences:            nil,
-			Finalizers:                 nil,
-			ClusterName:                "",
-			ManagedFields:              nil,
-		},
-		Spec: vzapi.MetricsTraitSpec{
-			Port:    nil,
-			Path:    nil,
-			Secret:  nil,
-			Scraper: nil,
-			WorkloadReference: oamrt.TypedReference{
-				APIVersion: "",
-				Kind:       "",
-				Name:       "",
-				UID:        "",
-			},
-		},
-		Status: vzapi.MetricsTraitStatus{
-			ConditionedStatus: oamrt.ConditionedStatus{
-				Conditions: nil,
-			},
-			Resources: nil,
+			Kind: "VerrazzanoCoherenceWorkload",
 		},
 	}
 
@@ -1720,48 +1679,7 @@ func TestUseHTTPSForScrapeTargetTrueCondition(t *testing.T) {
 
 	mtrait := vzapi.MetricsTrait{
 		TypeMeta: k8smeta.TypeMeta{
-			Kind:       "",
-			APIVersion: "",
-		},
-		ObjectMeta: k8smeta.ObjectMeta{
-			Name:            "",
-			GenerateName:    "",
-			Namespace:       "",
-			SelfLink:        "",
-			UID:             "",
-			ResourceVersion: "",
-			Generation:      0,
-			CreationTimestamp: k8smeta.Time{
-				Time: time.Time{},
-			},
-			DeletionTimestamp: &k8smeta.Time{
-				Time: time.Time{},
-			},
-			DeletionGracePeriodSeconds: nil,
-			Labels:                     nil,
-			Annotations:                nil,
-			OwnerReferences:            nil,
-			Finalizers:                 nil,
-			ClusterName:                "",
-			ManagedFields:              nil,
-		},
-		Spec: vzapi.MetricsTraitSpec{
-			Port:    nil,
-			Path:    nil,
-			Secret:  nil,
-			Scraper: nil,
-			WorkloadReference: oamrt.TypedReference{
-				APIVersion: "",
-				Kind:       "",
-				Name:       "",
-				UID:        "",
-			},
-		},
-		Status: vzapi.MetricsTraitStatus{
-			ConditionedStatus: oamrt.ConditionedStatus{
-				Conditions: nil,
-			},
-			Resources: nil,
+			Kind: "ContainerizedWorkload",
 		},
 	}
 
