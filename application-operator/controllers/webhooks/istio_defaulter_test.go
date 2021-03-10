@@ -234,8 +234,9 @@ func TestHandleAppConfigOnwerReference1(t *testing.T) {
 	assert.Equal(t, authPolicy.GetOwnerReferences()[0].Kind, "ApplicationConfiguration")
 	assert.Equal(t, authPolicy.GetOwnerReferences()[0].APIVersion, "core.oam.dev/v1alpha2")
 	assert.Contains(t, authPolicy.Spec.Selector.MatchLabels, IstioAppLabel)
-	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 2)
+	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 3)
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-appconfig")
 }
 
@@ -312,8 +313,9 @@ func TestHandleAppConfigOnwerReference2(t *testing.T) {
 	assert.Equal(t, authPolicy.GetOwnerReferences()[0].Kind, "ApplicationConfiguration")
 	assert.Equal(t, authPolicy.GetOwnerReferences()[0].APIVersion, "core.oam.dev/v1alpha2")
 	assert.Contains(t, authPolicy.Spec.Selector.MatchLabels, IstioAppLabel)
-	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 2)
+	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 3)
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-sa")
 }
 
@@ -390,8 +392,9 @@ func TestHandleAppConfigOnwerReference3(t *testing.T) {
 	assert.Equal(t, authPolicy.GetOwnerReferences()[0].Kind, "ApplicationConfiguration")
 	assert.Equal(t, authPolicy.GetOwnerReferences()[0].APIVersion, "core.oam.dev/v1alpha2")
 	assert.Contains(t, authPolicy.Spec.Selector.MatchLabels, IstioAppLabel)
-	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 2)
+	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 3)
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-sa")
 
 	// Create a non-default service account, different than first one we created
@@ -444,8 +447,9 @@ func TestHandleAppConfigOnwerReference3(t *testing.T) {
 	assert.Equal(t, authPolicy.GetOwnerReferences()[0].Kind, "ApplicationConfiguration")
 	assert.Equal(t, authPolicy.GetOwnerReferences()[0].APIVersion, "core.oam.dev/v1alpha2")
 	assert.Contains(t, authPolicy.Spec.Selector.MatchLabels, IstioAppLabel)
-	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 3)
+	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 4)
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-sa")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-sa2")
 }
@@ -523,8 +527,9 @@ func TestHandleAppConfigOnwerReference4(t *testing.T) {
 	assert.Equal(t, authPolicy.GetOwnerReferences()[0].Kind, "ApplicationConfiguration")
 	assert.Equal(t, authPolicy.GetOwnerReferences()[0].APIVersion, "core.oam.dev/v1alpha2")
 	assert.Contains(t, authPolicy.Spec.Selector.MatchLabels, IstioAppLabel)
-	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 2)
+	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 3)
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-sa")
 
 	// Create a pod referencing the second service account we created
@@ -568,8 +573,9 @@ func TestHandleAppConfigOnwerReference4(t *testing.T) {
 	assert.Equal(t, authPolicy.GetOwnerReferences()[0].Kind, "ApplicationConfiguration")
 	assert.Equal(t, authPolicy.GetOwnerReferences()[0].APIVersion, "core.oam.dev/v1alpha2")
 	assert.Contains(t, authPolicy.Spec.Selector.MatchLabels, IstioAppLabel)
-	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 2)
+	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 3)
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-sa")
 }
 
