@@ -1,0 +1,45 @@
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: {{ .Values.name }}
+  labels:
+    app: {{ .Values.name }}
+webhooks:
+  - name: install.verrazzano.io
+    clientConfig:
+      service:
+        name: {{ .Values.name }}
+        namespace: {{ .Values.namespace }}
+        path: /validate-install-verrazzano-io-v1alpha1-verrazzano
+    rules:
+      - apiGroups:
+          - install.verrazzano.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - verrazzanos
+    sideEffects: None
+    failurePolicy: Fail
+  - name: clusters.verrazzano.io
+    clientConfig:
+      service:
+        name: {{ .Values.name }}
+        namespace: {{ .Values.namespace }}
+        path: /validate-clusters-verrazzano-io-v1alpha1-verrazzanomanagedcluster
+    rules:
+      - apiGroups:
+          - clusters.verrazzano.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - verrazzanomanagedclusters
+    sideEffects: None
+    failurePolicy: Fail

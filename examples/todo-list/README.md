@@ -21,7 +21,7 @@ The ToDo List application deployment artifacts are contained in the Verrazzano p
 1. Create a namespace for the ToDo List example and add a label identifying the namespace as managed by Verrazzano.
    ```
    $ kubectl create namespace todo-list
-   $ kubectl label namespace todo-list verrazzano-managed=true
+   $ kubectl label namespace todo-list verrazzano-managed=true istio-injection=enabled
    ```
 
 1. Create a `docker-registry` secret to enable pulling the ToDo List example image from the registry.
@@ -108,7 +108,7 @@ The ToDo List application deployment artifacts are contained in the Verrazzano p
      * In this case, you would need to have edited the `todo-list-application.yaml` file
        to use the appropriate value under the `hosts` section (such as `yourhost.your.domain`),
        before deploying the ToDo List application.
-     * Then, you can use a browser to access the application at `http://<yourhost.your.domain>/todo/`.
+     * Then, you can use a browser to access the application at `https://<yourhost.your.domain>/todo/`.
 
    Accessing the application in a browser will open a page titled "Derek's ToDo List"
    with an edit field and an **Add** button that allows you to add tasks.

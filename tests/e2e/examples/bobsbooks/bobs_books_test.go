@@ -38,7 +38,10 @@ func deployBobsBooksExample() {
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
 	pkg.Log(pkg.Info, "Create namespace")
-	if _, err := pkg.CreateNamespace("bobs-books", map[string]string{"verrazzano-managed": "true"}); err != nil {
+	nsLabels := map[string]string{
+		"verrazzano-managed": "true",
+		"istio-injection":    "enabled"}
+	if _, err := pkg.CreateNamespace("bobs-books", nsLabels); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
 	}
 	pkg.Log(pkg.Info, "Create Docker repository secret")
@@ -121,6 +124,17 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 		})
 	})
+	var host = ""
+	// Get the host from the Istio gateway resource.
+	// GIVEN the Istio gateway for the bobs-books namespace
+	// WHEN GetHostnameFromGateway is called
+	// THEN return the host name found in the gateway.
+	ginkgo.It("Get host from gateway.", func() {
+		gomega.Eventually(func() string {
+			host = pkg.GetHostnameFromGateway("bobs-books", "")
+			return host
+		}, shortWaitTimeout, shortPollingInterval).Should(gomega.Not(gomega.BeEmpty()))
+	})
 	ginkgo.Context("Ingress.", func() {
 		// Verify the application endpoint is working.
 		// GIVEN the Bobs Books app is deployed
@@ -128,10 +142,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 		// THEN the expected returned page should contain an expected value.
 		ginkgo.It("Verify roberts-books UI endpoint is working.", func() {
 			gomega.Eventually(func() pkg.WebResponse {
-				ingress := pkg.Ingress()
-				pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-				url := fmt.Sprintf("http://%s", ingress)
-				host := pkg.GetHostnameFromGateway("bobs-books", "")
+				url := fmt.Sprintf("https://%s", host)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
 					Status:  status,
@@ -145,10 +156,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 		// THEN the expected returned page should contain an expected value.
 		ginkgo.It("Verify bobbys-books UI endpoint is working.", func() {
 			gomega.Eventually(func() pkg.WebResponse {
-				ingress := pkg.Ingress()
-				pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-				url := fmt.Sprintf("http://%s/bobbys-front-end/", ingress)
-				host := pkg.GetHostnameFromGateway("bobs-books", "")
+				url := fmt.Sprintf("https://%s/bobbys-front-end/", host)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
 					Status:  status,
@@ -162,10 +170,7 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 		// THEN the expected returned page should contain an expected value.
 		ginkgo.It("Verify bobs-orders UI endpoint is working.", func() {
 			gomega.Eventually(func() pkg.WebResponse {
-				ingress := pkg.Ingress()
-				pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-				url := fmt.Sprintf("http://%s/bobs-bookstore-order-manager/orders", ingress)
-				host := pkg.GetHostnameFromGateway("bobs-books", "")
+				url := fmt.Sprintf("https://%s/bobs-bookstore-order-manager/orders", host)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
 					Status:  status,

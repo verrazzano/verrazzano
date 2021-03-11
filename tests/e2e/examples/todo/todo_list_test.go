@@ -39,7 +39,10 @@ func deployToDoListExample() {
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
 	pkg.Log(pkg.Info, "Create namespace")
-	if _, err := pkg.CreateNamespace("todo-list", map[string]string{"verrazzano-managed": "true"}); err != nil {
+	nsLabels := map[string]string{
+		"verrazzano-managed": "true",
+		"istio-injection":    "enabled"}
+	if _, err := pkg.CreateNamespace("todo-list", nsLabels); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
 	}
 	pkg.Log(pkg.Info, "Create Docker repository secret")
@@ -94,6 +97,14 @@ func undeployToDoListExample() {
 		ns, err := pkg.GetNamespace("todo-list")
 		return ns == nil && err != nil && errors.IsNotFound(err)
 	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
+
+	// GIVEN the ToDoList app is undeployed
+	// WHEN the app config secret generated to support secure gateways is fetched
+	// THEN the secret should have been cleaned up
+	gomega.Eventually(func() bool {
+		s, err := pkg.GetSecret("istio-system", "todo-list-todo-appconf-cert-secret")
+		return s == nil && err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeFalse())
 }
 
 var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
@@ -107,19 +118,37 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 				return pkg.PodsRunning("todo-list", []string{"mysql", "tododomain-adminserver"})
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 		})
+		// GIVEN the ToDoList app is deployed
+		// WHEN the app config secret generated to support secure gateways is fetched
+		// THEN the secret should exist
+		ginkgo.It("Verify 'todo-list-todo-appconf-cert-secret' has been created", func() {
+			gomega.Eventually(func() bool {
+				s, err := pkg.GetSecret("istio-system", "todo-list-todo-appconf-cert-secret")
+				return s != nil && err == nil
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+		})
 	})
 
 	ginkgo.Context("Ingress.", func() {
+		var host = ""
+		// Get the host from the Istio gateway resource.
+		// GIVEN the Istio gateway for the todo-list namespace
+		// WHEN GetHostnameFromGateway is called
+		// THEN return the host name found in the gateway.
+		ginkgo.It("Get host from gateway.", func() {
+			gomega.Eventually(func() string {
+				host = pkg.GetHostnameFromGateway("todo-list", "")
+				return host
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.Not(gomega.BeEmpty()))
+		})
+
 		// Verify the application REST endpoint is working.
 		// GIVEN the ToDoList app is deployed
 		// WHEN the UI is accessed
 		// THEN the expected returned page should contain an expected value.
 		ginkgo.It("Verify '/todo' UI endpoint is working.", func() {
 			gomega.Eventually(func() pkg.WebResponse {
-				ingress := pkg.Ingress()
-				pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
-				host := pkg.GetHostnameFromGateway("todo-list", "")
-				url := fmt.Sprintf("http://%s/todo/", ingress)
+				url := fmt.Sprintf("https://%s/todo/", host)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
 					Status:  status,
@@ -133,12 +162,9 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 		// WHEN the REST endpoint is accessed
 		// THEN the expected results should be returned
 		ginkgo.It("Verify '/todo/rest/items' REST endpoint is working.", func() {
-			ingress := pkg.Ingress()
-			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", ingress))
 			task := fmt.Sprintf("test-task-%s", time.Now().Format("20060102150405.0000"))
-			host := pkg.GetHostnameFromGateway("todo-list", "")
 			gomega.Eventually(func() pkg.WebResponse {
-				url := fmt.Sprintf("http://%s/todo/rest/items", ingress)
+				url := fmt.Sprintf("https://%s/todo/rest/items", host)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
 					Status:  status,
@@ -146,7 +172,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 				}
 			}, shortWaitTimeout, shortPollingInterval).Should(gomega.And(pkg.HaveStatus(200), pkg.ContainContent("[")))
 			gomega.Eventually(func() pkg.WebResponse {
-				url := fmt.Sprintf("http://%s/todo/rest/item/%s", ingress, task)
+				url := fmt.Sprintf("https://%s/todo/rest/item/%s", host, task)
 				status, content := pkg.PutWithHostHeader(url, "application/json", host, nil)
 				return pkg.WebResponse{
 					Status:  status,
@@ -154,7 +180,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 				}
 			}, shortWaitTimeout, shortPollingInterval).Should(pkg.HaveStatus(204))
 			gomega.Eventually(func() pkg.WebResponse {
-				url := fmt.Sprintf("http://%s/todo/rest/items", ingress)
+				url := fmt.Sprintf("https://%s/todo/rest/items", host)
 				status, content := pkg.GetWebPageWithCABundle(url, host)
 				return pkg.WebResponse{
 					Status:  status,

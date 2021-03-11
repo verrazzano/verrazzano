@@ -24,9 +24,7 @@ spec:
               name: springboot-ingress
             spec:
               rules:
-                - hosts:
-                    - "authpolicy.noistio.com"
-                  paths:
+                - paths:
                     - path: "/"
                       pathType: Prefix
                     - path: "/verrazzanoFact"

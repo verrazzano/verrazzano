@@ -125,6 +125,7 @@ func (a *IstioWebhook) InjectDecoder(d *admission.Decoder) error {
 func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, serviceAccountName string, ownerRef metav1.OwnerReference) error {
 	podPrincipal := fmt.Sprintf("cluster.local/ns/%s/sa/%s", namespace, serviceAccountName)
 	gwPrincipal := "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"
+	promPrincipal := "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator"
 
 	// Check if authorization policy exist.  The name of the authorization policy is the owner reference name which happens
 	// to be the appconfig name.
@@ -143,6 +144,7 @@ func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, service
 					Principals: []string{
 						podPrincipal,
 						gwPrincipal,
+						promPrincipal,
 					},
 				},
 			},

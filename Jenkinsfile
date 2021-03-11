@@ -129,9 +129,14 @@ pipeline {
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    cat config/deploy/verrazzano-platform-operator.yaml | sed -e "s|IMAGE_NAME|${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|g" > $WORKSPACE/generated-operator.yaml
-                    cat config/crd/bases/install.verrazzano.io_verrazzanos.yaml >> $WORKSPACE/generated-operator.yaml
-                    cat config/crd/bases/clusters.verrazzano.io_verrazzanomanagedclusters.yaml >> $WORKSPACE/generated-operator.yaml
+                    case "${env.BRANCH_NAME}" in
+                        master|release-*)
+                            ;;
+                        *)
+                            echo "Adding image pull secrets to operator.yaml for non master/release branch"
+                            export IMAGE_PULL_SECRETS=verrazzano-container-registry
+                    esac
+                    DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} OPERATOR_YAML=$WORKSPACE/generated-operator.yaml make generate-operator-yaml
                    """
             }
             post {
@@ -154,6 +159,7 @@ pipeline {
             }
             steps {
                 sh """
+                    cd ${GO_REPO_PATH}/verrazzano
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/operator.yaml --file $WORKSPACE/generated-operator.yaml
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file $WORKSPACE/generated-operator.yaml
                    """
@@ -254,7 +260,10 @@ pipeline {
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+                    make cleanup-cluster
+                    make create-cluster
+                    ../ci/scripts/setup_kind_for_jenkins.sh
+                    make integ-test CLUSTER_DUMP_LOCATION=${WORKSPACE}/platform-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     build/scripts/copy-junit-output.sh ${WORKSPACE}
                     cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
@@ -318,7 +327,9 @@ pipeline {
                             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
                             echo "Create Kind cluster"
                             cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                            make cleanup-cluster
                             make create-cluster
+                            ../ci/scripts/setup_kind_for_jenkins.sh
 
                             echo "Install metallb"
                             cd ${GO_REPO_PATH}/verrazzano
@@ -335,15 +346,7 @@ pipeline {
 
                             # Configure the deployment file to use an image pull secret for branches that have private images
                             oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-                            case "${env.BRANCH_NAME}" in
-                                master|release-*)
-                                    echo "Using operator.yaml from object storage"
-                                    cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
-                                    ;;
-                                *)
-                                    echo "Generating operator.yaml based on image name provided: ${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                                    ./tests/e2e/config/scripts/process_operator_yaml.sh platform-operator "${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}" verrazzano-container-registry ghcr.io ${WORKSPACE}/acceptance-test-operator.yaml
-                            esac
+                            cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
 
                             # Install the verrazzano-platform-operator
                             kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml

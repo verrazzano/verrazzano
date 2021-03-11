@@ -1,0 +1,12 @@
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+name: verrazzano-platform-operator
+namespace: verrazzano-install
+
+global:
+  imagePullSecrets: []
+
+# NOTE: The image value gets set in the override file verrazzano-application-operator-values.yaml
+# during the platform operator docker image build.
+image:
+imagePullPolicy: IfNotPresent
