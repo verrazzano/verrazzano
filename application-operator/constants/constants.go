@@ -3,6 +3,9 @@
 
 package constants
 
+// VerrazzanoClustersGroup - clusters group
+const VerrazzanoClustersGroup = "clusters.verrazzano.io"
+
 // VerrazzanoSystemNamespace is the system namespace for verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
 
@@ -15,6 +18,10 @@ const MCAgentSecret = "verrazzano-cluster-agent"
 
 // MCRegistrationSecret - the name of the secret that contains the cluster registration information
 const MCRegistrationSecret = "verrazzano-cluster-registration"
+
+// MCLocalRegistrationSecret - the name of the local secret that contains the cluster registration information.
+// Thos is created at Verrazzano install.
+const MCLocalRegistrationSecret = "verrazzano-local-registration"
 
 // AdminKubeconfigData - the field name in MCRegistrationSecret that contains the admin cluster's kubeconfig
 const AdminKubeconfigData = "admin-kubeconfig"

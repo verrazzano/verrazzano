@@ -7,6 +7,9 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
+	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	"testing"
 	"time"
 
@@ -115,7 +118,7 @@ func TestSuccessfulInstall(t *testing.T) {
 			verrazzano.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name}
-			verrazzano.Spec.Components.DNS.External.Suffix = "mydomain.com"
+			verrazzano.Spec.Components.DNS = &vzapi.DNSComponent{External: &vzapi.External{Suffix: "mydomain.com"}}
 			savedVerrazzano = verrazzano
 			return nil
 		})
@@ -124,7 +127,7 @@ func TestSuccessfulInstall(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, "", labels)
+			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		})
@@ -183,7 +186,18 @@ func TestSuccessfulInstall(t *testing.T) {
 			return nil
 		})
 
+	// Expect a call to get the verrazzano resource.
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, ingressList *extv1beta1.IngressList) error {
+			ingressList.Items = []extv1beta1.Ingress{}
+			return nil
+		})
+
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
+
+	// Expect local registration calls
+	expectSyncLocalRegistration(t, mock, name)
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -310,6 +324,9 @@ func TestCreateVerrazzano(t *testing.T) {
 
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
 
+	// Expect local registration calls
+	expectSyncLocalRegistration(t, mock, name)
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -348,11 +365,13 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Labels:    labels}
-			verrazzano.Spec.Components.DNS.OCI = vzapi.OCI{
-				OCIConfigSecret:        "test-oci-config-secret",
-				DNSZoneCompartmentOCID: "test-dns-zone-ocid",
-				DNSZoneOCID:            "test-dns-zone-ocid",
-				DNSZoneName:            "test-dns-zone-name",
+			verrazzano.Spec.Components.DNS = &vzapi.DNSComponent{
+				OCI: &vzapi.OCI{
+					OCIConfigSecret:        "test-oci-config-secret",
+					DNSZoneCompartmentOCID: "test-dns-zone-ocid",
+					DNSZoneOCID:            "test-dns-zone-ocid",
+					DNSZoneName:            "test-dns-zone-name",
+				},
 			}
 			return nil
 		})
@@ -460,6 +479,9 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 		})
 
 	setupInstallInternalConfigMapExpectations(mock, name, namespace)
+
+	// Expect local registration calls
+	expectSyncLocalRegistration(t, mock, name)
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -994,7 +1016,7 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, "", labels)
+			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		})
@@ -1048,7 +1070,7 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, "", labels)
+			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		})
@@ -1109,7 +1131,7 @@ func TestConfigMapGetError(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, "", labels)
+			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		})
@@ -1176,7 +1198,7 @@ func TestConfigMapCreateError(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, "", labels)
+			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		})
@@ -1248,7 +1270,7 @@ func TestJobGetError(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, "", labels)
+			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		})
@@ -1316,11 +1338,13 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 				Namespace: name.Namespace,
 				Name:      name.Name,
 				Labels:    labels}
-			verrazzano.Spec.Components.DNS.OCI = vzapi.OCI{
-				OCIConfigSecret:        "test-oci-config-secret",
-				DNSZoneCompartmentOCID: "test-dns-zone-ocid",
-				DNSZoneOCID:            "test-dns-zone-ocid",
-				DNSZoneName:            "test-dns-zone-name",
+			verrazzano.Spec.Components.DNS = &vzapi.DNSComponent{
+				OCI: &vzapi.OCI{
+					OCIConfigSecret:        "test-oci-config-secret",
+					DNSZoneCompartmentOCID: "test-dns-zone-ocid",
+					DNSZoneOCID:            "test-dns-zone-ocid",
+					DNSZoneName:            "test-dns-zone-name",
+				},
 			}
 			savedVerrazzano = verrazzano
 			return nil
@@ -1330,7 +1354,7 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, "", labels)
+			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		})
@@ -1397,7 +1421,7 @@ func TestJobCreateError(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, "", labels)
+			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		})
@@ -1754,7 +1778,7 @@ func TestBuildOCIDNSDomain(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
-				DNS: vzapi.DNSComponent{OCI: vzapi.OCI{DNSZoneName: "my.zone.com"}},
+				DNS: &vzapi.DNSComponent{OCI: &vzapi.OCI{DNSZoneName: "my.zone.com"}},
 			},
 		},
 	})
@@ -1766,7 +1790,7 @@ func TestBuildOCIDNSDomain(t *testing.T) {
 		Spec: vzapi.VerrazzanoSpec{
 			EnvironmentName: "myenv",
 			Components: vzapi.ComponentSpec{
-				DNS: vzapi.DNSComponent{OCI: vzapi.OCI{DNSZoneName: "my.zone.com"}},
+				DNS: &vzapi.DNSComponent{OCI: &vzapi.OCI{DNSZoneName: "my.zone.com"}},
 			},
 		},
 	})
@@ -1794,7 +1818,7 @@ func TestBuildExternalDNSDomain(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
-				DNS: vzapi.DNSComponent{External: vzapi.External{Suffix: "my.external.com"}},
+				DNS: &vzapi.DNSComponent{External: &vzapi.External{Suffix: "my.external.com"}},
 			},
 		},
 	})
@@ -1806,7 +1830,7 @@ func TestBuildExternalDNSDomain(t *testing.T) {
 		Spec: vzapi.VerrazzanoSpec{
 			EnvironmentName: "myenv",
 			Components: vzapi.ComponentSpec{
-				DNS: vzapi.DNSComponent{External: vzapi.External{Suffix: "my.external.com"}},
+				DNS: &vzapi.DNSComponent{External: &vzapi.External{Suffix: "my.external.com"}},
 			},
 		},
 	})
@@ -1861,6 +1885,29 @@ func setupInstallInternalConfigMapExpectations(mock *mocks.MockClient, name stri
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap) error {
+			return nil
+		})
+}
+
+// Expect syncLocalRegistration related calls
+func expectSyncLocalRegistration(t *testing.T, mock *mocks.MockClient, name string) {
+	// Expect a call to get the Agent secret in the verrazzano-system namespace - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCAgentSecret))
+
+	// Expect a call to get the local registration secret in the verrazzano-system namespace - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCLocalRegistrationSecret}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoSystemNamespace, Resource: "Secret"}, constants.MCLocalRegistrationSecret))
+
+	// Expect a call to create the registration secret
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
+			secret.Data = map[string][]byte{
+				clusters.ManagedClusterNameKey: []byte("cluster1"),
+			}
 			return nil
 		})
 }

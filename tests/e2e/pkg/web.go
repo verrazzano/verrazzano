@@ -73,6 +73,11 @@ func Delete(url string, hostHeader string) (int, string) {
 	return doReq(url, "DELETE", "", hostHeader, "", "", nil, GetVerrazzanoHTTPClient())
 }
 
+// GetVerrazzanoNoRetryHTTPClient returns an Http client configured with the verrazzano CA cert
+func GetVerrazzanoNoRetryHTTPClient() *http.Client {
+	return getHTTPClientWIthCABundle(getVerrazzanoCACert())
+}
+
 // GetVerrazzanoHTTPClient returns an Http client configured with the verrazzano CA cert
 func GetVerrazzanoHTTPClient() *retryablehttp.Client {
 	rawClient := getHTTPClientWIthCABundle(getVerrazzanoCACert())

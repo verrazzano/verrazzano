@@ -17,7 +17,7 @@ The Hello World Helidon application deployment artifacts are contained in the Ve
 1. Create a namespace for the example application and add a label identifying the namespace as managed by Verrazzano.
    ```
    $ kubectl create namespace hello-helidon
-   $ kubectl label namespace hello-helidon verrazzano-managed=true
+   $ kubectl label namespace hello-helidon verrazzano-managed=true istio-injection=enabled
    ```
 
 1. Apply the `hello-helidon` OAM resources to deploy the application.
@@ -35,7 +35,7 @@ The Hello World Helidon application deployment artifacts are contained in the Ve
 
 The Hello World Helidon microservices application implements a single REST API endpoint `/greet`, which returns a message `{"message":"Hello World!"}` when invoked.
 
-**NOTE**:  This following set of instructions assumes you are using a Kubernetes
+**NOTE**:  The following instructions assume that you are using a Kubernetes
 environment such as OKE.  Other environments or deployments may require alternative mechanisms for retrieving addresses,
 ports, and such.
 
@@ -59,13 +59,14 @@ Follow these steps to test the endpoints:
 1. Access the application.
 
    There are several ways to access it:
-   * **Using the command line**
+   * **Using the command line**:
      ```
      $ curl -sk -X GET https://${HOST}/greet --resolve ${HOST}:443:${ADDRESS}
      {"message":"Hello World!"}
      ```
-     If you are using `xip.io` then you do not need to include `--resolve`.
-   * **Local testing with a browser**
+     If you are using `xip.io`, then you do not need to include `--resolve`.
+   * **Local testing with a browser**:
+
      Temporarily, modify the `/etc/hosts` file (on Mac or Linux)
      or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10),
      to add an entry mapping the host name to the ingress gateway's `EXTERNAL-IP` address.
@@ -75,7 +76,7 @@ Follow these steps to test the endpoints:
      ```
      Then you can access the application in a browser at `https://<host>/greet`.
 
-   * **Using your own DNS name:**
+   * **Using your own DNS name**:
      * Point your own DNS name to the ingress gateway's `EXTERNAL-IP` address.
      * In this case, you would need to edit the `hello-helidon-app.yaml` file
        to use the appropriate value under the `hosts` section (such as `yourhost.your.domain`),
@@ -90,7 +91,7 @@ Follow these steps to test the endpoints:
    $ kubectl get IngressTrait -n hello-helidon
    ```   
 
-1. Verify that the `hello-helidon` service pods are successfully created and transition to the ready state.
+1. Verify that the `hello-helidon` service pods are successfully created and transition to the `READY` state.
    Note that this may take a few minutes and that you may see some of the services terminate and restart.
    ```
     $ kubectl get pods -n hello-helidon

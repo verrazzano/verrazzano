@@ -10,7 +10,7 @@ REPO_NAME:=verrazzano-application-operator
 
 TIMESTAMP := $(shell date -u +%Y%m%d%H%M%S)
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
-DOCKER_IMAGE_TAG ?= local-${TIMESTAMP}-$(shell git rev-parse --short HEAD)
+DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)
 
 CONTROLLER_GEN_VERSION ?= $(shell go list -m -f '{{.Version}}' sigs.k8s.io/controller-tools)
 CREATE_LATEST_TAG=0
@@ -159,22 +159,28 @@ OPERATOR_SETUP = test/operatorsetup
 OAM_RUNTIME_IMAGE="ghcr.io/verrazzano/oam-kubernetes-runtime:v0.3.0-20210222205541-9e8d4fb"
 
 # These exports are needed for the install.sh
-export KUBECONFIG=${HOME}/.kube/apo-integ-config
-export VERRAZZANO_KUBECONFIG=${HOME}/.kube/apo-integ-config
+ifdef JENKINS_KUBECONFIG
+export KUBECONFIG=${JENKINS_KUBECONFIG}
+export VERRAZZANO_KUBECONFIG=${JENKINS_KUBECONFIG}
+else
+export KUBECONFIG=${HOME}/.kube/config
+export VERRAZZANO_KUBECONFIG=${HOME}/.kube/config
+endif
+
 export VERRAZZANO_APP_OP_IMAGE=${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 .PHONY: setup-cluster
 setup-cluster: create-cluster
 	# TODO: If the pre-created cluster works, we should be able to pre-load the OAM runtime
 	echo 'Load Docker image for the OAM runtime...'
-	docker pull ${OAM_RUNTIME_IMAGE}
-	kind load docker-image --name ${CLUSTER_NAME} ${OAM_RUNTIME_IMAGE}
+	time docker pull ${OAM_RUNTIME_IMAGE}
+	time kind load docker-image --name ${CLUSTER_NAME} ${OAM_RUNTIME_IMAGE}
 
 	echo 'Load Docker image for the Verrazzano application operator...'
-	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+	time kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 	echo 'Install OAM runtime and Verrazzano application operator...'
-	installer/install.sh || (echo 'Application operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
+	time installer/install.sh || (echo 'Application operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
 
 .PHONY: integ-test
 integ-test: setup-cluster
@@ -183,18 +189,7 @@ integ-test: setup-cluster
 
 .PHONY: create-cluster
 create-cluster:
-ifdef JENKINS_URL
-	echo "Jenkins has pre-created vpo-integ cluster ready to use"
-	mkdir ${HOME}/.kube/ || true
-	kind get kubeconfig --name=${CLUSTER_NAME} > ${KUBECONFIG}
-	# Use pre-defined host name, but update the /etc/hosts to have the current IP Address
-	cp /etc/hosts temp_hosts
-	$$(docker inspect $${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed -e 's/"//g' -e 's/$$/  APOINTEGHOST/g' | cat $$1 >> temp_hosts)
-	sudo cp temp_hosts /etc/hosts
-	sed -i -e "s|127.0.0.1.*|APOINTEGHOST:6443|g" ${KUBECONFIG}
-	cat ${KUBECONFIG} | grep server
-	docker network connect kind $$(docker ps | grep "jenkins-runner" | awk '{ print $$1 }') || true
-else
+ifndef JENKINS_URL
 	echo 'Create cluster...'
 	HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 \
 		--name ${CLUSTER_NAME} \

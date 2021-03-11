@@ -10,7 +10,7 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
   * Search for `example-bobbys-coherence`, `example-bobbys-front-end`, `example-bobs-books-order-manager` and `example-roberts-coherence`.
   * For each, select the image name in the results, click Continue, then read and accept the license agreement.
 
-   The Bob's Books application deployment artifacts are contained in the Verrazzano project located at 
+   The Bob's Books application deployment artifacts are contained in the Verrazzano project located at
    `<VERRAZZANO_HOME>/examples/bobs-books`, where `<VERRAZZANO_HOME>` is the root of the Verrazzano project.
 
    **NOTE:** All files and paths in this document are relative to `<VERRAZZANO_HOME>/examples/bobs-books`.
@@ -21,7 +21,7 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
 
     ```
     $ kubectl create namespace bobs-books
-    $ kubectl label namespaces bobs-books verrazzano-managed=true
+    $ kubectl label namespace bobs-books verrazzano-managed=true istio-injection=enabled
     ```
 
 1. Create a `docker-registry` secret to enable pulling the example image from the registry.
@@ -33,10 +33,10 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
            --docker-email=YOUR_REGISTRY_EMAIL \
            -n bobs-books
    ```
-   
+
    Replace `YOUR_REGISTRY_USERNAME`, `YOUR_REGISTRY_PASSWORD`, and `YOUR_REGISTRY_EMAIL`
    with the values you use to access the registry.  
-      
+
 1. Create and label secrets for the WebLogic domains:
     ```
     $ kubectl create secret generic bobbys-front-end-weblogic-credentials --from-literal=password=<password> --from-literal=username=<username> -n bobs-books
@@ -86,37 +86,37 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
    ```
 
 1. Access the application. To access the application in a browser, you will need to do one of the following:
-    * **Option 1:** If you are using `xip.io`, then you can just access the application using the generated host name, for example:
+    * **Option 1:** If you are using `xip.io`, then you can access the application using the generated host name. For example:
 
-      a. Robert's Books UI at `https://bobs-books.bobs-books.11.22.33.44.xip.io/`.
+      * Robert's Books UI at `https://bobs-books.bobs-books.11.22.33.44.xip.io/`.
 
-      b. Bobby's Books UI at `https://bobs-books.bobs-books.11.22.33.44.xip.io/bobbys-front-end`.
+      * Bobby's Books UI at `https://bobs-books.bobs-books.11.22.33.44.xip.io/bobbys-front-end`.
 
-      c. Bob's order manager  UI at `https://bobs-books.bobs-books.11.22.33.44.xip.io/bobs-bookstore-order-manager/orders`.
+      * Bob's order manager  UI at `https://bobs-books.bobs-books.11.22.33.44.xip.io/bobs-bookstore-order-manager/orders`.
 
     * **Option 2:** Temporarily, modify the `/etc/hosts` file (on Mac or Linux) or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10), to add an entry mapping the host used by the application to the external IP address assigned to your gateway. For example:
       ```
       11.22.33.44 bobs-books.example.com
       ```
-      Then, you can use a browser to access the application as shown below:
-      
-      a. Robert's Books UI at `https://bobs-books.example.com/`.
+      Then, you can use a browser to access the application as shown:
 
-      b. Bobby's Books UI at `https://bobs-books.example.com/bobbys-front-end`.
+      * Robert's Books UI at `https://bobs-books.example.com/`.
 
-      c. Bob's order manager  UI at `https://bobs-books.example.com/bobs-bookstore-order-manager/orders`.
+      * Bobby's Books UI at `https://bobs-books.example.com/bobbys-front-end`.
+
+      * Bob's order manager  UI at `https://bobs-books.example.com/bobs-bookstore-order-manager/orders`.
 
     * **Option 3:** Alternatively, point your own DNS name to the load balancer's external IP address. In this case, you would need to have edited the `bobs-books-app.yaml` file to use the appropriate values under the `hosts` section for the application (such as `your-roberts-books-host.your.domain`), before deploying the application.
-      Then, you can use a browser to access the application as shown below:
+      Then, you can use a browser to access the application as shown:
 
-      a. Robert's Books UI at `http://<your-roberts-books-host.your.domain>/`.
+      * Robert's Books UI at `https://<your-roberts-books-host.your.domain>/`.
 
-      b. Bobby's Books UI at `http://<your-bobbys-books-host.your.domain>/bobbys-front-end`.
+      * Bobby's Books UI at `https://<your-bobbys-books-host.your.domain>/bobbys-front-end`.
 
-      a. Bob's order manager UI at `http://<your-bobs-orders-host.your.domain>/`.
+      * Bob's order manager UI at `https://<your-bobs-orders-host.your.domain>/`.
 
 ## Troubleshooting
-    
+
 1. Verify that the application configuration, domains, Coherence resources, and ingress trait all exist.
    ```
    $ kubectl get ApplicationConfiguration -n bobs-books
@@ -125,11 +125,11 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
    $ kubectl get IngressTrait -n bobs-books
    ```   
 
-1. Verify that the service pods are successfully created and transition to the ready state.
+1. Verify that the service pods are successfully created and transition to the `READY` state.
    Note that this may take a few minutes and that you may see some of the services terminate and restart.
    ```
     kubectl get pods -n bobs-books
-   
+
     NAME                                               READY   STATUS    RESTARTS   AGE
     bobbys-coherence-0                                 1/1     Running   0          14m
     bobbys-front-end-adminserver                       2/2     Running   0          6m38s
@@ -142,6 +142,6 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
     robert-helidon-7cd74f7b49-zqp6n                    2/2     Running   0          14m
     roberts-coherence-0                                1/1     Running   0          10m
     roberts-coherence-1                                1/1     Running   0          14m
-   ``` 
+   ```
 
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
