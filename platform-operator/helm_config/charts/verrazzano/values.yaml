@@ -103,9 +103,7 @@ api:
   imageVersion: 0.32-20210122132046-a84f6166a
   pullPolicy: Always
   port: 8775
-  clusterRole: console
-  consoleUserGroup: console-users
-  consoleUser: console-user
+  impersonatorRoleName: imperosnate-api-user
 
 # OCI-related values
 oci:

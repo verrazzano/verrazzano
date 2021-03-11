@@ -337,8 +337,8 @@
   "groups" : [ 
   {
       "id": "3ffe8f11-7131-4d00-bc95-bbf627f6e2ba",
-      "name": "console-users",
-      "path": "/console-users",
+      "name": "VZ_ADMIN_GROUP",
+      "path": "/VZ_ADMIN_GROUP",
       "attributes": {},
       "realmRoles": [],
       "clientRoles": {},
@@ -401,12 +401,7 @@
       "realm-management" : [ "manage-users" ]
     },
     "notBefore" : 0,
-    "groups" : [ "console-users" ],
-    "attributes": {
-      "k8s_user": [
-        "console-user"
-      ]
-    }
+    "groups" : [ "VZ_ADMIN_GROUP" ]
   }, {
     "id" : "ca205b69-e8a8-45c9-88b1-ea9c1b072152",
     "createdTimestamp" : 1564417839778,

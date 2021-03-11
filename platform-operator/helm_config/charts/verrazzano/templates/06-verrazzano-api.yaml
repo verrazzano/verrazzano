@@ -3,146 +3,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  annotations:
-    rbac.authorization.kubernetes.io/autoupdate: "true"
-  name: {{ .Values.api.clusterRole }}
-rules:
-- apiGroups:
-  - clusters.verrazzano.io
-  resources:
-  - multiclusterapplicationconfigurations
-  - multiclustercomponents
-  - multiclusterconfigmaps
-  - multiclusterloggingscopes
-  - multiclustersecrets
-  - verrazzanoprojects
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - namespaces
-  - configmaps
-  - services
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - patch
-  - update
-  - delete
-- apiGroups:
-  - apps
-  resources:
-  - deployments
-  - deployments/scale
-  - deployments/status
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - extensions
-  resources:
-  - deployments
-  - deployments/scale
-  - deployments/status
-  - ingresses
-  - ingresses/status
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - networking.k8s.io
-  resources:
-  - ingresses
-  - ingresses/status
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - oam.verrazzano.io
-  resources:
-  - ingresstraits
-  - loggingscopes
-  - metricstraits
-  - verrazzanocoherenceworkloads
-  - verrazzanoweblogicworkloads
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - core.oam.dev
-  resources:
-  - components
-  - applicationconfigurations
-  - containerizedworkloads
-  - healthscopes
-  - manualscalertraits
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - verrazzano.io
-  resources:
-  - verrazzanomanagedclusters
-  - verrazzanomonitoringinstances
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - coherence.oracle.com
-  resources:
-  - coherences
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - weblogic.oracle
-  resources:
-  - domains
-  verbs:
-  - get
-  - list
-  - watch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: {{ .Values.api.clusterRole }}-binding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: {{ .Values.api.clusterRole }}
-subjects:
-- apiGroup: rbac.authorization.k8s.io
-  kind: Group
-  name: {{ .Values.api.consoleUserGroup }}
-- apiGroup: rbac.authorization.k8s.io
-  kind: User
-  name: {{ .Values.api.consoleUser }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: {{ .Values.api.clusterRole }}-impersonator
+  name: {{ .Values.api.impersonatorRoleName }}
 rules:
 - apiGroups: [""]
   resources: ["users", "groups"]
@@ -151,11 +12,11 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ .Values.api.clusterRole }}-impersonator-binding
+  name: {{ .Values.api.impersonatorRoleName }}-binding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ .Values.api.clusterRole }}-impersonator
+  name: {{ .Values.api.impersonatorRoleName }}
 subjects:
 - kind: ServiceAccount
   name: {{ .Values.api.name }}
@@ -239,20 +100,6 @@ data:
       ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
-    logJsonMessage(ngx.INFO, "Check for groups in jwt token.")
-    if ( not (jwt_obj.payload) or not (jwt_obj.payload.groups)) then
-      ngx.status = 401
-      logJsonMessage(ngx.ERR, "No groups asscoiated with user.")
-      ngx.exit(ngx.HTTP_UNAUTHORIZED)
-    end
-
-    logJsonMessage(ngx.INFO, "Check for k8s_user in jwt token.")
-    if ( not (jwt_obj.payload) or not (jwt_obj.payload.k8s_user)) then
-      ngx.status = 401
-      logJsonMessage(ngx.ERR, "No k8s_user asscoiated with user.")
-      ngx.exit(ngx.HTTP_UNAUTHORIZED)
-    end
-
     local function read_file(path)
       local file = io.open(path, "rb")
       if not file then return nil end
@@ -271,10 +118,16 @@ data:
 
     logJsonMessage(ngx.INFO, "Set headers")
     ngx.req.set_header("Authorization", "Bearer " .. serviceAccountToken)
-    for i,group in pairs(jwt_obj.payload.groups) do
-      ngx.req.set_header("Impersonate-Group", group)
+    if ( jwt_obj.payload and jwt_obj.payload.groups) then
+      for i,group in pairs(jwt_obj.payload.groups) do
+        logJsonMessage(ngx.INFO, ("Adding group " .. group))
+        ngx.req.set_header("Impersonate-Group", group)
+      end
     end
-    ngx.req.set_header("Impersonate-User", jwt_obj.payload.k8s_user)
+    if ( jwt_obj.payload and jwt_obj.payload.sub) then
+      logJsonMessage(ngx.INFO, ("Adding sub " .. jwt_obj.payload.sub))
+      ngx.req.set_header("Impersonate-User", jwt_obj.payload.sub)
+    end
   nginx.conf: |
     #user  nobody;
     worker_processes  1;
