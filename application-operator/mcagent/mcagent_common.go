@@ -51,7 +51,7 @@ func (s *Syncer) processStatusUpdates() {
 		// Use a select with default so as to not block on the channel if there are no updates
 		select {
 		case msg := <-s.StatusUpdateChannel:
-			s.Log.Info(fmt.Sprintf("processStatusUpdates: Received status update %s with condition type %s for %s/%s from cluster %s",
+			s.Log.V(2).Info(fmt.Sprintf("processStatusUpdates: Received status update %s with condition type %s for %s/%s from cluster %s",
 				msg.NewClusterStatus.State, msg.NewCondition.Type, msg.Resource.GetNamespace(), msg.Resource.GetName(), msg.NewClusterStatus.Name))
 			err := s.performAdminStatusUpdate(msg)
 			if err != nil {

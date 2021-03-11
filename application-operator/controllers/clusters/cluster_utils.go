@@ -168,9 +168,9 @@ func ComputeEffectiveState(status clustersv1alpha1.MultiClusterResourceStatus, p
 	return clustersv1alpha1.Pending
 }
 
-// UpdateClusterLevelStatus - given a multi cluster resource status object, and a new cluster status
+// SetClusterLevelStatus - given a multi cluster resource status object, and a new cluster status
 // to be updated, either add or update the cluster status as appropriate
-func UpdateClusterLevelStatus(status *clustersv1alpha1.MultiClusterResourceStatus, newClusterStatus clustersv1alpha1.ClusterLevelStatus) {
+func SetClusterLevelStatus(status *clustersv1alpha1.MultiClusterResourceStatus, newClusterStatus clustersv1alpha1.ClusterLevelStatus) {
 	foundClusterIdx := -1
 	for i, clusterStatus := range status.Clusters {
 		if clusterStatus.Name == newClusterStatus.Name {
@@ -278,7 +278,7 @@ func UpdateStatus(resource MultiClusterResource, mcStatus *clustersv1alpha1.Mult
 
 	if StatusNeedsUpdate(*mcStatus, newCondition, clusterLevelStatus) {
 		mcStatus.Conditions = append(mcStatus.Conditions, newCondition)
-		UpdateClusterLevelStatus(mcStatus, clusterLevelStatus)
+		SetClusterLevelStatus(mcStatus, clusterLevelStatus)
 		mcStatus.State = ComputeEffectiveState(*mcStatus, placement)
 		err := updateFunc()
 		if err != nil {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -86,10 +87,10 @@ func appConfigListContains(mcAdminList *clustersv1alpha1.MultiClusterApplication
 func (s *Syncer) updateMultiClusterAppConfigStatus(name types.NamespacedName, newCond clustersv1alpha1.Condition, newClusterStatus clustersv1alpha1.ClusterLevelStatus) error {
 	var fetched clustersv1alpha1.MultiClusterApplicationConfiguration
 	err := s.AdminClient.Get(s.Context, name, &fetched)
-	if err == nil {
-		fetched.Status.Conditions = append(fetched.Status.Conditions, newCond)
-		fetched.Status.Clusters = append(fetched.Status.Clusters, newClusterStatus)
-		err = s.AdminClient.Status().Update(s.Context, &fetched)
+	if err != nil {
+		return err
 	}
-	return err
+	fetched.Status.Conditions = append(fetched.Status.Conditions, newCond)
+	clusters.SetClusterLevelStatus(&fetched.Status, newClusterStatus)
+	return s.AdminClient.Status().Update(s.Context, &fetched)
 }

@@ -361,17 +361,17 @@ func TestUpdateClusterLevelStatus(t *testing.T) {
 	}
 
 	// existing cluster cluster1 should be updated
-	UpdateClusterLevelStatus(&resourceStatus, cluster1Succeeded)
+	SetClusterLevelStatus(&resourceStatus, cluster1Succeeded)
 	asserts.Equal(t, 2, len(resourceStatus.Clusters))
 	asserts.Equal(t, clustersv1alpha1.Succeeded, resourceStatus.Clusters[0].State)
 
 	// existing cluster cluster2 should be updated
-	UpdateClusterLevelStatus(&resourceStatus, cluster2Failed)
+	SetClusterLevelStatus(&resourceStatus, cluster2Failed)
 	asserts.Equal(t, 2, len(resourceStatus.Clusters))
 	asserts.Equal(t, clustersv1alpha1.Failed, resourceStatus.Clusters[1].State)
 
 	// hitherto unseen cluster should be added to the cluster level statuses list
-	UpdateClusterLevelStatus(&resourceStatus, newClusterPending)
+	SetClusterLevelStatus(&resourceStatus, newClusterPending)
 	asserts.Equal(t, 3, len(resourceStatus.Clusters))
 	asserts.Equal(t, clustersv1alpha1.Pending, resourceStatus.Clusters[2].State)
 
