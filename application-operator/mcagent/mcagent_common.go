@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -72,21 +73,23 @@ func (s *Syncer) AgentReadyToSync() bool {
 
 func (s *Syncer) performAdminStatusUpdate(msg clusters.StatusUpdateMessage) error {
 	fullName := types.NamespacedName{Name: msg.Resource.GetName(), Namespace: msg.Resource.GetNamespace()}
-	typeName := reflect.TypeOf(msg.Resource).Name()
-	switch typeName {
-	case reflect.TypeOf(clustersv1alpha1.MultiClusterApplicationConfiguration{}).Name():
+	typeName := reflect.TypeOf(msg.Resource).String()
+	typeAppConfName := reflect.TypeOf(clustersv1alpha1.MultiClusterApplicationConfiguration{}).Name()
+	typeAppConfStr := reflect.TypeOf(clustersv1alpha1.MultiClusterApplicationConfiguration{}).String()
+	fmt.Println(typeAppConfName)
+	fmt.Println(typeAppConfStr)
+	if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.MultiClusterApplicationConfiguration{}).String()) {
 		return s.updateMultiClusterAppConfigStatus(fullName, msg.NewCondition, msg.NewClusterStatus)
-	case reflect.TypeOf(clustersv1alpha1.MultiClusterComponent{}).Name():
+	} else if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.MultiClusterComponent{}).String()) {
 		return s.updateMultiClusterComponentStatus(fullName, msg.NewCondition, msg.NewClusterStatus)
-	case reflect.TypeOf(clustersv1alpha1.MultiClusterConfigMap{}).Name():
+	} else if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.MultiClusterConfigMap{}).String()) {
 		return s.updateMultiClusterConfigMapStatus(fullName, msg.NewCondition, msg.NewClusterStatus)
-	case reflect.TypeOf(clustersv1alpha1.MultiClusterLoggingScope{}).Name():
+	} else if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.MultiClusterLoggingScope{}).String()) {
 		return s.updateMultiClusterLoggingScopeStatus(fullName, msg.NewCondition, msg.NewClusterStatus)
-	case reflect.TypeOf(clustersv1alpha1.MultiClusterSecret{}).Name():
+	} else if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.MultiClusterSecret{}).String()) {
 		return s.updateMultiClusterSecretStatus(fullName, msg.NewCondition, msg.NewClusterStatus)
-	case reflect.TypeOf(clustersv1alpha1.VerrazzanoProject{}).Name():
+	} else if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.VerrazzanoProject{}).String()) {
 		return s.updateVerrazzanoProjectStatus(fullName, msg.NewCondition, msg.NewClusterStatus)
-	default:
-		return fmt.Errorf("received status update message for unknown resource type %s", typeName)
 	}
+	return fmt.Errorf("received status update message for unknown resource type %s", typeName)
 }

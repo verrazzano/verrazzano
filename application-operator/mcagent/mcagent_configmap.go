@@ -73,7 +73,7 @@ func (s *Syncer) createOrUpdateMCConfigMap(mcConfigMap clustersv1alpha1.MultiClu
 func (s *Syncer) updateMultiClusterConfigMapStatus(name types.NamespacedName, newCond clustersv1alpha1.Condition, newClusterStatus clustersv1alpha1.ClusterLevelStatus) error {
 	var fetched clustersv1alpha1.MultiClusterConfigMap
 	err := s.AdminClient.Get(s.Context, name, &fetched)
-	if err != nil {
+	if err == nil {
 		fetched.Status.Conditions = append(fetched.Status.Conditions, newCond)
 		fetched.Status.Clusters = append(fetched.Status.Clusters, newClusterStatus)
 		err = s.AdminClient.Status().Update(s.Context, &fetched)

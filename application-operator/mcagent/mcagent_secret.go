@@ -71,9 +71,9 @@ func (s *Syncer) createOrUpdateMCSecret(mcSecret clustersv1alpha1.MultiClusterSe
 }
 
 func (s *Syncer) updateMultiClusterSecretStatus(name types.NamespacedName, newCond clustersv1alpha1.Condition, newClusterStatus clustersv1alpha1.ClusterLevelStatus) error {
-	var fetched clustersv1alpha1.MultiClusterSecret
+	fetched := clustersv1alpha1.MultiClusterSecret{}
 	err := s.AdminClient.Get(s.Context, name, &fetched)
-	if err != nil {
+	if err == nil {
 		fetched.Status.Conditions = append(fetched.Status.Conditions, newCond)
 		fetched.Status.Clusters = append(fetched.Status.Clusters, newClusterStatus)
 		err = s.AdminClient.Status().Update(s.Context, &fetched)

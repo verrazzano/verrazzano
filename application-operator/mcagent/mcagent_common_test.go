@@ -4,13 +4,18 @@
 package mcagent
 
 import (
+	"context"
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -93,12 +98,40 @@ func TestSyncer_processStatusUpdates(t *testing.T) {
 	// Expect every status update that is in the statusUpdates array to be sent
 	// to the admin cluster
 	adminMock.EXPECT().Status().Times(len(statusUpdates)).Return(statusMock)
+	var updateMsgSecret *v1alpha1.MultiClusterSecret
+	var updateMsgAppConf *v1alpha1.MultiClusterApplicationConfiguration
 	for _, updateMsg := range statusUpdates {
-		statusMock.EXPECT().Update(gomock.Any(), updateMsg.Resource)
+		// expect a GET on one multi cluster secret and one multicluster app config
+		if strings.Contains(reflect.TypeOf(updateMsg.Resource).String(), "MultiClusterSecret") {
+			updateMsgSecret = updateMsg.Resource.(*v1alpha1.MultiClusterSecret)
+		} else {
+			updateMsgAppConf = updateMsg.Resource.(*v1alpha1.MultiClusterApplicationConfiguration)
+		}
 	}
+
+	secretName := types.NamespacedName{Namespace: updateMsgSecret.GetNamespace(), Name: updateMsgSecret.GetName()}
+	appName := types.NamespacedName{Namespace: updateMsgAppConf.GetNamespace(), Name: updateMsgAppConf.GetName()}
+	adminMock.EXPECT().
+		Get(gomock.Any(), secretName, gomock.AssignableToTypeOf(&v1alpha1.MultiClusterSecret{})).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcSecret *v1alpha1.MultiClusterSecret) error {
+			asserts.Equal(t, secretName, name)
+			updateMsgSecret.DeepCopyInto(mcSecret)
+			return nil
+		})
+	adminMock.EXPECT().
+		Get(gomock.Any(), appName, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcAppConf *v1alpha1.MultiClusterApplicationConfiguration) error {
+			asserts.Equal(t, appName, name)
+			updateMsgAppConf.DeepCopyInto(mcAppConf)
+			return nil
+		})
+
+	statusMock.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.MultiClusterSecret{}))
+	statusMock.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.MultiClusterApplicationConfiguration{}))
 
 	// Make the request
 	s := &Syncer{
+		Context:             context.TODO(),
 		AdminClient:         adminMock,
 		ManagedClusterName:  "mycluster1",
 		StatusUpdateChannel: statusUpdatesChan,
