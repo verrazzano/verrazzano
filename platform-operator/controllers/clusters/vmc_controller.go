@@ -71,7 +71,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 				return reconcile.Result{}, err
 			}
 
-			// Remove the finalizer and update the verrazzano resource if the uninstall has finished.
+			// Remove the finalizer and update the verrazzano resource if the deletion has finished.
 			log.Infof("Removing finalizer %s", finalizerName)
 			vmc.ObjectMeta.Finalizers = removeString(vmc.ObjectMeta.Finalizers, finalizerName)
 			err := r.Update(ctx, vmc)
