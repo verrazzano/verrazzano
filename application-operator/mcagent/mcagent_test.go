@@ -152,6 +152,10 @@ func TestValidateSecret(t *testing.T) {
 	assert.Contains(err.Error(), fmt.Sprintf("missing the required field %s", constants.AdminKubeconfigData))
 }
 
+// Test_getEnvValue tests getEnvValue
+// GIVEN a request for a specified ENV name
+// WHEN the env array contains such an env
+// THEN returns the env value, empty string if not found
 func Test_getEnvValue(t *testing.T) {
 	testEnvs := []corev1.EnvVar{}
 	asserts.Equal(t, "", getEnvValue(testEnvs, managedClusterNameEnvName), "expected cluster name")
@@ -175,6 +179,10 @@ func Test_getEnvValue(t *testing.T) {
 	asserts.Equal(t, "cluster1", getEnvValue(testEnvs, managedClusterNameEnvName), "expected cluster name")
 }
 
+// Test_getEnvValue tests updateEnvValue
+// GIVEN a request for a specified ENV name/value
+// WHEN the env array contains such an env
+// THEN updates its value, append the env name/value if not found
 func Test_updateEnvValue(t *testing.T) {
 	testEnvs := []corev1.EnvVar{}
 	newValue := "cluster2"
@@ -229,6 +237,10 @@ func getTestDeploymentSpec(clusterName, esSecretVersion string) appsv1.Deploymen
 	}
 }
 
+// TestSyncer_configureBeats tests configuring beats by updating verrazzano operator deployment
+// GIVEN a request to configure the beats
+// WHEN the cluster name in registration secret has been changed or the elasticsearch secret has been updated
+// THEN ensure that verrazzano operator deployment is updated
 func TestSyncer_configureBeats(t *testing.T) {
 	type fields struct {
 		oldClusterName     string
