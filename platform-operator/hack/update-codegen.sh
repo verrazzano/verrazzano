@@ -18,7 +18,7 @@ echo "script_root = ${SCRIPT_ROOT}"
 # Obtain k8s.io/code-generator version
 codeGenVer=$(go list -m -f '{{.Version}}' k8s.io/code-generator)
 
-CODEGEN_PKG=${CODEGEN_PKG:-${GOPATH}/pkg/mod/${CODEGEN_PATH}@${codeGenVer}}
+CODEGEN_PKG=${CODEGEN_PKG:-${GOPATH:-${HOME}/go}/pkg/mod/${CODEGEN_PATH}@${codeGenVer}}
 echo "codegen_pkg = ${CODEGEN_PKG}"
 chmod +x ${CODEGEN_PKG}/generate-groups.sh
 
@@ -33,5 +33,5 @@ rm -rf $GENERATED_CLIENT_DIR
 ${CODEGEN_PKG}/generate-groups.sh "client" \
   github.com/verrazzano/verrazzano/platform-operator/clients/${BASE_CLIENT_OUTPUT_DIR} github.com/verrazzano/verrazzano/platform-operator/apis \
   ${API_GROUP_VERSION} \
-  --output-base "${GOPATH}/src" \
+  --output-base "${GOPATH:-${HOME}/go}/src" \
   --go-header-file ${SCRIPT_ROOT}/hack/${GO_HEADER_BOILERPLATE}

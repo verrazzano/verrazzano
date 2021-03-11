@@ -38,7 +38,10 @@ func deployBobsBooksExample() {
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
 	pkg.Log(pkg.Info, "Create namespace")
-	if _, err := pkg.CreateNamespace("bobs-books", map[string]string{"verrazzano-managed": "true"}); err != nil {
+	nsLabels := map[string]string{
+		"verrazzano-managed": "true",
+		"istio-injection":    "enabled"}
+	if _, err := pkg.CreateNamespace("bobs-books", nsLabels); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
 	}
 	pkg.Log(pkg.Info, "Create Docker repository secret")

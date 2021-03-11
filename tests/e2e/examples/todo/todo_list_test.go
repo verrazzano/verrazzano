@@ -39,7 +39,10 @@ func deployToDoListExample() {
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
 	pkg.Log(pkg.Info, "Create namespace")
-	if _, err := pkg.CreateNamespace("todo-list", map[string]string{"verrazzano-managed": "true"}); err != nil {
+	nsLabels := map[string]string{
+		"verrazzano-managed": "true",
+		"istio-injection":    "enabled"}
+	if _, err := pkg.CreateNamespace("todo-list", nsLabels); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
 	}
 	pkg.Log(pkg.Info, "Create Docker repository secret")
@@ -94,6 +97,14 @@ func undeployToDoListExample() {
 		ns, err := pkg.GetNamespace("todo-list")
 		return ns == nil && err != nil && errors.IsNotFound(err)
 	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
+
+	// GIVEN the ToDoList app is undeployed
+	// WHEN the app config secret generated to support secure gateways is fetched
+	// THEN the secret should have been cleaned up
+	gomega.Eventually(func() bool {
+		s, err := pkg.GetSecret("istio-system", "todo-list-todo-appconf-cert-secret")
+		return s == nil && err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeFalse())
 }
 
 var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
@@ -105,6 +116,15 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 		ginkgo.It("Verify 'tododomain-adminserver' and 'mysql' pods are running", func() {
 			gomega.Eventually(func() bool {
 				return pkg.PodsRunning("todo-list", []string{"mysql", "tododomain-adminserver"})
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+		})
+		// GIVEN the ToDoList app is deployed
+		// WHEN the app config secret generated to support secure gateways is fetched
+		// THEN the secret should exist
+		ginkgo.It("Verify 'todo-list-todo-appconf-cert-secret' has been created", func() {
+			gomega.Eventually(func() bool {
+				s, err := pkg.GetSecret("istio-system", "todo-list-todo-appconf-cert-secret")
+				return s != nil && err == nil
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 		})
 	})

@@ -22,7 +22,10 @@ const (
 )
 
 var _ = ginkgo.BeforeSuite(func() {
-	if _, err := pkg.CreateNamespace("hello-helidon", map[string]string{"verrazzano-managed": "true"}); err != nil {
+	nsLabels := map[string]string{
+		"verrazzano-managed": "true",
+		"istio-injection":    "enabled"}
+	if _, err := pkg.CreateNamespace("hello-helidon", nsLabels); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
 	}
 

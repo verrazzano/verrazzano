@@ -21,7 +21,7 @@ The ToDo List application deployment artifacts are contained in the Verrazzano p
 1. Create a namespace for the ToDo List example and add a label identifying the namespace as managed by Verrazzano.
    ```
    $ kubectl create namespace todo-list
-   $ kubectl label namespace todo-list verrazzano-managed=true
+   $ kubectl label namespace todo-list verrazzano-managed=true istio-injection=enabled
    ```
 
 1. Create a `docker-registry` secret to enable pulling the ToDo List example image from the registry.
