@@ -74,65 +74,25 @@ const (
 	basicPathPasswordLabel = "password"
 
 	// Template placeholders for the prometheus scrape config template
-	appNameHolder   = "##APP_NAME##"
-	compNameHolder  = "##COMP_NAME##"
-	jobNameHolder   = "##JOB_NAME##"
-	namespaceHolder = "##NAMESPACE##"
+	appNameHolder     = "##APP_NAME##"
+	compNameHolder    = "##COMP_NAME##"
+	jobNameHolder     = "##JOB_NAME##"
+	namespaceHolder   = "##NAMESPACE##"
+	sslProtocolHolder = "##SSL_PROTOCOL##"
 
 	// Roles for use in qualified resource relations
 	scraperRole = "scraper"
 	sourceRole  = "source"
+
+	// SSL protocol scrape parameters for Istio enabled MTLS components
+	httpsProtocol = "scheme: https\ntls_config:\n  ca_file: /etc/istio-certs/root-cert.pem\n  cert_file: /etc/istio-certs/cert-chain.pem\n  key_file: /etc/istio-certs/key.pem\n  insecure_skip_verify: true  # Prometheus does not support Istio security naming, thus skip verifying target pod certificate"
+	httpProtocol  = "scheme: http"
 )
 
 // prometheusScrapeConfigTemplate configuration for general prometheus scrape target template
-// Used to add new scrape config to a pormetheus configmap
-const prometheusHTTPScrapeConfigTemplate = `job_name: ##JOB_NAME##
-kubernetes_sd_configs:
-- role: pod
-  namespaces:
-    names:
-    - ##NAMESPACE##
-relabel_configs:
-- action: keep
-  source_labels: [__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled,__meta_kubernetes_pod_label_app_oam_dev_name,__meta_kubernetes_pod_label_app_oam_dev_component]
-  regex: true;##APP_NAME##;##COMP_NAME##
-- action: replace
-  source_labels: [__meta_kubernetes_pod_annotation_verrazzano_io_metricsPath]
-  target_label: __metrics_path__
-  regex: (.+)
-- action: replace
-  source_labels: [__address__, __meta_kubernetes_pod_annotation_verrazzano_io_metricsPort]
-  target_label: __address__
-  regex: ([^:]+)(?::\d+)?;(\d+)
-  replacement: $1:$2
-- action: replace
-  source_labels: [__meta_kubernetes_namespace]
-  target_label: namespace
-  regex: (.*)
-  replacement: $1
-- action: labelmap
-  regex: __meta_kubernetes_pod_label_(.+)
-- action: replace
-  source_labels: [__meta_kubernetes_pod_name]
-  target_label: pod_name
-- action: labeldrop
-  regex: '(controller_revision_hash)'
-- action: replace
-  source_labels: [name]
-  target_label: webapp
-  regex: '.*/(.*)$'
-  replacement: $1
-`
-
-// prometheusScrapeConfigTemplate configuration for general prometheus scrape target template
-// Used to add new scrape config to a pormetheus configmap
-const prometheusHTTPSScrapeConfigTemplate = `job_name: ##JOB_NAME##
-scheme: https
-tls_config:
-  ca_file: /etc/istio-certs/root-cert.pem
-  cert_file: /etc/istio-certs/cert-chain.pem
-  key_file: /etc/istio-certs/key.pem
-  insecure_skip_verify: true  # Prometheus does not support Istio security naming, thus skip verifying target pod certificate
+// Used to add new scrape config to a prometheus configmap
+const prometheusScrapeConfigTemplate = `job_name: ##JOB_NAME##
+##SSL_PROTOCOL##
 kubernetes_sd_configs:
 - role: pod
   namespaces:
@@ -171,54 +131,9 @@ relabel_configs:
 `
 
 // prometheusWLSScrapeConfigTemplate configuration for WebLogic prometheus scrape target template
-// Used to add new WebLogic scrape config to a pormetheus configmap
-const prometheusHTTPWLSScrapeConfigTemplate = `job_name: ##JOB_NAME##
-kubernetes_sd_configs:
-- role: pod
-  namespaces:
-    names:
-    - ##NAMESPACE##
-relabel_configs:
-- action: keep
-  source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape,__meta_kubernetes_pod_label_app_oam_dev_name,__meta_kubernetes_pod_label_app_oam_dev_component]
-  regex: true;##APP_NAME##;##COMP_NAME##
-- action: replace
-  source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
-  target_label: __metrics_path__
-  regex: (.+)
-- action: replace
-  source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
-  target_label: __address__
-  regex: ([^:]+)(?::\d+)?;(\d+)
-  replacement: $1:$2
-- action: replace
-  source_labels: [__meta_kubernetes_namespace]
-  target_label: namespace
-  regex: (.*)
-  replacement: $1
-- action: labelmap
-  regex: __meta_kubernetes_pod_label_(.+)
-- action: replace
-  source_labels: [__meta_kubernetes_pod_name]
-  target_label: pod_name
-- action: labeldrop
-  regex: '(controller_revision_hash)'
-- action: replace
-  source_labels: [name]
-  target_label: webapp
-  regex: '.*/(.*)$'
-  replacement: $1
-`
-
-// prometheusWLSScrapeConfigTemplate configuration for WebLogic prometheus scrape target template
-// Used to add new WebLogic scrape config to a pormetheus configmap
-const prometheusHTTPSWLSScrapeConfigTemplate = `job_name: ##JOB_NAME##
-scheme: https
-tls_config:
-  ca_file: /etc/istio-certs/root-cert.pem
-  cert_file: /etc/istio-certs/cert-chain.pem
-  key_file: /etc/istio-certs/key.pem
-  insecure_skip_verify: true  # Prometheus does not support Istio security naming, thus skip verifying target pod certificate
+// Used to add new WebLogic scrape config to a prometheus configmap
+const prometheusWLSScrapeConfigTemplate = `job_name: ##JOB_NAME##
+##SSL_PROTOCOL##
 kubernetes_sd_configs:
 - role: pod
   namespaces:
@@ -524,7 +439,7 @@ func (r *Reconciler) updatePrometheusScraperConfigMap(ctx context.Context, trait
 		configmap.Data[prometheusConfigKey] = yamlStr
 		return nil
 	})
-	// If the prometheus configmap was updated then restart the premetheus pods.
+	// If the prometheus configmap was updated then restart the prometheus pods.
 	if res == controllerutil.OperationResultUpdated {
 		return rel, res, r.restartPrometheusPods(ctx, deployment)
 	}
@@ -1008,10 +923,11 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 	if workload != nil {
 		// Populate the prometheus scrape config template
 		context := map[string]string{
-			appNameHolder:   trait.Labels[appObjectMetaLabel],
-			compNameHolder:  trait.Labels[compObjectMetaLabel],
-			jobNameHolder:   job,
-			namespaceHolder: trait.Namespace}
+			appNameHolder:     trait.Labels[appObjectMetaLabel],
+			compNameHolder:    trait.Labels[compObjectMetaLabel],
+			jobNameHolder:     job,
+			namespaceHolder:   trait.Namespace,
+			sslProtocolHolder: httpProtocol}
 
 		var configTemplate string
 		https, err := useHTTPSForScrapeTarget(ctx, c, trait)
@@ -1020,22 +936,16 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 		}
 
 		if https {
-			configTemplate = prometheusHTTPSScrapeConfigTemplate
-		} else {
-			configTemplate = prometheusHTTPScrapeConfigTemplate
+			context[sslProtocolHolder] = httpsProtocol
 		}
-
+		configTemplate = prometheusScrapeConfigTemplate
 		apiVerKind, err := vznav.GetAPIVersionKindOfUnstructured(workload)
 		if err != nil {
 			return "", nil, err
 		}
 		// Match any version of APIVersion=weblogic.oracle and Kind=Domain
 		if matched, _ := regexp.MatchString("^weblogic.oracle/.*\\.Domain$", apiVerKind); matched {
-			if https {
-				configTemplate = prometheusHTTPSWLSScrapeConfigTemplate
-			} else {
-				configTemplate = prometheusHTTPWLSScrapeConfigTemplate
-			}
+			configTemplate = prometheusWLSScrapeConfigTemplate
 		}
 
 		// Populate the prometheus scrape config template
