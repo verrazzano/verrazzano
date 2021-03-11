@@ -39,11 +39,6 @@ spec:
                 - paths:
                     - path: "/bobbys-front-end"
                       pathType: Prefix
-      scopes:
-        - scopeRef:
-            apiVersion: oam.verrazzano.io/v1alpha1
-            kind: LoggingScope
-            name: logging-scope
     - componentName: bobs-orders-wls
       traits:
         - trait:
