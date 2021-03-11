@@ -218,6 +218,7 @@ func (s *Syncer) configureBeats() {
 			// CreateOrUpdate updates the deployment if cluster name or es secret version changed
 			if toUpdate {
 				controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &deployment, func() error {
+					s.Log.Info(fmt.Sprintf("Update the deployment %s, cluster name from %q to %q, elasticsearch secret version from %q to %q", deploymentName, clusterNameEnv, managedClusterName, esSecertVersionEnv, esSecretVersion))
 					deployment.Spec.Template.Spec.Containers[0].Env = updateEnvValue(updateEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, managedClusterNameEnvName, managedClusterName), elasticsearchSecretVersionEnvName, esSecretVersion)
 					return nil
 				})
