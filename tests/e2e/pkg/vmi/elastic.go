@@ -64,7 +64,7 @@ func (e *Elastic) retryGet(url, username, password string) ([]byte, error) {
 	req, _ := retryablehttp.NewRequest("GET", url, nil)
 	req.SetBasicAuth(username, password)
 	client := e.getVmiHTTPClient()
-	client.CheckRetry = pkg.GetRetryPolicy(url)
+	client.CheckRetry = pkg.GetRetryPolicy()
 	resp, err := client.Do(req)
 	if err != nil {
 		pkg.Log(pkg.Info, fmt.Sprintf("Error GET %v error: %v", url, err))
