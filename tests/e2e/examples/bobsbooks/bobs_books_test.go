@@ -239,6 +239,25 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 					"serverName": "bobbys-front-end-adminserver"})
 			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 		})
+		indexName = "bobs-books-bobs-books-bobs-orders-wls"
+		// GIVEN a WebLogic application with logging enabled via a logging scope
+		// WHEN the Elasticsearch index is retrieved
+		// THEN verify that it is found
+		ginkgo.It("Verify Elasticsearch index exists", func() {
+			gomega.Eventually(func() bool {
+				return pkg.LogIndexFound(indexName)
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find log index "+indexName)
+		})
+		// GIVEN a WebLogic application with logging enabled via a logging scope
+		// WHEN the log records are retrieved from the Elasticsearch index
+		// THEN verify that at least one recent log record is found
+		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
+			gomega.Eventually(func() bool {
+				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+					"domainUID":  "bobs-bookstore",
+					"serverName": "bobs-bookstore-adminserver"})
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+		})
 	})
 	ginkgo.Context("Coherence logging.", func() {
 		indexName := "bobs-books-bobs-books-robert-coh"
