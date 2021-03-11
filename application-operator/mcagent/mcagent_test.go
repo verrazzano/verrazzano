@@ -152,16 +152,16 @@ func TestValidateSecret(t *testing.T) {
 	assert.Contains(err.Error(), fmt.Sprintf("missing the required field %s", constants.AdminKubeconfigData))
 }
 
-func Test_getClusterNameEnvValue(t *testing.T) {
+func Test_getEnvValue(t *testing.T) {
 	testEnvs := []corev1.EnvVar{}
-	asserts.Equal(t, "", getClusterNameEnvValue(testEnvs), "expected cluster name")
+	asserts.Equal(t, "", getEnvValue(testEnvs, managedClusterNameEnvName), "expected cluster name")
 	testEnvs = []corev1.EnvVar{
 		{
 			Name:  managedClusterNameEnvName,
 			Value: "cluster1",
 		},
 	}
-	asserts.Equal(t, "cluster1", getClusterNameEnvValue(testEnvs), "expected cluster name")
+	asserts.Equal(t, "cluster1", getEnvValue(testEnvs, managedClusterNameEnvName), "expected cluster name")
 	testEnvs = []corev1.EnvVar{
 		{
 			Name:  "env1",
@@ -172,13 +172,13 @@ func Test_getClusterNameEnvValue(t *testing.T) {
 			Value: "cluster1",
 		},
 	}
-	asserts.Equal(t, "cluster1", getClusterNameEnvValue(testEnvs), "expected cluster name")
+	asserts.Equal(t, "cluster1", getEnvValue(testEnvs, managedClusterNameEnvName), "expected cluster name")
 }
 
-func Test_updateClusterNameEnvValue(t *testing.T) {
+func Test_updateEnvValue(t *testing.T) {
 	testEnvs := []corev1.EnvVar{}
 	newValue := "cluster2"
-	newEnvs := updateClusterNameEnvValue(testEnvs, newValue)
+	newEnvs := updateEnvValue(testEnvs, managedClusterNameEnvName, newValue)
 	asserts.Equal(t, managedClusterNameEnvName, newEnvs[0].Name, "expected env")
 	asserts.Equal(t, newValue, newEnvs[0].Value, "expected env value")
 	testEnvs = []corev1.EnvVar{
@@ -188,7 +188,7 @@ func Test_updateClusterNameEnvValue(t *testing.T) {
 		},
 	}
 	newValue = "cluster2"
-	newEnvs = updateClusterNameEnvValue(testEnvs, newValue)
+	newEnvs = updateEnvValue(testEnvs, managedClusterNameEnvName, newValue)
 	asserts.Equal(t, managedClusterNameEnvName, newEnvs[0].Name, "expected env")
 	asserts.Equal(t, newValue, newEnvs[0].Value, "expected env value")
 	testEnvs = []corev1.EnvVar{
@@ -201,12 +201,12 @@ func Test_updateClusterNameEnvValue(t *testing.T) {
 			Value: "cluster1",
 		},
 	}
-	newEnvs = updateClusterNameEnvValue(testEnvs, newValue)
+	newEnvs = updateEnvValue(testEnvs, managedClusterNameEnvName, newValue)
 	asserts.Equal(t, managedClusterNameEnvName, newEnvs[1].Name, "expected env")
 	asserts.Equal(t, newValue, newEnvs[1].Value, "expected env value")
 }
 
-func getTestDeploymentSpec(clusterName string) appsv1.DeploymentSpec {
+func getTestDeploymentSpec(clusterName, esSecretVersion string) appsv1.DeploymentSpec {
 	return appsv1.DeploymentSpec{
 		Template: corev1.PodTemplateSpec{
 			Spec: corev1.PodSpec{
@@ -214,8 +214,12 @@ func getTestDeploymentSpec(clusterName string) appsv1.DeploymentSpec {
 					{
 						Env: []corev1.EnvVar{
 							{
-								Name:  "MANAGED_CLUSTER_NAME",
+								Name:  managedClusterNameEnvName,
 								Value: clusterName,
+							},
+							{
+								Name:  elasticsearchSecretVersionEnvName,
+								Value: esSecretVersion,
 							},
 						},
 					},
@@ -227,8 +231,10 @@ func getTestDeploymentSpec(clusterName string) appsv1.DeploymentSpec {
 
 func TestSyncer_configureBeats(t *testing.T) {
 	type fields struct {
-		oldClusterName string
-		newClusterName string
+		oldClusterName     string
+		newClusterName     string
+		oldESSecretVersion string
+		newESSecretVersion string
 	}
 	tests := []struct {
 		name   string
@@ -269,15 +275,60 @@ func TestSyncer_configureBeats(t *testing.T) {
 				newClusterName: "testCluster1",
 			},
 		},
+		{
+			name: "update ES secret",
+			fields: fields{
+				oldESSecretVersion: "secret v1",
+				newESSecretVersion: "secret v2",
+			},
+		},
+		{
+			name: "same ES secret",
+			fields: fields{
+				oldESSecretVersion: "secret v1",
+				newESSecretVersion: "secret v1",
+			},
+		},
+		{
+			name: "update both",
+			fields: fields{
+				oldClusterName:     "testCluster1",
+				newClusterName:     "testCluster1",
+				oldESSecretVersion: "secret v1",
+				newESSecretVersion: "secret v2",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			oldClusterName := tt.fields.oldClusterName
 			newClusterName := tt.fields.newClusterName
+			oldESSecretVersion := tt.fields.oldESSecretVersion
+			newESSecretVersion := tt.fields.newESSecretVersion
 
 			// Managed cluster mocks
 			mcMocker := gomock.NewController(t)
 			mcMock := mocks.NewMockClient(mcMocker)
+
+			// Managed Cluster - expect call to get the cluster registration secret.
+			mcMock.EXPECT().
+				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCRegistrationSecret}, gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+					secret.Name = constants.MCRegistrationSecret
+					secret.Namespace = constants.VerrazzanoSystemNamespace
+					secret.ClusterName = newClusterName
+					return nil
+				})
+
+			// Managed Cluster - expect call to get the ES secret.
+			mcMock.EXPECT().
+				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.ElasticsearchSecretName}, gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+					secret.Name = constants.ElasticsearchSecretName
+					secret.Namespace = constants.VerrazzanoSystemNamespace
+					secret.ResourceVersion = newESSecretVersion
+					return nil
+				})
 
 			// Managed Cluster - expect call to get the verrazzano operator deployment.
 			mcMock.EXPECT().
@@ -285,19 +336,19 @@ func TestSyncer_configureBeats(t *testing.T) {
 				DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
 					deployment.Name = "verrazzano-operator"
 					deployment.Namespace = constants.VerrazzanoSystemNamespace
-					deployment.Spec = getTestDeploymentSpec(oldClusterName)
+					deployment.Spec = getTestDeploymentSpec(oldClusterName, oldESSecretVersion)
 					return nil
 				})
 
 			// update only when registration is updated
-			if oldClusterName != newClusterName {
+			if oldClusterName != newClusterName || oldESSecretVersion != newESSecretVersion {
 				// Managed Cluster - expect another call to get the verrazzano operator deployment prior to updating it
 				mcMock.EXPECT().
 					Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-operator"}, gomock.Not(gomock.Nil())).
 					DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
 						deployment.Name = "verrazzano-operator"
 						deployment.Namespace = constants.VerrazzanoSystemNamespace
-						deployment.Spec = getTestDeploymentSpec(oldClusterName)
+						deployment.Spec = getTestDeploymentSpec(oldClusterName, oldESSecretVersion)
 						return nil
 					})
 
@@ -305,17 +356,17 @@ func TestSyncer_configureBeats(t *testing.T) {
 				mcMock.EXPECT().
 					Update(gomock.Any(), gomock.Any()).
 					DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment) error {
-						asserts.Equal(t, newClusterName, getClusterNameEnvValue(deployment.Spec.Template.Spec.Containers[0].Env), "expected env value")
+						asserts.Equal(t, newClusterName, getEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, managedClusterNameEnvName), "expected env value for "+managedClusterNameEnvName)
+						asserts.Equal(t, newESSecretVersion, getEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, elasticsearchSecretVersionEnvName), "expected env value for "+elasticsearchSecretVersionEnvName)
 						return nil
 					})
 			}
 
 			// Make the request
 			s := &Syncer{
-				LocalClient:        mcMock,
-				Log:                ctrl.Log.WithName("test"),
-				ManagedClusterName: newClusterName,
-				Context:            context.TODO(),
+				LocalClient: mcMock,
+				Log:         ctrl.Log.WithName("test"),
+				Context:     context.TODO(),
 			}
 			s.configureBeats()
 

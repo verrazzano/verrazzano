@@ -24,8 +24,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const managedClusterNameEnvName = "MANAGED_CLUSTER_NAME"
-
 // StartAgent - start the agent thread for syncing multi-cluster objects
 func StartAgent(client client.Client, log logr.Logger) {
 	// Wait for the existence of the verrazzano-cluster-agent secret.  It contains the credentials
@@ -38,7 +36,6 @@ func StartAgent(client client.Client, log logr.Logger) {
 		Log:                   log,
 		Context:               context.TODO(),
 		ProjectNamespaces:     []string{},
-		ManagedClusterName:    "",
 		AgentSecretFound:      false,
 		SecretResourceVersion: "",
 	}
@@ -64,7 +61,6 @@ func (s *Syncer) ProcessAgentThread() error {
 		if clusters.IgnoreNotFoundWithLog("secret", err, s.Log) == nil && s.AgentSecretFound {
 			s.Log.Info(fmt.Sprintf("the secret %s in namespace %s was deleted", constants.MCAgentSecret, constants.VerrazzanoSystemNamespace))
 			s.AgentSecretFound = false
-			s.ManagedClusterName = ""
 		}
 		return nil
 	}
@@ -176,6 +172,9 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	return clientset, nil
 }
 
+const managedClusterNameEnvName = "MANAGED_CLUSTER_NAME"
+const elasticsearchSecretVersionEnvName = "ES_SECRET_VERSION"
+
 // reconfigure beats by restarting Verrazzano Operator deployment if ManagedClusterName has been changed
 func (s *Syncer) configureBeats() {
 	// Get the verrazzano-operator deployment
@@ -184,11 +183,42 @@ func (s *Syncer) configureBeats() {
 	err := s.LocalClient.Get(context.TODO(), deploymentName, &deployment)
 	if err == nil {
 		if len(deployment.Spec.Template.Spec.Containers) > 0 {
-			clusterNameEnv := getClusterNameEnvValue(deployment.Spec.Template.Spec.Containers[0].Env)
-			if clusterNameEnv != s.ManagedClusterName {
-				s.Log.Info(fmt.Sprintf("Restarting the deployment %s, cluster name changed from %q to %q", deploymentName, clusterNameEnv, s.ManagedClusterName))
+			toUpdate := false
+
+			// get the cluster name
+			managedClusterName := ""
+			regSecret := corev1.Secret{}
+			regErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}, &regSecret)
+			if regErr != nil {
+				if clusters.IgnoreNotFoundWithLog("secret", regErr, s.Log) != nil {
+					return
+				}
+			} else {
+				managedClusterName = regSecret.ClusterName
+			}
+			clusterNameEnv := getEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, managedClusterNameEnvName)
+			toUpdate = clusterNameEnv != managedClusterName
+
+			// get the es secret version
+			esSecretVersion := ""
+			esSecret := corev1.Secret{}
+			esErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.ElasticsearchSecretName, Namespace: constants.VerrazzanoSystemNamespace}, &esSecret)
+			if esErr != nil {
+				if clusters.IgnoreNotFoundWithLog("secret", esErr, s.Log) != nil {
+					return
+				}
+			} else {
+				esSecretVersion = esSecret.ResourceVersion
+			}
+			esSecertVersionEnv := getEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, elasticsearchSecretVersionEnvName)
+			if !toUpdate {
+				toUpdate = esSecertVersionEnv != esSecretVersion
+			}
+
+			// CreateOrUpdate updates the deployment if cluster name or es secret version changed
+			if toUpdate {
 				controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &deployment, func() error {
-					deployment.Spec.Template.Spec.Containers[0].Env = updateClusterNameEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, s.ManagedClusterName)
+					deployment.Spec.Template.Spec.Containers[0].Env = updateEnvValue(updateEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, managedClusterNameEnvName, managedClusterName), elasticsearchSecretVersionEnvName, esSecretVersion)
 					return nil
 				})
 			}
@@ -200,23 +230,21 @@ func (s *Syncer) configureBeats() {
 	}
 }
 
-// get the value for env var MANAGED_CLUSTER_NAME
-func getClusterNameEnvValue(envs []corev1.EnvVar) string {
+func getEnvValue(envs []corev1.EnvVar, envName string) string {
 	for _, env := range envs {
-		if env.Name == managedClusterNameEnvName {
+		if env.Name == envName {
 			return env.Value
 		}
 	}
 	return ""
 }
 
-// update the value for env var MANAGED_CLUSTER_NAME
-func updateClusterNameEnvValue(envs []corev1.EnvVar, newValue string) []corev1.EnvVar {
+func updateEnvValue(envs []corev1.EnvVar, envName string, newValue string) []corev1.EnvVar {
 	for i, env := range envs {
-		if env.Name == managedClusterNameEnvName {
+		if env.Name == envName {
 			envs[i].Value = newValue
 			return envs
 		}
 	}
-	return append(envs, corev1.EnvVar{Name: managedClusterNameEnvName, Value: newValue})
+	return append(envs, corev1.EnvVar{Name: envName, Value: newValue})
 }
