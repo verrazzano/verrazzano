@@ -65,7 +65,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 	}
 
 	if !vmc.ObjectMeta.DeletionTimestamp.IsZero() {
-		// Finalizer is present, so lets do the uninstall
+		// Finalizer is present, so lets do the cluster deletion
 		if containsString(vmc.ObjectMeta.Finalizers, finalizerName) {
 			if err := r.reconcileManagedClusterDelete(ctx, vmc); err != nil {
 				return reconcile.Result{}, err
