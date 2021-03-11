@@ -1,0 +1,49 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: bobs-orders-configmap
+  namespace: helidon-config
+spec:
+  workload:
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: helidon-config-cm
+      namespace: helidon-config
+    data:
+      config-properties.yaml: |
+        app.greeting: Hello
+---
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: helidon-config-component
+  namespace: helidon-config
+spec:
+  workload:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoHelidonWorkload
+    metadata:
+      name: helidon-config-workload
+      labels:
+        app: helidon-config
+    spec:
+      deploymentTemplate:
+        metadata:
+          name: helidon-config-deployment
+        podSpec:
+          containers:
+            - name: helidon-config-container
+              image: "ghcr.io/verrazzano/example-helidon-config-app:0.1.10-3-20201016220428-56fb4d4"
+              ports:
+                - containerPort: 7001
+                  name: http
+              volumeMounts:
+                - mountPath: /conf
+                  name: config-volume
+          volumes:
+            - name: config-volume
+              configMap:
+                name: helidon-config-cm
