@@ -194,7 +194,7 @@ func (s *Syncer) configureBeats() {
 					return
 				}
 			} else {
-				managedClusterName = regSecret.ClusterName
+				managedClusterName = string(regSecret.Data[constants.ClusterNameData])
 			}
 			clusterNameEnv := getEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, managedClusterNameEnvName)
 			toUpdate = clusterNameEnv != managedClusterName

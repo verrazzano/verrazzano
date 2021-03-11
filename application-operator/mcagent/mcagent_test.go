@@ -316,7 +316,7 @@ func TestSyncer_configureBeats(t *testing.T) {
 				DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 					secret.Name = constants.MCRegistrationSecret
 					secret.Namespace = constants.VerrazzanoSystemNamespace
-					secret.ClusterName = newClusterName
+					secret.Data = map[string][]byte{constants.ClusterNameData: []byte(newClusterName)}
 					return nil
 				})
 
