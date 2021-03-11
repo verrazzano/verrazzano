@@ -5,6 +5,7 @@ package multiclusterloggingscope
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -39,6 +40,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterLoggingScope", err, logger)
 	}
 
+	err = clusters.UpdateStateIfChanged(ctx, r.Status(), &mcLogScope, mcLogScope.Spec.Placement, &mcLogScope.Status)
+	if err != nil {
+		return result, fmt.Errorf("could not update state of MultiClusterLoggingScope %s", req.NamespacedName)
+	}
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcLogScope.Spec.Placement) {
 		return ctrl.Result{}, nil
 	}

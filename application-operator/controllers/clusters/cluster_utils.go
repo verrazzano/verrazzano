@@ -297,3 +297,19 @@ func UpdateStatus(resource MultiClusterResource, mcStatus *clustersv1alpha1.Mult
 	}
 	return reconcile.Result{}, nil
 }
+
+// UpdateStateIfChanged - if the effective state of the resource has changed, update it. This must
+// be done whether the resource is placed in this cluster or not, because we could be in an admin
+// cluster and receive cluster level statuses from managed clusters, which can change our effective
+// state
+func UpdateStateIfChanged(ctx context.Context, statusWriter client.StatusWriter,
+	mcRes MultiClusterResource, placement clustersv1alpha1.Placement,
+	statusPtr *clustersv1alpha1.MultiClusterResourceStatus) error {
+
+	effectiveState := ComputeEffectiveState(mcRes.GetStatus(), placement)
+	if effectiveState != statusPtr.State {
+		statusPtr.State = effectiveState
+		return statusWriter.Update(ctx, mcRes)
+	}
+	return nil
+}

@@ -13,6 +13,7 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -55,9 +56,17 @@ func (s *Syncer) processStatusUpdates() {
 				msg.NewClusterStatus.State, msg.NewCondition.Type, msg.Resource.GetNamespace(), msg.Resource.GetName(), msg.NewClusterStatus.Name))
 			err := s.performAdminStatusUpdate(msg)
 			if err != nil {
-				s.Log.Error(err, fmt.Sprintf("processStatusUpdates: Status Update failed for %s/%s from cluster %s: %s",
-					msg.Resource.GetNamespace(), msg.Resource.GetName(),
-					msg.NewClusterStatus.Name, err.Error()))
+				if errors.IsConflict(err) {
+					// Retry on conflict - put the message back on the channel
+					s.StatusUpdateChannel <- msg
+					s.Log.Error(err, fmt.Sprintf("processStatusUpdates: status update failed with conflict %s/%s from cluster %s, will be retried: %s",
+						msg.Resource.GetNamespace(), msg.Resource.GetName(),
+						msg.NewClusterStatus.Name, err.Error()))
+				} else {
+					s.Log.Error(err, fmt.Sprintf("processStatusUpdates: status update failed for %s/%s from cluster %s: %s",
+						msg.Resource.GetNamespace(), msg.Resource.GetName(),
+						msg.NewClusterStatus.Name, err.Error()))
+				}
 			}
 		default:
 			break

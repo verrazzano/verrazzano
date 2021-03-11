@@ -5,6 +5,7 @@ package multiclusterapplicationconfiguration
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/go-logr/logr"
@@ -42,6 +43,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	err := r.fetchMultiClusterAppConfig(ctx, req.NamespacedName, &mcAppConfig)
 	if err != nil {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterApplicationConfiguration", err, logger)
+	}
+
+	err = clusters.UpdateStateIfChanged(ctx, r.Status(), &mcAppConfig, mcAppConfig.Spec.Placement, &mcAppConfig.Status)
+	if err != nil {
+		return result, fmt.Errorf("could not update state of MultiClusterApplicationConfiguration %s", req.NamespacedName)
 	}
 
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcAppConfig.Spec.Placement) {

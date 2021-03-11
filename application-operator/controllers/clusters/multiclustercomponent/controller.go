@@ -5,6 +5,7 @@ package multiclustercomponent
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/go-logr/logr"
@@ -39,6 +40,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterComponent", err, logger)
 	}
 
+	err = clusters.UpdateStateIfChanged(ctx, r.Status(), &mcComp, mcComp.Spec.Placement, &mcComp.Status)
+	if err != nil {
+		return result, fmt.Errorf("could not update state of MultiClusterComponent %s", req.NamespacedName)
+	}
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcComp.Spec.Placement) {
 		return ctrl.Result{}, nil
 	}

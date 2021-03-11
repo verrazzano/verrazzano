@@ -5,6 +5,7 @@ package multiclustersecret
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
@@ -40,6 +41,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterSecret", err, logger)
 	}
 
+	err = clusters.UpdateStateIfChanged(ctx, r.Status(), &mcSecret, mcSecret.Spec.Placement, &mcSecret.Status)
+	if err != nil {
+		return result, fmt.Errorf("could not update state of MultiClusterSecret %s", req.NamespacedName)
+	}
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcSecret.Spec.Placement) {
 		return ctrl.Result{}, nil
 	}

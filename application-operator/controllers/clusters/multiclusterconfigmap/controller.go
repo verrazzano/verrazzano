@@ -5,6 +5,7 @@ package multiclusterconfigmap
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
@@ -41,6 +42,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterConfigMap", err, logger)
 	}
 
+	err = clusters.UpdateStateIfChanged(ctx, r.Status(), &mcConfigMap, mcConfigMap.Spec.Placement, &mcConfigMap.Status)
+	if err != nil {
+		return result, fmt.Errorf("could not update state of MultiClusterConfigMap %s", req.NamespacedName)
+	}
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcConfigMap.Spec.Placement) {
 		return ctrl.Result{}, nil
 	}
