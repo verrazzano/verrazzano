@@ -42,6 +42,8 @@ const (
 	managedClusterData = "cluster1"
 )
 
+type AssertFn func(configMap *corev1.ConfigMap) error
+
 // TestCreateVMC tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an VerrazzanoManagedCluster resource
 // WHEN a VerrazzanoManagedCluster resource has been applied
@@ -56,7 +58,6 @@ func TestCreateVMC(t *testing.T) {
 		"    -----BEGIN CERTIFICATE-----\n" +
 		"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
 		"    -----END CERTIFICATE-----"
-	labels := map[string]string{"label1": "test"}
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -66,87 +67,30 @@ func TestCreateVMC(t *testing.T) {
 	defer setConfigFunc(getConfigFunc)
 	setConfigFunc(fakeGetConfig)
 
-	// Expect a call to get the VerrazzanoManagedCluster resource.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
-			vmc.TypeMeta = metav1.TypeMeta{
-				APIVersion: apiVersion,
-				Kind:       kind}
-			vmc.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name,
-				Labels:    labels}
-			vmc.Spec = clustersapi.VerrazzanoManagedClusterSpec{
-				PrometheusSecret: getPrometheusSecretName(),
-			}
-			return nil
-		})
-
-	// Expect a call to update the VerrazzanoManagedCluster finalizer
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.True(len(vmc.ObjectMeta.Finalizers) == 1, "Wrong number of finalizers")
-			asserts.Equal(finalizerName, vmc.ObjectMeta.Finalizers[0], "wrong finalizer")
-			return nil
-		})
-
+	expectVmcGetAndUpdate(t, mock, name)
 	expectSyncServiceAccount(t, mock, name)
 	expectSyncRoleBinding(t, mock, name)
 	expectSyncAgent(t, mock, name)
 	expectSyncRegistration(t, mock, name)
 	expectSyncElasticsearch(t, mock, name)
 	expectSyncManifest(t, mock, name)
+	expectSyncPrometheusScraper(mock, name, "", promData, func(configMap *corev1.ConfigMap) error {
+		asserts.Len(configMap.Data, 2, "no data found")
+		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
+		prometheusYaml := configMap.Data["prometheus.yml"]
 
-	// following are calls from syncPrometheusScraper
-
-	// Expect a call to get the prometheus secret - return it
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getPrometheusSecretName()}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				getClusterYamlKey("test"): []byte(promData),
-			}
-			return nil
-		})
-
-	// Expect a call to get the prometheus configmap and return a new one in this case (not testing existing entries)
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "vmi-system-prometheus-config"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
-			configMap.Data = map[string]string{}
-			return nil
-		})
-
-	// Expect a call to Update the configmap
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.UpdateOption) error {
-			asserts.Len(configMap.Data, 2, "no data found")
-			asserts.NotNil(configMap.Data["ca-cluster1"], "No cert entry found")
-			prometheusYaml := configMap.Data["prometheus.yml"]
-
-			cfg, err := parsePrometheusConfiguration(prometheusYaml)
-			if err != nil {
-				asserts.Fail("Failed due to error %v", err)
-			}
-			scrapeConfigs := cfg.Path(scrapeConfigsKey).Children()
-			var scrapeConfig *gabs.Container
-			for _, scrapeConfig = range scrapeConfigs {
-				jobName := scrapeConfig.Search(jobNameKey).Data()
-				if jobName == name {
-					break
-				}
-			}
-			asserts.NotNil(prometheusYaml, "No prometheus config yaml found")
-			asserts.Equal("prometheus.vmi.system.default.152.67.141.181.xip.io",
-				scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
-			asserts.NotEmpty(scrapeConfig.Search("basic_auth", "username").Data(), "No password")
-			asserts.Equal(prometheusConfigBasePath+"ca-test",
-				scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong user")
-			return nil
-		})
+		scrapeConfig, err := getScrapeConfig(prometheusYaml, name)
+		if err != nil {
+			asserts.Fail("failed due to error %v", err)
+		}
+		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
+		asserts.Equal("prometheus.vmi.system.default.152.67.141.181.xip.io",
+			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
+		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
+		asserts.Equal(prometheusConfigBasePath+"ca-test",
+			scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
+		return nil
+	})
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -171,7 +115,6 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	promData := "prometheus:\n" +
 		"  authpasswd: nRXlxXgMwN\n" +
 		"  host: prometheus.vmi.system.default.152.67.141.181.xip.io\n"
-	labels := map[string]string{"label1": "test"}
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -181,86 +124,29 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	defer setConfigFunc(getConfigFunc)
 	setConfigFunc(fakeGetConfig)
 
-	// Expect a call to get the VerrazzanoManagedCluster resource.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
-			vmc.TypeMeta = metav1.TypeMeta{
-				APIVersion: apiVersion,
-				Kind:       kind}
-			vmc.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name,
-				Labels:    labels}
-			vmc.Spec = clustersapi.VerrazzanoManagedClusterSpec{
-				PrometheusSecret: getPrometheusSecretName(),
-			}
-			return nil
-		})
-
-	// Expect a call to update the VerrazzanoManagedCluster finalizer
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.True(len(vmc.ObjectMeta.Finalizers) == 1, "Wrong number of finalizers")
-			asserts.Equal(finalizerName, vmc.ObjectMeta.Finalizers[0], "wrong finalizer")
-			return nil
-		})
-
+	expectVmcGetAndUpdate(t, mock, name)
 	expectSyncServiceAccount(t, mock, name)
 	expectSyncRoleBinding(t, mock, name)
 	expectSyncAgent(t, mock, name)
 	expectSyncRegistration(t, mock, name)
 	expectSyncElasticsearch(t, mock, name)
 	expectSyncManifest(t, mock, name)
+	expectSyncPrometheusScraper(mock, name, "", promData, func(configMap *corev1.ConfigMap) error {
+		asserts.Len(configMap.Data, 2, "no data found")
+		asserts.Empty(configMap.Data["ca-test"], "Cert entry found")
+		prometheusYaml := configMap.Data["prometheus.yml"]
+		scrapeConfig, err := getScrapeConfig(prometheusYaml, name)
+		if err != nil {
+			asserts.Fail("failed due to error %v", err)
+		}
+		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
+		asserts.Equal("prometheus.vmi.system.default.152.67.141.181.xip.io",
+			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
+		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
+		asserts.Empty(scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
 
-	// following are calls from syncPrometheusScraper
-
-	// Expect a call to get the prometheus secret - return it
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getPrometheusSecretName()}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				getClusterYamlKey("test"): []byte(promData),
-			}
-			return nil
-		})
-
-	// Expect a call to get the prometheus configmap and return a new one in this case (not testing existing entries)
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "vmi-system-prometheus-config"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
-			configMap.Data = map[string]string{}
-			return nil
-		})
-
-	// Expect a call to Update the configmap
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.UpdateOption) error {
-			asserts.Len(configMap.Data, 2, "no data found")
-			asserts.Empty(configMap.Data["ca-cluster1"], "Cert entry found")
-			prometheusYaml := configMap.Data["prometheus.yml"]
-			cfg, err := parsePrometheusConfiguration(prometheusYaml)
-			if err != nil {
-				asserts.Fail("Failed due to error %v", err)
-			}
-			scrapeConfigs := cfg.Path(scrapeConfigsKey).Children()
-			var scrapeConfig *gabs.Container
-			for _, scrapeConfig = range scrapeConfigs {
-				jobName := scrapeConfig.Search(jobNameKey).Data()
-				if jobName == name {
-					break
-				}
-			}
-			asserts.NotNil(prometheusYaml, "No prometheus config yaml found")
-			asserts.Equal("prometheus.vmi.system.default.152.67.141.181.xip.io",
-				scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
-			asserts.NotEmpty(scrapeConfig.Search("basic_auth", "username").Data(), "No password")
-			asserts.Empty(scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong user")
-
-			return nil
-		})
+		return nil
+	})
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -288,7 +174,15 @@ func TestCreateVMCWithExistingScrapeConfiguration(t *testing.T) {
 		"    -----BEGIN CERTIFICATE-----\n" +
 		"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
 		"    -----END CERTIFICATE-----"
-	labels := map[string]string{"label1": "test"}
+	prometheusYaml := `global:
+  scrape_interval: 20s
+  scrape_timeout: 10s
+  evaluation_interval: 30s
+scrape_configs:
+- job_name: cluster1
+  scrape_interval: 20s
+  scrape_timeout: 15s
+  scheme: http`
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -298,99 +192,31 @@ func TestCreateVMCWithExistingScrapeConfiguration(t *testing.T) {
 	defer setConfigFunc(getConfigFunc)
 	setConfigFunc(fakeGetConfig)
 
-	// Expect a call to get the VerrazzanoManagedCluster resource.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
-			vmc.TypeMeta = metav1.TypeMeta{
-				APIVersion: apiVersion,
-				Kind:       kind}
-			vmc.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name,
-				Labels:    labels}
-			vmc.Spec = clustersapi.VerrazzanoManagedClusterSpec{
-				PrometheusSecret: getPrometheusSecretName(),
-			}
-			return nil
-		})
-
-	// Expect a call to update the VerrazzanoManagedCluster finalizer
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.True(len(vmc.ObjectMeta.Finalizers) == 1, "Wrong number of finalizers")
-			asserts.Equal(finalizerName, vmc.ObjectMeta.Finalizers[0], "wrong finalizer")
-			return nil
-		})
-
+	expectVmcGetAndUpdate(t, mock, name)
 	expectSyncServiceAccount(t, mock, name)
 	expectSyncRoleBinding(t, mock, name)
 	expectSyncAgent(t, mock, name)
 	expectSyncRegistration(t, mock, name)
 	expectSyncElasticsearch(t, mock, name)
 	expectSyncManifest(t, mock, name)
+	expectSyncPrometheusScraper(mock, name, prometheusYaml, promData, func(configMap *corev1.ConfigMap) error {
+		// check for the modified entry
+		asserts.Len(configMap.Data, 2, "no data found")
+		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
+		prometheusYaml := configMap.Data["prometheus.yml"]
+		scrapeConfig, err := getScrapeConfig(prometheusYaml, name)
+		if err != nil {
+			asserts.Fail("failed due to error %v", err)
+		}
+		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
+		asserts.Equal("prometheus.vmi.system.default.152.67.141.181.xip.io",
+			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
+		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
+		asserts.Equal(prometheusConfigBasePath+"ca-test",
+			scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
 
-	// following are calls from syncPrometheusScraper
-
-	// Expect a call to get the prometheus secret - return it
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getPrometheusSecretName()}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				getClusterYamlKey("test"): []byte(promData),
-			}
-			return nil
-		})
-
-	// Expect a call to get the prometheus configmap and return one with an existing entry
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "vmi-system-prometheus-config"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
-			// setup a scaled down existing scrape config entry for cluster1
-			configMap.Data = map[string]string{
-				"prometheus.yml": `global:
-  scrape_interval: 20s
-  scrape_timeout: 10s
-  evaluation_interval: 30s
-scrape_configs:
-- job_name: cluster1
-  scrape_interval: 20s
-  scrape_timeout: 15s
-  scheme: http`,
-			}
-			return nil
-		})
-
-	// Expect a call to Update the configmap
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.UpdateOption) error {
-			// check for the modified entry
-			asserts.Len(configMap.Data, 2, "no data found")
-			asserts.NotNil(configMap.Data["ca-cluster1"], "No cert entry found")
-			prometheusYaml := configMap.Data["prometheus.yml"]
-			cfg, err := parsePrometheusConfiguration(prometheusYaml)
-			if err != nil {
-				asserts.Fail("Failed due to error %v", err)
-			}
-			scrapeConfigs := cfg.Path(scrapeConfigsKey).Children()
-			var scrapeConfig *gabs.Container
-			for _, scrapeConfig = range scrapeConfigs {
-				jobName := scrapeConfig.Search(jobNameKey).Data()
-				if jobName == name {
-					break
-				}
-			}
-			asserts.NotNil(prometheusYaml, "No prometheus config yaml found")
-			asserts.Equal("prometheus.vmi.system.default.152.67.141.181.xip.io",
-				scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
-			asserts.NotEmpty(scrapeConfig.Search("basic_auth", "username").Data(), "No password")
-			asserts.Equal(prometheusConfigBasePath+"ca-test",
-				scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong user")
-
-			return nil
-		})
+		return nil
+	})
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -418,7 +244,15 @@ func TestReplaceExistingScrapeConfiguration(t *testing.T) {
 		"    -----BEGIN CERTIFICATE-----\n" +
 		"    MIIBiDCCAS6gAwIBAgIBADAKBggqhkjOPQQDAjA7MRwwGgYDVQQKExNkeW5hbWlj\n" +
 		"    -----END CERTIFICATE-----"
-	labels := map[string]string{"label1": "test"}
+	prometheusYaml := `global:
+  scrape_interval: 20s
+  scrape_timeout: 10s
+  evaluation_interval: 30s
+scrape_configs:
+- job_name: test
+  scrape_interval: 20s
+  scrape_timeout: 15s
+  scheme: http`
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -428,102 +262,31 @@ func TestReplaceExistingScrapeConfiguration(t *testing.T) {
 	defer setConfigFunc(getConfigFunc)
 	setConfigFunc(fakeGetConfig)
 
-	// Expect a call to get the VerrazzanoManagedCluster resource.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
-			vmc.TypeMeta = metav1.TypeMeta{
-				APIVersion: apiVersion,
-				Kind:       kind}
-			vmc.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name,
-				Labels:    labels}
-			vmc.Spec = clustersapi.VerrazzanoManagedClusterSpec{
-				PrometheusSecret: getPrometheusSecretName(),
-			}
-			return nil
-		})
-
-	// Expect a call to update the VerrazzanoManagedCluster finalizer
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.True(len(vmc.ObjectMeta.Finalizers) == 1, "Wrong number of finalizers")
-			asserts.Equal(finalizerName, vmc.ObjectMeta.Finalizers[0], "wrong finalizer")
-			return nil
-		})
-
+	expectVmcGetAndUpdate(t, mock, name)
 	expectSyncServiceAccount(t, mock, name)
 	expectSyncRoleBinding(t, mock, name)
 	expectSyncAgent(t, mock, name)
 	expectSyncRegistration(t, mock, name)
 	expectSyncElasticsearch(t, mock, name)
 	expectSyncManifest(t, mock, name)
-
-	// following are calls from syncPrometheusScraper
-
-	// Expect a call to get the prometheus secret - return it
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getPrometheusSecretName()}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				getClusterYamlKey("test"): []byte(promData),
-			}
-			return nil
-		})
-
-	// Expect a call to get the prometheus configmap and return one with the the same job name/cluster name
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "vmi-system-prometheus-config"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
-			// setup a scaled down existing scrape config entry for cluster1
-			configMap.Data = map[string]string{
-				"prometheus.yml": `global:
-  scrape_interval: 20s
-  scrape_timeout: 10s
-  evaluation_interval: 30s
-scrape_configs:
-- job_name: test
-  scrape_interval: 20s
-  scrape_timeout: 15s
-  scheme: http`,
-			}
-			return nil
-		})
-
-	// Expect a call to Update the configmap
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.UpdateOption) error {
-			// check for the modified entry
-			asserts.Len(configMap.Data, 2, "no data found")
-			asserts.NotNil(configMap.Data["ca-test"], "No cert entry found")
-			prometheusYaml := configMap.Data["prometheus.yml"]
-			cfg, err := parsePrometheusConfiguration(prometheusYaml)
-			if err != nil {
-				asserts.Fail("Failed due to error %v", err)
-			}
-			scrapeConfigs := cfg.Path(scrapeConfigsKey).Children()
-			var scrapeConfig *gabs.Container
-			for _, scrapeConfig = range scrapeConfigs {
-				jobName := scrapeConfig.Search(jobNameKey).Data()
-				if jobName == name {
-					break
-				}
-			}
-			asserts.NotNil(prometheusYaml, "No prometheus config yaml found")
-			asserts.Equal(1, len(scrapeConfigs), "too many scrape configs")
-			asserts.Equal("test", scrapeConfig.Path("job_name").Data(), "wrong job name")
-			asserts.Equal("prometheus.vmi.system.default.152.67.141.181.xip.io",
-				scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
-			asserts.NotEmpty(scrapeConfig.Search("basic_auth", "username").Data(), "No password")
-			asserts.Equal(prometheusConfigBasePath+"ca-test",
-				scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong user")
-			asserts.Equal("https", scrapeConfig.Path("scheme").Data(), "wrong scheme")
-			asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password"), "No password")
-			return nil
-		})
+	expectSyncPrometheusScraper(mock, name, prometheusYaml, promData, func(configMap *corev1.ConfigMap) error {
+		asserts.Len(configMap.Data, 2, "no data found")
+		asserts.NotNil(configMap.Data["ca-test"], "No cert entry found")
+		prometheusYaml := configMap.Data["prometheus.yml"]
+		scrapeConfig, err := getScrapeConfig(prometheusYaml, name)
+		if err != nil {
+			asserts.Fail("failed due to error %v", err)
+		}
+		asserts.NotEmpty(prometheusYaml, "No prometheus config yaml found")
+		asserts.Equal("test", scrapeConfig.Path("job_name").Data(), "wrong job name")
+		asserts.Equal("prometheus.vmi.system.default.152.67.141.181.xip.io",
+			scrapeConfig.Search("static_configs", "0", "targets", "0").Data(), "No host entry found")
+		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
+		asserts.Equal(prometheusConfigBasePath+"ca-test",
+			scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
+		asserts.Equal("https", scrapeConfig.Path("scheme").Data(), "wrong scheme")
+		return nil
+	})
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -535,10 +298,6 @@ scrape_configs:
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
-}
-
-func getPrometheusSecretName() string {
-	return "cluster1-secret"
 }
 
 // TestDeleteVMC tests the Reconcile method for the following use case
@@ -604,21 +363,11 @@ scrape_configs:
 		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.UpdateOption) error {
 			// check for the modified entry
 			asserts.Len(configMap.Data, 1, "no data found")
-			asserts.NotNil(configMap.Data["ca-cluster1"], "No cert entry found")
+			asserts.Empty(configMap.Data["ca-test"], "cert entry found")
 			prometheusYaml := configMap.Data["prometheus.yml"]
-			cfg, err := parsePrometheusConfiguration(prometheusYaml)
+			scrapeConfig, err := getScrapeConfig(prometheusYaml, "test2")
 			if err != nil {
-				asserts.Fail("Failed due to error %v", err)
-			}
-			scrapeConfigs := cfg.Path(scrapeConfigsKey).Children()
-			var scrapeConfig *gabs.Container
-			found := false
-			for _, scrapeConfig = range scrapeConfigs {
-				jobName := scrapeConfig.Search(jobNameKey).Data()
-				if jobName == "test2" {
-					found = true
-					break
-				}
+				asserts.Fail("failed due to error %v", err)
 			}
 
 			// Expect a call to update the VerrazzanoManagedCluster finalizer
@@ -630,8 +379,8 @@ scrape_configs:
 				})
 
 			asserts.NotNil(prometheusYaml, "No prometheus config yaml found")
-			asserts.Equal(1, len(scrapeConfigs), "No scrape configs found")
-			asserts.True(found, "Expected scrape config not found")
+			asserts.NotNil(scrapeConfig, "No scrape configs found")
+			asserts.Equal("test2", scrapeConfig.Path("job_name").Data(),  "Expected scrape config not found")
 
 			return nil
 		})
@@ -929,3 +678,89 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, name string) {
 			return nil
 		})
 }
+
+func expectVmcGetAndUpdate(t *testing.T, mock *mocks.MockClient, name string) {
+	asserts := assert.New(t)
+	labels := map[string]string{"label1": "test"}
+
+	// Expect a call to get the VerrazzanoManagedCluster resource.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			vmc.TypeMeta = metav1.TypeMeta{
+				APIVersion: apiVersion,
+				Kind:       kind}
+			vmc.ObjectMeta = metav1.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name,
+				Labels:    labels}
+			vmc.Spec = clustersapi.VerrazzanoManagedClusterSpec{
+				PrometheusSecret: getPrometheusSecretName(),
+			}
+			return nil
+		})
+
+	// Expect a call to update the VerrazzanoManagedCluster finalizer
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.True(len(vmc.ObjectMeta.Finalizers) == 1, "Wrong number of finalizers")
+			asserts.Equal(finalizerName, vmc.ObjectMeta.Finalizers[0], "wrong finalizer")
+			return nil
+		})
+
+}
+
+func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometheusYaml string, prometheusSecretData string, f AssertFn) {
+	// Expect a call to get the prometheus secret - return it
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: getPrometheusSecretName()}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				getClusterYamlKey(vmcName): []byte(prometheusSecretData),
+			}
+			return nil
+		})
+
+	// Expect a call to get the prometheus configmap and return one with an existing entry
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-prometheus-config"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
+			// setup a scaled down existing scrape config entry for cluster1
+			configMap.Data = map[string]string{
+				"prometheus.yml": prometheusYaml,
+			}
+			return nil
+		})
+
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.UpdateOption) error {
+			return f(configMap)
+		})
+
+}
+
+// getScrapeConfig gets a representation of the vmc scrape configuration from the provided yaml
+func getScrapeConfig(prometheusYaml string, name string) (*gabs.Container, error) {
+	cfg, err := parsePrometheusConfig(prometheusYaml)
+	if err != nil {
+		return nil, err
+	}
+	scrapeConfigs := cfg.Path(scrapeConfigsKey).Children()
+	var scrapeConfig *gabs.Container
+	for _, scrapeConfig = range scrapeConfigs {
+		jobName := scrapeConfig.Search(jobNameKey).Data()
+		if jobName == name {
+			break
+		}
+	}
+	return scrapeConfig, nil
+}
+
+// getPrometheusSecretName returns the prometheus secret name
+func getPrometheusSecretName() string {
+	return "test-secret"
+}
+
+
