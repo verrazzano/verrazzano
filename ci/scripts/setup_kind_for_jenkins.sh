@@ -75,7 +75,7 @@ else
     # Add an entry in /etc/hosts for the IP to pre-baked hostname, and update the server in the kubeconfig
     # to use the pre-baked hostname
     cp /etc/hosts temp_hosts
-    echo $kind_container_ip | sed "s/$/  ${BAKED_HOST_NAME}/g" | cat $1 >> temp_hosts
+    echo "${kind_container_ip} ${BAKED_HOST_NAME}" >> temp_hosts
     sudo cp temp_hosts /etc/hosts
     sed -i -e "s|127.0.0.1.*|${BAKED_HOST_NAME}:6443|g" $2
 fi
