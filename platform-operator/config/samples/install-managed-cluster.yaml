@@ -16,7 +16,6 @@
 apiVersion: install.verrazzano.io/v1alpha1
 kind: Verrazzano
 metadata:
-  name: managed-cluster-xip
+  name: my-verrazzano-managed-cluster
 spec:
   profile: managed-cluster
-
