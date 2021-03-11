@@ -25,7 +25,7 @@ const verrazzanoNamespace string = "verrazzano-system"
 const prometheusConfigMapName string = "prometheus.yml"
 const prometheusFooScrapeName string = "authpolicy-appconf_default_foo_springboot-frontend"
 const prometheusBarScrapeName string = "authpolicy-appconf_default_bar_springboot-frontend"
-const prometheusNoistioScrapeName string = "authpolicy-appconf_default_noistio_springboot-frontend"
+const prometheusNoIstioScrapeName string = "authpolicy-appconf_default_noistio_springboot-frontend"
 const prometheusJobName string = "job_name"
 const prometheusHTTPSScheme string = "scheme: https"
 
@@ -560,7 +560,7 @@ var _ = ginkgo.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 			scanner := bufio.NewScanner(rdr)
 			for scanner.Scan() {
 				currentString := scanner.Text()
-				if strings.Contains(currentString, prometheusNoistioScrapeName) {
+				if strings.Contains(currentString, prometheusNoIstioScrapeName) {
 					for scanner.Scan() {
 						innerString := scanner.Text()
 						if strings.Contains(innerString, prometheusJobName) {
