@@ -520,21 +520,6 @@
             "claim.name": "groups",
             "userinfo.token.claim": "true"
           }
-        },
-        {
-          "id": "c93fc5e2-729c-4d55-875b-2f9dd15155c4",
-          "name": "k8s-user",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-attribute-mapper",
-          "consentRequired": false,
-          "config": {
-            "userinfo.token.claim": "true",
-            "user.attribute": "k8s_user",
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "claim.name": "k8s_user",
-            "jsonType.label": "String"
-          }
         }
       ],
       "defaultClientScopes": [
@@ -908,22 +893,7 @@
             "claim.name": "groups",
             "userinfo.token.claim": "true"
           }
-	},
-        {
-          "id": "9a6edc99-1fc5-4b5e-bd31-127f577d3784",
-          "name": "k8s-user",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-attribute-mapper",
-          "consentRequired": false,
-          "config": {
-            "userinfo.token.claim": "true",
-            "user.attribute": "k8s_user",
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "claim.name": "k8s_user",
-            "jsonType.label": "String"
-          }
-        }
+	      }
       ],
     "defaultClientScopes": [
       "web-origins",
