@@ -171,7 +171,6 @@ export VERRAZZANO_APP_OP_IMAGE=${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 .PHONY: setup-cluster
 setup-cluster: create-cluster
-	# TODO: If the pre-created cluster works, we should be able to pre-load the OAM runtime
 	echo 'Load Docker image for the OAM runtime...'
 	time docker pull ${OAM_RUNTIME_IMAGE}
 	time kind load docker-image --name ${CLUSTER_NAME} ${OAM_RUNTIME_IMAGE}
