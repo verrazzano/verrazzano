@@ -181,53 +181,54 @@ func (s *Syncer) configureBeats() {
 	deploymentName := types.NamespacedName{Name: "verrazzano-operator", Namespace: constants.VerrazzanoSystemNamespace}
 	deployment := appsv1.Deployment{}
 	err := s.LocalClient.Get(context.TODO(), deploymentName, &deployment)
-	if err == nil {
-		if len(deployment.Spec.Template.Spec.Containers) > 0 {
-			toUpdate := false
+	if err != nil {
+		s.Log.Info(fmt.Sprintf("Failed to find the deployment %s, %s", deploymentName, err.Error()))
+	}
+	if len(deployment.Spec.Template.Spec.Containers) < 1 {
+		s.Log.Info(fmt.Sprintf("No container defined in the deployment %s", deploymentName))
+	}
 
-			// get the cluster name
-			managedClusterName := ""
-			regSecret := corev1.Secret{}
-			regErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}, &regSecret)
-			if regErr != nil {
-				if clusters.IgnoreNotFoundWithLog("secret", regErr, s.Log) != nil {
-					return
-				}
-			} else {
-				managedClusterName = string(regSecret.Data[constants.ClusterNameData])
-			}
-			clusterNameEnv := getEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, managedClusterNameEnvName)
-			toUpdate = clusterNameEnv != managedClusterName
-
-			// get the es secret version
-			esSecretVersion := ""
-			esSecret := corev1.Secret{}
-			esErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.ElasticsearchSecretName, Namespace: constants.VerrazzanoSystemNamespace}, &esSecret)
-			if esErr != nil {
-				if clusters.IgnoreNotFoundWithLog("secret", esErr, s.Log) != nil {
-					return
-				}
-			} else {
-				esSecretVersion = esSecret.ResourceVersion
-			}
-			esSecertVersionEnv := getEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, elasticsearchSecretVersionEnvName)
-			if !toUpdate {
-				toUpdate = esSecertVersionEnv != esSecretVersion
-			}
-
-			// CreateOrUpdate updates the deployment if cluster name or es secret version changed
-			if toUpdate {
-				controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &deployment, func() error {
-					s.Log.Info(fmt.Sprintf("Update the deployment %s, cluster name from %q to %q, elasticsearch secret version from %q to %q", deploymentName, clusterNameEnv, managedClusterName, esSecertVersionEnv, esSecretVersion))
-					deployment.Spec.Template.Spec.Containers[0].Env = updateEnvValue(updateEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, managedClusterNameEnvName, managedClusterName), elasticsearchSecretVersionEnvName, esSecretVersion)
-					return nil
-				})
-			}
-		} else {
-			s.Log.Info(fmt.Sprintf("No container defined in the deployment %s", deploymentName))
+	// get the cluster name
+	managedClusterName := ""
+	regSecret := corev1.Secret{}
+	regErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}, &regSecret)
+	if regErr != nil {
+		if clusters.IgnoreNotFoundWithLog("secret", regErr, s.Log) != nil {
+			return
 		}
 	} else {
-		s.Log.Info(fmt.Sprintf("Failed to find the deployment %s, %s", deploymentName, err.Error()))
+		managedClusterName = string(regSecret.Data[constants.ClusterNameData])
+	}
+	clusterNameEnv := getEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, managedClusterNameEnvName)
+	toUpdate := clusterNameEnv != managedClusterName
+
+	// get the es secret version
+	esSecretVersion := ""
+	esSecret := corev1.Secret{}
+	esErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.ElasticsearchSecretName, Namespace: constants.VerrazzanoSystemNamespace}, &esSecret)
+	if esErr != nil {
+		if clusters.IgnoreNotFoundWithLog("secret", esErr, s.Log) != nil {
+			return
+		}
+	} else {
+		esSecretVersion = esSecret.ResourceVersion
+	}
+	esSecertVersionEnv := getEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, elasticsearchSecretVersionEnvName)
+	if !toUpdate {
+		toUpdate = esSecertVersionEnv != esSecretVersion
+	}
+
+	// CreateOrUpdate updates the deployment if cluster name or es secret version changed
+	if toUpdate {
+		controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &deployment, func() error {
+			s.Log.Info(fmt.Sprintf("Update the deployment %s, cluster name from %q to %q, elasticsearch secret version from %q to %q", deploymentName, clusterNameEnv, managedClusterName, esSecertVersionEnv, esSecretVersion))
+			// update the container env "MANAGED_CLUSTER_NAME"
+			env := updateEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, managedClusterNameEnvName, managedClusterName)
+			// update the container env "ES_SECRET_VERSION"
+			env = updateEnvValue(env, elasticsearchSecretVersionEnvName, esSecretVersion)
+			deployment.Spec.Template.Spec.Containers[0].Env = env
+			return nil
+		})
 	}
 }
 
