@@ -183,9 +183,11 @@ func (s *Syncer) configureBeats() {
 	err := s.LocalClient.Get(context.TODO(), deploymentName, &deployment)
 	if err != nil {
 		s.Log.Info(fmt.Sprintf("Failed to find the deployment %s, %s", deploymentName, err.Error()))
+		return
 	}
 	if len(deployment.Spec.Template.Spec.Containers) < 1 {
 		s.Log.Info(fmt.Sprintf("No container defined in the deployment %s", deploymentName))
+		return
 	}
 
 	// get the cluster name
