@@ -280,25 +280,20 @@ func UpdateStatus(resource MultiClusterResource, mcStatus *clustersv1alpha1.Mult
 		mcStatus.Conditions = append(mcStatus.Conditions, newCondition)
 		UpdateClusterLevelStatus(mcStatus, clusterLevelStatus)
 		mcStatus.State = ComputeEffectiveState(*mcStatus, placement)
-		fmt.Printf("UpdateStatus: Calling update status func for %s/%s on cluster %s = %s\n", resource.GetNamespace(), resource.GetName(),
-			clusterLevelStatus.Name, clusterLevelStatus.State)
 		err := updateFunc()
-		if err == nil && agentChannel != nil {
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		if agentChannel != nil {
 			// put the status update itself on the agent channel. TODO may need to do a deep copy for the cross-thread dereferencing to work
 			// note that the send will block if the channel buffer is full
-			fmt.Printf("UpdateStatus: Posting status msg on agent channel for %s/%s on cluster %s = %s\n", resource.GetNamespace(), resource.GetName(),
-				clusterLevelStatus.Name, clusterLevelStatus.State)
 			msg := StatusUpdateMessage{
 				NewCondition:     newCondition,
 				NewClusterStatus: clusterLevelStatus,
 				Resource:         resource,
 			}
 			agentChannel <- msg
-		} else if err != nil {
-			fmt.Printf("UpdateStatus: error for %s/%s, err = %s\n", resource.GetNamespace(), resource.GetName(), err.Error())
 		}
-
-		return reconcile.Result{}, err
 	}
 	return reconcile.Result{}, nil
 }
