@@ -78,7 +78,7 @@ else
     echo $kind_container_ip | sed "s/$/  ${BAKED_HOST_NAME}/g" | cat $1 >> temp_hosts
     sudo cp temp_hosts /etc/hosts
     sed -i -e "s|127.0.0.1.*|${BAKED_HOST_NAME}:6443|g" $2
-esac
+fi
 
 for jenkins_runner_container in $(docker ps  -q -f "label=${JENKINS_RUNNER_CONTAINER_LABEL}") ; do
     if ! docker inspect ${jenkins_runner_container} | jq -e .[].NetworkSettings.Networks.kind ; then
