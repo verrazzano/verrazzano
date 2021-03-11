@@ -101,7 +101,7 @@ func TestCreateVMC(t *testing.T) {
 
 	// following are calls from syncPrometheusScraper
 
-	// Expect a call to get the prometheus secret - return return it
+	// Expect a call to get the prometheus secret - return it
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getPrometheusSecretName()}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
@@ -216,7 +216,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 
 	// following are calls from syncPrometheusScraper
 
-	// Expect a call to get the prometheus secret - return return it
+	// Expect a call to get the prometheus secret - return it
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getPrometheusSecretName()}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
@@ -333,7 +333,7 @@ func TestCreateVMCWithExistingScrapeConfiguration(t *testing.T) {
 
 	// following are calls from syncPrometheusScraper
 
-	// Expect a call to get the prometheus secret - return return it
+	// Expect a call to get the prometheus secret - return it
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getPrometheusSecretName()}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
@@ -463,7 +463,7 @@ func TestReplaceExistingScrapeConfiguration(t *testing.T) {
 
 	// following are calls from syncPrometheusScraper
 
-	// Expect a call to get the prometheus secret - return return it
+	// Expect a call to get the prometheus secret - return it
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: getPrometheusSecretName()}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
