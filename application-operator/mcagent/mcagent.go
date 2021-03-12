@@ -10,16 +10,25 @@ import (
 	"os"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// ENV VAR for managed cluster name in verrazzano operator
+const managedClusterNameEnvName = "MANAGED_CLUSTER_NAME"
+
+// ENV VAR for elasticsearch secret version in verrazzano operator
+const elasticsearchSecretVersionEnvName = "ES_SECRET_VERSION"
 
 // StartAgent - start the agent thread for syncing multi-cluster objects
 func StartAgent(client client.Client, log logr.Logger) {
@@ -43,6 +52,7 @@ func StartAgent(client client.Client, log logr.Logger) {
 		if err != nil {
 			s.Log.Error(err, "error processing multi-cluster resources")
 		}
+		s.configureBeats()
 		time.Sleep(60 * time.Second)
 	}
 }
@@ -166,4 +176,82 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	}
 
 	return clientset, nil
+}
+
+// reconfigure beats by restarting Verrazzano Operator deployment if ManagedClusterName has been changed
+func (s *Syncer) configureBeats() {
+	// Get the verrazzano-operator deployment
+	deploymentName := types.NamespacedName{Name: "verrazzano-operator", Namespace: constants.VerrazzanoSystemNamespace}
+	deployment := appsv1.Deployment{}
+	err := s.LocalClient.Get(context.TODO(), deploymentName, &deployment)
+	if err != nil {
+		s.Log.Info(fmt.Sprintf("Failed to find the deployment %s, %s", deploymentName, err.Error()))
+		return
+	}
+	if len(deployment.Spec.Template.Spec.Containers) < 1 {
+		s.Log.Info(fmt.Sprintf("No container defined in the deployment %s", deploymentName))
+		return
+	}
+
+	// get the cluster name
+	managedClusterName := ""
+	regSecret := corev1.Secret{}
+	regErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}, &regSecret)
+	if regErr != nil {
+		if clusters.IgnoreNotFoundWithLog("secret", regErr, s.Log) != nil {
+			return
+		}
+	} else {
+		managedClusterName = string(regSecret.Data[constants.ClusterNameData])
+	}
+	clusterNameEnv := getEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, managedClusterNameEnvName)
+	toUpdate := clusterNameEnv != managedClusterName
+
+	// get the es secret version
+	esSecretVersion := ""
+	esSecret := corev1.Secret{}
+	esErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.ElasticsearchSecretName, Namespace: constants.VerrazzanoSystemNamespace}, &esSecret)
+	if esErr != nil {
+		if clusters.IgnoreNotFoundWithLog("secret", esErr, s.Log) != nil {
+			return
+		}
+	} else {
+		esSecretVersion = esSecret.ResourceVersion
+	}
+	esSecertVersionEnv := getEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, elasticsearchSecretVersionEnvName)
+	if !toUpdate {
+		toUpdate = esSecertVersionEnv != esSecretVersion
+	}
+
+	// CreateOrUpdate updates the deployment if cluster name or es secret version changed
+	if toUpdate {
+		controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &deployment, func() error {
+			s.Log.Info(fmt.Sprintf("Update the deployment %s, cluster name from %q to %q, elasticsearch secret version from %q to %q", deploymentName, clusterNameEnv, managedClusterName, esSecertVersionEnv, esSecretVersion))
+			// update the container env "MANAGED_CLUSTER_NAME"
+			env := updateEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, managedClusterNameEnvName, managedClusterName)
+			// update the container env "ES_SECRET_VERSION"
+			env = updateEnvValue(env, elasticsearchSecretVersionEnvName, esSecretVersion)
+			deployment.Spec.Template.Spec.Containers[0].Env = env
+			return nil
+		})
+	}
+}
+
+func getEnvValue(envs []corev1.EnvVar, envName string) string {
+	for _, env := range envs {
+		if env.Name == envName {
+			return env.Value
+		}
+	}
+	return ""
+}
+
+func updateEnvValue(envs []corev1.EnvVar, envName string, newValue string) []corev1.EnvVar {
+	for i, env := range envs {
+		if env.Name == envName {
+			envs[i].Value = newValue
+			return envs
+		}
+	}
+	return append(envs, corev1.EnvVar{Name: envName, Value: newValue})
 }
