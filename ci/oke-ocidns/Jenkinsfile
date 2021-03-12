@@ -173,11 +173,13 @@ pipeline {
                 OCI_OS_BUCKET="verrazzano-builds"
             }
             steps {
+                script {
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
+                }
                 sh """
                     cd ${WORKSPACE}/platform-operator
                     if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ] && [ -f ${WORKSPACE}/platform-operator/deploy/operator.yaml ]; then
                         echo "Using operator.yaml from object storage"
-                        SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
                         oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                         cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                     else
