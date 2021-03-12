@@ -232,7 +232,7 @@ func (r *Reconciler) fetchChildResourcesByAPIVersionKinds(ctx context.Context, n
 	for _, childResKind := range childResKinds {
 		resources := unstructured.UnstructuredList{}
 		resources.SetAPIVersion(childResKind.APIVersion)
-		resources.SetKind(childResKind.Kind+"List") // Only required by "fake" client used in tests.
+		resources.SetKind(childResKind.Kind + "List") // Only required by "fake" client used in tests.
 		if err := r.List(ctx, &resources, client.InNamespace(namespace), client.MatchingLabels(childResKind.Selector)); err != nil {
 			r.Log.Error(err, "Failed listing child resources")
 			return nil, err
@@ -666,7 +666,8 @@ func extractServiceFromUnstructuredChildren(workload *unstructured.Unstructured,
 			}
 
 			// Replace the selection if a service with a cluster IP is found.
-			if service.Spec.ClusterIP != clusterIPNone {
+			clusterIP := service.Spec.ClusterIP
+			if len(clusterIP) > 0 && clusterIP != clusterIPNone {
 				selectedService = &service
 				break
 			}
