@@ -5,7 +5,6 @@ package multiclustersecret
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
@@ -41,12 +40,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterSecret", err, logger)
 	}
 
-	err = clusters.UpdateStateIfChanged(ctx, r.Status(), &mcSecret, mcSecret.Spec.Placement, &mcSecret.Status)
-	if err != nil {
-		return result, fmt.Errorf("could not update state of MultiClusterSecret %s", req.NamespacedName)
-	}
+	oldState := clusters.SetEffectiveStateIfChanged(mcSecret.Spec.Placement, &mcSecret.Status)
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcSecret.Spec.Placement) {
-		return ctrl.Result{}, nil
+		if oldState != mcSecret.Status.State {
+			// This must be done whether the resource is placed in this cluster or not, because we
+			// could be in an admin cluster and receive cluster level statuses from managed clusters,
+			// which can change our effective state
+			err = r.Status().Update(ctx, &mcSecret)
+		}
+		return ctrl.Result{}, err
 	}
 
 	logger.Info("MultiClusterSecret create or update with underlying secret",

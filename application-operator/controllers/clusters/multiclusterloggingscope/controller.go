@@ -5,7 +5,6 @@ package multiclusterloggingscope
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -40,12 +39,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterLoggingScope", err, logger)
 	}
 
-	err = clusters.UpdateStateIfChanged(ctx, r.Status(), &mcLogScope, mcLogScope.Spec.Placement, &mcLogScope.Status)
-	if err != nil {
-		return result, fmt.Errorf("could not update state of MultiClusterLoggingScope %s", req.NamespacedName)
-	}
+	oldState := clusters.SetEffectiveStateIfChanged(mcLogScope.Spec.Placement, &mcLogScope.Status)
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcLogScope.Spec.Placement) {
-		return ctrl.Result{}, nil
+		if oldState != mcLogScope.Status.State {
+			// This must be done whether the resource is placed in this cluster or not, because we
+			// could be in an admin cluster and receive cluster level statuses from managed clusters,
+			// which can change our effective state
+			err = r.Status().Update(ctx, &mcLogScope)
+		}
+		return ctrl.Result{}, err
 	}
 
 	logger.Info("MultiClusterLoggingScope create or update with underlying LoggingScope",

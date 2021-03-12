@@ -5,7 +5,6 @@ package multiclusterconfigmap
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
@@ -42,12 +41,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterConfigMap", err, logger)
 	}
 
-	err = clusters.UpdateStateIfChanged(ctx, r.Status(), &mcConfigMap, mcConfigMap.Spec.Placement, &mcConfigMap.Status)
-	if err != nil {
-		return result, fmt.Errorf("could not update state of MultiClusterConfigMap %s", req.NamespacedName)
-	}
+	oldState := clusters.SetEffectiveStateIfChanged(mcConfigMap.Spec.Placement, &mcConfigMap.Status)
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcConfigMap.Spec.Placement) {
-		return ctrl.Result{}, nil
+		if oldState != mcConfigMap.Status.State {
+			// This must be done whether the resource is placed in this cluster or not, because we
+			// could be in an admin cluster and receive cluster level statuses from managed clusters,
+			// which can change our effective state
+			err = r.Status().Update(ctx, &mcConfigMap)
+		}
+		return ctrl.Result{}, err
 	}
 
 	logger.Info("MultiClusterConfigMap create or update with underlying ConfigMap",

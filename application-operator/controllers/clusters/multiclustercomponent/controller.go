@@ -5,7 +5,6 @@ package multiclustercomponent
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/go-logr/logr"
@@ -40,12 +39,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterComponent", err, logger)
 	}
 
-	err = clusters.UpdateStateIfChanged(ctx, r.Status(), &mcComp, mcComp.Spec.Placement, &mcComp.Status)
-	if err != nil {
-		return result, fmt.Errorf("could not update state of MultiClusterComponent %s", req.NamespacedName)
-	}
+	oldState := clusters.SetEffectiveStateIfChanged(mcComp.Spec.Placement, &mcComp.Status)
+
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcComp.Spec.Placement) {
-		return ctrl.Result{}, nil
+		if oldState != mcComp.Status.State {
+			// This must be done whether the resource is placed in this cluster or not, because we
+			// could be in an admin cluster and receive cluster level statuses from managed clusters,
+			// which can change our effective state
+			err = r.Status().Update(ctx, &mcComp)
+		}
+		return ctrl.Result{}, err
 	}
 
 	logger.Info("MultiClusterComponent create or update with underlying component",

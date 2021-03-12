@@ -390,18 +390,15 @@ func expectMCRegistrationSecret(cli *mocks.MockClient, clusterName string, secre
 		})
 }
 
-// TestUpdateStateIfChanged tests that if the effective state of a resource has changed, it is
-// updated
+// TestSetEffectiveStateIfChanged tests that if the effective state of a resource has changed, it's
+// state is changed
 // GIVEN a MultiCluster resource whose effective state is unchanged
-// WHEN UpdateStateIfChanged is called
+// WHEN SetEffectiveStateIfChanged is called
 // THEN the state should not be updated
 // GIVEN a MultiCluster resource whose effective state has changed
-// WHEN UpdateStateIfChanged is called
+// WHEN SetEffectiveStateIfChanged is called
 // THEN the state should be updated
-func TestUpdateStateIfChanged(t *testing.T) {
-	mocker := gomock.NewController(t)
-	mockStatusWriter := mocks.NewMockStatusWriter(mocker)
-
+func TestSetEffectiveStateIfChanged(t *testing.T) {
 	placement := clustersv1alpha1.Placement{
 		Clusters: []clustersv1alpha1.Cluster{
 			{Name: "cluster1"},
@@ -417,21 +414,16 @@ func TestUpdateStateIfChanged(t *testing.T) {
 	secret.Name = "mysecret"
 	secret.Namespace = "myns"
 
-	// Make a call with the effective state of the resource unchanged, and no calls should occur
-	UpdateStateIfChanged(context.TODO(), mockStatusWriter, &secret, placement, &secret.Status)
+	// Make a call with the effective state of the resource unchanged, and no change should occur
+	SetEffectiveStateIfChanged(placement, &secret.Status)
+	asserts.Equal(t, clustersv1alpha1.Pending, secret.Status.State)
 
 	// add cluster level status info to the secret's status, and make a call again - this time
 	// it should update the status of the resource since the effective state changes
 	secret.Status.Clusters = []clustersv1alpha1.ClusterLevelStatus{
 		{Name: "cluster1", State: clustersv1alpha1.Failed},
 	}
-	mockStatusWriter.EXPECT().Update(gomock.Any(), &secret).DoAndReturn(
-		func(ctx context.Context, mcSec *clustersv1alpha1.MultiClusterSecret) error {
-			asserts.Equal(t, secret.Name, mcSec.GetName())
-			asserts.Equal(t, secret.Namespace, mcSec.GetNamespace())
-			asserts.Equal(t, clustersv1alpha1.Failed, mcSec.Status.State)
-			return nil
-		})
-	UpdateStateIfChanged(context.TODO(), mockStatusWriter, &secret, placement, &secret.Status)
-	mocker.Finish()
+
+	SetEffectiveStateIfChanged(placement, &secret.Status)
+	asserts.Equal(t, clustersv1alpha1.Failed, secret.Status.State)
 }

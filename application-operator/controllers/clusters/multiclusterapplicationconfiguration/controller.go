@@ -5,7 +5,6 @@ package multiclusterapplicationconfiguration
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/go-logr/logr"
@@ -45,13 +44,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterApplicationConfiguration", err, logger)
 	}
 
-	err = clusters.UpdateStateIfChanged(ctx, r.Status(), &mcAppConfig, mcAppConfig.Spec.Placement, &mcAppConfig.Status)
-	if err != nil {
-		return result, fmt.Errorf("could not update state of MultiClusterApplicationConfiguration %s", req.NamespacedName)
-	}
-
+	oldState := clusters.SetEffectiveStateIfChanged(mcAppConfig.Spec.Placement, &mcAppConfig.Status)
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcAppConfig.Spec.Placement) {
-		return ctrl.Result{}, nil
+		if oldState != mcAppConfig.Status.State {
+			// This must be done whether the resource is placed in this cluster or not, because we
+			// could be in an admin cluster and receive cluster level statuses from managed clusters,
+			// which can change our effective state
+			err = r.Status().Update(ctx, &mcAppConfig)
+		}
+		return ctrl.Result{}, err
 	}
 
 	logger.Info("MultiClusterApplicationConfiguration create or update with underlying OAM applicationconfiguration",
