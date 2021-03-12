@@ -4,6 +4,7 @@
 package verrazzano
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -18,7 +19,7 @@ import (
 const failedUpgradeLimit = 2
 
 // Reconcile upgrade will upgrade the components as required
-func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+func (r *Reconciler) reconcileUpgrade(ctx context.Context, log *zap.SugaredLogger, req ctrl.Request, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	// Upgrade version was validated in webhook, see ValidateVersion
 	targetVersion := cr.Spec.Version
 
@@ -35,6 +36,11 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, req ctrl.Request, 
 		if err != nil {
 			return ctrl.Result{}, err
 		}
+	}
+
+	// Reconcile the user-facing role bindings
+	if err := r.createOrUpdateUserClusterRoleBindings(ctx, log, cr); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially

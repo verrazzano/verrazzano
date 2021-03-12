@@ -100,7 +100,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		// If the version is specified and different than the current version of the installation
 		// then proceed with upgrade
 		if len(vz.Spec.Version) > 0 && vz.Spec.Version != vz.Status.Version {
-			return r.reconcileUpgrade(log, req, vz)
+			return r.reconcileUpgrade(ctx, log, req, vz)
 		}
 		// nothing to do, installation already at target version
 		return ctrl.Result{}, nil
@@ -111,6 +111,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	if err := r.createClusterRoleBinding(ctx, log, vz); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if err := r.createOrUpdateUserClusterRoleBindings(ctx, log, vz); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -207,6 +211,58 @@ func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log *zap.Suga
 	}
 
 	return nil
+}
+
+// createOrUpdateUserClusterRoleBindings creates or updates the user-facing role bindings specified in the vz resource
+func (r *Reconciler) createOrUpdateUserClusterRoleBindings(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+	if err := r.createOrUpdateClusterRoleBinding(ctx, log, vz, "verrazzano-admin", "verrazzano-admin", vz.Spec.Security.AdminSubjects); err != nil {
+		return err
+	}
+	if err := r.createOrUpdateClusterRoleBinding(ctx, log, vz, "verrazzano-admin-k8s", "admin", vz.Spec.Security.AdminSubjects); err != nil {
+		return err
+	}
+	if err := r.createOrUpdateClusterRoleBinding(ctx, log, vz, "verrazzano-monitor", "verrazzano-monitor", vz.Spec.Security.MonitorSubjects); err != nil {
+		return err
+	}
+	if err := r.createOrUpdateClusterRoleBinding(ctx, log, vz, "verrazzano-monitor-k8s", "view", vz.Spec.Security.MonitorSubjects); err != nil {
+		return err
+	}
+	return nil
+}
+
+// createOrUpdateClusterRoleBinding creates or updates a cluster role binding
+func (r *Reconciler) createOrUpdateClusterRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, bindingName string, roleName string, subjects []rbacv1.Subject) error {
+	// Check if the cluster role binding exists
+	clusterRoleBindingFound := &rbacv1.ClusterRoleBinding{}
+	log.Infof("Checking if cluster role binding %s exists", bindingName)
+	err := r.Get(ctx, types.NamespacedName{Name: bindingName}, clusterRoleBindingFound)
+	// Error on get, nothing we can do
+	if err != nil && !errors.IsNotFound(err) {
+		return err
+	}
+	// Binding doesn't exist yet
+	if err != nil && errors.IsNotFound(err) {
+		// Don't create if no subjects provided
+		if len(subjects) == 0 {
+			return nil
+		}
+		// Create the binding
+		log.Infof("Creating cluster role binding %s", bindingName)
+		return r.Create(ctx, installjob.NewClusterRoleBindingWithSubjects(vz, bindingName, roleName, subjects))
+	}
+	// Binding already exists
+	if len(subjects) > 0 {
+		// Patch the binding
+		log.Infof("Patching cluster role binding %s", bindingName)
+		return r.Patch(ctx, &rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: bindingName,
+			},
+		}, client.MergeFrom(installjob.GetClusterRoleBindingForPatch(vz, clusterRoleBindingFound, subjects)))
+	}
+	// No subjects, delete the binding
+	log.Infof("Deleting cluster role binding %s", bindingName)
+	return r.Delete(ctx, clusterRoleBindingFound)
 }
 
 // createConfigMap creates a required config map for installation
