@@ -57,11 +57,10 @@ func (s *Syncer) processStatusUpdates() {
 			err := s.performAdminStatusUpdate(msg)
 			if err != nil {
 				if errors.IsConflict(err) {
-					// Retry on conflict - put the message back on the channel
-					s.StatusUpdateChannel <- msg
-					s.Log.Error(err, fmt.Sprintf("processStatusUpdates: status update failed with conflict %s/%s from cluster %s, will be retried: %s",
-						msg.Resource.GetNamespace(), msg.Resource.GetName(),
-						msg.NewClusterStatus.Name, err.Error()))
+					// Retry on conflict - put the message back on the channel, but don't block
+					// trying to do it - if we block, there could be a deadlock since the agent
+					// thread is both reading and writing to the channel
+					s.requeueMsgNonBlocking(msg, err)
 				} else {
 					s.Log.Error(err, fmt.Sprintf("processStatusUpdates: status update failed for %s/%s from cluster %s: %s",
 						msg.Resource.GetNamespace(), msg.Resource.GetName(),
@@ -97,4 +96,15 @@ func (s *Syncer) performAdminStatusUpdate(msg clusters.StatusUpdateMessage) erro
 		return s.updateVerrazzanoProjectStatus(fullResourceName, msg.NewCondition, msg.NewClusterStatus)
 	}
 	return fmt.Errorf("received status update message for unknown resource type %s", typeName)
+}
+
+func (s *Syncer) requeueMsgNonBlocking(msg clusters.StatusUpdateMessage, conflictErr error) {
+	select {
+	case s.StatusUpdateChannel <- msg:
+		s.Log.Info(fmt.Sprintf("processStatusUpdates: requeued status update with conflict for %s/%s from cluster %s",
+			msg.Resource.GetNamespace(), msg.Resource.GetName(), msg.NewClusterStatus.Name))
+	default:
+		s.Log.Error(conflictErr, fmt.Sprintf("processStatusUpdates: failed to requeue status update with conflict for %s/%s from cluster %s",
+			msg.Resource.GetNamespace(), msg.Resource.GetName(), msg.NewClusterStatus.Name))
+	}
 }

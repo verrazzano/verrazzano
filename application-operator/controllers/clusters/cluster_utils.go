@@ -285,8 +285,9 @@ func UpdateStatus(resource MultiClusterResource, mcStatus *clustersv1alpha1.Mult
 			return reconcile.Result{}, err
 		}
 		if agentChannel != nil {
-			// put the status update itself on the agent channel. TODO may need to do a deep copy for the cross-thread dereferencing to work
-			// note that the send will block if the channel buffer is full
+			// put the status update itself on the agent channel.
+			// note that the send will block if the channel buffer is full, which means the
+			// reconcile operation will not complete till unblocked
 			msg := StatusUpdateMessage{
 				NewCondition:     newCondition,
 				NewClusterStatus: clusterLevelStatus,
