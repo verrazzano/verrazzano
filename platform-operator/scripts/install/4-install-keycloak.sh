@@ -69,7 +69,10 @@ function install_keycloak {
   # Replace strings in keycloak.json file
   VZ_PW_SALT=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.salt}")
   VZ_PW_HASH=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.hash}")
+  helm show values ${VZ_CHARTS_DIR}/verrazzano
   VZ_ADMIN_GROUP=$(helm show values ${VZ_CHARTS_DIR}/verrazzano --jsonpath {.userrolebindings.admin.name})
+  consoleout "VZ_ADMIN_GROUP is ${VZ_ADMIN_GROUP}"
+  cat $SCRIPT_DIR/config/keycloak.json
 
   sed "s|ENV_NAME|${ENV_NAME}|g;s|DNS_SUFFIX|${DNS_SUFFIX}|g;s|VZ_SYS_REALM|${VZ_SYS_REALM}|g;s|VZ_USERNAME|${VZ_USERNAME}|g;s|VZ_PW_SALT|${VZ_PW_SALT}|g;s|VZ_PW_HASH|${VZ_PW_HASH}|g;s|VZ_ADMIN_GROUP|${VZ_ADMIN_GROUP}|g" $SCRIPT_DIR/config/keycloak.json > ${TMP_DIR}/keycloak-sed.json
 
