@@ -24,6 +24,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// ENV VAR for managed cluster name in verrazzano operator
+const managedClusterNameEnvName = "MANAGED_CLUSTER_NAME"
+
+// ENV VAR for elasticsearch secret version in verrazzano operator
+const elasticsearchSecretVersionEnvName = "ES_SECRET_VERSION"
+
 // StartAgent - start the agent thread for syncing multi-cluster objects
 func StartAgent(client client.Client, log logr.Logger) {
 	// Wait for the existence of the verrazzano-cluster-agent secret.  It contains the credentials
@@ -171,9 +177,6 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 
 	return clientset, nil
 }
-
-const managedClusterNameEnvName = "MANAGED_CLUSTER_NAME"
-const elasticsearchSecretVersionEnvName = "ES_SECRET_VERSION"
 
 // reconfigure beats by restarting Verrazzano Operator deployment if ManagedClusterName has been changed
 func (s *Syncer) configureBeats() {
