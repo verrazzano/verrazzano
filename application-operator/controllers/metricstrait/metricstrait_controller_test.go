@@ -976,10 +976,208 @@ func TestNoUpdatesRequired(t *testing.T) {
 			configmap.Namespace = name.Namespace
 			configmap.Name = name.Name
 			params := map[string]string{
-				jobNameHolder:   "test-app-name_default_test-namespace_test-comp-name",
-				namespaceHolder: "test-namespace",
-				appNameHolder:   "test-app-name",
-				compNameHolder:  "test-comp-name"}
+				jobNameHolder:     "test-app-name_default_test-namespace_test-comp-name",
+				namespaceHolder:   "test-namespace",
+				appNameHolder:     "test-app-name",
+				compNameHolder:    "test-comp-name",
+				sslProtocolHolder: "scheme: http"}
+			scrapeConfigs, err := readTemplate("test/templates/prometheus_scrape_configs.yaml", params)
+			scrapeConfigs = removeHeaderLines(scrapeConfigs, 2)
+			assert.NoError(err)
+			configmap.Data = map[string]string{prometheusConfigKey: scrapeConfigs}
+			return nil
+		})
+	// Expect a call to get the namespace definition
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, namespace *k8score.Namespace) error {
+			namespace.TypeMeta = testNamespace.TypeMeta
+			namespace.ObjectMeta = testNamespace.ObjectMeta
+			return nil
+		})
+	// Create and make the request
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
+	reconciler := newMetricsTraitReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(true, result.Requeue)
+	assert.GreaterOrEqual(result.RequeueAfter.Seconds(), 45.0)
+}
+
+// TestNoUpdatesRequired tests a reconcile where no updates to any resources was required.
+// GIVEN a metrics trait that has not been updated
+// WHEN the metrics trait Reconcile method is invoked
+// THEN verify no updates are made
+func TestSSLNoUpdatesRequired(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	testDeployment := k8sapps.Deployment{
+		TypeMeta: k8smeta.TypeMeta{
+			APIVersion: k8sapps.SchemeGroupVersion.Identifier(),
+			Kind:       "Deployment",
+		},
+		ObjectMeta: k8smeta.ObjectMeta{
+			Name:              "test-deployment-name",
+			Namespace:         "test-namespace",
+			CreationTimestamp: k8smeta.Now(),
+			OwnerReferences: []k8smeta.OwnerReference{{
+				APIVersion: oamcore.SchemeGroupVersion.Identifier(),
+				Kind:       oamcore.ContainerizedWorkloadKind,
+				Name:       "test-workload-name",
+				UID:        "test-workload-uid"}},
+			Labels: map[string]string{
+				appObjectMetaLabel:  "test-app-name",
+				compObjectMetaLabel: "test-comp-name"}}}
+	testDeployment.Spec.Template.ObjectMeta.Labels = map[string]string{
+		appObjectMetaLabel:  "test-app-name",
+		compObjectMetaLabel: "test-comp-name"}
+	annotations := map[string]string{
+		"verrazzano.io/metricsEnabled": "true",
+		"verrazzano.io/metricsPort":    "8080",
+		"verrazzano.io/metricsPath":    "/metrics"}
+	testDeployment.Spec.Template.ObjectMeta.Annotations = annotations
+
+	testNamespace := k8score.Namespace{
+		TypeMeta: k8smeta.TypeMeta{
+			Kind: "Namespace",
+		},
+		ObjectMeta: k8smeta.ObjectMeta{
+			Name: "test-namespace",
+		},
+	}
+	labels := map[string]string{
+		"istio-injection": "enabled",
+	}
+	testNamespace.ObjectMeta.Labels = labels
+
+	// Expect a call to get the trait resource.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.MetricsTrait) error {
+			trait.TypeMeta = k8smeta.TypeMeta{
+				APIVersion: vzapi.GroupVersion.Identifier(),
+				Kind:       vzapi.MetricsTraitKind}
+			trait.ObjectMeta = k8smeta.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name,
+				Labels: map[string]string{
+					appObjectMetaLabel:  "test-app-name",
+					compObjectMetaLabel: "test-comp-name"}}
+			trait.Spec.WorkloadReference = oamrt.TypedReference{
+				APIVersion: oamcore.SchemeGroupVersion.Identifier(),
+				Kind:       oamcore.ContainerizedWorkloadKind,
+				Name:       "test-workload-name"}
+			trait.Status.Conditions = []oamrt.Condition{{
+				Type: "Synced", Status: "True", Reason: "ReconcileSuccess", Message: ""}}
+			trait.Status.Resources = []vzapi.QualifiedResourceRelation{
+				{
+					APIVersion: "apps/v1",
+					Kind:       "Deployment",
+					Namespace:  "test-namespace",
+					Name:       "test-deployment-name",
+					Role:       "source",
+				},
+				{
+					APIVersion: "apps/v1",
+					Kind:       "Deployment",
+					Namespace:  "istio-system",
+					Name:       "prometheus",
+					Role:       "scraper",
+				}}
+			return nil
+		})
+	// Expect a call to update the trait resource with a finalizer.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait) error {
+			assert.Equal("test-namespace", trait.Namespace)
+			assert.Equal("test-trait-name", trait.Name)
+			assert.Len(trait.Finalizers, 1)
+			assert.Equal("metricstrait.finalizers.verrazzano.io", trait.Finalizers[0])
+			return nil
+		})
+	// Expect a call to get the containerized workload resource
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-workload-name"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *unstructured.Unstructured) error {
+			workload.SetGroupVersionKind(oamcore.ContainerizedWorkloadGroupVersionKind)
+			workload.SetNamespace(name.Namespace)
+			workload.SetName(name.Name)
+			workload.SetUID("test-workload-uid")
+			return nil
+		})
+	// Expect a call to get the prometheus deployment.
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
+			assert.Equal("istio-system", name.Namespace)
+			assert.Equal("prometheus", name.Name)
+			deployment.APIVersion = k8sapps.SchemeGroupVersion.Identifier()
+			deployment.Kind = deploymentKind
+			deployment.Namespace = name.Namespace
+			deployment.Name = name.Name
+			deployment.Spec.Template.Spec.Volumes = []k8score.Volume{{
+				Name: "config-volume",
+				VolumeSource: k8score.VolumeSource{
+					ConfigMap: &k8score.ConfigMapVolumeSource{
+						LocalObjectReference: k8score.LocalObjectReference{Name: "prometheus"}}}}}
+			return nil
+		})
+	// Expect a call to get the containerized workload resource definition
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *oamcore.WorkloadDefinition) error {
+			workloadDef.Namespace = name.Namespace
+			workloadDef.Name = name.Name
+			workloadDef.Spec.ChildResourceKinds = []oamcore.ChildResourceKind{
+				{APIVersion: "apps/v1", Kind: "Deployment", Selector: nil},
+				{APIVersion: "v1", Kind: "Service", Selector: nil},
+			}
+			return nil
+		})
+	// Expect a call to list the child Deployment resources of the containerized workload definition
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
+			assert.Equal("Deployment", list.GetKind())
+			return appendAsUnstructured(list, testDeployment)
+		})
+	// Expect a call to list the child Service resources of the containerized workload definition
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
+			assert.Equal("Service", list.GetKind())
+			return nil
+		})
+	// Expect a call to get the deployment definition
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-deployment-name"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
+			deployment.ObjectMeta = testDeployment.ObjectMeta
+			deployment.Spec = testDeployment.Spec
+			return nil
+		})
+	// Expect a call to get the prometheus configuration.
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configmap *k8score.ConfigMap) error {
+			assert.Equal("istio-system", name.Namespace)
+			assert.Equal("prometheus", name.Name)
+			configmap.APIVersion = k8sapps.SchemeGroupVersion.Identifier()
+			configmap.Kind = configMapKind
+			configmap.Namespace = name.Namespace
+			configmap.Name = name.Name
+			params := map[string]string{
+				jobNameHolder:     "test-app-name_default_test-namespace_test-comp-name",
+				namespaceHolder:   "test-namespace",
+				appNameHolder:     "test-app-name",
+				compNameHolder:    "test-comp-name",
+				sslProtocolHolder: "scheme: https\n  tls_config:\n    ca_file: /etc/istio-certs/root-cert.pem\n    cert_file: /etc/istio-certs/cert-chain.pem\n    insecure_skip_verify: true\n    key_file: /etc/istio-certs/key.pem"}
 			scrapeConfigs, err := readTemplate("test/templates/prometheus_scrape_configs.yaml", params)
 			scrapeConfigs = removeHeaderLines(scrapeConfigs, 2)
 			assert.NoError(err)

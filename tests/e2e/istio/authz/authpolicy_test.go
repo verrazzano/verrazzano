@@ -549,7 +549,7 @@ var _ = ginkgo.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 	// GIVEN that springboot deployed to namespace noistio
 	// WHEN the Prometheus scrape targets are created
 	// THEN they should be created to use the http protocol
-	ginkgo.It("Verify that Istio scrape target authpolicy-appconf_default_noistio_springboot-frontend is using https for scraping.", func() {
+	ginkgo.It("Verify that Istio scrape target authpolicy-appconf_default_noistio_springboot-frontend is using http for scraping.", func() {
 		gomega.Eventually(func() bool {
 			var httpsNotFound bool = true
 
