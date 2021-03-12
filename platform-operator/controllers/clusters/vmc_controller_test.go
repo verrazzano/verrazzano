@@ -68,7 +68,6 @@ func TestCreateVMC(t *testing.T) {
 	expectSyncRoleBinding(t, mock, name)
 	expectSyncAgent(t, mock, name)
 	expectSyncRegistration(t, mock, name)
-	expectSyncElasticsearch(t, mock, name)
 	expectSyncManifest(t, mock, name)
 	expectSyncPrometheusScraper(mock, name, "", promData, func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -125,7 +124,6 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	expectSyncRoleBinding(t, mock, name)
 	expectSyncAgent(t, mock, name)
 	expectSyncRegistration(t, mock, name)
-	expectSyncElasticsearch(t, mock, name)
 	expectSyncManifest(t, mock, name)
 	expectSyncPrometheusScraper(mock, name, "", promData, func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -193,7 +191,6 @@ scrape_configs:
 	expectSyncRoleBinding(t, mock, name)
 	expectSyncAgent(t, mock, name)
 	expectSyncRegistration(t, mock, name)
-	expectSyncElasticsearch(t, mock, name)
 	expectSyncManifest(t, mock, name)
 	expectSyncPrometheusScraper(mock, name, prometheusYaml, promData, func(configMap *corev1.ConfigMap) error {
 		// check for the modified entry
@@ -263,7 +260,6 @@ scrape_configs:
 	expectSyncRoleBinding(t, mock, name)
 	expectSyncAgent(t, mock, name)
 	expectSyncRegistration(t, mock, name)
-	expectSyncElasticsearch(t, mock, name)
 	expectSyncManifest(t, mock, name)
 	expectSyncPrometheusScraper(mock, name, prometheusYaml, promData, func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -526,30 +522,17 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string) {
 
 // Expect syncRegistration related calls
 func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string) {
-	// Expect a call to get the registration secret - return that it does not exist
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetRegistrationSecretName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, GetRegistrationSecretName(name)))
-
-	// Expect a call to create the registration secret
-	mock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
-			secret.Data = map[string][]byte{
-				ManagedClusterNameKey: []byte(managedClusterData),
-			}
-			return nil
-		})
-}
-
-// Expect syncElasticSearch related calls
-func expectSyncElasticsearch(t *testing.T, mock *mocks.MockClient, name string) {
 	asserts := assert.New(t)
 	caData := "ca"
 	userData := "user"
 	passwordData := "pw"
 	hostdata := "testhost"
 	urlData := "https://testhost:443"
+
+	// Expect a call to get the registration secret - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetRegistrationSecretName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, GetRegistrationSecretName(name)))
 
 	// Expect a call to get the tls ingress and return the ingress.
 	mock.EXPECT().
@@ -588,15 +571,12 @@ func expectSyncElasticsearch(t *testing.T, mock *mocks.MockClient, name string) 
 			return nil
 		})
 
-	// Expect a call to get the Elasticsearch secret - return that it does not exist
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetElasticsearchSecretName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, GetElasticsearchSecretName(name)))
-
-	// Expect a call to create the Elasticsearch secret
+	// Expect a call to create the registration secret
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
+		    clusterName := secret.Data[ManagedClusterNameKey]
+		    asserts.Equalf(caData, string(clusterName), "Incorrect cluster name in Elasticsearch secret ")
 			ca := secret.Data[CaBundleKey]
 			asserts.Equalf(caData, string(ca), "Incorrect cadata in Elasticsearch secret ")
 			user := secret.Data[UsernameKey]
@@ -635,19 +615,10 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, name string) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
 				ManagedClusterNameKey: []byte(clusterName),
-			}
-			return nil
-		})
-
-	// Expect a call to get the Elasticsearch secret
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetElasticsearchSecretName(name)}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				CaCrtKey:    []byte(caData),
-				UsernameKey: []byte(userData),
-				PasswordKey: []byte(passwordData),
-				URLKey:      []byte(urlData),
+				CaCrtKey:              []byte(caData),
+				UsernameKey:           []byte(userData),
+				PasswordKey:           []byte(passwordData),
+				URLKey:                []byte(urlData),
 			}
 			return nil
 		})
