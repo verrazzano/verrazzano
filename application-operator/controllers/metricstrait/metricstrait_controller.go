@@ -48,7 +48,7 @@ const (
 	// The finalizer name used by this controller
 	finalizerName = "metricstrait.finalizers.verrazzano.io"
 
-	// Markers used during the processing of prometheus scrape configurations
+	// Markers used during the processing of Prometheus scrape configurations
 	prometheusConfigKey          = "prometheus.yml"
 	prometheusScrapeConfigsLabel = "scrape_configs"
 	prometheusJobNameLabel       = "job_name"
@@ -73,7 +73,7 @@ const (
 	// basicPathPasswordLabel config label for Prometheus password
 	basicPathPasswordLabel = "password"
 
-	// Template placeholders for the prometheus scrape config template
+	// Template placeholders for the Prometheus scrape config template
 	appNameHolder     = "##APP_NAME##"
 	compNameHolder    = "##COMP_NAME##"
 	jobNameHolder     = "##JOB_NAME##"
@@ -85,12 +85,17 @@ const (
 	sourceRole  = "source"
 
 	// SSL protocol scrape parameters for Istio enabled MTLS components
-	httpsProtocol = "scheme: https\ntls_config:\n  ca_file: /etc/istio-certs/root-cert.pem\n  cert_file: /etc/istio-certs/cert-chain.pem\n  key_file: /etc/istio-certs/key.pem\n  insecure_skip_verify: true  # Prometheus does not support Istio security naming, thus skip verifying target pod certificate"
-	httpProtocol  = "scheme: http"
+	httpsProtocol = `scheme: https
+tls_config:
+  ca_file: /etc/istio-certs/root-cert.pem  
+  cert_file: /etc/istio-certs/cert-chain.pem
+  key_file: /etc/istio-certs/key.pem
+  insecure_skip_verify: true  # Prometheus does not support Istio security naming, thus skip verifying target pod certificate`
+	httpProtocol = "scheme: http"
 )
 
-// prometheusScrapeConfigTemplate configuration for general prometheus scrape target template
-// Used to add new scrape config to a prometheus configmap
+// prometheusScrapeConfigTemplate configuration for general Prometheus scrape target template
+// Used to add new scrape config to a Prometheus configmap
 const prometheusScrapeConfigTemplate = `job_name: ##JOB_NAME##
 ##SSL_PROTOCOL##
 kubernetes_sd_configs:
@@ -130,8 +135,8 @@ relabel_configs:
   replacement: $1
 `
 
-// prometheusWLSScrapeConfigTemplate configuration for WebLogic prometheus scrape target template
-// Used to add new WebLogic scrape config to a prometheus configmap
+// prometheusWLSScrapeConfigTemplate configuration for WebLogic Prometheus scrape target template
+// Used to add new WebLogic scrape config to a Prometheus configmap
 const prometheusWLSScrapeConfigTemplate = `job_name: ##JOB_NAME##
 ##SSL_PROTOCOL##
 kubernetes_sd_configs:
@@ -289,7 +294,7 @@ func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, trait *vzapi
 }
 
 // createOrUpdateRelatedResources creates or updates resources related to this trait
-// The related resources are the workload children and the prometheus config
+// The related resources are the workload children and the Prometheus config
 func (r *Reconciler) createOrUpdateRelatedResources(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, deployment *k8sapps.Deployment, children []*unstructured.Unstructured) *reconcileresults.ReconcileResults {
 	status := reconcileresults.ReconcileResults{}
 	for _, child := range children {
@@ -377,7 +382,7 @@ func (r *Reconciler) deleteOrUpdateMetricSourceResource(ctx context.Context, tra
 	}
 }
 
-// deleteOrUpdateScraperConfigMap cleans up a scraper (i.e. prometheus) configmap.
+// deleteOrUpdateScraperConfigMap cleans up a scraper (i.e. Prometheus) configmap.
 // The scraper config for the trait is removed if present.
 func (r *Reconciler) deleteOrUpdateScraperConfigMap(ctx context.Context, trait *vzapi.MetricsTrait, rel vzapi.QualifiedResourceRelation) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
 	deployment := &k8sapps.Deployment{}
@@ -388,12 +393,12 @@ func (r *Reconciler) deleteOrUpdateScraperConfigMap(ctx context.Context, trait *
 	return r.updatePrometheusScraperConfigMap(ctx, trait, nil, nil, deployment)
 }
 
-// updatePrometheusScraperConfigMap updates the prometheus scraper configmap.
-// This updates only the scrape_configs section of the prometheus configmap.
+// updatePrometheusScraperConfigMap updates the Prometheus scraper configmap.
+// This updates only the scrape_configs section of the Prometheus configmap.
 // Only the rules for the provided trait will be affected.
 // trait - The trait to update scrape_config rules for.
 // traitDefaults - Default to use for values not provided in the trait.
-// deployment - The prometheus deployment.
+// deployment - The Prometheus deployment.
 func (r *Reconciler) updatePrometheusScraperConfigMap(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, deployment *k8sapps.Deployment) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
 	rel := vzapi.QualifiedResourceRelation{APIVersion: deployment.APIVersion, Kind: deployment.Kind, Name: deployment.Name, Namespace: deployment.Namespace, Role: scraperRole}
 
@@ -413,9 +418,9 @@ func (r *Reconciler) updatePrometheusScraperConfigMap(ctx context.Context, trait
 	}
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, configmap, func() error {
 		if configmap.CreationTimestamp.IsZero() {
-			r.Log.Info("Create prometheus configmap", "configmap", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
+			r.Log.Info("Create Prometheus configmap", "configmap", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
 		} else {
-			r.Log.Info("Update prometheus configmap", "configmap", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
+			r.Log.Info("Update Prometheus configmap", "configmap", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
 		}
 		yamlStr, exists := configmap.Data[prometheusConfigKey]
 		if !exists {
@@ -439,14 +444,14 @@ func (r *Reconciler) updatePrometheusScraperConfigMap(ctx context.Context, trait
 		configmap.Data[prometheusConfigKey] = yamlStr
 		return nil
 	})
-	// If the prometheus configmap was updated then restart the prometheus pods.
+	// If the Prometheus configmap was updated then restart the Prometheus pods.
 	if res == controllerutil.OperationResultUpdated {
 		return rel, res, r.restartPrometheusPods(ctx, deployment)
 	}
 	return rel, res, err
 }
 
-// fetchPrometheusDeploymentFromTrait fetches the prometheus deployment from information in the trait.
+// fetchPrometheusDeploymentFromTrait fetches the Prometheus deployment from information in the trait.
 func (r *Reconciler) fetchPrometheusDeploymentFromTrait(ctx context.Context, trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec) (*k8sapps.Deployment, error) {
 	scraperRef := trait.Spec.Scraper
 	if scraperRef == nil {
@@ -461,42 +466,42 @@ func (r *Reconciler) fetchPrometheusDeploymentFromTrait(ctx context.Context, tra
 	if err != nil {
 		return nil, err
 	}
-	r.Log.Info("Found prometheus deployment", "deployment", vznav.GetNamespacedNameFromObjectMeta(deployment.ObjectMeta))
+	r.Log.Info("Found Prometheus deployment", "deployment", vznav.GetNamespacedNameFromObjectMeta(deployment.ObjectMeta))
 	return deployment, nil
 }
 
-// findPrometheusScrapeConfigMapNameFromDeployment finds the prometheus configmap name from the prometheus deployment.
+// findPrometheusScrapeConfigMapNameFromDeployment finds the Prometheus configmap name from the Prometheus deployment.
 func (r *Reconciler) findPrometheusScrapeConfigMapNameFromDeployment(deployment *k8sapps.Deployment) (string, error) {
 	volumes := deployment.Spec.Template.Spec.Volumes
 	for _, volume := range volumes {
 		if volume.Name == "config-volume" && volume.ConfigMap != nil && len(volume.ConfigMap.Name) > 0 {
 			name := volume.ConfigMap.Name
-			r.Log.Info("Found prometheus configmap name", "configmap", name)
+			r.Log.Info("Found Prometheus configmap name", "configmap", name)
 			return name, nil
 		}
 	}
-	return "", fmt.Errorf("failed to find prometheus configmap name from deployment %s", vznav.GetNamespacedNameFromObjectMeta(deployment.ObjectMeta))
+	return "", fmt.Errorf("failed to find Prometheus configmap name from deployment %s", vznav.GetNamespacedNameFromObjectMeta(deployment.ObjectMeta))
 }
 
-// restartPrometheusPods finds and restarts the pods associated with a prometheus deployment.
+// restartPrometheusPods finds and restarts the pods associated with a Prometheus deployment.
 func (r *Reconciler) restartPrometheusPods(ctx context.Context, deployment *k8sapps.Deployment) error {
 	replicaSets, err := vznav.FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, r, r.Log, deployment.Namespace, deployment.UID, []v1alpha2.ChildResourceKind{{APIVersion: "apps/v1", Kind: "ReplicaSet"}})
 	if err != nil {
 		return err
 	}
 	for _, replicaSet := range replicaSets {
-		r.Log.Info("Found prometheus replicaset", "replicaset", vznav.GetNamespacedNameFromUnstructured(replicaSet))
+		r.Log.Info("Found Prometheus replicaset", "replicaset", vznav.GetNamespacedNameFromUnstructured(replicaSet))
 		pods, err := vznav.FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, r, r.Log, replicaSet.GetNamespace(), replicaSet.GetUID(), []v1alpha2.ChildResourceKind{{APIVersion: "v1", Kind: "Pod"}})
 		if err != nil {
 			return err
 		}
 		for _, pod := range pods {
-			r.Log.Info("Found prometheus pod", "pod", vznav.GetNamespacedNameFromUnstructured(pod))
+			r.Log.Info("Found Prometheus pod", "pod", vznav.GetNamespacedNameFromUnstructured(pod))
 			err = r.Delete(ctx, pod)
 			if err != nil {
 				return err
 			}
-			r.Log.Info("Deleted prometheus pod", "pod", vznav.GetNamespacedNameFromUnstructured(pod))
+			r.Log.Info("Deleted Prometheus pod", "pod", vznav.GetNamespacedNameFromUnstructured(pod))
 		}
 	}
 	return nil
@@ -608,7 +613,7 @@ func (r *Reconciler) updateTraitStatus(ctx context.Context, trait *vzapi.Metrics
 }
 
 // fetchWLSDomainCredentialsSecretName fetches the credentials from the WLS workload resource (i.e. domain).
-// These credentials are used in the population of the prometheus scraper configuration.
+// These credentials are used in the population of the Prometheus scraper configuration.
 func (r *Reconciler) fetchWLSDomainCredentialsSecretName(ctx context.Context, workload *unstructured.Unstructured) (*string, error) {
 	secretName, found, err := unstructured.NestedString(workload.Object, "spec", "webLogicCredentialsSecret", "name")
 	if err != nil {
@@ -621,7 +626,7 @@ func (r *Reconciler) fetchWLSDomainCredentialsSecretName(ctx context.Context, wo
 }
 
 // fetchCoherenceMetricsSpec fetches the metrics configuration from the Coherence workload resource spec.
-// These configuration values are used in the population of the prometheus scraper configuration.
+// These configuration values are used in the population of the Prometheus scraper configuration.
 func (r *Reconciler) fetchCoherenceMetricsSpec(ctx context.Context, workload *unstructured.Unstructured) (*bool, *int, *string, error) {
 	// determine if metrics is enabled
 	enabled, found, err := unstructured.NestedBool(workload.Object, "spec", "coherence", "metrics", "enabled")
@@ -789,7 +794,7 @@ func updateStatusIfRequired(status *vzapi.MetricsTraitStatus, results *reconcile
 	return updated
 }
 
-// mutatePrometheusScrapeConfig mutates the prometheus scrape configuration.
+// mutatePrometheusScrapeConfig mutates the Prometheus scrape configuration.
 // Scrap configuration rules will be added, updated, deleted depending on the state of the trait.
 func mutatePrometheusScrapeConfig(ctx context.Context, trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, prometheusScrapeConfig *gabs.Container, secret *k8score.Secret, workload *unstructured.Unstructured, c client.Client) (*gabs.Container, error) {
 	oldScrapeConfigs := prometheusScrapeConfig.Search(prometheusScrapeConfigsLabel).Children()
@@ -892,7 +897,7 @@ func useHTTPSForScrapeTarget(ctx context.Context, c client.Client, trait *vzapi.
 	return false, nil
 }
 
-// createPrometheusScrapeConfigMapJobName creates a prometheus scrape configmap job name from a trait.
+// createPrometheusScrapeConfigMapJobName creates a Prometheus scrape configmap job name from a trait.
 // Format is {oam_app}_{cluster}_{namespace}_{oam_comp}
 func createPrometheusScrapeConfigMapJobName(trait *vzapi.MetricsTrait) (string, error) {
 	cluster := getClusterNameFromObjectMetaOrDefault(trait.ObjectMeta)
@@ -908,10 +913,10 @@ func createPrometheusScrapeConfigMapJobName(trait *vzapi.MetricsTrait) (string, 
 	return fmt.Sprintf("%s_%s_%s_%s", app, cluster, namespace, comp), nil
 }
 
-// createScrapeConfigFromTrait creates prometheus scrape config for a trait.
-// This populates the prometheus scrape config template.
+// createScrapeConfigFromTrait creates Prometheus scrape config for a trait.
+// This populates the Prometheus scrape config template.
 // The job name is returned.
-// The YAML container populated from the prometheus scrape config template is returned.
+// The YAML container populated from the Prometheus scrape config template is returned.
 func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, secret *k8score.Secret, workload *unstructured.Unstructured, c client.Client) (string, *gabs.Container, error) {
 
 	job, err := createPrometheusScrapeConfigMapJobName(trait)
@@ -921,7 +926,7 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 
 	// If workload is nil then the trait is being deleted so no config is required
 	if workload != nil {
-		// Populate the prometheus scrape config template
+		// Populate the Prometheus scrape config template
 		context := map[string]string{
 			appNameHolder:     trait.Labels[appObjectMetaLabel],
 			compNameHolder:    trait.Labels[compObjectMetaLabel],
@@ -948,13 +953,13 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 			configTemplate = prometheusWLSScrapeConfigTemplate
 		}
 
-		// Populate the prometheus scrape config template
+		// Populate the Prometheus scrape config template
 		template := mergeTemplateWithContext(configTemplate, context)
 
-		// Parse the populate the prometheus scrape config template.
+		// Parse the populate the Prometheus scrape config template.
 		config, err := parseYAMLString(template)
 		if err != nil {
-			return job, nil, fmt.Errorf("failed to parse built-in prometheus scrape config template: %w", err)
+			return job, nil, fmt.Errorf("failed to parse built-in Prometheus scrape config template: %w", err)
 		}
 		// Add basic auth credentials if provided
 		if secret != nil {
