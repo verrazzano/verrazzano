@@ -62,13 +62,6 @@ func TestFluentdApply(t *testing.T) {
 		})
 
 	mockClient.EXPECT().
-		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *v1.Secret) error {
-			vmiSecret(sec)
-			return nil
-		})
-
-	mockClient.EXPECT().
 		Create(fluentd.Context, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, configMap *v1.ConfigMap, options *client.CreateOptions) error {
 			asserts.Equal(t, *fluentd.createFluentdConfigMap(testNamespace), *configMap)
@@ -119,13 +112,6 @@ func TestFluentdApplyForUpdate(t *testing.T) {
 
 	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
 
-	mockClient.EXPECT().
-		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *v1.Secret) error {
-			vmiSecret(sec)
-			return nil
-		})
-
 	// simulate config map existing
 	mockClient.EXPECT().
 		List(fluentd.Context, gomock.Not(gomock.Nil()), client.InNamespace(testNamespace), client.MatchingFields{"metadata.name": configMapName + "-" + testWorkLoadType}).
@@ -175,13 +161,6 @@ func TestFluentdRemove(t *testing.T) {
 	scope := createTestLoggingScope(true)
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
-
-	mockClient.EXPECT().
-		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *v1.Secret) error {
-			vmiSecret(sec)
-			return nil
-		})
 
 	addFluentdArtifactsToFluentdPod(fluentd, fluentdPod, scope, resource.Namespace)
 
@@ -250,14 +229,6 @@ func TestFluentdApply_ManagedClusterElasticsearch(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, configMap *v1.ConfigMap, options *client.CreateOptions) error {
 			asserts.Equal(t, *fluentd.createFluentdConfigMap(testNamespace), *configMap)
 			asserts.Equal(t, client.CreateOptions{}, *options)
-			return nil
-		})
-
-	// Get cluster secret for cluster name
-	mockClient.EXPECT().
-		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *v1.Secret) error {
-			vmiSecret(sec)
 			return nil
 		})
 

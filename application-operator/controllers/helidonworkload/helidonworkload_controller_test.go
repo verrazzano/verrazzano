@@ -6,7 +6,6 @@ package helidonworkload
 import (
 	"bufio"
 	"context"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"io/ioutil"
 	"strings"
 	"testing"
@@ -314,12 +313,6 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 			return nil
 		}).Times(1)
 
-	// needs cluster name, expect a call to get verrazzano-cluster secret
-	cli.EXPECT().
-		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *v1.Secret) error {
-			return nil
-		})
 	// expect a call to get the elasticsearch secret in app namespace - return not found
 	testESSecretFullName := types.NamespacedName{Namespace: testNamespace, Name: esSecretName}
 	cli.EXPECT().
@@ -479,13 +472,6 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 			assert.Equal("fluentd-config-helidon-test-deployment", config.Name)
 			assert.Len(config.Data, 1)
 			assert.Contains(config.Data["fluentd.conf"], "label")
-			return nil
-		}).Times(1)
-	// expect a call to fetch the Elasticsearch endpoint secret and return a not found error.
-	// needs cluster name, expect a call to get verrazzano-cluster secret
-	cli.EXPECT().
-		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *v1.Secret) error {
 			return nil
 		}).Times(1)
 	// expect a call to get the elasticsearch secret in app namespace - return not found

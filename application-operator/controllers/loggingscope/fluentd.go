@@ -409,8 +409,18 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 				},
 			},
 			{
-				Name:  "CLUSTER_NAME",
-				Value: clusters.GetClusterName(context.TODO(), f.Client),
+				Name: "CLUSTER_NAME",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: scope.Spec.SecretName,
+						},
+						Key: constants.ClusterNameData,
+						Optional: func(opt bool) *bool {
+							return &opt
+						}(true),
+					},
+				},
 			},
 		},
 		VolumeMounts: []corev1.VolumeMount{

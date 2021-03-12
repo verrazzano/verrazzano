@@ -15,7 +15,6 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	istionet "istio.io/api/networking/v1alpha3"
@@ -224,12 +223,6 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), testESSecretFullName, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), esSecretName))
-	// needs cluster name, expect a call to get verrazzano-cluster secret
-	cli.EXPECT().
-		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *corev1.Secret) error {
-			return nil
-		})
 
 	// expect a call to create an empty elasticsearch secret in app namespace (default behavior, so
 	// that fluentd volume mount works)
@@ -359,12 +352,6 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), testESSecretFullName, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), esSecretName))
-	// needs cluster name, expect a call to get verrazzano-cluster secret
-	cli.EXPECT().
-		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *corev1.Secret) error {
-			return nil
-		})
 
 	// expect a call to create an empty elasticsearch secret in app namespace (default behavior, so
 	// that fluentd volume mount works)
