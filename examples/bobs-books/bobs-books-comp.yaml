@@ -17,7 +17,7 @@ spec:
           namespace: bobs-books
         spec:
           replicas: 2
-          image: container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210304163530-9bd2c07
+          image: container-registry.oracle.com/verrazzano/example-roberts-coherence:0.1.12-1-20210205215204-b624b86
           imagePullPolicy: IfNotPresent
           imagePullSecrets:
             - name: bobs-books-repo-credentials
@@ -178,7 +178,7 @@ spec:
           clusters:
             - clusterName: cluster-1
           configuration:
-            introspectorJobActiveDeadlineSeconds: 300
+            introspectorJobActiveDeadlineSeconds: 600
             model:
               runtimeEncryptionSecret: bobbys-front-end-runtime-encrypt-secret
           serverPod:
@@ -388,7 +388,7 @@ spec:
           domainUID: bobs-bookstore
           domainHome: /u01/oracle/user_projects/domains/bobs-bookstore
           domainHomeSourceType: FromModel
-          image: container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210310172650-c48dfa6
+          image: container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:0.1.12-1-20210205215204-b624b86
           includeServerOutInPodLog: true
           replicas: 1
           webLogicCredentialsSecret:
@@ -398,7 +398,7 @@ spec:
           clusters:
             - clusterName: cluster-1
           configuration:
-            introspectorJobActiveDeadlineSeconds: 300
+            introspectorJobActiveDeadlineSeconds: 600
             model:
               configMap: bobs-bookstore-wdt-config-map
               runtimeEncryptionSecret: bobs-bookstore-runtime-encrypt-secret
