@@ -49,7 +49,7 @@ kibana:
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: ghcr.io/verrazzano/verrazzano-operator
-  imageVersion: 0.12.0-20210309234804-464b776
+  imageVersion: 0.12.0-20210312132321-b1ae1cd
   prometheusPusherImage: ghcr.io/verrazzano/prometheus-pusher:1.0.1-20201016212958-5b64612
   nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
   filebeatImage: ghcr.io/verrazzano/filebeat:6.8.3-20201016212236-05eabe44b
@@ -86,7 +86,7 @@ monitoringOperator:
 console:
   name: verrazzano-console
   imageName: ghcr.io/verrazzano/console
-  imageVersion: 0.12.0-20210227195125-808a4c7
+  imageVersion: 0.12.0-20210312142205-9987577
 
 api:
   name: verrazzano-api
