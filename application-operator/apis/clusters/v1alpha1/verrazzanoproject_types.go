@@ -65,3 +65,8 @@ type VerrazzanoProjectList struct {
 func init() {
 	SchemeBuilder.Register(&VerrazzanoProject{}, &VerrazzanoProjectList{})
 }
+
+// GetStatus returns the MultiClusterResourceStatus of this resource
+func (in *VerrazzanoProject) GetStatus() MultiClusterResourceStatus {
+	return in.Status
+}

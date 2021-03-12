@@ -14,6 +14,7 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -121,10 +122,15 @@ func TestProcessAgentThreadSecretDeleted(t *testing.T) {
 		ManagedClusterName: testClusterName,
 		Context:            context.TODO(),
 		AgentSecretFound:   true,
+		AgentSecretValid:   true,
 	}
+
 	err := s.ProcessAgentThread()
 
 	// Validate the results
+	asserts.Equal(t, false, s.AgentSecretFound)
+	asserts.Equal(t, false, s.AgentSecretValid)
+
 	adminMocker.Finish()
 	mcMocker.Finish()
 	assert.NoError(err)
@@ -386,4 +392,15 @@ func TestSyncer_configureBeats(t *testing.T) {
 			mcMocker.Finish()
 		})
 	}
+}
+
+// Test_discardStatusMessages tests the discardStatusMessages function
+func Test_discardStatusMessages(t *testing.T) {
+	statusUpdateChan := make(chan clusters.StatusUpdateMessage, 12)
+	for i := 0; i < 10; i++ {
+		statusUpdateChan <- clusters.StatusUpdateMessage{}
+	}
+	discardStatusMessages(statusUpdateChan)
+
+	asserts.Equal(t, 0, len(statusUpdateChan))
 }
