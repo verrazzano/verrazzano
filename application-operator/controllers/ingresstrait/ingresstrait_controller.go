@@ -232,7 +232,7 @@ func (r *Reconciler) fetchChildResourcesByAPIVersionKinds(ctx context.Context, n
 	for _, childResKind := range childResKinds {
 		resources := unstructured.UnstructuredList{}
 		resources.SetAPIVersion(childResKind.APIVersion)
-		resources.SetKind(childResKind.Kind)
+		resources.SetKind(childResKind.Kind+"List") // Only required by "fake" client used in tests.
 		if err := r.List(ctx, &resources, client.InNamespace(namespace), client.MatchingLabels(childResKind.Selector)); err != nil {
 			r.Log.Error(err, "Failed listing child resources")
 			return nil, err
@@ -496,15 +496,32 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 		matches = append(matches, &istionet.HTTPMatchRequest{
 			Uri: createVirtualServiceMatchURIFromIngressTraitPath(path)})
 	}
-	dest := createDestinationFromService(service)
+	dest, err := createDestinationFromRuleOrService(rule, service)
+	if err != nil {
+		return err
+	}
 	route := istionet.HTTPRoute{
 		Match: matches,
-		Route: []*istionet.HTTPRouteDestination{&dest}}
+		Route: []*istionet.HTTPRouteDestination{dest}}
 	virtualService.Spec.Http = []*istionet.HTTPRoute{&route}
 
 	// Set the owner reference.
 	controllerutil.SetControllerReference(trait, virtualService, r.Scheme)
 	return nil
+}
+
+// createDestinationFromRuleOrService creates a destination from either the rule or the service.
+// If the rule contains destination information that is used.
+// Otherwise the previously selected service information is used.
+func createDestinationFromRuleOrService(rule vzapi.IngressRule, service *corev1.Service) (*istionet.HTTPRouteDestination, error) {
+	if len(rule.Destination.Host) > 0 {
+		dest := &istionet.HTTPRouteDestination{Destination: &istionet.Destination{Host: rule.Destination.Host}}
+		if rule.Destination.Port != 0 {
+			dest.Destination.Port = &istionet.PortSelector{Number: rule.Destination.Port}
+		}
+		return dest, nil
+	}
+	return createDestinationFromService(service)
 }
 
 // getPathsFromRule gets the paths from a trait.
@@ -520,14 +537,17 @@ func getPathsFromRule(rule vzapi.IngressRule) []vzapi.IngressPath {
 
 // createDestinationFromService creates a virtual service destination from a Service.
 // If the service does not have a port it is not included in the destination.
-func createDestinationFromService(service *corev1.Service) istionet.HTTPRouteDestination {
+func createDestinationFromService(service *corev1.Service) (*istionet.HTTPRouteDestination, error) {
+	if service == nil {
+		return nil, fmt.Errorf("unable to select default service for destination")
+	}
 	dest := istionet.HTTPRouteDestination{
 		Destination: &istionet.Destination{Host: service.Name}}
 	// If the related service declares a port add it to the destination.
 	if len(service.Spec.Ports) > 0 {
 		dest.Destination.Port = &istionet.PortSelector{Number: uint32(service.Spec.Ports[0].Port)}
 	}
-	return dest
+	return &dest, nil
 }
 
 // createVirtualServiceMatchURIFromIngressTraitPath create the virtual service match uri map from an ingress trait path
@@ -607,7 +627,7 @@ func (r *Reconciler) fetchServiceFromTrait(ctx context.Context, trait *vzapi.Ing
 
 	// Find the service from within the list of unstructured child resources
 	var service *corev1.Service
-	service, err = extractServiceFromUnstructuredChildren(children)
+	service, err = extractServiceFromUnstructuredChildren(workload, children)
 	if err != nil {
 		return nil, err
 	}
@@ -620,22 +640,32 @@ func (r *Reconciler) fetchServiceFromTrait(ctx context.Context, trait *vzapi.Ing
 // cluster IP. If no service has a cluster IP, choose the first service.
 // If found the unstructured data is converted to a Service object and returned.
 // children - An array of unstructured children
-func extractServiceFromUnstructuredChildren(children []*unstructured.Unstructured) (*corev1.Service, error) {
+func extractServiceFromUnstructuredChildren(workload *unstructured.Unstructured, services []*unstructured.Unstructured) (*corev1.Service, error) {
 	var selectedService *corev1.Service
 
-	for _, child := range children {
+	isWls := isWebLogicDomain(workload)
+
+	// If there is more than one child service and the workload is not a WebLogic Domain
+	// then a default service cannot be selected.
+	if (!isWls && len(services) != 1) || (isWls && len(services) < 1) {
+		return nil, nil
+	}
+
+	for _, child := range services {
 		if child.GetAPIVersion() == serviceAPIVersion && child.GetKind() == serviceKind {
 			var service corev1.Service
 			err := runtime.DefaultUnstructuredConverter.FromUnstructured(child.UnstructuredContent(), &service)
 			if err != nil {
-				// maybe we should continue here and hope that another child can be converted?
-				return nil, err
+				// Continue and hope that another child can be converted.
+				continue
 			}
 
-			if selectedService == nil {
+			// Selects the first service if not working with a WebLogic Domain workload
+			if selectedService == nil && !isWls {
 				selectedService = &service
 			}
 
+			// Replace the selection if a service with a cluster IP is found.
 			if service.Spec.ClusterIP != clusterIPNone {
 				selectedService = &service
 				break
@@ -643,11 +673,18 @@ func extractServiceFromUnstructuredChildren(children []*unstructured.Unstructure
 		}
 	}
 
+	// If the selected Service does not have exactly one port it cannot be used
+	// as the default service to avoid picking an arbitrary port.
+	if selectedService != nil && len(selectedService.Spec.Ports) != 1 {
+		return nil, nil
+	}
+
 	if selectedService != nil {
 		return selectedService, nil
 	}
 
-	return nil, fmt.Errorf("No child service found")
+	// If a valid service isn't found return nil but not error.
+	return nil, nil
 }
 
 // convertAPIVersionAndKindToNamespacedName converts APIVersion and Kind of CR to a CRD namespaced name.
@@ -754,4 +791,11 @@ func buildDomainNameForXIPIO(cli client.Reader, trait *vzapi.IngressTrait) (stri
 	}
 	domain := IP + "." + "xip.io"
 	return domain, nil
+}
+
+// isWebLogicDomain returns true if the provided unstructured has a WebLogic Domain kind.
+func isWebLogicDomain(uns *unstructured.Unstructured) bool {
+	return uns != nil &&
+		strings.HasPrefix(uns.GetAPIVersion(), "weblogic.oracle/") &&
+		strings.EqualFold(uns.GetKind(), "Domain")
 }

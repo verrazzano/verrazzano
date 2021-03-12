@@ -6,7 +6,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.2.5
+    controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
   name: ingresstraits.oam.verrazzano.io
 spec:
@@ -43,9 +43,19 @@ spec:
                 description: Rules specifies a list of ingress rules to for an ingress
                   trait.
                 items:
-                  description: IngressRule specifies the hosts and paths to be exposed
-                    for an ingress trait.
+                  description: IngressRule specifies the hosts, paths and destination
+                    to be exposed for an ingress trait.
                   properties:
+                    destination:
+                      description: IngressDestination specifies a specific destination
+                        host and port for the ingress paths.
+                      properties:
+                        host:
+                          type: string
+                        port:
+                          format: int32
+                          type: integer
+                      type: object
                     hosts:
                       items:
                         type: string

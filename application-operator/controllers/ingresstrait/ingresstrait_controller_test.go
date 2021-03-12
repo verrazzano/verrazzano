@@ -4,11 +4,15 @@
 package ingresstrait
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
+	"text/template"
 	"time"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
@@ -18,10 +22,12 @@ import (
 	"github.com/golang/mock/gomock"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	asserts "github.com/stretchr/testify/assert"
+	v8 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1beta1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -30,10 +36,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/yaml"
 )
 
 // GIVEN a controller implementation
@@ -121,14 +130,14 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-			assert.Equal("Deployment", list.GetKind())
+			assert.Equal("DeploymentList", list.GetKind())
 			return nil
 		})
 	// Expect a call to list the child Service resources of the containerized workload definition
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-			assert.Equal("Service", list.GetKind())
+			assert.Equal("ServiceList", list.GetKind())
 			return appendAsUnstructured(list, v1.Service{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "v1",
@@ -140,7 +149,10 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 						Kind:       "ContainerizedWorkload",
 						Name:       "test-workload-name",
 						UID:        "test-workload-uid",
-					}}}})
+					}}},
+				Spec: v1.ServiceSpec{
+					ClusterIP: "10.11.12.13",
+					Ports:     []v1.ServicePort{{Port: 42}}}})
 		})
 	// Expect a call to create the certificate and return success
 	mock.EXPECT().
@@ -179,7 +191,7 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-space-myapp-gw"}, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Gateway"}, "test-space-myapp-gw"))
-	// Expect a call to create the ingress resource and return success
+	// Expect a call to create the Gateway resource and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, gateway *istioclient.Gateway, opts ...client.CreateOption) error {
@@ -190,7 +202,7 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-trait-name-rule-0-vs"}, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "VirtualService"}, "test-trait-name-rule-0-vs"))
 
-	// Expect a call to create the ingress resource and return success
+	// Expect a call to create the VirtualService resource and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, virtualservice *istioclient.VirtualService, opts ...client.CreateOption) error {
@@ -198,7 +210,7 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 		})
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-	// Expect a call to update the status of the ingress trait.
+	// Expect a call to update the status of the IngressTrait.
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait, opts ...client.UpdateOption) error {
@@ -276,14 +288,14 @@ func TestSuccessfullyCreateNewIngressWithCertSecret(t *testing.T) {
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-			assert.Equal("Deployment", list.GetKind())
+			assert.Equal("DeploymentList", list.GetKind())
 			return nil
 		})
 	// Expect a call to list the child Service resources of the containerized workload definition
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-			assert.Equal("Service", list.GetKind())
+			assert.Equal("ServiceList", list.GetKind())
 			return appendAsUnstructured(list, v1.Service{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "v1",
@@ -295,7 +307,11 @@ func TestSuccessfullyCreateNewIngressWithCertSecret(t *testing.T) {
 						Kind:       "ContainerizedWorkload",
 						Name:       "test-workload-name",
 						UID:        "test-workload-uid",
-					}}}})
+					}}},
+				Spec: v1.ServiceSpec{
+					ClusterIP: "10.11.12.13",
+					Ports:     []v1.ServicePort{{Port: 42}}},
+			})
 		})
 	// Expect a call to get the gateway resource related to the ingress trait and return that it is not found.
 	mock.EXPECT().
@@ -410,14 +426,14 @@ func TestSuccessfullyUpdateIngressWithCertSecret(t *testing.T) {
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-			assert.Equal("Deployment", list.GetKind())
+			assert.Equal("DeploymentList", list.GetKind())
 			return nil
 		})
 	// Expect a call to list the child Service resources of the containerized workload definition
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-			assert.Equal("Service", list.GetKind())
+			assert.Equal("ServiceList", list.GetKind())
 			return appendAsUnstructured(list, v1.Service{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "v1",
@@ -429,7 +445,11 @@ func TestSuccessfullyUpdateIngressWithCertSecret(t *testing.T) {
 						Kind:       "ContainerizedWorkload",
 						Name:       "test-workload-name",
 						UID:        "test-workload-uid",
-					}}}})
+					}}},
+				Spec: v1.ServiceSpec{
+					ClusterIP: "10.11.12.13",
+					Ports:     []v1.ServicePort{{Port: 42}}},
+			})
 		})
 	// Expect a call to get the gateway resource related to the ingress trait and return it.
 	mock.EXPECT().
@@ -562,14 +582,14 @@ func TestFailureCreateNewIngressWithSecretNoHosts(t *testing.T) {
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-			assert.Equal("Deployment", list.GetKind())
+			assert.Equal("DeploymentList", list.GetKind())
 			return nil
 		})
 	// Expect a call to list the child Service resources of the containerized workload definition
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-			assert.Equal("Service", list.GetKind())
+			assert.Equal("ServiceList", list.GetKind())
 			return appendAsUnstructured(list, v1.Service{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "v1",
@@ -662,14 +682,14 @@ func TestFailureCreateGatewayCertNoAppName(t *testing.T) {
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-			assert.Equal("Deployment", list.GetKind())
+			assert.Equal("DeploymentList", list.GetKind())
 			return nil
 		})
 	// Expect a call to list the child Service resources of the containerized workload definition
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-			assert.Equal("Service", list.GetKind())
+			assert.Equal("ServiceList", list.GetKind())
 			return appendAsUnstructured(list, v1.Service{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "v1",
@@ -782,7 +802,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-			assert.Equal("Deployment", list.GetKind())
+			assert.Equal("DeploymentList", list.GetKind())
 			return nil
 		})
 	// Expect a call to get the certificate related to the ingress trait
@@ -793,7 +813,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-			assert.Equal("Service", list.GetKind())
+			assert.Equal("ServiceList", list.GetKind())
 			return appendAsUnstructured(list, v1.Service{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "v1",
@@ -805,7 +825,11 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 						Kind:       "ContainerizedWorkload",
 						Name:       "test-workload-name",
 						UID:        "test-workload-uid",
-					}}}})
+					}}},
+				Spec: v1.ServiceSpec{
+					ClusterIP: "10.11.12.13",
+					Ports:     []v1.ServicePort{{Port: 42}}},
+			})
 		})
 	// Expect a call to get the app config and return that it is not found.
 	mock.EXPECT().
@@ -1040,14 +1064,14 @@ func TestFailureToUpdateStatus(t *testing.T) {
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-			assert.Equal("Deployment", list.GetKind())
+			assert.Equal("DeploymentList", list.GetKind())
 			return nil
 		})
 	// Expect a call to list the child Service resources of the containerized workload definition
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-			assert.Equal("Service", list.GetKind())
+			assert.Equal("ServiceList", list.GetKind())
 			return appendAsUnstructured(list, v1.Service{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "v1",
@@ -1059,7 +1083,11 @@ func TestFailureToUpdateStatus(t *testing.T) {
 						Kind:       "ContainerizedWorkload",
 						Name:       "test-workload-name",
 						UID:        "test-workload-uid",
-					}}}})
+					}}},
+				Spec: v1.ServiceSpec{
+					ClusterIP: "10.11.12.13",
+					Ports:     []v1.ServicePort{{Port: 42}}},
+			})
 		})
 	// Expect a call to get the certificate related to the ingress trait
 	mock.EXPECT().
@@ -1707,16 +1735,17 @@ func TestGetPathsFromTrait(t *testing.T) {
 func TestCreateDestinationFromService(t *testing.T) {
 	assert := asserts.New(t)
 	var service v1.Service
-	var dest istionet.HTTPRouteDestination
+	var dest *istionet.HTTPRouteDestination
 
 	// GIVEN a service with no ports defined
 	// WHEN a destination is created from the service
 	// THEN verify that the port is nil.
 	service = v1.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"}}
-	dest = createDestinationFromService(&service)
+	dest, err := createDestinationFromService(&service)
 	assert.Equal("test-service-name", dest.Destination.Host)
 	assert.Nil(dest.Destination.Port)
+	assert.NoError(err)
 
 	// GIVEN a service with a valid port defined
 	// WHEN a destination is created from the service
@@ -1724,8 +1753,9 @@ func TestCreateDestinationFromService(t *testing.T) {
 	service = v1.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"},
 		Spec:       v1.ServiceSpec{Ports: []v1.ServicePort{{Port: 42}}}}
-	dest = createDestinationFromService(&service)
+	dest, err = createDestinationFromService(&service)
 	assert.Equal(uint32(42), dest.Destination.Port.Number)
+	assert.NoError(err)
 
 	// GIVEN a service with multiple valid ports defined
 	// WHEN a destination is created from the service
@@ -1733,8 +1763,16 @@ func TestCreateDestinationFromService(t *testing.T) {
 	service = v1.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"},
 		Spec:       v1.ServiceSpec{Ports: []v1.ServicePort{{Port: 42}, {Port: 777}}}}
-	dest = createDestinationFromService(&service)
+	dest, err = createDestinationFromService(&service)
 	assert.Equal(uint32(42), dest.Destination.Port.Number)
+	assert.NoError(err)
+
+	// GIVEN a nil service
+	// WHEN a destination is created from the service
+	// THEN verify that function fails
+	dest, err = createDestinationFromService(nil)
+	assert.Nil(dest, "No destination should have been created")
+	assert.Error(err, "An error should have been returned")
 }
 
 // GIVEN a single service in the unstructured children list
@@ -1743,15 +1781,19 @@ func TestCreateDestinationFromService(t *testing.T) {
 func TestExtractServiceOnlyOneService(t *testing.T) {
 	assert := asserts.New(t)
 
+	workload := &unstructured.Unstructured{}
+	updateUnstructuredFromYAMLTemplate(workload, "test/templates/wls_domain_instance.yaml", nil)
+
 	var serviceID types.UID = "test-service-1"
-	u, err := newUnstructuredService(serviceID, clusterIPNone)
+	u, err := newUnstructuredService(serviceID, clusterIPNone, 777)
 	assert.NoError(err)
 
 	children := []*unstructured.Unstructured{&u}
 	var extractedService *v1.Service
-	extractedService, err = extractServiceFromUnstructuredChildren(children)
+	extractedService, err = extractServiceFromUnstructuredChildren(workload, children)
 
 	assert.NoError(err)
+	assert.NotNil(extractedService)
 	assert.Equal(serviceID, extractedService.GetObjectMeta().GetUID())
 }
 
@@ -1761,30 +1803,440 @@ func TestExtractServiceOnlyOneService(t *testing.T) {
 func TestExtractServiceMultipleServices(t *testing.T) {
 	assert := asserts.New(t)
 
-	u1, err := newUnstructuredService("test-service-1", clusterIPNone)
+	workload := &unstructured.Unstructured{}
+	updateUnstructuredFromYAMLTemplate(workload, "test/templates/wls_domain_instance.yaml", nil)
+
+	u1, err := newUnstructuredService("test-service-1", clusterIPNone, 8001)
 	assert.NoError(err)
 
 	var serviceID types.UID = "test-service-2"
-	u2, err := newUnstructuredService(serviceID, "10.0.0.1")
+	u2, err := newUnstructuredService(serviceID, "10.0.0.1", 8002)
 	assert.NoError(err)
 
-	u3, err := newUnstructuredService("test-service-3", "10.0.0.2")
+	u3, err := newUnstructuredService("test-service-3", "10.0.0.2", 8003)
 	assert.NoError(err)
 
 	children := []*unstructured.Unstructured{&u1, &u2, &u3}
 	var extractedService *v1.Service
-	extractedService, err = extractServiceFromUnstructuredChildren(children)
+	extractedService, err = extractServiceFromUnstructuredChildren(workload, children)
 
 	assert.NoError(err)
+	assert.NotNil(extractedService)
 	assert.Equal(serviceID, extractedService.GetObjectMeta().GetUID())
 }
+
+// TODO: Test a valid existing Service is discovered and used for the destination.
+func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
+	assert := asserts.New(t)
+	cli := fake.NewFakeClientWithScheme(newScheme())
+	params := map[string]string{
+		"NAMESPACE_NAME":      "test-namespace",
+		"APPCONF_NAME":        "test-appconf",
+		"APPCONF_NAMESPACE":   "test-namespace",
+		"COMPONENT_NAME":      "test-comp",
+		"COMPONENT_NAMESPACE": "test-namespace",
+		"TRAIT_NAME":          "test-trait",
+		"TRAIT_NAMESPACE":     "test-namespace",
+		"WORKLOAD_NAME":       "test-workload",
+		"WORKLOAD_NAMESPACE":  "test-namespace",
+		"WORKLOAD_KIND":       "VerrazzanoWebLogicWorkload",
+		"DOMAIN_NAME":         "test-domain",
+		"DOMAIN_NAMESPACE":    "test-namespace",
+		"DOMAIN_UID":          "test-domain-uid",
+	}
+
+	// Create namespace
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
+	// Create Rancher ingress
+	assert.NoError(cli.Create(context.Background(), newRancherIngress("1.2.3.4")))
+	// Create Istio ingress service
+	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService("10.11.12.13", "1.2.3.4")))
+	// Create application configuration
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/appconf_with_ingress.yaml", params))
+	// Create application component
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_component.yaml", params))
+	// Create WebLogic workload definition
+	assert.NoError(createResourceFromTemplate(cli, "deploy/workloaddefinition_wls.yaml", params))
+	// Create trait
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/ingress_trait_instance.yaml", params))
+	// Create workload
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_workload_instance.yaml", params))
+	// Create domain
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_domain_instance.yaml", params))
+	// Create a service
+	service := v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-service",
+			Namespace: params["NAMESPACE_NAME"],
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "weblogic.oracle/v8",
+				Kind:       "Domain",
+				Name:       params["DOMAIN_NAME"],
+				UID:        types.UID(params["DOMAIN_UID"]),
+			}},
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Name:       "default",
+				Protocol:   "TCP",
+				Port:       8001,
+				TargetPort: intstr.FromInt(8001),
+			}},
+			ClusterIP: "10.11.12.13",
+			Type:      "ClusterIP",
+		},
+	}
+	assert.NoError(cli.Create(context.Background(), &service))
+
+	// Perform Reconcile
+	request := newRequest(params["TRAIT_NAMESPACE"], params["TRAIT_NAME"])
+	reconciler := newIngressTraitReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+	assert.NoError(err)
+	assert.Equal(true, result.Requeue, "Expected a requeue due to status update.")
+
+	gw := istioclient.Gateway{}
+	err = cli.Get(context.TODO(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
+	assert.NoError(err)
+	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
+	assert.Equal("test-appconf.test-namespace.1.2.3.4.xip.io", gw.Spec.Servers[0].Hosts[0])
+	assert.Equal("https", gw.Spec.Servers[0].Port.Name)
+	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
+	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
+	assert.Equal("test-namespace-test-appconf-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
+	assert.Equal("SIMPLE", gw.Spec.Servers[0].Tls.Mode.String())
+
+	vs := istioclient.VirtualService{}
+	err = cli.Get(context.TODO(), client.ObjectKey{Namespace: "test-namespace", Name: "test-trait-rule-0-vs"}, &vs)
+	assert.NoError(err)
+	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
+	assert.Len(vs.Spec.Gateways, 1)
+	assert.Equal("test-appconf.test-namespace.1.2.3.4.xip.io", vs.Spec.Hosts[0])
+	assert.Len(vs.Spec.Hosts, 1)
+	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "prefix:", )
+	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "/bobbys-front-end", )
+	assert.Len(vs.Spec.Http[0].Match, 1)
+	assert.Equal("test-service", vs.Spec.Http[0].Route[0].Destination.Host)
+	assert.Equal(uint32(8001), vs.Spec.Http[0].Route[0].Destination.Port.Number)
+	assert.Len(vs.Spec.Http[0].Route, 1)
+	assert.Len(vs.Spec.Http, 1)
+}
+
+// TODO: Test an explicitly provided destination is used in preference to an existing Service.
+func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
+	assert := asserts.New(t)
+	cli := fake.NewFakeClientWithScheme(newScheme())
+	params := map[string]string{
+		"NAMESPACE_NAME":      "test-namespace",
+		"APPCONF_NAME":        "test-appconf",
+		"APPCONF_NAMESPACE":   "test-namespace",
+		"COMPONENT_NAME":      "test-comp",
+		"COMPONENT_NAMESPACE": "test-namespace",
+		"TRAIT_NAME":          "test-trait",
+		"TRAIT_NAMESPACE":     "test-namespace",
+		"WORKLOAD_NAME":       "test-workload",
+		"WORKLOAD_NAMESPACE":  "test-namespace",
+		"WORKLOAD_KIND":       "VerrazzanoWebLogicWorkload",
+		"DOMAIN_NAME":         "test-domain",
+		"DOMAIN_NAMESPACE":    "test-namespace",
+		"DOMAIN_UID":          "test-domain-uid",
+	}
+
+	// Create namespace
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
+	// Create Rancher ingress
+	assert.NoError(cli.Create(context.Background(), newRancherIngress("1.2.3.4")))
+	// Create Istio ingress service
+	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService("10.11.12.13", "1.2.3.4")))
+	// Create application configuration
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/appconf_with_ingress.yaml", params))
+	// Create application component
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_component.yaml", params))
+	// Create WebLogic workload definition
+	assert.NoError(createResourceFromTemplate(cli, "deploy/workloaddefinition_wls.yaml", params))
+	// Create trait
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/ingress_trait_instance_with_dest.yaml", params))
+	// Create workload
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_workload_instance.yaml", params))
+	// Create domain
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_domain_instance.yaml", params))
+	// Create a service. This service should be ignored as an explicit destination is provided.
+	service := v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-service",
+			Namespace: params["NAMESPACE_NAME"],
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "weblogic.oracle/v8",
+				Kind:       "Domain",
+				Name:       params["DOMAIN_NAME"],
+				UID:        types.UID(params["DOMAIN_UID"]),
+			}},
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Name:       "default",
+				Protocol:   "TCP",
+				Port:       8001,
+				TargetPort: intstr.FromInt(8001),
+			}},
+			ClusterIP: "10.11.12.13",
+			Type:      "ClusterIP",
+		},
+	}
+	assert.NoError(cli.Create(context.Background(), &service))
+
+	// Perform Reconcile
+	request := newRequest(params["TRAIT_NAMESPACE"], params["TRAIT_NAME"])
+	reconciler := newIngressTraitReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+	assert.NoError(err)
+	assert.Equal(true, result.Requeue, "Expected a requeue due to status update.")
+
+	gw := istioclient.Gateway{}
+	err = cli.Get(context.TODO(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
+	assert.NoError(err)
+	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
+	assert.Equal("test-appconf.test-namespace.1.2.3.4.xip.io", gw.Spec.Servers[0].Hosts[0])
+	assert.Equal("https", gw.Spec.Servers[0].Port.Name)
+	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
+	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
+	assert.Equal("test-namespace-test-appconf-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
+	assert.Equal("SIMPLE", gw.Spec.Servers[0].Tls.Mode.String())
+
+	vs := istioclient.VirtualService{}
+	err = cli.Get(context.TODO(), client.ObjectKey{Namespace: "test-namespace", Name: "test-trait-rule-0-vs"}, &vs)
+	assert.NoError(err)
+	assert.Equal("test-namespace-test-appconf-gw", vs.Spec.Gateways[0])
+	assert.Len(vs.Spec.Gateways, 1)
+	assert.Equal("test-appconf.test-namespace.1.2.3.4.xip.io", vs.Spec.Hosts[0])
+	assert.Len(vs.Spec.Hosts, 1)
+	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "prefix:", )
+	assert.Contains(vs.Spec.Http[0].Match[0].Uri.String(), "/test-path", )
+	assert.Len(vs.Spec.Http[0].Match, 1)
+	assert.Equal("test-dest-host", vs.Spec.Http[0].Route[0].Destination.Host)
+	assert.Equal(uint32(777), vs.Spec.Http[0].Route[0].Destination.Port.Number)
+	assert.Len(vs.Spec.Http[0].Route, 1)
+	assert.Len(vs.Spec.Http, 1)
+}
+
+// TODO: Test failure for multiple service ports without an explicit destination.
+func TestMultiplePortsOnDiscoveredService(t *testing.T) {
+	assert := asserts.New(t)
+	cli := fake.NewFakeClientWithScheme(newScheme())
+	params := map[string]string{
+		"NAMESPACE_NAME":      "test-namespace",
+		"APPCONF_NAME":        "test-appconf",
+		"APPCONF_NAMESPACE":   "test-namespace",
+		"COMPONENT_NAME":      "test-comp",
+		"COMPONENT_NAMESPACE": "test-namespace",
+		"TRAIT_NAME":          "test-trait",
+		"TRAIT_NAMESPACE":     "test-namespace",
+		"WORKLOAD_NAME":       "test-workload",
+		"WORKLOAD_NAMESPACE":  "test-namespace",
+		"WORKLOAD_KIND":       "VerrazzanoWebLogicWorkload",
+		"DOMAIN_NAME":         "test-domain",
+		"DOMAIN_NAMESPACE":    "test-namespace",
+		"DOMAIN_UID":          "test-domain-uid",
+	}
+
+	// Create namespace
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
+	// Create Rancher ingress
+	assert.NoError(cli.Create(context.Background(), newRancherIngress("1.2.3.4")))
+	// Create Istio ingress service
+	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService("10.11.12.13", "1.2.3.4")))
+	// Create application configuration
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/appconf_with_ingress.yaml", params))
+	// Create application component
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_component.yaml", params))
+	// Create WebLogic workload definition
+	assert.NoError(createResourceFromTemplate(cli, "deploy/workloaddefinition_wls.yaml", params))
+	// Create trait. This trait has no destination.
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/ingress_trait_instance.yaml", params))
+	// Create workload
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_workload_instance.yaml", params))
+	// Create domain
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_domain_instance.yaml", params))
+	// Create a service. This service has two ports which should cause a failure.
+	service := v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-service",
+			Namespace: params["NAMESPACE_NAME"],
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "weblogic.oracle/v8",
+				Kind:       "Domain",
+				Name:       params["DOMAIN_NAME"],
+				UID:        types.UID(params["DOMAIN_UID"]),
+			}},
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Name:       "default",
+				Protocol:   "TCP",
+				Port:       8001,
+				TargetPort: intstr.FromInt(8001)}, {
+				Name:       "default",
+				Protocol:   "TCP",
+				Port:       8002,
+				TargetPort: intstr.FromInt(8002)},
+			},
+			ClusterIP: "10.11.12.13",
+			Type:      "ClusterIP",
+		},
+	}
+	assert.NoError(cli.Create(context.Background(), &service))
+
+	// Perform Reconcile
+	request := newRequest(params["TRAIT_NAMESPACE"], params["TRAIT_NAME"])
+	reconciler := newIngressTraitReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+	assert.NoError(err, "No error because reconcile worked but needs to be retried.")
+	assert.Equal(true, result.Requeue, "Expected a requeue because the discovered service has multiple ports.")
+
+	gw := istioclient.Gateway{}
+	err = cli.Get(context.TODO(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
+	assert.NoError(err)
+	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
+	assert.Equal("test-appconf.test-namespace.1.2.3.4.xip.io", gw.Spec.Servers[0].Hosts[0])
+	assert.Equal("https", gw.Spec.Servers[0].Port.Name)
+	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
+	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
+	assert.Equal("test-namespace-test-appconf-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
+	assert.Equal("SIMPLE", gw.Spec.Servers[0].Tls.Mode.String())
+
+	vs := istioclient.VirtualService{}
+	err = cli.Get(context.TODO(), client.ObjectKey{Namespace: "test-namespace", Name: "test-trait-rule-0-vs"}, &vs)
+	assert.True(k8serrors.IsNotFound(err), "No VirtualService should have been created.")
+}
+
+// TODO: Test failure for multiple services for non-WebLogic workload without explicit destination.
+func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination(t *testing.T) {
+	assert := asserts.New(t)
+	cli := fake.NewFakeClientWithScheme(newScheme())
+	params := map[string]string{
+		"NAMESPACE_NAME":        "test-namespace",
+		"APPCONF_NAME":          "test-appconf",
+		"APPCONF_NAMESPACE":     "test-namespace",
+		"APPCONF_UID":           "test-appconf-uid",
+		"COMPONENT_NAME":        "test-comp",
+		"COMPONENT_NAMESPACE":   "test-namespace",
+		"TRAIT_NAME":            "test-trait",
+		"TRAIT_NAMESPACE":       "test-namespace",
+		"WORKLOAD_NAME":         "test-workload",
+		"WORKLOAD_NAMESPACE":    "test-namespace",
+		"WORKLOAD_UID":          "test-workload-uid",
+		"WORKLOAD_KIND":         "VerrazzanoHelidonWorkload",
+		"DEPLOYMENT_NAME":       "test-deployment",
+		"DEPLOYMENT_NAMESPACE":  "test-namespace",
+		"DEPLOYMENT_UID":        "test-domain-uid",
+		"CONTAINER_NAME":        "test-container-name",
+		"CONTAINER_IMAGE":       "test-container-image",
+		"CONTAINER_PORT_NAME":   "test-container-port-name",
+		"CONTAINER_PORT_NUMBER": "777",
+	}
+
+	// Create namespace
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
+	// Create Rancher ingress
+	assert.NoError(cli.Create(context.Background(), newRancherIngress("1.2.3.4")))
+	// Create Istio ingress service
+	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService("10.11.12.13", "1.2.3.4")))
+	// Create application configuration
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/appconf_with_ingress.yaml", params))
+	// Create application component
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/helidon_component.yaml", params))
+	// Create WebLogic workload definition
+	assert.NoError(createResourceFromTemplate(cli, "deploy/workloaddefinition_vzhelidon.yaml", params))
+	// Create workload
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/helidon_workload_instance.yaml", params))
+	// Create trait. This trait has no destination.
+	assert.NoError(createResourceFromTemplate(cli, "test/templates/ingress_trait_instance.yaml", params))
+	// Create a first service.
+	service1 := v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-service-1",
+			Namespace: params["APPCONF_NAMESPACE"],
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "oam.verrazzano.io/v1alpha1",
+				Kind:       "VerrazzanoHelidonWorkload",
+				Name:       params["WORKLOAD_NAME"],
+				UID:        types.UID(params["WORKLOAD_UID"]),
+			}},
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Name:       "test-service-1-port",
+				Protocol:   "TCP",
+				Port:       8081,
+				TargetPort: intstr.FromInt(8081)},
+			},
+			ClusterIP: "10.11.12.13",
+			Type:      "NodePort",
+		},
+	}
+	assert.NoError(cli.Create(context.Background(), &service1))
+	// Create a second service.
+	service2 := v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-service-2",
+			Namespace: params["APPCONF_NAMESPACE"],
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "oam.verrazzano.io/v1alpha1",
+				Kind:       "VerrazzanoHelidonWorkload",
+				Name:       params["WORKLOAD_NAME"],
+				UID:        types.UID(params["WORKLOAD_UID"]),
+			}},
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Name:       "test-service-2-port",
+				Protocol:   "TCP",
+				Port:       8082,
+				TargetPort: intstr.FromInt(8082)},
+			},
+			ClusterIP: "11.12.13.14",
+			Type:      "NodePort",
+		},
+	}
+	assert.NoError(cli.Create(context.Background(), &service2))
+
+	// Perform Reconcile
+	request := newRequest(params["TRAIT_NAMESPACE"], params["TRAIT_NAME"])
+	reconciler := newIngressTraitReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+	assert.NoError(err, "No error because reconcile worked but needs to be retried.")
+	assert.Equal(true, result.Requeue, "Expected a requeue because the discovered service has multiple ports.")
+
+	gw := istioclient.Gateway{}
+	err = cli.Get(context.TODO(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
+	assert.NoError(err)
+	assert.Equal("ingressgateway", gw.Spec.Selector["istio"])
+	assert.Equal("test-appconf.test-namespace.1.2.3.4.xip.io", gw.Spec.Servers[0].Hosts[0])
+	assert.Equal("https", gw.Spec.Servers[0].Port.Name)
+	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
+	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
+	assert.Equal("test-namespace-test-appconf-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
+	assert.Equal("SIMPLE", gw.Spec.Servers[0].Tls.Mode.String())
+
+	vs := istioclient.VirtualService{}
+	err = cli.Get(context.TODO(), client.ObjectKey{Namespace: "test-namespace", Name: "test-trait-rule-0-vs"}, &vs)
+	assert.True(k8serrors.IsNotFound(err), "No VirtualService should have been created.")
+}
+
+// TODO: Test correct WebLogic service (i.e. with ClusterIP) getting picked after failure and retry.
 
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	//_ = clientgoscheme.AddToScheme(scheme)
 	core.AddToScheme(scheme)
+	appsv1.AddToScheme(scheme)
 	vzapi.AddToScheme(scheme)
+	v8.AddToScheme(scheme)
+	v1.AddToScheme(scheme)
+	certapiv1alpha2.AddToScheme(scheme)
+	k8net.AddToScheme(scheme)
+	istioclient.AddToScheme(scheme)
 	return scheme
 }
 
@@ -1834,10 +2286,43 @@ func appendAsUnstructured(list *unstructured.UnstructuredList, object interface{
 	return nil
 }
 
+// newRancherIngress creates a new Ranger Ingress with the provided IP address.
+func newRancherIngress(ipAddress string) *k8net.Ingress {
+	rangerIngress := k8net.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "rancher",
+			Namespace:   "cattle-system",
+			Annotations: map[string]string{
+				"nginx.ingress.kubernetes.io/auth-realm": fmt.Sprintf("default.%s.xip.io auth", ipAddress)},
+		},
+	}
+	return &rangerIngress
+}
+
+// newIstioLoadBalancerService creates a new Istio LoadBalancer Service with the provided
+// clusterIPAddress and loadBalancerIPAddress
+func newIstioLoadBalancerService(clusterIPAddress string, loadBalancerIPAddress string) *v1.Service {
+	istioService := v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "istio-ingressgateway",
+			Namespace: "istio-system",
+		},
+		Spec: v1.ServiceSpec{
+			ClusterIP: clusterIPAddress,
+			Type:      "LoadBalancer",
+		},
+		Status: v1.ServiceStatus{
+			LoadBalancer: v1.LoadBalancerStatus{
+				Ingress: []v1.LoadBalancerIngress{{
+					IP: loadBalancerIPAddress}}}},
+	}
+	return &istioService
+}
+
 // newUnstructuredService creates a service and returns it in Unstructured form
 // uid - The UID of the service
 // clusterIP - The cluster IP of the service
-func newUnstructuredService(uid types.UID, clusterIP string) (unstructured.Unstructured, error) {
+func newUnstructuredService(uid types.UID, clusterIP string, port int32) (unstructured.Unstructured, error) {
 	service := v1.Service{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1",
@@ -1848,7 +2333,97 @@ func newUnstructuredService(uid types.UID, clusterIP string) (unstructured.Unstr
 		},
 		Spec: v1.ServiceSpec{
 			ClusterIP: clusterIP,
-		}}
-
+			Ports:     []v1.ServicePort{{Port: port}}},
+	}
 	return convertToUnstructured(service)
+}
+
+// executeTemplate reads a template from a file and replaces values in the template from param maps
+// template - The filename of a template
+// params - a vararg of param maps
+func executeTemplate(templateFile string, data interface{}) (string, error) {
+	file := "../../" + templateFile
+	if _, err := os.Stat(file); err != nil {
+		file = "../" + templateFile
+		if _, err := os.Stat(file); err != nil {
+			file = templateFile
+			if _, err := os.Stat(file); err != nil {
+				return "", err
+			}
+		}
+	}
+	b, err := ioutil.ReadFile(file)
+	if err != nil {
+		return "", err
+	}
+	t, err := template.New(templateFile).Parse(string(b))
+	if err != nil {
+		return "", err
+	}
+	var buf bytes.Buffer
+	err = t.ExecuteTemplate(&buf, templateFile, data)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+// updateUnstructuredFromYAMLTemplate updates an unstructured from a populated YAML template file.
+// uns - The unstructured to update
+// template - The template file
+// params - The param maps to merge into the template
+func updateUnstructuredFromYAMLTemplate(uns *unstructured.Unstructured, template string, data interface{}) error {
+	str, err := executeTemplate(template, data)
+	if err != nil {
+		return err
+	}
+	bytes, err := yaml.YAMLToJSON([]byte(str))
+	if err != nil {
+		return err
+	}
+	_, _, err = unstructured.UnstructuredJSONScheme.Decode(bytes, nil, uns)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// updateObjectFromYAMLTemplate updates an object from a populated YAML template file.
+// uns - The unstructured to update
+// template - The template file
+// params - The param maps to merge into the template
+func updateObjectFromYAMLTemplate(obj interface{}, template string, data interface{}) error {
+	uns := unstructured.Unstructured{}
+	err := updateUnstructuredFromYAMLTemplate(&uns, template, data)
+	if err != nil {
+		return err
+	}
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(uns.Object, obj)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// createResourceFromTemplate builds a resource by merging the data with the template file and then
+// creates the resource using the client.
+func createResourceFromTemplate(cli client.Client, template string, data interface{}) error {
+	uns := unstructured.Unstructured{}
+	if err := updateUnstructuredFromYAMLTemplate(&uns, template, data); err != nil {
+		return err
+	}
+	if err := cli.Create(context.TODO(), &uns); err != nil {
+		return err
+	}
+	return nil
+}
+
+// marshalObjectToYAMLString marshals the project object to a YAML formatted string.
+func marshalObjectToYAMLString(obj interface{}) (string, error) {
+	var bytes []byte
+	bytes, err := yaml.Marshal(obj)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
 }
