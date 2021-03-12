@@ -1,6 +1,12 @@
 # Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
+#
+# This install resource installs the "prod" profile to install a full set of Verrazzano services
+# for production scenarios, using OCI DNS for name resolution of Verrazzano endpoints.
+#
+# Note that before you install verrazzano you need to run the create_oci_config_secret.sh in the
+# verrazzano/platform-operator/scripts/install directory to set up the ociConfigSecret below.
+#
 apiVersion: install.verrazzano.io/v1alpha1
 kind: Verrazzano
 metadata:

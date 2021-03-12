@@ -3,7 +3,7 @@
 # Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
-SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
+SCRIPT_DIR=$(cd $(dirname $BASH_SOURCE); pwd -P)
 INSTALL_DIR=$SCRIPT_DIR/../install
 
 . $INSTALL_DIR/common.sh
@@ -56,7 +56,12 @@ function delete_k8s_resource_from_all_namespaces() {
       fi
     done
   fi
+  # Delete the CRDs, without any CRs based on that, from all the namespaces
+  if kubectl get crd "${res}"> /dev/null 2>&1 ; then
+    kubectl delete crd "${res}" --ignore-not-found > /dev/null 2>&1
+  fi
 }
+
 
 # utility function to delete kubernetes resources
 # $1 resource-type - type of the resources being deleted
