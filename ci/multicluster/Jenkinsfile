@@ -498,18 +498,15 @@ def installVerrazzano(count, verrazzanoConfig) {
     return {
         script {
             sh """
-                echo "step 1"
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 cd ${GO_REPO_PATH}/verrazzano
                 echo "Installing the Verrazzano Platform Operator"
                 kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
 
                 # make sure ns exists
-                echo "step 2"
                 ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
 
                 # create secret in verrazzano-install ns
-                echo "step 4"
                 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
                 echo "Wait for Operator to be ready"
