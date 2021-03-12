@@ -250,7 +250,7 @@ pipeline {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     // Enable Bob's Books demo later
-                    runGinkgo('examples/todo-list')
+                    runGinkgo('examples/todo')
                 }
             }
         }
@@ -324,7 +324,7 @@ pipeline {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     // Enable Bob's Books demo later
-                    runGinkgo('examples/todo-list')
+                    runGinkgo('examples/todo')
                 }
             }
         }
