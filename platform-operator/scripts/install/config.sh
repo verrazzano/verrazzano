@@ -300,6 +300,15 @@ function get_rancher_resolve() {
   echo ${resolve}
 }
 
+function get_rancher_in_cluster_host() {
+  local rancher_hostname=$1
+  local rancher_in_cluster_host=${rancher_hostname}
+  if [ $(get_config_value ".ingress.type") == "NodePort" ]; then
+    rancher_in_cluster_host=$(get_nginx_hostip)
+  fi
+  echo ${rancher_in_cluster_host}
+}
+
 function get_nginx_hostip() {
   local hostIP=$(kubectl -n ingress-nginx get pods --selector app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller -o jsonpath='{.items[0].status.hostIP}')
   echo ${hostIP}

@@ -276,26 +276,32 @@ function wait_for_rancher_agent_to_exist {
 }
 
 function patch_rancher_agents() {
-    local rancher_in_cluster_host=$(get_nginx_hostip)
-    local patch_data='{"spec":{"template":{"spec":{"hostAliases":[{"hostnames":["'"${RANCHER_HOSTNAME}"'"],"ip":"'"${rancher_in_cluster_host}"'"}]}}}}'
-    wait_for_rancher_agent_to_exist
+    local rancher_in_cluster_host=$(get_rancher_in_cluster_host ${RANCHER_HOSTNAME})
 
-    # only when cattle-cluster-agent is deployed
-    kubectl -n cattle-system get deploy/cattle-cluster-agent
-    if [ $? -eq 0 ]; then
-        echo "cattle-cluster-agent is deployed.  Continue with patching cattle-cluster-agent."
-        kubectl -n cattle-system patch deployments cattle-cluster-agent --patch ${patch_data}
-    else
-        echo "cattle-cluster-agent is not deployed.  Skip patching."
-    fi
+    if [ ${RANCHER_HOSTNAME} != ${rancher_in_cluster_host} ]; then
+        local patch_data='{"spec":{"template":{"spec":{"hostAliases":[{"hostnames":["'"${RANCHER_HOSTNAME}"'"],"ip":"'"${rancher_in_cluster_host}"'"}]}}}}'
 
-    # only when cattle-node-agent is deployed
-    kubectl -n cattle-system get daemonset/cattle-node-agent
-    if [ $? -eq 0 ]; then
-        echo "cattle-node-agent is deployed.  Continue with patching cattle-node-agent."
-        kubectl -n cattle-system patch daemonsets cattle-node-agent --patch ${patch_data}
+        wait_for_rancher_agent_to_exist
+
+        # only when cattle-cluster-agent is deployed
+        kubectl -n cattle-system get deploy/cattle-cluster-agent
+        if [ $? -eq 0 ]; then
+            echo "cattle-cluster-agent is deployed.  Continue with patching cattle-cluster-agent."
+            kubectl -n cattle-system patch deployments cattle-cluster-agent --patch ${patch_data}
+        else
+            echo "cattle-cluster-agent is not deployed.  Skip patching."
+        fi
+
+        # only when cattle-node-agent is deployed
+        kubectl -n cattle-system get daemonset/cattle-node-agent
+        if [ $? -eq 0 ]; then
+            echo "cattle-node-agent is deployed.  Continue with patching cattle-node-agent."
+            kubectl -n cattle-system patch daemonsets cattle-node-agent --patch ${patch_data}
+        else
+            echo "cattle-node-agent is not deployed.  Skip patching."
+        fi
     else
-        echo "cattle-node-agent is not deployed.  Skip patching."
+        echo "Rancher host is the same from inside and outside the cluster.  No need to patch agents."
     fi
 }
 
