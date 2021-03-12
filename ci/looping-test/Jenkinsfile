@@ -312,9 +312,11 @@ pipeline {
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*verrazzano-installation-loop-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             sh """
-                cd ${WORKSPACE}/verrazzano
+                if [ -f ${POST_DUMP_FAILED_FILE} ]; then
+                    echo "Failures seen during dumping of artifacts, treat post as failed"
+                    exit 1
+                fi
             """
-            deleteDir()
         }
 
         failure {
@@ -360,6 +362,9 @@ pipeline {
                     kubectl delete --ignore-not-found=true -f ${WORKSPACE}/acceptance-test-operator.yaml
                 """
             }
+        }
+        cleanup {
+            deleteDir()
         }
         //cleanup {
         //    script {
