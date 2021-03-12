@@ -297,10 +297,10 @@ pipeline {
                                         echo "Installing yq"
                                         GO111MODULE=on go get github.com/mikefarah/yq/v4
                                         export PATH=${HOME}/go/bin:${PATH}
-                                        // Copy the basic Kind config and edit it for the admin profile configuration
+                                        # Copy the basic Kind config and edit it for the admin profile configuration
                                         cp $INSTALL_CONFIG_FILE_KIND $ADMIN_CLUSTER_INSTALL_CONFIG_FILE
                                         INSTALL_PROFILE=${ADMIN_CLUSTER_PROFILE} ./tests/e2e/config/scripts/process_kind_install_yaml.sh $ADMIN_CLUSTER_INSTALL_CONFIG_FILE
-                                        // Copy the basic Kind config over for the mgd cluster profile configuration
+                                        # Copy the basic Kind config over for the mgd cluster profile configuration
                                         cp $INSTALL_CONFIG_FILE_KIND $MANAGED_CLUSTER_INSTALL_CONFIG_FILE
                                         INSTALL_PROFILE=${MANAGED_CLUSTER_PROFILE} ./tests/e2e/config/scripts/process_kind_install_yaml.sh $MANAGED_CLUSTER_INSTALL_CONFIG_FILE
                                     """
