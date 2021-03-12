@@ -69,10 +69,10 @@ function delete_istio_namepsace() {
 function finalize() {
   # Removing possible reference to verrazzano in clusterroles and clusterrolebindings
   log "Removing Verrazzano ClusterRoles and ClusterRoleBindings"
-  delete_k8s_resources clusterrolebinding ":metadata.name" "Could not delete ClusterRoleBindings" '/verrazzano/ && ! /verrazzano-platform-operator/ && ! /verrazzano-install/' \
+  delete_k8s_resources clusterrolebinding ":metadata.name" "Could not delete ClusterRoleBindings" '/verrazzano/ && ! /verrazzano-platform-operator/ && ! /verrazzano-install/ && ! /verrazzano-managed-cluster/' \
     || return $? # return on pipefail
 
-  delete_k8s_resources clusterrole ":metadata.name" "Could not delete ClusterRoles" '/verrazzano/' \
+  delete_k8s_resources clusterrole ":metadata.name" "Could not delete ClusterRoles" '/verrazzano/ && ! /verrazzano-managed-cluster/' \
     || return $? # return on pipefail
 
   # Grab all leftover Helm repos and delete resources
