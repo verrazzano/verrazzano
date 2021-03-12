@@ -5,6 +5,7 @@ package pkg
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/go-retryablehttp"
 )
 
@@ -36,7 +37,9 @@ func GetSystemVMICredentials() (*UsernamePassword, error) {
 func GetBindingVmiHTTPClient(bindingName string) *retryablehttp.Client {
 	bindingVmiCaCert := getBindingVMICACert(bindingName)
 	vmiRawClient := getHTTPClientWIthCABundle(bindingVmiCaCert)
-	return newRetryableHTTPClient(vmiRawClient)
+	retryableClient := newRetryableHTTPClient(vmiRawClient)
+	retryableClient.CheckRetry = GetRetryPolicy()
+	return retryableClient
 }
 
 func getBindingVMICACert(bindingName string) []byte {
