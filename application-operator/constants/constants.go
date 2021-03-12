@@ -29,10 +29,6 @@ const AdminKubeconfigData = "admin-kubeconfig"
 // ClusterNameData - the field name in MCRegistrationSecret that contains this managed cluster's name
 const ClusterNameData = "managed-cluster-name"
 
-// ElasticsearchSecretName - the name of the secret in the Verrazzano System namespace,
-// that contains credentials and other details for for the admin cluster's Elasticsearch endpoint
-const ElasticsearchSecretName = "verrazzano-cluster-elasticsearch"
-
 // ElasticsearchURLData - the field name in ElasticsearchSecret that contains the admin cluster's
 // Elasticsearch endpoint's URL
 const ElasticsearchURLData = "url"
