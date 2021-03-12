@@ -380,7 +380,7 @@ scrape_configs:
 
 			asserts.NotNil(prometheusYaml, "No prometheus config yaml found")
 			asserts.NotNil(scrapeConfig, "No scrape configs found")
-			asserts.Equal("test2", scrapeConfig.Path("job_name").Data(),  "Expected scrape config not found")
+			asserts.Equal("test2", scrapeConfig.Path("job_name").Data(), "Expected scrape config not found")
 
 			return nil
 		})
@@ -762,5 +762,3 @@ func getScrapeConfig(prometheusYaml string, name string) (*gabs.Container, error
 func getPrometheusSecretName() string {
 	return "test-secret"
 }
-
-
