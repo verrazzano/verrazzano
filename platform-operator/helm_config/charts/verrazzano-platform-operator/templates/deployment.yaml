@@ -1,0 +1,74 @@
+# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}
+    spec:
+      initContainers:
+        - name: webhook-init
+          image: {{ .Values.image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          args:
+            - --zap-log-level=info
+            - --init-webhooks=true
+          env:
+            - name: MODE
+              value: RUN_OPERATOR
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
+      containers:
+        - name: {{ .Values.name }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          image: {{ .Values.image }}
+          ports:
+            - containerPort: 9443
+              name: webhook
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /validate-install-verrazzano-io-v1alpha1-verrazzano
+              port: webhook
+              scheme: HTTPS
+              httpHeaders:
+                - name: Content-Type
+                  value: application/json
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 15
+          args:
+            - --zap-log-level=info
+            - --enable-webhook-validation=true
+          env:
+            - name: MODE
+              value: RUN_OPERATOR
+            - name: VZ_INSTALL_IMAGE
+              value: {{ .Values.image }}
+            {{- if .Values.global.imagePullSecrets }}
+            - name: IMAGE_PULL_SECRETS
+              value: {{ join "," .Values.global.imagePullSecrets }}
+            {{- end }}
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
+              readOnly: true
+          resources:
+            requests:
+              memory: 72Mi
+      volumes:
+        - name: webhook-certs
+          emptyDir: {}
+      serviceAccountName: {{ .Values.name }}

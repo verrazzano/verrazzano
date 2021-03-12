@@ -10,7 +10,7 @@ REPO_NAME:=verrazzano-application-operator
 
 TIMESTAMP := $(shell date -u +%Y%m%d%H%M%S)
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
-DOCKER_IMAGE_TAG ?= local-${TIMESTAMP}-$(shell git rev-parse --short HEAD)
+DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)
 
 CONTROLLER_GEN_VERSION ?= $(shell go list -m -f '{{.Version}}' sigs.k8s.io/controller-tools)
 CREATE_LATEST_TAG=0
