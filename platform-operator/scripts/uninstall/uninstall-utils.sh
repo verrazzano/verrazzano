@@ -56,7 +56,12 @@ function delete_k8s_resource_from_all_namespaces() {
       fi
     done
   fi
+  # Delete the CRDs, without any CRs based on that, from all the namespaces
+  if kubectl get crd "${res}"> /dev/null 2>&1 ; then
+    kubectl delete crd "${res}" --ignore-not-found > /dev/null 2>&1
+  fi
 }
+
 
 # utility function to delete kubernetes resources
 # $1 resource-type - type of the resources being deleted
