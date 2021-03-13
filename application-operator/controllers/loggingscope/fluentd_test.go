@@ -204,7 +204,7 @@ func TestFluentdApply_ManagedClusterElasticsearch(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mockClient := mocks.NewMockClient(mocker)
 
-	managedClusterElasticsearchSecretKey := clusters.GetManagedClusterElasticsearchSecretKey()
+	managedClusterElasticsearchSecretKey := clusters.MCRegistrationSecretFullName
 	scope := createTestLoggingScope(true)
 	// loggingscope uses managed cluster elasticsearch secret
 	scope.Spec.SecretName = managedClusterElasticsearchSecretKey.Name

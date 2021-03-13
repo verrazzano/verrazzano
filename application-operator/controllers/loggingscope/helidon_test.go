@@ -43,7 +43,7 @@ func TestHelidonHandlerApply_ManagedCluster(t *testing.T) {
 	workloadName := "hello-workload"
 	appContainerName := "testApply-app-container"
 	workload := workloadOf(namespace, workloadName)
-	managedClusterVmiSecretKey := clusters.GetManagedClusterElasticsearchSecretKey()
+	managedClusterVmiSecretKey := clusters.MCRegistrationSecretFullName
 	esSecretName := managedClusterVmiSecretKey.Name
 	scope := newLoggingScope(namespace, "esHost", esSecretName)
 
@@ -314,7 +314,7 @@ func expectDeploymentUpdatedWithFluentd(t *testing.T, mockClient *mocks.MockClie
 // expectationsForApplyUseManagedClusterSecret - adds expectations when the esSecretName is the same
 // as the managed cluster's ES secret name
 func expectationsForApplyUseManagedClusterSecret(t *testing.T, mockClient *mocks.MockClient, namespace string) {
-	managedClusterVmiSecretKey := clusters.GetManagedClusterElasticsearchSecretKey()
+	managedClusterVmiSecretKey := clusters.MCRegistrationSecretFullName
 	esSecretName := managedClusterVmiSecretKey.Name
 
 	// GET supplied ES secret which we return as not found

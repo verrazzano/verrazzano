@@ -146,13 +146,6 @@ func TestGetConditionFromResult(t *testing.T) {
 	asserts.Contains(t, condition.Message, someerr.Error())
 }
 
-// TestGetManagedClusterElasticsearchSecretKey tests that GetManagedClusterElasticsearchSecretKey
-// returns the correct value
-func TestGetManagedClusterElasticsearchSecretKey(t *testing.T) {
-	key := GetManagedClusterElasticsearchSecretKey()
-	asserts.Equal(t, MCRegistrationSecretFullName, key)
-}
-
 // TestIgnoreNotFoundWithLog tests the IgnoreNotFoundWithLog function
 // GIVEN a K8S NotFound error
 // WHEN IgnoreNotFoundWithLog is called

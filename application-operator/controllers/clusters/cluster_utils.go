@@ -241,12 +241,6 @@ func FetchManagedClusterElasticSearchDetails(ctx context.Context, rdr client.Rea
 	return esDetails
 }
 
-// GetManagedClusterElasticsearchSecretKey returns the object key for the managed cluster elastic
-// search secret
-func GetManagedClusterElasticsearchSecretKey() client.ObjectKey {
-	return client.ObjectKey{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCRegistrationSecret}
-}
-
 // GetClusterName returns the cluster name for a managed cluster, empty string otherwise
 func GetClusterName(ctx context.Context, rdr client.Reader) string {
 	clusterSecret := corev1.Secret{}
