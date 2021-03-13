@@ -544,14 +544,13 @@ func createEmptySecretForFluentdVolume(ctx context.Context, cli k8sclient.Client
 
 // copies the managed cluster Elasticsearch secret to the given namespace/name IF it exists
 func copyManagedClusterVMISecret(ctx context.Context, cli k8sclient.Client, namespace string, name string) error {
-	secretKey := clusters.MCRegistrationSecretFullName
-	if name != secretKey.Name {
+	if name != clusters.MCRegistrationSecretFullName.Name {
 		// The managed cluster ES secret is not the one specified on the logging scope
 		// nothing to copy
 		return nil
 	}
 	secret := &corev1.Secret{}
-	err := cli.Get(ctx, secretKey, secret)
+	err := cli.Get(ctx, clusters.MCRegistrationSecretFullName, secret)
 	if kerrs.IsNotFound(err) {
 		// Not a managed cluster, nothing to replicate
 		return nil
@@ -570,13 +569,12 @@ func copyManagedClusterVMISecret(ctx context.Context, cli k8sclient.Client, name
 // shouldUseManagedClusterElasticsearchSecret returns true if this is a managed cluster and the
 // logging scope specifies that the managed cluster Elasticsearch secret should be used
 func shouldUseManagedClusterElasticsearchSecret(ctx context.Context, cli k8sclient.Client, loggingScopeSecretName string) bool {
-	secretKey := clusters.MCRegistrationSecretFullName
-	if loggingScopeSecretName != secretKey.Name {
+	if loggingScopeSecretName != clusters.MCRegistrationSecretFullName.Name {
 		// We are not using the managed cluster Elasticsearch secret in our logging scope
 		return false
 	}
 	secret := &corev1.Secret{}
-	err := cli.Get(ctx, secretKey, secret)
+	err := cli.Get(ctx, clusters.MCRegistrationSecretFullName, secret)
 	if kerrs.IsNotFound(err) {
 		// Not a managed cluster - can't use managed cluster ES secret
 		return false
