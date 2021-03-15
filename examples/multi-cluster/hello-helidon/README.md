@@ -9,46 +9,57 @@ Install Verrazzano on two separate Kubernetes clusters following the [installati
 The Hello World Helidon application deployment artifacts are contained in the Verrazzano project located at
 `<VERRAZZANO_HOME>/examples/multi-cluster/hello-helidon`, where `<VERRAZZANO_HOME>` is the root of the Verrazzano project.
 
-Create the environment variables `KUBECONFIG_ADMIN` and `KUBECONFIG_CLUSTER1` to point to the kubeconfig files for the respective clusters.
+Create the environment variables `KUBECONFIG_ADMIN` and `KUBECONFIG_MANAGED1` to point to the kubeconfig files for the admin and managed clusters respectively.
 
 **NOTE:** All files and paths in this document are relative to
 `<VERRAZZANO_HOME>/examples/multi-cluster/hello-helidon`.
 
 ## Register the Managed Cluster
 
-1. Create a secret that contains the credentials for scraping metrics from the managed cluster.  This feature is not supported yet but the secret must exist in order to create a VerrazzanoManagedCluster object.
+1. Obtain the credentials for scraping metrics from the managed cluster.  The script will output the credentials into a file named `managed1.yaml` into the current folder.
    ```
-   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl create secret generic prometheus-cluster1 -n verrazzano-mc
+   $ export KUBECONFIG=$KUBECONFIG_MANAGED1
+   ../../../platform-operator/scripts/create_managed_cluster_secret.sh -n managed1 -o .
    ```
 
-1. Create a VerrazzanoManagedCluster object on the admin cluster to begin the registration process for a managed cluster named `cluster1`.
+1. Create a secret on the admin cluster that contains the credentials for scraping metrics from the managed cluster.  The file `managed1.yaml` that was created in the previous step is provided as input to this step.
    ```
-   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f vmc-cluster1.yaml
+   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl create secret generic prometheus-managed1 -n verrazzano-mc --from-file=managed1.yaml
+   ```
+
+1. Apply the VerrazzanoManagedCluster object on the admin cluster to begin the registration process for a managed cluster named `managed1`.
+   ```
+   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f vmc-managed1.yaml
    ```
 
 1. Export the yaml file created to register the managed cluster.
    ```
-   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl get secret verrazzano-cluster-cluster1-manifest -n verrazzano-mc -o jsonpath={.data.yaml} | base64 -D > register.yaml
+   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl get secret verrazzano-cluster-managed1-manifest -n verrazzano-mc -o jsonpath={.data.yaml} | base64 -D > register.yaml
    ```
 
-1. Apply the registration file to the managed cluster.
+1. Apply the registration file on the managed cluster.
    ```
-   $ KUBECONFIG=$KUBECONFIG_CLUSTER1 kubectl apply -f register.yaml
+   $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl apply -f register.yaml
    ```
 
+## Create the Application Namespace
+
+1. Apply the `VerrazzanoProject` resource on the admin cluster that defines the namespace for the application.  The namespaces defined in the `VerrazzanoProject` resource will be created on the admin cluster and all managed clusters.
+   ```
+   KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f verrazzano-project.yaml
+   ```
+
+1. The synchronization of operations to the managed clusters may take about a minute to complete. 
+   ```
+   <insert command to wait on status of VerrazzanoProject resource>
+   ```
 
 ## Deploy the Hello World Helidon application
 
-1. Create a namespace for the example application and add a label identifying the namespace as managed by Verrazzano.
+1. Apply the `hello-helidon` multi-cluster resources to deploy the application.  Each of the multi-cluster resources is an envelope that contains the OAM resource to and list of clusters to deploy to.
    ```
-   $ kubectl create namespace hello-helidon
-   $ kubectl label namespace hello-helidon verrazzano-managed=true
-   ```
-
-1. Apply the `hello-helidon` OAM resources to deploy the application.
-   ```
-   $ kubectl apply -f hello-helidon-comp.yaml
-   $ kubectl apply -f hello-helidon-app.yaml
+   KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f mc-hello-helidon-comp.yaml
+   KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f mc-hello-helidon-app.yaml
    ```
 
 1. Wait for the application to be ready.
