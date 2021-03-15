@@ -7,4 +7,4 @@ metadata:
   namespace: verrazzano-mc
 spec:
   description: "Managed Cluster 1"
-  prometheusSecret: prometheus-cluster1
+  prometheusSecret: prometheus-managed1
