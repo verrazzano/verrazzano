@@ -30,7 +30,6 @@ var expectedPodsIngressNginx = []string{
 	"ingress-controller-ingress-nginx-defaultbackend"}
 
 var expectedPodsVerrazzanoSystemMinimal = []string{
-	"verrazzano-cluster-operator",
 	"verrazzano-console",
 	"verrazzano-monitoring-operator",
 	"verrazzano-operator",
@@ -87,7 +86,7 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 			ginkgoExt.Entry("does not include verrazzano-web", "verrazzano-web", false),
 			ginkgoExt.Entry("includes verrazzano-console", "verrazzano-console", true),
 			ginkgoExt.Entry("does not include verrazzano-ldap", "verrazzano-ldap", false),
-			ginkgoExt.Entry("includes verrazzano-cluster-operator", "verrazzano-cluster-operator", true),
+			ginkgoExt.Entry("does not include verrazzano-cluster-operator", "verrazzano-cluster-operator", false),
 			ginkgoExt.Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", true),
 		)
 

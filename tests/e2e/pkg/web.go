@@ -63,6 +63,13 @@ func GetWebPageWithBasicAuth(url string, hostHeader string, username string, pas
 	return doGetWebPage(url, hostHeader, GetVerrazzanoHTTPClient(), username, password)
 }
 
+// RetryGetWithBasicAuth retries getting a web page using basic auth
+func RetryGetWithBasicAuth(url string, hostHeader string, username string, password string) (int, string) {
+	client := GetVerrazzanoHTTPClient()
+	client.CheckRetry = GetRetryPolicy()
+	return doGetWebPage(url, hostHeader, client, username, password)
+}
+
 // doGetWebPage retries a web page
 func doGetWebPage(url string, hostHeader string, httpClient *retryablehttp.Client, username string, password string) (int, string) {
 	return doReq(url, "GET", "", hostHeader, username, password, nil, httpClient)
@@ -87,7 +94,9 @@ func GetVerrazzanoHTTPClient() *retryablehttp.Client {
 // GetKeycloakHTTPClient returns the Keycloak Http client
 func GetKeycloakHTTPClient() *retryablehttp.Client {
 	keycloakRawClient := getHTTPClientWIthCABundle(getKeycloakCACert())
-	return newRetryableHTTPClient(keycloakRawClient)
+	client := newRetryableHTTPClient(keycloakRawClient)
+	client.CheckRetry = GetRetryPolicy()
+	return client
 }
 
 // ExpectHTTPOk validates that this is no error and a that the status is 200
@@ -117,7 +126,9 @@ func ExpectHTTPGetOk(httpClient *retryablehttp.Client, url string) {
 // GetSystemVmiHTTPClient returns an HTTP client configured with the system vmi CA cert
 func GetSystemVmiHTTPClient() *retryablehttp.Client {
 	vmiRawClient := getHTTPClientWIthCABundle(getSystemVMICACert())
-	return newRetryableHTTPClient(vmiRawClient)
+	client := newRetryableHTTPClient(vmiRawClient)
+	client.CheckRetry = GetRetryPolicy()
+	return client
 }
 
 // PostWithHostHeader posts a request with a specified Host header

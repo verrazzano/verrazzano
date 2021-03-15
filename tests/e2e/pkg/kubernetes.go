@@ -401,3 +401,15 @@ func GetIstioClientset() *istioClient.Clientset {
 	}
 	return cs
 }
+
+// GetConfigMap returns the config map for the passed in ConfigMap Name and Namespace
+func GetConfigMap(configMapName string, namespace string) *corev1.ConfigMap {
+	// Get the Kubernetes clientset
+	clientset := GetKubernetesClientset()
+	cmi := clientset.CoreV1().ConfigMaps(namespace)
+	configMap, err := cmi.Get(context.TODO(), configMapName, metav1.GetOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get Config Map %v from namespace %v:  Error = %v ", configMapName, namespace, err))
+	}
+	return configMap
+}

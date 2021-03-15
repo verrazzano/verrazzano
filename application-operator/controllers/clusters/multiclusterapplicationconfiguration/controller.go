@@ -25,8 +25,9 @@ import (
 // failure of the changes to the embedded resource
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log          logr.Logger
+	Scheme       *runtime.Scheme
+	AgentChannel chan clusters.StatusUpdateMessage
 }
 
 // Reconcile reconciles a MultiClusterApplicationConfiguration resource. It fetches the embedded OAM
@@ -43,8 +44,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterApplicationConfiguration", err, logger)
 	}
 
+	oldState := clusters.SetEffectiveStateIfChanged(mcAppConfig.Spec.Placement, &mcAppConfig.Status)
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcAppConfig.Spec.Placement) {
-		return ctrl.Result{}, nil
+		if oldState != mcAppConfig.Status.State {
+			// This must be done whether the resource is placed in this cluster or not, because we
+			// could be in an admin cluster and receive cluster level statuses from managed clusters,
+			// which can change our effective state
+			err = r.Status().Update(ctx, &mcAppConfig)
+		}
+		return ctrl.Result{}, err
 	}
 
 	logger.Info("MultiClusterApplicationConfiguration create or update with underlying OAM applicationconfiguration",
@@ -89,14 +97,8 @@ func (r *Reconciler) mutateAppConfig(mcAppConfig clustersv1alpha1.MultiClusterAp
 
 func (r *Reconciler) updateStatus(ctx context.Context, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {
 	clusterName := clusters.GetClusterName(ctx, r.Client)
-	condition := clusters.GetConditionFromResult(err, opResult, "OAM Application Configuration")
-	clusterLevelStatus := clusters.CreateClusterLevelStatus(condition, clusterName)
-
-	if clusters.StatusNeedsUpdate(mcAppConfig.Status, condition, clusterLevelStatus) {
-		mcAppConfig.Status.Conditions = append(mcAppConfig.Status.Conditions, condition)
-		clusters.UpdateClusterLevelStatus(&mcAppConfig.Status, clusterLevelStatus)
-		mcAppConfig.Status.State = clusters.ComputeEffectiveState(mcAppConfig.Status, mcAppConfig.Spec.Placement)
-		return reconcile.Result{}, r.Status().Update(ctx, mcAppConfig)
-	}
-	return reconcile.Result{}, nil
+	newCondition := clusters.GetConditionFromResult(err, opResult, "OAM Application Configuration")
+	updateFunc := func() error { return r.Status().Update(ctx, mcAppConfig) }
+	return clusters.UpdateStatus(mcAppConfig, &mcAppConfig.Status, mcAppConfig.Spec.Placement, newCondition, clusterName,
+		r.AgentChannel, updateFunc)
 }

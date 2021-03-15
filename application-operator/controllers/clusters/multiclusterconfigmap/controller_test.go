@@ -265,6 +265,7 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 
 	mocker := gomock.NewController(t)
 	cli := mocks.NewMockClient(mocker)
+	statusWriter := mocks.NewMockStatusWriter(mocker)
 
 	mcConfigMap, err := getMCConfigMap(sampleMCConfigMapFile)
 	if err != nil {
@@ -278,6 +279,10 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
+
+	// The effective state of the object will get updated even if it is note locally placed,
+	// since it would have changed
+	clusterstest.DoExpectUpdateState(t, cli, statusWriter, &mcConfigMap, clustersv1alpha1.Pending)
 
 	// Expect no further action
 

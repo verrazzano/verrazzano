@@ -22,8 +22,9 @@ import (
 // Reconciler reconciles a MultiClusterSecret object
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log          logr.Logger
+	Scheme       *runtime.Scheme
+	AgentChannel chan clusters.StatusUpdateMessage
 }
 
 // Reconcile reconciles a MultiClusterSecret resource. It fetches the embedded Secret, mutates it
@@ -39,8 +40,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterSecret", err, logger)
 	}
 
+	oldState := clusters.SetEffectiveStateIfChanged(mcSecret.Spec.Placement, &mcSecret.Status)
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcSecret.Spec.Placement) {
-		return ctrl.Result{}, nil
+		if oldState != mcSecret.Status.State {
+			// This must be done whether the resource is placed in this cluster or not, because we
+			// could be in an admin cluster and receive cluster level statuses from managed clusters,
+			// which can change our effective state
+			err = r.Status().Update(ctx, &mcSecret)
+		}
+		return ctrl.Result{}, err
 	}
 
 	logger.Info("MultiClusterSecret create or update with underlying secret",
@@ -53,15 +61,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 func (r *Reconciler) updateStatus(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {
 	clusterName := clusters.GetClusterName(ctx, r.Client)
-	condition := clusters.GetConditionFromResult(err, opResult, "Secret")
-	clusterLevelStatus := clusters.CreateClusterLevelStatus(condition, clusterName)
-	if clusters.StatusNeedsUpdate(mcSecret.Status, condition, clusterLevelStatus) {
-		mcSecret.Status.Conditions = append(mcSecret.Status.Conditions, condition)
-		clusters.UpdateClusterLevelStatus(&mcSecret.Status, clusterLevelStatus)
-		mcSecret.Status.State = clusters.ComputeEffectiveState(mcSecret.Status, mcSecret.Spec.Placement)
-		return reconcile.Result{}, r.Status().Update(ctx, mcSecret)
-	}
-	return reconcile.Result{}, nil
+	newCondition := clusters.GetConditionFromResult(err, opResult, "Secret")
+	return clusters.UpdateStatus(mcSecret, &mcSecret.Status, mcSecret.Spec.Placement, newCondition, clusterName,
+		r.AgentChannel, func() error { return r.Status().Update(ctx, mcSecret) })
 }
 
 // SetupWithManager registers our controller with the manager

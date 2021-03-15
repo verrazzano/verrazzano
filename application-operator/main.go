@@ -13,6 +13,8 @@ import (
 	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterapplicationconfiguration"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustercomponent"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterconfigmap"
@@ -249,42 +251,51 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoHelidonWorkload")
 		os.Exit(1)
 	}
+
+	// Create a buffered channel of size 10 for the multi cluster agent to receive messages
+	agentChannel := make(chan clusters.StatusUpdateMessage, constants.StatusUpdateChannelBufferSize)
+
 	if err = (&multiclustersecret.Reconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterSecret"),
-		Scheme: mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		Log:          ctrl.Log.WithName("controllers").WithName("MultiClusterSecret"),
+		Scheme:       mgr.GetScheme(),
+		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterSecret")
 		os.Exit(1)
 	}
 	if err = (&multiclustercomponent.Reconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterComponent"),
-		Scheme: mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		Log:          ctrl.Log.WithName("controllers").WithName("MultiClusterComponent"),
+		Scheme:       mgr.GetScheme(),
+		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterComponent")
 		os.Exit(1)
 	}
 	if err = (&multiclusterconfigmap.Reconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterConfigMap"),
-		Scheme: mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		Log:          ctrl.Log.WithName("controllers").WithName("MultiClusterConfigMap"),
+		Scheme:       mgr.GetScheme(),
+		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterConfigMap")
 		os.Exit(1)
 	}
 	if err = (&multiclusterloggingscope.Reconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterLoggingScope"),
-		Scheme: mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		Log:          ctrl.Log.WithName("controllers").WithName("MultiClusterLoggingScope"),
+		Scheme:       mgr.GetScheme(),
+		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterLoggingScope")
 		os.Exit(1)
 	}
 	if err = (&multiclusterapplicationconfiguration.Reconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("MultiClusterApplicationConfiguration"),
-		Scheme: mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		Log:          ctrl.Log.WithName("controllers").WithName("MultiClusterApplicationConfiguration"),
+		Scheme:       mgr.GetScheme(),
+		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MultiClusterApplicationConfiguration")
 		os.Exit(1)
@@ -300,7 +311,7 @@ func main() {
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("Starting agent for syncing multi-cluster objects")
-	go mcagent.StartAgent(mgr.GetClient(), ctrl.Log.WithName("multi-cluster agent"))
+	go mcagent.StartAgent(mgr.GetClient(), agentChannel, ctrl.Log.WithName("multi-cluster agent"))
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
