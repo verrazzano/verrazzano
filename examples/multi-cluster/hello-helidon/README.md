@@ -62,9 +62,9 @@ Create the environment variables `KUBECONFIG_ADMIN` and `KUBECONFIG_MANAGED1` to
    KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f mc-hello-helidon-app.yaml
    ```
 
-1. Wait for the application to be ready.
+1. Wait for the application to be ready on the managed cluster.
    ```
-   $ kubectl wait --for=condition=Ready pods --all -n hello-helidon --timeout=300s
+   $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl wait --for=condition=Ready pods --all -n hello-helidon --timeout=300s
    ```
 
 ## Testing the example application
