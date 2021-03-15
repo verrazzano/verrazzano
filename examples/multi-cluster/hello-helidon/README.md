@@ -34,7 +34,7 @@ Create the environment variables `KUBECONFIG_ADMIN` and `KUBECONFIG_MANAGED1` to
 
 1. Export the yaml file created to register the managed cluster.
    ```
-   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl get secret verrazzano-cluster-managed1-manifest -n verrazzano-mc -o jsonpath={.data.yaml} | base64 -D > register.yaml
+   $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl get secret verrazzano-cluster-managed1-manifest -n verrazzano-mc -o jsonpath={.data.yaml} | base64 --decode > register.yaml
    ```
 
 1. Apply the registration file on the managed cluster.
