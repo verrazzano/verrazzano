@@ -457,27 +457,7 @@ func TestMetricsTraitDeletedForContainerizedWorkload(t *testing.T) {
 		assert.Equal("vmi-system-prometheus-0", obj.Name)
 		return nil
 	})
-	// 9. Expect a call to list the prometheus replicasets
-	mock.EXPECT().List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-		assert.Equal("ReplicaSet", list.GetKind())
-		pod := k8score.Pod{}
-		assert.NoError(updateObjectFromYAMLTemplate(&pod, "test/templates/prometheus_replicaset.yaml", params))
-		return appendAsUnstructured(list, pod)
-	})
-	// 10. Expect a call to list the prometheus pods
-	mock.EXPECT().List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-		assert.Equal("Pod", list.GetKind())
-		pod := k8score.Pod{}
-		assert.NoError(updateObjectFromYAMLTemplate(&pod, "test/templates/prometheus_pod.yaml", params))
-		return appendAsUnstructured(list, pod)
-	})
-	// 11. Expect a call to delete the prometheus pods
-	mock.EXPECT().Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, uns *unstructured.Unstructured, opts ...client.DeleteOption) error {
-		assert.Equal("verrazzano-system", uns.GetNamespace())
-		assert.Equal("vmi-system-prometheus-0", uns.GetName())
-		return nil
-	})
-	// 12. Expect a call to update the metrics trait to remove the finalizer
+	// 9. Expect a call to update the metrics trait to remove the finalizer
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.MetricsTrait) error {
 		assert.Equal("test-namespace", obj.Namespace)
 		assert.Equal("test-trait-name", obj.Name)
@@ -559,26 +539,6 @@ func TestMetricsTraitDeletedForContainerizedWorkloadWhenDeploymentDeleted(t *tes
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8score.ConfigMap) error {
 		assert.Equal("verrazzano-system", obj.Namespace)
 		assert.Equal("vmi-system-prometheus-0", obj.Name)
-		return nil
-	})
-	// Expect a call to list the prometheus replicasets
-	mock.EXPECT().List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-		assert.Equal("ReplicaSet", list.GetKind())
-		pod := k8score.Pod{}
-		assert.NoError(updateObjectFromYAMLTemplate(&pod, "test/templates/prometheus_replicaset.yaml", params))
-		return appendAsUnstructured(list, pod)
-	})
-	// Expect a call to list the prometheus pods
-	mock.EXPECT().List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-		assert.Equal("Pod", list.GetKind())
-		pod := k8score.Pod{}
-		assert.NoError(updateObjectFromYAMLTemplate(&pod, "test/templates/prometheus_pod.yaml", params))
-		return appendAsUnstructured(list, pod)
-	})
-	// Expect a call to delete the prometheus pods
-	mock.EXPECT().Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, uns *unstructured.Unstructured, opts ...client.DeleteOption) error {
-		assert.Equal("verrazzano-system", uns.GetNamespace())
-		assert.Equal("vmi-system-prometheus-0", uns.GetName())
 		return nil
 	})
 	// Expect a call to update the metrics trait to remove the finalizer
@@ -1353,32 +1313,6 @@ func TestMetricsTraitCreatedForWLSWorkload(t *testing.T) {
 			assert.Equal("prometheus", obj.Name)
 			return nil
 		})
-	// Expect a call to list the prometheus replicasets
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-			assert.Equal("ReplicaSet", list.GetKind())
-			pod := k8score.Pod{}
-			assert.NoError(updateObjectFromYAMLTemplate(&pod, "test/templates/prometheus_replicaset.yaml", params))
-			return appendAsUnstructured(list, pod)
-		})
-	// Expect a call to list the prometheus pods
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-			assert.Equal("Pod", list.GetKind())
-			pod := k8score.Pod{}
-			assert.NoError(updateObjectFromYAMLTemplate(&pod, "test/templates/prometheus_pod.yaml", params))
-			return appendAsUnstructured(list, pod)
-		})
-	// Expect a call to delete the prometheus pods
-	mock.EXPECT().
-		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, uns *unstructured.Unstructured, opts ...client.DeleteOption) error {
-			assert.Equal("istio-system", uns.GetNamespace())
-			assert.Equal("prometheus", uns.GetName())
-			return nil
-		})
 	// Expect a call to get the status writer
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 	// Expect a call to update the status of the trait status
@@ -1510,27 +1444,7 @@ func TestMetricsTraitDeletedForWLSWorkload(t *testing.T) {
 		assert.Equal("prometheus", obj.Name)
 		return nil
 	})
-	// 9. Expect a call to list the prometheus replicasets.
-	mock.EXPECT().List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-		assert.Equal("ReplicaSet", list.GetKind())
-		pod := k8score.Pod{}
-		assert.NoError(updateObjectFromYAMLTemplate(&pod, "test/templates/prometheus_replicaset.yaml", params))
-		return appendAsUnstructured(list, pod)
-	})
-	// 10. Expect a call to list the prometheus pods.
-	mock.EXPECT().List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-		assert.Equal("Pod", list.GetKind())
-		pod := k8score.Pod{}
-		assert.NoError(updateObjectFromYAMLTemplate(&pod, "test/templates/prometheus_pod.yaml", params))
-		return appendAsUnstructured(list, pod)
-	})
-	// 11. Expect a call to delete the prometheus pods.
-	mock.EXPECT().Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, uns *unstructured.Unstructured, opts ...client.DeleteOption) error {
-		assert.Equal("istio-system", uns.GetNamespace())
-		assert.Equal("prometheus", uns.GetName())
-		return nil
-	})
-	// 12. Expect a call to update the metrics trait to remove the finalizer.
+	// 9. Expect a call to update the metrics trait to remove the finalizer.
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.MetricsTrait) error {
 		assert.Equal("test-namespace", obj.Namespace)
 		assert.Equal("test-trait-name", obj.Name)
@@ -1774,27 +1688,7 @@ func TestMetricsTraitDeletedForCOHWorkload(t *testing.T) {
 		assert.Equal("vmi-system-prometheus-0", obj.Name)
 		return nil
 	})
-	// 9. Expect a call to list the prometheus replicasets
-	mock.EXPECT().List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-		assert.Equal("ReplicaSet", list.GetKind())
-		pod := k8score.Pod{}
-		assert.NoError(updateObjectFromYAMLTemplate(&pod, "test/templates/prometheus_replicaset.yaml", params))
-		return appendAsUnstructured(list, pod)
-	})
-	// 10. Expect a call to list the prometheus pods
-	mock.EXPECT().List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-		assert.Equal("Pod", list.GetKind())
-		pod := k8score.Pod{}
-		assert.NoError(updateObjectFromYAMLTemplate(&pod, "test/templates/prometheus_pod.yaml", params))
-		return appendAsUnstructured(list, pod)
-	})
-	// 11. Expect a call to delete the prometheus pods
-	mock.EXPECT().Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, uns *unstructured.Unstructured, opts ...client.DeleteOption) error {
-		assert.Equal("verrazzano-system", uns.GetNamespace())
-		assert.Equal("vmi-system-prometheus-0", uns.GetName())
-		return nil
-	})
-	// 12. Expect a call to update the metrics trait to remove the finalizer
+	// 9. Expect a call to update the metrics trait to remove the finalizer
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.MetricsTrait) error {
 		assert.Equal("test-namespace", obj.Namespace)
 		assert.Equal("test-trait-name", obj.Name)
