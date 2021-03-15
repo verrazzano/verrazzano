@@ -69,8 +69,7 @@ function install_keycloak {
   # Replace strings in keycloak.json file
   VZ_PW_SALT=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.salt}")
   VZ_PW_HASH=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.hash}")
-  helm show values ${VZ_CHARTS_DIR}/verrazzano
-  VZ_ADMIN_GROUP=$(helm show values ${VZ_CHARTS_DIR}/verrazzano --jsonpath {.userrolebindings.admin.name})
+  VZ_ADMIN_GROUP=$(helm show values ${VZ_CHARTS_DIR}/verrazzano | grep -A3 "userrolebindings:" | grep -A3 "admin:" | tail -n1 | awk '{ print $2}')
   consoleout "VZ_ADMIN_GROUP is ${VZ_ADMIN_GROUP}"
   cat $SCRIPT_DIR/config/keycloak.json
 
