@@ -94,7 +94,7 @@ api:
   imageVersion: 0.32-20210122132046-a84f6166a
   pullPolicy: Always
   port: 8775
-  impersonatorRoleName: imperosnate-api-user
+  impersonatorRoleName: impersonate-api-user
 
 # OCI-related values
 oci:
