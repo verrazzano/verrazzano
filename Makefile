@@ -50,12 +50,12 @@ create-test-deploy: docker-push
 
 .PHONY: test-platform-operator-install
 test-platform-operator-install:
-	kubectl apply -f /tmp/operator.yaml
+	kubectl apply -f platform-operator/build/deploy/operator.yaml
 	kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
 
 .PHONY: test-platform-operator-remove
 test-platform-operator-remove:
-	kubectl delete -f /tmp/operator.yaml
+	kubectl delete -f platform-operator/build/deploy/operator.yaml
 
 .PHONY: test-platform-operator-install-logs
 test-platform-operator-install-logs:

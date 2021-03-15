@@ -640,9 +640,22 @@ func (r *Reconciler) fetchServiceFromTrait(ctx context.Context, trait *vzapi.Ing
 // cluster IP. If no service has a cluster IP, choose the first service.
 // If found the unstructured data is converted to a Service object and returned.
 // children - An array of unstructured children
-func extractServiceFromUnstructuredChildren(workload *unstructured.Unstructured, services []*unstructured.Unstructured) (*corev1.Service, error) {
-	var selectedService *corev1.Service
+func extractServiceFromUnstructuredChildren(workload *unstructured.Unstructured, children []*unstructured.Unstructured) (*corev1.Service, error) {
+	// Filter out the services.
+	var services []*corev1.Service
+	for _, child := range children {
+		if child.GetAPIVersion() == serviceAPIVersion && child.GetKind() == serviceKind {
+			service := &corev1.Service{}
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(child.UnstructuredContent(), service)
+			if err != nil {
+				// Continue and hope that another child can be converted.
+				continue
+			}
+			services = append(services, service)
+		}
+	}
 
+	// Determine if this workload is a WebLogic workload.
 	isWls := isWebLogicDomain(workload)
 
 	// If there is more than one child service and the workload is not a WebLogic Domain
@@ -651,26 +664,18 @@ func extractServiceFromUnstructuredChildren(workload *unstructured.Unstructured,
 		return nil, nil
 	}
 
-	for _, child := range services {
-		if child.GetAPIVersion() == serviceAPIVersion && child.GetKind() == serviceKind {
-			var service corev1.Service
-			err := runtime.DefaultUnstructuredConverter.FromUnstructured(child.UnstructuredContent(), &service)
-			if err != nil {
-				// Continue and hope that another child can be converted.
-				continue
-			}
+	var selectedService *corev1.Service
+	for _, service := range services {
+		// Selects the first service if not working with a WebLogic Domain workload
+		if selectedService == nil && !isWls {
+			selectedService = service
+		}
 
-			// Selects the first service if not working with a WebLogic Domain workload
-			if selectedService == nil && !isWls {
-				selectedService = &service
-			}
-
-			// Replace the selection if a service with a cluster IP is found.
-			clusterIP := service.Spec.ClusterIP
-			if len(clusterIP) > 0 && clusterIP != clusterIPNone {
-				selectedService = &service
-				break
-			}
+		// Replace the selected service if a service with a cluster IP is found.
+		clusterIP := service.Spec.ClusterIP
+		if len(clusterIP) > 0 && clusterIP != clusterIPNone {
+			selectedService = service
+			break
 		}
 	}
 
@@ -680,6 +685,7 @@ func extractServiceFromUnstructuredChildren(workload *unstructured.Unstructured,
 		return nil, nil
 	}
 
+	// If a service was selected then return it.
 	if selectedService != nil {
 		return selectedService, nil
 	}
