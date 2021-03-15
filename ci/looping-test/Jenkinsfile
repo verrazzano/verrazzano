@@ -169,7 +169,6 @@ pipeline {
                     git config --global user.name $DOCKER_CREDS_USR
                     git config --global user.email "${DOCKER_EMAIL}"
                     git checkout -b ${env.BRANCH_NAME}
-                    ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/pre-install-resources
                 """
             }
         }
@@ -201,6 +200,8 @@ pipeline {
 
                         # create secret in verrazzano-install ns
                         ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+
+                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/pre-install-resources
 
                         echo "Installing yq"
                         GO111MODULE=on go get github.com/mikefarah/yq/v4
@@ -273,22 +274,22 @@ pipeline {
             }
         }
 
-        stage('Delete Platform Operator') {
-            steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh """
-                        kubectl delete -f ${WORKSPACE}/acceptance-test-operator.yaml
-                    """
-                }
-            }
-        }
-
         stage("Verify Uninstall") {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
                         ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources
                         ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources
+                    """
+                }
+            }
+        }
+
+        stage('Delete Platform Operator') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh """
+                        kubectl delete -f ${WORKSPACE}/acceptance-test-operator.yaml
                     """
                 }
             }
@@ -312,9 +313,11 @@ pipeline {
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*verrazzano-installation-loop-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             sh """
-                cd ${WORKSPACE}/verrazzano
+                if [ -f ${POST_DUMP_FAILED_FILE} ]; then
+                    echo "Failures seen during dumping of artifacts, treat post as failed"
+                    exit 1
+                fi
             """
-            deleteDir()
         }
 
         failure {
@@ -360,6 +363,9 @@ pipeline {
                     kubectl delete --ignore-not-found=true -f ${WORKSPACE}/acceptance-test-operator.yaml
                 """
             }
+        }
+        cleanup {
+            deleteDir()
         }
         //cleanup {
         //    script {

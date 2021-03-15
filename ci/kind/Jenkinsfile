@@ -304,7 +304,6 @@ pipeline {
                   exit 1
                 fi
             """
-            deleteDir()
         }
         failure {
             mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
@@ -316,6 +315,9 @@ pipeline {
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }
             }
+        }
+        cleanup {
+            deleteDir()
         }
     }
 }

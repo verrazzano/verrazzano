@@ -1,6 +1,16 @@
 # Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
+#
+# This install resource uses the "dev" profile to install a minimal footprint for
+# Verrazzano for local development and experimentation.
+#
+# The "dev" profile installs a full set of Verrazzano system services, with the following exceptions:
+#
+# - Elasticsearch is a single node cluster topology with ephemeral storage and reduced memory footprint
+# - Kibana installed with ephemeral storage
+# - Grafana installed with ephemeral storage
+# - Prometheus is installed with ephemeral storage
+#
 apiVersion: install.verrazzano.io/v1alpha1
 kind: Verrazzano
 metadata:

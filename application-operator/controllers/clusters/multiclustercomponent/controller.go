@@ -21,8 +21,9 @@ import (
 // Reconciler reconciles a MultiClusterComponent object
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log          logr.Logger
+	Scheme       *runtime.Scheme
+	AgentChannel chan clusters.StatusUpdateMessage
 }
 
 // Reconcile reconciles a MultiClusterComponent resource. It fetches the embedded OAM Component,
@@ -38,8 +39,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterComponent", err, logger)
 	}
 
+	oldState := clusters.SetEffectiveStateIfChanged(mcComp.Spec.Placement, &mcComp.Status)
+
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcComp.Spec.Placement) {
-		return ctrl.Result{}, nil
+		if oldState != mcComp.Status.State {
+			// This must be done whether the resource is placed in this cluster or not, because we
+			// could be in an admin cluster and receive cluster level statuses from managed clusters,
+			// which can change our effective state
+			err = r.Status().Update(ctx, &mcComp)
+		}
+		return ctrl.Result{}, err
 	}
 
 	logger.Info("MultiClusterComponent create or update with underlying component",
@@ -83,13 +92,7 @@ func (r *Reconciler) mutateComponent(mcComp clustersv1alpha1.MultiClusterCompone
 
 func (r *Reconciler) updateStatus(ctx context.Context, mcComp *clustersv1alpha1.MultiClusterComponent, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {
 	clusterName := clusters.GetClusterName(ctx, r.Client)
-	condition := clusters.GetConditionFromResult(err, opResult, "OAM Component")
-	clusterLevelStatus := clusters.CreateClusterLevelStatus(condition, clusterName)
-	if clusters.StatusNeedsUpdate(mcComp.Status, condition, clusterLevelStatus) {
-		mcComp.Status.Conditions = append(mcComp.Status.Conditions, condition)
-		clusters.UpdateClusterLevelStatus(&mcComp.Status, clusterLevelStatus)
-		mcComp.Status.State = clusters.ComputeEffectiveState(mcComp.Status, mcComp.Spec.Placement)
-		return reconcile.Result{}, r.Status().Update(ctx, mcComp)
-	}
-	return reconcile.Result{}, nil
+	newCondition := clusters.GetConditionFromResult(err, opResult, "OAM Component")
+	return clusters.UpdateStatus(mcComp, &mcComp.Status, mcComp.Spec.Placement, newCondition, clusterName,
+		r.AgentChannel, func() error { return r.Status().Update(ctx, mcComp) })
 }

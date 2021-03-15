@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
@@ -57,18 +58,14 @@ var (
 	vmiCRD                 *apiextensionsv1beta1.CustomResourceDefinition
 	ingressURLs            map[string]string
 	elastic                *vmi.Elastic
-	sysVmiHttpClient       *retryablehttp.Client
-	waitTimeout            = 10 * time.Minute
-	pollingInterval        = 30 * time.Second
+	waitTimeout            = 5 * time.Minute
+	pollingInterval        = 5 * time.Second
 	elasticWaitTimeout     = 2 * time.Minute
 	elasticPollingInterval = 5 * time.Second
 )
 
 var _ = ginkgo.BeforeSuite(func() {
 	var err error
-
-	//env = NewVerrazzanoEnvironmentFromConfig(GetTestConfig())
-
 	ingressURLs, err = vmiIngressURLs()
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Error retrieving system VMI ingress URLs: %v", err))
@@ -84,12 +81,9 @@ var _ = ginkgo.BeforeSuite(func() {
 		ginkgo.Fail(fmt.Sprintf("Error retrieving system VMI credentials: %v", err))
 	}
 	elastic = vmi.GetElastic("system")
-
-	sysVmiHttpClient = pkg.GetSystemVmiHTTPClient()
 })
 
 var _ = ginkgo.Describe("VMI", func() {
-
 	ginkgo.It("api server should be accessible", func() {
 		assertIngressURL("vmi-system-api")
 	})
@@ -102,7 +96,7 @@ var _ = ginkgo.Describe("VMI", func() {
 		gomega.Eventually(elasticTlsSecret, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "tls-secret did not show up")
 		//gomega.Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "certificate did not show up")
 		gomega.Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "ingress did not show up")
-		assertIngressURL("vmi-system-es-ingest")
+		assertOidcIngress("vmi-system-es-ingest")
 		pkg.Concurrently(
 			func() {
 				gomega.Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "never connected")
@@ -132,12 +126,15 @@ var _ = ginkgo.Describe("VMI", func() {
 	})
 
 	ginkgo.It("Kibana endpoint should be accessible", func() {
-		assertIngressURL("vmi-system-kibana")
+		kibanaPodsRunning := func() bool {
+			return pkg.PodsRunning("verrazzano-system", []string{"vmi-system-kibana"})
+		}
+		gomega.Eventually(kibanaPodsRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "kibana pods did not all show up")
+		assertOidcIngress("vmi-system-kibana")
 	})
 
 	ginkgo.It("Prometheus endpoint should be accessible", func() {
-		assertIngressURL("vmi-system-prometheus")
-
+		assertOidcIngress("vmi-system-prometheus")
 	})
 
 	ginkgo.It("Prometheus push gateway should be accessible", func() {
@@ -145,46 +142,31 @@ var _ = ginkgo.Describe("VMI", func() {
 	})
 
 	ginkgo.It("Grafana endpoint should be accessible", func() {
-		gomega.Expect(ingressURLs).To(gomega.HaveKey("vmi-system-grafana"), "Ingress vmi-system-grafana not found")
-		sysVmiHttpClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		}
-		url := ingressURLs["vmi-system-grafana"]
-		resp, err := sysVmiHttpClient.Get(url)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "GET %s", url)
-		gomega.Expect(resp.StatusCode).To(gomega.Equal(http.StatusFound), "GET %s", url)
-		gomega.Expect(resp.Header.Get("location")).To(gomega.Equal("/login"))
-	})
-
-	ginkgo.It("System Node Exporter dashboard should be installed in Grafana", func() {
-		browseGrafanaDashboard("Host%20Metrics")
+		assertOidcIngress("vmi-system-grafana")
 	})
 
 	ginkgo.It("Default dashboard should be installed in System Grafana for shared VMI", func() {
-		fmt.Println("Running acceptance test for shared VMI ...")
-		DefaultDashboards := []string{
-			"WebLogic%20Server%20Dashboard",
-			"Coherence%20Elastic%20Data%20Summary%20Dashboard",
-			"Coherence%20Persistence%20Summary%20Dashboard",
-			"Coherence%20Cache%20Details%20Dashboard",
-			"Coherence%20Members%20Summary%20Dashboard",
-			"Coherence%20Kubernetes%20Summary%20Dashboard",
-			"Coherence%20Dashboard%20Main",
-			"Coherence%20Caches%20Summary%20Dashboard",
-			"Coherence%20Service%20Details%20Dashboard",
-			"Coherence%20Proxy%20Servers%20Summary%20Dashboard",
-			"Coherence%20Federation%20Details%20Dashboard",
-			"Coherence%20Federation%20Summary%20Dashboard",
-			"Coherence%20Services%20Summary%20Dashboard",
-			"Coherence%20HTTP%20Servers%20Summary%20Dashboard",
-			"Coherence%20Proxy%20Server%20Detail%20Dashboard",
-			"Coherence%20Alerts%20Dashboard",
-			"Coherence%20Member%20Details%20Dashboard",
-			"Coherence%20Machines%20Summary%20Dashboard",
-		}
-		for _, value := range DefaultDashboards {
-			browseGrafanaDashboard(value)
-		}
+		pkg.Concurrently(
+			func() { assertDashboard("Host%20Metrics") },
+			func() { assertDashboard("WebLogic%20Server%20Dashboard") },
+			func() { assertDashboard("Coherence%20Elastic%20Data%20Summary%20Dashboard") },
+			func() { assertDashboard("Coherence%20Persistence%20Summary%20Dashboard") },
+			func() { assertDashboard("Coherence%20Cache%20Details%20Dashboard") },
+			func() { assertDashboard("Coherence%20Members%20Summary%20Dashboard") },
+			func() { assertDashboard("Coherence%20Kubernetes%20Summary%20Dashboard") },
+			func() { assertDashboard("Coherence%20Dashboard%20Main") },
+			func() { assertDashboard("Coherence%20Caches%20Summary%20Dashboard") },
+			func() { assertDashboard("Coherence%20Service%20Details%20Dashboard") },
+			func() { assertDashboard("Coherence%20Proxy%20Servers%20Summary%20Dashboard") },
+			func() { assertDashboard("Coherence%20Federation%20Details%20Dashboard") },
+			func() { assertDashboard("Coherence%20Federation%20Summary%20Dashboard") },
+			func() { assertDashboard("Coherence%20Services%20Summary%20Dashboard") },
+			func() { assertDashboard("Coherence%20HTTP%20Servers%20Summary%20Dashboard") },
+			func() { assertDashboard("Coherence%20Proxy%20Server%20Detail%20Dashboard") },
+			func() { assertDashboard("Coherence%20Alerts%20Dashboard") },
+			func() { assertDashboard("Coherence%20Member%20Details%20Dashboard") },
+			func() { assertDashboard("Coherence%20Machines%20Summary%20Dashboard") },
+		)
 	})
 })
 
@@ -210,20 +192,68 @@ func assertIngressURL(key string) {
 }
 
 func assertURLAccessibleAndAuthorized(url string) bool {
-	sysVmiHttpClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		pkg.Log(pkg.Info, fmt.Sprintf("assertURLAccessibleAndAuthorized redirect %v", req))
-		return nil
+	vmiHttpClient := pkg.GetSystemVmiHTTPClient()
+	return pkg.AssertURLAccessibleAndAuthorized(vmiHttpClient, url, creds)
+}
+
+func assertBearerAuthorized(url string) bool {
+	vmiHttpClient := pkg.GetSystemVmiHTTPClient()
+	api := pkg.GetAPIEndpoint()
+	req, _ := retryablehttp.NewRequest("GET", url, nil)
+	if api.AccessToken != "" {
+		bearer := fmt.Sprintf("Bearer %v", api.AccessToken)
+		req.Header.Set("Authorization", bearer)
 	}
-	return pkg.AssertURLAccessibleAndAuthorized(sysVmiHttpClient, url, creds)
+	resp, err := vmiHttpClient.Do(req)
+	if err != nil {
+		return false
+	}
+	resp.Body.Close()
+	pkg.Log(pkg.Info, fmt.Sprintf("assertBearerAuthorized %v Response:%v Error:%v", url, resp.StatusCode, err))
+	return resp.StatusCode == http.StatusOK
 }
 
 func assertURLAccessibleAndUnauthorized(url string) bool {
-	resp, err := sysVmiHttpClient.Get(url)
+	vmiHttpClient := pkg.GetSystemVmiHTTPClient()
+	resp, err := vmiHttpClient.Get(url)
 	if err != nil {
 		return false
 	}
 	pkg.Log(pkg.Info, fmt.Sprintf("assertURLAccessibleAndUnauthorized %v Response:%v Error:%v", url, resp.StatusCode, err))
 	return resp.StatusCode == http.StatusUnauthorized
+}
+
+func assertOauthURLAccessibleAndUnauthorized(url string) bool {
+	vmiHttpClient := pkg.GetSystemVmiHTTPClient()
+	vmiHttpClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		pkg.Log(pkg.Info, fmt.Sprintf("oidcUnauthorized req: %v \nvia: %v\n", req, via))
+		return http.ErrUseLastResponse
+	}
+	resp, err := vmiHttpClient.Get(url)
+	if err != nil || resp == nil {
+		return false
+	}
+	location, _ := resp.Location()
+	pkg.Log(pkg.Info, fmt.Sprintf("oidcUnauthorized %v StatusCode:%v host:%v", url, resp.StatusCode, location.Host))
+	return resp.StatusCode == 302 && strings.Contains(location.Host, "keycloak")
+}
+
+func assertOidcIngress(key string) {
+	gomega.Expect(ingressURLs).To(gomega.HaveKey(key), fmt.Sprintf("Ingress %s not found", key))
+	assertUnAuthorized := assertOauthURLAccessibleAndUnauthorized(ingressURLs[key])
+	assertBasicAuth := assertURLAccessibleAndAuthorized(ingressURLs[key])
+	assertBearerAuth := assertBearerAuthorized(ingressURLs[key])
+	pkg.Concurrently(
+		func() {
+			gomega.Eventually(assertUnAuthorized, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		},
+		func() {
+			gomega.Eventually(assertBasicAuth, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		},
+		func() {
+			gomega.Eventually(assertBearerAuth, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		},
+	)
 }
 
 func elasticIndicesCreated() bool {
@@ -251,32 +281,38 @@ func elasticIngress() bool {
 	return elastic.CheckIngress()
 }
 
-func browseGrafanaDashboard(url string) error {
+func assertDashboard(url string) {
 	searchURL := fmt.Sprintf("%sapi/search?query=%s", ingressURLs["vmi-system-grafana"], url)
 	fmt.Println("Grafana URL in browseGrafanaDashboard ", searchURL)
-	sysVmiHttpClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+	vmiHttpClient := pkg.GetSystemVmiHTTPClient()
+	vmiHttpClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
 
-	req, err := retryablehttp.NewRequest("GET", searchURL, nil)
-	req.SetBasicAuth(creds.Username, creds.Password)
-	resp, err := sysVmiHttpClient.Do(req)
-
-	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "GET %s", searchURL)
-	gomega.Expect(resp.StatusCode).To(gomega.Equal(http.StatusOK), "GET %s", searchURL)
-
-	// assert that there is a single item in response
-	defer resp.Body.Close()
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		ginkgo.Fail("Unable to read body from response " + err.Error())
+	searchDashboard := func() bool {
+		req, err := retryablehttp.NewRequest("GET", searchURL, nil)
+		req.SetBasicAuth(creds.Username, creds.Password)
+		resp, err := vmiHttpClient.Do(req)
+		if err != nil {
+			return false
+		}
+		if resp.StatusCode != http.StatusOK {
+			return false
+		}
+		// assert that there is a single item in response
+		defer resp.Body.Close()
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			ginkgo.Fail("Unable to read body from response " + err.Error())
+		}
+		var response []map[string]interface{}
+		if err := json.Unmarshal(bodyBytes, &response); err != nil {
+			return false
+		}
+		if len(response) != 1 {
+			return false
+		}
+		return true
 	}
-	var response []map[string]interface{}
-	if err := json.Unmarshal(bodyBytes, &response); err != nil {
-		ginkgo.Fail("Unable to unmarshal response: " + err.Error())
-	}
-	if len(response) != 1 {
-		ginkgo.Fail(fmt.Sprintf("Expected a dashboard in response to system vmi dashboard query but received: %v", len(response)))
-	}
-	return nil
+	gomega.Eventually(searchDashboard, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 }

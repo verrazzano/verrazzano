@@ -5,9 +5,11 @@ package pkg
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	neturl "net/url"
 	"os"
 	"reflect"
 	"strings"
@@ -190,8 +192,16 @@ func isReadyAndRunning(pod v1.Pod) bool {
 }
 
 // GetRetryPolicy returns the standard retry policy
-func GetRetryPolicy(url string) func(ctx context.Context, resp *http.Response, err error) (bool, error) {
+func GetRetryPolicy() func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 	return func(ctx context.Context, resp *http.Response, err error) (bool, error) {
+		if err != nil {
+			if v, ok := err.(*neturl.Error); ok {
+				//DefaultRetryPolicy does not retry "x509: certificate signed by unknown authority" which may happen on ".xip.io" when starting
+				if _, ok := v.Err.(x509.UnknownAuthorityError); ok {
+					return strings.Contains(v.URL, ".xip.io"), v
+				}
+			}
+		}
 		if resp != nil {
 			status := resp.StatusCode
 			if status == http.StatusNotFound {

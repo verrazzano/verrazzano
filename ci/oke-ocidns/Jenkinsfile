@@ -173,17 +173,17 @@ pipeline {
                 OCI_OS_BUCKET="verrazzano-builds"
             }
             steps {
+                script {
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
+                }
                 sh """
-                    cd ${WORKSPACE}/platform-operator
-                    if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ] && [ -f ${WORKSPACE}/platform-operator/deploy/operator.yaml ]; then
-                        echo "Using operator.yaml from object storage"
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-                        cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
-                    else
-                        echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
-                        env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
-                    fi
-                    kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
+                    echo "Install Platform Operator"
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                    cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+
+                    # Install the verrazzano-platform-operator
+                    kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
+
                     # make sure ns exists
                     ${WORKSPACE}/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
                     # create secret in verrazzano-install ns
@@ -323,7 +323,7 @@ pipeline {
                     }
                     steps {
                         script {
-                            runGinkgo('examples/springboot-app')
+                            runGinkgo('examples/springboot')
                         }
                     }
                     post {
@@ -351,7 +351,7 @@ pipeline {
                 stage('hello-helidon') {
                     steps {
                         script {
-                            runGinkgoFailFast('examples/hello-helidon')
+                            runGinkgoFailFast('examples/helidon')
                         }
                     }
                 }
@@ -382,7 +382,7 @@ pipeline {
                     }
                     steps {
                         script {
-                            runGinkgo('examples/todo-list')
+                            runGinkgo('examples/todo')
                         }
                     }
                 }
@@ -392,7 +392,7 @@ pipeline {
                     }
                     steps {
                         script {
-                            runGinkgo('examples/bobs-books')
+                            runGinkgo('examples/bobsbooks')
                         }
                         sh """
                             ${WORKSPACE}/tests/e2e/config/scripts/get_verrazzano_image.sh bob >> ${IMG_LIST_FILE}
@@ -413,7 +413,7 @@ pipeline {
                     }
                     steps {
                         script {
-                            runGinkgo('examples/sock-shop')
+                            runGinkgo('examples/socks')
                         }
                         sh """
                             ${WORKSPACE}/tests/e2e/config/scripts/create_verrazzano_image_list.sh ${IMG_LIST_FILE}

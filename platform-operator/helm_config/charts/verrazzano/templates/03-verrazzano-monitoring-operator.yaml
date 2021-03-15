@@ -383,6 +383,10 @@ spec:
               value: {{ .Values.monitoringOperator.configReloaderImage }}
             - name: NODE_EXPORTER_IMAGE
               value: {{ .Values.monitoringOperator.nodeExporterImage }}
+            - name: OIDC_PROXY_IMAGE
+              value: {{ .Values.monitoringOperator.oidcProxyImage }}
+            - name: OIDC_AUTH_ENABLED
+              value: {{ .Values.monitoringOperator.oidcAuthEnabled | quote }}
           livenessProbe:
             failureThreshold: 5
             httpGet:

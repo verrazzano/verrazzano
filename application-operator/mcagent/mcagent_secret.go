@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -68,6 +69,17 @@ func (s *Syncer) createOrUpdateMCSecret(mcSecret clustersv1alpha1.MultiClusterSe
 		mutateMCSecret(mcSecret, &mcSecretNew)
 		return nil
 	})
+}
+
+func (s *Syncer) updateMultiClusterSecretStatus(name types.NamespacedName, newCond clustersv1alpha1.Condition, newClusterStatus clustersv1alpha1.ClusterLevelStatus) error {
+	fetched := clustersv1alpha1.MultiClusterSecret{}
+	err := s.AdminClient.Get(s.Context, name, &fetched)
+	if err != nil {
+		return err
+	}
+	fetched.Status.Conditions = append(fetched.Status.Conditions, newCond)
+	clusters.SetClusterLevelStatus(&fetched.Status, newClusterStatus)
+	return s.AdminClient.Status().Update(s.Context, &fetched)
 }
 
 // mutateMCSecret mutates the MultiClusterSecret to reflect the contents of the parent MultiClusterSecret

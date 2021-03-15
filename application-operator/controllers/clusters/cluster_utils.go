@@ -15,8 +15,10 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // MCLocalRegistrationSecretFullName is the full NamespacedName of the cluster local registration secret
@@ -40,6 +42,24 @@ var MCElasticsearchSecretFullName = types.NamespacedName{
 type ElasticsearchDetails struct {
 	URL        string
 	SecretName string
+}
+
+// MultiClusterResource interface abstracts methods common to all MultiClusterXXX resource types
+// It is defined outside the api resources package since deep-copy code generation cannot handle
+// interface types
+type MultiClusterResource interface {
+	runtime.Object
+	GetName() string
+	GetNamespace() string
+	GetStatus() clustersv1alpha1.MultiClusterResourceStatus
+}
+
+// StatusUpdateMessage represents a message sent to the Multi Cluster agent by the controllers
+// when a MultiCluster Resource's status is updated, with the updates
+type StatusUpdateMessage struct {
+	NewCondition     clustersv1alpha1.Condition
+	NewClusterStatus clustersv1alpha1.ClusterLevelStatus
+	Resource         MultiClusterResource
 }
 
 // StatusNeedsUpdate determines based on the current state and conditions of a MultiCluster
@@ -148,9 +168,9 @@ func ComputeEffectiveState(status clustersv1alpha1.MultiClusterResourceStatus, p
 	return clustersv1alpha1.Pending
 }
 
-// UpdateClusterLevelStatus - given a multi cluster resource status object, and a new cluster status
+// SetClusterLevelStatus - given a multi cluster resource status object, and a new cluster status
 // to be updated, either add or update the cluster status as appropriate
-func UpdateClusterLevelStatus(status *clustersv1alpha1.MultiClusterResourceStatus, newClusterStatus clustersv1alpha1.ClusterLevelStatus) {
+func SetClusterLevelStatus(status *clustersv1alpha1.MultiClusterResourceStatus, newClusterStatus clustersv1alpha1.ClusterLevelStatus) {
 	foundClusterIdx := -1
 	for i, clusterStatus := range status.Clusters {
 		if clusterStatus.Name == newClusterStatus.Name {
@@ -247,4 +267,48 @@ func fetchClusterSecret(ctx context.Context, rdr client.Reader, clusterSecret *c
 		return err
 	}
 	return rdr.Get(ctx, MCLocalRegistrationSecretFullName, clusterSecret)
+}
+
+// UpdateStatus determines whether a status update is needed for the specified mcStatus, given the new
+// Condition to be added, and if so, computes the state and calls the callback function to perform
+// the status update
+func UpdateStatus(resource MultiClusterResource, mcStatus *clustersv1alpha1.MultiClusterResourceStatus, placement clustersv1alpha1.Placement, newCondition clustersv1alpha1.Condition, clusterName string, agentChannel chan StatusUpdateMessage, updateFunc func() error) (controllerruntime.Result, error) {
+
+	clusterLevelStatus := CreateClusterLevelStatus(newCondition, clusterName)
+
+	if StatusNeedsUpdate(*mcStatus, newCondition, clusterLevelStatus) {
+		mcStatus.Conditions = append(mcStatus.Conditions, newCondition)
+		SetClusterLevelStatus(mcStatus, clusterLevelStatus)
+		mcStatus.State = ComputeEffectiveState(*mcStatus, placement)
+		err := updateFunc()
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		if agentChannel != nil {
+			// put the status update itself on the agent channel.
+			// note that the send will block if the channel buffer is full, which means the
+			// reconcile operation will not complete till unblocked
+			msg := StatusUpdateMessage{
+				NewCondition:     newCondition,
+				NewClusterStatus: clusterLevelStatus,
+				Resource:         resource,
+			}
+			agentChannel <- msg
+		}
+	}
+	return reconcile.Result{}, nil
+}
+
+// SetEffectiveStateIfChanged - if the effective state of the resource has changed, set it on the
+// in-memory multicluster resource's status. Returns the previous state, whether changed or not
+func SetEffectiveStateIfChanged(placement clustersv1alpha1.Placement,
+	statusPtr *clustersv1alpha1.MultiClusterResourceStatus) clustersv1alpha1.StateType {
+
+	effectiveState := ComputeEffectiveState(*statusPtr, placement)
+	if effectiveState != statusPtr.State {
+		oldState := statusPtr.State
+		statusPtr.State = effectiveState
+		return oldState
+	}
+	return statusPtr.State
 }

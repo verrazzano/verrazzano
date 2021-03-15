@@ -15,6 +15,8 @@ set -o pipefail
 
 function initializing_uninstall {
   # Deleting rancher through API
+  log "Listing pods in cattle-system namespace"
+  kubectl get pods -n cattle-system
   log "Deleting Rancher through API"
   rancher_exists=$(kubectl get namespace cattle-system) || return 0
   rancher_host_name="$(kubectl get ingress -n cattle-system --no-headers -o custom-columns=":spec.rules[0].host")" || err_return $? "Could not retrieve Rancher hostname" || return $?
@@ -29,14 +31,14 @@ function initializing_uninstall {
 
   if [ "${RANCHER_ACCESS_TOKEN}" ]; then
     log "Updating ${rancher_cluster_url}"
-    status=$(curl -o /dev/null -s -w "%{http_code}\n" -X DELETE -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")
+    status=$(curl -o /dev/null -s -w "%{http_code}\n" $(get_rancher_resolve ${rancher_hostname}) -X DELETE -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")
     if [ "$status" != 200 ] && [ "$status" != 404 ] ; then
       return 1
     fi
     local max_retries=30
     local retries=0
     while true ; do
-      still_exists="$(curl -s -X GET -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")"
+      still_exists="$(curl -s $(get_rancher_resolve ${rancher_hostname}) -X GET -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")"
       state="$(echo "$still_exists" | jq -r ".state" )"
       if [ "$state" != "active" ] && [ "$state" != "removing" ] ; then
         break

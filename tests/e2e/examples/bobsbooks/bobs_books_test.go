@@ -180,11 +180,11 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 		})
 	})
 	ginkgo.Context("Metrics.", func() {
-		// Verify Prometheus scraped metrics
-		// GIVEN a deployed WebLogic application
+		// Verify application Prometheus scraped metrics
+		// GIVEN a deployed Bob's Books application
 		// WHEN the application configuration uses a default metrics trait
 		// THEN confirm that metrics are being collected
-		ginkgo.It("Retrieve Prometheus scraped metrics", func() {
+		ginkgo.It("Retrieve application Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
 					gomega.Eventually(func() bool {
@@ -218,25 +218,82 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 				},
 			)
 		})
+		// Verify Istio Prometheus scraped metrics
+		// GIVEN a deployed Bob's Books application
+		// WHEN the application configuration is deployed
+		// THEN confirm that Istio metrics are being collected
+		ginkgo.It("Retrieve Istio Prometheus scraped metrics", func() {
+			pkg.Concurrently(
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobbys-helidon-stock-application")
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "robert-helidon")
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobbys-front-end-adminserver")
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobs-bookstore-adminserver")
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("envoy_cluster_ssl_handshake", "pod_name", "bobbys-front-end-adminserver")
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("envoy_cluster_ssl_handshake", "pod_name", "bobs-bookstore-adminserver")
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+				},
+			)
+		})
 	})
 	ginkgo.Context("WebLogic logging.", func() {
-		indexName := "bobs-books-bobs-books-bobby-wls"
+		bobbyIndexName := "bobs-books-bobs-books-bobby-wls"
 		// GIVEN a WebLogic application with logging enabled via a logging scope
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
 		ginkgo.It("Verify Elasticsearch index exists", func() {
 			gomega.Eventually(func() bool {
-				return pkg.LogIndexFound(indexName)
-			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find log index "+indexName)
+				return pkg.LogIndexFound(bobbyIndexName)
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find log index "+bobbyIndexName)
 		})
 		// GIVEN a WebLogic application with logging enabled via a logging scope
 		// WHEN the log records are retrieved from the Elasticsearch index
 		// THEN verify that at least one recent log record is found
 		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
 			gomega.Eventually(func() bool {
-				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+				return pkg.LogRecordFound(bobbyIndexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"domainUID":  "bobbys-front-end",
 					"serverName": "bobbys-front-end-adminserver"})
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+		})
+		bobIndexName := "bobs-books-bobs-books-bobs-orders-wls"
+		// GIVEN a WebLogic application with logging enabled via a logging scope
+		// WHEN the Elasticsearch index is retrieved
+		// THEN verify that it is found
+		ginkgo.It("Verify Elasticsearch index exists", func() {
+			gomega.Eventually(func() bool {
+				return pkg.LogIndexFound(bobIndexName)
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find log index "+bobIndexName)
+		})
+		// GIVEN a WebLogic application with logging enabled via a logging scope
+		// WHEN the log records are retrieved from the Elasticsearch index
+		// THEN verify that at least one recent log record is found
+		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
+			gomega.Eventually(func() bool {
+				return pkg.LogRecordFound(bobIndexName, time.Now().Add(-24*time.Hour), map[string]string{
+					"domainUID":  "bobs-bookstore",
+					"serverName": "bobs-bookstore-adminserver"})
 			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 		})
 	})

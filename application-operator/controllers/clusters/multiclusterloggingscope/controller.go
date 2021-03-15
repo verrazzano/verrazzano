@@ -21,8 +21,9 @@ import (
 // Reconciler reconciles a MultiClusterLoggingScope object
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log          logr.Logger
+	Scheme       *runtime.Scheme
+	AgentChannel chan clusters.StatusUpdateMessage
 }
 
 // Reconcile reconciles a MultiClusterLoggingScope resource. It fetches the embedded LoggingScope,
@@ -38,8 +39,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterLoggingScope", err, logger)
 	}
 
+	oldState := clusters.SetEffectiveStateIfChanged(mcLogScope.Spec.Placement, &mcLogScope.Status)
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcLogScope.Spec.Placement) {
-		return ctrl.Result{}, nil
+		if oldState != mcLogScope.Status.State {
+			// This must be done whether the resource is placed in this cluster or not, because we
+			// could be in an admin cluster and receive cluster level statuses from managed clusters,
+			// which can change our effective state
+			err = r.Status().Update(ctx, &mcLogScope)
+		}
+		return ctrl.Result{}, err
 	}
 
 	logger.Info("MultiClusterLoggingScope create or update with underlying LoggingScope",
@@ -82,13 +90,7 @@ func (r *Reconciler) mutateLoggingScope(mcLogScope clustersv1alpha1.MultiCluster
 
 func (r *Reconciler) updateStatus(ctx context.Context, mcLogScope *clustersv1alpha1.MultiClusterLoggingScope, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {
 	clusterName := clusters.GetClusterName(ctx, r.Client)
-	condition := clusters.GetConditionFromResult(err, opResult, "LoggingScope")
-	clusterLevelStatus := clusters.CreateClusterLevelStatus(condition, clusterName)
-	if clusters.StatusNeedsUpdate(mcLogScope.Status, condition, clusterLevelStatus) {
-		mcLogScope.Status.Conditions = append(mcLogScope.Status.Conditions, condition)
-		clusters.UpdateClusterLevelStatus(&mcLogScope.Status, clusterLevelStatus)
-		mcLogScope.Status.State = clusters.ComputeEffectiveState(mcLogScope.Status, mcLogScope.Spec.Placement)
-		return reconcile.Result{}, r.Status().Update(ctx, mcLogScope)
-	}
-	return reconcile.Result{}, nil
+	newCondition := clusters.GetConditionFromResult(err, opResult, "LoggingScope")
+	return clusters.UpdateStatus(mcLogScope, &mcLogScope.Status, mcLogScope.Spec.Placement, newCondition, clusterName,
+		r.AgentChannel, func() error { return r.Status().Update(ctx, mcLogScope) })
 }
