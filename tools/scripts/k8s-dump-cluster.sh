@@ -174,7 +174,7 @@ function analyze_dump() {
       local SAVE_DIR=$(pwd)
       cd $SCRIPT_DIR/../analysis
       # To enable debug, add  -zap-log-level debug
-      GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true $CAPTURE_DIR || true
+      GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true $FULL_PATH_CAPTURE_DIR || true
       cd $SAVE_DIR
     fi
   fi
