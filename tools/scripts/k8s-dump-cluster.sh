@@ -19,6 +19,7 @@ function usage {
     echo " Specifying both -z and -d is valid as well, but note they are independent of each other"
     echo " -z tar_gz_file   Name of the compressed tar file to generate. Ie: capture.tar.gz"
     echo " -d directory     Directory to capture an expanded dump into. This does not affect a tar_gz_file if that is also specified"
+    echo " -a               Call the analyzer on the captured dump and report to stdout"
     echo " -h               Help"
     echo ""
     exit 1
@@ -30,12 +31,13 @@ kubectl >/dev/null 2>&1 || {
 }
 
 TAR_GZ_FILE=""
-DUMP_SECRETS="FALSE"
-while getopts z:d:h flag
+ANALYZE="FALSE"
+while getopts z:d:ha flag
 do
     case "${flag}" in
         z) TAR_GZ_FILE=${OPTARG};;
         d) DIRECTORY=${OPTARG};;
+        a) ANALYZE="TRUE";;
         h) usage;;
         *) usage;;
     esac
@@ -124,10 +126,10 @@ function process_nodes_output() {
 }
 
 function dump_es_indexes() {
-  kubectl --insecure-skip-tls-verify get ingress -A -o json | jq .items[].spec.tls[].hosts[] | grep elasticsearch.vmi.system.default | sed -e 's;^";https://;' -e 's/"//'
-  local ES_ENDPOINT=$(kubectl --insecure-skip-tls-verify get ingress -A -o json | jq .items[].spec.tls[].hosts[] | grep elasticsearch.vmi.system.default | sed -e 's;^";https://;' -e 's/"//')
-  local ES_USER=$(kubectl --insecure-skip-tls-verify get secret -n verrazzano-system verrazzano -o jsonpath={.data.username} | base64 --decode)
-  local ES_PWD=$(kubectl --insecure-skip-tls-verify get secret -n verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode)
+  kubectl --insecure-skip-tls-verify get ingress -A -o json | jq .items[].spec.tls[].hosts[]  2>/dev/null | grep elasticsearch.vmi.system.default | sed -e 's;^";https://;' -e 's/"//' || true
+  local ES_ENDPOINT=$(kubectl --insecure-skip-tls-verify get ingress -A -o json | jq .items[].spec.tls[].hosts[] 2>/dev/null | grep elasticsearch.vmi.system.default | sed -e 's;^";https://;' -e 's/"//') || true
+  local ES_USER=$(kubectl --insecure-skip-tls-verify get secret -n verrazzano-system verrazzano -o jsonpath={.data.username} | base64 --decode) || true
+  local ES_PWD=$(kubectl --insecure-skip-tls-verify get secret -n verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode) || true
   if [ ! -z $ES_ENDPOINT ] && [ ! -z $ES_USER ] && [ ! -z $ES_PWD ]; then
     curl -k -u $ES_USER:$ES_PWD $ES_ENDPOINT/_all
   fi
@@ -163,6 +165,21 @@ function full_k8s_cluster_dump() {
   fi
 }
 
+function analyze_dump() {
+  if [ $ANALYZE == "TRUE" ]; then
+    if ! [ -x "$(command -v go)" ]; then
+      echo "Analyze requires go which does not appear to be installed, skipping analyze"
+    else
+      local FULL_PATH_CAPTURE_DIR=$(echo "$(cd "$(dirname "$CAPTURE_DIR")" && pwd -P)/$(basename "$CAPTURE_DIR")")
+      local SAVE_DIR=$(pwd)
+      cd $SCRIPT_DIR/../analysis
+      # To enable debug, add  -zap-log-level debug
+      GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true $FULL_PATH_CAPTURE_DIR || true
+      cd $SAVE_DIR
+    fi
+  fi
+}
+
 function save_dump_file() {
   # This will save the dump to a tar gz file if that was specified
   if [ ! -z $TAR_GZ_FILE ]; then
@@ -186,4 +203,5 @@ if [ $? -eq 0 ]; then
   save_dump_file
 fi
 
+analyze_dump
 cleanup_dump

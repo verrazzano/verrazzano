@@ -378,7 +378,7 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 		return r.mutateGateway(gateway, trait, rule, secretName)
 	})
 
-	ref := vzapi.QualifiedResourceRelation{APIVersion: gatewayAPIVersion, Kind: gatewayKind, Name: trait.Name, Role: "gateway"}
+	ref := vzapi.QualifiedResourceRelation{APIVersion: gatewayAPIVersion, Kind: gatewayKind, Name: name, Role: "gateway"}
 	status.Relations = append(status.Relations, ref)
 	status.Results = append(status.Results, res)
 	status.Errors = append(status.Errors, err)
@@ -471,7 +471,7 @@ func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vz
 		return r.mutateVirtualService(virtualService, trait, rule, service, gateway)
 	})
 
-	ref := vzapi.QualifiedResourceRelation{APIVersion: virtualServiceAPIVersion, Kind: virtualServiceKind, Name: trait.Name, Role: "virtualservice"}
+	ref := vzapi.QualifiedResourceRelation{APIVersion: virtualServiceAPIVersion, Kind: virtualServiceKind, Name: name, Role: "virtualservice"}
 	status.Relations = append(status.Relations, ref)
 	status.Results = append(status.Results, res)
 	status.Errors = append(status.Errors, err)
