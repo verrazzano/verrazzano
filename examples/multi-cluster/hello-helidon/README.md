@@ -151,7 +151,7 @@ Follow these steps to test the endpoints:
 
     - Run this command to get the password that was generated for the telemetry components:
         ```
-        $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
+        $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
         ```
       The associated user name is `verrazzano`.
 
@@ -160,7 +160,7 @@ Follow these steps to test the endpoints:
    You can retrieve the list of available ingresses with following command:
 
     ```
-    $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get ing -n verrazzano-system
+    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl get ing -n verrazzano-system
     NAME                         CLASS    HOSTS                                                    ADDRESS          PORTS     AGE
     verrazzano-console-ingress   <none>   verrazzano.default.140.238.94.217.xip.io                 140.238.94.217   80, 443   7d2h
     vmi-system-api               <none>   api.vmi.system.default.140.238.94.217.xip.io             140.238.94.217   80, 443   7d2h
