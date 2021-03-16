@@ -313,6 +313,9 @@ pipeline {
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*verrazzano-installation-loop-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             sh """
+                echo "Listing all pods"
+                kubectl get pods --all-namespaces
+
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                     echo "Failures seen during dumping of artifacts, treat post as failed"
                     exit 1
