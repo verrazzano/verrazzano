@@ -97,7 +97,7 @@ Follow these steps to test the endpoints:
     $ kubectl get pods -n helidon-config
 
     NAME                                      READY   STATUS    RESTARTS   AGE
-    helidon-config-workload-676d97c7d4-wkrj2   2/2     Running   0          5m39s
+    helidon-config-deployment-676d97c7d4-wkrj2   3/3     Running   0          5m39s
    ```
 1. A variety of endpoints are available to further explore the logs, metrics, and such, associated with
 the deployed Hello World Helidon application.  Accessing them may require the following:

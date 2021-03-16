@@ -16,6 +16,7 @@ spec:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: MetricsTrait
             spec:
+                port: 7001
                 scraper: verrazzano-system/vmi-system-prometheus-0
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
@@ -27,3 +28,9 @@ spec:
                 - paths:
                     - path: "/greet"
                       pathType: Prefix
+    - componentName: helidon-config-configmap
+      parameterValues:
+        - name: config-data
+          value:
+            config-properties.yaml: |
+              app.greeting: Howdy

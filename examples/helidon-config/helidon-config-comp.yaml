@@ -3,7 +3,7 @@
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
-  name: bobs-orders-configmap
+  name: helidon-config-configmap
   namespace: helidon-config
 spec:
   workload:
@@ -15,6 +15,11 @@ spec:
     data:
       config-properties.yaml: |
         app.greeting: Hello
+  parameters:
+    - name: config-data
+      required: false
+      fieldPaths:
+        - data
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -36,7 +41,7 @@ spec:
         podSpec:
           containers:
             - name: helidon-config-container
-              image: "ghcr.io/verrazzano/example-helidon-config-app:0.1.10-3-20201016220428-56fb4d4"
+              image: "phx.ocir.io/stevengreenberginc/arjav/helidon-config:latest"
               ports:
                 - containerPort: 7001
                   name: http
