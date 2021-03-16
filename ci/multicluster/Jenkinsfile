@@ -547,7 +547,7 @@ def dumpK8sCluster(dumpDirectory) {
         for(int count=1; count<=clusterCount; count++) {
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}-${count}
+                ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}-${count} -a
             """
         }
     }
