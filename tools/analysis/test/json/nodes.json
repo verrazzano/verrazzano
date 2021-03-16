@@ -1,0 +1,85 @@
+{
+    "kind": "NodeList",
+    "apiVersion": "v1",
+    "metadata": {
+        "selfLink": "/api/v1/nodes",
+        "resourceVersion": "1164442"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "10.0.10.2",
+                "resourceVersion": "1164210",
+                "creationTimestamp": "2021-02-02T11:23:41Z"
+            },
+            "status": {
+                "images": [
+                    {
+                        "names": [
+                            "ghcr.io/verrazzano/rancher@sha256:918547fd949050392a8eb7ff1c5eb5d95e7dfad14d0c777f54d453e86bee56eb",
+                            "ghcr.io/verrazzano/rancher:v2.4.3-20201016205256-4988df094"
+                        ],
+                        "sizeBytes": 998067072
+                    },
+                    {
+                        "names": [
+                            "ghcr.io/verrazzano/elasticsearch@sha256:3d2cbb539f9ebba991c6f36db4fbaa9dc9c03e6192a28787869f7850cc2bd66c",
+                            "ghcr.io/verrazzano/elasticsearch:7.6.1-20201130145440-5c76ab1"
+                        ],
+                        "sizeBytes": 864781871
+                    }
+                ]
+            }
+        },
+        {
+            "metadata": {
+                "name": "10.0.10.3",
+                "resourceVersion": "1164021",
+                "creationTimestamp": "2021-02-02T11:23:27Z"
+            },
+            "status": {
+                "images": [
+                    {
+                        "names": [
+                            "ghcr.io/verrazzano/rancher@sha256:918547fd949050392a8eb7ff1c5eb5d95e7dfad14d0c777f54d453e86bee56eb",
+                            "ghcr.io/verrazzano/rancher:v2.4.3-20201016205256-4988df094"
+                        ],
+                        "sizeBytes": 998067072
+                    },
+                    {
+                        "names": [
+                            "ghcr.io/verrazzano/elasticsearch@sha256:3d2cbb539f9ebba991c6f36db4fbaa9dc9c03e6192a28787869f7850cc2bd66c",
+                            "ghcr.io/verrazzano/elasticsearch:7.6.1-20201130145440-5c76ab1"
+                        ],
+                        "sizeBytes": 864781871
+                    }
+                ]
+            }
+        },
+        {
+            "metadata": {
+                "name": "10.0.10.4",
+                "resourceVersion": "1164059",
+                "creationTimestamp": "2021-02-02T11:23:37Z"
+            },
+            "status": {
+                "images": [
+                    {
+                        "names": [
+                            "ghcr.io/verrazzano/rancher@sha256:918547fd949050392a8eb7ff1c5eb5d95e7dfad14d0c777f54d453e86bee56eb",
+                            "ghcr.io/verrazzano/rancher:v2.4.3-20201016205256-4988df094"
+                        ],
+                        "sizeBytes": 998067072
+                    },
+                    {
+                        "names": [
+                            "ghcr.io/verrazzano/elasticsearch@sha256:3d2cbb539f9ebba991c6f36db4fbaa9dc9c03e6192a28787869f7850cc2bd66c",
+                            "ghcr.io/verrazzano/elasticsearch:7.6.1-20201130145440-5c76ab1"
+                        ],
+                        "sizeBytes": 864781871
+                    }
+                ]
+            }
+        }
+    ]
+}
