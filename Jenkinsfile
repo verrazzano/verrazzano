@@ -259,14 +259,15 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    mkdir ${HOME}/.kube/ || true
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    ../ci/scripts/setup_kind_for_jenkins.sh vpo-integ ${HOME}/.kube/vpo-integ-config
-                    make integ-test JENKINS_KUBECONFIG=${HOME}/.kube/vpo-integ-config CLUSTER_DUMP_LOCATION=${WORKSPACE}/platform-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+                    make create-cluster KIND_CACHE="vpo-integ"
+                    ../ci/scripts/setup_kind_for_jenkins.sh vpo-integ
+                    make integ-test CLUSTER_DUMP_LOCATION=${WORKSPACE}/platform-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     build/scripts/copy-junit-output.sh ${WORKSPACE}
                     cd ${GO_REPO_PATH}/verrazzano/application-operator
-                    ../ci/scripts/setup_kind_for_jenkins.sh apo-integ ${HOME}/.kube/apo-integ-config
-                    make integ-test JENKINS_KUBECONFIG=${HOME}/.kube/apo-integ-config DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+                    make create-cluster KIND_CACHE="apo-integ"
+                    ../ci/scripts/setup_kind_for_jenkins.sh apo-integ
+                    make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     build/scripts/copy-junit-output.sh ${WORKSPACE}
                 """
             }
@@ -327,8 +328,8 @@ pipeline {
                             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
                             echo "Create Kind cluster"
                             cd ${GO_REPO_PATH}/verrazzano/platform-operator
-
-                            ../ci/scripts/setup_kind_for_jenkins.sh at-tests ${KUBECONFIG}
+                            make create-cluster KIND_CACHE="at-tests"
+                            ../ci/scripts/setup_kind_for_jenkins.sh at-tests
 
                             echo "Install metallb"
                             cd ${GO_REPO_PATH}/verrazzano

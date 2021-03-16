@@ -159,14 +159,8 @@ OPERATOR_SETUP = test/operatorsetup
 OAM_RUNTIME_IMAGE="ghcr.io/verrazzano/oam-kubernetes-runtime:v0.3.0-20210222205541-9e8d4fb"
 
 # These exports are needed for the install.sh
-ifdef JENKINS_KUBECONFIG
-export KUBECONFIG=${JENKINS_KUBECONFIG}
-export VERRAZZANO_KUBECONFIG=${JENKINS_KUBECONFIG}
-else
 export KUBECONFIG=${HOME}/.kube/config
 export VERRAZZANO_KUBECONFIG=${HOME}/.kube/config
-endif
-
 export VERRAZZANO_APP_OP_IMAGE=${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 .PHONY: setup-cluster
@@ -188,22 +182,17 @@ integ-test: setup-cluster
 
 .PHONY: create-cluster
 create-cluster:
-ifndef JENKINS_URL
+
 	echo 'Create cluster...'
 	HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 \
 		--name ${CLUSTER_NAME} \
 		--wait 5m \
 		--config=test/kind-config.yaml
 	kubectl config set-context kind-${CLUSTER_NAME}
-endif
 
 .PHONY: delete-cluster
 delete-cluster:
-ifdef JENKINS_URL
-	echo "Don't bother deleting the cluster on Jenkins, it will not be re-used by anything else"
-else
 	kind delete cluster --name ${CLUSTER_NAME}
-endif
 
 #
 # Kubernetes-related tasks
