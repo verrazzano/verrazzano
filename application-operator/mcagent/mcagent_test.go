@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"testing"
 
+	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 
 	"github.com/golang/mock/gomock"
@@ -48,6 +49,7 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 	// Admin cluster mocks
 	adminMocker := gomock.NewController(t)
 	adminMock := mocks.NewMockClient(adminMocker)
+	adminStatusMock := mocks.NewMockStatusWriter(adminMocker)
 
 	// Managed Cluster - expect call to get the cluster registration secret.
 	mcMock.EXPECT().
@@ -57,6 +59,10 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 			secret.Data = validSecret.Data
 			return nil
 		})
+
+	// Admin Cluster - expect a get followed by status update on VMC to record last agent connect time
+	vmcName := types.NamespacedName{Name: string(validSecret.Data[constants.ClusterNameData]), Namespace: constants.VerrazzanoMultiClusterNamespace}
+	expectAdminVMCStatusUpdate(adminMock, vmcName, adminStatusMock, assert)
 
 	// Admin Cluster - expect call to list VerrazzanoProject objects - return an empty list
 	adminMock.EXPECT().
@@ -87,6 +93,26 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 	mcMocker.Finish()
 	assert.NoError(err)
 	assert.Equal(validSecret.ResourceVersion, s.SecretResourceVersion)
+}
+
+func expectAdminVMCStatusUpdate(adminMock *mocks.MockClient, vmcName types.NamespacedName, adminStatusMock *mocks.MockStatusWriter, assert *asserts.Assertions) {
+	adminMock.EXPECT().
+		Get(gomock.Any(), vmcName, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *platformopclusters.VerrazzanoManagedCluster) error {
+			vmc.Name = vmcName.Name
+			vmc.Namespace = vmcName.Namespace
+			return nil
+		})
+	adminMock.EXPECT().Status().Return(adminStatusMock)
+	adminStatusMock.EXPECT().
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&platformopclusters.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, vmc *platformopclusters.VerrazzanoManagedCluster) error {
+			assert.Equal(vmcName.Namespace, vmc.Namespace)
+			assert.Equal(vmcName.Name, vmc.Name)
+			assert.NotNil(vmc.Status)
+			assert.NotNil(vmc.Status.LastAgentConnectTime)
+			return nil
+		})
 }
 
 // TestProcessAgentThreadSecretDeleted tests agent thread when the registration secret is deleted

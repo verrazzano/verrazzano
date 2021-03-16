@@ -41,6 +41,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 )
 
 var (
@@ -61,6 +62,7 @@ func init() {
 
 	_ = clustersv1alpha1.AddToScheme(scheme)
 	_ = certapiv1alpha2.AddToScheme(scheme)
+	_ = platformopclusters.AddToScheme(scheme)
 }
 
 const defaultScraperName = "verrazzano-system/vmi-system-prometheus-0"
