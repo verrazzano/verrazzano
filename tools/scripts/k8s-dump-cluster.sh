@@ -173,8 +173,8 @@ function analyze_dump() {
       local FULL_PATH_CAPTURE_DIR=$(echo "$(cd "$(dirname "$CAPTURE_DIR")" && pwd -P)/$(basename "$CAPTURE_DIR")")
       local SAVE_DIR=$(pwd)
       cd $SCRIPT_DIR/../analysis
-      echo "DEBUG: save_pwd = ${SAVE_DIR}, pwd = $(pwd), GOPATH = ${GOPATH}"
-      GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go -zap-log-level debug --analysis=cluster --info=true $CAPTURE_DIR || true
+      # To enable debug, add  -zap-log-level debug
+      GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true $CAPTURE_DIR || true
       cd $SAVE_DIR
     fi
   fi
