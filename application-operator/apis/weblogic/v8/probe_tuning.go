@@ -1,9 +1,9 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v8
 
-//
+// ProbeTuning contains details for tuning the probes
 // +k8s:openapi-gen=true
 type ProbeTuning struct {
 	// The number of seconds before the first check is performed.

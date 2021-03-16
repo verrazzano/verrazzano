@@ -1,9 +1,9 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v8
 
-// Inline managed server definition
+// ManagedServer contains WebLogic managed server definition
 type ManagedServer struct {
 	// If present, every time this value is updated the operator will restart
 	// the required servers.

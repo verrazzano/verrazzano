@@ -1,9 +1,9 @@
-// Copyright (c) 2020, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v8
 
-// Status of WebLogic servers in this domain
+// ServerStatus contains the status of WebLogic servers in this domain
 // +k8s:openapi-gen=true
 type ServerStatus struct {
 	// WebLogic cluster name, if the server is part of a cluster
