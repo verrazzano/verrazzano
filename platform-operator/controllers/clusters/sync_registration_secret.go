@@ -66,7 +66,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	// Build the secret data
 	secret.Data = map[string][]byte{
 		ManagedClusterNameKey: []byte(manageClusterName),
-		URLKey:                []byte(url),
+		ESURLKey:              []byte(url),
 		CaBundleKey:           tlsSecret.Data[CaCrtKey],
 		UsernameKey:           vzSecret.Data[UsernameKey],
 		PasswordKey:           vzSecret.Data[PasswordKey],

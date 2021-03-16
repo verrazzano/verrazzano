@@ -29,9 +29,6 @@ import (
 // ENV VAR for registration secret version
 const registrationSecretVersion = "REGISTRATION_SECRET_VERSION"
 
-// ENV VAR for elasticsearch secret version in verrazzano operator
-const elasticsearchSecretVersionEnvName = "ES_SECRET_VERSION"
-
 // StartAgent - start the agent thread for syncing multi-cluster objects
 func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUpdateMessage, log logr.Logger) {
 	// Wait for the existence of the verrazzano-cluster-agent secret.  It contains the credentials

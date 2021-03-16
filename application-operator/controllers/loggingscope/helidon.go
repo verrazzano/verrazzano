@@ -157,7 +157,7 @@ func (h *HelidonHandler) ApplyToDeployment(ctx context.Context, workload vzapi.Q
 	if err != nil {
 		return nil, err
 	}
-	err = ensureElasticsearchSecret(ctx, h, scope.GetNamespace(), scope.Spec.SecretName)
+	err = ensureLoggingSecret(ctx, h, scope.GetNamespace(), scope.Spec.SecretName)
 	if err != nil {
 		return nil, err
 	}
@@ -418,17 +418,6 @@ func CreateFluentdSecretVolume(secretName string) kcore.Volume {
 // The workload name is included so there is a configmap per component.
 func fluentdConfigMapName(workloadName string) string {
 	return fmt.Sprintf("fluentd-config-helidon-%s", workloadName)
-}
-
-func replicateVmiSecret(vmiSec *kcore.Secret, namespace, name string) *kcore.Secret {
-	sec := &kcore.Secret{
-		ObjectMeta: kmeta.ObjectMeta{
-			Namespace: namespace,
-			Name:      name,
-		},
-		Data: vmiSec.Data,
-	}
-	return sec
 }
 
 func (h *HelidonHandler) ensureFluentdConfigMap(ctx context.Context, namespace, workloadName string, appContainersNames []string) error {

@@ -244,7 +244,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	testNamespace := "test-namespace"
-	esSecretName := "test-secret-name"
+	loggingSecretName := "test-secret-name"
 
 	params := map[string]string{
 		"##APPCONF_NAME##":          "test-appconf",
@@ -253,7 +253,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 		"##SCOPE_NAME##":            "test-scope",
 		"##SCOPE_NAMESPACE##":       testNamespace,
 		"##INGEST_URL##":            "http://test-ingest-host:9200",
-		"##INGEST_SECRET_NAME##":    esSecretName,
+		"##INGEST_SECRET_NAME##":    loggingSecretName,
 		"##FLUENTD_IMAGE##":         "test-fluentd-image-name",
 		"##WORKLOAD_APIVER##":       "oam.verrazzano.io/v1alpha1",
 		"##WORKLOAD_KIND##":         "VerrazzanoHelidonWorkload",
@@ -314,10 +314,10 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 		}).Times(1)
 
 	// expect a call to get the elasticsearch secret in app namespace - return not found
-	testESSecretFullName := types.NamespacedName{Namespace: testNamespace, Name: esSecretName}
+	testLoggingSecretFullName := types.NamespacedName{Namespace: testNamespace, Name: loggingSecretName}
 	cli.EXPECT().
-		Get(gomock.Any(), testESSecretFullName, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), esSecretName))
+		Get(gomock.Any(), testLoggingSecretFullName, gomock.Not(gomock.Nil())).
+		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), loggingSecretName))
 
 	// expect a call to create an empty elasticsearch secret in app namespace (default behavior, so
 	// that fluentd volume mount works)
@@ -325,7 +325,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 		Create(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, sec *v1.Secret, options *client.CreateOptions) error {
 			asserts.Equal(t, testNamespace, sec.Namespace)
-			asserts.Equal(t, esSecretName, sec.Name)
+			asserts.Equal(t, loggingSecretName, sec.Name)
 			asserts.Nil(t, sec.Data)
 			asserts.Equal(t, client.CreateOptions{}, *options)
 			return nil
@@ -409,7 +409,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	testNamespace := "test-namespace"
-	esSecretName := "test-secret-name"
+	loggingSecretName := "test-secret-name"
 
 	params := map[string]string{
 		"##APPCONF_NAME##":            "test-appconf",
@@ -418,7 +418,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 		"##SCOPE_NAME##":              "test-scope",
 		"##SCOPE_NAMESPACE##":         testNamespace,
 		"##INGEST_URL##":              "http://test-ingest-host:9200",
-		"##INGEST_SECRET_NAME##":      esSecretName,
+		"##INGEST_SECRET_NAME##":      loggingSecretName,
 		"##FLUENTD_IMAGE##":           "test-fluentd-image-name",
 		"##WORKLOAD_APIVER##":         "oam.verrazzano.io/v1alpha1",
 		"##WORKLOAD_KIND##":           "VerrazzanoHelidonWorkload",
@@ -475,10 +475,10 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 			return nil
 		}).Times(1)
 	// expect a call to get the elasticsearch secret in app namespace - return not found
-	testESSecretFullName := types.NamespacedName{Namespace: testNamespace, Name: esSecretName}
+	testLoggingSecretFullName := types.NamespacedName{Namespace: testNamespace, Name: loggingSecretName}
 	cli.EXPECT().
-		Get(gomock.Any(), testESSecretFullName, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), esSecretName))
+		Get(gomock.Any(), testLoggingSecretFullName, gomock.Not(gomock.Nil())).
+		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), loggingSecretName))
 
 	// expect a call to create an empty elasticsearch secret in app namespace (default behavior, so
 	// that fluentd volume mount works)
@@ -486,7 +486,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 		Create(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, sec *v1.Secret, options *client.CreateOptions) error {
 			asserts.Equal(t, testNamespace, sec.Namespace)
-			asserts.Equal(t, esSecretName, sec.Name)
+			asserts.Equal(t, loggingSecretName, sec.Name)
 			asserts.Nil(t, sec.Data)
 			asserts.Equal(t, client.CreateOptions{}, *options)
 			return nil
@@ -532,8 +532,8 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 			assertEnvVarFromField(t, c.Env, "APP_CONF_NAME", "metadata.labels['app.oam.dev/name']")
 			assertEnvVarFromField(t, c.Env, "COMPONENT_NAME", "metadata.labels['app.oam.dev/component']")
 			assertEnvVar(t, c.Env, "ELASTICSEARCH_URL", "http://test-ingest-host:9200")
-			assertEnvVarFromSecret(t, c.Env, "ELASTICSEARCH_USER", esSecretName, "username")
-			assertEnvVarFromSecret(t, c.Env, "ELASTICSEARCH_PASSWORD", esSecretName, "password")
+			assertEnvVarFromSecret(t, c.Env, "ELASTICSEARCH_USER", loggingSecretName, "username")
+			assertEnvVarFromSecret(t, c.Env, "ELASTICSEARCH_PASSWORD", loggingSecretName, "password")
 			assert.Len(c.VolumeMounts, 4, "Expect sidecar container to have 4 volume mounts")
 			assertVolumeMount(t, c.VolumeMounts, "fluentd-config-volume", "/fluentd/etc/fluentd.conf", "fluentd.conf", true)
 			assertVolumeMount(t, c.VolumeMounts, "secret-volume", "/fluentd/secret", "", true)

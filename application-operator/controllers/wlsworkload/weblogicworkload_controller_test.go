@@ -150,7 +150,7 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 	componentName := "unit-test-component"
 	loggingScopeName := "unit-test-logging-scope"
 	fluentdImage := "unit-test-image:latest"
-	esSecretName := "es-secret"
+	loggingSecretName := "logging-secret"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
 
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
@@ -179,7 +179,7 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: loggingScopeName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, loggingScope *vzapi.LoggingScope) error {
 			loggingScope.Spec.FluentdImage = fluentdImage
-			loggingScope.Spec.SecretName = esSecretName
+			loggingScope.Spec.SecretName = loggingSecretName
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -197,10 +197,10 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 			return nil
 		})
 	// expect a call to get the elasticsearch secret in app namespace - return not found
-	testESSecretFullName := types.NamespacedName{Namespace: namespace, Name: esSecretName}
+	testLoggingSecretFullName := types.NamespacedName{Namespace: namespace, Name: loggingSecretName}
 	cli.EXPECT().
-		Get(gomock.Any(), testESSecretFullName, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(schema.ParseGroupResource("v1.Secret"), esSecretName))
+		Get(gomock.Any(), testLoggingSecretFullName, gomock.Not(gomock.Nil())).
+		Return(k8serrors.NewNotFound(schema.ParseGroupResource("v1.Secret"), loggingSecretName))
 
 	// expect a call to create an empty elasticsearch secret in app namespace (default behavior, so
 	// that fluentd volume mount works)
@@ -208,7 +208,7 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 		Create(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, sec *corev1.Secret, options *client.CreateOptions) error {
 			asserts.Equal(t, namespace, sec.Namespace)
-			asserts.Equal(t, esSecretName, sec.Name)
+			asserts.Equal(t, loggingSecretName, sec.Name)
 			asserts.Nil(t, sec.Data)
 			asserts.Equal(t, client.CreateOptions{}, *options)
 			return nil

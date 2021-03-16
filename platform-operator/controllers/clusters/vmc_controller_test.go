@@ -583,7 +583,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string) {
 			asserts.Equalf(userData, string(user), "Incorrect user in Elasticsearch secret ")
 			pw := secret.Data[PasswordKey]
 			asserts.Equalf(passwordData, string(pw), "Incorrect password in Elasticsearch secret ")
-			url := secret.Data[URLKey]
+			url := secret.Data[ESURLKey]
 			asserts.Equalf(urlData, string(url), "Incorrect URL in Elasticsearch secret ")
 			return nil
 		})
@@ -618,7 +618,7 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, name string) {
 				CaCrtKey:              []byte(caData),
 				UsernameKey:           []byte(userData),
 				PasswordKey:           []byte(passwordData),
-				URLKey:                []byte(urlData),
+				ESURLKey:              []byte(urlData),
 			}
 			return nil
 		})

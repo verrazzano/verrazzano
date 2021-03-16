@@ -284,7 +284,7 @@ func TestFromWorkloadLabels(t *testing.T) {
 	loggingScopeName := "unit-test-logging-scope"
 	fluentdImage := "unit-test-image:latest"
 	esURL := "localhost"
-	esSecretName := "unit-test-secret"
+	loggingSecretName := "unit-test-secret"
 
 	// expect a call to fetch the oam application configuration
 	cli.EXPECT().
@@ -302,7 +302,7 @@ func TestFromWorkloadLabels(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, loggingScope *vzapi.LoggingScope) error {
 			loggingScope.Spec.FluentdImage = fluentdImage
 			loggingScope.Spec.ElasticSearchURL = esURL
-			loggingScope.Spec.SecretName = esSecretName
+			loggingScope.Spec.SecretName = loggingSecretName
 			return nil
 		})
 
@@ -313,7 +313,7 @@ func TestFromWorkloadLabels(t *testing.T) {
 	assert.NotNil(loggingScope)
 	assert.Equal(fluentdImage, loggingScope.Spec.FluentdImage)
 	assert.Equal(esURL, loggingScope.Spec.ElasticSearchURL)
-	assert.Equal(esSecretName, loggingScope.Spec.SecretName)
+	assert.Equal(loggingSecretName, loggingScope.Spec.SecretName)
 
 	// GIVEN workload labels
 	// WHEN an attempt is made to get the logging scopes from the app component and we cannot fetch the logging scope details
@@ -501,19 +501,19 @@ func TestApplyDefaults(t *testing.T) {
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
 
-	esSecretName := "sssshhhhhhh"
+	loggingSecretName := "sssshhhhhhh"
 	loggingScope = &vzapi.LoggingScope{
 		Spec: vzapi.LoggingScopeSpec{
 			FluentdImage:     fluentdImage,
 			ElasticSearchURL: esURL,
-			SecretName:       esSecretName,
+			SecretName:       loggingSecretName,
 		},
 	}
 	expected = &vzapi.LoggingScope{
 		Spec: vzapi.LoggingScopeSpec{
 			FluentdImage:     fluentdImage,
 			ElasticSearchURL: esURL,
-			SecretName:       esSecretName,
+			SecretName:       loggingSecretName,
 		},
 	}
 	assertApplyDefaults(cli, expected, loggingScope, t)
