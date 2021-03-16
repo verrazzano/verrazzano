@@ -4,7 +4,7 @@
 include ../make/quality.mk
 include ../make/generate.mk
 
-MAKEFILE_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../build
 
 NAME:=verrazzano-platform-operator
 REPO_NAME:=verrazzano-platform-operator

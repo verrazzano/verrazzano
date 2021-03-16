@@ -3,6 +3,8 @@
 
 include make/quality.mk
 
+SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/build
+
 ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),docker-push create-test-deploy))
 ifndef DOCKER_REPO
     $(error DOCKER_REPO must be defined as the name of the docker repository where image will be pushed)

@@ -45,4 +45,4 @@ go-ineffassign:
 
 .PHONY: coverage
 coverage:
-	./build/coverage.sh html
+	${SCRIPT_DIR}/coverage.sh html

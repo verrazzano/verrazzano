@@ -4,9 +4,10 @@
 include ../make/quality.mk
 include ../make/generate.mk
 
+SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../build
+
 NAME:=verrazzano-application-operator
 REPO_NAME:=verrazzano-application-operator
-
 
 TIMESTAMP := $(shell date -u +%Y%m%d%H%M%S)
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
