@@ -27,6 +27,7 @@ rules:
       - multiclusterloggingscopes/status
       - multiclustersecrets/status
       - verrazzanoprojects/status
+      - verrazzanomanagedclusters/status
     verbs:
       - get
       - list
