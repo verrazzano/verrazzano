@@ -80,14 +80,14 @@ Follow these steps to test the endpoints:
 1. Get the generated host name for the application.
 
    ```
-   $ HOST=$(kubectl get gateway hello-helidon-hello-helidon-appconf-gw -n hello-helidon -o jsonpath={.spec.servers[0].hosts[0]})
+   $ HOST=$(KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get gateway hello-helidon-hello-helidon-appconf-gw -n hello-helidon -o jsonpath={.spec.servers[0].hosts[0]})
    $ echo $HOST
    hello-helidon-appconf.hello-helidon.11.22.33.44.xip.io
    ```
 
 1. Get the `EXTERNAL_IP` address of the `istio-ingressgateway` service.
    ```
-   $ ADDRESS=$(kubectl get service -n istio-system istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+   $ ADDRESS=$(KUBECONFIG=$KUBECONFIG_MANAGED1 get service -n istio-system istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
    $ echo $ADDRESS
    11.22.33.44
    ```   
@@ -95,52 +95,63 @@ Follow these steps to test the endpoints:
 1. Access the application.
 
    There are several ways to access it:
-    * **Using the command line**:
-      ```
-      $ curl -sk -X GET https://${HOST}/greet --resolve ${HOST}:443:${ADDRESS}
-      {"message":"Hello World!"}
-      ```
-      If you are using `xip.io`, then you do not need to include `--resolve`.
-    * **Local testing with a browser**:
+   * **Using the command line**:
+     ```
+     $ curl -sk -X GET https://${HOST}/greet --resolve ${HOST}:443:${ADDRESS}
+     {"message":"Hello World!"}
+     ```
+     If you are using `xip.io`, then you do not need to include `--resolve`.
+   * **Local testing with a browser**:
 
-      Temporarily, modify the `/etc/hosts` file (on Mac or Linux)
-      or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10),
-      to add an entry mapping the host name to the ingress gateway's `EXTERNAL-IP` address.
-      For example:
-      ```
-      11.22.33.44 hello-helidon.example.com
-      ```
-      Then you can access the application in a browser at `https://<host>/greet`.
+     Temporarily, modify the `/etc/hosts` file (on Mac or Linux)
+     or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10),
+     to add an entry mapping the host name to the ingress gateway's `EXTERNAL-IP` address.
+     For example:
+     ```
+     11.22.33.44 hello-helidon.example.com
+     ```
+     Then you can access the application in a browser at `https://<host>/greet`.
 
-    * **Using your own DNS name**:
-        * Point your own DNS name to the ingress gateway's `EXTERNAL-IP` address.
-        * In this case, you would need to edit the `hello-helidon-app.yaml` file
-          to use the appropriate value under the `hosts` section (such as `yourhost.your.domain`),
-          before deploying the `hello-helidon` application.
-        * Then, you can use a browser to access the application at `https://<yourhost.your.domain>/greet`.
+   * **Using your own DNS name**:
+      * Point your own DNS name to the ingress gateway's `EXTERNAL-IP` address.
+      * In this case, you would need to edit the `hello-helidon-app.yaml` file
+        to use the appropriate value under the `hosts` section (such as `yourhost.your.domain`),
+        before deploying the `hello-helidon` application.
+      * Then, you can use a browser to access the application at `https://<yourhost.your.domain>/greet`.
 
 ## Troubleshooting
 
+1. Verify that the application namespace exists on the managed cluster.
+   ```
+   $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get namespace hello-helidon
+   ```
+
+1. Verify that the multi-cluster resources for the application all exist.
+   ```
+   $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get MultiClusterComponent -n hello-helidon
+   $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get MultiClusterApplicationConfiguration -n hello-helidon
+   ```
+
 1. Verify that the application configuration, domain, and ingress trait all exist.
    ```
-   $ kubectl get ApplicationConfiguration -n hello-helidon
-   $ kubectl get IngressTrait -n hello-helidon
+   $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get ApplicationConfiguration -n hello-helidon
+   $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get IngressTrait -n hello-helidon
    ```   
 
 1. Verify that the `hello-helidon` service pods are successfully created and transition to the `READY` state.
    Note that this may take a few minutes and that you may see some of the services terminate and restart.
    ```
-    $ kubectl get pods -n hello-helidon
+    $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get pods -n hello-helidon
 
-    NAME                                      READY   STATUS    RESTARTS   AGE
-    hello-helidon-workload-676d97c7d4-wkrj2   2/2     Running   0          5m39s
+    NAME                                        READY   STATUS    RESTARTS   AGE
+    hello-helidon-deployment-84984b7f8d-4whpr   3/3     Running   0          15h
    ```
 1. A variety of endpoints are available to further explore the logs, metrics, and such, associated with
    the deployed Hello World Helidon application.  Accessing them may require the following:
 
     - Run this command to get the password that was generated for the telemetry components:
         ```
-        $ kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
+        $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
         ```
       The associated user name is `verrazzano`.
 
@@ -149,7 +160,7 @@ Follow these steps to test the endpoints:
    You can retrieve the list of available ingresses with following command:
 
     ```
-    $ kubectl get ing -n verrazzano-system
+    $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get ing -n verrazzano-system
     NAME                         CLASS    HOSTS                                                    ADDRESS          PORTS     AGE
     verrazzano-console-ingress   <none>   verrazzano.default.140.238.94.217.xip.io                 140.238.94.217   80, 443   7d2h
     vmi-system-api               <none>   api.vmi.system.default.140.238.94.217.xip.io             140.238.94.217   80, 443   7d2h
