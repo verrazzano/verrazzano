@@ -15,8 +15,8 @@ set -o pipefail
 
 function initializing_uninstall {
   # Deleting rancher through API
-  log "Listing pods in cattle-system namespace"
-  kubectl get pods -n cattle-system
+  log "Listing pods in all namespace"
+  kubectl get pods --all-namespaces
   log "Deleting Rancher through API"
   rancher_exists=$(kubectl get namespace cattle-system) || return 0
   rancher_host_name="$(kubectl get ingress -n cattle-system --no-headers -o custom-columns=":spec.rules[0].host")" || err_return $? "Could not retrieve Rancher hostname" || return $?
@@ -31,10 +31,23 @@ function initializing_uninstall {
 
   if [ "${RANCHER_ACCESS_TOKEN}" ]; then
     log "Updating ${rancher_cluster_url}"
-    status=$(curl -o /dev/null -s -w "%{http_code}\n" $(get_rancher_resolve ${rancher_hostname}) -X DELETE -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")
-    if [ "$status" != 200 ] && [ "$status" != 404 ] ; then
-      return 1
+
+    ARGS=(--insecure $(get_rancher_resolve ${rancher_hostname}) \
+        -H "Accept: application/json"
+        -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}"
+        -X DELETE ${rancher_cluster_url})
+
+    call_curl 0 response http_code ARGS
+    log "HTTP code of DELETE call ${http_code}"
+    log "HTTP response  of DELETE call ${response}"
+    if [ $? -eq 0 ]; then
+        break
     fi
+
+    #status=$(curl -o /dev/null -s -w "%{http_code}\n" $(get_rancher_resolve ${rancher_hostname}) -X DELETE -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")
+    #if [ "$status" != 200 ] && [ "$status" != 404 ] ; then
+    #  return 1
+    #fi
     local max_retries=30
     local retries=0
     while true ; do
@@ -64,6 +77,6 @@ function delete_oam_components {
   delete_k8s_resource_from_all_namespaces components.core.oam.dev
 }
 
-action "Initializing Uninstall" initializing_uninstall || exit 1
+#action "Initializing Uninstall" initializing_uninstall || exit 1
 action "Deleting OAM application configurations" delete_oam_applications_configurations || exit 1
 action "Deleting OAM components" delete_oam_components || exit 1
