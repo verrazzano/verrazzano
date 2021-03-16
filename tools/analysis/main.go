@@ -14,6 +14,11 @@ import (
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
+var analyzerTypeFunctions = map[string]func(log *zap.SugaredLogger, args string) (err error){
+	"cluster":  cluster.RunAnalysis,
+	"buildlog": buildlog.RunAnalysis,
+}
+
 // The analyze tool will analyze information which has already been captured from an environment
 func main() {
 
@@ -32,7 +37,7 @@ func main() {
 	var includeActions bool
 	var minImpact int
 	var minConfidence int
-	flag.StringVar(&analyzerType, "analysis", "cluster", "Type of analysis: cluster, build")
+	flag.StringVar(&analyzerType, "analysis", "cluster", "Type of analysis: cluster, buildlog")
 	flag.StringVar(&reportFile, "reportFile", "", "Name of report output file, default is stdout")
 	flag.BoolVar(&includeInfo, "info", true, "Include informational messages, default is true")
 	flag.BoolVar(&includeSupport, "support", true, "Include support data in the report, default is true")
@@ -61,29 +66,23 @@ func main() {
 		os.Exit(0)
 	}
 
-	// TODO: We certainly could perform an analysis of each specified, but whether to return
-	// one report or one for each would be something to consider, for now just require a single directory
-	// as input here
+	// We already handle finding multiple cluster dumps in a directory, we could look
+	// at multiple here as well if that really is needed, for now we expect one root
+	// directory
 	if len(flag.Args()) > 1 {
 		fmt.Printf("\nToo many arguments were supplied, exiting.\n")
 		printUsage()
 		os.Exit(1)
 	}
 
-	// TBD: Tried to use map[string]analysisType here but had issues, so just go with a switch for now
-	// TODO: Pass in a report to the RunAnalysis functions so they can contribute information into the
-	// report
-	var err error
-	switch analyzerType {
-	case "cluster":
-		err = cluster.RunAnalysis(log, flag.Args()[0])
-	case "build":
-		err = buildlog.RunAnalysis(log, flag.Args()[0])
-	default:
-		fmt.Printf("\n%s is not a known analysis type, exiting.\n", analyzerType)
+	// Call the analyzer for the type specified
+	analyzerFunc, ok := analyzerTypeFunctions[analyzerType]
+	if !ok {
+		fmt.Printf("\nUnknown analyser type supplied: %s\n", analyzerType)
 		printUsage()
 		os.Exit(1)
 	}
+	err := analyzerFunc(log, flag.Args()[0])
 	if err != nil {
 		fmt.Printf("\nAnalysis failed, exiting.\n")
 		os.Exit(1)
