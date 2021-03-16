@@ -107,7 +107,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// create a service for the workload
-	service, err := r.createServiceFromDeployment(deploy)
+	service, err := r.createServiceFromDeployment(&workload, deploy)
 	if err != nil {
 		log.Error(err, "Failed to get service from a deployment")
 		return reconcile.Result{}, err
@@ -202,7 +202,7 @@ func (r *Reconciler) convertWorkloadToDeployment(
 }
 
 // create a service for the deployment
-func (r *Reconciler) createServiceFromDeployment(
+func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelidonWorkload,
 	deploy *appsv1.Deployment) (*corev1.Service, error) {
 
 	// We don't add a Service if there are no containers for the Deployment.
@@ -217,7 +217,7 @@ func (r *Reconciler) createServiceFromDeployment(
 				Name:      deploy.GetName(),
 				Namespace: deploy.GetNamespace(),
 				Labels: map[string]string{
-					labelKey: string(deploy.GetUID()),
+					labelKey: string(workload.GetUID()),
 				},
 			},
 			Spec: corev1.ServiceSpec{
