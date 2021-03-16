@@ -18,7 +18,7 @@ require (
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.1
 	github.com/stretchr/testify v1.6.1
-	github.com/verrazzano/verrazzano-crd-generator v0.3.34
+	//github.com/verrazzano/verrazzano-crd-generator v0.3.34
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.25
 	go.uber.org/zap v1.16.0
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5

@@ -10,7 +10,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
-	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
+	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	v1 "k8s.io/api/core/v1"

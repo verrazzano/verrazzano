@@ -10,7 +10,7 @@ import (
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
-	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
+	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
