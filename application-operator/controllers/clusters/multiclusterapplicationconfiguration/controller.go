@@ -5,6 +5,7 @@ package multiclusterapplicationconfiguration
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/go-logr/logr"
@@ -59,7 +60,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		"applicationconfiguration", mcAppConfig.Spec.Template.Metadata.Name,
 		"placement", mcAppConfig.Spec.Placement.Clusters[0].Name)
 	opResult, err := r.createOrUpdateAppConfig(ctx, mcAppConfig)
-
+	logger.Info(fmt.Sprintf("Result of createOrUpdateAppConfig is %s", opResult))
+	if err != nil {
+		logger.Error(err, "createOrUpdateAppConfig error!")
+	}
 	return r.updateStatus(ctx, &mcAppConfig, opResult, err)
 }
 

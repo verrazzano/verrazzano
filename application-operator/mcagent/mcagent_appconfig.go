@@ -86,8 +86,10 @@ func appConfigListContains(mcAdminList *clustersv1alpha1.MultiClusterApplication
 
 func (s *Syncer) updateMultiClusterAppConfigStatus(name types.NamespacedName, newCond clustersv1alpha1.Condition, newClusterStatus clustersv1alpha1.ClusterLevelStatus) error {
 	var fetched clustersv1alpha1.MultiClusterApplicationConfiguration
+	s.Log.Info(fmt.Sprintf("processStatusUpdates -> updateMultiClusterAppConfigStatus fetching app conf %s", name.String()))
 	err := s.AdminClient.Get(s.Context, name, &fetched)
 	if err != nil {
+		s.Log.Error(err, fmt.Sprintf("processStatusUpdates -> updateMultiClusterAppConfigStatus error fetching app conf %s", name.String()))
 		return err
 	}
 	fetched.Status.Conditions = append(fetched.Status.Conditions, newCond)

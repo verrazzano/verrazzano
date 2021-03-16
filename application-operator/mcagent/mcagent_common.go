@@ -52,7 +52,7 @@ func (s *Syncer) processStatusUpdates() {
 		// Use a select with default so as to not block on the channel if there are no updates
 		select {
 		case msg := <-s.StatusUpdateChannel:
-			s.Log.V(2).Info(fmt.Sprintf("processStatusUpdates: Received status update %s with condition type %s for %s/%s from cluster %s",
+			s.Log.Info(fmt.Sprintf("processStatusUpdates: Received status update %s with condition type %s for %s/%s from cluster %s",
 				msg.NewClusterStatus.State, msg.NewCondition.Type, msg.Resource.GetNamespace(), msg.Resource.GetName(), msg.NewClusterStatus.Name))
 			err := s.performAdminStatusUpdate(msg)
 			if err != nil {
@@ -101,8 +101,8 @@ func (s *Syncer) performAdminStatusUpdate(msg clusters.StatusUpdateMessage) erro
 func (s *Syncer) requeueMsgNonBlocking(msg clusters.StatusUpdateMessage, conflictErr error) {
 	select {
 	case s.StatusUpdateChannel <- msg:
-		s.Log.Info(fmt.Sprintf("processStatusUpdates: requeued status update with conflict for %s/%s from cluster %s",
-			msg.Resource.GetNamespace(), msg.Resource.GetName(), msg.NewClusterStatus.Name))
+		s.Log.Info(fmt.Sprintf("processStatusUpdates: requeued status update with conflict for %s/%s from cluster %s: %s",
+			msg.Resource.GetNamespace(), msg.Resource.GetName(), msg.NewClusterStatus.Name, conflictErr.Error()))
 	default:
 		s.Log.Error(conflictErr, fmt.Sprintf("processStatusUpdates: failed to requeue status update with conflict for %s/%s from cluster %s",
 			msg.Resource.GetNamespace(), msg.Resource.GetName(), msg.NewClusterStatus.Name))
