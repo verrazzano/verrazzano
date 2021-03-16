@@ -141,10 +141,6 @@ endif
 unit-test: go-install
 	$(GO) test -v  ./internal/... ./controllers/... ./apis/...
 
-.PHONY: coverage
-coverage: unit-test
-	./build/scripts/coverage.sh html
-
 #
 # Test-related tasks
 #

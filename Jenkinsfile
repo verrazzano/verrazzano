@@ -206,19 +206,12 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                    cd ${GO_REPO_PATH}/verrazzano
                     make -B coverage
                     cp coverage.html ${WORKSPACE}
                     cp coverage.xml ${WORKSPACE}
-                    build/scripts/copy-junit-output.sh ${WORKSPACE}
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
-                    make -B coverage
+                    build/copy-junit-output.sh ${WORKSPACE}
                 """
-
-                // NEED To See how these files can be merged
-                //                    cp coverage.html ${WORKSPACE}
-                //                    cp coverage.xml ${WORKSPACE}
-                //                    application-operator/build/scripts/copy-junit-output.sh ${WORKSPACE}
             }
             post {
                 always {
