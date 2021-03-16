@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"testing"
 
+	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 
 	"github.com/golang/mock/gomock"
@@ -48,6 +49,7 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 	// Admin cluster mocks
 	adminMocker := gomock.NewController(t)
 	adminMock := mocks.NewMockClient(adminMocker)
+	adminStatusMock := mocks.NewMockStatusWriter(adminMocker)
 
 	// Managed Cluster - expect call to get the cluster registration secret.
 	mcMock.EXPECT().
@@ -57,6 +59,10 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 			secret.Data = validSecret.Data
 			return nil
 		})
+
+	// Admin Cluster - expect a get followed by status update on VMC to record last agent connect time
+	vmcName := types.NamespacedName{Name: string(validSecret.Data[constants.ClusterNameData]), Namespace: constants.VerrazzanoMultiClusterNamespace}
+	expectAdminVMCStatusUpdateSuccess(adminMock, vmcName, adminStatusMock, assert)
 
 	// Admin Cluster - expect call to list VerrazzanoProject objects - return an empty list
 	adminMock.EXPECT().
@@ -403,4 +409,64 @@ func Test_discardStatusMessages(t *testing.T) {
 	discardStatusMessages(statusUpdateChan)
 
 	asserts.Equal(t, 0, len(statusUpdateChan))
+}
+
+func expectAdminVMCStatusUpdateFailure(adminMock *mocks.MockClient, vmcName types.NamespacedName, adminStatusMock *mocks.MockStatusWriter, assert *asserts.Assertions) {
+	adminMock.EXPECT().
+		Get(gomock.Any(), vmcName, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "VerrazzanoManagedCluster"}, vmcName.Name))
+}
+
+func expectAdminVMCStatusUpdateSuccess(adminMock *mocks.MockClient, vmcName types.NamespacedName, adminStatusMock *mocks.MockStatusWriter, assert *asserts.Assertions) {
+	adminMock.EXPECT().
+		Get(gomock.Any(), vmcName, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *platformopclusters.VerrazzanoManagedCluster) error {
+			vmc.Name = vmcName.Name
+			vmc.Namespace = vmcName.Namespace
+			return nil
+		})
+	adminMock.EXPECT().Status().Return(adminStatusMock)
+	adminStatusMock.EXPECT().
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&platformopclusters.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, vmc *platformopclusters.VerrazzanoManagedCluster) error {
+			assert.Equal(vmcName.Namespace, vmc.Namespace)
+			assert.Equal(vmcName.Name, vmc.Name)
+			assert.NotNil(vmc.Status)
+			assert.NotNil(vmc.Status.LastAgentConnectTime)
+			return nil
+		})
+}
+
+// TestSyncer_updateVMCStatus tests updateVMCStatus method
+// GIVEN updateVMCStatus is called
+// WHEN the status update of VMC on admin cluster succeeds
+// THEN updateVMCStatus returns nil error
+// GIVEN updateVMCStatus is called
+// WHEN the status update of VMC on admin cluster fails
+// THEN updateVMCStatus returns a non-nil error
+func TestSyncer_updateVMCStatus(t *testing.T) {
+	assert := asserts.New(t)
+	log := ctrl.Log.WithName("test")
+
+	// Admin cluster mocks
+	adminMocker := gomock.NewController(t)
+	adminMock := mocks.NewMockClient(adminMocker)
+	adminStatusMock := mocks.NewMockStatusWriter(adminMocker)
+
+	s := &Syncer{
+		AdminClient:        adminMock,
+		Log:                log,
+		ManagedClusterName: "my-test-cluster",
+	}
+	vmcName := types.NamespacedName{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
+
+	// Mock the success of status updates and assert that updateVMCStatus returns nil error
+	expectAdminVMCStatusUpdateSuccess(adminMock, vmcName, adminStatusMock, assert)
+	assert.Nil(s.updateVMCStatus())
+
+	// Mock the failure of status updates and assert that updateVMCStatus returns non-nil error
+	expectAdminVMCStatusUpdateFailure(adminMock, vmcName, adminStatusMock, assert)
+	assert.NotNil(s.updateVMCStatus())
+
+	adminMocker.Finish()
 }

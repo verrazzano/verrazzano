@@ -67,6 +67,12 @@ spec:
           status:
             description: VerrazzanoManagedClusterStatus defines the observed state
               of VerrazzanoManagedCluster
+            properties:
+              lastAgentConnectTime:
+                description: Last time the agent from this managed cluster connected
+                  to the admin cluster.
+                format: date-time
+                type: string
             type: object
         type: object
     served: true
