@@ -30,7 +30,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
 	"github.com/verrazzano/verrazzano/application-operator/mcagent"
-	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -62,7 +61,6 @@ func init() {
 
 	_ = clustersv1alpha1.AddToScheme(scheme)
 	_ = certapiv1alpha2.AddToScheme(scheme)
-	_ = platformopclusters.AddToScheme(scheme)
 }
 
 const defaultScraperName = "verrazzano-system/vmi-system-prometheus-0"

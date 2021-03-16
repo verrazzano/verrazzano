@@ -204,6 +204,7 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	}
 	scheme := runtime.NewScheme()
 	_ = clustersv1alpha1.AddToScheme(scheme)
+	_ = platformopclusters.AddToScheme(scheme)
 
 	clientset, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
