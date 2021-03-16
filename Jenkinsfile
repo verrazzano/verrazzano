@@ -275,7 +275,7 @@ pipeline {
             steps {
                 script {
                     // note that SKIP_ACCEPTANCE_TESTS will be false at this point (its default value)
-                    // so we are going to run the AT's unless this logic decideds to skip them...
+                    // so we are going to run the AT's unless this logic decides to skip them...
 
                     // if we are planning to run the AT's (which is the default)
                     if (params.RUN_ACCEPTANCE_TESTS == true) {

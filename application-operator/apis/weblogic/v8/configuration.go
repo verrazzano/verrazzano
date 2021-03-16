@@ -37,4 +37,3 @@ type Configuration struct {
 	// +x-kubernetes-list-type=set
 	Secrets []string `json:"secrets,omitempty"`
 }
-
