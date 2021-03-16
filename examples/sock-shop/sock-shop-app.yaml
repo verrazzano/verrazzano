@@ -136,7 +136,7 @@ spec:
                     - path: "/cards"
                       pathType: Prefix
                   destination:
-                    host: shipping
+                    host: user
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: MetricsTrait
