@@ -795,8 +795,9 @@ func buildDomainNameForXIPIO(cli client.Reader, trait *vzapi.IngressTrait) (stri
 
 // isHelidonWorkloadDeployment returns true if the uns is a Deployment owned by a VerrazzanoHelidonWorkload.
 func isHelidonWorkloadDeployment(uns *unstructured.Unstructured) bool {
-	return vznav.IsGroupKind(uns, "apps", "Deployment") &&
-		vznav.IsOwnedByGroupKind(uns, "oam.verrazzano.io", "VerrazzanoHelidonWorkload")
+	return vznav.IsGroupKind(uns, "oam.verrazzano.io", "VerrazzanoHelidonWorkload") ||
+		(vznav.IsGroupKind(uns, "apps", "Deployment") &&
+			vznav.IsOwnedByGroupKind(uns, "oam.verrazzano.io", "VerrazzanoHelidonWorkload"))
 }
 
 // isContainerizedWorkloadDeployment returns true if the uns is a Deployment owned by a ContainerizedWorkload.
