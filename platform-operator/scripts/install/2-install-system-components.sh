@@ -222,10 +222,10 @@ function install_rancher()
 
     if [ -z "$ADMIN_PW" ] ; then
       error "ERROR: Failed to reset Rancher password"
-      cat ${STDERROR_FILE}
+      local error_file=$(cat $STDERROR_FILE)
+      echo "$error_file"
       return 1
     fi
-
     kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
 }
 
