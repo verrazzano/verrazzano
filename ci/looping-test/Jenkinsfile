@@ -192,6 +192,10 @@ pipeline {
                             env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
                         fi
 
+                        echo "Listing all pods in all namespaces"
+                        kubectl get pods --all-namespaces
+                        echo "-----------------------------------------------------"
+
                         # Install the verrazzano-platform-operator
                         kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
 
@@ -313,9 +317,9 @@ pipeline {
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*verrazzano-installation-loop-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             sh """
-                echo "Listing all pods"
+                echo "Listing all pods in all namespaces"
                 kubectl get pods --all-namespaces
-
+                echo "-----------------------------------------------------"
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                     echo "Failures seen during dumping of artifacts, treat post as failed"
                     exit 1
@@ -325,6 +329,13 @@ pipeline {
 
         failure {
             dumpK8sCluster('verrazzano-installation-loop-cluster-dump')
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*verrazzano-installation-loop-cluster-dump/**', allowEmptyArchive: true
+            sh """
+                if [ -f ${POST_DUMP_FAILED_FILE} ]; then
+                    echo "Failures seen during dumping of artifacts, treat post as failed"
+                    exit 1
+                fi
+            """
             script {
                 failureCount = params.failureCount as Integer
                 failureCount++
