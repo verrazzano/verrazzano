@@ -110,6 +110,7 @@ pipeline {
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
         INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
         INSTALL_CONFIG_FILE_XIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-xipio.yaml"
+        OCI_DNS_ZONE_SUFFIX=credentials('oci-dns-zone')
         OCI_DNS_ZONE_NAME="z${zoneId}." + "${OCI_DNS_ZONE_SUFFIX}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
