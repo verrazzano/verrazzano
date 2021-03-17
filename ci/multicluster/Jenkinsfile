@@ -110,7 +110,7 @@ pipeline {
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
         INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
         INSTALL_CONFIG_FILE_XIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-xipio.yaml"
-        OCI_DNS_ZONE_NAME="z${zoneId}.v8o.oracledx.com"
+        OCI_DNS_ZONE_NAME="z${zoneId}." + "${OCI_DNS_ZONE_SUFFIX}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
     }
@@ -521,7 +521,7 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
                 installProfile = env.ADMIN_CLUSTER_PROFILE
             }
             if (params.TEST_ENV == 'ocidns_oke') {
-                // Installs using OCI DNS requires a unique domain per cluster, so to distinguish
+                // Installs using OCI DNS require a unique domain per cluster, so to distinguish
                 // we use different environmentName values for each cluster; also, the env
                 // name must be <= 10 chars for some reason.
                 if (count == 1) {
