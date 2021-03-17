@@ -329,17 +329,3 @@ fi
 CONFIG_JSON="$(read_config $INSTALL_CONFIG_FILE)"
 
 validate_config_json "$CONFIG_JSON" || fail "Installation config is invalid"
-## Test cases - TODO remove before merging
-#log "got environmentName value $(get_config_value ".environmentName")"
-#log "got profile value $(get_config_value ".profile")"
-#log "got dns type value $(get_config_value ".dns.type")"
-#log "got certificates issuerType value $(get_config_value ".certificates.issuerType")"
-#log "got ingress type value $(get_config_value ".ingress.type")"
-#log "got nginx ingress ip $(get_verrazzano_ingress_ip)"
-#log "got nginx suffix $(get_dns_suffix $(get_verrazzano_ingress_ip))"
-#log "got istio ingress ip $(get_application_ingress_ip)"
-#log "got istio http $(get_application_ingress_http_port)"
-#log "got istio https $(get_application_ingress_https_port)"
-#log "got verrazzano ports spec $(get_verrazzano_ports_spec)"
-#log "got nginx helm args $(get_nginx_helm_args_from_config)"
-#log "got istio helm args $(get_istio_helm_args_from_config)"
