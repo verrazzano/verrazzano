@@ -9,7 +9,6 @@ go test -coverprofile ./coverage.raw.cov $(go list ./... | \
   grep -Ev github.com/verrazzano/verrazzano/application-operator/test/integ | \
   grep -Ev github.com/verrazzano/verrazzano/application-operator/mocks | \
   grep -Ev github.com/verrazzano/verrazzano/platform-operator/test | \
-  grep -Ev github.com/verrazzano/verrazzano/tools | \
   grep -Ev github.com/verrazzano/verrazzano/tests)
 
 grep -v "zz_generated.deepcopy" ./coverage.raw.cov > coverage.cov
@@ -28,4 +27,3 @@ if [ "$1" == "html" ]; then
         fi
     fi
 fi
-
