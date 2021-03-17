@@ -213,17 +213,11 @@ function install_rancher()
     kubectl -n cattle-system rollout status -w deploy/rancher || return $?
 
     log "Create Rancher secrets"
-    STDERROR_FILE="/tmp/resetpwd.err"
-    if [ -f "$STDERROR_FILE" ] ; then
-      rm "$STDERROR_FILE"
-    fi
-    RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- reset-password 2>${STDERROR_FILE})
+    RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- reset-password 2>/dev/null)
     ADMIN_PW=`echo $RANCHER_DATA | awk '{ print $NF }'`
 
     if [ -z "$ADMIN_PW" ] ; then
       error "ERROR: Failed to reset Rancher password"
-      local std_error_file=$(cat $STDERROR_FILE)
-      echo "$std_error_file"
       return 1
     fi
 
