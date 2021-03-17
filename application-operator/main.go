@@ -8,6 +8,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/go-logr/zapr"
+
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -47,8 +49,7 @@ import (
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = zap.S()
+	scheme = runtime.NewScheme()
 )
 
 func init() {
@@ -95,6 +96,8 @@ func main() {
 	flag.Parse()
 	kzap.UseFlagOptions(&opts)
 	InitLogs(opts)
+
+	setupLog := ctrl.Log.WithName("setup")
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
@@ -345,6 +348,7 @@ func InitLogs(opts kzap.Options) {
 	config.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
 	config.EncoderConfig.TimeKey = "@timestamp"
 	config.EncoderConfig.MessageKey = "message"
+	config.EncoderConfig.CallerKey = "caller"
 	logger, err := config.Build()
 	if err != nil {
 		zap.S().Errorf("Error creating logger %v", err)
@@ -360,6 +364,7 @@ func InitLogs(opts kzap.Options) {
 	// implementing the logr.Logger interface. This logger will
 	// be propagated through the whole operator, generating
 	// uniform and structured logs.
-	encoder := zapcore.NewJSONEncoder(config.EncoderConfig)
-	logf.SetLogger(kzap.New(kzap.UseFlagOptions(&opts), kzap.Encoder(encoder)))
+	//	encoder := zapcore.NewJSONEncoder(config.EncoderConfig)
+	logf.SetLogger(zapr.NewLogger(logger))
+	//	logf.SetLogger(kzap.New(kzap.UseFlagOptions(&opts), kzap.Encoder(encoder)))
 }
