@@ -201,6 +201,8 @@ func drillIntoEventsForImagePullIssue(log *zap.SugaredLogger, pod corev1.Pod, im
 		// here in general). Need to think about it though as it will affect how we handle runbooks as well.
 		log.Debugf("Drilldown event reason: %s, message: %s\n", event.Reason, event.Message)
 		if event.Reason == "Failed" && strings.Contains(event.Message, imageName) {
+			// TBD: We need a better mechanism at this level than just the messages. It can add other types of supporting
+			// data to contribute as well here (related files, etc...)
 			messages = append(messages, event.Message)
 		}
 

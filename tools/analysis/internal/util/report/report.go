@@ -43,7 +43,6 @@ import (
 // the cluster. But other analyzers may not be looking at a cluster, so they may have some other identification.
 // For the current implementation, these are the root file path that the analyzer is looking at.
 var reports = make(map[string][]Issue)
-var reportIssues = make([]Issue, 0, 10)
 var reportMutex = &sync.Mutex{}
 
 // ContributeIssues is used by an analyzer or IssueReporter to contribute an Issue or []Issue to the report
@@ -273,6 +272,18 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, includeSuppo
 	}
 	reportMutex.Unlock()
 	return nil
+}
+
+// This is only being exported for the unit tests so they can inspect issues found in a report
+func GetAllSourcesFilteredIssues(log *zap.SugaredLogger, includeInfo bool, minConfidence int, minImpact int) (filtered []Issue) {
+	reportMutex.Lock()
+	for _, reportIssues := range reports {
+		subFiltered := filterReportIssues(log, reportIssues, includeInfo, minConfidence, minImpact)
+		if len(subFiltered) > 0 {
+			filtered = append(filtered, subFiltered...)
+		}
+	}
+	return filtered
 }
 
 func filterReportIssues(log *zap.SugaredLogger, reportIssues []Issue, includeInfo bool, minConfidence int, minImpact int) (filtered []Issue) {
