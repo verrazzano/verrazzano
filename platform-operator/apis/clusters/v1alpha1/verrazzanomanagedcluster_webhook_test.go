@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,7 +25,20 @@ func TestCreateWithSecretAndConfigMap(t *testing.T) {
 
 	// fake client needed to get secret
 	getClientFunc = func() (client.Client, error) {
-		return fake.NewFakeClientWithScheme(k8scheme.Scheme,
+		return fake.NewFakeClientWithScheme(newScheme(),
+			&v1alpha1.Verrazzano{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "my-verrazzano",
+					Namespace: "default",
+				},
+				Status: v1alpha1.VerrazzanoStatus{
+					Conditions: []v1alpha1.Condition{
+						{
+							Type: v1alpha1.InstallComplete,
+						},
+					},
+				},
+			},
 			&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      secretName,
