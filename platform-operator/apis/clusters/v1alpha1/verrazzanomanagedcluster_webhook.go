@@ -10,6 +10,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -53,6 +54,10 @@ func (v *VerrazzanoManagedCluster) ValidateCreate() error {
 		return err
 	}
 	err = v.validateConfigMap(client)
+	if err != nil {
+		return err
+	}
+	err = v.validateVerrazzanoInstalled(client)
 	if err != nil {
 		return err
 	}
@@ -138,4 +143,23 @@ func (v VerrazzanoManagedCluster) validateConfigMap(client client.Client) error 
 		return fmt.Errorf("Data with key %q contains invalid url %q in the ConfigMap %s namespace %s", constants.ServerDataKey, cm.Data[constants.ServerDataKey], constants.AdminClusterConfigMapName, constants.VerrazzanoMultiClusterNamespace)
 	}
 	return nil
+}
+
+// validateVerrazzanoInstalled enforces that a Verrazzano must have successfully completed
+func (v VerrazzanoManagedCluster) validateVerrazzanoInstalled(client client.Client) error {
+	// Get the Verrazzano resource
+	verrazzano := v1alpha1.VerrazzanoList{}
+	err := client.List(context.TODO(), &verrazzano)
+	if err != nil || len(verrazzano.Items) == 0 {
+		return fmt.Errorf("Verrazzano must be installed")
+	}
+
+	// Verify the state is install complete
+	for _, cond := range verrazzano.Items[0].Status.Conditions {
+		if cond.Type == v1alpha1.InstallComplete {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("The Verrazzano install must successfully complete. Run the command %q to view the install status.", "kubectl get verrazzano -A")
 }
