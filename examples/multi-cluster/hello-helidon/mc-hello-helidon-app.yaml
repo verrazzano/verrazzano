@@ -8,8 +8,6 @@ metadata:
 spec:
   template:
     metadata:
-      name: hello-helidon-appconf
-      namespace: hello-helidon
       annotations:
         version: v1.0.0
         description: "Hello Helidon application"
