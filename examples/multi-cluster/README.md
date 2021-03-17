@@ -26,10 +26,12 @@ This section is common to the examples.
 1. Obtain the Kubernetes server address for the admin cluster.  These steps vary based on the Kubernetes platform.
     ```
     # Kind Cluster
+    # List the kubeconfig contexts and get the internal config for the admin cluster
+    kubectl config get-contexts
     ADMIN_K8S_SERVER_ADDRESS="$(kind get kubeconfig --internal --name <insert context name of admin cluster> | grep "server:" | awk '{ print $2 }')"
    
-    # OKE Cluster
-    ADMIN_K8S_SERVER_ADDRESS="$(cat $KUBECONFIG_ADMIN | grep server: | awk '{ print $2 }')"
+    # Kubeconfig with a single context
+    ADMIN_K8S_SERVER_ADDRESS="$(KUBECONFIG=$KUBECONFIG_ADMIN kubectl config view -o jsonpath={'.clusters[0].cluster.server'})"
     ```
 
 1. Create a ConfigMap that contains the Kubernetes server address of the admin cluster.
