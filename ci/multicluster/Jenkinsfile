@@ -346,6 +346,21 @@ pipeline {
                         }
                     }
                 }
+                stage ('Verify Register') {
+                    environment {
+                        ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+                        MANAGED_CLUSTER_NAME="managed1"
+                        MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+                    }
+                    steps {
+                        script {
+                            sh """
+                                cd ${GO_REPO_PATH}/verrazzano
+                                ./tests/e2e/config/scripts/register_managed_cluster.sh
+                            """
+                        }
+                    }
+                }
             }
             post {
                 failure {
