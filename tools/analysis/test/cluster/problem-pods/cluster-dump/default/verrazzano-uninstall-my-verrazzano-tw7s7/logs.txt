@@ -1,0 +1,14 @@
+==== START logs for container uninstall of pod default/verrazzano-uninstall-my-verrazzano-tw7s7 ====
+REDACTED-FOR-TEST
+Initializing Uninstall                                                       [FAILED]
+
+A failure occurred. Exiting with code 1. See /verrazzano/operator/scripts/uninstall/build/logs/uninstall-verrazzano.sh.log for details.
+
+A failure occurred. Exiting with code 1. See /verrazzano/operator/scripts/uninstall/build/logs/uninstall-verrazzano.sh.log for details.
+*************************************************************
+ Dumping the uninstall logs contained in uninstall/build/logs
+*************************************************************
+REDACTED-FOR-TEST
+[2021-02-03 19:30:27 UTC] Initializing Uninstall                                                       [FAILED]
+[2021-02-03 19:30:27 UTC]
+==== END logs for container uninstall of pod default/verrazzano-uninstall-my-verrazzano-tw7s7 ====
