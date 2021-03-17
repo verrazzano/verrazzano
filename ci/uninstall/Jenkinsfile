@@ -344,6 +344,9 @@ pipeline {
                 }
             }
             sh """
+                echo "Listing all namespaces"
+                kubectl get namespace
+                echo "------------------------------------------"
                 echo "Listing all pods in all namespaces"
                 kubectl get pods --all-namespaces
             """
