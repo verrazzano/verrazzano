@@ -88,7 +88,6 @@ func (s *Syncer) updateMultiClusterAppConfigStatus(name types.NamespacedName, ne
 	var fetched clustersv1alpha1.MultiClusterApplicationConfiguration
 	err := s.AdminClient.Get(s.Context, name, &fetched)
 	if err != nil {
-		s.Log.Error(err, fmt.Sprintf("processStatusUpdates -> updateMultiClusterAppConfigStatus error fetching app conf %s from admin cluster", name.String()))
 		return err
 	}
 	fetched.Status.Conditions = append(fetched.Status.Conditions, newCond)

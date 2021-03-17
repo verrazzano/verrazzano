@@ -59,6 +59,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		"applicationconfiguration", mcAppConfig.Spec.Template.Metadata.Name,
 		"placement", mcAppConfig.Spec.Placement.Clusters[0].Name)
 	opResult, err := r.createOrUpdateAppConfig(ctx, mcAppConfig)
+
 	return r.updateStatus(ctx, &mcAppConfig, opResult, err)
 }
 
