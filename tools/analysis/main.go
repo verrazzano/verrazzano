@@ -92,7 +92,7 @@ func main() {
 	os.Exit(0)
 }
 
-// Exported for unit testing
+// Analyze is exported for unit testing
 func Analyze(log *zap.SugaredLogger, analyzerType string, flagArgs string) (err error) {
 	// Call the analyzer for the type specified
 	analyzerFunc, ok := analyzerTypeFunctions[analyzerType]

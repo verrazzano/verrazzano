@@ -274,7 +274,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, includeSuppo
 	return nil
 }
 
-// This is only being exported for the unit tests so they can inspect issues found in a report
+// GetAllSourcesFilteredIssues is only being exported for the unit tests so they can inspect issues found in a report
 func GetAllSourcesFilteredIssues(log *zap.SugaredLogger, includeInfo bool, minConfidence int, minImpact int) (filtered []Issue) {
 	reportMutex.Lock()
 	for _, reportIssues := range reports {

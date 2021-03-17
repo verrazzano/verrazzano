@@ -10,7 +10,6 @@ import (
 	"testing"
 )
 
-
 // TestAnalyzeBad Tests the main Analyze function
 // GIVEN a call to Analyze
 // WHEN with invalid inputs
@@ -47,7 +46,27 @@ func TestImagePull(t *testing.T) {
 	assert.True(t, imagePullsFound > 0)
 }
 
-// Add insufficient memory test
+// TestInsufficientMemory Tests that analysis of a cluster dump with pods that failed due to insufficient memory
+// GIVEN a call to analyze a cluster-dump
+// WHEN the cluster-dump shows pods with insufficient memory problems
+// THEN a report is generated with issues identified
+func TestInsufficientMemory(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	err := Analyze(logger, "cluster", "test/cluster/insufficient-mem")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.NotNil(t, reportedIssues)
+	assert.True(t, len(reportedIssues) > 0)
+	issuesFound := 0
+	for _, issue := range reportedIssues {
+		if strings.Contains(issue.Summary, report.InsufficientMemory) {
+			issuesFound++
+		}
+	}
+	assert.True(t, issuesFound > 0)
+}
 
 // TestProblemPodsNotReported Tests that analysis of a cluster dump with pods that have unknown issues is handled
 // GIVEN a call to analyze a cluster-dump
