@@ -332,7 +332,7 @@ func main() {
 
 // InitLogs initializes logs with Time and Global Level of Logs set at Info
 func InitLogs(opts kzap.Options) {
-	opts.ZapOpts = append(opts.ZapOpts, zap.AddCaller() )
+	opts.ZapOpts = append(opts.ZapOpts, zap.AddCaller())
 	var config zap.Config
 	if opts.Development {
 		config = zap.NewDevelopmentConfig()
@@ -347,7 +347,6 @@ func InitLogs(opts kzap.Options) {
 	config.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
 	config.EncoderConfig.TimeKey = "@timestamp"
 	config.EncoderConfig.MessageKey = "message"
-	config.EncoderConfig.CallerKey = "caller"
 	logger, err := config.Build()
 	if err != nil {
 		zap.S().Errorf("Error creating logger %v", err)
@@ -364,6 +363,5 @@ func InitLogs(opts kzap.Options) {
 	// be propagated through the whole operator, generating
 	// uniform and structured logs.
 	encoder := zapcore.NewJSONEncoder(config.EncoderConfig)
-	//logf.SetLogger(zapr.NewLogger(logger))
 	logf.SetLogger(kzap.New(kzap.UseFlagOptions(&opts), kzap.Encoder(encoder)))
 }
