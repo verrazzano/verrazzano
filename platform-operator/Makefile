@@ -4,7 +4,7 @@
 include ../make/quality.mk
 include ../make/generate.mk
 
-MAKEFILE_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../build
 
 NAME:=verrazzano-platform-operator
 REPO_NAME:=verrazzano-platform-operator
@@ -140,10 +140,6 @@ endif
 .PHONY: unit-test
 unit-test: go-install
 	$(GO) test -v  ./internal/... ./controllers/... ./apis/...
-
-.PHONY: coverage
-coverage: unit-test
-	./build/scripts/coverage.sh html
 
 #
 # Test-related tasks
