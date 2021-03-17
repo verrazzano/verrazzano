@@ -6,6 +6,7 @@ package integ_test
 import (
 	"context"
 	"fmt"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -25,6 +26,7 @@ const vzMcNamespace = "verrazzano-mc"
 const prometheusSecret = "prometheus-cluster1"
 const vmiESIngest = "vmi-system-es-ingest"
 const hostdata = "testhost"
+const adminClusterConfigMap = "verrazzano-admin-cluster"
 
 var K8sClient k8s.Client
 
@@ -116,6 +118,11 @@ var _ = ginkgo.Describe("Testing VMC creation and auto secret generation", func(
 	ginkgo.It("Create Prometheus secret ", func() {
 		_, stderr := util.Kubectl(
 			fmt.Sprintf("create secret generic %s -n %s --from-literal=password=mypw --from-literal=username=myuser", prometheusSecret, vzMcNamespace))
+		gomega.Expect(stderr).To(gomega.Equal(""))
+	})
+	ginkgo.It("Create verrazzano-admin-cluster configmap ", func() {
+		_, stderr := util.Kubectl(
+			fmt.Sprintf("create cm %s -n %s --from-literal=server=http://testUrl", adminClusterConfigMap, vzMcNamespace))
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
 	ginkgo.It("Create Verrazzano secret needed to create ES secret ", func() {

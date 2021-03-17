@@ -35,3 +35,9 @@ const MCClusterRole = "verrazzano-managed-cluster"
 
 // MCLocalCluster is the name of the local cluster
 const MCLocalCluster = "local"
+
+// AdminClusterConfigMapName is the name of the configmap that contains admin cluster server address
+const AdminClusterConfigMapName = "verrazzano-admin-cluster"
+
+// ServerDataKey is the key into ConfigMap data for cluster server address
+const ServerDataKey = "server"
