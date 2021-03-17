@@ -38,6 +38,12 @@ func deployApplication() {
 	regUser := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_USR")
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
+	// Wait for namespace to finish deletion possibly from a prior run.
+	gomega.Eventually(func() bool {
+		ns, err := pkg.GetNamespace(namespace)
+		return ns == nil && err != nil && errors.IsNotFound(err)
+	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
+
 	pkg.Log(pkg.Info, "Create namespace")
 	nsLabels := map[string]string{
 		"verrazzano-managed": "true",

@@ -20,7 +20,6 @@ spec:
                       pathType: Prefix
                   destination:
                     host: tododomain-adminserver.console-ingress.svc.cluster.local
-                    port: 7001
                 - paths:
                     - path: "/console"
                       pathType: Prefix
