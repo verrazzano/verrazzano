@@ -7,6 +7,5 @@ linters:
     - ineffassign
     - gofmt
     - golint
-    - bodyclose
   disable-all: true
   fast: true
