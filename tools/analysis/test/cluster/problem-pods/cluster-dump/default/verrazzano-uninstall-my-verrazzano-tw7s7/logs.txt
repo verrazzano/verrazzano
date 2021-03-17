@@ -1,3 +1,6 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 ==== START logs for container uninstall of pod default/verrazzano-uninstall-my-verrazzano-tw7s7 ====
 REDACTED-FOR-TEST
 Initializing Uninstall                                                       [FAILED]
