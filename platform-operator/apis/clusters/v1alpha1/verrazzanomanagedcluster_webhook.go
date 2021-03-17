@@ -48,15 +48,15 @@ func (v *VerrazzanoManagedCluster) ValidateCreate() error {
 	if err != nil {
 		return err
 	}
+	err = v.validateVerrazzanoInstalled(client)
+	if err != nil {
+		return err
+	}
 	err = v.validateSecret(client)
 	if err != nil {
 		return err
 	}
 	err = v.validateConfigMap(client)
-	if err != nil {
-		return err
-	}
-	err = v.validateVerrazzanoInstalled(client)
 	if err != nil {
 		return err
 	}
@@ -100,6 +100,7 @@ func newScheme() *runtime.Scheme {
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
 	}, &corev1.Secret{}, &corev1.ConfigMap{})
+	scheme.AddKnownTypes(v1alpha1.SchemeGroupVersion, &v1alpha1.Verrazzano{})
 	return scheme
 }
 
