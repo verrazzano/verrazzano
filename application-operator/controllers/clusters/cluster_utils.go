@@ -280,8 +280,6 @@ func UpdateStatus(resource MultiClusterResource, mcStatus *clustersv1alpha1.Mult
 		mcStatus.Conditions = append(mcStatus.Conditions, newCondition)
 		SetClusterLevelStatus(mcStatus, clusterLevelStatus)
 		mcStatus.State = ComputeEffectiveState(*mcStatus, placement)
-		fmt.Printf("updating state = %s, cluster level state = %s, condition msg = %s for resource %s",
-			mcStatus.State, clusterLevelStatus.State, newCondition.Message, resource.GetName())
 		err := updateFunc()
 		if err != nil {
 			return reconcile.Result{}, err
