@@ -343,17 +343,20 @@ pipeline {
                     dumpK8sCluster('verrazzano-uninstall-test-dump')
                 }
             }
-            sh "VERRAZZANO_KUBECONFIG=${env.KUBECONFIG} TF_VAR_label_prefix=uninstall-${env.BUILD_NUMBER} TF_VAR_state_name=uninstall-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/delete_oke_cluster.sh"
+            sh """
+                echo "Listing all namespaces"
+                kubectl get namespace
+                echo "------------------------------------------"
+                echo "Listing all pods in all namespaces"
+                kubectl get pods --all-namespaces
+            """
             archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*verrazzano-uninstall-test-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
-            sh """
-                cd ${WORKSPACE}/verrazzano
-            """
-            deleteDir()
         }
-
         failure {
             script {
+                dumpK8sCluster('verrazzano-uninstall-test-dump')
+                archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*verrazzano-uninstall-test-dump/**', allowEmptyArchive: true
                 mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
                 subject: "Verrazzano: ${env.JOB_NAME} - Failed",
                 body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
@@ -364,6 +367,10 @@ pipeline {
                     }
                 }
             }
+        }
+        cleanup {
+            sh "VERRAZZANO_KUBECONFIG=${env.KUBECONFIG} TF_VAR_label_prefix=uninstall-${env.BUILD_NUMBER} TF_VAR_state_name=uninstall-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/delete_oke_cluster.sh"
+            deleteDir()
         }
     }
 }
