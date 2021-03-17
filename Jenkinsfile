@@ -26,6 +26,9 @@ pipeline {
     }
 
     environment {
+        DOCKER_ANALYSIS_CI_IMAGE_NAME = 'verrazzano-analysis-jenkins'
+        DOCKER_ANALYSIS_PUBLISH_IMAGE_NAME = 'verrazzano-analysis'
+        DOCKER_ANALYSIS_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_ANALYSIS_PUBLISH_IMAGE_NAME : env.DOCKER_ANALYSIS_CI_IMAGE_NAME}"
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
         DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
@@ -171,7 +174,7 @@ pipeline {
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
-                    make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
+                    make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} VERRAZZANO_ANALYSIS_IMAGE_NAME=${DOCKER_ANALYSIS_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
                    """
             }
         }
@@ -180,18 +183,9 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    echo "fmt"
+                    echo "run all linters"
                     cd ${GO_REPO_PATH}/verrazzano
-                    make go-fmt
-
-                    echo "vet"
-                    make go-vet
-
-                    echo "lint"
-                    make go-lint
-
-                    echo "ineffassign"
-                    make go-ineffassign
+                    make check
 
                     echo "copyright scan"
                     time make copyright-check
@@ -206,19 +200,12 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                    cd ${GO_REPO_PATH}/verrazzano
                     make -B coverage
                     cp coverage.html ${WORKSPACE}
                     cp coverage.xml ${WORKSPACE}
-                    build/scripts/copy-junit-output.sh ${WORKSPACE}
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
-                    make -B coverage
+                    build/copy-junit-output.sh ${WORKSPACE}
                 """
-
-                // NEED To See how these files can be merged
-                //                    cp coverage.html ${WORKSPACE}
-                //                    cp coverage.xml ${WORKSPACE}
-                //                    application-operator/build/scripts/copy-junit-output.sh ${WORKSPACE}
             }
             post {
                 always {
@@ -233,7 +220,7 @@ pipeline {
                       failNoReports: true,
                       onlyStable: false,
                       fileCoverageTargets: '100, 0, 0',
-                      lineCoverageTargets: '85, 85, 85',
+                      lineCoverageTargets: '75, 75, 75',
                       packageCoverageTargets: '100, 0, 0',
                     )
                 }
@@ -246,6 +233,7 @@ pipeline {
                 script {
                     clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                     clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                    clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_ANALYSIS_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                 }
             }
             post {
@@ -260,14 +248,15 @@ pipeline {
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
+
                     make cleanup-cluster
                     make create-cluster
                     ../ci/scripts/setup_kind_for_jenkins.sh
                     make integ-test CLUSTER_DUMP_LOCATION=${WORKSPACE}/platform-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
-                    build/scripts/copy-junit-output.sh ${WORKSPACE}
+                    ../build/copy-junit-output.sh ${WORKSPACE}
                     cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
-                    build/scripts/copy-junit-output.sh ${WORKSPACE}
+                    ../build/copy-junit-output.sh ${WORKSPACE}
                 """
             }
             post {
@@ -282,7 +271,7 @@ pipeline {
             steps {
                 script {
                     // note that SKIP_ACCEPTANCE_TESTS will be false at this point (its default value)
-                    // so we are going to run the AT's unless this logic decideds to skip them...
+                    // so we are going to run the AT's unless this logic decides to skip them...
 
                     // if we are planning to run the AT's (which is the default)
                     if (params.RUN_ACCEPTANCE_TESTS == true) {
@@ -548,7 +537,7 @@ def runGinkgo(testSuitePath) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}
+        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -a
     """
 }
 

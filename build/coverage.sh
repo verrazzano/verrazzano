@@ -5,7 +5,15 @@
 #
 # Code coverage generation
 # Excludes test utility packages and the test directory
-go test -coverprofile ./coverage.cov $(go list ./... | grep -Ev github.com/verrazzano/verrazzano/application-operator/test/integ | grep -Ev github.com/verrazzano/verrazzano/application-operator/mocks)
+go test -coverpkg=./... -coverprofile ./coverage.raw.cov $(go list ./... | \
+  grep -Ev github.com/verrazzano/verrazzano/application-operator/test/integ | \
+  grep -Ev github.com/verrazzano/verrazzano/application-operator/mocks | \
+  grep -Ev github.com/verrazzano/verrazzano/platform-operator/mocks | \
+  grep -Ev github.com/verrazzano/verrazzano/platform-operator/test/integ | \
+  grep -Ev github.com/verrazzano/verrazzano/tools | \
+  grep -Ev github.com/verrazzano/verrazzano/tests)
+
+cat ./coverage.raw.cov | grep -v "zz_generated.deepcopy" | grep -v "mocks" > coverage.cov
 
 # Display the global code coverage.  This generates the total number the badge uses
 go tool cover -func=coverage.cov

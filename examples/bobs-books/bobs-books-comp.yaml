@@ -60,7 +60,7 @@ spec:
     spec:
       containers:
         - name: robert-helidon-stock-application
-          image: container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210205215204-b624b86
+          image: container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210315161529-c857d37
           imagePullPolicy: IfNotPresent
           imagePullSecret: bobs-books-repo-credentials
           ports:
