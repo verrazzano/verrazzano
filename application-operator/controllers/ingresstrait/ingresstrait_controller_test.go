@@ -22,13 +22,12 @@ import (
 	"github.com/golang/mock/gomock"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	asserts "github.com/stretchr/testify/assert"
-	v8 "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
-	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	k8sapps "k8s.io/api/apps/v1"
+	k8score "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1beta1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -138,7 +137,7 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			assert.Equal("ServiceList", list.GetKind())
-			return appendAsUnstructured(list, v1.Service{
+			return appendAsUnstructured(list, k8score.Service{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "v1",
 					Kind:       "Service",
@@ -150,9 +149,9 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 						Name:       "test-workload-name",
 						UID:        "test-workload-uid",
 					}}},
-				Spec: v1.ServiceSpec{
+				Spec: k8score.ServiceSpec{
 					ClusterIP: "10.11.12.13",
-					Ports:     []v1.ServicePort{{Port: 42}}}})
+					Ports:     []k8score.ServicePort{{Port: 42}}}})
 		})
 	// Expect a call to create the certificate and return success
 	mock.EXPECT().
@@ -296,7 +295,7 @@ func TestSuccessfullyCreateNewIngressWithCertSecret(t *testing.T) {
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			assert.Equal("ServiceList", list.GetKind())
-			return appendAsUnstructured(list, v1.Service{
+			return appendAsUnstructured(list, k8score.Service{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "v1",
 					Kind:       "Service",
@@ -308,9 +307,9 @@ func TestSuccessfullyCreateNewIngressWithCertSecret(t *testing.T) {
 						Name:       "test-workload-name",
 						UID:        "test-workload-uid",
 					}}},
-				Spec: v1.ServiceSpec{
+				Spec: k8score.ServiceSpec{
 					ClusterIP: "10.11.12.13",
-					Ports:     []v1.ServicePort{{Port: 42}}},
+					Ports:     []k8score.ServicePort{{Port: 42}}},
 			})
 		})
 	// Expect a call to get the gateway resource related to the ingress trait and return that it is not found.
@@ -434,7 +433,7 @@ func TestSuccessfullyUpdateIngressWithCertSecret(t *testing.T) {
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			assert.Equal("ServiceList", list.GetKind())
-			return appendAsUnstructured(list, v1.Service{
+			return appendAsUnstructured(list, k8score.Service{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "v1",
 					Kind:       "Service",
@@ -446,9 +445,9 @@ func TestSuccessfullyUpdateIngressWithCertSecret(t *testing.T) {
 						Name:       "test-workload-name",
 						UID:        "test-workload-uid",
 					}}},
-				Spec: v1.ServiceSpec{
+				Spec: k8score.ServiceSpec{
 					ClusterIP: "10.11.12.13",
-					Ports:     []v1.ServicePort{{Port: 42}}},
+					Ports:     []k8score.ServicePort{{Port: 42}}},
 			})
 		})
 	// Expect a call to get the gateway resource related to the ingress trait and return it.
@@ -590,7 +589,7 @@ func TestFailureCreateNewIngressWithSecretNoHosts(t *testing.T) {
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			assert.Equal("ServiceList", list.GetKind())
-			return appendAsUnstructured(list, v1.Service{
+			return appendAsUnstructured(list, k8score.Service{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "v1",
 					Kind:       "Service",
@@ -690,7 +689,7 @@ func TestFailureCreateGatewayCertNoAppName(t *testing.T) {
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			assert.Equal("ServiceList", list.GetKind())
-			return appendAsUnstructured(list, v1.Service{
+			return appendAsUnstructured(list, k8score.Service{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "v1",
 					Kind:       "Service",
@@ -818,7 +817,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			assert.Equal("ServiceList", list.GetKind())
-			return appendAsUnstructured(list, v1.Service{
+			return appendAsUnstructured(list, k8score.Service{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "v1",
 					Kind:       "Service",
@@ -830,9 +829,9 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 						Name:       "test-workload-name",
 						UID:        "test-workload-uid",
 					}}},
-				Spec: v1.ServiceSpec{
+				Spec: k8score.ServiceSpec{
 					ClusterIP: "10.11.12.13",
-					Ports:     []v1.ServicePort{{Port: 42}}},
+					Ports:     []k8score.ServicePort{{Port: 42}}},
 			})
 		})
 	// Expect a call to get the app config and return that it is not found.
@@ -1079,7 +1078,7 @@ func TestFailureToUpdateStatus(t *testing.T) {
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			assert.Equal("ServiceList", list.GetKind())
-			return appendAsUnstructured(list, v1.Service{
+			return appendAsUnstructured(list, k8score.Service{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "v1",
 					Kind:       "Service",
@@ -1091,9 +1090,9 @@ func TestFailureToUpdateStatus(t *testing.T) {
 						Name:       "test-workload-name",
 						UID:        "test-workload-uid",
 					}}},
-				Spec: v1.ServiceSpec{
+				Spec: k8score.ServiceSpec{
 					ClusterIP: "10.11.12.13",
-					Ports:     []v1.ServicePort{{Port: 42}}},
+					Ports:     []k8score.ServicePort{{Port: 42}}},
 			})
 		})
 	// Expect a call to get the certificate related to the ingress trait
@@ -1341,11 +1340,11 @@ func TestBuildAppHostNameLoadBalancerXIP(t *testing.T) {
 	// Expect a call to get the Istio service
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "istio-ingressgateway"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *v1.Service) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *k8score.Service) error {
 			service.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1"}
 			service.Spec.Type = "LoadBalancer"
-			service.Status.LoadBalancer.Ingress = []v1.LoadBalancerIngress{{
+			service.Status.LoadBalancer.Ingress = []k8score.LoadBalancerIngress{{
 				IP: "5.6.7.8",
 			}}
 			return nil
@@ -1396,7 +1395,7 @@ func TestFailureBuildAppHostNameLoadBalancerXIP(t *testing.T) {
 	// Expect a call to get the Istio service
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "istio-ingressgateway"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *v1.Service) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *k8score.Service) error {
 			service.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1"}
 			service.Spec.Type = "LoadBalancer"
@@ -1448,7 +1447,7 @@ func TestBuildAppHostNameNodePortXIP(t *testing.T) {
 	// Expect a call to get the Istio service
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "istio-ingressgateway"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *v1.Service) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *k8score.Service) error {
 			service.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1"}
 			service.Spec.Type = "NodePort"
@@ -1458,9 +1457,9 @@ func TestBuildAppHostNameNodePortXIP(t *testing.T) {
 	// Expect a call to get the Istio ingress gateway pod
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, podList *v1.PodList, opts ...client.ListOption) error {
-			podList.Items = []v1.Pod{{
-				Status: v1.PodStatus{
+		DoAndReturn(func(ctx context.Context, podList *k8score.PodList, opts ...client.ListOption) error {
+			podList.Items = []k8score.Pod{{
+				Status: k8score.PodStatus{
 					HostIP: "5.6.7.8",
 				},
 			}}
@@ -1512,7 +1511,7 @@ func TestFailureBuildAppHostNameNodePortXIP(t *testing.T) {
 	// Expect a call to get the Istio service
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "istio-ingressgateway"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *v1.Service) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *k8score.Service) error {
 			service.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1"}
 			service.Spec.Type = "NodePort"
@@ -1522,7 +1521,7 @@ func TestFailureBuildAppHostNameNodePortXIP(t *testing.T) {
 	// Expect a call to get the Istio ingress gateway pod
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, podList *v1.PodList, opts ...client.ListOption) error {
+		DoAndReturn(func(ctx context.Context, podList *k8score.PodList, opts ...client.ListOption) error {
 			return errors.New("Unable to find istio pods")
 		})
 
@@ -1741,13 +1740,13 @@ func TestGetPathsFromTrait(t *testing.T) {
 // TestCreateDestinationFromService test various use cases of createDestinationFromService
 func TestCreateDestinationFromService(t *testing.T) {
 	assert := asserts.New(t)
-	var service v1.Service
+	var service k8score.Service
 	var dest *istionet.HTTPRouteDestination
 
 	// GIVEN a service with no ports defined
 	// WHEN a destination is created from the service
 	// THEN verify that the port is nil.
-	service = v1.Service{
+	service = k8score.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"}}
 	dest, err := createDestinationFromService(&service)
 	assert.Equal("test-service-name", dest.Destination.Host)
@@ -1757,9 +1756,9 @@ func TestCreateDestinationFromService(t *testing.T) {
 	// GIVEN a service with a valid port defined
 	// WHEN a destination is created from the service
 	// THEN verify that the service's port is used.
-	service = v1.Service{
+	service = k8score.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"},
-		Spec:       v1.ServiceSpec{Ports: []v1.ServicePort{{Port: 42}}}}
+		Spec:       k8score.ServiceSpec{Ports: []k8score.ServicePort{{Port: 42}}}}
 	dest, err = createDestinationFromService(&service)
 	assert.Equal(uint32(42), dest.Destination.Port.Number)
 	assert.NoError(err)
@@ -1767,9 +1766,9 @@ func TestCreateDestinationFromService(t *testing.T) {
 	// GIVEN a service with multiple valid ports defined
 	// WHEN a destination is created from the service
 	// THEN verify that the service's first port is used.
-	service = v1.Service{
+	service = k8score.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-service-name"},
-		Spec:       v1.ServiceSpec{Ports: []v1.ServicePort{{Port: 42}, {Port: 777}}}}
+		Spec:       k8score.ServiceSpec{Ports: []k8score.ServicePort{{Port: 42}, {Port: 777}}}}
 	dest, err = createDestinationFromService(&service)
 	assert.Equal(uint32(42), dest.Destination.Port.Number)
 	assert.NoError(err)
@@ -1798,7 +1797,7 @@ func TestExtractServiceOnlyOneService(t *testing.T) {
 	assert.NoError(err)
 
 	children := []*unstructured.Unstructured{&u}
-	var extractedService *v1.Service
+	var extractedService *k8score.Service
 	extractedService, err = extractServiceFromUnstructuredChildren(children)
 	assert.NoError(err)
 	assert.NotNil(extractedService)
@@ -1825,7 +1824,7 @@ func TestExtractServiceMultipleServices(t *testing.T) {
 	assert.NoError(err)
 
 	children := []*unstructured.Unstructured{&u1, &u2, &u3}
-	var extractedService *v1.Service
+	var extractedService *k8score.Service
 	extractedService, err = extractServiceFromUnstructuredChildren(children)
 	assert.NoError(err)
 	assert.NotNil(extractedService)
@@ -1833,6 +1832,9 @@ func TestExtractServiceMultipleServices(t *testing.T) {
 }
 
 // Test a valid existing Service is discovered and used for the destination.
+// GIVEN a valid existing Service for a workload
+// WHEN an ingress trait is reconciled
+// THEN verify gateway and virtual service are created correctly.
 func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 	assert := asserts.New(t)
 	cli := fake.NewFakeClientWithScheme(newScheme())
@@ -1871,7 +1873,7 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 	// Create domain
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_domain_instance.yaml", params))
 	// Create a service
-	service := v1.Service{
+	service := k8score.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-service",
 			Namespace: params["NAMESPACE_NAME"],
@@ -1882,8 +1884,8 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 				UID:        types.UID(params["DOMAIN_UID"]),
 			}},
 		},
-		Spec: v1.ServiceSpec{
-			Ports: []v1.ServicePort{{
+		Spec: k8score.ServiceSpec{
+			Ports: []k8score.ServicePort{{
 				Name:       "default",
 				Protocol:   "TCP",
 				Port:       8001,
@@ -1930,6 +1932,9 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 }
 
 // Test an explicitly provided destination is used in preference to an existing Service.
+// GIVEN an ingress trait containing an explicit destination
+// WHEN the ingress trait is reconciled
+// THEN verify the correct gateway and virtual services are created.
 func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 	assert := asserts.New(t)
 	cli := fake.NewFakeClientWithScheme(newScheme())
@@ -1968,7 +1973,7 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 	// Create domain
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_domain_instance.yaml", params))
 	// Create a service. This service should be ignored as an explicit destination is provided.
-	service := v1.Service{
+	service := k8score.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-service",
 			Namespace: params["NAMESPACE_NAME"],
@@ -1979,8 +1984,8 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 				UID:        types.UID(params["DOMAIN_UID"]),
 			}},
 		},
-		Spec: v1.ServiceSpec{
-			Ports: []v1.ServicePort{{
+		Spec: k8score.ServiceSpec{
+			Ports: []k8score.ServicePort{{
 				Name:       "default",
 				Protocol:   "TCP",
 				Port:       8001,
@@ -2027,6 +2032,10 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 }
 
 // Test failure for multiple service ports without an explicit destination.
+// GIVEN a service with multiple ports exists for a workload
+// AND no explicit ingress trait definitions are provided
+// WHEN the ingress trait is reconciled
+// THEN verify the correct gateway and virtual services are created.
 func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 	assert := asserts.New(t)
 	cli := fake.NewFakeClientWithScheme(newScheme())
@@ -2065,7 +2074,7 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 	// Create domain
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_domain_instance.yaml", params))
 	// Create a service. This service has two ports which should cause a failure.
-	service := v1.Service{
+	service := k8score.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-service",
 			Namespace: params["NAMESPACE_NAME"],
@@ -2076,8 +2085,8 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 				UID:        types.UID(params["DOMAIN_UID"]),
 			}},
 		},
-		Spec: v1.ServiceSpec{
-			Ports: []v1.ServicePort{{
+		Spec: k8score.ServiceSpec{
+			Ports: []k8score.ServicePort{{
 				Name:       "default",
 				Protocol:   "TCP",
 				Port:       8001,
@@ -2128,6 +2137,10 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 }
 
 // Test failure for multiple services for non-WebLogic workload without explicit destination.
+// GIVEN multiple services created for a non-WebLogic workload
+// AND no explicit ingress trait definitions are provided
+// WHEN the ingress trait is reconciled
+// THEN verify the correct gateway and virtual services are created.
 func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination(t *testing.T) {
 	assert := asserts.New(t)
 	cli := fake.NewFakeClientWithScheme(newScheme())
@@ -2170,7 +2183,7 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 	// Create trait. This trait has no destination.
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/ingress_trait_instance.yaml", params))
 	// Create a first service.
-	service1 := v1.Service{
+	service1 := k8score.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-service-1",
 			Namespace: params["APPCONF_NAMESPACE"],
@@ -2181,8 +2194,8 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 				UID:        types.UID(params["WORKLOAD_UID"]),
 			}},
 		},
-		Spec: v1.ServiceSpec{
-			Ports: []v1.ServicePort{{
+		Spec: k8score.ServiceSpec{
+			Ports: []k8score.ServicePort{{
 				Name:       "test-service-1-port",
 				Protocol:   "TCP",
 				Port:       8081,
@@ -2194,7 +2207,7 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 	}
 	assert.NoError(cli.Create(context.Background(), &service1))
 	// Create a second service.
-	service2 := v1.Service{
+	service2 := k8score.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-service-2",
 			Namespace: params["APPCONF_NAMESPACE"],
@@ -2205,8 +2218,8 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 				UID:        types.UID(params["WORKLOAD_UID"]),
 			}},
 		},
-		Spec: v1.ServiceSpec{
-			Ports: []v1.ServicePort{{
+		Spec: k8score.ServiceSpec{
+			Ports: []k8score.ServicePort{{
 				Name:       "test-service-2-port",
 				Protocol:   "TCP",
 				Port:       8082,
@@ -2252,7 +2265,13 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 	assert.Len(vs.Spec.Http, 1)
 }
 
-// Test correct WebLogic service (i.e. with ClusterIP) getting picked after failure and retry.
+// Test correct WebLogic service (i.e. with ClusterIP) getting picked after reconcile failure and retry.
+// GIVEN a new WebLogic workload/domain
+// AND no services have been created
+// WHEN an ingress trait is reconciled
+// THEN ensure that no gateways or virtual services are created
+// THEN create a service as the WebLogic operator would
+// THEN verity that the expected gateway and virtual services are created.
 func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.T) {
 	assert := asserts.New(t)
 	cli := fake.NewFakeClientWithScheme(newScheme())
@@ -2306,7 +2325,7 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 	assert.True(k8serrors.IsNotFound(err), "No VirtualService should have been created.")
 
 	// Update a service. Update the ClusterIP of the service.
-	service := v1.Service{
+	service := k8score.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-service",
 			Namespace: params["NAMESPACE_NAME"],
@@ -2317,8 +2336,8 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 				UID:        types.UID(params["DOMAIN_UID"]),
 			}},
 		},
-		Spec: v1.ServiceSpec{
-			Ports: []v1.ServicePort{{
+		Spec: k8score.ServiceSpec{
+			Ports: []k8score.ServicePort{{
 				Name:       "default",
 				Protocol:   "TCP",
 				Port:       8001,
@@ -2369,10 +2388,9 @@ func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	//_ = clientgoscheme.AddToScheme(scheme)
 	core.AddToScheme(scheme)
-	appsv1.AddToScheme(scheme)
+	k8sapps.AddToScheme(scheme)
 	vzapi.AddToScheme(scheme)
-	v8.AddToScheme(scheme)
-	v1.AddToScheme(scheme)
+	k8score.AddToScheme(scheme)
 	certapiv1alpha2.AddToScheme(scheme)
 	k8net.AddToScheme(scheme)
 	istioclient.AddToScheme(scheme)
@@ -2440,19 +2458,19 @@ func newRancherIngress(ipAddress string) *k8net.Ingress {
 
 // newIstioLoadBalancerService creates a new Istio LoadBalancer Service with the provided
 // clusterIPAddress and loadBalancerIPAddress
-func newIstioLoadBalancerService(clusterIPAddress string, loadBalancerIPAddress string) *v1.Service {
-	istioService := v1.Service{
+func newIstioLoadBalancerService(clusterIPAddress string, loadBalancerIPAddress string) *k8score.Service {
+	istioService := k8score.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "istio-ingressgateway",
 			Namespace: "istio-system",
 		},
-		Spec: v1.ServiceSpec{
+		Spec: k8score.ServiceSpec{
 			ClusterIP: clusterIPAddress,
 			Type:      "LoadBalancer",
 		},
-		Status: v1.ServiceStatus{
-			LoadBalancer: v1.LoadBalancerStatus{
-				Ingress: []v1.LoadBalancerIngress{{
+		Status: k8score.ServiceStatus{
+			LoadBalancer: k8score.LoadBalancerStatus{
+				Ingress: []k8score.LoadBalancerIngress{{
 					IP: loadBalancerIPAddress}}}},
 	}
 	return &istioService
@@ -2462,7 +2480,7 @@ func newIstioLoadBalancerService(clusterIPAddress string, loadBalancerIPAddress 
 // uid - The UID of the service
 // clusterIP - The cluster IP of the service
 func newUnstructuredService(uid types.UID, clusterIP string, port int32) (unstructured.Unstructured, error) {
-	service := v1.Service{
+	service := k8score.Service{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1",
 			Kind:       "Service",
@@ -2470,9 +2488,9 @@ func newUnstructuredService(uid types.UID, clusterIP string, port int32) (unstru
 		ObjectMeta: metav1.ObjectMeta{
 			UID: uid,
 		},
-		Spec: v1.ServiceSpec{
+		Spec: k8score.ServiceSpec{
 			ClusterIP: clusterIP,
-			Ports:     []v1.ServicePort{{Port: port}}},
+			Ports:     []k8score.ServicePort{{Port: port}}},
 	}
 	return convertToUnstructured(service)
 }

@@ -201,7 +201,7 @@ func (r *Reconciler) convertWorkloadToDeployment(
 	return d, nil
 }
 
-// create a service for the deployment
+// createServiceFromDeployment creates a service for the deployment
 func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelidonWorkload,
 	deploy *appsv1.Deployment) (*corev1.Service, error) {
 
