@@ -30,6 +30,8 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
 	"github.com/verrazzano/verrazzano/application-operator/mcagent"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,13 +41,14 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 var (
 	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	setupLog = zap.S()
 )
 
 func init() {
@@ -85,7 +88,13 @@ func main() {
 		"Enable access-controller webhooks")
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
+	// Add the zap logger flag set to the CLI.
+	opts := kzap.Options{}
+	opts.BindFlags(flag.CommandLine)
+
+	flag.Parse()
+	kzap.UseFlagOptions(&opts)
+	InitLogs(opts)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
@@ -318,4 +327,39 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+// InitLogs initializes logs with Time and Global Level of Logs set at Info
+func InitLogs(opts kzap.Options) {
+	var config zap.Config
+	if opts.Development {
+		config = zap.NewDevelopmentConfig()
+	} else {
+		config = zap.NewProductionConfig()
+	}
+	if opts.Level != nil {
+		config.Level = opts.Level.(zap.AtomicLevel)
+	} else {
+		config.Level.SetLevel(zapcore.InfoLevel)
+	}
+	config.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
+	config.EncoderConfig.TimeKey = "@timestamp"
+	config.EncoderConfig.MessageKey = "message"
+	logger, err := config.Build()
+	if err != nil {
+		zap.S().Errorf("Error creating logger %v", err)
+	} else {
+		zap.ReplaceGlobals(logger)
+	}
+
+	// Use a zap logr.Logger implementation. If none of the zap
+	// flags are configured (or if the zap flag set is not being
+	// used), this defaults to a production zap logger.
+	//
+	// The logger instantiated here can be changed to any logger
+	// implementing the logr.Logger interface. This logger will
+	// be propagated through the whole operator, generating
+	// uniform and structured logs.
+	encoder := zapcore.NewJSONEncoder(config.EncoderConfig)
+	logf.SetLogger(kzap.New(kzap.UseFlagOptions(&opts), kzap.Encoder(encoder)))
 }
