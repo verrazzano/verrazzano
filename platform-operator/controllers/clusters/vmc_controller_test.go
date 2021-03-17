@@ -5,14 +5,14 @@ package clusters
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/Jeffail/gabs/v2"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	vzk8s "github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	k8net "k8s.io/api/networking/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/rest"
-	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -31,12 +31,8 @@ import (
 const apiVersion = "clusters.verrazzano.io/v1alpha1"
 const kind = "VerrazzanoManagedCluster"
 
-const kubeAdminData = `
-apiEndpoints:
-  oke-xyz:
-    advertiseAddress: 1.2.3.4
-    bindPort: 6443
-`
+const testServerData = "https://testurl"
+
 const (
 	token              = "tokenData"
 	managedClusterData = "cluster1"
@@ -505,12 +501,12 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string) {
 			return nil
 		})
 
-	// Expect a call to get the kubeadmin configmap
+	// Expect a call to get the verrazzano-admin-cluster configmap
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vzk8s.KubeSystem, Name: vzk8s.KubeAdminConfig}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: constants.AdminClusterConfigMapName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, cm *corev1.ConfigMap) error {
 			cm.Data = map[string]string{
-				vzk8s.ClusterStatusKey: kubeAdminData,
+				constants.ServerDataKey: testServerData,
 			}
 			return nil
 		})

@@ -34,7 +34,6 @@ go-lint:
 	}
 	golint -set_exit_status $(shell go list ./... | grep -v github.com/verrazzano/verrazzano-application-operator/pkg/assets)
 
-
 .PHONY: go-ineffassign
 go-ineffassign:
 	@{ \
@@ -43,3 +42,7 @@ go-ineffassign:
 	${GO} get github.com/gordonklaus/ineffassign@$${INEFFASSIGN_VERSION} ; \
 	}
 	ineffassign $(shell go list ./...)
+
+.PHONY: coverage
+coverage:
+	${SCRIPT_DIR}/coverage.sh html

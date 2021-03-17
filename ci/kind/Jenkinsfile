@@ -11,10 +11,10 @@ pipeline {
     agent {
        docker {
             image "${RUNNER_DOCKER_IMAGE}"
-            args "${RUNNER_DOCKER_ARGS}"
+            args "${EXPERIMENTAL_RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "VM.Standard2.8"
+            label "largeexperimental"
         }
     }
 
@@ -141,7 +141,7 @@ pipeline {
                             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
                             echo "Create Kind cluster"
                             cd ${TEST_SCRIPTS_DIR}
-                            ./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${params.KUBERNETES_CLUSTER_VERSION}"
+                            ./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${params.KUBERNETES_CLUSTER_VERSION}" true true true
 
                             echo "Install metallb"
                             cd ${GO_REPO_PATH}/verrazzano
@@ -342,7 +342,7 @@ def runGinkgo(testSuitePath) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}
+        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -a
     """
 }
 

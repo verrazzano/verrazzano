@@ -176,7 +176,11 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		Log(Error, err.Error())
-		ginkgo.Fail(fmt.Sprintf("Could not %s %s ", req.Method, url))
+		// do not call Fail() here - this is not necessarily a permanent failure and
+		// we should not call Fail() inside a func that is called from an Eventually()
+		// a later retry may be successful - for example the endpoint may not be available
+		// since the pod has not reached ready state yet
+		return resp.StatusCode, ""
 	}
 	defer resp.Body.Close()
 	html, err := ioutil.ReadAll(resp.Body)

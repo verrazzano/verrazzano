@@ -4,9 +4,10 @@
 include ../make/quality.mk
 include ../make/generate.mk
 
+SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../build
+
 NAME:=verrazzano-application-operator
 REPO_NAME:=verrazzano-application-operator
-
 
 TIMESTAMP := $(shell date -u +%Y%m%d%H%M%S)
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
@@ -44,6 +45,7 @@ ENV_NAME=verrazzano-application-operator
 GO ?= CGO_ENABLED=0 GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 CRD_PATH=config/crd/bases
+KIND_CONFIG ?= kind-config.yaml
 
 ifdef JENKINS_URL
 	CLUSTER_DUMP_LOCATION = ${WORKSPACE}/application-operator-integ-cluster-dump
@@ -145,14 +147,10 @@ endif
 unit-test: go-install
 	$(GO) test -v ./apis/... ./controllers/... ./internal/... ./mcagent/...
 
-.PHONY: coverage
-coverage: unit-test
-	./build/scripts/coverage.sh html
-
 #
 # Test-related tasks
 #
-CLUSTER_NAME = apo-integ
+CLUSTER_NAME = verrazzano
 VERRAZZANO_NS = verrazzano-system
 DEPLOY = deploy
 OPERATOR_SETUP = test/operatorsetup
@@ -173,12 +171,12 @@ setup-cluster: create-cluster
 	time kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 	echo 'Install OAM runtime and Verrazzano application operator...'
-	time installer/install.sh || (echo 'Application operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
+	time installer/install.sh || (echo 'Application operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -a; exit 1)
 
 .PHONY: integ-test
 integ-test: setup-cluster
 	echo 'Run tests...'
-	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Application operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
+	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Application operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -a; exit 1)
 
 .PHONY: create-cluster
 create-cluster:
@@ -187,7 +185,7 @@ create-cluster:
 	HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 \
 		--name ${CLUSTER_NAME} \
 		--wait 5m \
-		--config=test/kind-config.yaml
+		--config=test/${KIND_CONFIG}
 	kubectl config set-context kind-${CLUSTER_NAME}
 
 .PHONY: delete-cluster

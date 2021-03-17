@@ -1,0 +1,17 @@
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    image: kindest/node:v1.18.8@sha256:f4bcc97a0ad6e7abaf3f643d890add7efe6ee4ab90baeb374b4f41a4c95567eb
+    kubeadmConfigPatches:
+      - |
+        kind: ClusterConfiguration
+        apiServer:
+          extraArgs:
+            "service-account-issuer": "kubernetes.default.svc"
+            "service-account-signing-key-file": "/etc/kubernetes/pki/sa.key"
+      extraMounts:
+        - hostPath: /v8o_cache/vpo_integ
+          containerPath: /var/lib/containerd

@@ -4,7 +4,7 @@
 include ../make/quality.mk
 include ../make/generate.mk
 
-MAKEFILE_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../build
 
 NAME:=verrazzano-platform-operator
 REPO_NAME:=verrazzano-platform-operator
@@ -134,15 +134,11 @@ endif
 unit-test: go-install
 	$(GO) test -v  ./internal/... ./controllers/... ./apis/...
 
-.PHONY: coverage
-coverage: unit-test
-	./build/scripts/coverage.sh html
-
 #
 # Test-related tasks
 #
 # On Jenkins we have pre-created clusters ready to go that are named specifically for the integ-test case
-CLUSTER_NAME = vpo-integ
+CLUSTER_NAME = verrazzano
 VERRAZZANO_NS = verrazzano-install
 BUILD_DEPLOY = build/deploy
 OPERATOR_YAML ?= ${BUILD_DEPLOY}/operator.yaml
@@ -150,6 +146,7 @@ DEPLOY = deploy
 OPERATOR_SETUP = test/operatorsetup
 
 CLUSTER_DUMP_LOCATION ?= platform-operator-integ-cluster-dump
+KIND_CONFIG ?= kind-config.yaml
 
 
 .PHONY: integ-test
@@ -157,9 +154,9 @@ integ-test: create-cluster generate-operator-yaml
 	echo 'Load docker image for the verrazzano-platform-operator...'
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 	echo 'Deploy verrazzano platform operator ...'
-	kubectl apply -f ${OPERATOR_YAML} || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
+	kubectl apply -f ${OPERATOR_YAML} || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -a; exit 1)
 	echo 'Run tests...'
-	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
+	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -a; exit 1)
 
 .PHONY: create-cluster
 generate-operator-yaml:
@@ -180,7 +177,7 @@ create-cluster:
 		HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 \
 			--name ${CLUSTER_NAME} \
 			--wait 5m \
-			--config=test/kind-config.yaml ;\
+			--config=test/${KIND_CONFIG} ;\
 		kubectl config set-context kind-${CLUSTER_NAME} ;\
 	fi
 

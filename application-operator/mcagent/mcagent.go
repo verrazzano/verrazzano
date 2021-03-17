@@ -10,6 +10,8 @@ import (
 	"os"
 	"time"
 
+	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/go-logr/logr"
@@ -105,9 +107,29 @@ func (s *Syncer) ProcessAgentThread() error {
 		s.SecretResourceVersion = secret.ResourceVersion
 	}
 
+	// Update the status of our VMC on the admin cluster to record the last time we connected
+	err = s.updateVMCStatus()
+	if err != nil {
+		// we couldn't update status of the VMC - but we should keep going with the rest of the work
+		s.Log.Error(err, "Failed to update VMC status on admin cluster")
+	}
+
 	// Sync multi-cluster objects
 	s.SyncMultiClusterResources()
 	return nil
+}
+
+func (s *Syncer) updateVMCStatus() error {
+	vmcName := client.ObjectKey{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
+	vmc := platformopclusters.VerrazzanoManagedCluster{}
+	err := s.AdminClient.Get(s.Context, vmcName, &vmc)
+	if err != nil {
+		return err
+	}
+	vmc.Status.LastAgentConnectTime = metav1.Now()
+
+	// update status of VMC
+	return s.AdminClient.Status().Update(s.Context, &vmc)
 }
 
 // SyncMultiClusterResources - sync multi-cluster objects
@@ -182,6 +204,7 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	}
 	scheme := runtime.NewScheme()
 	_ = clustersv1alpha1.AddToScheme(scheme)
+	_ = platformopclusters.AddToScheme(scheme)
 
 	clientset, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
