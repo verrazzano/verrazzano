@@ -16,6 +16,28 @@ Create the environment variables `KUBECONFIG_ADMIN` and `KUBECONFIG_MANAGED1` to
 
 ## Register the Managed Cluster
 
+1. Obtain the Kubernetes server address for the admin cluster.  The steps to perform this vary based on the Kubernetes platform.
+    ```
+    # Kind Cluster
+    ADMIN_K8S_SERVER_ADDRESS="$(kind get kubeconfig --internal --name <insert context name of admin cluster> | grep "server:" | awk '{ print $2 }')"
+   
+    # OKE Cluster
+    ADMIN_K8S_SERVER_ADDRESS="$(cat $KUBECONFIG_ADMIN | grep server: | awk '{ print $2 }')"
+    ```
+
+1. Create a ConfigMap that contains the Kubernetes server address of the admin cluster.
+    ```
+    KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f <<EOF -
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: verrazzano-admin-cluster
+      namespace: verrazzano-mc
+    data:
+      server: "${ADMIN_K8S_SERVER_ADDRESS}"
+    EOF
+    ```
+
 1. Obtain the credentials for scraping metrics from the managed cluster.  The script will output the credentials into a file named `managed1.yaml` into the current folder.
    ```
    $ export KUBECONFIG=$KUBECONFIG_MANAGED1
