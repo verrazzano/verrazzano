@@ -271,6 +271,11 @@ pipeline {
                     runGinkgoRandomize('verify-install')
                 }
             }
+            post {
+                failure {
+                    dumpK8sCluster('verrazzano-installation-loop-cluster-after-testrun-dump')
+                }
+            }
         }
 
         stage('Uninstall Verrazzano') {
