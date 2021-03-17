@@ -262,6 +262,11 @@ pipeline {
                 TEST_ENV = "OKE"
             }
             steps {
+                sh """
+                    echo "Listing all pods in all namespaces before running verify-install"
+                    kubectl get pods --all-namespaces
+                    echo "-----------------------------------------------------"
+                """
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     runGinkgoRandomize('verify-install')
                 }
