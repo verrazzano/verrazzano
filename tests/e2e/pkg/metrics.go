@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/onsi/ginkgo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -16,7 +15,9 @@ func QueryMetric(metricsName string) string {
 	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", getPrometheusIngressHost(), metricsName)
 	status, content := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", GetVerrazzanoPassword())
 	if status != 200 {
-		ginkgo.Fail(fmt.Sprintf("Error retrieving metric %s, status %d", metricsName, status))
+		Log(Error, fmt.Sprintf("Error retrieving metric %s, status %d", metricsName, status))
+		// do not call ginkgo.Fail() here - this method is called in Eventually funcs, so if you call Fail()
+		// you essentially limit all of those to only one attempt, which defeats the purpose
 	}
 	Log(Info, fmt.Sprintf("metric: %s", content))
 	return content

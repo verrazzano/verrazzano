@@ -209,19 +209,12 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                    cd ${GO_REPO_PATH}/verrazzano
                     make -B coverage
                     cp coverage.html ${WORKSPACE}
                     cp coverage.xml ${WORKSPACE}
-                    build/scripts/copy-junit-output.sh ${WORKSPACE}
-                    cd ${GO_REPO_PATH}/verrazzano/application-operator
-                    make -B coverage
+                    build/copy-junit-output.sh ${WORKSPACE}
                 """
-
-                // NEED To See how these files can be merged
-                //                    cp coverage.html ${WORKSPACE}
-                //                    cp coverage.xml ${WORKSPACE}
-                //                    application-operator/build/scripts/copy-junit-output.sh ${WORKSPACE}
             }
             post {
                 always {
@@ -236,7 +229,7 @@ pipeline {
                       failNoReports: true,
                       onlyStable: false,
                       fileCoverageTargets: '100, 0, 0',
-                      lineCoverageTargets: '85, 85, 85',
+                      lineCoverageTargets: '80, 80, 80',
                       packageCoverageTargets: '100, 0, 0',
                     )
                 }
@@ -267,11 +260,11 @@ pipeline {
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
                     ../ci/scripts/setup_kind_for_jenkins.sh vpo-integ ${HOME}/.kube/vpo-integ-config
                     make integ-test JENKINS_KUBECONFIG=${HOME}/.kube/vpo-integ-config CLUSTER_DUMP_LOCATION=${WORKSPACE}/platform-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
-                    build/scripts/copy-junit-output.sh ${WORKSPACE}
+                    ../build/copy-junit-output.sh ${WORKSPACE}
                     cd ${GO_REPO_PATH}/verrazzano/application-operator
                     ../ci/scripts/setup_kind_for_jenkins.sh apo-integ ${HOME}/.kube/apo-integ-config
                     make integ-test JENKINS_KUBECONFIG=${HOME}/.kube/apo-integ-config DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
-                    build/scripts/copy-junit-output.sh ${WORKSPACE}
+                    ../build/copy-junit-output.sh ${WORKSPACE}
                 """
             }
             post {
@@ -286,7 +279,7 @@ pipeline {
             steps {
                 script {
                     // note that SKIP_ACCEPTANCE_TESTS will be false at this point (its default value)
-                    // so we are going to run the AT's unless this logic decideds to skip them...
+                    // so we are going to run the AT's unless this logic decides to skip them...
 
                     // if we are planning to run the AT's (which is the default)
                     if (params.RUN_ACCEPTANCE_TESTS == true) {
