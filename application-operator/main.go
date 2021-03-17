@@ -8,8 +8,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/go-logr/zapr"
-
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -334,6 +332,7 @@ func main() {
 
 // InitLogs initializes logs with Time and Global Level of Logs set at Info
 func InitLogs(opts kzap.Options) {
+	opts.ZapOpts = append(opts.ZapOpts, zap.AddCaller() )
 	var config zap.Config
 	if opts.Development {
 		config = zap.NewDevelopmentConfig()
@@ -364,7 +363,7 @@ func InitLogs(opts kzap.Options) {
 	// implementing the logr.Logger interface. This logger will
 	// be propagated through the whole operator, generating
 	// uniform and structured logs.
-	//	encoder := zapcore.NewJSONEncoder(config.EncoderConfig)
-	logf.SetLogger(zapr.NewLogger(logger))
-	//	logf.SetLogger(kzap.New(kzap.UseFlagOptions(&opts), kzap.Encoder(encoder)))
+	encoder := zapcore.NewJSONEncoder(config.EncoderConfig)
+	//logf.SetLogger(zapr.NewLogger(logger))
+	logf.SetLogger(kzap.New(kzap.UseFlagOptions(&opts), kzap.Encoder(encoder)))
 }
