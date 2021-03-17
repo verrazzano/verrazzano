@@ -319,7 +319,7 @@ func TestDeleteVMC(t *testing.T) {
 
 	// Expect a call to get the prometheus configmap and return one with two entries, including this cluster
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-system", Name: "vmi-system-prometheus-config"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-prometheus-config"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
 			// setup a scaled down existing scrape config entry for cluster1
 			configMap.Data = map[string]string{
