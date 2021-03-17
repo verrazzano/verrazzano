@@ -39,8 +39,6 @@ spec:
                 - paths:
                     - path: "/bobbys-front-end"
                       pathType: Prefix
-                  destination:
-                    host: bobbys-front-end-cluster-cluster-1
     - componentName: bobs-orders-wls
       traits:
         - trait:
@@ -51,8 +49,6 @@ spec:
                 - paths:
                     - path: "/bobs-bookstore-order-manager/orders"
                       pathType: Prefix
-                  destination:
-                    host: bobs-bookstore-cluster-cluster-1
       scopes:
         - scopeRef:
             apiVersion: oam.verrazzano.io/v1alpha1

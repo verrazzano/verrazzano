@@ -176,24 +176,6 @@ func IsOwnedByVerrazzanoWorkloadKind(workload *unstructured.Unstructured) bool {
 	return false
 }
 
-// IsGroupKind returns true if the provided uns is of the provided group and kind.
-func IsGroupKind(uns *unstructured.Unstructured, group string, kind string) bool {
-	return uns != nil &&
-		strings.HasPrefix(uns.GetAPIVersion(), group+"/") &&
-		strings.EqualFold(uns.GetKind(), kind)
-}
-
-// IsOwnedByGroupKind returns true if one of the direct owners of the uns is of the provided group and kind.
-func IsOwnedByGroupKind(uns *unstructured.Unstructured, group string, kind string) bool {
-	apiVerPrefix := group + "/"
-	for _, owner := range uns.GetOwnerReferences() {
-		if strings.EqualFold(owner.Kind, kind) && strings.HasPrefix(owner.APIVersion, apiVerPrefix) {
-			return true
-		}
-	}
-	return false
-}
-
 // APIVersionAndKindToContainedGVK returns the GroupVersionKind of the contained resource
 // for the given wrapper resource API version and kind.
 func APIVersionAndKindToContainedGVK(apiVersion string, kind string) *schema.GroupVersionKind {

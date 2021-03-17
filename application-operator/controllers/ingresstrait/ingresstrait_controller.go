@@ -627,7 +627,11 @@ func (r *Reconciler) fetchServiceFromTrait(ctx context.Context, trait *vzapi.Ing
 
 	// Find the service from within the list of unstructured child resources
 	var service *corev1.Service
-	service = extractServiceFromUnstructuredChildren(workload, children)
+	service, err = extractServiceFromUnstructuredChildren(children)
+	if err != nil {
+		return nil, err
+	}
+
 	return service, nil
 }
 
@@ -636,45 +640,34 @@ func (r *Reconciler) fetchServiceFromTrait(ctx context.Context, trait *vzapi.Ing
 // cluster IP. If no service has a cluster IP, choose the first service.
 // If found the unstructured data is converted to a Service object and returned.
 // children - An array of unstructured children
-func extractServiceFromUnstructuredChildren(workload *unstructured.Unstructured, children []*unstructured.Unstructured) *corev1.Service {
-	// Filter out the services.
-	var services []*corev1.Service
+func extractServiceFromUnstructuredChildren(children []*unstructured.Unstructured) (*corev1.Service, error) {
+	var selectedService *corev1.Service
+
 	for _, child := range children {
 		if child.GetAPIVersion() == serviceAPIVersion && child.GetKind() == serviceKind {
-			service := &corev1.Service{}
-			err := runtime.DefaultUnstructuredConverter.FromUnstructured(child.UnstructuredContent(), service)
+			var service corev1.Service
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(child.UnstructuredContent(), &service)
 			if err != nil {
-				// Continue and hope that another child can be converted.
-				continue
+				// maybe we should continue here and hope that another child can be converted?
+				return nil, err
 			}
-			services = append(services, service)
+
+			if selectedService == nil {
+				selectedService = &service
+			}
+
+			if service.Spec.ClusterIP != clusterIPNone {
+				selectedService = &service
+				break
+			}
 		}
 	}
 
-	// Attempt to select a default service based on workload type
-	var selected *corev1.Service
-	//if isWebLogicDomain(workload) {
-	//	selected = selectDefaultServiceForWebLogicDomain(workload, services)
-	//} else if isCoherenceCluster(workload) {
-	//	selected = selectDefaultServiceForCoherenceCluster(services)
-	if isHelidonWorkloadDeployment(workload) {
-		selected = selectExactlyOnlyServiceAsDefault(services)
-	} else if isContainerizedWorkloadDeployment(workload) {
-		selected = selectExactlyOnlyServiceAsDefault(services)
+	if selectedService != nil {
+		return selectedService, nil
 	}
 
-	// If no default service was selected return without selecting one.
-	if selected == nil {
-		return nil
-	}
-
-	// If the selected service does not have exactly one port it cannot be used
-	// as the default service to avoid picking an arbitrary and possibly incorrect port.
-	if len(selected.Spec.Ports) != 1 {
-		return nil
-	}
-
-	return selected
+	return nil, fmt.Errorf("No child service found")
 }
 
 // convertAPIVersionAndKindToNamespacedName converts APIVersion and Kind of CR to a CRD namespaced name.
@@ -781,81 +774,4 @@ func buildDomainNameForXIPIO(cli client.Reader, trait *vzapi.IngressTrait) (stri
 	}
 	domain := IP + "." + "xip.io"
 	return domain, nil
-}
-
-//// isWebLogicDomain returns true if the provided unstructured has a WebLogic Domain kind.
-//func isWebLogicDomain(uns *unstructured.Unstructured) bool {
-//	return vznav.IsGroupKind(uns, "weblogic.oracle", "Domain")
-//}
-
-//// isCoherenceCluster returns true if the provided unstructured has a Coherence kind.
-//func isCoherenceCluster(uns *unstructured.Unstructured) bool {
-//	return vznav.IsGroupKind(uns, "coherence.oracle.com", "Coherence")
-//}
-
-// isHelidonWorkloadDeployment returns true if the uns is a Deployment owned by a VerrazzanoHelidonWorkload.
-func isHelidonWorkloadDeployment(uns *unstructured.Unstructured) bool {
-	return vznav.IsGroupKind(uns, "oam.verrazzano.io", "VerrazzanoHelidonWorkload") ||
-		(vznav.IsGroupKind(uns, "apps", "Deployment") &&
-			vznav.IsOwnedByGroupKind(uns, "oam.verrazzano.io", "VerrazzanoHelidonWorkload"))
-}
-
-// isContainerizedWorkloadDeployment returns true if the uns is a Deployment owned by a ContainerizedWorkload.
-func isContainerizedWorkloadDeployment(uns *unstructured.Unstructured) bool {
-	return vznav.IsGroupKind(uns, "core.oam.dev", "ContainerizedWorkload") ||
-		(vznav.IsGroupKind(uns, "apps", "Deployment") &&
-			vznav.IsOwnedByGroupKind(uns, "core.oam.dev", "ContainerizedWorkload"))
-}
-
-//// selectDefaultServiceForWebLogicDomain selects a default service for a WebLogicDomain
-//// from a list of child services. Select a default service depending on if the Domain has clusters.
-//// If the domain has clusters a single and only service with metadata.labels[serviceType]==CLUSTER will be selected.
-//// If the domain has no clusters a single and only service with metadata.labels[serviceType]==SERVER will be selected.
-//func selectDefaultServiceForWebLogicDomain(domain *unstructured.Unstructured, services []*corev1.Service) *corev1.Service {
-//	clusters, found, err := unstructured.NestedSlice(domain.UnstructuredContent(), "spec", "clusters")
-//	if err != nil {
-//		return nil
-//	}
-//	// By default look for a single service with label serviceType=CLUSTER
-//	serviceType := "CLUSTER"
-//	// If the Domain does not contain any clusters then look for a single service with label serviceType=SERVER.
-//	if !found || len(clusters) == 0 {
-//		serviceType = "SERVER"
-//	}
-//	var selected *corev1.Service
-//	for _, service := range services {
-//		if strings.EqualFold(service.Labels["serviceType"], serviceType) {
-//			if selected != nil {
-//				// Unable to select service because there are multiple candidates.
-//				return nil
-//			}
-//			selected = service
-//		}
-//	}
-//	return selected
-//}
-
-//// selectDefaultServiceForCoherenceCluster selects a default service for a Coherence cluster
-//// from a list of child services. Selects a default service if only one with metadata.labels[coherencePort]=http is found.
-//func selectDefaultServiceForCoherenceCluster(services []*corev1.Service) *corev1.Service {
-//	var selected *corev1.Service
-//	for _, service := range services {
-//		if strings.EqualFold(service.Labels["coherencePort"], "http") {
-//			if selected != nil {
-//				// Unable to select service because there are multiple candidates.
-//				return nil
-//			}
-//			selected = service
-//		}
-//	}
-//	return selected
-//}
-
-// selectExactlyOnlyServiceAsDefault selects a default service for a Deployment from a list of
-// child services. Service must be the only service.
-func selectExactlyOnlyServiceAsDefault(services []*corev1.Service) *corev1.Service {
-	if len(services) == 1 {
-		return services[0]
-	}
-	return nil
 }

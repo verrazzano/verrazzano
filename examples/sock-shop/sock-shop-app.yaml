@@ -22,8 +22,6 @@ spec:
                 - paths:
                     - path: "/carts"
                       pathType: Prefix
-                  destination:
-                    host: carts
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: MetricsTrait
@@ -43,8 +41,6 @@ spec:
                 - paths:
                     - path: "/catalogue"
                       pathType: Prefix
-                  destination:
-                    host: catalogue
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: MetricsTrait
@@ -64,8 +60,6 @@ spec:
                 - paths:
                     - path: "/orders"
                       pathType: Prefix
-                  destination:
-                    host: orders
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: MetricsTrait
@@ -85,8 +79,6 @@ spec:
                 - paths:
                     - path: "/payment"
                       pathType: Prefix
-                  destination:
-                    host: payment
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: MetricsTrait
@@ -106,8 +98,6 @@ spec:
                 - paths:
                     - path: "/shipping"
                       pathType: Prefix
-                  destination:
-                    host: shipping
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: MetricsTrait
@@ -135,8 +125,6 @@ spec:
                       pathType: Prefix
                     - path: "/cards"
                       pathType: Prefix
-                  destination:
-                    host: user
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: MetricsTrait
