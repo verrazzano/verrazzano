@@ -6,9 +6,6 @@ kind: ApplicationConfiguration
 metadata:
   name: todo-appconf
   namespace: console-ingress
-  annotations:
-    version: v1.0.0
-    description: "ToDo List example application"
 spec:
   components:
     - componentName: todo-domain
@@ -22,7 +19,7 @@ spec:
                     - path: "/todo"
                       pathType: Prefix
                   destination:
-                    host: tododomain-adminserver.todo-list.svc.cluster.local
+                    host: tododomain-adminserver.console-ingress.svc.cluster.local
                     port: 7001
                 - paths:
                     - path: "/console"
