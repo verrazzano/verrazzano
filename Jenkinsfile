@@ -255,6 +255,9 @@ pipeline {
                     make integ-test CLUSTER_DUMP_LOCATION=${WORKSPACE}/platform-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     ../build/copy-junit-output.sh ${WORKSPACE}
                     cd ${GO_REPO_PATH}/verrazzano/application-operator
+                    make cleanup-cluster
+                    make create-cluster KIND_CONFIG="kind-config-ci.yaml"
+                    ../ci/scripts/setup_kind_for_jenkins.sh
                     make integ-test DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     ../build/copy-junit-output.sh ${WORKSPACE}
                 """
@@ -316,6 +319,7 @@ pipeline {
                             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
                             echo "Create Kind cluster"
                             cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                            make cleanup-cluster
                             make create-cluster KIND_CONFIG="kind-config-ci.yaml"
                             ../ci/scripts/setup_kind_for_jenkins.sh
 
