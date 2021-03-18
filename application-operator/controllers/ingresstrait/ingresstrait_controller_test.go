@@ -2315,6 +2315,7 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 	reconciler := newIngressTraitReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 	assert.Error(err)
+	assert.Equal(false, result.Requeue, "Expected no requeue as error expected.")
 
 	gw := istioclient.Gateway{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)
