@@ -1,15 +1,15 @@
-# Multi-Cluster Examples
+# Multicluster Examples
 
-This repository contains examples of how to use the Verrazzano multi-cluster feature using different approaches.
+This repository contains examples of how to use the Verrazzano multicluster feature using different approaches.
 
 | Example | Description |
 |-------------|-------------|
-| [hello-helidon](hello-helidon/) | Hello World Helidon example deployed to a multi-cluster environment. |
+| [hello-helidon](hello-helidon/) | Hello World Helidon example deployed to a multicluster environment. |
 
 **NOTE:** All files and paths in this document are relative to
-`<VERRAZZANO_HOME>/examples/multi-cluster`.
+`<VERRAZZANO_HOME>/examples/multicluster`.
 
-## Multi-Cluster Installation
+## Multicluster Installation
 
 This section is common to the examples.
 

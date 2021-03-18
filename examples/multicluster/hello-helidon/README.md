@@ -1,18 +1,18 @@
-# Multi-Cluster Hello World Helidon
+# Multicluster Hello World Helidon
 
-The Hello World Helidon example is a Helidon-based service that returns a "hello world" response when invoked. The example application is specified using Open Application Model (OAM) component and application configuration YAML files, and then deployed by applying those files.  This example shows how to deploy the Hello World Helidon application in a multi-cluster environment.
+The Hello World Helidon example is a Helidon-based service that returns a "hello world" response when invoked. The example application is specified using Open Application Model (OAM) component and application configuration YAML files, and then deployed by applying those files.  This example shows how to deploy the Hello World Helidon application in a multicluster environment.
 
 ## Prerequisites
 
-Follow the [multi-cluster installation instructions](../README.md/#multi-cluster-installation) to configure an admin cluster and one managed cluster.
+Follow the [multicluster installation instructions](../README.md/#multicluster-installation) to configure an admin cluster and one managed cluster.
 
 Follow the [register managed cluster](../README.md/#register-managed-cluster) to register the managed cluster.
 
 The Hello World Helidon application deployment artifacts are contained in the Verrazzano project located at
-`<VERRAZZANO_HOME>/examples/multi-cluster/hello-helidon`, where `<VERRAZZANO_HOME>` is the root of the Verrazzano project.
+`<VERRAZZANO_HOME>/examples/multicluster/hello-helidon`, where `<VERRAZZANO_HOME>` is the root of the Verrazzano project.
 
 **NOTE:** All files and paths in this document are relative to
-`<VERRAZZANO_HOME>/examples/multi-cluster/hello-helidon`.
+`<VERRAZZANO_HOME>/examples/multicluster/hello-helidon`.
 
 ## Create the Application Namespace
 
@@ -23,7 +23,7 @@ The Hello World Helidon application deployment artifacts are contained in the Ve
 
 ## Deploy the Hello World Helidon application
 
-1. Apply the `hello-helidon` multi-cluster resources to deploy the application.  Each of the multi-cluster resources is an envelope that contains the OAM resource to and list of clusters to deploy to.
+1. Apply the `hello-helidon` multicluster resources to deploy the application.  Each of the multicluster resources is an envelope that contains the OAM resource to and list of clusters to deploy to.
    ```
    KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f mc-hello-helidon-comp.yaml
    KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f mc-hello-helidon-app.yaml
@@ -47,7 +47,7 @@ Following the [instructions](../../hello-helidon/README.md/#troubleshooting) for
    $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get namespace hello-helidon
    ```
 
-1. Verify that the multi-cluster resources for the application all exist.
+1. Verify that the multicluster resources for the application all exist.
    ```
    $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get MultiClusterComponent -n hello-helidon
    $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get MultiClusterApplicationConfiguration -n hello-helidon
