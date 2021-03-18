@@ -112,7 +112,7 @@ func podContainerIssues(log *zap.SugaredLogger, clusterRoot string, podFile stri
 		for _, initContainerStatus := range pod.Status.InitContainerStatuses {
 			if initContainerStatus.State.Waiting != nil {
 				if initContainerStatus.State.Waiting.Reason == "ImagePullBackOff" {
-					messages := make(StringSlice, 1, 1)
+					messages := make(StringSlice, 1)
 					messages[0] = fmt.Sprintf("Namespace %s, Pod %s, InitContainer %s, Message %s",
 						pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, initContainerStatus.Name, initContainerStatus.State.Waiting.Message)
 					messages.addMessages(drillIntoEventsForImagePullIssue(log, pod, initContainerStatus.Image, podEvents))
@@ -131,7 +131,7 @@ func podContainerIssues(log *zap.SugaredLogger, clusterRoot string, podFile stri
 		for _, containerStatus := range pod.Status.ContainerStatuses {
 			if containerStatus.State.Waiting != nil {
 				if containerStatus.State.Waiting.Reason == "ImagePullBackOff" {
-					messages := make(StringSlice, 1, 1)
+					messages := make(StringSlice, 1)
 					messages[0] = fmt.Sprintf("Namespace %s, Pod %s, Container %s, Message %s",
 						pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, containerStatus.Name, containerStatus.State.Waiting.Message)
 					messages.addMessages(drillIntoEventsForImagePullIssue(log, pod, containerStatus.Image, podEvents))
@@ -153,7 +153,7 @@ func podStatusConditionIssues(log *zap.SugaredLogger, clusterRoot string, podFil
 	log.Debugf("MemoryIssues called for %s", clusterRoot)
 
 	if len(pod.Status.Conditions) > 0 {
-		messages := make([]string, 0, 0)
+		messages := make([]string, 0)
 		for _, condition := range pod.Status.Conditions {
 			if strings.Contains(condition.Message, "Insufficient memory") {
 				messages = append(messages, fmt.Sprintf("Namespace %s, Pod %s, Status %s, Reason %s, Message %s",
@@ -302,13 +302,12 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 			}
 		}
 	}
-	supportingData := make([]report.SupportData, 1, 1)
+	supportingData := make([]report.SupportData, 1)
 	supportingData[0] = report.SupportData{
 		Messages:    messages,
 		TextMatches: matches,
 	}
 	report.ContributeIssue(log, report.NewKnownIssueSupportingData(report.PodProblemsNotReported, clusterRoot, supportingData))
-	return
 }
 
 func getPodListIfPresent(path string) (podList *corev1.PodList) {
@@ -328,5 +327,4 @@ func putPodListIfNotPresent(path string, podList *corev1.PodList) {
 		podListMap[path] = podList
 	}
 	podCacheMutex.Unlock()
-	return
 }

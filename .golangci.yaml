@@ -7,5 +7,6 @@ linters:
     - ineffassign
     - gofmt
     - golint
+    - gosimple
   disable-all: true
   fast: true

@@ -217,8 +217,7 @@ func (f *Fluentd) createFluentdConfigMap(namespace string) *corev1.ConfigMap {
 			Namespace: namespace,
 		},
 		Data: func() map[string]string {
-			var data map[string]string
-			data = make(map[string]string)
+			var data = make(map[string]string)
 			data[fluentdConfKey] = f.ParseRules
 			return data
 		}(),

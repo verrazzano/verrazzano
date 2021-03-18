@@ -85,5 +85,4 @@ func putEventListIfNotPresent(path string, eventList *corev1.EventList) {
 		eventListMap[path] = eventList
 	}
 	eventCacheMutex.Unlock()
-	return
 }
