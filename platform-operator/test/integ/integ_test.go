@@ -9,6 +9,7 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	vzclusters "github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/platform-operator/test/integ/k8s"
@@ -35,6 +36,32 @@ var _ = ginkgo.BeforeSuite(func() {
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Error creating Kubernetes client to access Verrazzano API objects: %v", err))
 	}
+
+	// Platform operator pod is eventually running
+	isPodRunningYet := func() bool {
+		return K8sClient.IsPodRunning(platformOperator, installNamespace)
+	}
+	gomega.Eventually(isPodRunningYet, "2m", "5s").Should(gomega.BeTrue(),
+		"The verrazzano-platform-operator pod should be in the Running state")
+
+	// Create multi-cluster namespace
+	if !K8sClient.DoesNamespaceExist(constants.VerrazzanoMultiClusterNamespace) {
+		err = K8sClient.EnsureNamespace(constants.VerrazzanoMultiClusterNamespace)
+		gomega.Expect(err).To(gomega.BeNil())
+	}
+
+	// Create verrazzano-system namespace
+	if !K8sClient.DoesNamespaceExist(constants.VerrazzanoSystemNamespace) {
+		err = K8sClient.EnsureNamespace(constants.VerrazzanoSystemNamespace)
+		gomega.Expect(err).To(gomega.BeNil())
+	}
+
+	// Create a Verrazzano resource that has status install completed
+	semver, err := v1alpha1.GetCurrentChartVersion()
+	gomega.Expect(err).To(gomega.BeNil())
+	gomega.Expect(semver).NotTo(gomega.BeNil())
+	_, stderr := util.Kubectl("apply -f testdata/verrazzano_install_completed.yaml")
+	gomega.Expect(stderr).To(gomega.Equal(""))
 })
 
 var _ = ginkgo.AfterSuite(func() {
@@ -90,21 +117,6 @@ var _ = ginkgo.Describe("Custom Resource Definition for verrazzano install", fun
 })
 
 var _ = ginkgo.Describe("Testing VMC creation and auto secret generation", func() {
-	ginkgo.It("Platform operator pod is eventually running", func() {
-		isPodRunningYet := func() bool {
-			return K8sClient.IsPodRunning(platformOperator, installNamespace)
-		}
-		gomega.Eventually(isPodRunningYet, "2m", "5s").Should(gomega.BeTrue(),
-			"The verrazzano-platform-operator pod should be in the Running state")
-	})
-	ginkgo.It("Create multi-cluster namespace ", func() {
-		err := K8sClient.EnsureNamespace(constants.VerrazzanoMultiClusterNamespace)
-		gomega.Expect(err).To(gomega.BeNil())
-	})
-	ginkgo.It("Create verrazzano-system namespace ", func() {
-		err := K8sClient.EnsureNamespace(constants.VerrazzanoSystemNamespace)
-		gomega.Expect(err).To(gomega.BeNil())
-	})
 	ginkgo.It("Missing secret name validation ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/vmc_missing_secret_name.yaml")
 		gomega.Expect(stderr).To(gomega.ContainSubstring("missing required field \"prometheusSecret\""))
@@ -186,6 +198,26 @@ var _ = ginkgo.Describe("Testing VMC creation and auto secret generation", func(
 		verifyAgentSecret()
 		verifyRegistrationSecret()
 		verifyManifestSecret()
+	})
+	ginkgo.It("Cleanup test", func() {
+		ginkgo.It("VerrazzanoManagedCluster can be deleted ", func() {
+			_, stderr := util.Kubectl("delete -f testdata/vmc_sample.yaml")
+			gomega.Expect(stderr).To(gomega.Equal(""))
+		})
+		ginkgo.It("ServiceAccount deleted ", func() {
+			serviceAccountExists := func() bool {
+				return K8sClient.DoesServiceAccountExist(managedGeneratedName1, constants.VerrazzanoMultiClusterNamespace)
+			}
+			gomega.Eventually(serviceAccountExists, "30s", "5s").Should(gomega.BeFalse(),
+				"The ServiceAccount should notexist")
+		})
+		ginkgo.It("ClusterRoleBinding deleted ", func() {
+			bindingExists := func() bool {
+				return K8sClient.DoesClusterRoleBindingExist(managedGeneratedName1)
+			}
+			gomega.Eventually(bindingExists, "30s", "5s").Should(gomega.BeFalse(),
+				"The ClusterRoleBinding should not exist")
+		})
 	})
 })
 
