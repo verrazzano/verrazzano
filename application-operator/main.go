@@ -5,7 +5,6 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -30,8 +29,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
 	"github.com/verrazzano/verrazzano/application-operator/mcagent"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
+	"github.com/verrazzano/verrazzano/pkg/log"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -41,7 +39,6 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
@@ -85,7 +82,6 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&enableWebhooks, "enable-webhooks", true,
 		"Enable access-controller webhooks")
-	flag.Parse()
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
@@ -93,7 +89,7 @@ func main() {
 
 	flag.Parse()
 	kzap.UseFlagOptions(&opts)
-	InitLogs(opts)
+	log.InitLogs(opts)
 
 	setupLog := ctrl.Log.WithName("setup")
 
@@ -209,7 +205,8 @@ func main() {
 
 		clientSet, err := istioversionedclient.NewForConfig(restConfig)
 		if err != nil {
-			log.Fatalf("Failed to create istio client: %s", err)
+			setupLog.Error(err, "Failed to create istio client")
+			os.Exit(1)
 		}
 
 		// Register a webhook that listens on pods that are running in a istio enabled namespace.
@@ -321,47 +318,11 @@ func main() {
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("Starting agent for syncing multi-cluster objects")
-	go mcagent.StartAgent(mgr.GetClient(), agentChannel, ctrl.Log.WithName("multi-cluster agent"))
+	go mcagent.StartAgent(mgr.GetClient(), agentChannel, ctrl.Log.WithName("multi-cluster").WithName("agent"))
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
-}
-
-// InitLogs initializes logs with Time and Global Level of Logs set at Info
-func InitLogs(opts kzap.Options) {
-	opts.ZapOpts = append(opts.ZapOpts, zap.AddCaller())
-	var config zap.Config
-	if opts.Development {
-		config = zap.NewDevelopmentConfig()
-	} else {
-		config = zap.NewProductionConfig()
-	}
-	if opts.Level != nil {
-		config.Level = opts.Level.(zap.AtomicLevel)
-	} else {
-		config.Level.SetLevel(zapcore.InfoLevel)
-	}
-	config.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
-	config.EncoderConfig.TimeKey = "@timestamp"
-	config.EncoderConfig.MessageKey = "message"
-	logger, err := config.Build()
-	if err != nil {
-		zap.S().Errorf("Error creating logger %v", err)
-	} else {
-		zap.ReplaceGlobals(logger)
-	}
-
-	// Use a zap logr.Logger implementation. If none of the zap
-	// flags are configured (or if the zap flag set is not being
-	// used), this defaults to a production zap logger.
-	//
-	// The logger instantiated here can be changed to any logger
-	// implementing the logr.Logger interface. This logger will
-	// be propagated through the whole operator, generating
-	// uniform and structured logs.
-	encoder := zapcore.NewJSONEncoder(config.EncoderConfig)
-	logf.SetLogger(kzap.New(kzap.UseFlagOptions(&opts), kzap.Encoder(encoder)))
 }

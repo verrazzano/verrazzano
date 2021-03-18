@@ -56,7 +56,7 @@ func FetchWorkloadFromTrait(ctx context.Context, cli client.Reader, log logr.Log
 		// this is one of our wrapper workloads so we need to unwrap and pull out the real workload
 		workload, err = FetchContainedWorkload(ctx, cli, workload)
 		if err != nil {
-			log.Error(err, "Failed to fetch contained workload", "workload", workload)
+			log.Error(err, "Failed to fetch contained workload", "workload", workloadKey)
 			return nil, err
 		}
 	}
