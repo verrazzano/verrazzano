@@ -58,15 +58,18 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, client.IgnoreNotFound(err)
 	}
 
+	opResult := controllerutil.OperationResultNone
 	if vp.Namespace == constants.VerrazzanoMultiClusterNamespace {
 		err = r.createOrUpdateNamespaces(ctx, vp, logger)
+		if err != nil {
+			// always use OperationResultCreated since we don't really know what happened to individual NS
+			opResult = controllerutil.OperationResultCreated
+		}
 	} else {
 		err = fmt.Errorf("resources of type VerrazzanoProject must be created in the %s namespace", constants.VerrazzanoMultiClusterNamespace)
 	}
 
-	// always use OperationResultCreated since we don't really know what happened to individual NS
-	// The operation result is relevant only if err is nil
-	return r.updateStatus(ctx, &vp, controllerutil.OperationResultCreated, err)
+	return r.updateStatus(ctx, &vp, opResult, err)
 }
 
 func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
