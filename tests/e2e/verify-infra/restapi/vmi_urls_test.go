@@ -40,19 +40,19 @@ var _ = ginkgo.Describe("vmi urls test", func() {
 			sysVmiHTTPClient := pkg.GetSystemVmiHTTPClient()
 
 			if isEsEnabled {
-				gomega.Expect(verifySystemVMIComponent(sysVmiHTTPClient, vmiCredentials, "vmi-system-es-ingest", "https://elasticsearch.vmi.system")).To(gomega.BeTrue(), fmt.Sprintf("Unable to access ElasticSearch VMI url"))
+				gomega.Expect(verifySystemVMIComponent(sysVmiHTTPClient, vmiCredentials, "vmi-system-es-ingest", "https://elasticsearch.vmi.system")).To(gomega.BeTrue(), "Unable to access ElasticSearch VMI url")
 			}
 
 			if isKibanaEnabled {
-				gomega.Expect(verifySystemVMIComponent(sysVmiHTTPClient, vmiCredentials, "vmi-system-kibana", "https://kibana.vmi.system")).To(gomega.BeTrue(), fmt.Sprintf("Unable to access Kibana VMI url"))
+				gomega.Expect(verifySystemVMIComponent(sysVmiHTTPClient, vmiCredentials, "vmi-system-kibana", "https://kibana.vmi.system")).To(gomega.BeTrue(), "Unable to access Kibana VMI url")
 			}
 
 			if isPrometheusEnabled {
-				gomega.Expect(verifySystemVMIComponent(sysVmiHTTPClient, vmiCredentials, "vmi-system-prometheus", "https://prometheus.vmi.system")).To(gomega.BeTrue(), fmt.Sprintf("Unable to access Prometheus VMI url"))
+				gomega.Expect(verifySystemVMIComponent(sysVmiHTTPClient, vmiCredentials, "vmi-system-prometheus", "https://prometheus.vmi.system")).To(gomega.BeTrue(), "Unable to access Prometheus VMI url")
 			}
 
 			if isGrafanaEnabled {
-				gomega.Expect(verifySystemVMIComponent(sysVmiHTTPClient, vmiCredentials, "vmi-system-grafana", "https://grafana.vmi.system")).To(gomega.BeTrue(), fmt.Sprintf("Unable to access Garafana VMI url"))
+				gomega.Expect(verifySystemVMIComponent(sysVmiHTTPClient, vmiCredentials, "vmi-system-grafana", "https://grafana.vmi.system")).To(gomega.BeTrue(), "Unable to access Garafana VMI url")
 			}
 
 		})

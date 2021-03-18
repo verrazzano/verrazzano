@@ -1,0 +1,168 @@
+{
+    "kind": "PodList",
+    "apiVersion": "v1",
+    "metadata": {
+        "selfLink": "/api/v1/namespaces/default/pods",
+        "resourceVersion": "17490"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "verrazzano-uninstall-my-verrazzano-tw7s7",
+                "generateName": "verrazzano-uninstall-my-verrazzano-",
+                "namespace": "default",
+                "selfLink": "/api/v1/namespaces/default/pods/verrazzano-uninstall-my-verrazzano-tw7s7",
+                "uid": "27e9fced-49dc-407c-82b6-518b9429d8de",
+                "resourceVersion": "17368",
+                "creationTimestamp": "2021-02-03T19:28:53Z",
+                "labels": {
+                    "controller-uid": "ea08c461-cd01-40fc-89b9-e77f5c58aa48",
+                    "job-name": "verrazzano-uninstall-my-verrazzano"
+                },
+                "ownerReferences": [
+                    {
+                        "apiVersion": "batch/v1",
+                        "kind": "Job",
+                        "name": "verrazzano-uninstall-my-verrazzano",
+                        "uid": "ea08c461-cd01-40fc-89b9-e77f5c58aa48",
+                        "controller": true,
+                        "blockOwnerDeletion": true
+                    }
+                ]
+            },
+            "spec": {
+                "volumes": [
+                    {
+                        "name": "verrazzano-install-my-verrazzano-token-8xdjm",
+                        "secret": {
+                            "secretName": "verrazzano-install-my-verrazzano-token-8xdjm",
+                            "defaultMode": 420
+                        }
+                    }
+                ],
+                "containers": [
+                    {
+                        "name": "uninstall",
+                        "image": "REDACTED-FOR-TEST",
+                        "env": [
+                            {
+                                "name": "MODE",
+                                "value": "UNINSTALL"
+                            },
+                            {
+                                "name": "CLUSTER_TYPE",
+                                "value": "OKE"
+                            },
+                            {
+                                "name": "VERRAZZANO_KUBECONFIG",
+                                "value": "/home/verrazzano/kubeconfig"
+                            },
+                            {
+                                "name": "DEBUG",
+                                "value": "1"
+                            }
+                        ],
+                        "resources": {},
+                        "volumeMounts": [
+                            {
+                                "name": "verrazzano-install-my-verrazzano-token-8xdjm",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent"
+                    }
+                ],
+                "restartPolicy": "Never",
+                "terminationGracePeriodSeconds": 30,
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "verrazzano-install-my-verrazzano",
+                "serviceAccount": "verrazzano-install-my-verrazzano",
+                "nodeName": "REDACTED-FOR-TEST",
+                "securityContext": {},
+                "schedulerName": "default-scheduler",
+                "tolerations": [
+                    {
+                        "key": "node.kubernetes.io/not-ready",
+                        "operator": "Exists",
+                        "effect": "NoExecute",
+                        "tolerationSeconds": 300
+                    },
+                    {
+                        "key": "node.kubernetes.io/unreachable",
+                        "operator": "Exists",
+                        "effect": "NoExecute",
+                        "tolerationSeconds": 300
+                    }
+                ],
+                "priority": 0,
+                "enableServiceLinks": true
+            },
+            "status": {
+                "phase": "Failed",
+                "conditions": [
+                    {
+                        "type": "Initialized",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2021-02-03T19:28:53Z"
+                    },
+                    {
+                        "type": "Ready",
+                        "status": "False",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2021-02-03T19:30:28Z",
+                        "reason": "ContainersNotReady",
+                        "message": "containers with unready status: [uninstall]"
+                    },
+                    {
+                        "type": "ContainersReady",
+                        "status": "False",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2021-02-03T19:30:28Z",
+                        "reason": "ContainersNotReady",
+                        "message": "containers with unready status: [uninstall]"
+                    },
+                    {
+                        "type": "PodScheduled",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2021-02-03T19:28:53Z"
+                    }
+                ],
+                "hostIP": "REDACTED-FOR-TEST",
+                "podIP": "10.244.0.143",
+                "podIPs": [
+                    {
+                        "ip": "10.244.0.143"
+                    }
+                ],
+                "startTime": "2021-02-03T19:28:53Z",
+                "containerStatuses": [
+                    {
+                        "name": "uninstall",
+                        "state": {
+                            "terminated": {
+                                "exitCode": 1,
+                                "reason": "Error",
+                                "startedAt": "2021-02-03T19:28:55Z",
+                                "finishedAt": "2021-02-03T19:30:27Z",
+                                "containerID": "REDACTED-FOR-TEST"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": false,
+                        "restartCount": 0,
+                        "image": "REDACTED-FOR-TEST",
+                        "imageID": "REDACTED-FOR-TEST",
+                        "containerID": "REDACTED-FOR-TEST",
+                        "started": false
+                    }
+                ],
+                "qosClass": "BestEffort"
+            }
+        }
+    ]
+}

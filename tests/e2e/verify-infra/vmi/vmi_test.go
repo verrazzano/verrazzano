@@ -262,10 +262,7 @@ func elasticIndicesCreated() bool {
 }
 
 func elasticConnected() bool {
-	if elastic.Connect() {
-		return true
-	}
-	return false
+	return elastic.Connect()
 }
 
 func elasticTLSSecret() bool {

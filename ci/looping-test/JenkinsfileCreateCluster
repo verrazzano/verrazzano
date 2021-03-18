@@ -141,7 +141,7 @@ pipeline {
                 }
             }
         }
-		
+
         stage('Create Cluster') {
             steps {
                 sh "TF_VAR_label_prefix=loop-${env.BUILD_NUMBER} TF_VAR_state_name=loop-${env.BUILD_NUMBER}-master ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
@@ -179,6 +179,6 @@ pipeline {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -a
+        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
     """
 }
