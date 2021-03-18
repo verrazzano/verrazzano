@@ -113,11 +113,7 @@ var knownIssues = map[string]Issue{
 
 // NewKnownIssueSupportingData adds a known issue
 func NewKnownIssueSupportingData(issueType string, source string, supportingData []SupportData) (issue Issue) {
-	knownIssue, ok := knownIssues[issueType]
-	if !ok {
-		panic("Not a known issue, add a new known issue or create a custom issue")
-	}
-	issue = knownIssue
+	issue = getKnownIssueOrDie(issueType)
 	issue.Source = source
 	issue.SupportingData = supportingData
 	return issue
@@ -126,7 +122,6 @@ func NewKnownIssueSupportingData(issueType string, source string, supportingData
 // NewKnownIssueMessagesFiles adds a known issue
 func NewKnownIssueMessagesFiles(issueType string, source string, messages []string, fileNames []string) (issue Issue) {
 	issue = getKnownIssueOrDie(issueType)
-	issue = knownIssues[issueType]
 	issue.Source = source
 	issue.SupportingData = make([]SupportData, 1, 1)
 	issue.SupportingData[0] = SupportData{
