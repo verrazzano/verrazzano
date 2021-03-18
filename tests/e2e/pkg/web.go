@@ -33,6 +33,7 @@ const (
 	clientID               = "admin-cli"
 	realm                  = "verrazzano-system"
 	verrazzanoAPIURLPrefix = "20210501"
+	teapot                 = 418
 )
 
 // HTTPResponse represents an HTTP response
@@ -176,11 +177,13 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		Log(Error, err.Error())
-		// do not call Fail() here - this is not necessarily a permanent failure and
+		// Do not call Fail() here - this is not necessarily a permanent failure and
 		// we should not call Fail() inside a func that is called from an Eventually()
 		// a later retry may be successful - for example the endpoint may not be available
-		// since the pod has not reached ready state yet
-		return resp.StatusCode, ""
+		// since the pod has not reached ready state yet.
+		// We cannot return status code, because the resp is likely nil, so instead
+		// return a valid HTTP status code which nonetheless communicates some kind of failure :)
+		return teapot, ""
 	}
 	defer resp.Body.Close()
 	html, err := ioutil.ReadAll(resp.Body)

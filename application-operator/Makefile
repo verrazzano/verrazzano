@@ -110,11 +110,6 @@ go-build-linux:
 go-install:
 	$(GO) install
 
-.PHONY: go-mod
-go-mod:
-	$(GO) mod tidy
-	$(GO) mod vendor
-
 #
 # Docker-related tasks
 #

@@ -93,7 +93,7 @@ var _ = ginkgo.Describe("VMI", func() {
 			return pkg.PodsRunning("verrazzano-system", []string{"vmi-system-es-master"})
 		}
 		gomega.Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "pods did not all show up")
-		gomega.Eventually(elasticTlsSecret, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "tls-secret did not show up")
+		gomega.Eventually(elasticTLSSecret, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "tls-secret did not show up")
 		//gomega.Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "certificate did not show up")
 		gomega.Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "ingress did not show up")
 		assertOidcIngress("vmi-system-es-ingest")
@@ -192,19 +192,19 @@ func assertIngressURL(key string) {
 }
 
 func assertURLAccessibleAndAuthorized(url string) bool {
-	vmiHttpClient := pkg.GetSystemVmiHTTPClient()
-	return pkg.AssertURLAccessibleAndAuthorized(vmiHttpClient, url, creds)
+	vmiHTTPClient := pkg.GetSystemVmiHTTPClient()
+	return pkg.AssertURLAccessibleAndAuthorized(vmiHTTPClient, url, creds)
 }
 
 func assertBearerAuthorized(url string) bool {
-	vmiHttpClient := pkg.GetSystemVmiHTTPClient()
+	vmiHTTPClient := pkg.GetSystemVmiHTTPClient()
 	api := pkg.GetAPIEndpoint()
 	req, _ := retryablehttp.NewRequest("GET", url, nil)
 	if api.AccessToken != "" {
 		bearer := fmt.Sprintf("Bearer %v", api.AccessToken)
 		req.Header.Set("Authorization", bearer)
 	}
-	resp, err := vmiHttpClient.Do(req)
+	resp, err := vmiHTTPClient.Do(req)
 	if err != nil {
 		return false
 	}
@@ -214,8 +214,8 @@ func assertBearerAuthorized(url string) bool {
 }
 
 func assertURLAccessibleAndUnauthorized(url string) bool {
-	vmiHttpClient := pkg.GetSystemVmiHTTPClient()
-	resp, err := vmiHttpClient.Get(url)
+	vmiHTTPClient := pkg.GetSystemVmiHTTPClient()
+	resp, err := vmiHTTPClient.Get(url)
 	if err != nil {
 		return false
 	}
@@ -224,12 +224,12 @@ func assertURLAccessibleAndUnauthorized(url string) bool {
 }
 
 func assertOauthURLAccessibleAndUnauthorized(url string) bool {
-	vmiHttpClient := pkg.GetSystemVmiHTTPClient()
-	vmiHttpClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+	vmiHTTPClient := pkg.GetSystemVmiHTTPClient()
+	vmiHTTPClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		pkg.Log(pkg.Info, fmt.Sprintf("oidcUnauthorized req: %v \nvia: %v\n", req, via))
 		return http.ErrUseLastResponse
 	}
-	resp, err := vmiHttpClient.Get(url)
+	resp, err := vmiHTTPClient.Get(url)
 	if err != nil || resp == nil {
 		return false
 	}
@@ -264,12 +264,11 @@ func elasticIndicesCreated() bool {
 func elasticConnected() bool {
 	if elastic.Connect() {
 		return true
-	} else {
-		return false
 	}
+	return false
 }
 
-func elasticTlsSecret() bool {
+func elasticTLSSecret() bool {
 	return elastic.CheckTLSSecret()
 }
 
@@ -284,15 +283,18 @@ func elasticIngress() bool {
 func assertDashboard(url string) {
 	searchURL := fmt.Sprintf("%sapi/search?query=%s", ingressURLs["vmi-system-grafana"], url)
 	fmt.Println("Grafana URL in browseGrafanaDashboard ", searchURL)
-	vmiHttpClient := pkg.GetSystemVmiHTTPClient()
-	vmiHttpClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+	vmiHTTPClient := pkg.GetSystemVmiHTTPClient()
+	vmiHTTPClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
 
 	searchDashboard := func() bool {
 		req, err := retryablehttp.NewRequest("GET", searchURL, nil)
+		if err != nil {
+			return false
+		}
 		req.SetBasicAuth(creds.Username, creds.Password)
-		resp, err := vmiHttpClient.Do(req)
+		resp, err := vmiHTTPClient.Do(req)
 		if err != nil {
 			return false
 		}
