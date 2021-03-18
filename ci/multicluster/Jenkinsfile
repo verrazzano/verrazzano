@@ -349,6 +349,7 @@ pipeline {
                 stage ('Verify Register') {
                     environment {
                         ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+                        TEST_KUBECONFIG="${ADMIN_KUBECONFIG}"
                         MANAGED_CLUSTER_NAME="managed1"
                         MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
                     }
@@ -359,6 +360,7 @@ pipeline {
                                 ./tests/e2e/config/scripts/register_managed_cluster.sh
                             """
                         }
+                        runGinkgoRandomize('multicluster/verify-register')
                     }
                 }
             }
