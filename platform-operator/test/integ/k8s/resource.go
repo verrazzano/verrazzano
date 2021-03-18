@@ -5,12 +5,15 @@ package k8s
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/onsi/ginkgo"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
 )
 
 // DoesCRDExist returns true if the given CRD exists
@@ -139,4 +142,25 @@ func procExistsStatus(err error, msg string) bool {
 // GetSecret gets the specified secret
 func (c Client) GetSecret(name string, namespace string) (*corev1.Secret, error) {
 	return c.Clientset.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// GetVMC gets the specified VMC
+func (c Client) GetVMC(name string, namespace string) (*v1alpha1.VerrazzanoManagedCluster, error) {
+	bytes, err := c.getRaw("/apis/clusters.verrazzano.io/v1alpha1", "verrazzanomanagedclusters", namespace, name)
+	if err != nil {
+		return nil, err
+	}
+	var vmc v1alpha1.VerrazzanoManagedCluster
+	err = json.Unmarshal(bytes, &vmc)
+	return &vmc, err
+}
+
+func (c Client) getRaw(absPath, resource, namespace, name string) ([]byte, error) {
+	return c.Clientset.RESTClient().
+		Get().
+		AbsPath(absPath).
+		Namespace(namespace).
+		Resource(resource).
+		Name(name).
+		DoRaw(context.TODO())
 }
