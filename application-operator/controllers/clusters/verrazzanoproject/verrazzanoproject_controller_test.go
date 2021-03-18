@@ -101,7 +101,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 func TestReconcileVerrazzanoProject(t *testing.T) {
 	const existingVP = "existingVP"
 
-	/*adminSubjects := []rbacv1.Subject{
+	adminSubjects := []rbacv1.Subject{
 		{Kind: "Group", Name: "project-admin-test-group"},
 		{Kind: "User", Name: "project-admin-test-user"},
 	}
@@ -109,7 +109,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 	monitorSubjects := []rbacv1.Subject{
 		{Kind: "Group", Name: "project-monitor-test-group"},
 		{Kind: "User", Name: "project-monitor-test-user"},
-	}*/
+	}
 
 	type fields struct {
 		vpNamespace     string
@@ -123,7 +123,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 		fields  fields
 		wantErr bool
 	}{
-		/*{
+		{
 			"Update namespace",
 			fields{
 				constants.VerrazzanoMultiClusterNamespace,
@@ -166,7 +166,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 				monitorSubjects,
 			},
 			false,
-		},*/
+		},
 		{
 			fmt.Sprintf("VP not in %s namespace", constants.VerrazzanoMultiClusterNamespace),
 			fields{
@@ -178,7 +178,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 			},
 			false,
 		},
-		/*{
+		{
 			"VP not found",
 			fields{
 				constants.VerrazzanoMultiClusterNamespace,
@@ -188,7 +188,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 				nil,
 			},
 			false,
-		},*/
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
