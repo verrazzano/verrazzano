@@ -45,10 +45,17 @@ Complete the following sections prior to running the multicluster examples.
     EOF
     ```
 
-1. Obtain the credentials for scraping metrics from the managed cluster.  The script will output the credentials to a file named `managed1.yaml` in the current folder.
+1. Obtain the credentials for scraping metrics from the managed cluster.  Follow the instructions below to output the credentials to a file named `managed1.yaml` in the current folder.
    ```
    $ export KUBECONFIG=$KUBECONFIG_MANAGED1
-   $ ../../../platform-operator/scripts/create_managed_cluster_secret.sh -n managed1 -o .
+   $ echo "prometheus:" > managed1.yaml
+   $ echo "  authpasswd: $(KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get secret verrazzano -n verrazzano-system -o jsonpath='{.data.password}' | base64 --decode)" >> managed1.yaml
+   $ echo "  host: $(KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get ing vmi-system-prometheus -n verrazzano-system -o jsonpath='{.spec.tls[0].hosts[0]}')" >> managed1.yaml
+   
+   # Perform the following commands if the result of this command is not null:
+   #   KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl -n verrazzano-system get secret system-tls -o jsonpath='{.data.ca\.crt}'
+   $ echo "  cacrt: |" >> managed1.yaml
+   $ echo -e "$(KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl -n verrazzano-system get secret system-tls -o jsonpath='{.data.ca\.crt}' | base64 --decode)" | sed 's/^/    /' >> managed1.yaml
    ```
 
 1. Create a secret on the admin cluster that contains the credentials for scraping metrics from the managed cluster.  The file `managed1.yaml` that was created in the previous step provides input to this step.
