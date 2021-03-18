@@ -56,7 +56,7 @@ func RunCommand(commandLine string) (string, string) {
 	if errStdout != nil || errStderr != nil {
 		ginkgo.Fail("failed to capture stdout or stderr")
 	}
-	outStr, errStr := string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
+	outStr, errStr := stdoutBuf.String(), stderrBuf.String()
 	return outStr, errStr
 }
 

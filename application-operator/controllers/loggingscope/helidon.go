@@ -164,9 +164,7 @@ func (h *HelidonHandler) ApplyToDeployment(ctx context.Context, workload vzapi.Q
 		return nil, err
 	}
 	volumes := CreateFluentdHostPathVolumes()
-	for _, volume := range volumes {
-		deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volume)
-	}
+	deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volumes...)
 	deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdConfigMapVolume(workload.Name))
 	deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdSecretVolume(scope.Spec.SecretName))
 	fluentdContainer := CreateFluentdContainer(scope.Spec, workload.Namespace, workload.Name, clusters.GetClusterName(context.TODO(), h.Client))
@@ -245,8 +243,7 @@ func CreateFluentdConfigMap(namespace, name, fluentdConfig string) *kcore.Config
 			Namespace: namespace,
 		},
 		Data: func() map[string]string {
-			var data map[string]string
-			data = make(map[string]string)
+			var data = make(map[string]string)
 			data[fluentdConfKey] = fluentdConfig
 			return data
 		}(),
