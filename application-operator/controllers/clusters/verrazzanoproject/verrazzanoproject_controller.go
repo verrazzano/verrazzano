@@ -61,7 +61,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	opResult := controllerutil.OperationResultNone
 	if vp.Namespace == constants.VerrazzanoMultiClusterNamespace {
 		err = r.createOrUpdateNamespaces(ctx, vp, logger)
-		if err != nil {
+		if err == nil {
 			// always use OperationResultCreated since we don't really know what happened to individual NS
 			opResult = controllerutil.OperationResultCreated
 		}
