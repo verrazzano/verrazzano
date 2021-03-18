@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/log"
 	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/report"
-	"strings"
 	"testing"
 )
 
@@ -39,7 +38,7 @@ func TestImagePull(t *testing.T) {
 	assert.True(t, len(reportedIssues) > 0)
 	imagePullsFound := 0
 	for _, issue := range reportedIssues {
-		if strings.Contains(issue.Summary, report.ImagePullBackOff) {
+		if issue.Type == report.ImagePullBackOff {
 			imagePullsFound++
 		}
 	}
@@ -61,7 +60,7 @@ func TestInsufficientMemory(t *testing.T) {
 	assert.True(t, len(reportedIssues) > 0)
 	issuesFound := 0
 	for _, issue := range reportedIssues {
-		if strings.Contains(issue.Summary, report.InsufficientMemory) {
+		if issue.Type == report.InsufficientMemory {
 			issuesFound++
 		}
 	}
@@ -83,7 +82,7 @@ func TestProblemPodsNotReported(t *testing.T) {
 	assert.True(t, len(reportedIssues) > 0)
 	problemPodsFound := 0
 	for _, issue := range reportedIssues {
-		if strings.Contains(issue.Summary, report.PodProblemsNotReported) {
+		if issue.Type == report.PodProblemsNotReported {
 			problemPodsFound++
 		}
 	}

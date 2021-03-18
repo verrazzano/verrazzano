@@ -283,6 +283,7 @@ func GetAllSourcesFilteredIssues(log *zap.SugaredLogger, includeInfo bool, minCo
 			filtered = append(filtered, subFiltered...)
 		}
 	}
+	reportMutex.Unlock()
 	return filtered
 }
 
