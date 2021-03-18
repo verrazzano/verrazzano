@@ -234,7 +234,7 @@ func getNodeInfo(log *zap.SugaredLogger, nodeString string) (info nodeInfo, err 
 	if len(nodeString) == 0 {
 		return info, nil
 	}
-	matchAllArray, err := regexp.Compile("[[:alnum:]]*\\[\\]")
+	matchAllArray, err := regexp.Compile(`[[:alnum:]]*\[\]`)
 	if err != nil {
 		log.Debugf("matchAllArray bad regular expression", err)
 		return info, err
@@ -247,7 +247,7 @@ func getNodeInfo(log *zap.SugaredLogger, nodeString string) (info nodeInfo, err 
 		log.Debugf("matched all array %s, returns: %v", nodeString, info)
 		return info, nil
 	}
-	matchIndexedArray, err := regexp.Compile("[[:alnum:]]*\\[[[:digit:]]*\\]")
+	matchIndexedArray, err := regexp.Compile(`[[:alnum:]]*\[[[:digit:]]*\]`)
 	if err != nil {
 		log.Debugf("matchedIndexedArray bad regular expression", err)
 		return info, err
