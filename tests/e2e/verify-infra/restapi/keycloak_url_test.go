@@ -22,11 +22,11 @@ var _ = ginkgo.Describe("keycloak url test", func() {
 	ginkgo.Context("Fetching the keycloak url using api and test ", func() {
 		ginkgo.It("Fetches keycloak url", func() {
 			ingress := api.GetIngress("keycloak", "keycloak")
-			keycloakUrl := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
-			gomega.Expect(keycloakUrl).NotTo(gomega.BeEmpty())
+			keycloakURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
+			gomega.Expect(keycloakURL).NotTo(gomega.BeEmpty())
 
 			httpClient := pkg.GetVerrazzanoHTTPClient()
-			pkg.ExpectHTTPGetOk(httpClient, keycloakUrl)
+			pkg.ExpectHTTPGetOk(httpClient, keycloakURL)
 		})
 	})
 })
