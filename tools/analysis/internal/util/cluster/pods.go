@@ -100,7 +100,7 @@ func analyzePods(log *zap.SugaredLogger, clusterRoot string, podFile string) (re
 //   those directly to the report.Contribute* helpers
 
 func podContainerIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
-	log.Debugf("PodPullIssues analysis called for cluster: %s, ns: %s, pod: %s", clusterRoot, pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+	log.Debugf("podContainerIssues analysis called for cluster: %s, ns: %s, pod: %s", clusterRoot, pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 	podEvents, err := GetEventsRelatedToPod(log, clusterRoot, pod)
 	if err != nil {
 		log.Debugf("Failed to get events related to ns: %s, pod: %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
@@ -115,7 +115,7 @@ func podContainerIssues(log *zap.SugaredLogger, clusterRoot string, podFile stri
 					messages := make(StringSlice, 1, 1)
 					messages[0] = fmt.Sprintf("Namespace %s, Pod %s, InitContainer %s, Message %s",
 						pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, initContainerStatus.Name, initContainerStatus.State.Waiting.Message)
-					messages.addMessages(drillIntoEventsForImagePullIssue(log, podEvents))
+					messages.addMessages(drillIntoEventsForImagePullIssue(log, pod, initContainerStatus.Image, podEvents))
 					files := []string{podFile}
 					issueReporter.AddKnownIssueMessagesFiles(
 						report.ImagePullBackOff,
@@ -134,7 +134,7 @@ func podContainerIssues(log *zap.SugaredLogger, clusterRoot string, podFile stri
 					messages := make(StringSlice, 1, 1)
 					messages[0] = fmt.Sprintf("Namespace %s, Pod %s, Container %s, Message %s",
 						pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, containerStatus.Name, containerStatus.State.Waiting.Message)
-					messages.addMessages(drillIntoEventsForImagePullIssue(log, podEvents))
+					messages.addMessages(drillIntoEventsForImagePullIssue(log, pod, containerStatus.Image, podEvents))
 					files := []string{podFile}
 					issueReporter.AddKnownIssueMessagesFiles(
 						report.ImagePullBackOff,
@@ -185,14 +185,29 @@ func (messages *StringSlice) addMessages(newMessages []string, err error) (errOu
 // This is WIP, initially it will report more specific cause info (like auth, timeout, etc...), but we may want
 // to have different known issue types rather than reporting in messages as the runbooks to look at may be different
 // so this is evolving...
-func drillIntoEventsForImagePullIssue(log *zap.SugaredLogger, eventList []corev1.Event) (messages []string, err error) {
+func drillIntoEventsForImagePullIssue(log *zap.SugaredLogger, pod corev1.Pod, imageName string, eventList []corev1.Event) (messages []string, err error) {
 	// This is handed the events that are associated with the Pod that has containers/initContainers that had image pull issues
 	// So it will look at what events are found, these may glean more info on the specific cause to help narrow
 	// it further
-	//	for _, event := range eventList {
+	for _, event := range eventList {
+		// TODO: Discern whether the event is relevant or not, we likely will need more info supplied in to correlate
+		// whether the event really is related to the issue being drilled into or not, but starting off just dumping out
+		// what is there first. Hoping that this can be a more general drilldown here rather than just specific to ImagePulls
+		// Ie: drill into events related to Pod/container issue.
+		// We may want to add in a "Reason" concept here as well. Ie: the issue is Image pull, and we were able to
+		// discern more about the reason that happened, so we can return back up a Reason that can be useful in the
+		// action handling to focus on the correct steps, instead of having an entirely separate issue type to handle that.
+		// (or just have a more specific issue type, but need to think about it as we are setting the basic patterns
+		// here in general). Need to think about it though as it will affect how we handle runbooks as well.
+		log.Debugf("Drilldown event reason: %s, message: %s\n", event.Reason, event.Message)
+		if event.Reason == "Failed" && strings.Contains(event.Message, imageName) {
+			// TBD: We need a better mechanism at this level than just the messages. It can add other types of supporting
+			// data to contribute as well here (related files, etc...)
+			messages = append(messages, event.Message)
+		}
 
-	//	}
-	return nil, nil
+	}
+	return messages, nil
 }
 
 // GetPodList gets a pod list

@@ -20,6 +20,7 @@ function usage {
     echo " -z tar_gz_file   Name of the compressed tar file to generate. Ie: capture.tar.gz"
     echo " -d directory     Directory to capture an expanded dump into. This does not affect a tar_gz_file if that is also specified"
     echo " -a               Call the analyzer on the captured dump and report to stdout"
+    echo " -r report_file   Call the analyzer on the captured dump and report to the file specified"
     echo " -h               Help"
     echo ""
     exit 1
@@ -32,12 +33,14 @@ kubectl >/dev/null 2>&1 || {
 
 TAR_GZ_FILE=""
 ANALYZE="FALSE"
-while getopts z:d:ha flag
+REPORT_FILE=""
+while getopts z:d:har: flag
 do
     case "${flag}" in
         z) TAR_GZ_FILE=${OPTARG};;
         d) DIRECTORY=${OPTARG};;
         a) ANALYZE="TRUE";;
+        r) REPORT_FILE=${OPTARG};;
         h) usage;;
         *) usage;;
     esac
@@ -58,6 +61,12 @@ fi
 # If a tar file output was specified and it exists already fail
 if [[ ! -z "$DIRECTORY" && -f "$DIRECTORY" ]] ; then
   echo "$DIRECTORY already exists. Aborting."
+  exit 1
+fi
+
+# If a report file output was specified and it exists already fail
+if [[ ! -z "$REPORT_FILE" && -f "$REPORT_FILE" ]] ; then
+  echo "$REPORT_FILE already exists. Aborting."
   exit 1
 fi
 
@@ -174,7 +183,11 @@ function analyze_dump() {
       local SAVE_DIR=$(pwd)
       cd $SCRIPT_DIR/../analysis
       # To enable debug, add  -zap-log-level debug
-      GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true $FULL_PATH_CAPTURE_DIR || true
+      if [ -z $REPORT_FILE ]; then
+        GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true $FULL_PATH_CAPTURE_DIR || true
+      else
+        GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true --reportFile=$REPORT_FILE $FULL_PATH_CAPTURE_DIR || true
+      fi
       cd $SAVE_DIR
     fi
   fi

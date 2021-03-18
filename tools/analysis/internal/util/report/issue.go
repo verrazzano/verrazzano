@@ -46,6 +46,7 @@ type SupportData struct {
 
 // Issue holds the information about an issue, supporting data, and actions
 type Issue struct {
+	Type          string   // Required, This identifies the type of issue. This is either a Known Issue type, or a custom type name
 	Source        string   // Required, This is the source of the analysis, It may be the root of the cluster analyzed (ie: there can be multiple)
 	Informational bool     // Defaults to false, if this is not an issue but an Informational note (TBD: may separate these)
 	Summary       string   // Required, there must be a Summary of the issue included
@@ -60,6 +61,9 @@ type Issue struct {
 // be useful. Currently the report will validate that the issues contributed are valid at the point where they are
 // being contributed.
 func (issue *Issue) Validate(log *zap.SugaredLogger, mapSource string) (err error) {
+	if len(issue.Type) == 0 {
+		return errors.New("A Type is required for an Issue")
+	}
 	if len(issue.Source) == 0 {
 		return errors.New("A Source is required for an Issue")
 	}
@@ -102,18 +106,14 @@ const (
 // Known Issue Templates. While analyzers are free to roll their own custom Issues, the preference for well-known issues is to capture them
 // here so they are more generally available.
 var knownIssues = map[string]Issue{
-	ImagePullBackOff:       {Summary: "ImagePullBackOff detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ImagePullBackOff]}},
-	InsufficientMemory:     {Summary: "InsufficientMemory detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InsufficientMemory]}},
-	PodProblemsNotReported: {Summary: "Problem pods were detected, but no issues were detected", Informational: true, Impact: 0, Confidence: 10, Actions: []Action{KnownActions[PodProblemsNotReported]}},
+	ImagePullBackOff:       {Type: ImagePullBackOff, Summary: "ImagePullBackOff detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ImagePullBackOff]}},
+	InsufficientMemory:     {Type: InsufficientMemory, Summary: "InsufficientMemory detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InsufficientMemory]}},
+	PodProblemsNotReported: {Type: PodProblemsNotReported, Summary: "Problem pods were detected, but no issues were detected", Informational: true, Impact: 0, Confidence: 10, Actions: []Action{KnownActions[PodProblemsNotReported]}},
 }
 
 // NewKnownIssueSupportingData adds a known issue
 func NewKnownIssueSupportingData(issueType string, source string, supportingData []SupportData) (issue Issue) {
-	knownIssue, ok := knownIssues[issueType]
-	if !ok {
-		panic("Not a known issue, add a new known issue or create a custom issue")
-	}
-	issue = knownIssue
+	issue = getKnownIssueOrDie(issueType)
 	issue.Source = source
 	issue.SupportingData = supportingData
 	return issue
@@ -121,11 +121,7 @@ func NewKnownIssueSupportingData(issueType string, source string, supportingData
 
 // NewKnownIssueMessagesFiles adds a known issue
 func NewKnownIssueMessagesFiles(issueType string, source string, messages []string, fileNames []string) (issue Issue) {
-	knownIssue, ok := knownIssues[issueType]
-	if !ok {
-		panic("Not a known issue, add a new known issue or create a custom issue")
-	}
-	issue = knownIssue
+	issue = getKnownIssueOrDie(issueType)
 	issue.Source = source
 	issue.SupportingData = make([]SupportData, 1, 1)
 	issue.SupportingData[0] = SupportData{
@@ -137,11 +133,7 @@ func NewKnownIssueMessagesFiles(issueType string, source string, messages []stri
 
 // NewKnownIssueMessagesMatches adds a known issue
 func NewKnownIssueMessagesMatches(issueType string, source string, messages []string, matches []files.TextMatch) (issue Issue) {
-	knownIssue, ok := knownIssues[issueType]
-	if !ok {
-		panic("Not a known issue, add a new known issue or create a custom issue")
-	}
-	issue = knownIssue
+	issue = getKnownIssueOrDie(issueType)
 	issue.Source = source
 	issue.SupportingData = make([]SupportData, 1, 1)
 	issue.SupportingData[0] = SupportData{
@@ -162,6 +154,8 @@ type IssueReporter struct {
 
 // AddKnownIssueSupportingData adds a known issue
 func (issueReporter *IssueReporter) AddKnownIssueSupportingData(issueType string, source string, supportingData []SupportData) {
+	confirmKnownIssueOrDie(issueType)
+
 	// If this is a new issue, get a new one
 	if issue, ok := issueReporter.PendingIssues[issueType]; !ok {
 		issueReporter.PendingIssues[issueType] = NewKnownIssueSupportingData(issueType, source, supportingData)
@@ -173,6 +167,8 @@ func (issueReporter *IssueReporter) AddKnownIssueSupportingData(issueType string
 
 // AddKnownIssueMessagesFiles adds a known issue
 func (issueReporter *IssueReporter) AddKnownIssueMessagesFiles(issueType string, source string, messages []string, fileNames []string) {
+	confirmKnownIssueOrDie(issueType)
+
 	// If this is a new issue, get a new one
 	if issue, ok := issueReporter.PendingIssues[issueType]; !ok {
 		issueReporter.PendingIssues[issueType] = NewKnownIssueMessagesFiles(issueType, source, messages, fileNames)
@@ -188,6 +184,8 @@ func (issueReporter *IssueReporter) AddKnownIssueMessagesFiles(issueType string,
 
 // AddKnownIssueMessagesMatches adds a known issue
 func (issueReporter *IssueReporter) AddKnownIssueMessagesMatches(issueType string, source string, messages []string, matches []files.TextMatch) {
+	confirmKnownIssueOrDie(issueType)
+
 	// If this is a new issue, get a new one
 	if issue, ok := issueReporter.PendingIssues[issueType]; !ok {
 		issueReporter.PendingIssues[issueType] = NewKnownIssueMessagesMatches(issueType, source, messages, matches)
@@ -198,6 +196,24 @@ func (issueReporter *IssueReporter) AddKnownIssueMessagesMatches(issueType strin
 		}
 		issue.SupportingData = append(issue.SupportingData, supportData)
 		issueReporter.PendingIssues[issueType] = issue
+	}
+}
+
+// The helpers that work with known issue types only support working with those types
+// If code is supplying an issueType that is not known, that is a coding error and we
+// panic so that is clear immediately to the developer.
+func getKnownIssueOrDie(issueType string) (issue Issue) {
+	issue, ok := knownIssues[issueType]
+	if !ok {
+		panic("This helper is used with known issue types only")
+	}
+	return issue
+}
+
+func confirmKnownIssueOrDie(issueType string) {
+	_, ok := knownIssues[issueType]
+	if !ok {
+		panic("This helper is used with known issue types only")
 	}
 }
 

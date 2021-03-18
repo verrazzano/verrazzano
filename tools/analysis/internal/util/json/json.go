@@ -280,9 +280,9 @@ func getNodeInfo(log *zap.SugaredLogger, nodeString string) (info nodeInfo, err 
 }
 
 // GetMatchingPathsWithValue TBD: This seems handy
-func GetMatchingPathsWithValue(log *zap.SugaredLogger, jsonData map[string]interface{}, jsonPath string) (paths []string, err error) {
-	return nil, nil
-}
+//func GetMatchingPathsWithValue(log *zap.SugaredLogger, jsonData map[string]interface{}, jsonPath string) (paths []string, err error) {
+//	return nil, nil
+//}
 
 func getIfPresent(path string) (jsonData interface{}) {
 	cacheMutex.Lock()
