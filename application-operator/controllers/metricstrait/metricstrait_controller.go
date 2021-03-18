@@ -417,9 +417,9 @@ func (r *Reconciler) updatePrometheusScraperConfigMap(ctx context.Context, trait
 	}
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, configmap, func() error {
 		if configmap.CreationTimestamp.IsZero() {
-			r.Log.Info("Create Prometheus configmap", "configmap", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
+			r.Log.V(1).Info("Create Prometheus configmap", "configmap", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
 		} else {
-			r.Log.Info("Update Prometheus configmap", "configmap", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
+			r.Log.V(1).Info("Update Prometheus configmap", "configmap", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
 		}
 		yamlStr, exists := configmap.Data[prometheusConfigKey]
 		if !exists {
@@ -465,7 +465,7 @@ func (r *Reconciler) fetchPrometheusDeploymentFromTrait(ctx context.Context, tra
 	if err != nil {
 		return nil, err
 	}
-	r.Log.Info("Found Prometheus deployment", "deployment", vznav.GetNamespacedNameFromObjectMeta(deployment.ObjectMeta))
+	r.Log.V(1).Info("Found Prometheus deployment", "deployment", vznav.GetNamespacedNameFromObjectMeta(deployment.ObjectMeta))
 	return deployment, nil
 }
 
@@ -475,7 +475,7 @@ func (r *Reconciler) findPrometheusScrapeConfigMapNameFromDeployment(deployment 
 	for _, volume := range volumes {
 		if volume.Name == "config-volume" && volume.ConfigMap != nil && len(volume.ConfigMap.Name) > 0 {
 			name := volume.ConfigMap.Name
-			r.Log.Info("Found Prometheus configmap name", "configmap", name)
+			r.Log.V(1).Info("Found Prometheus configmap name", "configmap", name)
 			return name, nil
 		}
 	}
@@ -583,7 +583,7 @@ func (r *Reconciler) updateTraitStatus(ctx context.Context, trait *vzapi.Metrics
 	// changes but without necessarily updating the trait spec.
 	var seconds = rand.IntnRange(45, 90)
 	var duration = time.Duration(seconds) * time.Second
-	r.Log.Info("Successfully reconciled metrics trait", "trait", name)
+	r.Log.V(1).Info("Successfully reconciled metrics trait", "trait", name)
 	return reconcile.Result{Requeue: true, RequeueAfter: duration}, nil
 }
 
