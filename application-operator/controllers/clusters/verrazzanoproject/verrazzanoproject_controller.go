@@ -5,7 +5,6 @@ package verrazzanoproject
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -58,15 +57,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, client.IgnoreNotFound(err)
 	}
 
-	opResult := controllerutil.OperationResultNone
-	if vp.Namespace == constants.VerrazzanoMultiClusterNamespace {
-		err = r.createOrUpdateNamespaces(ctx, vp, logger)
-		if err == nil {
-			// always use OperationResultCreated since we don't really know what happened to individual NS
-			opResult = controllerutil.OperationResultCreated
-		}
-	} else {
-		err = fmt.Errorf("resources of type VerrazzanoProject must be created in the %s namespace", constants.VerrazzanoMultiClusterNamespace)
+	// Use OperationResultCreated by default since we don't really know what happened to individual NS
+	opResult := controllerutil.OperationResultCreated
+	err = r.createOrUpdateNamespaces(ctx, vp, logger)
+	if err != nil {
+		opResult = controllerutil.OperationResultNone
 	}
 
 	return r.updateStatus(ctx, &vp, opResult, err)

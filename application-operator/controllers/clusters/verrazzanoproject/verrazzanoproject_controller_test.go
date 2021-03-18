@@ -260,11 +260,10 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 							mockNewRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectMonitorRole, projectMonitorK8sRole, tt.fields.monitorSubjects)
 						}
 					}
-					// status update should be to "succeeded" in both existing and new namespace
-					doExpectStatusUpdateSucceeded(mockClient, mockStatusWriter, assert)
-				} else { // VerrazzanoProject is in a namespace other than the expected Multi cluster namespace, status should be updated to failed
-					doExpectStatusUpdateFailed(mockClient, mockStatusWriter, assert)
-				}
+				} // END VerrazzanoProject is in the expected Multi cluster namespace
+				// status update should be to "succeeded" in both existing and new namespace
+				doExpectStatusUpdateSucceeded(mockClient, mockStatusWriter, assert)
+
 			} else { // The VerrazzanoProject is not an existing one i.e. not existingVP
 				mockClient.EXPECT().
 					Get(gomock.Any(), types.NamespacedName{Namespace: tt.fields.vpNamespace, Name: tt.fields.vpName}, gomock.Not(gomock.Nil())).
