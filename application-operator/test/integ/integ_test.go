@@ -26,11 +26,10 @@ const appDeployment = "hello-workload"
 const appNamespace = "hello"
 const appLoggingScopeSecret = "log-scope-secret"
 
-var fewSeconds = 2 * time.Second
-var tenSeconds = 10 * time.Second
-var thirtySeconds = 30 * time.Second
-var threeMins = 3 * time.Minute
-var fiveMins = 5 * time.Minute
+var for2s = 2 * time.Second
+var for10s = 10 * time.Second
+var for3m = 3 * time.Minute
+var for5m = 5 * time.Minute
 var K8sClient k8s.Client
 
 var _ = BeforeSuite(func() {
@@ -101,9 +100,9 @@ var _ = Describe("verrazzano-application namespace resources ", func() {
 			"The verrazzano operator doesn't exist")
 	})
 	It(fmt.Sprintf("Pod prefixed by %s exists", verrazzanoOperator), func() {
-		Eventually(isOperatorRunning, threeMins).Should(BeTrue(),
+		Eventually(isOperatorRunning, for3m).Should(BeTrue(),
 			"The verrazzano operator pod is not urnning")
-		Eventually(operatorServiceExists, threeMins).Should(BeTrue(),
+		Eventually(operatorServiceExists, for3m).Should(BeTrue(),
 			"The verrazzano operator service is not urnning")
 	})
 })
@@ -124,46 +123,46 @@ var _ = Describe("Testing hello app lifecycle", func() {
 	It("apply component should result in a component in app namespace", func() {
 		_, stderr := util.Kubectl("apply -f testdata/hello-comp.yaml")
 		Expect(stderr).To(Equal(""))
-		//	Eventually(appComponentExists, fewSeconds).Should(BeTrue())
+		//	Eventually(appComponentExists, for2s).Should(BeTrue())
 	})
 	It("apply loggingscope should result in a loggingscope in app namespace", func() {
 		_, stderr := util.Kubectl("apply -f testdata/loggingscope.yaml")
 		Expect(stderr).To(Equal(""))
-		//	Eventually(appComponentExists, fewSeconds).Should(BeTrue())
+		//	Eventually(appComponentExists, for2s).Should(BeTrue())
 	})
 	It("apply app config should result in a app config in app namespace", func() {
-		Eventually(createAppConfig, threeMins).Should(BeTrue())
-		Eventually(appConfigExists, fewSeconds).Should(BeTrue())
+		Eventually(createAppConfig, for3m).Should(BeTrue())
+		Eventually(appConfigExists, for2s).Should(BeTrue())
 	})
 	It("hello deployment should be updated ", func() {
-		Eventually(appDeploymentUpdated, tenSeconds).Should(BeTrue())
+		Eventually(appDeploymentUpdated, for10s).Should(BeTrue())
 	})
 	It("logging sidecar exists in app pod ", func() {
-		Eventually(fluentdSidecarExists, fiveMins).Should(BeTrue())
+		Eventually(fluentdSidecarExists, for5m).Should(BeTrue())
 	})
 	It("hello service should exist ", func() {
-		Eventually(appServiceExists, tenSeconds).Should(BeTrue(),
+		Eventually(appServiceExists, for10s).Should(BeTrue(),
 			"The hello service should exist")
 	})
 	It("update app config should result in a app config in app namespace", func() {
-		Eventually(updateAppConfig, threeMins).Should(BeTrue())
-		Eventually(appConfigExists, fewSeconds).Should(BeTrue())
+		Eventually(updateAppConfig, for3m).Should(BeTrue())
+		Eventually(appConfigExists, for2s).Should(BeTrue())
 	})
 	It("hello deployment should be updated ", func() {
-		Eventually(appDeploymentUpdated, fiveMins).Should(BeTrue())
+		Eventually(appDeploymentUpdated, for5m).Should(BeTrue())
 	})
 	It("logging sidecar exists in updated app pod ", func() {
-		Eventually(fluentdSidecarExists, fiveMins).Should(BeTrue())
+		Eventually(fluentdSidecarExists, for5m).Should(BeTrue())
 	})
 
 	It("deleting app config", func() {
-		Eventually(canDeleteAppConfig, fiveMins).Should(BeTrue())
+		Eventually(canDeleteAppConfig, for5m).Should(BeTrue())
 	})
 	It("deleting app component", func() {
-		Eventually(canDeleteAppComponent, fiveMins).Should(BeTrue())
+		Eventually(canDeleteAppComponent, for5m).Should(BeTrue())
 	})
 	It("deleting app loggingscope", func() {
-		Eventually(canDeleteAppLoggingScope, fiveMins).Should(BeTrue())
+		Eventually(canDeleteAppLoggingScope, for5m).Should(BeTrue())
 	})
 	It("deleting logging scope secret", func() {
 		command := fmt.Sprintf("delete secret %s -n %s", appLoggingScopeSecret, appNamespace)
@@ -171,13 +170,13 @@ var _ = Describe("Testing hello app lifecycle", func() {
 		Expect(stderr).To(Equal(""))
 	})
 	It("hello deployment should  not exist ", func() {
-		Eventually(appDeploymentExists, fiveMins).Should(BeFalse())
+		Eventually(appDeploymentExists, for5m).Should(BeFalse())
 	})
 	It("hello pod should not exist ", func() {
-		Eventually(appPodExists, fiveMins).Should(BeFalse())
+		Eventually(appPodExists, for5m).Should(BeFalse())
 	})
 	It("hello service should not exist ", func() {
-		Eventually(doesServiceExist, fiveMins).Should(BeFalse())
+		Eventually(doesServiceExist, for5m).Should(BeFalse())
 	})
 	It("application namespace is deleted", func() {
 		command := fmt.Sprintf("delete ns %s", appNamespace)

@@ -31,6 +31,13 @@ PARENT_BRANCH ?= origin/master
 GO ?= CGO_ENABLED=0 GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 
+.PHONY: clean
+clean:
+	find . -name coverage.cov -exec rm {} \;
+	find . -name coverage.html -exec rm {} \;
+	find . -name coverage.raw.cov -exec rm {} \;
+	find . -name \*-test-result.xml -exec rm {} \;
+
 .PHONY: docker-push
 docker-push:
 	(cd application-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})

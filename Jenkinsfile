@@ -183,18 +183,9 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    echo "fmt"
+                    echo "run all linters"
                     cd ${GO_REPO_PATH}/verrazzano
-                    make go-fmt
-
-                    echo "vet"
-                    make go-vet
-
-                    echo "lint"
-                    make go-lint
-
-                    echo "ineffassign"
-                    make go-ineffassign
+                    make check
 
                     echo "copyright scan"
                     time make copyright-check
@@ -229,7 +220,7 @@ pipeline {
                       failNoReports: true,
                       onlyStable: false,
                       fileCoverageTargets: '100, 0, 0',
-                      lineCoverageTargets: '80, 80, 80',
+                      lineCoverageTargets: '75, 75, 75',
                       packageCoverageTargets: '100, 0, 0',
                     )
                 }
