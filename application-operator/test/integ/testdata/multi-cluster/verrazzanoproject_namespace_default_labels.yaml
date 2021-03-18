@@ -3,7 +3,7 @@
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: VerrazzanoProject
 metadata:
-  name: test-namespaces
+  name: test-default-labels
   namespace: verrazzano-mc
 spec:
   template:

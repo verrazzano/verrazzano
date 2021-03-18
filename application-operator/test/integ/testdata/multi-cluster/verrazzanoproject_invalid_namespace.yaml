@@ -3,7 +3,7 @@
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: VerrazzanoProject
 metadata:
-  name: test
+  name: test-invalid-ns
   namespace: multiclustertest
 spec:
   template:
