@@ -46,7 +46,37 @@ func TestFindFilesAndSearchGood(t *testing.T) {
 	}
 }
 
-// TODO: Add more test cases (more result validation, more expression variants, negative cases, etc...)
+// TestGetAllMatches Tests that we can find the expected set of files with a matching expression
+// GIVEN a call to GetAllMatches
+// WHEN with a valid rootDirectory, list of files, and regular expression
+// THEN search matches will be returned
+func TestGetAllMatches(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+	matched, err := GetAllMatches(logger, []byte("testAAthisAAoutAA"), "AA", 2)
+	assert.Nil(t, err)
+	assert.NotNil(t, matched)
+	assert.True(t, len(matched) == 2)
+}
+
+// TestBadExpressions Tests that we fail correctly when given bad search expressions
+// GIVEN a call to helpers
+// WHEN with invalid regular expression
+// THEN error will be returned
+func TestBadExpressions(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+	badExpression := "~(foo"
+	_, err := GetAllMatches(logger, []byte("testAAthisAAoutAA"), badExpression, 2)
+	assert.NotNil(t, err)
+	_, err = FindFilesAndSearch(logger, "../../../test", badExpression, "ghcr.io/.*/rancher")
+	assert.NotNil(t, err)
+	_, err = FindFilesAndSearch(logger, "../../../test", ".*", badExpression)
+	assert.NotNil(t, err)
+	_, err = GetMatchingFiles(logger, "../../../test", badExpression)
+	assert.NotNil(t, err)
+	myFiles := []string{"test file"}
+	_, err = SearchFiles(logger, "../../../test", myFiles, badExpression)
+	assert.NotNil(t, err)
+}
 
 func checkMatch(logger *zap.SugaredLogger, match TextMatch) string {
 	logger.Debugf("Matched file: %s", match.FileName)
@@ -69,3 +99,5 @@ func checkMatch(logger *zap.SugaredLogger, match TextMatch) string {
 	}
 	return failText
 }
+
+// TODO: Add more test cases (more result validation, more expression variants, negative cases, etc...)

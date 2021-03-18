@@ -509,9 +509,9 @@ def runGinkgoFailFast(testSuitePath) {
     }
 }
 
-def dumpK8sCluster(archiveFilePath) {
+def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh -z ${archiveFilePath} -a
+        ${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh -z ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
     """
 }
 
