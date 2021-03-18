@@ -19,13 +19,13 @@ func TestHandlingUnknownIssues(t *testing.T) {
 	rootDirectory := "test root directory"
 	messages := []string{"test message"}
 	files := []string{"test file name"}
-	matches := make([]utilfiles.TextMatch, 1, 1)
+	matches := make([]utilfiles.TextMatch, 1)
 	matches[0] = utilfiles.TextMatch{
 		FileName:    "test file",
 		FileLine:    50,
 		MatchedText: "test matched text",
 	}
-	supportingData := make([]SupportData, 1, 1)
+	supportingData := make([]SupportData, 1)
 	supportingData[0] = SupportData{
 		Messages:    messages,
 		TextMatches: matches,
@@ -49,13 +49,13 @@ func TestHandlingKnownIssues(t *testing.T) {
 	rootDirectory := "test root directory"
 	messages := []string{"test message"}
 	files := []string{"test file name"}
-	matches := make([]utilfiles.TextMatch, 1, 1)
+	matches := make([]utilfiles.TextMatch, 1)
 	matches[0] = utilfiles.TextMatch{
 		FileName:    "test file",
 		FileLine:    50,
 		MatchedText: "test matched text",
 	}
-	supportingData := make([]SupportData, 1, 1)
+	supportingData := make([]SupportData, 1)
 	supportingData[0] = SupportData{
 		Messages:    messages,
 		TextMatches: matches,

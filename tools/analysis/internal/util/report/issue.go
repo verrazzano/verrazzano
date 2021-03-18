@@ -123,7 +123,7 @@ func NewKnownIssueSupportingData(issueType string, source string, supportingData
 func NewKnownIssueMessagesFiles(issueType string, source string, messages []string, fileNames []string) (issue Issue) {
 	issue = getKnownIssueOrDie(issueType)
 	issue.Source = source
-	issue.SupportingData = make([]SupportData, 1, 1)
+	issue.SupportingData = make([]SupportData, 1)
 	issue.SupportingData[0] = SupportData{
 		Messages:     messages,
 		RelatedFiles: fileNames,
@@ -135,7 +135,7 @@ func NewKnownIssueMessagesFiles(issueType string, source string, messages []stri
 func NewKnownIssueMessagesMatches(issueType string, source string, messages []string, matches []files.TextMatch) (issue Issue) {
 	issue = getKnownIssueOrDie(issueType)
 	issue.Source = source
-	issue.SupportingData = make([]SupportData, 1, 1)
+	issue.SupportingData = make([]SupportData, 1)
 	issue.SupportingData[0] = SupportData{
 		Messages:    messages,
 		TextMatches: matches,
@@ -229,7 +229,7 @@ func (issueReporter *IssueReporter) Contribute(log *zap.SugaredLogger, source st
 
 // SingleMessage is a helper which is useful when adding a single message to supporting data
 func SingleMessage(message string) (messages []string) {
-	messages = make([]string, 1, 1)
+	messages = make([]string, 1)
 	messages[0] = message
 	return messages
 }

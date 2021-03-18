@@ -149,54 +149,54 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, includeSuppo
 		}
 
 		// Print the Source as it has issues
-		_, err = fmt.Fprintln(writeOut, fmt.Sprintf("\n\nDetected %d issues for %s:\n", len(actuallyReported), source))
+		_, err = fmt.Fprintf(writeOut, "\n\nDetected %d issues for %s:\n\n", len(actuallyReported), source)
 		if err != nil {
 			return err
 		}
 		for _, issue := range actuallyReported {
 			// Print the Issue out
-			_, err = fmt.Fprintln(writeOut, fmt.Sprintf("\n\tISSUE:\n\t\tsummary: %s", issue.Summary))
+			_, err = fmt.Fprintf(writeOut, "\n\tISSUE:\n\t\tsummary: %s\n", issue.Summary)
 			if err != nil {
 				return err
 			}
-			_, err = fmt.Fprintln(writeOut, fmt.Sprintf("\t\tconfidence: %d", issue.Confidence))
+			_, err = fmt.Fprintf(writeOut, "\t\tconfidence: %d\n", issue.Confidence)
 			if err != nil {
 				return err
 			}
-			_, err = fmt.Fprintln(writeOut, fmt.Sprintf("\t\timpact: %d", issue.Impact))
+			_, err = fmt.Fprintf(writeOut, "\t\timpact: %d\n", issue.Impact)
 			if err != nil {
 				return err
 			}
 			if len(issue.Actions) > 0 && includeActions {
 				log.Debugf("Output actions")
-				_, err = fmt.Fprintln(writeOut, fmt.Sprintf("\t\tactions:"))
+				_, err = fmt.Fprintf(writeOut, "\t\tactions:\n")
 				if err != nil {
 					return err
 				}
 				for _, action := range issue.Actions {
-					_, err = fmt.Fprintln(writeOut, fmt.Sprintf("\t\t\taction: %s", action.Summary))
+					_, err = fmt.Fprintf(writeOut, "\t\t\taction: %s\n", action.Summary)
 					if err != nil {
 						return err
 					}
 					if len(action.Steps) > 0 {
-						_, err = fmt.Fprintln(writeOut, fmt.Sprintf("\t\t\t\tSteps:"))
+						_, err = fmt.Fprintf(writeOut, "\t\t\t\tSteps:\n")
 						if err != nil {
 							return err
 						}
 						for i, step := range action.Steps {
-							_, err = fmt.Fprintln(writeOut, fmt.Sprintf("\t\t\t\t\tStep %d: %s", i+1, step))
+							_, err = fmt.Fprintf(writeOut, "\t\t\t\t\tStep %d: %s\n", i+1, step)
 							if err != nil {
 								return err
 							}
 						}
 					}
 					if len(action.Links) > 0 {
-						_, err = fmt.Fprintln(writeOut, fmt.Sprintf("\t\t\t\tLinks:"))
+						_, err = fmt.Fprintf(writeOut, "\t\t\t\tLinks:\n")
 						if err != nil {
 							return err
 						}
 						for _, link := range action.Links {
-							_, err = fmt.Fprintln(writeOut, fmt.Sprintf("\t\t\t\t\t%s", link))
+							_, err = fmt.Fprintf(writeOut, "\t\t\t\t\t%s\n", link)
 							if err != nil {
 								return err
 							}
@@ -206,54 +206,54 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, includeSuppo
 			}
 			if len(issue.SupportingData) > 0 && includeSupportData {
 				log.Debugf("Output supporting data")
-				_, err = fmt.Fprintln(writeOut, fmt.Sprintf("\t\tsupportingData:"))
+				_, err = fmt.Fprintf(writeOut, "\t\tsupportingData:\n")
 				if err != nil {
 					return err
 				}
 				for _, data := range issue.SupportingData {
 					if len(data.Messages) > 0 {
-						_, err = fmt.Fprintln(writeOut, fmt.Sprintf("\t\t\tmessages:"))
+						_, err = fmt.Fprintf(writeOut, "\t\t\tmessages:\n")
 						if err != nil {
 							return err
 						}
 						for _, message := range data.Messages {
-							_, err = fmt.Fprintln(writeOut, fmt.Sprintf("\t\t\t\t%s", message))
+							_, err = fmt.Fprintf(writeOut, "\t\t\t\t%s\n", message)
 							if err != nil {
 								return err
 							}
 						}
 					}
 					if len(data.TextMatches) > 0 {
-						_, err = fmt.Fprintln(writeOut, fmt.Sprintf("\t\t\tsearch matches:"))
+						_, err = fmt.Fprintf(writeOut, "\t\t\tsearch matches:\n")
 						if err != nil {
 							return err
 						}
 						for _, match := range data.TextMatches {
-							_, err = fmt.Fprintln(writeOut, fmt.Sprintf("\t\t\t\t%s:%d: %s", match.FileName, match.FileLine, match.MatchedText))
+							_, err = fmt.Fprintf(writeOut, "\t\t\t\t%s:%d: %s\n", match.FileName, match.FileLine, match.MatchedText)
 							if err != nil {
 								return err
 							}
 						}
 					}
 					if len(data.JSONPaths) > 0 {
-						_, err = fmt.Fprintln(writeOut, fmt.Sprintf("\t\t\trelated json:"))
+						_, err = fmt.Fprintf(writeOut, "\t\t\trelated json:\n")
 						if err != nil {
 							return err
 						}
 						for _, path := range data.JSONPaths {
-							_, err = fmt.Fprintln(writeOut, fmt.Sprintf("\t\t\t\t%s: %s", path.File, path.Path))
+							_, err = fmt.Fprintf(writeOut, "\t\t\t\t%s: %s\n", path.File, path.Path)
 							if err != nil {
 								return err
 							}
 						}
 					}
 					if len(data.RelatedFiles) > 0 {
-						_, err = fmt.Fprintln(writeOut, fmt.Sprintf("\t\t\trelated files:"))
+						_, err = fmt.Fprintf(writeOut, "\t\t\trelated files:\n")
 						if err != nil {
 							return err
 						}
 						for _, fileName := range data.RelatedFiles {
-							_, err = fmt.Fprintln(writeOut, fmt.Sprintf("\t\t\t\t%s", fileName))
+							_, err = fmt.Fprintf(writeOut, "\t\t\t\t%s\n", fileName)
 							if err != nil {
 								return err
 							}

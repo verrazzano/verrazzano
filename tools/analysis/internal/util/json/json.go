@@ -114,7 +114,7 @@ func GetJSONValue(log *zap.SugaredLogger, jsonData interface{}, jsonPath string)
 
 	// How we handle the data depends on the underlying type here, and whether we are at the end of the path
 	currentNode := jsonData
-	switch jsonData.(type) {
+	switch jsonData := jsonData.(type) {
 	case map[string]interface{}:
 		// Map interface we need to lookup the current node in the map
 		if len(currentNodeInfo.nodeName) == 0 {
@@ -122,7 +122,7 @@ func GetJSONValue(log *zap.SugaredLogger, jsonData interface{}, jsonPath string)
 			log.Debugf("No key name for selecting from the map")
 			return nil, errors.New("No key name for selecting from the map")
 		}
-		currentNode = jsonData.(map[string]interface{})[currentNodeInfo.nodeName]
+		currentNode = jsonData[currentNodeInfo.nodeName]
 		if currentNode == nil {
 			log.Debugf("Node not found %s", currentNodeInfo.nodeName)
 			err = fmt.Errorf("Node not found %s", currentNodeInfo.nodeName)
@@ -134,7 +134,7 @@ func GetJSONValue(log *zap.SugaredLogger, jsonData interface{}, jsonPath string)
 
 	// If we are at the end of the path, return the current node
 	if len(pathTokens) == 1 {
-		switch currentNode.(type) {
+		switch currentNode := currentNode.(type) {
 		case []interface{}:
 			// Note that we can have a bare name supplied (without [] or [n] that ends up being an array when we find it, in those cases
 			// we treat it as the entire array
@@ -144,13 +144,11 @@ func GetJSONValue(log *zap.SugaredLogger, jsonData interface{}, jsonPath string)
 				currentNodeInfo.index = -1
 			}
 			log.Debugf("%s is an array", currentNodeInfo.nodeName)
-			nodesIn := currentNode.([]interface{})
+			nodesIn := currentNode
 			nodesInLen := len(nodesIn)
 			if currentNodeInfo.index < 0 {
 				nodesOut := make([]interface{}, nodesInLen)
-				for i, nodeIn := range nodesIn {
-					nodesOut[i] = nodeIn
-				}
+				copy(nodesOut, nodesIn)
 				return nodesOut, nil
 			}
 			// We get here if a specific array index was specified
@@ -158,7 +156,7 @@ func GetJSONValue(log *zap.SugaredLogger, jsonData interface{}, jsonPath string)
 				log.Debugf("Index value out of range, found %d elements for %s[%d]", nodesInLen, currentNodeInfo.nodeName, currentNodeInfo.index)
 				return nil, fmt.Errorf("Index value out of range, found %d elements for %s[%d]", nodesInLen, currentNodeInfo.nodeName, currentNodeInfo.index)
 			}
-			return currentNode.([]interface{})[currentNodeInfo.index], nil
+			return currentNode[currentNodeInfo.index], nil
 		default:
 			return currentNode, nil
 		}
@@ -168,7 +166,7 @@ func GetJSONValue(log *zap.SugaredLogger, jsonData interface{}, jsonPath string)
 	// it needs to be either an []interface{} or map[string]interface{}
 	// TODO: Not handling specific indexes in paths ie [], [N], etc... Currently you get the entire array if a node is
 	// an array
-	switch currentNode.(type) {
+	switch currentNode := currentNode.(type) {
 	case []interface{}:
 		// Note that we can have a bare name supplied (without [] or [n] that ends up being an array when we find it, in those cases
 		// we treat it as the entire array
@@ -177,14 +175,14 @@ func GetJSONValue(log *zap.SugaredLogger, jsonData interface{}, jsonPath string)
 			currentNodeInfo.index = -1
 		}
 		log.Debugf("%s is an array, indexing %d", currentNodeInfo.nodeName, currentNodeInfo.index)
-		nodesIn := currentNode.([]interface{})
+		nodesIn := currentNode
 		nodesInLen := len(nodesIn)
 		if currentNodeInfo.index < 0 {
 			nodesOut := make([]interface{}, nodesInLen)
 			for i, nodeIn := range nodesIn {
-				switch nodeIn.(type) {
+				switch nodeIn := nodeIn.(type) {
 				case map[string]interface{}:
-					value, err := GetJSONValue(log, nodeIn.(map[string]interface{}), pathTokens[1])
+					value, err := GetJSONValue(log, nodeIn, pathTokens[1])
 					if err != nil {
 						log.Debugf("%s failed to get array value at %d", currentNodeInfo.nodeName, i)
 						return nil, fmt.Errorf("%s failed to get array value at %d", currentNodeInfo.nodeName, i)
@@ -217,7 +215,7 @@ func GetJSONValue(log *zap.SugaredLogger, jsonData interface{}, jsonPath string)
 
 	case map[string]interface{}:
 		log.Debugf("%s type is a map, drilling down", currentNodeInfo.nodeName)
-		value, err := GetJSONValue(log, currentNode.(map[string]interface{}), pathTokens[1])
+		value, err := GetJSONValue(log, currentNode, pathTokens[1])
 		return value, err
 
 	default:
@@ -302,7 +300,6 @@ func putIfNotPresent(path string, jsonData interface{}) {
 		jsonDataMap[path] = jsonData
 	}
 	cacheMutex.Unlock()
-	return
 }
 
 // TODO: Need to should make a more general json structure dump here for debugging
