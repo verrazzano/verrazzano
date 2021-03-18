@@ -6,7 +6,7 @@ package log
 import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	ctrl "sigs.k8s.io/controller-runtime/pkg/log"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
@@ -26,6 +26,7 @@ func InitLogs(opts kzap.Options) {
 	config.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
 	config.EncoderConfig.TimeKey = "@timestamp"
 	config.EncoderConfig.MessageKey = "message"
+	config.EncoderConfig.CallerKey = "caller"
 	logger, err := config.Build()
 	if err != nil {
 		zap.S().Errorf("Error creating logger %v", err)
@@ -41,7 +42,10 @@ func InitLogs(opts kzap.Options) {
 	// implementing the logr.Logger interface. This logger will
 	// be propagated through the whole operator, generating
 	// uniform and structured logs.
+	//
+	// Add the caller field as an option otherwise the controller runtime logger
+	// will not include the caller field.
 	opts.ZapOpts = append(opts.ZapOpts, zap.AddCaller())
 	encoder := zapcore.NewJSONEncoder(config.EncoderConfig)
-	logf.SetLogger(kzap.New(kzap.UseFlagOptions(&opts), kzap.Encoder(encoder)))
+	ctrl.SetLogger(kzap.New(kzap.UseFlagOptions(&opts), kzap.Encoder(encoder)))
 }
