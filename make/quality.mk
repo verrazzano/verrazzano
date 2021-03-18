@@ -9,39 +9,18 @@ GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.b
 #
 
 .PHONY: check
-check: go-fmt go-vet go-ineffassign go-lint
+check: install-linter
+	$(LINTER) run
 
-.PHONY: go-fmt
-go-fmt:
-	gofmt -s -e -d $(shell find . -name "*.go" | grep -v /vendor/ | grep -v /pkg/assets/) > error.txt
-	if [ -s error.txt ]; then\
-		cat error.txt;\
-		rm error.txt;\
-		exit 1;\
-	fi
-	rm error.txt
-
-.PHONY: go-vet
-go-vet:
-	$(GO) vet $(shell go list ./... | grep -v github.com/verrazzano/verrazzano-application-operator/pkg/assets)
-
-.PHONY: go-lint
-go-lint:
-	@{ \
-	set -eu ; \
-	GOLINT_VERSION=$$(go list -m -f '{{.Version}}' golang.org/x/lint) ; \
-	${GO} get golang.org/x/lint/golint@$${GOLINT_VERSION} ; \
-	}
-	golint -set_exit_status $(shell go list ./... | grep -v github.com/verrazzano/verrazzano-application-operator/pkg/assets)
-
-.PHONY: go-ineffassign
-go-ineffassign:
-	@{ \
-	set -eu ; \
-	INEFFASSIGN_VERSION=$$(go list -m -f '{{.Version}}' github.com/gordonklaus/ineffassign) ; \
-	${GO} get github.com/gordonklaus/ineffassign@$${INEFFASSIGN_VERSION} ; \
-	}
-	ineffassign $(shell go list ./...)
+# find or download golangci-lint
+.PHONY: install-linter
+install-linter:
+ifeq (, $(shell command -v golangci-lint))
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.38.0
+	$(eval LINTER=$(GOPATH)/bin/golangci-lint)
+else
+	$(eval LINTER=$(shell command -v golangci-lint))
+endif
 
 .PHONY: coverage
 coverage:

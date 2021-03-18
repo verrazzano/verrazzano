@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
@@ -444,9 +443,9 @@ func (r *Reconciler) updatePrometheusScraperConfigMap(ctx context.Context, trait
 		configmap.Data[prometheusConfigKey] = yamlStr
 		return nil
 	})
-	// If the Prometheus configmap was updated then restart the Prometheus pods.
+	// If the Prometheus configmap was updated, the VMI Prometheus has ConfigReloader sidecar to signal Prometheus to reload config
 	if res == controllerutil.OperationResultUpdated {
-		return rel, res, r.restartPrometheusPods(ctx, deployment)
+		return rel, res, nil
 	}
 	return rel, res, err
 }
@@ -481,30 +480,6 @@ func (r *Reconciler) findPrometheusScrapeConfigMapNameFromDeployment(deployment 
 		}
 	}
 	return "", fmt.Errorf("failed to find Prometheus configmap name from deployment %s", vznav.GetNamespacedNameFromObjectMeta(deployment.ObjectMeta))
-}
-
-// restartPrometheusPods finds and restarts the pods associated with a Prometheus deployment.
-func (r *Reconciler) restartPrometheusPods(ctx context.Context, deployment *k8sapps.Deployment) error {
-	replicaSets, err := vznav.FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, r, r.Log, deployment.Namespace, deployment.UID, []v1alpha2.ChildResourceKind{{APIVersion: "apps/v1", Kind: "ReplicaSet"}})
-	if err != nil {
-		return err
-	}
-	for _, replicaSet := range replicaSets {
-		r.Log.Info("Found Prometheus replicaset", "replicaset", vznav.GetNamespacedNameFromUnstructured(replicaSet))
-		pods, err := vznav.FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, r, r.Log, replicaSet.GetNamespace(), replicaSet.GetUID(), []v1alpha2.ChildResourceKind{{APIVersion: "v1", Kind: "Pod"}})
-		if err != nil {
-			return err
-		}
-		for _, pod := range pods {
-			r.Log.Info("Found Prometheus pod", "pod", vznav.GetNamespacedNameFromUnstructured(pod))
-			err = r.Delete(ctx, pod)
-			if err != nil {
-				return err
-			}
-			r.Log.Info("Deleted Prometheus pod", "pod", vznav.GetNamespacedNameFromUnstructured(pod))
-		}
-	}
-	return nil
 }
 
 // updateRelatedDeployment updates the labels and annotations of a related workload deployment.
