@@ -53,4 +53,4 @@ Following the [instructions](../../hello-helidon/README.md/#troubleshooting) for
    $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get MultiClusterApplicationConfiguration -n hello-helidon
    ```
 
-Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+Copyright (c) 2021, Oracle and/or its affiliates.

@@ -75,4 +75,4 @@ This section is common to the examples.
 
 
 
-Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+Copyright (c) 2021, Oracle and/or its affiliates.
