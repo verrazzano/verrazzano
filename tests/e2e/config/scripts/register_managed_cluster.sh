@@ -22,6 +22,14 @@ echo ADMIN_KUBECONFIG: ${ADMIN_KUBECONFIG}
 echo MANAGED_CLUSTER_NAME: ${MANAGED_CLUSTER_NAME}
 echo MANAGED_KUBECONFIG: ${MANAGED_KUBECONFIG}
 
+# create configmap "verrazzano-admin-cluster" on admin
+kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc get configmap verrazzano-admin-cluster
+ret=$?
+if [ $ret -ne 0 ]; then
+  export ADMIN_K8S_SERVER_ADDRESS=$(cat ${ADMIN_KUBECONFIG} | grep "server:" | awk '{ print $2 }')
+  kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc create configmap verrazzano-admin-cluster --from-literal=server=${ADMIN_K8S_SERVER_ADDRESS}
+fi
+
 # create managed cluster prometheus secret yaml on managed
 PROMETHEUS_SECRET_FILE=${MANAGED_CLUSTER_NAME}.yaml
 TLS_SECRET=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"')
@@ -40,10 +48,6 @@ fi
 
 # create managed cluster prometheus secret on admin
 kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc create secret generic prometheus-${MANAGED_CLUSTER_NAME} --from-file=${PROMETHEUS_SECRET_FILE}
-
-# create configmap "verrazzano-admin-cluster" on admin
-export ADMIN_K8S_SERVER_ADDRESS=$(cat ${ADMIN_KUBECONFIG} | grep "server:" | awk '{ print $2 }')
-kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc create configmap verrazzano-admin-cluster --from-literal=server=${ADMIN_K8S_SERVER_ADDRESS}
 
 # create VerrazzanoManagedCluster on admin
 kubectl --kubeconfig ${ADMIN_KUBECONFIG} apply -f <<EOF -
