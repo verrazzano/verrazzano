@@ -13,5 +13,5 @@ nodes:
             "service-account-issuer": "kubernetes.default.svc"
             "service-account-signing-key-file": "/etc/kubernetes/pki/sa.key"
     extraMounts:
-      - hostPath: /v8o_cache/vpo_integ
+      - hostPath: /var/lib/docker/v8o_cache/vpo_integ
         containerPath: /var/lib/containerd
