@@ -43,9 +43,8 @@ func TestHelidonHandlerApply_ManagedCluster(t *testing.T) {
 	workloadName := "hello-workload"
 	appContainerName := "testApply-app-container"
 	workload := workloadOf(namespace, workloadName)
-	managedClusterVmiSecretKey := clusters.GetManagedClusterElasticsearchSecretKey()
-	esSecretName := managedClusterVmiSecretKey.Name
-	scope := newLoggingScope(namespace, "esHost", esSecretName)
+	loggingSecretName := clusters.MCRegistrationSecretFullName.Name
+	scope := newLoggingScope(namespace, "esHost", loggingSecretName)
 
 	commonExpectationsForApply(mockClient, namespace, appContainerName, workloadName)
 	expectationsForApplyUseManagedClusterSecret(t, mockClient, namespace)
@@ -74,11 +73,11 @@ func TestHelidonHandlerApply_NonManagedCluster(t *testing.T) {
 	workloadName := "hello-workload"
 	appContainerName := "testApply-app-container"
 	workload := workloadOf(namespace, workloadName)
-	esSecretName := "someEsSecret"
-	scope := newLoggingScope(namespace, "esHost", esSecretName)
+	loggingSecretName := "someLoggingSecret"
+	scope := newLoggingScope(namespace, "esHost", loggingSecretName)
 
 	commonExpectationsForApply(mockClient, namespace, appContainerName, workloadName)
-	expectationsForApplyNonManagedCluster(t, mockClient, namespace, esSecretName)
+	expectationsForApplyNonManagedCluster(t, mockClient, namespace, loggingSecretName)
 	expectDeploymentUpdatedWithFluentd(t, mockClient, appContainerName)
 
 	h := &HelidonHandler{
@@ -100,15 +99,15 @@ func TestHelidoHandlerApplyRequeueForDeploymentUpdate(t *testing.T) {
 	mockClient := mocks.NewMockClient(mocker)
 	namespace := "hello-ns"
 	workloadName := "hello-workload"
-	esSecretName := "myEsSecret"
+	loggingSecretName := "myLoggingSecret"
 	appContainerName := "testUpdate-app-container"
 	workload := workloadOf(namespace, workloadName)
-	scope := newLoggingScope(namespace, "esHost", esSecretName)
+	scope := newLoggingScope(namespace, "esHost", loggingSecretName)
 	mockClient.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
 			appContainer := kcore.Container{Name: appContainerName, Image: "test-app-container-image"}
-			fluentdContainer := CreateFluentdContainer(scope.Spec, workload.Namespace, workload.Name, "")
+			fluentdContainer := CreateFluentdContainer(scope.Spec, workload.Namespace, workload.Name)
 			deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, appContainer, fluentdContainer)
 			vol := kcore.Volume{
 				Name: "app-volume",
@@ -145,15 +144,15 @@ func TestHelidoHandlerRemove(t *testing.T) {
 	mockClient := mocks.NewMockClient(mocker)
 	namespace := "hello-ns"
 	workloadName := "hello-workload"
-	esSecretName := "myEsSecret"
+	loggingSecretName := "myLoggingSecret"
 	appContainerName := "testDelete-app-container"
 	workload := workloadOf(namespace, workloadName)
-	scope := newLoggingScope(namespace, "esHost", esSecretName)
+	scope := newLoggingScope(namespace, "esHost", loggingSecretName)
 	mockClient.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
 			appContainer := kcore.Container{Name: appContainerName, Image: "test-app-container-image"}
-			fluentdContainer := CreateFluentdContainer(scope.Spec, workload.Namespace, workload.Name, "cluster1")
+			fluentdContainer := CreateFluentdContainer(scope.Spec, workload.Namespace, workload.Name)
 			deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, appContainer, fluentdContainer)
 			vol := kcore.Volume{
 				Name: "app-volume",
@@ -218,9 +217,9 @@ func TestHelidoHandlerApplyNoDeployment(t *testing.T) {
 	mockClient := mocks.NewMockClient(mocker)
 	namespace := "hello-ns"
 	workloadName := "hello-workload"
-	esSecretName := "myEsSecret"
+	loggingSecretName := "myLoggingSecret"
 	workload := workloadOf(namespace, workloadName)
-	scope := newLoggingScope(namespace, "esHost", esSecretName)
+	scope := newLoggingScope(namespace, "esHost", loggingSecretName)
 	mockClient.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
@@ -246,9 +245,9 @@ func TestHelidoHandlerRemoveNoDeployment(t *testing.T) {
 	mockClient := mocks.NewMockClient(mocker)
 	namespace := "hello-ns"
 	workloadName := "hello-workload"
-	esSecretName := "myEsSecret"
+	loggingSecretName := "myLoggingSecret"
 	workload := workloadOf(namespace, workloadName)
-	scope := newLoggingScope(namespace, "esHost", esSecretName)
+	scope := newLoggingScope(namespace, "esHost", loggingSecretName)
 	mockClient.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *kapps.Deployment) error {
@@ -311,17 +310,17 @@ func expectDeploymentUpdatedWithFluentd(t *testing.T, mockClient *mocks.MockClie
 		})
 }
 
-// expectationsForApplyUseManagedClusterSecret - adds expectations when the esSecretName is the same
+// expectationsForApplyUseManagedClusterSecret - adds expectations when the loggingSecretName is the same
 // as the managed cluster's ES secret name
 func expectationsForApplyUseManagedClusterSecret(t *testing.T, mockClient *mocks.MockClient, namespace string) {
-	managedClusterVmiSecretKey := clusters.GetManagedClusterElasticsearchSecretKey()
-	esSecretName := managedClusterVmiSecretKey.Name
+	managedClusterVmiSecretKey := clusters.MCRegistrationSecretFullName
+	loggingSecretName := managedClusterVmiSecretKey.Name
 
 	// GET supplied ES secret which we return as not found
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: esSecretName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: loggingSecretName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *kcore.Secret) error {
-			return kerrs.NewNotFound(schema.ParseGroupResource("v1.Secret"), esSecretName)
+			return kerrs.NewNotFound(schema.ParseGroupResource("v1.Secret"), loggingSecretName)
 		})
 
 	// Check if managed cluster secret VMI secret exists - return a valid secret
@@ -351,41 +350,25 @@ func expectationsForApplyUseManagedClusterSecret(t *testing.T, mockClient *mocks
 			asserts.Equal(t, managedClusterSecretNameInAppNS.Namespace, sec.Namespace)
 			return nil
 		})
-
-	// Get cluster secret for cluster name in log records
-	mockClient.EXPECT().
-		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *kcore.Secret) error {
-			vmiSecret(sec)
-			return nil
-		})
 }
 
 // expectationsForApplyNonManagedCluster - adds expectations for the case where this is NOT a managed cluster
 // i.e. the managed cluster registration secret does not exist. In this case, we don't expect any
 // secrets to be copied to app NS. We do expect an empty secret with no data to be created in
 // the app NS for volume mounting on fluentd
-func expectationsForApplyNonManagedCluster(t *testing.T, mockClient *mocks.MockClient, namespace string, esSecretName string) {
+func expectationsForApplyNonManagedCluster(t *testing.T, mockClient *mocks.MockClient, namespace string, loggingSecretName string) {
 	// GET supplied ES secret which we return as not found
 	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: esSecretName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: loggingSecretName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj *kcore.Secret) error {
-			return kerrs.NewNotFound(schema.ParseGroupResource("v1.Secret"), esSecretName)
-		})
-
-	// Get cluster secret for cluster name
-	mockClient.EXPECT().
-		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *kcore.Secret) error {
-			vmiSecret(sec)
-			return nil
+			return kerrs.NewNotFound(schema.ParseGroupResource("v1.Secret"), loggingSecretName)
 		})
 
 	// Check that empty secret is created in app NS, with no data contents
 	mockClient.EXPECT().
 		Create(gomock.Any(), gomock.AssignableToTypeOf(&kcore.Secret{}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, sec *kcore.Secret, opt *client.CreateOptions) error {
-			asserts.Equal(t, esSecretName, sec.Name)
+			asserts.Equal(t, loggingSecretName, sec.Name)
 			asserts.Equal(t, namespace, sec.Namespace)
 			asserts.Nil(t, sec.Data)
 			return nil

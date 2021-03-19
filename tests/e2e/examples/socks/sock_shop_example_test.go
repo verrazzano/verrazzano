@@ -185,18 +185,9 @@ var _ = Describe("Sock Shop Application", func() {
 
 // undeploys the application, components, and namespace
 var _ = AfterSuite(func() {
-	// undeploy the application here
-	err := pkg.DeleteResourceFromFile("examples/sock-shop/sock-shop-app.yaml")
+	err := undeploySockShopApplication()
 	if err != nil {
-		Fail(fmt.Sprintf("Could not delete sock shop applications: %v\n", err.Error()))
-	}
-	err = pkg.DeleteResourceFromFile("examples/sock-shop/sock-shop-comp.yaml")
-	if err != nil {
-		Fail(fmt.Sprintf("Could not delete sock shop components: %v\n", err.Error()))
-	}
-	err = pkg.DeleteNamespace("sockshop")
-	if err != nil {
-		Fail(fmt.Sprintf("Could not delete sock shop namespace: %v\n", err.Error()))
+		Fail(fmt.Sprintf("Could not undeploy sock shop application: %v\n", err.Error()))
 	}
 })
 
