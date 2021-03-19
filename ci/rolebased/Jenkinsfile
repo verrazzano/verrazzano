@@ -316,7 +316,7 @@ pipeline {
                                         expression {params.RUN_EXAMPLE_TESTS == true}
                                     }
                                     steps {
-                                        runGinkgo('examples/todo-list')
+                                        runGinkgo('examples/todo')
                                     }
                                 }
                                 stage('examples socks') {
@@ -329,7 +329,7 @@ pipeline {
                                         expression {params.RUN_EXAMPLE_TESTS == true}
                                     }
                                     steps {
-                                        runGinkgoWithKubeClient('examples/sock-shop')
+                                        runGinkgoWithKubeClient('examples/socks')
                                     }
                                     post {
                                         always {
@@ -340,7 +340,7 @@ pipeline {
                                         }
                                     }
                                 }
-                                stage('examples spring') {
+                                stage('examples springboot') {
                                     environment {
                                         TEST_ID = UUID.randomUUID().toString()
                                         TEST_NAMESPACE = "springboot"
@@ -350,7 +350,7 @@ pipeline {
                                         expression {params.RUN_EXAMPLE_TESTS == true}
                                     }
                                     steps {
-                                        runGinkgoWithKubeClient('examples/springboot-app')
+                                        runGinkgoWithKubeClient('examples/springboot')
                                     }
                                     post {
                                         always {
@@ -371,7 +371,7 @@ pipeline {
                                         expression {params.RUN_EXAMPLE_TESTS == true}
                                     }
                                     steps {
-                                        runGinkgoWithKubeClient('examples/hello-helidon')
+                                        runGinkgoWithKubeClient('examples/helidon')
                                     }
                                     post {
                                         always {
@@ -382,12 +382,12 @@ pipeline {
                                         }
                                     }
                                 }
-                                stage('examples bobs') {
+                                stage('examples bobs books') {
                                     when {
                                         expression {params.RUN_EXAMPLE_TESTS == true}
                                     }
                                     steps {
-                                        runGinkgo('examples/bobs-books')
+                                        runGinkgo('examples/bobsbooks')
                                     }
                                 }
                             }
