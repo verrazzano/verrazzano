@@ -22,6 +22,10 @@ pipeline {
     parameters {
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
         booleanParam (description: 'Whether to run example tests', name: 'RUN_EXAMPLE_TESTS', defaultValue: true)
+        string (name: 'VERRAZZANO_OPERATOR_IMAGE',
+                defaultValue: 'NONE',
+                description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from VZ repo will be leveraged to create VZ platform operator',
+                trim: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
     }
 
@@ -50,6 +54,7 @@ pipeline {
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
+        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
@@ -136,8 +141,8 @@ pipeline {
                         sh """
                             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
                             echo "Create Kind cluster"
-                            cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                            make create-cluster
+                            cd ${GO_REPO_PATH}/verrazzano
+                            ./ci/scripts/setup_kind_for_jenkins.sh at-tests ${KUBECONFIG}
 
                             echo "Install metallb"
                             cd ${GO_REPO_PATH}/verrazzano
@@ -182,7 +187,6 @@ pipeline {
 
                             # wait for Verrazzano install to complete
                             ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
-
                         """
                     }
                     post {
@@ -312,7 +316,7 @@ pipeline {
                                         expression {params.RUN_EXAMPLE_TESTS == true}
                                     }
                                     steps {
-                                        runGinkgo('examples/todo-list')
+                                        runGinkgo('examples/todo')
                                     }
                                 }
                                 stage('examples socks') {
@@ -325,7 +329,7 @@ pipeline {
                                         expression {params.RUN_EXAMPLE_TESTS == true}
                                     }
                                     steps {
-                                        runGinkgoWithKubeClient('examples/sock-shop')
+                                        runGinkgoWithKubeClient('examples/socks')
                                     }
                                     post {
                                         always {
@@ -336,7 +340,7 @@ pipeline {
                                         }
                                     }
                                 }
-                                stage('examples spring') {
+                                stage('examples springboot') {
                                     environment {
                                         TEST_ID = UUID.randomUUID().toString()
                                         TEST_NAMESPACE = "springboot"
@@ -346,7 +350,7 @@ pipeline {
                                         expression {params.RUN_EXAMPLE_TESTS == true}
                                     }
                                     steps {
-                                        runGinkgoWithKubeClient('examples/springboot-app')
+                                        runGinkgoWithKubeClient('examples/springboot')
                                     }
                                     post {
                                         always {
@@ -367,7 +371,7 @@ pipeline {
                                         expression {params.RUN_EXAMPLE_TESTS == true}
                                     }
                                     steps {
-                                        runGinkgoWithKubeClient('examples/hello-helidon')
+                                        runGinkgoWithKubeClient('examples/helidon')
                                     }
                                     post {
                                         always {
@@ -378,12 +382,12 @@ pipeline {
                                         }
                                     }
                                 }
-                                stage('examples bobs') {
+                                stage('examples bobs books') {
                                     when {
                                         expression {params.RUN_EXAMPLE_TESTS == true}
                                     }
                                     steps {
-                                        runGinkgo('examples/bobs-books')
+                                        runGinkgo('examples/bobsbooks')
                                     }
                                 }
                             }
