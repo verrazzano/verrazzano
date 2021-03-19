@@ -40,11 +40,11 @@ func TestFetchManagedClusterElasticSearchDetails_Exists(t *testing.T) {
 			constants.ElasticsearchUsernameData: []byte(esUser),
 			constants.ElasticsearchPasswordData: []byte(esPwd)},
 	}
-	esSecret1.Name = MCElasticsearchSecretFullName.Name
-	esSecret1.Namespace = MCElasticsearchSecretFullName.Namespace
+	esSecret1.Name = MCRegistrationSecretFullName.Name
+	esSecret1.Namespace = MCRegistrationSecretFullName.Namespace
 
 	cli.EXPECT().
-		Get(gomock.Any(), MCElasticsearchSecretFullName, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
 			secret.Name = esSecret1.Name
 			secret.Namespace = esSecret1.Namespace
@@ -69,8 +69,8 @@ func TestFetchManagedClusterElasticSearchDetails_DoesNotExist(t *testing.T) {
 	cli := mocks.NewMockClient(mocker)
 
 	cli.EXPECT().
-		Get(gomock.Any(), MCElasticsearchSecretFullName, gomock.Not(gomock.Nil())).
-		Return(kerr.NewNotFound(schema.ParseGroupResource("Secret"), MCElasticsearchSecretFullName.Name))
+		Get(gomock.Any(), MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
+		Return(kerr.NewNotFound(schema.ParseGroupResource("Secret"), MCRegistrationSecretFullName.Name))
 
 	esDetails := FetchManagedClusterElasticSearchDetails(context.TODO(), cli)
 
@@ -144,13 +144,6 @@ func TestGetConditionFromResult(t *testing.T) {
 	asserts.Equal(t, clustersv1alpha1.DeployFailed, condition.Type)
 	asserts.Equal(t, v1.ConditionTrue, condition.Status)
 	asserts.Contains(t, condition.Message, someerr.Error())
-}
-
-// TestGetManagedClusterElasticsearchSecretKey tests that GetManagedClusterElasticsearchSecretKey
-// returns the correct value
-func TestGetManagedClusterElasticsearchSecretKey(t *testing.T) {
-	key := GetManagedClusterElasticsearchSecretKey()
-	asserts.Equal(t, MCElasticsearchSecretFullName, key)
 }
 
 // TestIgnoreNotFoundWithLog tests the IgnoreNotFoundWithLog function

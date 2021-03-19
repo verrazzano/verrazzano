@@ -6,6 +6,7 @@ package clusters
 import (
 	"context"
 	"fmt"
+
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
@@ -117,13 +118,6 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 	err = r.syncRegistrationSecret(vmc)
 	if err != nil {
 		log.Errorf("Failed to sync the registration secret: %v", err)
-		return ctrl.Result{}, err
-	}
-
-	log.Infof("Syncing the Elasticsearch secret for VMC %s", vmc.Name)
-	err = r.syncElasticsearchSecret(vmc)
-	if err != nil {
-		log.Errorf("Failed to sync the Elasticsearch secret: %v", err)
 		return ctrl.Result{}, err
 	}
 
