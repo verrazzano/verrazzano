@@ -62,14 +62,6 @@ func TestCreateWithSecretAndConfigMap(t *testing.T) {
 	}
 	defer func() { getClientFunc = getClient }()
 
-	/*	asserts := assert.New(t)
-		mocker := gomock.NewController(t)
-		mock := mocks.NewMockClient(mocker)
-		mockStatus := mocks.NewMockStatusWriter(mocker)
-		asserts.NotNil(mockStatus)
-
-		expectListVerrazzano(t, mock)
-	*/
 	// VMC to be validated
 	vz := VerrazzanoManagedCluster{
 		TypeMeta: metav1.TypeMeta{},
@@ -83,8 +75,6 @@ func TestCreateWithSecretAndConfigMap(t *testing.T) {
 	}
 	err := vz.ValidateCreate()
 
-	// Validate the results
-	//mocker.Finish()
 	assert.NoError(t, err, "Error validating VerrazzanoMultiCluster resource")
 }
 
