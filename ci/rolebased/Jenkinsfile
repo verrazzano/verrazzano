@@ -141,8 +141,8 @@ pipeline {
                         sh """
                             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
                             echo "Create Kind cluster"
-                            cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                            make create-cluster
+                            cd ${GO_REPO_PATH}/verrazzano
+                            ./ci/scripts/setup_kind_for_jenkins.sh rolebased-tests ${KUBECONFIG}
 
                             echo "Install metallb"
                             cd ${GO_REPO_PATH}/verrazzano
