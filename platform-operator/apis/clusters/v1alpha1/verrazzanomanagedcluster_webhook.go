@@ -100,7 +100,7 @@ func newScheme() *runtime.Scheme {
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
 	}, &corev1.Secret{}, &corev1.ConfigMap{})
-	scheme.AddKnownTypes(v1alpha1.SchemeGroupVersion, &v1alpha1.Verrazzano{})
+	scheme.AddKnownTypes(v1alpha1.SchemeGroupVersion, &v1alpha1.VerrazzanoList{}, &v1alpha1.Verrazzano{})
 	return scheme
 }
 
