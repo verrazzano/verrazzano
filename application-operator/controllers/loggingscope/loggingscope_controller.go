@@ -96,6 +96,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 		result, err := handler.Apply(ctx, resource, scope)
 		if result != nil {
+			r.Log.Info(fmt.Sprintf("%v", *result))
+			r.Log.Info(resource.Name)
 			return *result, nil
 		}
 		if err != nil {
@@ -150,7 +152,7 @@ func handlerKey(workload vzapi.QualifiedResourceRelation) string {
 // Will return nil for the scope and no error if the scope does not exist.
 func (r *Reconciler) fetchScope(ctx context.Context, name types.NamespacedName) (*vzapi.LoggingScope, error) {
 	var scope vzapi.LoggingScope
-	r.Log.Info("Fetch scope", "name", name)
+	r.Log.V(1).Info("Fetch scope", "name", name)
 	if err := r.Get(ctx, name, &scope); err != nil {
 		if k8serrors.IsNotFound(err) {
 			r.Log.Info("Scope has been deleted")
@@ -179,7 +181,7 @@ func fetchWorkloadsFromScope(ctx context.Context, cli client.Reader, log logr.Lo
 		workload.SetAPIVersion(workloadRef.APIVersion)
 		workload.SetKind(workloadRef.Kind)
 		workloadKey := client.ObjectKey{Name: workloadRef.Name, Namespace: scope.GetNamespace()}
-		log.Info("Fetch workload", "workload", workloadKey)
+		log.V(1).Info("Fetch workload", "workload", workloadKey)
 		if err := cli.Get(ctx, workloadKey, &workload); err != nil {
 			log.Error(err, "Failed to fetch workload", "workload", workloadKey)
 			return nil, err

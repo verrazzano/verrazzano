@@ -91,7 +91,7 @@ func main() {
 	kzap.UseFlagOptions(&opts)
 	log.InitLogs(opts)
 
-	setupLog := ctrl.Log.WithName("setup")
+	setupLog := ctrl.Log.WithName("operator").WithName("setup")
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
