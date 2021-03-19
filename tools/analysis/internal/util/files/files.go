@@ -30,7 +30,7 @@ func GetMatchingFiles(log *zap.SugaredLogger, rootDirectory string, fileMatch st
 	}
 
 	walkFunc := func(fileName string, fileInfo os.FileInfo, err error) error {
-		if fileMatchRe.MatchString(fileName) == false {
+		if !fileMatchRe.MatchString(fileName) {
 			return nil
 		}
 		if !fileInfo.IsDir() {
@@ -63,7 +63,7 @@ func GetMatchingDirectories(log *zap.SugaredLogger, rootDirectory string, fileMa
 	}
 
 	walkFunc := func(fileName string, fileInfo os.FileInfo, err error) error {
-		if fileMatchRe.MatchString(fileName) == false {
+		if !fileMatchRe.MatchString(fileName) {
 			return nil
 		}
 		if fileInfo.IsDir() {

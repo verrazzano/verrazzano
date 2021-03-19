@@ -597,13 +597,13 @@ func expectSyncElasticsearch(t *testing.T, mock *mocks.MockClient, name string) 
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
-			ca, _ := secret.Data[CaBundleKey]
+			ca := secret.Data[CaBundleKey]
 			asserts.Equalf(caData, string(ca), "Incorrect cadata in Elasticsearch secret ")
-			user, _ := secret.Data[UsernameKey]
+			user := secret.Data[UsernameKey]
 			asserts.Equalf(userData, string(user), "Incorrect user in Elasticsearch secret ")
-			pw, _ := secret.Data[PasswordKey]
+			pw := secret.Data[PasswordKey]
 			asserts.Equalf(passwordData, string(pw), "Incorrect password in Elasticsearch secret ")
-			url, _ := secret.Data[URLKey]
+			url := secret.Data[URLKey]
 			asserts.Equalf(urlData, string(url), "Incorrect URL in Elasticsearch secret ")
 			return nil
 		})
@@ -661,7 +661,7 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, name string) {
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
-			data, _ := secret.Data[YamlKey]
+			data := secret.Data[YamlKey]
 			asserts.NotZero(len(data), "Expected yaml data in manifest secret")
 			return nil
 		})

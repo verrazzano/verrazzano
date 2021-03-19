@@ -440,6 +440,11 @@ pipeline {
                                 runGinkgo('examples/bobsbooks')
                             }
                         }
+                        stage('console ingress') {
+                            steps {
+                                runGinkgo('ingress/console')
+                            }
+                        }
                     }
                     post {
                         always {
@@ -535,7 +540,7 @@ def runGinkgo(testSuitePath) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -a
+        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
     """
 }
 

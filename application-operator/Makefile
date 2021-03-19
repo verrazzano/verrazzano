@@ -171,12 +171,12 @@ setup-cluster: create-cluster
 	time kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 	echo 'Install OAM runtime and Verrazzano application operator...'
-	time installer/install.sh || (echo 'Application operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -a; exit 1)
+	time installer/install.sh || (echo 'Application operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/cluster-dump/analysis.report; exit 1)
 
 .PHONY: integ-test
 integ-test: setup-cluster
 	echo 'Run tests...'
-	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Application operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -a; exit 1)
+	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Application operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/cluster-dump/analysis.report; exit 1)
 
 .PHONY: create-cluster
 create-cluster:

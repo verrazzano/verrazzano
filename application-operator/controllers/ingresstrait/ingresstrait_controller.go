@@ -232,7 +232,7 @@ func (r *Reconciler) fetchChildResourcesByAPIVersionKinds(ctx context.Context, n
 	for _, childResKind := range childResKinds {
 		resources := unstructured.UnstructuredList{}
 		resources.SetAPIVersion(childResKind.APIVersion)
-		resources.SetKind(childResKind.Kind)
+		resources.SetKind(childResKind.Kind + "List") // Only required by "fake" client used in tests.
 		if err := r.List(ctx, &resources, client.InNamespace(namespace), client.MatchingLabels(childResKind.Selector)); err != nil {
 			r.Log.Error(err, "Failed listing child resources")
 			return nil, err
@@ -496,15 +496,32 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 		matches = append(matches, &istionet.HTTPMatchRequest{
 			Uri: createVirtualServiceMatchURIFromIngressTraitPath(path)})
 	}
-	dest := createDestinationFromService(service)
+	dest, err := createDestinationFromRuleOrService(rule, service)
+	if err != nil {
+		return err
+	}
 	route := istionet.HTTPRoute{
 		Match: matches,
-		Route: []*istionet.HTTPRouteDestination{&dest}}
+		Route: []*istionet.HTTPRouteDestination{dest}}
 	virtualService.Spec.Http = []*istionet.HTTPRoute{&route}
 
 	// Set the owner reference.
 	controllerutil.SetControllerReference(trait, virtualService, r.Scheme)
 	return nil
+}
+
+// createDestinationFromRuleOrService creates a destination from either the rule or the service.
+// If the rule contains destination information that is used.
+// Otherwise the previously selected service information is used.
+func createDestinationFromRuleOrService(rule vzapi.IngressRule, service *corev1.Service) (*istionet.HTTPRouteDestination, error) {
+	if len(rule.Destination.Host) > 0 {
+		dest := &istionet.HTTPRouteDestination{Destination: &istionet.Destination{Host: rule.Destination.Host}}
+		if rule.Destination.Port != 0 {
+			dest.Destination.Port = &istionet.PortSelector{Number: rule.Destination.Port}
+		}
+		return dest, nil
+	}
+	return createDestinationFromService(service)
 }
 
 // getPathsFromRule gets the paths from a trait.
@@ -520,14 +537,17 @@ func getPathsFromRule(rule vzapi.IngressRule) []vzapi.IngressPath {
 
 // createDestinationFromService creates a virtual service destination from a Service.
 // If the service does not have a port it is not included in the destination.
-func createDestinationFromService(service *corev1.Service) istionet.HTTPRouteDestination {
+func createDestinationFromService(service *corev1.Service) (*istionet.HTTPRouteDestination, error) {
+	if service == nil {
+		return nil, fmt.Errorf("unable to select default service for destination")
+	}
 	dest := istionet.HTTPRouteDestination{
 		Destination: &istionet.Destination{Host: service.Name}}
 	// If the related service declares a port add it to the destination.
 	if len(service.Spec.Ports) > 0 {
 		dest.Destination.Port = &istionet.PortSelector{Number: uint32(service.Spec.Ports[0].Port)}
 	}
-	return dest
+	return &dest, nil
 }
 
 // createVirtualServiceMatchURIFromIngressTraitPath create the virtual service match uri map from an ingress trait path
