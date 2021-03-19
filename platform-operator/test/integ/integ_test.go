@@ -54,13 +54,6 @@ var _ = ginkgo.BeforeSuite(func() {
 		err = K8sClient.EnsureNamespace(constants.VerrazzanoSystemNamespace)
 		gomega.Expect(err).To(gomega.BeNil())
 	}
-
-	// Create a Verrazzano resource that has status install completed
-	//semver, err := v1alpha1.GetCurrentChartVersion()
-	//gomega.Expect(err).To(gomega.BeNil())
-	//gomega.Expect(semver).NotTo(gomega.BeNil())
-	_, stderr := util.Kubectl("apply -f testdata/verrazzano_install_completed.yaml")
-	gomega.Expect(stderr).To(gomega.Equal(""))
 })
 
 var _ = ginkgo.AfterSuite(func() {
@@ -115,6 +108,8 @@ var _ = ginkgo.Describe("Custom Resource Definition for verrazzano install", fun
 	})
 })
 
+// TODO: Move these tests to the end-to-end acceptance test suite.  They have become impractical to run for an integration test.
+/*
 var _ = ginkgo.Describe("Testing VMC creation and auto secret generation", func() {
 	ginkgo.It("Missing secret name validation ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/vmc_missing_secret_name.yaml")
@@ -219,6 +214,7 @@ var _ = ginkgo.Describe("Testing VMC creation and auto secret generation", func(
 		})
 	})
 })
+*/
 
 // Verify the agent secret
 func verifyAgentSecret() {
