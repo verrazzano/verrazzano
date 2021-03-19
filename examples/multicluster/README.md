@@ -9,13 +9,13 @@ This repository contains examples of different approaches for using Verrazzano m
 **NOTE:** All files and paths in this document are relative to
 `<VERRAZZANO_HOME>/examples/multicluster`.
 
-### Multicluster installation
-
 Complete the following sections prior to running the multicluster examples.
+
+### Multicluster installation
 
 1. Install Verrazzano on two separate Kubernetes clusters following the [installation instructions](https://verrazzano.io/docs/setup/install/installation/):
    * On one cluster, install Verrazzano using the `dev` profile; this is known as the `admin` cluster.
-   * On the other cluster, install Verrazzano using the `managed-cluster` profile;, this is known as the `managed cluster`.  The `managed-cluster` profile contains only the components that are required on a managed cluster.
+   * On the other cluster, install Verrazzano using the `managed-cluster` profile; this is known as the `managed cluster`.  The `managed-cluster` profile contains only the components that are required on a managed cluster.
 
 2. Create the environment variables `KUBECONFIG_ADMIN` and `KUBECONFIG_MANAGED1` and point them to the `kubeconfig` file for the `admin` and `managed cluster`, respectively.
 

@@ -16,7 +16,7 @@ The Hello World Helidon application deployment artifacts are contained in the Ve
 
 ## Create the application namespace
 
-1. Apply the `VerrazzanoProject` resource on the admin cluster that defines the namespace for the application.  The namespaces defined in the `VerrazzanoProject` resource will be created on the admin cluster and all the managed clusters.
+Apply the `VerrazzanoProject` resource on the admin cluster that defines the namespace for the application.  The namespaces defined in the `VerrazzanoProject` resource will be created on the admin cluster and all the managed clusters.
    ```
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f verrazzano-project.yaml
    ```
@@ -36,11 +36,11 @@ The Hello World Helidon application deployment artifacts are contained in the Ve
 
 ## Testing the example application
 
-Follow the [instructions](../../hello-helidon/README.md/#testing-the-example-application) for testing the Hello Helidon application in a single cluster use case. Use the managed-cluster `kubeconfig` for testing the example application.
+Follow the [instructions](../../hello-helidon/README.md/#testing-the-example-application) for testing the Hello World Helidon application in a single cluster use case. Use the managed-cluster `kubeconfig` for testing the example application.
 
 ## Troubleshooting
 
-Follow the [instructions](../../hello-helidon/README.md/#troubleshooting) for troubleshooting the Hello Helidon application in a single cluster use case. Use the managed-cluster `kubeconfig` for troubleshooting the example application.
+Follow the [instructions](../../hello-helidon/README.md/#troubleshooting) for troubleshooting the Hello World Helidon application in a single cluster use case. Use the managed-cluster `kubeconfig` for troubleshooting the example application.
 
 1. Verify that the application namespace exists on the managed cluster.
    ```
