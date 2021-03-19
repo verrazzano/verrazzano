@@ -236,7 +236,7 @@ func GetVMOClientset() *vmoclient.Clientset {
 func GetPlatformOperatorClientset() *vpoClient.Clientset {
 	client, err := vpoClient.NewForConfig(GetKubeConfig())
 	if err != nil {
-		ginkgo.Fail("Could not get Verrazzano Monitoring Operator clientset")
+		ginkgo.Fail("Could not get Verrazzano Platform Operator clientset")
 	}
 	return client
 }

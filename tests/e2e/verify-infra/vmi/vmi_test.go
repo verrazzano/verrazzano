@@ -98,7 +98,7 @@ var _ = ginkgo.BeforeSuite(func() {
 
 	vzCRD, err = verrazzanoInstallerCRD()
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Error retrieving system VMI CRD: %v", err))
+		ginkgo.Fail(fmt.Sprintf("Error retrieving Verrazzano Installer CRD: %v", err))
 	}
 
 	ingressURLs, err = vmiIngressURLs()
