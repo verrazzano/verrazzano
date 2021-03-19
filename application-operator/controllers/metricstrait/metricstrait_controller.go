@@ -488,7 +488,7 @@ func (r *Reconciler) findPrometheusScrapeConfigMapNameFromDeployment(deployment 
 // updateRelatedDeployment updates the labels and annotations of a related workload deployment.
 // For example containerized workloads produce related deployments.
 func (r *Reconciler) updateRelatedDeployment(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, child *unstructured.Unstructured) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
-	r.Log.Info("Update workload deployment", "deployment", vznav.GetNamespacedNameFromUnstructured(child))
+	r.Log.V(1).Info("Update workload deployment", "deployment", vznav.GetNamespacedNameFromUnstructured(child))
 	ref := vzapi.QualifiedResourceRelation{APIVersion: child.GetAPIVersion(), Kind: child.GetKind(), Namespace: child.GetNamespace(), Name: child.GetName(), Role: sourceRole}
 	deployment := &k8sapps.Deployment{
 		TypeMeta:   metav1.TypeMeta{APIVersion: child.GetAPIVersion(), Kind: child.GetKind()},
@@ -703,7 +703,7 @@ func (r *Reconciler) fetchTraitDefaults(ctx context.Context, workload *unstructu
 
 	// Log the kind/workload is unsupported and return a nil trait.
 	gvk, _ := vznav.GetAPIVersionKindOfUnstructured(workload)
-	r.Log.Info(fmt.Sprintf("unsupported kind %s of workload %s", gvk, vznav.GetNamespacedNameFromUnstructured(workload)))
+	r.Log.V(1).Info(fmt.Sprintf("unsupported kind %s of workload %s", gvk, vznav.GetNamespacedNameFromUnstructured(workload)))
 	return nil, nil
 }
 

@@ -96,8 +96,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 		result, err := handler.Apply(ctx, resource, scope)
 		if result != nil {
-			r.Log.Info(fmt.Sprintf("%v", *result))
-			r.Log.Info(resource.Name)
 			return *result, nil
 		}
 		if err != nil {
