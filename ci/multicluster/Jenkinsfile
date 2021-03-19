@@ -401,7 +401,7 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: '**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             script {
                 int clusterCount = params.TOTAL_CLUSTERS.toInteger()

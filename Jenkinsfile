@@ -12,10 +12,10 @@ pipeline {
     agent {
        docker {
             image "${RUNNER_DOCKER_IMAGE}"
-            args "${RUNNER_DOCKER_ARGS}"
+            args "${EXPERIMENTAL_RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "VM.Standard2.8"
+            label "largeexperimental"
         }
     }
 
@@ -48,7 +48,7 @@ pipeline {
         GITHUB_RELEASE_EMAIL = credentials('github-email-release')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
-        CLUSTER_NAME = 'at-tests'
+        CLUSTER_NAME = 'verrazzano'
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
@@ -247,20 +247,22 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    mkdir ${HOME}/.kube/ || true
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    ../ci/scripts/setup_kind_for_jenkins.sh vpo-integ ${HOME}/.kube/vpo-integ-config
-                    make integ-test JENKINS_KUBECONFIG=${HOME}/.kube/vpo-integ-config CLUSTER_DUMP_LOCATION=${WORKSPACE}/platform-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+
+                    make cleanup-cluster
+                    make create-cluster KIND_CONFIG="kind-config-ci.yaml"
+                    ../ci/scripts/setup_kind_for_jenkins.sh
+                    make integ-test CLUSTER_DUMP_LOCATION=${WORKSPACE}/platform-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     ../build/copy-junit-output.sh ${WORKSPACE}
                     cd ${GO_REPO_PATH}/verrazzano/application-operator
-                    ../ci/scripts/setup_kind_for_jenkins.sh apo-integ ${HOME}/.kube/apo-integ-config
-                    make integ-test JENKINS_KUBECONFIG=${HOME}/.kube/apo-integ-config DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+                    make delete-cluster
+                    make integ-test KIND_CONFIG="kind-config-ci.yaml" DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     ../build/copy-junit-output.sh ${WORKSPACE}
                 """
             }
             post {
                 always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/*cluster-dump/**', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/*-cluster-dump/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
@@ -315,8 +317,9 @@ pipeline {
                             echo "tests will execute" > ${TESTS_EXECUTED_FILE}
                             echo "Create Kind cluster"
                             cd ${GO_REPO_PATH}/verrazzano/platform-operator
-
-                            ../ci/scripts/setup_kind_for_jenkins.sh at-tests ${KUBECONFIG}
+                            make cleanup-cluster
+                            make create-cluster KIND_CONFIG="kind-config-ci.yaml"
+                            ../ci/scripts/setup_kind_for_jenkins.sh
 
                             echo "Install metallb"
                             cd ${GO_REPO_PATH}/verrazzano
@@ -487,7 +490,7 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
             sh """
