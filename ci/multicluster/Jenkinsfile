@@ -355,9 +355,9 @@ pipeline {
                 }
                 stage ('Verify Register') {
                     steps {
-                        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                        for(int count=2; count<=clusterCount; count++) {
-                            script {
+                        script {
+                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                            for(int count=2; count<=clusterCount; count++) {
                                 sh """
                                     export MANAGED_CLUSTER_NAME="managed${count}"
                                     export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
