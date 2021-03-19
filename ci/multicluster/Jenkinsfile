@@ -357,9 +357,10 @@ pipeline {
                             sh """
                                 cd ${GO_REPO_PATH}/verrazzano
                                 ./tests/e2e/config/scripts/register_managed_cluster.sh
+                                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                                ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor multicluster/verify-register/...
                             """
                         }
-                        runGinkgoRandomize('multicluster/verify-register')
                     }
                 }
             }

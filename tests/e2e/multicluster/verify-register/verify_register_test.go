@@ -63,7 +63,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 			os.Setenv("TEST_KUBECONFIG", os.Getenv("MANAGED_KUBECONFIG"))
 		})
 
-		ginkgo.It("admin cluster has the expected secrets", func() {
+		ginkgo.It("managed cluster has the expected secrets", func() {
 			gomega.Eventually(func() bool {
 				s, err := pkg.GetSecret("verrazzano-system", "verrazzano-cluster-agent")
 				return s != nil && err == nil
