@@ -76,15 +76,9 @@ func main() {
 	}
 
 	// Call the analyzer for the type specified
-	analyzerFunc, ok := analyzerTypeFunctions[analyzerType]
-	if !ok {
-		fmt.Printf("\nUnknown analyser type supplied: %s\n", analyzerType)
-		printUsage()
-		os.Exit(1)
-	}
-	err := analyzerFunc(log, flag.Args()[0])
+	err := Analyze(log, analyzerType, flag.Args()[0])
 	if err != nil {
-		fmt.Printf("\nAnalysis failed, exiting.\n")
+		fmt.Printf("\nAnalyze failed: %s, exiting.\n", err)
 		os.Exit(1)
 	}
 
@@ -96,6 +90,21 @@ func main() {
 	}
 
 	os.Exit(0)
+}
+
+// Analyze is exported for unit testing
+func Analyze(log *zap.SugaredLogger, analyzerType string, flagArgs string) (err error) {
+	// Call the analyzer for the type specified
+	analyzerFunc, ok := analyzerTypeFunctions[analyzerType]
+	if !ok {
+		printUsage()
+		return fmt.Errorf("Unknown analyzer type supplied: %s", analyzerType)
+	}
+	err = analyzerFunc(log, flagArgs)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // printUsage Prints the help for this program

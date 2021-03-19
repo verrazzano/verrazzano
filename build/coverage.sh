@@ -29,4 +29,3 @@ if [ "$1" == "html" ]; then
         fi
     fi
 fi
-

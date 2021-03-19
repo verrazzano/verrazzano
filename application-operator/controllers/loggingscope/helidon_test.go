@@ -121,9 +121,7 @@ func TestHelidoHandlerApplyRequeueForDeploymentUpdate(t *testing.T) {
 			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, vol, CreateFluentdConfigMapVolume(workload.Name))
 			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdSecretVolume(scope.Spec.SecretName))
 			volumes := CreateFluentdHostPathVolumes()
-			for _, volume := range volumes {
-				deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volume)
-			}
+			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volumes...)
 			return nil
 		})
 
@@ -168,9 +166,7 @@ func TestHelidoHandlerRemove(t *testing.T) {
 			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, vol, CreateFluentdConfigMapVolume(workload.Name))
 			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdSecretVolume(scope.Spec.SecretName))
 			volumes := CreateFluentdHostPathVolumes()
-			for _, volume := range volumes {
-				deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volume)
-			}
+			deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volumes...)
 			return nil
 		})
 

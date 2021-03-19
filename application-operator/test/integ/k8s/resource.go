@@ -271,6 +271,17 @@ func (c Client) GetMultiClusterAppConfig(namespace string, name string) (*cluste
 	return &mcAppConf, err
 }
 
+// GetVerrazzanoProject gets the specified VerrazzanoProject
+func (c Client) GetVerrazzanoProject(namespace string, name string) (*clustersv1alpha1.VerrazzanoProject, error) {
+	bytes, err := c.getRaw("/apis/clusters.verrazzano.io/v1alpha1", "verrazzanoprojects", namespace, name)
+	if err != nil {
+		return nil, err
+	}
+	var vp clustersv1alpha1.VerrazzanoProject
+	err = json.Unmarshal(bytes, &vp)
+	return &vp, err
+}
+
 // GetOAMAppConfig gets the specified OAM ApplicationConfiguration
 func (c Client) GetOAMAppConfig(namespace string, name string) (*oamv1.ApplicationConfiguration, error) {
 	bytes, err := c.getRaw("/apis/core.oam.dev/v1alpha2", "applicationconfigurations", namespace, name)
