@@ -68,21 +68,21 @@ until kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc get secret | gre
 done
 
 # export manifest on admin
-kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED_CLUSTER_NAME}-manifest -n verrazzano-mc -o jsonpath={.data.yaml} | base64 --decode > register.yaml
+kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED_CLUSTER_NAME}-manifest -n verrazzano-mc -o jsonpath={.data.yaml} | base64 --decode > register-${MANAGED_CLUSTER_NAME}.yaml
 
 # register using the manifest on managed
-kubectl --kubeconfig ${MANAGED_KUBECONFIG} apply -f register.yaml
+kubectl --kubeconfig ${MANAGED_KUBECONFIG} apply -f register-${MANAGED_CLUSTER_NAME}.yaml
 
 # create VerrazzanoProject on admin
 kubectl --kubeconfig ${ADMIN_KUBECONFIG} apply -f <<EOM -
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: VerrazzanoProject
 metadata:
-  name: test-project
+  name: test-project-${MANAGED_CLUSTER_NAME}
   namespace: verrazzano-mc
 spec:
   template:
     namespaces:
       - metadata:
-          name: test-ns
+          name: test-ns-${MANAGED_CLUSTER_NAME}
 EOM
