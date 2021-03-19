@@ -36,9 +36,6 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
-		ginkgo.It("admin cluster has the expected metrics", func() {
-		})
-
 		ginkgo.It("admin cluster has the expected filebeat logs", func() {
 			gomega.Eventually(func() bool {
 				return pkg.LogRecordFound("vmo-local-filebeat-"+time.Now().Format("2006.01.02"),
