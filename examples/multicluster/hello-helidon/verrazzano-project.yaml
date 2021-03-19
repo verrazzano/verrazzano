@@ -3,12 +3,10 @@
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: VerrazzanoProject
 metadata:
-  name: test-invalid-ns
-  namespace: multiclustertest
+  name: hello-helidon
+  namespace: verrazzano-mc
 spec:
   template:
     namespaces:
       - metadata:
-          name: cluster1
-      - metadata:
-          name: cluster2
+          name: hello-helidon

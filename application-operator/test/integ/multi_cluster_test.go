@@ -183,6 +183,10 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 			}
 			return false
 		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			vp, err := K8sClient.GetVerrazzanoProject(constants.VerrazzanoMultiClusterNamespace, "test-default-labels")
+			return err == nil && isStatusAsExpected(vp.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, "managed1")
+		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 	ginkgo.It("Apply VerrazzanoProject to override default verrazzano labels", func() {
 		_, stderr := util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_namespace_override_labels.yaml")

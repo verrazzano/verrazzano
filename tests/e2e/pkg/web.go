@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	// EnvName - default environment name
-	EnvName = "default"
+	// DefaultEnvName - default environment name
+	DefaultEnvName = "default"
 
 	// Username - the username of the verrazzano admin user
 	Username               = "verrazzano"
@@ -237,14 +237,22 @@ func getHTTPClientWIthCABundle(caData []byte) *http.Client {
 	return &http.Client{Transport: tr}
 }
 
+func getEnvName() string {
+	installedEnvName := GetVerrazzanoInstallResource().Spec.EnvironmentName
+	if len(installedEnvName) == 0 {
+		return DefaultEnvName
+	}
+	return installedEnvName
+}
+
 // getVerrazzanoCACert returns the verrazzano CA cert
 func getVerrazzanoCACert() []byte {
-	return doGetCACertFromSecret(EnvName+"-secret", "verrazzano-system")
+	return doGetCACertFromSecret(getEnvName()+"-secret", "verrazzano-system")
 }
 
 // getKeycloakCACert returns the keycloak CA cert
 func getKeycloakCACert() []byte {
-	return doGetCACertFromSecret(EnvName+"-secret", "keycloak")
+	return doGetCACertFromSecret(getEnvName()+"-secret", "keycloak")
 }
 
 // getSystemVMICACert returns the system vmi CA cert

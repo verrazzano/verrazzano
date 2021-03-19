@@ -440,6 +440,11 @@ pipeline {
                                 runGinkgo('examples/bobsbooks')
                             }
                         }
+                        stage('console ingress') {
+                            steps {
+                                runGinkgo('ingress/console')
+                            }
+                        }
                     }
                     post {
                         always {

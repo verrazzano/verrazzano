@@ -9,6 +9,7 @@ import (
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,8 +30,9 @@ const (
 // Reconciler reconciles a VerrazzanoProject object
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log          logr.Logger
+	Scheme       *runtime.Scheme
+	AgentChannel chan clusters.StatusUpdateMessage
 }
 
 // SetupWithManager registers our controller with the manager
@@ -55,8 +57,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, client.IgnoreNotFound(err)
 	}
 
+	// Use OperationResultCreated by default since we don't really know what happened to individual NS
+	opResult := controllerutil.OperationResultCreated
 	err = r.createOrUpdateNamespaces(ctx, vp, logger)
-	return result, err
+	if err != nil {
+		opResult = controllerutil.OperationResultNone
+	}
+
+	return r.updateStatus(ctx, &vp, opResult, err)
 }
 
 func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
@@ -153,6 +161,17 @@ func (r *Reconciler) createOrUpdateRoleBinding(ctx context.Context, roleBinding 
 	}
 
 	return err
+}
+
+// updateStatus updates the status of a VerrazzanoProject
+func (r *Reconciler) updateStatus(ctx context.Context, vp *clustersv1alpha1.VerrazzanoProject, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {
+	clusterName := clusters.GetClusterName(ctx, r.Client)
+	newCondition := clusters.GetConditionFromResult(err, opResult, "VerrazzanoProject")
+	updateFunc := func() error { return r.Status().Update(ctx, vp) }
+	// pass an empty placement since there are no placements on VerrazzanoProject
+	emptyPlacement := clustersv1alpha1.Placement{}
+	return clusters.UpdateStatus(vp, &vp.Status, emptyPlacement, newCondition, clusterName,
+		r.AgentChannel, updateFunc)
 }
 
 // newRoleBinding returns a populated RoleBinding struct
