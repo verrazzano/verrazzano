@@ -346,20 +346,39 @@ pipeline {
                         }
                     }
                 }
-                stage ('Verify Register') {
+                stage ('Register managed clusters') {
                     environment {
                         ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-                        MANAGED_CLUSTER_NAME="managed1"
-                        MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
                     }
                     steps {
                         script {
-                            sh """
-                                cd ${GO_REPO_PATH}/verrazzano
-                                ./tests/e2e/config/scripts/register_managed_cluster.sh
-                                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor multicluster/verify-register/...
-                            """
+                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                            for(int count=2; count<=clusterCount; count++) {
+                                sh """
+                                    export MANAGED_CLUSTER_NAME="managed${count}"
+                                    export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                                    cd ${GO_REPO_PATH}/verrazzano
+                                    ./tests/e2e/config/scripts/register_managed_cluster.sh
+                                """
+                            }
+                        }
+                    }
+                }
+                stage ('Verify Register') {
+                    environment {
+                        ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+                    }
+                    steps {
+                        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                        for(int count=2; count<=clusterCount; count++) {
+                            script {
+                                sh """
+                                    export MANAGED_CLUSTER_NAME="managed${count}"
+                                    export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                                    cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                                    ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor multicluster/verify-register/...
+                                """
+                            }
                         }
                     }
                 }
