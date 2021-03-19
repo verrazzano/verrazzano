@@ -9,7 +9,6 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	vzclusters "github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/platform-operator/test/integ/k8s"
@@ -57,9 +56,9 @@ var _ = ginkgo.BeforeSuite(func() {
 	}
 
 	// Create a Verrazzano resource that has status install completed
-	semver, err := v1alpha1.GetCurrentChartVersion()
-	gomega.Expect(err).To(gomega.BeNil())
-	gomega.Expect(semver).NotTo(gomega.BeNil())
+	//semver, err := v1alpha1.GetCurrentChartVersion()
+	//gomega.Expect(err).To(gomega.BeNil())
+	//gomega.Expect(semver).NotTo(gomega.BeNil())
 	_, stderr := util.Kubectl("apply -f testdata/verrazzano_install_completed.yaml")
 	gomega.Expect(stderr).To(gomega.Equal(""))
 })
