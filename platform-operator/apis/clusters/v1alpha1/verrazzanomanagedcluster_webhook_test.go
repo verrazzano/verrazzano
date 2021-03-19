@@ -11,10 +11,27 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+var verrazzanoList = &v1alpha1.VerrazzanoList{
+	Items: []v1alpha1.Verrazzano{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-verrazzano",
+				Namespace: "default",
+			},
+			Status: v1alpha1.VerrazzanoStatus{
+				Conditions: []v1alpha1.Condition{
+					{
+						Type: v1alpha1.InstallComplete,
+					},
+				},
+			},
+		},
+	},
+}
 
 // TestCreateWithSecretAndConfigMap tests the validation of a valid VerrazzanoManagedCluster secret and valid verrazzano-admin-cluster configmap
 // GIVEN a call validate VerrazzanoManagedCluster
@@ -26,19 +43,7 @@ func TestCreateWithSecretAndConfigMap(t *testing.T) {
 	// fake client needed to get secret
 	getClientFunc = func() (client.Client, error) {
 		return fake.NewFakeClientWithScheme(newScheme(),
-			&v1alpha1.Verrazzano{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "my-verrazzano",
-					Namespace: "default",
-				},
-				Status: v1alpha1.VerrazzanoStatus{
-					Conditions: []v1alpha1.Condition{
-						{
-							Type: v1alpha1.InstallComplete,
-						},
-					},
-				},
-			},
+			verrazzanoList,
 			&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      secretName,
@@ -57,6 +62,14 @@ func TestCreateWithSecretAndConfigMap(t *testing.T) {
 	}
 	defer func() { getClientFunc = getClient }()
 
+	/*	asserts := assert.New(t)
+		mocker := gomock.NewController(t)
+		mock := mocks.NewMockClient(mocker)
+		mockStatus := mocks.NewMockStatusWriter(mocker)
+		asserts.NotNil(mockStatus)
+
+		expectListVerrazzano(t, mock)
+	*/
 	// VMC to be validated
 	vz := VerrazzanoManagedCluster{
 		TypeMeta: metav1.TypeMeta{},
@@ -69,6 +82,9 @@ func TestCreateWithSecretAndConfigMap(t *testing.T) {
 		},
 	}
 	err := vz.ValidateCreate()
+
+	// Validate the results
+	//mocker.Finish()
 	assert.NoError(t, err, "Error validating VerrazzanoMultiCluster resource")
 }
 
@@ -81,7 +97,8 @@ func TestCreateNoConfigMap(t *testing.T) {
 
 	// fake client needed to get secret
 	getClientFunc = func() (client.Client, error) {
-		return fake.NewFakeClientWithScheme(k8scheme.Scheme,
+		return fake.NewFakeClientWithScheme(newScheme(),
+			verrazzanoList,
 			&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      secretName,
@@ -116,7 +133,8 @@ func TestCreateWithSecretConfigMapMissingServer(t *testing.T) {
 
 	// fake client needed to get secret
 	getClientFunc = func() (client.Client, error) {
-		return fake.NewFakeClientWithScheme(k8scheme.Scheme,
+		return fake.NewFakeClientWithScheme(newScheme(),
+			verrazzanoList,
 			&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      secretName,
@@ -154,7 +172,7 @@ func TestCreateWithSecretConfigMapMissingServer(t *testing.T) {
 // THEN the validation should fail
 func TestCreateMissingSecretName(t *testing.T) {
 	getClientFunc = func() (client.Client, error) {
-		return fake.NewFakeClientWithScheme(k8scheme.Scheme), nil
+		return fake.NewFakeClientWithScheme(newScheme(), verrazzanoList), nil
 	}
 	defer func() { getClientFunc = getClient }()
 	vz := VerrazzanoManagedCluster{
@@ -176,7 +194,7 @@ func TestCreateMissingSecretName(t *testing.T) {
 func TestCreateMissingSecret(t *testing.T) {
 	const secretName = "mySecret"
 	getClientFunc = func() (client.Client, error) {
-		return fake.NewFakeClientWithScheme(newScheme()), nil
+		return fake.NewFakeClientWithScheme(newScheme(), verrazzanoList), nil
 	}
 	defer func() { getClientFunc = getClient }()
 
