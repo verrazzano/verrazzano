@@ -161,5 +161,5 @@ func (v VerrazzanoManagedCluster) validateVerrazzanoInstalled(client client.Clie
 		}
 	}
 
-	return fmt.Errorf("The Verrazzano install must successfully complete. Run the command %q to view the install status.", "kubectl get verrazzano -A")
+	return fmt.Errorf("the Verrazzano install must successfully complete (run the command %q to view the install status)", "kubectl get verrazzano -A")
 }
