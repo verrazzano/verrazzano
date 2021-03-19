@@ -5,10 +5,11 @@ package register_test
 
 import (
 	"fmt"
-	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"os"
 	"time"
+
+	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
 	"github.com/onsi/ginkgo"
 )
@@ -16,12 +17,14 @@ import (
 const waitTimeout = 10 * time.Minute
 const pollingInterval = 10 * time.Second
 
-var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
-var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 
-var _ = ginkgo.Describe("Multi Cluster Verify Register",
-	func() {
+var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
+	ginkgo.Context("Admin Cluster", func() {
+		ginkgo.BeforeEach(func() {
+			os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
+		})
+
 		ginkgo.It("admin cluster has the expected secrets", func() {
 			gomega.Eventually(func() bool {
 				s, err := pkg.GetSecret("verrazzano-mc", fmt.Sprintf("verrazzano-cluster-%s-manifest", managedClusterName))
@@ -54,3 +57,19 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register",
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a journalbeat log record")
 		})
 	})
+
+	ginkgo.Context("Managed Cluster", func() {
+		ginkgo.BeforeEach(func() {
+			os.Setenv("TEST_KUBECONFIG", os.Getenv("MANAGED_KUBECONFIG"))
+		})
+
+		ginkgo.It("admin cluster has the expected secrets", func() {
+			gomega.Eventually(func() bool {
+				s, err := pkg.GetSecret("verrazzano-system", "verrazzano-cluster-agent")
+				return s != nil && err == nil
+				s, err = pkg.GetSecret("verrazzano-system", "verrazzano-cluster-registration")
+				return s != nil && err == nil
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
+	})
+})
