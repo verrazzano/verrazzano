@@ -46,7 +46,7 @@ func TestGetJSONDataFromFileGoodData(t *testing.T) {
 	assert.True(t, cacheHits > 0)
 
 	// Make sure we can call debugMap
-	debugMap(logger, myData.(map[string]interface{}))
+	//debugMap(logger, myData.(map[string]interface{}))
 }
 
 // TestGetJSONDataFromFileFileNotFound Tests that we fail as expected when Json file is not found

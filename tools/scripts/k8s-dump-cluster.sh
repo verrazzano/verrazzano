@@ -158,7 +158,7 @@ function full_k8s_cluster_dump() {
     kubectl --insecure-skip-tls-verify get Coherence --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/coherence.json || true
     kubectl --insecure-skip-tls-verify get gateway --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/gateways.json || true
     kubectl --insecure-skip-tls-verify get virtualservice --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/virtualservices.json || true
-    kubectl --insecure-skip-tls-verify describe verrazzano --all-namespaces > $CAPTURE_DIR/cluster-dump/verrazzano_resources.out || true
+    kubectl --insecure-skip-tls-verify describe verrazzano --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/verrazzano_resources.json || true
     kubectl --insecure-skip-tls-verify api-resources -o wide > $CAPTURE_DIR/cluster-dump/api_resources.out || true
     kubectl --insecure-skip-tls-verify get rolebindings --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/role-bindings.json || true
     kubectl --insecure-skip-tls-verify get clusterrolebindings --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/cluster-role-bindings.json || true

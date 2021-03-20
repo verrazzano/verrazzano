@@ -70,3 +70,10 @@ func TestHandlingKnownIssues(t *testing.T) {
 	issueReporter.AddKnownIssueSupportingData(InsufficientMemory, rootDirectory, supportingData)
 	issueReporter.AddKnownIssueMessagesMatches(PodProblemsNotReported, rootDirectory, messages, matches)
 }
+
+// TestMiscHelpers tests misc helpers
+func TestMiscHelpers(t *testing.T) {
+	messages := SingleMessage("test message")
+	assert.NotNil(t, messages)
+	assert.True(t, len(messages) == 1)
+}
