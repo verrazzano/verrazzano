@@ -182,16 +182,18 @@ function analyze_dump() {
     else
       local FULL_PATH_CAPTURE_DIR=$(echo "$(cd "$(dirname "$CAPTURE_DIR")" && pwd -P)/$(basename "$CAPTURE_DIR")")
       local SAVE_DIR=$(pwd)
-      echo "DEBUG: cd to $SCRIPT_DIR/../analysis"
       cd $SCRIPT_DIR/../analysis
       # To enable debug, add  -zap-log-level debug
-      echo "DEBUG: cd was ok"
       if [ -z $REPORT_FILE ]; then
         GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true $FULL_PATH_CAPTURE_DIR || true
       else
-        GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true --reportFile=$REPORT_FILE $FULL_PATH_CAPTURE_DIR || true
-        ls $REPORT_FILE
-        cat $REPORT_FILE
+        # Since we have to change the current working directory to run go, we need to take into account if the reportFile specified was relative to the original
+        # working directory. If it was absolute then we just use it directly
+        if [[ $REPORT_FILE = /* ]]; then
+          GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true --reportFile=$REPORT_FILE $FULL_PATH_CAPTURE_DIR || true
+        else
+          GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true --reportFile=$SAVE_DIR/$REPORT_FILE $FULL_PATH_CAPTURE_DIR || true
+        fi
       fi
       cd $SAVE_DIR
     fi
