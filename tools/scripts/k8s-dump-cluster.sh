@@ -40,7 +40,8 @@ do
         z) TAR_GZ_FILE=${OPTARG};;
         d) DIRECTORY=${OPTARG};;
         a) ANALYZE="TRUE";;
-        r) REPORT_FILE=${OPTARG};;
+        r) REPORT_FILE=${OPTARG}
+           ANALYZE="TRUE";;
         h) usage;;
         *) usage;;
     esac
@@ -140,7 +141,7 @@ function dump_es_indexes() {
   local ES_USER=$(kubectl --insecure-skip-tls-verify get secret -n verrazzano-system verrazzano -o jsonpath={.data.username} | base64 --decode) || true
   local ES_PWD=$(kubectl --insecure-skip-tls-verify get secret -n verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode) || true
   if [ ! -z $ES_ENDPOINT ] && [ ! -z $ES_USER ] && [ ! -z $ES_PWD ]; then
-    curl -k -u $ES_USER:$ES_PWD $ES_ENDPOINT/_all
+    curl -k -u $ES_USER:$ES_PWD $ES_ENDPOINT/_all || true
   fi
 }
 
@@ -181,14 +182,16 @@ function analyze_dump() {
     else
       local FULL_PATH_CAPTURE_DIR=$(echo "$(cd "$(dirname "$CAPTURE_DIR")" && pwd -P)/$(basename "$CAPTURE_DIR")")
       local SAVE_DIR=$(pwd)
+      echo "DEBUG: cd to $SCRIPT_DIR/../analysis"
       cd $SCRIPT_DIR/../analysis
       # To enable debug, add  -zap-log-level debug
+      echo "DEBUG: cd was ok"
       if [ -z $REPORT_FILE ]; then
-        echo "DEBUG1 $REPORT_FILE      $FULL_CAPTURE_PATH_DIR"
         GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true $FULL_PATH_CAPTURE_DIR || true
       else
-        echo "DEBUG2 $REPORT_FILE      $FULL_CAPTURE_PATH_DIR"
         GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true --reportFile=$REPORT_FILE $FULL_PATH_CAPTURE_DIR || true
+        ls $REPORT_FILE
+        cat $REPORT_FILE
       fi
       cd $SAVE_DIR
     fi
