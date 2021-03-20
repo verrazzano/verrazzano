@@ -158,7 +158,7 @@ function full_k8s_cluster_dump() {
     kubectl --insecure-skip-tls-verify get Coherence --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/coherence.json || true
     kubectl --insecure-skip-tls-verify get gateway --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/gateways.json || true
     kubectl --insecure-skip-tls-verify get virtualservice --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/virtualservices.json || true
-    kubectl --insecure-skip-tls-verify describe verrazzano --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/verrazzano_resources.json || true
+    kubectl --insecure-skip-tls-verify describe verrazzano --all-namespaces > $CAPTURE_DIR/cluster-dump/verrazzano_resources.json || true
     kubectl --insecure-skip-tls-verify api-resources -o wide > $CAPTURE_DIR/cluster-dump/api_resources.out || true
     kubectl --insecure-skip-tls-verify get rolebindings --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/role-bindings.json || true
     kubectl --insecure-skip-tls-verify get clusterrolebindings --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/cluster-role-bindings.json || true
@@ -184,8 +184,10 @@ function analyze_dump() {
       cd $SCRIPT_DIR/../analysis
       # To enable debug, add  -zap-log-level debug
       if [ -z $REPORT_FILE ]; then
+        echo "DEBUG1 $REPORT_FILE      $FULL_CAPTURE_PATH_DIR"
         GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true $FULL_PATH_CAPTURE_DIR || true
       else
+        echo "DEBUG2 $REPORT_FILE      $FULL_CAPTURE_PATH_DIR"
         GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true --reportFile=$REPORT_FILE $FULL_PATH_CAPTURE_DIR || true
       fi
       cd $SAVE_DIR
