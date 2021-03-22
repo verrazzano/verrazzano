@@ -17,7 +17,7 @@ Complete the following sections prior to running the multicluster examples.
    * On one cluster, install Verrazzano using the `dev` profile; this is known as the `admin` cluster.
    * On the other cluster, install Verrazzano using the `managed-cluster` profile; this is known as the `managed cluster`.  The `managed-cluster` profile contains only the components that are required on a managed cluster.
 
-2. Create the environment variables `KUBECONFIG_ADMIN` and `KUBECONFIG_MANAGED1` and point them to the `kubeconfig` file for the `admin` and `managed cluster`, respectively.
+2. Create the environment variables, `KUBECONFIG_ADMIN` and `KUBECONFIG_MANAGED1`, and point them to the `kubeconfig` file for the `admin` and `managed cluster`, respectively.
 
 ### Register the managed cluster
 
@@ -27,7 +27,7 @@ Complete the following sections prior to running the multicluster examples.
     # List the kubeconfig contexts and get the internal config for the admin cluster
     $ kubectl config get-contexts
     $ ADMIN_K8S_SERVER_ADDRESS="$(kind get kubeconfig --internal --name <insert context name of admin cluster> | grep "server:" | awk '{ print $2 }')"
-   
+
     # Kubeconfig with a single context
     $ ADMIN_K8S_SERVER_ADDRESS="$(KUBECONFIG=$KUBECONFIG_ADMIN kubectl config view -o jsonpath={'.clusters[0].cluster.server'})"
     ```
@@ -45,13 +45,13 @@ Complete the following sections prior to running the multicluster examples.
     EOF
     ```
 
-1. Obtain the credentials for scraping metrics from the managed cluster.  Follow the instructions below to output the credentials to a file named `managed1.yaml` in the current folder.
+1. Obtain the credentials for scraping metrics from the managed cluster.  Use the following instructions to output the credentials to a file named `managed1.yaml` in the current folder.
    ```
    $ export KUBECONFIG=$KUBECONFIG_MANAGED1
    $ echo "prometheus:" > managed1.yaml
    $ echo "  authpasswd: $(KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get secret verrazzano -n verrazzano-system -o jsonpath='{.data.password}' | base64 --decode)" >> managed1.yaml
    $ echo "  host: $(KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get ing vmi-system-prometheus -n verrazzano-system -o jsonpath='{.spec.tls[0].hosts[0]}')" >> managed1.yaml
-   
+
    # Perform the following commands if the result of this command is not null:
    #   KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl -n verrazzano-system get secret system-tls -o jsonpath='{.data.ca\.crt}'
    $ echo "  cacrt: |" >> managed1.yaml
