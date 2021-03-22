@@ -157,7 +157,7 @@ func (h *HelidonHandler) ApplyToDeployment(ctx context.Context, workload vzapi.Q
 	if err != nil {
 		return nil, err
 	}
-	err = ensureLoggingSecret(ctx, h, scope.GetNamespace(), scope.Spec.SecretName)
+	err = ensureLoggingSecret(ctx, h, scope.GetNamespace(), &scope.Spec)
 	if err != nil {
 		return nil, err
 	}

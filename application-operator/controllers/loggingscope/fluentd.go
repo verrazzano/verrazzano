@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"os"
 
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -42,7 +44,7 @@ const ElasticSearchIndex = "#{ENV['NAMESPACE']}-#{ENV['APP_CONF_NAME']}-#{ENV['C
 
 const (
 	// DefaultElasticSearchURL defines the default Elasticsearch URL used if it is not specified in the logging scope
-	DefaultElasticSearchURL = "http://vmi-system-es-ingest.verrazzano-system.svc.cluster.local:9200"
+	DefaultElasticSearchURL = "http://vmi-system-es-ingest-oidc.verrazzano-system.svc.cluster.local:8775"
 
 	// DefaultSecretName defines the default Elasticsearch secret name used if it is not specified in the logging scope
 	DefaultSecretName = "verrazzano"
@@ -91,7 +93,7 @@ func (f *Fluentd) Apply(scope *vzapi.LoggingScope, resource vzapi.QualifiedResou
 			return false, err
 		}
 
-		ensureLoggingSecret(f.Context, f, resource.Namespace, scope.Spec.SecretName)
+		ensureLoggingSecret(f.Context, f, resource.Namespace, &scope.Spec)
 		f.ensureFluentdVolumes(fluentdPod, scope)
 		f.ensureFluentdVolumeMountExists(fluentdPod)
 		f.ensureFluentdContainer(fluentdPod, scope, resource.Namespace)
@@ -512,22 +514,31 @@ func resourceExists(ctx context.Context, r k8sclient.Reader, apiVersion, kind, n
 	return len(resources.Items) != 0, err
 }
 
-func ensureLoggingSecret(ctx context.Context, cli k8sclient.Client, namespace, name string) error {
+func ensureLoggingSecret(ctx context.Context, cli k8sclient.Client, namespace string, spec *vzapi.LoggingScopeSpec) error {
 	secret := &corev1.Secret{}
-	err := cli.Get(ctx, objKey(namespace, name), secret)
+	err := cli.Get(ctx, objKey(namespace, spec.SecretName), secret)
 	if kerrs.IsNotFound(err) {
+		if spec.ElasticSearchURL == DefaultElasticSearchURL { //spec.SecretName should be "verrazzano"
+			secretKey := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: spec.SecretName}
+			secret := &corev1.Secret{}
+			err := cli.Get(ctx, secretKey, secret)
+			if err != nil {
+				return err
+			}
+			return cli.Create(ctx, copyLoggingData(secret, namespace, spec.SecretName), &k8sclient.CreateOptions{})
+		}
 		// If this is a managed cluster, and we are using the managed cluster ES secret, copy
 		// that secret to the app namespace
-		if shouldUseManagedClusterLoggingSecret(ctx, cli, name) {
+		if shouldUseManagedClusterLoggingSecret(ctx, cli, spec.SecretName) {
 			// The managed cluster ES secret is the one specified on the logging scope - copy it
 			// to the app namespace
-			return copyManagedClusterLoggingSecret(ctx, cli, namespace, name)
+			return copyManagedClusterLoggingSecret(ctx, cli, namespace, spec.SecretName)
 		}
 		// create an empty secret, which is required in order to mount the secret
 		// as a volume in fluentd. In certain cases (e.g. admin server using local Elasticsearch),
 		// the secret is not required to have contents. In other cases, where user explicitly
 		// specifies a secret on the logging scope, they should have already created it in the app NS
-		return createEmptySecretForFluentdVolume(ctx, cli, namespace, name)
+		return createEmptySecretForFluentdVolume(ctx, cli, namespace, spec.SecretName)
 	}
 	return err
 }

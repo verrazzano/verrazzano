@@ -163,6 +163,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 	loggingScopeName := "unit-test-logging-scope"
 	fluentdImage := "unit-test-image:latest"
 	loggingSecretName := "logging-secret"
+	esURL := "http://es-odic"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
 
 	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
@@ -202,6 +203,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, loggingScope *vzapi.LoggingScope) error {
 			loggingScope.Spec.FluentdImage = fluentdImage
 			loggingScope.Spec.SecretName = loggingSecretName
+			loggingScope.Spec.ElasticSearchURL = esURL
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -292,6 +294,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 	fluentdImage := "unit-test-image:latest"
 	existingJvmArg := "-Dcoherence.test=unit-test"
 	loggingSecretName := "logging-secret"
+	esURL := "http://es-odic"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
 
 	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
@@ -331,6 +334,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, loggingScope *vzapi.LoggingScope) error {
 			loggingScope.Spec.FluentdImage = fluentdImage
 			loggingScope.Spec.SecretName = loggingSecretName
+			loggingScope.Spec.ElasticSearchURL = esURL
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
