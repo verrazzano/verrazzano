@@ -13,7 +13,6 @@ vendor
 .idea
 **/*.iml
 platform-operator/pkg/assets
-platform-operator/build/deploy
 bin
 platform-operator/bin
 dist

@@ -22,6 +22,7 @@ const clusterAdmin = "cluster-admin"
 const platformOperator = "verrazzano-platform-operator"
 const managedGeneratedName1 = "verrazzano-cluster-cluster1"
 const installNamespace = "verrazzano-install"
+const vzMcNamespace = "verrazzano-mc"
 const prometheusSecret = "prometheus-cluster1"
 const vmiESIngest = "vmi-system-es-ingest"
 const hostdata = "testhost"
@@ -34,25 +35,6 @@ var _ = ginkgo.BeforeSuite(func() {
 	K8sClient, err = k8s.NewClient(util.GetKubeconfig())
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Error creating Kubernetes client to access Verrazzano API objects: %v", err))
-	}
-
-	// Platform operator pod is eventually running
-	isPodRunningYet := func() bool {
-		return K8sClient.IsPodRunning(platformOperator, installNamespace)
-	}
-	gomega.Eventually(isPodRunningYet, "2m", "5s").Should(gomega.BeTrue(),
-		"The verrazzano-platform-operator pod should be in the Running state")
-
-	// Create multi-cluster namespace
-	if !K8sClient.DoesNamespaceExist(constants.VerrazzanoMultiClusterNamespace) {
-		err = K8sClient.EnsureNamespace(constants.VerrazzanoMultiClusterNamespace)
-		gomega.Expect(err).To(gomega.BeNil())
-	}
-
-	// Create verrazzano-system namespace
-	if !K8sClient.DoesNamespaceExist(constants.VerrazzanoSystemNamespace) {
-		err = K8sClient.EnsureNamespace(constants.VerrazzanoSystemNamespace)
-		gomega.Expect(err).To(gomega.BeNil())
 	}
 })
 
@@ -108,9 +90,22 @@ var _ = ginkgo.Describe("Custom Resource Definition for verrazzano install", fun
 	})
 })
 
-// TODO: Move these tests to the end-to-end acceptance test suite.  They have become impractical to run for an integration test.
-/*
 var _ = ginkgo.Describe("Testing VMC creation and auto secret generation", func() {
+	ginkgo.It("Platform operator pod is eventually running", func() {
+		isPodRunningYet := func() bool {
+			return K8sClient.IsPodRunning(platformOperator, installNamespace)
+		}
+		gomega.Eventually(isPodRunningYet, "2m", "5s").Should(gomega.BeTrue(),
+			"The verrazzano-platform-operator pod should be in the Running state")
+	})
+	ginkgo.It("Create multi-cluster namespace ", func() {
+		err := K8sClient.EnsureNamespace(vzMcNamespace)
+		gomega.Expect(err).To(gomega.BeNil())
+	})
+	ginkgo.It("Create verrazzano-system namespace ", func() {
+		err := K8sClient.EnsureNamespace(constants.VerrazzanoSystemNamespace)
+		gomega.Expect(err).To(gomega.BeNil())
+	})
 	ginkgo.It("Missing secret name validation ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/vmc_missing_secret_name.yaml")
 		gomega.Expect(stderr).To(gomega.ContainSubstring("missing required field \"prometheusSecret\""))
@@ -118,16 +113,16 @@ var _ = ginkgo.Describe("Testing VMC creation and auto secret generation", func(
 	ginkgo.It("Missing secret validation ", func() {
 		_, stderr := util.Kubectl("apply -f testdata/vmc_sample.yaml")
 		gomega.Expect(stderr).To(gomega.ContainSubstring(
-			fmt.Sprintf(fmt.Sprintf("The Prometheus secret %s does not exist in namespace %s", prometheusSecret, constants.VerrazzanoMultiClusterNamespace))))
+			fmt.Sprintf(fmt.Sprintf("The Prometheus secret %s does not exist in namespace %s", prometheusSecret, vzMcNamespace))))
 	})
 	ginkgo.It("Create Prometheus secret ", func() {
 		_, stderr := util.Kubectl(
-			fmt.Sprintf("create secret generic %s -n %s --from-literal=password=mypw --from-literal=username=myuser", prometheusSecret, constants.VerrazzanoMultiClusterNamespace))
+			fmt.Sprintf("create secret generic %s -n %s --from-literal=password=mypw --from-literal=username=myuser", prometheusSecret, vzMcNamespace))
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
 	ginkgo.It("Create verrazzano-admin-cluster configmap ", func() {
 		_, stderr := util.Kubectl(
-			fmt.Sprintf("create cm %s -n %s --from-literal=server=http://testUrl", adminClusterConfigMap, constants.VerrazzanoMultiClusterNamespace))
+			fmt.Sprintf("create cm %s -n %s --from-literal=server=http://testUrl", adminClusterConfigMap, vzMcNamespace))
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
 	ginkgo.It("Create Verrazzano secret needed to create ES secret ", func() {
@@ -155,7 +150,7 @@ var _ = ginkgo.Describe("Testing VMC creation and auto secret generation", func(
 	})
 	ginkgo.It("ServiceAccount exists ", func() {
 		serviceAccountExists := func() bool {
-			return K8sClient.DoesServiceAccountExist(managedGeneratedName1, constants.VerrazzanoMultiClusterNamespace)
+			return K8sClient.DoesServiceAccountExist(managedGeneratedName1, vzMcNamespace)
 		}
 		gomega.Eventually(serviceAccountExists, "30s", "5s").Should(gomega.BeTrue(),
 			"The ServiceAccount should exist")
@@ -169,57 +164,36 @@ var _ = ginkgo.Describe("Testing VMC creation and auto secret generation", func(
 	})
 	ginkgo.It("Registration secret exists ", func() {
 		secretExists := func() bool {
-			return K8sClient.DoesSecretExist(vzclusters.GetRegistrationSecretName(managedClusterName), constants.VerrazzanoMultiClusterNamespace)
+			return K8sClient.DoesSecretExist(vzclusters.GetRegistrationSecretName(managedClusterName), vzMcNamespace)
 		}
 		gomega.Eventually(secretExists, "30s", "5s").Should(gomega.BeTrue(),
-			fmt.Sprintf("The registration Secret %s should exist in %s", vzclusters.GetRegistrationSecretName(managedClusterName), constants.VerrazzanoMultiClusterNamespace))
+			fmt.Sprintf("The registration Secret %s should exist in %s", vzclusters.GetRegistrationSecretName(managedClusterName), vzMcNamespace))
 	})
 	ginkgo.It("Agent secret exists ", func() {
 		secretExists := func() bool {
-			return K8sClient.DoesSecretExist(vzclusters.GetAgentSecretName(managedClusterName), constants.VerrazzanoMultiClusterNamespace)
+			return K8sClient.DoesSecretExist(vzclusters.GetAgentSecretName(managedClusterName), vzMcNamespace)
 		}
 		gomega.Eventually(secretExists, "60s", "5s").Should(gomega.BeTrue(),
-			fmt.Sprintf("The agent Secret %s should exist in %s", vzclusters.GetAgentSecretName(managedClusterName), constants.VerrazzanoMultiClusterNamespace))
+			fmt.Sprintf("The agent Secret %s should exist in %s", vzclusters.GetAgentSecretName(managedClusterName), vzMcNamespace))
 	})
 	ginkgo.It("Manifest secret exists ", func() {
 		secretExists := func() bool {
-			return K8sClient.DoesSecretExist(vzclusters.GetManifestSecretName(managedClusterName), constants.VerrazzanoMultiClusterNamespace)
+			return K8sClient.DoesSecretExist(vzclusters.GetManifestSecretName(managedClusterName), vzMcNamespace)
 		}
 		gomega.Eventually(secretExists, "30s", "5s").Should(gomega.BeTrue(),
-			fmt.Sprintf("The manigest Secret %s should exist in %s", vzclusters.GetManifestSecretName(managedClusterName), constants.VerrazzanoMultiClusterNamespace))
+			fmt.Sprintf("The manigest Secret %s should exist in %s", vzclusters.GetManifestSecretName(managedClusterName), vzMcNamespace))
 	})
 	ginkgo.It("Checking the VMC related secrets ", func() {
 		verifyAgentSecret()
 		verifyRegistrationSecret()
 		verifyManifestSecret()
 	})
-	ginkgo.It("Cleanup test", func() {
-		ginkgo.It("VerrazzanoManagedCluster can be deleted ", func() {
-			_, stderr := util.Kubectl("delete -f testdata/vmc_sample.yaml")
-			gomega.Expect(stderr).To(gomega.Equal(""))
-		})
-		ginkgo.It("ServiceAccount deleted ", func() {
-			serviceAccountExists := func() bool {
-				return K8sClient.DoesServiceAccountExist(managedGeneratedName1, constants.VerrazzanoMultiClusterNamespace)
-			}
-			gomega.Eventually(serviceAccountExists, "30s", "5s").Should(gomega.BeFalse(),
-				"The ServiceAccount should notexist")
-		})
-		ginkgo.It("ClusterRoleBinding deleted ", func() {
-			bindingExists := func() bool {
-				return K8sClient.DoesClusterRoleBindingExist(managedGeneratedName1)
-			}
-			gomega.Eventually(bindingExists, "30s", "5s").Should(gomega.BeFalse(),
-				"The ClusterRoleBinding should not exist")
-		})
-	})
 })
-*/
 
 // Verify the agent secret
 func verifyAgentSecret() {
 	// Get the agent secret
-	secret, err := K8sClient.GetSecret(vzclusters.GetAgentSecretName(managedClusterName), constants.VerrazzanoMultiClusterNamespace)
+	secret, err := K8sClient.GetSecret(vzclusters.GetAgentSecretName(managedClusterName), vzMcNamespace)
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Unable to get registration secret %s: %v", vzclusters.GetAgentSecretName(managedClusterName), err))
 	}
@@ -240,7 +214,7 @@ func verifyAgentSecret() {
 // Verify the registration secret
 func verifyRegistrationSecret() {
 	// Get the registration secret
-	secret, err := K8sClient.GetSecret(vzclusters.GetRegistrationSecretName(managedClusterName), constants.VerrazzanoMultiClusterNamespace)
+	secret, err := K8sClient.GetSecret(vzclusters.GetRegistrationSecretName(managedClusterName), vzMcNamespace)
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Unable to get registration secret %s: %v", vzclusters.GetRegistrationSecretName(managedClusterName), err))
 	}
@@ -254,7 +228,7 @@ func verifyRegistrationSecret() {
 
 // Verify the manifest secrets
 func verifyManifestSecret() {
-	secret, err := K8sClient.GetSecret(vzclusters.GetManifestSecretName(managedClusterName), constants.VerrazzanoMultiClusterNamespace)
+	secret, err := K8sClient.GetSecret(vzclusters.GetManifestSecretName(managedClusterName), vzMcNamespace)
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Unable to get cluster secret %s that contains kubeconfig: %v", vzclusters.GetManifestSecretName(managedClusterName), err))
 	}
