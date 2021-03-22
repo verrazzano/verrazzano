@@ -91,9 +91,8 @@ pipeline {
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
         UNINSTALL_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/uninstall-test"
         INSTALL_CONFIG_FILE = "${GO_REPO_PATH}/verrazzano/platform-operator/config/samples/install-default.yaml"
-
-        WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
-        DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
+        WEBLOGIC_PSW = credentials('weblogic-example-domain-password')
+        DATABASE_PSW = credentials('todo-mysql-password')
     }
 
     stages {
@@ -176,6 +175,7 @@ pipeline {
                 OCI_OS_BUCKET="verrazzano-builds"
             }
             steps {
+                listNamepacesAndPods('before installing Verrazzano')
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
                         # Create image pull secret for Verrazzano docker images
@@ -246,6 +246,7 @@ pipeline {
                     dumpVerrazzanoApplicationOperatorLogs('install')
                     dumpOamKubernetesRuntimeLogs('install')
                     dumpVerrazzanoApiLogs('install')
+                    listNamepacesAndPods('after Verrazzano install')
                 }
             }
         }
@@ -256,8 +257,12 @@ pipeline {
             }
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    // Enable Bob's Books demo later
                     runGinkgo('examples/todo')
+                }
+            }
+            post {
+                failure {
+                    dumpK8sCluster('verrazzano-uninstall-after-test-dump')
                 }
             }
         }
@@ -298,6 +303,7 @@ pipeline {
 
         stage("Reinstall Verrazzano") {
             steps {
+                listNamepacesAndPods('before reinstalling Verrazzano')
                 sh """
                     # sleep for a period to ensure async deletion of verrazzano components from uninstall above has completed
                     sleep 90
@@ -330,6 +336,7 @@ pipeline {
                     dumpVerrazzanoApplicationOperatorLogs('reinstall')
                     dumpOamKubernetesRuntimeLogs('reinstall')
                     dumpVerrazzanoApiLogs('reinstall')
+                    listNamepacesAndPods('after reinstalling Verrazzano')
                 }
             }
         }
@@ -340,7 +347,6 @@ pipeline {
             }
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    // Enable Bob's Books demo later
                     runGinkgo('examples/todo')
                 }
             }
@@ -353,20 +359,13 @@ pipeline {
                     dumpK8sCluster('verrazzano-uninstall-test-dump')
                 }
             }
-            sh """
-                echo "Listing all namespaces"
-                kubectl get namespace
-                echo "------------------------------------------"
-                echo "Listing all pods in all namespaces"
-                kubectl get pods --all-namespaces
-            """
-            archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*verrazzano-uninstall-test-dump/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*test-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
         }
         failure {
             script {
                 dumpK8sCluster('verrazzano-uninstall-test-dump')
-                archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*verrazzano-uninstall-test-dump/**', allowEmptyArchive: true
+                archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*test-dump/**', allowEmptyArchive: true
                 mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
                 subject: "Verrazzano: ${env.JOB_NAME} - Failed",
                 body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
@@ -473,5 +472,14 @@ def dumpVerrazzanoApiLogs(logDirectory) {
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/${logDirectory}/build/logs/verrazzano-api.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def listNamepacesAndPods(customMessage) {
+    sh """
+        echo "Listing all the namespaces and pods the namespaces ${customMessage}."
+        kubectl get namespaces
+        kubectl get all --all-namespaces
+        echo "-----------------------------------------------------"
     """
 }
