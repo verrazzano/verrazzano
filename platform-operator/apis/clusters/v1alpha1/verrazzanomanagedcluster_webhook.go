@@ -145,7 +145,7 @@ func (v VerrazzanoManagedCluster) validateConfigMap(client client.Client) error 
 	return nil
 }
 
-// validateVerrazzanoInstalled enforces that a Verrazzano must have successfully completed
+// validateVerrazzanoInstalled enforces that a Verrazzano installation successfully completed
 func (v VerrazzanoManagedCluster) validateVerrazzanoInstalled(client client.Client) error {
 	// Get the Verrazzano resource
 	verrazzano := v1alpha1.VerrazzanoList{}
