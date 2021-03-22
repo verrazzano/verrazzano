@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -34,6 +35,14 @@ type Syncer struct {
 	StatusUpdateChannel chan clusters.StatusUpdateMessage
 }
 
+type adminStatusUpdateFuncType = func(name types.NamespacedName, newCond clustersv1alpha1.Condition, newClusterStatus clustersv1alpha1.ClusterLevelStatus) error
+
+const retryCount = 3
+
+var (
+	retryDelay = 3 * time.Second
+)
+
 // Check if the placement is for this cluster
 func (s *Syncer) isThisCluster(placement clustersv1alpha1.Placement) bool {
 	// Loop through the cluster list looking for the cluster name
@@ -52,20 +61,11 @@ func (s *Syncer) processStatusUpdates() {
 		// Use a select with default so as to not block on the channel if there are no updates
 		select {
 		case msg := <-s.StatusUpdateChannel:
-			s.Log.V(2).Info(fmt.Sprintf("processStatusUpdates: Received status update %s with condition type %s for %s/%s from cluster %s",
-				msg.NewClusterStatus.State, msg.NewCondition.Type, msg.Resource.GetNamespace(), msg.Resource.GetName(), msg.NewClusterStatus.Name))
 			err := s.performAdminStatusUpdate(msg)
 			if err != nil {
-				if errors.IsConflict(err) {
-					// Retry on conflict - put the message back on the channel, but don't block
-					// trying to do it - if we block, there could be a deadlock since the agent
-					// thread is both reading and writing to the channel
-					s.requeueMsgNonBlocking(msg, err)
-				} else {
-					s.Log.Error(err, fmt.Sprintf("processStatusUpdates: status update failed for %s/%s from cluster %s: %s",
-						msg.Resource.GetNamespace(), msg.Resource.GetName(),
-						msg.NewClusterStatus.Name, err.Error()))
-				}
+				s.Log.Error(err, fmt.Sprintf("processStatusUpdates: failed to update status on admin cluster for %s/%s from cluster %s after %d retries: %s",
+					msg.Resource.GetNamespace(), msg.Resource.GetName(),
+					msg.NewClusterStatus.Name, retryCount, err.Error()))
 			}
 		default:
 			break
@@ -82,29 +82,40 @@ func (s *Syncer) AgentReadyToSync() bool {
 func (s *Syncer) performAdminStatusUpdate(msg clusters.StatusUpdateMessage) error {
 	fullResourceName := types.NamespacedName{Name: msg.Resource.GetName(), Namespace: msg.Resource.GetNamespace()}
 	typeName := reflect.TypeOf(msg.Resource).String()
+	var statusUpdateFunc adminStatusUpdateFuncType
 	if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.MultiClusterApplicationConfiguration{}).String()) {
-		return s.updateMultiClusterAppConfigStatus(fullResourceName, msg.NewCondition, msg.NewClusterStatus)
+		statusUpdateFunc = s.updateMultiClusterAppConfigStatus
 	} else if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.MultiClusterComponent{}).String()) {
-		return s.updateMultiClusterComponentStatus(fullResourceName, msg.NewCondition, msg.NewClusterStatus)
+		statusUpdateFunc = s.updateMultiClusterComponentStatus
 	} else if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.MultiClusterConfigMap{}).String()) {
-		return s.updateMultiClusterConfigMapStatus(fullResourceName, msg.NewCondition, msg.NewClusterStatus)
+		statusUpdateFunc = s.updateMultiClusterConfigMapStatus
 	} else if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.MultiClusterLoggingScope{}).String()) {
-		return s.updateMultiClusterLoggingScopeStatus(fullResourceName, msg.NewCondition, msg.NewClusterStatus)
+		statusUpdateFunc = s.updateMultiClusterLoggingScopeStatus
 	} else if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.MultiClusterSecret{}).String()) {
-		return s.updateMultiClusterSecretStatus(fullResourceName, msg.NewCondition, msg.NewClusterStatus)
+		statusUpdateFunc = s.updateMultiClusterSecretStatus
 	} else if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.VerrazzanoProject{}).String()) {
-		return s.updateVerrazzanoProjectStatus(fullResourceName, msg.NewCondition, msg.NewClusterStatus)
+		statusUpdateFunc = s.updateVerrazzanoProjectStatus
+	} else {
+		return fmt.Errorf("received status update message for unknown resource type %s", typeName)
 	}
-	return fmt.Errorf("received status update message for unknown resource type %s", typeName)
+	return s.adminStatusUpdateWithRetry(statusUpdateFunc, fullResourceName, msg.NewCondition, msg.NewClusterStatus)
 }
 
-func (s *Syncer) requeueMsgNonBlocking(msg clusters.StatusUpdateMessage, conflictErr error) {
-	select {
-	case s.StatusUpdateChannel <- msg:
-		s.Log.Info(fmt.Sprintf("processStatusUpdates: requeued status update with conflict for %s/%s from cluster %s",
-			msg.Resource.GetNamespace(), msg.Resource.GetName(), msg.NewClusterStatus.Name))
-	default:
-		s.Log.Error(conflictErr, fmt.Sprintf("processStatusUpdates: failed to requeue status update with conflict for %s/%s from cluster %s",
-			msg.Resource.GetNamespace(), msg.Resource.GetName(), msg.NewClusterStatus.Name))
+func (s *Syncer) adminStatusUpdateWithRetry(statusUpdateFunc adminStatusUpdateFuncType,
+	name types.NamespacedName,
+	condition clustersv1alpha1.Condition,
+	clusterStatus clustersv1alpha1.ClusterLevelStatus) error {
+	var err error
+	for tries := 0; tries < retryCount; tries++ {
+		err = statusUpdateFunc(name, condition, clusterStatus)
+		if err == nil {
+			break
+		}
+		if !errors.IsConflict(err) {
+			break
+		}
+
+		time.Sleep(retryDelay)
 	}
+	return err
 }

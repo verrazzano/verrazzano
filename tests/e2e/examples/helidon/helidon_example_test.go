@@ -171,7 +171,11 @@ func findMetric(metrics []interface{}, key, value string) bool {
 
 // metricsExist validates the availability of a specified metric
 func metricsExist(metricsName, key, value string) bool {
-	metrics := pkg.JTq(pkg.QueryMetric(metricsName), "data", "result").([]interface{})
+	metric, err := pkg.QueryMetric(metricsName)
+	if err != nil {
+		return false
+	}
+	metrics := pkg.JTq(metric, "data", "result").([]interface{})
 	if metrics != nil {
 		return findMetric(metrics, key, value)
 	}

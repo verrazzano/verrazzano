@@ -30,7 +30,7 @@ func GetMatchingFiles(log *zap.SugaredLogger, rootDirectory string, fileMatch st
 	}
 
 	walkFunc := func(fileName string, fileInfo os.FileInfo, err error) error {
-		if fileMatchRe.MatchString(fileName) == false {
+		if !fileMatchRe.MatchString(fileName) {
 			return nil
 		}
 		if !fileInfo.IsDir() {
@@ -63,7 +63,7 @@ func GetMatchingDirectories(log *zap.SugaredLogger, rootDirectory string, fileMa
 	}
 
 	walkFunc := func(fileName string, fileInfo os.FileInfo, err error) error {
-		if fileMatchRe.MatchString(fileName) == false {
+		if !fileMatchRe.MatchString(fileName) {
 			return nil
 		}
 		if fileInfo.IsDir() {
@@ -99,12 +99,17 @@ func FindNamespaces(log *zap.SugaredLogger, clusterRoot string) (namespaces []st
 	return namespaces, nil
 }
 
-//FindPodLogFileName will find the name of the log file given a pod
-func FindPodLogFileName(clusterRoot string, pod corev1.Pod) (name string) {
-	return fmt.Sprintf("%s/%s/%s/logs.txt", clusterRoot, pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+// FindFileInClusterRoot will find filename in the cluster root
+func FindFileInClusterRoot(clusterRoot string, filename string) string {
+	return fmt.Sprintf("%s/%s", clusterRoot, filename)
 }
 
-// FindEventsJSONFileName finds the events JSON filename
-func FindEventsJSONFileName(clusterRoot string, namespace string) (name string) {
-	return fmt.Sprintf("%s/%s/events.json", clusterRoot, namespace)
+// FindFileNameInNamespace will find filename in the namespace
+func FindFileInNamespace(clusterRoot string, namespace string, filename string) string {
+	return fmt.Sprintf("%s/%s/%s", clusterRoot, namespace, filename)
+}
+
+// FindPodLogFileName will find the name of the log file given a pod
+func FindPodLogFileName(clusterRoot string, pod corev1.Pod) string {
+	return fmt.Sprintf("%s/%s/%s/logs.txt", clusterRoot, pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 }

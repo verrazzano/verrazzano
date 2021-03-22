@@ -7,9 +7,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
@@ -248,4 +250,17 @@ func (s *SockShop) GetOrders(hostname string) {
 	status, orders := s.Get(ordersURL)
 	gomega.Expect(status).To(gomega.Equal(201), fmt.Sprintf("Get %v returns status %v expected 201", ordersURL, status))
 	pkg.Log(Info, fmt.Sprintf("Orders: %v have been retrieved", orders))
+}
+
+// undeploySockShopApplication undeploys the sock shop application
+func undeploySockShopApplication() error {
+	err := pkg.DeleteNamespace("sockshop")
+	if err != nil {
+		return err
+	}
+	gomega.Eventually(func() bool {
+		ns, err := pkg.GetNamespace("sockshop")
+		return ns == nil && err != nil && errors.IsNotFound(err)
+	}, 3*time.Minute, 15*time.Second).Should(gomega.BeFalse())
+	return nil
 }

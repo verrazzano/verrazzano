@@ -20,6 +20,7 @@ function usage {
     echo " -z tar_gz_file   Name of the compressed tar file to generate. Ie: capture.tar.gz"
     echo " -d directory     Directory to capture an expanded dump into. This does not affect a tar_gz_file if that is also specified"
     echo " -a               Call the analyzer on the captured dump and report to stdout"
+    echo " -r report_file   Call the analyzer on the captured dump and report to the file specified"
     echo " -h               Help"
     echo ""
     exit 1
@@ -32,12 +33,15 @@ kubectl >/dev/null 2>&1 || {
 
 TAR_GZ_FILE=""
 ANALYZE="FALSE"
-while getopts z:d:ha flag
+REPORT_FILE=""
+while getopts z:d:har: flag
 do
     case "${flag}" in
         z) TAR_GZ_FILE=${OPTARG};;
         d) DIRECTORY=${OPTARG};;
         a) ANALYZE="TRUE";;
+        r) REPORT_FILE=${OPTARG}
+           ANALYZE="TRUE";;
         h) usage;;
         *) usage;;
     esac
@@ -58,6 +62,12 @@ fi
 # If a tar file output was specified and it exists already fail
 if [[ ! -z "$DIRECTORY" && -f "$DIRECTORY" ]] ; then
   echo "$DIRECTORY already exists. Aborting."
+  exit 1
+fi
+
+# If a report file output was specified and it exists already fail
+if [[ ! -z "$REPORT_FILE" && -f "$REPORT_FILE" ]] ; then
+  echo "$REPORT_FILE already exists. Aborting."
   exit 1
 fi
 
@@ -131,7 +141,7 @@ function dump_es_indexes() {
   local ES_USER=$(kubectl --insecure-skip-tls-verify get secret -n verrazzano-system verrazzano -o jsonpath={.data.username} | base64 --decode) || true
   local ES_PWD=$(kubectl --insecure-skip-tls-verify get secret -n verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode) || true
   if [ ! -z $ES_ENDPOINT ] && [ ! -z $ES_USER ] && [ ! -z $ES_PWD ]; then
-    curl -k -u $ES_USER:$ES_PWD $ES_ENDPOINT/_all
+    curl -k -u $ES_USER:$ES_PWD $ES_ENDPOINT/_all || true
   fi
 }
 
@@ -149,7 +159,7 @@ function full_k8s_cluster_dump() {
     kubectl --insecure-skip-tls-verify get Coherence --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/coherence.json || true
     kubectl --insecure-skip-tls-verify get gateway --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/gateways.json || true
     kubectl --insecure-skip-tls-verify get virtualservice --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/virtualservices.json || true
-    kubectl --insecure-skip-tls-verify describe verrazzano --all-namespaces > $CAPTURE_DIR/cluster-dump/verrazzano_resources.out || true
+    kubectl --insecure-skip-tls-verify describe verrazzano --all-namespaces > $CAPTURE_DIR/cluster-dump/verrazzano_resources.json || true
     kubectl --insecure-skip-tls-verify api-resources -o wide > $CAPTURE_DIR/cluster-dump/api_resources.out || true
     kubectl --insecure-skip-tls-verify get rolebindings --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/role-bindings.json || true
     kubectl --insecure-skip-tls-verify get clusterrolebindings --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/cluster-role-bindings.json || true
@@ -174,7 +184,17 @@ function analyze_dump() {
       local SAVE_DIR=$(pwd)
       cd $SCRIPT_DIR/../analysis
       # To enable debug, add  -zap-log-level debug
-      GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true $FULL_PATH_CAPTURE_DIR || true
+      if [ -z $REPORT_FILE ]; then
+        GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true $FULL_PATH_CAPTURE_DIR || true
+      else
+        # Since we have to change the current working directory to run go, we need to take into account if the reportFile specified was relative to the original
+        # working directory. If it was absolute then we just use it directly
+        if [[ $REPORT_FILE = /* ]]; then
+          GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true --reportFile=$REPORT_FILE $FULL_PATH_CAPTURE_DIR || true
+        else
+          GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true --reportFile=$SAVE_DIR/$REPORT_FILE $FULL_PATH_CAPTURE_DIR || true
+        fi
+      fi
       cd $SAVE_DIR
     fi
   fi

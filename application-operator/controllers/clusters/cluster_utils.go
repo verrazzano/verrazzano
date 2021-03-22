@@ -31,12 +31,6 @@ var MCRegistrationSecretFullName = types.NamespacedName{
 	Namespace: constants.VerrazzanoSystemNamespace,
 	Name:      constants.MCRegistrationSecret}
 
-// MCElasticsearchSecretFullName is the full NamespacedName of the managed cluster's Elasticsearch
-// secret
-var MCElasticsearchSecretFullName = types.NamespacedName{
-	Namespace: constants.VerrazzanoSystemNamespace,
-	Name:      constants.ElasticsearchSecretName}
-
 // ElasticsearchDetails represents all the details needed
 // to determine how to connect to an Elasticsearch instance
 type ElasticsearchDetails struct {
@@ -140,7 +134,18 @@ func ComputeEffectiveState(status clustersv1alpha1.MultiClusterResourceStatus, p
 	clustersFound := 0
 	clustersPending := 0
 	clustersFailed := 0
-	for _, cluster := range placement.Clusters {
+
+	// In some cases (such as VerrazzanoProject, which has no placement section), there may not be
+	// any specified cluster placements. In this case assume the known placements as the ones for
+	// which we have received updates from the cluster
+	knownClusterPlacements := placement.Clusters
+	if knownClusterPlacements == nil {
+		for _, clusterStatus := range status.Clusters {
+			knownClusterPlacements = append(knownClusterPlacements, clustersv1alpha1.Cluster{Name: clusterStatus.Name})
+		}
+	}
+
+	for _, cluster := range knownClusterPlacements {
 		for _, clusterStatus := range status.Clusters {
 			if clusterStatus.Name == cluster.Name {
 				clustersFound++
@@ -160,7 +165,7 @@ func ComputeEffectiveState(status clustersv1alpha1.MultiClusterResourceStatus, p
 	}
 
 	// if all clusters succeeded, mark the overall state as succeeded
-	if clustersSucceeded == len(placement.Clusters) {
+	if clustersSucceeded == len(knownClusterPlacements) {
 		return clustersv1alpha1.Succeeded
 	}
 
@@ -226,20 +231,14 @@ func IgnoreNotFoundWithLog(resourceType string, err error, logger logr.Logger) e
 // have the managed cluster secret), an empty ElasticsearchDetails will be returned
 func FetchManagedClusterElasticSearchDetails(ctx context.Context, rdr client.Reader) ElasticsearchDetails {
 	esDetails := ElasticsearchDetails{}
-	esSecret := corev1.Secret{}
-	err := fetchElasticsearchSecret(ctx, rdr, &esSecret)
+	regSecret := corev1.Secret{}
+	err := rdr.Get(ctx, MCRegistrationSecretFullName, &regSecret)
 	if err != nil {
 		return esDetails
 	}
-	esDetails.URL = string(esSecret.Data[constants.ElasticsearchURLData])
-	esDetails.SecretName = constants.ElasticsearchSecretName
+	esDetails.URL = string(regSecret.Data[constants.ElasticsearchURLData])
+	esDetails.SecretName = constants.MCRegistrationSecret
 	return esDetails
-}
-
-// GetManagedClusterElasticsearchSecretKey returns the object key for the managed cluster elastic
-// search secret
-func GetManagedClusterElasticsearchSecretKey() client.ObjectKey {
-	return client.ObjectKey{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.ElasticsearchSecretName}
 }
 
 // GetClusterName returns the cluster name for a managed cluster, empty string otherwise
@@ -252,11 +251,7 @@ func GetClusterName(ctx context.Context, rdr client.Reader) string {
 	return string(clusterSecret.Data[constants.ClusterNameData])
 }
 
-func fetchElasticsearchSecret(ctx context.Context, rdr client.Reader, secret *corev1.Secret) error {
-	return rdr.Get(ctx, MCElasticsearchSecretFullName, secret)
-}
-
-// Try to get the registration secret that was created via the registion YAML apply.  If it doesn't
+// Try to get the registration secret that was created via the registration YAML apply.  If it doesn't
 // exist then use the local registration secret that was created at install time.
 func fetchClusterSecret(ctx context.Context, rdr client.Reader, clusterSecret *corev1.Secret) error {
 	err := rdr.Get(ctx, MCRegistrationSecretFullName, clusterSecret)

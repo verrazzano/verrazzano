@@ -167,12 +167,11 @@ func Test_writeYAMLString(t *testing.T) {
 	assert := asserts.New(t)
 	var str string
 	var err error
-	var cont *gabs.Container
 
 	// GIVEN an simple yaml container
 	// WHEN the yaml container is written to a string
 	// THEN verify that the string is correct
-	cont = gabs.New()
+	var cont = gabs.New()
 	cont.Set("test-value-1", "test-name-1")
 	str, err = writeYAMLString(cont)
 	assert.NoError(err)

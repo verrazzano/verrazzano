@@ -1,0 +1,477 @@
+{
+    "kind": "PodList",
+    "apiVersion": "v1",
+    "metadata": {
+        "selfLink": "/api/v1/namespaces/verrazzano-system/pods",
+        "resourceVersion": "9932"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "vmi-system-es-master-0",
+                "generateName": "vmi-system-es-master-",
+                "namespace": "verrazzano-system",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/pods/vmi-system-es-master-0",
+                "uid": "a024b976-552b-4553-8cac-606a027c4faa",
+                "resourceVersion": "4632",
+                "creationTimestamp": "2021-03-02T15:10:01Z",
+                "labels": {
+                    "app": "system-es-master",
+                    "controller-revision-hash": "vmi-system-es-master-788dc4557d",
+                    "statefulset.kubernetes.io/pod-name": "vmi-system-es-master-0"
+                },
+                "ownerReferences": [
+                    {
+                        "apiVersion": "apps/v1",
+                        "kind": "StatefulSet",
+                        "name": "vmi-system-es-master",
+                        "uid": "c168a476-9a91-485d-8530-e13ea8407776",
+                        "controller": true,
+                        "blockOwnerDeletion": true
+                    }
+                ],
+                "managedFields": [
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-03-02T15:10:01Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:generateName": {},
+                                "f:labels": {
+                                    ".": {},
+                                    "f:app": {},
+                                    "f:controller-revision-hash": {},
+                                    "f:statefulset.kubernetes.io/pod-name": {}
+                                },
+                                "f:ownerReferences": {
+                                    ".": {},
+                                    "k:{\"uid\":\"c168a476-9a91-485d-8530-e13ea8407776\"}": {
+                                        ".": {},
+                                        "f:apiVersion": {},
+                                        "f:blockOwnerDeletion": {},
+                                        "f:controller": {},
+                                        "f:kind": {},
+                                        "f:name": {},
+                                        "f:uid": {}
+                                    }
+                                }
+                            },
+                            "f:spec": {
+                                "f:affinity": {
+                                    ".": {},
+                                    "f:podAntiAffinity": {
+                                        ".": {},
+                                        "f:preferredDuringSchedulingIgnoredDuringExecution": {}
+                                    }
+                                },
+                                "f:containers": {
+                                    "k:{\"name\":\"es-master\"}": {
+                                        ".": {},
+                                        "f:args": {},
+                                        "f:env": {
+                                            ".": {},
+                                            "k:{\"name\":\"HTTP_ENABLE\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:value": {}
+                                            },
+                                            "k:{\"name\":\"cluster.initial_master_nodes\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:value": {}
+                                            },
+                                            "k:{\"name\":\"cluster.name\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:value": {}
+                                            },
+                                            "k:{\"name\":\"discovery.seed_hosts\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:value": {}
+                                            },
+                                            "k:{\"name\":\"node.data\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:value": {}
+                                            },
+                                            "k:{\"name\":\"node.ingest\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:value": {}
+                                            },
+                                            "k:{\"name\":\"node.master\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:value": {}
+                                            },
+                                            "k:{\"name\":\"node.name\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:valueFrom": {
+                                                    ".": {},
+                                                    "f:fieldRef": {
+                                                        ".": {},
+                                                        "f:apiVersion": {},
+                                                        "f:fieldPath": {}
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "f:image": {},
+                                        "f:imagePullPolicy": {},
+                                        "f:livenessProbe": {
+                                            ".": {},
+                                            "f:failureThreshold": {},
+                                            "f:initialDelaySeconds": {},
+                                            "f:periodSeconds": {},
+                                            "f:successThreshold": {},
+                                            "f:tcpSocket": {
+                                                ".": {},
+                                                "f:port": {}
+                                            },
+                                            "f:timeoutSeconds": {}
+                                        },
+                                        "f:name": {},
+                                        "f:ports": {
+                                            ".": {},
+                                            "k:{\"containerPort\":9200,\"protocol\":\"TCP\"}": {
+                                                ".": {},
+                                                "f:containerPort": {},
+                                                "f:name": {},
+                                                "f:protocol": {}
+                                            },
+                                            "k:{\"containerPort\":9300,\"protocol\":\"TCP\"}": {
+                                                ".": {},
+                                                "f:containerPort": {},
+                                                "f:name": {},
+                                                "f:protocol": {}
+                                            }
+                                        },
+                                        "f:readinessProbe": {
+                                            ".": {},
+                                            "f:exec": {
+                                                ".": {},
+                                                "f:command": {}
+                                            },
+                                            "f:failureThreshold": {},
+                                            "f:initialDelaySeconds": {},
+                                            "f:periodSeconds": {},
+                                            "f:successThreshold": {},
+                                            "f:timeoutSeconds": {}
+                                        },
+                                        "f:resources": {
+                                            ".": {},
+                                            "f:requests": {
+                                                ".": {},
+                                                "f:memory": {}
+                                            }
+                                        },
+                                        "f:securityContext": {
+                                            ".": {},
+                                            "f:privileged": {},
+                                            "f:runAsUser": {}
+                                        },
+                                        "f:terminationMessagePath": {},
+                                        "f:terminationMessagePolicy": {},
+                                        "f:volumeMounts": {
+                                            ".": {},
+                                            "k:{\"mountPath\":\"/usr/share/elasticsearch/data\"}": {
+                                                ".": {},
+                                                "f:mountPath": {},
+                                                "f:name": {}
+                                            }
+                                        }
+                                    }
+                                },
+                                "f:dnsPolicy": {},
+                                "f:enableServiceLinks": {},
+                                "f:hostname": {},
+                                "f:initContainers": {
+                                    ".": {},
+                                    "k:{\"name\":\"elasticsearch-init\"}": {
+                                        ".": {},
+                                        "f:command": {},
+                                        "f:image": {},
+                                        "f:imagePullPolicy": {},
+                                        "f:name": {},
+                                        "f:resources": {},
+                                        "f:securityContext": {
+                                            ".": {},
+                                            "f:privileged": {}
+                                        },
+                                        "f:terminationMessagePath": {},
+                                        "f:terminationMessagePolicy": {},
+                                        "f:volumeMounts": {
+                                            ".": {},
+                                            "k:{\"mountPath\":\"/usr/share/elasticsearch/data\"}": {
+                                                ".": {},
+                                                "f:mountPath": {},
+                                                "f:name": {}
+                                            }
+                                        }
+                                    }
+                                },
+                                "f:restartPolicy": {},
+                                "f:schedulerName": {},
+                                "f:securityContext": {},
+                                "f:serviceAccount": {},
+                                "f:serviceAccountName": {},
+                                "f:subdomain": {},
+                                "f:terminationGracePeriodSeconds": {},
+                                "f:volumes": {
+                                    ".": {},
+                                    "k:{\"name\":\"elasticsearch-master\"}": {
+                                        ".": {},
+                                        "f:name": {},
+                                        "f:persistentVolumeClaim": {
+                                            ".": {},
+                                            "f:claimName": {}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "manager": "kube-scheduler",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-03-02T15:10:02Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:status": {
+                                "f:conditions": {
+                                    ".": {},
+                                    "k:{\"type\":\"PodScheduled\"}": {
+                                        ".": {},
+                                        "f:lastProbeTime": {},
+                                        "f:lastTransitionTime": {},
+                                        "f:message": {},
+                                        "f:reason": {},
+                                        "f:status": {},
+                                        "f:type": {}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "volumes": [
+                    {
+                        "name": "elasticsearch-master",
+                        "persistentVolumeClaim": {
+                            "claimName": "elasticsearch-master-vmi-system-es-master-0"
+                        }
+                    },
+                    {
+                        "name": "verrazzano-monitoring-operator-token-cq2jj",
+                        "secret": {
+                            "secretName": "verrazzano-monitoring-operator-token-cq2jj",
+                            "defaultMode": 420
+                        }
+                    }
+                ],
+                "initContainers": [
+                    {
+                        "name": "elasticsearch-init",
+                        "image": "ghcr.io/oracle/oraclelinux:7.8",
+                        "command": [
+                            "sh",
+                            "-c",
+                            "chown -R 1000:1000 /usr/share/elasticsearch/data; sysctl -w vm.max_map_count=262144"
+                        ],
+                        "resources": {},
+                        "volumeMounts": [
+                            {
+                                "name": "elasticsearch-master",
+                                "mountPath": "/usr/share/elasticsearch/data"
+                            },
+                            {
+                                "name": "verrazzano-monitoring-operator-token-cq2jj",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent",
+                        "securityContext": {
+                            "privileged": true
+                        }
+                    }
+                ],
+                "containers": [
+                    {
+                        "name": "es-master",
+                        "image": "REDACTED-FOR-TEST",
+                        "args": [
+                            "elasticsearch",
+                            "-E",
+                            "logger.org.elasticsearch=INFO"
+                        ],
+                        "ports": [
+                            {
+                                "name": "transport",
+                                "containerPort": 9300,
+                                "protocol": "TCP"
+                            },
+                            {
+                                "name": "http",
+                                "containerPort": 9200,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "env": [
+                            {
+                                "name": "node.name",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.name"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "cluster.name",
+                                "value": "system"
+                            },
+                            {
+                                "name": "HTTP_ENABLE",
+                                "value": "true"
+                            },
+                            {
+                                "name": "discovery.seed_hosts",
+                                "value": "vmi-system-es-master"
+                            },
+                            {
+                                "name": "node.master",
+                                "value": "true"
+                            },
+                            {
+                                "name": "node.ingest",
+                                "value": "false"
+                            },
+                            {
+                                "name": "node.data",
+                                "value": "false"
+                            },
+                            {
+                                "name": "cluster.initial_master_nodes",
+                                "value": "vmi-system-es-master-0,vmi-system-es-master-1,vmi-system-es-master-2"
+                            }
+                        ],
+                        "resources": {
+                            "requests": {
+                                "memory": "1503238553600m"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "elasticsearch-master",
+                                "mountPath": "/usr/share/elasticsearch/data"
+                            },
+                            {
+                                "name": "verrazzano-monitoring-operator-token-cq2jj",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "livenessProbe": {
+                            "tcpSocket": {
+                                "port": 9300
+                            },
+                            "initialDelaySeconds": 10,
+                            "timeoutSeconds": 5,
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "failureThreshold": 5
+                        },
+                        "readinessProbe": {
+                            "exec": {
+                                "command": [
+                                    "sh",
+                                    "-c",
+                                    "#!/usr/bin/env bash -e\n# If the node is starting up wait for the cluster to be ready' )\n# Once it has started only check that the node itself is responding\n\nSTART_FILE=/tmp/.es_start_file\n\nhttp () {\n    local path=\"${1}\"\n    curl -v -XGET -s -k  --fail http://127.0.0.1:9200${path}\n}\n\nif [ -f \"${START_FILE}\" ]; then\n    echo 'Elasticsearch is already running, lets check the node is healthy'\n    http \"\"\nelse\n    echo 'Waiting for elasticsearch cluster to become cluster to be ready'\n    if http \"\" ; then\n        touch ${START_FILE}\n    else\n        echo 'Cluster is not yet ready'\n        exit 1\n\n    fi\n    exit 0\nfi"
+                                ]
+                            },
+                            "initialDelaySeconds": 90,
+                            "timeoutSeconds": 5,
+                            "periodSeconds": 5,
+                            "successThreshold": 3,
+                            "failureThreshold": 3
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent",
+                        "securityContext": {
+                            "privileged": false,
+                            "runAsUser": 1000
+                        }
+                    }
+                ],
+                "restartPolicy": "Always",
+                "terminationGracePeriodSeconds": 1,
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "verrazzano-monitoring-operator",
+                "serviceAccount": "verrazzano-monitoring-operator",
+                "securityContext": {},
+                "hostname": "vmi-system-es-master-0",
+                "subdomain": "vmi-system-es-master",
+                "affinity": {
+                    "podAntiAffinity": {
+                        "preferredDuringSchedulingIgnoredDuringExecution": [
+                            {
+                                "weight": 100,
+                                "podAffinityTerm": {
+                                    "labelSelector": {
+                                        "matchLabels": {
+                                            "app": "system-es-master"
+                                        }
+                                    },
+                                    "topologyKey": "failure-domain.beta.kubernetes.io/zone"
+                                }
+                            }
+                        ]
+                    }
+                },
+                "schedulerName": "default-scheduler",
+                "tolerations": [
+                    {
+                        "key": "node.kubernetes.io/not-ready",
+                        "operator": "Exists",
+                        "effect": "NoExecute",
+                        "tolerationSeconds": 300
+                    },
+                    {
+                        "key": "node.kubernetes.io/unreachable",
+                        "operator": "Exists",
+                        "effect": "NoExecute",
+                        "tolerationSeconds": 300
+                    }
+                ],
+                "priority": 0,
+                "enableServiceLinks": true
+            },
+            "status": {
+                "phase": "Pending",
+                "conditions": [
+                    {
+                        "type": "PodScheduled",
+                        "status": "False",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2021-03-02T15:10:02Z",
+                        "reason": "Unschedulable",
+                        "message": "0/1 nodes are available: 1 Insufficient memory."
+                    }
+                ],
+                "qosClass": "Burstable"
+            }
+        }
+    ]
+}

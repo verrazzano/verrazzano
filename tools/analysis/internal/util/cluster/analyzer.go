@@ -5,7 +5,9 @@
 package cluster
 
 import (
+	"fmt"
 	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/files"
+	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/report"
 	"go.uber.org/zap"
 )
 
@@ -25,7 +27,7 @@ import (
 //      Analyzers that may fall into this category should be annotated, with a comment, there currently is only
 //      one that may require that.
 var clusterAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory string) (err error){
-	"Verrazzano Status":  AnalyzeVerrazano, // Execute first, this may share data other analyzers can use
+	"Verrazzano Status":  AnalyzeVerrazzano, // Execute first, this may share data other analyzers can use
 	"Pod Related Issues": AnalyzePodIssues,
 }
 
@@ -34,11 +36,12 @@ func RunAnalysis(log *zap.SugaredLogger, rootDirectory string) (err error) {
 	log.Debugf("Cluster Analyzer runAnalysis on %s", rootDirectory)
 	clusterRoots, err := files.GetMatchingDirectories(log, rootDirectory, ".*/cluster-dump$")
 	if err != nil {
-		log.Errorf("Cluster Analyzer runAnalysis failed examining directories for %s", rootDirectory, err)
-		return err
+		log.Debugf("Cluster Analyzer runAnalysis failed examining directories for %s", rootDirectory, err)
+		return fmt.Errorf("Cluster Analyzer runAnalysis failed examining directories for %s", rootDirectory)
 	}
 	if len(clusterRoots) == 0 {
-		log.Infof("Cluster Analyzer runAnalysis didn't find any clusters to analyze for %s", rootDirectory)
+		log.Debugf("Cluster Analyzer runAnalysis didn't find any clusters to analyze for %s", rootDirectory)
+		return fmt.Errorf("Cluster Analyzer runAnalysis didn't find any clusters to analyze for %s", rootDirectory)
 	}
 
 	for _, clusterRoot := range clusterRoots {
@@ -50,6 +53,7 @@ func RunAnalysis(log *zap.SugaredLogger, rootDirectory string) (err error) {
 
 func analyzeCluster(log *zap.SugaredLogger, clusterRoot string) (err error) {
 	log.Debugf("analyzeCluster called for %s", clusterRoot)
+	report.AddSourceAnalyzed(clusterRoot)
 
 	for functionName, function := range clusterAnalysisFunctions {
 		err := function(log, clusterRoot)

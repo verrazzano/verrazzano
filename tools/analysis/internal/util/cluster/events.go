@@ -50,7 +50,7 @@ func GetEventList(log *zap.SugaredLogger, path string) (eventList *corev1.EventL
 
 // GetEventsRelatedToPod gets events related to a pod
 func GetEventsRelatedToPod(log *zap.SugaredLogger, clusterRoot string, pod corev1.Pod) (podEvents []corev1.Event, err error) {
-	allEvents, err := GetEventList(log, files.FindEventsJSONFileName(clusterRoot, pod.ObjectMeta.Namespace))
+	allEvents, err := GetEventList(log, files.FindFileInNamespace(clusterRoot, pod.ObjectMeta.Namespace, "events.json"))
 	if err != nil {
 		return nil, err
 	}
@@ -85,5 +85,4 @@ func putEventListIfNotPresent(path string, eventList *corev1.EventList) {
 		eventListMap[path] = eventList
 	}
 	eventCacheMutex.Unlock()
-	return
 }
