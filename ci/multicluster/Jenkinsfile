@@ -41,7 +41,7 @@ pipeline {
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
                 choices: [ "v1.18.10", "v1.17.13" ])
-        choice (name: 'KUBERNETES_CLUSTER_VERSION',
+        choice (name: 'KIND_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KIND Cluster',
                 // 1st choice is the default value
                 choices: [ "1.18", "1.17" ])
@@ -49,8 +49,14 @@ pipeline {
                         defaultValue: 'NONE',
                         description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the latest operator.yaml published to the Verrazzano Object Store will be used',
                         trim: true)
-        string name: "ADMIN_CLUSTER_PROFILE", defaultValue: 'dev', description: 'Verrazzano Admin Cluster install profile name',  trim: true
-        string name: "MANAGED_CLUSTER_PROFILE", defaultValue: 'managed-cluster', description: 'Verrazzano Managed Cluster install profile name', trim: true
+        choice (name: 'ADMIN_CLUSTER_PROFILE',
+                description: 'Verrazzano Admin Cluster install profile name',
+                // 1st choice is the default value
+                choices: [ "dev", "prod" ])
+        choice (name: 'MANAGED_CLUSTER_PROFILE',
+                description: 'Verrazzano Managed Cluster install profile name',
+                // 1st choice is the default value
+                choices: [ "managed-cluster", "dev", "prod" ])
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', description: 'Whether to dump k8s cluster on success (off by default, can be useful to capture for comparing to failed cluster)', defaultValue: false)
     }
 
@@ -305,18 +311,18 @@ pipeline {
                 }
                 stage ('Verify Install') {
                     // NOTE: The stages are executed in parallel, however the tests themselves are executed against
-                    //       each cluster in sequence.  But we should be able to parallelize even that
+                    //       each cluster in sequence.  But we should parallizing those also, if we can.
                     parallel {
                         stage ('multicluster/verify-install') {
                             steps {
                                 runGinkgoRandomize('multicluster/verify-install')
                             }
                         }
-                        //stage('verify-install') {
-                        //    steps {
-                        //        runGinkgoRandomize('verify-install')
-                        //    }
-                        //}
+                        stage('verify-install') {
+                            steps {
+                                runGinkgoRandomize('verify-install')
+                            }
+                        }
                         stage('verify-infra restapi') {
                             steps {
                                 runGinkgoRandomize('verify-infra/restapi')
@@ -327,11 +333,11 @@ pipeline {
                                 runGinkgoRandomize('verify-infra/oam')
                             }
                         }
-                        //stage('verify-infra vmi') {
-                        //    steps {
-                        //        runGinkgoRandomize('verify-infra/vmi')
-                        //    }
-                        //}
+                        stage('verify-infra vmi') {
+                            steps {
+                                runGinkgoRandomize('verify-infra/vmi')
+                            }
+                        }
                     }
                     post {
                         always {
@@ -395,7 +401,7 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: '**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             script {
                 int clusterCount = params.TOTAL_CLUSTERS.toInteger()
@@ -448,7 +454,7 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 echo "Create Kind cluster \$1"
                 cd ${TEST_SCRIPTS_DIR}
-                ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KUBERNETES_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork"
+                ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork"
                 echo "Install metallb"
                 cd ${GO_REPO_PATH}/verrazzano
                 ./tests/e2e/config/scripts/install-metallb.sh $metallbAddressRange
@@ -465,6 +471,9 @@ def installVerrazzano(count, verrazzanoConfig) {
             sh """
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 cd ${GO_REPO_PATH}/verrazzano
+
+                # Display the kubectl and cluster versions
+                kubectl version
 
                 echo "Create Image Pull Secrets"
                 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
@@ -514,22 +523,17 @@ def runGinkgoRandomize(testSuitePath) {
 def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript) {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        def envName = "default"
         for(int count=1; count<=clusterCount; count++) {
             def destinationPath = "${env.KUBECONFIG_DIR}/${count}/${installerFileName}"
             def installProfile = env.MANAGED_CLUSTER_PROFILE
+            // Installs using OCI DNS require a unique domain per cluster
+            // - also, the env name must be <= 10 chars for some reason.
+            def envName = "mgd${count-1}"
             if (count == 1) {
+                // Cluster "1" is always the admin cluster, use the chosen profile for the VZ install
+                // with the env name "admin"
                 installProfile = env.ADMIN_CLUSTER_PROFILE
-            }
-            if (params.TEST_ENV == 'ocidns_oke') {
-                // Installs using OCI DNS require a unique domain per cluster, so to distinguish
-                // we use different environmentName values for each cluster; also, the env
-                // name must be <= 10 chars for some reason.
-                if (count == 1) {
-                    envName = "admin"
-                } else {
-                    envName = "mgd${count-1}"
-                }
+                envName = "admin"
             }
             sh """
                 mkdir -p "${KUBECONFIG_DIR}/${count}"

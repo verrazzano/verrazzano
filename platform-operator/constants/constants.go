@@ -19,9 +19,6 @@ const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
 // This secret is used by the MC agent running on the managed cluster.
 const MCAgentSecret = "verrazzano-cluster-agent"
 
-// MCElasticsearchSecret contains information to access the admin Elasticsearch from the managed cluster.
-const MCElasticsearchSecret = "verrazzano-cluster-elasticsearch"
-
 // MCRegistrationSecret contains information which related to the managed cluster itself, such as the
 // managed cluster name.
 const MCRegistrationSecret = "verrazzano-cluster-registration"

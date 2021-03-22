@@ -15,7 +15,6 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	istionet "istio.io/api/networking/v1alpha3"
@@ -163,7 +162,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 	componentName := "unit-test-component"
 	loggingScopeName := "unit-test-logging-scope"
 	fluentdImage := "unit-test-image:latest"
-	esSecretName := "es-secret"
+	loggingSecretName := "logging-secret"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
 
 	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
@@ -202,7 +201,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: loggingScopeName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, loggingScope *vzapi.LoggingScope) error {
 			loggingScope.Spec.FluentdImage = fluentdImage
-			loggingScope.Spec.SecretName = esSecretName
+			loggingScope.Spec.SecretName = loggingSecretName
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -220,16 +219,10 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 			return nil
 		})
 	// expect a call to get the elasticsearch secret in app namespace - return not found
-	testESSecretFullName := types.NamespacedName{Namespace: namespace, Name: esSecretName}
+	testLoggingSecretFullName := types.NamespacedName{Namespace: namespace, Name: loggingSecretName}
 	cli.EXPECT().
-		Get(gomock.Any(), testESSecretFullName, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), esSecretName))
-	// needs cluster name, expect a call to get verrazzano-cluster secret
-	cli.EXPECT().
-		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *corev1.Secret) error {
-			return nil
-		})
+		Get(gomock.Any(), testLoggingSecretFullName, gomock.Not(gomock.Nil())).
+		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), loggingSecretName))
 
 	// expect a call to create an empty elasticsearch secret in app namespace (default behavior, so
 	// that fluentd volume mount works)
@@ -237,7 +230,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 		Create(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, sec *corev1.Secret, options *client.CreateOptions) error {
 			asserts.Equal(t, namespace, sec.Namespace)
-			asserts.Equal(t, esSecretName, sec.Name)
+			asserts.Equal(t, loggingSecretName, sec.Name)
 			asserts.Nil(t, sec.Data)
 			asserts.Equal(t, client.CreateOptions{}, *options)
 			return nil
@@ -298,7 +291,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 	loggingScopeName := "unit-test-logging-scope"
 	fluentdImage := "unit-test-image:latest"
 	existingJvmArg := "-Dcoherence.test=unit-test"
-	esSecretName := "es-secret"
+	loggingSecretName := "logging-secret"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
 
 	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
@@ -337,7 +330,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: loggingScopeName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, loggingScope *vzapi.LoggingScope) error {
 			loggingScope.Spec.FluentdImage = fluentdImage
-			loggingScope.Spec.SecretName = esSecretName
+			loggingScope.Spec.SecretName = loggingSecretName
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -355,16 +348,10 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			return nil
 		})
 	// expect a call to get the elasticsearch secret in app namespace - return not found
-	testESSecretFullName := types.NamespacedName{Namespace: namespace, Name: esSecretName}
+	testLoggingSecretFullName := types.NamespacedName{Namespace: namespace, Name: loggingSecretName}
 	cli.EXPECT().
-		Get(gomock.Any(), testESSecretFullName, gomock.Not(gomock.Nil())).
-		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), esSecretName))
-	// needs cluster name, expect a call to get verrazzano-cluster secret
-	cli.EXPECT().
-		Get(gomock.Any(), clusters.MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *corev1.Secret) error {
-			return nil
-		})
+		Get(gomock.Any(), testLoggingSecretFullName, gomock.Not(gomock.Nil())).
+		Return(k8serrors.NewNotFound(k8sschema.ParseGroupResource("v1.Secret"), loggingSecretName))
 
 	// expect a call to create an empty elasticsearch secret in app namespace (default behavior, so
 	// that fluentd volume mount works)
@@ -372,7 +359,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 		Create(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, sec *corev1.Secret, options *client.CreateOptions) error {
 			asserts.Equal(t, namespace, sec.Namespace)
-			asserts.Equal(t, esSecretName, sec.Name)
+			asserts.Equal(t, loggingSecretName, sec.Name)
 			asserts.Nil(t, sec.Data)
 			asserts.Equal(t, client.CreateOptions{}, *options)
 			return nil

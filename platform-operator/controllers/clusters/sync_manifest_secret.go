@@ -6,10 +6,11 @@ package clusters
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -47,15 +48,6 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.
 	}
 	sb.Write([]byte(yamlSep))
 	sb.Write(regYaml)
-
-	// add Elasticsearch secret YAML
-	esYaml, err := r.getSecretAsYaml(GetElasticsearchSecretName(vmc.Name), vmc.Namespace,
-		constants.MCElasticsearchSecret, constants.VerrazzanoSystemNamespace)
-	if err != nil {
-		return err
-	}
-	sb.Write([]byte(yamlSep))
-	sb.Write(esYaml)
 
 	// create/update the manifest secret with the YAML
 	_, err = r.createOrUpdateManifestSecret(vmc, sb.String())

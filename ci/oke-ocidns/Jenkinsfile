@@ -436,7 +436,7 @@ pipeline {
         always {
             script {
                 if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
-                    dumpK8sCluster('oke-acceptance-tests-cluster-dump.tar.gz')
+                    dumpK8sCluster('oke-acceptance-tests-cluster-dump')
                 }
             }
 
@@ -452,7 +452,7 @@ pipeline {
                     sort -u -o ${IMG_LIST_FILE} ${IMG_LIST_FILE}
                 fi
             """
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-dump.tar.gz', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             sh """
                 if [ "${TEST_ENV}" == "ocidns_oke" ]; then
