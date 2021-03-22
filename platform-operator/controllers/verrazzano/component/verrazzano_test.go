@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"go.uber.org/zap"
 )
@@ -32,6 +31,7 @@ func TestVzName(t *testing.T) {
 //  WHEN I call Upgrade
 //  THEN the Verrazzano upgrade returns success
 func TestVzUpgrade(t *testing.T) {
+	const defNs = "verrazzano-system"
 	assert := assert.New(t)
 	vz := Verrazzano{}
 	helm.SetCmdRunner(fakeRunner{})
@@ -45,7 +45,7 @@ func TestVzUpgrade(t *testing.T) {
 //  WHEN I call resolveNamespace
 //  THEN the Verrazzano namespace name is correctly resolved
 func TestVzResolveNamespace(t *testing.T) {
-	const defNs = constants.VerrazzanoSystemNamespace
+	const defNs = "verrazzano-system"
 	assert := assert.New(t)
 	ns := resolveNamespace("")
 	assert.Equal(defNs, ns, "Wrong namespace resolved for verrazzano when using empty namespace")

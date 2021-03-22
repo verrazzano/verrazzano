@@ -6,15 +6,15 @@ package component
 import (
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/util/helm"
 )
 
 const vzReleaseName = "verrazzano"
-const vzDefaultNamespace = constants.VerrazzanoSystemNamespace
+const vzDefaultNamespace = "verrazzano-system"
 
 // Verrazzano struct needed to implement interface
 type Verrazzano struct {
