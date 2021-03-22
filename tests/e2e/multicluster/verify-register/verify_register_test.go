@@ -28,11 +28,18 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 		ginkgo.It("admin cluster has the expected secrets", func() {
 			gomega.Eventually(func() bool {
 				s, err := pkg.GetSecret("verrazzano-mc", fmt.Sprintf("verrazzano-cluster-%s-manifest", managedClusterName))
-				return s != nil && err == nil
+				if s == nil || err != nil {
+					return false
+				}
 				s, err = pkg.GetSecret("verrazzano-mc", fmt.Sprintf("verrazzano-cluster-%s-agent", managedClusterName))
-				return s != nil && err == nil
+				if s == nil || err != nil {
+					return false
+				}
 				s, err = pkg.GetSecret("verrazzano-mc", fmt.Sprintf("verrazzano-cluster-%s-registration", managedClusterName))
-				return s != nil && err == nil
+				if s == nil || err != nil {
+					return false
+				}
+				return true
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
@@ -63,9 +70,14 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 		ginkgo.It("managed cluster has the expected secrets", func() {
 			gomega.Eventually(func() bool {
 				s, err := pkg.GetSecret("verrazzano-system", "verrazzano-cluster-agent")
-				return s != nil && err == nil
+				if s == nil || err != nil {
+					return false
+				}
 				s, err = pkg.GetSecret("verrazzano-system", "verrazzano-cluster-registration")
-				return s != nil && err == nil
+				if s == nil || err != nil {
+					return false
+				}
+				return true
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 	})
