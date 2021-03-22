@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"sync"
 )
@@ -48,6 +49,13 @@ func GetEventList(log *zap.SugaredLogger, path string) (eventList *corev1.EventL
 	return eventList, nil
 }
 
+// TODO: Need to add an optional time range to the get events, that will allow us to find events related to
+// pods/services/etc that happened only within a given time range
+type TimeRange struct {
+	StartTime metav1.Time
+	EndTime   metav1.Time
+}
+
 // GetEventsRelatedToPod gets events related to a pod
 func GetEventsRelatedToPod(log *zap.SugaredLogger, clusterRoot string, pod corev1.Pod) (podEvents []corev1.Event, err error) {
 	allEvents, err := GetEventList(log, files.FindFileInNamespace(clusterRoot, pod.ObjectMeta.Namespace, "events.json"))
@@ -66,6 +74,26 @@ func GetEventsRelatedToPod(log *zap.SugaredLogger, clusterRoot string, pod corev
 		}
 	}
 	return podEvents, nil
+}
+
+// GetEventsRelatedToService gets events related to a service
+func GetEventsRelatedToService(log *zap.SugaredLogger, clusterRoot string, service *corev1.Service) (serviceEvents []corev1.Event, err error) {
+	allEvents, err := GetEventList(log, files.FindFileInNamespace(clusterRoot, service.ObjectMeta.Namespace, "events.json"))
+	if err != nil {
+		return nil, err
+	}
+	if allEvents == nil || len(allEvents.Items) == 0 {
+		return nil, nil
+	}
+	serviceEvents = make([]corev1.Event, 0, 1)
+	for _, event := range allEvents.Items {
+		if event.InvolvedObject.Kind == "Service" &&
+			event.InvolvedObject.Namespace == service.ObjectMeta.Namespace &&
+			event.InvolvedObject.Name == service.ObjectMeta.Name {
+			serviceEvents = append(serviceEvents, event)
+		}
+	}
+	return serviceEvents, nil
 }
 
 func getEventListIfPresent(path string) (eventList *corev1.EventList) {

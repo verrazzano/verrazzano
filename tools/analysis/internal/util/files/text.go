@@ -19,6 +19,27 @@ type TextMatch struct {
 	MatchedText string
 }
 
+// SearchMatches will search the list of TextMatch using a search expression and will return all that match
+// This is handy for looking at
+func SearchMatches(log *zap.SugaredLogger, matchesToSearch[]TextMatch, searchExpression string) (matches []TextMatch, err error) {
+	if len(searchExpression) == 0 {
+		return nil, errors.New("SearchMatches requires a search expression")
+	}
+
+	searchMatchRe, err := regexp.Compile(searchExpression)
+	if err != nil {
+		log.Debugf("Failed to compile regular expression: %s", searchExpression, err)
+		return nil, err
+	}
+
+	for _, matchToSearch := range matchesToSearch {
+		if searchMatchRe.MatchString(matchToSearch.MatchedText) {
+			matches = append(matches, matchToSearch)
+		}
+	}
+	return matches, nil
+}
+
 // SearchFiles will search the list of files that are already known for text that matches
 func SearchFiles(log *zap.SugaredLogger, rootDirectory string, files []string, searchExpression string) (matches []TextMatch, err error) {
 	if len(searchExpression) == 0 {

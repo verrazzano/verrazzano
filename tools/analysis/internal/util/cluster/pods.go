@@ -17,10 +17,13 @@ import (
 	"sync"
 )
 
+// podListMap holds podLists which have been read in already
 var podListMap = make(map[string]*corev1.PodList)
 var podCacheMutex = &sync.Mutex{}
 
 var podAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error){
+	"Verrazzano Install Pod Issue":        AnalyzeVerrazzanoInstallIssue,
+	"Verrazzano Uninstall Pod Issue":      AnalyzeVerrazzanoUninstallIssue,
 	"Pod Container Related Issues":        podContainerIssues,
 	"Pod Status Condition Related Issues": podStatusConditionIssues,
 }
@@ -70,10 +73,10 @@ func analyzePods(log *zap.SugaredLogger, clusterRoot string, podFile string) (re
 		PendingIssues: make(map[string]report.Issue),
 	}
 	for _, pod := range podList.Items {
-		if pod.Status.Phase == corev1.PodRunning ||
-			pod.Status.Phase == corev1.PodSucceeded {
+		if !IsPodProblematic(pod) {
 			continue
 		}
+
 		// Call the pod analysis functions
 		for functionName, function := range podAnalysisFunctions {
 			err := function(log, clusterRoot, podFile, pod, &issueReporter)
@@ -89,6 +92,38 @@ func analyzePods(log *zap.SugaredLogger, clusterRoot string, podFile string) (re
 	return reported, nil
 }
 
+// IsContainerNotReady will return true if the are PodConditions with
+func IsContainerNotReady(conditions []corev1.PodCondition) bool {
+	for _, condition := range conditions {
+		if !strings.Contains(condition, "Ready") {
+			continue
+		}
+		if condition.Status == "False" && condition.Reason == "ContainersNotReady" {
+			return true
+		}
+	}
+	return false
+}
+
+// One of the more reliable ways that we can identify install related issues is by
+func verrazzanoInstallIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
+
+	return AnalyzeVerrazzanoInstallIssue()
+}
+
+func verrazzanoUninstallIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
+	// Skip if it is not the verrazzano uninstall job pod
+	if !IsVerrazzanoUninstallJobPod(pod) {
+		return nil
+	}
+	log.Debugf("verrazzanoUninstallIssues analysis called for cluster: %s, ns: %s, pod: %s", clusterRoot, pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+
+	// TODO: Implement, this will likely be similar pattern as the install issue dispacthing once that is handled
+	return nil
+}
+
+
+
 // This is evolving as we add more cases in podContainerIssues
 //
 //   One thing that switching to this drill-down model makes harder to do is track overarching
@@ -98,7 +133,6 @@ func analyzePods(log *zap.SugaredLogger, clusterRoot string, podFile string) (re
 //   Note that this is not showing it here as the current analysis only is using the IssueReporter
 //   but analysis code is free to use the NewKnown* helpers or form fully custom issues and Contribute
 //   those directly to the report.Contribute* helpers
-
 func podContainerIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
 	log.Debugf("podContainerIssues analysis called for cluster: %s, ns: %s, pod: %s", clusterRoot, pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 	podEvents, err := GetEventsRelatedToPod(log, clusterRoot, pod)
@@ -241,6 +275,15 @@ func GetPodList(log *zap.SugaredLogger, path string) (podList *corev1.PodList, e
 	return podList, nil
 }
 
+// IsPodProblematic returns a boolean indicating whether a pod is deemed problematic or not
+func IsPodProblematic(pod *corev1.Pod) bool {
+	if pod.Status.Phase == corev1.PodRunning ||
+		pod.Status.Phase == corev1.PodSucceeded {
+		return false
+	}
+	return true
+}
+
 // This looks at the pods.json files in the cluster and will give a list of files
 // if any have pods that are not Running or Succeeded.
 func findProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFiles []string, err error) {
@@ -284,8 +327,7 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 			continue
 		}
 		for _, pod := range podList.Items {
-			if pod.Status.Phase == corev1.PodRunning ||
-				pod.Status.Phase == corev1.PodSucceeded {
+			if !IsPodProblematic(pod) {
 				continue
 			}
 			for _, condition := range pod.Status.Conditions {

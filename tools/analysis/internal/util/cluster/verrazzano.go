@@ -9,6 +9,8 @@ import (
 	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/report"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"regexp"
 	"strings"
 )
 
@@ -20,6 +22,10 @@ var allNamespacesFound []string
 // verrazzanoNamespacesFound is a list of the verrazzano namespaces found
 var verrazzanoNamespacesFound []string
 
+// Pattern matchers
+var verrazzanoInstallJobPodMatcher = regexp.MustCompile("verrazzano-install-.*")
+var verrazzanoUninstallJobPodMatcher = regexp.MustCompile("verrazzano-uninstall-.*")
+
 // TODO: CRDs related to verrazzano
 
 // verrazzanoDeployments related to verrazzano
@@ -30,7 +36,8 @@ var verrazzanoAnalysisFunctions = map[string]func(log *zap.SugaredLogger, cluste
 	"Installation status": installationStatus,
 }
 
-// AnalyzeVerrazano handles high level checking for Verrazzano itself
+// AnalyzeVerrazano handles high level checking for Verrazzano itself. Note that we are not necessarily going to drill deeply here and
+// we may actually handle scenarios as part of the other drill-downs separately
 func AnalyzeVerrazzano(log *zap.SugaredLogger, clusterRoot string) (err error) {
 	log.Debugf("AnalyzeVerrazzano called for %s", clusterRoot)
 
@@ -87,6 +94,8 @@ func installationStatus(log *zap.SugaredLogger, clusterRoot string, issueReporte
 		// so until there is an explicit need to separate those, not doing that here (we could though)
 	}
 
+
+
 	// TODO: Inspect the verrazzano-install namespace platform operator logs. We should be able to glean state from the
 	//       the logs here, and what the name of the install job resource to look for is.
 	// TODO: Inspect the default namespace for a verrazzano install job pod logs. Inspecting the logs should here should
@@ -100,4 +109,14 @@ func installationStatus(log *zap.SugaredLogger, clusterRoot string, issueReporte
 	// TODO: verrazzanoResources (json file)
 
 	return nil
+}
+
+// IsVerrazzanoInstallJobPod returns true if the pod is an install job related pod for Verrazzano
+func IsVerrazzanoInstallJobPod(pod *corev1.Pod) bool {
+	return pod.ObjectMeta.Namespace == "default" && VerrazzanoInstallJobPodMatcher.MatchString(pod.ObjectMeta.Name)
+}
+
+// IsVerrazzanoUninstallJobPod returns true if the pod is an uninstall job related pod for Verrazzano
+func IsVerrazzanoUninstallJobPod(pod *corev1.Pod) bool {
+	return pod.ObjectMeta.Namespace == "default" && VerrazzanoUninstallJobPodMatcher.MatchString(pod.ObjectMeta.Name)
 }
