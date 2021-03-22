@@ -5,7 +5,6 @@ package multiclustersecret
 
 import (
 	"context"
-
 	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	corev1 "k8s.io/api/core/v1"
@@ -27,6 +26,8 @@ type Reconciler struct {
 	AgentChannel chan clusters.StatusUpdateMessage
 }
 
+const finalizerName = "multiclustersecret.verrazzano.io"
+
 // Reconcile reconciles a MultiClusterSecret resource. It fetches the embedded Secret, mutates it
 // based on the MultiClusterSecret, and updates the status of the MultiClusterSecret to reflect the
 // success or failure of the changes to the embedded Secret
@@ -40,6 +41,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterSecret", err, logger)
 	}
 
+	if !mcSecret.ObjectMeta.DeletionTimestamp.IsZero() {
+		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcSecret, finalizerName, &corev1.Secret{}, types.NamespacedName{Namespace: mcSecret.Namespace, Name: mcSecret.Name})
+		return ctrl.Result{}, err
+	}
+
 	oldState := clusters.SetEffectiveStateIfChanged(mcSecret.Spec.Placement, &mcSecret.Status)
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcSecret.Spec.Placement) {
 		if oldState != mcSecret.Status.State {
@@ -47,7 +53,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			// could be in an admin cluster and receive cluster level statuses from managed clusters,
 			// which can change our effective state
 			err = r.Status().Update(ctx, &mcSecret)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 		}
+		// if this mc secret is no longer placed on this cluster, remove the associated secret
+		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcSecret, finalizerName, &corev1.Secret{}, types.NamespacedName{Namespace: mcSecret.Namespace, Name: mcSecret.Name})
 		return ctrl.Result{}, err
 	}
 
@@ -55,6 +66,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		"secret", mcSecret.Spec.Template.Metadata.Name,
 		"placement", mcSecret.Spec.Placement.Clusters[0].Name)
 	opResult, err := r.createOrUpdateSecret(ctx, mcSecret)
+
+	// Add our finalizer if not already added
+	if err == nil {
+		_, err = clusters.AddFinalizer(ctx, r.Client, &mcSecret, finalizerName)
+	}
 
 	return r.updateStatus(ctx, &mcSecret, opResult, err)
 }
@@ -84,9 +100,7 @@ func (r *Reconciler) createOrUpdateSecret(ctx context.Context, mcSecret clusters
 
 	return controllerutil.CreateOrUpdate(ctx, r.Client, &secret, func() error {
 		r.mutateSecret(mcSecret, &secret)
-		// This SetControllerReference call will trigger garbage collection i.e. the secret
-		// will automatically get deleted when the mcSecret is deleted
-		return controllerutil.SetControllerReference(&mcSecret, &secret, r.Scheme)
+		return nil
 	})
 
 }

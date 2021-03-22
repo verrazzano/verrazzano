@@ -323,3 +323,41 @@ func SetEffectiveStateIfChanged(placement clustersv1alpha1.Placement,
 	}
 	return statusPtr.State
 }
+
+// DeleteAssociatedResource will retrieve and delete the resource specified by the name
+func DeleteAssociatedResource(ctx context.Context, c client.Client, mcResource runtime.Object, finalizerName string, resourceToDelete runtime.Object, name types.NamespacedName) error {
+
+	mcObj, ok := mcResource.(controllerutil.Object)
+	if ok {
+		controllerutil.RemoveFinalizer(mcObj, finalizerName)
+		err := c.Update(ctx, mcResource)
+		if err != nil {
+			return err
+		}
+	}
+	err := c.Get(ctx, name, resourceToDelete)
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+		return nil
+	}
+	err = c.Delete(ctx, resourceToDelete)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// AddFinalizer adds a finalizer and updates the resource if that finalizer is not already attached to the resource
+func AddFinalizer(ctx context.Context, r client.Client, obj controllerutil.Object, finalizerName string) (controllerruntime.Result, error) {
+	if !controllerutil.ContainsFinalizer(obj, finalizerName) {
+		controllerutil.AddFinalizer(obj, finalizerName)
+		if err := r.Update(ctx, obj); err != nil {
+			return controllerruntime.Result{}, err
+		}
+	}
+
+	return controllerruntime.Result{}, nil
+}

@@ -47,7 +47,7 @@ func (s *Syncer) syncMCLoggingScopeObjects(namespace string) error {
 	}
 	for _, mcLoggingScope := range allLocalMCLoggingScopes.Items {
 		// Delete each MultiClusterLoggingScope object that is not on the admin cluster
-		if !loggingScopeListContains(&allAdminMCLoggingScopes, mcLoggingScope.Name, mcLoggingScope.Namespace) {
+		if !s.loggingScopePlacedOnCluster(&allAdminMCLoggingScopes, mcLoggingScope.Name, mcLoggingScope.Namespace) {
 			err := s.LocalClient.Delete(s.Context, &mcLoggingScope)
 			if err != nil {
 				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterLoggingScope with name %q and namespace %q", mcLoggingScope.Name, mcLoggingScope.Namespace))
@@ -89,11 +89,11 @@ func mutateMCLoggingScope(mcLoggingScope clustersv1alpha1.MultiClusterLoggingSco
 	mcLoggingScopeNew.Labels = mcLoggingScope.Labels
 }
 
-// loggingScopeListContains returns boolean indicating if the list contains the object with the specified name and namespace
-func loggingScopeListContains(mcAdminList *clustersv1alpha1.MultiClusterLoggingScopeList, name string, namespace string) bool {
+// loggingScopePlacedOnCluster returns boolean indicating if the list contains the object with the specified name and namespace
+func (s *Syncer) loggingScopePlacedOnCluster(mcAdminList *clustersv1alpha1.MultiClusterLoggingScopeList, name string, namespace string) bool {
 	for _, item := range mcAdminList.Items {
 		if item.Name == name && item.Namespace == namespace {
-			return true
+			return s.isThisCluster(item.Spec.Placement)
 		}
 	}
 	return false

@@ -18,6 +18,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+const finalizerName = "multiclustercomponent.verrazzano.io"
+
 // Reconciler reconciles a MultiClusterComponent object
 type Reconciler struct {
 	client.Client
@@ -39,6 +41,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterComponent", err, logger)
 	}
 
+	if !mcComp.ObjectMeta.DeletionTimestamp.IsZero() {
+		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcComp, finalizerName, &v1alpha2.Component{}, types.NamespacedName{Namespace: mcComp.Namespace, Name: mcComp.Name})
+		return ctrl.Result{}, err
+	}
+
 	oldState := clusters.SetEffectiveStateIfChanged(mcComp.Spec.Placement, &mcComp.Status)
 
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcComp.Spec.Placement) {
@@ -47,7 +54,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			// could be in an admin cluster and receive cluster level statuses from managed clusters,
 			// which can change our effective state
 			err = r.Status().Update(ctx, &mcComp)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 		}
+		// if this mc component is no longer placed on this cluster, remove the associated component
+		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcComp, finalizerName, &v1alpha2.Component{}, types.NamespacedName{Namespace: mcComp.Namespace, Name: mcComp.Name})
 		return ctrl.Result{}, err
 	}
 
@@ -55,6 +67,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		"component", mcComp.Spec.Template.Metadata.Name,
 		"placement", mcComp.Spec.Placement.Clusters[0].Name)
 	opResult, err := r.createOrUpdateComponent(ctx, mcComp)
+
+	// Add our finalizer if not already added
+	if err == nil {
+		_, err = clusters.AddFinalizer(ctx, r.Client, &mcComp, finalizerName)
+	}
 
 	return r.updateStatus(ctx, &mcComp, opResult, err)
 }
@@ -77,9 +94,7 @@ func (r *Reconciler) createOrUpdateComponent(ctx context.Context, mcComp cluster
 
 	return controllerutil.CreateOrUpdate(ctx, r.Client, &oamComp, func() error {
 		r.mutateComponent(mcComp, &oamComp)
-		// This SetControllerReference call will trigger garbage collection i.e. the OAM component
-		// will automatically get deleted when the MultiClusterComponent is deleted
-		return controllerutil.SetControllerReference(&mcComp, &oamComp, r.Scheme)
+		return nil
 	})
 }
 
