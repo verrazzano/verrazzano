@@ -303,26 +303,26 @@ func putIfNotPresent(path string, jsonData interface{}) {
 }
 
 // TODO: Need to should make a more general json structure dump here for debugging
-func debugMap(log *zap.SugaredLogger, mapIn map[string]interface{}) {
-	log.Debugf("debugMap")
-	for k, v := range mapIn {
-		switch v.(type) {
-		case string:
-			log.Debugf("%i is string", k)
-		case int:
-			log.Debugf("%i is int", k)
-		case float64:
-			log.Debugf("%i is float64", k)
-		case bool:
-			log.Debugf("%i is bool", k)
-		case []interface{}:
-			log.Debugf("%i is an []interface{}:", k)
-		case map[string]interface{}:
-			log.Debugf("%i is map[string]interface{}", k)
-		case nil:
-			log.Debugf("%i is nil", k)
-		default:
-			log.Debugf("%i is unknown type")
-		}
-	}
-}
+//func debugMap(log *zap.SugaredLogger, mapIn map[string]interface{}) {
+//	log.Debugf("debugMap")
+//	for k, v := range mapIn {
+//		switch v.(type) {
+//		case string:
+//			log.Debugf("%i is string", k)
+//		case int:
+//			log.Debugf("%i is int", k)
+//		case float64:
+//			log.Debugf("%i is float64", k)
+//		case bool:
+//			log.Debugf("%i is bool", k)
+//		case []interface{}:
+//			log.Debugf("%i is an []interface{}:", k)
+//		case map[string]interface{}:
+//			log.Debugf("%i is map[string]interface{}", k)
+//		case nil:
+//			log.Debugf("%i is nil", k)
+//		default:
+//			log.Debugf("%i is unknown type")
+//		}
+//	}
+//}

@@ -9,6 +9,71 @@ import (
 	"testing"
 )
 
+// TestHandleMain Tests the handleMain function
+// GIVEN a call to handleMain
+// WHEN with valid/invalid inputs
+// THEN exit codes returned are as expected
+func TestHandleMain(t *testing.T) {
+	// This is setting up the main.logger, do NOT set it as a var here (or you will get a nil reference running
+	// the test)
+	logger = log.GetDebugEnabledLogger()
+
+	// Calling handleMain without any flags/args set will print usage and return 1 exit code
+	flagArgs = make([]string, 0)
+	exitCode := handleMain()
+	assert.True(t, exitCode == 1)
+
+	// Calling handleMain with help=true will print usage and return 0 exit code
+	help = true
+	exitCode = handleMain()
+	assert.True(t, exitCode == 0)
+	help = false
+
+	// Calling handleMain with a valid cluster root path will analyze and return 0 exit code
+	flagArgs = make([]string, 1)
+	flagArgs[0] = "test/cluster/image-pull-case1"
+	analyzerType = "cluster"
+	exitCode = handleMain()
+	assert.True(t, exitCode == 0)
+
+	// Calling handleMain with a valid cluster root path and unknown analyzer type will print usage
+	// and return 1 exit code
+	analyzerType = "BadAnalyzerType"
+	exitCode = handleMain()
+	assert.True(t, exitCode == 1)
+
+	// Calling handleMain with a valid cluster root path and bad minConfidence will print usage
+	// and return 1 exit code
+	analyzerType = "cluster"
+	minConfidence = -1
+	exitCode = handleMain()
+	assert.True(t, exitCode == 1)
+
+	// Calling handleMain with a valid cluster root path and bad minConfidence will print usage
+	// and return 1 exit code
+	minConfidence = 11
+	exitCode = handleMain()
+	assert.True(t, exitCode == 1)
+
+	// Calling handleMain with a valid cluster root path and bad minImpact will print usage
+	// and return 1 exit code
+	minImpact = -1
+	exitCode = handleMain()
+	assert.True(t, exitCode == 1)
+
+	// Calling handleMain with a valid cluster root path and bad minImpact will print usage
+	// and return 1 exit code
+	minImpact = 11
+	exitCode = handleMain()
+	assert.True(t, exitCode == 1)
+
+	minImpact = 0
+	minConfidence = 0
+	analyzerType = "cluster"
+	exitCode = handleMain()
+	assert.True(t, exitCode == 0)
+}
+
 // TestAnalyzeBad Tests the main Analyze function
 // GIVEN a call to Analyze
 // WHEN with invalid inputs

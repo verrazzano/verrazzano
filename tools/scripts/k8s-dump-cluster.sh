@@ -40,7 +40,8 @@ do
         z) TAR_GZ_FILE=${OPTARG};;
         d) DIRECTORY=${OPTARG};;
         a) ANALYZE="TRUE";;
-        r) REPORT_FILE=${OPTARG};;
+        r) REPORT_FILE=${OPTARG}
+           ANALYZE="TRUE";;
         h) usage;;
         *) usage;;
     esac
@@ -140,7 +141,7 @@ function dump_es_indexes() {
   local ES_USER=$(kubectl --insecure-skip-tls-verify get secret -n verrazzano-system verrazzano -o jsonpath={.data.username} | base64 --decode) || true
   local ES_PWD=$(kubectl --insecure-skip-tls-verify get secret -n verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode) || true
   if [ ! -z $ES_ENDPOINT ] && [ ! -z $ES_USER ] && [ ! -z $ES_PWD ]; then
-    curl -k -u $ES_USER:$ES_PWD $ES_ENDPOINT/_all
+    curl -k -u $ES_USER:$ES_PWD $ES_ENDPOINT/_all || true
   fi
 }
 
@@ -158,7 +159,7 @@ function full_k8s_cluster_dump() {
     kubectl --insecure-skip-tls-verify get Coherence --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/coherence.json || true
     kubectl --insecure-skip-tls-verify get gateway --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/gateways.json || true
     kubectl --insecure-skip-tls-verify get virtualservice --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/virtualservices.json || true
-    kubectl --insecure-skip-tls-verify describe verrazzano --all-namespaces > $CAPTURE_DIR/cluster-dump/verrazzano_resources.out || true
+    kubectl --insecure-skip-tls-verify describe verrazzano --all-namespaces > $CAPTURE_DIR/cluster-dump/verrazzano_resources.json || true
     kubectl --insecure-skip-tls-verify api-resources -o wide > $CAPTURE_DIR/cluster-dump/api_resources.out || true
     kubectl --insecure-skip-tls-verify get rolebindings --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/role-bindings.json || true
     kubectl --insecure-skip-tls-verify get clusterrolebindings --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/cluster-role-bindings.json || true
@@ -186,7 +187,13 @@ function analyze_dump() {
       if [ -z $REPORT_FILE ]; then
         GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true $FULL_PATH_CAPTURE_DIR || true
       else
-        GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true --reportFile=$REPORT_FILE $FULL_PATH_CAPTURE_DIR || true
+        # Since we have to change the current working directory to run go, we need to take into account if the reportFile specified was relative to the original
+        # working directory. If it was absolute then we just use it directly
+        if [[ $REPORT_FILE = /* ]]; then
+          GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true --reportFile=$REPORT_FILE $FULL_PATH_CAPTURE_DIR || true
+        else
+          GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go --analysis=cluster --info=true --reportFile=$SAVE_DIR/$REPORT_FILE $FULL_PATH_CAPTURE_DIR || true
+        fi
       fi
       cd $SAVE_DIR
     fi

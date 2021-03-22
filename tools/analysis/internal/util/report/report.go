@@ -43,30 +43,8 @@ import (
 // the cluster. But other analyzers may not be looking at a cluster, so they may have some other identification.
 // For the current implementation, these are the root file path that the analyzer is looking at.
 var reports = make(map[string][]Issue)
+var allSourcesAnalyzed = make(map[string]string)
 var reportMutex = &sync.Mutex{}
-
-// ContributeIssues is used by an analyzer or IssueReporter to contribute an Issue or []Issue to the report
-func ContributeIssues(log *zap.SugaredLogger, source string, issues []Issue) (err error) {
-	log.Debugf("ContributeIssues called for source %s with %d issues", len(issues))
-	if len(source) == 0 {
-		return errors.New("ContributeIssues requires a non-empty source be specified")
-	}
-	for _, issue := range issues {
-		err = issue.Validate(log, source)
-		if err != nil {
-			return err
-		}
-	}
-	reportMutex.Lock()
-	reportIssues := reports[source]
-	if len(reportIssues) == 0 {
-		reportIssues = make([]Issue, 0, 10)
-	}
-	reportIssues = append(reportIssues, issues...)
-	reports[source] = reportIssues
-	reportMutex.Unlock()
-	return nil
-}
 
 // ContributeIssuesMap allows a map of issues to be contributed
 func ContributeIssuesMap(log *zap.SugaredLogger, source string, issues map[string]Issue) (err error) {
@@ -96,9 +74,6 @@ func ContributeIssuesMap(log *zap.SugaredLogger, source string, issues map[strin
 // ContributeIssue allows a single issue to be contributed
 func ContributeIssue(log *zap.SugaredLogger, issue Issue) (err error) {
 	log.Debugf("ContributeIssue called for source %s with %v", issue)
-	if len(issue.Source) == 0 {
-		return errors.New("ContributeIssue requires a non-empty source be specified")
-	}
 	err = issue.Validate(log, "")
 	if err != nil {
 		log.Debugf("Validate failed", err)
@@ -137,6 +112,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, includeSuppo
 
 	// Lock the report data while generating the report itself
 	reportMutex.Lock()
+	sourcesWithoutIssues := allSourcesAnalyzed
 	for source, reportIssues := range reports {
 		log.Debugf("Will report on %d issues that were reported for %s", len(reportIssues), source)
 
@@ -149,6 +125,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, includeSuppo
 		}
 
 		// Print the Source as it has issues
+		delete(sourcesWithoutIssues, source)
 		_, err = fmt.Fprintf(writeOut, "\n\nDetected %d issues for %s:\n\n", len(actuallyReported), source)
 		if err != nil {
 			return err
@@ -264,6 +241,15 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, includeSuppo
 		}
 	}
 
+	if includeInfo {
+		if len(sourcesWithoutIssues) > 0 {
+			_, err = fmt.Fprintf(writeOut, "\n\n")
+		}
+		for _, source := range sourcesWithoutIssues {
+			_, err = fmt.Fprintf(writeOut, "INFO: No issues detected or to report for %s\n", source)
+		}
+	}
+
 	log.Debugf("Flushing output")
 	err = writeOut.Flush()
 	if err != nil {
@@ -272,6 +258,14 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, includeSuppo
 	}
 	reportMutex.Unlock()
 	return nil
+}
+
+// AddSourceAnalyzed tells the report which sources have been analyzed. This way it knows
+// the entire set of sources which were analyzed (not just the ones which had issues detected)
+func AddSourceAnalyzed(source string) {
+	reportMutex.Lock()
+	allSourcesAnalyzed[source] = source
+	reportMutex.Unlock()
 }
 
 // GetAllSourcesFilteredIssues is only being exported for the unit tests so they can inspect issues found in a report
