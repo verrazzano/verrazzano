@@ -639,10 +639,6 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	// GIVEN a call to register a managed cluster with Rancher
 	// WHEN the call to get the Rancher admin token fails
 	// THEN the registration call returns an error
-	mocker = gomock.NewController(t)
-	mock = mocks.NewMockClient(mocker)
-	mockRequestSender = mocks.NewMockRequestSender(mocker)
-	rancherHTTPClient = mockRequestSender
 
 	// Expect all of the Kubernetes calls
 	expectRegisterClusterWithRancherK8sCalls(t, mock)
