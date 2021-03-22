@@ -13,7 +13,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-func TestKubernetes(t *testing.T) {
+func TestVerifyRegister(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("register-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
 	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Register Managed Cluster multi-cluster Suite", []ginkgo.Reporter{junitReporter})

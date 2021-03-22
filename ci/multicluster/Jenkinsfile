@@ -359,7 +359,7 @@ pipeline {
                             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
                             for(int count=2; count<=clusterCount; count++) {
                                 sh """
-                                    export MANAGED_CLUSTER_NAME="managed${count}"
+                                    export MANAGED_CLUSTER_NAME="managed${count-1}"
                                     export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                                     ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor multicluster/verify-register/...
@@ -532,7 +532,7 @@ def registerManagedClusters() {
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for(int count=2; count<=clusterCount; count++) {
                 sh """
-                    export MANAGED_CLUSTER_NAME="managed${count}"
+                    export MANAGED_CLUSTER_NAME="managed${count-1}"
                     export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     cd ${GO_REPO_PATH}/verrazzano
                     ./tests/e2e/config/scripts/register_managed_cluster.sh
