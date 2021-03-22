@@ -87,8 +87,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Find the service associated with the trait in the application configuration.
 	var service *corev1.Service
-	if service, err = r.fetchServiceFromTrait(ctx, trait); err != nil {
+	service, err = r.fetchServiceFromTrait(ctx, trait)
+	if err != nil {
 		return reconcile.Result{}, err
+	} else if service == nil {
+		// This will be the case if the service has not started yet so we requeue and try again.
+		return reconcile.Result{Requeue: true}, err
 	}
 
 	// Create or update the child resources of the trait and collect the outcomes.
@@ -627,7 +631,7 @@ func (r *Reconciler) fetchServiceFromTrait(ctx context.Context, trait *vzapi.Ing
 
 	// Find the service from within the list of unstructured child resources
 	var service *corev1.Service
-	service, err = extractServiceFromUnstructuredChildren(children)
+	service, err = r.extractServiceFromUnstructuredChildren(children)
 	if err != nil {
 		return nil, err
 	}
@@ -640,7 +644,7 @@ func (r *Reconciler) fetchServiceFromTrait(ctx context.Context, trait *vzapi.Ing
 // cluster IP. If no service has a cluster IP, choose the first service.
 // If found the unstructured data is converted to a Service object and returned.
 // children - An array of unstructured children
-func extractServiceFromUnstructuredChildren(children []*unstructured.Unstructured) (*corev1.Service, error) {
+func (r *Reconciler) extractServiceFromUnstructuredChildren(children []*unstructured.Unstructured) (*corev1.Service, error) {
 	var selectedService *corev1.Service
 
 	for _, child := range children {
@@ -667,7 +671,9 @@ func extractServiceFromUnstructuredChildren(children []*unstructured.Unstructure
 		return selectedService, nil
 	}
 
-	return nil, fmt.Errorf("No child service found")
+	// Log that the child service was not found and return a nil service
+	r.Log.Info("No child service found")
+	return nil, nil
 }
 
 // convertAPIVersionAndKindToNamespacedName converts APIVersion and Kind of CR to a CRD namespaced name.
