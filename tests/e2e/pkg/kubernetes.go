@@ -6,11 +6,13 @@ package pkg
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
+	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 
@@ -230,6 +232,15 @@ func GetVMOClientset() *vmoclient.Clientset {
 	}
 
 	return clientset
+}
+
+// GetVerrazzanoManagedClusterClientset returns the Kubernetes clientset for the VerrazzanoManagedCluster
+func GetVerrazzanoManagedClusterClientset() *vmcClient.Clientset {
+	client, err := vmcClient.NewForConfig(GetKubeConfig())
+	if err != nil {
+		ginkgo.Fail("Could not get Verrazzano Platform Operator clientset")
+	}
+	return client
 }
 
 // GetPlatformOperatorClientset returns the Kubernetes clientset for the Verrazzano Platform Operator
