@@ -5,6 +5,7 @@ def DOCKER_IMAGE_TAG
 
 def abort = false
 def failureCount = 0
+def skip_stage = 'false'
 
 pipeline {
     options {
@@ -93,6 +94,8 @@ pipeline {
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
         INSTALL_CONFIG_FILE = "${GO_REPO_PATH}/verrazzano/platform-operator/config/samples/install-default.yaml"
+        WEBLOGIC_PSW = credentials('weblogic-example-domain-password')
+        DATABASE_PSW = credentials('todo-mysql-password')
     }
 
     stages {
@@ -180,6 +183,7 @@ pipeline {
                 OCI_OS_BUCKET="verrazzano-builds"
             }
             steps {
+                listNamepacesAndPods('before installing Verrazzano')
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
                         cd ${GO_REPO_PATH}/verrazzano
@@ -191,13 +195,6 @@ pipeline {
                             echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
                             env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
                         fi
-
-                        echo "Listing all namespaces"
-                        kubectl get namespace
-                        echo "-----------------------------------------------------"
-                        echo "Listing all pods in all namespaces"
-                        kubectl get pods --all-namespaces
-                        echo "-----------------------------------------------------"
 
                         # Install the verrazzano-platform-operator
                         kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
@@ -252,6 +249,12 @@ pipeline {
                     dumpVerrazzanoApplicationOperatorLogs()
                     dumpOamKubernetesRuntimeLogs()
                     dumpVerrazzanoApiLogs()
+                    listNamepacesAndPods('after Verrazzano install')
+                }
+                failure {
+                    script {
+                        skip_stage = 'true'
+                    }
                 }
             }
         }
@@ -261,14 +264,12 @@ pipeline {
             environment {
                 TEST_ENV = "OKE"
             }
+            when {
+                expression { skip_stage == 'false' }
+            }
             steps {
-                sh """
-                    echo "Listing all pods in all namespaces before running verify-install"
-                    kubectl get pods --all-namespaces
-                    echo "-----------------------------------------------------"
-                """
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    runGinkgoRandomize('verify-install')
+                    runGinkgo('examples/todo')
                 }
             }
             post {
@@ -326,25 +327,20 @@ pipeline {
                     dumpK8sCluster('verrazzano-installation-loop-cluster-dump')
                 }
             }
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             sh """
-                echo "Listing all namespaces"
-                kubectl get namespace
-                echo "-----------------------------------------------------"
-                echo "Listing all pods in all namespaces"
-                kubectl get pods --all-namespaces
-                echo "-----------------------------------------------------"
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                     echo "Failures seen during dumping of artifacts, treat post as failed"
                     exit 1
                 fi
             """
+            listNamepacesAndPods('after uninstalling Verrazzano')
         }
 
         failure {
             dumpK8sCluster('verrazzano-installation-loop-cluster-dump')
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-dump/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
             sh """
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
                     echo "Failures seen during dumping of artifacts, treat post as failed"
@@ -413,11 +409,11 @@ pipeline {
     }
 }
 
-def runGinkgoRandomize(testSuitePath) {
+def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor ${testSuitePath}/...
+            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
         """
     }
 }
@@ -501,5 +497,14 @@ def dumpVerrazzanoApiLogs() {
         cd ${GO_REPO_PATH}/verrazzano/platform-operator
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-api.log"
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+    """
+}
+
+def listNamepacesAndPods(customMessage) {
+    sh """
+        echo "Listing all the namespaces and pods the namespaces ${customMessage}"
+        kubectl get namespaces
+        kubectl get all --all-namespaces
+        echo "-----------------------------------------------------"
     """
 }
