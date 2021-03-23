@@ -50,29 +50,32 @@ metadata:
   namespace: bobs-books
 spec:
   workload:
-    apiVersion: core.oam.dev/v1alpha2
-    kind: ContainerizedWorkload
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoHelidonWorkload
     metadata:
       name: robert-helidon
-      namespace: bobs-books
       labels:
         app: robert-helidon
     spec:
-      containers:
-        - name: robert-helidon-stock-application
-          image: container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210315161529-c857d37
-          imagePullPolicy: IfNotPresent
-          imagePullSecret: bobs-books-repo-credentials
-          ports:
-            - name: http
-              containerPort: 8080
-          env:
-            - name: COH_CLUSTER
-              value: roberts-coherence
-            - name: COH_CACHE_CONFIG
-              value: coherence-cache-config.xml
-            - name: COH_POF_CONFIG
-              value: pof-config.xml
+      deploymentTemplate:
+        metadata:
+          name: robert-helidon-deployment
+        podSpec:
+          containers:
+            - name: robert-helidon-stock-application
+              image: container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:0.1.12-1-20210315161529-c857d37
+              imagePullPolicy: IfNotPresent
+              imagePullSecret: bobs-books-repo-credentials
+              ports:
+                - name: http
+                  containerPort: 8080
+              env:
+                - name: COH_CLUSTER
+                  value: roberts-coherence
+                - name: COH_CACHE_CONFIG
+                  value: coherence-cache-config.xml
+                - name: COH_POF_CONFIG
+                  value: pof-config.xml
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -119,33 +122,36 @@ metadata:
   namespace: bobs-books
 spec:
   workload:
-    apiVersion: core.oam.dev/v1alpha2
-    kind: ContainerizedWorkload
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoHelidonWorkload
     metadata:
       name: bobbys-helidon-stock-application
-      namespace: bobs-books
       labels:
         app: bobbys-helidon-stock-application
     spec:
-      containers:
-      - name: bobbys-helidon-stock-application
-        image: container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210205215204-b624b86
-        imagePullPolicy: IfNotPresent
-        imagePullSecret: bobs-books-repo-credentials
-        ports:
-          - containerPort: 8080
-            name: http
-        env:
-          - name: BACKEND_PORT
-            value: "8001"
-          - name: BACKEND_HOSTNAME
-            value: bobs-bookstore-cluster-cluster-1.bobs-books.svc.cluster.local
-          - name: COH_CLUSTER
-            value: bobbys-coherence
-          - name: COH_CACHE_CONFIG
-            value: coherence-cache-config.xml
-          - name: COH_POF_CONFIG
-            value: pof-config.xml
+      deploymentTemplate:
+        metadata:
+          name: bobby-helidon-deployment
+        podSpec:
+          containers:
+          - name: bobbys-helidon-stock-application
+            image: container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:0.1.12-1-20210205215204-b624b86
+            imagePullPolicy: IfNotPresent
+            imagePullSecret: bobs-books-repo-credentials
+            ports:
+              - containerPort: 8080
+                name: http
+            env:
+              - name: BACKEND_PORT
+                value: "8001"
+              - name: BACKEND_HOSTNAME
+                value: bobs-bookstore-cluster-cluster-1.bobs-books.svc.cluster.local
+              - name: COH_CLUSTER
+                value: bobbys-coherence
+              - name: COH_CACHE_CONFIG
+                value: coherence-cache-config.xml
+              - name: COH_POF_CONFIG
+                value: pof-config.xml
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component

@@ -130,18 +130,18 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
    ```
     kubectl get pods -n bobs-books
 
-    NAME                                               READY   STATUS    RESTARTS   AGE
-    bobbys-coherence-0                                 1/1     Running   0          14m
-    bobbys-front-end-adminserver                       2/2     Running   0          6m38s
-    bobbys-front-end-managed-server1                   2/2     Running   0          6m2s
-    bobbys-helidon-stock-application-bd864fc6d-wbnx7   2/2     Running   0          14m
-    bobs-bookstore-adminserver                         2/2     Running   0          10m
-    bobs-bookstore-managed-server1                     2/2     Running   0          8m36s
-    mysql-5749897f84-gmcgg                             1/1     Running   0          14m
-    robert-helidon-7cd74f7b49-d8nph                    2/2     Running   0          14m
-    robert-helidon-7cd74f7b49-zqp6n                    2/2     Running   0          14m
-    roberts-coherence-0                                1/1     Running   0          10m
-    roberts-coherence-1                                1/1     Running   0          14m
+   NAME                                        READY   STATUS    RESTARTS   AGE
+   bobby-helidon-deployment-868b5965c8-dk2xb   3/3     Running   0          19h
+   bobbys-coherence-0                          2/2     Running   0          19h
+   bobbys-front-end-adminserver                3/3     Running   0          19h
+   bobbys-front-end-managed-server1            3/3     Running   0          19h
+   bobs-bookstore-adminserver                  3/3     Running   0          19h
+   bobs-bookstore-managed-server1              3/3     Running   0          19h
+   mysql-669665fb54-9m8wq                      2/2     Running   0          19h
+   robert-helidon-deployment-96997fcd5-kzjkf   3/3     Running   0          19h
+   robert-helidon-deployment-96997fcd5-nlswm   3/3     Running   0          19h
+   roberts-coherence-0                         2/2     Running   0          17h
+   roberts-coherence-1                         2/2     Running   0          17h
    ```
 
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
