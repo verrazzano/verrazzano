@@ -160,7 +160,7 @@ func findSecret(namespace, name string) bool {
 }
 
 func findNamespace(namespace string) bool {
-	ns, err := pkg.GetKubernetesClientset().CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{})
+	ns, err := pkg.GetNamespace(namespace)
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			ginkgo.Fail(fmt.Sprintf("Failed to get namespace %s with error: %v", namespace, err))
