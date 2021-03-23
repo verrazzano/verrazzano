@@ -46,7 +46,7 @@ func (s *Syncer) syncMCConfigMapObjects(namespace string) error {
 		return nil
 	}
 	for _, mcConfigMap := range allLocalMCConfigMaps.Items {
-		// Delete each MultiClusterConfigMap object that is not on the admin cluster
+		// Delete each MultiClusterConfigMap object that is not on the admin cluster or no longer placed on this cluster
 		if !s.configMapPlacedOnCluster(&allAdminMCConfigMaps, mcConfigMap.Name, mcConfigMap.Namespace) {
 			err := s.LocalClient.Delete(s.Context, &mcConfigMap)
 			if err != nil {

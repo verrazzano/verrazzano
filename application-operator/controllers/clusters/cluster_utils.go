@@ -310,7 +310,7 @@ func SetEffectiveStateIfChanged(placement clustersv1alpha1.Placement,
 
 // DeleteAssociatedResource will retrieve and delete the resource specified by the name
 func DeleteAssociatedResource(ctx context.Context, c client.Client, mcResource runtime.Object, finalizerName string, resourceToDelete runtime.Object, name types.NamespacedName) error {
-
+	// assert the MC object is a controller util Object that can be processed by controller util convenience methods
 	mcObj, ok := mcResource.(controllerutil.Object)
 	if ok {
 		controllerutil.RemoveFinalizer(mcObj, finalizerName)

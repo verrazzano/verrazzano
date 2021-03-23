@@ -46,7 +46,7 @@ func (s *Syncer) syncMCSecretObjects(namespace string) error {
 		return nil
 	}
 	for _, mcSecret := range allLocalMCSecrets.Items {
-		// Delete each MultiClusterSecret object that is not on the admin cluster or that is no longer placed on this cluster
+		// Delete each MultiClusterSecret object that is not on the admin cluster or no longer placed on this cluster
 		if !s.secretPlacedOnCluster(&allAdminMCSecrets, mcSecret.Name, mcSecret.Namespace) {
 			err := s.LocalClient.Delete(s.Context, &mcSecret)
 			if err != nil {

@@ -41,6 +41,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterComponent", err, logger)
 	}
 
+	// delete the wrapped resource since MC is being deleted
 	if !mcComp.ObjectMeta.DeletionTimestamp.IsZero() {
 		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcComp, finalizerName, &v1alpha2.Component{}, types.NamespacedName{Namespace: mcComp.Namespace, Name: mcComp.Name})
 		return ctrl.Result{}, err

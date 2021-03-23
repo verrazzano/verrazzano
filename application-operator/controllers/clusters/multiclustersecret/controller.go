@@ -41,6 +41,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterSecret", err, logger)
 	}
 
+	// delete the wrapped resource since MC is being deleted
 	if !mcSecret.ObjectMeta.DeletionTimestamp.IsZero() {
 		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcSecret, finalizerName, &corev1.Secret{}, types.NamespacedName{Namespace: mcSecret.Namespace, Name: mcSecret.Name})
 		return ctrl.Result{}, err

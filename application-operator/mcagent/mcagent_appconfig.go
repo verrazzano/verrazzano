@@ -44,7 +44,7 @@ func (s *Syncer) syncMCApplicationConfigurationObjects(namespace string) error {
 		return nil
 	}
 	for _, mcAppConfig := range allLocalMCAppConfigs.Items {
-		// Delete each MultiClusterApplicationConfiguration object that is not on the admin cluster
+		// Delete each MultiClusterApplicationConfiguration object that is not on the admin cluster or no longer placed on this cluster
 		if !s.appConfigPlacedOnCluster(&allAdminMCAppConfigs, mcAppConfig.Name, mcAppConfig.Namespace) {
 			err := s.LocalClient.Delete(s.Context, &mcAppConfig)
 			if err != nil {

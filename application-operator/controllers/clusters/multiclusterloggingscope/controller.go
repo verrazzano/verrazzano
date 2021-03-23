@@ -40,6 +40,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterLoggingScope", err, logger)
 	}
 
+	// delete the wrapped resource since MC is being deleted
 	if !mcLogScope.ObjectMeta.DeletionTimestamp.IsZero() {
 		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcLogScope, finalizerName, &v1alpha1.LoggingScope{}, types.NamespacedName{Namespace: mcLogScope.Namespace, Name: mcLogScope.Name})
 		return ctrl.Result{}, err

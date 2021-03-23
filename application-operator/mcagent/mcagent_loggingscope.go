@@ -46,7 +46,7 @@ func (s *Syncer) syncMCLoggingScopeObjects(namespace string) error {
 		return nil
 	}
 	for _, mcLoggingScope := range allLocalMCLoggingScopes.Items {
-		// Delete each MultiClusterLoggingScope object that is not on the admin cluster
+		// Delete each MultiClusterLoggingScope object that is not on the admin cluster or no longer placed on this cluster
 		if !s.loggingScopePlacedOnCluster(&allAdminMCLoggingScopes, mcLoggingScope.Name, mcLoggingScope.Namespace) {
 			err := s.LocalClient.Delete(s.Context, &mcLoggingScope)
 			if err != nil {

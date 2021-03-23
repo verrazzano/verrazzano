@@ -46,7 +46,7 @@ func (s *Syncer) syncMCComponentObjects(namespace string) error {
 		return nil
 	}
 	for _, mcComponent := range allLocalMCComponents.Items {
-		// Delete each MultiClusterComponent object that is not on the admin cluster
+		// Delete each MultiClusterComponent object that is not on the admin cluster or no longer placed on this cluster
 		if !s.componentPlacedOnCluster(&allAdminMCComponents, mcComponent.Name, mcComponent.Namespace) {
 			err := s.LocalClient.Delete(s.Context, &mcComponent)
 			if err != nil {
