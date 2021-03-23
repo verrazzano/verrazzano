@@ -31,14 +31,14 @@ metadata:
 data:
   conf.lua: |
     local function logJsonMessage(logLevel, msg, err)
-    local cjson = require "cjson"
-    local logMsg = ""
-    if error then
-      logMsg = cjson.encode({message = msg, error = err})
-    else
-      logMsg = cjson.encode({message = msg})
-    end
-    ngx.log(logLevel, logMsg)
+      local cjson = require "cjson"
+      local logMsg = ""
+      if error then
+        logMsg = cjson.encode({message = msg, error = err})
+      else
+        logMsg = cjson.encode({message = msg})
+      end
+      ngx.log(logLevel, logMsg)
     end
 
     ngx.header["Access-Control-Allow-Origin"] =  ngx.req.get_headers()["origin"]
@@ -47,11 +47,6 @@ data:
     if ngx.req.get_method() == "OPTIONS" then
       ngx.status = 200
       ngx.exit(ngx.HTTP_OK)
-    end
-
-    local headers = ngx.req.get_headers()
-    for k, v in pairs(headers) do
-        logJsonMessage(ngx.INFO, (k .. " = " .. v))
     end
 
     logJsonMessage(ngx.INFO, "Extracting authorization header from request.")
@@ -72,7 +67,7 @@ data:
     local kcAuthURL, err = ngx.req.get_headers()["x-kc-auth-url"]
     if err then
       ngx.status = 401
-      logJsonMessage(ngx.ERR, "Error while reading x-kc-auth-url  header from request.", err)
+      logJsonMessage(ngx.ERR, "Error while reading x-kc-auth-url header from request.", err)
       ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 

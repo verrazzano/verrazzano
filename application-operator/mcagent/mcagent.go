@@ -105,10 +105,6 @@ func (s *Syncer) ProcessAgentThread() error {
 		s.SecretResourceVersion = secret.ResourceVersion
 	}
 
-	err = s.UpdateVerrazzanoManagedClusterStatus(managedClusterName)
-	if err != nil {
-		return fmt.Errorf("Failed to update vmc status for vmc %swith error %v", managedClusterName, err)
-	}
 	// Update the status of our VMC on the admin cluster to record the last time we connected
 	err = s.updateVMCStatus()
 	if err != nil {
