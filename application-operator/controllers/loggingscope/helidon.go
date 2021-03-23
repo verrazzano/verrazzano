@@ -174,7 +174,7 @@ func searchContainers(containers []kcore.Container) ([]string, bool) {
 	var appContainers []string
 	fluentdFound := false
 	for _, container := range containers {
-		if container.Name == fluentdContainerName {
+		if container.Name == FluentdContainerName {
 			fluentdFound = true
 		} else {
 			appContainers = append(appContainers, container.Name)
@@ -207,7 +207,7 @@ func (h *HelidonHandler) Remove(ctx context.Context, workload vzapi.QualifiedRes
 		existingContainers := deploy.Spec.Template.Spec.Containers
 		deploy.Spec.Template.Spec.Containers = []kcore.Container{}
 		for _, container := range existingContainers {
-			if container.Name != fluentdContainerName {
+			if container.Name != FluentdContainerName {
 				deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, container)
 			}
 		}
@@ -251,7 +251,7 @@ func CreateFluentdConfigMap(namespace, name, fluentdConfig string) *kcore.Config
 // CreateFluentdContainer creates a FLUENTD sidecar container.
 func CreateFluentdContainer(spec vzapi.LoggingScopeSpec, namespace, workloadName string) kcore.Container {
 	container := kcore.Container{
-		Name:            fluentdContainerName,
+		Name:            FluentdContainerName,
 		Args:            []string{"-c", "/etc/fluent.conf"},
 		Image:           spec.FluentdImage,
 		ImagePullPolicy: kcore.PullIfNotPresent,
