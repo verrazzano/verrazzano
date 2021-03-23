@@ -6,20 +6,16 @@ package cluster
 
 import (
 	encjson "encoding/json"
-	"fmt"
-	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/files"
-	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/report"
 	"go.uber.org/zap"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	"os"
-	"strings"
 	"sync"
 )
 
-// servicesListMap holds serviceLists which have been read in already
-var servicesListMap = make(map[string]*corev1.ServiceList)
-var servicesCacheMutex = &sync.Mutex{}
+// serviceListMap holds serviceLists which have been read in already
+var serviceListMap = make(map[string]*corev1.ServiceList)
+var serviceCacheMutex = &sync.Mutex{}
 
 // GetServiceList gets a service list
 func GetServiceList(log *zap.SugaredLogger, path string) (serviceList *corev1.ServiceList, err error) {

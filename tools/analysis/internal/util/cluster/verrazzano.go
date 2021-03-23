@@ -94,8 +94,6 @@ func installationStatus(log *zap.SugaredLogger, clusterRoot string, issueReporte
 		// so until there is an explicit need to separate those, not doing that here (we could though)
 	}
 
-
-
 	// TODO: Inspect the verrazzano-install namespace platform operator logs. We should be able to glean state from the
 	//       the logs here, and what the name of the install job resource to look for is.
 	// TODO: Inspect the default namespace for a verrazzano install job pod logs. Inspecting the logs should here should
@@ -112,11 +110,11 @@ func installationStatus(log *zap.SugaredLogger, clusterRoot string, issueReporte
 }
 
 // IsVerrazzanoInstallJobPod returns true if the pod is an install job related pod for Verrazzano
-func IsVerrazzanoInstallJobPod(pod *corev1.Pod) bool {
-	return pod.ObjectMeta.Namespace == "default" && VerrazzanoInstallJobPodMatcher.MatchString(pod.ObjectMeta.Name)
+func IsVerrazzanoInstallJobPod(pod corev1.Pod) bool {
+	return pod.ObjectMeta.Namespace == "default" && verrazzanoInstallJobPodMatcher.MatchString(pod.ObjectMeta.Name)
 }
 
 // IsVerrazzanoUninstallJobPod returns true if the pod is an uninstall job related pod for Verrazzano
-func IsVerrazzanoUninstallJobPod(pod *corev1.Pod) bool {
-	return pod.ObjectMeta.Namespace == "default" && VerrazzanoUninstallJobPodMatcher.MatchString(pod.ObjectMeta.Name)
+func IsVerrazzanoUninstallJobPod(pod corev1.Pod) bool {
+	return pod.ObjectMeta.Namespace == "default" && verrazzanoUninstallJobPodMatcher.MatchString(pod.ObjectMeta.Name)
 }

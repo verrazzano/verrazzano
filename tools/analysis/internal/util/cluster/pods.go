@@ -21,9 +21,9 @@ import (
 var podListMap = make(map[string]*corev1.PodList)
 var podCacheMutex = &sync.Mutex{}
 
+// TODO: "Verrazzano Uninstall Pod Issue":    AnalyzeVerrazzanoUninstallIssue,
 var podAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error){
 	"Verrazzano Install Pod Issue":        AnalyzeVerrazzanoInstallIssue,
-	"Verrazzano Uninstall Pod Issue":      AnalyzeVerrazzanoUninstallIssue,
 	"Pod Container Related Issues":        podContainerIssues,
 	"Pod Status Condition Related Issues": podStatusConditionIssues,
 }
@@ -92,13 +92,14 @@ func analyzePods(log *zap.SugaredLogger, clusterRoot string, podFile string) (re
 	return reported, nil
 }
 
-// IsContainerNotReady will return true if the are PodConditions with
+// IsContainerNotReady will return true if the are PodConditions indicate the ContainersNotReady
+// TODO: Extend for transition time correlation (ie: change from bool to struct)
 func IsContainerNotReady(conditions []corev1.PodCondition) bool {
 	for _, condition := range conditions {
-		if !strings.Contains(condition, "Ready") {
+		if condition.Status == "True" || !(condition.Type == "Ready" || condition.Type == "ContainersReady") {
 			continue
 		}
-		if condition.Status == "False" && condition.Reason == "ContainersNotReady" {
+		if condition.Reason == "ContainersNotReady" {
 			return true
 		}
 	}
@@ -107,8 +108,7 @@ func IsContainerNotReady(conditions []corev1.PodCondition) bool {
 
 // One of the more reliable ways that we can identify install related issues is by
 func verrazzanoInstallIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
-
-	return AnalyzeVerrazzanoInstallIssue()
+	return nil // AnalyzeVerrazzanoInstallIssue()
 }
 
 func verrazzanoUninstallIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
@@ -121,8 +121,6 @@ func verrazzanoUninstallIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 	// TODO: Implement, this will likely be similar pattern as the install issue dispacthing once that is handled
 	return nil
 }
-
-
 
 // This is evolving as we add more cases in podContainerIssues
 //
@@ -276,7 +274,7 @@ func GetPodList(log *zap.SugaredLogger, path string) (podList *corev1.PodList, e
 }
 
 // IsPodProblematic returns a boolean indicating whether a pod is deemed problematic or not
-func IsPodProblematic(pod *corev1.Pod) bool {
+func IsPodProblematic(pod corev1.Pod) bool {
 	if pod.Status.Phase == corev1.PodRunning ||
 		pod.Status.Phase == corev1.PodSucceeded {
 		return false

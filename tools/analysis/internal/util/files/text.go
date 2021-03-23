@@ -20,8 +20,7 @@ type TextMatch struct {
 }
 
 // SearchMatches will search the list of TextMatch using a search expression and will return all that match
-// This is handy for looking at
-func SearchMatches(log *zap.SugaredLogger, matchesToSearch[]TextMatch, searchExpression string) (matches []TextMatch, err error) {
+func SearchMatches(log *zap.SugaredLogger, matchesToSearch []TextMatch, searchExpression string) (matches []TextMatch, err error) {
 	if len(searchExpression) == 0 {
 		return nil, errors.New("SearchMatches requires a search expression")
 	}

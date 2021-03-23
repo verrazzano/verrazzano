@@ -28,7 +28,7 @@ const (
 	nginxIngressController = ""
 )
 
-var dispatchMatchMap = map[string]*Regexp {
+var dispatchMatchMap = map[string]*regexp.Regexp{
 	nginxIngressController: installNGINXIngressControllerFailed,
 }
 
@@ -57,14 +57,14 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 	// If we have a start/end time for the install containerStatus, then we can use that to only look at logs which are in that time range
 
 	// Look at the ingress-controller-ingress-nginx-controller, and look at the events related to it
-	services, err := GetServiceList(log, files.FindFileInNamespace(clusterRoot, "ingress-nginx", "services.json" ))
+	services, err := GetServiceList(log, files.FindFileInNamespace(clusterRoot, "ingress-nginx", "services.json"))
 	if err != nil {
 		return err
 	}
 	var controllerService *corev1.Service
 	for _, service := range services.Items {
 		if service.ObjectMeta.Name == ingressControllerService {
-			controllerService = service
+			controllerService = &service
 		}
 	}
 	if controllerService != nil {
@@ -74,7 +74,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 			return err
 		}
 		// Check if the event matches failure
-		for event := range events {
+		for _, event := range events {
 			if !reasonFailed.MatchString(event.Reason) {
 				continue
 			}
