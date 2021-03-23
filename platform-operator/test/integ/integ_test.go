@@ -6,6 +6,7 @@ package integ_test
 import (
 	"context"
 	"fmt"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -19,12 +20,13 @@ import (
 const managedClusterName = "cluster1"
 const clusterAdmin = "cluster-admin"
 const platformOperator = "verrazzano-platform-operator"
-const managedGeneratedName_1 = "verrazzano-cluster-cluster1"
+const managedGeneratedName1 = "verrazzano-cluster-cluster1"
 const installNamespace = "verrazzano-install"
 const vzMcNamespace = "verrazzano-mc"
 const prometheusSecret = "prometheus-cluster1"
 const vmiESIngest = "vmi-system-es-ingest"
 const hostdata = "testhost"
+const adminClusterConfigMap = "verrazzano-admin-cluster"
 
 var K8sClient k8s.Client
 
@@ -118,6 +120,11 @@ var _ = ginkgo.Describe("Testing VMC creation and auto secret generation", func(
 			fmt.Sprintf("create secret generic %s -n %s --from-literal=password=mypw --from-literal=username=myuser", prometheusSecret, vzMcNamespace))
 		gomega.Expect(stderr).To(gomega.Equal(""))
 	})
+	ginkgo.It("Create verrazzano-admin-cluster configmap ", func() {
+		_, stderr := util.Kubectl(
+			fmt.Sprintf("create cm %s -n %s --from-literal=server=http://testUrl", adminClusterConfigMap, vzMcNamespace))
+		gomega.Expect(stderr).To(gomega.Equal(""))
+	})
 	ginkgo.It("Create Verrazzano secret needed to create ES secret ", func() {
 		_, stderr := util.Kubectl(
 			fmt.Sprintf("create secret generic %s -n %s --from-literal=password=mypw --from-literal=username=myuser", constants.Verrazzano, constants.VerrazzanoSystemNamespace))
@@ -143,14 +150,14 @@ var _ = ginkgo.Describe("Testing VMC creation and auto secret generation", func(
 	})
 	ginkgo.It("ServiceAccount exists ", func() {
 		serviceAccountExists := func() bool {
-			return K8sClient.DoesServiceAccountExist(managedGeneratedName_1, vzMcNamespace)
+			return K8sClient.DoesServiceAccountExist(managedGeneratedName1, vzMcNamespace)
 		}
 		gomega.Eventually(serviceAccountExists, "30s", "5s").Should(gomega.BeTrue(),
 			"The ServiceAccount should exist")
 	})
 	ginkgo.It("ClusterRoleBinding exists ", func() {
 		bindingExists := func() bool {
-			return K8sClient.DoesClusterRoleBindingExist(managedGeneratedName_1)
+			return K8sClient.DoesClusterRoleBindingExist(managedGeneratedName1)
 		}
 		gomega.Eventually(bindingExists, "30s", "5s").Should(gomega.BeTrue(),
 			"The ClusterRoleBinding should exist")
@@ -161,13 +168,6 @@ var _ = ginkgo.Describe("Testing VMC creation and auto secret generation", func(
 		}
 		gomega.Eventually(secretExists, "30s", "5s").Should(gomega.BeTrue(),
 			fmt.Sprintf("The registration Secret %s should exist in %s", vzclusters.GetRegistrationSecretName(managedClusterName), vzMcNamespace))
-	})
-	ginkgo.It("Elasticsearch secret exists ", func() {
-		secretExists := func() bool {
-			return K8sClient.DoesSecretExist(vzclusters.GetElasticsearchSecretName(managedClusterName), vzMcNamespace)
-		}
-		gomega.Eventually(secretExists, "30s", "5s").Should(gomega.BeTrue(),
-			fmt.Sprintf("The Elasticsearch Secret %s should exist in %s", vzclusters.GetElasticsearchSecretName(managedClusterName), vzMcNamespace))
 	})
 	ginkgo.It("Agent secret exists ", func() {
 		secretExists := func() bool {

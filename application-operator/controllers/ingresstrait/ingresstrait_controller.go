@@ -87,8 +87,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Find the service associated with the trait in the application configuration.
 	var service *corev1.Service
-	if service, err = r.fetchServiceFromTrait(ctx, trait); err != nil {
+	service, err = r.fetchServiceFromTrait(ctx, trait)
+	if err != nil {
 		return reconcile.Result{}, err
+	} else if service == nil {
+		// This will be the case if the service has not started yet so we requeue and try again.
+		return reconcile.Result{Requeue: true}, err
 	}
 
 	// Create or update the child resources of the trait and collect the outcomes.
@@ -232,7 +236,7 @@ func (r *Reconciler) fetchChildResourcesByAPIVersionKinds(ctx context.Context, n
 	for _, childResKind := range childResKinds {
 		resources := unstructured.UnstructuredList{}
 		resources.SetAPIVersion(childResKind.APIVersion)
-		resources.SetKind(childResKind.Kind)
+		resources.SetKind(childResKind.Kind + "List") // Only required by "fake" client used in tests.
 		if err := r.List(ctx, &resources, client.InNamespace(namespace), client.MatchingLabels(childResKind.Selector)); err != nil {
 			r.Log.Error(err, "Failed listing child resources")
 			return nil, err
@@ -378,7 +382,7 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 		return r.mutateGateway(gateway, trait, rule, secretName)
 	})
 
-	ref := vzapi.QualifiedResourceRelation{APIVersion: gatewayAPIVersion, Kind: gatewayKind, Name: trait.Name, Role: "gateway"}
+	ref := vzapi.QualifiedResourceRelation{APIVersion: gatewayAPIVersion, Kind: gatewayKind, Name: name, Role: "gateway"}
 	status.Relations = append(status.Relations, ref)
 	status.Results = append(status.Results, res)
 	status.Errors = append(status.Errors, err)
@@ -471,7 +475,7 @@ func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vz
 		return r.mutateVirtualService(virtualService, trait, rule, service, gateway)
 	})
 
-	ref := vzapi.QualifiedResourceRelation{APIVersion: virtualServiceAPIVersion, Kind: virtualServiceKind, Name: trait.Name, Role: "virtualservice"}
+	ref := vzapi.QualifiedResourceRelation{APIVersion: virtualServiceAPIVersion, Kind: virtualServiceKind, Name: name, Role: "virtualservice"}
 	status.Relations = append(status.Relations, ref)
 	status.Results = append(status.Results, res)
 	status.Errors = append(status.Errors, err)
@@ -496,15 +500,32 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 		matches = append(matches, &istionet.HTTPMatchRequest{
 			Uri: createVirtualServiceMatchURIFromIngressTraitPath(path)})
 	}
-	dest := createDestinationFromService(service)
+	dest, err := createDestinationFromRuleOrService(rule, service)
+	if err != nil {
+		return err
+	}
 	route := istionet.HTTPRoute{
 		Match: matches,
-		Route: []*istionet.HTTPRouteDestination{&dest}}
+		Route: []*istionet.HTTPRouteDestination{dest}}
 	virtualService.Spec.Http = []*istionet.HTTPRoute{&route}
 
 	// Set the owner reference.
 	controllerutil.SetControllerReference(trait, virtualService, r.Scheme)
 	return nil
+}
+
+// createDestinationFromRuleOrService creates a destination from either the rule or the service.
+// If the rule contains destination information that is used.
+// Otherwise the previously selected service information is used.
+func createDestinationFromRuleOrService(rule vzapi.IngressRule, service *corev1.Service) (*istionet.HTTPRouteDestination, error) {
+	if len(rule.Destination.Host) > 0 {
+		dest := &istionet.HTTPRouteDestination{Destination: &istionet.Destination{Host: rule.Destination.Host}}
+		if rule.Destination.Port != 0 {
+			dest.Destination.Port = &istionet.PortSelector{Number: rule.Destination.Port}
+		}
+		return dest, nil
+	}
+	return createDestinationFromService(service)
 }
 
 // getPathsFromRule gets the paths from a trait.
@@ -520,14 +541,17 @@ func getPathsFromRule(rule vzapi.IngressRule) []vzapi.IngressPath {
 
 // createDestinationFromService creates a virtual service destination from a Service.
 // If the service does not have a port it is not included in the destination.
-func createDestinationFromService(service *corev1.Service) istionet.HTTPRouteDestination {
+func createDestinationFromService(service *corev1.Service) (*istionet.HTTPRouteDestination, error) {
+	if service == nil {
+		return nil, fmt.Errorf("unable to select default service for destination")
+	}
 	dest := istionet.HTTPRouteDestination{
 		Destination: &istionet.Destination{Host: service.Name}}
 	// If the related service declares a port add it to the destination.
 	if len(service.Spec.Ports) > 0 {
 		dest.Destination.Port = &istionet.PortSelector{Number: uint32(service.Spec.Ports[0].Port)}
 	}
-	return dest
+	return &dest, nil
 }
 
 // createVirtualServiceMatchURIFromIngressTraitPath create the virtual service match uri map from an ingress trait path
@@ -607,7 +631,7 @@ func (r *Reconciler) fetchServiceFromTrait(ctx context.Context, trait *vzapi.Ing
 
 	// Find the service from within the list of unstructured child resources
 	var service *corev1.Service
-	service, err = extractServiceFromUnstructuredChildren(children)
+	service, err = r.extractServiceFromUnstructuredChildren(children)
 	if err != nil {
 		return nil, err
 	}
@@ -620,7 +644,7 @@ func (r *Reconciler) fetchServiceFromTrait(ctx context.Context, trait *vzapi.Ing
 // cluster IP. If no service has a cluster IP, choose the first service.
 // If found the unstructured data is converted to a Service object and returned.
 // children - An array of unstructured children
-func extractServiceFromUnstructuredChildren(children []*unstructured.Unstructured) (*corev1.Service, error) {
+func (r *Reconciler) extractServiceFromUnstructuredChildren(children []*unstructured.Unstructured) (*corev1.Service, error) {
 	var selectedService *corev1.Service
 
 	for _, child := range children {
@@ -647,7 +671,9 @@ func extractServiceFromUnstructuredChildren(children []*unstructured.Unstructure
 		return selectedService, nil
 	}
 
-	return nil, fmt.Errorf("No child service found")
+	// Log that the child service was not found and return a nil service
+	r.Log.Info("No child service found")
+	return nil, nil
 }
 
 // convertAPIVersionAndKindToNamespacedName converts APIVersion and Kind of CR to a CRD namespaced name.

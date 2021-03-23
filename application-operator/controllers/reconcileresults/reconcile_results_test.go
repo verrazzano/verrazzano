@@ -73,9 +73,7 @@ func TestContainsUpdates(t *testing.T) {
 func TestContainsRelation(t *testing.T) {
 	assert := asserts.New(t)
 	var results ReconcileResults
-	var rel v1alpha1.QualifiedResourceRelation
-
-	rel = v1alpha1.QualifiedResourceRelation{
+	var rel = v1alpha1.QualifiedResourceRelation{
 		APIVersion: "test-apiver",
 		Kind:       "test-kind",
 		Name:       "test-name",

@@ -37,32 +37,32 @@ var _ = ginkgo.Describe("vmi urls test", func() {
 			gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Error retrieving system VMI credentials: %v", err))
 
 			// Test VMI endpoints
-			sysVmiHttpClient := pkg.GetSystemVmiHTTPClient()
+			sysVmiHTTPClient := pkg.GetSystemVmiHTTPClient()
 
 			if isEsEnabled {
-				gomega.Expect(verifySystemVMIComponent(sysVmiHttpClient, vmiCredentials, "vmi-system-es-ingest", "https://elasticsearch.vmi.system")).To(gomega.BeTrue(), fmt.Sprintf("Unable to access ElasticSearch VMI url"))
+				gomega.Expect(verifySystemVMIComponent(sysVmiHTTPClient, vmiCredentials, "vmi-system-es-ingest", "https://elasticsearch.vmi.system")).To(gomega.BeTrue(), "Unable to access ElasticSearch VMI url")
 			}
 
 			if isKibanaEnabled {
-				gomega.Expect(verifySystemVMIComponent(sysVmiHttpClient, vmiCredentials, "vmi-system-kibana", "https://kibana.vmi.system")).To(gomega.BeTrue(), fmt.Sprintf("Unable to access Kibana VMI url"))
+				gomega.Expect(verifySystemVMIComponent(sysVmiHTTPClient, vmiCredentials, "vmi-system-kibana", "https://kibana.vmi.system")).To(gomega.BeTrue(), "Unable to access Kibana VMI url")
 			}
 
 			if isPrometheusEnabled {
-				gomega.Expect(verifySystemVMIComponent(sysVmiHttpClient, vmiCredentials, "vmi-system-prometheus", "https://prometheus.vmi.system")).To(gomega.BeTrue(), fmt.Sprintf("Unable to access Prometheus VMI url"))
+				gomega.Expect(verifySystemVMIComponent(sysVmiHTTPClient, vmiCredentials, "vmi-system-prometheus", "https://prometheus.vmi.system")).To(gomega.BeTrue(), "Unable to access Prometheus VMI url")
 			}
 
 			if isGrafanaEnabled {
-				gomega.Expect(verifySystemVMIComponent(sysVmiHttpClient, vmiCredentials, "vmi-system-grafana", "https://grafana.vmi.system")).To(gomega.BeTrue(), fmt.Sprintf("Unable to access Garafana VMI url"))
+				gomega.Expect(verifySystemVMIComponent(sysVmiHTTPClient, vmiCredentials, "vmi-system-grafana", "https://grafana.vmi.system")).To(gomega.BeTrue(), "Unable to access Garafana VMI url")
 			}
 
 		})
 	})
 })
 
-func verifySystemVMIComponent(sysVmiHttpClient *retryablehttp.Client, vmiCredentials *pkg.UsernamePassword, ingressName, expectedUrlPrefix string) bool {
+func verifySystemVMIComponent(sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *pkg.UsernamePassword, ingressName, expectedURLPrefix string) bool {
 	ingress := api.GetIngress("verrazzano-system", ingressName)
 	vmiComponentURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
-	gomega.Expect(vmiComponentURL).Should(gomega.HavePrefix(expectedUrlPrefix))
-	pkg.AssertURLAccessibleAndAuthorized(sysVmiHttpClient, vmiComponentURL, vmiCredentials)
+	gomega.Expect(vmiComponentURL).Should(gomega.HavePrefix(expectedURLPrefix))
+	pkg.AssertURLAccessibleAndAuthorized(sysVmiHTTPClient, vmiComponentURL, vmiCredentials)
 	return true
 }

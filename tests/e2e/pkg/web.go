@@ -25,14 +25,15 @@ import (
 )
 
 const (
-	// EnvName - default environment name
-	EnvName = "default"
+	// DefaultEnvName - default environment name
+	DefaultEnvName = "default"
 
 	// Username - the username of the verrazzano admin user
 	Username               = "verrazzano"
 	clientID               = "admin-cli"
 	realm                  = "verrazzano-system"
 	verrazzanoAPIURLPrefix = "20210501"
+	teapot                 = 418
 )
 
 // HTTPResponse represents an HTTP response
@@ -176,7 +177,13 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		Log(Error, err.Error())
-		ginkgo.Fail(fmt.Sprintf("Could not %s %s ", req.Method, url))
+		// Do not call Fail() here - this is not necessarily a permanent failure and
+		// we should not call Fail() inside a func that is called from an Eventually()
+		// a later retry may be successful - for example the endpoint may not be available
+		// since the pod has not reached ready state yet.
+		// We cannot return status code, because the resp is likely nil, so instead
+		// return a valid HTTP status code which nonetheless communicates some kind of failure :)
+		return teapot, ""
 	}
 	defer resp.Body.Close()
 	html, err := ioutil.ReadAll(resp.Body)
@@ -230,14 +237,22 @@ func getHTTPClientWIthCABundle(caData []byte) *http.Client {
 	return &http.Client{Transport: tr}
 }
 
+func getEnvName() string {
+	installedEnvName := GetVerrazzanoInstallResource().Spec.EnvironmentName
+	if len(installedEnvName) == 0 {
+		return DefaultEnvName
+	}
+	return installedEnvName
+}
+
 // getVerrazzanoCACert returns the verrazzano CA cert
 func getVerrazzanoCACert() []byte {
-	return doGetCACertFromSecret(EnvName+"-secret", "verrazzano-system")
+	return doGetCACertFromSecret(getEnvName()+"-secret", "verrazzano-system")
 }
 
 // getKeycloakCACert returns the keycloak CA cert
 func getKeycloakCACert() []byte {
-	return doGetCACertFromSecret(EnvName+"-secret", "keycloak")
+	return doGetCACertFromSecret(getEnvName()+"-secret", "keycloak")
 }
 
 // getSystemVMICACert returns the system vmi CA cert

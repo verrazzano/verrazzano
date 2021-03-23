@@ -6,6 +6,10 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+	"net/url"
+
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -17,9 +21,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
-
-// MultiClusterNamespace is the namespace that contains multi-cluster resources
-const MultiClusterNamespace = "verrazzano-mc"
 
 var getClientFunc = getClient
 var _ webhook.Validator = &VerrazzanoManagedCluster{}
@@ -40,14 +41,18 @@ func (v *VerrazzanoManagedCluster) ValidateCreate() error {
 		log.Info("Validation disabled, skipping")
 		return nil
 	}
-	if v.ObjectMeta.Namespace != MultiClusterNamespace {
-		return fmt.Errorf("Namespace for the resource must be %s", MultiClusterNamespace)
+	if v.ObjectMeta.Namespace != constants.VerrazzanoMultiClusterNamespace {
+		return fmt.Errorf("Namespace for the resource must be %s", constants.VerrazzanoMultiClusterNamespace)
 	}
 	client, err := getClientFunc()
 	if err != nil {
 		return err
 	}
 	err = v.validateSecret(client)
+	if err != nil {
+		return err
+	}
+	err = v.validateConfigMap(client)
 	if err != nil {
 		return err
 	}
@@ -90,18 +95,18 @@ func newScheme() *runtime.Scheme {
 	AddToScheme(scheme)
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
-	}, &corev1.Secret{})
+	}, &corev1.Secret{}, &corev1.ConfigMap{})
 	return scheme
 }
 
 // validateSecret enforces that the Prometheus secret name was specified and that the secret exists
 func (v VerrazzanoManagedCluster) validateSecret(client client.Client) error {
 	if len(v.Spec.PrometheusSecret) == 0 {
-		return fmt.Errorf("The name of the Prometheus secret in namespace %s must be specified", MultiClusterNamespace)
+		return fmt.Errorf("The name of the Prometheus secret in namespace %s must be specified", constants.VerrazzanoMultiClusterNamespace)
 	}
 	secret := corev1.Secret{}
 	nsn := types.NamespacedName{
-		Namespace: MultiClusterNamespace,
+		Namespace: constants.VerrazzanoMultiClusterNamespace,
 		Name:      v.Spec.PrometheusSecret,
 	}
 	err := client.Get(context.TODO(), nsn, &secret)
@@ -109,7 +114,28 @@ func (v VerrazzanoManagedCluster) validateSecret(client client.Client) error {
 		return nil
 	}
 	if errors.IsNotFound(err) {
-		return fmt.Errorf("The Prometheus secret %s does not exist in namespace %s", v.Spec.PrometheusSecret, MultiClusterNamespace)
+		return fmt.Errorf("The Prometheus secret %s does not exist in namespace %s", v.Spec.PrometheusSecret, constants.VerrazzanoMultiClusterNamespace)
 	}
-	return fmt.Errorf("Error getting the Prometheus secret %s namespace %s. Error: %s", v.Spec.PrometheusSecret, MultiClusterNamespace, err.Error())
+	return fmt.Errorf("Error getting the Prometheus secret %s namespace %s. Error: %s", v.Spec.PrometheusSecret, constants.VerrazzanoMultiClusterNamespace, err.Error())
+}
+
+// validateConfigMap enforces that the verrazzano-admin-cluster secret name exists and server key has non-empty value
+func (v VerrazzanoManagedCluster) validateConfigMap(client client.Client) error {
+	cm := corev1.ConfigMap{}
+	nsn := types.NamespacedName{
+		Namespace: constants.VerrazzanoMultiClusterNamespace,
+		Name:      constants.AdminClusterConfigMapName,
+	}
+	err := client.Get(context.TODO(), nsn, &cm)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return fmt.Errorf("The ConfigMap %s does not exist in namespace %s", constants.AdminClusterConfigMapName, constants.VerrazzanoMultiClusterNamespace)
+		}
+		return fmt.Errorf("Error getting the ConfigMap %s namespace %s. Error: %s", constants.AdminClusterConfigMapName, constants.VerrazzanoMultiClusterNamespace, err.Error())
+	}
+	_, err = url.ParseRequestURI(cm.Data[constants.ServerDataKey])
+	if err != nil {
+		return fmt.Errorf("Data with key %q contains invalid url %q in the ConfigMap %s namespace %s", constants.ServerDataKey, cm.Data[constants.ServerDataKey], constants.AdminClusterConfigMapName, constants.VerrazzanoMultiClusterNamespace)
+	}
+	return nil
 }

@@ -10,13 +10,14 @@ import (
 	"os"
 	"time"
 
+	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	vmcclustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,11 +26,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ENV VAR for managed cluster name in verrazzano operator
-const managedClusterNameEnvName = "MANAGED_CLUSTER_NAME"
-
-// ENV VAR for elasticsearch secret version in verrazzano operator
-const elasticsearchSecretVersionEnvName = "ES_SECRET_VERSION"
+// ENV VAR for registration secret version
+const registrationSecretVersion = "REGISTRATION_SECRET_VERSION"
 
 // StartAgent - start the agent thread for syncing multi-cluster objects
 func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUpdateMessage, log logr.Logger) {
@@ -110,9 +108,29 @@ func (s *Syncer) ProcessAgentThread() error {
 	if err != nil {
 		return fmt.Errorf("Failed to update vmc status for vmc %swith error %v", managedClusterName, err)
 	}
+	// Update the status of our VMC on the admin cluster to record the last time we connected
+	err = s.updateVMCStatus()
+	if err != nil {
+		// we couldn't update status of the VMC - but we should keep going with the rest of the work
+		s.Log.Error(err, "Failed to update VMC status on admin cluster")
+	}
+
 	// Sync multi-cluster objects
 	s.SyncMultiClusterResources()
 	return nil
+}
+
+func (s *Syncer) updateVMCStatus() error {
+	vmcName := client.ObjectKey{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
+	vmc := platformopclusters.VerrazzanoManagedCluster{}
+	err := s.AdminClient.Get(s.Context, vmcName, &vmc)
+	if err != nil {
+		return err
+	}
+	vmc.Status.LastAgentConnectTime = metav1.Now()
+
+	// update status of VMC
+	return s.AdminClient.Status().Update(s.Context, &vmc)
 }
 
 // SyncMultiClusterResources - sync multi-cluster objects
@@ -187,7 +205,7 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	}
 	scheme := runtime.NewScheme()
 	_ = clustersv1alpha1.AddToScheme(scheme)
-	vmcclustersv1alpha1.AddToScheme(scheme)
+	_ = platformopclusters.AddToScheme(scheme)
 
 	clientset, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
@@ -213,7 +231,7 @@ func (s *Syncer) configureBeats() {
 	}
 
 	// get the cluster name
-	managedClusterName := ""
+	secretVersion := ""
 	regSecret := corev1.Secret{}
 	regErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}, &regSecret)
 	if regErr != nil {
@@ -221,35 +239,16 @@ func (s *Syncer) configureBeats() {
 			return
 		}
 	} else {
-		managedClusterName = string(regSecret.Data[constants.ClusterNameData])
+		secretVersion = regSecret.ResourceVersion
 	}
-	clusterNameEnv := getEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, managedClusterNameEnvName)
-	toUpdate := clusterNameEnv != managedClusterName
-
-	// get the es secret version
-	esSecretVersion := ""
-	esSecret := corev1.Secret{}
-	esErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.ElasticsearchSecretName, Namespace: constants.VerrazzanoSystemNamespace}, &esSecret)
-	if esErr != nil {
-		if clusters.IgnoreNotFoundWithLog("secret", esErr, s.Log) != nil {
-			return
-		}
-	} else {
-		esSecretVersion = esSecret.ResourceVersion
-	}
-	esSecertVersionEnv := getEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, elasticsearchSecretVersionEnvName)
-	if !toUpdate {
-		toUpdate = esSecertVersionEnv != esSecretVersion
-	}
+	secretVersionEnv := getEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, registrationSecretVersion)
 
 	// CreateOrUpdate updates the deployment if cluster name or es secret version changed
-	if toUpdate {
+	if secretVersionEnv != secretVersion {
 		controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &deployment, func() error {
-			s.Log.Info(fmt.Sprintf("Update the deployment %s, cluster name from %q to %q, elasticsearch secret version from %q to %q", deploymentName, clusterNameEnv, managedClusterName, esSecertVersionEnv, esSecretVersion))
-			// update the container env "MANAGED_CLUSTER_NAME"
-			env := updateEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, managedClusterNameEnvName, managedClusterName)
-			// update the container env "ES_SECRET_VERSION"
-			env = updateEnvValue(env, elasticsearchSecretVersionEnvName, esSecretVersion)
+			s.Log.Info(fmt.Sprintf("Update the deployment %s, registration secret version from %q to %q", deploymentName, secretVersionEnv, secretVersion))
+			// update the container env
+			env := updateEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, registrationSecretVersion, secretVersion)
 			deployment.Spec.Template.Spec.Containers[0].Env = env
 			return nil
 		})

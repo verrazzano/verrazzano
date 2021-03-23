@@ -107,7 +107,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// create a service for the workload
-	service, err := r.createServiceFromDeployment(deploy)
+	service, err := r.createServiceFromDeployment(&workload, deploy)
 	if err != nil {
 		log.Error(err, "Failed to get service from a deployment")
 		return reconcile.Result{}, err
@@ -195,14 +195,14 @@ func (r *Reconciler) convertWorkloadToDeployment(
 		r.Log.Error(err, "Failed to convert deployment to yaml")
 		r.Log.Info("Deployment in json format ", "DeploymentJson", d)
 	} else {
-		r.Log.Info("Deployment in yaml format ", "DeploymentYaml", string(y))
+		r.Log.V(1).Info("Deployment in yaml format ", "DeploymentYaml", string(y))
 	}
 
 	return d, nil
 }
 
-// create a service for the deployment
-func (r *Reconciler) createServiceFromDeployment(
+// createServiceFromDeployment creates a service for the deployment
+func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelidonWorkload,
 	deploy *appsv1.Deployment) (*corev1.Service, error) {
 
 	// We don't add a Service if there are no containers for the Deployment.
@@ -217,7 +217,7 @@ func (r *Reconciler) createServiceFromDeployment(
 				Name:      deploy.GetName(),
 				Namespace: deploy.GetNamespace(),
 				Labels: map[string]string{
-					labelKey: string(deploy.GetUID()),
+					labelKey: string(workload.GetUID()),
 				},
 			},
 			Spec: corev1.ServiceSpec{
@@ -245,7 +245,7 @@ func (r *Reconciler) createServiceFromDeployment(
 			r.Log.Error(err, "Failed to convert service to yaml")
 			r.Log.Info("Service in json format ", "ServiceJson", s)
 		} else {
-			r.Log.Info("Service in yaml format: ", "ServiceYaml", string(y))
+			r.Log.V(1).Info("Service in yaml format: ", "ServiceYaml", string(y))
 		}
 		return s, nil
 	}

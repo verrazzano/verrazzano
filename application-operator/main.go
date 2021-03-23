@@ -5,14 +5,13 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
-	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclusterapplicationconfiguration"
@@ -30,6 +29,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
 	"github.com/verrazzano/verrazzano/application-operator/mcagent"
+	"github.com/verrazzano/verrazzano/pkg/log"
 	vmcclustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
@@ -40,13 +40,12 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme = runtime.NewScheme()
 )
 
 func init() {
@@ -85,9 +84,16 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&enableWebhooks, "enable-webhooks", true,
 		"Enable access-controller webhooks")
-	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
+	// Add the zap logger flag set to the CLI.
+	opts := kzap.Options{}
+	opts.BindFlags(flag.CommandLine)
+
+	flag.Parse()
+	kzap.UseFlagOptions(&opts)
+	log.InitLogs(opts)
+
+	setupLog := ctrl.Log.WithName("operator").WithName("setup")
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
@@ -201,7 +207,8 @@ func main() {
 
 		clientSet, err := istioversionedclient.NewForConfig(restConfig)
 		if err != nil {
-			log.Fatalf("Failed to create istio client: %s", err)
+			setupLog.Error(err, "Failed to create istio client")
+			os.Exit(1)
 		}
 
 		// Register a webhook that listens on pods that are running in a istio enabled namespace.
@@ -303,9 +310,10 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&verrazzanoproject.Reconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("VerrazzanoProject"),
-		Scheme: mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		Log:          ctrl.Log.WithName("controllers").WithName("VerrazzanoProject"),
+		Scheme:       mgr.GetScheme(),
+		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoProject")
 		os.Exit(1)
@@ -313,7 +321,7 @@ func main() {
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("Starting agent for syncing multi-cluster objects")
-	go mcagent.StartAgent(mgr.GetClient(), agentChannel, ctrl.Log.WithName("multi-cluster agent"))
+	go mcagent.StartAgent(mgr.GetClient(), agentChannel, ctrl.Log.WithName("multi-cluster").WithName("agent"))
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

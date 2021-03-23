@@ -19,9 +19,6 @@ const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
 // This secret is used by the MC agent running on the managed cluster.
 const MCAgentSecret = "verrazzano-cluster-agent"
 
-// MCElasticsearchSecret contains information to access the admin Elasticsearch from the managed cluster.
-const MCElasticsearchSecret = "verrazzano-cluster-elasticsearch"
-
 // MCRegistrationSecret contains information which related to the managed cluster itself, such as the
 // managed cluster name.
 const MCRegistrationSecret = "verrazzano-cluster-registration"
@@ -35,3 +32,9 @@ const MCClusterRole = "verrazzano-managed-cluster"
 
 // MCLocalCluster is the name of the local cluster
 const MCLocalCluster = "local"
+
+// AdminClusterConfigMapName is the name of the configmap that contains admin cluster server address
+const AdminClusterConfigMapName = "verrazzano-admin-cluster"
+
+// ServerDataKey is the key into ConfigMap data for cluster server address
+const ServerDataKey = "server"
