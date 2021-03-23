@@ -69,6 +69,7 @@ spec:
               of VerrazzanoManagedCluster
             properties:
               apiUrl:
+                description: Verrazzano API Server URL for the managed cluster.
                 type: string
               lastAgentConnectTime:
                 description: Last time the agent from this managed cluster connected

@@ -31,6 +31,7 @@ type VerrazzanoManagedClusterSpec struct {
 
 // VerrazzanoManagedClusterStatus defines the observed state of VerrazzanoManagedCluster
 type VerrazzanoManagedClusterStatus struct {
+	// Verrazzano API Server URL for the managed cluster.
 	APIUrl string `json:"apiUrl,omitempty"`
 	// Last time the agent from this managed cluster connected to the admin cluster.
 	// +optional
