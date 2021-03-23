@@ -15,8 +15,8 @@ import (
 var api *pkg.APIEndpoint
 
 const (
-	waitTimeout            = 5 * time.Minute
-	pollingInterval        = 5 * time.Second
+	waitTimeout     = 5 * time.Minute
+	pollingInterval = 5 * time.Second
 )
 
 var _ = ginkgo.Describe("rancher url test", func() {
