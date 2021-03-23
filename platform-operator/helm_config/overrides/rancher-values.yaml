@@ -3,4 +3,4 @@
 
 systemDefaultRegistry: ghcr.io/verrazzano
 rancherImage: ghcr.io/verrazzano/rancher
-rancherImageTag: v2.4.15-20210322185613-a3d654811-kminder
+rancherImageTag: v2.4.15-20210323200946-635d03957
