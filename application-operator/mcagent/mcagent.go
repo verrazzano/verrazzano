@@ -125,11 +125,11 @@ func (s *Syncer) updateVMCStatus() error {
 		return err
 	}
 	vmc.Status.LastAgentConnectTime = metav1.Now()
-	apiUrl, err := s.GetAPIServerURL()
+	apiURL, err := s.GetAPIServerURL()
 	if err != nil {
 		return fmt.Errorf("Failed to get api server url for vmc %s with error %v", vmcName, err)
 	}
-	vmc.Status.APIUrl = apiUrl
+	vmc.Status.APIUrl = apiURL
 
 	// update status of VMC
 	return s.AdminClient.Status().Update(s.Context, &vmc)
