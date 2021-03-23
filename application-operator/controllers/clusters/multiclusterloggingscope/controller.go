@@ -5,7 +5,6 @@ package multiclusterloggingscope
 
 import (
 	"context"
-
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -26,6 +25,8 @@ type Reconciler struct {
 	AgentChannel chan clusters.StatusUpdateMessage
 }
 
+const finalizerName = "multiclusterloggingscope.verrazzano.io"
+
 // Reconcile reconciles a MultiClusterLoggingScope resource. It fetches the embedded LoggingScope,
 // mutates it based on the MultiClusterLoggingScope, and updates the status of the
 // MultiClusterLoggingScope to reflect the success or failure of the changes to the embedded resource
@@ -39,6 +40,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterLoggingScope", err, logger)
 	}
 
+	// delete the wrapped resource since MC is being deleted
+	if !mcLogScope.ObjectMeta.DeletionTimestamp.IsZero() {
+		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcLogScope, finalizerName, &v1alpha1.LoggingScope{}, types.NamespacedName{Namespace: mcLogScope.Namespace, Name: mcLogScope.Name})
+		return ctrl.Result{}, err
+	}
+
 	oldState := clusters.SetEffectiveStateIfChanged(mcLogScope.Spec.Placement, &mcLogScope.Status)
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcLogScope.Spec.Placement) {
 		if oldState != mcLogScope.Status.State {
@@ -46,7 +53,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			// could be in an admin cluster and receive cluster level statuses from managed clusters,
 			// which can change our effective state
 			err = r.Status().Update(ctx, &mcLogScope)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 		}
+		// if this mc logging scope is no longer placed on this cluster, remove the associated logging scope
+		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcLogScope, finalizerName, &v1alpha1.LoggingScope{}, types.NamespacedName{Namespace: mcLogScope.Namespace, Name: mcLogScope.Name})
 		return ctrl.Result{}, err
 	}
 
@@ -54,6 +66,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		"loggingscope", mcLogScope.Spec.Template.Metadata.Name,
 		"placement", mcLogScope.Spec.Placement.Clusters[0].Name)
 	opResult, err := r.createOrUpdateLoggingScope(ctx, mcLogScope)
+
+	// Add our finalizer if not already added
+	if err == nil {
+		_, err = clusters.AddFinalizer(ctx, r.Client, &mcLogScope, finalizerName)
+	}
 
 	return r.updateStatus(ctx, &mcLogScope, opResult, err)
 }
@@ -76,9 +93,7 @@ func (r *Reconciler) createOrUpdateLoggingScope(ctx context.Context, mcLogScope 
 
 	return controllerutil.CreateOrUpdate(ctx, r.Client, &logScope, func() error {
 		r.mutateLoggingScope(mcLogScope, &logScope)
-		// This SetControllerReference call will trigger garbage collection i.e. the LoggingScope
-		// will automatically get deleted when the MultiClusterLoggingScope is deleted
-		return controllerutil.SetControllerReference(&mcLogScope, &logScope, r.Scheme)
+		return nil
 	})
 }
 

@@ -5,7 +5,6 @@ package multiclusterapplicationconfiguration
 
 import (
 	"context"
-
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
@@ -30,6 +29,8 @@ type Reconciler struct {
 	AgentChannel chan clusters.StatusUpdateMessage
 }
 
+const finalizerName = "multiclusterapplicationconfiguration.verrazzano.io"
+
 // Reconcile reconciles a MultiClusterApplicationConfiguration resource. It fetches the embedded OAM
 // app config, mutates it based on the MultiClusterApplicationConfiguration, and updates the status
 // of the MultiClusterApplicationConfiguration to reflect the success or failure of the changes to
@@ -44,6 +45,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterApplicationConfiguration", err, logger)
 	}
 
+	if !mcAppConfig.ObjectMeta.DeletionTimestamp.IsZero() {
+		// delete the wrapped resource since MC is being deleted
+		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcAppConfig, finalizerName, &v1alpha2.ApplicationConfiguration{}, types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name})
+		return reconcile.Result{}, err
+	}
+
 	oldState := clusters.SetEffectiveStateIfChanged(mcAppConfig.Spec.Placement, &mcAppConfig.Status)
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcAppConfig.Spec.Placement) {
 		if oldState != mcAppConfig.Status.State {
@@ -51,7 +58,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			// could be in an admin cluster and receive cluster level statuses from managed clusters,
 			// which can change our effective state
 			err = r.Status().Update(ctx, &mcAppConfig)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 		}
+		// if this mc app config is no longer placed on this cluster, remove the associated app config
+		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcAppConfig, finalizerName, &v1alpha2.ApplicationConfiguration{}, types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name})
 		return ctrl.Result{}, err
 	}
 
@@ -59,6 +71,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		"applicationconfiguration", mcAppConfig.Spec.Template.Metadata.Name,
 		"placement", mcAppConfig.Spec.Placement.Clusters[0].Name)
 	opResult, err := r.createOrUpdateAppConfig(ctx, mcAppConfig)
+
+	// Add our finalizer if not already added
+	if err == nil {
+		_, err = clusters.AddFinalizer(ctx, r.Client, &mcAppConfig, finalizerName)
+	}
 
 	return r.updateStatus(ctx, &mcAppConfig, opResult, err)
 }
@@ -81,9 +98,7 @@ func (r *Reconciler) createOrUpdateAppConfig(ctx context.Context, mcAppConfig cl
 
 	return controllerutil.CreateOrUpdate(ctx, r.Client, &oamAppConfig, func() error {
 		r.mutateAppConfig(mcAppConfig, &oamAppConfig)
-		// This SetControllerReference call will trigger garbage collection i.e. the OAM app config
-		// will automatically get deleted when the MultiClusterApplicationConfiguration is deleted
-		return controllerutil.SetControllerReference(&mcAppConfig, &oamAppConfig, r.Scheme)
+		return nil
 	})
 }
 

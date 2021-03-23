@@ -196,27 +196,38 @@ func TestMCSecretPlacement(t *testing.T) {
 	adminMock := mocks.NewMockClient(adminMocker)
 
 	// Test data
-	testMCSecret, err := getSampleMCSecret("testdata/multicluster-secret.yaml")
-	assert.NoError(err, "failed to get sample secret data")
-	testMCSecret.Spec.Placement.Clusters[0].Name = "not-my-cluster"
+	adminMCSecret, err := getSampleMCSecret("testdata/multicluster-secret.yaml")
+	if err != nil {
+		assert.NoError(err, "failed to read sample data for MultiClusterSecret")
+	}
+	adminMCSecret.Spec.Placement.Clusters[0].Name = "managed2"
+	localMCSecret, err := getSampleMCSecret("testdata/multicluster-secret.yaml")
+	if err != nil {
+		assert.NoError(err, "failed to read sample data for MultiClusterSecret")
+	}
 
 	// Admin Cluster - expect call to list MultiClusterSecret objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, listOptions *client.ListOptions) error {
 			assert.Equal(testMCSecretNamespace, listOptions.Namespace, "list request did not have expected namespace")
-			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
+			mcSecretList.Items = append(mcSecretList.Items, adminMCSecret)
 			return nil
 		})
 
-	// Managed Cluster - expect call to list MultiClusterSecret objects - return same list as admin cluster
+	// Managed Cluster - expect call to list MultiClusterSecret objects - return list including a currently locally placed secret
 	mcMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterSecretList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, mcSecretList *clustersv1alpha1.MultiClusterSecretList, listOptions *client.ListOptions) error {
 			assert.Equal(testMCSecretNamespace, listOptions.Namespace, "list request did not have expected namespace")
-			mcSecretList.Items = append(mcSecretList.Items, testMCSecret)
+			mcSecretList.Items = append(mcSecretList.Items, localMCSecret)
 			return nil
 		})
+
+	// Managed Cluster - expect a call to delete a MultiClusterSecret object
+	mcMock.EXPECT().
+		Delete(gomock.Any(), gomock.Eq(&localMCSecret), gomock.Any()).
+		Return(nil)
 
 	// Make the request
 	s := &Syncer{
