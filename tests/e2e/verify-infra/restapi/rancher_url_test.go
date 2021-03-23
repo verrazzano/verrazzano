@@ -5,6 +5,7 @@ package restapi
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -12,6 +13,11 @@ import (
 )
 
 var api *pkg.APIEndpoint
+
+const (
+	waitTimeout            = 5 * time.Minute
+	pollingInterval        = 5 * time.Second
+)
 
 var _ = ginkgo.Describe("rancher url test", func() {
 
@@ -21,12 +27,14 @@ var _ = ginkgo.Describe("rancher url test", func() {
 
 	ginkgo.Context("Fetching the rancher url using api and test ", func() {
 		ginkgo.It("Fetches rancher url", func() {
-			ingress := api.GetIngress("cattle-system", "rancher")
-			keycloakURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
-			gomega.Expect(keycloakURL).NotTo(gomega.BeEmpty())
+			keycloakURL := func() string {
+				ingress := api.GetIngress("cattle-system", "rancher")
+				return fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
+			}
+			gomega.Eventually(keycloakURL, waitTimeout, pollingInterval).ShouldNot(gomega.BeEmpty())
 
 			httpClient := pkg.GetVerrazzanoHTTPClient()
-			pkg.ExpectHTTPGetOk(httpClient, keycloakURL)
+			pkg.ExpectHTTPGetOk(httpClient, keycloakURL())
 		})
 	})
 })
