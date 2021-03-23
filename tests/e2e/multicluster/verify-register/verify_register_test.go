@@ -9,6 +9,12 @@ import (
 	"os"
 	"time"
 
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"k8s.io/apimachinery/pkg/api/errors"
 
@@ -42,14 +48,8 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 			}
 
 			gomega.Eventually(func() bool {
-				return true
-				// TODO check VerrazzanoProject
-				/*
-					vp := &v1alpha1.VerrazzanoProject{}
-					listOptions := &client.ListOptions{Namespace: constants.VerrazzanoMultiClusterNamespace}
-					err := pkg.GetVerrazzanoManagedClusterClientset().ClustersV1alpha1().(s.Context, allAdminProjects, listOptions)
-				*/
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find VerrazzanoManagedCluster")
+				return findVerrazzanoProject(fmt.Sprintf("project-%s", managedClusterName))
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find VerrazzanoProject")
 		})
 
 		ginkgo.It("admin cluster has the expected VerrazzanoManagedCluster", func() {
@@ -153,16 +153,16 @@ func findNamespace(namespace string) bool {
 		if !errors.IsNotFound(err) {
 			ginkgo.Fail(fmt.Sprintf("Failed to get namespace %s with error: %v", namespace, err))
 		}
-		fmt.Printf("The namespace %q is not found", namespace)
+		pkg.Log(pkg.Info, fmt.Sprintf("The namespace %q is not found", namespace))
 		return false
 	}
 	labels := ns.GetObjectMeta().GetLabels()
 	if labels[constants.LabelVerrazzanoManaged] != constants.LabelVerrazzanoManagedDefault {
-		fmt.Printf("The namespace %q label %q is set to wrong value of %q", namespace, constants.LabelVerrazzanoManaged, labels[constants.LabelVerrazzanoManaged])
+		pkg.Log(pkg.Info, fmt.Sprintf("The namespace %q label %q is set to wrong value of %q", namespace, constants.LabelVerrazzanoManaged, labels[constants.LabelVerrazzanoManaged]))
 		return false
 	}
 	if labels[constants.LabelIstioInjection] != constants.LabelIstioInjectionDefault {
-		fmt.Printf("The namespace %q label %q is set to wrong value of %q", namespace, constants.LabelIstioInjection, labels[constants.LabelIstioInjection])
+		pkg.Log(pkg.Info, fmt.Sprintf("The namespace %q label %q is set to wrong value of %q", namespace, constants.LabelIstioInjection, labels[constants.LabelIstioInjection]))
 		return false
 	}
 	return true
@@ -172,4 +172,35 @@ func findLogs(index, fieldName, fieldValue string) bool {
 	return pkg.LogRecordFound(index,
 		time.Now().Add(-24*time.Hour),
 		map[string]string{fieldName: fieldValue})
+}
+
+func findVerrazzanoProject(projectName string) bool {
+	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv("TEST_KUBECONFIG"))
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv("TEST_KUBECONFIG"), err))
+	}
+
+	scheme := runtime.NewScheme()
+	_ = clustersv1alpha1.AddToScheme(scheme)
+	_ = vmcv1alpha1.AddToScheme(scheme)
+
+	clustersClient, err := client.New(config, client.Options{Scheme: scheme})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get clusters client with error: %v", err))
+	}
+
+	//var project clustersv1alpha1.VerrazzanoProject
+	//clustersClient.Get(context.TODO(), types.NamespacedName{Namespace: multiclusterNamespace, Name: projectName}, &project)
+
+	projectList := clustersv1alpha1.VerrazzanoProjectList{}
+	err = clustersClient.List(context.TODO(), &projectList, &client.ListOptions{Namespace: constants.VerrazzanoMultiClusterNamespace})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to list VerrazzanoProject with error: %v", err))
+	}
+	for _, item := range projectList.Items {
+		if item.Name == projectName && item.Namespace == multiclusterNamespace {
+			return true
+		}
+	}
+	return false
 }
