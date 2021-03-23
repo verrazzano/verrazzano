@@ -130,6 +130,12 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 			)
 		})
 
+		ginkgo.It("managed cluster has the expected VerrazzanoProject", func() {
+			gomega.Eventually(func() bool {
+				return findVerrazzanoProject(fmt.Sprintf("project-%s", managedClusterName))
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find VerrazzanoProject")
+		})
+
 		ginkgo.It("managed cluster has the expected namespace and role bindings", func() {
 			pkg.Concurrently(
 				func() {
@@ -188,9 +194,6 @@ func findVerrazzanoProject(projectName string) bool {
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to get clusters client with error: %v", err))
 	}
-
-	//var project clustersv1alpha1.VerrazzanoProject
-	//clustersClient.Get(context.TODO(), types.NamespacedName{Namespace: multiclusterNamespace, Name: projectName}, &project)
 
 	projectList := clustersv1alpha1.VerrazzanoProjectList{}
 	err = clustersClient.List(context.TODO(), &projectList, &client.ListOptions{Namespace: constants.VerrazzanoMultiClusterNamespace})
