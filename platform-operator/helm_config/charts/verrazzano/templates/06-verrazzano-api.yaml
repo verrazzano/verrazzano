@@ -31,22 +31,27 @@ metadata:
 data:
   conf.lua: |
     local function logJsonMessage(logLevel, msg, err)
-     local cjson = require "cjson"
-     local logMsg = ""
-     if error then
-       logMsg = cjson.encode({message = msg, error = err})
-     else
-       logMsg = cjson.encode({message = msg})
-     end
-     ngx.log(logLevel, logMsg)
+    local cjson = require "cjson"
+    local logMsg = ""
+    if error then
+      logMsg = cjson.encode({message = msg, error = err})
+    else
+      logMsg = cjson.encode({message = msg})
+    end
+    ngx.log(logLevel, logMsg)
     end
 
     ngx.header["Access-Control-Allow-Origin"] =  ngx.req.get_headers()["origin"]
-    ngx.header["Access-Control-Allow-Headers"] =  "authorization"
+    ngx.header["Access-Control-Allow-Headers"] =  "authorization, x-kc-auth-url"
 
     if ngx.req.get_method() == "OPTIONS" then
       ngx.status = 200
       ngx.exit(ngx.HTTP_OK)
+    end
+
+    local headers = ngx.req.get_headers()
+    for k, v in pairs(headers) do
+        logJsonMessage(ngx.INFO, (k .. " = " .. v))
     end
 
     logJsonMessage(ngx.INFO, "Extracting authorization header from request.")
@@ -63,6 +68,20 @@ data:
       ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
+    logJsonMessage(ngx.INFO, "Extracting x-kc-auth-url from request")
+    local kcAuthURL, err = ngx.req.get_headers()["x-kc-auth-url"]
+    if err then
+      ngx.status = 401
+      logJsonMessage(ngx.ERR, "Error while reading x-kc-auth-url  header from request.", err)
+      ngx.exit(ngx.HTTP_UNAUTHORIZED)
+    end
+
+    if not (kcAuthURL) then
+      logJsonMessage(ngx.ERR, "No x-kc-auth-url header present in request, will use in-cluster keycloak for jwt verification")
+      kcAuthURL = "http://keycloak-http.keycloak.svc.cluster.local/auth/realms/verrazzano-system"
+    end
+
+    logJsonMessage(ngx.INFO, ("Using keycloak URL" .. kcAuthURL))
     logJsonMessage(ngx.INFO, "Extract jwt token from authorization header.")
     local token = string.sub(h, 8)
     if not (token) then
@@ -74,7 +93,7 @@ data:
     logJsonMessage(ngx.INFO, "Read public key from keycloak.")
     local http = require "resty.http"
     local httpc = http.new()
-    local res, err = httpc:request_uri("http://keycloak-http.keycloak.svc.cluster.local/auth/realms/verrazzano-system")
+    local res, err = httpc:request_uri(kcAuthURL,{ssl_verify=false})
     if err then
       ngx.status = 401
       logJsonMessage(ngx.ERR, "Error accessing keycloak", err)
