@@ -116,8 +116,8 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 					"bobbys-coherence-0",
 					"roberts-coherence-0",
 					"roberts-coherence-1",
-					"bobbys-helidon-stock-application",
-					"robert-helidon",
+					"bobby-helidon-deployment",
+					"robert-helidon-deployment",
 					"mysql",
 				}
 				return pkg.PodsRunning("bobs-books", expectedPods)
