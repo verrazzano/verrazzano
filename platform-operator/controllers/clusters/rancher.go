@@ -15,7 +15,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -40,14 +39,12 @@ const (
 	manifestPath        = "/v3/import/"
 	loginPath           = "/v3-public/localProviders/local?action=login"
 
-	nginxNamespace      = "ingress-nginx"
-	nginxIngressService = "ingress-controller-ingress-nginx-controller"
+	// this host resolves to the cluster IP
+	nginxIngressHostName = "ingress-controller-ingress-nginx-controller.ingress-nginx"
 )
 
 type rancherConfig struct {
 	host                     string
-	hostIP                   string
-	hostPort                 int32
 	baseURL                  string
 	apiAccessToken           string
 	certificateAuthorityData []byte
@@ -81,24 +78,9 @@ var rancherHTTPClient requestSender = &httpRequestSender{}
 func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, log *zap.SugaredLogger) (string, error) {
 	log.Infof("Registering managed cluster in Rancher with name: %s", clusterName)
 
-	rc := &rancherConfig{}
+	rc := &rancherConfig{baseURL: "https://" + nginxIngressHostName}
 
-	log.Debug("Getting ingress host IP")
-	hostIP, err := getIngressHostIP(rdr)
-	if err != nil {
-		log.Errorf("Unable to get ingress host IP: %v", err)
-		return "", err
-	}
-	rc.hostIP = hostIP
-
-	log.Debug("Getting ingress host port")
-	hostPort, err := getIngressHostPort(rdr)
-	if err != nil {
-		log.Errorf("Unable to get ingress host port: %v", err)
-		return "", err
-	}
-	rc.hostPort = hostPort
-
+	// Rancher host name is needed for TLS
 	log.Debug("Getting Rancher ingress host name")
 	hostname, err := getRancherIngressHostname(rdr)
 	if err != nil {
@@ -106,7 +88,6 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 		return "", err
 	}
 	rc.host = hostname
-	rc.baseURL = "https://" + rc.hostIP + ":" + strconv.Itoa(int(rc.hostPort))
 
 	log.Debug("Getting Rancher TLS root CA")
 	caCert, err := getRancherTLSRootCA(rdr)
@@ -305,40 +286,6 @@ func getAdminTokenFromRancher(rdr client.Reader, rc *rancherConfig, log *zap.Sug
 	}
 
 	return "", errors.New("unable to find token in Rancher response")
-}
-
-// getIngressHostIP gets the local ingress host IP address
-func getIngressHostIP(rdr client.Reader) (string, error) {
-	labels := client.MatchingLabels{"app.kubernetes.io/name": "ingress-nginx", "app.kubernetes.io/component": "controller"}
-	pods := corev1.PodList{}
-	if err := rdr.List(context.TODO(), &pods, client.InNamespace(nginxNamespace), labels); err != nil {
-		return "", err
-	}
-
-	if len(pods.Items) > 0 {
-		return pods.Items[0].Status.HostIP, nil
-	}
-
-	return "", errors.New("no matching nginx ingress pods found")
-}
-
-// getIngressHostPort gets the local ingress host port
-func getIngressHostPort(rdr client.Reader) (int32, error) {
-	service := &corev1.Service{}
-	nsName := types.NamespacedName{
-		Namespace: nginxNamespace,
-		Name:      nginxIngressService}
-	if err := rdr.Get(context.TODO(), nsName, service); err != nil {
-		return 0, err
-	}
-
-	for _, port := range service.Spec.Ports {
-		if port.Name == "https" {
-			return port.NodePort, nil
-		}
-	}
-
-	return 0, errors.New("no nginx ingress service ports found")
 }
 
 // getRancherIngressHostname gets the Rancher ingress host name. This is used to set the host for TLS.

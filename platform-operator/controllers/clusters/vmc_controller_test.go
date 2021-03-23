@@ -532,10 +532,10 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetManifestSecretName(clusterName)}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, GetManifestSecretName(clusterName)))
 
-	// Expect a call to list the ingress pods and return no matching pods which causes Rancher registration to return an error
+	// Expect a call to get the Rancher ingress and return no spec rules, which will cause registration to fail
 	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), client.InNamespace(nginxNamespace), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, pods *corev1.PodList, inNamespace client.InNamespace, labels client.MatchingLabels) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *k8net.Ingress) error {
 			return nil
 		})
 
@@ -577,13 +577,13 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 
 	// GIVEN a call to register a managed cluster with Rancher
-	// WHEN the call to get ingress pods returns an empty pod list
+	// WHEN the call to get the ingress host name returns no ingress rules
 	// THEN the registration call returns an error
 
-	// Expect a call to get the ingress pod but the pod list is empty
+	// Expect a call to get the ingress host name but there are no ingress rules
 	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), client.InNamespace(nginxNamespace), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, pods *corev1.PodList, inNamespace client.InNamespace, labels client.MatchingLabels) error {
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *k8net.Ingress) error {
 			return nil
 		})
 
@@ -594,93 +594,10 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 	asserts.Empty(regYAML)
 
 	// GIVEN a call to register a managed cluster with Rancher
-	// WHEN the call to get ingress node ports returns no node ports
-	// THEN the registration call returns an error
-	mocker = gomock.NewController(t)
-	mock = mocks.NewMockClient(mocker)
-
-	// Expect a call to get the ingress pod and find the host IP
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), client.InNamespace(nginxNamespace), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, pods *corev1.PodList, inNamespace client.InNamespace, labels client.MatchingLabels) error {
-			pod := corev1.Pod{Status: corev1.PodStatus{HostIP: "1.2.3.4"}}
-			pods.Items = append(pods.Items, pod)
-			return nil
-		})
-
-	// Expect a call to get the ingress node port but the service has no ports
-	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: nginxNamespace, Name: nginxIngressService}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, service *corev1.Service) error {
-			return nil
-		})
-
-	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, zap.S())
-
-	mocker.Finish()
-	asserts.Error(err)
-	asserts.Empty(regYAML)
-
-	// GIVEN a call to register a managed cluster with Rancher
-	// WHEN the call to get the ingress host name returns no ingress rules
-	// THEN the registration call returns an error
-	mocker = gomock.NewController(t)
-	mock = mocks.NewMockClient(mocker)
-
-	// Expect a call to get the ingress pod and find the host IP
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), client.InNamespace(nginxNamespace), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, pods *corev1.PodList, inNamespace client.InNamespace, labels client.MatchingLabels) error {
-			pod := corev1.Pod{Status: corev1.PodStatus{HostIP: "1.2.3.4"}}
-			pods.Items = append(pods.Items, pod)
-			return nil
-		})
-
-	// Expect a call to get the ingress node port
-	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: nginxNamespace, Name: nginxIngressService}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, service *corev1.Service) error {
-			servicePort := corev1.ServicePort{Name: "https", NodePort: 1234}
-			service.Spec.Ports = append(service.Spec.Ports, servicePort)
-			return nil
-		})
-
-	// Expect a call to get the ingress host name but there are no ingress rules
-	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *k8net.Ingress) error {
-			return nil
-		})
-
-	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, zap.S())
-
-	mocker.Finish()
-	asserts.Error(err)
-	asserts.Empty(regYAML)
-
-	// GIVEN a call to register a managed cluster with Rancher
 	// WHEN the call to get the Rancher root CA cert secret fails
 	// THEN the registration call returns an error
 	mocker = gomock.NewController(t)
 	mock = mocks.NewMockClient(mocker)
-
-	// Expect a call to get the ingress pod and find the host IP
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), client.InNamespace(nginxNamespace), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, pods *corev1.PodList, inNamespace client.InNamespace, labels client.MatchingLabels) error {
-			pod := corev1.Pod{Status: corev1.PodStatus{HostIP: "1.2.3.4"}}
-			pods.Items = append(pods.Items, pod)
-			return nil
-		})
-
-	// Expect a call to get the ingress node port
-	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: nginxNamespace, Name: nginxIngressService}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, service *corev1.Service) error {
-			servicePort := corev1.ServicePort{Name: "https", NodePort: 1234}
-			service.Spec.Ports = append(service.Spec.Ports, servicePort)
-			return nil
-		})
 
 	// Expect a call to get the ingress host name
 	mock.EXPECT().
@@ -1296,24 +1213,6 @@ func expectRegisterClusterWithRancher(t *testing.T,
 
 // expectRegisterClusterWithRancherK8sCalls asserts all of the expected calls on the Kubernetes client mock
 func expectRegisterClusterWithRancherK8sCalls(t *testing.T, k8sMock *mocks.MockClient) {
-	// Expect a call to get the ingress pod and find the host IP
-	k8sMock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), client.InNamespace(nginxNamespace), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, pods *corev1.PodList, inNamespace client.InNamespace, labels client.MatchingLabels) error {
-			pod := corev1.Pod{Status: corev1.PodStatus{HostIP: "1.2.3.4"}}
-			pods.Items = append(pods.Items, pod)
-			return nil
-		})
-
-	// Expect a call to get the ingress node port
-	k8sMock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: nginxNamespace, Name: nginxIngressService}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, service *corev1.Service) error {
-			servicePort := corev1.ServicePort{Name: "https", NodePort: 1234}
-			service.Spec.Ports = append(service.Spec.Ports, servicePort)
-			return nil
-		})
-
 	// Expect a call to get the ingress host name
 	k8sMock.EXPECT().
 		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
