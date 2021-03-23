@@ -8,12 +8,13 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -45,6 +46,10 @@ func (v *VerrazzanoManagedCluster) ValidateCreate() error {
 		return fmt.Errorf("Namespace for the resource must be %s", constants.VerrazzanoMultiClusterNamespace)
 	}
 	client, err := getClientFunc()
+	if err != nil {
+		return err
+	}
+	err = v.validateVerrazzanoInstalled(client)
 	if err != nil {
 		return err
 	}
@@ -96,6 +101,9 @@ func newScheme() *runtime.Scheme {
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
 	}, &corev1.Secret{}, &corev1.ConfigMap{})
+	scheme.AddKnownTypes(v1alpha1.SchemeGroupVersion, &v1alpha1.Verrazzano{}, &v1alpha1.VerrazzanoList{})
+	meta_v1.AddToGroupVersion(scheme, v1alpha1.SchemeGroupVersion)
+
 	return scheme
 }
 
@@ -138,4 +146,25 @@ func (v VerrazzanoManagedCluster) validateConfigMap(client client.Client) error 
 		return fmt.Errorf("Data with key %q contains invalid url %q in the ConfigMap %s namespace %s", constants.ServerDataKey, cm.Data[constants.ServerDataKey], constants.AdminClusterConfigMapName, constants.VerrazzanoMultiClusterNamespace)
 	}
 	return nil
+}
+
+// validateVerrazzanoInstalled enforces that a Verrazzano installation successfully completed
+func (v VerrazzanoManagedCluster) validateVerrazzanoInstalled(localClient client.Client) error {
+	// Get the Verrazzano resource
+	verrazzano := v1alpha1.VerrazzanoList{}
+	err := localClient.List(context.TODO(), &verrazzano, &client.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("Verrazzano must be installed: %v", err)
+	}
+
+	// Verify the state is install complete
+	if len(verrazzano.Items) > 0 {
+		for _, cond := range verrazzano.Items[0].Status.Conditions {
+			if cond.Type == v1alpha1.InstallComplete {
+				return nil
+			}
+		}
+	}
+
+	return fmt.Errorf("the Verrazzano install must successfully complete (run the command %q to view the install status)", "kubectl get verrazzano -A")
 }
