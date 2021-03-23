@@ -63,15 +63,15 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 			pkg.Concurrently(
 				func() {
 					gomega.Eventually(findSecret(multiclusterNamespace, fmt.Sprintf("verrazzano-cluster-%s-manifest", managedClusterName)),
-						waitTimeout, pollingInterval).Should(gomega.BeTrue())
+						waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret")
 				},
 				func() {
 					gomega.Eventually(findSecret(multiclusterNamespace, fmt.Sprintf("verrazzano-cluster-%s-agent", managedClusterName)),
-						waitTimeout, pollingInterval).Should(gomega.BeTrue())
+						waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret")
 				},
 				func() {
 					gomega.Eventually(findSecret(multiclusterNamespace, fmt.Sprintf("verrazzano-cluster-%s-registration", managedClusterName)),
-						waitTimeout, pollingInterval).Should(gomega.BeTrue())
+						waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret")
 				},
 			)
 		})
@@ -121,11 +121,11 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 			pkg.Concurrently(
 				func() {
 					gomega.Eventually(findSecret(verrazzanoSystemNamespace, "verrazzano-cluster-agent"),
-						waitTimeout, pollingInterval).Should(gomega.BeTrue())
+						waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret")
 				},
 				func() {
 					gomega.Eventually(findSecret(verrazzanoSystemNamespace, "verrazzano-cluster-registration"),
-						waitTimeout, pollingInterval).Should(gomega.BeTrue())
+						waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret")
 				},
 			)
 		})
@@ -139,8 +139,9 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 		ginkgo.It("managed cluster has the expected namespace and role bindings", func() {
 			pkg.Concurrently(
 				func() {
-					gomega.Eventually(findNamespace(fmt.Sprintf("ns-%s", managedClusterName)),
-						waitTimeout, pollingInterval).Should(gomega.BeTrue())
+					gomega.Eventually(func() bool {
+						return findNamespace(fmt.Sprintf("ns-%s", managedClusterName))
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find namespace")
 				},
 				// TODO check rolebinding
 			)
