@@ -67,6 +67,9 @@ spec:
           status:
             description: VerrazzanoManagedClusterStatus defines the observed state
               of VerrazzanoManagedCluster
+            properties:
+              apiUrl:
+                type: string
             type: object
         type: object
     served: true

@@ -16,6 +16,7 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vmcclustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -105,6 +106,10 @@ func (s *Syncer) ProcessAgentThread() error {
 		s.SecretResourceVersion = secret.ResourceVersion
 	}
 
+	err = s.UpdateVerrazzanoManagedClusterStatus(managedClusterName)
+	if err != nil {
+		return fmt.Errorf("Failed to update vmc status for vmc %swith error %v", managedClusterName, err)
+	}
 	// Sync multi-cluster objects
 	s.SyncMultiClusterResources()
 	return nil
@@ -182,6 +187,7 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	}
 	scheme := runtime.NewScheme()
 	_ = clustersv1alpha1.AddToScheme(scheme)
+	vmcclustersv1alpha1.AddToScheme(scheme)
 
 	clientset, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {

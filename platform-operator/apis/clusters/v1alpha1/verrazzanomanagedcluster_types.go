@@ -31,6 +31,7 @@ type VerrazzanoManagedClusterSpec struct {
 
 // VerrazzanoManagedClusterStatus defines the observed state of VerrazzanoManagedCluster
 type VerrazzanoManagedClusterStatus struct {
+	APIUrl string `json:"apiUrl,omitempty"`
 }
 
 // VerrazzanoManagedCluster is the Schema for the Verrazzanomanagedclusters API
