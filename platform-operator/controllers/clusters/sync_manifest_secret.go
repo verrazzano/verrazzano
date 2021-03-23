@@ -51,11 +51,12 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.
 
 	// register the cluster with Rancher - the cluster will show as "pending" until the
 	// Rancher YAML is applied on the managed cluster
-	rancherYAML, err := registerManagedClusterWithRancher(r.Client, vmc.Name, r.log)
-	if err != nil {
-		return err
+	// NOTE: If this errors we log it and do not fail the reconcile
+	if rancherYAML, err := registerManagedClusterWithRancher(r.Client, vmc.Name, r.log); err != nil {
+		r.log.Warn("Unable to register managed cluster with Rancher, manifest secret will not contain Rancher YAML")
+	} else {
+		sb.WriteString(rancherYAML)
 	}
-	sb.WriteString(rancherYAML)
 
 	// create/update the manifest secret with the YAML
 	_, err = r.createOrUpdateManifestSecret(vmc, sb.String())

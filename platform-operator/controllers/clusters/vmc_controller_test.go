@@ -486,6 +486,89 @@ scrape_configs:
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
+// TestSyncManifestSecretFailRancherRegistration tests syncing the manifest secret
+// when Rancher registration fails
+// GIVEN a call to sync the manifest secret
+// WHEN Rancher registration fails
+// THEN the manifest secret is still created and syncManifestSecret returns no error
+func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	clusterName := "cluster1"
+	caData := "ca"
+	userData := "user"
+	passwordData := "pw"
+	kubeconfigData := "fakekubeconfig"
+	urlData := "https://testhost:443"
+
+	// Expect a call to get the Agent secret
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetAgentSecretName(clusterName)}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				KubeconfigKey: []byte(kubeconfigData),
+			}
+			return nil
+		})
+
+	// Expect a call to get the registration secret
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetRegistrationSecretName(clusterName)}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				ManagedClusterNameKey: []byte(clusterName),
+				CaCrtKey:              []byte(caData),
+				UsernameKey:           []byte(userData),
+				PasswordKey:           []byte(passwordData),
+				ESURLKey:              []byte(urlData),
+			}
+			return nil
+		})
+
+	// Expect a call to get the manifest secret - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetManifestSecretName(clusterName)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, GetManifestSecretName(clusterName)))
+
+	// Expect a call to list the ingress pods and return no matching pods which causes Rancher registration to return an error
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), client.InNamespace(nginxNamespace), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, pods *corev1.PodList, inNamespace client.InNamespace, labels client.MatchingLabels) error {
+			return nil
+		})
+
+	// Expect a call to create the manifest secret
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
+			data := secret.Data[YamlKey]
+			asserts.NotZero(len(data), "Expected yaml data in manifest secret")
+			return nil
+		})
+
+	// Expect a call to update the VerrazzanoManagedCluster kubeconfig secret testManagedCluster - return success
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(vmc.Spec.ManagedClusterManifestSecret, GetManifestSecretName(clusterName), "Manifest secret testManagedCluster did not match")
+			return nil
+		})
+
+	// Create a reconciler and call the function to sync the manifest secret - the call to register the cluster with Rancher will
+	// fail but the result of syncManifestSecret should be success
+	vmc := clustersapi.VerrazzanoManagedCluster{ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}}
+	reconciler := newVMCReconciler(mock)
+	reconciler.log = zap.S()
+
+	err := reconciler.syncManifestSecret(&vmc)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+}
+
 // TestRegisterClusterWithRancherK8sErrorCases tests errors cases using the Kubernetes
 // client when registering with Rancher.
 func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
