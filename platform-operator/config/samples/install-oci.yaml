@@ -13,7 +13,7 @@ metadata:
   name: my-verrazzano
 spec:
   environmentName: env
-  profile: prod
+  profile: ${VZ_PROFILE:-dev}
   components:
     certManager:
       certificate:
@@ -22,7 +22,7 @@ spec:
           emailAddress: emailAddress@domain.com
     dns:
       oci:
-        ociConfigSecret: ociConfigSecret
+        ociConfigSecret: oci
         dnsZoneCompartmentOCID: dnsZoneCompartmentOcid
         dnsZoneOCID: dnsZoneOcid
         dnsZoneName: my.dns.zone.name
