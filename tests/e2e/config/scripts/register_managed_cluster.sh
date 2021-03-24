@@ -75,6 +75,7 @@ kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED
 # register using the manifest on managed
 kubectl --kubeconfig ${MANAGED_KUBECONFIG} apply -f register-${MANAGED_CLUSTER_NAME}.yaml
 
+# the following is not related to registering managed cluster, but to working around xip.io resolution problem
 set +e
 retries=0
 until [ "$retries" -ge 30 ]
@@ -83,7 +84,6 @@ do
   retries=$((retries+1))
   sleep 5
 done
-# the following is not related to registering managed cluster, but to working around xip.io resolution problem
 ES_HOST=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get ing vmi-system-es-ingest -o jsonpath='{.spec.rules[0].host}')
 if [[ "${ES_HOST}" == *.xip.io ]]; then
   # wait until secret verrazzano-cluster-registration is present
