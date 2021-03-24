@@ -74,3 +74,36 @@ kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED
 
 # register using the manifest on managed
 kubectl --kubeconfig ${MANAGED_KUBECONFIG} apply -f register-${MANAGED_CLUSTER_NAME}.yaml
+
+# the following is not related to registering managed cluster, but to working around xip.io resolution problem
+ES_HOST=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get ing vmi-system-es-ingest -o jsonpath='{.spec.rules[0].host}')
+if [[ "${ES_HOST}" == *.xip.io ]]; then
+  # wait until secret verrazzano-cluster-registration is present
+  retries=0
+  until [ "$retries" -ge 30 ]
+  do
+    kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret verrazzano-cluster-registration && break
+    retries=$((retries+1))
+    sleep 5
+  done
+  REGISTRATION_VERSION=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret verrazzano-cluster-registration -o jsonpath='{.metadata.resourceVersion}')
+  # wait until verrazzano-operator deployment has the same REGISTRATION_SECRET_VERSION as verrazzano-cluster-registration
+  retries=0
+  until [ "$retries" -ge 30 ]
+  do
+    ENV_VERSION=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get deployment verrazzano-operator -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="REGISTRATION_SECRET_VERSION")].value}')
+    if [[ ${REGISTRATION_VERSION} = ${ENV_VERSION} ]]; then
+      break
+    fi
+    retries=$((retries+1))
+    sleep 5
+  done
+  # patch /etc/hosts in the managed cluster beats pods by setting hostAliases
+  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system rollout status deploy verrazzano-operator
+  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging rollout status daemonset filebeat
+  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging rollout status daemonset journalbeat
+  ES_IP=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get ing vmi-system-es-ingest -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  patch_data='{"spec":{"template":{"spec":{"hostAliases":[{"hostnames":["'"${ES_HOST}"'"],"ip":"'"${ES_IP}"'"}]}}}}'
+  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging patch daemonset filebeat --patch ${patch_data}
+  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging patch daemonset journalbeat --patch ${patch_data}
+fi
