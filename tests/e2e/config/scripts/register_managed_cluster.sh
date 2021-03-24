@@ -80,11 +80,11 @@ set +e
 retries=0
 until [ "$retries" -ge 30 ]
 do
-  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get ing vmi-system-es-ingest && break
+  kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-system get ing vmi-system-es-ingest && break
   retries=$((retries+1))
   sleep 5
 done
-ES_HOST=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get ing vmi-system-es-ingest -o jsonpath='{.spec.rules[0].host}')
+ES_HOST=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-system get ing vmi-system-es-ingest -o jsonpath='{.spec.rules[0].host}')
 if [[ "${ES_HOST}" == *.xip.io ]]; then
   # wait until secret verrazzano-cluster-registration is present
   retries=0
@@ -110,7 +110,7 @@ if [[ "${ES_HOST}" == *.xip.io ]]; then
   kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system rollout status deploy verrazzano-operator
   kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging rollout status daemonset filebeat
   kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging rollout status daemonset journalbeat
-  ES_IP=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get ing vmi-system-es-ingest -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  ES_IP=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-system get ing vmi-system-es-ingest -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
   patch_data='{"spec":{"template":{"spec":{"hostAliases":[{"hostnames":["'"${ES_HOST}"'"],"ip":"'"${ES_IP}"'"}]}}}}'
   kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging patch daemonset filebeat --patch ${patch_data}
   kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging patch daemonset journalbeat --patch ${patch_data}
