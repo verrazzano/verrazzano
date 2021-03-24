@@ -4,7 +4,7 @@ This example shows how to change the placement of an application from one cluste
 
 ## Prerequisites
 
-Follow the [instructions](../hello-helidon/README.md) to deploy the multicluster Hello World Helidon example.  This example will show how to change the placement of the application from the managed cluster `managed` to the admin cluster.
+The multicluster Hello World Helidon example will used to show how to change the placement of an application to another cluster.  Follow the [instructions](../hello-helidon/README.md) to deploy the multicluster Hello World Helidon example.  
 
 **NOTE:** All files and paths in this document are relative to
 `<VERRAZZANO_HOME>/examples/multicluster/change-placement`.
@@ -26,7 +26,25 @@ Wait a few minutes for the change in placement to take effect on each cluster.
 
     ```
     $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get MultiClusterComponent hello-helidon-component -n hello-helidon
+    $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get mccomp -n hello-helidon
     $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get MultiClusterApplicationConfiguration hello-helidon-appconf -n hello-helidon
+    $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get VerrazzanoHelidonWorkload -n hello-helidon
     ```
 
-Copyright (c) 2021, Oracle and/or its affiliates.
+1. Use the following commands to verify the resources have been moved to the admin cluster.
+
+    ```
+    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl get MultiClusterComponent hello-helidon-component -n hello-helidon
+    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl get mccomp -n hello-helidon
+    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl get MultiClusterApplicationConfiguration hello-helidon-appconf -n hello-helidon
+    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl get VerrazzanoHelidonWorkload -n hello-helidon
+    ```
+
+## Testing the example application
+
+Follow the [instructions](../../hello-helidon/README.md/#testing-the-example-application) for testing the Hello World Helidon application in a single cluster use case. Use the admin cluster `kubeconfig` for testing the example application.
+
+## Troubleshooting
+
+Follow the [instructions](../../hello-helidon/README.md/#troubleshooting) for troubleshooting the Hello World Helidon application in a single cluster use case. Use the admin cluster `kubeconfig` for troubleshooting the example application.
+
