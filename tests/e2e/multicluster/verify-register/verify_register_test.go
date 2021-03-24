@@ -59,6 +59,21 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find VerrazzanoManagedCluster")
 		})
 
+		ginkgo.It("admin cluster has the expected ServiceAccounts and ClusterRoleBindings", func() {
+			pkg.Concurrently(
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.DoesServiceAccountExist(multiclusterNamespace, fmt.Sprintf("verrazzano-cluster-%s", managedClusterName))
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find ServiceAccount")
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.DoesClusterRoleBindingExist(fmt.Sprintf("verrazzano-cluster-%s", managedClusterName))
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find ClusterRoleBinding")
+				},
+			)
+		})
+
 		ginkgo.It("admin cluster has the expected secrets", func() {
 			pkg.Concurrently(
 				func() {
@@ -141,14 +156,13 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find VerrazzanoProject")
 		})
 
-		ginkgo.It("managed cluster has the expected namespace and role bindings", func() {
+		ginkgo.It("managed cluster has the expected namespace", func() {
 			pkg.Concurrently(
 				func() {
 					gomega.Eventually(func() bool {
 						return findNamespace(fmt.Sprintf("ns-%s", managedClusterName))
 					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find namespace")
 				},
-				// TODO check rolebinding
 			)
 		})
 	})
