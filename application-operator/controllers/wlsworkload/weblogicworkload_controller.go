@@ -131,6 +131,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	specCopy, _, err := unstructured.NestedFieldCopy(u.Object, specField)
 	if err != nil {
 		log.Error(err, "Unable to make a copy of the WebLogic spec")
+		return reconcile.Result{}, err
 	}
 
 	// write out the WebLogic resource
