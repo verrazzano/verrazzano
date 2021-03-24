@@ -76,6 +76,13 @@ kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED
 kubectl --kubeconfig ${MANAGED_KUBECONFIG} apply -f register-${MANAGED_CLUSTER_NAME}.yaml
 
 set +e
+retries=0
+until [ "$retries" -ge 30 ]
+do
+  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get ing vmi-system-es-ingest && break
+  retries=$((retries+1))
+  sleep 5
+done
 # the following is not related to registering managed cluster, but to working around xip.io resolution problem
 ES_HOST=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get ing vmi-system-es-ingest -o jsonpath='{.spec.rules[0].host}')
 if [[ "${ES_HOST}" == *.xip.io ]]; then
