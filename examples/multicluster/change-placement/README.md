@@ -48,3 +48,5 @@ Follow the [instructions](../../hello-helidon/README.md/#testing-the-example-app
 
 Follow the [instructions](../../hello-helidon/README.md/#troubleshooting) for troubleshooting the Hello World Helidon application in a single cluster use case. Use the admin cluster `kubeconfig` for troubleshooting the example application.
 
+
+Copyright (c) 2021, Oracle and/or its affiliates.
