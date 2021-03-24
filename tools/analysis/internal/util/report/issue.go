@@ -110,13 +110,13 @@ const (
 // Known Issue Templates. While analyzers are free to roll their own custom Issues, the preference for well-known issues is to capture them
 // here so they are more generally available.
 var knownIssues = map[string]Issue{
-	ImagePullBackOff:          {Type: ImagePullBackOff, Summary: "ImagePullBackOff detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ImagePullBackOff]}},
-	InsufficientMemory:        {Type: InsufficientMemory, Summary: "InsufficientMemory detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InsufficientMemory]}},
-	IngressInstallFailure:     {Type: IngressInstallFailure, Summary: "IngressInstallFailure detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressInstallFailure]}},
-	IngressNoLoadBalancerIP:   {Type: IngressNoLoadBalancerIP, Summary: "IngressNoLoadBalancerIp detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressNoLoadBalancerIP]}},
-	IngressOciIPLimitExceeded: {Type: IngressOciIPLimitExceeded, Summary: "IngressOciIpLimitExceeded detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressOciIPLimitExceeded]}},
-	InstallFailure:            {Type: InstallFailure, Summary: "InstallFailure detected with an undetermined cause", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InstallFailure]}},
-	PodProblemsNotReported:    {Type: PodProblemsNotReported, Summary: "Problem pods were detected, but no issues were detected", Informational: true, Impact: 0, Confidence: 10, Actions: []Action{KnownActions[PodProblemsNotReported]}},
+	ImagePullBackOff:          {Type: ImagePullBackOff, Summary: "Failure(s) pulling images have been detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ImagePullBackOff]}},
+	InsufficientMemory:        {Type: InsufficientMemory, Summary: "Failure(s) due to insufficient memory on nodes have been detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InsufficientMemory]}},
+	IngressInstallFailure:     {Type: IngressInstallFailure, Summary: "Verrazzano install failed while installing the NGINX Ingress Controller, however a specific root cause was not identified", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressInstallFailure]}},
+	IngressNoLoadBalancerIP:   {Type: IngressNoLoadBalancerIP, Summary: "Verrazzano install failed while installing the NGINX Ingress Controller, the root cause appears to be the LoadBalancer is not there or is unable to set the ingress IP address on the NGINX Ingress service", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressNoLoadBalancerIP]}},
+	IngressOciIPLimitExceeded: {Type: IngressOciIPLimitExceeded, Summary: "Verrazzano install failed while installing the NGINX Ingress Controller, the root cause appears to be an OCI IP limit has been reached", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressOciIPLimitExceeded]}},
+	InstallFailure:            {Type: InstallFailure, Summary: "Verrazzano install failed, however a specific root cause was not identified", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InstallFailure]}},
+	PodProblemsNotReported:    {Type: PodProblemsNotReported, Summary: "Problem pods were detected, however a specific root cause was not identified", Informational: true, Impact: 0, Confidence: 10, Actions: []Action{KnownActions[PodProblemsNotReported]}},
 }
 
 // NewKnownIssueSupportingData adds a known issue
@@ -205,6 +205,47 @@ func (issueReporter *IssueReporter) AddKnownIssueMessagesMatches(issueType strin
 		issue.SupportingData = append(issue.SupportingData, supportData)
 		issueReporter.PendingIssues[issueType] = issue
 	}
+}
+
+// DeduplicateSupportingData
+func DeduplicateSupportingData(dataIn []SupportData) (dataOut []SupportData) {
+	// First deduplicate each individual SupportData element, get a minimal set of file and messages at least in
+	// each one.
+	dataOut = make([]SupportData, len(dataIn))
+	for index, supportData := range dataIn {
+		dataOut[index] = deduplicateSupportData(supportData)
+	}
+	// TODO: Next deduplicate the SupportData entries that match exactly
+
+	return dataIn
+}
+
+// deduplicateSupportData will deduplicate values within a single SupportData
+func deduplicateSupportData(dataIn SupportData) (dataOut SupportData) {
+	dataOut.RelatedFiles = deduplicateStringSlice(dataIn.RelatedFiles)
+	dataOut.Messages = deduplicateStringSlice(dataIn.Messages)
+	// TODO: deduplicate
+	dataOut.JSONPaths = dataIn.JSONPaths
+	dataOut.TextMatches = dataIn.TextMatches
+	return dataOut
+}
+
+func deduplicateStringSlice(sliceIn []string) (sliceOut []string) {
+	if len(sliceIn) <= 1 {
+		copy(sliceOut, sliceIn)
+	} else {
+		tempMap := make(map[string]int)
+		for _, value := range sliceIn {
+			tempMap[value] = 0
+		}
+		sliceOut = make([]string, len(tempMap))
+		index := 0
+		for key := range tempMap {
+			sliceOut[index] = key
+			index++
+		}
+	}
+	return sliceOut
 }
 
 // The helpers that work with known issue types only support working with those types

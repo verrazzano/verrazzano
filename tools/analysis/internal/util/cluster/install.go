@@ -14,13 +14,14 @@ import (
 )
 
 // Compiled Regular expressions
-var installNGINXIngressControllerFailed = regexp.MustCompile("Installing NGINX Ingress Controller.*[FAILED]")
+var installNGINXIngressControllerFailed = regexp.MustCompile(`Installing NGINX Ingress Controller.*\[FAILED\]`)
 
 // I'm going with a more general pattern for limit reached as the supporting details should give the precise message
 // and the advice can be to refer to the supporting details on the limit that was exceeded. We can change it up
 // if we need a more precise match
-var limitReached = regexp.MustCompile("Limit .* has been already reached")
-var reasonFailed = regexp.MustCompile(".*Failed.*")
+var ephemeralIPLimitReached = regexp.MustCompile(`.*Limit for non-ephemeral regional public IP per tenant of .* has been already reached`)
+var limitReached = regexp.MustCompile(`.*Limit .* has been already reached`)
+var reasonFailed = regexp.MustCompile(`.*Failed.*`)
 
 const (
 	// Service name
@@ -45,19 +46,22 @@ func AnalyzeVerrazzanoInstallIssue(log *zap.SugaredLogger, clusterRoot string, p
 		return nil
 	}
 
-	// TODO: The detection and dispatching for install issues will be evolving out more here, for now just conditionals for
-	// the more specific scenarios we detect
 	log.Debugf("verrazzanoInstallIssues analysis called for cluster: %s, ns: %s, pod: %s", clusterRoot, pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 	// TODO: Not correlating time here yet
 	if IsContainerNotReady(pod.Status.Conditions) {
-		logMatches, err := files.SearchFile(log, files.FindPodLogFileName(clusterRoot, pod), "Install.*[FAILED]")
+		// The install job pod log is currently the only place we can determine where the install process failed at, so we
+		// scrape those log messages out.
+		logMatches, err := files.SearchFile(log, files.FindPodLogFileName(clusterRoot, pod), `Install.*\[FAILED\]`)
 		if err == nil {
 			// We likely will only have a single failure message here (we may only want to look at the last one for install failures)
 			for _, matched := range logMatches {
-				// Loop through the match expressions to see if we have a handler for the message
+				log.Debugf("Install failure message: %s", matched.MatchedText)
+				// Loop through the match expressions to see if we have a handler for the message that matches
 				for matchKey, matcher := range dispatchMatchMap {
+					log.Debugf("Checking matcher: %s", matchKey)
 					// If the matcher expression matches the failure message, call the handler function related to that matcher (same key)
 					if matcher.MatchString(matched.MatchedText) {
+						log.Debugf("Dispatch to handler: %s", matchKey)
 						err = dispatchFunctions[matchKey](log, clusterRoot, podFile, pod, issueReporter)
 						if err != nil {
 							log.Errorf("AnalyzeVerrazzanoInstallIssue failed in %s function", matchKey, err)
@@ -95,33 +99,40 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 	if err != nil {
 		return err
 	}
-	var controllerService *corev1.Service
+	var controllerService corev1.Service
+	controllerServiceSet := false
 	for _, service := range services.Items {
+		log.Debugf("Service found. namespace: %s, name: %s", service.ObjectMeta.Namespace, service.ObjectMeta.Name)
 		if service.ObjectMeta.Name == ingressControllerService {
-			controllerService = &service
+			log.Debugf("NGINX Ingress Controller service. namespace: %s, name: %s", service.ObjectMeta.Namespace, service.ObjectMeta.Name)
+			controllerService = service
+			controllerServiceSet = true
 		}
 	}
-	if controllerService != nil {
+	if controllerServiceSet {
 		issueDetected := false
 
 		// TODO: Need to handle time range correlation (only events within a time range)
 		events, err := GetEventsRelatedToService(log, clusterRoot, controllerService)
 		if err != nil {
+			log.Debugf("Failed to get events related to the NGINX ingress controller service", err)
 			return err
 		}
 		// Check if the event matches failure
+		log.Debugf("Found %d events", len(events))
 		for _, event := range events {
 			log.Debugf("analyzeNGINXIngressController event Reason: %s", event.Reason)
 			if !reasonFailed.MatchString(event.Reason) {
 				continue
 			}
 			log.Debugf("analyzeNGINXIngressController event Reason: %s", event.Message)
-			if limitReached.MatchString(event.Message) {
-				// TODO: Add and report a known issue for limit here
+			if ephemeralIPLimitReached.MatchString(event.Message) {
 				messages := make(StringSlice, 1)
-				messages[0] = fmt.Sprintf("Namespace %s, Pod %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
-				files := make(StringSlice, 1)
+				messages[0] = event.Message
+				eventFile := files.FindFileInNamespace(clusterRoot, controllerService.ObjectMeta.Namespace, "events.json")
+				files := make(StringSlice, 2)
 				files[0] = podFile
+				files[1] = eventFile
 				issueReporter.AddKnownIssueMessagesFiles(report.IngressOciIPLimitExceeded, clusterRoot, messages, files)
 				issueDetected = true
 			}
@@ -146,7 +157,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		}
 
 		// if we made it this far we know that there is an issue with the ingress controller but
-		// we haven't found anything, so give general advise
+		// we haven't found anything, so give general advise for now.
 		messages := make(StringSlice, 1)
 		messages[0] = fmt.Sprintf("Namespace %s, Pod %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 		files := make(StringSlice, 1)

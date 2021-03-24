@@ -77,19 +77,23 @@ func GetEventsRelatedToPod(log *zap.SugaredLogger, clusterRoot string, pod corev
 }
 
 // GetEventsRelatedToService gets events related to a service
-func GetEventsRelatedToService(log *zap.SugaredLogger, clusterRoot string, service *corev1.Service) (serviceEvents []corev1.Event, err error) {
+func GetEventsRelatedToService(log *zap.SugaredLogger, clusterRoot string, service corev1.Service) (serviceEvents []corev1.Event, err error) {
+	log.Debugf("GetEventsRelatedToService called for %s in namespace ", service.ObjectMeta.Name, service.ObjectMeta.Namespace)
 	allEvents, err := GetEventList(log, files.FindFileInNamespace(clusterRoot, service.ObjectMeta.Namespace, "events.json"))
 	if err != nil {
 		return nil, err
 	}
 	if allEvents == nil || len(allEvents.Items) == 0 {
+		log.Debugf("GetEventsRelatedToService: No events found")
 		return nil, nil
 	}
 	serviceEvents = make([]corev1.Event, 0, 1)
 	for _, event := range allEvents.Items {
+		log.Debugf("Checking event involved object kind: %s, namespace: %s, name: %s", event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
 		if event.InvolvedObject.Kind == "Service" &&
 			event.InvolvedObject.Namespace == service.ObjectMeta.Namespace &&
 			event.InvolvedObject.Name == service.ObjectMeta.Name {
+			log.Debugf("event matched service")
 			serviceEvents = append(serviceEvents, event)
 		}
 	}
