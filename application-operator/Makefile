@@ -9,15 +9,15 @@ SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../build
 NAME:=verrazzano-application-operator
 REPO_NAME:=verrazzano-application-operator
 
-TIMESTAMP := $(shell date -u +%Y%m%d%H%M%S)
-DOCKER_IMAGE_NAME ?= ${NAME}-dev
-DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)
-
 CONTROLLER_GEN_VERSION ?= $(shell go list -m -f '{{.Version}}' sigs.k8s.io/controller-tools)
 CREATE_LATEST_TAG=0
 
 CRD_OPTIONS ?= "crd:crdVersions=v1"
+KUBECONFIG ?= ${HOME}/.kube/config
 
+ifndef DOCKER_IMAGE_FULLNAME
+DOCKER_IMAGE_NAME ?= ${NAME}-dev
+DOCKER_IMAGE_FULLNAME=${DOCKER_IMAGE_NAME}
 ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),docker-push push-tag))
 	ifndef DOCKER_REPO
 		$(error DOCKER_REPO must be defined as the name of the Docker repository where image will be pushed)
@@ -25,8 +25,16 @@ ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),docker-push push-tag))
 	ifndef DOCKER_NAMESPACE
 		$(error DOCKER_NAMESPACE must be defined as the name of the Docker namespace where image will be pushed)
 	endif
-	DOCKER_IMAGE_FULLNAME = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${DOCKER_IMAGE_NAME}
 endif
+ifdef DOCKER_NAMESPACE
+DOCKER_IMAGE_FULLNAME := ${DOCKER_NAMESPACE}/${DOCKER_IMAGE_FULLNAME}
+endif
+ifdef DOCKER_REPO
+DOCKER_IMAGE_FULLNAME := ${DOCKER_REPO}/${DOCKER_IMAGE_FULLNAME}
+endif
+endif
+
+DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)
 
 OPERATOR_VERSION = ${DOCKER_IMAGE_TAG}
 ifdef RELEASE_VERSION
@@ -44,13 +52,10 @@ INTEG_RUN_ID=
 ENV_NAME=verrazzano-application-operator
 GO ?= CGO_ENABLED=0 GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
-CRD_PATH=config/crd/bases
 
-ifdef JENKINS_URL
-	CLUSTER_DUMP_LOCATION = ${WORKSPACE}/application-operator-integ-cluster-dump
-else
-	CLUSTER_DUMP_LOCATION = application-operator-integ-cluster-dump
-endif
+CRD_PATH=../platform-operator/helm_config/charts/verrazzano-application-operator/crds
+
+CLUSTER_DUMP_LOCATION ?= application-operator-integ-cluster-dump
 
 .PHONY: build
 build: go-fmt go-vet
@@ -72,12 +77,12 @@ run:
 # Install CRDs into a cluster
 .PHONY: install-crds
 install-crds: manifests
-	kustomize build config/crd | kubectl apply -f -
+	kubectl apply -f ${CRD_PATH}
 
 # Uninstall CRDs from a cluster
 .PHONY: uninstall-crds
 uninstall-crds: manifests
-	kustomize build config/crd | kubectl delete -f -
+	kubectl delete -f ${CRD_PATH}
 
 # Generate mocks
 .PHONY: mock-gen
@@ -163,10 +168,6 @@ export VERRAZZANO_APP_OP_IMAGE=${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 .PHONY: setup-cluster
 setup-cluster: create-cluster
-	echo 'Load Docker image for the OAM runtime...'
-	time docker pull ${OAM_RUNTIME_IMAGE}
-	time kind load docker-image --name ${CLUSTER_NAME} ${OAM_RUNTIME_IMAGE}
-
 	echo 'Load Docker image for the Verrazzano application operator...'
 	time kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
@@ -178,15 +179,24 @@ integ-test: setup-cluster
 	echo 'Run tests...'
 	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Application operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/analysis.report; exit 1)
 
+.PHONY: cleanup-cluster
+cleanup-cluster:
+	./build/scripts/cleanup.sh ${CLUSTER_NAME}
+
 .PHONY: create-cluster
 create-cluster:
+	# We only create a cluster here if this is not on Jenkins. Jenkins will set the cluster
 ifndef JENKINS_URL
-	echo 'Create cluster...'
-	HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 \
-		--name ${CLUSTER_NAME} \
-		--wait 5m \
-		--config=test/kind-config.yaml
-	kubectl config set-context kind-${CLUSTER_NAME}
+	kind_clusters=$$(kind get clusters) ; \
+    if [ -z "$${kind_clusters}" ] || ! kind get clusters | egrep "^${CLUSTER_NAME}\$$" > /dev/null ; then \
+        echo 'Create cluster...' ;\
+        echo 'KUBECONFIG=${KUBECONFIG}' ;\
+        HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 \
+            --name ${CLUSTER_NAME} \
+            --wait 5m \
+            --config=test/kind-config.yaml ;\
+        kubectl config set-context kind-${CLUSTER_NAME} ;\
+    fi
 endif
 
 .PHONY: delete-cluster

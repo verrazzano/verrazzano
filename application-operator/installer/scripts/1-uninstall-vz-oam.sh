@@ -30,7 +30,7 @@ function uninstall {
   kubectl delete -f ${PROJ_DIR}/deploy
 
   log "Uninstalling Verrazzano application operator CRD extensions"
-  kubectl delete -f ${PROJ_DIR}/config/crd/bases
+  kubectl delete -f ${PROJ_DIR}/../platform-operator/helm_config/charts/verrazzano-application-operator/crds
 
 }
 
