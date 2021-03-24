@@ -4,7 +4,7 @@ This example shows how to change the placement of an application from one cluste
 
 ## Prerequisites
 
-The multicluster Hello World Helidon example will used to show how to change the placement of an application to another cluster.  Follow the [instructions](../hello-helidon/README.md) to deploy the multicluster Hello World Helidon example.  
+The multicluster Hello World Helidon example will be used to show how to change the placement of an application to another cluster.  First, follow the [instructions](../hello-helidon/README.md) to deploy the multicluster Hello World Helidon example.  
 
 **NOTE:** All files and paths in this document are relative to
 `<VERRAZZANO_HOME>/examples/multicluster/change-placement`.
@@ -22,7 +22,7 @@ Edit the placement of each of the application resources by changing the cluster 
 
 Wait a few minutes for the change in placement to take effect on each cluster.
 
-1. Use the following commands to verify the resources have been removed from the managed cluster.
+1. Use the following commands to verify that the resources have been removed from the managed cluster.
 
     ```
     $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get MultiClusterComponent hello-helidon-component -n hello-helidon
@@ -31,7 +31,7 @@ Wait a few minutes for the change in placement to take effect on each cluster.
     $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get VerrazzanoHelidonWorkload -n hello-helidon
     ```
 
-1. Use the following commands to verify the resources have been moved to the admin cluster.
+1. Use the following commands to verify that the resources have been moved to the admin cluster.
 
     ```
     $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl get MultiClusterComponent hello-helidon-component -n hello-helidon
