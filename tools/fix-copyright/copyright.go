@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/fs"
 	"io/ioutil"
 	"log"
 	"os"
@@ -302,7 +301,7 @@ func fixHeaders(args []string) error {
 	}
 	repoRoot := strings.TrimSpace(string(out))
 	for _, arg := range args {
-		err = filepath.Walk(arg, func(path string, info fs.FileInfo, err error) error {
+		err = filepath.Walk(arg, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				log.Printf("WARNING: failure accessing a path %q: %v\n", path, err)
 				return err
