@@ -1,0 +1,19 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: clusters.verrazzano.io/v1alpha1
+kind: MultiClusterLoggingScope
+metadata:
+  name: mymcloggingscope
+  namespace: multiclustertest
+spec:
+  template:
+    spec:
+      fluentdImage: myFluentdImage:v123
+      elasticSearchURL: http://vmi-system-es-ingest.verrazzano-system.svc.cluster.local:9200
+      secretName: mySecret
+      workloadRefs: []
+  placement:
+    clusters:
+      - name: managed1
+      - name: managed2
+
