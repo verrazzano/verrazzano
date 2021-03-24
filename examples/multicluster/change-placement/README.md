@@ -11,12 +11,13 @@ Follow the [instructions](../hello-helidon/README.md) to deploy the multicluster
 
 ## Edit the placement of the application
 
-Edit the placement of each of the application resources by changing the cluster name under `spec.placement.clusters` from `managed1` to `local` (the default name of the admin cluster).  
+Edit the placement of each of the application resources by changing the cluster name under `spec.placement.clusters` from `managed1` to `local` (the default name of the admin cluster).  Use the following commands to apply the changes.
 
     ```
-    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl edit MultiClusterComponent hello-helidon-component -n hello-helidon
-    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl edit MultiClusterApplicationConfiguration hello-helidon-appconf -n hello-helidon
+    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f mc-hello-helidon-comp.yaml
+    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f mc-hello-helidon-app.yaml
     ```
+
 ## Verify the change in placement
 
 Wait a few minutes for the change in placement to take effect on each cluster.
