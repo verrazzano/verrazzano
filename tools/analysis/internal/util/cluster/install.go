@@ -42,10 +42,15 @@ func AnalyzeVerrazzanoInstallIssue(log *zap.SugaredLogger, clusterRoot string, p
 	if !IsVerrazzanoInstallJobPod(pod) {
 		return nil
 	}
+
+	// TODO: The detection and dispatching for install issues will be evolving out more here, for now just conditionals for
+	// the more specific scenarios we detect
 	log.Debugf("verrazzanoInstallIssues analysis called for cluster: %s, ns: %s, pod: %s", clusterRoot, pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 	if IsContainerNotReady(pod.Status.Conditions) {
 
 	}
+
+	// TODO: If we got here without determining a specific cause, put out a General Issue that the install has failed with supporting details
 	return nil
 }
 
