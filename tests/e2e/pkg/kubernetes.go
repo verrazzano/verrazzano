@@ -466,6 +466,8 @@ func GetClusterRoleBinding(name string) *rbacv1.ClusterRoleBinding {
 // DoesRoleBindingContainSubject returns true if the RoleBinding exists and it contains the
 // specified subject
 func DoesRoleBindingContainSubject(namespace, name, subjectKind, subjectName string) bool {
+	clientset := GetKubernetesClientset()
+
 	rb, err := clientset.RbacV1().RoleBindings(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
