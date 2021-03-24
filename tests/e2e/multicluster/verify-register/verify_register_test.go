@@ -80,19 +80,19 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 					secretName := fmt.Sprintf("verrazzano-cluster-%s-manifest", managedClusterName)
 					gomega.Eventually(func() bool {
 						return findSecret(multiclusterNamespace, secretName)
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret %s" + secretName)
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret %s"+secretName)
 				},
 				func() {
 					secretName := fmt.Sprintf("verrazzano-cluster-%s-agent", managedClusterName)
 					gomega.Eventually(func() bool {
 						return findSecret(multiclusterNamespace, secretName)
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret" + secretName)
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret"+secretName)
 				},
 				func() {
 					secretName := fmt.Sprintf("verrazzano-cluster-%s-registration", managedClusterName)
 					gomega.Eventually(func() bool {
 						return findSecret(multiclusterNamespace, secretName)
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret" + secretName)
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret"+secretName)
 				},
 			)
 		})
