@@ -463,6 +463,25 @@ func GetClusterRoleBinding(name string) *rbacv1.ClusterRoleBinding {
 	return crb
 }
 
+// DoesRoleBindingContainSubject returns true if the RoleBinding exists and it contains the
+// specified subject
+func DoesRoleBindingContainSubject(namespace, name, subjectKind, subjectName string) bool {
+	rb, err := clientset.RbacV1().RoleBindings(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			ginkgo.Fail(fmt.Sprintf("Failed to get RoleBinding %s in namespace %s: %v", name, namespace, err))
+		}
+		return false
+	}
+
+	for _, s := range rb.Subjects {
+		if s.Kind == subjectKind && s.Name == subjectName {
+			return true
+		}
+	}
+	return false
+}
+
 // GetIstioClientset returns the clientset object for Istio
 func GetIstioClientset() *istioClient.Clientset {
 	cs, err := istioClient.NewForConfig(GetKubeConfig())

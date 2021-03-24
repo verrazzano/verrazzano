@@ -157,11 +157,32 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 		})
 
 		ginkgo.It("managed cluster has the expected namespace", func() {
+			gomega.Eventually(func() bool {
+				return findNamespace(fmt.Sprintf("ns-%s", managedClusterName))
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find namespace")
+		})
+
+		ginkgo.It("managed cluster has the expected RoleBindings", func() {
 			pkg.Concurrently(
 				func() {
 					gomega.Eventually(func() bool {
-						return findNamespace(fmt.Sprintf("ns-%s", managedClusterName))
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find namespace")
+						return pkg.DoesRoleBindingContainSubject(fmt.Sprintf("ns-%s", managedClusterName), "verrazzano-project-admin", "User", "test-user")
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find role binding")
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.DoesRoleBindingContainSubject(fmt.Sprintf("ns-%s", managedClusterName), "admin", "User", "test-user")
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find role binding")
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.DoesRoleBindingContainSubject(fmt.Sprintf("ns-%s", managedClusterName), "verrazzano-project-monitor", "Group", "test-viewers")
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find role binding")
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.DoesRoleBindingContainSubject(fmt.Sprintf("ns-%s", managedClusterName), "view", "Group", "test-viewers")
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find role binding")
 				},
 			)
 		})
