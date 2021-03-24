@@ -279,7 +279,7 @@ func findConfigMap(namespace, name string) bool {
 }
 
 func listResource(namespace string, object runtime.Object) error {
-	err, clustersClient := getClustersClient()
+	clustersClient, err := getClustersClient()
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
 	}
@@ -288,7 +288,7 @@ func listResource(namespace string, object runtime.Object) error {
 }
 
 func findLoggingScope(namespace, name string) bool {
-	err, clustersClient := getClustersClient()
+	clustersClient, err := getClustersClient()
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
 	}
@@ -307,7 +307,7 @@ func findLoggingScope(namespace, name string) bool {
 }
 
 func getMultiClusterResource(namespace, name string, object runtime.Object) error {
-	err, clustersClient := getClustersClient()
+	clustersClient, err := getClustersClient()
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
 	}
@@ -318,7 +318,7 @@ func getMultiClusterResource(namespace, name string, object runtime.Object) erro
 }
 
 func findMultiClusterConfigMap(namespace, name string) bool {
-	err, clustersClient := getClustersClient()
+	clustersClient, err := getClustersClient()
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
 	}
@@ -337,7 +337,7 @@ func findMultiClusterConfigMap(namespace, name string) bool {
 }
 
 func findMultiClusterLoggingScope(namespace, name string) bool {
-	err, clustersClient := getClustersClient()
+	clustersClient, err := getClustersClient()
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
 	}
@@ -356,7 +356,7 @@ func findMultiClusterLoggingScope(namespace, name string) bool {
 }
 
 func findMultiClusterSecret(namespace, name string) bool {
-	err, clustersClient := getClustersClient()
+	clustersClient, err := getClustersClient()
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
 	}
@@ -374,7 +374,7 @@ func findMultiClusterSecret(namespace, name string) bool {
 	return false
 }
 
-func getClustersClient() (error, client.Client) {
+func getClustersClient() (client.Client, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv("TEST_KUBECONFIG"))
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv("TEST_KUBECONFIG"), err))
@@ -388,7 +388,7 @@ func getClustersClient() (error, client.Client) {
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to get clusters client with error: %v", err))
 	}
-	return err, clustersClient
+	return clustersClient, err
 }
 
 func isStatusAsExpected(status clustersv1alpha1.MultiClusterResourceStatus,
