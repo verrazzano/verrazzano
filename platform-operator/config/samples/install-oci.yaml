@@ -13,7 +13,7 @@ metadata:
   name: my-verrazzano
 spec:
   environmentName: env
-  profile: ${VZ_PROFILE:-dev}
+  profile: prod
   components:
     certManager:
       certificate:
