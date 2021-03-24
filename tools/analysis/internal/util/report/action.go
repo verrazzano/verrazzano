@@ -39,14 +39,22 @@ const (
 
 // RunbookLinks are known runbook links
 var RunbookLinks = map[string][]string{
-	ImagePullBackOff:       {"TBD-ImagePullBackOffAction-runbook"},
-	InsufficientMemory:     {"TBD-InsufficientMemory-runbook"},
-	PodProblemsNotReported: {"TBD-PodProblemsNotReported-runbook"},
+	ImagePullBackOff:          {"TBD-ImagePullBackOffAction-runbook"},
+	InsufficientMemory:        {"TBD-InsufficientMemory-runbook"},
+	IngressInstallFailure:     {"TBD-IngressInstallFailure-runbook"},
+	IngressNoLoadBalancerIP:   {"TBD-IngressNoLoadBalancerIP-runbook"},
+	IngressOciIPLimitExceeded: {"TBD-IngressOciIPLimitExceeded-runbook"},
+	InstallFailure:            {"TBD-InstallFailure-runbook"},
+	PodProblemsNotReported:    {"TBD-PodProblemsNotReported-runbook"},
 }
 
 // KnownActions are Standard Action types
 var KnownActions = map[string]Action{
-	ImagePullBackOff:       {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[ImagePullBackOff]},
-	InsufficientMemory:     {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[InsufficientMemory]},
-	PodProblemsNotReported: {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[PodProblemsNotReported]},
+	ImagePullBackOff:          {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[ImagePullBackOff]},
+	InsufficientMemory:        {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[InsufficientMemory]},
+	IngressInstallFailure:     {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[IngressInstallFailure]},
+	IngressNoLoadBalancerIP:   {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[IngressNoLoadBalancerIP]},
+	IngressOciIPLimitExceeded: {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[IngressOciIPLimitExceeded]},
+	InstallFailure:            {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[InstallFailure]},
+	PodProblemsNotReported:    {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[PodProblemsNotReported]},
 }

@@ -95,9 +95,13 @@ func (issue *Issue) Validate(log *zap.SugaredLogger, mapSource string) (err erro
 
 // Known Issue Types.
 const (
-	ImagePullBackOff       = "ImagePullBackOff"
-	InsufficientMemory     = "InsufficientMemory"
-	PodProblemsNotReported = "PodProblemsNotReported"
+	ImagePullBackOff          = "ImagePullBackOff"
+	InsufficientMemory        = "InsufficientMemory"
+	IngressInstallFailure     = "IngressInstallFailure"
+	IngressNoLoadBalancerIP   = "IngressNoLoadBalancerIP"
+	IngressOciIPLimitExceeded = "IngressOciIPLimitExceeded"
+	InstallFailure            = "InstallFailure"
+	PodProblemsNotReported    = "PodProblemsNotReported"
 )
 
 // NOTE: How we are handling the issues/actions/reporting is still very much evolving here. Currently supplying some
@@ -106,9 +110,13 @@ const (
 // Known Issue Templates. While analyzers are free to roll their own custom Issues, the preference for well-known issues is to capture them
 // here so they are more generally available.
 var knownIssues = map[string]Issue{
-	ImagePullBackOff:       {Type: ImagePullBackOff, Summary: "ImagePullBackOff detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ImagePullBackOff]}},
-	InsufficientMemory:     {Type: InsufficientMemory, Summary: "InsufficientMemory detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InsufficientMemory]}},
-	PodProblemsNotReported: {Type: PodProblemsNotReported, Summary: "Problem pods were detected, but no issues were detected", Informational: true, Impact: 0, Confidence: 10, Actions: []Action{KnownActions[PodProblemsNotReported]}},
+	ImagePullBackOff:          {Type: ImagePullBackOff, Summary: "ImagePullBackOff detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ImagePullBackOff]}},
+	InsufficientMemory:        {Type: InsufficientMemory, Summary: "InsufficientMemory detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InsufficientMemory]}},
+	IngressInstallFailure:     {Type: IngressInstallFailure, Summary: "IngressInstallFailure detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressInstallFailure]}},
+	IngressNoLoadBalancerIP:   {Type: IngressNoLoadBalancerIP, Summary: "IngressNoLoadBalancerIp detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressNoLoadBalancerIP]}},
+	IngressOciIPLimitExceeded: {Type: IngressOciIPLimitExceeded, Summary: "IngressOciIpLimitExceeded detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressOciIPLimitExceeded]}},
+	InstallFailure:            {Type: InstallFailure, Summary: "InstallFailure detected with an undetermined cause", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InstallFailure]}},
+	PodProblemsNotReported:    {Type: PodProblemsNotReported, Summary: "Problem pods were detected, but no issues were detected", Informational: true, Impact: 0, Confidence: 10, Actions: []Action{KnownActions[PodProblemsNotReported]}},
 }
 
 // NewKnownIssueSupportingData adds a known issue

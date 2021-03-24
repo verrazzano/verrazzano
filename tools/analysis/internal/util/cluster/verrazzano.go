@@ -27,6 +27,9 @@ var verrazzanoInstallJobPodMatcher = regexp.MustCompile("verrazzano-install-.*")
 var verrazzanoUninstallJobPodMatcher = regexp.MustCompile("verrazzano-uninstall-.*")
 
 // TODO: CRDs related to verrazzano
+// TODO: Can we determine the underlying platform that is being used? This may generally help in terms
+//       of the analysis (ie: message formatting), but it also is generally useful in terms of how we
+//       provide action advice as well. Inspecting the nodes.json seems like the a good place to determine this
 
 // verrazzanoDeployments related to verrazzano
 var verrazzanoDeployments = make(map[string]appsv1.Deployment)

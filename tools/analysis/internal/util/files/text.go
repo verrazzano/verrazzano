@@ -101,12 +101,13 @@ func SearchFiles(log *zap.SugaredLogger, rootDirectory string, files []string, s
 
 // SearchFile searches a file
 func SearchFile(log *zap.SugaredLogger, fileName string, searchExpression string) (matches []TextMatch, err error) {
+	log.Debugf("SearchFile called with file: %s, expression: %s", fileName, searchExpression)
 	if len(searchExpression) == 0 {
 		return nil, errors.New("SearchFile requires a search expression")
 	}
 
 	if len(fileName) == 0 {
-		log.Debugf("SearchFile was not given a files, return nil")
+		log.Debugf("SearchFile was not given a file, return nil")
 		return nil, nil
 	}
 

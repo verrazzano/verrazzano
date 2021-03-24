@@ -5,6 +5,7 @@
 package cluster
 
 import (
+	"fmt"
 	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/report"
 	"go.uber.org/zap"
@@ -12,6 +13,7 @@ import (
 	"regexp"
 )
 
+// Compiled Regular expressions
 var installNGINXIngressControllerFailed = regexp.MustCompile("Installing NGINX Ingress Controller.*[FAILED]")
 
 // I'm going with a more general pattern for limit reached as the supporting details should give the precise message
@@ -24,16 +26,16 @@ const (
 	// Service name
 	ingressControllerService = "ingress-controller-ingress-nginx-controller"
 
-	// function map names
-	nginxIngressController = ""
+	// Function names
+	nginxIngressControllerFailed = "nginxIngressControllerFailed"
 )
 
 var dispatchMatchMap = map[string]*regexp.Regexp{
-	nginxIngressController: installNGINXIngressControllerFailed,
+	nginxIngressControllerFailed: installNGINXIngressControllerFailed,
 }
 
 var dispatchFunctions = map[string]func(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error){
-	nginxIngressController: analyzeNGINXIngressController,
+	nginxIngressControllerFailed: analyzeNGINXIngressController,
 }
 
 // AnalyzeVerrazzanoInstallIssue is called when we have reason to believe that the installation has failed
@@ -46,11 +48,38 @@ func AnalyzeVerrazzanoInstallIssue(log *zap.SugaredLogger, clusterRoot string, p
 	// TODO: The detection and dispatching for install issues will be evolving out more here, for now just conditionals for
 	// the more specific scenarios we detect
 	log.Debugf("verrazzanoInstallIssues analysis called for cluster: %s, ns: %s, pod: %s", clusterRoot, pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+	// TODO: Not correlating time here yet
 	if IsContainerNotReady(pod.Status.Conditions) {
-
+		logMatches, err := files.SearchFile(log, files.FindPodLogFileName(clusterRoot, pod), "Install.*[FAILED]")
+		if err == nil {
+			// We likely will only have a single failure message here (we may only want to look at the last one for install failures)
+			for _, matched := range logMatches {
+				// Loop through the match expressions to see if we have a handler for the message
+				for matchKey, matcher := range dispatchMatchMap {
+					// If the matcher expression matches the failure message, call the handler function related to that matcher (same key)
+					if matcher.MatchString(matched.MatchedText) {
+						err = dispatchFunctions[matchKey](log, clusterRoot, podFile, pod, issueReporter)
+						if err != nil {
+							log.Errorf("AnalyzeVerrazzanoInstallIssue failed in %s function", matchKey, err)
+						}
+					}
+				}
+			}
+		} else {
+			log.Errorf("AnalyzeVerrazzanoInstallIssue failed to get log messages to determine install issue", err)
+		}
 	}
 
 	// TODO: If we got here without determining a specific cause, put out a General Issue that the install has failed with supporting details
+	//  Note that we may not have a lot of details to provide here (which is why we are falling back to this general issue)
+	if len(issueReporter.PendingIssues) == 0 {
+		// TODO: Add more supporting details here
+		messages := make(StringSlice, 1)
+		messages[0] = fmt.Sprintf("Namespace %s, Pod %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+		files := make(StringSlice, 1)
+		files[0] = podFile
+		issueReporter.AddKnownIssueMessagesFiles(report.InstallFailure, clusterRoot, messages, files)
+	}
 	return nil
 }
 
@@ -73,6 +102,8 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		}
 	}
 	if controllerService != nil {
+		issueDetected := false
+
 		// TODO: Need to handle time range correlation (only events within a time range)
 		events, err := GetEventsRelatedToService(log, clusterRoot, controllerService)
 		if err != nil {
@@ -80,13 +111,48 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		}
 		// Check if the event matches failure
 		for _, event := range events {
+			log.Debugf("analyzeNGINXIngressController event Reason: %s", event.Reason)
 			if !reasonFailed.MatchString(event.Reason) {
 				continue
 			}
+			log.Debugf("analyzeNGINXIngressController event Reason: %s", event.Message)
 			if limitReached.MatchString(event.Message) {
-				// TODO: Add and report a known issue for limit here, we
+				// TODO: Add and report a known issue for limit here
+				messages := make(StringSlice, 1)
+				messages[0] = fmt.Sprintf("Namespace %s, Pod %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+				files := make(StringSlice, 1)
+				files[0] = podFile
+				issueReporter.AddKnownIssueMessagesFiles(report.IngressOciIPLimitExceeded, clusterRoot, messages, files)
+				issueDetected = true
 			}
 		}
+
+		// If we detected a more specific issue above, return now. If we didn't we check for cases where
+		// we may not be able to narrow it down fully
+		if issueDetected {
+			return nil
+		}
+
+		// We check the LoadBalancer status to see if there is an IP address set. If not, we can at least
+		// advise them that the LoadBalancer may not be setup
+		if len(controllerService.Status.LoadBalancer.Ingress) == 0 {
+			// TODO: Add and report a known issue here (we know the IP is not set, but not more than that)
+			messages := make(StringSlice, 1)
+			messages[0] = fmt.Sprintf("Namespace %s, Pod %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+			files := make(StringSlice, 1)
+			files[0] = podFile
+			issueReporter.AddKnownIssueMessagesFiles(report.IngressNoLoadBalancerIP, clusterRoot, messages, files)
+			return nil
+		}
+
+		// if we made it this far we know that there is an issue with the ingress controller but
+		// we haven't found anything, so give general advise
+		messages := make(StringSlice, 1)
+		messages[0] = fmt.Sprintf("Namespace %s, Pod %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+		files := make(StringSlice, 1)
+		files[0] = podFile
+		issueReporter.AddKnownIssueMessagesFiles(report.IngressInstallFailure, clusterRoot, messages, files)
+		return nil
 	}
 
 	return nil
