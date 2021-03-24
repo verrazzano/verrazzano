@@ -12,4 +12,4 @@ set -o pipefail
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 GENERATED_CRDS_DIR=${SCRIPT_DIR}/../../platform-operator/helm_config/charts/verrazzano-application-operator/crds
 
-go run ${SCRIPT_DIR}/../../tools/fix-copyright/copyright.go -verbose $GENERATED_CRDS_DIR
+go run ${SCRIPT_DIR}/../../tools/fix-copyright/copyright.go $GENERATED_CRDS_DIR
