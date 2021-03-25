@@ -30,6 +30,11 @@ const testNamespace = "multiclustertest"
 
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 
+var _ = ginkgo.BeforeSuite(func() {
+	// Do set up for multi cluster tests
+	deployTestResources()
+})
+
 var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 
 	ginkgo.Context("Admin Cluster - create mc resources and update statuses", func() {
@@ -37,13 +42,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
 		})
 
-		ginkgo.It("admin cluster create mc config map", func() {
-			// create a config map
-			err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap.yaml")
-			if err != nil {
-				ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster config map: %v", err))
-			}
-
+		ginkgo.It("admin cluster - verify mc config map", func() {
 			gomega.Eventually(func() bool {
 				return findMultiClusterConfigMap(testNamespace, "mymcconfigmap")
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc configmap")
@@ -57,13 +56,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
-		ginkgo.It("admin cluster create mc logging scope", func() {
-			// create a logging scope
-			err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_loggingscope.yaml")
-			if err != nil {
-				ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster logging scope: %v", err))
-			}
-
+		ginkgo.It("admin cluster - verify mc logging scope", func() {
 			gomega.Eventually(func() bool {
 				return findMultiClusterLoggingScope(testNamespace, "mymcloggingscope")
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc logging scope")
@@ -77,13 +70,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
-		ginkgo.It("admin cluster create mc secret", func() {
-			// create a config map
-			err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret.yaml")
-			if err != nil {
-				ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster secret: %v", err))
-			}
-
+		ginkgo.It("admin cluster - verify mc secret", func() {
 			gomega.Eventually(func() bool {
 				return findMultiClusterSecret(testNamespace, "mymcsecret")
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc secret")
@@ -267,6 +254,32 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 		})
 	})
 })
+
+func deployTestResources() {
+	// create the test ns
+	err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-multiclustertest.yaml")
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create test namespace: %v", err))
+	}
+
+	// create a config map
+	err = pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap.yaml")
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster config map: %v", err))
+	}
+
+	// create a logging scope
+	err = pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_loggingscope.yaml")
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster logging scope: %v", err))
+	}
+
+	// create a secret
+	err = pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret.yaml")
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster secret: %v", err))
+	}
+}
 
 func findSecret(namespace, name string) bool {
 	s, err := pkg.GetSecret(namespace, name)
