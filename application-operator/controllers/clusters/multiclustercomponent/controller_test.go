@@ -80,7 +80,7 @@ func TestReconcileCreateComponent(t *testing.T) {
 	}
 
 	// expect a call to fetch the MultiClusterComponent
-	doExpectGetMultiClusterComponent(cli, mcCompSample)
+	doExpectGetMultiClusterComponent(cli, mcCompSample, false)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -95,6 +95,15 @@ func TestReconcileCreateComponent(t *testing.T) {
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, c *v1alpha2.Component, opts ...client.CreateOption) error {
 			assertComponentValid(assert, c, mcCompSample)
+			return nil
+		})
+
+	// expect a call to update the resource with a finalizer
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, component *clustersv1alpha1.MultiClusterComponent, opts ...client.UpdateOption) error {
+			assert.True(len(component.ObjectMeta.Finalizers) == 1, "Wrong number of finalizers")
+			assert.Equal(finalizerName, component.ObjectMeta.Finalizers[0], "wrong finalizer")
 			return nil
 		})
 
@@ -134,7 +143,7 @@ func TestReconcileUpdateComponent(t *testing.T) {
 	}
 
 	// expect a call to fetch the MultiClusterComponent
-	doExpectGetMultiClusterComponent(cli, mcCompSample)
+	doExpectGetMultiClusterComponent(cli, mcCompSample, true)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -181,7 +190,7 @@ func TestReconcileCreateComponentFailed(t *testing.T) {
 	}
 
 	// expect a call to fetch the MultiClusterComponent
-	doExpectGetMultiClusterComponent(cli, mcCompSample)
+	doExpectGetMultiClusterComponent(cli, mcCompSample, false)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -229,14 +238,19 @@ func TestReconcileUpdateComponentFailed(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
+	existingOAMComp, err := getExistingOAMComponent()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
 	// expect a call to fetch the MultiClusterComponent
-	doExpectGetMultiClusterComponent(cli, mcCompSample)
+	doExpectGetMultiClusterComponent(cli, mcCompSample, true)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
 
 	// expect a call to fetch existing OAM component (simulate update case)
-	doExpectGetComponentExists(cli, mcCompSample.ObjectMeta, mcCompSample.Spec.Template.Spec)
+	doExpectGetComponentExists(cli, mcCompSample.ObjectMeta, existingOAMComp.Spec)
 
 	// expect a call to update the OAM component and fail the call
 	cli.EXPECT().
@@ -280,7 +294,7 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 	mcCompSample.Spec.Placement.Clusters[0].Name = "not-my-cluster"
 
 	// expect a call to fetch the MultiClusterComponent
-	doExpectGetMultiClusterComponent(cli, mcCompSample)
+	doExpectGetMultiClusterComponent(cli, mcCompSample, true)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -288,6 +302,24 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 	// The effective state of the object will get updated even if it is note locally placed,
 	// since it would have changed
 	clusterstest.DoExpectUpdateState(t, cli, statusWriter, &mcCompSample, clustersv1alpha1.Pending)
+
+	clusterstest.ExpectDeleteAssociatedResource(cli, &v1alpha2.Component{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mcCompSample.Name,
+			Namespace: mcCompSample.Namespace,
+		},
+	}, types.NamespacedName{
+		Namespace: mcCompSample.Namespace,
+		Name:      mcCompSample.Name,
+	})
+
+	// expect a call to update the resource with no finalizers
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, mcComponent *clustersv1alpha1.MultiClusterComponent, opts ...client.UpdateOption) error {
+			assert.True(len(mcComponent.Finalizers) == 0, "Wrong number of finalizers")
+			return nil
+		})
 
 	// Expect no further action
 
@@ -380,13 +412,16 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 
 // doExpectGetMultiClusterComponent adds an expectation to the given MockClient to expect a Get
 // call for a MultiClusterComponent, and populate the multi cluster component with given data
-func doExpectGetMultiClusterComponent(cli *mocks.MockClient, mcCompSample clustersv1alpha1.MultiClusterComponent) {
+func doExpectGetMultiClusterComponent(cli *mocks.MockClient, mcCompSample clustersv1alpha1.MultiClusterComponent, addFinalizer bool) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.AssignableToTypeOf(&mcCompSample)).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcComp *clustersv1alpha1.MultiClusterComponent) error {
 			mcComp.ObjectMeta = mcCompSample.ObjectMeta
 			mcComp.TypeMeta = mcCompSample.TypeMeta
 			mcComp.Spec = mcCompSample.Spec
+			if addFinalizer {
+				mcComp.Finalizers = append(mcComp.Finalizers, finalizerName)
+			}
 			return nil
 		})
 }
@@ -407,11 +442,6 @@ func assertComponentValid(assert *asserts.Assertions, c *v1alpha2.Component, mcC
 	assert.Equal(expectedContainerizedWorkload.Spec.Containers[0].Name, actualContainerizedWorkload.Spec.Containers[0].Name)
 	assert.Equal(expectedContainerizedWorkload.Name, actualContainerizedWorkload.Name)
 
-	// assert that the owner reference points to a MultiClusterComponent
-	assert.Equal(1, len(c.OwnerReferences))
-	assert.Equal("MultiClusterComponent", c.OwnerReferences[0].Kind)
-	assert.Equal(clustersv1alpha1.GroupVersion.String(), c.OwnerReferences[0].APIVersion)
-	assert.Equal(crName, c.OwnerReferences[0].Name)
 }
 
 // getSampleMCComponent creates and returns a sample MultiClusterComponent used in tests

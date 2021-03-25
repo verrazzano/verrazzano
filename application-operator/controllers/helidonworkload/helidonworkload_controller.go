@@ -195,7 +195,7 @@ func (r *Reconciler) convertWorkloadToDeployment(
 		r.Log.Error(err, "Failed to convert deployment to yaml")
 		r.Log.Info("Deployment in json format ", "DeploymentJson", d)
 	} else {
-		r.Log.Info("Deployment in yaml format ", "DeploymentYaml", string(y))
+		r.Log.V(1).Info("Deployment in yaml format ", "DeploymentYaml", string(y))
 	}
 
 	return d, nil
@@ -245,7 +245,7 @@ func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelid
 			r.Log.Error(err, "Failed to convert service to yaml")
 			r.Log.Info("Service in json format ", "ServiceJson", s)
 		} else {
-			r.Log.Info("Service in yaml format: ", "ServiceYaml", string(y))
+			r.Log.V(1).Info("Service in yaml format: ", "ServiceYaml", string(y))
 		}
 		return s, nil
 	}

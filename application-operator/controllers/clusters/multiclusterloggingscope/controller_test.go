@@ -6,6 +6,7 @@ package multiclusterloggingscope
 import (
 	"context"
 	"encoding/json"
+	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"path/filepath"
 	"testing"
 
@@ -80,7 +81,7 @@ func TestReconcileCreateLoggingScope(t *testing.T) {
 	}
 
 	// expect a call to fetch the MultiClusterLoggingScope
-	doExpectGetMultiClusterLoggingScope(cli, mcLogScopeSample)
+	doExpectGetMultiClusterLoggingScope(cli, mcLogScopeSample, false)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -95,6 +96,15 @@ func TestReconcileCreateLoggingScope(t *testing.T) {
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, c *v1alpha1.LoggingScope, opts ...client.CreateOption) error {
 			assertLoggingScopeValid(assert, c, mcLogScopeSample)
+			return nil
+		})
+
+	// expect a call to update the resource with a finalizer
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, loggingScope *clustersv1alpha1.MultiClusterLoggingScope, opts ...client.UpdateOption) error {
+			assert.True(len(loggingScope.ObjectMeta.Finalizers) == 1, "Wrong number of finalizers")
+			assert.Equal(finalizerName, loggingScope.ObjectMeta.Finalizers[0], "wrong finalizer")
 			return nil
 		})
 
@@ -134,7 +144,7 @@ func TestReconcileUpdateLoggingScope(t *testing.T) {
 	}
 
 	// expect a call to fetch the MultiClusterLoggingScope
-	doExpectGetMultiClusterLoggingScope(cli, mcLogScopeSample)
+	doExpectGetMultiClusterLoggingScope(cli, mcLogScopeSample, true)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -181,7 +191,7 @@ func TestReconcileCreateLoggingScopeFailed(t *testing.T) {
 	}
 
 	// expect a call to fetch the MultiClusterLoggingScope
-	doExpectGetMultiClusterLoggingScope(cli, mcLogScopeSample)
+	doExpectGetMultiClusterLoggingScope(cli, mcLogScopeSample, false)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -229,14 +239,19 @@ func TestReconcileUpdateLoggingScopeFailed(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
+	existingLogScope, err := getExistingLoggingScope()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
 	// expect a call to fetch the MultiClusterLoggingScope
-	doExpectGetMultiClusterLoggingScope(cli, mcLogScopeSample)
+	doExpectGetMultiClusterLoggingScope(cli, mcLogScopeSample, true)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
 
 	// expect a call to fetch existing LoggingScope (simulate update case)
-	doExpectGetLoggingScopeExists(cli, mcLogScopeSample.ObjectMeta, mcLogScopeSample.Spec.Template.Spec)
+	doExpectGetLoggingScopeExists(cli, mcLogScopeSample.ObjectMeta, existingLogScope.Spec)
 
 	// expect a call to update the LoggingScope and fail the call
 	cli.EXPECT().
@@ -280,7 +295,7 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 	mcLoggingScope.Spec.Placement.Clusters[0].Name = "not-my-cluster"
 
 	// expect a call to fetch the MultiClusterLoggingScope
-	doExpectGetMultiClusterLoggingScope(cli, mcLoggingScope)
+	doExpectGetMultiClusterLoggingScope(cli, mcLoggingScope, true)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -288,6 +303,24 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 	// The effective state of the object will get updated even if it is note locally placed,
 	// since it would have changed
 	clusterstest.DoExpectUpdateState(t, cli, statusWriter, &mcLoggingScope, clustersv1alpha1.Pending)
+
+	clusterstest.ExpectDeleteAssociatedResource(cli, &v1alpha2.Component{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mcLoggingScope.Name,
+			Namespace: mcLoggingScope.Namespace,
+		},
+	}, types.NamespacedName{
+		Namespace: mcLoggingScope.Namespace,
+		Name:      mcLoggingScope.Name,
+	})
+
+	// expect a call to update the resource with no finalizers
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, mcLogScope *clustersv1alpha1.MultiClusterLoggingScope, opts ...client.UpdateOption) error {
+			assert.True(len(mcLogScope.Finalizers) == 0, "Wrong number of finalizers")
+			return nil
+		})
 
 	// Expect no further action
 
@@ -380,13 +413,16 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 
 // doExpectGetMultiClusterLoggingScope adds an expectation to the given MockClient to expect a Get
 // call for a MultiClusterLoggingScope, and populate the multi cluster logging scope with given data
-func doExpectGetMultiClusterLoggingScope(cli *mocks.MockClient, mcLogScopeSample clustersv1alpha1.MultiClusterLoggingScope) {
+func doExpectGetMultiClusterLoggingScope(cli *mocks.MockClient, mcLogScopeSample clustersv1alpha1.MultiClusterLoggingScope, addFinalizer bool) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.AssignableToTypeOf(&mcLogScopeSample)).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcLogScope *clustersv1alpha1.MultiClusterLoggingScope) error {
 			mcLogScope.ObjectMeta = mcLogScopeSample.ObjectMeta
 			mcLogScope.TypeMeta = mcLogScopeSample.TypeMeta
 			mcLogScope.Spec = mcLogScopeSample.Spec
+			if addFinalizer {
+				mcLogScope.Finalizers = append(mcLogScope.Finalizers, finalizerName)
+			}
 			return nil
 		})
 }
@@ -404,11 +440,6 @@ func assertLoggingScopeValid(assert *asserts.Assertions, logScope *v1alpha1.Logg
 	assert.Equal(mcLogScope.Spec.Template.Spec.FluentdImage, logScope.Spec.FluentdImage)
 	assert.Equal(mcLogScope.Spec.Template.Spec.SecretName, logScope.Spec.SecretName)
 
-	// assert that the owner reference points to a MultiClusterLoggingScope
-	assert.Equal(1, len(logScope.OwnerReferences))
-	assert.Equal("MultiClusterLoggingScope", logScope.OwnerReferences[0].Kind)
-	assert.Equal(clustersv1alpha1.GroupVersion.String(), logScope.OwnerReferences[0].APIVersion)
-	assert.Equal(crName, logScope.OwnerReferences[0].Name)
 }
 
 // getSampleMCLoggingScope creates and returns a sample MultiClusterLoggingScope used in tests

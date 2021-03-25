@@ -273,16 +273,19 @@ func TestMCConfigMapPlacement(t *testing.T) {
 	adminMock := mocks.NewMockClient(adminMocker)
 
 	// Test data
-	testMCConfigMap, err := getSampleMCConfigMap("testdata/multicluster-configmap.yaml")
+	adminMCConfigMap, err := getSampleMCConfigMap("testdata/multicluster-configmap.yaml")
 	assert.NoError(err, "failed to read sample data for MultiClusterConfigMap")
-	testMCConfigMap.Spec.Placement.Clusters[0].Name = "not-my-cluster"
+	adminMCConfigMap.Spec.Placement.Clusters[0].Name = "not-my-cluster"
+
+	localMCConfigMap, err := getSampleMCConfigMap("testdata/multicluster-configmap.yaml")
+	assert.NoError(err, "failed to read sample data for MultiClusterConfigMap")
 
 	// Admin Cluster - expect call to list MultiClusterConfigMap objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, mCConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, listOptions *client.ListOptions) error {
 			assert.Equal(testMCConfigMapNamespace, listOptions.Namespace, "list request did not have expected namespace")
-			mCConfigMapList.Items = append(mCConfigMapList.Items, testMCConfigMap)
+			mCConfigMapList.Items = append(mCConfigMapList.Items, adminMCConfigMap)
 			return nil
 		})
 
@@ -291,9 +294,14 @@ func TestMCConfigMapPlacement(t *testing.T) {
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterConfigMapList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, mcConfigMapList *clustersv1alpha1.MultiClusterConfigMapList, listOptions *client.ListOptions) error {
 			assert.Equal(testMCConfigMapNamespace, listOptions.Namespace, "list request did not have expected namespace")
-			mcConfigMapList.Items = append(mcConfigMapList.Items, testMCConfigMap)
+			mcConfigMapList.Items = append(mcConfigMapList.Items, localMCConfigMap)
 			return nil
 		})
+
+	// Managed Cluster - expect a call to delete a MultiClusterConfigMap object
+	mcMock.EXPECT().
+		Delete(gomock.Any(), gomock.Eq(&localMCConfigMap), gomock.Any()).
+		Return(nil)
 
 	// Make the request
 	s := &Syncer{
