@@ -320,6 +320,11 @@ func IsPodProblematic(pod corev1.Pod) bool {
 	return true
 }
 
+// IsPodPending returns a boolean indicating whether a pod is pending or not
+func IsPodPending(pod corev1.Pod) bool {
+	return pod.Status.Phase == corev1.PodPending
+}
+
 // This looks at the pods.json files in the cluster and will give a list of files
 // if any have pods that are not Running or Succeeded.
 func findProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFiles []string, err error) {
@@ -352,6 +357,8 @@ func findProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFil
 func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFiles []string) {
 	messages := make([]string, 0, len(podFiles))
 	matches := make([]files.TextMatch, 0, len(podFiles))
+	problematicNotPending := 0
+	pendingPodsSeen := 0
 	for _, podFile := range podFiles {
 		podList, err := GetPodList(log, podFile)
 		if err != nil {
@@ -366,6 +373,16 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 			if !IsPodProblematic(pod) {
 				continue
 			}
+			if pod.Status.Phase == corev1.PodFailed || pod.Status.Phase == corev1.PodUnknown {
+				problematicNotPending++
+				if len(pod.Status.Reason) > 0 || len(pod.Status.Message) > 0 {
+					messages = append(messages, fmt.Sprintf("Namespace %s, Pod %s, Phase %s, Reason %s, Message %s",
+						pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, pod.Status.Phase, pod.Status.Reason, pod.Status.Message))
+				}
+			} else if pod.Status.Phase == corev1.PodPending {
+				pendingPodsSeen++
+			}
+
 			for _, condition := range pod.Status.Conditions {
 				messages = append(messages, fmt.Sprintf("Namespace %s, Pod %s, Status %s, Reason %s, Message %s",
 					pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, condition.Status, condition.Reason, condition.Message))
@@ -385,7 +402,13 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 		Messages:    messages,
 		TextMatches: matches,
 	}
-	report.ContributeIssue(log, report.NewKnownIssueSupportingData(report.PodProblemsNotReported, clusterRoot, supportingData))
+	// If all of the problematic pods were pending only, just report that, otherwise report them as problematic if some are
+	// failing or unknown
+	if pendingPodsSeen > 0 && problematicNotPending == 0 {
+		report.ContributeIssue(log, report.NewKnownIssueSupportingData(report.PendingPods, clusterRoot, supportingData))
+	} else {
+		report.ContributeIssue(log, report.NewKnownIssueSupportingData(report.PodProblemsNotReported, clusterRoot, supportingData))
+	}
 }
 
 func getPodListIfPresent(path string) (podList *corev1.PodList) {
