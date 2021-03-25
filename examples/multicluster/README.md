@@ -5,6 +5,7 @@ This repository contains examples of different approaches for using Verrazzano m
 | Example | Description |
 |-------------|-------------|
 | [hello-helidon](hello-helidon/) | Hello World Helidon example deployed to a multicluster environment. |
+| [change-placement](change-placement/) | Change the placement of an application to a different cluster. |
 
 **NOTE:** All files and paths in this document are relative to
 `<VERRAZZANO_HOME>/examples/multicluster`.
