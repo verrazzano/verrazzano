@@ -97,42 +97,42 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 	err = r.syncServiceAccount(vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the ServiceAccount", err, log)
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	log.Infof("Syncing the RoleBinding for VMC %s", vmc.Name)
 	err = r.syncManagedRoleBinding(vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the RoleBinding", err, log)
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	log.Infof("Syncing the Agent secret for VMC %s", vmc.Name)
 	err = r.syncAgentSecret(vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the agent secret", err, log)
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	log.Infof("Syncing the Registration secret for VMC %s", vmc.Name)
 	err = r.syncRegistrationSecret(vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the registration secret", err, log)
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	log.Infof("Syncing the Manifest secret for VMC %s", vmc.Name)
 	err = r.syncManifestSecret(vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the Manifest secret", err, log)
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	log.Infof("Syncing the prometheus scraper for VMC %s", vmc.Name)
 	err = r.syncPrometheusScraper(ctx, vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to setup the prometheus scraper for managed cluster", err, log)
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	statusErr := r.updateStatusReady(ctx, vmc, "")
@@ -275,7 +275,9 @@ func (r *VerrazzanoManagedClusterReconciler) handleError(ctx context.Context, vm
 
 func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, condition clustersv1alpha1.Condition) error {
 	var matchingCondition *clustersv1alpha1.Condition
+	r.log.Info("Entering updateStatus...")
 	for _, existingCondition := range vmc.Status.Conditions {
+		r.log.Errorf("condition type is %s", condition.Type)
 		if condition.Type == existingCondition.Type &&
 			condition.Status == existingCondition.Status &&
 			condition.Message == existingCondition.Message {
@@ -287,12 +289,15 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 		}
 	}
 	if matchingCondition == nil {
+		r.log.Info("no matching conditions found")
 		vmc.Status.Conditions = append(vmc.Status.Conditions, condition)
 	} else {
+		r.log.Infof("matching condition found %s", matchingCondition)
 		matchingCondition.Message = condition.Message
 		matchingCondition.Status = condition.Status
 		matchingCondition.LastTransitionTime = condition.LastTransitionTime
 	}
+	r.log.Info("Exiting updateStatus...")
 	return r.Status().Update(ctx, vmc)
 }
 
