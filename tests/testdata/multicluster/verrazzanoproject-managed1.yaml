@@ -11,3 +11,10 @@ spec:
     namespaces:
     - metadata:
         name: ns-managed1
+    security:
+      projectAdminSubjects:
+        - kind: User
+          name: test-user
+      projectMonitorSubjects:
+        - kind: Group
+          name: test-viewers

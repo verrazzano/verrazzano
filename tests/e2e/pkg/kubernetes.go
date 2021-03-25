@@ -423,6 +423,20 @@ func GetClusterRole(name string) *rbacv1.ClusterRole {
 	return clusterrole
 }
 
+//DoesServiceAccountExist returns whether a service account with the given name and namespace exists in the cluster
+func DoesServiceAccountExist(namespace, name string) bool {
+	clientset := GetKubernetesClientset()
+
+	sa, err := clientset.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get service account %s in namespace %s with error: %v", name, namespace, err))
+	}
+
+	return sa != nil
+
+}
+
 // DoesClusterRoleBindingExist returns whether a cluster role with the given name exists in the cluster
 func DoesClusterRoleBindingExist(name string) bool {
 	// Get the Kubernetes clientset
@@ -447,6 +461,27 @@ func GetClusterRoleBinding(name string) *rbacv1.ClusterRoleBinding {
 	}
 
 	return crb
+}
+
+// DoesRoleBindingContainSubject returns true if the RoleBinding exists and it contains the
+// specified subject
+func DoesRoleBindingContainSubject(namespace, name, subjectKind, subjectName string) bool {
+	clientset := GetKubernetesClientset()
+
+	rb, err := clientset.RbacV1().RoleBindings(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			ginkgo.Fail(fmt.Sprintf("Failed to get RoleBinding %s in namespace %s: %v", name, namespace, err))
+		}
+		return false
+	}
+
+	for _, s := range rb.Subjects {
+		if s.Kind == subjectKind && s.Name == subjectName {
+			return true
+		}
+	}
+	return false
 }
 
 // GetIstioClientset returns the clientset object for Istio
