@@ -88,6 +88,30 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 			gomega.Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 	})
+
+	ginkgo.Context("Logging", func() {
+		ginkgo.BeforeEach(func() {
+			os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
+		})
+
+		indexName := "hello-helidon-hello-helidon-appconf-hello-helidon-component-hello-helidon-container"
+
+		ginkgo.It("Verify Elasticsearch index exists", func() {
+			gomega.Eventually(func() bool {
+				return pkg.LogIndexFound(indexName)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find log index for hello helidon")
+		})
+
+		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
+			gomega.Eventually(func() bool {
+				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+					"oam.applicationconfiguration.namespace": "hello-helidon",
+					"oam.applicationconfiguration.name":      "hello-helidon-appconf",
+					"verrazzano.cluster.name":                os.Getenv("MANAGED_CLUSTER_NAME"),
+				})
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+		})
+	})
 })
 
 var _ = ginkgo.AfterSuite(func() {
