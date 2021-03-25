@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -20,6 +21,11 @@ import (
 // podListMap holds podLists which have been read in already
 var podListMap = make(map[string]*corev1.PodList)
 var podCacheMutex = &sync.Mutex{}
+
+var dockerPullRateLimit = regexp.MustCompile(`.*You have reached your pull rate limit.*`)
+var dockerNameUnknown = regexp.MustCompile(`.*name unknown.*`)
+var dockerNotFound = regexp.MustCompile(`.*not found.*`)
+var dockerServiceUnavailable = regexp.MustCompile(`.*Service Unavailable.*`)
 
 // TODO: "Verrazzano Uninstall Pod Issue":    AnalyzeVerrazzanoUninstallIssue,
 var podAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error){
@@ -144,17 +150,10 @@ func podContainerIssues(log *zap.SugaredLogger, clusterRoot string, podFile stri
 		for _, initContainerStatus := range pod.Status.InitContainerStatuses {
 			if initContainerStatus.State.Waiting != nil {
 				if initContainerStatus.State.Waiting.Reason == "ImagePullBackOff" {
-					messages := make(StringSlice, 1)
-					messages[0] = fmt.Sprintf("Namespace %s, Pod %s, InitContainer %s, Message %s",
-						pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, initContainerStatus.Name, initContainerStatus.State.Waiting.Message)
-					messages.addMessages(drillIntoEventsForImagePullIssue(log, pod, initContainerStatus.Image, podEvents))
-					files := []string{podFile}
-					issueReporter.AddKnownIssueMessagesFiles(
-						report.ImagePullBackOff,
-						clusterRoot,
-						messages,
-						files,
-					)
+					handleImagePullBackOff(log, clusterRoot, podFile, pod, podEvents, initContainerStatus.Image,
+						fmt.Sprintf("Namespace %s, Pod %s, InitContainer %s, Message %s",
+							pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, initContainerStatus.Name, initContainerStatus.State.Waiting.Message),
+						issueReporter)
 				}
 			}
 		}
@@ -163,22 +162,61 @@ func podContainerIssues(log *zap.SugaredLogger, clusterRoot string, podFile stri
 		for _, containerStatus := range pod.Status.ContainerStatuses {
 			if containerStatus.State.Waiting != nil {
 				if containerStatus.State.Waiting.Reason == "ImagePullBackOff" {
-					messages := make(StringSlice, 1)
-					messages[0] = fmt.Sprintf("Namespace %s, Pod %s, Container %s, Message %s",
-						pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, containerStatus.Name, containerStatus.State.Waiting.Message)
-					messages.addMessages(drillIntoEventsForImagePullIssue(log, pod, containerStatus.Image, podEvents))
-					files := []string{podFile}
-					issueReporter.AddKnownIssueMessagesFiles(
-						report.ImagePullBackOff,
-						clusterRoot,
-						messages,
-						files,
-					)
+					handleImagePullBackOff(log, clusterRoot, podFile, pod, podEvents, containerStatus.Image,
+						fmt.Sprintf("Namespace %s, Pod %s, Container %s, Message %s",
+							pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, containerStatus.Name, containerStatus.State.Waiting.Message),
+						issueReporter)
 				}
 			}
 		}
 	}
 	return nil
+}
+
+func handleImagePullBackOff(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, podEvents []corev1.Event,
+	image string, initialMessage string, issueReporter *report.IssueReporter) {
+	messages := make(StringSlice, 1)
+	messages[0] = initialMessage
+	messages.addMessages(drillIntoEventsForImagePullIssue(log, pod, image, podEvents))
+	files := []string{podFile}
+	reported := 0
+	for _, message := range messages {
+		if dockerPullRateLimit.MatchString(message) {
+			issueReporter.AddKnownIssueMessagesFiles(
+				report.ImagePullRateLimit,
+				clusterRoot,
+				messages,
+				files,
+			)
+			reported++
+		} else if dockerServiceUnavailable.MatchString(message) {
+			issueReporter.AddKnownIssueMessagesFiles(
+				report.ImagePullService,
+				clusterRoot,
+				messages,
+				files,
+			)
+			reported++
+		} else if dockerNameUnknown.MatchString(message) || dockerNotFound.MatchString(message) {
+			issueReporter.AddKnownIssueMessagesFiles(
+				report.ImagePullNotFound,
+				clusterRoot,
+				messages,
+				files,
+			)
+			reported++
+		}
+	}
+
+	// If we didn't detect more specific issues here, fall back to the general ImagePullBackOff
+	if reported == 0 {
+		issueReporter.AddKnownIssueMessagesFiles(
+			report.ImagePullBackOff,
+			clusterRoot,
+			messages,
+			files,
+		)
+	}
 }
 
 func podStatusConditionIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {

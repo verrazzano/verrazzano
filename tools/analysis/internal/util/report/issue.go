@@ -96,6 +96,9 @@ func (issue *Issue) Validate(log *zap.SugaredLogger, mapSource string) (err erro
 // Known Issue Types.
 const (
 	ImagePullBackOff          = "ImagePullBackOff"
+	ImagePullRateLimit        = "ImagePullRateLimit"
+	ImagePullNotFound         = "ImagePullNotFound"
+	ImagePullService          = "ImagePullService"
 	InsufficientMemory        = "InsufficientMemory"
 	IngressInstallFailure     = "IngressInstallFailure"
 	IngressNoLoadBalancerIP   = "IngressNoLoadBalancerIP"
@@ -110,7 +113,10 @@ const (
 // Known Issue Templates. While analyzers are free to roll their own custom Issues, the preference for well-known issues is to capture them
 // here so they are more generally available.
 var knownIssues = map[string]Issue{
-	ImagePullBackOff:          {Type: ImagePullBackOff, Summary: "Failure(s) pulling images have been detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ImagePullBackOff]}},
+	ImagePullBackOff:          {Type: ImagePullBackOff, Summary: "Failure(s) pulling images have been detected, however a specific root cause was not identified", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ImagePullBackOff]}},
+	ImagePullRateLimit:        {Type: ImagePullRateLimit, Summary: "Failure(s) pulling images have been detected due to an image pull rate limit", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ImagePullRateLimit]}},
+	ImagePullNotFound:         {Type: ImagePullNotFound, Summary: "Failure(s) pulling images have been detected due to the image not being found", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ImagePullNotFound]}},
+	ImagePullService:          {Type: ImagePullService, Summary: "Failure(s) pulling images have been detected due to the service not being available, the service may be unreachable or may be incorrectly specified", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ImagePullService]}},
 	InsufficientMemory:        {Type: InsufficientMemory, Summary: "Failure(s) due to insufficient memory on nodes have been detected", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InsufficientMemory]}},
 	IngressInstallFailure:     {Type: IngressInstallFailure, Summary: "Verrazzano install failed while installing the NGINX Ingress Controller, however a specific root cause was not identified", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressInstallFailure]}},
 	IngressNoLoadBalancerIP:   {Type: IngressNoLoadBalancerIP, Summary: "Verrazzano install failed while installing the NGINX Ingress Controller, the root cause appears to be the LoadBalancer is not there or is unable to set the ingress IP address on the NGINX Ingress service", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressNoLoadBalancerIP]}},
@@ -236,7 +242,10 @@ func deduplicateStringSlice(sliceIn []string) (sliceOut []string) {
 	} else {
 		tempMap := make(map[string]int)
 		for _, value := range sliceIn {
-			tempMap[value] = 0
+			_, ok := tempMap[value]
+			if !ok {
+				tempMap[value] = 0
+			}
 		}
 		sliceOut = make([]string, len(tempMap))
 		index := 0

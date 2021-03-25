@@ -103,7 +103,7 @@ func TestImagePull(t *testing.T) {
 	assert.True(t, len(reportedIssues) > 0)
 	imagePullsFound := 0
 	for _, issue := range reportedIssues {
-		if issue.Type == report.ImagePullBackOff {
+		if issue.Type == report.ImagePullNotFound {
 			imagePullsFound++
 		}
 	}

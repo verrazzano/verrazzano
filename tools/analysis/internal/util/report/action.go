@@ -40,6 +40,9 @@ const (
 // RunbookLinks are known runbook links
 var RunbookLinks = map[string][]string{
 	ImagePullBackOff:          {"TBD-ImagePullBackOffAction-runbook"},
+	ImagePullRateLimit:        {"TBD-ImagePullRateLimit-runbook"},
+	ImagePullNotFound:         {"TBD-ImagePullNotFound-runbook"},
+	ImagePullService:          {"TBD-ImagePullService-runbook"},
 	InsufficientMemory:        {"TBD-InsufficientMemory-runbook"},
 	IngressInstallFailure:     {"TBD-IngressInstallFailure-runbook"},
 	IngressNoLoadBalancerIP:   {"TBD-IngressNoLoadBalancerIP-runbook"},
@@ -51,6 +54,9 @@ var RunbookLinks = map[string][]string{
 // KnownActions are Standard Action types
 var KnownActions = map[string]Action{
 	ImagePullBackOff:          {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[ImagePullBackOff]},
+	ImagePullRateLimit:        {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[ImagePullRateLimit]},
+	ImagePullNotFound:         {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[ImagePullNotFound]},
+	ImagePullService:          {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[ImagePullService]},
 	InsufficientMemory:        {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[InsufficientMemory]},
 	IngressInstallFailure:     {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[IngressInstallFailure]},
 	IngressNoLoadBalancerIP:   {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[IngressNoLoadBalancerIP]},
