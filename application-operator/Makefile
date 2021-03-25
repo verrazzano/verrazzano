@@ -179,7 +179,6 @@ cleanup-cluster:
 
 .PHONY: create-cluster
 create-cluster:
-	# We only create a cluster here if this is not on Jenkins. Jenkins will set the cluster
 	kind_clusters=$$(kind get clusters) ; \
     if [ -z "$${kind_clusters}" ] || ! kind get clusters | egrep "^${CLUSTER_NAME}\$$" > /dev/null ; then \
         echo 'Create cluster...' ;\
@@ -190,6 +189,14 @@ create-cluster:
             --config=test/${KIND_CONFIG} ;\
         kubectl config set-context kind-${CLUSTER_NAME} ;\
     fi
+ifdef JENKINS_URL
+	# Get the ip address of the container running the kube apiserver
+	# and update the kubeconfig file to point to that address, instead of localhost
+	sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
+	cat ${KUBECONFIG} | grep server
+
+	$$(X=$$(docker inspect $$(docker ps | grep "jenkins-runner" | awk '{ print $$1 }') | jq '.[].NetworkSettings.Networks' | grep -q kind ; echo $$?); if [[ ! $$X -eq "0" ]]; then docker network connect kind $$(docker ps | grep "jenkins-runner" | awk '{ print $$1 }'); fi)
+endif
 
 .PHONY: delete-cluster
 delete-cluster:

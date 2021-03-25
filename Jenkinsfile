@@ -256,8 +256,6 @@ pipeline {
                     ../build/copy-junit-output.sh ${WORKSPACE}
                     cd ${GO_REPO_PATH}/verrazzano/application-operator
                     make cleanup-cluster
-                    make create-cluster KIND_CONFIG="kind-config-ci.yaml"
-                    ../ci/scripts/setup_kind_for_jenkins.sh
                     make integ-test KIND_CONFIG="kind-config-ci.yaml" DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     ../build/copy-junit-output.sh ${WORKSPACE}
                 """
