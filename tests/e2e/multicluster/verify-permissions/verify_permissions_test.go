@@ -280,7 +280,10 @@ func CreateOrUpdateResourceFromFile(yamlFile string, object runtime.Object) erro
 		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
 	}
 
-	err = clustersClient.Update(context.TODO(), object)
+	err = clustersClient.Create(context.TODO(), object)
+	if err != nil && errors.IsAlreadyExists(err) {
+		err = clustersClient.Update(context.TODO(), object)
+	}
 
 	return err
 }
@@ -315,28 +318,28 @@ func deployTestResources() {
 
 	// create the test ns
 	pkg.Log(pkg.Info, "Creating test project")
-	err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-multiclustertest.yaml")
+	err := CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-multiclustertest.yaml", &clustersv1alpha1.VerrazzanoProject{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create test namespace: %v", err))
 	}
 
 	// create a config map
 	pkg.Log(pkg.Info, "Creating MC config map")
-	err = pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap.yaml")
+	err = CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster config map: %v", err))
 	}
 
 	// create a logging scope
 	pkg.Log(pkg.Info, "Creating MC logging scope")
-	err = pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_loggingscope.yaml")
+	err = CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_loggingscope.yaml", &clustersv1alpha1.MultiClusterLoggingScope{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster logging scope: %v", err))
 	}
 
 	// create a secret
 	pkg.Log(pkg.Info, "Creating MC secret")
-	err = pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret.yaml")
+	err = CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &clustersv1alpha1.MultiClusterSecret{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster secret: %v", err))
 	}
@@ -349,28 +352,28 @@ func undeployTestResources() {
 
 	// create a config map
 	pkg.Log(pkg.Info, "Creating MC config map")
-	err := pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml")
+	err := DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster config map: %v", err))
 	}
 
 	// create a logging scope
 	pkg.Log(pkg.Info, "Creating MC logging scope")
-	err = pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_loggingscope.yaml")
+	err = DeleteResourceFromFile("testdata/multicluster/multicluster_loggingscope.yaml", &clustersv1alpha1.MultiClusterLoggingScope{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster logging scope: %v", err))
 	}
 
 	// create a secret
 	pkg.Log(pkg.Info, "Creating MC secret")
-	err = pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml")
+	err = DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &clustersv1alpha1.MultiClusterSecret{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster secret: %v", err))
 	}
 
 	// create the test ns
 	pkg.Log(pkg.Info, "Creating test project")
-	err = pkg.DeleteResourceFromFile("testdata/multicluster/verrazzanoproject-multiclustertest.yaml")
+	err = DeleteResourceFromFile("testdata/multicluster/verrazzanoproject-multiclustertest.yaml", &clustersv1alpha1.VerrazzanoProject{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create test namespace: %v", err))
 	}
