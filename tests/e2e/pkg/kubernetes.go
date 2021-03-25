@@ -6,17 +6,14 @@ package pkg
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
+	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
 	"k8s.io/api/authorization/v1beta1"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
-
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
-	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 
@@ -520,26 +517,7 @@ func CreateRoleBinding(userOCID string, namespace string, rolebindingname string
 			APIVersion: "rbac.authorization.k8s.io/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            rolebindingname,
-			GenerateName:    "",
-			Namespace:       "",
-			SelfLink:        "",
-			UID:             "",
-			ResourceVersion: "",
-			Generation:      0,
-			CreationTimestamp: metav1.Time{
-				Time: time.Time{},
-			},
-			DeletionTimestamp: &metav1.Time{
-				Time: time.Time{},
-			},
-			DeletionGracePeriodSeconds: nil,
-			Labels:                     nil,
-			Annotations:                nil,
-			OwnerReferences:            nil,
-			Finalizers:                 nil,
-			ClusterName:                "",
-			ManagedFields:              nil,
+			Name: rolebindingname,
 		},
 		Subjects: subjects,
 		RoleRef: rbacv1.RoleRef{
@@ -549,11 +527,11 @@ func CreateRoleBinding(userOCID string, namespace string, rolebindingname string
 		},
 	}
 
-	newrb, err := clientset.RbacV1().RoleBindings(namespace).Create(context.TODO(), &rb, metav1.CreateOptions{})
+	_, err := clientset.RbacV1().RoleBindings(namespace).Create(context.TODO(), &rb, metav1.CreateOptions{})
 	if err != nil {
-		fmt.Sprintf("Failed to create role binding: %v", err)
+		Log(Info, fmt.Sprintf("Failed to create role binding: %v", err))
 	}
-	log.Printf("%+v", &newrb)
+
 	return err
 }
 
@@ -609,7 +587,7 @@ func CanIGroup(userOCID string, namespace string, verb string, resource string, 
 			rt = wt(rt)
 		}
 		return &headerAdder{
-			headers: map[string][]string{"Impersonate-User": []string{userOCID}},
+			headers: map[string][]string{"Impersonate-User": {userOCID}},
 			rt:      rt,
 		}
 	}
@@ -621,9 +599,9 @@ func CanIGroup(userOCID string, namespace string, verb string, resource string, 
 
 	auth, err := clientset.AuthorizationV1beta1().SelfSubjectAccessReviews().Create(context.TODO(), canI, metav1.CreateOptions{})
 	if err != nil {
-		fmt.Sprintf("Failed to check perms: %v", err)
+		Log(Info, fmt.Sprintf("Failed to check perms: %v", err))
 	}
-	log.Printf("%+v", &auth)
+
 	return auth.Status.Allowed, auth.Status.Reason
 
 }
