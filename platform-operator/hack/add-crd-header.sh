@@ -9,13 +9,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-SCRIPT_ROOT=$(dirname $0)/..
-CRD_HEADER=$(dirname $0)/boilerplate.yaml.txt
+SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 GENERATED_CRDS_DIR=$SCRIPT_ROOT/helm_config/charts/verrazzano-platform-operator/crds
 
-for CRD_FILENAME in $(ls $GENERATED_CRDS_DIR/*.y*ml) ; do
-  echo "Adding header from $CRD_HEADER to generated CRD file $CRD_FILENAME"
-  TMP_CRD=${CRD_FILENAME}.tmp
-  cat $CRD_HEADER $CRD_FILENAME > $TMP_CRD
-  mv $TMP_CRD $CRD_FILENAME
-done
+go run ${SCRIPT_DIR}/../../tools/fix-copyright/copyright.go $GENERATED_CRDS_DIR

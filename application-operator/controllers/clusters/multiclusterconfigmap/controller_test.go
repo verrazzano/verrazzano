@@ -6,6 +6,7 @@ package multiclusterconfigmap
 import (
 	"context"
 	"encoding/json"
+	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"path/filepath"
 	"testing"
 
@@ -80,7 +81,7 @@ func TestReconcileCreateConfigMap(t *testing.T) {
 	}
 
 	// expect a call to fetch the MultiClusterConfigMap
-	doExpectGetMultiClusterConfigMap(cli, mcConfigMap)
+	doExpectGetMultiClusterConfigMap(cli, mcConfigMap, false)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -95,6 +96,15 @@ func TestReconcileCreateConfigMap(t *testing.T) {
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, c *v1.ConfigMap, opts ...client.CreateOption) error {
 			assertConfigMapValid(assert, c, mcConfigMap)
+			return nil
+		})
+
+	// expect a call to update the resource with a finalizer
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *clustersv1alpha1.MultiClusterConfigMap, opts ...client.UpdateOption) error {
+			assert.True(len(configMap.ObjectMeta.Finalizers) == 1, "Wrong number of finalizers")
+			assert.Equal(finalizerName, configMap.ObjectMeta.Finalizers[0], "wrong finalizer")
 			return nil
 		})
 
@@ -129,7 +139,7 @@ func TestReconcileUpdateConfigMap(t *testing.T) {
 	}
 
 	// expect a call to fetch the MultiClusterConfigMap
-	doExpectGetMultiClusterConfigMap(cli, mcConfigMap)
+	doExpectGetMultiClusterConfigMap(cli, mcConfigMap, true)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -176,7 +186,7 @@ func TestReconcileCreateConfigMapFailed(t *testing.T) {
 	}
 
 	// expect a call to fetch the MultiClusterConfigMap
-	doExpectGetMultiClusterConfigMap(cli, mcConfigMap)
+	doExpectGetMultiClusterConfigMap(cli, mcConfigMap, false)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -225,7 +235,7 @@ func TestReconcileUpdateConfigMapFailed(t *testing.T) {
 	}
 
 	// expect a call to fetch the MultiClusterConfigMap
-	doExpectGetMultiClusterConfigMap(cli, mcConfigMap)
+	doExpectGetMultiClusterConfigMap(cli, mcConfigMap, true)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -275,7 +285,7 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 	mcConfigMap.Spec.Placement.Clusters[0].Name = "not-my-cluster"
 
 	// expect a call to fetch the MultiClusterConfigMap
-	doExpectGetMultiClusterConfigMap(cli, mcConfigMap)
+	doExpectGetMultiClusterConfigMap(cli, mcConfigMap, true)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -283,6 +293,24 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 	// The effective state of the object will get updated even if it is note locally placed,
 	// since it would have changed
 	clusterstest.DoExpectUpdateState(t, cli, statusWriter, &mcConfigMap, clustersv1alpha1.Pending)
+
+	clusterstest.ExpectDeleteAssociatedResource(cli, &v1alpha2.Component{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mcConfigMap.Name,
+			Namespace: mcConfigMap.Namespace,
+		},
+	}, types.NamespacedName{
+		Namespace: mcConfigMap.Namespace,
+		Name:      mcConfigMap.Name,
+	})
+
+	// expect a call to update the resource with no finalizers
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap, opts ...client.UpdateOption) error {
+			assert.True(len(mcConfigMap.Finalizers) == 0, "Wrong number of finalizers")
+			return nil
+		})
 
 	// Expect no further action
 
@@ -375,13 +403,16 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 
 // doExpectGetMultiClusterConfigMap adds an expectation to the given MockClient to expect a Get
 // call for a MultiClusterConfigMap, and populate the multi cluster ConfigMap with given data
-func doExpectGetMultiClusterConfigMap(cli *mocks.MockClient, mcConfigMapSample clustersv1alpha1.MultiClusterConfigMap) {
+func doExpectGetMultiClusterConfigMap(cli *mocks.MockClient, mcConfigMapSample clustersv1alpha1.MultiClusterConfigMap, addFinalizer bool) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.AssignableToTypeOf(&mcConfigMapSample)).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap) error {
 			mcConfigMap.ObjectMeta = mcConfigMapSample.ObjectMeta
 			mcConfigMap.TypeMeta = mcConfigMapSample.TypeMeta
 			mcConfigMap.Spec = mcConfigMapSample.Spec
+			if addFinalizer {
+				mcConfigMap.Finalizers = append(mcConfigMap.Finalizers, finalizerName)
+			}
 			return nil
 		})
 }
@@ -394,11 +425,6 @@ func assertConfigMapValid(assert *asserts.Assertions, cm *v1.ConfigMap, mcConfig
 	assert.Equal(mcConfigMap.Spec.Template.Data, cm.Data)
 	assert.Equal(mcConfigMap.Spec.Template.BinaryData, cm.BinaryData)
 
-	// assert that the owner reference points to a MultiClusterConfigMap
-	assert.Equal(1, len(cm.OwnerReferences))
-	assert.Equal("MultiClusterConfigMap", cm.OwnerReferences[0].Kind)
-	assert.Equal(clustersv1alpha1.GroupVersion.String(), cm.OwnerReferences[0].APIVersion)
-	assert.Equal(crName, cm.OwnerReferences[0].Name)
 }
 
 // getMCConfigMap creates and returns a sample MultiClusterConfigMap used in tests

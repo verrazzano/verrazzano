@@ -8,22 +8,31 @@ import (
 	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/report"
 	"go.uber.org/zap"
+	appsv1 "k8s.io/api/apps/v1"
 	"strings"
 )
 
-// AllNamespacesFound is a list of the namespaces found
-var AllNamespacesFound []string
+// TODO: Helpers to access this info as needed
 
-// VerrazzanoNamespacesFound is a list of the verrazzano namespaces found
-var VerrazzanoNamespacesFound []string
+// allNamespacesFound is a list of the namespaces found
+var allNamespacesFound []string
+
+// verrazzanoNamespacesFound is a list of the verrazzano namespaces found
+var verrazzanoNamespacesFound []string
+
+// TODO: CRDs related to verrazzano
+
+// verrazzanoDeployments related to verrazzano
+var verrazzanoDeployments = make(map[string]appsv1.Deployment)
+var problematicVerrazzanoDeploymentNames = make([]string, 0)
 
 var verrazzanoAnalysisFunctions = map[string]func(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) (err error){
 	"Installation status": installationStatus,
 }
 
 // AnalyzeVerrazano handles high level checking for Verrazzano itself
-func AnalyzeVerrazano(log *zap.SugaredLogger, clusterRoot string) (err error) {
-	log.Debugf("AnalyzeVerrazano called for %s", clusterRoot)
+func AnalyzeVerrazzano(log *zap.SugaredLogger, clusterRoot string) (err error) {
+	log.Debugf("AnalyzeVerrazzano called for %s", clusterRoot)
 
 	var issueReporter = report.IssueReporter{
 		PendingIssues: make(map[string]report.Issue),
@@ -49,14 +58,28 @@ func installationStatus(log *zap.SugaredLogger, clusterRoot string, issueReporte
 	// The intention is that we should at least give an Informational on what the state is.
 
 	// Enumerate the namespaces that we found overall and the Verrazzano specific ones separately
-	AllNamespacesFound, err = files.FindNamespaces(log, clusterRoot)
+	// Also look at the deployments in the Verrazzano related namespaces
+	allNamespacesFound, err = files.FindNamespaces(log, clusterRoot)
 	if err != nil {
 		return err
 	}
-	for _, namespace := range AllNamespacesFound {
+	for _, namespace := range allNamespacesFound {
 		// These are verrazzano owned namespaces
 		if strings.Contains(namespace, "verrazzano") {
-			VerrazzanoNamespacesFound = append(VerrazzanoNamespacesFound, namespace)
+			verrazzanoNamespacesFound = append(verrazzanoNamespacesFound, namespace)
+			deploymentList, err := GetDeploymentList(log, files.FindFileInNamespace(clusterRoot, namespace, "deployments.json"))
+			if err != nil {
+				// Log the error and continue on
+				log.Errorf("Error getting deployments in %s", namespace, err)
+			}
+			if deploymentList != nil && len(deploymentList.Items) > 0 {
+				for _, deployment := range deploymentList.Items {
+					verrazzanoDeployments[deployment.ObjectMeta.Name] = deployment
+					if IsDeploymentProblematic(&deployment) {
+						problematicVerrazzanoDeploymentNames = append(problematicVerrazzanoDeploymentNames, deployment.ObjectMeta.Name)
+					}
+				}
+			}
 		}
 
 		// TBD: For now not enumerating out potentially related namespaces that could be here even
@@ -72,6 +95,9 @@ func installationStatus(log *zap.SugaredLogger, clusterRoot string, issueReporte
 	// TODO: Inspect the verrazzano-system namespace. The deployments/status here will tell us what we need to fan out
 	//       and drill into
 	// TODO: Inspect the verrazzano-mc namespace (TBD)
+
+	// TODO: verrazzanoApiResourceMatches := files.SearchFile(log, files.FindFileInCluster(cluserRoot, "api_resources.out"), ".*verrazzano.*")
+	// TODO: verrazzanoResources (json file)
 
 	return nil
 }
