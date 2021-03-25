@@ -63,7 +63,7 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 		})
 
 		ginkgo.It("Succeed getting Pods in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User List Pods in NameSpace rbactest?  no")
+			pkg.Log(pkg.Info, "Can User List Pods in NameSpace rbactest?  Yes")
 			if allowed, reason := pkg.CanI(v80ProjectAdmin, rbacTestNamespace, "list", "pods"); allowed == false {
 				ginkgo.Fail(fmt.Sprintf("FAIL: Did Not Pass Authorization on user list pods: Allowed = %t, reason = %s", allowed, reason))
 			}
@@ -160,7 +160,7 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 		})
 
 		ginkgo.It("Succeed getting Pods in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User List Pods in NameSpace rbactest?  no")
+			pkg.Log(pkg.Info, "Can User List Pods in NameSpace rbactest?  Yes")
 			if allowed, reason := pkg.CanI(v80ProjectMonitor, rbacTestNamespace, "list", "pods"); allowed == false {
 				ginkgo.Fail(fmt.Sprintf("FAIL: Did Not Pass Authorization on user list pods: Allowed = %t, reason = %s", allowed, reason))
 			}
