@@ -6,6 +6,8 @@ package pkg
 import (
 	"context"
 	"fmt"
+	"k8s.io/api/authorization/v1beta1"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,6 +35,22 @@ import (
 )
 
 const dockerconfigjsonTemplate string = "{\"auths\":{\"%v\":{\"username\":\"%v\",\"password\":\"%v\",\"auth\":\"%v\"}}}"
+
+// headerAdder is an http.RoundTripper that adds additional headers to the request
+type headerAdder struct {
+	headers map[string][]string
+
+	rt http.RoundTripper
+}
+
+func (h *headerAdder) RoundTrip(req *http.Request) (*http.Response, error) {
+	for k, vv := range h.headers {
+		for _, v := range vv {
+			req.Header.Add(k, v)
+		}
+	}
+	return h.rt.RoundTrip(req)
+}
 
 // GetKubeConfig will get the kubeconfig from the environment variable KUBECONFIG, if set, or else from $HOME/.kube/config
 func GetKubeConfig() *restclient.Config {
@@ -479,6 +497,43 @@ func DoesRoleBindingContainSubject(namespace, name, subjectKind, subjectName str
 	return false
 }
 
+func CreateRoleBinding(userOCID string, namespace string, rolebindingname string, clusterrolename string) error {
+
+	subject1 := rbacv1.Subject{
+		Kind:      "User",
+		APIGroup:  "rbac.authorization.k8s.io",
+		Name:      userOCID,
+		Namespace: "",
+	}
+	subjects := []rbacv1.Subject{0: subject1}
+
+	rb := rbacv1.RoleBinding{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "RoleBinding",
+			APIVersion: "rbac.authorization.k8s.io/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: rolebindingname,
+		},
+		Subjects: subjects,
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     clusterrolename,
+		},
+	}
+
+	// Get the Kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	_, err := clientset.RbacV1().RoleBindings(namespace).Create(context.TODO(), &rb, metav1.CreateOptions{})
+	if err != nil {
+		Log(Info, fmt.Sprintf("Failed to create role binding: %v", err))
+	}
+
+	return err
+}
+
 // GetIstioClientset returns the clientset object for Istio
 func GetIstioClientset() *istioClient.Clientset {
 	cs, err := istioClient.NewForConfig(GetKubeConfig())
@@ -498,4 +553,55 @@ func GetConfigMap(configMapName string, namespace string) *corev1.ConfigMap {
 		ginkgo.Fail(fmt.Sprintf("Failed to get Config Map %v from namespace %v:  Error = %v ", configMapName, namespace, err))
 	}
 	return configMap
+}
+
+func CanI(userOCID string, namespace string, verb string, resource string) (bool, string) {
+	return CanIGroup(userOCID, namespace, verb, resource, "")
+}
+
+func CanIGroup(userOCID string, namespace string, verb string, resource string, group string) (bool, string) {
+
+	canI := &v1beta1.SelfSubjectAccessReview{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "SelfSubjectAccessReview",
+			APIVersion: "authorization.k8s.io/v1",
+		},
+		Spec: v1beta1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &v1beta1.ResourceAttributes{
+				Namespace:   namespace,
+				Verb:        verb,
+				Group:       group,
+				Version:     "",
+				Resource:    resource,
+				Subresource: "",
+				Name:        "",
+			},
+		},
+	}
+
+	config := GetKubeConfig()
+
+	wt := config.WrapTransport // Config might already have a transport wrapper
+	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+		if wt != nil {
+			rt = wt(rt)
+		}
+		return &headerAdder{
+			headers: map[string][]string{"Impersonate-User": {userOCID}},
+			rt:      rt,
+		}
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		ginkgo.Fail("Could not get Kubernetes clientset")
+	}
+
+	auth, err := clientset.AuthorizationV1beta1().SelfSubjectAccessReviews().Create(context.TODO(), canI, metav1.CreateOptions{})
+	if err != nil {
+		Log(Info, fmt.Sprintf("Failed to check perms: %v", err))
+	}
+
+	return auth.Status.Allowed, auth.Status.Reason
+
 }
