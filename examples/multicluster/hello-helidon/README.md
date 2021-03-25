@@ -59,8 +59,11 @@ To undeploy the application from the managed cluster, delete the multicluster re
 cluster:
 
 ```shell
-$ KUBECONFIG=$KUBECONFIG_ADMIN kubectl delete -f mc-hello-helidon-comp.yaml
+# Delete the multicluster application configuration
 $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl delete -f mc-hello-helidon-app.yaml
+# Delete the multicluster components for the application 
+$ KUBECONFIG=$KUBECONFIG_ADMIN kubectl delete -f mc-hello-helidon-comp.yaml
+# Delete the project
 $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl delete -f verrazzano-project.yaml
 ```
 
