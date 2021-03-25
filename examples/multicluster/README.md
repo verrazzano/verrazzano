@@ -91,21 +91,21 @@ Unregistering a managed cluster is largely the reverse of the above steps; at a 
 Using the names and resources from the examples in the previous section, here are the steps for 
 unregistering the managed cluster `managed1`:
 
-1. Delete the cluster registration secrets on the managed cluster.
+1. On the managed cluster, delete the cluster registration secrets.
    ```
    $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl delete secret -n verrazzano-system verrazzano-cluster-agent \
        verrazzano-cluster-registration \
        verrazzano-cluster-elasticsearch
    ```
-1. Delete the `VerrazzanoManagedCluster` object on the admin cluster.
+1. On the admin cluster, delete the `VerrazzanoManagedCluster` object.
    ```
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl delete vmc -n verrazzano-mc managed1
    ```
-1. (Optional) Delete the managed cluster Prometheus secret
+1. (Optional) On the admin cluster, delete the managed cluster Prometheus secret
    ```
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl delete secret -n verrazzano-mc prometheus-managed1
    ```
-1. (Optional) Delete the admin cluster configmap
+1. (Optional) On the admin cluster, delete the admin cluster configmap
    ```
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl delete configmap -n verrazzano-mc verrazzano-admin-cluster
    ```
