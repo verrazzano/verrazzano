@@ -378,7 +378,7 @@ pipeline {
                                     export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                                     export MANAGED_ACCESS_KUBECONFIG="${KUBECONFIG_DIR}/${count}/managed_kube_config"
                                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                    ginkgo --randomizeAllSpecs -v -keepGoing --noColor multicluster/verify-permissions/...
+                                    ginkgo -v -keepGoing --noColor multicluster/verify-permissions/...
                                 """
                             }
                         }
