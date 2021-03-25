@@ -5,6 +5,7 @@ package cohworkload
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
@@ -20,6 +21,7 @@ import (
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -112,6 +114,12 @@ func TestReconcileCreateCoherence(t *testing.T) {
 			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
 			return nil
+		})
+	// expect a call to attempt to get the Coherence CR - return not found
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
+			return errors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 	// expect a call to create the Coherence CR
 	cli.EXPECT().
@@ -235,7 +243,12 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 			asserts.Equal(t, client.CreateOptions{}, *options)
 			return nil
 		})
-
+	// expect a call to attempt to get the Coherence CR - return not found
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
+			return errors.NewNotFound(k8sschema.GroupResource{}, "")
+		})
 	// expect a call to create the Coherence CR
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
@@ -364,6 +377,12 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			asserts.Equal(t, client.CreateOptions{}, *options)
 			return nil
 		})
+	// expect a call to attempt to get the Coherence CR - return not found
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
+			return errors.NewNotFound(k8sschema.GroupResource{}, "")
+		})
 	// expect a call to create the Coherence CR
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
@@ -402,12 +421,12 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 	assert.Equal(false, result.Requeue)
 }
 
-// TestReconcileAlreadyExists tests reconciling a VerrazzanoCoherenceWorkload when the Coherence
-// CR already exists. We ignore the error and return success.
-// GIVEN a VerrazzanoCoherenceWorkload resource is created
+// TestReconcileUpdateCR tests reconciling a VerrazzanoCoherenceWorkload when the Coherence
+// CR already exists. We expect the CR to be updated.
+// GIVEN a VerrazzanoCoherenceWorkload resource is updated
 // WHEN the controller Reconcile function is called and the Coherence CR already exists
-// THEN ignore the error on create and return success
-func TestReconcileAlreadyExists(t *testing.T) {
+// THEN the Coherence CR is updated
+func TestReconcileUpdateCR(t *testing.T) {
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -416,6 +435,9 @@ func TestReconcileAlreadyExists(t *testing.T) {
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
+
+	// simulate the "replicas" field changing to 3
+	replicasFromWorkload := int64(3)
 
 	// expect a call to fetch the OAM application configuration
 	cli.EXPECT().
@@ -429,7 +451,7 @@ func TestReconcileAlreadyExists(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-coherence-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
+			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":` + fmt.Sprint(replicasFromWorkload) + `}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.GroupVersion.String()
@@ -444,13 +466,31 @@ func TestReconcileAlreadyExists(t *testing.T) {
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
 			return nil
 		})
-	// expect a call to create the Coherence CR and return an AlreadyExists error
+	// expect a call to attempt to get the Coherence CR and return an existing resource
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
+			// note this resource has a "replicas" field currently set to 1
+			spec := map[string]interface{}{"replicas": int64(1)}
+			return unstructured.SetNestedField(u.Object, spec, specField)
+		})
+	// expect a call to update the Coherence CR
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal(coherenceAPIVersion, u.GetAPIVersion())
 			assert.Equal(coherenceKind, u.GetKind())
-			return k8serrors.NewAlreadyExists(k8sschema.GroupResource{}, "")
+
+			// make sure the replicas field is set to the correct value (from our workload spec)
+			spec, _, _ := unstructured.NestedMap(u.Object, specField)
+			assert.Equal(replicasFromWorkload, spec["replicas"])
+			return nil
+		})
+	// expect a call to get the namespace for the Coherence resource
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+			return nil
 		})
 
 	// create a request and reconcile it
@@ -504,6 +544,12 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
 			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
 			return nil
+		})
+	// expect a call to attempt to get the Coherence CR - return not found
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
+			return errors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 	// expect a call to create the Coherence CR and return an error
 	cli.EXPECT().
