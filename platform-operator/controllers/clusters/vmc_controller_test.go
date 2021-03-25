@@ -393,6 +393,9 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 		return nil
 	})
 
+	// expect status updated with condition Ready=true
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "")
+
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
