@@ -85,28 +85,28 @@ Unregistering a managed cluster is largely the reverse of the above steps; at a 
 * (Recommended) Move or remove any application placements to the managed cluster (see the [hello-helidon example](./hello-helidon/README.md#Undeploy the Hello World Helidon application)). 
 * Deleting the cluster registration secrets from the managed cluster.
 * Deleting the VerrazzanoManagedCluster custom resource on the admin cluster.
-* (Optional) Deleting the managed cluster Prometheus secret on the admin cluster if they are no longer needed.
+* (Optional) Deleting the managed cluster Prometheus secret on the admin cluster if it is no longer needed.
 * (Optional) Deleting the admin cluster configmap if it is no longer needed.
 
-Using the names and resources from the examples in the previous section, here are some sample steps for 
+Using the names and resources from the examples in the previous section, here are the steps for 
 unregistering the managed cluster `managed1`:
 
 1. Delete the cluster registration secrets on the managed cluster.
-   ```shell
+   ```
    $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl delete secret -n verrazzano-system verrazzano-cluster-agent \
        verrazzano-cluster-registration \
        verrazzano-cluster-elasticsearch
    ```
 1. Delete the `VerrazzanoManagedCluster` object on the admin cluster.
-   ```shell
+   ```
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl delete vmc -n verrazzano-mc managed1
    ```
 1. (Optional) Delete the managed cluster Prometheus secret
-   ```shell
+   ```
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl delete secret -n verrazzano-mc prometheus-managed1
    ```
 1. (Optional) Delete the admin cluster configmap
-   ```shell
+   ```
    $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl delete configmap -n verrazzano-mc verrazzano-admin-cluster
    ```
 
