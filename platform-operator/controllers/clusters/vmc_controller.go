@@ -289,7 +289,7 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 		}
 	}
 	if matchingCondition == nil {
-		r.log.Info("no matching conditions found")
+		r.log.Infof("no matching conditions found, adding condition %s", matchingCondition)
 		vmc.Status.Conditions = append(vmc.Status.Conditions, condition)
 	} else {
 		r.log.Infof("matching condition found %s", matchingCondition)
