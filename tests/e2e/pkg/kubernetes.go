@@ -527,6 +527,9 @@ func CreateRoleBinding(userOCID string, namespace string, rolebindingname string
 		},
 	}
 
+	// Get the Kubernetes clientset
+	clientset := GetKubernetesClientset()
+
 	_, err := clientset.RbacV1().RoleBindings(namespace).Create(context.TODO(), &rb, metav1.CreateOptions{})
 	if err != nil {
 		Log(Info, fmt.Sprintf("Failed to create role binding: %v", err))
@@ -559,6 +562,7 @@ func GetConfigMap(configMapName string, namespace string) *corev1.ConfigMap {
 func CanI(userOCID string, namespace string, verb string, resource string) (bool, string) {
 	return CanIGroup(userOCID, namespace, verb, resource, "")
 }
+
 func CanIGroup(userOCID string, namespace string, verb string, resource string, group string) (bool, string) {
 
 	canI := &v1beta1.SelfSubjectAccessReview{
