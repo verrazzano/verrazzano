@@ -125,10 +125,6 @@ var _ = ginkgo.BeforeSuite(func() {
 
 var _ = ginkgo.Describe("VMI", func() {
 
-	ginkgo.It("api server should be accessible", func() {
-		assertURLByIngressName("vmi-system-api")
-	})
-
 	isManagedClusterProfile := pkg.IsManagedClusterProfile()
 	if isManagedClusterProfile {
 		ginkgo.It("Elasticsearch should NOT be present", func() {

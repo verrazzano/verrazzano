@@ -48,8 +48,8 @@ kibana:
 
 verrazzanoOperator:
   name: verrazzano-operator
-  imageName: ghcr.io/verrazzano/verrazzano-operator
-  imageVersion: 0.13.0-20210319172416-efa12cc
+  imageName: phx.ocir.io/stevengreenberginc/pabhat/verrazzano-operator-dev
+  imageVersion: 0.13.1
   prometheusPusherImage: ghcr.io/verrazzano/prometheus-pusher:1.0.1-20201016212958-5b64612
   nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
   filebeatImage: ghcr.io/verrazzano/filebeat:6.8.3-20201016212236-05eabe44b
@@ -60,8 +60,8 @@ verrazzanoOperator:
 
 monitoringOperator:
   name: verrazzano-monitoring-operator
-  imageName: ghcr.io/verrazzano/verrazzano-monitoring-operator
-  imageVersion: 0.13.0-20210318195554-50fe664
+  imageName: phx.ocir.io/stevengreenberginc/pabhat/verrazzano-monitoring-operator-dev
+  imageVersion: 0.13.1
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
@@ -73,10 +73,10 @@ monitoringOperator:
   alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
   esImage: ghcr.io/verrazzano/elasticsearch:7.6.1-20201130145440-5c76ab1
-  esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:0.13.0-20210318195554-50fe664
+  esWaitImage: phx.ocir.io/stevengreenberginc/pabhat/verrazzano-monitoring-instance-eswait-dev:0.13.1
   esInitImage: ghcr.io/oracle/oraclelinux:7.8
   kibanaImage: ghcr.io/verrazzano/kibana:7.6.1-20201130145840-7717e73
-  monitoringInstanceApiImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-api:0.13.0-20210316140925-d667c49
+  monitoringInstanceApiImage: "noimage"
   configReloaderImage: ghcr.io/verrazzano/configmap-reload:0.3-20201016205243-4f24a0e
   nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
   oidcProxyImage: ghcr.io/verrazzano/nginx-ingress-controller:0.32-20210122132046-a84f6166a
