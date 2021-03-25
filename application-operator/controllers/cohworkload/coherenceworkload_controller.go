@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const fluentdParsingRules = `<match fluent.**>
+const cohFluentdParsingRules = `<match fluent.**>
 @type null
 </match>
 
@@ -68,8 +68,7 @@ multiline_flush_interval 20s
 
 <match coherence-cluster>
   @type elasticsearch
-  hosts "#{ENV['ELASTICSEARCH_URL']}"
-  ca_file /fluentd/secret/ca-bundle
+  hosts "#{ENV['ELASTICSEARCH_URL']}"{{ .CAFile}}
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
   index_name "` + loggingscope.ElasticSearchIndex + `"
@@ -354,7 +353,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 		Context:                ctx,
 		Log:                    log,
 		Client:                 r.Client,
-		ParseRules:             fluentdParsingRules,
+		ParseRules:             cohFluentdParsingRules,
 		StorageVolumeName:      "logs",
 		StorageVolumeMountPath: "/logs",
 		WorkloadType:           workloadType,
