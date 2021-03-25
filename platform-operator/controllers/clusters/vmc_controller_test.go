@@ -370,8 +370,8 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	setConfigFunc(fakeGetConfig)
 
 	expectVmcGetAndUpdate(t, mock, testManagedCluster)
-	expectSyncServiceAccount(t, mock, testManagedCluster)
-	expectSyncRoleBinding(t, mock, testManagedCluster)
+	expectSyncServiceAccount(t, mock, testManagedCluster, true)
+	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
 	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, true)
@@ -401,6 +401,77 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestCreateVMCSyncSvcAccountFailed tests the Reconcile method for the following use case
+// GIVEN a request to reconcile an VerrazzanoManagedCluster resource
+// WHEN syncing of service account fails
+// THEN ensure that the VMC status is updated to Ready=false with an appropriate message
+func TestCreateVMCSyncSvcAccountFailed(t *testing.T) {
+	namespace := constants.VerrazzanoMultiClusterNamespace
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	defer setConfigFunc(getConfigFunc)
+	setConfigFunc(fakeGetConfig)
+
+	expectVmcGetAndUpdate(t, mock, testManagedCluster)
+	expectSyncServiceAccount(t, mock, testManagedCluster, false)
+
+	// expect status updated with condition Ready=true
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionFalse, "failing syncServiceAccount")
+
+	// Create and make the request
+	request := newRequest(namespace, testManagedCluster)
+	reconciler := newVMCReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results - there should not have been an error returned - we already expect the
+	// status to be updated with a Ready=false condition
+	mocker.Finish()
+	asserts.Nil(err)
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestCreateVMCSyncRoleBindingFailed tests the Reconcile method for the following use case
+// GIVEN a request to reconcile an VerrazzanoManagedCluster resource
+// WHEN syncing of role binding fails
+// THEN ensure that the VMC status is updated to Ready=false with an appropriate message
+func TestCreateVMCSyncRoleBindingFailed(t *testing.T) {
+	namespace := constants.VerrazzanoMultiClusterNamespace
+	name := "test"
+
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	defer setConfigFunc(getConfigFunc)
+	setConfigFunc(fakeGetConfig)
+
+	expectVmcGetAndUpdate(t, mock, name)
+	expectSyncServiceAccount(t, mock, name, true)
+	expectSyncRoleBinding(t, mock, name, false)
+
+	// expect status updated with condition Ready=true
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionFalse, "failing syncRoleBinding")
+
+	// Create and make the request
+	request := newRequest(namespace, name)
+	reconciler := newVMCReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results - there should not have been an error returned - we already expect the
+	// status to be updated with a Ready=false condition
+	mocker.Finish()
+	asserts.Nil(err)
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
