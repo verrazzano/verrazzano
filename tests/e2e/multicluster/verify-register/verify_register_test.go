@@ -197,7 +197,9 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 })
 
 func vmcStatusReady(vmc *vmcv1alpha1.VerrazzanoManagedCluster) bool {
+	fmt.Printf("VMC %s has %d status conditions\n", vmc.Name, len(vmc.Status.Conditions))
 	for _, cond := range vmc.Status.Conditions {
+		fmt.Printf("VMC %s has status condition %s with value %s with message %s\n", vmc.Name, cond.Type, cond.Status, cond.Message)
 		if cond.Type == vmcv1alpha1.ConditionReady && cond.Status == v1.ConditionTrue {
 			return true
 		}
