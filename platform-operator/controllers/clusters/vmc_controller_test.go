@@ -6,10 +6,10 @@ package clusters
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"fmt"
 	"testing"
 	"time"
 
