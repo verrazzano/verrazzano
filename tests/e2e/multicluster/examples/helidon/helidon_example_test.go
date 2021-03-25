@@ -12,6 +12,7 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -24,7 +25,10 @@ const (
 
 	multiclusterNamespace = "verrazzano-mc"
 	testNamespace         = "hello-helidon"
-	projectName           = "hello-helidon"
+
+	projectName   = "hello-helidon"
+	componentName = "hello-helidon-component"
+	workloadName  = "hello-helidon-workload"
 )
 
 var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
@@ -53,6 +57,14 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 		ginkgo.It("Verify the project exists", func() {
 			gomega.Eventually(projectExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
+
+		ginkgo.It("Verify the MultiClusterComponent exists", func() {
+			gomega.Eventually(mcComponentExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
+
+		ginkgo.It("Verify the VerrazzanoHelidonWorkload does NOT exist", func() {
+			gomega.Expect(componentWorkloadExists()).Should(gomega.BeFalse())
+		})
 	})
 
 	ginkgo.Context("Managed Cluster", func() {
@@ -62,6 +74,14 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 
 		ginkgo.It("Verify the project exists", func() {
 			gomega.Eventually(projectExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
+
+		ginkgo.It("Verify the MultiClusterComponent exists", func() {
+			gomega.Eventually(mcComponentExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
+
+		ginkgo.It("Verify the VerrazzanoHelidonWorkload exists", func() {
+			gomega.Eventually(componentWorkloadExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
 		ginkgo.It("Verify expected pods are running", func() {
@@ -98,21 +118,43 @@ func cleanUp() {
 	}
 }
 
-func projectExists() bool {
+func resourceExists(gvr schema.GroupVersionResource, ns string, name string) bool {
 	config := pkg.GetKubeConfig()
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not create dynamic client: %v\n", err))
 	}
 
-	projectResource := schema.GroupVersionResource{
+	u, err := client.Resource(gvr).Namespace(ns).Get(context.TODO(), name, v1.GetOptions{})
+
+	return u != nil && err == nil
+}
+
+func projectExists() bool {
+	gvr := schema.GroupVersionResource{
 		Group:    clustersv1alpha1.GroupVersion.Group,
 		Version:  clustersv1alpha1.GroupVersion.Version,
 		Resource: "verrazzanoprojects",
 	}
-	u, err := client.Resource(projectResource).Namespace(multiclusterNamespace).Get(context.TODO(), projectName, v1.GetOptions{})
+	return resourceExists(gvr, multiclusterNamespace, projectName)
+}
 
-	return u != nil && err == nil
+func mcComponentExists() bool {
+	gvr := schema.GroupVersionResource{
+		Group:    clustersv1alpha1.GroupVersion.Group,
+		Version:  clustersv1alpha1.GroupVersion.Version,
+		Resource: "multiclustercomponents",
+	}
+	return resourceExists(gvr, testNamespace, componentName)
+}
+
+func componentWorkloadExists() bool {
+	gvr := schema.GroupVersionResource{
+		Group:    oamv1alpha1.GroupVersion.Group,
+		Version:  oamv1alpha1.GroupVersion.Version,
+		Resource: "verrazzanohelidonworkloads",
+	}
+	return resourceExists(gvr, testNamespace, workloadName)
 }
 
 func helloHelidonPodsRunning() bool {
