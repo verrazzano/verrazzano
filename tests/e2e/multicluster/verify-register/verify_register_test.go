@@ -11,6 +11,7 @@ import (
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -55,7 +56,9 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 		ginkgo.It("admin cluster has the expected VerrazzanoManagedCluster", func() {
 			gomega.Eventually(func() bool {
 				vmc, err := pkg.GetVerrazzanoManagedClusterClientset().ClustersV1alpha1().VerrazzanoManagedClusters(multiclusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
-				return err == nil && vmc.Status.LastAgentConnectTime.After(time.Now().Add(-30*time.Minute))
+				return err == nil &&
+					vmcStatusReady(vmc) &&
+					vmc.Status.LastAgentConnectTime.After(time.Now().Add(-30*time.Minute))
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find VerrazzanoManagedCluster")
 		})
 
@@ -192,6 +195,15 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 		})
 	})
 })
+
+func vmcStatusReady(vmc *vmcv1alpha1.VerrazzanoManagedCluster) bool {
+	for _, cond := range vmc.Status.Conditions {
+		if cond.Type == vmcv1alpha1.ConditionReady && cond.Status == v1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
 
 func findSecret(namespace, name string) bool {
 	s, err := pkg.GetSecret(namespace, name)
