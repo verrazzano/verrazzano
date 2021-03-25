@@ -448,7 +448,4 @@ func assertInstanceInfoURLs() {
 	if instanceInfo.PrometheusURL != nil {
 		assertOidcIngress(*instanceInfo.PrometheusURL)
 	}
-	if instanceInfo.SystemURL != nil {
-		assertIngressURL(*instanceInfo.SystemURL)
-	}
 }
