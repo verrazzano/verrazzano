@@ -51,7 +51,6 @@ spec:
                       properties:
                         metadata:
                           type: object
-                          x-kubernetes-preserve-unknown-fields: true
                         spec:
                           description: NamespaceSpec describes the attributes on a
                             Namespace.

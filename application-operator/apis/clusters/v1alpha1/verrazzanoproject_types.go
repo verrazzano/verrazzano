@@ -11,7 +11,6 @@ import (
 
 // NamespaceTemplate has the metadata and spec of the underlying namespace
 type NamespaceTemplate struct {
-	// +kubebuilder:pruning:PreserveUnknownFields
 	Metadata metav1.ObjectMeta    `json:"metadata"`
 	Spec     corev1.NamespaceSpec `json:"spec,omitempty"`
 }
