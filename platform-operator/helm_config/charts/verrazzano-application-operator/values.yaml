@@ -10,6 +10,7 @@ global:
 # during the platform operator docker image build.
 image:
 imagePullPolicy: IfNotPresent
+logLevel: debug
 
 requestMemory: 72Mi
 

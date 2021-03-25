@@ -115,3 +115,20 @@ func DoExpectUpdateState(t *testing.T, cli *mocks.MockClient, statusWriter *mock
 			return nil
 		})
 }
+
+// ExpectDeleteAssociatedResource adds an expectation to the given MockClient to expect a Get
+// call for the runtime resource and a subsequent request to delete it
+func ExpectDeleteAssociatedResource(cli *mocks.MockClient, resource runtime.Object, name types.NamespacedName) {
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: name.Namespace, Name: name.Name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj runtime.Object) error {
+			return nil
+		})
+
+	cli.EXPECT().
+		Delete(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, resource runtime.Object) error {
+			return nil
+		})
+
+}

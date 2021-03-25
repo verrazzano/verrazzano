@@ -1798,7 +1798,8 @@ func TestExtractServiceOnlyOneService(t *testing.T) {
 
 	children := []*unstructured.Unstructured{&u}
 	var extractedService *k8score.Service
-	extractedService, err = extractServiceFromUnstructuredChildren(children)
+	reconciler := Reconciler{}
+	extractedService, err = reconciler.extractServiceFromUnstructuredChildren(children)
 	assert.NoError(err)
 	assert.NotNil(extractedService)
 	assert.Equal(serviceID, extractedService.GetObjectMeta().GetUID())
@@ -1825,7 +1826,8 @@ func TestExtractServiceMultipleServices(t *testing.T) {
 
 	children := []*unstructured.Unstructured{&u1, &u2, &u3}
 	var extractedService *k8score.Service
-	extractedService, err = extractServiceFromUnstructuredChildren(children)
+	reconciler := Reconciler{}
+	extractedService, err = reconciler.extractServiceFromUnstructuredChildren(children)
 	assert.NoError(err)
 	assert.NotNil(extractedService)
 	assert.Equal(serviceID, extractedService.GetObjectMeta().GetUID())
@@ -2314,8 +2316,8 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 	request := newRequest(params["TRAIT_NAMESPACE"], params["TRAIT_NAME"])
 	reconciler := newIngressTraitReconciler(cli)
 	result, err := reconciler.Reconcile(request)
-	assert.Error(err)
-	assert.Equal(false, result.Requeue, "Expected no requeue as error expected.")
+	assert.NoError(err)
+	assert.Equal(true, result.Requeue, "Expected no requeue as error expected.")
 
 	gw := istioclient.Gateway{}
 	err = cli.Get(context.Background(), client.ObjectKey{Namespace: "test-namespace", Name: "test-namespace-test-appconf-gw"}, &gw)

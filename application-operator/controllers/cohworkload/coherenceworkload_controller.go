@@ -190,13 +190,21 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
+	// make a copy of the Coherence spec since u.Object will get overwritten in CreateOrUpdate
+	// if the Coherence CR exists
+	specCopy, _, err := unstructured.NestedFieldCopy(u.Object, specField)
+	if err != nil {
+		log.Error(err, "Unable to make a copy of the Coherence spec")
+		return reconcile.Result{}, err
+	}
+
 	// write out the Coherence resource
-	if err = r.Client.Create(ctx, u); err != nil {
-		if !k8serrors.IsAlreadyExists(err) {
-			return reconcile.Result{}, err
-		}
-		log.Info("Coherence CR already exists, ignoring error on create")
-		return reconcile.Result{}, nil
+	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, u, func() error {
+		return unstructured.SetNestedField(u.Object, specCopy, specField)
+	})
+	if err != nil {
+		log.Error(err, "Error creating or updating Coherence CR")
+		return reconcile.Result{}, err
 	}
 
 	// Get the namespace resource that the VerrazzanoCoherenceWorkload resource is deployed to
@@ -209,7 +217,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	log.Info("Successfully created Verrazzano Coherence workload")
+	log.Info("Successfully reconciled Verrazzano Coherence workload")
 	return reconcile.Result{}, nil
 }
 

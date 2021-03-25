@@ -280,16 +280,19 @@ func TestMCAppConfigPlacement(t *testing.T) {
 	adminMock := mocks.NewMockClient(adminMocker)
 
 	// Test data
-	testMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
+	adminMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
 	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
-	testMCAppConfig.Spec.Placement.Clusters[0].Name = "not-my-cluster"
+	adminMCAppConfig.Spec.Placement.Clusters[0].Name = "not-my-cluster"
+
+	loclaMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
+	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
 
 	// Admin Cluster - expect call to list MultiClusterApplicationConfiguration objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOptions *client.ListOptions) error {
 			assert.Equal(testMCAppConfigNamespace, listOptions.Namespace, "list request did not have expected namespace")
-			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
+			mcAppConfigList.Items = append(mcAppConfigList.Items, adminMCAppConfig)
 			return nil
 		})
 
@@ -298,9 +301,14 @@ func TestMCAppConfigPlacement(t *testing.T) {
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterApplicationConfigurationList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, mcAppConfigList *clustersv1alpha1.MultiClusterApplicationConfigurationList, listOptions *client.ListOptions) error {
 			assert.Equal(testMCAppConfigNamespace, listOptions.Namespace, "list request did not have expected namespace")
-			mcAppConfigList.Items = append(mcAppConfigList.Items, testMCAppConfig)
+			mcAppConfigList.Items = append(mcAppConfigList.Items, loclaMCAppConfig)
 			return nil
 		})
+
+	// Managed Cluster - expect a call to delete a local app config object
+	mcMock.EXPECT().
+		Delete(gomock.Any(), gomock.Eq(&loclaMCAppConfig), gomock.Any()).
+		Return(nil)
 
 	// Make the request
 	s := &Syncer{

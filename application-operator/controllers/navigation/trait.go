@@ -20,7 +20,7 @@ import (
 // Will return nil for the trait and no error if the trait does not exist.
 func FetchTrait(ctx context.Context, cli client.Reader, log logr.Logger, name types.NamespacedName) (*vzapi.MetricsTrait, error) {
 	var trait vzapi.MetricsTrait
-	log.Info("Fetch trait", "trait", name)
+	log.V(1).Info("Fetch trait", "trait", name)
 	if err := cli.Get(ctx, name, &trait); err != nil {
 		if k8serrors.IsNotFound(err) {
 			log.Info("Trait has been deleted", "trait", name)
@@ -42,7 +42,7 @@ func FetchWorkloadFromTrait(ctx context.Context, cli client.Reader, log logr.Log
 	workload.SetKind(trait.GetWorkloadReference().Kind)
 	workloadKey := client.ObjectKey{Name: trait.GetWorkloadReference().Name, Namespace: trait.GetNamespace()}
 	var err error
-	log.Info("Fetch workload", "workload", workloadKey)
+	log.V(1).Info("Fetch workload", "workload", workloadKey)
 	if err = cli.Get(ctx, workloadKey, workload); err != nil {
 		log.Error(err, "Failed to fetch workload", "workload", workloadKey)
 		return nil, err
@@ -56,7 +56,7 @@ func FetchWorkloadFromTrait(ctx context.Context, cli client.Reader, log logr.Log
 		// this is one of our wrapper workloads so we need to unwrap and pull out the real workload
 		workload, err = FetchContainedWorkload(ctx, cli, workload)
 		if err != nil {
-			log.Error(err, "Failed to fetch contained workload", "workload", workload)
+			log.Error(err, "Failed to fetch contained workload", "workload", workloadKey)
 			return nil, err
 		}
 	}
