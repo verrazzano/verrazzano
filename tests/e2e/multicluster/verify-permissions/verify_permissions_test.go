@@ -5,6 +5,7 @@ package permissions_test
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"os"
@@ -21,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 const waitTimeout = 10 * time.Minute
@@ -35,9 +37,14 @@ var _ = ginkgo.BeforeSuite(func() {
 	deployTestResources()
 })
 
+var _ = ginkgo.AfterSuite(func() {
+	// Do set up for multi cluster tests
+	undeployTestResources()
+})
+
 var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 
-	ginkgo.Context("Admin Cluster - create mc resources and update statuses", func() {
+	ginkgo.Context("Admin Cluster - verify mc resources and their status updates", func() {
 		ginkgo.BeforeEach(func() {
 			os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
 		})
@@ -107,7 +114,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 						waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find configmap")
 				},
 				func() {
-					gomega.Eventually(findMultiClusterConfigMap(testNamespace, "myconfigmap"),
+					gomega.Eventually(findMultiClusterConfigMap(testNamespace, "mymcconfigmap"),
 						waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc configmap")
 				},
 			)
@@ -146,10 +153,10 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 		})
 
 		ginkgo.It("managed cluster can access config map but not modify it", func() {
-			gomega.Eventually(findMultiClusterConfigMap(testNamespace, "myconfigmap"),
+			gomega.Eventually(findMultiClusterConfigMap(testNamespace, "mymcconfigmap"),
 				waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc configmap")
 			// try to update
-			err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap_update.yaml")
+			err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap_update.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
 			if err == nil {
 				ginkgo.Fail("Update to config map succeeded")
 			}
@@ -157,7 +164,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				ginkgo.Fail("Wrong error generated - should be forbidden")
 			}
 			// try to delete
-			err = pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml")
+			err = DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
 			if err == nil {
 				ginkgo.Fail("Delete of config map succeeded")
 			}
@@ -170,7 +177,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			gomega.Eventually(findMultiClusterLoggingScope(testNamespace, "mymcloggingscope"),
 				waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc loggging scope")
 			// try to update
-			err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_loggingscope_update.yaml")
+			err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_loggingscope_update.yaml", &v1alpha1.LoggingScope{})
 			if err == nil {
 				ginkgo.Fail("Update to logging scope succeeded")
 			}
@@ -178,7 +185,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				ginkgo.Fail("Wrong error generated - should be forbidden")
 			}
 			// try to delete
-			err = pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_loggingscope.yaml")
+			err = DeleteResourceFromFile("testdata/multicluster/multicluster_loggingscope.yaml", &v1alpha1.LoggingScope{})
 			if err == nil {
 				ginkgo.Fail("Delete of logging scope succeeded")
 			}
@@ -191,7 +198,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			gomega.Eventually(findMultiClusterSecret(testNamespace, "mymcsecret"),
 				waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc secret")
 			// try to update
-			err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_update.yaml")
+			err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_update.yaml", &v1.Secret{})
 			if err == nil {
 				ginkgo.Fail("Update to secret succeeded")
 			}
@@ -199,7 +206,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				ginkgo.Fail("Wrong error generated - should be forbidden")
 			}
 			// try to delete
-			err = pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml")
+			err = DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &v1.Secret{})
 			if err == nil {
 				ginkgo.Fail("Delete of secret succeeded")
 			}
@@ -255,40 +262,157 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 	})
 })
 
+func CreateOrUpdateResourceFromFile(yamlFile string, object runtime.Object) error {
+	found, err := pkg.FindTestDataFile(yamlFile)
+	if err != nil {
+		return fmt.Errorf("failed to find test data file: %w", err)
+	}
+	bytes, err := ioutil.ReadFile(found)
+	if err != nil {
+		return fmt.Errorf("failed to read test data file: %w", err)
+	}
+	err = yaml.Unmarshal(bytes, object)
+	if err != nil {
+		return err
+	}
+	clustersClient, err := getClustersClient()
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
+	}
+
+	err = clustersClient.Update(context.TODO(), object)
+
+	return err
+}
+
+func DeleteResourceFromFile(yamlFile string, object runtime.Object) error {
+	found, err := pkg.FindTestDataFile(yamlFile)
+	if err != nil {
+		return fmt.Errorf("failed to find test data file: %w", err)
+	}
+	bytes, err := ioutil.ReadFile(found)
+	if err != nil {
+		return fmt.Errorf("failed to read test data file: %w", err)
+	}
+	err = yaml.Unmarshal(bytes, object)
+	if err != nil {
+		return err
+	}
+	clustersClient, err := getClustersClient()
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
+	}
+
+	err = clustersClient.Delete(context.TODO(), object)
+
+	return err
+}
+
 func deployTestResources() {
+	pkg.Log(pkg.Info, "Deploying MC Resources")
+
+	os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
+
 	// create the test ns
+	pkg.Log(pkg.Info, "Creating test project")
 	err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-multiclustertest.yaml")
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create test namespace: %v", err))
 	}
 
 	// create a config map
+	pkg.Log(pkg.Info, "Creating MC config map")
 	err = pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap.yaml")
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster config map: %v", err))
 	}
 
 	// create a logging scope
+	pkg.Log(pkg.Info, "Creating MC logging scope")
 	err = pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_loggingscope.yaml")
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster logging scope: %v", err))
 	}
 
 	// create a secret
+	pkg.Log(pkg.Info, "Creating MC secret")
 	err = pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret.yaml")
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster secret: %v", err))
 	}
 }
 
+func undeployTestResources() {
+	pkg.Log(pkg.Info, "Deploying MC Resources")
+
+	os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
+
+	// create a config map
+	pkg.Log(pkg.Info, "Creating MC config map")
+	err := pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml")
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster config map: %v", err))
+	}
+
+	// create a logging scope
+	pkg.Log(pkg.Info, "Creating MC logging scope")
+	err = pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_loggingscope.yaml")
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster logging scope: %v", err))
+	}
+
+	// create a secret
+	pkg.Log(pkg.Info, "Creating MC secret")
+	err = pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml")
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster secret: %v", err))
+	}
+
+	// create the test ns
+	pkg.Log(pkg.Info, "Creating test project")
+	err = pkg.DeleteResourceFromFile("testdata/multicluster/verrazzanoproject-multiclustertest.yaml")
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create test namespace: %v", err))
+	}
+
+}
+
 func findSecret(namespace, name string) bool {
-	s, err := pkg.GetSecret(namespace, name)
-	return s != nil && err == nil
+	clustersClient, err := getClustersClient()
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
+	}
+
+	secretList := v1.SecretList{}
+	err = clustersClient.List(context.TODO(), &secretList, &client.ListOptions{Namespace: namespace})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to list secrets with error: %v", err))
+	}
+	for _, item := range secretList.Items {
+		if item.Name == name && item.Namespace == namespace {
+			return true
+		}
+	}
+	return false
 }
 
 func findConfigMap(namespace, name string) bool {
-	s := pkg.GetConfigMap(name, namespace)
-	return s != nil
+	clustersClient, err := getClustersClient()
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
+	}
+
+	configmapList := v1.ConfigMapList{}
+	err = clustersClient.List(context.TODO(), &configmapList, &client.ListOptions{Namespace: namespace})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to list config maps with error: %v", err))
+	}
+	for _, item := range configmapList.Items {
+		if item.Name == name && item.Namespace == namespace {
+			return true
+		}
+	}
+	return false
 }
 
 func listResource(namespace string, object runtime.Object) error {
@@ -396,6 +520,8 @@ func getClustersClient() (client.Client, error) {
 	scheme := runtime.NewScheme()
 	_ = clustersv1alpha1.AddToScheme(scheme)
 	_ = vmcv1alpha1.AddToScheme(scheme)
+	_ = v1alpha1.AddToScheme(scheme)
+	_ = v1.AddToScheme(scheme)
 
 	clustersClient, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
@@ -422,5 +548,5 @@ func isStatusAsExpected(status clustersv1alpha1.MultiClusterResourceStatus,
 			matchingClusterStatusCount++
 		}
 	}
-	return matchingConditionCount == 1 && matchingClusterStatusCount == 1
+	return matchingConditionCount >= 1 && matchingClusterStatusCount == 1
 }

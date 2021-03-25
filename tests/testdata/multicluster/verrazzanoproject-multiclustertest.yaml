@@ -3,7 +3,7 @@
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: VerrazzanoProject
 metadata:
-  name: project-permissions-test
+  name: permissions-test
   namespace: verrazzano-mc
 spec:
   template:
