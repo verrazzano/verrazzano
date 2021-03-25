@@ -56,35 +56,34 @@ func (h *headerAdder) RoundTrip(req *http.Request) (*http.Response, error) {
 
 // GetKubeConfig will get the kubeconfig from the environment variable KUBECONFIG, if set, or else from $HOME/.kube/config
 func GetKubeConfig() *restclient.Config {
-	if config == nil {
-		kubeconfig := ""
-		kubeconfigEnvVar := ""
-		testKubeConfigEnvVar := os.Getenv("TEST_KUBECONFIG")
-		if len(testKubeConfigEnvVar) > 0 {
-			kubeconfigEnvVar = testKubeConfigEnvVar
-		}
-
-		if kubeconfigEnvVar == "" {
-			// if the KUBECONFIG environment variable is set, use that
-			kubeconfigEnvVar = os.Getenv("KUBECONFIG")
-		}
-
-		if len(kubeconfigEnvVar) > 0 {
-			kubeconfig = kubeconfigEnvVar
-		} else if home := homedir.HomeDir(); home != "" {
-			// next look for $HOME/.kube/config
-			kubeconfig = filepath.Join(home, ".kube", "config")
-		} else {
-			// give up
-			ginkgo.Fail("Could not find kube")
-		}
-
-		var err error
-		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
-		if err != nil {
-			ginkgo.Fail("Could not get current context from kubeconfig " + kubeconfig)
-		}
+	kubeconfig := ""
+	kubeconfigEnvVar := ""
+	testKubeConfigEnvVar := os.Getenv("TEST_KUBECONFIG")
+	if len(testKubeConfigEnvVar) > 0 {
+		kubeconfigEnvVar = testKubeConfigEnvVar
 	}
+
+	if kubeconfigEnvVar == "" {
+		// if the KUBECONFIG environment variable is set, use that
+		kubeconfigEnvVar = os.Getenv("KUBECONFIG")
+	}
+
+	if len(kubeconfigEnvVar) > 0 {
+		kubeconfig = kubeconfigEnvVar
+	} else if home := homedir.HomeDir(); home != "" {
+		// next look for $HOME/.kube/config
+		kubeconfig = filepath.Join(home, ".kube", "config")
+	} else {
+		// give up
+		ginkgo.Fail("Could not find kube")
+	}
+
+	var err error
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		ginkgo.Fail("Could not get current context from kubeconfig " + kubeconfig)
+	}
+
 	return config
 }
 
@@ -224,16 +223,15 @@ func DoesServiceExist(namespace string, name string) bool {
 // GetKubernetesClientset returns the Kubernetes clienset for the cluster
 func GetKubernetesClientset() *kubernetes.Clientset {
 	// use the current context in the kubeconfig
-	if clientset == nil {
-		config := GetKubeConfig()
+	config := GetKubeConfig()
 
-		// create the clientset once and cache it
-		var err error
-		clientset, err = kubernetes.NewForConfig(config)
-		if err != nil {
-			ginkgo.Fail("Could not get Kubernetes clientset")
-		}
+	// create the clientset once and cache it
+	var err error
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		ginkgo.Fail("Could not get Kubernetes clientset")
 	}
+
 	return clientset
 }
 
