@@ -92,6 +92,11 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		}
 	}
 
+	statusErr := r.updateStatusReady(ctx, vmc, "")
+	if statusErr != nil {
+		log.Errorf("Failed to update status to ready for VMC %s: %v", vmc.Name, err)
+	}
+
 	// Sync the service account
 	log.Infof("Syncing the ServiceAccount for VMC %s", vmc.Name)
 	err = r.syncServiceAccount(vmc)
@@ -135,10 +140,6 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	statusErr := r.updateStatusReady(ctx, vmc, "")
-	if statusErr != nil {
-		log.Errorf("Failed to update status to ready for VMC %s: %v", vmc.Name, err)
-	}
 	return ctrl.Result{}, nil
 }
 
