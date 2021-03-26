@@ -27,11 +27,13 @@ const (
 	testNamespace         = "hello-helidon"
 
 	projectName   = "hello-helidon"
+	appConfigName = "hello-helidon-appconf"
 	componentName = "hello-helidon-component"
 	workloadName  = "hello-helidon-workload"
 )
 
 var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
+var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 
 // set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources
 var _ = ginkgo.BeforeSuite(func() {
@@ -58,6 +60,10 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 			gomega.Eventually(projectExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
+		ginkgo.It("Verify the MultiClusterApplicationConfiguration exists", func() {
+			gomega.Eventually(mcAppConfExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
+
 		ginkgo.It("Verify the MultiClusterComponent exists", func() {
 			gomega.Eventually(mcComponentExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
@@ -74,6 +80,10 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 
 		ginkgo.It("Verify the project exists", func() {
 			gomega.Eventually(projectExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
+
+		ginkgo.It("Verify the MultiClusterApplicationConfiguration exists", func() {
+			gomega.Eventually(mcAppConfExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
 		ginkgo.It("Verify the MultiClusterComponent exists", func() {
@@ -96,26 +106,100 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 
 		indexName := "hello-helidon-hello-helidon-appconf-hello-helidon-component-hello-helidon-container"
 
-		ginkgo.It("Verify Elasticsearch index exists", func() {
+		ginkgo.It("Verify Elasticsearch index exists on admin cluster", func() {
 			gomega.Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find log index for hello helidon")
 		})
 
-		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
+		ginkgo.It("Verify recent Elasticsearch log record exists on admin cluster", func() {
 			gomega.Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"oam.applicationconfiguration.namespace": "hello-helidon",
 					"oam.applicationconfiguration.name":      "hello-helidon-appconf",
-					"verrazzano.cluster.name":                os.Getenv("MANAGED_CLUSTER_NAME"),
+					"verrazzano.cluster.name":                clusterName,
 				})
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 		})
+	})
+
+	// NOTE: This test is disabled until this bug is fixed: https://jira.oraclecorp.com/jira/browse/VZ-2448
+
+	// ginkgo.Context("Metrics", func() {
+	// 	ginkgo.BeforeEach(func() {
+	// 		os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
+	// 	})
+
+	// 	ginkgo.It("Verify Prometheus metrics exist on admin cluster", func() {
+	// 		gomega.Eventually(appMetricsExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+	// 	})
+	// })
+
+	ginkgo.Context("Delete resources on admin cluster", func() {
+		ginkgo.BeforeEach(func() {
+			os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
+		})
+
+		ginkgo.It("Delete all the things", func() {
+			cleanUp()
+		})
+
+		ginkgo.It("Verify the project no longer exists on the admin cluster", func() {
+			gomega.Eventually(projectExists, waitTimeout, pollingInterval).Should(gomega.BeFalse())
+		})
+
+		ginkgo.It("Verify the MultiClusterApplicationConfiguration no longer exists on the admin cluster", func() {
+			gomega.Eventually(mcAppConfExists, waitTimeout, pollingInterval).Should(gomega.BeFalse())
+		})
+
+		ginkgo.It("Verify the MultiClusterComponent no longer exists on the admin cluster", func() {
+			gomega.Eventually(mcComponentExists, waitTimeout, pollingInterval).Should(gomega.BeFalse())
+		})
+	})
+
+	ginkgo.Context("Verify resources have been deleted on the managed cluster", func() {
+		ginkgo.BeforeEach(func() {
+			os.Setenv("TEST_KUBECONFIG", os.Getenv("MANAGED_KUBECONFIG"))
+		})
+
+		ginkgo.It("Verify the project no longer exists on the managed cluster", func() {
+			gomega.Eventually(projectExists, waitTimeout, pollingInterval).Should(gomega.BeFalse())
+		})
+
+		// NOTE: These tests are disabled pending a fix for https://jira.oraclecorp.com/jira/browse/VZ-2454
+
+		// ginkgo.It("Verify the MultiClusterApplicationConfiguration no longer exists on the managed cluster", func() {
+		// 	gomega.Eventually(mcAppConfExists, waitTimeout, pollingInterval).Should(gomega.BeFalse())
+		// })
+
+		// ginkgo.It("Verify the MultiClusterComponent no longer exists on the managed cluster", func() {
+		// 	gomega.Eventually(mcComponentExists, waitTimeout, pollingInterval).Should(gomega.BeFalse())
+		// })
+
+		// ginkgo.It("Verify the VerrazzanoHelidonWorkload no longer exists on the managed cluster", func() {
+		// 	gomega.Eventually(componentWorkloadExists, waitTimeout, pollingInterval).Should(gomega.BeFalse())
+		// })
+
+		// ginkgo.It("Verify expected pods are no longer running", func() {
+		// 	gomega.Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(gomega.BeFalse())
+		// })
 	})
 })
 
 var _ = ginkgo.AfterSuite(func() {
 	cleanUp()
+
+	os.Setenv("TEST_KUBECONFIG", os.Getenv("MANAGED_KUBECONFIG"))
+
+	if err := pkg.DeleteNamespace(testNamespace); err != nil {
+		ginkgo.Fail(fmt.Sprintf("Could not delete hello-helidon namespace: %v\n", err))
+	}
+
+	os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
+
+	if err := pkg.DeleteNamespace(testNamespace); err != nil {
+		ginkgo.Fail(fmt.Sprintf("Could not delete %s namespace: %v\n", testNamespace, err))
+	}
 })
 
 func cleanUp() {
@@ -124,21 +208,13 @@ func cleanUp() {
 	if err := pkg.DeleteResourceFromFile("examples/multicluster/hello-helidon/mc-hello-helidon-app.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to delete multi-cluster hello-helidon application resource: %v", err))
 	}
+
 	if err := pkg.DeleteResourceFromFile("examples/multicluster/hello-helidon/mc-hello-helidon-comp.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to delete multi-cluster hello-helidon component resources: %v", err))
 	}
+
 	if err := pkg.DeleteResourceFromFile("examples/multicluster/hello-helidon/verrazzano-project.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to delete hello-helidon project resource: %v", err))
-	}
-
-	if err := pkg.DeleteNamespace(testNamespace); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not delete hello-helidon namespace: %v\n", err.Error()))
-	}
-
-	os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
-
-	if err := pkg.DeleteNamespace(testNamespace); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not delete %s namespace: %v\n", testNamespace, err.Error()))
 	}
 }
 
@@ -163,6 +239,15 @@ func projectExists() bool {
 	return resourceExists(gvr, multiclusterNamespace, projectName)
 }
 
+func mcAppConfExists() bool {
+	gvr := schema.GroupVersionResource{
+		Group:    clustersv1alpha1.GroupVersion.Group,
+		Version:  clustersv1alpha1.GroupVersion.Version,
+		Resource: "multiclusterapplicationconfigurations",
+	}
+	return resourceExists(gvr, testNamespace, appConfigName)
+}
+
 func mcComponentExists() bool {
 	gvr := schema.GroupVersionResource{
 		Group:    clustersv1alpha1.GroupVersion.Group,
@@ -183,4 +268,8 @@ func componentWorkloadExists() bool {
 
 func helloHelidonPodsRunning() bool {
 	return pkg.PodsRunning(testNamespace, expectedPodsHelloHelidon)
+}
+
+func appMetricsExists() bool {
+	return pkg.MetricsExist("base_jvm_uptime_seconds", "managed_cluster", clusterName)
 }
