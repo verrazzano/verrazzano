@@ -240,11 +240,13 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 		// VZ-2336: NOT be able to update or delete any VerrazzanoManagedCluster resources
 		ginkgo.It("managed cluster cannot modify vmc on admin", func() {
 			cluster := vmcv1alpha1.VerrazzanoManagedCluster{}
-			gomega.Eventually(getMultiClusterResource("verrazzano-mc", managedClusterName, &cluster),
-				waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find VMC")
+			err := getMultiClusterResource("verrazzano-mc", managedClusterName, &cluster)
+			if err != nil {
+				ginkgo.Fail("could not get vmc")
+			}
 			// try to update
 			cluster.Spec.Description = "new Description"
-			err := updateObject(&cluster)
+			err = updateObject(&cluster)
 			if err == nil {
 				ginkgo.Fail("Update to vmc succeeded")
 			}
