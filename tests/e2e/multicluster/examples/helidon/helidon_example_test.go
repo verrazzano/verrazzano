@@ -193,7 +193,7 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 		})
 	})
 
-	// NOTE: This test is disabled until this bug is fixed: https://jira.oraclecorp.com/jira/browse/VZ-2448
+	// NOTE: This test is disabled until this bug is fixed: VZ-2448
 
 	// ginkgo.Context("Metrics", func() {
 	// 	ginkgo.BeforeEach(func() {
@@ -251,7 +251,7 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 			gomega.Eventually(projectExists, waitTimeout, pollingInterval).Should(gomega.BeFalse())
 		})
 
-		// NOTE: These tests are disabled pending a fix for https://jira.oraclecorp.com/jira/browse/VZ-2454
+		// NOTE: These tests are disabled pending a fix for VZ-2454
 
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deleted from the admin cluster
