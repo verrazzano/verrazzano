@@ -49,6 +49,41 @@ func TestGetMatchingDirectoriesGood(t *testing.T) {
 	assert.Nil(t, myFiles)
 }
 
+// TestGetMatchingBad Tests that we can find the expected set of files with a matching expression
+// GIVEN a call to GetMatching* utilities
+// WHEN with invalid inputs
+// THEN we get failures as expected
+func TestGetMatchingInvalidInputs(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+	_, err := GetMatchingDirectories(logger, "../../../test", nil)
+	assert.NotNil(t, err)
+	filesFound, err := GetMatchingDirectories(logger, "../../../test-not-found", regexp.MustCompile(".*son$"))
+	assert.Nil(t, err)
+	assert.Nil(t, filesFound)
+	_, err = GetMatchingFiles(logger, "../../../test", nil)
+	assert.NotNil(t, err)
+	filesFound, err = GetMatchingFiles(logger, "../../../test-not-found", regexp.MustCompile(".*son$"))
+	assert.Nil(t, err)
+	assert.Nil(t, filesFound)
+
+}
+
+// TestMiscUtils Tests that the misc small utilities work as expected
+// GIVEN a call to GetMiscUtils
+// WHEN with good and bad inputs
+// THEN utility functions behave as expected
+func TestMiscUtils(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+	filename := FindFileInClusterRoot("../../../test/cluster/problem-pods/cluster-dump/problem-pods", "default")
+	assert.NotNil(t, filename)
+	namespaces, err := FindNamespaces(logger, "../../../test/cluster/problem-pods/cluster-dump")
+	assert.Nil(t, err)
+	assert.NotNil(t, namespaces)
+	assert.True(t, len(namespaces) > 0)
+	_, err = FindNamespaces(logger, "../../../test/problem-pods/not-found")
+	assert.NotNil(t, err)
+}
+
 // TODO: Add more test cases (more expression variants, negative cases, etc...)
 
 func checkIsDirectory(logger *zap.SugaredLogger, fileName string) string {

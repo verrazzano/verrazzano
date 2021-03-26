@@ -1,0 +1,29 @@
+==== START logs for container controller of pod ingress-nginx/ingress-controller-ingress-nginx-controller-7994b5645-lzq29 ====
+-------------------------------------------------------------------------------
+NGINX Ingress controller
+  Release:       0.32-20201016205412-8580ea0ef
+  Build:         8580ea0efac749f5c2d9d99a527d98fe46ff7696
+  Repository:    https://github.com/verrazzano/ingress-nginx.git
+  nginx version: nginx/1.17.10
+
+-------------------------------------------------------------------------------
+
+I0320 19:57:25.641977       7 flags.go:204] Watching for Ingress class: nginx
+W0320 19:57:25.643898       7 flags.go:249] SSL certificate chain completion is disabled (--enable-ssl-chain-completion=false)
+W0320 19:57:25.645551       7 client_config.go:543] Neither --kubeconfig nor --master was specified.  Using the inClusterConfig.  This might not work.
+I0320 19:57:25.646980       7 main.go:220] Creating API client for https://REDACTED:443
+I0320 19:57:25.681256       7 main.go:264] Running in Kubernetes cluster version v1.18 (v1.18.8) - git (clean) commit 9f2892aab98fe339f3bd70e3c470144299398ace - platform linux/amd64
+I0320 19:57:25.692990       7 main.go:94] Validated ingress-nginx/ingress-controller-ingress-nginx-defaultbackend as the default backend.
+I0320 19:57:25.807311       7 main.go:105] SSL fake certificate created /etc/ingress-controller/ssl/default-fake-certificate.pem
+I0320 19:57:25.808437       7 main.go:113] Enabling new Ingress features available since Kubernetes v1.18
+W0320 19:57:25.811102       7 main.go:125] No IngressClass resource with name nginx found. Only annotation will be used.
+I0320 19:57:25.885980       7 nginx.go:263] Starting NGINX Ingress controller
+I0320 19:57:25.921465       7 event.go:278] Event(v1.ObjectReference{Kind:"ConfigMap", Namespace:"ingress-nginx", Name:"ingress-controller-ingress-nginx-controller", UID:"b6756c57-1f83-409f-8819-08e336c8e19b", APIVersion:"v1", ResourceVersion:"22514", FieldPath:""}): type: 'Normal' reason: 'CREATE' ConfigMap ingress-nginx/ingress-controller-ingress-nginx-controller
+I0320 19:57:27.086830       7 nginx.go:307] Starting NGINX process
+I0320 19:57:27.087050       7 leaderelection.go:242] attempting to acquire leader lease  ingress-nginx/ingress-controller-leader-nginx...
+I0320 19:57:27.092712       7 leaderelection.go:252] successfully acquired lease ingress-nginx/ingress-controller-leader-nginx
+I0320 19:57:27.092723       7 controller.go:139] Configuration changes detected, backend reload required.
+I0320 19:57:27.092765       7 status.go:86] new leader elected: ingress-controller-ingress-nginx-controller-7994b5645-lzq29
+I0320 19:57:27.295972       7 controller.go:155] Backend successfully reloaded.
+I0320 19:57:27.296038       7 controller.go:164] Initial sync, sleeping for 1 second.
+==== END logs for container controller of pod ingress-nginx/ingress-controller-ingress-nginx-controller-7994b5645-lzq29 ====

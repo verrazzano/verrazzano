@@ -1,0 +1,61 @@
+==== START logs for container prometheus of pod verrazzano-system/vmi-system-prometheus-0-7544644cdb-8pjwd ====
+level=info ts=2021-01-29T18:36:03.488Z caller=main.go:332 msg="Starting Prometheus" version="(version=2.13.1, branch=HEAD, revision=9562fb4c236d2f7dbae69353a708159fb364b80c)"
+level=info ts=2021-01-29T18:36:03.488Z caller=main.go:333 build_context="(go=go1.13.8, user=REDACTED, date=20200311-20:40:27)"
+level=info ts=2021-01-29T18:36:03.488Z caller=main.go:334 host_details="(Linux 5.4.17-2REDACTED-IP4-ADDRESS.el7uek.x86_64 #2 SMP Thu Oct 29 17:04:48 PDT 2020 x86_64 vmi-system-prometheus-0-7544644cdb-8pjwd (none))"
+level=info ts=2021-01-29T18:36:03.488Z caller=main.go:335 fd_limits="(soft=1048576, hard=1048576)"
+level=info ts=2021-01-29T18:36:03.488Z caller=main.go:336 vm_limits="(soft=unlimited, hard=unlimited)"
+level=info ts=2021-01-29T18:36:03.496Z caller=main.go:657 msg="Starting TSDB ..."
+level=info ts=2021-01-29T18:36:03.497Z caller=web.go:450 component=web msg="Start listening for connections" address=REDACTED-IP4-ADDRESS:9090
+level=info ts=2021-01-29T18:36:03.504Z caller=head.go:514 component=tsdb msg="replaying WAL, this may take awhile"
+level=info ts=2021-01-29T18:36:03.505Z caller=head.go:562 component=tsdb msg="WAL segment loaded" segment=0 maxSegment=0
+level=info ts=2021-01-29T18:36:03.507Z caller=main.go:672 fs_type=XFS_SUPER_MAGIC
+level=info ts=2021-01-29T18:36:03.507Z caller=main.go:673 msg="TSDB started"
+level=info ts=2021-01-29T18:36:03.507Z caller=main.go:743 msg="Loading configuration file" filename=/etc/prometheus/config/prometheus.yml
+level=info ts=2021-01-29T18:36:03.516Z caller=kubernetes.go:192 component="discovery manager scrape" discovery=k8s msg="Using pod service account via in-cluster config"
+level=info ts=2021-01-29T18:36:03.520Z caller=kubernetes.go:192 component="discovery manager scrape" discovery=k8s msg="Using pod service account via in-cluster config"
+level=info ts=2021-01-29T18:36:03.523Z caller=kubernetes.go:192 component="discovery manager scrape" discovery=k8s msg="Using pod service account via in-cluster config"
+level=info ts=2021-01-29T18:36:03.541Z caller=main.go:771 msg="Completed loading of configuration file" filename=/etc/prometheus/config/prometheus.yml
+level=info ts=2021-01-29T18:36:03.541Z caller=main.go:626 msg="Server is ready to receive web requests."
+==== END logs for container prometheus of pod verrazzano-system/vmi-system-prometheus-0-7544644cdb-8pjwd ====
+==== START logs for container config-reloader of pod verrazzano-system/vmi-system-prometheus-0-7544644cdb-8pjwd ====
+2021/01/29 18:36:03 Watching directory: "/etc/prometheus/config"
+2021/01/29 18:36:03 Watching directory: "/etc/prometheus/rules"
+==== END logs for container config-reloader of pod verrazzano-system/vmi-system-prometheus-0-7544644cdb-8pjwd ====
+==== START logs for container node-exporter of pod verrazzano-system/vmi-system-prometheus-0-7544644cdb-8pjwd ====
+time="2021-01-29T18:36:03Z" level=info msg="Starting node_exporter (version=, branch=, revision=)" source="node_exporter.go:156"
+time="2021-01-29T18:36:03Z" level=info msg="Build context (go=go1.13.3, user=, date=)" source="node_exporter.go:157"
+time="2021-01-29T18:36:03Z" level=info msg="Enabled collectors:" source="node_exporter.go:97"
+time="2021-01-29T18:36:03Z" level=info msg=" - arp" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - bcache" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - bonding" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - conntrack" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - cpu" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - cpufreq" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - diskstats" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - edac" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - entropy" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - filefd" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - filesystem" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - hwmon" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - infiniband" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - ipvs" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - loadavg" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - mdadm" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - meminfo" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - netclass" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - netdev" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - netstat" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - nfs" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - nfsd" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - pressure" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - sockstat" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - stat" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - textfile" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - time" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - timex" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - uname" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - vmstat" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - xfs" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg=" - zfs" source="node_exporter.go:104"
+time="2021-01-29T18:36:03Z" level=info msg="Listening on :9100" source="node_exporter.go:170"
+==== END logs for container node-exporter of pod verrazzano-system/vmi-system-prometheus-0-7544644cdb-8pjwd ====

@@ -153,3 +153,91 @@ func TestProblemPodsNotReported(t *testing.T) {
 	}
 	assert.True(t, problemPodsFound > 0)
 }
+
+// TestLBIpNotSet Tests that analysis of a cluster dump where LB issue occurred with no IP set is handled
+// GIVEN a call to analyze a cluster-dump
+// WHEN the cluster-dump shows pods with problems that are not known issues
+// THEN a report is generated with problem pod issues identified
+func TestLBIpNotSet(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	err := Analyze(logger, "cluster", "test/cluster/lb-ipnotset")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.NotNil(t, reportedIssues)
+	assert.True(t, len(reportedIssues) > 0)
+	problemsFound := 0
+	for _, issue := range reportedIssues {
+		if issue.Type == report.IngressNoLoadBalancerIP {
+			problemsFound++
+		}
+	}
+	assert.True(t, problemsFound > 0)
+}
+
+// TestIngressInstall Tests that analysis of a cluster dump where Ingress install failed without more info handled
+// GIVEN a call to analyze a cluster-dump
+// WHEN the cluster-dump shows pods with problems that are not known issues
+// THEN a report is generated with problem pod issues identified
+func TestIngressInstall(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	err := Analyze(logger, "cluster", "test/cluster/ingress-install-unknown")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.NotNil(t, reportedIssues)
+	assert.True(t, len(reportedIssues) > 0)
+	problemsFound := 0
+	for _, issue := range reportedIssues {
+		if issue.Type == report.IngressInstallFailure {
+			problemsFound++
+		}
+	}
+	assert.True(t, problemsFound > 0)
+}
+
+// TestOciIPLimitExceeded Tests that analysis of a cluster dump where Ingress install failed due to OCI limit handled
+// GIVEN a call to analyze a cluster-dump
+// WHEN the cluster-dump shows pods with problems that are not known issues
+// THEN a report is generated with problem pod issues identified
+func TestOciIPLimitExceeded(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	err := Analyze(logger, "cluster", "test/cluster/ingress-oci-limit")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.NotNil(t, reportedIssues)
+	assert.True(t, len(reportedIssues) > 0)
+	problemsFound := 0
+	for _, issue := range reportedIssues {
+		if issue.Type == report.IngressOciIPLimitExceeded {
+			problemsFound++
+		}
+	}
+	assert.True(t, problemsFound > 0)
+}
+
+// TestPendingPods that analysis of a cluster dump where pending pods only is handled
+// GIVEN a call to analyze a cluster-dump
+// WHEN the cluster-dump shows pods with problems that are not known issues
+// THEN a report is generated with problem pod issues identified
+func TestPendingPods(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	err := Analyze(logger, "cluster", "test/cluster/pending-pods")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.NotNil(t, reportedIssues)
+	assert.True(t, len(reportedIssues) > 0)
+	problemsFound := 0
+	for _, issue := range reportedIssues {
+		if issue.Type == report.PendingPods {
+			problemsFound++
+		}
+	}
+	assert.True(t, problemsFound > 0)
+}

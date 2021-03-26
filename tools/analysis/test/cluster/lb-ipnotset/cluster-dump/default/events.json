@@ -1,0 +1,371 @@
+{
+    "kind": "EventList",
+    "apiVersion": "v1",
+    "metadata": {
+        "selfLink": "/api/v1/namespaces/default/events",
+        "resourceVersion": "25754"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "verrazzano-install-my-verrazzano-twltx.166e25340eb22150",
+                "namespace": "default",
+                "selfLink": "/api/v1/namespaces/default/events/verrazzano-install-my-verrazzano-twltx.166e25340eb22150",
+                "uid": "0b643e0d-50bc-4a65-bcea-fef4e0ce0784",
+                "resourceVersion": "22103",
+                "creationTimestamp": "2021-03-20T19:57:01Z",
+                "managedFields": [
+                    {
+                        "manager": "kube-scheduler",
+                        "operation": "Update",
+                        "apiVersion": "events.k8s.io/v1beta1",
+                        "time": "2021-03-20T19:57:01Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:action": {},
+                            "f:deprecatedSource": {
+                                "f:component": {}
+                            },
+                            "f:eventTime": {},
+                            "f:note": {},
+                            "f:reason": {},
+                            "f:regarding": {
+                                "f:apiVersion": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:resourceVersion": {},
+                                "f:uid": {}
+                            },
+                            "f:reportingController": {},
+                            "f:reportingInstance": {},
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "default",
+                "name": "verrazzano-install-my-verrazzano-twltx",
+                "uid": "234e5ec9-3ef1-4f95-9363-587688c892a6",
+                "apiVersion": "v1",
+                "resourceVersion": "22098"
+            },
+            "reason": "Scheduled",
+            "message": "Successfully assigned default/verrazzano-install-my-verrazzano-twltx to at-tests-control-plane",
+            "source": {
+                "component": "default-scheduler"
+            },
+            "firstTimestamp": null,
+            "lastTimestamp": null,
+            "type": "Normal",
+            "eventTime": "2021-03-20T19:57:01.787658Z",
+            "action": "Binding",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "default-scheduler-at-tests-control-plane"
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-install-my-verrazzano-twltx.166e253429fab6ed",
+                "namespace": "default",
+                "selfLink": "/api/v1/namespaces/default/events/verrazzano-install-my-verrazzano-twltx.166e253429fab6ed",
+                "uid": "f257e4a4-bf93-4562-b150-708be6c61687",
+                "resourceVersion": "22106",
+                "creationTimestamp": "2021-03-20T19:57:02Z",
+                "managedFields": [
+                    {
+                        "manager": "kubelet",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-03-20T19:57:02Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:fieldPath": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:resourceVersion": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {},
+                                "f:host": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "default",
+                "name": "verrazzano-install-my-verrazzano-twltx",
+                "uid": "234e5ec9-3ef1-4f95-9363-587688c892a6",
+                "apiVersion": "v1",
+                "resourceVersion": "22099",
+                "fieldPath": "spec.containers{install}"
+            },
+            "reason": "Pulled",
+            "message": "Container image \"ghcr.io/verrazzano/verrazzano-platform-operator-jenkins:0.13.0-20210320193933-a0fa255\" already present on machine",
+            "source": {
+                "component": "kubelet",
+                "host": "at-tests-control-plane"
+            },
+            "firstTimestamp": "2021-03-20T19:57:02Z",
+            "lastTimestamp": "2021-03-20T19:57:02Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-install-my-verrazzano-twltx.166e25342b8f25db",
+                "namespace": "default",
+                "selfLink": "/api/v1/namespaces/default/events/verrazzano-install-my-verrazzano-twltx.166e25342b8f25db",
+                "uid": "6e48a2c3-186c-471e-903c-81f9dbb5063a",
+                "resourceVersion": "22107",
+                "creationTimestamp": "2021-03-20T19:57:02Z",
+                "managedFields": [
+                    {
+                        "manager": "kubelet",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-03-20T19:57:02Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:fieldPath": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:resourceVersion": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {},
+                                "f:host": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "default",
+                "name": "verrazzano-install-my-verrazzano-twltx",
+                "uid": "234e5ec9-3ef1-4f95-9363-587688c892a6",
+                "apiVersion": "v1",
+                "resourceVersion": "22099",
+                "fieldPath": "spec.containers{install}"
+            },
+            "reason": "Created",
+            "message": "Created container install",
+            "source": {
+                "component": "kubelet",
+                "host": "at-tests-control-plane"
+            },
+            "firstTimestamp": "2021-03-20T19:57:02Z",
+            "lastTimestamp": "2021-03-20T19:57:02Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-install-my-verrazzano-twltx.166e25342ff844b3",
+                "namespace": "default",
+                "selfLink": "/api/v1/namespaces/default/events/verrazzano-install-my-verrazzano-twltx.166e25342ff844b3",
+                "uid": "bb0c1ac1-cfbe-4352-98d1-4ed73e35709e",
+                "resourceVersion": "22108",
+                "creationTimestamp": "2021-03-20T19:57:02Z",
+                "managedFields": [
+                    {
+                        "manager": "kubelet",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-03-20T19:57:02Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:fieldPath": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:resourceVersion": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {},
+                                "f:host": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "default",
+                "name": "verrazzano-install-my-verrazzano-twltx",
+                "uid": "234e5ec9-3ef1-4f95-9363-587688c892a6",
+                "apiVersion": "v1",
+                "resourceVersion": "22099",
+                "fieldPath": "spec.containers{install}"
+            },
+            "reason": "Started",
+            "message": "Started container install",
+            "source": {
+                "component": "kubelet",
+                "host": "at-tests-control-plane"
+            },
+            "firstTimestamp": "2021-03-20T19:57:02Z",
+            "lastTimestamp": "2021-03-20T19:57:02Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-install-my-verrazzano.166e25340e79841f",
+                "namespace": "default",
+                "selfLink": "/api/v1/namespaces/default/events/verrazzano-install-my-verrazzano.166e25340e79841f",
+                "uid": "dd240a7b-54e9-45b4-a878-a2fdd0017abe",
+                "resourceVersion": "22100",
+                "creationTimestamp": "2021-03-20T19:57:01Z",
+                "managedFields": [
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-03-20T19:57:01Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:resourceVersion": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Job",
+                "namespace": "default",
+                "name": "verrazzano-install-my-verrazzano",
+                "uid": "b503169a-d0f0-4273-8b26-58ae53d909e1",
+                "apiVersion": "batch/v1",
+                "resourceVersion": "22096"
+            },
+            "reason": "SuccessfulCreate",
+            "message": "Created pod: verrazzano-install-my-verrazzano-twltx",
+            "source": {
+                "component": "job-controller"
+            },
+            "firstTimestamp": "2021-03-20T19:57:01Z",
+            "lastTimestamp": "2021-03-20T19:57:01Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "verrazzano-install-my-verrazzano.166e260ad15480c9",
+                "namespace": "default",
+                "selfLink": "/api/v1/namespaces/default/events/verrazzano-install-my-verrazzano.166e260ad15480c9",
+                "uid": "b895deea-2c58-46b2-b37d-1d80feca1ea0",
+                "resourceVersion": "25682",
+                "creationTimestamp": "2021-03-20T20:12:24Z",
+                "managedFields": [
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-03-20T20:12:24Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:count": {},
+                            "f:firstTimestamp": {},
+                            "f:involvedObject": {
+                                "f:apiVersion": {},
+                                "f:kind": {},
+                                "f:name": {},
+                                "f:namespace": {},
+                                "f:resourceVersion": {},
+                                "f:uid": {}
+                            },
+                            "f:lastTimestamp": {},
+                            "f:message": {},
+                            "f:reason": {},
+                            "f:source": {
+                                "f:component": {}
+                            },
+                            "f:type": {}
+                        }
+                    }
+                ]
+            },
+            "involvedObject": {
+                "kind": "Job",
+                "namespace": "default",
+                "name": "verrazzano-install-my-verrazzano",
+                "uid": "b503169a-d0f0-4273-8b26-58ae53d909e1",
+                "apiVersion": "batch/v1",
+                "resourceVersion": "22102"
+            },
+            "reason": "BackoffLimitExceeded",
+            "message": "Job has reached the specified backoff limit",
+            "source": {
+                "component": "job-controller"
+            },
+            "firstTimestamp": "2021-03-20T20:12:24Z",
+            "lastTimestamp": "2021-03-20T20:12:24Z",
+            "count": 1,
+            "type": "Warning",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        }
+    ]
+}

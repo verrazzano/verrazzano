@@ -651,7 +651,7 @@
                                 "f:podIP": {},
                                 "f:podIPs": {
                                     ".": {},
-                                    "k:{\"ip\":\"10.244.0.61\"}": {
+                                    "k:{\"ip\":\"REDACTED-IP4-ADDRESS\"}": {
                                         ".": {},
                                         "f:ip": {}
                                     }
@@ -1182,11 +1182,11 @@
                         "lastTransitionTime": "2021-03-15T19:01:02Z"
                     }
                 ],
-                "hostIP": "172.18.0.2",
-                "podIP": "10.244.0.61",
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
                 "podIPs": [
                     {
-                        "ip": "10.244.0.61"
+                        "ip": "REDACTED-IP4-ADDRESS"
                     }
                 ],
                 "startTime": "2021-03-15T19:01:02Z",
@@ -2083,11 +2083,11 @@
                         "lastTransitionTime": "2021-03-15T19:05:13Z"
                     }
                 ],
-                "hostIP": "172.18.0.2",
-                "podIP": "10.244.0.110",
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
                 "podIPs": [
                     {
-                        "ip": "10.244.0.110"
+                        "ip": "REDACTED-IP4-ADDRESS"
                     }
                 ],
                 "startTime": "2021-03-15T19:05:13Z",
@@ -2990,11 +2990,11 @@
                         "lastTransitionTime": "2021-03-15T19:06:07Z"
                     }
                 ],
-                "hostIP": "172.18.0.2",
-                "podIP": "10.244.0.116",
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
                 "podIPs": [
                     {
-                        "ip": "10.244.0.116"
+                        "ip": "REDACTED-IP4-ADDRESS"
                     }
                 ],
                 "startTime": "2021-03-15T19:06:07Z",
@@ -3249,7 +3249,7 @@
                                 "f:podIP": {},
                                 "f:podIPs": {
                                     ".": {},
-                                    "k:{\"ip\":\"10.244.0.85\"}": {
+                                    "k:{\"ip\":\"REDACTED-IP4-ADDRESS\"}": {
                                         ".": {},
                                         "f:ip": {}
                                     }
@@ -3721,11 +3721,11 @@
                         "lastTransitionTime": "2021-03-15T19:01:16Z"
                     }
                 ],
-                "hostIP": "172.18.0.2",
-                "podIP": "10.244.0.85",
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
                 "podIPs": [
                     {
-                        "ip": "10.244.0.85"
+                        "ip": "REDACTED-IP4-ADDRESS"
                     }
                 ],
                 "startTime": "2021-03-15T19:01:17Z",
@@ -4614,11 +4614,11 @@
                         "lastTransitionTime": "2021-03-15T19:06:12Z"
                     }
                 ],
-                "hostIP": "172.18.0.2",
-                "podIP": "10.244.0.117",
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
                 "podIPs": [
                     {
-                        "ip": "10.244.0.117"
+                        "ip": "REDACTED-IP4-ADDRESS"
                     }
                 ],
                 "startTime": "2021-03-15T19:06:12Z",
@@ -5513,11 +5513,11 @@
                         "lastTransitionTime": "2021-03-15T19:07:01Z"
                     }
                 ],
-                "hostIP": "172.18.0.2",
-                "podIP": "10.244.0.119",
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
                 "podIPs": [
                     {
-                        "ip": "10.244.0.119"
+                        "ip": "REDACTED-IP4-ADDRESS"
                     }
                 ],
                 "startTime": "2021-03-15T19:07:01Z",
@@ -5789,7 +5789,7 @@
                                 "f:podIP": {},
                                 "f:podIPs": {
                                     ".": {},
-                                    "k:{\"ip\":\"10.244.0.102\"}": {
+                                    "k:{\"ip\":\"REDACTED-IP4-ADDRESS\"}": {
                                         ".": {},
                                         "f:ip": {}
                                     }
@@ -6279,11 +6279,11 @@
                         "lastTransitionTime": "2021-03-15T19:03:15Z"
                     }
                 ],
-                "hostIP": "172.18.0.2",
-                "podIP": "10.244.0.102",
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
                 "podIPs": [
                     {
-                        "ip": "10.244.0.102"
+                        "ip": "REDACTED-IP4-ADDRESS"
                     }
                 ],
                 "startTime": "2021-03-15T19:03:16Z",
@@ -6667,7 +6667,7 @@
                                 "f:podIP": {},
                                 "f:podIPs": {
                                     ".": {},
-                                    "k:{\"ip\":\"10.244.0.72\"}": {
+                                    "k:{\"ip\":\"REDACTED-IP4-ADDRESS\"}": {
                                         ".": {},
                                         "f:ip": {}
                                     }
@@ -7263,11 +7263,11 @@
                         "lastTransitionTime": "2021-03-15T19:01:10Z"
                     }
                 ],
-                "hostIP": "172.18.0.2",
-                "podIP": "10.244.0.72",
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
                 "podIPs": [
                     {
-                        "ip": "10.244.0.72"
+                        "ip": "REDACTED-IP4-ADDRESS"
                     }
                 ],
                 "startTime": "2021-03-15T19:01:10Z",
@@ -7666,7 +7666,7 @@
                                 "f:podIP": {},
                                 "f:podIPs": {
                                     ".": {},
-                                    "k:{\"ip\":\"10.244.0.84\"}": {
+                                    "k:{\"ip\":\"REDACTED-IP4-ADDRESS\"}": {
                                         ".": {},
                                         "f:ip": {}
                                     }
@@ -8262,11 +8262,11 @@
                         "lastTransitionTime": "2021-03-15T19:01:15Z"
                     }
                 ],
-                "hostIP": "172.18.0.2",
-                "podIP": "10.244.0.84",
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
                 "podIPs": [
                     {
-                        "ip": "10.244.0.84"
+                        "ip": "REDACTED-IP4-ADDRESS"
                     }
                 ],
                 "startTime": "2021-03-15T19:01:15Z",
@@ -8674,7 +8674,7 @@
                                 "f:podIP": {},
                                 "f:podIPs": {
                                     ".": {},
-                                    "k:{\"ip\":\"10.244.0.86\"}": {
+                                    "k:{\"ip\":\"REDACTED-IP4-ADDRESS\"}": {
                                         ".": {},
                                         "f:ip": {}
                                     }
@@ -9274,11 +9274,11 @@
                         "lastTransitionTime": "2021-03-15T19:01:17Z"
                     }
                 ],
-                "hostIP": "172.18.0.2",
-                "podIP": "10.244.0.86",
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
                 "podIPs": [
                     {
-                        "ip": "10.244.0.86"
+                        "ip": "REDACTED-IP4-ADDRESS"
                     }
                 ],
                 "startTime": "2021-03-15T19:01:17Z",
@@ -10007,7 +10007,7 @@
                                 "f:podIP": {},
                                 "f:podIPs": {
                                     ".": {},
-                                    "k:{\"ip\":\"10.244.0.58\"}": {
+                                    "k:{\"ip\":\"REDACTED-IP4-ADDRESS\"}": {
                                         ".": {},
                                         "f:ip": {}
                                     }
@@ -10546,11 +10546,11 @@
                         "lastTransitionTime": "2021-03-15T19:01:01Z"
                     }
                 ],
-                "hostIP": "172.18.0.2",
-                "podIP": "10.244.0.58",
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
                 "podIPs": [
                     {
-                        "ip": "10.244.0.58"
+                        "ip": "REDACTED-IP4-ADDRESS"
                     }
                 ],
                 "startTime": "2021-03-15T19:01:02Z",
@@ -11264,7 +11264,7 @@
                                 "f:podIP": {},
                                 "f:podIPs": {
                                     ".": {},
-                                    "k:{\"ip\":\"10.244.0.60\"}": {
+                                    "k:{\"ip\":\"REDACTED-IP4-ADDRESS\"}": {
                                         ".": {},
                                         "f:ip": {}
                                     }
@@ -11803,11 +11803,11 @@
                         "lastTransitionTime": "2021-03-15T19:01:02Z"
                     }
                 ],
-                "hostIP": "172.18.0.2",
-                "podIP": "10.244.0.60",
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
                 "podIPs": [
                     {
-                        "ip": "10.244.0.60"
+                        "ip": "REDACTED-IP4-ADDRESS"
                     }
                 ],
                 "startTime": "2021-03-15T19:01:02Z",

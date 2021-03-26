@@ -3,28 +3,28 @@
     "apiVersion": "v1",
     "metadata": {
         "selfLink": "/api/v1/namespaces/default/pods",
-        "resourceVersion": "17490"
+        "resourceVersion": "10052"
     },
     "items": [
         {
             "metadata": {
-                "name": "verrazzano-uninstall-my-verrazzano-tw7s7",
-                "generateName": "verrazzano-uninstall-my-verrazzano-",
+                "name": "verrazzano-install-my-verrazzano-kplsp",
+                "generateName": "verrazzano-install-my-verrazzano-",
                 "namespace": "default",
-                "selfLink": "/api/v1/namespaces/default/pods/verrazzano-uninstall-my-verrazzano-tw7s7",
-                "uid": "27e9fced-49dc-407c-82b6-518b9429d8de",
-                "resourceVersion": "17368",
-                "creationTimestamp": "2021-02-03T19:28:53Z",
+                "selfLink": "/api/v1/namespaces/default/pods/verrazzano-install-my-verrazzano-kplsp",
+                "uid": "05a46f89-6f3e-4204-aae5-8d7845ba61e5",
+                "resourceVersion": "9957",
+                "creationTimestamp": "2021-03-17T13:46:49Z",
                 "labels": {
-                    "controller-uid": "ea08c461-cd01-40fc-89b9-e77f5c58aa48",
-                    "job-name": "verrazzano-uninstall-my-verrazzano"
+                    "controller-uid": "876f499c-7df4-4373-9a6e-e74a62b0a11a",
+                    "job-name": "verrazzano-install-my-verrazzano"
                 },
                 "ownerReferences": [
                     {
                         "apiVersion": "batch/v1",
                         "kind": "Job",
-                        "name": "verrazzano-uninstall-my-verrazzano",
-                        "uid": "ea08c461-cd01-40fc-89b9-e77f5c58aa48",
+                        "name": "verrazzano-install-my-verrazzano",
+                        "uid": "876f499c-7df4-4373-9a6e-e74a62b0a11a",
                         "controller": true,
                         "blockOwnerDeletion": true
                     }
@@ -33,25 +33,32 @@
             "spec": {
                 "volumes": [
                     {
-                        "name": "verrazzano-install-my-verrazzano-token-8xdjm",
+                        "name": "config-volume",
+                        "configMap": {
+                            "name": "verrazzano-install-my-verrazzano",
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "verrazzano-install-my-verrazzano-token-s6jpr",
                         "secret": {
-                            "secretName": "verrazzano-install-my-verrazzano-token-8xdjm",
+                            "secretName": "verrazzano-install-my-verrazzano-token-s6jpr",
                             "defaultMode": 420
                         }
                     }
                 ],
                 "containers": [
                     {
-                        "name": "uninstall",
-                        "image": "REDACTED-FOR-TEST",
+                        "name": "install",
+                        "image": "ghcr.io/verrazzano/verrazzano-platform-operator:0.13.0-20210317124040-5cc8e70",
                         "env": [
                             {
                                 "name": "MODE",
-                                "value": "UNINSTALL"
+                                "value": "INSTALL"
                             },
                             {
-                                "name": "CLUSTER_TYPE",
-                                "value": "OKE"
+                                "name": "INSTALL_CONFIG_FILE",
+                                "value": "/config/config.json"
                             },
                             {
                                 "name": "VERRAZZANO_KUBECONFIG",
@@ -65,7 +72,11 @@
                         "resources": {},
                         "volumeMounts": [
                             {
-                                "name": "verrazzano-install-my-verrazzano-token-8xdjm",
+                                "name": "config-volume",
+                                "mountPath": "/config"
+                            },
+                            {
+                                "name": "verrazzano-install-my-verrazzano-token-s6jpr",
                                 "readOnly": true,
                                 "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
                             }
@@ -80,8 +91,11 @@
                 "dnsPolicy": "ClusterFirst",
                 "serviceAccountName": "verrazzano-install-my-verrazzano",
                 "serviceAccount": "verrazzano-install-my-verrazzano",
-                "nodeName": "REDACTED-FOR-TEST",
+                "nodeName": "REDACTED-IP4-ADDRESS",
                 "securityContext": {},
+                "imagePullSecrets": [
+                    {}
+                ],
                 "schedulerName": "default-scheduler",
                 "tolerations": [
                     {
@@ -107,57 +121,57 @@
                         "type": "Initialized",
                         "status": "True",
                         "lastProbeTime": null,
-                        "lastTransitionTime": "2021-02-03T19:28:53Z"
+                        "lastTransitionTime": "2021-03-17T13:46:49Z"
                     },
                     {
                         "type": "Ready",
                         "status": "False",
                         "lastProbeTime": null,
-                        "lastTransitionTime": "2021-02-03T19:30:28Z",
+                        "lastTransitionTime": "2021-03-17T14:02:41Z",
                         "reason": "ContainersNotReady",
-                        "message": "containers with unready status: [uninstall]"
+                        "message": "containers with unready status: [install]"
                     },
                     {
                         "type": "ContainersReady",
                         "status": "False",
                         "lastProbeTime": null,
-                        "lastTransitionTime": "2021-02-03T19:30:28Z",
+                        "lastTransitionTime": "2021-03-17T14:02:41Z",
                         "reason": "ContainersNotReady",
-                        "message": "containers with unready status: [uninstall]"
+                        "message": "containers with unready status: [install]"
                     },
                     {
                         "type": "PodScheduled",
                         "status": "True",
                         "lastProbeTime": null,
-                        "lastTransitionTime": "2021-02-03T19:28:53Z"
+                        "lastTransitionTime": "2021-03-17T13:46:49Z"
                     }
                 ],
-                "hostIP": "REDACTED-FOR-TEST",
+                "hostIP": "REDACTED-IP4-ADDRESS",
                 "podIP": "REDACTED-IP4-ADDRESS",
                 "podIPs": [
                     {
                         "ip": "REDACTED-IP4-ADDRESS"
                     }
                 ],
-                "startTime": "2021-02-03T19:28:53Z",
+                "startTime": "2021-03-17T13:46:49Z",
                 "containerStatuses": [
                     {
-                        "name": "uninstall",
+                        "name": "install",
                         "state": {
                             "terminated": {
                                 "exitCode": 1,
                                 "reason": "Error",
-                                "startedAt": "2021-02-03T19:28:55Z",
-                                "finishedAt": "2021-02-03T19:30:27Z",
-                                "containerID": "REDACTED-FOR-TEST"
+                                "startedAt": "2021-03-17T13:46:51Z",
+                                "finishedAt": "2021-03-17T14:02:41Z",
+                                "containerID": "docker://59068a5be41256ac88ac9e93d5aaba385ca499ca14e6800761baf11ae3376971"
                             }
                         },
                         "lastState": {},
                         "ready": false,
                         "restartCount": 0,
-                        "image": "REDACTED-FOR-TEST",
-                        "imageID": "REDACTED-FOR-TEST",
-                        "containerID": "REDACTED-FOR-TEST",
+                        "image": "ghcr.io/verrazzano/verrazzano-platform-operator:0.13.0-20210317124040-5cc8e70",
+                        "imageID": "docker-pullable://ghcr.io/verrazzano/verrazzano-platform-operator@sha256:98a6a9db03ca321820fde1cafa7e47f422f55feccd0b40898b345ef49f93b831",
+                        "containerID": "docker://59068a5be41256ac88ac9e93d5aaba385ca499ca14e6800761baf11ae3376971",
                         "started": false
                     }
                 ],

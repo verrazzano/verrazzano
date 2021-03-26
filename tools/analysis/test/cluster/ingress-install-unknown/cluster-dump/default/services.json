@@ -1,0 +1,73 @@
+{
+    "kind": "ServiceList",
+    "apiVersion": "v1",
+    "metadata": {
+        "selfLink": "/api/v1/namespaces/default/services",
+        "resourceVersion": "4476"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "kubernetes",
+                "namespace": "default",
+                "selfLink": "/api/v1/namespaces/default/services/kubernetes",
+                "uid": "7c686c0d-d0ff-4832-8534-58ee19e47fc4",
+                "resourceVersion": "159",
+                "creationTimestamp": "2021-03-26T01:28:22Z",
+                "labels": {
+                    "component": "apiserver",
+                    "provider": "kubernetes"
+                },
+                "managedFields": [
+                    {
+                        "manager": "kube-apiserver",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-03-26T01:28:22Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:labels": {
+                                    ".": {},
+                                    "f:component": {},
+                                    "f:provider": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:clusterIP": {},
+                                "f:ports": {
+                                    ".": {},
+                                    "k:{\"port\":443,\"protocol\":\"TCP\"}": {
+                                        ".": {},
+                                        "f:name": {},
+                                        "f:port": {},
+                                        "f:protocol": {},
+                                        "f:targetPort": {}
+                                    }
+                                },
+                                "f:sessionAffinity": {},
+                                "f:type": {}
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "https",
+                        "protocol": "TCP",
+                        "port": 443,
+                        "targetPort": 6443
+                    }
+                ],
+                "clusterIP": "REDACTED-IP4-ADDRESS",
+                "type": "ClusterIP",
+                "sessionAffinity": "None"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        }
+    ]
+}

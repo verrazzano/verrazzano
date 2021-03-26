@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"go.uber.org/zap"
+	"io"
 	"os"
 	"regexp"
 )
@@ -45,45 +46,60 @@ func SearchFiles(log *zap.SugaredLogger, rootDirectory string, files []string, s
 	}
 
 	for _, fileName := range files {
+		// Note that since we are in a loop, we do not use defer to close the file, we close it explicitly so they
+		// don't pile up until the function return
 		file, err := os.Open(fileName)
 		if err != nil {
 			log.Debugf("failure opening %s", fileName, err)
 			return nil, err
 		}
-		defer file.Close()
 
 		fileStat, err := file.Stat()
 		if err != nil {
+			file.Close()
 			log.Debugf("failure getting stat for %s", fileName, err)
 			return nil, err
 		}
 		if fileStat.IsDir() {
 			log.Debugf("Skipping directory in search %s", fileName)
+			file.Close()
 			continue
 		}
 		if !fileStat.Mode().IsRegular() {
 			log.Debugf("Skipping non-regular file in search %s", fileName)
+			file.Close()
 			continue
 		}
 
-		scanner := bufio.NewScanner(file)
+		// Had issues with token too large using the scanner, so using a reader instead
+		reader := bufio.NewReader(file)
+		//scanner := bufio.NewScanner(file)
 		lineNumber := 0
 		var match TextMatch
-		for scanner.Scan() {
-			lineNumber++
-			matched := searchMatchRe.Find(scanner.Bytes())
-			if len(matched) > 0 {
-				match.FileLine = lineNumber
-				match.FileName = fileName
-				match.MatchedText = scanner.Text()
-				matches = append(matches, match)
+		for {
+			line, readErr := reader.ReadString('\n')
+			if readErr != nil && readErr != io.EOF {
+				// If we had an unexpected failure we fail
+				log.Debugf("failure reading file %s", fileName, readErr)
+				file.Close()
+				return nil, readErr
+			}
+			if len(line) > 0 {
+				lineNumber++
+				matched := searchMatchRe.Find([]byte(line))
+				if len(matched) > 0 {
+					match.FileLine = lineNumber
+					match.FileName = fileName
+					match.MatchedText = line
+					matches = append(matches, match)
+				}
+			}
+			// If we hit EOF, we're done
+			if readErr == io.EOF {
+				break
 			}
 		}
-		err = scanner.Err()
-		if err != nil {
-			log.Debugf("failure scanning file %s", fileName, err)
-			return nil, err
-		}
+		file.Close()
 	}
 	return matches, nil
 }

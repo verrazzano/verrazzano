@@ -1,0 +1,11 @@
+==== START logs for container install of pod default/verrazzano-install-my-verrazzano-rslwh ====
+REDACTED FOR TEST
+[2021-03-26 01:30:50 UTC] Output captured for /verrazzano/platform-operator/scripts/install/2-install-system-components.sh
+[2021-03-26 01:30:50 UTC] Reading installation config file /config/config.json
+[2021-03-26 01:30:51 UTC] Installing NGINX Ingress Controller                                          [ .... ]
+[2021-03-26 01:30:51 UTC] Error from server (NotFound): namespaces "ingress-nginx" not found
+[2021-03-26 01:30:51 UTC] namespace/ingress-nginx created
+[2021-03-26 01:30:51 UTC] Release "ingress-controller" does not exist. Installing it now.
+[2021-03-26 01:45:51 UTC] Error: timed out waiting for the condition
+[2021-03-26 01:45:51 UTC] Installing NGINX Ingress Controller                                          [FAILED]
+==== END logs for container install of pod default/verrazzano-install-my-verrazzano-rslwh ====
