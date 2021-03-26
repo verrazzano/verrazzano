@@ -85,8 +85,8 @@ monitoringOperator:
 
 console:
   name: verrazzano-console
-  imageName: ghcr.io/verrazzano/console
-  imageVersion: 0.13.0-20210316140720-9557904
+  imageName: ghcr.io/verrazzano/console-jenkins
+  imageVersion: 0.13.0-20210326184017-d42eca2
 
 api:
   name: verrazzano-api
