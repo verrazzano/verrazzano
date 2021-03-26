@@ -31,10 +31,15 @@ function initializing_uninstall {
 
   if [ "${RANCHER_ACCESS_TOKEN}" ]; then
     log "Updating ${rancher_cluster_url}"
-    status=$(curl -o /dev/null -s -w "%{http_code}\n" $(get_rancher_resolve ${rancher_hostname}) -X DELETE -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")
-    if [ "$status" != 200 ] && [ "$status" != 404 ] ; then
-      return 1
+    local temp_output="/tmp/delete_cluster.out"
+    status=$(curl -o ${temp_output} -s -w "%{http_code}\n" $(get_rancher_resolve ${rancher_hostname}) -X DELETE -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")
+    if [ "$status" != 200 ] ; then
+      local cluster_delete_output=$(cat $temp_output)
+      log "${cluster_delete_output}"
+      rm "$temp_output"
+      return 0
     fi
+
     local max_retries=30
     local retries=0
     while true ; do
@@ -48,7 +53,7 @@ function initializing_uninstall {
       fi
       ((retries+=1))
       if [ "$retries" -ge "$max_retries" ] ; then
-        return 1
+        return 0
       fi
     done
   fi

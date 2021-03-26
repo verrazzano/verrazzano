@@ -80,7 +80,7 @@ func TestReconcileCreateAppConfig(t *testing.T) {
 	}
 
 	// expect a call to fetch the MultiClusterApplicationConfiguration
-	doExpectGetMultiClusterAppConfig(cli, mcAppConfigSample)
+	doExpectGetMultiClusterAppConfig(cli, mcAppConfigSample, false)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -95,6 +95,15 @@ func TestReconcileCreateAppConfig(t *testing.T) {
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, c *v1alpha2.ApplicationConfiguration, opts ...client.CreateOption) error {
 			assertAppConfigValid(assert, c, mcAppConfigSample)
+			return nil
+		})
+
+	// expect a call to update the resource with a finalizer
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, appConfig *clustersv1alpha1.MultiClusterApplicationConfiguration, opts ...client.UpdateOption) error {
+			assert.True(len(appConfig.ObjectMeta.Finalizers) == 1, "Wrong number of finalizers")
+			assert.Equal(finalizerName, appConfig.ObjectMeta.Finalizers[0], "wrong finalizer")
 			return nil
 		})
 
@@ -134,7 +143,7 @@ func TestReconcileUpdateAppConfig(t *testing.T) {
 	}
 
 	// expect a call to fetch the MultiClusterApplicationConfiguration
-	doExpectGetMultiClusterAppConfig(cli, mcAppConfigSample)
+	doExpectGetMultiClusterAppConfig(cli, mcAppConfigSample, true)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -182,7 +191,7 @@ func TestReconcileCreateAppConfigFailed(t *testing.T) {
 	}
 
 	// expect a call to fetch the MultiClusterApplicationConfiguration
-	doExpectGetMultiClusterAppConfig(cli, mcAppConfigSample)
+	doExpectGetMultiClusterAppConfig(cli, mcAppConfigSample, false)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -233,7 +242,7 @@ func TestReconcileUpdateAppConfigFailed(t *testing.T) {
 	}
 
 	// expect a call to fetch the MultiClusterApplicationConfiguration
-	doExpectGetMultiClusterAppConfig(cli, mcAppConfigSample)
+	doExpectGetMultiClusterAppConfig(cli, mcAppConfigSample, true)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -313,7 +322,7 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 	mcAppConfigSample.Spec.Placement.Clusters[0].Name = "not-my-cluster"
 
 	// expect a call to fetch the MultiClusterApplicationConfiguration
-	doExpectGetMultiClusterAppConfig(cli, mcAppConfigSample)
+	doExpectGetMultiClusterAppConfig(cli, mcAppConfigSample, true)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -322,7 +331,24 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 	// since it would have changed
 	clusterstest.DoExpectUpdateState(t, cli, statusWriter, &mcAppConfigSample, clustersv1alpha1.Pending)
 
+	clusterstest.ExpectDeleteAssociatedResource(cli, &v1alpha2.Component{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mcAppConfigSample.Name,
+			Namespace: mcAppConfigSample.Namespace,
+		},
+	}, types.NamespacedName{
+		Namespace: mcAppConfigSample.Namespace,
+		Name:      mcAppConfigSample.Name,
+	})
 	// Expect no further action
+
+	// expect a call to update the resource with no finalizers
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration, opts ...client.UpdateOption) error {
+			assert.True(len(mcAppConfig.Finalizers) == 0, "Wrong number of finalizers")
+			return nil
+		})
 
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
@@ -383,13 +409,16 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 
 // doExpectGetMultiClusterAppConfig adds an expectation to the given MockClient to expect a Get
 // call for a MultiClusterApplicationConfiguration, and populate it with given sample data
-func doExpectGetMultiClusterAppConfig(cli *mocks.MockClient, mcAppConfigSample clustersv1alpha1.MultiClusterApplicationConfiguration) {
+func doExpectGetMultiClusterAppConfig(cli *mocks.MockClient, mcAppConfigSample clustersv1alpha1.MultiClusterApplicationConfiguration, addFinalizer bool) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.AssignableToTypeOf(&mcAppConfigSample)).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcAppConfig *clustersv1alpha1.MultiClusterApplicationConfiguration) error {
 			mcAppConfig.ObjectMeta = mcAppConfigSample.ObjectMeta
 			mcAppConfig.TypeMeta = mcAppConfigSample.TypeMeta
 			mcAppConfig.Spec = mcAppConfigSample.Spec
+			if addFinalizer {
+				mcAppConfig.Finalizers = append(mcAppConfigSample.Finalizers, finalizerName)
+			}
 			return nil
 		})
 }
@@ -411,11 +440,6 @@ func assertAppConfigValid(assert *asserts.Assertions, app *v1alpha2.ApplicationC
 		assert.Equal(comp.Traits, app.Spec.Components[i].Traits)
 	}
 
-	// assert that the owner reference points to a MultiClusterApplicationConfiguration
-	assert.Equal(1, len(app.OwnerReferences))
-	assert.Equal("MultiClusterApplicationConfiguration", app.OwnerReferences[0].Kind)
-	assert.Equal(clustersv1alpha1.GroupVersion.String(), app.OwnerReferences[0].APIVersion)
-	assert.Equal(crName, app.OwnerReferences[0].Name)
 }
 
 // getSampleMCAppConfig creates and returns a sample MultiClusterApplicationConfiguration used in tests

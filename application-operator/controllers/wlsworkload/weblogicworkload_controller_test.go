@@ -5,6 +5,7 @@ package wlsworkload
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
@@ -20,6 +21,7 @@ import (
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -106,6 +108,12 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
+		})
+	// expect a call to attempt to get the WebLogic CR - return not found
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
+			return errors.NewNotFound(k8sschema.GroupResource{}, "")
 		})
 	// expect a call to create the WebLogic domain CR
 	cli.EXPECT().
@@ -220,6 +228,12 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
+	// expect a call to attempt to get the WebLogic CR - return not found
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
+			return errors.NewNotFound(k8sschema.GroupResource{}, "")
+		})
 	// expect a call to create the WebLogic domain CR
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
@@ -248,12 +262,12 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 	assert.Equal(false, result.Requeue)
 }
 
-// TestReconcileAlreadyExists tests reconciling a VerrazzanoWebLogicWorkload when the WebLogic
-// domain CR already exists. We ignore the error and return success.
-// GIVEN a VerrazzanoWebLogicWorkload resource
-// WHEN the controller Reconcile function is called and the WebLogic domain CR already exists
-// THEN ignore the error on create and return success
-func TestReconcileAlreadyExists(t *testing.T) {
+// TestReconcileUpdateCR tests reconciling a VerrazzanoWebLogicWorkload when the WebLogic
+// CR already exists. We expect the CR to be updated.
+// GIVEN a VerrazzanoWebLogicWorkload resource is updated
+// WHEN the controller Reconcile function is called and the WebLogic CR already exists
+// THEN the WebLogic CR is updated
+func TestReconcileUpdateCR(t *testing.T) {
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -263,11 +277,14 @@ func TestReconcileAlreadyExists(t *testing.T) {
 	componentName := "unit-test-component"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
 
+	// simulate the "replicas" field changing to 3
+	replicasFromWorkload := int64(3)
+
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-			weblogicJSON := `{"metadata":{"name":"unit-test-cluster"},"spec":{"domainUID":"unit-test-domain"}}`
+			weblogicJSON := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":` + fmt.Sprint(replicasFromWorkload) + `}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(weblogicJSON)}
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.GroupVersion.String()
@@ -288,13 +305,25 @@ func TestReconcileAlreadyExists(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
-	// expect a call to create the WebLogic domain CR and return an AlreadyExists error
+	// expect a call to attempt to get the WebLogic CR and return an existing resource
 	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
+			// note this resource has a "replicas" field currently set to 1
+			spec := map[string]interface{}{"replicas": int64(1)}
+			return unstructured.SetNestedField(u.Object, spec, specField)
+		})
+	// expect a call to update the WebLogic domain CR
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
 			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
 			assert.Equal(weblogicKind, u.GetKind())
-			return k8serrors.NewAlreadyExists(k8sschema.GroupResource{}, "")
+
+			// make sure the replicas field is set to the correct value (from our workload spec)
+			spec, _, _ := unstructured.NestedMap(u.Object, specField)
+			assert.Equal(replicasFromWorkload, spec["replicas"])
+			return nil
 		})
 
 	// create a request and reconcile it
@@ -347,7 +376,13 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
-	// expect a call to create the WebLogic domain CR and return an AlreadyExists error
+	// expect a call to attempt to get the WebLogic CR - return not found
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, u *unstructured.Unstructured) error {
+			return errors.NewNotFound(k8sschema.GroupResource{}, "")
+		})
+	// expect a call to create the WebLogic domain CR and return a BadRequest error
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {

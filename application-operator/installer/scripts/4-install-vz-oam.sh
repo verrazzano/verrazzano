@@ -27,7 +27,7 @@ function install {
   fi
 
   log "Installing Verrazzano CRD extensions"
-  kubectl apply -f ${PROJ_DIR}/config/crd/bases
+  kubectl apply -f ${PROJ_DIR}/../platform-operator/helm_config/charts/verrazzano-application-operator/crds
   if [ $? -ne 0 ]; then
     error "Failed to install Verrazzano CRD extensions"
     return 1

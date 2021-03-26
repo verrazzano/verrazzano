@@ -126,13 +126,21 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	// write out the WebLogic domain resource
-	if err = r.Client.Create(ctx, u); err != nil {
-		if !k8serrors.IsAlreadyExists(err) {
-			return reconcile.Result{}, err
-		}
-		log.Info("WebLogic domain CR already exists, ignoring error on create")
-		return reconcile.Result{}, nil
+	// make a copy of the WebLogic spec since u.Object will get overwritten in CreateOrUpdate
+	// if the WebLogic CR exists
+	specCopy, _, err := unstructured.NestedFieldCopy(u.Object, specField)
+	if err != nil {
+		log.Error(err, "Unable to make a copy of the WebLogic spec")
+		return reconcile.Result{}, err
+	}
+
+	// write out the WebLogic resource
+	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, u, func() error {
+		return unstructured.SetNestedField(u.Object, specCopy, specField)
+	})
+	if err != nil {
+		log.Error(err, "Error creating or updating WebLogic CR")
+		return reconcile.Result{}, err
 	}
 
 	if err = r.createDestinationRule(ctx, log, namespace.Name, namespace.Labels, workload.ObjectMeta.Labels); err != nil {

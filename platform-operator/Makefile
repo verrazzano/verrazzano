@@ -10,7 +10,6 @@ NAME:=verrazzano-platform-operator
 REPO_NAME:=verrazzano-platform-operator
 
 CONTROLLER_GEN_VERSION ?= $(shell go list -m -f '{{.Version}}' sigs.k8s.io/controller-tools)
-
 CREATE_LATEST_TAG=0
 
 CRD_OPTIONS ?= "crd:crdVersions=v1"
@@ -27,12 +26,12 @@ ifndef DOCKER_IMAGE_FULLNAME
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
 DOCKER_IMAGE_FULLNAME=${DOCKER_IMAGE_NAME}
 ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),docker-push push-tag))
-ifndef DOCKER_REPO
-    $(error DOCKER_REPO must be defined as the name of the docker repository where image will be pushed)
-endif
-ifndef DOCKER_NAMESPACE
-    $(error DOCKER_NAMESPACE must be defined as the name of the docker namespace where image will be pushed)
-endif
+	ifndef DOCKER_REPO
+		$(error DOCKER_REPO must be defined as the name of the docker repository where image will be pushed)
+	endif
+	ifndef DOCKER_NAMESPACE
+		$(error DOCKER_NAMESPACE must be defined as the name of the docker namespace where image will be pushed)
+	endif
 endif
 ifdef DOCKER_NAMESPACE
 DOCKER_IMAGE_FULLNAME := ${DOCKER_NAMESPACE}/${DOCKER_IMAGE_FULLNAME}
@@ -65,7 +64,9 @@ GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 
 CRD_PATH=helm_config/charts/verrazzano-platform-operator/crds
-CODEGEN_PATH = k8s.io/code-generator
+
+CLUSTER_DUMP_LOCATION ?= platform-operator-integ-cluster-dump
+
 
 # Run against the configured Kubernetes cluster specified by KUBECONFIG
 .PHONY: run
@@ -152,9 +153,6 @@ OPERATOR_YAML ?= ${BUILD_DEPLOY}/operator.yaml
 DEPLOY = deploy
 OPERATOR_SETUP = test/operatorsetup
 
-CLUSTER_DUMP_LOCATION ?= platform-operator-integ-cluster-dump
-
-
 .PHONY: integ-test
 integ-test: create-cluster generate-operator-yaml
 	echo 'Load docker image for the verrazzano-platform-operator...'
@@ -180,7 +178,7 @@ create-cluster:
 	# We only create a cluster here if this is not on Jenkins. Jenkins will set the cluster
 ifndef JENKINS_URL
 	kind_clusters=$$(kind get clusters) ; \
-	if [ -z "$$(kind get clusters)" ] || ! kind get clusters | egrep '^verrazzano$$' > /dev/null ; then \
+    if [ -z "$${kind_clusters}" ] || ! kind get clusters | egrep "^${CLUSTER_NAME}\$$" > /dev/null ; then \
 		echo 'Create cluster...' ;\
 		echo 'KUBECONFIG=${KUBECONFIG}' ;\
 		HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 \
