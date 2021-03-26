@@ -23,9 +23,9 @@ import (
 )
 
 const (
+	FluentdContainerName = "fluentd"
 	fluentdConfKey       = "fluentd.conf"
 	fluentdConfMountPath = "/fluentd/etc/fluentd.conf"
-	fluentdContainerName = "fluentd"
 	configMapName        = "fluentd-config"
 	scratchVolMountPath  = "/scratch"
 
@@ -229,7 +229,7 @@ func (f *Fluentd) removeFluentdContainer(fluentdPod *FluentdPod) bool {
 	containers := fluentdPod.Containers
 	fluentdContainerIndex := -1
 	for i, container := range containers {
-		if container.Name == fluentdContainerName {
+		if container.Name == FluentdContainerName {
 			fluentdContainerIndex = i
 			break
 		}
@@ -297,7 +297,7 @@ func (f *Fluentd) removeFluentdConfigMap(namespace string) bool {
 // isFluentdContainerUpToDate is used to determine if the FLUENTD container is in the current expected state
 func (f *Fluentd) isFluentdContainerUpToDate(containers []v1.Container, scope *vzapi.LoggingScope) bool {
 	for _, container := range containers {
-		if container.Name != fluentdContainerName {
+		if container.Name != FluentdContainerName {
 			continue
 		}
 		diffExists := false

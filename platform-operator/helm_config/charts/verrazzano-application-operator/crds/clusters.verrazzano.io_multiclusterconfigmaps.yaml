@@ -81,7 +81,6 @@ spec:
                     type: boolean
                   metadata:
                     type: object
-                    x-kubernetes-preserve-unknown-fields: true
                 type: object
             required:
             - placement

@@ -287,7 +287,7 @@ func createTestFluentdPod() *FluentdPod {
 // createTestFluendPodForUpdate creates a test FluentdPod to be used in testing update
 func createTestFluentdPodForUpdate() *FluentdPod {
 	env := createFluentdESEnv()
-	fluentdContainer := v1.Container{Name: fluentdContainerName, Env: env}
+	fluentdContainer := v1.Container{Name: FluentdContainerName, Env: env}
 	fluentdPod := &FluentdPod{
 		Containers:   []v1.Container{{Name: "test-container"}, fluentdContainer},
 		Volumes:      []v1.Volume{{Name: "test-volume"}},
@@ -312,7 +312,7 @@ func testAssertFluentdPodForApply(t *testing.T, fluentdPod *FluentdPod, loggingS
 	asserts.Len(t, containers, 2)
 	success := false
 	for _, container := range containers {
-		if container.Name == fluentdContainerName {
+		if container.Name == FluentdContainerName {
 			env := container.Env
 			for _, envVar := range env {
 				switch name := envVar.Name; name {
@@ -343,7 +343,7 @@ func testAssertFluentdPodForApplyUpdate(t *testing.T, fluentdPod *FluentdPod) {
 	asserts.Len(t, containers, 2)
 	success := false
 	for _, container := range containers {
-		if container.Name == fluentdContainerName {
+		if container.Name == FluentdContainerName {
 			env := container.Env
 			for _, envVar := range env {
 				switch name := envVar.Name; name {
