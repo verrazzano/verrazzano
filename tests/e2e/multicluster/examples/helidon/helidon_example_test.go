@@ -115,19 +115,21 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 		kubeconfigDir := os.Getenv("KUBECONFIG_DIR")
 		for i := 3; i <= clusterCount; i++ {
 			kubeconfig := kubeconfigDir + "/" + fmt.Sprintf("%d", i) + "/kube_config"
-			os.Setenv("TEST_KUBECONFIG", kubeconfig)
 
 			ginkgo.It("Verify the project does not exist on this managed cluster", func() {
+				os.Setenv("TEST_KUBECONFIG", kubeconfig)
 				pkg.Log(pkg.Info, "Testing against cluster with kubeconfig: "+kubeconfig)
 				gomega.Expect(projectExists()).Should(gomega.BeFalse())
 			})
 
 			ginkgo.It("Verify the MultiClusterApplicationConfiguration does not exist on this managed cluster", func() {
+				os.Setenv("TEST_KUBECONFIG", kubeconfig)
 				pkg.Log(pkg.Info, "Testing against cluster with kubeconfig: "+kubeconfig)
 				gomega.Expect(mcAppConfExists()).Should(gomega.BeFalse())
 			})
 
 			ginkgo.It("Verify the MultiClusterComponent does not exist on this managed cluster", func() {
+				os.Setenv("TEST_KUBECONFIG", kubeconfig)
 				pkg.Log(pkg.Info, "Testing against cluster with kubeconfig: "+kubeconfig)
 				gomega.Expect(mcComponentExists()).Should(gomega.BeFalse())
 			})
