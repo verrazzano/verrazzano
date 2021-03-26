@@ -12,6 +12,9 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
@@ -105,7 +108,24 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	if err = r.addLogging(ctx, log, req.NamespacedName.Namespace, workload.ObjectMeta.Labels, u); err != nil {
+	// Attempt to get the existing Domain. This is used in the case where we don't want to update the Fluentd image.
+	// In this case we obtain the previous Fluentd image and set that on the new Domain.
+	var existingDomain wls.Domain
+	domainKey := types.NamespacedName{Name: u.GetName(), Namespace: workload.Namespace}
+	if err := r.Get(ctx, domainKey, &existingDomain); err != nil {
+		if k8serrors.IsNotFound(err) {
+			log.Info("No existing domain found")
+		} else {
+			log.Error(err, "An error occurred trying to obtain an existing domain")
+			return reconcile.Result{}, err
+		}
+	}
+	// upgradeApp indicates whether the user has indicated that it is ok to update the application to use the latest
+	// resource values from Verrazzano. An example of this is the Fluentd image used by logging.
+	upgradeApp := controllers.IsWorkloadMarkedForUpgrade(workload.Labels, workload.Status.CurrentUpgradeVersion)
+
+	// Add the Fluentd sidecar container required for logging to the Domain
+	if err = r.addLogging(ctx, log, workload, upgradeApp, u, &existingDomain); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -144,6 +164,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	if err = r.createDestinationRule(ctx, log, namespace.Name, namespace.Labels, workload.ObjectMeta.Labels); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if err = r.updateUpgradeVersionInStatus(ctx, workload); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -188,13 +212,24 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, weblogic *uns
 		log.Error(err, "Unable to set labels in spec serverPod")
 		return err
 	}
-
 	return nil
 }
 
 // addLogging adds a FLUENTD sidecar and updates the WebLogic spec if there is an associated LoggingScope
-func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace string, labels map[string]string, weblogic *unstructured.Unstructured) error {
-	loggingScope, err := loggingscope.FetchLoggingScopeFromWorkloadLabels(ctx, r.Client, log, namespace, labels)
+func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoWebLogicWorkload, upgradeApp bool, weblogic *unstructured.Unstructured, existingDomain *wls.Domain) error {
+	// If the Domain already exists and we don't want to update the Fluentd image, obtain the Fluentd image from the
+	// current Domain
+	var existingFluentdImage string
+	if !upgradeApp {
+		for _, container := range existingDomain.Spec.ServerPod.Containers {
+			if container.Name == loggingscope.FluentdContainerName {
+				existingFluentdImage = container.Image
+				break
+			}
+		}
+	}
+
+	loggingScope, err := loggingscope.FetchLoggingScopeFromWorkloadLabels(ctx, r.Client, log, workload.Namespace, workload.Labels, existingFluentdImage)
 	if err != nil {
 		return err
 	}
@@ -231,7 +266,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 
 	// fluentdManager.Apply wants a QRR but it only cares about the namespace (at least for
 	// this use case)
-	resource := vzapi.QualifiedResourceRelation{Namespace: namespace}
+	resource := vzapi.QualifiedResourceRelation{Namespace: workload.Namespace}
 
 	// note that this call has the side effect of creating a FLUENTD config map if one
 	// does not already exist in the namespace
@@ -336,6 +371,14 @@ func (r *Reconciler) createDestinationRule(ctx context.Context, log logr.Logger,
 	}
 	log.Info(fmt.Sprintf("Istio destination rule %s:%s already exist", namespace, appName))
 
+	return nil
+}
+
+func (r *Reconciler) updateUpgradeVersionInStatus(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+	if workload.Labels[constants.LabelUpgradeVersion] != workload.Status.CurrentUpgradeVersion {
+		workload.Status.CurrentUpgradeVersion = workload.Labels[constants.LabelUpgradeVersion]
+		return r.Status().Update(ctx, workload)
+	}
 	return nil
 }
 
