@@ -293,8 +293,9 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 		matchingCondition.Message = condition.Message
 		matchingCondition.Status = condition.Status
 		matchingCondition.LastTransitionTime = condition.LastTransitionTime
+		r.log.Infof("VMC %s has existing condition with type %s = %s", vmc.Name, matchingCondition.Type, matchingCondition.Status)
 	}
-	r.log.Debugf("VMC updateStatus, number of conditions = %d", len(vmc.Status.Conditions))
+	r.log.Infof("Updating Status of VMC %s with condition type %s = %s: %v", vmc.Name, condition.Type, condition.Status, vmc.Status.Conditions)
 	return r.Status().Update(ctx, vmc)
 }
 
