@@ -77,7 +77,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				// Verify we have the expected status update
 				loggingScope := clustersv1alpha1.MultiClusterLoggingScope{}
 				err := getMultiClusterResource(testNamespace, "mymcloggingscope", &loggingScope)
-				pkg.Log(pkg.Info, "Size of clusters array: " + string(len(configMap.Status.Clusters)))
+				pkg.Log(pkg.Info, "Size of clusters array: " + string(len(loggingScope.Status.Clusters)))
 				if len(loggingScope.Status.Clusters) > 0 {
 					pkg.Log(pkg.Info, string("cluster reported status: " + loggingScope.Status.Clusters[0].State))
 					pkg.Log(pkg.Info, "cluster reported name: "+loggingScope.Status.Clusters[0].Name)
