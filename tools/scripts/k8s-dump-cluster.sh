@@ -145,6 +145,28 @@ function dump_es_indexes() {
   fi
 }
 
+# This relies on the directory structure which is setup by kubectl cluster-info dump, so this is not a standalone function and currenntly
+# should only be called after that has been called
+function dump_configmaps() {
+  # Get list of all config maps in the cluster
+  kubectl --insecure-skip-tls-verify get -o custom-columns=NAMESPACEHEADER:.metadata.namespace,NAMEHEADER:.metadata.name configmap --all-namespaces > $CAPTURE_DIR/cluster-dump/configmap_list.out || true
+
+  # Iterate the list, describe each configmap individually in a file in the namespace
+  local CSV_LINE=""
+  local NAMESPACE=""
+  local CONFIGNAME=""
+  while read INPUT_LINE; do
+      if [[ ! $INPUT_LINE == *"NAMESPACEHEADER"* ]]; then
+        CSV_LINE=$(echo "$INPUT_LINE" | sed  -e "s/[' '][' ']*/,/g")
+        NAMESPACE=$(echo "$CSV_LINE" | cut -d, -f"1")
+        CONFIGNAME=$(echo "$CSV_LINE" | cut -d, -f"2")
+        if [ ! -z $NAMESPACE ] && [ ! -z $CONFIGNAME ] ; then
+          kubectl --insecure-skip-tls-verify describe configmap $CONFIGNAME -n $NAMESPACE > $CAPTURE_DIR/cluster-dump/$NAMESPACE/$CONFIGNAME.configmap || true
+        fi
+      fi
+    done <$CAPTURE_DIR/cluster-dump/configmap_list.out
+}
+
 function full_k8s_cluster_dump() {
   echo "Full capture of kubernetes cluster"
   # Get general cluster-info dump, this contains quite a bit but not everything, it also sets up the directory structure
@@ -165,7 +187,7 @@ function full_k8s_cluster_dump() {
     kubectl --insecure-skip-tls-verify get clusterrolebindings --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/cluster-role-bindings.json || true
     kubectl --insecure-skip-tls-verify get clusterroles --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/cluster-roles.json || true
     # squelch the "too many clients" warnings from newer kubectl versions
-    kubectl --insecure-skip-tls-verify describe configmap --all-namespaces > $CAPTURE_DIR/cluster-dump/configmaps.out 2> /dev/null || true
+    dump_configmaps
     helm version > $CAPTURE_DIR/cluster-dump/helm-version.out || true
     helm ls -A -o json > $CAPTURE_DIR/cluster-dump/helm-ls.json || true
     dump_es_indexes > $CAPTURE_DIR/cluster-dump/es_indexes.out || true

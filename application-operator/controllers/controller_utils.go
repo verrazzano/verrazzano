@@ -3,7 +3,11 @@
 
 package controllers
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+)
 
 // StringSliceContainsString determines if a string is found in a string slice.
 // slice is the string slice to search. May be nil.
@@ -44,4 +48,13 @@ func ConvertAPIVersionToGroupAndVersion(apiVersion string) (string, string) {
 		return "", parts[0]
 	}
 	return parts[0], parts[1]
+}
+
+// IsWorkloadMarkedForUpgrade checks to see if a workload needs to be upgraded to the latest
+// Verrazzano version. Verrazzano defines some resources which are used by applications and when Verrazzano is upgraded,
+// a user can mark an application to indicate that it should use the latest resources defined by Verrazzano.
+// A response of 'true' indicates that reconcile should use the latest resources defined by Verrazzano and a response
+// of 'false' indicates that the application should continue to use the current values.
+func IsWorkloadMarkedForUpgrade(labels map[string]string, previousUpgrade string) bool {
+	return labels[constants.LabelUpgradeVersion] != previousUpgrade
 }

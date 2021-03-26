@@ -59,7 +59,7 @@ spec:
     spec:
       deploymentTemplate:
         metadata:
-          name: robert-helidon-deployment
+          name: robert-helidon
         podSpec:
           containers:
             - name: robert-helidon-stock-application
@@ -131,7 +131,7 @@ spec:
     spec:
       deploymentTemplate:
         metadata:
-          name: bobby-helidon-deployment
+          name: bobbys-helidon-stock-application
         podSpec:
           containers:
           - name: bobbys-helidon-stock-application

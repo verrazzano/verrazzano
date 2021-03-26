@@ -74,7 +74,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
-	applyDefaults(r.Client, log, scope)
+	applyDefaults(r.Client, log, scope, "")
 
 	var errors []string
 	var resources []vzapi.QualifiedResourceRelation
@@ -214,7 +214,7 @@ func toResource(workload *unstructured.Unstructured) vzapi.QualifiedResourceRela
 
 // FetchLoggingScopeFromWorkloadLabels returns the LoggingScope object associated with the workload or nil if
 // there is no associated logging scope. The workload lookup is done using the OAM labels from the workload metadata.
-func FetchLoggingScopeFromWorkloadLabels(ctx context.Context, cli client.Reader, log logr.Logger, namespace string, labels map[string]string) (*vzapi.LoggingScope, error) {
+func FetchLoggingScopeFromWorkloadLabels(ctx context.Context, cli client.Reader, log logr.Logger, namespace string, labels map[string]string, fluentdImageOrverride string) (*vzapi.LoggingScope, error) {
 	component, err := vznav.ComponentFromWorkloadLabels(ctx, cli, namespace, labels)
 	if err != nil {
 		return nil, err
@@ -233,7 +233,7 @@ func FetchLoggingScopeFromWorkloadLabels(ctx context.Context, cli client.Reader,
 				return nil, err
 			}
 
-			applyDefaults(cli, log, &scope)
+			applyDefaults(cli, log, &scope, fluentdImageOrverride)
 			return &scope, nil
 		}
 	}
@@ -243,7 +243,7 @@ func FetchLoggingScopeFromWorkloadLabels(ctx context.Context, cli client.Reader,
 
 // applyDefaults fills in any empty fields in the logging scope - also handle the case
 // where we are running in a managed cluster
-func applyDefaults(cli client.Reader, log logr.Logger, scope *vzapi.LoggingScope) {
+func applyDefaults(cli client.Reader, log logr.Logger, scope *vzapi.LoggingScope, fluentdImageOrverride string) {
 	if scope.Spec.ElasticSearchURL == "" && scope.Spec.SecretName == "" {
 		// if we're running in a managed cluster, use the multicluster ES URL and secret, and if we're
 		// not the fields will be empty and we will set these fields to defaults below
@@ -257,7 +257,9 @@ func applyDefaults(cli client.Reader, log logr.Logger, scope *vzapi.LoggingScope
 		}
 	}
 
-	if scope.Spec.FluentdImage == "" {
+	if len(fluentdImageOrverride) != 0 {
+		scope.Spec.FluentdImage = fluentdImageOrverride
+	} else {
 		scope.Spec.FluentdImage = DefaultFluentdImage
 	}
 	if scope.Spec.ElasticSearchURL == "" {

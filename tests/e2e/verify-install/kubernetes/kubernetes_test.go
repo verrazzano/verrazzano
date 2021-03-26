@@ -159,6 +159,10 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 				)
 			})
 
+		ginkgo.It("The pod vmi-system-api is not there",
+			func() {
+				gomega.Expect(vzComponentPresent("vmi-system-api", "verrazzano-system")).To(gomega.Equal(false))
+			})
 	})
 
 func nsListContains(list []v1.Namespace, target string) bool {

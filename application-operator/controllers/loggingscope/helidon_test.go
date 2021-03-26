@@ -46,8 +46,9 @@ func TestHelidonHandlerApply_ManagedCluster(t *testing.T) {
 	loggingSecretName := clusters.MCRegistrationSecretFullName.Name
 	scope := newLoggingScope(namespace, "esHost", loggingSecretName)
 
-	commonExpectationsForApply(mockClient, namespace, appContainerName, workloadName)
+	expectationsForWorkload(mockClient, namespace, appContainerName, workloadName)
 	expectationsForApplyUseManagedClusterSecret(t, mockClient, namespace)
+	expectationsForConfigMap(t, mockClient, namespace, appContainerName, workloadName, true)
 	expectDeploymentUpdatedWithFluentd(t, mockClient, appContainerName)
 
 	h := &HelidonHandler{
@@ -76,8 +77,9 @@ func TestHelidonHandlerApply_NonManagedCluster(t *testing.T) {
 	loggingSecretName := "someLoggingSecret"
 	scope := newLoggingScope(namespace, "esHost", loggingSecretName)
 
-	commonExpectationsForApply(mockClient, namespace, appContainerName, workloadName)
+	expectationsForWorkload(mockClient, namespace, appContainerName, workloadName)
 	expectationsForApplyNonManagedCluster(t, mockClient, namespace, loggingSecretName)
+	expectationsForConfigMap(t, mockClient, namespace, appContainerName, workloadName, false)
 	expectDeploymentUpdatedWithFluentd(t, mockClient, appContainerName)
 
 	h := &HelidonHandler{
@@ -333,9 +335,10 @@ func expectationsForApplyUseManagedClusterSecret(t *testing.T, mockClient *mocks
 			sec.Name = managedClusterVmiSecretKey.Name
 			sec.Namespace = managedClusterVmiSecretKey.Namespace
 			sec.Data = map[string][]byte{
-				"username": []byte("verrazzano"),
-				"password": []byte(genPassword(10)),
-				//todo ca-bundle
+				"es-url":    []byte("test-es-url"),
+				"username":  []byte("verrazzano"),
+				"password":  []byte(genPassword(10)),
+				"ca-bundle": []byte("test-ca-bundle"),
 			}
 			return nil
 		})
@@ -377,9 +380,8 @@ func expectationsForApplyNonManagedCluster(t *testing.T, mockClient *mocks.MockC
 	// No further action is expected on a non-managed cluster
 }
 
-// commonExpectationsForApply - adds expectations common to all vanilla apply use cases - we expect
-// apply to get the workload and the fluentd config map and create it if not found.
-func commonExpectationsForApply(mockClient *mocks.MockClient, namespace string, appContainerName string, workloadName string) {
+// expectationsForWorkload - adds expectations to get the workload
+func expectationsForWorkload(mockClient *mocks.MockClient, namespace string, appContainerName string, workloadName string) {
 	// GET workload
 	mockClient.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
@@ -388,7 +390,10 @@ func commonExpectationsForApply(mockClient *mocks.MockClient, namespace string, 
 			deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, appContainer)
 			return nil
 		})
+}
 
+// expectationsForConfigMap - adds expectations to get the workload and the fluentd config map and create it if not found.
+func expectationsForConfigMap(t *testing.T, mockClient *mocks.MockClient, namespace string, appContainerName string, workloadName string, caFile bool) {
 	// GET fluentd config map which we return as not found
 	mockClient.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: fluentdConfigMapName(workloadName)}, gomock.Not(gomock.Nil())).
@@ -400,6 +405,37 @@ func commonExpectationsForApply(mockClient *mocks.MockClient, namespace string, 
 	mockClient.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, conf *kcore.ConfigMap, opt *client.CreateOptions) error {
+			asserts.Equal(t, caFile, strings.Contains(conf.Data["fluentd.conf"], CAFileConfig), "expect fluentd.conf to have ca_file")
 			return nil
 		})
+}
+
+func Test_getFluentdConfigurationForHelidon(t *testing.T) {
+	tests := []struct {
+		name             string
+		requiresCABundle bool
+		containsCAFile   bool
+	}{
+		{
+			name:             "without ca-bundle",
+			requiresCABundle: false,
+			containsCAFile:   false,
+		},
+		{
+			name:             "with ca-bundle",
+			requiresCABundle: true,
+			containsCAFile:   true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			workloadName := "testworkload"
+			appContainersNames := []string{"testc1", "testc2"}
+			conf, _ := getFluentdConfigurationForHelidon(workloadName, appContainersNames, tt.requiresCABundle)
+			got := strings.Contains(conf, CAFileConfig)
+			if got != tt.containsCAFile {
+				t.Errorf("getFluentdConfigurationForHelidon() containsCAFile = %v, want %v", got, tt.containsCAFile)
+			}
+		})
+	}
 }
