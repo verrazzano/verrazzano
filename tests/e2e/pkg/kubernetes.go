@@ -569,10 +569,10 @@ func (h *headerAdder) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func CanI(userOCID string, namespace string, verb string, resource string) (bool, string) {
-	return CanIGroup(userOCID, namespace, verb, resource, "")
+	return CanIForAPIGroup(userOCID, namespace, verb, resource, "")
 }
 
-func CanIGroup(userOCID string, namespace string, verb string, resource string, group string) (bool, string) {
+func CanIForAPIGroup(userOCID string, namespace string, verb string, resource string, group string) (bool, string) {
 
 	canI := &v1beta1.SelfSubjectAccessReview{
 		TypeMeta: metav1.TypeMeta{

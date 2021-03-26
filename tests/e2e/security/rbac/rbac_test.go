@@ -77,25 +77,25 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 
 		ginkgo.It("Fail create ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create ApplicationConfiguration in NameSpace rbactest?  No")
-			allowed, reason := pkg.CanIGroup(v80ProjectAdmin, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
+			allowed, reason := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
 			gomega.Expect(allowed).To(gomega.BeFalse(), fmt.Sprintf("FAIL: Passed Authorization on user create ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason))
 		})
 
 		ginkgo.It("Fail list ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User list ApplicationConfiguration in NameSpace rbactest?  No")
-			allowed, reason := pkg.CanIGroup(v80ProjectAdmin, rbacTestNamespace, "list", "applicationconfigurations", "core.oam.dev")
+			allowed, reason := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "list", "applicationconfigurations", "core.oam.dev")
 			gomega.Expect(allowed).To(gomega.BeFalse(), fmt.Sprintf("FAIL: Passed Authorization on user list ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason))
 		})
 
 		ginkgo.It("Fail create OAM Component in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create OAM Components in NameSpace rbactest?  No")
-			allowed, reason := pkg.CanIGroup(v80ProjectAdmin, rbacTestNamespace, "create", "components", "core.oam.dev")
+			allowed, reason := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "create", "components", "core.oam.dev")
 			gomega.Expect(allowed).To(gomega.BeFalse(), fmt.Sprintf("FAIL: Passed Authorization on user create OAM Components: Allowed = %t, reason = %s", allowed, reason))
 		})
 
 		ginkgo.It("Fail list OAM Component in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User list OAM Components in NameSpace rbactest?  No")
-			allowed, reason := pkg.CanIGroup(v80ProjectAdmin, rbacTestNamespace, "list", "components", "core.oam.dev")
+			allowed, reason := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "list", "components", "core.oam.dev")
 			gomega.Expect(allowed).To(gomega.BeFalse(), fmt.Sprintf("FAIL: Passed Authorization on user list OAM Components: Allowed = %t, reason = %s", allowed, reason))
 		})
 
@@ -109,25 +109,25 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 
 		ginkgo.It("Succeed create ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create ApplicationConfiguration in NameSpace rbactest?  Yes")
-			allowed, reason := pkg.CanIGroup(v80ProjectAdmin, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
+			allowed, reason := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
 			gomega.Expect(allowed).To(gomega.BeTrue(), fmt.Sprintf("FAIL: Did Not Pass Authorization on user create ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason))
 		})
 
 		ginkgo.It("Succeed list ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User list ApplicationConfiguration in NameSpace rbactest?  Yes")
-			allowed, reason := pkg.CanIGroup(v80ProjectAdmin, rbacTestNamespace, "list", "applicationconfigurations", "core.oam.dev")
+			allowed, reason := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "list", "applicationconfigurations", "core.oam.dev")
 			gomega.Expect(allowed).To(gomega.BeTrue(), fmt.Sprintf("FAIL: Did Not Pass Authorization on user list ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason))
 		})
 
 		ginkgo.It("Succeed create OAM Components in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create OAM Components in NameSpace rbactest?  Yes")
-			allowed, reason := pkg.CanIGroup(v80ProjectAdmin, rbacTestNamespace, "create", "components", "core.oam.dev")
+			allowed, reason := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "create", "components", "core.oam.dev")
 			gomega.Expect(allowed).To(gomega.BeTrue(), fmt.Sprintf("FAIL: Did Not Pass Authorization on user create OAM Components: Allowed = %t, reason = %s", allowed, reason))
 		})
 
 		ginkgo.It("Succeed list OAM Components in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User list OAM Components in NameSpace rbactest?  Yes")
-			allowed, reason := pkg.CanIGroup(v80ProjectAdmin, rbacTestNamespace, "list", "components", "core.oam.dev")
+			allowed, reason := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "list", "components", "core.oam.dev")
 			gomega.Expect(allowed).To(gomega.BeTrue(), fmt.Sprintf("FAIL: Did Not Pass Authorization on user list OAM Components: Allowed = %t, reason = %s", allowed, reason))
 		})
 
@@ -165,25 +165,25 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 
 		ginkgo.It("Fail create ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create ApplicationConfiguration in NameSpace rbactest?  No")
-			allowed, reason := pkg.CanIGroup(v80ProjectMonitor, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
+			allowed, reason := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
 			gomega.Expect(allowed).To(gomega.BeFalse(), fmt.Sprintf("FAIL: Passed Authorization on user create ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason))
 		})
 
 		ginkgo.It("Fail list ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User list ApplicationConfiguration in NameSpace rbactest?  No")
-			allowed, reason := pkg.CanIGroup(v80ProjectMonitor, rbacTestNamespace, "list", "applicationconfigurations", "core.oam.dev")
+			allowed, reason := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "list", "applicationconfigurations", "core.oam.dev")
 			gomega.Expect(allowed).To(gomega.BeFalse(), fmt.Sprintf("FAIL: Passed Authorization on user list ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason))
 		})
 
 		ginkgo.It("Fail create OAM Component in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create OAM Components in NameSpace rbactest?  No")
-			allowed, reason := pkg.CanIGroup(v80ProjectMonitor, rbacTestNamespace, "create", "components", "core.oam.dev")
+			allowed, reason := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "create", "components", "core.oam.dev")
 			gomega.Expect(allowed).To(gomega.BeFalse(), fmt.Sprintf("FAIL: Passed Authorization on user create OAM Components: Allowed = %t, reason = %s", allowed, reason))
 		})
 
 		ginkgo.It("Fail list OAM Component in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User list OAM Components in NameSpace rbactest?  No")
-			allowed, reason := pkg.CanIGroup(v80ProjectMonitor, rbacTestNamespace, "list", "components", "core.oam.dev")
+			allowed, reason := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "list", "components", "core.oam.dev")
 			gomega.Expect(allowed).To(gomega.BeFalse(), fmt.Sprintf("FAIL: Passed Authorization on user list OAM Components: Allowed = %t, reason = %s", allowed, reason))
 		})
 
@@ -197,25 +197,25 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 
 		ginkgo.It("Fail create ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create ApplicationConfiguration in NameSpace rbactest?  No")
-			allowed, reason := pkg.CanIGroup(v80ProjectMonitor, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
+			allowed, reason := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
 			gomega.Expect(allowed).To(gomega.BeFalse(), fmt.Sprintf("FAIL: Passed Authorization on user create ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason))
 		})
 
 		ginkgo.It("Succeed list ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User list ApplicationConfiguration in NameSpace rbactest?  Yes")
-			allowed, reason := pkg.CanIGroup(v80ProjectMonitor, rbacTestNamespace, "list", "applicationconfigurations", "core.oam.dev")
+			allowed, reason := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "list", "applicationconfigurations", "core.oam.dev")
 			gomega.Expect(allowed).To(gomega.BeTrue(), fmt.Sprintf("FAIL: Did Not Pass Authorization on user list ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason))
 		})
 
 		ginkgo.It("Fail create OAM Components in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create OAM Components in NameSpace rbactest?  No")
-			allowed, reason := pkg.CanIGroup(v80ProjectMonitor, rbacTestNamespace, "create", "components", "core.oam.dev")
+			allowed, reason := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "create", "components", "core.oam.dev")
 			gomega.Expect(allowed).To(gomega.BeFalse(), fmt.Sprintf("FAIL: Passed Authorization on user create OAM Components: Allowed = %t, reason = %s", allowed, reason))
 		})
 
 		ginkgo.It("Succeed list OAM Components in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User list OAM Components in NameSpace rbactest?  Yes")
-			allowed, reason := pkg.CanIGroup(v80ProjectMonitor, rbacTestNamespace, "list", "components", "core.oam.dev")
+			allowed, reason := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "list", "components", "core.oam.dev")
 			gomega.Expect(allowed).To(gomega.BeTrue(), fmt.Sprintf("FAIL: Did Not Pass Authorization on user list OAM Components: Allowed = %t, reason = %s", allowed, reason))
 		})
 
