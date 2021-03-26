@@ -135,7 +135,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	statusErr := r.updateStatusReady(ctx, vmc, "")
+	statusErr := r.updateStatusReady(ctx, vmc, "Ready")
 	if statusErr != nil {
 		log.Errorf("Failed to update status to ready for VMC %s: %v", vmc.Name, err)
 	}
