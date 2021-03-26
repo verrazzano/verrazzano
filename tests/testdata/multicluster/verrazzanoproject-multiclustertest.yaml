@@ -10,3 +10,5 @@ spec:
     namespaces:
     - metadata:
         name: multiclustertest
+    - metadata:
+        name: anothermulticlustertest

@@ -29,6 +29,8 @@ const waitTimeout = 10 * time.Minute
 const pollingInterval = 10 * time.Second
 
 const testNamespace = "multiclustertest"
+const anotherTestNamespace = "anothermulticlustertest"
+
 
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 
@@ -44,6 +46,8 @@ var _ = ginkgo.AfterSuite(func() {
 
 var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 
+	// vZ-2336: Be able to read MultiClusterXXX resources in the admin cluster
+	//			Be able to update the status of MultiClusterXXX resources in the admin cluster
 	ginkgo.Context("Admin Cluster - verify mc resources and their status updates", func() {
 		ginkgo.BeforeEach(func() {
 			os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
@@ -89,13 +93,13 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 
 		ginkgo.It("admin cluster - verify mc secret", func() {
 			gomega.Eventually(func() bool {
-				return findMultiClusterSecret(testNamespace, "mymcsecret")
+				return findMultiClusterSecret(anotherTestNamespace, "mymcsecret")
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc secret")
 
 			gomega.Eventually(func() bool {
 				// Verify we have the expected status update
 				secret := clustersv1alpha1.MultiClusterSecret{}
-				err := getMultiClusterResource(testNamespace, "mymcsecret", &secret)
+				err := getMultiClusterResource(anotherTestNamespace, "mymcsecret", &secret)
 				pkg.Log(pkg.Info, fmt.Sprintf("Size of clusters array: %d",len(secret.Status.Clusters)))
 				if len(secret.Status.Clusters) > 0 {
 					pkg.Log(pkg.Info, string("cluster reported status: " + secret.Status.Clusters[0].State))
@@ -106,6 +110,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
+		// VZ-2336: Be able to update the status of a VerrazzanoManagedCluster resource
 		ginkgo.It("admin cluster vmc status updates", func() {
 			gomega.Eventually(func() bool {
 				// Verify we have the expected status update
@@ -151,21 +156,23 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 		ginkgo.It("managed cluster has the expected mc and underlying secret", func() {
 			pkg.Concurrently(
 				func() {
-					gomega.Eventually(findSecret(testNamespace, "mymcsecret"),
+					gomega.Eventually(findSecret(anotherTestNamespace, "mymcsecret"),
 						waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret")
 				},
 				func() {
-					gomega.Eventually(findMultiClusterSecret(testNamespace, "mymcsecret"),
+					gomega.Eventually(findMultiClusterSecret(anotherTestNamespace, "mymcsecret"),
 						waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc secret")
 				},
 			)
 		})
 	})
 
+	// VZ-2336:  NOT be able to update or delete any MultiClusterXXX resources in the admin cluster
 	ginkgo.Context("Managed Cluster - MC object access on admin cluster", func() {
 		ginkgo.BeforeEach(func() {
 			os.Setenv("TEST_KUBECONFIG", os.Getenv("MANAGED_ACCESS_KUBECONFIG"))
 		})
+
 
 		ginkgo.It("managed cluster can access config map but not modify it", func() {
 			gomega.Eventually(findMultiClusterConfigMap(testNamespace, "mymcconfigmap"),
@@ -210,7 +217,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 		})
 
 		ginkgo.It("managed cluster can access secret but not modify it", func() {
-			gomega.Eventually(findMultiClusterSecret(testNamespace, "mymcsecret"),
+			gomega.Eventually(findMultiClusterSecret(anotherTestNamespace, "mymcsecret"),
 				waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc secret")
 			// try to update
 			err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_update.yaml", &v1.Secret{})
@@ -230,6 +237,31 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}
 		})
 
+		// VZ-2336: NOT be able to update or delete any VerrazzanoManagedCluster resources
+		ginkgo.It("managed cluster cannot modify vmc on admin", func() {
+			cluster := vmcv1alpha1.VerrazzanoManagedCluster{}
+			gomega.Eventually(getMultiClusterResource("verrazzano-mc", managedClusterName, &cluster),
+				waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find VMC")
+			// try to update
+			cluster.Spec.Description = "new Description"
+			err := updateObject(&cluster)
+			if err == nil {
+				ginkgo.Fail("Update to vmc succeeded")
+			}
+			if !errors.IsForbidden(err) {
+				ginkgo.Fail("Wrong error generated - should be forbidden")
+			}
+			// try to delete
+			err = deleteObject(&cluster)
+			if err == nil {
+				ginkgo.Fail("Delete of vmc succeeded")
+			}
+			if !errors.IsForbidden(err) {
+				ginkgo.Fail("Wrong error generated - should be forbidden")
+			}
+		})
+
+		// VZ-2336: NOT be able to read other resources such as secrets, config maps or deployments in the admin cluster
 		ginkgo.It("managed cluster cannot access resources in other namespaaces", func() {
 			err := listResource("verrazzano-system", &v1.SecretList{})
 			if err == nil {
@@ -290,6 +322,10 @@ func CreateOrUpdateResourceFromFile(yamlFile string, object runtime.Object) erro
 	if err != nil {
 		return err
 	}
+	return updateObject(object)
+}
+
+func updateObject(object runtime.Object) error {
 	clustersClient, err := getClustersClient()
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
@@ -316,6 +352,10 @@ func DeleteResourceFromFile(yamlFile string, object runtime.Object) error {
 	if err != nil {
 		return err
 	}
+	return deleteObject(object)
+}
+
+func deleteObject(object runtime.Object) error {
 	clustersClient, err := getClustersClient()
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to obtain client with error: %v", err))
@@ -331,7 +371,7 @@ func deployTestResources() {
 
 	os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
 
-	// create the test ns
+	// create the test project
 	pkg.Log(pkg.Info, "Creating test project")
 	err := CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-multiclustertest.yaml", &clustersv1alpha1.VerrazzanoProject{})
 	if err != nil {
@@ -365,28 +405,28 @@ func undeployTestResources() {
 
 	os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
 
-	// create a config map
+	// delete a config map
 	pkg.Log(pkg.Info, "Deleting MC config map")
 	err := DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster config map: %v", err))
 	}
 
-	// create a logging scope
+	// delete a logging scope
 	pkg.Log(pkg.Info, "Deleting MC logging scope")
 	err = DeleteResourceFromFile("testdata/multicluster/multicluster_loggingscope.yaml", &clustersv1alpha1.MultiClusterLoggingScope{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster logging scope: %v", err))
 	}
 
-	// create a secret
+	// delete a secret
 	pkg.Log(pkg.Info, "Deleting MC secret")
 	err = DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &clustersv1alpha1.MultiClusterSecret{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster secret: %v", err))
 	}
 
-	// create the test ns
+	// delete the test project
 	pkg.Log(pkg.Info, "Deleting test project")
 	err = DeleteResourceFromFile("testdata/multicluster/verrazzanoproject-multiclustertest.yaml", &clustersv1alpha1.VerrazzanoProject{})
 	if err != nil {
