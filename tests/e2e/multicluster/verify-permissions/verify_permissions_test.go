@@ -58,7 +58,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				// Verify we have the expected status update
 				configMap := clustersv1alpha1.MultiClusterConfigMap{}
 				err := getMultiClusterResource(testNamespace, "mymcconfigmap", &configMap)
-				return err == nil && configMap.Status.State == clustersv1alpha1.Succeeded &&
+				return err == nil && configMap.Status.State == clustersv1alpha1.Pending &&
 					isStatusAsExpected(configMap.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, managedClusterName)
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
@@ -72,7 +72,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				// Verify we have the expected status update
 				loggingScope := clustersv1alpha1.MultiClusterLoggingScope{}
 				err := getMultiClusterResource(testNamespace, "mymcloggingscope", &loggingScope)
-				return err == nil && loggingScope.Status.State == clustersv1alpha1.Succeeded &&
+				return err == nil && loggingScope.Status.State == clustersv1alpha1.Pending &&
 					isStatusAsExpected(loggingScope.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, managedClusterName)
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
@@ -86,7 +86,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				// Verify we have the expected status update
 				secret := clustersv1alpha1.MultiClusterSecret{}
 				err := getMultiClusterResource(testNamespace, "mymcsecret", &secret)
-				return err == nil && secret.Status.State == clustersv1alpha1.Succeeded &&
+				return err == nil && secret.Status.State == clustersv1alpha1.Pending &&
 					isStatusAsExpected(secret.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, managedClusterName)
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
