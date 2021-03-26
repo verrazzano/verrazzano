@@ -22,10 +22,11 @@ import (
 var podListMap = make(map[string]*corev1.PodList)
 var podCacheMutex = &sync.Mutex{}
 
-var dockerPullRateLimit = regexp.MustCompile(`.*You have reached your pull rate limit.*`)
-var dockerNameUnknown = regexp.MustCompile(`.*name unknown.*`)
-var dockerNotFound = regexp.MustCompile(`.*not found.*`)
-var dockerServiceUnavailable = regexp.MustCompile(`.*Service Unavailable.*`)
+var dockerPullRateLimitRe = regexp.MustCompile(`.*You have reached your pull rate limit.*`)
+var dockerNameUnknownRe = regexp.MustCompile(`.*name unknown.*`)
+var dockerNotFoundRe = regexp.MustCompile(`.*not found.*`)
+var dockerServiceUnavailableRe = regexp.MustCompile(`.*Service Unavailable.*`)
+var podPhaseRe = regexp.MustCompile(`.*"phase".*`)
 
 // TODO: "Verrazzano Uninstall Pod Issue":    AnalyzeVerrazzanoUninstallIssue,
 var podAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error){
@@ -181,7 +182,7 @@ func handleImagePullBackOff(log *zap.SugaredLogger, clusterRoot string, podFile 
 	files := []string{podFile}
 	reported := 0
 	for _, message := range messages {
-		if dockerPullRateLimit.MatchString(message) {
+		if dockerPullRateLimitRe.MatchString(message) {
 			issueReporter.AddKnownIssueMessagesFiles(
 				report.ImagePullRateLimit,
 				clusterRoot,
@@ -189,7 +190,7 @@ func handleImagePullBackOff(log *zap.SugaredLogger, clusterRoot string, podFile 
 				files,
 			)
 			reported++
-		} else if dockerServiceUnavailable.MatchString(message) {
+		} else if dockerServiceUnavailableRe.MatchString(message) {
 			issueReporter.AddKnownIssueMessagesFiles(
 				report.ImagePullService,
 				clusterRoot,
@@ -197,7 +198,7 @@ func handleImagePullBackOff(log *zap.SugaredLogger, clusterRoot string, podFile 
 				files,
 			)
 			reported++
-		} else if dockerNameUnknown.MatchString(message) || dockerNotFound.MatchString(message) {
+		} else if dockerNameUnknownRe.MatchString(message) || dockerNotFoundRe.MatchString(message) {
 			issueReporter.AddKnownIssueMessagesFiles(
 				report.ImagePullNotFound,
 				clusterRoot,
@@ -328,7 +329,7 @@ func IsPodPending(pod corev1.Pod) bool {
 // This looks at the pods.json files in the cluster and will give a list of files
 // if any have pods that are not Running or Succeeded.
 func findProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFiles []string, err error) {
-	allPodPhases, err := files.FindFilesAndSearch(log, clusterRoot, "pods.json", ".*\"phase\".*")
+	allPodPhases, err := files.FindFilesAndSearch(log, clusterRoot, PodFilesMatchRe, podPhaseRe)
 	if err != nil {
 		return podFiles, err
 	}
@@ -387,7 +388,7 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 				messages = append(messages, fmt.Sprintf("Namespace %s, Pod %s, Status %s, Reason %s, Message %s",
 					pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, condition.Status, condition.Reason, condition.Message))
 			}
-			matched, err := files.SearchFile(log, files.FindPodLogFileName(clusterRoot, pod), ".*ERROR.*|.*Error.*|.*FAILED.*")
+			matched, err := files.SearchFile(log, files.FindPodLogFileName(clusterRoot, pod), WideErrorSearchRe)
 			if err != nil {
 				log.Debugf("Failed to search the logfile %s for the ns/pod %s/%s",
 					files.FindPodLogFileName(clusterRoot, pod), pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, err)

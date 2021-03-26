@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/log"
 	"go.uber.org/zap"
 	"os"
+	"regexp"
 	"testing"
 )
 
@@ -17,14 +18,14 @@ import (
 // THEN files that matched will be returned
 func TestGetMatchingFilesGood(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	myFiles, err := GetMatchingFiles(logger, "../../../test/json", "node.*\\.json$")
+	myFiles, err := GetMatchingFiles(logger, "../../../test/json", regexp.MustCompile(`node.*\.json$`))
 	assert.Nil(t, err)
 	assert.NotNil(t, myFiles)
 	assert.True(t, len(myFiles) > 0)
 	for _, file := range myFiles {
 		assert.True(t, len(checkIsRegularFile(logger, file)) == 0)
 	}
-	myFiles, err = GetMatchingFiles(logger, "../../../test/json", "node.*\\.none_shall_match")
+	myFiles, err = GetMatchingFiles(logger, "../../../test/json", regexp.MustCompile(`node.*\.none_shall_match`))
 	assert.Nil(t, err)
 	assert.Nil(t, myFiles)
 }
@@ -36,14 +37,14 @@ func TestGetMatchingFilesGood(t *testing.T) {
 func TestGetMatchingDirectoriesGood(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 	// the .*son will match directories with names like "json"
-	myFiles, err := GetMatchingDirectories(logger, "../../../test", ".*son$")
+	myFiles, err := GetMatchingDirectories(logger, "../../../test", regexp.MustCompile(".*son$"))
 	assert.Nil(t, err)
 	assert.NotNil(t, myFiles)
 	assert.True(t, len(myFiles) > 0)
 	for _, file := range myFiles {
 		assert.True(t, len(checkIsDirectory(logger, file)) == 0)
 	}
-	myFiles, err = GetMatchingDirectories(logger, "../../../test", "none_shall_match")
+	myFiles, err = GetMatchingDirectories(logger, "../../../test", regexp.MustCompile("none_shall_match"))
 	assert.Nil(t, err)
 	assert.Nil(t, myFiles)
 }
