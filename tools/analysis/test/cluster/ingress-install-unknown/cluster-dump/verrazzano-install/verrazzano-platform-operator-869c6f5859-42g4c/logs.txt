@@ -1,3 +1,6 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 ==== START logs for container webhook-init of pod verrazzano-install/verrazzano-platform-operator-869c6f5859-42g4c ====
 {"level":"info","@timestamp":"2021-03-26T01:29:02Z","caller":"platform-operator/main.go:79","message":"Setting up certificates for webhook"}
 {"level":"info","@timestamp":"2021-03-26T01:29:07Z","caller":"platform-operator/main.go:98","message":"Updating webhook configuration"}

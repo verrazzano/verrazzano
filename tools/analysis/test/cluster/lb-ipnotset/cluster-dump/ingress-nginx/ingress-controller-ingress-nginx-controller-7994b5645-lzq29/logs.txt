@@ -1,3 +1,6 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 ==== START logs for container controller of pod ingress-nginx/ingress-controller-ingress-nginx-controller-7994b5645-lzq29 ====
 -------------------------------------------------------------------------------
 NGINX Ingress controller

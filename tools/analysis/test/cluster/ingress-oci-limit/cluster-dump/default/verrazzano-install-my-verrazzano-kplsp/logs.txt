@@ -1,3 +1,6 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 ==== START logs for container install of pod default/verrazzano-install-my-verrazzano-kplsp ====
 REDACTED FOR TEST
 [2021-03-17 13:47:39 UTC] Reading installation config file /config/config.json

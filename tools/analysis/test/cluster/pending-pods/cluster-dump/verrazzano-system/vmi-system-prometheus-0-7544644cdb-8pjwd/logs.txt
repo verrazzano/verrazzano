@@ -1,3 +1,6 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 ==== START logs for container prometheus of pod verrazzano-system/vmi-system-prometheus-0-7544644cdb-8pjwd ====
 level=info ts=2021-01-29T18:36:03.488Z caller=main.go:332 msg="Starting Prometheus" version="(version=2.13.1, branch=HEAD, revision=9562fb4c236d2f7dbae69353a708159fb364b80c)"
 level=info ts=2021-01-29T18:36:03.488Z caller=main.go:333 build_context="(go=go1.13.8, user=REDACTED, date=20200311-20:40:27)"
