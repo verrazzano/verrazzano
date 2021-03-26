@@ -36,22 +36,6 @@ import (
 
 const dockerconfigjsonTemplate string = "{\"auths\":{\"%v\":{\"username\":\"%v\",\"password\":\"%v\",\"auth\":\"%v\"}}}"
 
-// headerAdder is an http.RoundTripper that adds additional headers to the request
-type headerAdder struct {
-	headers map[string][]string
-
-	rt http.RoundTripper
-}
-
-func (h *headerAdder) RoundTrip(req *http.Request) (*http.Response, error) {
-	for k, vv := range h.headers {
-		for _, v := range vv {
-			req.Header.Add(k, v)
-		}
-	}
-	return h.rt.RoundTrip(req)
-}
-
 // GetKubeConfig will get the kubeconfig from the environment variable KUBECONFIG, if set, or else from $HOME/.kube/config
 func GetKubeConfig() *restclient.Config {
 	kubeconfig := ""
@@ -553,6 +537,22 @@ func GetConfigMap(configMapName string, namespace string) *corev1.ConfigMap {
 		ginkgo.Fail(fmt.Sprintf("Failed to get Config Map %v from namespace %v:  Error = %v ", configMapName, namespace, err))
 	}
 	return configMap
+}
+
+// headerAdder is an http.RoundTripper that adds additional headers to the request
+type headerAdder struct {
+	headers map[string][]string
+
+	rt http.RoundTripper
+}
+
+func (h *headerAdder) RoundTrip(req *http.Request) (*http.Response, error) {
+	for k, vv := range h.headers {
+		for _, v := range vv {
+			req.Header.Add(k, v)
+		}
+	}
+	return h.rt.RoundTrip(req)
 }
 
 func CanI(userOCID string, namespace string, verb string, resource string) (bool, string) {
