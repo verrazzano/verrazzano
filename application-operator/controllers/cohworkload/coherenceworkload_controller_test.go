@@ -6,6 +6,7 @@ package cohworkload
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
@@ -233,21 +234,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 			loggingScope.Spec.SecretName = loggingSecretName
 			return nil
 		})
-	// expect a call to list the FLUENTD config maps
-	cli.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
-			// return no resources
-			return nil
-		})
-	// no config maps found, so expect a call to create a config map with our parsing rules
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(fluentdParsingRules, configMap.Data["fluentd.conf"])
-			return nil
-		})
-	// expect a call to get the Elasticsearch  secret in app namespace - return not found
+	// expect a call to get the Elasticsearch secret in app namespace - return not found
 	testLoggingSecretFullName := types.NamespacedName{Namespace: namespace, Name: loggingSecretName}
 	cli.EXPECT().
 		Get(gomock.Any(), testLoggingSecretFullName, gomock.Not(gomock.Nil())).
@@ -262,6 +249,20 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 			asserts.Equal(t, loggingSecretName, sec.Name)
 			asserts.Nil(t, sec.Data)
 			asserts.Equal(t, client.CreateOptions{}, *options)
+			return nil
+		})
+	// expect a call to list the FLUENTD config maps
+	cli.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+			// return no resources
+			return nil
+		})
+	// no config maps found, so expect a call to create a config map with our parsing rules
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
+			assert.Equal(strings.Join(strings.Split(cohFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
 			return nil
 		})
 	// expect a call to attempt to get the Coherence CR - return not found
@@ -384,21 +385,7 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			loggingScope.Spec.SecretName = loggingSecretName
 			return nil
 		})
-	// expect a call to list the FLUENTD config maps
-	cli.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
-			// return no resources
-			return nil
-		})
-	// no config maps found, so expect a call to create a config map with our parsing rules
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(fluentdParsingRules, configMap.Data["fluentd.conf"])
-			return nil
-		})
-	// expect a call to get the Elasticsearch  secret in app namespace - return not found
+	// expect a call to get the elasticsearch secret in app namespace - return not found
 	testLoggingSecretFullName := types.NamespacedName{Namespace: namespace, Name: loggingSecretName}
 	cli.EXPECT().
 		Get(gomock.Any(), testLoggingSecretFullName, gomock.Not(gomock.Nil())).
@@ -413,6 +400,20 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			asserts.Equal(t, loggingSecretName, sec.Name)
 			asserts.Nil(t, sec.Data)
 			asserts.Equal(t, client.CreateOptions{}, *options)
+			return nil
+		})
+	// expect a call to list the FLUENTD config maps
+	cli.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+			// return no resources
+			return nil
+		})
+	// no config maps found, so expect a call to create a config map with our parsing rules
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
+			assert.Equal(strings.Join(strings.Split(cohFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
 			return nil
 		})
 	// expect a call to attempt to get the Coherence CR
@@ -549,20 +550,6 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 			loggingScope.Spec.SecretName = loggingSecretName
 			return nil
 		})
-	// expect a call to list the FLUENTD config maps
-	cli.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
-			// return no resources
-			return nil
-		})
-	// no config maps found, so expect a call to create a config map with our parsing rules
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(fluentdParsingRules, configMap.Data["fluentd.conf"])
-			return nil
-		})
 	// expect a call to get the Elasticsearch  secret in app namespace - return not found
 	testLoggingSecretFullName := types.NamespacedName{Namespace: namespace, Name: loggingSecretName}
 	cli.EXPECT().
@@ -578,6 +565,20 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 			asserts.Equal(t, loggingSecretName, sec.Name)
 			asserts.Nil(t, sec.Data)
 			asserts.Equal(t, client.CreateOptions{}, *options)
+			return nil
+		})
+	// expect a call to list the FLUENTD config maps
+	cli.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+			// return no resources
+			return nil
+		})
+	// no config maps found, so expect a call to create a config map with our parsing rules
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
+			assert.Equal(strings.Join(strings.Split(cohFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
 			return nil
 		})
 	// expect a call to attempt to get the Coherence CR
@@ -774,20 +775,6 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			loggingScope.Spec.SecretName = loggingSecretName
 			return nil
 		})
-	// expect a call to list the FLUENTD config maps
-	cli.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
-			// return no resources
-			return nil
-		})
-	// no config maps found, so expect a call to create a config map with our parsing rules
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(fluentdParsingRules, configMap.Data["fluentd.conf"])
-			return nil
-		})
 	// expect a call to get the Elasticsearch  secret in app namespace - return not found
 	testLoggingSecretFullName := types.NamespacedName{Namespace: namespace, Name: loggingSecretName}
 	cli.EXPECT().
@@ -803,6 +790,20 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			asserts.Equal(t, loggingSecretName, sec.Name)
 			asserts.Nil(t, sec.Data)
 			asserts.Equal(t, client.CreateOptions{}, *options)
+			return nil
+		})
+	// expect a call to list the FLUENTD config maps
+	cli.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+			// return no resources
+			return nil
+		})
+	// no config maps found, so expect a call to create a config map with our parsing rules
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
+			assert.Equal(strings.Join(strings.Split(cohFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
 			return nil
 		})
 	// expect a call to attempt to get the Coherence CR - return not found
@@ -1157,5 +1158,33 @@ func newRequest(namespace string, name string) ctrl.Request {
 			Namespace: namespace,
 			Name:      name,
 		},
+	}
+}
+
+func Test_getFluentdConfiguration(t *testing.T) {
+	tests := []struct {
+		name             string
+		requiresCABundle bool
+		containsCAFile   bool
+	}{
+		{
+			name:             "without ca-bundle",
+			requiresCABundle: false,
+			containsCAFile:   false,
+		},
+		{
+			name:             "with ca-bundle",
+			requiresCABundle: true,
+			containsCAFile:   true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			conf := loggingscope.GetFluentdConfiguration(cohFluentdParsingRules, tt.requiresCABundle)
+			got := strings.Contains(conf, loggingscope.CAFileConfig)
+			if got != tt.containsCAFile {
+				t.Errorf("getFluentdConfiguration() containsCAFile = %v, want %v", got, tt.containsCAFile)
+			}
+		})
 	}
 }

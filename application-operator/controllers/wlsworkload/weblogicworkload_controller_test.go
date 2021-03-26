@@ -5,6 +5,7 @@ package wlsworkload
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
@@ -217,13 +218,6 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 			// return no resources
 			return nil
 		})
-	// no config maps found, so expect a call to create a config map with our parsing rules
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(loggingscope.WlsFluentdParsingRules, configMap.Data["fluentd.conf"])
-			return nil
-		})
 	// expect a call to get the Elasticsearch secret in app namespace - return not found
 	testLoggingSecretFullName := types.NamespacedName{Namespace: namespace, Name: loggingSecretName}
 	cli.EXPECT().
@@ -242,6 +236,13 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 			return nil
 		})
 
+	// no config maps found, so expect a call to create a config map with our parsing rules
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
+			assert.Equal(strings.Join(strings.Split(loggingscope.WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
+			return nil
+		})
 	// expect a call to get the namespace for the domain
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
@@ -348,20 +349,6 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			loggingScope.Spec.SecretName = loggingSecretName
 			return nil
 		})
-	// expect a call to list the FLUENTD config maps
-	cli.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
-			// return no resources
-			return nil
-		})
-	// no config maps found, so expect a call to create a config map with our parsing rules
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(loggingscope.WlsFluentdParsingRules, configMap.Data["fluentd.conf"])
-			return nil
-		})
 	// expect a call to get the Elasticsearch secret in app namespace - return not found
 	testLoggingSecretFullName := types.NamespacedName{Namespace: namespace, Name: loggingSecretName}
 	cli.EXPECT().
@@ -377,6 +364,20 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			asserts.Equal(t, loggingSecretName, sec.Name)
 			asserts.Nil(t, sec.Data)
 			asserts.Equal(t, client.CreateOptions{}, *options)
+			return nil
+		})
+	// expect a call to list the FLUENTD config maps
+	cli.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+			// return no resources
+			return nil
+		})
+	// no config maps found, so expect a call to create a config map with our parsing rules
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
+			assert.Equal(strings.Join(strings.Split(loggingscope.WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
 			return nil
 		})
 
@@ -507,20 +508,6 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 			loggingScope.Spec.SecretName = loggingSecretName
 			return nil
 		})
-	// expect a call to list the FLUENTD config maps
-	cli.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
-			// return no resources
-			return nil
-		})
-	// no config maps found, so expect a call to create a config map with our parsing rules
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(loggingscope.WlsFluentdParsingRules, configMap.Data["fluentd.conf"])
-			return nil
-		})
 	// expect a call to get the Elasticsearch secret in app namespace - return not found
 	testLoggingSecretFullName := types.NamespacedName{Namespace: namespace, Name: loggingSecretName}
 	cli.EXPECT().
@@ -536,6 +523,20 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 			asserts.Equal(t, loggingSecretName, sec.Name)
 			asserts.Nil(t, sec.Data)
 			asserts.Equal(t, client.CreateOptions{}, *options)
+			return nil
+		})
+	// expect a call to list the FLUENTD config maps
+	cli.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+			// return no resources
+			return nil
+		})
+	// no config maps found, so expect a call to create a config map with our parsing rules
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
+			assert.Equal(strings.Join(strings.Split(loggingscope.WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
 			return nil
 		})
 

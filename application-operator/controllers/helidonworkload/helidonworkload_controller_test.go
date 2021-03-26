@@ -325,17 +325,6 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 		Return(k8serrors.NewNotFound(k8sschema.GroupResource{Group: "", Resource: "configmap"}, "fluentd-config-helidon-test-deployment")).
 		Times(1)
 
-	// expect a call to create a Configmap
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, config *v1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(testNamespace, config.Namespace)
-			assert.Equal("fluentd-config-helidon-test-deployment", config.Name)
-			assert.Len(config.Data, 1)
-			assert.Contains(config.Data["fluentd.conf"], "label")
-			return nil
-		}).Times(1)
-
 	// expect a call to get the Elasticsearch secret in app namespace - return not found
 	testLoggingSecretFullName := types.NamespacedName{Namespace: testNamespace, Name: loggingSecretName}
 	cli.EXPECT().
@@ -353,6 +342,18 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 			asserts.Equal(t, client.CreateOptions{}, *options)
 			return nil
 		})
+
+	// expect a call to create a Configmap
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, config *v1.ConfigMap, opts ...client.CreateOption) error {
+			assert.Equal(testNamespace, config.Namespace)
+			assert.Equal("fluentd-config-helidon-test-deployment", config.Name)
+			assert.Len(config.Data, 1)
+			assert.Contains(config.Data["fluentd.conf"], "label")
+			return nil
+		}).Times(1)
+
 	// expect a call to create the Deployment
 	cli.EXPECT().
 		Patch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -498,16 +499,6 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "fluentd-config-helidon-test-deployment"}, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(k8sschema.GroupResource{Group: "", Resource: "configmap"}, "fluentd-config-helidon-test-deployment")).
 		Times(1)
-	// expect a call to create a Configmap
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, config *v1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(testNamespace, config.Namespace)
-			assert.Equal("fluentd-config-helidon-test-deployment", config.Name)
-			assert.Len(config.Data, 1)
-			assert.Contains(config.Data["fluentd.conf"], "label")
-			return nil
-		}).Times(1)
 	// expect a call to get the Elasticsearch secret in app namespace - return not found
 	testLoggingSecretFullName := types.NamespacedName{Namespace: testNamespace, Name: loggingSecretName}
 	cli.EXPECT().
@@ -525,6 +516,17 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithMultipleContainersAndLoggin
 			asserts.Equal(t, client.CreateOptions{}, *options)
 			return nil
 		})
+	// expect a call to create a Configmap
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, config *v1.ConfigMap, opts ...client.CreateOption) error {
+			assert.Equal(testNamespace, config.Namespace)
+			assert.Equal("fluentd-config-helidon-test-deployment", config.Name)
+			assert.Len(config.Data, 1)
+			assert.Contains(config.Data["fluentd.conf"], "label")
+			return nil
+		}).Times(1)
+
 	// expect a call to create the Deployment
 	cli.EXPECT().
 		Patch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -694,17 +696,6 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 		Return(k8serrors.NewNotFound(k8sschema.GroupResource{Group: "", Resource: "configmap"}, "fluentd-config-helidon-test-deployment")).
 		Times(1)
 
-	// expect a call to create a Configmap
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, config *v1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(testNamespace, config.Namespace)
-			assert.Equal("fluentd-config-helidon-test-deployment", config.Name)
-			assert.Len(config.Data, 1)
-			assert.Contains(config.Data["fluentd.conf"], "label")
-			return nil
-		}).Times(1)
-
 	// expect a call to get the Elasticsearch secret in app namespace - return not found
 	testLoggingSecretFullName := types.NamespacedName{Namespace: testNamespace, Name: loggingSecretName}
 	cli.EXPECT().
@@ -722,6 +713,17 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			asserts.Equal(t, client.CreateOptions{}, *options)
 			return nil
 		})
+	// expect a call to create a Configmap
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, config *v1.ConfigMap, opts ...client.CreateOption) error {
+			assert.Equal(testNamespace, config.Namespace)
+			assert.Equal("fluentd-config-helidon-test-deployment", config.Name)
+			assert.Len(config.Data, 1)
+			assert.Contains(config.Data["fluentd.conf"], "label")
+			return nil
+		}).Times(1)
+
 	// expect a call to create the Deployment
 	cli.EXPECT().
 		Patch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -881,17 +883,6 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 		Return(k8serrors.NewNotFound(k8sschema.GroupResource{Group: "", Resource: "configmap"}, "fluentd-config-helidon-test-deployment")).
 		Times(1)
 
-	// expect a call to create a Configmap
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, config *v1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(testNamespace, config.Namespace)
-			assert.Equal("fluentd-config-helidon-test-deployment", config.Name)
-			assert.Len(config.Data, 1)
-			assert.Contains(config.Data["fluentd.conf"], "label")
-			return nil
-		}).Times(1)
-
 	// expect a call to get the Elasticsearch secret in app namespace - return not found
 	testLoggingSecretFullName := types.NamespacedName{Namespace: testNamespace, Name: loggingSecretName}
 	cli.EXPECT().
@@ -909,6 +900,18 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 			asserts.Equal(t, client.CreateOptions{}, *options)
 			return nil
 		})
+
+	// expect a call to create a Configmap
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, config *v1.ConfigMap, opts ...client.CreateOption) error {
+			assert.Equal(testNamespace, config.Namespace)
+			assert.Equal("fluentd-config-helidon-test-deployment", config.Name)
+			assert.Len(config.Data, 1)
+			assert.Contains(config.Data["fluentd.conf"], "label")
+			return nil
+		}).Times(1)
+
 	// expect a call to create the Deployment
 	cli.EXPECT().
 		Patch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).

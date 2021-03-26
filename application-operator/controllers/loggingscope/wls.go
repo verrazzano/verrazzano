@@ -83,8 +83,7 @@ const WlsFluentdParsingRules = `<match fluent.**>
 </filter>
 <match **>
   @type elasticsearch
-  hosts "#{ENV['ELASTICSEARCH_URL']}"
-  ca_file /fluentd/secret/ca-bundle
+  hosts "#{ENV['ELASTICSEARCH_URL']}"{{ .CAFile}}
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
   index_name "` + ElasticSearchIndex + `"
