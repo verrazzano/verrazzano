@@ -57,18 +57,30 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 			os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
 		})
 
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect that the project has been created on the admin cluster
 		ginkgo.It("Verify the project exists", func() {
 			gomega.Eventually(projectExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect that the mulit-cluster app config has been created on the admin cluster
 		ginkgo.It("Verify the MultiClusterApplicationConfiguration exists", func() {
 			gomega.Eventually(mcAppConfExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect that the multi-cluster component has been created on the admin cluster
 		ginkgo.It("Verify the MultiClusterComponent exists", func() {
 			gomega.Eventually(mcComponentExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect that the component workload has NOT been unwrapped on the admin cluster
 		ginkgo.It("Verify the VerrazzanoHelidonWorkload does NOT exist", func() {
 			gomega.Expect(componentWorkloadExists()).Should(gomega.BeFalse())
 		})
@@ -79,22 +91,37 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 			os.Setenv("TEST_KUBECONFIG", os.Getenv("MANAGED_KUBECONFIG"))
 		})
 
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect that the project has been created on the managed cluster
 		ginkgo.It("Verify the project exists", func() {
 			gomega.Eventually(projectExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect that the multi-cluster app config has been created on the managed cluster
 		ginkgo.It("Verify the MultiClusterApplicationConfiguration exists", func() {
 			gomega.Eventually(mcAppConfExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect that the multi-cluster component has been created on the managed cluster
 		ginkgo.It("Verify the MultiClusterComponent exists", func() {
 			gomega.Eventually(mcComponentExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect that the component workload has been unwrapped on the managed cluster
 		ginkgo.It("Verify the VerrazzanoHelidonWorkload exists", func() {
 			gomega.Eventually(componentWorkloadExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect that the application pods are running
 		ginkgo.It("Verify expected pods are running", func() {
 			gomega.Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
@@ -116,18 +143,18 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 		for i := 3; i <= clusterCount; i++ {
 			kubeconfig := kubeconfigDir + "/" + fmt.Sprintf("%d", i) + "/kube_config"
 
-			ginkgo.It("Verify the project does not exist on this managed cluster", func() {
-				os.Setenv("TEST_KUBECONFIG", kubeconfig)
-				pkg.Log(pkg.Info, "Testing against cluster with kubeconfig: "+kubeconfig)
-				gomega.Expect(projectExists()).Should(gomega.BeFalse())
-			})
-
+			// GIVEN an admin cluster and at least one managed cluster
+			// WHEN the example application has been deployed to the admin cluster
+			// THEN expect that the multi-cluster app config does not exist on non-targeted management clusters
 			ginkgo.It("Verify the MultiClusterApplicationConfiguration does not exist on this managed cluster", func() {
 				os.Setenv("TEST_KUBECONFIG", kubeconfig)
 				pkg.Log(pkg.Info, "Testing against cluster with kubeconfig: "+kubeconfig)
 				gomega.Expect(mcAppConfExists()).Should(gomega.BeFalse())
 			})
 
+			// GIVEN an admin cluster and at least one managed cluster
+			// WHEN the example application has been deployed to the admin cluster
+			// THEN expect that the multi-cluster component does not exist on non-targeted management clusters
 			ginkgo.It("Verify the MultiClusterComponent does not exist on this managed cluster", func() {
 				os.Setenv("TEST_KUBECONFIG", kubeconfig)
 				pkg.Log(pkg.Info, "Testing against cluster with kubeconfig: "+kubeconfig)
@@ -143,12 +170,18 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 
 		indexName := "hello-helidon-hello-helidon-appconf-hello-helidon-component-hello-helidon-container"
 
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect the Elasticsearch index for the app exists on the admin cluster Elasticsearch
 		ginkgo.It("Verify Elasticsearch index exists on admin cluster", func() {
 			gomega.Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find log index for hello helidon")
 		})
 
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect recent Elasticsearch logs for the app exist on the admin cluster Elasticsearch
 		ginkgo.It("Verify recent Elasticsearch log record exists on admin cluster", func() {
 			gomega.Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
@@ -167,6 +200,9 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 	// 		os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
 	// 	})
 
+	// GIVEN an admin cluster and at least one managed cluster
+	// WHEN the example application has been deployed to the admin cluster
+	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
 	// 	ginkgo.It("Verify Prometheus metrics exist on admin cluster", func() {
 	// 		gomega.Eventually(appMetricsExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 	// 	})
@@ -181,14 +217,23 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 			cleanUp()
 		})
 
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deleted from the admin cluster
+		// THEN expect the project to no longer exist on the admin cluster
 		ginkgo.It("Verify the project no longer exists on the admin cluster", func() {
 			gomega.Eventually(projectExists, waitTimeout, pollingInterval).Should(gomega.BeFalse())
 		})
 
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deleted from the admin cluster
+		// THEN expect the multi-cluster app config to no longer exist on the admin cluster
 		ginkgo.It("Verify the MultiClusterApplicationConfiguration no longer exists on the admin cluster", func() {
 			gomega.Eventually(mcAppConfExists, waitTimeout, pollingInterval).Should(gomega.BeFalse())
 		})
 
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deleted from the admin cluster
+		// THEN expect the multi-cluster component to no longer exist on the admin cluster
 		ginkgo.It("Verify the MultiClusterComponent no longer exists on the admin cluster", func() {
 			gomega.Eventually(mcComponentExists, waitTimeout, pollingInterval).Should(gomega.BeFalse())
 		})
@@ -199,24 +244,39 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 			os.Setenv("TEST_KUBECONFIG", os.Getenv("MANAGED_KUBECONFIG"))
 		})
 
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deleted from the admin cluster
+		// THEN expect the project to no longer exist on the managed cluster
 		ginkgo.It("Verify the project no longer exists on the managed cluster", func() {
 			gomega.Eventually(projectExists, waitTimeout, pollingInterval).Should(gomega.BeFalse())
 		})
 
 		// NOTE: These tests are disabled pending a fix for https://jira.oraclecorp.com/jira/browse/VZ-2454
 
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deleted from the admin cluster
+		// THEN expect the multi-cluster app config to no longer exist on the managed cluster
 		// ginkgo.It("Verify the MultiClusterApplicationConfiguration no longer exists on the managed cluster", func() {
 		// 	gomega.Eventually(mcAppConfExists, waitTimeout, pollingInterval).Should(gomega.BeFalse())
 		// })
 
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deleted from the admin cluster
+		// THEN expect the multi-cluster component to no longer exist on the managed cluster
 		// ginkgo.It("Verify the MultiClusterComponent no longer exists on the managed cluster", func() {
 		// 	gomega.Eventually(mcComponentExists, waitTimeout, pollingInterval).Should(gomega.BeFalse())
 		// })
 
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deleted from the admin cluster
+		// THEN expect the component workload to no longer exist on the managed cluster
 		// ginkgo.It("Verify the VerrazzanoHelidonWorkload no longer exists on the managed cluster", func() {
 		// 	gomega.Eventually(componentWorkloadExists, waitTimeout, pollingInterval).Should(gomega.BeFalse())
 		// })
 
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deleted from the admin cluster
+		// THEN expect the application pods to no longer be running on the managed cluster
 		// ginkgo.It("Verify expected pods are no longer running", func() {
 		// 	gomega.Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(gomega.BeFalse())
 		// })
