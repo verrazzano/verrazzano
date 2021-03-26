@@ -34,40 +34,36 @@ import (
 
 const dockerconfigjsonTemplate string = "{\"auths\":{\"%v\":{\"username\":\"%v\",\"password\":\"%v\",\"auth\":\"%v\"}}}"
 
-var config *restclient.Config
-var clientset *kubernetes.Clientset
-
 // GetKubeConfig will get the kubeconfig from the environment variable KUBECONFIG, if set, or else from $HOME/.kube/config
 func GetKubeConfig() *restclient.Config {
-	if config == nil {
-		kubeconfig := ""
-		kubeconfigEnvVar := ""
-		testKubeConfigEnvVar := os.Getenv("TEST_KUBECONFIG")
-		if len(testKubeConfigEnvVar) > 0 {
-			kubeconfigEnvVar = testKubeConfigEnvVar
-		}
-
-		if kubeconfigEnvVar == "" {
-			// if the KUBECONFIG environment variable is set, use that
-			kubeconfigEnvVar = os.Getenv("KUBECONFIG")
-		}
-
-		if len(kubeconfigEnvVar) > 0 {
-			kubeconfig = kubeconfigEnvVar
-		} else if home := homedir.HomeDir(); home != "" {
-			// next look for $HOME/.kube/config
-			kubeconfig = filepath.Join(home, ".kube", "config")
-		} else {
-			// give up
-			ginkgo.Fail("Could not find kube")
-		}
-
-		var err error
-		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
-		if err != nil {
-			ginkgo.Fail("Could not get current context from kubeconfig " + kubeconfig)
-		}
+	kubeconfig := ""
+	kubeconfigEnvVar := ""
+	testKubeConfigEnvVar := os.Getenv("TEST_KUBECONFIG")
+	if len(testKubeConfigEnvVar) > 0 {
+		kubeconfigEnvVar = testKubeConfigEnvVar
 	}
+
+	if kubeconfigEnvVar == "" {
+		// if the KUBECONFIG environment variable is set, use that
+		kubeconfigEnvVar = os.Getenv("KUBECONFIG")
+	}
+
+	if len(kubeconfigEnvVar) > 0 {
+		kubeconfig = kubeconfigEnvVar
+	} else if home := homedir.HomeDir(); home != "" {
+		// next look for $HOME/.kube/config
+		kubeconfig = filepath.Join(home, ".kube", "config")
+	} else {
+		// give up
+		ginkgo.Fail("Could not find kube")
+	}
+
+	var err error
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		ginkgo.Fail("Could not get current context from kubeconfig " + kubeconfig)
+	}
+
 	return config
 }
 
@@ -207,16 +203,15 @@ func DoesServiceExist(namespace string, name string) bool {
 // GetKubernetesClientset returns the Kubernetes clienset for the cluster
 func GetKubernetesClientset() *kubernetes.Clientset {
 	// use the current context in the kubeconfig
-	if clientset == nil {
-		config := GetKubeConfig()
+	config := GetKubeConfig()
 
-		// create the clientset once and cache it
-		var err error
-		clientset, err = kubernetes.NewForConfig(config)
-		if err != nil {
-			ginkgo.Fail("Could not get Kubernetes clientset")
-		}
+	// create the clientset once and cache it
+	var err error
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		ginkgo.Fail("Could not get Kubernetes clientset")
 	}
+
 	return clientset
 }
 
@@ -423,6 +418,20 @@ func GetClusterRole(name string) *rbacv1.ClusterRole {
 	return clusterrole
 }
 
+//DoesServiceAccountExist returns whether a service account with the given name and namespace exists in the cluster
+func DoesServiceAccountExist(namespace, name string) bool {
+	clientset := GetKubernetesClientset()
+
+	sa, err := clientset.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get service account %s in namespace %s with error: %v", name, namespace, err))
+	}
+
+	return sa != nil
+
+}
+
 // DoesClusterRoleBindingExist returns whether a cluster role with the given name exists in the cluster
 func DoesClusterRoleBindingExist(name string) bool {
 	// Get the Kubernetes clientset
@@ -447,6 +456,27 @@ func GetClusterRoleBinding(name string) *rbacv1.ClusterRoleBinding {
 	}
 
 	return crb
+}
+
+// DoesRoleBindingContainSubject returns true if the RoleBinding exists and it contains the
+// specified subject
+func DoesRoleBindingContainSubject(namespace, name, subjectKind, subjectName string) bool {
+	clientset := GetKubernetesClientset()
+
+	rb, err := clientset.RbacV1().RoleBindings(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			ginkgo.Fail(fmt.Sprintf("Failed to get RoleBinding %s in namespace %s: %v", name, namespace, err))
+		}
+		return false
+	}
+
+	for _, s := range rb.Subjects {
+		if s.Kind == subjectKind && s.Name == subjectName {
+			return true
+		}
+	}
+	return false
 }
 
 // GetIstioClientset returns the clientset object for Istio
