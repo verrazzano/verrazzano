@@ -25,4 +25,3 @@ spec:
   placement:
     clusters:
       - name: managed1
-      - name: managed2
