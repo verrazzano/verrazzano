@@ -26,7 +26,7 @@ const (
 	v80ProjectAdmin    = "ocid1.user.oc1..aaaaaaaallodotxfvg0g1antsyq3gonyyhblya66kiqjnp2kogonykvjwi19"
 	v80ProjectMonitor  = "ocid1.user.oc1..aaaaaaaallodotxfvg0yank33sq3gonyghblya66kiqjnp2kogonykvjwi19"
 	// The tests can run so fast against a Kind cluster that a pause is put in after rolebindings are created for test stability
-	sleepNumMS = 500 * time.Millisecond
+	sleepDuration = 500 * time.Millisecond
 )
 
 var _ = ginkgo.BeforeSuite(func() {
@@ -64,7 +64,7 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 			}
 		})
 
-		time.Sleep(sleepNumMS)
+		time.Sleep(sleepDuration)
 
 		ginkgo.It("Succeed getting Pods in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User List Pods in NameSpace rbactest?  Yes")
@@ -115,7 +115,7 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 			}
 		})
 
-		time.Sleep(sleepNumMS)
+		time.Sleep(sleepDuration)
 
 		ginkgo.It("Succeed create ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create ApplicationConfiguration in NameSpace rbactest?  Yes")
@@ -165,7 +165,7 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 			}
 		})
 
-		time.Sleep(sleepNumMS)
+		time.Sleep(sleepDuration)
 
 		ginkgo.It("Succeed getting Pods in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User List Pods in NameSpace rbactest?  Yes")
@@ -216,7 +216,7 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 			}
 		})
 
-		time.Sleep(sleepNumMS)
+		time.Sleep(sleepDuration)
 
 		ginkgo.It("Fail create ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create ApplicationConfiguration in NameSpace rbactest?  No")
