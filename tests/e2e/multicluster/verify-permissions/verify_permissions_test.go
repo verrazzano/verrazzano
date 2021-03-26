@@ -62,10 +62,10 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				// Verify we have the expected status update
 				configMap := clustersv1alpha1.MultiClusterConfigMap{}
 				err := getMultiClusterResource(testNamespace, "mymcconfigmap", &configMap)
-				pkg.Log(pkg.Info, fmt.Sprintf("Size of clusters array: %d",len(configMap.Status.Clusters)))
+				pkg.Log(pkg.Debug, fmt.Sprintf("Size of clusters array: %d",len(configMap.Status.Clusters)))
 				if len(configMap.Status.Clusters) > 0 {
-					pkg.Log(pkg.Info, string("cluster reported status: " + configMap.Status.Clusters[0].State))
-					pkg.Log(pkg.Info, "cluster reported name: "+configMap.Status.Clusters[0].Name)
+					pkg.Log(pkg.Debug, string("cluster reported status: " + configMap.Status.Clusters[0].State))
+					pkg.Log(pkg.Debug, "cluster reported name: "+configMap.Status.Clusters[0].Name)
 				}
 				return err == nil && configMap.Status.State == clustersv1alpha1.Succeeded &&
 					isStatusAsExpected(configMap.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, managedClusterName)
@@ -81,10 +81,10 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				// Verify we have the expected status update
 				loggingScope := clustersv1alpha1.MultiClusterLoggingScope{}
 				err := getMultiClusterResource(testNamespace, "mymcloggingscope", &loggingScope)
-				pkg.Log(pkg.Info, fmt.Sprintf("Size of clusters array: %d",len(loggingScope.Status.Clusters)))
+				pkg.Log(pkg.Debug, fmt.Sprintf("Size of clusters array: %d",len(loggingScope.Status.Clusters)))
 				if len(loggingScope.Status.Clusters) > 0 {
-					pkg.Log(pkg.Info, string("cluster reported status: " + loggingScope.Status.Clusters[0].State))
-					pkg.Log(pkg.Info, "cluster reported name: "+loggingScope.Status.Clusters[0].Name)
+					pkg.Log(pkg.Debug, string("cluster reported status: " + loggingScope.Status.Clusters[0].State))
+					pkg.Log(pkg.Debug, "cluster reported name: "+loggingScope.Status.Clusters[0].Name)
 				}
 				return err == nil && loggingScope.Status.State == clustersv1alpha1.Succeeded &&
 					isStatusAsExpected(loggingScope.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, managedClusterName)
@@ -100,10 +100,10 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				// Verify we have the expected status update
 				secret := clustersv1alpha1.MultiClusterSecret{}
 				err := getMultiClusterResource(anotherTestNamespace, "mymcsecret", &secret)
-				pkg.Log(pkg.Info, fmt.Sprintf("Size of clusters array: %d",len(secret.Status.Clusters)))
+				pkg.Log(pkg.Debug, fmt.Sprintf("Size of clusters array: %d",len(secret.Status.Clusters)))
 				if len(secret.Status.Clusters) > 0 {
-					pkg.Log(pkg.Info, string("cluster reported status: " + secret.Status.Clusters[0].State))
-					pkg.Log(pkg.Info, "cluster reported name: "+secret.Status.Clusters[0].Name)
+					pkg.Log(pkg.Debug, string("cluster reported status: " + secret.Status.Clusters[0].State))
+					pkg.Log(pkg.Debug, "cluster reported name: "+secret.Status.Clusters[0].Name)
 				}
 				return err == nil && secret.Status.State == clustersv1alpha1.Succeeded &&
 					isStatusAsExpected(secret.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, managedClusterName)
@@ -311,6 +311,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 	})
 })
 
+// CreateOrUpdateResourceFromFile creates or updates a resource using the provided yaml file
 func CreateOrUpdateResourceFromFile(yamlFile string, object runtime.Object) error {
 	found, err := pkg.FindTestDataFile(yamlFile)
 	if err != nil {
@@ -327,6 +328,7 @@ func CreateOrUpdateResourceFromFile(yamlFile string, object runtime.Object) erro
 	return updateObject(object)
 }
 
+// updateObject updates a resource using the provided object
 func updateObject(object runtime.Object) error {
 	clustersClient, err := getClustersClient()
 	if err != nil {
@@ -341,6 +343,7 @@ func updateObject(object runtime.Object) error {
 	return err
 }
 
+// DeleteResourceFromFile deletes a resource using the provided yaml file and object reference
 func DeleteResourceFromFile(yamlFile string, object runtime.Object) error {
 	found, err := pkg.FindTestDataFile(yamlFile)
 	if err != nil {
@@ -357,6 +360,7 @@ func DeleteResourceFromFile(yamlFile string, object runtime.Object) error {
 	return deleteObject(object)
 }
 
+// deleteObject deletes the given object
 func deleteObject(object runtime.Object) error {
 	clustersClient, err := getClustersClient()
 	if err != nil {
@@ -368,6 +372,7 @@ func deleteObject(object runtime.Object) error {
 	return err
 }
 
+// deployTestResources deploys the test associated multi cluster resources
 func deployTestResources() {
 	pkg.Log(pkg.Info, "Deploying MC Resources")
 
@@ -402,6 +407,7 @@ func deployTestResources() {
 	}
 }
 
+// undeployTestResources undeploys the test associated multi cluster resources
 func undeployTestResources() {
 	pkg.Log(pkg.Info, "Undeploying MC Resources")
 
@@ -437,6 +443,7 @@ func undeployTestResources() {
 
 }
 
+// findSecret finds the secret based on name and namespace
 func findSecret(namespace, name string) bool {
 	clustersClient, err := getClustersClient()
 	if err != nil {
@@ -456,6 +463,7 @@ func findSecret(namespace, name string) bool {
 	return false
 }
 
+// findConfigMap finds the config map based on name and namespace
 func findConfigMap(namespace, name string) bool {
 	clustersClient, err := getClustersClient()
 	if err != nil {
@@ -475,6 +483,7 @@ func findConfigMap(namespace, name string) bool {
 	return false
 }
 
+// listResource returns a list of resources based on the object type and namespace
 func listResource(namespace string, object runtime.Object) error {
 	clustersClient, err := getClustersClient()
 	if err != nil {
@@ -484,6 +493,7 @@ func listResource(namespace string, object runtime.Object) error {
 	return clustersClient.List(context.TODO(), object, &client.ListOptions{Namespace: namespace})
 }
 
+// findLoggingScope returns true if the logging scope is found, false otherwise
 func findLoggingScope(namespace, name string) bool {
 	clustersClient, err := getClustersClient()
 	if err != nil {
@@ -503,6 +513,7 @@ func findLoggingScope(namespace, name string) bool {
 	return false
 }
 
+// getMultiClusterResource returns a multi cluster resource based the provided multi cluster object's type and namespace
 func getMultiClusterResource(namespace, name string, object runtime.Object) error {
 	clustersClient, err := getClustersClient()
 	if err != nil {
@@ -514,6 +525,7 @@ func getMultiClusterResource(namespace, name string, object runtime.Object) erro
 	return err
 }
 
+// findMultiClusterConfigMap returns true if the config map is found based on name and namespace, false otherwise
 func findMultiClusterConfigMap(namespace, name string) bool {
 	clustersClient, err := getClustersClient()
 	if err != nil {
@@ -533,6 +545,7 @@ func findMultiClusterConfigMap(namespace, name string) bool {
 	return false
 }
 
+// findMultiClusterLoggingScope returns true if the logging scope is found based on name and namespace, false otherwise
 func findMultiClusterLoggingScope(namespace, name string) bool {
 	clustersClient, err := getClustersClient()
 	if err != nil {
@@ -552,6 +565,7 @@ func findMultiClusterLoggingScope(namespace, name string) bool {
 	return false
 }
 
+// findMultiClusterSecret returns true if the secret is found based on name and namespace, false otherwise
 func findMultiClusterSecret(namespace, name string) bool {
 	clustersClient, err := getClustersClient()
 	if err != nil {
@@ -571,6 +585,7 @@ func findMultiClusterSecret(namespace, name string) bool {
 	return false
 }
 
+// getClustersClient returns a k8s client
 func getClustersClient() (client.Client, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv("TEST_KUBECONFIG"))
 	if err != nil {
@@ -590,6 +605,7 @@ func getClustersClient() (client.Client, error) {
 	return clustersClient, err
 }
 
+// isStatusAsExpected checks whehter the provided inputs align with the provided status
 func isStatusAsExpected(status clustersv1alpha1.MultiClusterResourceStatus,
 	expectedConditionType clustersv1alpha1.ConditionType, conditionMsgContains string,
 	expectedClusterState clustersv1alpha1.StateType,
