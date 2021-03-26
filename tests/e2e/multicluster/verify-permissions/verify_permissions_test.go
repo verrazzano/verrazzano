@@ -361,33 +361,33 @@ func deployTestResources() {
 }
 
 func undeployTestResources() {
-	pkg.Log(pkg.Info, "Deploying MC Resources")
+	pkg.Log(pkg.Info, "Undeploying MC Resources")
 
 	os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
 
 	// create a config map
-	pkg.Log(pkg.Info, "Creating MC config map")
+	pkg.Log(pkg.Info, "Deleting MC config map")
 	err := DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster config map: %v", err))
 	}
 
 	// create a logging scope
-	pkg.Log(pkg.Info, "Creating MC logging scope")
+	pkg.Log(pkg.Info, "Deleting MC logging scope")
 	err = DeleteResourceFromFile("testdata/multicluster/multicluster_loggingscope.yaml", &clustersv1alpha1.MultiClusterLoggingScope{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster logging scope: %v", err))
 	}
 
 	// create a secret
-	pkg.Log(pkg.Info, "Creating MC secret")
+	pkg.Log(pkg.Info, "Deleting MC secret")
 	err = DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &clustersv1alpha1.MultiClusterSecret{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi cluster secret: %v", err))
 	}
 
 	// create the test ns
-	pkg.Log(pkg.Info, "Creating test project")
+	pkg.Log(pkg.Info, "Deleting test project")
 	err = DeleteResourceFromFile("testdata/multicluster/verrazzanoproject-multiclustertest.yaml", &clustersv1alpha1.VerrazzanoProject{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create test namespace: %v", err))
