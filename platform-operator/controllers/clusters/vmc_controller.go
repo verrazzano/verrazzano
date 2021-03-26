@@ -275,9 +275,8 @@ func (r *VerrazzanoManagedClusterReconciler) handleError(ctx context.Context, vm
 
 func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, condition clustersv1alpha1.Condition) error {
 	var matchingCondition *clustersv1alpha1.Condition
-	r.log.Infof("ZOO Entering updateStatus, number of conditions = %d", len(vmc.Status.Conditions))
+	r.log.Debugf("VMC updateStatus, number of existing conditions = %d", len(vmc.Status.Conditions))
 	for _, existingCondition := range vmc.Status.Conditions {
-		r.log.Errorf("ZOO condition type is %s", condition.Type)
 		if condition.Type == existingCondition.Type &&
 			condition.Status == existingCondition.Status &&
 			condition.Message == existingCondition.Message {
@@ -289,15 +288,13 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 		}
 	}
 	if matchingCondition == nil {
-		r.log.Infof("ZOO no matching conditions found, adding condition %s", condition.Type)
 		vmc.Status.Conditions = append(vmc.Status.Conditions, condition)
 	} else {
-		r.log.Infof("ZOO matching condition found %s", condition.Type)
 		matchingCondition.Message = condition.Message
 		matchingCondition.Status = condition.Status
 		matchingCondition.LastTransitionTime = condition.LastTransitionTime
 	}
-	r.log.Infof("ZOO Exiting updateStatus, number of conditions = %d", len(vmc.Status.Conditions))
+	r.log.Debugf("VMC updateStatus, number of conditions = %d", len(vmc.Status.Conditions))
 	return r.Status().Update(ctx, vmc)
 }
 
