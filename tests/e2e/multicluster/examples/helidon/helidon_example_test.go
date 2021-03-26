@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -97,6 +98,40 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 		ginkgo.It("Verify expected pods are running", func() {
 			gomega.Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
+	})
+
+	ginkgo.Context("Remaining Managed Clusters", func() {
+		clusterCountStr := os.Getenv("CLUSTER_COUNT")
+		if clusterCountStr == "" {
+			// skip tests
+			return
+		}
+		clusterCount, err := strconv.Atoi(clusterCountStr)
+		if err != nil {
+			// skip tests
+			return
+		}
+
+		kubeconfigDir := os.Getenv("KUBECONFIG_DIR")
+		for i := 3; i <= clusterCount; i++ {
+			kubeconfig := kubeconfigDir + "/" + fmt.Sprintf("%d", i) + "/kube_config"
+			os.Setenv("TEST_KUBECONFIG", kubeconfig)
+
+			ginkgo.It("Verify the project does not exist on this managed cluster", func() {
+				pkg.Log(pkg.Info, "Testing against cluster with kubeconfig: "+kubeconfig)
+				gomega.Expect(projectExists()).Should(gomega.BeFalse())
+			})
+
+			ginkgo.It("Verify the MultiClusterApplicationConfiguration does not exist on this managed cluster", func() {
+				pkg.Log(pkg.Info, "Testing against cluster with kubeconfig: "+kubeconfig)
+				gomega.Expect(mcAppConfExists()).Should(gomega.BeFalse())
+			})
+
+			ginkgo.It("Verify the MultiClusterComponent does not exist on this managed cluster", func() {
+				pkg.Log(pkg.Info, "Testing against cluster with kubeconfig: "+kubeconfig)
+				gomega.Expect(mcComponentExists()).Should(gomega.BeFalse())
+			})
+		}
 	})
 
 	ginkgo.Context("Logging", func() {
