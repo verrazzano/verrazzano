@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	corev1 "k8s.io/api/core/v1"
+	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
@@ -48,6 +49,14 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.
 	}
 	sb.Write([]byte(yamlSep))
 	sb.Write(regYaml)
+
+	// add api secret YAML
+	apiSecretYaml, err := r.generateMCApiSecretYAML()
+	if err != nil {
+		return err
+	}
+	sb.Write([]byte(yamlSep))
+	sb.Write(apiSecretYaml)
 
 	// create/update the manifest secret with the YAML
 	_, err = r.createOrUpdateManifestSecret(vmc, sb.String())
@@ -111,4 +120,45 @@ func (r *VerrazzanoManagedClusterReconciler) getSecretAsYaml(name string, namesp
 func GetManifestSecretName(vmcName string) string {
 	const manifestSecretSuffix = "-manifest"
 	return generateManagedResourceName(vmcName) + manifestSecretSuffix
+}
+
+func (r *VerrazzanoManagedClusterReconciler) generateMCApiSecretYAML() (yamlData []byte, err error) {
+	// Write the keycloak URL to secret
+	keycloakURL, err := r.getKeycloakURL()
+	if err != nil {
+		return nil, err
+	}
+
+	// Write the tls ca-bundle to secret
+	tlsSecret, err := r.getTLSSecret()
+	if err != nil {
+		return nil, err
+	}
+
+	var secret = corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "verrazzano-multicluster-api-config",
+			Namespace: constants.VerrazzanoSystemNamespace,
+		},
+		Data: map[string][]byte{
+			CaCrtKey:       tlsSecret.Data[CaCrtKey],
+			KeycloakURLKey: []byte(keycloakURL),
+		},
+		Type: corev1.SecretTypeOpaque,
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Secret",
+		},
+	}
+	yamlData, err = yaml.Marshal(secret)
+	return yamlData, err
+}
+
+func (r *VerrazzanoManagedClusterReconciler) getKeycloakURL() (string, error) {
+	ingress := extv1beta1.Ingress{}
+	err := r.Get(context.TODO(), types.NamespacedName{Name: "keycloak", Namespace: "keycloak"}, &ingress)
+	if err != nil {
+		return "", fmt.Errorf("Unable to fetch ingress %s/%s, %v", "keycloak", "keycloak", err)
+	}
+	return fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0]), nil
 }
