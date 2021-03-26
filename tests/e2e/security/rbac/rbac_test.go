@@ -5,12 +5,11 @@ package rbac_test
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"time"
-
-	"github.com/onsi/ginkgo"
 )
 
 var (

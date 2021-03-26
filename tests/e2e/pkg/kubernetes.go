@@ -6,7 +6,6 @@ package pkg
 import (
 	"context"
 	"fmt"
-	"k8s.io/api/authorization/v1beta1"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -16,6 +15,7 @@ import (
 	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
 
+	"k8s.io/api/authorization/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	"github.com/onsi/ginkgo"
@@ -539,6 +539,19 @@ func GetConfigMap(configMapName string, namespace string) *corev1.ConfigMap {
 	return configMap
 }
 
+/*
+The following code adds http headers to the kubernetes client invocations.  This is done to emulate the functionality of
+kubectl auth can-i ...
+
+WrapTransport is configured to point to the function
+WrapTransport will be invoked for custom HTTP behavior after the underlying transport is initialized
+(either the transport created from TLSClientConfig, Transport, or http.DefaultTransport).
+The config may layer other RoundTrippers on top of the returned RoundTripper.
+
+WrapperFunc wraps an http.RoundTripper when a new transport is created for a client, allowing per connection behavior to be injected.
+
+RoundTripper is an interface representing the ability to execute a single HTTP transaction, obtaining the Response for a given Request.
+*/
 // headerAdder is an http.RoundTripper that adds additional headers to the request
 type headerAdder struct {
 	headers map[string][]string
