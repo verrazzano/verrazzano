@@ -370,14 +370,16 @@ pipeline {
                 }
                 stage ('Examples Helidon') {
                     steps {
-                        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                        sh """
-                            export MANAGED_CLUSTER_NAME="managed1"
-                            export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-                            export CLUSTER_COUNT=$clusterCount
-                            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                            ginkgo -v -keepGoing --noColor multicluster/examples/helidon/...
-                        """
+                        script {
+                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                            sh """
+                                export MANAGED_CLUSTER_NAME="managed1"
+                                export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+                                export CLUSTER_COUNT=$clusterCount
+                                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                                ginkgo -v -keepGoing --noColor multicluster/examples/helidon/...
+                            """
+                        }
                     }
                 }
             }
