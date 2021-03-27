@@ -31,7 +31,6 @@ const pollingInterval = 10 * time.Second
 const testNamespace = "multiclustertest"
 const anotherTestNamespace = "anothermulticlustertest"
 
-
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 
 var _ = ginkgo.BeforeSuite(func() {
@@ -62,9 +61,9 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				// Verify we have the expected status update
 				configMap := clustersv1alpha1.MultiClusterConfigMap{}
 				err := getMultiClusterResource(testNamespace, "mymcconfigmap", &configMap)
-				pkg.Log(pkg.Debug, fmt.Sprintf("Size of clusters array: %d",len(configMap.Status.Clusters)))
+				pkg.Log(pkg.Debug, fmt.Sprintf("Size of clusters array: %d", len(configMap.Status.Clusters)))
 				if len(configMap.Status.Clusters) > 0 {
-					pkg.Log(pkg.Debug, string("cluster reported status: " + configMap.Status.Clusters[0].State))
+					pkg.Log(pkg.Debug, string("cluster reported status: "+configMap.Status.Clusters[0].State))
 					pkg.Log(pkg.Debug, "cluster reported name: "+configMap.Status.Clusters[0].Name)
 				}
 				return err == nil && configMap.Status.State == clustersv1alpha1.Succeeded &&
@@ -81,9 +80,9 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				// Verify we have the expected status update
 				loggingScope := clustersv1alpha1.MultiClusterLoggingScope{}
 				err := getMultiClusterResource(testNamespace, "mymcloggingscope", &loggingScope)
-				pkg.Log(pkg.Debug, fmt.Sprintf("Size of clusters array: %d",len(loggingScope.Status.Clusters)))
+				pkg.Log(pkg.Debug, fmt.Sprintf("Size of clusters array: %d", len(loggingScope.Status.Clusters)))
 				if len(loggingScope.Status.Clusters) > 0 {
-					pkg.Log(pkg.Debug, string("cluster reported status: " + loggingScope.Status.Clusters[0].State))
+					pkg.Log(pkg.Debug, string("cluster reported status: "+loggingScope.Status.Clusters[0].State))
 					pkg.Log(pkg.Debug, "cluster reported name: "+loggingScope.Status.Clusters[0].Name)
 				}
 				return err == nil && loggingScope.Status.State == clustersv1alpha1.Succeeded &&
@@ -100,9 +99,9 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				// Verify we have the expected status update
 				secret := clustersv1alpha1.MultiClusterSecret{}
 				err := getMultiClusterResource(anotherTestNamespace, "mymcsecret", &secret)
-				pkg.Log(pkg.Debug, fmt.Sprintf("Size of clusters array: %d",len(secret.Status.Clusters)))
+				pkg.Log(pkg.Debug, fmt.Sprintf("Size of clusters array: %d", len(secret.Status.Clusters)))
 				if len(secret.Status.Clusters) > 0 {
-					pkg.Log(pkg.Debug, string("cluster reported status: " + secret.Status.Clusters[0].State))
+					pkg.Log(pkg.Debug, string("cluster reported status: "+secret.Status.Clusters[0].State))
 					pkg.Log(pkg.Debug, "cluster reported name: "+secret.Status.Clusters[0].Name)
 				}
 				return err == nil && secret.Status.State == clustersv1alpha1.Succeeded &&
@@ -172,7 +171,6 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 		ginkgo.BeforeEach(func() {
 			os.Setenv("TEST_KUBECONFIG", os.Getenv("MANAGED_ACCESS_KUBECONFIG"))
 		})
-
 
 		ginkgo.It("managed cluster can access config map but not modify it", func() {
 			gomega.Eventually(findMultiClusterConfigMap(testNamespace, "mymcconfigmap"),
