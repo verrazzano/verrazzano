@@ -1,7 +1,7 @@
 # Summary
 Analysis detected that the Verrazzano install failed while installing the NGINX Ingress Controller.
 
-The root cause appears to be an OCI IP limit has been reached
+The root cause appears to be an OCI IP non-ephemeral address limit has been reached
 
 # Steps
 * Review the messages from the supporting details for the exact limit

@@ -23,7 +23,7 @@
                     "helm.sh/chart": "ingress-nginx-2.0.3"
                 },
                 "annotations": {
-                    "external-dns.alpha.kubernetes.io/hostname": "verrazzano-ingress.b9.z527.v8o.oracledx.com",
+                    "external-dns.alpha.kubernetes.io/hostname": "REDACTED",
                     "external-dns.alpha.kubernetes.io/ttl": "\"60\""
                 },
                 "finalizers": [
