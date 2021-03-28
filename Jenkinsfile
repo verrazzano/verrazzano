@@ -254,7 +254,7 @@ pipeline {
                     ../build/copy-junit-output.sh ${WORKSPACE}
                     cd ${GO_REPO_PATH}/verrazzano/application-operator
                     ../ci/scripts/setup_kind_for_jenkins.sh apo-integ ${HOME}/.kube/apo-integ-config
-                    make integ-test JENKINS_KUBECONFIG=${HOME}/.kube/apo-integ-config DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+                    make integ-test JENKINS_KUBECONFIG=${HOME}/.kube/apo-integ-config CLUSTER_DUMP_LOCATION=${WORKSPACE}/application-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     ../build/copy-junit-output.sh ${WORKSPACE}
                 """
             }

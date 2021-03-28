@@ -4495,7 +4495,7 @@
                 "fieldPath": "spec.containers{verrazzano-monitoring-operator}"
             },
             "reason": "Unhealthy",
-            "message": "Liveness probe failed: Get http://172.17.0.15:8080/health: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
+            "message": "Liveness probe failed: Get http://REDACTED-IP4-ADDRESS:8080/health: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -4557,7 +4557,7 @@
                 "fieldPath": "spec.containers{verrazzano-monitoring-operator}"
             },
             "reason": "Unhealthy",
-            "message": "Liveness probe failed: Get http://172.17.0.15:8080/health: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+            "message": "Liveness probe failed: Get http://REDACTED-IP4-ADDRESS:8080/health: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -4619,7 +4619,7 @@
                 "fieldPath": "spec.containers{verrazzano-monitoring-operator}"
             },
             "reason": "Unhealthy",
-            "message": "Liveness probe failed: Get http://172.17.0.15:8080/health: dial tcp 172.17.0.15:8080: connect: connection refused",
+            "message": "Liveness probe failed: Get http://REDACTED-IP4-ADDRESS:8080/health: dial tcp REDACTED-IP4-ADDRESS:8080: connect: connection refused",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -5587,7 +5587,7 @@
                 "fieldPath": "spec.containers{api}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://172.17.0.28:9097/healthcheck: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:9097/healthcheck: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -5649,7 +5649,7 @@
                 "fieldPath": "spec.containers{api}"
             },
             "reason": "Unhealthy",
-            "message": "Liveness probe failed: Get http://172.17.0.28:9097/healthcheck: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
+            "message": "Liveness probe failed: Get http://REDACTED-IP4-ADDRESS:9097/healthcheck: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -5711,7 +5711,7 @@
                 "fieldPath": "spec.containers{api}"
             },
             "reason": "Unhealthy",
-            "message": "Liveness probe failed: Get http://172.17.0.28:9097/healthcheck: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+            "message": "Liveness probe failed: Get http://REDACTED-IP4-ADDRESS:9097/healthcheck: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -5773,7 +5773,7 @@
                 "fieldPath": "spec.containers{api}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://172.17.0.28:9097/healthcheck: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:9097/healthcheck: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -7793,7 +7793,7 @@
                 "fieldPath": "spec.containers{es-data}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://172.17.0.26:9200/_cluster/health: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:9200/_cluster/health: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -7855,7 +7855,7 @@
                 "fieldPath": "spec.containers{es-data}"
             },
             "reason": "Unhealthy",
-            "message": "Liveness probe failed: Get http://172.17.0.26:9200/_cluster/health: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+            "message": "Liveness probe failed: Get http://REDACTED-IP4-ADDRESS:9200/_cluster/health: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -7917,7 +7917,7 @@
                 "fieldPath": "spec.containers{es-data}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://172.17.0.26:9200/_cluster/health: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:9200/_cluster/health: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -8959,7 +8959,7 @@
                 "fieldPath": "spec.containers{es-data}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://172.17.0.25:9200/_cluster/health: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:9200/_cluster/health: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -9021,7 +9021,7 @@
                 "fieldPath": "spec.containers{es-data}"
             },
             "reason": "Unhealthy",
-            "message": "Liveness probe failed: Get http://172.17.0.25:9200/_cluster/health: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+            "message": "Liveness probe failed: Get http://REDACTED-IP4-ADDRESS:9200/_cluster/health: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -9145,7 +9145,7 @@
                 "fieldPath": "spec.containers{es-data}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://172.17.0.25:9200/_cluster/health: EOF",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:9200/_cluster/health: EOF",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -10287,7 +10287,7 @@
                 "fieldPath": "spec.containers{es-ingest}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://172.17.0.24:9200/_cluster/health: dial tcp 172.17.0.24:9200: connect: connection refused",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:9200/_cluster/health: dial tcp REDACTED-IP4-ADDRESS:9200: connect: connection refused",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -10349,7 +10349,7 @@
                 "fieldPath": "spec.containers{es-ingest}"
             },
             "reason": "Unhealthy",
-            "message": "Liveness probe failed: Get http://172.17.0.24:9200/_cluster/health: dial tcp 172.17.0.24:9200: connect: connection refused",
+            "message": "Liveness probe failed: Get http://REDACTED-IP4-ADDRESS:9200/_cluster/health: dial tcp REDACTED-IP4-ADDRESS:9200: connect: connection refused",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -10411,7 +10411,7 @@
                 "fieldPath": "spec.containers{es-ingest}"
             },
             "reason": "Unhealthy",
-            "message": "Liveness probe failed: Get http://172.17.0.24:9200/_cluster/health: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+            "message": "Liveness probe failed: Get http://REDACTED-IP4-ADDRESS:9200/_cluster/health: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -10473,7 +10473,7 @@
                 "fieldPath": "spec.containers{es-ingest}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://172.17.0.24:9200/_cluster/health: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:9200/_cluster/health: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -10597,7 +10597,7 @@
                 "fieldPath": "spec.containers{es-ingest}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://172.17.0.24:9200/_cluster/health: EOF",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:9200/_cluster/health: EOF",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -12705,7 +12705,7 @@
                 "fieldPath": "spec.containers{grafana}"
             },
             "reason": "Unhealthy",
-            "message": "Liveness probe failed: Get http://172.17.0.29:3000/api/health: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
+            "message": "Liveness probe failed: Get http://REDACTED-IP4-ADDRESS:3000/api/health: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -12767,7 +12767,7 @@
                 "fieldPath": "spec.containers{grafana}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://172.17.0.29:3000/api/health: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:3000/api/health: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -12829,7 +12829,7 @@
                 "fieldPath": "spec.containers{grafana}"
             },
             "reason": "Unhealthy",
-            "message": "Liveness probe failed: Get http://172.17.0.29:3000/api/health: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+            "message": "Liveness probe failed: Get http://REDACTED-IP4-ADDRESS:3000/api/health: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -12891,7 +12891,7 @@
                 "fieldPath": "spec.containers{grafana}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://172.17.0.29:3000/api/health: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:3000/api/health: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -16741,7 +16741,7 @@
                 "fieldPath": "spec.containers{prometheus}"
             },
             "reason": "Unhealthy",
-            "message": "Liveness probe failed: Get http://172.17.0.22:9090/-/healthy: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
+            "message": "Liveness probe failed: Get http://REDACTED-IP4-ADDRESS:9090/-/healthy: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -16803,7 +16803,7 @@
                 "fieldPath": "spec.containers{prometheus}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://172.17.0.22:9090/-/ready: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:9090/-/ready: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -17287,7 +17287,7 @@
                 "fieldPath": "spec.containers{prometheus-gw}"
             },
             "reason": "Unhealthy",
-            "message": "Liveness probe failed: Get http://172.17.0.23:9091/-/healthy: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
+            "message": "Liveness probe failed: Get http://REDACTED-IP4-ADDRESS:9091/-/healthy: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -17349,7 +17349,7 @@
                 "fieldPath": "spec.containers{prometheus-gw}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://172.17.0.23:9091/-/ready: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:9091/-/ready: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -17411,7 +17411,7 @@
                 "fieldPath": "spec.containers{prometheus-gw}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://172.17.0.23:9091/-/ready: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:9091/-/ready: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"
@@ -17473,7 +17473,7 @@
                 "fieldPath": "spec.containers{prometheus-gw}"
             },
             "reason": "Unhealthy",
-            "message": "Liveness probe failed: Get http://172.17.0.23:9091/-/healthy: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+            "message": "Liveness probe failed: Get http://REDACTED-IP4-ADDRESS:9091/-/healthy: net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
             "source": {
                 "component": "kubelet",
                 "host": "minikube"

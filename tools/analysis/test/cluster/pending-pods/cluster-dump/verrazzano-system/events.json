@@ -1,0 +1,454 @@
+{
+    "kind": "EventList",
+    "apiVersion": "v1",
+    "metadata": {
+        "selfLink": "/api/v1/namespaces/verrazzano-system/events",
+        "resourceVersion": "13700"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c42cc7301a",
+                "namespace": "verrazzano-system",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c42cc7301a",
+                "uid": "da0decc5-770c-46c4-9644-e7183dafcdf5",
+                "resourceVersion": "13644",
+                "creationTimestamp": "2021-01-29T18:36:02Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-system",
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd",
+                "uid": "3e9014ab-99d0-46d8-b80e-0bba46f7c6fc",
+                "apiVersion": "v1",
+                "resourceVersion": "13641"
+            },
+            "reason": "Scheduled",
+            "message": "Successfully assigned verrazzano-system/vmi-system-prometheus-0-7544644cdb-8pjwd to verrazzano-control-plane",
+            "source": {
+                "component": "default-scheduler"
+            },
+            "firstTimestamp": null,
+            "lastTimestamp": null,
+            "type": "Normal",
+            "eventTime": "2021-01-29T18:36:02.023972Z",
+            "action": "Binding",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "default-scheduler-verrazzano-control-plane"
+        },
+        {
+            "metadata": {
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c44cce59ca",
+                "namespace": "verrazzano-system",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c44cce59ca",
+                "uid": "25639183-4efd-4c22-91bb-d3f13a9e4c15",
+                "resourceVersion": "13656",
+                "creationTimestamp": "2021-01-29T18:36:02Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-system",
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd",
+                "uid": "3e9014ab-99d0-46d8-b80e-0bba46f7c6fc",
+                "apiVersion": "v1",
+                "resourceVersion": "13642",
+                "fieldPath": "spec.initContainers{prometheus-init}"
+            },
+            "reason": "Pulled",
+            "message": "Container image \"ghcr.io/oracle/oraclelinux:7-slim\" already present on machine",
+            "source": {
+                "component": "kubelet",
+                "host": "verrazzano-control-plane"
+            },
+            "firstTimestamp": "2021-01-29T18:36:02Z",
+            "lastTimestamp": "2021-01-29T18:36:02Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c44eb20c9c",
+                "namespace": "verrazzano-system",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c44eb20c9c",
+                "uid": "aaa4df0a-ade1-44b0-9079-3b227d400b7d",
+                "resourceVersion": "13657",
+                "creationTimestamp": "2021-01-29T18:36:02Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-system",
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd",
+                "uid": "3e9014ab-99d0-46d8-b80e-0bba46f7c6fc",
+                "apiVersion": "v1",
+                "resourceVersion": "13642",
+                "fieldPath": "spec.initContainers{prometheus-init}"
+            },
+            "reason": "Created",
+            "message": "Created container prometheus-init",
+            "source": {
+                "component": "kubelet",
+                "host": "verrazzano-control-plane"
+            },
+            "firstTimestamp": "2021-01-29T18:36:02Z",
+            "lastTimestamp": "2021-01-29T18:36:02Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c456c6cee4",
+                "namespace": "verrazzano-system",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c456c6cee4",
+                "uid": "80b25376-638b-4002-b48a-a4ed00f52d27",
+                "resourceVersion": "13661",
+                "creationTimestamp": "2021-01-29T18:36:02Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-system",
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd",
+                "uid": "3e9014ab-99d0-46d8-b80e-0bba46f7c6fc",
+                "apiVersion": "v1",
+                "resourceVersion": "13642",
+                "fieldPath": "spec.initContainers{prometheus-init}"
+            },
+            "reason": "Started",
+            "message": "Started container prometheus-init",
+            "source": {
+                "component": "kubelet",
+                "host": "verrazzano-control-plane"
+            },
+            "firstTimestamp": "2021-01-29T18:36:02Z",
+            "lastTimestamp": "2021-01-29T18:36:02Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c46e05a34d",
+                "namespace": "verrazzano-system",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c46e05a34d",
+                "uid": "50a37def-432b-499c-b2fc-3a090fcfe43d",
+                "resourceVersion": "13673",
+                "creationTimestamp": "2021-01-29T18:36:03Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-system",
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd",
+                "uid": "3e9014ab-99d0-46d8-b80e-0bba46f7c6fc",
+                "apiVersion": "v1",
+                "resourceVersion": "13642",
+                "fieldPath": "spec.containers{prometheus}"
+            },
+            "reason": "Pulled",
+            "message": "Container image \"ghcr.io/verrazzano/prometheus:v2.13.1\" already present on machine",
+            "source": {
+                "component": "kubelet",
+                "host": "verrazzano-control-plane"
+            },
+            "firstTimestamp": "2021-01-29T18:36:03Z",
+            "lastTimestamp": "2021-01-29T18:36:03Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c4708e8a6a",
+                "namespace": "verrazzano-system",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c4708e8a6a",
+                "uid": "79cc24f3-7222-4d9a-81c7-5e42ffc350f9",
+                "resourceVersion": "13674",
+                "creationTimestamp": "2021-01-29T18:36:03Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-system",
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd",
+                "uid": "3e9014ab-99d0-46d8-b80e-0bba46f7c6fc",
+                "apiVersion": "v1",
+                "resourceVersion": "13642",
+                "fieldPath": "spec.containers{prometheus}"
+            },
+            "reason": "Created",
+            "message": "Created container prometheus",
+            "source": {
+                "component": "kubelet",
+                "host": "verrazzano-control-plane"
+            },
+            "firstTimestamp": "2021-01-29T18:36:03Z",
+            "lastTimestamp": "2021-01-29T18:36:03Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c47966ce39",
+                "namespace": "verrazzano-system",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c47966ce39",
+                "uid": "845d22f3-36e6-4f54-ab55-edd138d5ac72",
+                "resourceVersion": "13677",
+                "creationTimestamp": "2021-01-29T18:36:03Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-system",
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd",
+                "uid": "3e9014ab-99d0-46d8-b80e-0bba46f7c6fc",
+                "apiVersion": "v1",
+                "resourceVersion": "13642",
+                "fieldPath": "spec.containers{prometheus}"
+            },
+            "reason": "Started",
+            "message": "Started container prometheus",
+            "source": {
+                "component": "kubelet",
+                "host": "verrazzano-control-plane"
+            },
+            "firstTimestamp": "2021-01-29T18:36:03Z",
+            "lastTimestamp": "2021-01-29T18:36:03Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c479862ddb",
+                "namespace": "verrazzano-system",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c479862ddb",
+                "uid": "019f7bec-7c7b-44db-9102-5d54eba85c36",
+                "resourceVersion": "13678",
+                "creationTimestamp": "2021-01-29T18:36:03Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-system",
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd",
+                "uid": "3e9014ab-99d0-46d8-b80e-0bba46f7c6fc",
+                "apiVersion": "v1",
+                "resourceVersion": "13642",
+                "fieldPath": "spec.containers{config-reloader}"
+            },
+            "reason": "Pulled",
+            "message": "Container image \"ghcr.io/verrazzano/configmap-reload:0.3-20201016205243-4f24a0e\" already present on machine",
+            "source": {
+                "component": "kubelet",
+                "host": "verrazzano-control-plane"
+            },
+            "firstTimestamp": "2021-01-29T18:36:03Z",
+            "lastTimestamp": "2021-01-29T18:36:03Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c47f5e3d63",
+                "namespace": "verrazzano-system",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c47f5e3d63",
+                "uid": "dce5b007-c562-4edc-b2c5-765b19dfecfb",
+                "resourceVersion": "13679",
+                "creationTimestamp": "2021-01-29T18:36:03Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-system",
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd",
+                "uid": "3e9014ab-99d0-46d8-b80e-0bba46f7c6fc",
+                "apiVersion": "v1",
+                "resourceVersion": "13642",
+                "fieldPath": "spec.containers{config-reloader}"
+            },
+            "reason": "Created",
+            "message": "Created container config-reloader",
+            "source": {
+                "component": "kubelet",
+                "host": "verrazzano-control-plane"
+            },
+            "firstTimestamp": "2021-01-29T18:36:03Z",
+            "lastTimestamp": "2021-01-29T18:36:03Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c488a5b9f7",
+                "namespace": "verrazzano-system",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c488a5b9f7",
+                "uid": "8a8d3b04-2aa0-47c9-b19f-d54a5675b947",
+                "resourceVersion": "13680",
+                "creationTimestamp": "2021-01-29T18:36:03Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-system",
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd",
+                "uid": "3e9014ab-99d0-46d8-b80e-0bba46f7c6fc",
+                "apiVersion": "v1",
+                "resourceVersion": "13642",
+                "fieldPath": "spec.containers{config-reloader}"
+            },
+            "reason": "Started",
+            "message": "Started container config-reloader",
+            "source": {
+                "component": "kubelet",
+                "host": "verrazzano-control-plane"
+            },
+            "firstTimestamp": "2021-01-29T18:36:03Z",
+            "lastTimestamp": "2021-01-29T18:36:03Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c488bbd03b",
+                "namespace": "verrazzano-system",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c488bbd03b",
+                "uid": "399ce148-179b-4117-a9a9-446d5840cf69",
+                "resourceVersion": "13681",
+                "creationTimestamp": "2021-01-29T18:36:03Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-system",
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd",
+                "uid": "3e9014ab-99d0-46d8-b80e-0bba46f7c6fc",
+                "apiVersion": "v1",
+                "resourceVersion": "13642",
+                "fieldPath": "spec.containers{node-exporter}"
+            },
+            "reason": "Pulled",
+            "message": "Container image \"ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad\" already present on machine",
+            "source": {
+                "component": "kubelet",
+                "host": "verrazzano-control-plane"
+            },
+            "firstTimestamp": "2021-01-29T18:36:03Z",
+            "lastTimestamp": "2021-01-29T18:36:03Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c48ab44255",
+                "namespace": "verrazzano-system",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c48ab44255",
+                "uid": "3c94a1a3-d895-43fb-98b6-deab071e9748",
+                "resourceVersion": "13682",
+                "creationTimestamp": "2021-01-29T18:36:03Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-system",
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd",
+                "uid": "3e9014ab-99d0-46d8-b80e-0bba46f7c6fc",
+                "apiVersion": "v1",
+                "resourceVersion": "13642",
+                "fieldPath": "spec.containers{node-exporter}"
+            },
+            "reason": "Created",
+            "message": "Created container node-exporter",
+            "source": {
+                "component": "kubelet",
+                "host": "verrazzano-control-plane"
+            },
+            "firstTimestamp": "2021-01-29T18:36:03Z",
+            "lastTimestamp": "2021-01-29T18:36:03Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c491dc17e9",
+                "namespace": "verrazzano-system",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/vmi-system-prometheus-0-7544644cdb-8pjwd.165ec7c491dc17e9",
+                "uid": "392dbde4-bd1f-4a68-97ea-561fe0fd0aa1",
+                "resourceVersion": "13683",
+                "creationTimestamp": "2021-01-29T18:36:03Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-system",
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd",
+                "uid": "3e9014ab-99d0-46d8-b80e-0bba46f7c6fc",
+                "apiVersion": "v1",
+                "resourceVersion": "13642",
+                "fieldPath": "spec.containers{node-exporter}"
+            },
+            "reason": "Started",
+            "message": "Started container node-exporter",
+            "source": {
+                "component": "kubelet",
+                "host": "verrazzano-control-plane"
+            },
+            "firstTimestamp": "2021-01-29T18:36:03Z",
+            "lastTimestamp": "2021-01-29T18:36:03Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        },
+        {
+            "metadata": {
+                "name": "vmi-system-prometheus-0-7544644cdb-8t28s.165ec68866eebb40",
+                "namespace": "verrazzano-system",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/vmi-system-prometheus-0-7544644cdb-8t28s.165ec68866eebb40",
+                "uid": "005d47da-877c-440f-b52f-bb3a8472ae5e",
+                "resourceVersion": "5492",
+                "creationTimestamp": "2021-01-29T18:13:25Z"
+            },
+            "involvedObject": {
+                "kind": "Pod",
+                "namespace": "verrazzano-system",
+                "name": "vmi-system-prometheus-0-7544644cdb-8t28s",
+                "uid": "78c4d87e-71e7-44b9-843f-69c970d73ed9",
+                "apiVersion": "v1",
+                "resourceVersion": "5472"
+            },
+            "reason": "Scheduled",
+            "message": "Successfully assigned verrazzano-system/vmi-system-prometheus-0-7544644cdb-8t28s to verrazzano-control-plane",
+            "source": {
+                "component": "default-scheduler"
+            },
+            "firstTimestamp": "2021-01-29T18:13:25Z",
+            "lastTimestamp": "2021-01-29T18:13:25Z",
+            "count": 1,
+            "type": "Normal",
+            "eventTime": null,
+            "reportingComponent": "",
+            "reportingInstance": ""
+        }
+    ]
+}
