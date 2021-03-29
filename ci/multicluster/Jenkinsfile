@@ -355,16 +355,50 @@ pipeline {
                 }
                 stage ('Verify Register') {
                     steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            script {
+                                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                                for(int count=2; count<=clusterCount; count++) {
+                                    sh """
+                                        export MANAGED_CLUSTER_NAME="managed${count-1}"
+                                        export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                                        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                                        ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor multicluster/verify-register/...
+                                    """
+                                }
+                            }
+                        }
+                    }
+                }
+                stage ('Verify Managed Cluster Permissions') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            script {
+                                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                                for(int count=2; count<=clusterCount; count++) {
+                                    sh """
+                                        export MANAGED_CLUSTER_NAME="managed${count-1}"
+                                        export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                                        export MANAGED_ACCESS_KUBECONFIG="${KUBECONFIG_DIR}/${count}/managed_kube_config"
+                                        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                                        ginkgo -v -stream -keepGoing --noColor multicluster/verify-permissions/...
+                                    """
+                                }
+                            }
+                        }
+                    }
+                }
+                stage ('Examples Helidon') {
+                    steps {
                         script {
                             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                            for(int count=2; count<=clusterCount; count++) {
-                                sh """
-                                    export MANAGED_CLUSTER_NAME="managed${count-1}"
-                                    export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                                    cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                                    ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor multicluster/verify-register/...
-                                """
-                            }
+                            sh """
+                                export MANAGED_CLUSTER_NAME="managed1"
+                                export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+                                export CLUSTER_COUNT=$clusterCount
+                                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                                ginkgo -v -keepGoing --noColor multicluster/examples/helidon/...
+                            """
                         }
                     }
                 }
@@ -532,6 +566,7 @@ def registerManagedClusters() {
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for(int count=2; count<=clusterCount; count++) {
                 sh """
+                    export MANAGED_CLUSTER_DIR="${KUBECONFIG_DIR}/${count}"
                     export MANAGED_CLUSTER_NAME="managed${count-1}"
                     export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     cd ${GO_REPO_PATH}/verrazzano
