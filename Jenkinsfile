@@ -407,6 +407,11 @@ pipeline {
                                 runGinkgo('istio/authz')
                             }
                         }
+                        stage('examples role based access') {
+                            steps {
+                                runGinkgo('security/rbac')
+                            }
+                        }
                         stage('examples logging helidon') {
                             steps {
                                 runGinkgo('logging/helidon')
