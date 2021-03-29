@@ -90,6 +90,12 @@ spec:
                             type: object
                         type: object
                     type: object
+                  consoleUI:
+                    description: Console UI configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   dns:
                     description: DNS contains the DNS component configuration
                     properties:

@@ -236,6 +236,9 @@ type ComponentSpec struct {
 	// Grafana configuration
 	// +optional
 	Grafana *GrafanaComponent `json:"grafana,omitempty"`
+	// Console UI configuration
+	// +optional
+	ConsoleUI *ConsoleUIComponent `json:"consoleUI,omitempty"`
 }
 
 // MonitoringComponent Common configuration for monitoring components
@@ -324,6 +327,11 @@ type MySQLComponent struct {
 	// is used, it must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates section.
 	// +optional
 	VolumeSource *corev1.VolumeSource `json:"volumeSource,omitempty"`
+}
+
+// ConsoleUIComponent specifies the Console UI configuration
+type ConsoleUIComponent struct {
+	MonitoringComponent `json:",inline"`
 }
 
 // InstallArgs identifies a name/value or name/value list needed for install.
