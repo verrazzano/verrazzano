@@ -43,6 +43,10 @@ var _ = ginkgo.BeforeSuite(func() {
 	if err := pkg.CreateOrUpdateResourceFromFile("examples/multicluster/hello-helidon/verrazzano-project.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create hello-helidon project resource: %v", err))
 	}
+
+	// wait for the namespace to be created on the admin cluster before applying components and app config
+	gomega.Eventually(namespaceExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+
 	if err := pkg.CreateOrUpdateResourceFromFile("examples/multicluster/hello-helidon/mc-hello-helidon-comp.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi-cluster hello-helidon component resources: %v", err))
 	}
@@ -361,6 +365,11 @@ func componentWorkloadExists() bool {
 		Resource: "verrazzanohelidonworkloads",
 	}
 	return resourceExists(gvr, testNamespace, workloadName)
+}
+
+func namespaceExists() bool {
+	_, err := pkg.GetNamespace(testNamespace)
+	return err == nil
 }
 
 func helloHelidonPodsRunning() bool {
