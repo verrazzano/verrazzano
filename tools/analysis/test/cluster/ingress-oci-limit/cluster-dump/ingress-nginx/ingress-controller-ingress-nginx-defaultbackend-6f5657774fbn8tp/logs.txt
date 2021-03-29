@@ -1,0 +1,5 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+==== START logs for container ingress-nginx-default-backend of pod ingress-nginx/ingress-controller-ingress-nginx-defaultbackend-6f5657774fbn8tp ====
+==== END logs for container ingress-nginx-default-backend of pod ingress-nginx/ingress-controller-ingress-nginx-defaultbackend-6f5657774fbn8tp ====

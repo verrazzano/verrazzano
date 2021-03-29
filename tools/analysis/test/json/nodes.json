@@ -8,7 +8,7 @@
     "items": [
         {
             "metadata": {
-                "name": "10.0.10.2",
+                "name": "REDACTED-IP4-ADDRESS",
                 "resourceVersion": "1164210",
                 "creationTimestamp": "2021-02-02T11:23:41Z"
             },
@@ -33,7 +33,7 @@
         },
         {
             "metadata": {
-                "name": "10.0.10.3",
+                "name": "REDACTED-IP4-ADDRESS",
                 "resourceVersion": "1164021",
                 "creationTimestamp": "2021-02-02T11:23:27Z"
             },
@@ -58,7 +58,7 @@
         },
         {
             "metadata": {
-                "name": "10.0.10.4",
+                "name": "REDACTED-IP4-ADDRESS",
                 "resourceVersion": "1164059",
                 "creationTimestamp": "2021-02-02T11:23:37Z"
             },

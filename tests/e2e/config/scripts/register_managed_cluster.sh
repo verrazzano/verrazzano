@@ -10,6 +10,10 @@ if [ -z "${ADMIN_KUBECONFIG}" ] ; then
     echo "ADMIN_KUBECONFIG env var must be set!'"
     exit 1
 fi
+if [ -z "${MANAGED_CLUSTER_DIR}" ] ; then
+    echo "MANAGED_CLUSTER_DIR env var must be set!'"
+    exit 1
+fi
 if [ -z "${MANAGED_CLUSTER_NAME}" ] ; then
     echo "MANAGED_CLUSTER_NAME env var must be set!'"
     exit 1
@@ -71,6 +75,9 @@ done
 
 # export manifest on admin
 kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED_CLUSTER_NAME}-manifest -n verrazzano-mc -o jsonpath={.data.yaml} | base64 --decode > register-${MANAGED_CLUSTER_NAME}.yaml
+
+# obtain permission-constrained version of kubeconfig to be used by managed cluster
+kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED_CLUSTER_NAME}-agent -n verrazzano-mc -o jsonpath={.data.admin\-kubeconfig} | base64 --decode > ${MANAGED_CLUSTER_DIR}/managed_kube_config
 
 # register using the manifest on managed
 kubectl --kubeconfig ${MANAGED_KUBECONFIG} apply -f register-${MANAGED_CLUSTER_NAME}.yaml

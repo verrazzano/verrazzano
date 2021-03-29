@@ -13,14 +13,24 @@ import (
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 )
 
+// podListMap holds podLists which have been read in already
 var podListMap = make(map[string]*corev1.PodList)
 var podCacheMutex = &sync.Mutex{}
 
+var dockerPullRateLimitRe = regexp.MustCompile(`.*You have reached your pull rate limit.*`)
+var dockerNameUnknownRe = regexp.MustCompile(`.*name unknown.*`)
+var dockerNotFoundRe = regexp.MustCompile(`.*not found.*`)
+var dockerServiceUnavailableRe = regexp.MustCompile(`.*Service Unavailable.*`)
+var podPhaseRe = regexp.MustCompile(`.*"phase".*`)
+
+// TODO: "Verrazzano Uninstall Pod Issue":    AnalyzeVerrazzanoUninstallIssue,
 var podAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error){
+	"Verrazzano Install Pod Issue":        AnalyzeVerrazzanoInstallIssue,
 	"Pod Container Related Issues":        podContainerIssues,
 	"Pod Status Condition Related Issues": podStatusConditionIssues,
 }
@@ -70,10 +80,10 @@ func analyzePods(log *zap.SugaredLogger, clusterRoot string, podFile string) (re
 		PendingIssues: make(map[string]report.Issue),
 	}
 	for _, pod := range podList.Items {
-		if pod.Status.Phase == corev1.PodRunning ||
-			pod.Status.Phase == corev1.PodSucceeded {
+		if !IsPodProblematic(pod) {
 			continue
 		}
+
 		// Call the pod analysis functions
 		for functionName, function := range podAnalysisFunctions {
 			err := function(log, clusterRoot, podFile, pod, &issueReporter)
@@ -89,6 +99,36 @@ func analyzePods(log *zap.SugaredLogger, clusterRoot string, podFile string) (re
 	return reported, nil
 }
 
+// IsContainerNotReady will return true if the are PodConditions indicate the ContainersNotReady
+// TODO: Extend for transition time correlation (ie: change from bool to struct)
+func IsContainerNotReady(conditions []corev1.PodCondition) bool {
+	for _, condition := range conditions {
+		if condition.Status == "True" || !(condition.Type == "Ready" || condition.Type == "ContainersReady") {
+			continue
+		}
+		if condition.Reason == "ContainersNotReady" {
+			return true
+		}
+	}
+	return false
+}
+
+// One of the more reliable ways that we can identify install related issues is by
+func verrazzanoInstallIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
+	return nil // AnalyzeVerrazzanoInstallIssue()
+}
+
+func verrazzanoUninstallIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
+	// Skip if it is not the verrazzano uninstall job pod
+	if !IsVerrazzanoUninstallJobPod(pod) {
+		return nil
+	}
+	log.Debugf("verrazzanoUninstallIssues analysis called for cluster: %s, ns: %s, pod: %s", clusterRoot, pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+
+	// TODO: Implement, this will likely be similar pattern as the install issue dispacthing once that is handled
+	return nil
+}
+
 // This is evolving as we add more cases in podContainerIssues
 //
 //   One thing that switching to this drill-down model makes harder to do is track overarching
@@ -98,7 +138,6 @@ func analyzePods(log *zap.SugaredLogger, clusterRoot string, podFile string) (re
 //   Note that this is not showing it here as the current analysis only is using the IssueReporter
 //   but analysis code is free to use the NewKnown* helpers or form fully custom issues and Contribute
 //   those directly to the report.Contribute* helpers
-
 func podContainerIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
 	log.Debugf("podContainerIssues analysis called for cluster: %s, ns: %s, pod: %s", clusterRoot, pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 	podEvents, err := GetEventsRelatedToPod(log, clusterRoot, pod)
@@ -112,17 +151,10 @@ func podContainerIssues(log *zap.SugaredLogger, clusterRoot string, podFile stri
 		for _, initContainerStatus := range pod.Status.InitContainerStatuses {
 			if initContainerStatus.State.Waiting != nil {
 				if initContainerStatus.State.Waiting.Reason == "ImagePullBackOff" {
-					messages := make(StringSlice, 1)
-					messages[0] = fmt.Sprintf("Namespace %s, Pod %s, InitContainer %s, Message %s",
-						pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, initContainerStatus.Name, initContainerStatus.State.Waiting.Message)
-					messages.addMessages(drillIntoEventsForImagePullIssue(log, pod, initContainerStatus.Image, podEvents))
-					files := []string{podFile}
-					issueReporter.AddKnownIssueMessagesFiles(
-						report.ImagePullBackOff,
-						clusterRoot,
-						messages,
-						files,
-					)
+					handleImagePullBackOff(log, clusterRoot, podFile, pod, podEvents, initContainerStatus.Image,
+						fmt.Sprintf("Namespace %s, Pod %s, InitContainer %s, Message %s",
+							pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, initContainerStatus.Name, initContainerStatus.State.Waiting.Message),
+						issueReporter)
 				}
 			}
 		}
@@ -131,22 +163,61 @@ func podContainerIssues(log *zap.SugaredLogger, clusterRoot string, podFile stri
 		for _, containerStatus := range pod.Status.ContainerStatuses {
 			if containerStatus.State.Waiting != nil {
 				if containerStatus.State.Waiting.Reason == "ImagePullBackOff" {
-					messages := make(StringSlice, 1)
-					messages[0] = fmt.Sprintf("Namespace %s, Pod %s, Container %s, Message %s",
-						pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, containerStatus.Name, containerStatus.State.Waiting.Message)
-					messages.addMessages(drillIntoEventsForImagePullIssue(log, pod, containerStatus.Image, podEvents))
-					files := []string{podFile}
-					issueReporter.AddKnownIssueMessagesFiles(
-						report.ImagePullBackOff,
-						clusterRoot,
-						messages,
-						files,
-					)
+					handleImagePullBackOff(log, clusterRoot, podFile, pod, podEvents, containerStatus.Image,
+						fmt.Sprintf("Namespace %s, Pod %s, Container %s, Message %s",
+							pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, containerStatus.Name, containerStatus.State.Waiting.Message),
+						issueReporter)
 				}
 			}
 		}
 	}
 	return nil
+}
+
+func handleImagePullBackOff(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, podEvents []corev1.Event,
+	image string, initialMessage string, issueReporter *report.IssueReporter) {
+	messages := make(StringSlice, 1)
+	messages[0] = initialMessage
+	messages.addMessages(drillIntoEventsForImagePullIssue(log, pod, image, podEvents))
+	files := []string{podFile}
+	reported := 0
+	for _, message := range messages {
+		if dockerPullRateLimitRe.MatchString(message) {
+			issueReporter.AddKnownIssueMessagesFiles(
+				report.ImagePullRateLimit,
+				clusterRoot,
+				messages,
+				files,
+			)
+			reported++
+		} else if dockerServiceUnavailableRe.MatchString(message) {
+			issueReporter.AddKnownIssueMessagesFiles(
+				report.ImagePullService,
+				clusterRoot,
+				messages,
+				files,
+			)
+			reported++
+		} else if dockerNameUnknownRe.MatchString(message) || dockerNotFoundRe.MatchString(message) {
+			issueReporter.AddKnownIssueMessagesFiles(
+				report.ImagePullNotFound,
+				clusterRoot,
+				messages,
+				files,
+			)
+			reported++
+		}
+	}
+
+	// If we didn't detect more specific issues here, fall back to the general ImagePullBackOff
+	if reported == 0 {
+		issueReporter.AddKnownIssueMessagesFiles(
+			report.ImagePullBackOff,
+			clusterRoot,
+			messages,
+			files,
+		)
+	}
 }
 
 func podStatusConditionIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
@@ -241,10 +312,24 @@ func GetPodList(log *zap.SugaredLogger, path string) (podList *corev1.PodList, e
 	return podList, nil
 }
 
+// IsPodProblematic returns a boolean indicating whether a pod is deemed problematic or not
+func IsPodProblematic(pod corev1.Pod) bool {
+	if pod.Status.Phase == corev1.PodRunning ||
+		pod.Status.Phase == corev1.PodSucceeded {
+		return false
+	}
+	return true
+}
+
+// IsPodPending returns a boolean indicating whether a pod is pending or not
+func IsPodPending(pod corev1.Pod) bool {
+	return pod.Status.Phase == corev1.PodPending
+}
+
 // This looks at the pods.json files in the cluster and will give a list of files
 // if any have pods that are not Running or Succeeded.
 func findProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFiles []string, err error) {
-	allPodPhases, err := files.FindFilesAndSearch(log, clusterRoot, "pods.json", ".*\"phase\".*")
+	allPodPhases, err := files.FindFilesAndSearch(log, clusterRoot, PodFilesMatchRe, podPhaseRe)
 	if err != nil {
 		return podFiles, err
 	}
@@ -273,6 +358,8 @@ func findProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFil
 func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFiles []string) {
 	messages := make([]string, 0, len(podFiles))
 	matches := make([]files.TextMatch, 0, len(podFiles))
+	problematicNotPending := 0
+	pendingPodsSeen := 0
 	for _, podFile := range podFiles {
 		podList, err := GetPodList(log, podFile)
 		if err != nil {
@@ -284,15 +371,24 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 			continue
 		}
 		for _, pod := range podList.Items {
-			if pod.Status.Phase == corev1.PodRunning ||
-				pod.Status.Phase == corev1.PodSucceeded {
+			if !IsPodProblematic(pod) {
 				continue
 			}
+			if pod.Status.Phase == corev1.PodFailed || pod.Status.Phase == corev1.PodUnknown {
+				problematicNotPending++
+				if len(pod.Status.Reason) > 0 || len(pod.Status.Message) > 0 {
+					messages = append(messages, fmt.Sprintf("Namespace %s, Pod %s, Phase %s, Reason %s, Message %s",
+						pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, pod.Status.Phase, pod.Status.Reason, pod.Status.Message))
+				}
+			} else if pod.Status.Phase == corev1.PodPending {
+				pendingPodsSeen++
+			}
+
 			for _, condition := range pod.Status.Conditions {
 				messages = append(messages, fmt.Sprintf("Namespace %s, Pod %s, Status %s, Reason %s, Message %s",
 					pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, condition.Status, condition.Reason, condition.Message))
 			}
-			matched, err := files.SearchFile(log, files.FindPodLogFileName(clusterRoot, pod), ".*ERROR.*|.*Error.*|.*FAILED.*")
+			matched, err := files.SearchFile(log, files.FindPodLogFileName(clusterRoot, pod), WideErrorSearchRe)
 			if err != nil {
 				log.Debugf("Failed to search the logfile %s for the ns/pod %s/%s",
 					files.FindPodLogFileName(clusterRoot, pod), pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, err)
@@ -307,7 +403,13 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 		Messages:    messages,
 		TextMatches: matches,
 	}
-	report.ContributeIssue(log, report.NewKnownIssueSupportingData(report.PodProblemsNotReported, clusterRoot, supportingData))
+	// If all of the problematic pods were pending only, just report that, otherwise report them as problematic if some are
+	// failing or unknown
+	if pendingPodsSeen > 0 && problematicNotPending == 0 {
+		report.ContributeIssue(log, report.NewKnownIssueSupportingData(report.PendingPods, clusterRoot, supportingData))
+	} else {
+		report.ContributeIssue(log, report.NewKnownIssueSupportingData(report.PodProblemsNotReported, clusterRoot, supportingData))
+	}
 }
 
 func getPodListIfPresent(path string) (podList *corev1.PodList) {
