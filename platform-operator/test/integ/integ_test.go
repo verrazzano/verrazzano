@@ -40,7 +40,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	isPodRunningYet := func() bool {
 		return K8sClient.IsPodRunning(platformOperator, installNamespace)
 	}
-	gomega.Eventually(isPodRunningYet, "2m", "5s").Should(gomega.BeFalse(), // FORCE TEST FAILURE
+	gomega.Eventually(isPodRunningYet, "2m", "5s").Should(gomega.BeTrue(),
 		"The verrazzano-platform-operator pod should be in the Running state")
 
 	// Create multi-cluster namespace
@@ -61,11 +61,11 @@ var _ = ginkgo.AfterSuite(func() {
 
 var _ = ginkgo.Describe("verrazzano-install namespace resources ", func() {
 	ginkgo.It(fmt.Sprintf("Namespace %s exists", installNamespace), func() {
-		gomega.Expect(K8sClient.DoesNamespaceExist(installNamespace)).To(gomega.BeTrue(),
+		gomega.Expect(K8sClient.DoesNamespaceExist(installNamespace)).To(gomega.BeFalse(), // FORCE TEST FAILURE
 			"The install-namespace should exist")
 	})
 	ginkgo.It(fmt.Sprintf("ServiceAccount %s exists", platformOperator), func() {
-		gomega.Expect(K8sClient.DoesServiceAccountExist(platformOperator, installNamespace)).To(gomega.BeTrue(),
+		gomega.Expect(K8sClient.DoesServiceAccountExist(platformOperator, installNamespace)).To(gomega.BeFalse(), // FORCE TEST FAILURE
 			"The verrazzano-platform-operator service should exist")
 	})
 	ginkgo.It(fmt.Sprintf("Deployment %s exists", platformOperator), func() {
