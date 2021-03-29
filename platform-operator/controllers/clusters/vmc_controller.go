@@ -275,7 +275,7 @@ func (r *VerrazzanoManagedClusterReconciler) handleError(ctx context.Context, vm
 
 func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, condition clustersv1alpha1.Condition) error {
 	var matchingCondition *clustersv1alpha1.Condition
-	r.log.Infof("VMC updateStatus, existing conditions = %v", vmc.Status.Conditions)
+	r.log.Debugf("Entered updateStatus for VMC %s, existing conditions = %v", vmc.Name, vmc.Status.Conditions)
 	for i, existingCondition := range vmc.Status.Conditions {
 		if condition.Type == existingCondition.Type &&
 			condition.Status == existingCondition.Status &&
@@ -292,12 +292,11 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 	if matchingCondition == nil {
 		vmc.Status.Conditions = append(vmc.Status.Conditions, condition)
 	} else {
-		r.log.Infof("VMC %s has existing condition with type %s = %s", vmc.Name, matchingCondition.Type, matchingCondition.Status)
 		matchingCondition.Message = condition.Message
 		matchingCondition.Status = condition.Status
 		matchingCondition.LastTransitionTime = condition.LastTransitionTime
 	}
-	r.log.Infof("Updating Status of VMC %s with condition type %s = %s: %v", vmc.Name, condition.Type, condition.Status, vmc.Status.Conditions)
+	r.log.Debugf("Updating Status of VMC %s with condition type %s = %s: %v", vmc.Name, condition.Type, condition.Status, vmc.Status.Conditions)
 	return r.Status().Update(ctx, vmc)
 }
 
