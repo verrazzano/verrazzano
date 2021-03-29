@@ -15,4 +15,5 @@ kibana:
   enabled: false
 
 console:
-  enabled: false
+  ui:
+    enabled: false
