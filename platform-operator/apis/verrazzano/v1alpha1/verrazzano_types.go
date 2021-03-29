@@ -236,9 +236,9 @@ type ComponentSpec struct {
 	// Grafana configuration
 	// +optional
 	Grafana *GrafanaComponent `json:"grafana,omitempty"`
-	// Console UI configuration
+	// Console configuration
 	// +optional
-	ConsoleUI *ConsoleUIComponent `json:"consoleUI,omitempty"`
+	Console *ConsoleComponent `json:"console,omitempty"`
 }
 
 // MonitoringComponent Common configuration for monitoring components
@@ -329,8 +329,8 @@ type MySQLComponent struct {
 	VolumeSource *corev1.VolumeSource `json:"volumeSource,omitempty"`
 }
 
-// ConsoleUIComponent specifies the Console UI configuration
-type ConsoleUIComponent struct {
+// ConsoleComponent specifies the Console UI configuration
+type ConsoleComponent struct {
 	MonitoringComponent `json:",inline"`
 }
 

@@ -90,8 +90,8 @@ spec:
                             type: object
                         type: object
                     type: object
-                  consoleUI:
-                    description: Console UI configuration
+                  console:
+                    description: Console configuration
                     properties:
                       enabled:
                         type: boolean
