@@ -64,6 +64,10 @@ pipeline {
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
 
         JENKINS_READ = credentials('jenkins-auditor')
+
+        OCI_CLI_AUTH="instance_principal"
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
     }
 
     stages {
@@ -480,11 +484,6 @@ pipeline {
     }
 
     post {
-        environment {
-            OCI_CLI_AUTH="instance_principal"
-            OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-            OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
-        }
         always {
             script {
                 if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
