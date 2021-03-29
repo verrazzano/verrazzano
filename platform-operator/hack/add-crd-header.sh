@@ -10,6 +10,6 @@ set -o nounset
 set -o pipefail
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
-GENERATED_CRDS_DIR=$SCRIPT_ROOT/helm_config/charts/verrazzano-platform-operator/crds
+GENERATED_CRDS_DIR=$SCRIPT_DIR/../helm_config/charts/verrazzano-platform-operator/crds
 
 go run ${SCRIPT_DIR}/../../tools/fix-copyright/copyright.go $GENERATED_CRDS_DIR
