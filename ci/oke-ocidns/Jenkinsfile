@@ -386,6 +386,16 @@ pipeline {
                         }
                     }
                 }
+                stage('examples authorization policy') {
+                    steps {
+                        runGinkgo('istio/authz')
+                    }
+                }
+                stage('examples role based access') {
+                    steps {
+                        runGinkgo('security/rbac')
+                    }
+                }
                 stage('bobs-books') {
                     environment {
                         DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/bobs-book-test.log"
