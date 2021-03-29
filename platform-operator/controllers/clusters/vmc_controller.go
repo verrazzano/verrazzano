@@ -275,8 +275,8 @@ func (r *VerrazzanoManagedClusterReconciler) handleError(ctx context.Context, vm
 
 func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, condition clustersv1alpha1.Condition) error {
 	var matchingCondition *clustersv1alpha1.Condition
-	r.log.Debugf("VMC updateStatus, number of existing conditions = %d", len(vmc.Status.Conditions))
-	for _, existingCondition := range vmc.Status.Conditions {
+	r.log.Infof("VMC updateStatus, existing conditions = %v", vmc.Status.Conditions)
+	for i, existingCondition := range vmc.Status.Conditions {
 		if condition.Type == existingCondition.Type &&
 			condition.Status == existingCondition.Status &&
 			condition.Message == existingCondition.Message {
@@ -284,16 +284,18 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 			return nil
 		}
 		if condition.Type == existingCondition.Type {
-			matchingCondition = &existingCondition
+			// use the index here since "existingCondition" is a copy and won't point to the object in the slice
+			matchingCondition = &vmc.Status.Conditions[i]
+			break
 		}
 	}
 	if matchingCondition == nil {
 		vmc.Status.Conditions = append(vmc.Status.Conditions, condition)
 	} else {
+		r.log.Infof("VMC %s has existing condition with type %s = %s", vmc.Name, matchingCondition.Type, matchingCondition.Status)
 		matchingCondition.Message = condition.Message
 		matchingCondition.Status = condition.Status
 		matchingCondition.LastTransitionTime = condition.LastTransitionTime
-		r.log.Infof("VMC %s has existing condition with type %s = %s", vmc.Name, matchingCondition.Type, matchingCondition.Status)
 	}
 	r.log.Infof("Updating Status of VMC %s with condition type %s = %s: %v", vmc.Name, condition.Type, condition.Status, vmc.Status.Conditions)
 	return r.Status().Update(ctx, vmc)
