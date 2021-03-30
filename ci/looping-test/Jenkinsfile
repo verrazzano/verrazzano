@@ -253,6 +253,7 @@ pipeline {
                 }
                 failure {
                     script {
+                        dumpK8sCluster('verrazzano-installation-loop-after-install-failure-cluster-dump')
                         skip_stage = 'true'
                     }
                 }
@@ -274,7 +275,7 @@ pipeline {
             }
             post {
                 failure {
-                    dumpK8sCluster('verrazzano-installation-loop-after-test-run-cluster-dump')
+                    dumpK8sCluster('verrazzano-installation-loop-after-test-failure-cluster-dump')
                 }
             }
         }
@@ -355,7 +356,7 @@ pipeline {
                 subject: "Verrazzano: ${env.JOB_NAME} - Failed",
                 body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
                 script {
-                    if (env.BRANCH_NAME == "master") {
+                    if (env.JOB_NAME == "verrazzano-install-loop/master") {
                         pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                         slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                     }
@@ -371,10 +372,10 @@ pipeline {
                                 string(name: 'OKE_CLUSTER_VERSION', value: params.OKE_CLUSTER_VERSION),
                             ], wait: true
                         failureCount = 0
-                        // pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\nPlease investigate the cause of the failure, then clean up the cluster and associated resources when you are done. The OKE cluster to inspect will be the one associated with the previous successful build of project create-oke-cluster")
+                        pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\nPlease investigate the cause of the failure, then clean up the cluster and associated resources when you are done. The OKE cluster to inspect will be the one associated with the previous successful build of project create-oke-cluster")
                     } catch (Exception e) {
                         abort = true
-                        // slackSend ( message: "Loop test interrupted due to cluster build failure - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
+                        slackSend ( message: "Loop test interrupted due to cluster build failure - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                     }
                 }
             }
@@ -391,21 +392,19 @@ pipeline {
         }
         cleanup {
             deleteDir()
+            script {
+                if (!abort) {
+                    def failures = failureCount as String
+                    build job: 'verrazzano-new-installation-loop/master',
+                        parameters: [
+                            string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
+                            string(name: 'OKE_NODE_POOL', value: params.OKE_NODE_POOL),
+                            string(name: 'OKE_CLUSTER_VERSION', value: params.OKE_CLUSTER_VERSION),
+                            string(name: 'failureCount', value: failures)
+                        ], wait: false
+                }
+            }
         }
-        //cleanup {
-        //    script {
-        //        if (!abort) {
-        //             def failures = failureCount as String
-        //             build job: 'verrazzano-new-installation-loop/master',
-        //                parameters: [
-        //                        string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
-        //                        string(name: 'OKE_NODE_POOL', value: params.OKE_NODE_POOL),
-        //                        string(name: 'OKE_CLUSTER_VERSION', value: params.OKE_CLUSTER_VERSION),
-        //                        string(name: 'failureCount', value: failures)
-        //                ], wait: false
-        //        }
-        //    }
-        //}
     }
 }
 
