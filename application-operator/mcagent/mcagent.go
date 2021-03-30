@@ -286,8 +286,8 @@ func discardStatusMessages(statusUpdateChannel chan clusters.StatusUpdateMessage
 }
 
 func (s *Syncer) GetAPIServerURL() (string, error) {
-	ingress := extv1beta1.Ingress{}
-	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: "verrazzano-console-ingress", Namespace: constants.VerrazzanoSystemNamespace}, &ingress)
+	ingress := &extv1beta1.Ingress{}
+	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: "verrazzano-console-ingress", Namespace: constants.VerrazzanoSystemNamespace}, ingress)
 	if err != nil {
 		return "", fmt.Errorf("Unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, "verrazzano-console-ingress", err)
 	}

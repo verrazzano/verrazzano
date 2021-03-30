@@ -155,8 +155,8 @@ func (r *VerrazzanoManagedClusterReconciler) generateMCApiSecretYAML() (yamlData
 }
 
 func (r *VerrazzanoManagedClusterReconciler) getKeycloakURL() (string, error) {
-	ingress := extv1beta1.Ingress{}
-	err := r.Get(context.TODO(), types.NamespacedName{Name: "keycloak", Namespace: "keycloak"}, &ingress)
+	var ingress = &extv1beta1.Ingress{}
+	err := r.Get(context.TODO(), types.NamespacedName{Name: "keycloak", Namespace: "keycloak"}, ingress)
 	if err != nil {
 		return "", fmt.Errorf("Unable to fetch ingress %s/%s, %v", "keycloak", "keycloak", err)
 	}
