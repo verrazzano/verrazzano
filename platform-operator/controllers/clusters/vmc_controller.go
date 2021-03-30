@@ -6,6 +6,7 @@ package clusters
 import (
 	"context"
 	"fmt"
+
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
@@ -19,6 +20,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+const finalizerName = "managedcluster.verrazzano.io"
 
 // VerrazzanoManagedClusterReconciler reconciles a VerrazzanoManagedCluster object.
 // The reconciler will create a ServiceAcount, ClusterRoleBinding, and a Secret which
@@ -62,54 +65,80 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		return reconcile.Result{}, err
 	}
 
-	// If the VerrazzanoManagedCluster is being deleted then return success
-	if vmc.GetDeletionTimestamp() != nil {
-		return ctrl.Result{}, nil
+	if !vmc.ObjectMeta.DeletionTimestamp.IsZero() {
+		// Finalizer is present, so lets do the cluster deletion
+		if containsString(vmc.ObjectMeta.Finalizers, finalizerName) {
+			if err := r.reconcileManagedClusterDelete(ctx, vmc); err != nil {
+				return reconcile.Result{}, err
+			}
+
+			// Remove the finalizer and update the verrazzano resource if the deletion has finished.
+			log.Infof("Removing finalizer %s", finalizerName)
+			vmc.ObjectMeta.Finalizers = removeString(vmc.ObjectMeta.Finalizers, finalizerName)
+			err := r.Update(ctx, vmc)
+			if err != nil && !errors.IsConflict(err) {
+				return reconcile.Result{}, err
+			}
+		}
+		return reconcile.Result{}, nil
+	}
+
+	// Add our finalizer if not already added
+	if !containsString(vmc.ObjectMeta.Finalizers, finalizerName) {
+		log.Infof("Adding finalizer %s", finalizerName)
+		vmc.ObjectMeta.Finalizers = append(vmc.ObjectMeta.Finalizers, finalizerName)
+		if err := r.Update(ctx, vmc); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Sync the service account
 	log.Infof("Syncing the ServiceAccount for VMC %s", vmc.Name)
 	err = r.syncServiceAccount(vmc)
 	if err != nil {
-		log.Errorf("Failed to sync the ServiceAccount: %v", err)
+		r.handleError(ctx, vmc, "Failed to sync the ServiceAccount", err, log)
 		return ctrl.Result{}, err
 	}
 
 	log.Infof("Syncing the RoleBinding for VMC %s", vmc.Name)
 	err = r.syncManagedRoleBinding(vmc)
 	if err != nil {
-		log.Errorf("Failed to sync the RoleBinding: %v", err)
+		r.handleError(ctx, vmc, "Failed to sync the RoleBinding", err, log)
 		return ctrl.Result{}, err
 	}
 
 	log.Infof("Syncing the Agent secret for VMC %s", vmc.Name)
 	err = r.syncAgentSecret(vmc)
 	if err != nil {
-		log.Errorf("Failed to sync the agent secret: %v", err)
+		r.handleError(ctx, vmc, "Failed to sync the agent secret", err, log)
 		return ctrl.Result{}, err
 	}
 
 	log.Infof("Syncing the Registration secret for VMC %s", vmc.Name)
 	err = r.syncRegistrationSecret(vmc)
 	if err != nil {
-		log.Errorf("Failed to sync the registration secret: %v", err)
-		return ctrl.Result{}, err
-	}
-
-	log.Infof("Syncing the Elasticsearch secret for VMC %s", vmc.Name)
-	err = r.syncElasticsearchSecret(vmc)
-	if err != nil {
-		log.Errorf("Failed to sync the Elasticsearch secret: %v", err)
+		r.handleError(ctx, vmc, "Failed to sync the registration secret", err, log)
 		return ctrl.Result{}, err
 	}
 
 	log.Infof("Syncing the Manifest secret for VMC %s", vmc.Name)
 	err = r.syncManifestSecret(vmc)
 	if err != nil {
-		log.Errorf("Failed to sync the Manifest secret: %v", err)
+		r.handleError(ctx, vmc, "Failed to sync the Manifest secret", err, log)
 		return ctrl.Result{}, err
 	}
 
+	log.Infof("Syncing the prometheus scraper for VMC %s", vmc.Name)
+	err = r.syncPrometheusScraper(ctx, vmc)
+	if err != nil {
+		r.handleError(ctx, vmc, "Failed to setup the prometheus scraper for managed cluster", err, log)
+		return ctrl.Result{}, err
+	}
+
+	statusErr := r.updateStatusReady(ctx, vmc, "Ready")
+	if statusErr != nil {
+		log.Errorf("Failed to update status to ready for VMC %s: %v", vmc.Name, err)
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -218,4 +247,76 @@ func (r *VerrazzanoManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager) 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clustersv1alpha1.VerrazzanoManagedCluster{}).
 		Complete(r)
+}
+
+// reconcileManagedClusterDelete performs all necessary cleanup during cluster deletion
+func (r *VerrazzanoManagedClusterReconciler) reconcileManagedClusterDelete(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	return r.deleteClusterPrometheusConfiguration(ctx, vmc)
+}
+
+func (r *VerrazzanoManagedClusterReconciler) updateStatusNotReady(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, msg string) error {
+	now := metav1.Now()
+	return r.updateStatus(ctx, vmc, clustersv1alpha1.Condition{Status: corev1.ConditionFalse, Type: clustersv1alpha1.ConditionReady, Message: msg, LastTransitionTime: &now})
+}
+
+func (r *VerrazzanoManagedClusterReconciler) updateStatusReady(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, msg string) error {
+	now := metav1.Now()
+	return r.updateStatus(ctx, vmc, clustersv1alpha1.Condition{Status: corev1.ConditionTrue, Type: clustersv1alpha1.ConditionReady, Message: msg, LastTransitionTime: &now})
+}
+
+func (r *VerrazzanoManagedClusterReconciler) handleError(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, msg string, err error, log *zap.SugaredLogger) {
+	fullMsg := fmt.Sprintf("%s: %v", msg, err)
+	log.Errorf(fullMsg)
+	statusErr := r.updateStatusNotReady(ctx, vmc, fullMsg)
+	if statusErr != nil {
+		log.Errorf("Failed to update status for VMC %s: %v", vmc.Name, statusErr)
+	}
+}
+
+func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, condition clustersv1alpha1.Condition) error {
+	var matchingCondition *clustersv1alpha1.Condition
+	r.log.Debugf("Entered updateStatus for VMC %s, existing conditions = %v", vmc.Name, vmc.Status.Conditions)
+	for i, existingCondition := range vmc.Status.Conditions {
+		if condition.Type == existingCondition.Type &&
+			condition.Status == existingCondition.Status &&
+			condition.Message == existingCondition.Message {
+			// the exact same condition already exists, don't update
+			return nil
+		}
+		if condition.Type == existingCondition.Type {
+			// use the index here since "existingCondition" is a copy and won't point to the object in the slice
+			matchingCondition = &vmc.Status.Conditions[i]
+			break
+		}
+	}
+	if matchingCondition == nil {
+		vmc.Status.Conditions = append(vmc.Status.Conditions, condition)
+	} else {
+		matchingCondition.Message = condition.Message
+		matchingCondition.Status = condition.Status
+		matchingCondition.LastTransitionTime = condition.LastTransitionTime
+	}
+	r.log.Debugf("Updating Status of VMC %s with condition type %s = %s: %v", vmc.Name, condition.Type, condition.Status, vmc.Status.Conditions)
+	return r.Status().Update(ctx, vmc)
+}
+
+// containsString checks for a string in a slice of strings
+func containsString(slice []string, s string) bool {
+	for _, item := range slice {
+		if item == s {
+			return true
+		}
+	}
+	return false
+}
+
+// removeString removes a string from a slice of strings
+func removeString(slice []string, s string) (result []string) {
+	for _, item := range slice {
+		if item == s {
+			continue
+		}
+		result = append(result, item)
+	}
+	return
 }

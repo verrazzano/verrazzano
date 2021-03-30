@@ -12,8 +12,6 @@ import (
 	"time"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/go-logr/logr"
@@ -74,8 +72,7 @@ const helidonFluentdContainerConfigurationTemplate = `<source>
 </filter>
 <match {{ .WorkloadName}}-{{ .ContainerName}}>
   @type elasticsearch
-  hosts "#{ENV['ELASTICSEARCH_URL']}"
-  ca_file /fluentd/secret/ca-bundle
+  hosts "#{ENV['ELASTICSEARCH_URL']}"{{ .CAFile}}
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
   index_name "#{ENV['NAMESPACE']}-#{ENV['APP_CONF_NAME']}-#{ENV['COMPONENT_NAME']}-{{ .ContainerName}}"
@@ -155,21 +152,19 @@ func (h *HelidonHandler) ApplyToDeployment(ctx context.Context, workload vzapi.Q
 		duration := time.Duration(rand.IntnRange(5, 10)) * time.Second
 		return &ctrl.Result{Requeue: true, RequeueAfter: duration}, nil
 	}
-	err := h.ensureFluentdConfigMap(ctx, scope.GetNamespace(), workload.Name, appContainers)
+	requiresCABundle, err := ensureLoggingSecret(ctx, h, scope.GetNamespace(), scope.Spec.SecretName)
 	if err != nil {
 		return nil, err
 	}
-	err = ensureElasticsearchSecret(ctx, h, scope.GetNamespace(), scope.Spec.SecretName)
+	err = h.ensureFluentdConfigMap(ctx, scope, workload.Name, appContainers, requiresCABundle)
 	if err != nil {
 		return nil, err
 	}
 	volumes := CreateFluentdHostPathVolumes()
-	for _, volume := range volumes {
-		deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volume)
-	}
+	deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, volumes...)
 	deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdConfigMapVolume(workload.Name))
 	deploy.Spec.Template.Spec.Volumes = append(deploy.Spec.Template.Spec.Volumes, CreateFluentdSecretVolume(scope.Spec.SecretName))
-	fluentdContainer := CreateFluentdContainer(scope.Spec, workload.Namespace, workload.Name, clusters.GetClusterName(context.TODO(), h.Client))
+	fluentdContainer := CreateFluentdContainer(scope.Spec, workload.Namespace, workload.Name)
 	deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, fluentdContainer)
 	return nil, nil
 }
@@ -178,7 +173,7 @@ func searchContainers(containers []kcore.Container) ([]string, bool) {
 	var appContainers []string
 	fluentdFound := false
 	for _, container := range containers {
-		if container.Name == fluentdContainerName {
+		if container.Name == FluentdContainerName {
 			fluentdFound = true
 		} else {
 			appContainers = append(appContainers, container.Name)
@@ -211,7 +206,7 @@ func (h *HelidonHandler) Remove(ctx context.Context, workload vzapi.QualifiedRes
 		existingContainers := deploy.Spec.Template.Spec.Containers
 		deploy.Spec.Template.Spec.Containers = []kcore.Container{}
 		for _, container := range existingContainers {
-			if container.Name != fluentdContainerName {
+			if container.Name != FluentdContainerName {
 				deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, container)
 			}
 		}
@@ -245,8 +240,7 @@ func CreateFluentdConfigMap(namespace, name, fluentdConfig string) *kcore.Config
 			Namespace: namespace,
 		},
 		Data: func() map[string]string {
-			var data map[string]string
-			data = make(map[string]string)
+			var data = make(map[string]string)
 			data[fluentdConfKey] = fluentdConfig
 			return data
 		}(),
@@ -254,9 +248,9 @@ func CreateFluentdConfigMap(namespace, name, fluentdConfig string) *kcore.Config
 }
 
 // CreateFluentdContainer creates a FLUENTD sidecar container.
-func CreateFluentdContainer(spec vzapi.LoggingScopeSpec, namespace, workloadName, clusterName string) kcore.Container {
+func CreateFluentdContainer(spec vzapi.LoggingScopeSpec, namespace, workloadName string) kcore.Container {
 	container := kcore.Container{
-		Name:            fluentdContainerName,
+		Name:            FluentdContainerName,
 		Args:            []string{"-c", "/etc/fluent.conf"},
 		Image:           spec.FluentdImage,
 		ImagePullPolicy: kcore.PullIfNotPresent,
@@ -298,8 +292,18 @@ func CreateFluentdContainer(spec vzapi.LoggingScopeSpec, namespace, workloadName
 				Value: spec.ElasticSearchURL,
 			},
 			{
-				Name:  "CLUSTER_NAME",
-				Value: clusterName,
+				Name: "CLUSTER_NAME",
+				ValueFrom: &kcore.EnvVarSource{
+					SecretKeyRef: &kcore.SecretKeySelector{
+						LocalObjectReference: kcore.LocalObjectReference{
+							Name: spec.SecretName,
+						},
+						Key: constants.ClusterNameData,
+						Optional: func(opt bool) *bool {
+							return &opt
+						}(true),
+					},
+				},
 			},
 			{
 				Name: elasticSearchUserEnv,
@@ -415,49 +419,51 @@ func fluentdConfigMapName(workloadName string) string {
 	return fmt.Sprintf("fluentd-config-helidon-%s", workloadName)
 }
 
-func replicateVmiSecret(vmiSec *kcore.Secret, namespace, name string) *kcore.Secret {
-	sec := &kcore.Secret{
-		ObjectMeta: kmeta.ObjectMeta{
-			Namespace: namespace,
-			Name:      name,
-		},
-		Data: vmiSec.Data,
+func (h *HelidonHandler) ensureFluentdConfigMap(ctx context.Context, scope *vzapi.LoggingScope, workloadName string, appContainersNames []string, requiresCABundle bool) error {
+	// check if configmap exists
+	name := fluentdConfigMapName(workloadName)
+	configMap := &kcore.ConfigMap{}
+	err := h.Get(ctx, objKey(scope.Namespace, name), configMap)
+	if kerrs.IsNotFound(err) {
+		conf, err := getFluentdConfigurationForHelidon(workloadName, appContainersNames, requiresCABundle)
+		if err != nil {
+			return err
+		}
+
+		if err = h.Create(ctx, CreateFluentdConfigMap(scope.Namespace, name, conf), &client.CreateOptions{}); err != nil {
+			return err
+		}
 	}
-	return sec
+	return nil
 }
 
-func (h *HelidonHandler) ensureFluentdConfigMap(ctx context.Context, namespace, workloadName string, appContainersNames []string) error {
-
-	helidonFluentdConfiguration := HelidonFluentdConfiguration
+func getFluentdConfigurationForHelidon(workloadName string, appContainersNames []string, requiresCABundle bool) (string, error) {
+	fluentdConfiguration := HelidonFluentdConfiguration
 	// add the container specific configuration
+	caFile := ""
+	if requiresCABundle {
+		caFile = CAFileConfig
+	}
 	for _, containerName := range appContainersNames {
 		tmpl, err := template.New("fluentdContainer").Parse(helidonFluentdContainerConfigurationTemplate)
 		if err != nil {
-			return err
+			return "", err
 		}
 
 		data := struct {
 			WorkloadName  string
 			ContainerName string
-		}{workloadName, containerName}
+			CAFile        string
+		}{workloadName, containerName, caFile}
 
 		var buf bytes.Buffer
 		err = tmpl.Execute(&buf, data)
 		if err != nil {
-			return err
+			return "", err
 		}
-		helidonFluentdConfiguration += buf.String()
+		fluentdConfiguration += buf.String()
 	}
-	// check if configmap exists
-	name := fluentdConfigMapName(workloadName)
-	configMap := &kcore.ConfigMap{}
-	err := h.Get(ctx, objKey(namespace, name), configMap)
-	if kerrs.IsNotFound(err) {
-		if err = h.Create(ctx, CreateFluentdConfigMap(namespace, name, helidonFluentdConfiguration), &client.CreateOptions{}); err != nil {
-			return err
-		}
-	}
-	return nil
+	return fluentdConfiguration, nil
 }
 
 func (h *HelidonHandler) deleteFluentdConfigMap(ctx context.Context, namespace, workloadName string) error {

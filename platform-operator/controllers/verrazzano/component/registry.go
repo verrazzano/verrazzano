@@ -6,6 +6,7 @@ package component
 import (
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
@@ -97,28 +98,28 @@ func GetComponents() []Component {
 		helmComponent{
 			releaseName:             "coherence-operator",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "coherence-operator"),
-			chartNamespace:          "verrazzano-system",
+			chartNamespace:          constants.VerrazzanoSystemNamespace,
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "coherence-values.yaml"),
 		},
 		helmComponent{
 			releaseName:             "weblogic-operator",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "weblogic-operator"),
-			chartNamespace:          "verrazzano-system",
+			chartNamespace:          constants.VerrazzanoSystemNamespace,
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "weblogic-values.yaml"),
 		},
 		helmComponent{
 			releaseName:             "oam-kubernetes-runtime",
 			chartDir:                filepath.Join(thirdPartyChartsDir, "oam-kubernetes-runtime"),
-			chartNamespace:          "verrazzano-system",
+			chartNamespace:          constants.VerrazzanoSystemNamespace,
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "oam-kubernetes-runtime-values.yaml"),
 		},
 		helmComponent{
 			releaseName:             "verrazzano-application-operator",
 			chartDir:                filepath.Join(vzChartsDir, "verrazzano-application-operator"),
-			chartNamespace:          "verrazzano-system",
+			chartNamespace:          constants.VerrazzanoSystemNamespace,
 			ignoreNamespaceOverride: true,
 			valuesFile:              filepath.Join(overridesDir, "verrazzano-application-operator-values.yaml"),
 		},

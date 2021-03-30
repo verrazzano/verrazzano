@@ -5,7 +5,6 @@ package multiclusterconfigmap
 
 import (
 	"context"
-
 	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	corev1 "k8s.io/api/core/v1"
@@ -22,9 +21,12 @@ import (
 // Reconciler reconciles a MultiClusterConfigMap object
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log          logr.Logger
+	Scheme       *runtime.Scheme
+	AgentChannel chan clusters.StatusUpdateMessage
 }
+
+const finalizerName = "multiclusterconfigmap.verrazzano.io"
 
 // Reconcile reconciles a MultiClusterConfigMap resource. It fetches the embedded ConfigMap,
 // mutates it based on the MultiClusterConfigMap, and updates the status of the
@@ -40,8 +42,26 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterConfigMap", err, logger)
 	}
 
+	// delete the wrapped resource since MC is being deleted
+	if !mcConfigMap.ObjectMeta.DeletionTimestamp.IsZero() {
+		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcConfigMap, finalizerName, &corev1.ConfigMap{}, types.NamespacedName{Namespace: mcConfigMap.Namespace, Name: mcConfigMap.Name})
+		return ctrl.Result{}, err
+	}
+
+	oldState := clusters.SetEffectiveStateIfChanged(mcConfigMap.Spec.Placement, &mcConfigMap.Status)
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcConfigMap.Spec.Placement) {
-		return ctrl.Result{}, nil
+		if oldState != mcConfigMap.Status.State {
+			// This must be done whether the resource is placed in this cluster or not, because we
+			// could be in an admin cluster and receive cluster level statuses from managed clusters,
+			// which can change our effective state
+			err = r.Status().Update(ctx, &mcConfigMap)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		// if this mc config map is no longer placed on this cluster, remove the associated config map
+		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcConfigMap, finalizerName, &corev1.ConfigMap{}, types.NamespacedName{Namespace: mcConfigMap.Namespace, Name: mcConfigMap.Name})
+		return ctrl.Result{}, err
 	}
 
 	logger.Info("MultiClusterConfigMap create or update with underlying ConfigMap",
@@ -49,6 +69,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		"placement", mcConfigMap.Spec.Placement.Clusters[0].Name)
 	// Immutable ConfigMaps are not supported - we need a webhook to validate, or add the support
 	opResult, err := r.createOrUpdateConfigMap(ctx, mcConfigMap)
+
+	// Add our finalizer if not already added
+	if err == nil {
+		_, err = clusters.AddFinalizer(ctx, r.Client, &mcConfigMap, finalizerName)
+	}
 
 	return r.updateStatus(ctx, &mcConfigMap, opResult, err)
 
@@ -72,9 +97,7 @@ func (r *Reconciler) createOrUpdateConfigMap(ctx context.Context, mcConfigMap cl
 
 	return controllerutil.CreateOrUpdate(ctx, r.Client, &configMap, func() error {
 		r.mutateConfigMap(mcConfigMap, &configMap)
-		// This SetControllerReference call will trigger garbage collection i.e. the ConfigMap
-		// will automatically get deleted when the MultiClusterConfigMap is deleted
-		return controllerutil.SetControllerReference(&mcConfigMap, &configMap, r.Scheme)
+		return nil
 	})
 }
 
@@ -89,13 +112,7 @@ func (r *Reconciler) mutateConfigMap(mcConfigMap clustersv1alpha1.MultiClusterCo
 
 func (r *Reconciler) updateStatus(ctx context.Context, mcConfigMap *clustersv1alpha1.MultiClusterConfigMap, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {
 	clusterName := clusters.GetClusterName(ctx, r.Client)
-	condition := clusters.GetConditionFromResult(err, opResult, "ConfigMap")
-	clusterLevelStatus := clusters.CreateClusterLevelStatus(condition, clusterName)
-	if clusters.StatusNeedsUpdate(mcConfigMap.Status, condition, clusterLevelStatus) {
-		mcConfigMap.Status.Conditions = append(mcConfigMap.Status.Conditions, condition)
-		clusters.UpdateClusterLevelStatus(&mcConfigMap.Status, clusterLevelStatus)
-		mcConfigMap.Status.State = clusters.ComputeEffectiveState(mcConfigMap.Status, mcConfigMap.Spec.Placement)
-		return reconcile.Result{}, r.Status().Update(ctx, mcConfigMap)
-	}
-	return reconcile.Result{}, nil
+	newCondition := clusters.GetConditionFromResult(err, opResult, "ConfigMap")
+	return clusters.UpdateStatus(mcConfigMap, &mcConfigMap.Status, mcConfigMap.Spec.Placement, newCondition, clusterName,
+		r.AgentChannel, func() error { return r.Status().Update(ctx, mcConfigMap) })
 }

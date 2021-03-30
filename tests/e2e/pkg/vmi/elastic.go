@@ -54,10 +54,7 @@ func (e *Elastic) Connect() bool {
 		return false
 	}
 	err = json.Unmarshal(body, e)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func (e *Elastic) retryGet(url, username, password string) ([]byte, error) {

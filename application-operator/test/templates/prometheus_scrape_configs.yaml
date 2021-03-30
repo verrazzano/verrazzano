@@ -46,3 +46,4 @@ scrape_configs:
     source_labels:
     - name
     target_label: webapp
+  ##SSL_PROTOCOL##

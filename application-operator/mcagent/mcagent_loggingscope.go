@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -45,8 +46,8 @@ func (s *Syncer) syncMCLoggingScopeObjects(namespace string) error {
 		return nil
 	}
 	for _, mcLoggingScope := range allLocalMCLoggingScopes.Items {
-		// Delete each MultiClusterLoggingScope object that is not on the admin cluster
-		if !loggingScopeListContains(&allAdminMCLoggingScopes, mcLoggingScope.Name, mcLoggingScope.Namespace) {
+		// Delete each MultiClusterLoggingScope object that is not on the admin cluster or no longer placed on this cluster
+		if !s.loggingScopePlacedOnCluster(&allAdminMCLoggingScopes, mcLoggingScope.Name, mcLoggingScope.Namespace) {
 			err := s.LocalClient.Delete(s.Context, &mcLoggingScope)
 			if err != nil {
 				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterLoggingScope with name %q and namespace %q", mcLoggingScope.Name, mcLoggingScope.Namespace))
@@ -70,6 +71,17 @@ func (s *Syncer) createOrUpdateMCLoggingScope(mcLoggingScope clustersv1alpha1.Mu
 	})
 }
 
+func (s *Syncer) updateMultiClusterLoggingScopeStatus(name types.NamespacedName, newCond clustersv1alpha1.Condition, newClusterStatus clustersv1alpha1.ClusterLevelStatus) error {
+	var fetched clustersv1alpha1.MultiClusterLoggingScope
+	err := s.AdminClient.Get(s.Context, name, &fetched)
+	if err != nil {
+		return err
+	}
+	fetched.Status.Conditions = append(fetched.Status.Conditions, newCond)
+	clusters.SetClusterLevelStatus(&fetched.Status, newClusterStatus)
+	return s.AdminClient.Status().Update(s.Context, &fetched)
+}
+
 // mutateMCLoggingScope mutates the MultiClusterLoggingScope to reflect the contents of the parent MultiClusterLoggingScope
 func mutateMCLoggingScope(mcLoggingScope clustersv1alpha1.MultiClusterLoggingScope, mcLoggingScopeNew *clustersv1alpha1.MultiClusterLoggingScope) {
 	mcLoggingScopeNew.Spec.Placement = mcLoggingScope.Spec.Placement
@@ -77,11 +89,11 @@ func mutateMCLoggingScope(mcLoggingScope clustersv1alpha1.MultiClusterLoggingSco
 	mcLoggingScopeNew.Labels = mcLoggingScope.Labels
 }
 
-// loggingScopeListContains returns boolean indicating if the list contains the object with the specified name and namespace
-func loggingScopeListContains(mcAdminList *clustersv1alpha1.MultiClusterLoggingScopeList, name string, namespace string) bool {
+// loggingScopePlacedOnCluster returns boolean indicating if the list contains the object with the specified name and namespace
+func (s *Syncer) loggingScopePlacedOnCluster(mcAdminList *clustersv1alpha1.MultiClusterLoggingScopeList, name string, namespace string) bool {
 	for _, item := range mcAdminList.Items {
 		if item.Name == name && item.Namespace == namespace {
-			return true
+			return s.isThisCluster(item.Spec.Placement)
 		}
 	}
 	return false

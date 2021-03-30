@@ -29,21 +29,21 @@ const AdminKubeconfigData = "admin-kubeconfig"
 // ClusterNameData - the field name in MCRegistrationSecret that contains this managed cluster's name
 const ClusterNameData = "managed-cluster-name"
 
-// ElasticsearchSecretName - the name of the secret in the Verrazzano System namespace,
-// that contains credentials and other details for for the admin cluster's Elasticsearch endpoint
-const ElasticsearchSecretName = "verrazzano-cluster-elasticsearch"
-
-// ElasticsearchURLData - the field name in ElasticsearchSecret that contains the admin cluster's
+// ElasticsearchURLData - the field name in MCRegistrationSecret that contains the admin cluster's
 // Elasticsearch endpoint's URL
-const ElasticsearchURLData = "url"
+const ElasticsearchURLData = "es-url"
 
-// ElasticsearchUsernameData - the field name in ElasticsearchSecret that contains the admin
+// ElasticsearchUsernameData - the field name in MCRegistrationSecret that contains the admin
 // cluster's Elasticsearch username
 const ElasticsearchUsernameData = "username"
 
-// ElasticsearchPasswordData - the field name in ElasticsearchSecret that contains the admin
+// ElasticsearchPasswordData - the field name in MCRegistrationSecret that contains the admin
 // cluster's Elasticsearch password
 const ElasticsearchPasswordData = "password"
+
+// ElasticsearchCABundleData - the field name in MCRegistrationSecret that contains the admin
+// cluster's Elasticsearch CA bundle
+const ElasticsearchCABundleData = "ca-bundle"
 
 // LabelVerrazzanoManaged - constant for a Kubernetes label that is applied by Verrazzano
 const LabelVerrazzanoManaged = "verrazzano-managed"
@@ -56,3 +56,19 @@ const LabelIstioInjection = "istio-injection"
 
 // LabelIstioInjectionDefault - default value for LabelIstioInjection
 const LabelIstioInjectionDefault = "enabled"
+
+// StatusUpdateChannelBufferSize - the number of status update messages that will be buffered
+// by the agent channel before controllers trying to send more status updates will start blocking
+const StatusUpdateChannelBufferSize = 50
+
+// StatusUpdateBatchSize - the number of status update messages the multi cluster agent should
+// process each time it wakes up
+const StatusUpdateBatchSize = 10
+
+// LabelUpgradeVersion - label which allows users to indicate that a running app should be upgraded to latest version of
+// Verrazzano. When an application is deployed, the value of this label is set on workload.Status.CurrentUpgradeVersion.
+// When reconciling, if the value provided in the label is different than the value in the workload status, the application
+// will be 'upgraded' to use the resources provided by current version of Verrazzano. If any of these resources have
+// changed since the application was deployed, the application will pick up the latest values and be restarted. If the
+// label value matches the value in the workload status, all Verrazzano provided resources will remain unchanged.
+const LabelUpgradeVersion = "upgrade-version"

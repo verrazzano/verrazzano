@@ -47,9 +47,7 @@ func TestGetCondition(t *testing.T) {
 func TestSetCondition(t *testing.T) {
 	assert := asserts.New(t)
 	var trait MetricsTrait
-	var cond oamrt.Condition
-
-	cond = oamrt.Condition{
+	var cond = oamrt.Condition{
 		Type:               oamrt.TypeSynced,
 		Status:             corev1.ConditionTrue,
 		LastTransitionTime: metav1.Now(),

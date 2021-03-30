@@ -29,10 +29,11 @@ type IngressTraitSpec struct {
 	WorkloadReference oamrt.TypedReference `json:"workloadRef"`
 }
 
-// IngressRule specifies the hosts and paths to be exposed for an ingress trait.
+// IngressRule specifies the hosts, paths and destination to be exposed for an ingress trait.
 type IngressRule struct {
-	Hosts []string      `json:"hosts,omitempty"`
-	Paths []IngressPath `json:"paths,omitempty"`
+	Hosts       []string           `json:"hosts,omitempty"`
+	Paths       []IngressPath      `json:"paths,omitempty"`
+	Destination IngressDestination `json:"destination,omitempty"`
 }
 
 // IngressSecurity specifies the secret containing the certificate securing the transport for an ingress trait.
@@ -44,6 +45,12 @@ type IngressSecurity struct {
 type IngressPath struct {
 	Path     string `json:"path,omitempty"`
 	PathType string `json:"pathType,omitempty"`
+}
+
+// IngressDestination specifies a specific destination host and port for the ingress paths.
+type IngressDestination struct {
+	Host string `json:"host,omitempty"`
+	Port uint32 `json:"port,omitempty"`
 }
 
 // IngressTraitStatus specifies the observed state of an ingress trait and related resources.

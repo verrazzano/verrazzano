@@ -6,11 +6,12 @@ package k8s
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/onsi/ginkgo"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
 )
 
 // DoesCRDExist returns true if the given CRD exists

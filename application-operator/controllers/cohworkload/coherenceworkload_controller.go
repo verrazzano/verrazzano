@@ -12,11 +12,14 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const fluentdParsingRules = `<match fluent.**>
+const cohFluentdParsingRules = `<match fluent.**>
 @type null
 </match>
 
@@ -65,8 +68,7 @@ multiline_flush_interval 20s
 
 <match coherence-cluster>
   @type elasticsearch
-  hosts "#{ENV['ELASTICSEARCH_URL']}"
-  ca_file /fluentd/secret/ca-bundle
+  hosts "#{ENV['ELASTICSEARCH_URL']}"{{ .CAFile}}
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
   index_name "` + loggingscope.ElasticSearchIndex + `"
@@ -166,7 +168,25 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, errors.New("Embedded Coherence resource is missing the required 'spec' field")
 	}
 
-	if err = r.addLogging(ctx, log, req.NamespacedName.Namespace, workload.ObjectMeta.Labels, spec); err != nil {
+	// Attempt to get the existing Coherence StatefulSet. This is used in the case where we don't want to update any resources
+	// which are defined by Verrazzano such as the Fluentd image used by logging. In this case we obtain the previous
+	// Fluentd image and set that on the new Coherence StatefulSet.
+	var existingCoherence v1.StatefulSet
+	coherenceKey := types.NamespacedName{Name: u.GetName(), Namespace: workload.Namespace}
+	if err := r.Get(ctx, coherenceKey, &existingCoherence); err != nil {
+		if k8serrors.IsNotFound(err) {
+			log.Info("No existing Coherence StatefulSet found")
+		} else {
+			log.Error(err, "An error occurred trying to obtain an existing Coherence StatefulSet")
+			return reconcile.Result{}, err
+		}
+	}
+	// upgradeApp indicates whether the user has indicated that it is ok to update the application to use the latest
+	// resource values from Verrazzano. An example of this is the Fluentd image used by logging.
+	upgradeApp := controllers.IsWorkloadMarkedForUpgrade(workload.Labels, workload.Status.CurrentUpgradeVersion)
+
+	// Add the Fluentd sidecar container required for logging to the Coherence StatefulSet
+	if err = r.addLogging(ctx, log, workload, upgradeApp, spec, &existingCoherence); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -190,13 +210,21 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
+	// make a copy of the Coherence spec since u.Object will get overwritten in CreateOrUpdate
+	// if the Coherence CR exists
+	specCopy, _, err := unstructured.NestedFieldCopy(u.Object, specField)
+	if err != nil {
+		log.Error(err, "Unable to make a copy of the Coherence spec")
+		return reconcile.Result{}, err
+	}
+
 	// write out the Coherence resource
-	if err = r.Client.Create(ctx, u); err != nil {
-		if !k8serrors.IsAlreadyExists(err) {
-			return reconcile.Result{}, err
-		}
-		log.Info("Coherence CR already exists, ignoring error on create")
-		return reconcile.Result{}, nil
+	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, u, func() error {
+		return unstructured.SetNestedField(u.Object, specCopy, specField)
+	})
+	if err != nil {
+		log.Error(err, "Error creating or updating Coherence CR")
+		return reconcile.Result{}, err
 	}
 
 	// Get the namespace resource that the VerrazzanoCoherenceWorkload resource is deployed to
@@ -209,7 +237,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	log.Info("Successfully created Verrazzano Coherence workload")
+	if err = r.updateUpgradeVersionInStatus(ctx, workload); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	log.Info("Successfully reconciled Verrazzano Coherence workload")
 	return reconcile.Result{}, nil
 }
 
@@ -244,6 +276,10 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, coherence *un
 		labels[oam.LabelAppName] = appName
 	}
 
+	if upgradeVersion, ok := workloadLabels[constants.LabelUpgradeVersion]; ok {
+		labels[constants.LabelUpgradeVersion] = upgradeVersion
+	}
+
 	err := unstructured.SetNestedStringMap(coherence.Object, labels, specLabelsFields...)
 	if err != nil {
 		log.Error(err, "Unable to set labels in spec")
@@ -275,8 +311,20 @@ func (r *Reconciler) disableIstioInjection(log logr.Logger, u *unstructured.Unst
 }
 
 // addLogging adds a FLUENTD sidecar and updates the Coherence spec if there is an associated LoggingScope
-func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace string, labels map[string]string, coherenceSpec map[string]interface{}) error {
-	loggingScope, err := loggingscope.FetchLoggingScopeFromWorkloadLabels(ctx, r.Client, log, namespace, labels)
+func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoCoherenceWorkload, upgradeApp bool, coherenceSpec map[string]interface{}, existingCoherence *v1.StatefulSet) error {
+	// If the Coherence StatefulSet already exists and we don't want to update the Fluentd image, obtain the Fluentd image from the
+	// current Coherence StatefulSet
+	var existingFluentdImage string
+	if !upgradeApp {
+		for _, container := range existingCoherence.Spec.Template.Spec.Containers {
+			if container.Name == loggingscope.FluentdContainerName {
+				existingFluentdImage = container.Image
+				break
+			}
+		}
+	}
+
+	loggingScope, err := loggingscope.FetchLoggingScopeFromWorkloadLabels(ctx, r.Client, log, workload.Namespace, workload.Labels, existingFluentdImage)
 	if err != nil {
 		return err
 	}
@@ -305,7 +353,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 		Context:                ctx,
 		Log:                    log,
 		Client:                 r.Client,
-		ParseRules:             fluentdParsingRules,
+		ParseRules:             cohFluentdParsingRules,
 		StorageVolumeName:      "logs",
 		StorageVolumeMountPath: "/logs",
 		WorkloadType:           workloadType,
@@ -313,7 +361,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 
 	// fluentdManager.Apply wants a QRR but it only cares about the namespace (at least for
 	// this use case)
-	resource := vzapi.QualifiedResourceRelation{Namespace: namespace}
+	resource := vzapi.QualifiedResourceRelation{Namespace: workload.Namespace}
 
 	// note that this call has the side effect of creating a FLUENTD config map if one
 	// does not already exist in the namespace
@@ -528,5 +576,13 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 		return err
 	}
 
+	return nil
+}
+
+func (r *Reconciler) updateUpgradeVersionInStatus(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+	if workload.Labels[constants.LabelUpgradeVersion] != workload.Status.CurrentUpgradeVersion {
+		workload.Status.CurrentUpgradeVersion = workload.Labels[constants.LabelUpgradeVersion]
+		return r.Status().Update(ctx, workload)
+	}
 	return nil
 }

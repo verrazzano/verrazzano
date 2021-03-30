@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"testing"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
@@ -98,4 +99,36 @@ func AssertMultiClusterResourceStatus(assert *assert.Assertions,
 	assert.Equal(1, len(actualStatus.Clusters))
 	assert.Equal(UnitTestClusterName, actualStatus.Clusters[0].Name)
 	assert.Equal(expectedState, actualStatus.Clusters[0].State)
+}
+
+// DoExpectUpdateState checks that the status writer was retrieved and an update of the
+// resource's state to the given value was called
+func DoExpectUpdateState(t *testing.T, cli *mocks.MockClient, statusWriter *mocks.MockStatusWriter, mcAppConfig clusters.MultiClusterResource, expectedState v1alpha1.StateType) {
+	// expect a call to update the status of the MultiClusterApplicationConfiguration
+	cli.EXPECT().Status().Return(statusWriter)
+
+	// the status update should be to success status/conditions on the MultiClusterApplicationConfiguration
+	statusWriter.EXPECT().
+		Update(gomock.Any(), gomock.AssignableToTypeOf(mcAppConfig)).
+		DoAndReturn(func(ctx context.Context, mcAppConfig clusters.MultiClusterResource) error {
+			assert.Equal(t, v1alpha1.Pending, mcAppConfig.GetStatus().State)
+			return nil
+		})
+}
+
+// ExpectDeleteAssociatedResource adds an expectation to the given MockClient to expect a Get
+// call for the runtime resource and a subsequent request to delete it
+func ExpectDeleteAssociatedResource(cli *mocks.MockClient, resource runtime.Object, name types.NamespacedName) {
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: name.Namespace, Name: name.Name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj runtime.Object) error {
+			return nil
+		})
+
+	cli.EXPECT().
+		Delete(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, resource runtime.Object) error {
+			return nil
+		})
+
 }

@@ -40,11 +40,11 @@ func TestFetchManagedClusterElasticSearchDetails_Exists(t *testing.T) {
 			constants.ElasticsearchUsernameData: []byte(esUser),
 			constants.ElasticsearchPasswordData: []byte(esPwd)},
 	}
-	esSecret1.Name = MCElasticsearchSecretFullName.Name
-	esSecret1.Namespace = MCElasticsearchSecretFullName.Namespace
+	esSecret1.Name = MCRegistrationSecretFullName.Name
+	esSecret1.Namespace = MCRegistrationSecretFullName.Namespace
 
 	cli.EXPECT().
-		Get(gomock.Any(), MCElasticsearchSecretFullName, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
 			secret.Name = esSecret1.Name
 			secret.Namespace = esSecret1.Namespace
@@ -69,8 +69,8 @@ func TestFetchManagedClusterElasticSearchDetails_DoesNotExist(t *testing.T) {
 	cli := mocks.NewMockClient(mocker)
 
 	cli.EXPECT().
-		Get(gomock.Any(), MCElasticsearchSecretFullName, gomock.Not(gomock.Nil())).
-		Return(kerr.NewNotFound(schema.ParseGroupResource("Secret"), MCElasticsearchSecretFullName.Name))
+		Get(gomock.Any(), MCRegistrationSecretFullName, gomock.Not(gomock.Nil())).
+		Return(kerr.NewNotFound(schema.ParseGroupResource("Secret"), MCRegistrationSecretFullName.Name))
 
 	esDetails := FetchManagedClusterElasticSearchDetails(context.TODO(), cli)
 
@@ -144,13 +144,6 @@ func TestGetConditionFromResult(t *testing.T) {
 	asserts.Equal(t, clustersv1alpha1.DeployFailed, condition.Type)
 	asserts.Equal(t, v1.ConditionTrue, condition.Status)
 	asserts.Contains(t, condition.Message, someerr.Error())
-}
-
-// TestGetManagedClusterElasticsearchSecretKey tests that GetManagedClusterElasticsearchSecretKey
-// returns the correct value
-func TestGetManagedClusterElasticsearchSecretKey(t *testing.T) {
-	key := GetManagedClusterElasticsearchSecretKey()
-	asserts.Equal(t, MCElasticsearchSecretFullName, key)
 }
 
 // TestIgnoreNotFoundWithLog tests the IgnoreNotFoundWithLog function
@@ -361,17 +354,17 @@ func TestUpdateClusterLevelStatus(t *testing.T) {
 	}
 
 	// existing cluster cluster1 should be updated
-	UpdateClusterLevelStatus(&resourceStatus, cluster1Succeeded)
+	SetClusterLevelStatus(&resourceStatus, cluster1Succeeded)
 	asserts.Equal(t, 2, len(resourceStatus.Clusters))
 	asserts.Equal(t, clustersv1alpha1.Succeeded, resourceStatus.Clusters[0].State)
 
 	// existing cluster cluster2 should be updated
-	UpdateClusterLevelStatus(&resourceStatus, cluster2Failed)
+	SetClusterLevelStatus(&resourceStatus, cluster2Failed)
 	asserts.Equal(t, 2, len(resourceStatus.Clusters))
 	asserts.Equal(t, clustersv1alpha1.Failed, resourceStatus.Clusters[1].State)
 
 	// hitherto unseen cluster should be added to the cluster level statuses list
-	UpdateClusterLevelStatus(&resourceStatus, newClusterPending)
+	SetClusterLevelStatus(&resourceStatus, newClusterPending)
 	asserts.Equal(t, 3, len(resourceStatus.Clusters))
 	asserts.Equal(t, clustersv1alpha1.Pending, resourceStatus.Clusters[2].State)
 
@@ -388,4 +381,42 @@ func expectMCRegistrationSecret(cli *mocks.MockClient, clusterName string, secre
 			secret.Data = regSecretData
 			return nil
 		})
+}
+
+// TestSetEffectiveStateIfChanged tests that if the effective state of a resource has changed, it's
+// state is changed
+// GIVEN a MultiCluster resource whose effective state is unchanged
+// WHEN SetEffectiveStateIfChanged is called
+// THEN the state should not be updated
+// GIVEN a MultiCluster resource whose effective state has changed
+// WHEN SetEffectiveStateIfChanged is called
+// THEN the state should be updated
+func TestSetEffectiveStateIfChanged(t *testing.T) {
+	placement := clustersv1alpha1.Placement{
+		Clusters: []clustersv1alpha1.Cluster{
+			{Name: "cluster1"},
+			{Name: "cluster2"},
+		},
+	}
+	secret := clustersv1alpha1.MultiClusterSecret{
+		Spec: clustersv1alpha1.MultiClusterSecretSpec{
+			Placement: placement,
+		},
+		Status: clustersv1alpha1.MultiClusterResourceStatus{State: clustersv1alpha1.Pending},
+	}
+	secret.Name = "mysecret"
+	secret.Namespace = "myns"
+
+	// Make a call with the effective state of the resource unchanged, and no change should occur
+	SetEffectiveStateIfChanged(placement, &secret.Status)
+	asserts.Equal(t, clustersv1alpha1.Pending, secret.Status.State)
+
+	// add cluster level status info to the secret's status, and make a call again - this time
+	// it should update the status of the resource since the effective state changes
+	secret.Status.Clusters = []clustersv1alpha1.ClusterLevelStatus{
+		{Name: "cluster1", State: clustersv1alpha1.Failed},
+	}
+
+	SetEffectiveStateIfChanged(placement, &secret.Status)
+	asserts.Equal(t, clustersv1alpha1.Failed, secret.Status.State)
 }

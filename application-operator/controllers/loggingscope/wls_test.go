@@ -5,13 +5,14 @@ package loggingscope
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
-	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -178,4 +179,32 @@ func updateServerPod(serverPod *wls.ServerPod) {
 	serverPod.Containers = append(serverPod.Containers, v1.Container{})
 	serverPod.Volumes = append(serverPod.Volumes, v1.Volume{})
 	serverPod.VolumeMounts = append(serverPod.VolumeMounts, v1.VolumeMount{})
+}
+
+func Test_getFluentdConfiguration(t *testing.T) {
+	tests := []struct {
+		name             string
+		requiresCABundle bool
+		containsCAFile   bool
+	}{
+		{
+			name:             "without ca-bundle",
+			requiresCABundle: false,
+			containsCAFile:   false,
+		},
+		{
+			name:             "with ca-bundle",
+			requiresCABundle: true,
+			containsCAFile:   true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			conf := GetFluentdConfiguration(WlsFluentdParsingRules, tt.requiresCABundle)
+			got := strings.Contains(conf, CAFileConfig)
+			if got != tt.containsCAFile {
+				t.Errorf("getFluentdConfiguration() containsCAFile = %v, want %v", got, tt.containsCAFile)
+			}
+		})
+	}
 }

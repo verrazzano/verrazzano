@@ -6,10 +6,16 @@ package pkg
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
+	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
+
+	"k8s.io/api/authorization/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	"github.com/onsi/ginkgo"
@@ -30,40 +36,36 @@ import (
 
 const dockerconfigjsonTemplate string = "{\"auths\":{\"%v\":{\"username\":\"%v\",\"password\":\"%v\",\"auth\":\"%v\"}}}"
 
-var config *restclient.Config
-var clientset *kubernetes.Clientset
-
 // GetKubeConfig will get the kubeconfig from the environment variable KUBECONFIG, if set, or else from $HOME/.kube/config
 func GetKubeConfig() *restclient.Config {
-	if config == nil {
-		kubeconfig := ""
-		kubeconfigEnvVar := ""
-		testKubeConfigEnvVar := os.Getenv("TEST_KUBECONFIG")
-		if len(testKubeConfigEnvVar) > 0 {
-			kubeconfigEnvVar = testKubeConfigEnvVar
-		}
-
-		if kubeconfigEnvVar == "" {
-			// if the KUBECONFIG environment variable is set, use that
-			kubeconfigEnvVar = os.Getenv("KUBECONFIG")
-		}
-
-		if len(kubeconfigEnvVar) > 0 {
-			kubeconfig = kubeconfigEnvVar
-		} else if home := homedir.HomeDir(); home != "" {
-			// next look for $HOME/.kube/config
-			kubeconfig = filepath.Join(home, ".kube", "config")
-		} else {
-			// give up
-			ginkgo.Fail("Could not find kube")
-		}
-
-		var err error
-		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
-		if err != nil {
-			ginkgo.Fail("Could not get current context from kubeconfig " + kubeconfig)
-		}
+	kubeconfig := ""
+	kubeconfigEnvVar := ""
+	testKubeConfigEnvVar := os.Getenv("TEST_KUBECONFIG")
+	if len(testKubeConfigEnvVar) > 0 {
+		kubeconfigEnvVar = testKubeConfigEnvVar
 	}
+
+	if kubeconfigEnvVar == "" {
+		// if the KUBECONFIG environment variable is set, use that
+		kubeconfigEnvVar = os.Getenv("KUBECONFIG")
+	}
+
+	if len(kubeconfigEnvVar) > 0 {
+		kubeconfig = kubeconfigEnvVar
+	} else if home := homedir.HomeDir(); home != "" {
+		// next look for $HOME/.kube/config
+		kubeconfig = filepath.Join(home, ".kube", "config")
+	} else {
+		// give up
+		ginkgo.Fail("Could not find kube")
+	}
+
+	var err error
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		ginkgo.Fail("Could not get current context from kubeconfig " + kubeconfig)
+	}
+
 	return config
 }
 
@@ -203,20 +205,19 @@ func DoesServiceExist(namespace string, name string) bool {
 // GetKubernetesClientset returns the Kubernetes clienset for the cluster
 func GetKubernetesClientset() *kubernetes.Clientset {
 	// use the current context in the kubeconfig
-	if clientset == nil {
-		config := GetKubeConfig()
+	config := GetKubeConfig()
 
-		// create the clientset once and cache it
-		var err error
-		clientset, err = kubernetes.NewForConfig(config)
-		if err != nil {
-			ginkgo.Fail("Could not get Kubernetes clientset")
-		}
+	// create the clientset once and cache it
+	var err error
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		ginkgo.Fail("Could not get Kubernetes clientset")
 	}
+
 	return clientset
 }
 
-// GetVMOClientset returns the Kubernetes clienset for the Verrazzano Monitoring Operator
+// GetVMOClientset returns the Kubernetes clientset for the Verrazzano Monitoring Operator
 func GetVMOClientset() *vmoclient.Clientset {
 	// use the current context in the kubeconfig
 	config := GetKubeConfig()
@@ -228,6 +229,58 @@ func GetVMOClientset() *vmoclient.Clientset {
 	}
 
 	return clientset
+}
+
+// GetVerrazzanoManagedClusterClientset returns the Kubernetes clientset for the VerrazzanoManagedCluster
+func GetVerrazzanoManagedClusterClientset() *vmcClient.Clientset {
+	client, err := vmcClient.NewForConfig(GetKubeConfig())
+	if err != nil {
+		ginkgo.Fail("Could not get Verrazzano Platform Operator clientset")
+	}
+	return client
+}
+
+// GetPlatformOperatorClientset returns the Kubernetes clientset for the Verrazzano Platform Operator
+func GetPlatformOperatorClientset() *vpoClient.Clientset {
+	client, err := vpoClient.NewForConfig(GetKubeConfig())
+	if err != nil {
+		ginkgo.Fail("Could not get Verrazzano Platform Operator clientset")
+	}
+	return client
+}
+
+// GetVerrazzanoInstallResource returns the installed Verrazzano CR (there should only be 1 per cluster)
+func GetVerrazzanoInstallResource() *v1alpha1.Verrazzano {
+	vzClient := GetPlatformOperatorClientset().VerrazzanoV1alpha1().Verrazzanos("")
+	vzList, err := vzClient.List(context.TODO(), metav1.ListOptions{})
+
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Error listing out Verrazzano instances: %v", err))
+	}
+	numVzs := len(vzList.Items)
+	if numVzs == 0 {
+		ginkgo.Fail("Did not find installed verrazzano instance")
+	}
+	if numVzs > 1 {
+		ginkgo.Fail(fmt.Sprintf("Found more than one Verrazzano instance installed: %v", numVzs))
+	}
+	vz := vzList.Items[0]
+	return &vz
+}
+
+// IsDevProfile returns true if the deployed resource is a Dev profile
+func IsDevProfile() bool {
+	return GetVerrazzanoInstallResource().Spec.Profile == v1alpha1.Dev
+}
+
+// IsProdProfile returns true if the deployed resource is a 'prod' profile
+func IsProdProfile() bool {
+	return GetVerrazzanoInstallResource().Spec.Profile == v1alpha1.Prod
+}
+
+// IsManagedClusterProfile returns true if the deployed resource is a 'managed-cluster' profile
+func IsManagedClusterProfile() bool {
+	return GetVerrazzanoInstallResource().Spec.Profile == v1alpha1.ManagedCluster
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.
@@ -367,6 +420,20 @@ func GetClusterRole(name string) *rbacv1.ClusterRole {
 	return clusterrole
 }
 
+//DoesServiceAccountExist returns whether a service account with the given name and namespace exists in the cluster
+func DoesServiceAccountExist(namespace, name string) bool {
+	clientset := GetKubernetesClientset()
+
+	sa, err := clientset.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get service account %s in namespace %s with error: %v", name, namespace, err))
+	}
+
+	return sa != nil
+
+}
+
 // DoesClusterRoleBindingExist returns whether a cluster role with the given name exists in the cluster
 func DoesClusterRoleBindingExist(name string) bool {
 	// Get the Kubernetes clientset
@@ -393,6 +460,64 @@ func GetClusterRoleBinding(name string) *rbacv1.ClusterRoleBinding {
 	return crb
 }
 
+// DoesRoleBindingContainSubject returns true if the RoleBinding exists and it contains the
+// specified subject
+func DoesRoleBindingContainSubject(namespace, name, subjectKind, subjectName string) bool {
+	clientset := GetKubernetesClientset()
+
+	rb, err := clientset.RbacV1().RoleBindings(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			ginkgo.Fail(fmt.Sprintf("Failed to get RoleBinding %s in namespace %s: %v", name, namespace, err))
+		}
+		return false
+	}
+
+	for _, s := range rb.Subjects {
+		if s.Kind == subjectKind && s.Name == subjectName {
+			return true
+		}
+	}
+	return false
+}
+
+func CreateRoleBinding(userOCID string, namespace string, rolebindingname string, clusterrolename string) error {
+
+	subject1 := rbacv1.Subject{
+		Kind:      "User",
+		APIGroup:  "rbac.authorization.k8s.io",
+		Name:      userOCID,
+		Namespace: "",
+	}
+	subjects := []rbacv1.Subject{0: subject1}
+
+	rb := rbacv1.RoleBinding{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "RoleBinding",
+			APIVersion: "rbac.authorization.k8s.io/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: rolebindingname,
+		},
+		Subjects: subjects,
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     clusterrolename,
+		},
+	}
+
+	// Get the Kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	_, err := clientset.RbacV1().RoleBindings(namespace).Create(context.TODO(), &rb, metav1.CreateOptions{})
+	if err != nil {
+		Log(Info, fmt.Sprintf("Failed to create role binding: %v", err))
+	}
+
+	return err
+}
+
 // GetIstioClientset returns the clientset object for Istio
 func GetIstioClientset() *istioClient.Clientset {
 	cs, err := istioClient.NewForConfig(GetKubeConfig())
@@ -412,4 +537,84 @@ func GetConfigMap(configMapName string, namespace string) *corev1.ConfigMap {
 		ginkgo.Fail(fmt.Sprintf("Failed to get Config Map %v from namespace %v:  Error = %v ", configMapName, namespace, err))
 	}
 	return configMap
+}
+
+/*
+The following code adds http headers to the kubernetes client invocations.  This is done to emulate the functionality of
+kubectl auth can-i ...
+
+WrapTransport is configured to point to the function
+WrapTransport will be invoked for custom HTTP behavior after the underlying transport is initialized
+(either the transport created from TLSClientConfig, Transport, or http.DefaultTransport).
+The config may layer other RoundTrippers on top of the returned RoundTripper.
+
+WrapperFunc wraps an http.RoundTripper when a new transport is created for a client, allowing per connection behavior to be injected.
+
+RoundTripper is an interface representing the ability to execute a single HTTP transaction, obtaining the Response for a given Request.
+*/
+// headerAdder is an http.RoundTripper that adds additional headers to the request
+type headerAdder struct {
+	headers map[string][]string
+
+	rt http.RoundTripper
+}
+
+func (h *headerAdder) RoundTrip(req *http.Request) (*http.Response, error) {
+	for k, vv := range h.headers {
+		for _, v := range vv {
+			req.Header.Add(k, v)
+		}
+	}
+	return h.rt.RoundTrip(req)
+}
+
+func CanI(userOCID string, namespace string, verb string, resource string) (bool, string) {
+	return CanIForAPIGroup(userOCID, namespace, verb, resource, "")
+}
+
+func CanIForAPIGroup(userOCID string, namespace string, verb string, resource string, group string) (bool, string) {
+
+	canI := &v1beta1.SelfSubjectAccessReview{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "SelfSubjectAccessReview",
+			APIVersion: "authorization.k8s.io/v1",
+		},
+		Spec: v1beta1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &v1beta1.ResourceAttributes{
+				Namespace:   namespace,
+				Verb:        verb,
+				Group:       group,
+				Version:     "",
+				Resource:    resource,
+				Subresource: "",
+				Name:        "",
+			},
+		},
+	}
+
+	config := GetKubeConfig()
+
+	wt := config.WrapTransport // Config might already have a transport wrapper
+	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+		if wt != nil {
+			rt = wt(rt)
+		}
+		return &headerAdder{
+			headers: map[string][]string{"Impersonate-User": {userOCID}},
+			rt:      rt,
+		}
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		ginkgo.Fail("Could not get Kubernetes clientset")
+	}
+
+	auth, err := clientset.AuthorizationV1beta1().SelfSubjectAccessReviews().Create(context.TODO(), canI, metav1.CreateOptions{})
+	if err != nil {
+		Log(Info, fmt.Sprintf("Failed to check perms: %v", err))
+	}
+
+	return auth.Status.Allowed, auth.Status.Reason
+
 }

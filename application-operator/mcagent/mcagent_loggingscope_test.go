@@ -274,16 +274,19 @@ func TestMCLoggingScopePlacement(t *testing.T) {
 	adminMock := mocks.NewMockClient(adminMocker)
 
 	// Test data
-	testMCLoggingScope, err := getSampleMCLoggingScope("testdata/multicluster-loggingscope.yaml")
+	adminMCLoggingScope, err := getSampleMCLoggingScope("testdata/multicluster-loggingscope.yaml")
 	assert.NoError(err, "failed to read sample data for MultiClusterLoggingScope")
-	testMCLoggingScope.Spec.Placement.Clusters[0].Name = "not-my-cluster"
+	adminMCLoggingScope.Spec.Placement.Clusters[0].Name = "not-my-cluster"
+
+	localMCLoggingScope, err := getSampleMCLoggingScope("testdata/multicluster-loggingscope.yaml")
+	assert.NoError(err, "failed to read sample data for MultiClusterLoggingScope")
 
 	// Admin Cluster - expect call to list MultiClusterLoggingScope objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterLoggingScopeList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, mcLoggingScopeList *clustersv1alpha1.MultiClusterLoggingScopeList, listOptions *client.ListOptions) error {
 			assert.Equal(testMCLoggingScopeNamespace, listOptions.Namespace, "list request did not have expected namespace")
-			mcLoggingScopeList.Items = append(mcLoggingScopeList.Items, testMCLoggingScope)
+			mcLoggingScopeList.Items = append(mcLoggingScopeList.Items, adminMCLoggingScope)
 			return nil
 		})
 
@@ -292,9 +295,14 @@ func TestMCLoggingScopePlacement(t *testing.T) {
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterLoggingScopeList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, mcLoggingScopeList *clustersv1alpha1.MultiClusterLoggingScopeList, listOptions *client.ListOptions) error {
 			assert.Equal(testMCLoggingScopeNamespace, listOptions.Namespace, "list request did not have expected namespace")
-			mcLoggingScopeList.Items = append(mcLoggingScopeList.Items, testMCLoggingScope)
+			mcLoggingScopeList.Items = append(mcLoggingScopeList.Items, localMCLoggingScope)
 			return nil
 		})
+
+	// Managed Cluster - expect a call to delete a MultiClusterLoggingScope object
+	mcMock.EXPECT().
+		Delete(gomock.Any(), gomock.Eq(&localMCLoggingScope), gomock.Any()).
+		Return(nil)
 
 	// Make the request
 	s := &Syncer{

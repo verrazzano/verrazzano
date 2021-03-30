@@ -180,11 +180,11 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 		})
 	})
 	ginkgo.Context("Metrics.", func() {
-		// Verify Prometheus scraped metrics
-		// GIVEN a deployed WebLogic application
+		// Verify application Prometheus scraped metrics
+		// GIVEN a deployed Bob's Books application
 		// WHEN the application configuration uses a default metrics trait
 		// THEN confirm that metrics are being collected
-		ginkgo.It("Retrieve Prometheus scraped metrics", func() {
+		ginkgo.It("Retrieve application Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
 					gomega.Eventually(func() bool {
@@ -214,6 +214,44 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 				func() {
 					gomega.Eventually(func() bool {
 						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", "bobs-bookstore")
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+				},
+			)
+		})
+		// Verify Istio Prometheus scraped metrics
+		// GIVEN a deployed Bob's Books application
+		// WHEN the application configuration is deployed
+		// THEN confirm that Istio metrics are being collected
+		ginkgo.It("Retrieve Istio Prometheus scraped metrics", func() {
+			pkg.Concurrently(
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobbys-helidon-stock-application")
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "robert-helidon")
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobbys-front-end-adminserver")
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobs-bookstore-adminserver")
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("envoy_cluster_ssl_handshake", "pod_name", "bobbys-front-end-adminserver")
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.MetricsExist("envoy_cluster_ssl_handshake", "pod_name", "bobs-bookstore-adminserver")
 					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 				},
 			)

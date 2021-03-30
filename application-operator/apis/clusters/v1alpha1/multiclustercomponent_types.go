@@ -19,7 +19,7 @@ type MultiClusterComponentSpec struct {
 
 // ComponentTemplate has the metadata and spec of the underlying OAM component
 type ComponentTemplate struct {
-	// +kubebuilder:pruning:PreserveUnknownFields
+	// +optional
 	Metadata metav1.ObjectMeta      `json:"metadata,omitempty"`
 	Spec     v1alpha2.ComponentSpec `json:"spec,omitempty"`
 }
@@ -49,4 +49,9 @@ type MultiClusterComponentList struct {
 
 func init() {
 	SchemeBuilder.Register(&MultiClusterComponent{}, &MultiClusterComponentList{})
+}
+
+// GetStatus returns the MultiClusterResourceStatus of this resource
+func (in *MultiClusterComponent) GetStatus() MultiClusterResourceStatus {
+	return in.Status
 }

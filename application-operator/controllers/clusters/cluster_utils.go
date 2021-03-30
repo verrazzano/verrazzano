@@ -15,8 +15,10 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // MCLocalRegistrationSecretFullName is the full NamespacedName of the cluster local registration secret
@@ -29,17 +31,29 @@ var MCRegistrationSecretFullName = types.NamespacedName{
 	Namespace: constants.VerrazzanoSystemNamespace,
 	Name:      constants.MCRegistrationSecret}
 
-// MCElasticsearchSecretFullName is the full NamespacedName of the managed cluster's Elasticsearch
-// secret
-var MCElasticsearchSecretFullName = types.NamespacedName{
-	Namespace: constants.VerrazzanoSystemNamespace,
-	Name:      constants.ElasticsearchSecretName}
-
 // ElasticsearchDetails represents all the details needed
 // to determine how to connect to an Elasticsearch instance
 type ElasticsearchDetails struct {
 	URL        string
 	SecretName string
+}
+
+// MultiClusterResource interface abstracts methods common to all MultiClusterXXX resource types
+// It is defined outside the api resources package since deep-copy code generation cannot handle
+// interface types
+type MultiClusterResource interface {
+	runtime.Object
+	GetName() string
+	GetNamespace() string
+	GetStatus() clustersv1alpha1.MultiClusterResourceStatus
+}
+
+// StatusUpdateMessage represents a message sent to the Multi Cluster agent by the controllers
+// when a MultiCluster Resource's status is updated, with the updates
+type StatusUpdateMessage struct {
+	NewCondition     clustersv1alpha1.Condition
+	NewClusterStatus clustersv1alpha1.ClusterLevelStatus
+	Resource         MultiClusterResource
 }
 
 // StatusNeedsUpdate determines based on the current state and conditions of a MultiCluster
@@ -120,7 +134,18 @@ func ComputeEffectiveState(status clustersv1alpha1.MultiClusterResourceStatus, p
 	clustersFound := 0
 	clustersPending := 0
 	clustersFailed := 0
-	for _, cluster := range placement.Clusters {
+
+	// In some cases (such as VerrazzanoProject, which has no placement section), there may not be
+	// any specified cluster placements. In this case assume the known placements as the ones for
+	// which we have received updates from the cluster
+	knownClusterPlacements := placement.Clusters
+	if knownClusterPlacements == nil {
+		for _, clusterStatus := range status.Clusters {
+			knownClusterPlacements = append(knownClusterPlacements, clustersv1alpha1.Cluster{Name: clusterStatus.Name})
+		}
+	}
+
+	for _, cluster := range knownClusterPlacements {
 		for _, clusterStatus := range status.Clusters {
 			if clusterStatus.Name == cluster.Name {
 				clustersFound++
@@ -140,7 +165,7 @@ func ComputeEffectiveState(status clustersv1alpha1.MultiClusterResourceStatus, p
 	}
 
 	// if all clusters succeeded, mark the overall state as succeeded
-	if clustersSucceeded == len(placement.Clusters) {
+	if clustersSucceeded == len(knownClusterPlacements) {
 		return clustersv1alpha1.Succeeded
 	}
 
@@ -148,9 +173,9 @@ func ComputeEffectiveState(status clustersv1alpha1.MultiClusterResourceStatus, p
 	return clustersv1alpha1.Pending
 }
 
-// UpdateClusterLevelStatus - given a multi cluster resource status object, and a new cluster status
+// SetClusterLevelStatus - given a multi cluster resource status object, and a new cluster status
 // to be updated, either add or update the cluster status as appropriate
-func UpdateClusterLevelStatus(status *clustersv1alpha1.MultiClusterResourceStatus, newClusterStatus clustersv1alpha1.ClusterLevelStatus) {
+func SetClusterLevelStatus(status *clustersv1alpha1.MultiClusterResourceStatus, newClusterStatus clustersv1alpha1.ClusterLevelStatus) {
 	foundClusterIdx := -1
 	for i, clusterStatus := range status.Clusters {
 		if clusterStatus.Name == newClusterStatus.Name {
@@ -206,20 +231,14 @@ func IgnoreNotFoundWithLog(resourceType string, err error, logger logr.Logger) e
 // have the managed cluster secret), an empty ElasticsearchDetails will be returned
 func FetchManagedClusterElasticSearchDetails(ctx context.Context, rdr client.Reader) ElasticsearchDetails {
 	esDetails := ElasticsearchDetails{}
-	esSecret := corev1.Secret{}
-	err := fetchElasticsearchSecret(ctx, rdr, &esSecret)
+	regSecret := corev1.Secret{}
+	err := rdr.Get(ctx, MCRegistrationSecretFullName, &regSecret)
 	if err != nil {
 		return esDetails
 	}
-	esDetails.URL = string(esSecret.Data[constants.ElasticsearchURLData])
-	esDetails.SecretName = constants.ElasticsearchSecretName
+	esDetails.URL = string(regSecret.Data[constants.ElasticsearchURLData])
+	esDetails.SecretName = constants.MCRegistrationSecret
 	return esDetails
-}
-
-// GetManagedClusterElasticsearchSecretKey returns the object key for the managed cluster elastic
-// search secret
-func GetManagedClusterElasticsearchSecretKey() client.ObjectKey {
-	return client.ObjectKey{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.ElasticsearchSecretName}
 }
 
 // GetClusterName returns the cluster name for a managed cluster, empty string otherwise
@@ -232,11 +251,7 @@ func GetClusterName(ctx context.Context, rdr client.Reader) string {
 	return string(clusterSecret.Data[constants.ClusterNameData])
 }
 
-func fetchElasticsearchSecret(ctx context.Context, rdr client.Reader, secret *corev1.Secret) error {
-	return rdr.Get(ctx, MCElasticsearchSecretFullName, secret)
-}
-
-// Try to get the registration secret that was created via the registion YAML apply.  If it doesn't
+// Try to get the registration secret that was created via the registration YAML apply.  If it doesn't
 // exist then use the local registration secret that was created at install time.
 func fetchClusterSecret(ctx context.Context, rdr client.Reader, clusterSecret *corev1.Secret) error {
 	err := rdr.Get(ctx, MCRegistrationSecretFullName, clusterSecret)
@@ -247,4 +262,86 @@ func fetchClusterSecret(ctx context.Context, rdr client.Reader, clusterSecret *c
 		return err
 	}
 	return rdr.Get(ctx, MCLocalRegistrationSecretFullName, clusterSecret)
+}
+
+// UpdateStatus determines whether a status update is needed for the specified mcStatus, given the new
+// Condition to be added, and if so, computes the state and calls the callback function to perform
+// the status update
+func UpdateStatus(resource MultiClusterResource, mcStatus *clustersv1alpha1.MultiClusterResourceStatus, placement clustersv1alpha1.Placement, newCondition clustersv1alpha1.Condition, clusterName string, agentChannel chan StatusUpdateMessage, updateFunc func() error) (controllerruntime.Result, error) {
+
+	clusterLevelStatus := CreateClusterLevelStatus(newCondition, clusterName)
+
+	if StatusNeedsUpdate(*mcStatus, newCondition, clusterLevelStatus) {
+		mcStatus.Conditions = append(mcStatus.Conditions, newCondition)
+		SetClusterLevelStatus(mcStatus, clusterLevelStatus)
+		mcStatus.State = ComputeEffectiveState(*mcStatus, placement)
+		err := updateFunc()
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		if agentChannel != nil {
+			// put the status update itself on the agent channel.
+			// note that the send will block if the channel buffer is full, which means the
+			// reconcile operation will not complete till unblocked
+			msg := StatusUpdateMessage{
+				NewCondition:     newCondition,
+				NewClusterStatus: clusterLevelStatus,
+				Resource:         resource,
+			}
+			agentChannel <- msg
+		}
+	}
+	return reconcile.Result{}, nil
+}
+
+// SetEffectiveStateIfChanged - if the effective state of the resource has changed, set it on the
+// in-memory multicluster resource's status. Returns the previous state, whether changed or not
+func SetEffectiveStateIfChanged(placement clustersv1alpha1.Placement,
+	statusPtr *clustersv1alpha1.MultiClusterResourceStatus) clustersv1alpha1.StateType {
+
+	effectiveState := ComputeEffectiveState(*statusPtr, placement)
+	if effectiveState != statusPtr.State {
+		oldState := statusPtr.State
+		statusPtr.State = effectiveState
+		return oldState
+	}
+	return statusPtr.State
+}
+
+// DeleteAssociatedResource will retrieve and delete the resource specified by the name
+func DeleteAssociatedResource(ctx context.Context, c client.Client, mcResource runtime.Object, finalizerName string, resourceToDelete runtime.Object, name types.NamespacedName) error {
+	// assert the MC object is a controller util Object that can be processed by controller util convenience methods
+	mcObj, ok := mcResource.(controllerutil.Object)
+	if ok {
+		controllerutil.RemoveFinalizer(mcObj, finalizerName)
+		err := c.Update(ctx, mcResource)
+		if err != nil {
+			return err
+		}
+	}
+	err := c.Get(ctx, name, resourceToDelete)
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+		return nil
+	}
+	err = c.Delete(ctx, resourceToDelete)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// AddFinalizer adds a finalizer and updates the resource if that finalizer is not already attached to the resource
+func AddFinalizer(ctx context.Context, r client.Client, obj controllerutil.Object, finalizerName string) (controllerruntime.Result, error) {
+	if !controllerutil.ContainsFinalizer(obj, finalizerName) {
+		controllerutil.AddFinalizer(obj, finalizerName)
+		if err := r.Update(ctx, obj); err != nil {
+			return controllerruntime.Result{}, err
+		}
+	}
+
+	return controllerruntime.Result{}, nil
 }

@@ -1,0 +1,352 @@
+{
+    "kind": "PodList",
+    "apiVersion": "v1",
+    "metadata": {
+        "selfLink": "/api/v1/namespaces/verrazzano-system/pods",
+        "resourceVersion": "13706"
+    },
+    "items": [
+         {
+            "metadata": {
+                "name": "vmi-system-prometheus-0-7544644cdb-8pjwd",
+                "generateName": "vmi-system-prometheus-0-7544644cdb-",
+                "namespace": "verrazzano-system",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/pods/vmi-system-prometheus-0-7544644cdb-8pjwd",
+                "uid": "3e9014ab-99d0-46d8-b80e-0bba46f7c6fc",
+                "resourceVersion": "13685",
+                "creationTimestamp": "2021-01-29T18:36:01Z",
+                "labels": {
+                    "app": "system-prometheus",
+                    "pod-template-hash": "7544644cdb"
+                },
+                "ownerReferences": [
+                    {
+                        "apiVersion": "apps/v1",
+                        "kind": "ReplicaSet",
+                        "name": "vmi-system-prometheus-0-7544644cdb",
+                        "uid": "08cf77be-8fef-431a-bef2-11cb503812ef",
+                        "controller": true,
+                        "blockOwnerDeletion": true
+                    }
+                ]
+            },
+            "spec": {
+                "volumes": [
+                    {
+                        "name": "rules-volume",
+                        "configMap": {
+                            "name": "vmi-system-alertrules",
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "config-volume",
+                        "configMap": {
+                            "name": "vmi-system-prometheus-config",
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "storage-volume",
+                        "emptyDir": {}
+                    },
+                    {
+                        "name": "verrazzano-monitoring-operator-token-s7qcq",
+                        "secret": {
+                            "secretName": "verrazzano-monitoring-operator-token-s7qcq",
+                            "defaultMode": 420
+                        }
+                    }
+                ],
+                "initContainers": [
+                    {
+                        "name": "prometheus-init",
+                        "image": "ghcr.io/oracle/oraclelinux:7-slim",
+                        "command": [
+                            "sh",
+                            "-c",
+                            "chown -R 65534:65534 /prometheus"
+                        ],
+                        "resources": {},
+                        "volumeMounts": [
+                            {
+                                "name": "storage-volume",
+                                "mountPath": "/prometheus"
+                            },
+                            {
+                                "name": "verrazzano-monitoring-operator-token-s7qcq",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent"
+                    }
+                ],
+                "containers": [
+                    {
+                        "name": "prometheus",
+                        "image": "ghcr.io/verrazzano/prometheus:v2.13.1",
+                        "command": [
+                            "/bin/prometheus"
+                        ],
+                        "args": [
+                            "--config.file=/etc/prometheus/config/prometheus.yml",
+                            "--storage.tsdb.path=/prometheus",
+                            "--storage.tsdb.retention.time=90d",
+                            "--web.enable-lifecycle",
+                            "--web.enable-admin-api",
+                            "--storage.tsdb.no-lockfile"
+                        ],
+                        "ports": [
+                            {
+                                "name": "prometheus",
+                                "containerPort": 9090,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "env": [
+                            {
+                                "name": "AVAILABILITY_DOMAIN"
+                            }
+                        ],
+                        "resources": {
+                            "requests": {
+                                "memory": "128Mi"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "rules-volume",
+                                "mountPath": "/etc/prometheus/rules"
+                            },
+                            {
+                                "name": "config-volume",
+                                "mountPath": "/etc/prometheus/config"
+                            },
+                            {
+                                "name": "storage-volume",
+                                "mountPath": "/prometheus"
+                            },
+                            {
+                                "name": "verrazzano-monitoring-operator-token-s7qcq",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "livenessProbe": {
+                            "httpGet": {
+                                "path": "/-/healthy",
+                                "port": 9090,
+                                "scheme": "HTTP"
+                            },
+                            "initialDelaySeconds": 30,
+                            "timeoutSeconds": 3,
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "failureThreshold": 10
+                        },
+                        "readinessProbe": {
+                            "httpGet": {
+                                "path": "/-/ready",
+                                "port": 9090,
+                                "scheme": "HTTP"
+                            },
+                            "initialDelaySeconds": 5,
+                            "timeoutSeconds": 3,
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "failureThreshold": 5
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent",
+                        "securityContext": {
+                            "privileged": false,
+                            "runAsUser": 65534
+                        }
+                    },
+                    {
+                        "name": "config-reloader",
+                        "image": "ghcr.io/verrazzano/configmap-reload:0.3-20201016205243-4f24a0e",
+                        "args": [
+                            "-volume-dir=/etc/prometheus/config",
+                            "-volume-dir=/etc/prometheus/rules",
+                            "-webhook-url=http://localhost:9090/-/reload"
+                        ],
+                        "resources": {},
+                        "volumeMounts": [
+                            {
+                                "name": "rules-volume",
+                                "mountPath": "/etc/prometheus/rules"
+                            },
+                            {
+                                "name": "config-volume",
+                                "mountPath": "/etc/prometheus/config"
+                            },
+                            {
+                                "name": "verrazzano-monitoring-operator-token-s7qcq",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent"
+                    },
+                    {
+                        "name": "node-exporter",
+                        "image": "ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad",
+                        "resources": {},
+                        "volumeMounts": [
+                            {
+                                "name": "verrazzano-monitoring-operator-token-s7qcq",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent"
+                    }
+                ],
+                "restartPolicy": "Always",
+                "terminationGracePeriodSeconds": 1,
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "verrazzano-monitoring-operator",
+                "serviceAccount": "verrazzano-monitoring-operator",
+                "nodeName": "verrazzano-control-plane",
+                "securityContext": {},
+                "imagePullSecrets": [
+                    {
+                        "name": "verrazzano-container-registry"
+                    }
+                ],
+                "schedulerName": "default-scheduler",
+                "tolerations": [
+                    {
+                        "key": "node.kubernetes.io/not-ready",
+                        "operator": "Exists",
+                        "effect": "NoExecute",
+                        "tolerationSeconds": 300
+                    },
+                    {
+                        "key": "node.kubernetes.io/unreachable",
+                        "operator": "Exists",
+                        "effect": "NoExecute",
+                        "tolerationSeconds": 300
+                    }
+                ],
+                "priority": 0,
+                "enableServiceLinks": true
+            },
+            "status": {
+                "phase": "Pending",
+                "conditions": [
+                    {
+                        "type": "Initialized",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2021-01-29T18:36:03Z"
+                    },
+                    {
+                        "type": "Ready",
+                        "status": "False",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2021-01-29T18:36:02Z",
+                        "reason": "ContainersNotReady",
+                        "message": "containers with unready status: [prometheus config-reloader node-exporter]"
+                    },
+                    {
+                        "type": "ContainersReady",
+                        "status": "False",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2021-01-29T18:36:02Z",
+                        "reason": "ContainersNotReady",
+                        "message": "containers with unready status: [prometheus config-reloader node-exporter]"
+                    },
+                    {
+                        "type": "PodScheduled",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2021-01-29T18:36:02Z"
+                    }
+                ],
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
+                "podIPs": [
+                    {
+                        "ip": "REDACTED-IP4-ADDRESS"
+                    }
+                ],
+                "startTime": "2021-01-29T18:36:02Z",
+                "initContainerStatuses": [
+                    {
+                        "name": "prometheus-init",
+                        "state": {
+                            "terminated": {
+                                "exitCode": 0,
+                                "reason": "Completed",
+                                "startedAt": "2021-01-29T18:36:02Z",
+                                "finishedAt": "2021-01-29T18:36:02Z",
+                                "containerID": "containerd://7cd61e39b2e0bce4eeaf9288c3f38eea72f10b08d524a40f35091075983b343a"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": true,
+                        "restartCount": 0,
+                        "image": "ghcr.io/oracle/oraclelinux:7-slim",
+                        "imageID": "ghcr.io/oracle/oraclelinux@sha256:4d9168e6703a121761f2fce07958ee1c6ca52bc666a85803a1713fc5b674ef61",
+                        "containerID": "containerd://7cd61e39b2e0bce4eeaf9288c3f38eea72f10b08d524a40f35091075983b343a"
+                    }
+                ],
+                "containerStatuses": [
+                    {
+                        "name": "config-reloader",
+                        "state": {
+                            "waiting": {
+                                "reason": "PodInitializing"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": false,
+                        "restartCount": 0,
+                        "image": "ghcr.io/verrazzano/configmap-reload:0.3-20201016205243-4f24a0e",
+                        "imageID": "",
+                        "started": false
+                    },
+                    {
+                        "name": "node-exporter",
+                        "state": {
+                            "waiting": {
+                                "reason": "PodInitializing"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": false,
+                        "restartCount": 0,
+                        "image": "ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad",
+                        "imageID": "",
+                        "started": false
+                    },
+                    {
+                        "name": "prometheus",
+                        "state": {
+                            "waiting": {
+                                "reason": "PodInitializing"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": false,
+                        "restartCount": 0,
+                        "image": "ghcr.io/verrazzano/prometheus:v2.13.1",
+                        "imageID": "",
+                        "started": false
+                    }
+                ],
+                "qosClass": "Burstable"
+            }
+        }
+    ]
+}

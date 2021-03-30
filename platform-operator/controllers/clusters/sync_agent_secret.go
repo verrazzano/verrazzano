@@ -7,10 +7,12 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzk8s "github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 
 	"io/ioutil"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"

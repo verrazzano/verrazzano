@@ -52,6 +52,7 @@ function usage {
     echo "usage: $0 [-o oci_config_file] [-s config_file_section]"
     echo "  -o oci_config_file         The full path to the OCI configuration file (default ~/.oci/config)"
     echo "  -s config_file_section     The properties section within the OCI configuration file.  Default is DEFAULT"
+    echo "  -k secret_name             The secret name containing the OCI configuration.  Default is oci"
     echo "  -h                         Help"
     echo
     exit 1
@@ -63,7 +64,7 @@ OCI_CONFIG_FILE=~/.oci/config
 SECTION=DEFAULT
 OCI_CONFIG_SECRET_NAME=oci
 
-while getopts o:s:h flag
+while getopts o:s:k:h flag
 do
     case "${flag}" in
         o) OCI_CONFIG_FILE=${OPTARG};;

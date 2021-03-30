@@ -20,7 +20,7 @@ type MultiClusterSecretSpec struct {
 // SecretTemplate has the metadata and spec of the underlying secret
 // Note that K8S does not define a "SecretSpec" data type, so the 3 fields in Secret are copied here
 type SecretTemplate struct {
-	// +kubebuilder:pruning:PreserveUnknownFields
+	// +optional
 	Metadata metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Data corresponds to the Data field of K8S corev1.Secret
@@ -58,4 +58,9 @@ type MultiClusterSecretList struct {
 
 func init() {
 	SchemeBuilder.Register(&MultiClusterSecret{}, &MultiClusterSecretList{})
+}
+
+// GetStatus returns the MultiClusterResourceStatus of this resource
+func (in *MultiClusterSecret) GetStatus() MultiClusterResourceStatus {
+	return in.Status
 }

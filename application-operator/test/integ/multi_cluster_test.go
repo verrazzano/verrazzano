@@ -20,7 +20,7 @@ import (
 const (
 	multiclusterTestNamespace = "multiclustertest"
 	managedClusterName        = "managed1"
-	crdDir                    = "../../config/crd/bases"
+	crdDir                    = "../../../platform-operator/helm_config/charts/verrazzano-application-operator/crds"
 	timeout                   = 2 * time.Minute
 	pollInterval              = 40 * time.Millisecond
 	applicationOperator       = "verrazzano-application-operator"
@@ -182,6 +182,10 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 					len(namespace.Labels) == 3
 			}
 			return false
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			vp, err := K8sClient.GetVerrazzanoProject(constants.VerrazzanoMultiClusterNamespace, "test-default-labels")
+			return err == nil && isStatusAsExpected(vp.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, "managed1")
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 	ginkgo.It("Apply VerrazzanoProject to override default verrazzano labels", func() {

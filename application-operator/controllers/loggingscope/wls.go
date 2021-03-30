@@ -10,8 +10,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/go-logr/logr"
-	wls "github.com/verrazzano/verrazzano-crd-generator/pkg/apis/weblogic/v8"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -83,8 +83,7 @@ const WlsFluentdParsingRules = `<match fluent.**>
 </filter>
 <match **>
   @type elasticsearch
-  hosts "#{ENV['ELASTICSEARCH_URL']}"
-  ca_file /fluentd/secret/ca-bundle
+  hosts "#{ENV['ELASTICSEARCH_URL']}"{{ .CAFile}}
   user "#{ENV['ELASTICSEARCH_USER']}"
   password "#{ENV['ELASTICSEARCH_PASSWORD']}"
   index_name "` + ElasticSearchIndex + `"

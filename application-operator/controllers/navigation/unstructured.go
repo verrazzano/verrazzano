@@ -68,7 +68,7 @@ func GetAPIVersionKindOfUnstructured(u *unstructured.Unstructured) (string, erro
 // childResKinds - The set of resource kinds a child's resource kind must in to be included in the result.
 func FetchUnstructuredChildResourcesByAPIVersionKinds(ctx context.Context, cli client.Reader, log logr.Logger, namespace string, parentUID types.UID, childResKinds []v1alpha2.ChildResourceKind) ([]*unstructured.Unstructured, error) {
 	var childResources []*unstructured.Unstructured
-	log.Info("Fetch children", "parent", parentUID)
+	log.V(1).Info("Fetch children", "parent", parentUID)
 	for _, childResKind := range childResKinds {
 		resources := unstructured.UnstructuredList{}
 		resources.SetAPIVersion(childResKind.APIVersion)

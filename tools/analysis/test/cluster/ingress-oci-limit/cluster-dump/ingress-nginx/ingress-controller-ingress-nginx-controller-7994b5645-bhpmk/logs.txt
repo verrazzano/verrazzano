@@ -1,0 +1,37 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+==== START logs for container controller of pod ingress-nginx/ingress-controller-ingress-nginx-controller-7994b5645-bhpmk ====
+-------------------------------------------------------------------------------
+NGINX Ingress controller
+  Release:       0.32-20201016205412-8580ea0ef
+  Build:         8580ea0efac749f5c2d9d99a527d98fe46ff7696
+  Repository:    https://github.com/verrazzano/ingress-nginx.git
+  nginx version: nginx/1.17.10
+
+-------------------------------------------------------------------------------
+
+I0317 13:48:11.509046       6 flags.go:204] Watching for Ingress class: nginx
+W0317 13:48:11.509829       6 flags.go:249] SSL certificate chain completion is disabled (--enable-ssl-chain-completion=false)
+W0317 13:48:11.509940       6 client_config.go:543] Neither --kubeconfig nor --master was specified.  Using the inClusterConfig.  This might not work.
+I0317 13:48:11.510400       6 main.go:220] Creating API client for https://REDACTED-IP4-ADDRESS:443
+I0317 13:48:11.528196       6 main.go:264] Running in Kubernetes cluster version v1.18 (v1.18.10) - git (clean) commit a84e568eeb56c4e3966314fc2d58374febd12ed7 - platform linux/amd64
+I0317 13:48:11.536702       6 main.go:94] Validated ingress-nginx/ingress-controller-ingress-nginx-defaultbackend as the default backend.
+I0317 13:48:11.928413       6 main.go:105] SSL fake certificate created /etc/ingress-controller/ssl/default-fake-certificate.pem
+I0317 13:48:11.931482       6 main.go:113] Enabling new Ingress features available since Kubernetes v1.18
+W0317 13:48:11.943280       6 main.go:125] No IngressClass resource with name nginx found. Only annotation will be used.
+I0317 13:48:12.002982       6 nginx.go:263] Starting NGINX Ingress controller
+I0317 13:48:12.071651       6 event.go:278] Event(v1.ObjectReference{Kind:"ConfigMap", Namespace:"ingress-nginx", Name:"ingress-controller-ingress-nginx-controller", UID:"708128bb-d490-45ed-a3b2-e3d720857223", APIVersion:"v1", ResourceVersion:"5370", FieldPath:""}): type: 'Normal' reason: 'CREATE' ConfigMap ingress-nginx/ingress-controller-ingress-nginx-controller
+I0317 13:48:13.303779       6 nginx.go:307] Starting NGINX process
+I0317 13:48:13.303850       6 leaderelection.go:242] attempting to acquire leader lease  ingress-nginx/ingress-controller-leader-nginx...
+W0317 13:48:13.304637       6 controller.go:393] Service "ingress-nginx/ingress-controller-ingress-nginx-defaultbackend" does not have any active Endpoint
+I0317 13:48:13.304705       6 controller.go:139] Configuration changes detected, backend reload required.
+I0317 13:48:13.338911       6 leaderelection.go:252] successfully acquired lease ingress-nginx/ingress-controller-leader-nginx
+I0317 13:48:13.338981       6 status.go:86] new leader elected: ingress-controller-ingress-nginx-controller-7994b5645-bhpmk
+I0317 13:48:13.386994       6 controller.go:155] Backend successfully reloaded.
+I0317 13:48:13.387068       6 controller.go:164] Initial sync, sleeping for 1 second.
+W0317 13:48:16.999160       6 controller.go:393] Service "ingress-nginx/ingress-controller-ingress-nginx-defaultbackend" does not have any active Endpoint
+W0317 13:48:20.332659       6 controller.go:393] Service "ingress-nginx/ingress-controller-ingress-nginx-defaultbackend" does not have any active Endpoint
+W0317 13:48:23.666047       6 controller.go:393] Service "ingress-nginx/ingress-controller-ingress-nginx-defaultbackend" does not have any active Endpoint
+W0317 13:48:26.999353       6 controller.go:393] Service "ingress-nginx/ingress-controller-ingress-nginx-defaultbackend" does not have any active Endpoint
+==== END logs for container controller of pod ingress-nginx/ingress-controller-ingress-nginx-controller-7994b5645-bhpmk ====

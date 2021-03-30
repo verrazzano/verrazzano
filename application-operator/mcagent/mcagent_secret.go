@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -34,7 +35,7 @@ func (s *Syncer) syncMCSecretObjects(namespace string) error {
 		}
 	}
 
-	// Delete orphaned MultiClusterSecret resources.
+	// Delete orphaned or no longer placed MultiClusterSecret resources.
 	// Get the list of MultiClusterSecret resources on the
 	// local cluster and compare to the list received from the admin cluster.
 	// The admin cluster is the source of truth.
@@ -45,8 +46,8 @@ func (s *Syncer) syncMCSecretObjects(namespace string) error {
 		return nil
 	}
 	for _, mcSecret := range allLocalMCSecrets.Items {
-		// Delete each MultiClusterSecret object that is not on the admin cluster
-		if !secretListContains(&allAdminMCSecrets, mcSecret.Name, mcSecret.Namespace) {
+		// Delete each MultiClusterSecret object that is not on the admin cluster or no longer placed on this cluster
+		if !s.secretPlacedOnCluster(&allAdminMCSecrets, mcSecret.Name, mcSecret.Namespace) {
 			err := s.LocalClient.Delete(s.Context, &mcSecret)
 			if err != nil {
 				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterSecret with name %q and namespace %q", mcSecret.Name, mcSecret.Namespace))
@@ -70,6 +71,17 @@ func (s *Syncer) createOrUpdateMCSecret(mcSecret clustersv1alpha1.MultiClusterSe
 	})
 }
 
+func (s *Syncer) updateMultiClusterSecretStatus(name types.NamespacedName, newCond clustersv1alpha1.Condition, newClusterStatus clustersv1alpha1.ClusterLevelStatus) error {
+	fetched := clustersv1alpha1.MultiClusterSecret{}
+	err := s.AdminClient.Get(s.Context, name, &fetched)
+	if err != nil {
+		return err
+	}
+	fetched.Status.Conditions = append(fetched.Status.Conditions, newCond)
+	clusters.SetClusterLevelStatus(&fetched.Status, newClusterStatus)
+	return s.AdminClient.Status().Update(s.Context, &fetched)
+}
+
 // mutateMCSecret mutates the MultiClusterSecret to reflect the contents of the parent MultiClusterSecret
 func mutateMCSecret(mcSecret clustersv1alpha1.MultiClusterSecret, mcSecretNew *clustersv1alpha1.MultiClusterSecret) {
 	mcSecretNew.Spec.Placement = mcSecret.Spec.Placement
@@ -77,11 +89,12 @@ func mutateMCSecret(mcSecret clustersv1alpha1.MultiClusterSecret, mcSecretNew *c
 	mcSecretNew.Labels = mcSecret.Labels
 }
 
-// secretListContains returns boolean indicating if the list contains the object with the specified name and namespace
-func secretListContains(mcAdminList *clustersv1alpha1.MultiClusterSecretList, name string, namespace string) bool {
+// secretPlacedOnCluster returns boolean indicating if the list contains the object with the specified name and namespace
+// and indicates the object is placed on the local cluster
+func (s *Syncer) secretPlacedOnCluster(mcAdminList *clustersv1alpha1.MultiClusterSecretList, name string, namespace string) bool {
 	for _, item := range mcAdminList.Items {
 		if item.Name == name && item.Namespace == namespace {
-			return true
+			return s.isThisCluster(item.Spec.Placement)
 		}
 	}
 	return false

@@ -6,6 +6,7 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	v1 "k8s.io/api/core/v1"
 
 	runtimev1alpha1 "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -30,26 +31,35 @@ type LoggingScopeDefaulter struct {
 
 // Default adds default LoggingScope to ApplicationConfiguration
 func (d *LoggingScopeDefaulter) Default(appConfig *oamv1.ApplicationConfiguration, dryRun bool) (err error) {
-	defaultLoggingComponentScope := oamv1.ComponentScope{
-		ScopeReference: runtimev1alpha1.TypedReference{
-			APIVersion: loggingScopeAPIVersion,
-			Kind:       loggingScopeKind,
-			Name:       getDefaultLoggingScopeName(appConfig),
-		},
-	}
-	log.Info("defaultLoggingScope",
-		"loggingScope", defaultLoggingComponentScope.ScopeReference.Name, "dryRun", dryRun)
+	var ns *v1.Namespace
+	ns, err = fetchNamespace(context.TODO(), d.Client, types.NamespacedName{Name: appConfig.Namespace})
+	if err == nil && ns != nil {
+		defaultLoggingScopeName := getDefaultLoggingScopeName(appConfig)
+		log.Info("defaultLoggingScope",
+			"loggingScope", defaultLoggingScopeName, "dryRun", dryRun, "namespaceStatus", ns.Status.Phase)
 
-	defaultScopeRequired := false
-	for i := range appConfig.Spec.Components {
-		if includeDefaultLoggingScope(&appConfig.Spec.Components[i], defaultLoggingComponentScope) {
-			defaultScopeRequired = true
+		// don't attempt to create a default logging scope if the namespace is terminating
+		if ns.Status.Phase != v1.NamespaceTerminating {
+			defaultLoggingComponentScope := oamv1.ComponentScope{
+				ScopeReference: runtimev1alpha1.TypedReference{
+					APIVersion: loggingScopeAPIVersion,
+					Kind:       loggingScopeKind,
+					Name:       defaultLoggingScopeName,
+				},
+			}
+
+			defaultScopeRequired := false
+			for i := range appConfig.Spec.Components {
+				if includeDefaultLoggingScope(&appConfig.Spec.Components[i], defaultLoggingComponentScope) {
+					defaultScopeRequired = true
+				}
+			}
+			if defaultScopeRequired {
+				err = ensureDefaultLoggingScope(d.Client, appConfig, dryRun)
+			} else {
+				err = cleanupDefaultLoggingScope(d.Client, appConfig, dryRun)
+			}
 		}
-	}
-	if defaultScopeRequired {
-		err = ensureDefaultLoggingScope(d.Client, appConfig, dryRun)
-	} else {
-		err = cleanupDefaultLoggingScope(d.Client, appConfig, dryRun)
 	}
 	return
 }
@@ -151,4 +161,19 @@ func fetchLoggingScope(ctx context.Context, c client.Reader, name types.Namespac
 		log.Info("failed to fetch scope", "scope", name)
 	}
 	return &scope, err
+}
+
+// fetchNamespace attempts to get a namespace for the given name
+func fetchNamespace(ctx context.Context, c client.Reader, name types.NamespacedName) (*v1.Namespace, error) {
+	log.Info("Fetch scope", "scope", name)
+	var ns v1.Namespace
+	err := c.Get(ctx, name, &ns)
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			log.Info("namespace does not exist", "namespace", name)
+			return nil, nil
+		}
+		log.Info("failed to fetch namespace", "namespace", name)
+	}
+	return &ns, err
 }

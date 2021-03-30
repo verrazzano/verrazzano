@@ -4,28 +4,34 @@
 include ../make/quality.mk
 include ../make/generate.mk
 
-MAKEFILE_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../build
 
 NAME:=verrazzano-platform-operator
 REPO_NAME:=verrazzano-platform-operator
 
 CONTROLLER_GEN_VERSION ?= $(shell go list -m -f '{{.Version}}' sigs.k8s.io/controller-tools)
-
 CREATE_LATEST_TAG=0
 
 CRD_OPTIONS ?= "crd:crdVersions=v1"
+
+# If this is a Jenkins run, get the KUBECONFIG to use from that
+ifdef JENKINS_KUBECONFIG
+export KUBECONFIG=${JENKINS_KUBECONFIG}
+export VERRAZZANO_KUBECONFIG=${JENKINS_KUBECONFIG}
+else
 KUBECONFIG ?= ${HOME}/.kube/config
+endif
 
 ifndef DOCKER_IMAGE_FULLNAME
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
 DOCKER_IMAGE_FULLNAME=${DOCKER_IMAGE_NAME}
 ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),docker-push push-tag))
-ifndef DOCKER_REPO
-    $(error DOCKER_REPO must be defined as the name of the docker repository where image will be pushed)
-endif
-ifndef DOCKER_NAMESPACE
-    $(error DOCKER_NAMESPACE must be defined as the name of the docker namespace where image will be pushed)
-endif
+	ifndef DOCKER_REPO
+		$(error DOCKER_REPO must be defined as the name of the docker repository where image will be pushed)
+	endif
+	ifndef DOCKER_NAMESPACE
+		$(error DOCKER_NAMESPACE must be defined as the name of the docker namespace where image will be pushed)
+	endif
 endif
 ifdef DOCKER_NAMESPACE
 DOCKER_IMAGE_FULLNAME := ${DOCKER_NAMESPACE}/${DOCKER_IMAGE_FULLNAME}
@@ -58,9 +64,11 @@ GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 
 CRD_PATH=helm_config/charts/verrazzano-platform-operator/crds
-CODEGEN_PATH = k8s.io/code-generator
 
-# Run against the configured Kubernetes cluster in ~/.kube/config
+CLUSTER_DUMP_LOCATION ?= platform-operator-integ-cluster-dump
+
+
+# Run against the configured Kubernetes cluster specified by KUBECONFIG
 .PHONY: run
 run:
 	$(GO) run main.go --kubeconfig=${KUBECONFIG} --zap-log-level=debug
@@ -134,33 +142,28 @@ endif
 unit-test: go-install
 	$(GO) test -v  ./internal/... ./controllers/... ./apis/...
 
-.PHONY: coverage
-coverage: unit-test
-	./build/scripts/coverage.sh html
-
 #
 # Test-related tasks
 #
-CLUSTER_NAME = verrazzano
+# On Jenkins we have pre-created clusters ready to go that are named specifically for the integ-test case
+CLUSTER_NAME = vpo-integ
 VERRAZZANO_NS = verrazzano-install
 BUILD_DEPLOY = build/deploy
 OPERATOR_YAML ?= ${BUILD_DEPLOY}/operator.yaml
 DEPLOY = deploy
 OPERATOR_SETUP = test/operatorsetup
 
-CLUSTER_DUMP_LOCATION ?= platform-operator-integ-cluster-dump
-
-
 .PHONY: integ-test
 integ-test: create-cluster generate-operator-yaml
 	echo 'Load docker image for the verrazzano-platform-operator...'
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 	echo 'Deploy verrazzano platform operator ...'
-	kubectl apply -f ${OPERATOR_YAML} || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
+	kubectl apply -f ${OPERATOR_YAML} || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/analysis.report; exit 1)
 	echo 'Run tests...'
-	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION}; exit 1)
+	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/analysis.report; exit 1)
 
 .PHONY: create-cluster
+
 generate-operator-yaml:
 	OPERATOR_DIR=$$(dirname ${OPERATOR_YAML}) ; \
 	mkdir -p $${OPERATOR_DIR} ; \
@@ -172,8 +175,10 @@ cleanup-cluster:
 
 .PHONY: create-cluster
 create-cluster:
+	# We only create a cluster here if this is not on Jenkins. Jenkins will set the cluster
+ifndef JENKINS_URL
 	kind_clusters=$$(kind get clusters) ; \
-	if [ -z "$$(kind get clusters)" ] || ! kind get clusters | egrep '^verrazzano$$' > /dev/null ; then \
+    if [ -z "$${kind_clusters}" ] || ! kind get clusters | egrep "^${CLUSTER_NAME}\$$" > /dev/null ; then \
 		echo 'Create cluster...' ;\
 		echo 'KUBECONFIG=${KUBECONFIG}' ;\
 		HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 \
@@ -182,10 +187,15 @@ create-cluster:
 			--config=test/kind-config.yaml ;\
 		kubectl config set-context kind-${CLUSTER_NAME} ;\
 	fi
+endif
 
 .PHONY: delete-cluster
 delete-cluster:
+ifdef JENKINS_URL
+	echo "Don't bother deleting the cluster on Jenkins, it will not be re-used by anything else"
+else
 	kind delete cluster --name ${CLUSTER_NAME}
+endif
 
 .PHONY: push-tag
 push-tag:

@@ -29,15 +29,11 @@ var expectedPodsIngressNginx = []string{
 	"ingress-controller-ingress-nginx-controller",
 	"ingress-controller-ingress-nginx-defaultbackend"}
 
-var expectedPodsVerrazzanoSystemMinimal = []string{
-	"verrazzano-cluster-operator",
+var expectedNonVMIPodsVerrazzanoSystem = []string{
 	"verrazzano-console",
 	"verrazzano-monitoring-operator",
 	"verrazzano-operator",
-	"vmi-system-api",
-	"vmi-system-es-master",
-	"vmi-system-grafana",
-	"vmi-system-kibana"}
+}
 
 // comment out while debugging so it does not break master
 //"vmi-system-prometheus",
@@ -87,7 +83,7 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 			ginkgoExt.Entry("does not include verrazzano-web", "verrazzano-web", false),
 			ginkgoExt.Entry("includes verrazzano-console", "verrazzano-console", true),
 			ginkgoExt.Entry("does not include verrazzano-ldap", "verrazzano-ldap", false),
-			ginkgoExt.Entry("includes verrazzano-cluster-operator", "verrazzano-cluster-operator", true),
+			ginkgoExt.Entry("does not include verrazzano-cluster-operator", "verrazzano-cluster-operator", false),
 			ginkgoExt.Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", true),
 		)
 
@@ -122,6 +118,21 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 			ginkgoExt.Entry("includes rancher-agent", "cattle-cluster-agent", true),
 		)
 
+		isManagedClusterProfile := pkg.IsManagedClusterProfile()
+		isProdProfile := pkg.IsProdProfile()
+		ginkgoExt.DescribeTable("deployed VMI components",
+			func(name string, expected bool) {
+				gomega.Expect(vzComponentPresent(name, "verrazzano-system")).To(gomega.Equal(expected))
+			},
+			ginkgoExt.Entry("includes prometheus", "vmi-system-prometheus", true),
+			ginkgoExt.Entry("includes prometheus-gw", "vmi-system-prometheus-gw", true),
+			ginkgoExt.Entry("includes es-ingest", "vmi-system-es-ingest", isProdProfile),
+			ginkgoExt.Entry("includes es-data", "vmi-system-es-data", isProdProfile),
+			ginkgoExt.Entry("includes es-master", "vmi-system-es-master", !isManagedClusterProfile),
+			ginkgoExt.Entry("includes es-kibana", "vmi-system-kibana", !isManagedClusterProfile),
+			ginkgoExt.Entry("includes es-grafana", "vmi-system-grafana", !isManagedClusterProfile),
+		)
+
 		ginkgo.It("Expected pods are running",
 			func() {
 				pkg.Concurrently(
@@ -142,12 +153,16 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 							Should(gomega.BeTrue())
 					},
 					func() {
-						gomega.Eventually(pkg.PodsRunning("verrazzano-system", expectedPodsVerrazzanoSystemMinimal), waitTimeout, pollingInterval).
+						gomega.Eventually(pkg.PodsRunning("verrazzano-system", expectedNonVMIPodsVerrazzanoSystem), waitTimeout, pollingInterval).
 							Should(gomega.BeTrue())
 					},
 				)
 			})
 
+		ginkgo.It("The pod vmi-system-api is not there",
+			func() {
+				gomega.Expect(vzComponentPresent("vmi-system-api", "verrazzano-system")).To(gomega.Equal(false))
+			})
 	})
 
 func nsListContains(list []v1.Namespace, target string) bool {

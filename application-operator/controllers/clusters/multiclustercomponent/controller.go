@@ -18,11 +18,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+const finalizerName = "multiclustercomponent.verrazzano.io"
+
 // Reconciler reconciles a MultiClusterComponent object
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log          logr.Logger
+	Scheme       *runtime.Scheme
+	AgentChannel chan clusters.StatusUpdateMessage
 }
 
 // Reconcile reconciles a MultiClusterComponent resource. It fetches the embedded OAM Component,
@@ -38,14 +41,38 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterComponent", err, logger)
 	}
 
+	// delete the wrapped resource since MC is being deleted
+	if !mcComp.ObjectMeta.DeletionTimestamp.IsZero() {
+		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcComp, finalizerName, &v1alpha2.Component{}, types.NamespacedName{Namespace: mcComp.Namespace, Name: mcComp.Name})
+		return ctrl.Result{}, err
+	}
+
+	oldState := clusters.SetEffectiveStateIfChanged(mcComp.Spec.Placement, &mcComp.Status)
+
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcComp.Spec.Placement) {
-		return ctrl.Result{}, nil
+		if oldState != mcComp.Status.State {
+			// This must be done whether the resource is placed in this cluster or not, because we
+			// could be in an admin cluster and receive cluster level statuses from managed clusters,
+			// which can change our effective state
+			err = r.Status().Update(ctx, &mcComp)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		// if this mc component is no longer placed on this cluster, remove the associated component
+		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcComp, finalizerName, &v1alpha2.Component{}, types.NamespacedName{Namespace: mcComp.Namespace, Name: mcComp.Name})
+		return ctrl.Result{}, err
 	}
 
 	logger.Info("MultiClusterComponent create or update with underlying component",
 		"component", mcComp.Spec.Template.Metadata.Name,
 		"placement", mcComp.Spec.Placement.Clusters[0].Name)
 	opResult, err := r.createOrUpdateComponent(ctx, mcComp)
+
+	// Add our finalizer if not already added
+	if err == nil {
+		_, err = clusters.AddFinalizer(ctx, r.Client, &mcComp, finalizerName)
+	}
 
 	return r.updateStatus(ctx, &mcComp, opResult, err)
 }
@@ -68,9 +95,7 @@ func (r *Reconciler) createOrUpdateComponent(ctx context.Context, mcComp cluster
 
 	return controllerutil.CreateOrUpdate(ctx, r.Client, &oamComp, func() error {
 		r.mutateComponent(mcComp, &oamComp)
-		// This SetControllerReference call will trigger garbage collection i.e. the OAM component
-		// will automatically get deleted when the MultiClusterComponent is deleted
-		return controllerutil.SetControllerReference(&mcComp, &oamComp, r.Scheme)
+		return nil
 	})
 }
 
@@ -83,13 +108,7 @@ func (r *Reconciler) mutateComponent(mcComp clustersv1alpha1.MultiClusterCompone
 
 func (r *Reconciler) updateStatus(ctx context.Context, mcComp *clustersv1alpha1.MultiClusterComponent, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {
 	clusterName := clusters.GetClusterName(ctx, r.Client)
-	condition := clusters.GetConditionFromResult(err, opResult, "OAM Component")
-	clusterLevelStatus := clusters.CreateClusterLevelStatus(condition, clusterName)
-	if clusters.StatusNeedsUpdate(mcComp.Status, condition, clusterLevelStatus) {
-		mcComp.Status.Conditions = append(mcComp.Status.Conditions, condition)
-		clusters.UpdateClusterLevelStatus(&mcComp.Status, clusterLevelStatus)
-		mcComp.Status.State = clusters.ComputeEffectiveState(mcComp.Status, mcComp.Spec.Placement)
-		return reconcile.Result{}, r.Status().Update(ctx, mcComp)
-	}
-	return reconcile.Result{}, nil
+	newCondition := clusters.GetConditionFromResult(err, opResult, "OAM Component")
+	return clusters.UpdateStatus(mcComp, &mcComp.Status, mcComp.Spec.Placement, newCondition, clusterName,
+		r.AgentChannel, func() error { return r.Status().Update(ctx, mcComp) })
 }

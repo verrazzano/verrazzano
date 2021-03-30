@@ -17,11 +17,14 @@ type VerrazzanoCoherenceWorkloadSpec struct {
 
 // VerrazzanoCoherenceWorkloadStatus defines the observed state of VerrazzanoCoherenceWorkload
 type VerrazzanoCoherenceWorkloadStatus struct {
+	// CurrentUpgradeVersion is the version that was specified when the application was last upgraded with Verrazzano
+	CurrentUpgradeVersion string `json:"currentUpgradeVersion,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
 // VerrazzanoCoherenceWorkload is the Schema for the verrazzanocoherenceworkloads API
+// +kubebuilder:subresource:status
 type VerrazzanoCoherenceWorkload struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

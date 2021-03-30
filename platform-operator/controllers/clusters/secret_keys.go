@@ -24,8 +24,8 @@ const UsernameKey = "username"
 // TokenKey is the key for the service account token
 const TokenKey = "token"
 
-// URLKey is the key for a URL
-const URLKey = "url"
+// ESURLKey is the key for Elasticsearch URL
+const ESURLKey = "es-url"
 
 // YamlKey is the key for YAML that can be applied using kubectl
 const YamlKey = "yaml"

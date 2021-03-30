@@ -1,0 +1,32 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: core.oam.dev/v1alpha2
+kind: ApplicationConfiguration
+metadata:
+  name: todo-appconf
+  namespace: console-ingress
+spec:
+  components:
+    - componentName: todo-domain
+      traits:
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: IngressTrait
+            spec:
+              rules:
+                - paths:
+                    - path: "/todo"
+                      pathType: Prefix
+                  destination:
+                    host: tododomain-adminserver.console-ingress.svc.cluster.local
+                - paths:
+                    - path: "/console"
+                      pathType: Prefix
+                  destination:
+                      host: tododomain-adminserver.console-ingress.svc.cluster.local
+                      port: 7001
+    - componentName: todo-jdbc-configmap
+    - componentName: todo-mysql-configmap
+    - componentName: todo-mysql-service
+    - componentName: todo-mysql-deployment

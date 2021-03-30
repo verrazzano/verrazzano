@@ -1,7 +1,9 @@
-# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 include make/quality.mk
+
+SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/build
 
 ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),docker-push create-test-deploy))
 ifndef DOCKER_REPO
@@ -16,9 +18,11 @@ TIMESTAMP := $(shell date -u +%Y%m%d%H%M%S)
 DOCKER_IMAGE_TAG ?= local-${TIMESTAMP}-$(shell git rev-parse --short HEAD)
 VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME ?= verrazzano-platform-operator-dev
 VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME ?= verrazzano-application-operator-dev
+VERRAZZANO_ANALYSIS_IMAGE_NAME ?= verrazzano-analysis-dev
 
 VERRAZZANO_PLATFORM_OPERATOR_IMAGE = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 VERRAZZANO_APPLICATION_OPERATOR_IMAGE = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+VERRAZZANO_ANALYSIS_IMAGE = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${VERRAZZANO_ANALYSIS_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 CURRENT_YEAR = $(shell date +"%Y")
 
@@ -27,10 +31,18 @@ PARENT_BRANCH ?= origin/master
 GO ?= CGO_ENABLED=0 GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 
+.PHONY: clean
+clean:
+	find . -name coverage.cov -exec rm {} \;
+	find . -name coverage.html -exec rm {} \;
+	find . -name coverage.raw.cov -exec rm {} \;
+	find . -name \*-test-result.xml -exec rm {} \;
+
 .PHONY: docker-push
 docker-push:
 	(cd application-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
 	(cd platform-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} VERRAZZANO_APPLICATION_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE})
+	(cd tools/analysis; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_ANALYSIS_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
 
 .PHONY: create-test-deploy
 create-test-deploy: docker-push
@@ -38,12 +50,12 @@ create-test-deploy: docker-push
 
 .PHONY: test-platform-operator-install
 test-platform-operator-install:
-	kubectl apply -f /tmp/operator.yaml
+	kubectl apply -f platform-operator/build/deploy/operator.yaml
 	kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
 
 .PHONY: test-platform-operator-remove
 test-platform-operator-remove:
-	kubectl delete -f /tmp/operator.yaml
+	kubectl delete -f platform-operator/build/deploy/operator.yaml
 
 .PHONY: test-platform-operator-install-logs
 test-platform-operator-install-logs:

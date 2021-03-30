@@ -7,11 +7,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	v1beta12 "k8s.io/api/admission/v1beta1"
@@ -61,8 +62,7 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 
 	// if the operation is Delete then decode the old object and call the defaulter to cleanup any app conf defaults
 	if req.Operation == v1beta12.Delete {
-		log.Info("cleaning up appconfig default",
-			"appconfig.Name", appConfig.Name, "appconfig.Kind", appConfig.Kind)
+		log.Info("cleaning up appconfig default", "appconfig.Name", req.Name)
 		err := a.decoder.DecodeRaw(req.OldObject, appConfig)
 		if err != nil {
 			return admission.Errored(http.StatusBadRequest, err)
@@ -76,14 +76,14 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 		if !dryRun {
 			err = a.cleanupAppConfig(appConfig)
 			if err != nil {
-				log.Error(err, "error cleaning up app config", "appconfig.Name", appConfig.Name)
+				log.Error(err, "error cleaning up app config", "appconfig.Name", req.Name)
 			}
 		}
 		return admission.Allowed("cleaned up appconfig default")
 	}
 
 	log.Info("Handling appconfig default",
-		"request.Operation", req.Operation, "appconfig.Name", appConfig.Name, "appconfig.Kind", appConfig.Kind)
+		"request.Operation", req.Operation, "appconfig.Name", req.Name)
 	err := a.decoder.Decode(req, appConfig)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)

@@ -6,10 +6,11 @@ package clusters
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -27,7 +28,7 @@ const (
 // resources at once.  This YAML is stored in the Verrazzano manifest secret.
 func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.VerrazzanoManagedCluster) error {
 	// Builder used to build up the full YAML
-	// For each secret, generate the YAML and append to the full YAML which contais multiple resources
+	// For each secret, generate the YAML and append to the full YAML which contains multiple resources
 	var sb = strings.Builder{}
 
 	// add agent secret YAML
@@ -48,14 +49,14 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.
 	sb.Write([]byte(yamlSep))
 	sb.Write(regYaml)
 
-	// add Elasticsearch secret YAML
-	esYaml, err := r.getSecretAsYaml(GetElasticsearchSecretName(vmc.Name), vmc.Namespace,
-		constants.MCElasticsearchSecret, constants.VerrazzanoSystemNamespace)
-	if err != nil {
-		return err
+	// register the cluster with Rancher - the cluster will show as "pending" until the
+	// Rancher YAML is applied on the managed cluster
+	// NOTE: If this errors we log it and do not fail the reconcile
+	if rancherYAML, err := registerManagedClusterWithRancher(r.Client, vmc.Name, r.log); err != nil {
+		r.log.Warn("Unable to register managed cluster with Rancher, manifest secret will not contain Rancher YAML")
+	} else {
+		sb.WriteString(rancherYAML)
 	}
-	sb.Write([]byte(yamlSep))
-	sb.Write(esYaml)
 
 	// create/update the manifest secret with the YAML
 	_, err = r.createOrUpdateManifestSecret(vmc, sb.String())

@@ -65,7 +65,6 @@ spec:
                 properties:
                   metadata:
                     type: object
-                    x-kubernetes-preserve-unknown-fields: true
                   spec:
                     description: A ComponentSpec defines the desired state of a Component.
                     properties:

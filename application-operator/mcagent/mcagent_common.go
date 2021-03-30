@@ -5,9 +5,17 @@ package mcagent
 
 import (
 	"context"
+	"fmt"
+	"reflect"
+	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -19,11 +27,21 @@ type Syncer struct {
 	ManagedClusterName    string
 	Context               context.Context
 	AgentSecretFound      bool
+	AgentSecretValid      bool
 	SecretResourceVersion string
 
 	// List of namespaces to watch for multi-cluster objects.
-	ProjectNamespaces []string
+	ProjectNamespaces   []string
+	StatusUpdateChannel chan clusters.StatusUpdateMessage
 }
+
+type adminStatusUpdateFuncType = func(name types.NamespacedName, newCond clustersv1alpha1.Condition, newClusterStatus clustersv1alpha1.ClusterLevelStatus) error
+
+const retryCount = 3
+
+var (
+	retryDelay = 3 * time.Second
+)
 
 // Check if the placement is for this cluster
 func (s *Syncer) isThisCluster(placement clustersv1alpha1.Placement) bool {
@@ -34,4 +52,70 @@ func (s *Syncer) isThisCluster(placement clustersv1alpha1.Placement) bool {
 		}
 	}
 	return false
+}
+
+// processStatusUpdates monitors the StatusUpdateChannel for any
+// received messages and processes a batch of them
+func (s *Syncer) processStatusUpdates() {
+	for i := 0; i < constants.StatusUpdateBatchSize; i++ {
+		// Use a select with default so as to not block on the channel if there are no updates
+		select {
+		case msg := <-s.StatusUpdateChannel:
+			err := s.performAdminStatusUpdate(msg)
+			if err != nil {
+				s.Log.Error(err, fmt.Sprintf("processStatusUpdates: failed to update status on admin cluster for %s/%s from cluster %s after %d retries: %s",
+					msg.Resource.GetNamespace(), msg.Resource.GetName(),
+					msg.NewClusterStatus.Name, retryCount, err.Error()))
+			}
+		default:
+			break
+		}
+	}
+}
+
+// AgentReadyToSync - the agent has all the information it needs to sync resources i.e.
+// there is an agent secret and a kubernetes client to the Admin cluster was created
+func (s *Syncer) AgentReadyToSync() bool {
+	return s.AgentSecretFound && s.AgentSecretValid
+}
+
+func (s *Syncer) performAdminStatusUpdate(msg clusters.StatusUpdateMessage) error {
+	fullResourceName := types.NamespacedName{Name: msg.Resource.GetName(), Namespace: msg.Resource.GetNamespace()}
+	typeName := reflect.TypeOf(msg.Resource).String()
+	var statusUpdateFunc adminStatusUpdateFuncType
+	if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.MultiClusterApplicationConfiguration{}).String()) {
+		statusUpdateFunc = s.updateMultiClusterAppConfigStatus
+	} else if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.MultiClusterComponent{}).String()) {
+		statusUpdateFunc = s.updateMultiClusterComponentStatus
+	} else if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.MultiClusterConfigMap{}).String()) {
+		statusUpdateFunc = s.updateMultiClusterConfigMapStatus
+	} else if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.MultiClusterLoggingScope{}).String()) {
+		statusUpdateFunc = s.updateMultiClusterLoggingScopeStatus
+	} else if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.MultiClusterSecret{}).String()) {
+		statusUpdateFunc = s.updateMultiClusterSecretStatus
+	} else if strings.Contains(typeName, reflect.TypeOf(clustersv1alpha1.VerrazzanoProject{}).String()) {
+		statusUpdateFunc = s.updateVerrazzanoProjectStatus
+	} else {
+		return fmt.Errorf("received status update message for unknown resource type %s", typeName)
+	}
+	return s.adminStatusUpdateWithRetry(statusUpdateFunc, fullResourceName, msg.NewCondition, msg.NewClusterStatus)
+}
+
+func (s *Syncer) adminStatusUpdateWithRetry(statusUpdateFunc adminStatusUpdateFuncType,
+	name types.NamespacedName,
+	condition clustersv1alpha1.Condition,
+	clusterStatus clustersv1alpha1.ClusterLevelStatus) error {
+	var err error
+	for tries := 0; tries < retryCount; tries++ {
+		err = statusUpdateFunc(name, condition, clusterStatus)
+		if err == nil {
+			break
+		}
+		if !errors.IsConflict(err) {
+			break
+		}
+
+		time.Sleep(retryDelay)
+	}
+	return err
 }

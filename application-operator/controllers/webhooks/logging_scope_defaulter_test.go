@@ -5,6 +5,7 @@ package webhooks
 
 import (
 	"context"
+	v1 "k8s.io/api/core/v1"
 	"net/http"
 	"testing"
 
@@ -50,24 +51,33 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 
 	scopeName := "default-hello-app-logging-scope"
 	namespacedName := types.NamespacedName{Name: scopeName, Namespace: "default"}
-
-	// WHEN the appconfig has one component with no scopes and the default scope exists
-	// THEN Default should add the default LoggingScope to the component of the appconfig
+	namespaceName := types.NamespacedName{Name: "default", Namespace: ""}
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
+	// Expect get namespace
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespaceName), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, ns *v1.Namespace) error {
+			return nil
+		})
+	// WHEN the appconfig has one component with no scopes and the default scope exists
+	// THEN Default should add the default LoggingScope to the component of the appconfig
 	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, scope *vzapi.LoggingScope) error {
 			scope.Name = "default-hello-app-logging-scope"
 			return nil
 		})
-	testLoggingScopeDefaulterDefault(t, cli, "hello-conf.yaml", map[string]string{"hello-component": scopeName}, false)
+	testLoggingScopeDefaulterDefault(t, cli, "hello-conf.yaml", map[string]string{"hello-component": scopeName}, false, true)
 	mocker.Finish()
 
 	// WHEN the appconfig has one component with no scopes and the default scope does not exist
 	// THEN Default should create the default logging scope and add it to the component of the appconfig
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
-
+	// Expect get namespace
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespaceName), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, ns *v1.Namespace) error {
+			return nil
+		})
 	// Expect get existing logging scope (non-existent)
 	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, scope *vzapi.LoggingScope) error {
@@ -79,27 +89,35 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
 			return nil
 		})
-	testLoggingScopeDefaulterDefault(t, cli, "hello-conf.yaml", map[string]string{"hello-component": scopeName}, false)
+	testLoggingScopeDefaulterDefault(t, cli, "hello-conf.yaml", map[string]string{"hello-component": scopeName}, false, true)
 	mocker.Finish()
 
 	// WHEN the appconfig has one component with a logging scope and the default scope does not exist
 	// THEN Default should leave the existing logging scope on the appconfig
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
-
+	// Expect get namespace
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespaceName), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, ns *v1.Namespace) error {
+			return nil
+		})
 	// Expect get default logging scope and since it exists, expect no other calls
 	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, scope *vzapi.LoggingScope) error {
 			return NotFoundError{}
 		})
-	testLoggingScopeDefaulterDefault(t, cli, "hello-conf_withScope.yaml", map[string]string{"hello-component": "logging-scope"}, false)
+	testLoggingScopeDefaulterDefault(t, cli, "hello-conf_withScope.yaml", map[string]string{"hello-component": "logging-scope"}, false, true)
 	mocker.Finish()
 
 	// WHEN the appconfig has one component with a logging scope and the default scope exists
 	// THEN Default should delete the default logging scope and leave the existing logging scope on the appconfig
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
-
+	// Expect get namespace
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespaceName), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, ns *v1.Namespace) error {
+			return nil
+		})
 	// Expect get default logging scope
 	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, scope *vzapi.LoggingScope) error {
@@ -113,7 +131,7 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, obj runtime.Object, opts ...client.DeleteOption) error {
 			return nil
 		})
-	testLoggingScopeDefaulterDefault(t, cli, "hello-conf_withScope.yaml", map[string]string{"hello-component": "logging-scope"}, false)
+	testLoggingScopeDefaulterDefault(t, cli, "hello-conf_withScope.yaml", map[string]string{"hello-component": "logging-scope"}, false, true)
 	mocker.Finish()
 
 	// WHEN the appconfig has multiple components (one with a logging scope) and the default scope exists
@@ -121,7 +139,11 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 	//   on the others in the appconfig
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
-
+	// Expect get namespace
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespaceName), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, ns *v1.Namespace) error {
+			return nil
+		})
 	// Expect get default logging scope and since it exists, expect no other calls
 	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, scope *vzapi.LoggingScope) error {
@@ -130,7 +152,7 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 			return nil
 		})
 	scopeNames := map[string]string{"hello-component1": scopeName, "hello-component2": scopeName, "hello-component3": scopeName, "hello-component4": "logging-scope"}
-	testLoggingScopeDefaulterDefault(t, cli, "hello-conf_multiComponents1.yaml", scopeNames, false)
+	testLoggingScopeDefaulterDefault(t, cli, "hello-conf_multiComponents1.yaml", scopeNames, false, true)
 	mocker.Finish()
 
 	// WHEN the appconfig has multiple components (one with a logging scope) and the default scope does not exist
@@ -138,7 +160,11 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 	//   set the default logging scope on the others in the appconfig
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
-
+	// Expect get namespace
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespaceName), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, ns *v1.Namespace) error {
+			return nil
+		})
 	// Expect get default logging scope
 	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, scope *vzapi.LoggingScope) error {
@@ -151,7 +177,7 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 			return nil
 		})
 	scopeNames = map[string]string{"hello-component1": scopeName, "hello-component2": scopeName, "hello-component3": scopeName, "hello-component4": "logging-scope"}
-	testLoggingScopeDefaulterDefault(t, cli, "hello-conf_multiComponents1.yaml", scopeNames, false)
+	testLoggingScopeDefaulterDefault(t, cli, "hello-conf_multiComponents1.yaml", scopeNames, false, true)
 	mocker.Finish()
 
 	// WHEN the appconfig has multiple components with no logging scopes and the default scope does not exist
@@ -159,7 +185,11 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 	//   on all of the components in the appconfig
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
-
+	// Expect get namespace
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespaceName), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, ns *v1.Namespace) error {
+			return nil
+		})
 	// Expect get default logging scope
 	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, scope *vzapi.LoggingScope) error {
@@ -172,7 +202,7 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 			return nil
 		})
 	scopeNames = map[string]string{"hello-component1": scopeName, "hello-component2": scopeName, "hello-component3": scopeName, "hello-component4": scopeName}
-	testLoggingScopeDefaulterDefault(t, cli, "hello-conf_multiComponents2.yaml", scopeNames, false)
+	testLoggingScopeDefaulterDefault(t, cli, "hello-conf_multiComponents2.yaml", scopeNames, false, true)
 	mocker.Finish()
 
 	// WHEN the appconfig has multiple components with no logging scopes and the default scope does not exist
@@ -181,8 +211,28 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 	//      the default logging scope instance should not be created
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
+	// Expect get namespace
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespaceName), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, ns *v1.Namespace) error {
+			return nil
+		})
 	scopeNames = map[string]string{"hello-component1": scopeName, "hello-component2": scopeName, "hello-component3": scopeName, "hello-component4": scopeName}
-	testLoggingScopeDefaulterDefault(t, cli, "hello-conf_multiComponents2.yaml", scopeNames, true)
+	testLoggingScopeDefaulterDefault(t, cli, "hello-conf_multiComponents2.yaml", scopeNames, true, true)
+	mocker.Finish()
+
+	// WHEN the appconfig has multiple components with no logging scopes and the default scope does not exist
+	//      and Default is called while the namespace is terminating
+	// THEN Default should NOT set the default logging scope on all of the components in the appconfig and
+	//      the default logging scope instance should NOT be created
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+	// Expect get namespace
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespaceName), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, ns *v1.Namespace) error {
+			ns.Status.Phase = v1.NamespaceTerminating
+			return nil
+		})
+	testLoggingScopeDefaulterDefault(t, cli, "hello-conf_multiComponents2.yaml", map[string]string{}, false, false)
 	mocker.Finish()
 }
 
@@ -219,7 +269,7 @@ func TestLoggingScopeDefaulter_Cleanup(t *testing.T) {
 	mocker.Finish()
 }
 
-func testLoggingScopeDefaulterDefault(t *testing.T, cli client.Client, configPath string, scopeNames map[string]string, dryRun bool) {
+func testLoggingScopeDefaulterDefault(t *testing.T, cli client.Client, configPath string, scopeNames map[string]string, dryRun bool, expectFoundLoggingScope bool) {
 	assert := asserts.New(t)
 	req := admission.Request{}
 	req.Object = runtime.RawExtension{Raw: readYaml2Json(t, configPath)}
@@ -241,7 +291,7 @@ func testLoggingScopeDefaulterDefault(t *testing.T, cli client.Client, configPat
 				foundLoggingScope = true
 			}
 		}
-		assert.True(foundLoggingScope)
+		assert.Equal(expectFoundLoggingScope, foundLoggingScope)
 	}
 }
 

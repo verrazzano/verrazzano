@@ -20,12 +20,12 @@ var _ = ginkgo.Describe("Verrazzano Web UI",
 	func() {
 		ingress, _ := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-console-ingress", v1.GetOptions{})
 		var ingressRules []v1beta1.IngressRule = ingress.Spec.Rules
-		serverUrl := fmt.Sprintf("https://%s/", ingressRules[0].Host)
+		serverURL := fmt.Sprintf("https://%s/", ingressRules[0].Host)
 
-		pkg.Log(pkg.Info, "The Web UI's URL is "+serverUrl)
+		pkg.Log(pkg.Info, "The Web UI's URL is "+serverURL)
 
 		ginkgo.It("can be accessed", func() {
-			rc, content := pkg.GetWebPageWithCABundle(serverUrl, "")
+			rc, content := pkg.GetWebPageWithCABundle(serverURL, "")
 			gomega.Expect(rc).To(gomega.Equal(200))
 			gomega.Expect(content).To(gomega.Not(gomega.BeEmpty()))
 			gomega.Expect(content).To(gomega.Not(gomega.ContainSubstring("404")))
@@ -33,7 +33,7 @@ var _ = ginkgo.Describe("Verrazzano Web UI",
 
 		ginkgo.It("has the correct SSL certificate",
 			func() {
-				certs, err := pkg.GetCertificates(serverUrl)
+				certs, err := pkg.GetCertificates(serverURL)
 				gomega.Expect(err).To(gomega.BeNil())
 				// There will normally be several certs, but we only need to check the
 				// first one -- might want to refactor the checks out into a pkg.IsCertValid()
