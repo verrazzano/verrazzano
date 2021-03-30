@@ -41,6 +41,9 @@ var expectedNonVMIPodsVerrazzanoSystem = []string{
 
 var _ = ginkgo.Describe("Kubernetes Cluster",
 	func() {
+		isManagedClusterProfile := pkg.IsManagedClusterProfile()
+		isProdProfile := pkg.IsProdProfile()
+
 		ginkgo.It("has the expected number of nodes",
 			func() {
 				nodes := pkg.ListNodes()
@@ -81,7 +84,7 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 			},
 			ginkgoExt.Entry("includes verrazzano-operator", "verrazzano-operator", true),
 			ginkgoExt.Entry("does not include verrazzano-web", "verrazzano-web", false),
-			ginkgoExt.Entry("includes verrazzano-console", "verrazzano-console", true),
+			ginkgoExt.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
 			ginkgoExt.Entry("does not include verrazzano-ldap", "verrazzano-ldap", false),
 			ginkgoExt.Entry("does not include verrazzano-cluster-operator", "verrazzano-cluster-operator", false),
 			ginkgoExt.Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", true),
@@ -118,8 +121,6 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 			ginkgoExt.Entry("includes rancher-agent", "cattle-cluster-agent", true),
 		)
 
-		isManagedClusterProfile := pkg.IsManagedClusterProfile()
-		isProdProfile := pkg.IsProdProfile()
 		ginkgoExt.DescribeTable("deployed VMI components",
 			func(name string, expected bool) {
 				gomega.Expect(vzComponentPresent(name, "verrazzano-system")).To(gomega.Equal(expected))
