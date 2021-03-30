@@ -518,6 +518,19 @@ func CreateRoleBinding(userOCID string, namespace string, rolebindingname string
 	return err
 }
 
+// DoesClusterRoleBindingExist returns whether a cluster role with the given name exists in the cluster
+func DoesRoleBindingExist(name string, namespace string) bool {
+	// Get the Kubernetes clientset
+	clientset := GetKubernetesClientset()
+
+	rolebinding, err := clientset.RbacV1().RoleBindings(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		Log(Info, fmt.Sprintf("Failed to verify role binding %s in namespace %s with error: %v", name, namespace, err))
+	}
+
+	return rolebinding != nil
+}
+
 // GetIstioClientset returns the clientset object for Istio
 func GetIstioClientset() *istioClient.Clientset {
 	cs, err := istioClient.NewForConfig(GetKubeConfig())
