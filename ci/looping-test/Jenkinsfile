@@ -238,7 +238,7 @@ pipeline {
                         mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
                         kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
                         kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
-                        echo "Verrazzano Installation logs dumped to verrazzano-install.log"
+                        echo "Verrazzano install logs dumped to verrazzano-install.log"
                         echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
                         echo "------------------------------------------"
                     """
@@ -253,7 +253,7 @@ pipeline {
                 }
                 failure {
                     script {
-                        dumpK8sCluster('verrazzano-installation-loop-after-install-failure-cluster-dump')
+                        dumpK8sCluster('verrazzano-install-loop-install-failure-cluster-dump')
                         skip_stage = 'true'
                     }
                 }
@@ -275,7 +275,7 @@ pipeline {
             }
             post {
                 failure {
-                    dumpK8sCluster('verrazzano-installation-loop-after-test-failure-cluster-dump')
+                    dumpK8sCluster('verrazzano-install-loop-test-failure-cluster-dump')
                 }
             }
         }
@@ -325,7 +325,7 @@ pipeline {
         always {
             script {
                 if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                    dumpK8sCluster('verrazzano-installation-loop-cluster-dump')
+                    dumpK8sCluster('verrazzano-install-loop-cluster-dump')
                 }
             }
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
@@ -340,7 +340,7 @@ pipeline {
         }
 
         failure {
-            dumpK8sCluster('verrazzano-installation-loop-cluster-dump')
+            dumpK8sCluster('verrazzano-install-loop-cluster-dump')
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
             sh """
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
@@ -395,7 +395,7 @@ pipeline {
             script {
                 if (!abort) {
                     def failures = failureCount as String
-                    build job: 'pabhat%252Fenable-uninstall-test',
+                    build job: 'verrazzano-install-loop/master',
                         parameters: [
                             string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
                             string(name: 'OKE_NODE_POOL', value: params.OKE_NODE_POOL),

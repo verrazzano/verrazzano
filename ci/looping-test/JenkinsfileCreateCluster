@@ -161,14 +161,14 @@ pipeline {
                     dumpK8sCluster('verrazzano-create-oke-cluster-dump')
                 }
             }
-            archiveArtifacts artifacts: '**/oke_kubeconfig,**/*verrazzano-uninstall-test-dump/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/oke_kubeconfig,**/*-cluster-dump/**', allowEmptyArchive: true
         }
         failure {
             mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
             subject: "Verrazzano: ${env.JOB_NAME} - Failed",
             body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
             script {
-                if (env.BRANCH_NAME == "master") {
+                if (params.VERRAZZANO_BRANCH == "master") {
                     pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }
