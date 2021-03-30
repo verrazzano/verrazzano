@@ -363,7 +363,7 @@ pipeline {
                 }
 
                 // kick off another cluster build after initial attempt to reuse cluster (failureCount = 1)
-                if (failureCount > 1) {
+                if (failureCount > 1 && env.JOB_NAME == "verrazzano-install-loop/master") {
                     try {
                         build job: 'verrazzano-create-oke-cluster',
                             parameters: [
@@ -393,7 +393,7 @@ pipeline {
         cleanup {
             deleteDir()
             script {
-                if (!abort) {
+                if (!abort && env.JOB_NAME == "verrazzano-install-loop/master") {
                     def failures = failureCount as String
                     build job: 'verrazzano-install-loop/master',
                         parameters: [
