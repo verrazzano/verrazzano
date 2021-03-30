@@ -15,7 +15,7 @@ pipeline {
             args "${EXPERIMENTAL_RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "largeexperimental"
+            label "largeexperimental2"
         }
     }
 
