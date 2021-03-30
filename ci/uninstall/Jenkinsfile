@@ -165,7 +165,7 @@ pipeline {
 
         stage("Create Cluster") {
             steps {
-                sh "TF_VAR_label_prefix=uninstall-${env.BUILD_NUMBER} TF_VAR_state_name=uninstall-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
+                sh "TF_VAR_label_prefix=uninstall-${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=uninstall-${env.BUILD_NUMBER}-${env.BRANCH_NAME}-${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
             }
         }
 
@@ -247,6 +247,11 @@ pipeline {
                     dumpOamKubernetesRuntimeLogs('install')
                     dumpVerrazzanoApiLogs('install')
                     listNamepacesAndPods('after Verrazzano install')
+                }
+                failure {
+                    script {
+                        dumpK8sCluster('verrazzano-uninstall-install-failure-test-dump')
+                    }
                 }
             }
         }
@@ -370,7 +375,7 @@ pipeline {
                 subject: "Verrazzano: ${env.JOB_NAME} - Failed",
                 body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
                 script {
-                    if (env.BRANCH_NAME == "master") {
+                    if (env.JOB_NAME == "verrazzano-uninstall-test/master") {
                         pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                         slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                     }
@@ -378,7 +383,7 @@ pipeline {
             }
         }
         cleanup {
-            sh "VERRAZZANO_KUBECONFIG=${env.KUBECONFIG} TF_VAR_label_prefix=uninstall-${env.BUILD_NUMBER} TF_VAR_state_name=uninstall-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/delete_oke_cluster.sh"
+            sh "VERRAZZANO_KUBECONFIG=${env.KUBECONFIG} TF_VAR_label_prefix=uninstall-${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=uninstall-${env.BUILD_NUMBER}-${env.BRANCH_NAME}-${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/delete_oke_cluster.sh"
             deleteDir()
         }
     }
