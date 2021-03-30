@@ -839,17 +839,19 @@ func TestGetVerrazzanoInstallArgsSomeVMIDisabled(t *testing.T) {
 			Elasticsearch: &installv1alpha1.ElasticsearchComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
 			Kibana:        &installv1alpha1.KibanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
 			Grafana:       &installv1alpha1.GrafanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
+			Console:       &installv1alpha1.ConsoleComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
 		},
 	}
 	installArgs, err := getVerrazzanoInstallArgs(&vzSpec)
 	assert.NoError(t, err)
 	assert.NotNil(t, installArgs)
-	assert.Equal(t, 3, len(installArgs))
+	assert.Equal(t, 4, len(installArgs))
 
 	const (
 		esIndex      = 0
 		kibanaIndex  = 1
 		grafanaIndex = 2
+		consoleIndex = 3
 	)
 
 	assert.Equal(t, esEnabledValueName, installArgs[esIndex].Name)
@@ -861,6 +863,9 @@ func TestGetVerrazzanoInstallArgsSomeVMIDisabled(t *testing.T) {
 	assert.Equal(t, kibanaEnabledValueName, installArgs[kibanaIndex].Name)
 	assert.Equal(t, "false", installArgs[kibanaIndex].Value)
 	assert.False(t, installArgs[kibanaIndex].SetString)
+	assert.Equal(t, consoleEnabledValueName, installArgs[consoleIndex].Name)
+	assert.Equal(t, "false", installArgs[consoleIndex].Value)
+	assert.False(t, installArgs[consoleIndex].SetString)
 }
 
 // TestGetKeycloakEmptyDirVolumeSourceNoDefaultVolumeSource Test the getKeycloak  function
