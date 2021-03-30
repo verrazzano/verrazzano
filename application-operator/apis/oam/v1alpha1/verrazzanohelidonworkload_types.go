@@ -32,6 +32,9 @@ type VerrazzanoHelidonWorkloadStatus struct {
 
 	// Resources managed by this workload.
 	Resources []QualifiedResourceRelation `json:"resources,omitempty"`
+
+	// CurrentUpgradeVersion is the version that was specified when the application was last upgraded with Verrazzano
+	CurrentUpgradeVersion string `json:"currentUpgradeVersion,omitempty"`
 }
 
 // VerrazzanoHelidonWorkload is the Schema for verrazzanohelidonworkloads API

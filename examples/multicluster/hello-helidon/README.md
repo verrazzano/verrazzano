@@ -53,4 +53,18 @@ Follow the [instructions](../../hello-helidon/README.md/#troubleshooting) for tr
    $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get MultiClusterApplicationConfiguration -n hello-helidon
    ```
 
+## Undeploy the Hello World Helidon application
+
+To undeploy the application from the managed cluster, delete the multicluster resources and the project from the admin 
+cluster:
+
+```shell
+# Delete the multicluster application configuration
+$ KUBECONFIG=$KUBECONFIG_ADMIN kubectl delete -f mc-hello-helidon-app.yaml
+# Delete the multicluster components for the application 
+$ KUBECONFIG=$KUBECONFIG_ADMIN kubectl delete -f mc-hello-helidon-comp.yaml
+# Delete the project
+$ KUBECONFIG=$KUBECONFIG_ADMIN kubectl delete -f verrazzano-project.yaml
+```
+
 Copyright (c) 2021, Oracle and/or its affiliates.

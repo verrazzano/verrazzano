@@ -125,10 +125,6 @@ var _ = ginkgo.BeforeSuite(func() {
 
 var _ = ginkgo.Describe("VMI", func() {
 
-	ginkgo.It("api server should be accessible", func() {
-		assertURLByIngressName("vmi-system-api")
-	})
-
 	isManagedClusterProfile := pkg.IsManagedClusterProfile()
 	if isManagedClusterProfile {
 		ginkgo.It("Elasticsearch should NOT be present", func() {
@@ -451,8 +447,5 @@ func assertInstanceInfoURLs() {
 	gomega.Expect(instanceInfo.PrometheusURL).NotTo(gomega.BeNil())
 	if instanceInfo.PrometheusURL != nil {
 		assertOidcIngress(*instanceInfo.PrometheusURL)
-	}
-	if instanceInfo.SystemURL != nil {
-		assertIngressURL(*instanceInfo.SystemURL)
 	}
 }

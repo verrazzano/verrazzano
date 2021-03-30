@@ -20,7 +20,7 @@ import (
 const (
 	multiclusterTestNamespace = "multiclustertest"
 	managedClusterName        = "managed1"
-	crdDir                    = "../../config/crd/bases"
+	crdDir                    = "../../../platform-operator/helm_config/charts/verrazzano-application-operator/crds"
 	timeout                   = 2 * time.Minute
 	pollInterval              = 40 * time.Millisecond
 	applicationOperator       = "verrazzano-application-operator"

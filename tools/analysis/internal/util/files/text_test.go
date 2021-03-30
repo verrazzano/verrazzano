@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/log"
 	"go.uber.org/zap"
 	"os"
+	"regexp"
 	"testing"
 )
 
@@ -18,11 +19,11 @@ import (
 func TestSearchFilesGood(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 	rootDirectory := "../../../test"
-	myFiles, err := GetMatchingFiles(logger, rootDirectory, ".*")
+	myFiles, err := GetMatchingFiles(logger, rootDirectory, regexp.MustCompile(".*"))
 	assert.Nil(t, err)
 	assert.NotNil(t, myFiles)
 	assert.True(t, len(myFiles) > 0)
-	myMatches, err := SearchFiles(logger, rootDirectory, myFiles, "ghcr.io/.*/rancher")
+	myMatches, err := SearchFiles(logger, rootDirectory, myFiles, regexp.MustCompile("ghcr.io/.*/rancher"))
 	assert.Nil(t, err)
 	assert.NotNil(t, myMatches)
 	assert.True(t, len(myMatches) > 0)
@@ -37,7 +38,7 @@ func TestSearchFilesGood(t *testing.T) {
 // THEN search matches will be returned
 func TestFindFilesAndSearchGood(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	myMatches, err := FindFilesAndSearch(logger, "../../../test", ".*", "ghcr.io/.*/rancher")
+	myMatches, err := FindFilesAndSearch(logger, "../../../test", regexp.MustCompile(".*"), regexp.MustCompile("ghcr.io/.*/rancher"))
 	assert.Nil(t, err)
 	assert.NotNil(t, myMatches)
 	assert.True(t, len(myMatches) > 0)
@@ -46,35 +47,20 @@ func TestFindFilesAndSearchGood(t *testing.T) {
 	}
 }
 
-// TestGetAllMatches Tests that we can find the expected set of files with a matching expression
-// GIVEN a call to GetAllMatches
-// WHEN with a valid rootDirectory, list of files, and regular expression
-// THEN search matches will be returned
-func TestGetAllMatches(t *testing.T) {
-	logger := log.GetDebugEnabledLogger()
-	matched, err := GetAllMatches(logger, []byte("testAAthisAAoutAA"), "AA", 2)
-	assert.Nil(t, err)
-	assert.NotNil(t, matched)
-	assert.True(t, len(matched) == 2)
-}
-
 // TestBadExpressions Tests that we fail correctly when given bad search expressions
 // GIVEN a call to helpers
 // WHEN with invalid regular expression
 // THEN error will be returned
 func TestBadExpressions(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	badExpression := "~(foo"
-	_, err := GetAllMatches(logger, []byte("testAAthisAAoutAA"), badExpression, 2)
+	_, err := FindFilesAndSearch(logger, "../../../test", nil, regexp.MustCompile("ghcr.io/.*/rancher"))
 	assert.NotNil(t, err)
-	_, err = FindFilesAndSearch(logger, "../../../test", badExpression, "ghcr.io/.*/rancher")
+	_, err = FindFilesAndSearch(logger, "../../../test", regexp.MustCompile(".*"), nil)
 	assert.NotNil(t, err)
-	_, err = FindFilesAndSearch(logger, "../../../test", ".*", badExpression)
-	assert.NotNil(t, err)
-	_, err = GetMatchingFiles(logger, "../../../test", badExpression)
+	_, err = GetMatchingFiles(logger, "../../../test", nil)
 	assert.NotNil(t, err)
 	myFiles := []string{"test file"}
-	_, err = SearchFiles(logger, "../../../test", myFiles, badExpression)
+	_, err = SearchFiles(logger, "../../../test", myFiles, nil)
 	assert.NotNil(t, err)
 }
 

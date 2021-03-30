@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/log"
 	"go.uber.org/zap"
 	"os"
+	"regexp"
 	"testing"
 )
 
@@ -17,14 +18,14 @@ import (
 // THEN files that matched will be returned
 func TestGetMatchingFilesGood(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	myFiles, err := GetMatchingFiles(logger, "../../../test/json", "node.*\\.json$")
+	myFiles, err := GetMatchingFiles(logger, "../../../test/json", regexp.MustCompile(`node.*\.json$`))
 	assert.Nil(t, err)
 	assert.NotNil(t, myFiles)
 	assert.True(t, len(myFiles) > 0)
 	for _, file := range myFiles {
 		assert.True(t, len(checkIsRegularFile(logger, file)) == 0)
 	}
-	myFiles, err = GetMatchingFiles(logger, "../../../test/json", "node.*\\.none_shall_match")
+	myFiles, err = GetMatchingFiles(logger, "../../../test/json", regexp.MustCompile(`node.*\.none_shall_match`))
 	assert.Nil(t, err)
 	assert.Nil(t, myFiles)
 }
@@ -36,16 +37,51 @@ func TestGetMatchingFilesGood(t *testing.T) {
 func TestGetMatchingDirectoriesGood(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 	// the .*son will match directories with names like "json"
-	myFiles, err := GetMatchingDirectories(logger, "../../../test", ".*son$")
+	myFiles, err := GetMatchingDirectories(logger, "../../../test", regexp.MustCompile(".*son$"))
 	assert.Nil(t, err)
 	assert.NotNil(t, myFiles)
 	assert.True(t, len(myFiles) > 0)
 	for _, file := range myFiles {
 		assert.True(t, len(checkIsDirectory(logger, file)) == 0)
 	}
-	myFiles, err = GetMatchingDirectories(logger, "../../../test", "none_shall_match")
+	myFiles, err = GetMatchingDirectories(logger, "../../../test", regexp.MustCompile("none_shall_match"))
 	assert.Nil(t, err)
 	assert.Nil(t, myFiles)
+}
+
+// TestGetMatchingBad Tests that we can find the expected set of files with a matching expression
+// GIVEN a call to GetMatching* utilities
+// WHEN with invalid inputs
+// THEN we get failures as expected
+func TestGetMatchingInvalidInputs(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+	_, err := GetMatchingDirectories(logger, "../../../test", nil)
+	assert.NotNil(t, err)
+	filesFound, err := GetMatchingDirectories(logger, "../../../test-not-found", regexp.MustCompile(".*son$"))
+	assert.Nil(t, err)
+	assert.Nil(t, filesFound)
+	_, err = GetMatchingFiles(logger, "../../../test", nil)
+	assert.NotNil(t, err)
+	filesFound, err = GetMatchingFiles(logger, "../../../test-not-found", regexp.MustCompile(".*son$"))
+	assert.Nil(t, err)
+	assert.Nil(t, filesFound)
+
+}
+
+// TestMiscUtils Tests that the misc small utilities work as expected
+// GIVEN a call to GetMiscUtils
+// WHEN with good and bad inputs
+// THEN utility functions behave as expected
+func TestMiscUtils(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+	filename := FindFileInClusterRoot("../../../test/cluster/problem-pods/cluster-dump/problem-pods", "default")
+	assert.NotNil(t, filename)
+	namespaces, err := FindNamespaces(logger, "../../../test/cluster/problem-pods/cluster-dump")
+	assert.Nil(t, err)
+	assert.NotNil(t, namespaces)
+	assert.True(t, len(namespaces) > 0)
+	_, err = FindNamespaces(logger, "../../../test/problem-pods/not-found")
+	assert.NotNil(t, err)
 }
 
 // TODO: Add more test cases (more expression variants, negative cases, etc...)

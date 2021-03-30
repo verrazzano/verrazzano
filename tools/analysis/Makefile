@@ -107,10 +107,6 @@ endif
 unit-test: go-install
 	$(GO) test -v  ./...
 
-.PHONY: coverage
-coverage: unit-test
-	./build/scripts/coverage.sh html
-
 .PHONY: push-tag
 push-tag:
 	PUBLISH_TAG="${DOCKER_IMAGE_TAG}"; \

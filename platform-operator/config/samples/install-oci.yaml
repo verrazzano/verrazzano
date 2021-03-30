@@ -22,7 +22,7 @@ spec:
           emailAddress: emailAddress@domain.com
     dns:
       oci:
-        ociConfigSecret: ociConfigSecret
+        ociConfigSecret: oci
         dnsZoneCompartmentOCID: dnsZoneCompartmentOcid
         dnsZoneOCID: dnsZoneOcid
         dnsZoneName: my.dns.zone.name

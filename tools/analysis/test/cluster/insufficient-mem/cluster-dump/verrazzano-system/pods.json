@@ -397,7 +397,7 @@
                                 "command": [
                                     "sh",
                                     "-c",
-                                    "#!/usr/bin/env bash -e\n# If the node is starting up wait for the cluster to be ready' )\n# Once it has started only check that the node itself is responding\n\nSTART_FILE=/tmp/.es_start_file\n\nhttp () {\n    local path=\"${1}\"\n    curl -v -XGET -s -k  --fail http://127.0.0.1:9200${path}\n}\n\nif [ -f \"${START_FILE}\" ]; then\n    echo 'Elasticsearch is already running, lets check the node is healthy'\n    http \"\"\nelse\n    echo 'Waiting for elasticsearch cluster to become cluster to be ready'\n    if http \"\" ; then\n        touch ${START_FILE}\n    else\n        echo 'Cluster is not yet ready'\n        exit 1\n\n    fi\n    exit 0\nfi"
+                                    "#!/usr/bin/env bash -e\n# If the node is starting up wait for the cluster to be ready' )\n# Once it has started only check that the node itself is responding\n\nSTART_FILE=/tmp/.es_start_file\n\nhttp () {\n    local path=\"${1}\"\n    curl -v -XGET -s -k  --fail http://REDACTED-IP4-ADDRESS:9200${path}\n}\n\nif [ -f \"${START_FILE}\" ]; then\n    echo 'Elasticsearch is already running, lets check the node is healthy'\n    http \"\"\nelse\n    echo 'Waiting for elasticsearch cluster to become cluster to be ready'\n    if http \"\" ; then\n        touch ${START_FILE}\n    else\n        echo 'Cluster is not yet ready'\n        exit 1\n\n    fi\n    exit 0\nfi"
                                 ]
                             },
                             "initialDelaySeconds": 90,

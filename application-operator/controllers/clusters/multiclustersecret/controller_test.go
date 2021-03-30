@@ -5,6 +5,7 @@ package multiclustersecret
 
 import (
 	"context"
+	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -75,7 +76,7 @@ func TestReconcileCreateSecret(t *testing.T) {
 	mcSecretSample := getSampleMCSecret(namespace, crName, secretData)
 
 	// expect a call to fetch the MultiClusterSecret
-	doExpectGetMultiClusterSecret(cli, mcSecretSample)
+	doExpectGetMultiClusterSecret(cli, mcSecretSample, false)
 
 	// expect a call to fetch the managed cluster registration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -90,6 +91,15 @@ func TestReconcileCreateSecret(t *testing.T) {
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, s *v1.Secret, opts ...client.CreateOption) error {
 			assertSecretValid(assert, s, secretData)
+			return nil
+		})
+
+	// expect a call to update the resource with a finalizer
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *clustersv1alpha1.MultiClusterSecret, opts ...client.UpdateOption) error {
+			assert.True(len(secret.ObjectMeta.Finalizers) == 1, "Wrong number of finalizers")
+			assert.Equal(finalizerName, secret.ObjectMeta.Finalizers[0], "wrong finalizer")
 			return nil
 		})
 
@@ -125,7 +135,7 @@ func TestReconcileUpdateSecret(t *testing.T) {
 	mcSecretSample := getSampleMCSecret(namespace, crName, newSecretData)
 
 	// expect a call to fetch the MultiClusterSecret
-	doExpectGetMultiClusterSecret(cli, mcSecretSample)
+	doExpectGetMultiClusterSecret(cli, mcSecretSample, true)
 
 	// expect a call to fetch the managed cluster registration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -171,7 +181,7 @@ func TestReconcileCreateSecretFailed(t *testing.T) {
 	mcSecretSample := getSampleMCSecret(namespace, crName, secretData)
 
 	// expect a call to fetch the MultiClusterSecret
-	doExpectGetMultiClusterSecret(cli, mcSecretSample)
+	doExpectGetMultiClusterSecret(cli, mcSecretSample, false)
 
 	// expect a call to fetch the managed cluster registration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -215,7 +225,7 @@ func TestReconcileUpdateSecretFailed(t *testing.T) {
 	mcSecretSample := getSampleMCSecret(namespace, crName, secretData)
 
 	// expect a call to fetch the MultiClusterSecret
-	doExpectGetMultiClusterSecret(cli, mcSecretSample)
+	doExpectGetMultiClusterSecret(cli, mcSecretSample, true)
 
 	// expect a call to fetch the managed cluster registration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -264,7 +274,7 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 	mcSecretSample.Spec.Placement.Clusters[0].Name = "not-my-cluster"
 
 	// expect a call to fetch the MultiClusterSecret
-	doExpectGetMultiClusterSecret(cli, mcSecretSample)
+	doExpectGetMultiClusterSecret(cli, mcSecretSample, true)
 
 	// expect a call to fetch the MCRegistration secret
 	clusterstest.DoExpectGetMCRegistrationSecret(cli)
@@ -272,6 +282,24 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 	// The effective state of the object will get updated even if it is note locally placed,
 	// since it would have changed
 	clusterstest.DoExpectUpdateState(t, cli, statusWriter, &mcSecretSample, clustersv1alpha1.Pending)
+
+	clusterstest.ExpectDeleteAssociatedResource(cli, &v1alpha2.Component{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mcSecretSample.Name,
+			Namespace: mcSecretSample.Namespace,
+		},
+	}, types.NamespacedName{
+		Namespace: mcSecretSample.Namespace,
+		Name:      mcSecretSample.Name,
+	})
+
+	// expect a call to update the resource with no finalizers
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret, opts ...client.UpdateOption) error {
+			assert.True(len(mcSecret.Finalizers) == 0, "Wrong number of finalizers")
+			return nil
+		})
 
 	// Expect no further action
 
@@ -364,13 +392,16 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 
 // doExpectGetMultiClusterSecret adds an expectation to the given MockClient to expect a Get
 // call for a MultiClusterSecret, and populate the multi cluster secret with given data
-func doExpectGetMultiClusterSecret(cli *mocks.MockClient, mcSecretSample clustersv1alpha1.MultiClusterSecret) {
+func doExpectGetMultiClusterSecret(cli *mocks.MockClient, mcSecretSample clustersv1alpha1.MultiClusterSecret, addFinalizer bool) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: crName}, gomock.AssignableToTypeOf(&mcSecretSample)).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, mcSecret *clustersv1alpha1.MultiClusterSecret) error {
 			mcSecret.ObjectMeta = mcSecretSample.ObjectMeta
 			mcSecret.TypeMeta = mcSecretSample.TypeMeta
 			mcSecret.Spec = mcSecretSample.Spec
+			if addFinalizer {
+				mcSecret.Finalizers = append(mcSecret.Finalizers, finalizerName)
+			}
 			return nil
 		})
 }
@@ -382,10 +413,6 @@ func assertSecretValid(assert *asserts.Assertions, s *v1.Secret, secretData map[
 	assert.Equal(namespace, s.ObjectMeta.Namespace)
 	assert.Equal(crName, s.ObjectMeta.Name)
 	assert.Equal(secretData, s.Data)
-	assert.Equal(1, len(s.OwnerReferences))
-	assert.Equal("MultiClusterSecret", s.OwnerReferences[0].Kind)
-	assert.Equal(clustersv1alpha1.GroupVersion.String(), s.OwnerReferences[0].APIVersion)
-	assert.Equal(crName, s.OwnerReferences[0].Name)
 }
 
 // getSampleMCSecret creates and returns a sample MultiClusterSecret used in tests

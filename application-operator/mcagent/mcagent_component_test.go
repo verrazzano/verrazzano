@@ -276,16 +276,19 @@ func TestMCComponentPlacement(t *testing.T) {
 	adminMock := mocks.NewMockClient(adminMocker)
 
 	// Test data
-	testMCComponent, err := getSampleMCComponent("testdata/multicluster-component.yaml")
+	adminMCComponent, err := getSampleMCComponent("testdata/multicluster-component.yaml")
 	assert.NoError(err, "failed to read sample data for MultiClusterComponent")
-	testMCComponent.Spec.Placement.Clusters[0].Name = "not-my-cluster"
+	adminMCComponent.Spec.Placement.Clusters[0].Name = "not-my-cluster"
+
+	localMCComponent, err := getSampleMCComponent("testdata/multicluster-component.yaml")
+	assert.NoError(err, "failed to read sample data for MultiClusterComponent")
 
 	// Admin Cluster - expect call to list MultiClusterComponent objects - return list with one object
 	adminMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, listOptions *client.ListOptions) error {
 			assert.Equal(testMCComponentNamespace, listOptions.Namespace, "list request did not have expected namespace")
-			mcComponentList.Items = append(mcComponentList.Items, testMCComponent)
+			mcComponentList.Items = append(mcComponentList.Items, adminMCComponent)
 			return nil
 		})
 
@@ -294,9 +297,14 @@ func TestMCComponentPlacement(t *testing.T) {
 		List(gomock.Any(), &clustersv1alpha1.MultiClusterComponentList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, mcComponentList *clustersv1alpha1.MultiClusterComponentList, listOptions *client.ListOptions) error {
 			assert.Equal(testMCComponentNamespace, listOptions.Namespace, "list request did not have expected namespace")
-			mcComponentList.Items = append(mcComponentList.Items, testMCComponent)
+			mcComponentList.Items = append(mcComponentList.Items, localMCComponent)
 			return nil
 		})
+
+	// Managed Cluster - expect a call to delete a MultiClusterComponent object
+	mcMock.EXPECT().
+		Delete(gomock.Any(), gomock.Eq(&localMCComponent), gomock.Any()).
+		Return(nil)
 
 	// Make the request
 	s := &Syncer{

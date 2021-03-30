@@ -7,26 +7,29 @@ metadata:
   namespace: unit-mcappconfig-namespace
 spec:
   template:
+    metadata:
+      annotations:
+        version: v1.0.0
+        description: "Hello Helidon application"
     spec:
-      workload:
-        apiVersion: core.oam.dev/v1alpha2
-        kind: ContainerizedWorkload
-        metadata:
-          name: hello-workload
-          namespace: default
-          labels:
-            app: hello-helidon
-        spec:
-          containers:
-            - name: hello
-              image: ghcr.io/oracle/oraclelinux:7-slim
-              args:
-                - /bin/sh
-                - -c
-                - echo 'sleeping'; sleep 50000;
-              ports:
-                - containerPort: 8080
-                  name: http
+      components:
+        - componentName: hello-helidon-component-newname
+          traits:
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: MetricsTrait
+                spec:
+                  scraper: verrazzano-system/vmi-system-prometheus-0
+            - trait:
+                apiVersion: oam.verrazzano.io/v1alpha1
+                kind: IngressTrait
+                metadata:
+                  name: hello-helidon-ingress
+                spec:
+                  rules:
+                    - paths:
+                        - path: "/greet"
+                          pathType: Prefix
   placement:
     clusters:
       - name: cluster1

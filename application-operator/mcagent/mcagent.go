@@ -124,11 +124,14 @@ func (s *Syncer) updateVMCStatus() error {
 	if err != nil {
 		return err
 	}
-	vmc.Status.LastAgentConnectTime = metav1.Now()
+
+	curTime := metav1.Now()
+	vmc.Status.LastAgentConnectTime = &curTime
 	apiURL, err := s.GetAPIServerURL()
 	if err != nil {
 		return fmt.Errorf("Failed to get api server url for vmc %s with error %v", vmcName, err)
 	}
+
 	vmc.Status.APIUrl = apiURL
 
 	// update status of VMC
@@ -285,6 +288,7 @@ func discardStatusMessages(statusUpdateChannel chan clusters.StatusUpdateMessage
 	}
 }
 
+// GetAPIServerURL returns the API Server URL for Verrazzano instance.
 func (s *Syncer) GetAPIServerURL() (string, error) {
 	ingress := &extv1beta1.Ingress{}
 	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: "verrazzano-console-ingress", Namespace: constants.VerrazzanoSystemNamespace}, ingress)

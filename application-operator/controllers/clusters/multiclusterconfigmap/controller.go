@@ -5,7 +5,6 @@ package multiclusterconfigmap
 
 import (
 	"context"
-
 	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	corev1 "k8s.io/api/core/v1"
@@ -27,6 +26,8 @@ type Reconciler struct {
 	AgentChannel chan clusters.StatusUpdateMessage
 }
 
+const finalizerName = "multiclusterconfigmap.verrazzano.io"
+
 // Reconcile reconciles a MultiClusterConfigMap resource. It fetches the embedded ConfigMap,
 // mutates it based on the MultiClusterConfigMap, and updates the status of the
 // MultiClusterConfigMap to reflect the success or failure of the changes to the embedded resource
@@ -41,6 +42,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, clusters.IgnoreNotFoundWithLog("MultiClusterConfigMap", err, logger)
 	}
 
+	// delete the wrapped resource since MC is being deleted
+	if !mcConfigMap.ObjectMeta.DeletionTimestamp.IsZero() {
+		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcConfigMap, finalizerName, &corev1.ConfigMap{}, types.NamespacedName{Namespace: mcConfigMap.Namespace, Name: mcConfigMap.Name})
+		return ctrl.Result{}, err
+	}
+
 	oldState := clusters.SetEffectiveStateIfChanged(mcConfigMap.Spec.Placement, &mcConfigMap.Status)
 	if !clusters.IsPlacedInThisCluster(ctx, r, mcConfigMap.Spec.Placement) {
 		if oldState != mcConfigMap.Status.State {
@@ -48,7 +55,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			// could be in an admin cluster and receive cluster level statuses from managed clusters,
 			// which can change our effective state
 			err = r.Status().Update(ctx, &mcConfigMap)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 		}
+		// if this mc config map is no longer placed on this cluster, remove the associated config map
+		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcConfigMap, finalizerName, &corev1.ConfigMap{}, types.NamespacedName{Namespace: mcConfigMap.Namespace, Name: mcConfigMap.Name})
 		return ctrl.Result{}, err
 	}
 
@@ -57,6 +69,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		"placement", mcConfigMap.Spec.Placement.Clusters[0].Name)
 	// Immutable ConfigMaps are not supported - we need a webhook to validate, or add the support
 	opResult, err := r.createOrUpdateConfigMap(ctx, mcConfigMap)
+
+	// Add our finalizer if not already added
+	if err == nil {
+		_, err = clusters.AddFinalizer(ctx, r.Client, &mcConfigMap, finalizerName)
+	}
 
 	return r.updateStatus(ctx, &mcConfigMap, opResult, err)
 
@@ -80,9 +97,7 @@ func (r *Reconciler) createOrUpdateConfigMap(ctx context.Context, mcConfigMap cl
 
 	return controllerutil.CreateOrUpdate(ctx, r.Client, &configMap, func() error {
 		r.mutateConfigMap(mcConfigMap, &configMap)
-		// This SetControllerReference call will trigger garbage collection i.e. the ConfigMap
-		// will automatically get deleted when the MultiClusterConfigMap is deleted
-		return controllerutil.SetControllerReference(&mcConfigMap, &configMap, r.Scheme)
+		return nil
 	})
 }
 

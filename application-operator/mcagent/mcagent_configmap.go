@@ -46,8 +46,8 @@ func (s *Syncer) syncMCConfigMapObjects(namespace string) error {
 		return nil
 	}
 	for _, mcConfigMap := range allLocalMCConfigMaps.Items {
-		// Delete each MultiClusterConfigMap object that is not on the admin cluster
-		if !configMapListContains(&allAdminMCConfigMaps, mcConfigMap.Name, mcConfigMap.Namespace) {
+		// Delete each MultiClusterConfigMap object that is not on the admin cluster or no longer placed on this cluster
+		if !s.configMapPlacedOnCluster(&allAdminMCConfigMaps, mcConfigMap.Name, mcConfigMap.Namespace) {
 			err := s.LocalClient.Delete(s.Context, &mcConfigMap)
 			if err != nil {
 				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterConfigMap with name %q and namespace %q", mcConfigMap.Name, mcConfigMap.Namespace))
@@ -89,11 +89,11 @@ func mutateMCConfigMap(mcConfigMap clustersv1alpha1.MultiClusterConfigMap, mcCon
 	mcConfigMapNew.Labels = mcConfigMap.Labels
 }
 
-// configMapListContains returns boolean indicating if the list contains the object with the specified name and namespace
-func configMapListContains(mcAdminList *clustersv1alpha1.MultiClusterConfigMapList, name string, namespace string) bool {
+// configMapPlacedOnCluster returns boolean indicating if the list contains the object with the specified name and namespace
+func (s *Syncer) configMapPlacedOnCluster(mcAdminList *clustersv1alpha1.MultiClusterConfigMapList, name string, namespace string) bool {
 	for _, item := range mcAdminList.Items {
 		if item.Name == name && item.Namespace == namespace {
-			return true
+			return s.isThisCluster(item.Spec.Placement)
 		}
 	}
 	return false

@@ -46,8 +46,8 @@ func (s *Syncer) syncMCComponentObjects(namespace string) error {
 		return nil
 	}
 	for _, mcComponent := range allLocalMCComponents.Items {
-		// Delete each MultiClusterComponent object that is not on the admin cluster
-		if !componentListContains(&allAdminMCComponents, mcComponent.Name, mcComponent.Namespace) {
+		// Delete each MultiClusterComponent object that is not on the admin cluster or no longer placed on this cluster
+		if !s.componentPlacedOnCluster(&allAdminMCComponents, mcComponent.Name, mcComponent.Namespace) {
 			err := s.LocalClient.Delete(s.Context, &mcComponent)
 			if err != nil {
 				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterComponent with name %q and namespace %q", mcComponent.Name, mcComponent.Namespace))
@@ -89,11 +89,11 @@ func mutateMCComponent(mcComponent clustersv1alpha1.MultiClusterComponent, mcCom
 	mcComponentNew.Labels = mcComponent.Labels
 }
 
-// componentListContains returns boolean indicating if the list contains the object with the specified name and namespace
-func componentListContains(mcAdminList *clustersv1alpha1.MultiClusterComponentList, name string, namespace string) bool {
+// componentPlacedOnCluster returns boolean indicating if the list contains the object with the specified name and namespace
+func (s *Syncer) componentPlacedOnCluster(mcAdminList *clustersv1alpha1.MultiClusterComponentList, name string, namespace string) bool {
 	for _, item := range mcAdminList.Items {
 		if item.Name == name && item.Namespace == namespace {
-			return true
+			return s.isThisCluster(item.Spec.Placement)
 		}
 	}
 	return false

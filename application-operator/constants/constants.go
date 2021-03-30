@@ -64,3 +64,11 @@ const StatusUpdateChannelBufferSize = 50
 // StatusUpdateBatchSize - the number of status update messages the multi cluster agent should
 // process each time it wakes up
 const StatusUpdateBatchSize = 10
+
+// LabelUpgradeVersion - label which allows users to indicate that a running app should be upgraded to latest version of
+// Verrazzano. When an application is deployed, the value of this label is set on workload.Status.CurrentUpgradeVersion.
+// When reconciling, if the value provided in the label is different than the value in the workload status, the application
+// will be 'upgraded' to use the resources provided by current version of Verrazzano. If any of these resources have
+// changed since the application was deployed, the application will pick up the latest values and be restarted. If the
+// label value matches the value in the workload status, all Verrazzano provided resources will remain unchanged.
+const LabelUpgradeVersion = "upgrade-version"

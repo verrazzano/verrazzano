@@ -29,7 +29,7 @@ const (
 // resources at once.  This YAML is stored in the Verrazzano manifest secret.
 func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.VerrazzanoManagedCluster) error {
 	// Builder used to build up the full YAML
-	// For each secret, generate the YAML and append to the full YAML which contais multiple resources
+	// For each secret, generate the YAML and append to the full YAML which contains multiple resources
 	var sb = strings.Builder{}
 
 	// add agent secret YAML
@@ -49,6 +49,15 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.
 	}
 	sb.Write([]byte(yamlSep))
 	sb.Write(regYaml)
+
+	// register the cluster with Rancher - the cluster will show as "pending" until the
+	// Rancher YAML is applied on the managed cluster
+	// NOTE: If this errors we log it and do not fail the reconcile
+	if rancherYAML, err := registerManagedClusterWithRancher(r.Client, vmc.Name, r.log); err != nil {
+		r.log.Warn("Unable to register managed cluster with Rancher, manifest secret will not contain Rancher YAML")
+	} else {
+		sb.WriteString(rancherYAML)
+	}
 
 	// add api secret YAML
 	apiSecretYaml, err := r.generateMCApiSecretYAML()

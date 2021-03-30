@@ -13,3 +13,4 @@ application-operator/deploy/application-operator.txt
 tests/e2e/config/scripts/terraform/cluster/required-env-vars
 tests/e2e/config/scripts/looping-test/types.txt
 tools/copyright/test
+tools/fix-copyright/copyright.go
