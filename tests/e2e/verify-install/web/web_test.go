@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/api/extensions/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/onsi/ginkgo"
@@ -19,7 +18,7 @@ import (
 var _ = ginkgo.Describe("Verrazzano Web UI",
 	func() {
 		ingress, _ := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-console-ingress", v1.GetOptions{})
-		var ingressRules []v1beta1.IngressRule = ingress.Spec.Rules
+		var ingressRules = ingress.Spec.Rules
 		serverURL := fmt.Sprintf("https://%s/", ingressRules[0].Host)
 
 		pkg.Log(pkg.Info, "The Web UI's URL is "+serverURL)

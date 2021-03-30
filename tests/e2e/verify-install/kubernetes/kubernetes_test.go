@@ -30,7 +30,6 @@ var expectedPodsIngressNginx = []string{
 	"ingress-controller-ingress-nginx-defaultbackend"}
 
 var expectedNonVMIPodsVerrazzanoSystem = []string{
-	"verrazzano-console",
 	"verrazzano-monitoring-operator",
 	"verrazzano-operator",
 }
@@ -132,6 +131,7 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 			ginkgoExt.Entry("includes es-master", "vmi-system-es-master", !isManagedClusterProfile),
 			ginkgoExt.Entry("includes es-kibana", "vmi-system-kibana", !isManagedClusterProfile),
 			ginkgoExt.Entry("includes es-grafana", "vmi-system-grafana", !isManagedClusterProfile),
+			ginkgoExt.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
 		)
 
 		ginkgo.It("Expected pods are running",
