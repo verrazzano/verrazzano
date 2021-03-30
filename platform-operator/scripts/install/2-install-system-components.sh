@@ -95,6 +95,29 @@ spec:
   elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
     kubectl apply -f <(echo "
 apiVersion: cert-manager.io/v1alpha2
+kind: Issuer
+metadata:
+  name: verrazzano-selfsigned-issuer
+  namespace: verrazzano-install
+spec:
+  selfSigned: {}
+")
+    kubectl apply -f <(echo "
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: verrazzano-ca-certificate
+  namespace: verrazzano-install
+spec:
+  secretName: verrazzano-ca-certificate-secret
+  commonName: verrazzano-root-ca
+  isCA: true
+  issuerRef:
+    name: verrazzano-selfsigned-issuer
+    kind: Issuer
+")
+    kubectl apply -f <(echo "
+apiVersion: cert-manager.io/v1alpha2
 kind: ClusterIssuer
 metadata:
   name: verrazzano-cluster-issuer
