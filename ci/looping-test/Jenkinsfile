@@ -395,7 +395,7 @@ pipeline {
             script {
                 if (!abort) {
                     def failures = failureCount as String
-                    build job: 'verrazzano-new-installation-loop/master',
+                    build job: 'pabhat%252Fenable-uninstall-test',
                         parameters: [
                             string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
                             string(name: 'OKE_NODE_POOL', value: params.OKE_NODE_POOL),
