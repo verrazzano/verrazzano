@@ -72,6 +72,11 @@ function setup_cluster_issuer() {
         fail "The OCI Configuration Secret $OCI_DNS_CONFIG_SECRET does not exist"
     fi
 
+    acmeURL="https://acme-v02.api.letsencrypt.org/directory"
+    if [ "$(get_acme_environment)" != "production" ]; then
+      acmeURL="https://acme-staging-v02.api.letsencrypt.org/directory"
+    fi
+
     kubectl apply -f <(echo "
 apiVersion: cert-manager.io/v1alpha2
 kind: ClusterIssuer
@@ -80,7 +85,7 @@ metadata:
 spec:
   acme:
     email: $EMAIL_ADDRESS
-    server: "https://acme-v02.api.letsencrypt.org/directory"
+    server: "${acmeURL}"
     privateKeySecretRef:
       name: verrazzano-cert-acme-secret
     solvers:

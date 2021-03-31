@@ -103,11 +103,7 @@ function install_verrazzano()
     EXTRA_V8O_ARGUMENTS="${EXTRA_V8O_ARGUMENTS} --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
   fi
 
-  local profile=$(get_config_value '.profile')
-  if [ -z "$profile" ]; then
-    error "The value .profile must be set in the config file"
-    exit 1
-  fi
+  local profile=$(get_install_profile)
   if [ ! -f "${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml" ]; then
     error "The file ${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml does not exist"
     exit 1
