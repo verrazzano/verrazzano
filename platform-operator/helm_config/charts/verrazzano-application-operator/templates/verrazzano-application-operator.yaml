@@ -72,7 +72,11 @@ rules:
     resources:
       - rolebindings
     verbs:
+      - create
+      - get
       - list
+      - patch
+      - update
       - watch
   - apiGroups:
       - cert-manager.io
