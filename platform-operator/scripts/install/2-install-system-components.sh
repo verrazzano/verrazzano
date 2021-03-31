@@ -212,7 +212,21 @@ function install_rancher()
     log "Rollout Rancher"
     kubectl -n cattle-system rollout status -w deploy/rancher || return $?
 
-    log "Create Rancher secrets"
+    log "Ensure default Rancher admin user is present"
+    STDERROR_FILE="/tmp/rancher_ensureadminuser.err"
+    kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- ensure-default-admin 2>$STDERROR_FILE
+    RANCHER_ADMIN_USERNAME=$(kubectl get users -l authz.management.cattle.io/bootstrapping=admin-user -o jsonpath={'.items[].username'})
+    if [ -z "${RANCHER_ADMIN_USERNAME}" ]; then
+      echo "Could not detect default Rancher admin user"
+      local std_error_file=$(cat $STDERROR_FILE)
+      log "${std_error_file}"
+      rm "$STDERROR_FILE"
+      return 1
+    else
+      echo "Rancher admin user: ${RANCHER_ADMIN_USERNAME}"
+    fi
+
+    log "Reset Rancher admin password and create secrets"
     STDERROR_FILE="/tmp/rancher_resetpwd.err"
     local max_retries=5
     local retries=0
