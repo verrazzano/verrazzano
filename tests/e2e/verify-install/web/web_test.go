@@ -14,17 +14,24 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var isManagedClusterProfile = pkg.IsManagedClusterProfile()
-
 var _ = ginkgo.Describe("Verrazzano Web UI",
 	func() {
 		ingress, err := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-console-ingress", v1.GetOptions{})
 
 		ginkgo.It("ingress exist", func() {
 			gomega.Expect(err).To(gomega.BeNil())
+			gomega.Expect(len(ingress.Spec.Rules)).To(gomega.Equal(1))
 		})
 
-		if !isManagedClusterProfile {
+		// Determine if the console UI is configured
+		consoleUIConfigured := false
+		for _, path := range ingress.Spec.Rules[0].HTTP.Paths {
+			if path.Backend.ServiceName == "verrazzano-console" {
+				consoleUIConfigured = true
+			}
+		}
+
+		if consoleUIConfigured {
 
 			var ingressRules = ingress.Spec.Rules
 			serverURL := fmt.Sprintf("https://%s/", ingressRules[0].Host)
