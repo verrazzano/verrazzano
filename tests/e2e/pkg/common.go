@@ -80,7 +80,8 @@ func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, 
 
 //PodsRunning checks if all the pods identified by namePrefixes are ready and running
 func PodsRunning(namespace string, namePrefixes []string) bool {
-	pods := ListPods(namespace)
+	clientset := GetKubernetesClientset()
+	pods := ListPodsInCluster(namespace, clientset)
 	missing := notRunning(pods.Items, namePrefixes...)
 	if len(missing) > 0 {
 		Log(Info, fmt.Sprintf("Pods %v were NOT running in %v", missing, namespace))
@@ -95,15 +96,16 @@ func PodsRunning(namespace string, namePrefixes []string) bool {
 	return len(missing) == 0
 }
 
-//PodsNotRunning waits for all the pods in namePrefixes to be terminated
+// PodsNotRunning waits for all the pods in namePrefixes to be terminated
 func PodsNotRunning(namespace string, namePrefixes []string) bool {
-	allPods := ListPods(namespace)
+	clientset := GetKubernetesClientset()
+	allPods := ListPodsInCluster(namespace, clientset)
 	terminatedPods := notRunning(allPods.Items, namePrefixes...)
 	var i int = 0
 	for len(terminatedPods) != len(namePrefixes) {
 		Log(Info, fmt.Sprintf("Pods %v were TERMINATED in %v", terminatedPods, namespace))
 		time.Sleep(15 * time.Second)
-		pods := ListPods(namespace)
+		pods := ListPodsInCluster(namespace, clientset)
 		terminatedPods = notRunning(pods.Items, namePrefixes...)
 		i++
 		if i > 10 {

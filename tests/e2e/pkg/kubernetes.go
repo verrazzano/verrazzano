@@ -36,8 +36,29 @@ import (
 
 const dockerconfigjsonTemplate string = "{\"auths\":{\"%v\":{\"username\":\"%v\",\"password\":\"%v\",\"auth\":\"%v\"}}}"
 
+// GetKubeConfig will get the kubeconfig from the given kubeconfigPath
+func GetKubeConfigGivenPath(kubeconfigPath string) *restclient.Config {
+	return buildKubeConfig(kubeconfigPath)
+}
+
 // GetKubeConfig will get the kubeconfig from the environment variable KUBECONFIG, if set, or else from $HOME/.kube/config
 func GetKubeConfig() *restclient.Config {
+	kubeconfig := getKubeConfigPathFromEnv()
+
+	return buildKubeConfig(kubeconfig)
+}
+
+func buildKubeConfig(kubeconfig string) *restclient.Config {
+	var err error
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		ginkgo.Fail("Could not get current context from kubeconfig " + kubeconfig)
+	}
+
+	return config
+}
+
+func getKubeConfigPathFromEnv() string {
 	kubeconfig := ""
 	kubeconfigEnvVar := ""
 	testKubeConfigEnvVar := os.Getenv("TEST_KUBECONFIG")
@@ -59,14 +80,7 @@ func GetKubeConfig() *restclient.Config {
 		// give up
 		ginkgo.Fail("Could not find kube")
 	}
-
-	var err error
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		ginkgo.Fail("Could not get current context from kubeconfig " + kubeconfig)
-	}
-
-	return config
+	return kubeconfig
 }
 
 // DoesCRDExist returns whether a CRD with the given name exists for the cluster
@@ -156,11 +170,8 @@ func ListNodes() *corev1.NodeList {
 	return nodes
 }
 
-// ListPods returns the list of pods in a given namespace for the cluster
-func ListPods(namespace string) *corev1.PodList {
-	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientset()
-
+// ListPodsInCluster returns the list of pods in a given namespace for the cluster
+func ListPodsInCluster(namespace string, clientset *kubernetes.Clientset) *corev1.PodList {
 	pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to list pods in namespace %s with error: %v", namespace, err))
@@ -182,7 +193,8 @@ func GetVerrazzanoMonitoringInstance(namespace string, name string) (*vmov1.Verr
 
 // DoesPodExist returns whether a pod with the given name and namespace exists for the cluster
 func DoesPodExist(namespace string, name string) bool {
-	pods := ListPods(namespace)
+	clientset := GetKubernetesClientset()
+	pods := ListPodsInCluster(namespace, clientset)
 	for i := range pods.Items {
 		if strings.HasPrefix(pods.Items[i].Name, name) {
 			return true
@@ -202,11 +214,24 @@ func DoesServiceExist(namespace string, name string) bool {
 	return false
 }
 
-// GetKubernetesClientset returns the Kubernetes clienset for the cluster
+// GetKubernetesClientset returns the Kubernetes clientset for the cluster set in the environment
 func GetKubernetesClientset() *kubernetes.Clientset {
 	// use the current context in the kubeconfig
 	config := GetKubeConfig()
 
+	return createClientset(config)
+}
+
+// GetKubernetesClientsetForCluster returns the Kubernetes clientset for the cluster whose
+// kubeconfig path is specified
+func GetKubernetesClientsetForCluster(kubeconfigPath string) *kubernetes.Clientset {
+	// use the current context in the kubeconfig
+	config := GetKubeConfigGivenPath(kubeconfigPath)
+	return createClientset(config)
+}
+
+// createClientset Creates Kubernetes Clientset for a given kubeconfig
+func createClientset(config *restclient.Config) *kubernetes.Clientset {
 	// create the clientset once and cache it
 	var err error
 	clientset, err := kubernetes.NewForConfig(config)
@@ -339,6 +364,14 @@ func GetService(namespace string, name string) *corev1.Service {
 func GetNamespace(name string) (*corev1.Namespace, error) {
 	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientset()
+
+	return clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// GetNamespaceInCluster returns a namespace in the cluster whose kubeconfigPath is specified
+func GetNamespaceInCluster(name string, kubeconfigPath string) (*corev1.Namespace, error) {
+	// Get the Kubernetes clientset
+	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
 
 	return clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
 }

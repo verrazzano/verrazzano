@@ -19,6 +19,7 @@ import (
 	"k8s.io/client-go/discovery"
 	memory "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"sigs.k8s.io/yaml"
 )
@@ -31,8 +32,15 @@ var nsGvr = schema.GroupVersionResource{
 
 // CreateOrUpdateResourceFromFile creates or updates a Kubernetes resources from a YAML test data file.
 // The test data file is found using the FindTestDataFile function.
-// This is indented to be equivalent to `kubectl apply`
+// This is intended to be equivalent to `kubectl apply`
+// The cluster used is the one set by default in the environment
 func CreateOrUpdateResourceFromFile(file string) error {
+	return CreateOrUpdateResourceFromFileInCluster(file, getKubeConfigPathFromEnv())
+}
+
+// CreateOrUpdateResourceFromFileInCluster is identical to CreateOrUpdateResourceFromFile, except that
+// it uses the cluster specified by the kubeconfigPath argument instead of the default cluster in the environment
+func CreateOrUpdateResourceFromFileInCluster(file string, kubeconfigPath string) error {
 	found, err := FindTestDataFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to find test data file: %w", err)
@@ -42,13 +50,12 @@ func CreateOrUpdateResourceFromFile(file string) error {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
 	Log(Info, fmt.Sprintf("Found resource: %s", found))
-	return CreateOrUpdateResourceFromBytes(bytes)
+	return createOrUpdateResourceFromBytes(bytes, GetKubeConfigGivenPath(kubeconfigPath))
 }
 
-// CreateOrUpdateResourceFromBytes creates or updates a Kubernetes resource from bytes.
-// This is indented to be equivalent to `kubectl apply`
-func CreateOrUpdateResourceFromBytes(data []byte) error {
-	config := GetKubeConfig()
+// createOrUpdateResourceFromBytes creates or updates a Kubernetes resource from bytes.
+// This is intended to be equivalent to `kubectl apply`
+func createOrUpdateResourceFromBytes(data []byte, config *rest.Config) error {
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return fmt.Errorf("failed to create dynamic client: %w", err)
@@ -105,9 +112,15 @@ func CreateOrUpdateResourceFromBytes(data []byte) error {
 }
 
 // DeleteResourceFromFile deletes Kubernetes resources using names found in a YAML test data file.
-// This is indented to be equivalent to `kubectl delete`
+// This is intended to be equivalent to `kubectl delete`
 // The test data file is found using the FindTestDataFile function.
 func DeleteResourceFromFile(file string) error {
+	return DeleteResourceFromFileInCluster(file, getKubeConfigPathFromEnv())
+}
+
+// DeleteResourceFromFileInCluster is identical to DeleteResourceFromFile, except that
+// // it uses the cluster specified by the kubeconfigPath argument instead of the default cluster in the environment
+func DeleteResourceFromFileInCluster(file string, kubeconfigPath string) error {
 	found, err := FindTestDataFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to find test data file: %w", err)
@@ -116,13 +129,13 @@ func DeleteResourceFromFile(file string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
-	return DeleteResourceFromBytes(bytes)
+	return deleteResourceFromBytes(bytes, kubeconfigPath)
 }
 
-// DeleteResourceFromBytes deletes Kubernetes resources using names found in YAML bytes.
-// This is indented to be equivalent to `kubectl delete`
-func DeleteResourceFromBytes(data []byte) error {
-	config := GetKubeConfig()
+// deleteResourceFromBytes deletes Kubernetes resources using names found in YAML bytes.
+// This is intended to be equivalent to `kubectl delete`
+func deleteResourceFromBytes(data []byte, kubeconfigPath string) error {
+	config := GetKubeConfigGivenPath(kubeconfigPath)
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return fmt.Errorf("failed to create dynamic client: %w", err)
