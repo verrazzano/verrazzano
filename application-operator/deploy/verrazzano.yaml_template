@@ -52,6 +52,7 @@ rules:
       - create
       - get
       - list
+      - update
   - apiGroups:
       - cert-manager.io
     resources:
