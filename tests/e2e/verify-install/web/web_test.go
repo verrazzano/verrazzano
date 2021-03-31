@@ -17,7 +17,7 @@ import (
 
 var _ = ginkgo.Describe("Verrazzano Web UI",
 	func() {
-		ingress, _ := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-console-ingress", v1.GetOptions{})
+		ingress, _ := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "vmi-system-api", v1.GetOptions{})
 		var ingressRules = ingress.Spec.Rules
 		serverURL := fmt.Sprintf("https://%s/", ingressRules[0].Host)
 
