@@ -50,11 +50,7 @@ rules:
     resources:
       - customresourcedefinitions
     verbs:
-      - create
-      - get
-      - list
-      - patch
-      - update
+      - '*'
   - apiGroups:
       - admissionregistration.k8s.io
     resources:
@@ -70,6 +66,8 @@ rules:
     resources:
       - rolebindings
     verbs:
+      - create
+      - get
       - list
       - watch
   - apiGroups:
@@ -177,6 +175,7 @@ rules:
       - get
       - patch
       - update
+      - watch
   - apiGroups:
       - security.istio.io
     resources:
