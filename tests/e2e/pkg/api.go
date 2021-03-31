@@ -30,7 +30,7 @@ type APIEndpoint struct {
 // GetAPIEndpoint returns the APIEndpoint stub with AccessToken
 func GetAPIEndpoint() *APIEndpoint {
 	ingress, _ := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
-	var ingressRules []extensionsv1beta1.IngressRule = ingress.Spec.Rules
+	var ingressRules = ingress.Spec.Rules
 	keycloakURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", ingressRules[0].Host, realm)
 	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", Username, GetVerrazzanoPassword(), clientID)
 	status, resp := postWithClient(keycloakURL, "application/x-www-form-urlencoded", strings.NewReader(body), GetKeycloakHTTPClient())
@@ -49,8 +49,8 @@ func GetAPIEndpoint() *APIEndpoint {
 
 // getAPIURL returns the Verrazzano REST API URL
 func getAPIURL() string {
-	ingress, _ := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-console-ingress", v1.GetOptions{})
-	var ingressRules []extensionsv1beta1.IngressRule = ingress.Spec.Rules
+	ingress, _ := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "vmi-system-api", v1.GetOptions{})
+	var ingressRules = ingress.Spec.Rules
 	return fmt.Sprintf("https://%s/%s", ingressRules[0].Host, verrazzanoAPIURLPrefix)
 }
 
