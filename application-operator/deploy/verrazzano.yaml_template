@@ -71,6 +71,7 @@ rules:
       - rolebindings
     verbs:
       - list
+      - watch
   - apiGroups:
       - cert-manager.io
     resources:
