@@ -406,12 +406,12 @@ pipeline {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
-                        stage('examples authorization policy') {
+                        stage('istio authorization policy') {
                             steps {
                                 runGinkgo('istio/authz')
                             }
                         }
-                        stage('examples role based access') {
+                        stage('security role based access') {
                             steps {
                                 runGinkgo('security/rbac')
                             }
