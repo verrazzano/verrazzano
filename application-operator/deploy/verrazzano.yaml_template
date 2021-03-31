@@ -66,6 +66,12 @@ rules:
       - list
       - update
   - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - rolebindings
+    verbs:
+      - list
+  - apiGroups:
       - cert-manager.io
     resources:
       - certificates
