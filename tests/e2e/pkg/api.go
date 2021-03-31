@@ -49,7 +49,7 @@ func GetAPIEndpoint() *APIEndpoint {
 
 // getAPIURL returns the Verrazzano REST API URL
 func getAPIURL() string {
-	ingress, _ := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "vmi-system-api", v1.GetOptions{})
+	ingress, _ := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-console-ingress", v1.GetOptions{})
 	var ingressRules []extensionsv1beta1.IngressRule = ingress.Spec.Rules
 	return fmt.Sprintf("https://%s/%s", ingressRules[0].Host, verrazzanoAPIURLPrefix)
 }
