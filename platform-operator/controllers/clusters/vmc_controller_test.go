@@ -6,6 +6,7 @@ package clusters
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -78,8 +79,8 @@ func TestCreateVMC(t *testing.T) {
 	setConfigFunc(fakeGetConfig)
 
 	expectVmcGetAndUpdate(t, mock, testManagedCluster)
-	expectSyncServiceAccount(t, mock, testManagedCluster)
-	expectSyncRoleBinding(t, mock, testManagedCluster)
+	expectSyncServiceAccount(t, mock, testManagedCluster, true)
+	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
 	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false)
@@ -100,6 +101,9 @@ func TestCreateVMC(t *testing.T) {
 			scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
 		return nil
 	})
+
+	// expect status updated with condition Ready=true
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "")
 
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
@@ -140,8 +144,8 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	setConfigFunc(fakeGetConfig)
 
 	expectVmcGetAndUpdate(t, mock, testManagedCluster)
-	expectSyncServiceAccount(t, mock, testManagedCluster)
-	expectSyncRoleBinding(t, mock, testManagedCluster)
+	expectSyncServiceAccount(t, mock, testManagedCluster, true)
+	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
 	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false)
@@ -161,6 +165,9 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 
 		return nil
 	})
+
+	// expect status updated with condition Ready=true
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "")
 
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
@@ -213,12 +220,13 @@ scrape_configs:
 	setConfigFunc(fakeGetConfig)
 
 	expectVmcGetAndUpdate(t, mock, testManagedCluster)
-	expectSyncServiceAccount(t, mock, testManagedCluster)
-	expectSyncRoleBinding(t, mock, testManagedCluster)
+	expectSyncServiceAccount(t, mock, testManagedCluster, true)
+	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
 	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, promData, func(configMap *corev1.ConfigMap) error {
+
 		// check for the modified entry
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotEmpty(configMap.Data["ca-test"], "No cert entry found")
@@ -236,6 +244,9 @@ scrape_configs:
 
 		return nil
 	})
+
+	// expect status updated with condition Ready=true
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "")
 
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
@@ -288,12 +299,13 @@ scrape_configs:
 	setConfigFunc(fakeGetConfig)
 
 	expectVmcGetAndUpdate(t, mock, testManagedCluster)
-	expectSyncServiceAccount(t, mock, testManagedCluster)
-	expectSyncRoleBinding(t, mock, testManagedCluster)
+	expectSyncServiceAccount(t, mock, testManagedCluster, true)
+	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
 	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, promData, func(configMap *corev1.ConfigMap) error {
+
 		asserts.Len(configMap.Data, 2, "no data found")
 		asserts.NotNil(configMap.Data["ca-test"], "No cert entry found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -311,6 +323,9 @@ scrape_configs:
 		asserts.Equal("https", scrapeConfig.Path("scheme").Data(), "wrong scheme")
 		return nil
 	})
+
+	// expect status updated with condition Ready=true
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "")
 
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
@@ -355,8 +370,8 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	setConfigFunc(fakeGetConfig)
 
 	expectVmcGetAndUpdate(t, mock, testManagedCluster)
-	expectSyncServiceAccount(t, mock, testManagedCluster)
-	expectSyncRoleBinding(t, mock, testManagedCluster)
+	expectSyncServiceAccount(t, mock, testManagedCluster, true)
+	expectSyncRoleBinding(t, mock, testManagedCluster, true)
 	expectSyncAgent(t, mock, testManagedCluster)
 	expectSyncRegistration(t, mock, testManagedCluster)
 	expectSyncManifest(t, mock, mockRequestSender, testManagedCluster, true)
@@ -378,6 +393,9 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 		return nil
 	})
 
+	// expect status updated with condition Ready=true
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionTrue, "")
+
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
@@ -386,6 +404,77 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestCreateVMCSyncSvcAccountFailed tests the Reconcile method for the following use case
+// GIVEN a request to reconcile an VerrazzanoManagedCluster resource
+// WHEN syncing of service account fails
+// THEN ensure that the VMC status is updated to Ready=false with an appropriate message
+func TestCreateVMCSyncSvcAccountFailed(t *testing.T) {
+	namespace := constants.VerrazzanoMultiClusterNamespace
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	defer setConfigFunc(getConfigFunc)
+	setConfigFunc(fakeGetConfig)
+
+	expectVmcGetAndUpdate(t, mock, testManagedCluster)
+	expectSyncServiceAccount(t, mock, testManagedCluster, false)
+
+	// expect status updated with condition Ready=true
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionFalse, "failing syncServiceAccount")
+
+	// Create and make the request
+	request := newRequest(namespace, testManagedCluster)
+	reconciler := newVMCReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results - there should have been an error returned for failing to sync svc account
+	mocker.Finish()
+	asserts.NotNil(err)
+	asserts.Contains(err.Error(), "failing syncServiceAccount")
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestCreateVMCSyncRoleBindingFailed tests the Reconcile method for the following use case
+// GIVEN a request to reconcile an VerrazzanoManagedCluster resource
+// WHEN syncing of role binding fails
+// THEN ensure that the VMC status is updated to Ready=false with an appropriate message
+func TestCreateVMCSyncRoleBindingFailed(t *testing.T) {
+	namespace := constants.VerrazzanoMultiClusterNamespace
+	name := "test"
+
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	defer setConfigFunc(getConfigFunc)
+	setConfigFunc(fakeGetConfig)
+
+	expectVmcGetAndUpdate(t, mock, name)
+	expectSyncServiceAccount(t, mock, name, true)
+	expectSyncRoleBinding(t, mock, name, false)
+
+	// expect status updated with condition Ready=true
+	expectStatusUpdateReadyCondition(asserts, mock, mockStatus, corev1.ConditionFalse, "failing syncRoleBinding")
+
+	// Create and make the request
+	request := newRequest(namespace, name)
+	reconciler := newVMCReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results - there should have been an error returned
+	mocker.Finish()
+	asserts.NotNil(err)
+	asserts.Contains(err.Error(), "failing syncRoleBinding")
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
@@ -910,7 +999,7 @@ func fakeGetConfig() (*rest.Config, error) {
 }
 
 // Expect syncRoleBinding related calls
-func expectSyncRoleBinding(t *testing.T, mock *mocks.MockClient, name string) {
+func expectSyncRoleBinding(t *testing.T, mock *mocks.MockClient, name string, succeed bool) {
 	asserts := assert.New(t)
 
 	// Expect a call to get the ClusterRoleBinding - return that it does not exist
@@ -918,20 +1007,23 @@ func expectSyncRoleBinding(t *testing.T, mock *mocks.MockClient, name string) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: generateManagedResourceName(name)}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "ServiceAccount"}, generateManagedResourceName(name)))
 
-	// Expect a call to create the ClusterRoleBinding - return success
+	// Expect a call to create the ClusterRoleBinding - return success or failure based on the succeed argument
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, binding *rbacv1.ClusterRoleBinding, opts ...client.CreateOption) error {
-			asserts.Equalf(generateManagedResourceName(name), binding.Name, "ClusterRoleBinding testManagedCluster did not match")
-			asserts.Equalf(constants.MCClusterRole, binding.RoleRef.Name, "ClusterRoleBinding roleref did not match")
-			asserts.Equalf(generateManagedResourceName(name), binding.Subjects[0].Name, "Subject did not match")
-			asserts.Equalf(constants.VerrazzanoMultiClusterNamespace, binding.Subjects[0].Namespace, "Subject namespace did not match")
-			return nil
+			if succeed {
+				asserts.Equalf(generateManagedResourceName(name), binding.Name, "ClusterRoleBinding testManagedCluster did not match")
+				asserts.Equalf(constants.MCClusterRole, binding.RoleRef.Name, "ClusterRoleBinding roleref did not match")
+				asserts.Equalf(generateManagedResourceName(name), binding.Subjects[0].Name, "Subject did not match")
+				asserts.Equalf(constants.VerrazzanoMultiClusterNamespace, binding.Subjects[0].Namespace, "Subject namespace did not match")
+				return nil
+			}
+			return errors.NewInternalError(fmt.Errorf("failing syncRoleBinding"))
 		})
 }
 
 // Expect syncServiceAccount related calls
-func expectSyncServiceAccount(t *testing.T, mock *mocks.MockClient, name string) {
+func expectSyncServiceAccount(t *testing.T, mock *mocks.MockClient, name string, succeed bool) {
 	asserts := assert.New(t)
 
 	// Expect a call to get the ServiceAccount - return that it does not exist
@@ -948,12 +1040,16 @@ func expectSyncServiceAccount(t *testing.T, mock *mocks.MockClient, name string)
 			return nil
 		})
 
-	// Expect a call to update the VerrazzanoManagedCluster service account testManagedCluster - return success
+	// Expect a call to update the VerrazzanoManagedCluster service account name - return success or
+	// failure depending on the succeed argument
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.Equal(vmc.Spec.ServiceAccount, generateManagedResourceName(name), "ServiceAccount testManagedCluster did not match")
-			return nil
+			if succeed {
+				asserts.Equal(vmc.Spec.ServiceAccount, generateManagedResourceName(name), "ServiceAccount testManagedCluster did not match")
+				return nil
+			}
+			return errors.NewInternalError(fmt.Errorf("failing syncServiceAccount"))
 		})
 }
 
@@ -1369,4 +1465,26 @@ func getScrapeConfig(prometheusYaml string, name string) (*gabs.Container, error
 // getPrometheusSecretName returns the prometheus secret testManagedCluster
 func getPrometheusSecretName() string {
 	return "test-secret"
+}
+
+func expectStatusUpdateReadyCondition(asserts *assert.Assertions, mock *mocks.MockClient, mockStatus *mocks.MockStatusWriter, expectReady corev1.ConditionStatus, msg string) {
+	mock.EXPECT().Status().Return(mockStatus)
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			found := false
+			readyConditionCount := 0
+			for _, condition := range vmc.Status.Conditions {
+				if condition.Type == clustersapi.ConditionReady {
+					readyConditionCount++
+					if condition.Status == expectReady {
+						found = true
+						asserts.Contains(condition.Message, msg)
+					}
+				}
+			}
+			asserts.True(found, "Expected condition on VMC not found")
+			asserts.Equal(1, readyConditionCount, "Found more than one Ready condition")
+			return nil
+		})
 }

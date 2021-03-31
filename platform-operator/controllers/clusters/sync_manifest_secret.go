@@ -28,7 +28,7 @@ const (
 // resources at once.  This YAML is stored in the Verrazzano manifest secret.
 func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(vmc *clusterapi.VerrazzanoManagedCluster) error {
 	// Builder used to build up the full YAML
-	// For each secret, generate the YAML and append to the full YAML which contais multiple resources
+	// For each secret, generate the YAML and append to the full YAML which contains multiple resources
 	var sb = strings.Builder{}
 
 	// add agent secret YAML
