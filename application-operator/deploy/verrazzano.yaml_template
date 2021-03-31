@@ -18,6 +18,7 @@ rules:
       - configmaps
       - namespaces
       - secrets
+      - rolebindings
       - services
     verbs:
       - create
@@ -26,6 +27,7 @@ rules:
       - list
       - patch
       - update
+      - watch
   - apiGroups:
       - apps
     resources:
