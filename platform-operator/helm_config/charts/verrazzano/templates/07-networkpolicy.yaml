@@ -1,0 +1,120 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+# Network policy for Verrazzano API Proxy
+# Ingress: allow nginx-ingress-controller to connect to port 8775
+# Egress:  deny all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: verrazzano-api
+  namespace: verrazzano-system
+spec:
+  podSelector:
+    matchLabels:
+      app: verrazzano-api
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ingress-controller
+      ports:
+        - protocol: TCP
+          port: 8775
+---
+# Network policy for Verrazzano console
+# Ingress: allow nginx-ingress-controller to connect to port 8775
+# Egress:  allow egress since console accesses keycloak via https (outside the cluster)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: verrazzano-console
+  namespace: verrazzano-system
+spec:
+  podSelector:
+    matchLabels:
+      app: verrazzano-console
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ingress-controller
+      ports:
+        - protocol: TCP
+          port: 8775
+---
+# Network policy for Verrazzano operator
+# Ingress: deny all
+# Egress:  deny all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: verrazzano-operator
+  namespace: verrazzano-system
+spec:
+  podSelector:
+    matchLabels:
+      app: verrazzano-operator
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# Network policy for Verrazzano application operator
+# Ingress: deny all
+# Egress:  deny all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: verrazzano-application-operator
+  namespace: verrazzano-system
+spec:
+  podSelector:
+    matchLabels:
+      app: verrazzano-application-operator
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# Network policy for Verrazzano monitoring operator
+# Ingress: deny all
+# Egress:  deny all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: verrazzano-monitoring-operator
+  namespace: verrazzano-system
+spec:
+  podSelector:
+    matchLabels:
+      app: verrazzano-monitoring-operator
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# Network policy for OAM Kubernetes Runtime operator
+# Ingress: deny all
+# Egress:  deny all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: oam-kubernetes-runtime
+  namespace: verrazzano-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: oam-kubernetes-runtime
+  policyTypes:
+    - Ingress
+    - Egress
+---

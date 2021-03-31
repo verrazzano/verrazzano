@@ -129,6 +129,10 @@ data:
     -- bash -c \
     "/opt/jboss/keycloak/bin/kcadm.sh update realms/master -s loginTheme=oracle --no-config --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --password \$(cat /etc/${KCADMIN_SECRET}/password)"
 
+  # Label the keycloak namespace so that we can apply network policies
+  log "Adding label needed by network policies to keycloak namespace"
+  kubectl label namespace keycloak "verrazzano.io/namespace: keycloak"
+
   # Wait for TLS cert from Cert Manager to go into a ready state
   kubectl wait cert/${ENV_NAME}-secret -n keycloak --for=condition=Ready
 }
