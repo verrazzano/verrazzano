@@ -44,6 +44,15 @@ rules:
     verbs:
       - get
   - apiGroups:
+      - admissionregistration.k8s.io
+    resources:
+      - mutatingwebhookconfigurations
+      - validatingwebhookconfigurations
+    verbs:
+      - create
+      - get
+      - list
+  - apiGroups:
       - cert-manager.io
     resources:
       - certificates
