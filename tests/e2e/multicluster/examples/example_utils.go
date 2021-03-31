@@ -81,21 +81,29 @@ func VerifyHelloHelidonInAdminCluster(kubeconfigPath string, placedInAdminCluste
 // In a managed cluster, MC resources as well as unwrapped resources should only exist if
 // placedInThisCluster = true, and not exist otherwise
 func VerifyHelloHelidonInManagedCluster(kubeconfigPath string, placedInThisCluster bool) {
-	// no mc resources if not placed here
+	existString := "exists"
+	if !placedInThisCluster {
+		existString = "does not exist"
+	}
+
 	// GIVEN a managed cluster
 	// WHEN the example application has been deployed to the admin cluster
 	// THEN expect that the multi-cluster app config exists on managed cluster ONLY if the app is placed in the cluster
-	ginkgo.It("Verify the MultiClusterApplicationConfiguration does not exist on this managed cluster", func() {
+	ginkgo.It(fmt.Sprintf("Verify the MultiClusterApplicationConfiguration %s on this managed cluster", existString), func() {
 		pkg.Log(pkg.Info, "Testing against cluster with kubeconfig: "+kubeconfigPath)
-		gomega.Expect(mcAppConfExists(kubeconfigPath)).Should(gomega.Equal(placedInThisCluster))
+		gomega.Eventually(func() bool {
+			return mcAppConfExists(kubeconfigPath)
+		}, waitTimeout, pollingInterval).Should(gomega.Equal(placedInThisCluster))
 	})
 
 	// GIVEN a managed cluster
 	// WHEN the example application has been deployed to the admin cluster
 	// THEN expect that the multi-cluster component exists on managed cluster ONLY if the app is placed in the cluster
-	ginkgo.It("Verify the MultiClusterComponent does not exist on this managed cluster", func() {
+	ginkgo.It(fmt.Sprintf("Verify the MultiClusterComponent %s on this managed cluster", existString), func() {
 		pkg.Log(pkg.Info, "Testing against cluster with kubeconfig: "+kubeconfigPath)
-		gomega.Expect(mcComponentExists(kubeconfigPath)).Should(gomega.Equal(placedInThisCluster))
+		gomega.Eventually(func() bool {
+			return mcComponentExists(kubeconfigPath)
+		}, waitTimeout, pollingInterval).Should(gomega.Equal(placedInThisCluster))
 	})
 
 	verifyHelloHelidonInCluster(kubeconfigPath, placedInThisCluster)
@@ -126,7 +134,9 @@ func verifyHelloHelidonInCluster(kubeConfigPath string, placedInThisCluster bool
 	// WHEN the multi-cluster example application has been created on admin cluster and NOT placed in this cluster
 	// THEN expect that the component workload has NOT been unwrapped on the admin cluster
 	ginkgo.It(fmt.Sprintf("Verify the VerrazzanoHelidonWorkload %s", appExistsSuffix), func() {
-		gomega.Expect(componentWorkloadExists(kubeConfigPath)).Should(gomega.Equal(placedInThisCluster))
+		gomega.Eventually(func() bool {
+			return componentWorkloadExists(kubeConfigPath)
+		}, waitTimeout, pollingInterval).Should(gomega.Equal(placedInThisCluster))
 	})
 
 	// GIVEN an admin or managed cluster
