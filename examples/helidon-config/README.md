@@ -132,4 +132,4 @@ the deployed Hello World Helidon application.  Accessing them may require the fo
     | Grafana | `https://[vmi-system-grafana ingress host]` | `verrazzano`/`telemetry-password` |
     | Prometheus | `https://[vmi-system-prometheus ingress host]` | `verrazzano`/`telemetry-password` |    
 
-Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+Copyright (c) 2021, Oracle and/or its affiliates.

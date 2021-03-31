@@ -29,8 +29,3 @@ spec:
                     - path: "/greet"
                       pathType: Prefix
     - componentName: helidon-config-configmap
-      parameterValues:
-        - name: config-data
-          value:
-            config-properties.yaml: |
-              app.greeting: Howdy
