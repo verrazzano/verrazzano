@@ -436,7 +436,7 @@ func TestCreateVMCSyncSvcAccountFailed(t *testing.T) {
 
 	// Validate the results - there should have been an error returned for failing to sync svc account
 	mocker.Finish()
-	asserts.NotNil(err)
+	asserts.Nil(err)
 	asserts.Contains(err.Error(), "failing syncServiceAccount")
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
