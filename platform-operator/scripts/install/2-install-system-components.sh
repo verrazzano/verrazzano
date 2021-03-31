@@ -12,6 +12,9 @@ trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
 set -eu
 
+VERRAZZANO_DEFAULT_SECRET_NAMESPACE="verrazzano-install"
+VERRAZZANO_DEFAULT_SECRET_NAME="verrazzano-ca-certificate-secret"
+
 function install_nginx_ingress_controller()
 {
     local NGINX_INGRESS_CHART_DIR=${CHARTS_DIR}/ingress-nginx
@@ -93,29 +96,35 @@ spec:
             ocizonename: $DNS_SUFFIX
 ")
   elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
+    if [ $(get_config_value ".certificates.ca.secretName") == "$VERRAZZANO_DEFAULT_SECRET_NAME" ] &&
+       [ $(get_config_value ".certificates.ca.clusterResourceNamespace") == "$VERRAZZANO_DEFAULT_SECRET_NAMESPACE" ]; then
+    log "Certificate not specified. Creating default Verrazzano Issuer and Certificate in verrazzano-install namespace"
+
     kubectl apply -f <(echo "
 apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
 metadata:
   name: verrazzano-selfsigned-issuer
-  namespace: verrazzano-install
+  namespace: $(get_config_value ".certificates.ca.clusterResourceNamespace")
 spec:
   selfSigned: {}
 ")
+
     kubectl apply -f <(echo "
 apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
 metadata:
   name: verrazzano-ca-certificate
-  namespace: verrazzano-install
+  namespace: $(get_config_value ".certificates.ca.clusterResourceNamespace")
 spec:
-  secretName: verrazzano-ca-certificate-secret
+  secretName: $(get_config_value ".certificates.ca.secretName")
   commonName: verrazzano-root-ca
   isCA: true
   issuerRef:
     name: verrazzano-selfsigned-issuer
     kind: Issuer
 ")
+    fi
     kubectl apply -f <(echo "
 apiVersion: cert-manager.io/v1alpha2
 kind: ClusterIssuer
