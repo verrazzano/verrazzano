@@ -123,7 +123,8 @@ func (s *Syncer) updateVMCStatus() error {
 	if err != nil {
 		return err
 	}
-	vmc.Status.LastAgentConnectTime = metav1.Now()
+	curTime := metav1.Now()
+	vmc.Status.LastAgentConnectTime = &curTime
 
 	// update status of VMC
 	return s.AdminClient.Status().Update(s.Context, &vmc)

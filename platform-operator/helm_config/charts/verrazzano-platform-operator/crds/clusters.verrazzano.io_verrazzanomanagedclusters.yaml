@@ -68,6 +68,33 @@ spec:
             description: VerrazzanoManagedClusterStatus defines the observed state
               of VerrazzanoManagedCluster
             properties:
+              conditions:
+                description: The latest available observations of an object's current
+                  state.
+                items:
+                  description: Condition describes a condition that occurred on the
+                    VerrazzanoManagedCluster resource
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: Human readable message indicating details about
+                        last transition.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of condition.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
               lastAgentConnectTime:
                 description: Last time the agent from this managed cluster connected
                   to the admin cluster.

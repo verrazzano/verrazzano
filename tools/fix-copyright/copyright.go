@@ -166,8 +166,8 @@ type GitStatus struct {
 
 func ParseGitStatus(s string) (*GitStatus, error) {
 	if strings.TrimSpace(s) == "" {
-		return &GitStatus {
-			IndexStatus: Unmodified,
+		return &GitStatus{
+			IndexStatus:    Unmodified,
 			WorkTreeStatus: Unmodified,
 		}, nil
 	}
