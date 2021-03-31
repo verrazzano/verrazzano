@@ -12,7 +12,7 @@ pipeline {
     agent {
        docker {
             image "${RUNNER_DOCKER_IMAGE}"
-            args "${EXPERIMENTAL_RUNNER_DOCKER_ARGS}"
+            args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
             label "largeexperimental2"
@@ -325,7 +325,7 @@ pipeline {
                             echo "Create Kind cluster"
                             cd ${GO_REPO_PATH}/verrazzano/platform-operator
                             make cleanup-cluster
-                            make create-cluster KIND_CONFIG="kind-config-ci.yaml"
+                            make create-cluster KIND_CONFIG="kind-config-at-ci.yaml"
                             ../ci/scripts/setup_kind_for_jenkins.sh
 
                             echo "Install metallb"
