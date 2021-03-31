@@ -127,9 +127,12 @@ rules:
       - containerizedworkloads
       - workloaddefinitions
     verbs:
+      - create
       - delete
       - get
       - list
+      - patch
+      - update
       - watch
   - apiGroups:
       - networking.istio.io
