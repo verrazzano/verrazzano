@@ -20,15 +20,11 @@ var _ = ginkgo.Describe("Verrazzano Web UI",
 	func() {
 		ingress, err := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-console-ingress", v1.GetOptions{})
 
-		if isManagedClusterProfile {
-			ginkgo.It("ingress not exist for managed cluster", func() {
-				gomega.Expect(err).ToNot(gomega.BeNil())
-				gomega.Expect(err.Error()).To(gomega.ContainSubstring("not found"))
-			})
-		} else {
-			ginkgo.It("ingress exist", func() {
-				gomega.Expect(err).To(gomega.BeNil())
-			})
+		ginkgo.It("ingress exist", func() {
+			gomega.Expect(err).To(gomega.BeNil())
+		})
+
+		if !isManagedClusterProfile {
 
 			var ingressRules = ingress.Spec.Rules
 			serverURL := fmt.Sprintf("https://%s/", ingressRules[0].Host)

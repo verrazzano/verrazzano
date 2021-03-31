@@ -12,12 +12,11 @@ import (
 	"net/http"
 	"strings"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // APIEndpoint contains information needed to access an API
@@ -49,8 +48,8 @@ func GetAPIEndpoint() *APIEndpoint {
 
 // getAPIURL returns the Verrazzano REST API URL
 func getAPIURL() string {
-	ingress, _ := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "vmi-system-api", v1.GetOptions{})
-	var ingressRules = ingress.Spec.Rules
+	ingress, _ := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-console-ingress", v1.GetOptions{})
+	var ingressRules []extensionsv1beta1.IngressRule = ingress.Spec.Rules
 	return fmt.Sprintf("https://%s/%s", ingressRules[0].Host, verrazzanoAPIURLPrefix)
 }
 
