@@ -17,6 +17,7 @@ rules:
     resources:
       - configmaps
       - namespaces
+      - pods
       - secrets
       - rolebindings
       - serviceaccounts
@@ -122,10 +123,7 @@ rules:
       - gateways
       - virtualservices
     verbs:
-      - create
-      - get
-      - list
-      - watch
+      - '*'
   - apiGroups:
       - oam.verrazzano.io
     resources:
