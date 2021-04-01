@@ -8,8 +8,6 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 . $SCRIPT_DIR/config.sh
 
 CONFIG_DIR=$SCRIPT_DIR/config
-TMP_DIR=$(mktemp -d)
-trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
 VERRAZZANO_NS=verrazzano-system
 VERRAZZANO_MC=verrazzano-mc
@@ -114,6 +112,9 @@ function install_verrazzano()
   fi
   local PROFILE_VALUES_OVERRIDE=" -f ${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml"
 
+  local ENDPOINT=$(kubectl get endpoints --namespace default kubernetes --no-headers | awk '{ print $2}')
+  local ENDPOINT_ARRAY=(${ENDPOINT//:/ })
+
   helm \
       upgrade --install verrazzano \
       ${VZ_CHARTS_DIR}/verrazzano \
@@ -123,6 +124,8 @@ function install_verrazzano()
       --set config.dnsSuffix=${DNS_SUFFIX} \
       --set config.enableMonitoringStorage=true \
       --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)" \
+      --set kubernetes.service.endpoint.ip=${ENDPOINT_ARRAY[0]} \
+      --set kubernetes.service.endpoint.port=${ENDPOINT_ARRAY[1]} \
       ${PROFILE_VALUES_OVERRIDE} \
       ${EXTRA_V8O_ARGUMENTS} || return $?
 

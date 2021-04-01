@@ -15,3 +15,11 @@ spec:
       app: weblogic-operator
   policyTypes:
     - Ingress
+    - Egress
+  egress:
+    - ports:
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
