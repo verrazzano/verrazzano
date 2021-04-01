@@ -57,10 +57,7 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 	})
 
 	ginkgo.Context("Logging", func() {
-		ginkgo.BeforeEach(func() {
-			os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
-		})
-
+		adminKubeconfig := os.Getenv("ADMIN_KUBECONFIG")
 		indexName := "hello-helidon-hello-helidon-appconf-hello-helidon-component-hello-helidon-container"
 
 		// GIVEN an admin cluster and at least one managed cluster
@@ -68,7 +65,7 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 		// THEN expect the Elasticsearch index for the app exists on the admin cluster Elasticsearch
 		ginkgo.It("Verify Elasticsearch index exists on admin cluster", func() {
 			gomega.Eventually(func() bool {
-				return pkg.LogIndexFound(indexName)
+				return pkg.LogIndexFoundInCluster(indexName, adminKubeconfig)
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find log index for hello helidon")
 		})
 
@@ -77,11 +74,11 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 		// THEN expect recent Elasticsearch logs for the app exist on the admin cluster Elasticsearch
 		ginkgo.It("Verify recent Elasticsearch log record exists on admin cluster", func() {
 			gomega.Eventually(func() bool {
-				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+				return pkg.LogRecordFoundInCluster(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"oam.applicationconfiguration.namespace": "hello-helidon",
 					"oam.applicationconfiguration.name":      "hello-helidon-appconf",
 					"verrazzano.cluster.name":                clusterName,
-				})
+				}, adminKubeconfig)
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 		})
 	})
@@ -89,15 +86,14 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 	// NOTE: This test is disabled until this bug is fixed: VZ-2448
 
 	// ginkgo.Context("Metrics", func() {
-	// 	ginkgo.BeforeEach(func() {
-	// 		os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
-	// 	})
 
 	// GIVEN an admin cluster and at least one managed cluster
 	// WHEN the example application has been deployed to the admin cluster
 	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
 	// 	ginkgo.It("Verify Prometheus metrics exist on admin cluster", func() {
-	// 		gomega.Eventually(appMetricsExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+	// 		gomega.Eventually(func() bool {
+	//			return appMetricsExists(os.Getenv("ADMIN_KUBECONFIG"))
+	// 		}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 	// 	})
 	// })
 
@@ -144,6 +140,6 @@ func cleanUp() {
 	}
 }
 
-func appMetricsExists() bool {
-	return pkg.MetricsExist("base_jvm_uptime_seconds", "managed_cluster", clusterName)
+func appMetricsExists(kubeconfigPath string) bool {
+	return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", "managed_cluster", clusterName, kubeconfigPath)
 }

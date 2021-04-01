@@ -229,9 +229,14 @@ func findMetric(metrics []interface{}, key, value string) bool {
 	return false
 }
 
-// MetricsExist validates the availability of a specified metric
+// MetricsExist is identical to MetricsExistInCluster, except that it uses the cluster specified in the environment
 func MetricsExist(metricsName, key, value string) bool {
-	metric, err := QueryMetric(metricsName)
+	return MetricsExistInCluster(metricsName, key, value, getKubeConfigPathFromEnv())
+}
+
+// MetricsExist validates the availability of a given metric in the given cluster
+func MetricsExistInCluster(metricsName, key, value, kubeconfigPath string) bool {
+	metric, err := QueryMetric(metricsName, getPrometheusIngressHost(kubeconfigPath))
 	if err != nil {
 		return false
 	}

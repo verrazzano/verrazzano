@@ -17,9 +17,10 @@ const (
 	ISO8601Layout = "2006-01-02T15:04:05.999999999-07:00"
 )
 
-// GetSystemElasticSearchIngressHost gets the system Elasticsearch Ingress host
-func GetSystemElasticSearchIngressHost() string {
-	ingressList, _ := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").List(context.TODO(), metav1.ListOptions{})
+// getSystemElasticSearchIngressHost gets the system Elasticsearch Ingress host in the given cluster
+func getSystemElasticSearchIngressHost(kubeconfigPath string) string {
+	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
+	ingressList, _ := clientset.ExtensionsV1beta1().Ingresses("verrazzano-system").List(context.TODO(), metav1.ListOptions{})
 	for _, ingress := range ingressList.Items {
 		if ingress.Name == "vmi-system-es-ingest" {
 			Log(Info, fmt.Sprintf("Found Elasticsearch Ingress %v, host %s", ingress.Name, ingress.Spec.Rules[0].Host))
@@ -29,9 +30,9 @@ func GetSystemElasticSearchIngressHost() string {
 	return ""
 }
 
-// ListSystemElasticSearchIndices lists the system Elasticsearch indices
-func ListSystemElasticSearchIndices() []string {
-	url := fmt.Sprintf("https://%s/_all", GetSystemElasticSearchIngressHost())
+// listSystemElasticSearchIndices lists the system Elasticsearch indices in the given cluster
+func listSystemElasticSearchIndices(kubeconfigPath string) []string {
+	url := fmt.Sprintf("https://%s/_all", getSystemElasticSearchIngressHost(kubeconfigPath))
 	status, body := RetryGetWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPassword())
 	list := []string{}
 	if status != 200 {
@@ -47,8 +48,8 @@ func ListSystemElasticSearchIndices() []string {
 	return list
 }
 
-// QuerySystemElasticSearch searches the Elasticsearch index with the fields
-func QuerySystemElasticSearch(index string, fields map[string]string) map[string]interface{} {
+// querySystemElasticSearch searches the Elasticsearch index with the fields in the given cluster
+func querySystemElasticSearch(index string, fields map[string]string, kubeconfigPath string) map[string]interface{} {
 	query := ""
 	for name, value := range fields {
 		fieldQuery := fmt.Sprintf("%s:%s", name, value)
@@ -58,7 +59,7 @@ func QuerySystemElasticSearch(index string, fields map[string]string) map[string
 			query = fmt.Sprintf("%s+AND+%s", query, fieldQuery)
 		}
 	}
-	url := fmt.Sprintf("https://%s/%s/_doc/_search?q=%s", GetSystemElasticSearchIngressHost(), index, query)
+	url := fmt.Sprintf("https://%s/%s/_doc/_search?q=%s", getSystemElasticSearchIngressHost(kubeconfigPath), index, query)
 	status, body := RetryGetWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPassword())
 	var result map[string]interface{}
 	if status != 200 {
@@ -70,9 +71,14 @@ func QuerySystemElasticSearch(index string, fields map[string]string) map[string
 	return result
 }
 
-// LogIndexFound confirms a named index can be found.
+// LogIndexFound confirms a named index can be found in Elasticsearch in the cluster specified in the environment
 func LogIndexFound(indexName string) bool {
-	for _, name := range ListSystemElasticSearchIndices() {
+	return LogIndexFoundInCluster(indexName, getKubeConfigPathFromEnv())
+}
+
+// LogIndexFoundInCluster confirms a named index can be found in Elasticsearch on the given cluster
+func LogIndexFoundInCluster(indexName, kubeconfigPath string) bool {
+	for _, name := range listSystemElasticSearchIndices() {
 		if name == indexName {
 			return true
 		}
@@ -81,9 +87,16 @@ func LogIndexFound(indexName string) bool {
 	return false
 }
 
-// LogRecordFound confirms a recent log record for the index with matching fields can be found.
+// LogRecordFound confirms a recent log record for the index with matching fields can be found
+// in the cluster specified in the environment
 func LogRecordFound(indexName string, after time.Time, fields map[string]string) bool {
-	searchResult := QuerySystemElasticSearch(indexName, fields)
+	return LogRecordFoundInCluster(indexName, after, fields, getKubeConfigPathFromEnv())
+}
+
+// LogRecordFoundInCluster confirms a recent log record for the index with matching fields can be found
+// in the given cluster
+func LogRecordFoundInCluster(indexName string, after time.Time, fields map[string]string, kubeconfigPath string) bool {
+	searchResult := querySystemElasticSearch(indexName, fields, kubeconfigPath)
 	hits := Jq(searchResult, "hits", "hits")
 	if hits == nil {
 		Log(Info, "Expected to find hits in log record query results")
