@@ -429,7 +429,7 @@ pipeline {
             script {
                 if (!abort) {
                     def failures = failureCount as String
-                    build job: 'verrazzano-install-loop/master',
+                    build job: env.JOB_NAME,  // Use the current Job so it stays in-branch
                         parameters: [
                             string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
                             string(name: 'OKE_NODE_POOL', value: params.OKE_NODE_POOL),
