@@ -398,13 +398,13 @@ metadata:
     verrazzano.io/aggregate-to-verrazzano-admin: "true"
     verrazzano.io/aggregate-to-verrazzano-project-admin: "true"
 rules:
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resources:
-      - roles
-      - rolebindings
-    verbs:
-      - '*'
+- apiGroups:
+    - rbac.authorization.k8s.io
+  resources:
+    - roles
+    - rolebindings
+  verbs:
+    - '*'
 - apiGroups:
     - verrazzano.io
     - oam.verrazzano.io
