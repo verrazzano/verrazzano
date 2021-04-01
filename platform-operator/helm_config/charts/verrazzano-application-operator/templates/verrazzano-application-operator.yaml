@@ -25,6 +25,7 @@ rules:
       - namespaces
       - secrets
       - rolebindings
+      - serviceaccounts
       - services
     verbs:
       - create
