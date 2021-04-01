@@ -437,7 +437,7 @@ func TestSyncer_updateVMCStatus(t *testing.T) {
 func expectGetAPIServerURLCalled(mock *mocks.MockClient) {
 	// Expect a call to get the console ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-console-ingress"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *extv1beta1.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
