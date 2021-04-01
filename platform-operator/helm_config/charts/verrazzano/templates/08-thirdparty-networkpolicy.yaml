@@ -3,7 +3,7 @@
 ---
 # Network policy for WebLogic operator
 # Ingress:  deny all
-# Egress: deny all
+# Egress: allow weblogic-operator to connect to Kubernetes API server
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:

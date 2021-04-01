@@ -112,6 +112,7 @@ function install_verrazzano()
   fi
   local PROFILE_VALUES_OVERRIDE=" -f ${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml"
 
+  # Get the endpoint for the Kubernetes API server.  The endpoint returned has the format of IP:PORT
   local ENDPOINT=$(kubectl get endpoints --namespace default kubernetes --no-headers | awk '{ print $2}')
   local ENDPOINT_ARRAY=(${ENDPOINT//:/ })
 
