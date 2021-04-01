@@ -99,7 +99,7 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 			isEndpointAccessible := func() bool {
 				return appEndpointAccessible(url, host)
 			}
-			gomega.Eventually(isEndpointAccessible, 15*time.Second, 1*time.Second).Should(gomega.BeTrue())
+			gomega.Eventually(isEndpointAccessible, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 		})
 	})
 
