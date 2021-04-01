@@ -38,7 +38,7 @@ var _ = ginkgo.BeforeSuite(func() {
 
 var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 	ginkgo.Context("Admin Cluster without app placement", func() {
-		examples.VerifyHelloHelidonDeletedAdminCluster(adminKubeconfig, false)
+		examples.VerifyHelloHelidonInAdminCluster(adminKubeconfig, false)
 	})
 
 	ginkgo.Context("Managed Cluster with app placement", func() {
@@ -51,7 +51,7 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 		})
 
 		// app should not be placed in the managed cluster
-		examples.VerifyHelloHelidonInManagedCluster(managed1Kubeconfig, false)
+		examples.VerifyHelloHelidonDeletedInCluster(managed1Kubeconfig, false)
 
 		// app should be placed in admin cluster
 		examples.VerifyHelloHelidonInAdminCluster(adminKubeconfig, true)
@@ -88,7 +88,7 @@ func cleanUp() {
 		ginkgo.Fail(fmt.Sprintf("Failed to delete multi-cluster change-placement component resources: %v", err))
 	}
 
-	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/change-placement/verrazzano-project.yaml", adminKubeconfig); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/verrazzano-project.yaml", adminKubeconfig); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to delete hello-helidon project resource: %v", err))
 	}
 }
