@@ -134,9 +134,7 @@ rules:
       - verrazzanohelidonworkloads/status
       - verrazzanoweblogicworkloads/status
     verbs:
-      - get
-      - patch
-      - update
+      - '*'
   - apiGroups:
       - security.istio.io
     resources:
