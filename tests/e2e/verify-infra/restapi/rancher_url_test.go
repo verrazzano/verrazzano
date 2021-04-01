@@ -33,7 +33,7 @@ var _ = ginkgo.Describe("rancher url test", func() {
 			}
 			gomega.Eventually(keycloakURL, waitTimeout, pollingInterval).ShouldNot(gomega.BeEmpty())
 
-			httpClient := pkg.GetRancherHTTPClient()
+			httpClient := pkg.GetVerrazzanoHTTPClient()
 			pkg.ExpectHTTPGetOk(httpClient, keycloakURL())
 		})
 	})

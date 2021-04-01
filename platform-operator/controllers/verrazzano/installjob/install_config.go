@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	defaultCAClusterResourceName string = "verrazzano-install"
-	defaultCASecretName          string = "verrazzano-ca-certificate-secret"
+	defaultCAClusterResourceName string = "cattle-system"
+	defaultCASecretName          string = "tls-rancher"
 
 	// Verrazzano Helm chart value names
 	esStorageValueName         string = "elasticSearch.nodes.data.requests.storage"
