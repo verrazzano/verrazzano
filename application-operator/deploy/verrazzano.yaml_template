@@ -60,7 +60,9 @@ rules:
       - roles
       - rolebindings
     verbs:
-      - '*'
+      - get
+      - list
+      - watch
   - apiGroups:
       - cert-manager.io
     resources:
