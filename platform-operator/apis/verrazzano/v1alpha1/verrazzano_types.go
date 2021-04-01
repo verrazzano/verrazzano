@@ -115,8 +115,6 @@ type VolumeClaimSpecTemplate struct {
 type InstanceInfo struct {
 	// ConsoleURL The Console URL for this Verrazzano installation
 	ConsoleURL *string `json:"consoleUrl,omitempty"`
-	// SystemURL The System API URL for this Verrazzano installation
-	SystemURL *string `json:"systemApi,omitempty"`
 	// KeyCloakURL The KeyCloak URL for this Verrazzano installation
 	KeyCloakURL *string `json:"keyCloakUrl,omitempty"`
 	// RancherURL The Rancher URL for this Verrazzano installation

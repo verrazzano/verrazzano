@@ -435,10 +435,10 @@ func TestCreateVMCSyncSvcAccountFailed(t *testing.T) {
 	reconciler := newVMCReconciler(mock)
 	result, err := reconciler.Reconcile(request)
 
-	// Validate the results - there should not have been an error returned - we already expect the
-	// status to be updated with a Ready=false condition
+	// Validate the results - there should have been an error returned for failing to sync svc account
 	mocker.Finish()
-	asserts.Nil(err)
+	asserts.NotNil(err)
+	asserts.Contains(err.Error(), "failing syncServiceAccount")
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
@@ -472,10 +472,10 @@ func TestCreateVMCSyncRoleBindingFailed(t *testing.T) {
 	reconciler := newVMCReconciler(mock)
 	result, err := reconciler.Reconcile(request)
 
-	// Validate the results - there should not have been an error returned - we already expect the
-	// status to be updated with a Ready=false condition
+	// Validate the results - there should have been an error returned
 	mocker.Finish()
-	asserts.Nil(err)
+	asserts.NotNil(err)
+	asserts.Contains(err.Error(), "failing syncRoleBinding")
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
