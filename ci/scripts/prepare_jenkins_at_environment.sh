@@ -15,8 +15,8 @@ echo "Create Kind cluster"
 cd ${TEST_SCRIPTS_DIR}
 ./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KIND_KUBERNETES_CLUSTER_VERSION}" true true true
 
-echo "Install Calico"
-kubectl apply -f https://docs.projectcalico.org/manifests/canal.yaml
+#echo "Install Calico"
+#kubectl apply -f https://docs.projectcalico.org/manifests/canal.yaml
 
 echo "Install metallb"
 cd ${GO_REPO_PATH}/verrazzano
@@ -58,6 +58,8 @@ kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-oper
 
 echo "Installing Verrazzano on Kind"
 kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}
+
+${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d debug-new-kind-acceptance-tests-cluster-dump -r debug-new-kind-acceptance-tests-cluster-dump/analysis.report
 
 # wait for Verrazzano install to complete
 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
