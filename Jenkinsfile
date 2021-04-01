@@ -323,6 +323,7 @@ pipeline {
                     }
                     steps {
                         sh """
+                            cd ${GO_REPO_PATH}/verrazzano
                             ci/scripts/prepare_at_environment.sh
                         """
                     }
