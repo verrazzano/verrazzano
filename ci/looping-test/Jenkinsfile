@@ -260,7 +260,6 @@ pipeline {
             }
         }
 
-
         stage('Verify Install') {
             environment {
                 TEST_ENV = "OKE"
@@ -268,9 +267,41 @@ pipeline {
             when {
                 expression { skip_stage == 'false' }
             }
-            steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    runGinkgo('examples/todo')
+            parallel {
+                stage('verify-install') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            runGinkgo('verify-install')
+                        }
+                    }
+                }
+                stage('verify-infra restapi') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            runGinkgo('verify-infra/restapi')
+                        }
+                    }
+                }
+                stage('verify-infra oam') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            runGinkgo('verify-infra/oam')
+                        }
+                    }
+                }
+                stage('verify-infra vmi') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            runGinkgo('verify-infra/vmi')
+                        }
+                    }
+                }
+                stage('Verify examples/todo') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            runGinkgo('examples/todo')
+                        }
+                    }
                 }
             }
             post {
@@ -279,7 +310,6 @@ pipeline {
                 }
             }
         }
-
         stage('Uninstall Verrazzano') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
