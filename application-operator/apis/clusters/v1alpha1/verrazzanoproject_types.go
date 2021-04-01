@@ -38,6 +38,9 @@ type ProjectTemplate struct {
 // VerrazzanoProjectSpec defines the desired state of VerrazzanoProject
 type VerrazzanoProjectSpec struct {
 	Template ProjectTemplate `json:"template"`
+
+	// Clusters in which the secret is to be placed
+	Placement Placement `json:"placement"`
 }
 
 // +kubebuilder:object:root=true

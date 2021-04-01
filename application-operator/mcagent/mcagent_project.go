@@ -31,7 +31,7 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 
 	// Write each of the records in verrazzano-mc namespace
 	for _, vp := range allAdminProjects.Items {
-		if vp.Namespace == constants.VerrazzanoMultiClusterNamespace {
+		if s.isThisCluster(vp.Spec.Placement) {
 			_, err := s.createOrUpdateVerrazzanoProject(vp)
 			if err != nil {
 				s.Log.Error(err, "Error syncing object",

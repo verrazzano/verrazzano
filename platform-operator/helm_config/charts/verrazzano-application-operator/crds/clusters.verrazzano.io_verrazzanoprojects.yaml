@@ -41,6 +41,23 @@ spec:
           spec:
             description: VerrazzanoProjectSpec defines the desired state of VerrazzanoProject
             properties:
+              placement:
+                description: Clusters in which the secret is to be placed
+                properties:
+                  clusters:
+                    items:
+                      description: Cluster where multi cluster resources are placed
+                      properties:
+                        name:
+                          description: the name of the cluster
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                required:
+                - clusters
+                type: object
               template:
                 description: ProjectTemplate contains the resources for a project
                 properties:
@@ -148,6 +165,7 @@ spec:
                 - namespaces
                 type: object
             required:
+            - placement
             - template
             type: object
           status:
