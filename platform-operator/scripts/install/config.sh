@@ -296,14 +296,7 @@ function get_install_profile() {
 
 function get_acme_environment() {
   if [ -z "$(get_config_value ".certificates.acme.environment")" ]; then
-    # Ideally we would handle this by just setting helm chart values, but the Rancher override
-    # and VZ ClusterIssuer resource are done here in the scripts, so switch off the profile value
-    # if the environment is not explicitly specified
-    if [ "$(get_install_profile)" != "dev" ]; then
-      echo "production"
-    else
-      echo "staging"
-    fi
+    echo "production"
   else
     get_config_value ".certificates.acme.environment"
   fi
