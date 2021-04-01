@@ -28,6 +28,7 @@ const (
 	esEnabledValueName         string = "elasticSearch.enabled"
 	promEnabledValueName       string = "prometheus.enabled"
 	kibanaEnabledValueName     string = "kibana.enabled"
+	consoleEnabledValueName    string = "console.enabled"
 )
 
 // DNSType identifies the DNS type
@@ -592,6 +593,15 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]Install
 		})
 	}
 	args = append(args, getVMIInstallArgs(vzSpec)...)
+
+	// Console
+	if vzSpec.Components.Console != nil {
+		args = append(args, InstallArg{
+			Name:  consoleEnabledValueName,
+			Value: strconv.FormatBool(vzSpec.Components.Console.Enabled),
+		})
+	}
+
 	return args, nil
 }
 
