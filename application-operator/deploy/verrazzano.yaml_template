@@ -58,13 +58,16 @@ rules:
     resources:
       - clusterroles
       - roles
-      - rolebindings
     verbs:
       - get
       - list
-      - patch
-      - update
       - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - rolebindings
+    verbs:
+      - '*'
   - apiGroups:
       - cert-manager.io
     resources:
