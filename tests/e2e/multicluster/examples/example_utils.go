@@ -6,7 +6,6 @@ package examples
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -35,11 +34,10 @@ var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 
 // DeployHelloHelidon deploys the hello-helidon example to the cluster with the given kubeConfigPath
 func DeployHelloHelidon(kubeConfigPath string) {
-	os.Setenv("TEST_KUBECONFIG", kubeConfigPath)
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/hello-helidon/verrazzano-project.yaml", kubeConfigPath); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create hello-helidon project resource: %v", err))
 	}
-	// wait for the namespace to be created on the admin cluster before applying components and app config
+	// wait for the namespace to be created on the cluster before applying components and app config
 	gomega.Eventually(func() bool {
 		return namespaceExists(kubeConfigPath)
 	}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
@@ -48,6 +46,16 @@ func DeployHelloHelidon(kubeConfigPath string) {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi-cluster hello-helidon component resources: %v", err))
 	}
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-app.yaml", kubeConfigPath); err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create multi-cluster hello-helidon application resource: %v", err))
+	}
+}
+
+// DeployChangePlacement deploys the change-placement example to the cluster with the given kubeConfigPath
+func DeployChangePlacement(kubeConfigPath string) {
+	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/change-placement/mc-hello-helidon-comp.yaml", kubeConfigPath); err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create multi-cluster hello-helidon component resources: %v", err))
+	}
+	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/change-placement/mc-hello-helidon-app.yaml", kubeConfigPath); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create multi-cluster hello-helidon application resource: %v", err))
 	}
 }
