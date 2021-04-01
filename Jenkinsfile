@@ -15,7 +15,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "largeexperimental"
+            label "VM.Standard2.8"
         }
     }
 
@@ -206,16 +206,13 @@ pipeline {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
                     make -B coverage
+                    cp coverage.html ${WORKSPACE}
+                    cp coverage.xml ${WORKSPACE}
+                    build/copy-junit-output.sh ${WORKSPACE}
                 """
             }
             post {
                 always {
-                    sh """
-                        cd ${GO_REPO_PATH}/verrazzano
-                        cp coverage.html ${WORKSPACE}
-                        cp coverage.xml ${WORKSPACE}
-                        build/copy-junit-output.sh ${WORKSPACE}
-                    """
                     archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                     cobertura(coberturaReportFile: 'coverage.xml',
