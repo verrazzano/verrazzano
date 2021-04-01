@@ -44,10 +44,7 @@ rules:
       - mutatingwebhookconfigurations
       - validatingwebhookconfigurations
     verbs:
-      - create
-      - get
-      - list
-      - update
+      - '*'
   - apiGroups:
       - networking.k8s.io
     resources:
@@ -69,11 +66,7 @@ rules:
     resources:
       - certificates
     verbs:
-      - create
-      - delete
-      - get
-      - list
-      - watch
+      - '*'
   - apiGroups:
       - clusters.verrazzano.io
     resources:
@@ -95,17 +88,13 @@ rules:
       - multiclustersecrets/status
       - verrazzanoprojects/status
     verbs:
-      - get
-      - patch
-      - update
+      - '*'
   - apiGroups:
       - coherence.oracle.com
     resources:
       - coherence
     verbs:
-      - create
-      - delete
-      - get
+      - '*'
   - apiGroups:
       - core.oam.dev
     resources:
