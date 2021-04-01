@@ -110,9 +110,6 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 	})
 
 	ginkgo.Context("Verify resources have been deleted on the managed cluster", func() {
-		ginkgo.BeforeEach(func() {
-			os.Setenv("TEST_KUBECONFIG", os.Getenv("MANAGED_KUBECONFIG"))
-		})
 		examples.VerifyHelloHelidonDeletedInCluster(os.Getenv("MANAGED_KUBECONFIG"), true)
 	})
 })
@@ -120,31 +117,29 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 var _ = ginkgo.AfterSuite(func() {
 	cleanUp()
 
-	os.Setenv("TEST_KUBECONFIG", os.Getenv("MANAGED_KUBECONFIG"))
+	adminKubeconfig := os.Getenv("ADMIN_KUBECONFIG")
+	managedKubeconfig := os.Getenv("MANAGED_KUBECONFIG")
 
-	if err := pkg.DeleteNamespace(examples.TestNamespace); err != nil {
+	if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, managedKubeconfig); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not delete hello-helidon namespace: %v\n", err))
 	}
 
-	os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
-
-	if err := pkg.DeleteNamespace(examples.TestNamespace); err != nil {
+	if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, adminKubeconfig); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not delete %s namespace: %v\n", examples.TestNamespace, err))
 	}
 })
 
 func cleanUp() {
-	os.Setenv("TEST_KUBECONFIG", os.Getenv("ADMIN_KUBECONFIG"))
-
-	if err := pkg.DeleteResourceFromFile("examples/multicluster/hello-helidon/mc-hello-helidon-app.yaml"); err != nil {
+	adminKubeconfig := os.Getenv("ADMIN_KUBECONFIG")
+	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-app.yaml", adminKubeconfig); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to delete multi-cluster hello-helidon application resource: %v", err))
 	}
 
-	if err := pkg.DeleteResourceFromFile("examples/multicluster/hello-helidon/mc-hello-helidon-comp.yaml"); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-comp.yaml", adminKubeconfig); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to delete multi-cluster hello-helidon component resources: %v", err))
 	}
 
-	if err := pkg.DeleteResourceFromFile("examples/multicluster/hello-helidon/verrazzano-project.yaml"); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/verrazzano-project.yaml", adminKubeconfig); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to delete hello-helidon project resource: %v", err))
 	}
 }

@@ -410,15 +410,19 @@ func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, 
 	return ns, nil
 }
 
-// DeleteNamespace deletes a namespace
+// DeleteNamespace deletes a namespace in the cluster specified in the environment
 func DeleteNamespace(name string) error {
 	if len(os.Getenv("TEST_KUBECONFIG")) > 0 {
 		Log(Info, fmt.Sprintf("DeleteNamespace %s, test is running with custom service account and therefore namespace won't be deleted by the test", name))
 		return nil
 	}
 
+	return DeleteNamespaceInCluster(name, getKubeConfigPathFromEnv())
+}
+
+func DeleteNamespaceInCluster(name string, kubeconfigPath string) error {
 	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
 	err := clientset.CoreV1().Namespaces().Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {
 		Log(Error, fmt.Sprintf("DeleteNamespace %s error: %v", name, err))
