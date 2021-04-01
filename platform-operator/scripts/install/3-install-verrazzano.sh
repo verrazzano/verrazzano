@@ -122,8 +122,8 @@ function install_verrazzano()
       ${PROFILE_VALUES_OVERRIDE} \
       ${EXTRA_V8O_ARGUMENTS} || return $?
 
-  log "Waiting for pods in ${VERRAZZANO_NS} to be reach Ready state"
-  kubectl  wait --for=condition=Ready pod -n verrazzano-system --all=true
+  log "Waiting for the verrazzano-operator pod in ${VERRAZZANO_NS} to reach Ready state"
+  kubectl  wait -l app=verrazzano-operator --for=condition=Ready pod -n verrazzano-system
 
   log "Verifying that needed secrets are created"
   retries=0

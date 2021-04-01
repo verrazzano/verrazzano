@@ -299,7 +299,7 @@ function get_acme_environment() {
     # Ideally we would handle this by just setting helm chart values, but the Rancher override
     # and VZ ClusterIssuer resource are done here in the scripts, so switch off the profile value
     # if the environment is not explicitly specified
-    if [ "$(get_profile)" != "dev" ]; then
+    if [ "$(get_install_profile)" != "dev" ]; then
       echo "production"
     else
       echo "staging"

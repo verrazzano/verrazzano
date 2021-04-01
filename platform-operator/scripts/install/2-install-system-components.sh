@@ -74,6 +74,7 @@ function setup_cluster_issuer() {
 
     acmeURL="https://acme-v02.api.letsencrypt.org/directory"
     if [ "$(get_acme_environment)" != "production" ]; then
+      log "Non-production case, using the ACME staging environment"
       acmeURL="https://acme-staging-v02.api.letsencrypt.org/directory"
     fi
 
