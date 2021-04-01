@@ -137,6 +137,7 @@ pipeline {
                         OCI_CLI_AUTH="instance_principal"
                         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                         OCI_OS_BUCKET="verrazzano-builds"
+                        OCI_OS_LOCATION="${SHORT_COMMIT_HASH}"
                     }
                     steps {
                         sh """
