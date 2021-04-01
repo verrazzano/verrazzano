@@ -3085,10 +3085,6 @@ spec:
                   rancherUrl:
                     description: RancherURL The Rancher URL for this Verrazzano installation
                     type: string
-                  systemApi:
-                    description: SystemURL The System API URL for this Verrazzano
-                      installation
-                    type: string
                 type: object
               state:
                 description: State of the Verrazzano custom resource
