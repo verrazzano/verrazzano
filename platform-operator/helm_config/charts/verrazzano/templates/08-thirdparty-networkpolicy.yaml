@@ -15,4 +15,3 @@ spec:
       app: weblogic-operator
   policyTypes:
     - Ingress
-    - Egress
