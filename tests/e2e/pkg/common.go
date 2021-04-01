@@ -78,9 +78,14 @@ func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, 
 	return resp.StatusCode == http.StatusOK
 }
 
-//PodsRunning checks if all the pods identified by namePrefixes are ready and running
+// PodsRunning is identical to PodsRunningInCluster, except that it uses the cluster specified in the environment
 func PodsRunning(namespace string, namePrefixes []string) bool {
-	clientset := GetKubernetesClientset()
+	return PodsRunningInCluster(namespace, namePrefixes, getKubeConfigPathFromEnv())
+}
+
+// PodsRunning checks if all the pods identified by namePrefixes are ready and running in the given cluster
+func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPath string) bool {
+	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
 	pods := ListPodsInCluster(namespace, clientset)
 	missing := notRunning(pods.Items, namePrefixes...)
 	if len(missing) > 0 {
