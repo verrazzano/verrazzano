@@ -146,7 +146,27 @@ func verifyHelloHelidonInCluster(kubeConfigPath string, placedInThisCluster bool
 	// WHEN the multi-cluster example application has been created on admin cluster and NOT placed in this cluster
 	// THEN expect that the pods are NOT running
 	ginkgo.It(podsRunningTestCaseName, func() {
-		gomega.Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(gomega.Equal(placedInThisCluster))
+		gomega.Eventually(func() bool {
+			return helloHelidonPodsRunning(kubeConfigPath)
+		}, waitTimeout, pollingInterval).Should(gomega.Equal(placedInThisCluster))
+	})
+}
+
+func VerifyHelloHelidonPods(kubeconfigPath string, placedInCluster bool) {
+	runningOrNotStr := "running"
+	if !placedInCluster {
+		runningOrNotStr = "NOT running"
+	}
+	// Verify hello-helidon-deployment pod is running
+	// GIVEN OAM hello-helidon app is deployed
+	// WHEN the component and appconfig are created
+	// THEN the expected pod must be running in the test namespace if placed in this cluster, and NOT running otherwise
+	ginkgo.Describe(fmt.Sprintf("Verify hello-helidon-deployment pod is %s.", runningOrNotStr), func() {
+		ginkgo.It(fmt.Sprintf("and waiting for expected pods must be %s", runningOrNotStr), func() {
+			gomega.Eventually(func() bool {
+				return helloHelidonPodsRunning(kubeconfigPath)
+			}, waitTimeout, pollingInterval).Should(gomega.Equal(placedInCluster))
+		})
 	})
 }
 
@@ -271,6 +291,6 @@ func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kub
 	return u != nil && err == nil
 }
 
-func helloHelidonPodsRunning() bool {
-	return pkg.PodsRunning(TestNamespace, expectedPodsHelloHelidon)
+func helloHelidonPodsRunning(kubeconfigPath string) bool {
+	return pkg.PodsRunningInCluster(TestNamespace, expectedPodsHelloHelidon, kubeconfigPath)
 }

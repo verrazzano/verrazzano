@@ -6,11 +6,13 @@ package helidon
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/tests/e2e/multicluster/examples"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
@@ -67,15 +69,7 @@ const (
 )
 
 var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
-	// Verify hello-helidon-deployment pod is running
-	// GIVEN OAM hello-helidon app is deployed
-	// WHEN the component and appconfig are created
-	// THEN the expected pod must be running in the test namespace
-	ginkgo.Describe("Verify hello-helidon-deployment pod is running.", func() {
-		ginkgo.It("and waiting for expected pods must be running", func() {
-			gomega.Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue())
-		})
-	})
+	examples.VerifyHelloHelidonPods(os.Getenv("MANAGED_KUBECONFIG"), true)
 
 	var host = ""
 	// Get the host from the Istio gateway resource.
