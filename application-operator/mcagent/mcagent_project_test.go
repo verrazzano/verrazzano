@@ -6,7 +6,6 @@ package mcagent
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -98,16 +97,6 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 			},
 			false,
 		},
-		{
-			fmt.Sprintf("VP not in %s namespace", constants.VerrazzanoMultiClusterNamespace),
-			fields{
-				"random-namespace",
-				"vpInRandomNamespace",
-				[]clustersv1alpha1.NamespaceTemplate{},
-				[]clustersv1alpha1.Cluster{{Name: testClusterName}},
-			},
-			false,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -128,8 +117,9 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 
 			// Admin Cluster - expect call to list VerrazzanoProject objects - return list with one object
 			adminMock.EXPECT().
-				List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
-				DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
+				List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.AssignableToTypeOf(&client.ListOptions{})).
+				DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, listOptions *client.ListOptions) error {
+					assert.Equal(constants.VerrazzanoMultiClusterNamespace, listOptions.Namespace)
 					list.Items = append(list.Items, testProj)
 					return nil
 				})
@@ -174,8 +164,9 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 
 			// Managed Cluster - expect call to list VerrazzanoProject objects on the local cluster
 			localMock.EXPECT().
-				List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
-				DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
+				List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.AssignableToTypeOf(&client.ListOptions{})).
+				DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, listOptions *client.ListOptions) error {
+					assert.Equal(constants.VerrazzanoMultiClusterNamespace, listOptions.Namespace)
 					list.Items = append(list.Items, testProj)
 					return nil
 				})
@@ -205,75 +196,6 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 			}
 		})
 	}
-}
-
-// TestVerrazzanoProjectNotInNamespace tests the synchronization method for the following use case.
-// GIVEN a request to sync VerrazzanoProject objects
-// WHEN the object is not in the required namespace
-// THEN ensure that the VerrazzanoProject is not created.
-func TestVerrazzanoProjectNotInNamespace(t *testing.T) {
-	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
-	vpName := "vpInRandomNamespace"
-	vpNamespace := "random-namespace"
-	nsList := []clustersv1alpha1.NamespaceTemplate{testNamespace1, testNamespace2}
-
-	// Managed cluster mocks
-	localMocker := gomock.NewController(t)
-	localMock := mocks.NewMockClient(localMocker)
-
-	// Admin cluster mocks
-	adminMocker := gomock.NewController(t)
-	adminMock := mocks.NewMockClient(adminMocker)
-
-	// Test data
-	testProj, err := getTestVerrazzanoProject(vpNamespace, vpName, nsList, []clustersv1alpha1.Cluster{{Name: testClusterName}})
-	assert.NoError(err, "failed to get sample project")
-
-	// Admin Cluster - expect call to list VerrazzanoProject objects - return list with one object
-	adminMock.EXPECT().
-		List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
-			list.Items = append(list.Items, testProj)
-			return nil
-		})
-
-	// Managed Cluster - expect call to get VerrazzanoProject
-	localMock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vpNamespace, Name: vpName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: "clusters.verrazzano.io", Resource: "VerrazzanoProject"}, vpName))
-
-	// Managed Cluster - expect call to create a VerrazzanoProject
-	localMock.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vp *clustersv1alpha1.VerrazzanoProject, opts ...client.CreateOption) error {
-			assert.Equal(vpNamespace, vp.Namespace, "VerrazzanoProject namespace did not match")
-			assert.Equal(vpName, vp.Name, "VerrazzanoProject name did not match")
-			assert.ElementsMatch(nsList, vp.Spec.Template.Namespaces)
-			return nil
-		})
-
-	// Managed Cluster - expect call to list VerrazzanoProject objects on the local cluster
-	localMock.EXPECT().
-		List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
-			list.Items = append(list.Items, testProj)
-			return nil
-		})
-
-	// Make the request
-	s := &Syncer{
-		AdminClient:        adminMock,
-		LocalClient:        localMock,
-		Log:                log,
-		ManagedClusterName: testClusterName,
-		Context:            context.TODO(),
-	}
-	err = s.syncVerrazzanoProjects()
-
-	// Validate the results
-	adminMocker.Finish()
-	localMocker.Finish()
 }
 
 // TestDeleteVerrazzanoProject tests the synchronization method for the following use case.
@@ -324,8 +246,9 @@ func TestDeleteVerrazzanoProject(t *testing.T) {
 
 			// Admin Cluster - expect call to list VerrazzanoProject objects - return list with one object
 			adminMock.EXPECT().
-				List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
-				DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
+				List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.AssignableToTypeOf(&client.ListOptions{})).
+				DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, listOptions *client.ListOptions) error {
+					assert.Equal(constants.VerrazzanoMultiClusterNamespace, listOptions.Namespace)
 					list.Items = append(list.Items, testProj)
 					return nil
 				})
@@ -343,7 +266,7 @@ func TestDeleteVerrazzanoProject(t *testing.T) {
 			// Managed Cluster - expect call to list VerrazzanoProject objects on the local cluster, return an object that
 			// does not exist on the admin cluster
 			localMock.EXPECT().
-				List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
+				List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.AssignableToTypeOf(&client.ListOptions{})).
 				DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
 					list.Items = append(list.Items, testProj)
 					list.Items = append(list.Items, testProjOrphan)
@@ -456,7 +379,7 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 
 			// Admin Cluster - expect call to list VerrazzanoProject objects - return list with two objects
 			adminMock.EXPECT().
-				List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
+				List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.AssignableToTypeOf(&client.ListOptions{})).
 				DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
 					list.Items = append(list.Items, testProj1)
 					list.Items = append(list.Items, testProj2)
@@ -496,7 +419,7 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 
 				// Managed Cluster - expect call to list VerrazzanoProject objects on the local cluster
 				localMock.EXPECT().
-					List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.Not(gomock.Nil())).
+					List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.AssignableToTypeOf(&client.ListOptions{})).
 					DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
 						list.Items = append(list.Items, testProj1)
 						list.Items = append(list.Items, testProj2)
