@@ -108,9 +108,11 @@ func createOrUpdateResourceFromBytes(data []byte, config *rest.Config) error {
 			}
 			uns.SetResourceVersion(resource.GetResourceVersion())
 			_, err = client.Resource(unsMap.Resource).Namespace(uns.GetNamespace()).Update(context.TODO(), uns, metav1.UpdateOptions{})
-		}
-		if err != nil {
-			return fmt.Errorf("failed to create or update resource: %w", err)
+			if err != nil {
+				return fmt.Errorf("failed to update resource: %w", err)
+			}
+		} else if err != nil {
+			return fmt.Errorf("failed to create resource: %w", err)
 		}
 	}
 	// no return since you can't get here
