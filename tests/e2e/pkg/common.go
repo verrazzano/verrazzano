@@ -45,6 +45,11 @@ func GetVerrazzanoPassword() string {
 	return string(secret.Data["password"])
 }
 
+func GetVerrazzanoPasswordInCluster(kubeconfigPath string) string {
+	secret, _ := GetSecretInCluster("verrazzano-system", "verrazzano", kubeconfigPath)
+	return string(secret.Data["password"])
+}
+
 // Concurrently executes the given assertions in parallel and waits for them all to complete
 func Concurrently(assertions ...func()) {
 	number := len(assertions)

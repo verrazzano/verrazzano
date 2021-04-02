@@ -33,7 +33,7 @@ func getSystemElasticSearchIngressHost(kubeconfigPath string) string {
 // listSystemElasticSearchIndices lists the system Elasticsearch indices in the given cluster
 func listSystemElasticSearchIndices(kubeconfigPath string) []string {
 	url := fmt.Sprintf("https://%s/_all", getSystemElasticSearchIngressHost(kubeconfigPath))
-	status, body := RetryGetWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPassword())
+	status, body := RetryGetWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPasswordInCluster(kubeconfigPath))
 	list := []string{}
 	if status != 200 {
 		Log(Debug, fmt.Sprintf("Error retrieving Elasticsearch indices: url=%s, status=%d", url, status))
