@@ -458,6 +458,78 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 	}
 }
 
+// TestRemovePlacementVerrazzanoProject tests the synchronization method for the following use case.
+// GIVEN a request to sync VerrazzanoProject objects
+// WHEN the object exists on the local cluster but is no longer placed on the local cluster
+// THEN ensure that the VerrazzanoProject is deleted.
+func TestRemovePlacementVerrazzanoProject(t *testing.T) {
+	assert := asserts.New(t)
+	log := ctrl.Log.WithName("test")
+	vpName := "test"
+	vpNamespace := constants.VerrazzanoMultiClusterNamespace
+	nsList := []clustersv1alpha1.NamespaceTemplate{testNamespace1, testNamespace2}
+	clusters := []clustersv1alpha1.Cluster{{Name: testClusterName}}
+	clustersUpdated := []clustersv1alpha1.Cluster{{Name: "local"}}
+
+	// Managed cluster mocks
+	localMocker := gomock.NewController(t)
+	localMock := mocks.NewMockClient(localMocker)
+
+	// Admin cluster mocks
+	adminMocker := gomock.NewController(t)
+	adminMock := mocks.NewMockClient(adminMocker)
+
+	// Test data
+	testProj, err := getTestVerrazzanoProject(vpNamespace, vpName, nsList, clusters)
+	assert.NoError(err, "failed to get sample project")
+	testProjUpdated, err := getTestVerrazzanoProject(vpNamespace, vpName, nsList, clustersUpdated)
+	assert.NoError(err, "failed to get sample project")
+
+	// Admin Cluster - expect call to list VerrazzanoProject objects - return list with one object
+	adminMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.AssignableToTypeOf(&client.ListOptions{})).
+		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, listOptions *client.ListOptions) error {
+			assert.Equal(constants.VerrazzanoMultiClusterNamespace, listOptions.Namespace)
+			list.Items = append(list.Items, testProjUpdated)
+			return nil
+		})
+
+	// Managed Cluster - expect call to get VerrazzanoProject
+	localMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpNamespace, Name: vpName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
+			testProj.DeepCopyInto(vp)
+			return nil
+		})
+
+	// Managed Cluster - expect a call to delete a VerrazzanoProject object
+	localMock.EXPECT().
+		Delete(gomock.Any(), gomock.Eq(&testProj), gomock.Any()).
+		Return(nil)
+
+	// Managed Cluster - expect call to list VerrazzanoProject objects on the local cluster, return an empty list
+	localMock.EXPECT().
+		List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.AssignableToTypeOf(&client.ListOptions{})).
+		DoAndReturn(func(ctx context.Context, list *clustersv1alpha1.VerrazzanoProjectList, opts ...*client.ListOptions) error {
+			return nil
+		})
+
+	// Make the request
+	s := &Syncer{
+		AdminClient:        adminMock,
+		LocalClient:        localMock,
+		Log:                log,
+		ManagedClusterName: testClusterName,
+		Context:            context.TODO(),
+	}
+	err = s.syncVerrazzanoProjects()
+
+	// Validate the results
+	adminMocker.Finish()
+	localMocker.Finish()
+	assert.NoError(err)
+}
+
 // getTestVerrazzanoProject creates and returns VerrazzanoProject used in tests
 func getTestVerrazzanoProject(vpNamespace string, vpName string, nsNames []clustersv1alpha1.NamespaceTemplate, clusters []clustersv1alpha1.Cluster) (clustersv1alpha1.VerrazzanoProject, error) {
 	proj := clustersv1alpha1.VerrazzanoProject{}
