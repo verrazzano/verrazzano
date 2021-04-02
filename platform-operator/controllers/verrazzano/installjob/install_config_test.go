@@ -410,11 +410,11 @@ func TestNodePortInstall(t *testing.T) {
 	assert.Equalf(t, "tls-rancher", config.Certificates.CA.SecretName, "Expected CA secret name did not match")
 }
 
-// TestFindFolumeTemplate Test the findVolumeTemplate utility function
+// TestFindVolumeTemplate Test the findVolumeTemplate utility function
 // GIVEN a call to findVolumeTemplate
 // WHEN valid or invalid arguments are given
 // THEN true and the found template are is returned if found, nil/false otherwise
-func TestFindFolumeTemplate(t *testing.T) {
+func TestFindVolumeTemplate(t *testing.T) {
 
 	specTemplateList := []installv1alpha1.VolumeClaimSpecTemplate{
 		{
@@ -828,6 +828,46 @@ func TestGetVerrazzanoInstallArgsNoArgs(t *testing.T) {
 	assert.Equal(t, 0, len(installArgs))
 }
 
+// TestGetVerrazzanoInstallArgsSomeEnabled Test the getVerrazzanoInstallArgs function
+// GIVEN a call to getVerrazzanoInstallArgs
+// WHEN some components are enabled
+// THEN the correct set of InstallArg objects are returned and set to "true", minus the Prometheus setting
+func TestGetVerrazzanoInstallArgsSomeEnabled(t *testing.T) {
+	// Simulates the managed-cluster settings
+	vzSpec := installv1alpha1.VerrazzanoSpec{
+		Components: installv1alpha1.ComponentSpec{
+			Elasticsearch: &installv1alpha1.ElasticsearchComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: true}},
+			Kibana:        &installv1alpha1.KibanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: true}},
+			Grafana:       &installv1alpha1.GrafanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: true}},
+			Console:       &installv1alpha1.ConsoleComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: true}},
+		},
+	}
+	installArgs, err := getVerrazzanoInstallArgs(&vzSpec)
+	assert.NoError(t, err)
+	assert.NotNil(t, installArgs)
+	assert.Equal(t, 4, len(installArgs))
+
+	const (
+		esIndex      = 0
+		kibanaIndex  = 1
+		grafanaIndex = 2
+		consoleIndex = 3
+	)
+
+	assert.Equal(t, esEnabledValueName, installArgs[esIndex].Name)
+	assert.Equal(t, "true", installArgs[esIndex].Value)
+	assert.False(t, installArgs[esIndex].SetString)
+	assert.Equal(t, grafanaEnabledValueName, installArgs[grafanaIndex].Name)
+	assert.Equal(t, "true", installArgs[grafanaIndex].Value)
+	assert.False(t, installArgs[grafanaIndex].SetString)
+	assert.Equal(t, kibanaEnabledValueName, installArgs[kibanaIndex].Name)
+	assert.Equal(t, "true", installArgs[kibanaIndex].Value)
+	assert.False(t, installArgs[kibanaIndex].SetString)
+	assert.Equal(t, consoleEnabledValueName, installArgs[consoleIndex].Name)
+	assert.Equal(t, "true", installArgs[consoleIndex].Value)
+	assert.False(t, installArgs[consoleIndex].SetString)
+}
+
 // TestGetVerrazzanoInstallArgsSomeVMIDisabled Test the getVerrazzanoInstallArgs function
 // GIVEN a call to getVerrazzanoInstallArgs
 // WHEN all VMI components are disabled in the vzSpec except Prometheus
@@ -839,17 +879,19 @@ func TestGetVerrazzanoInstallArgsSomeVMIDisabled(t *testing.T) {
 			Elasticsearch: &installv1alpha1.ElasticsearchComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
 			Kibana:        &installv1alpha1.KibanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
 			Grafana:       &installv1alpha1.GrafanaComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
+			Console:       &installv1alpha1.ConsoleComponent{MonitoringComponent: installv1alpha1.MonitoringComponent{Enabled: false}},
 		},
 	}
 	installArgs, err := getVerrazzanoInstallArgs(&vzSpec)
 	assert.NoError(t, err)
 	assert.NotNil(t, installArgs)
-	assert.Equal(t, 3, len(installArgs))
+	assert.Equal(t, 4, len(installArgs))
 
 	const (
 		esIndex      = 0
 		kibanaIndex  = 1
 		grafanaIndex = 2
+		consoleIndex = 3
 	)
 
 	assert.Equal(t, esEnabledValueName, installArgs[esIndex].Name)
@@ -861,6 +903,9 @@ func TestGetVerrazzanoInstallArgsSomeVMIDisabled(t *testing.T) {
 	assert.Equal(t, kibanaEnabledValueName, installArgs[kibanaIndex].Name)
 	assert.Equal(t, "false", installArgs[kibanaIndex].Value)
 	assert.False(t, installArgs[kibanaIndex].SetString)
+	assert.Equal(t, consoleEnabledValueName, installArgs[consoleIndex].Name)
+	assert.Equal(t, "false", installArgs[consoleIndex].Value)
+	assert.False(t, installArgs[consoleIndex].SetString)
 }
 
 // TestGetKeycloakEmptyDirVolumeSourceNoDefaultVolumeSource Test the getKeycloak  function

@@ -83,6 +83,7 @@ monitoringOperator:
   RequestMemory: 48Mi
 
 console:
+  enabled: true
   name: verrazzano-console
   imageName: ghcr.io/verrazzano/console
   imageVersion: 0.13.0-20210331124014-6b4ca75
