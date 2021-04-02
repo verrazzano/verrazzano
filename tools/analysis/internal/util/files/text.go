@@ -16,6 +16,15 @@ import (
 	"time"
 )
 
+// TimeRange is used when searching requires time bounded matches
+// Handling of a TimeRange:
+//     if not specified, match is included
+//     if StartTime is supplied (not zero) matches at/after that time are included
+//     if EndTime is supplied (not zero) matches at/before that time are included
+type TimeRange struct {
+	StartTime metav1.Time
+	EndTime   metav1.Time
+}
 // TextMatch supplies information about the matched text
 type TextMatch struct {
 	FileName    string
@@ -24,6 +33,7 @@ type TextMatch struct {
 	MatchedText string
 }
 
+var ZeroTime = metav1.NewTime(time.Time{})
 // TODO: May move to only functions which require pre-compiled regular expressions, and have the pre-compiled at
 // compilation time rather than at runtime
 
@@ -38,7 +48,7 @@ func SearchMatches(log *zap.SugaredLogger, matchesToSearch []TextMatch, searchMa
 }
 
 // SearchFiles will search the list of files that are already known for text that matches
-func SearchFiles(log *zap.SugaredLogger, rootDirectory string, files []string, searchMatchRe *regexp.Regexp) (matches []TextMatch, err error) {
+func SearchFiles(log *zap.SugaredLogger, rootDirectory string, files []string, searchMatchRe *regexp.Regexp, timeRange *TimeRange) (matches []TextMatch, err error) {
 	if searchMatchRe == nil {
 		return nil, fmt.Errorf("SaerchFilesRe requires a regular expression")
 	}
@@ -49,7 +59,7 @@ func SearchFiles(log *zap.SugaredLogger, rootDirectory string, files []string, s
 	}
 
 	for _, fileName := range files {
-		matchesFromFile, err := SearchFile(log, fileName, searchMatchRe)
+		matchesFromFile, err := SearchFile(log, fileName, searchMatchRe, timeRange)
 		if err != nil {
 			log.Debugf("failure opening %s", fileName, err)
 			return nil, err
@@ -62,7 +72,7 @@ func SearchFiles(log *zap.SugaredLogger, rootDirectory string, files []string, s
 }
 
 // SearchFile search a file
-func SearchFile(log *zap.SugaredLogger, fileName string, searchMatchRe *regexp.Regexp) (matches []TextMatch, err error) {
+func SearchFile(log *zap.SugaredLogger, fileName string, searchMatchRe *regexp.Regexp, timeRange *TimeRange) (matches []TextMatch, err error) {
 	if searchMatchRe == nil {
 		return nil, fmt.Errorf("SearchFileRe requires a regular expression")
 	}
@@ -109,11 +119,14 @@ func SearchFile(log *zap.SugaredLogger, fileName string, searchMatchRe *regexp.R
 			lineNumber++
 			matched := searchMatchRe.Find([]byte(line))
 			if len(matched) > 0 {
+				timestamp := ExtractTimeIfPresent(line)
+				if IsInTimeRange(timestamp, timeRange) {
+					match.Timestamp = timestamp
 				match.FileLine = lineNumber
 				match.FileName = fileName
 				match.MatchedText = line
 				matches = append(matches, match)
-				match.Timestamp = ExtractTimeIfPresent(line)
+				}
 			}
 		}
 		// If we hit EOF, we're done
@@ -126,7 +139,7 @@ func SearchFile(log *zap.SugaredLogger, fileName string, searchMatchRe *regexp.R
 }
 
 // FindFilesAndSearch will search across files that match a specified expression
-func FindFilesAndSearch(log *zap.SugaredLogger, rootDirectory string, fileMatchRe *regexp.Regexp, searchMatchRe *regexp.Regexp) (matches []TextMatch, err error) {
+func FindFilesAndSearch(log *zap.SugaredLogger, rootDirectory string, fileMatchRe *regexp.Regexp, searchMatchRe *regexp.Regexp, timeRange *TimeRange) (matches []TextMatch, err error) {
 	if len(rootDirectory) == 0 {
 		return nil, errors.New("FindFilesAndSearch requires rootDirectory")
 	}
@@ -147,12 +160,37 @@ func FindFilesAndSearch(log *zap.SugaredLogger, rootDirectory string, fileMatchR
 	}
 
 	// Note that SearchFiles will detect if no files were found so just call it
-	return SearchFiles(log, rootDirectory, filesToSearch, searchMatchRe)
+	return SearchFiles(log, rootDirectory, filesToSearch, searchMatchRe, timeRange)
 }
 
 // ExtractTimeIfPresent determines if the text matches a known pattern which has a timestamp in it (such as known log formats)
 // and will extract the timestamp into a wrappered metav1.Time. If there is no timestamp found it will return a zero time value
 func ExtractTimeIfPresent(inputText string) metav1.Time {
 	// TODO: Add known log timestamp patterns, and parse out the times
-	return metav1.NewTime(time.Time{})
+	return ZeroTime
+}
+
+// IsInTimeRange will check if a specified time is within the specified range
+// It will return true if:
+//      - there is no time range specified
+//      - a time range is specified and the time specified is in that range (see TimeRange type)
+// Otherwise it will return false:
+//      - if the time is zero and there is a range specified, it can't determine it
+//      - if the time is not within the range specified
+func IsInTimeRange(timeToCheck metav1.Time, timeRange *TimeRange) bool {
+	// If there is no time range, then all times would match it
+	if timeRange == nil || (timeRange.StartTime.IsZero() && timeRange.EndTime.IsZero()) {
+		return true
+	}
+
+	// We know there is some time range specified, so if there is no input time to check
+	// we can't determine if it is in the range, so return false
+	if timeToCheck.IsZero() {
+		return false
+	}
+
+	// if the start/end times in a range are zero, they don't limit the range
+	isAfterStart := timeRange.StartTime.IsZero() || !timeToCheck.Before(&timeRange.StartTime)
+	isBeforeEnd := timeRange.EndTime.IsZero() || timeToCheck.Before(&timeRange.EndTime) || timeToCheck.Equal(&timeRange.EndTime)
+	return isAfterStart && isBeforeEnd
 }

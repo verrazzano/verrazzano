@@ -51,7 +51,7 @@ func AnalyzeVerrazzanoInstallIssue(log *zap.SugaredLogger, clusterRoot string, p
 	if IsContainerNotReady(pod.Status.Conditions) {
 		// The install job pod log is currently the only place we can determine where the install process failed at, so we
 		// scrape those log messages out.
-		logMatches, err := files.SearchFile(log, files.FindPodLogFileName(clusterRoot, pod), installFailedRe)
+		logMatches, err := files.SearchFile(log, files.FindPodLogFileName(clusterRoot, pod), installFailedRe, nil)
 		if err == nil {
 			// We likely will only have a single failure message here (we may only want to look at the last one for install failures)
 			for _, matched := range logMatches {
@@ -160,7 +160,8 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		// we haven't found anything, so give general advise for now.
 		messages := make(StringSlice, 1)
 		messages[0] = fmt.Sprintf("Namespace %s, Pod %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
-		nginxPodErrors, err := files.FindFilesAndSearch(log, files.FindFileInClusterRoot(clusterRoot, "ingress-nginx"), LogFilesMatchRe, WideErrorSearchRe)
+		// TODO: Time correlation on error search here
+		nginxPodErrors, err := files.FindFilesAndSearch(log, files.FindFileInClusterRoot(clusterRoot, "ingress-nginx"), LogFilesMatchRe, WideErrorSearchRe, nil)
 		if err != nil {
 			log.Debugf("Failed searching NGINX Ingress namespace log files for supporting error log data", err)
 		}

@@ -329,7 +329,7 @@ func IsPodPending(pod corev1.Pod) bool {
 // This looks at the pods.json files in the cluster and will give a list of files
 // if any have pods that are not Running or Succeeded.
 func findProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFiles []string, err error) {
-	allPodPhases, err := files.FindFilesAndSearch(log, clusterRoot, PodFilesMatchRe, podPhaseRe)
+	allPodPhases, err := files.FindFilesAndSearch(log, clusterRoot, PodFilesMatchRe, podPhaseRe, nil)
 	if err != nil {
 		return podFiles, err
 	}
@@ -388,7 +388,8 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 				messages = append(messages, fmt.Sprintf("Namespace %s, Pod %s, Status %s, Reason %s, Message %s",
 					pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, condition.Status, condition.Reason, condition.Message))
 			}
-			matched, err := files.SearchFile(log, files.FindPodLogFileName(clusterRoot, pod), WideErrorSearchRe)
+			// TODO: Time correlation for search
+			matched, err := files.SearchFile(log, files.FindPodLogFileName(clusterRoot, pod), WideErrorSearchRe, nil)
 			if err != nil {
 				log.Debugf("Failed to search the logfile %s for the ns/pod %s/%s",
 					files.FindPodLogFileName(clusterRoot, pod), pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, err)
