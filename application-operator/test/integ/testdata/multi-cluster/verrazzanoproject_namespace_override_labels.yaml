@@ -22,3 +22,6 @@ spec:
             label2: "test2"
           annotations:
             annot2: "test2"
+  placement:
+    clusters:
+      - name: managed1
