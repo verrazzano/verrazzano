@@ -78,6 +78,7 @@ func LogIndexFound(indexName string) bool {
 
 // LogIndexFoundInCluster confirms a named index can be found in Elasticsearch on the given cluster
 func LogIndexFoundInCluster(indexName, kubeconfigPath string) bool {
+	Log(Info, fmt.Sprintf("Looking for log index %s in cluster with kubeconfig %s", indexName, kubeconfigPath))
 	for _, name := range listSystemElasticSearchIndices(kubeconfigPath) {
 		if name == indexName {
 			return true
