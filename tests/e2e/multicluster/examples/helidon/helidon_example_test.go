@@ -21,19 +21,21 @@ const (
 )
 
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
+var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
+var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 
 // set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources
 var _ = ginkgo.BeforeSuite(func() {
-	examples.DeployHelloHelidon(os.Getenv("ADMIN_KUBECONFIG"))
+	examples.DeployHelloHelidon(adminKubeconfig)
 })
 
 var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 	ginkgo.Context("Admin Cluster", func() {
-		examples.VerifyHelloHelidonInAdminCluster(os.Getenv("ADMIN_KUBECONFIG"), false)
+		examples.VerifyHelloHelidonInAdminCluster(adminKubeconfig, false)
 	})
 
 	ginkgo.Context("Managed Cluster", func() {
-		examples.VerifyHelloHelidonInManagedCluster(os.Getenv("MANAGED_KUBECONFIG"), true)
+		examples.VerifyHelloHelidonInManagedCluster(managedKubeconfig, true)
 	})
 
 	ginkgo.Context("Remaining Managed Clusters", func() {
@@ -57,7 +59,7 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 	})
 
 	ginkgo.Context("Logging", func() {
-		adminKubeconfig := os.Getenv("ADMIN_KUBECONFIG")
+		adminKubeconfig := adminKubeconfig
 		indexName := "hello-helidon-hello-helidon-appconf-hello-helidon-component-hello-helidon-container"
 
 		// GIVEN an admin cluster and at least one managed cluster
@@ -92,7 +94,7 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
 	// 	ginkgo.It("Verify Prometheus metrics exist on admin cluster", func() {
 	// 		gomega.Eventually(func() bool {
-	//			return appMetricsExists(os.Getenv("ADMIN_KUBECONFIG"))
+	//			return appMetricsExists(adminKubeconfig)
 	// 		}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 	// 	})
 	// })
@@ -102,19 +104,16 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 			cleanUp()
 		})
 
-		examples.VerifyHelloHelidonDeletedAdminCluster(os.Getenv("ADMIN_KUBECONFIG"), false)
+		examples.VerifyHelloHelidonDeletedAdminCluster(adminKubeconfig, false)
 	})
 
 	ginkgo.Context("Verify resources have been deleted on the managed cluster", func() {
-		examples.VerifyHelloHelidonDeletedInCluster(os.Getenv("MANAGED_KUBECONFIG"), true)
+		examples.VerifyHelloHelidonDeletedInCluster(managedKubeconfig, true)
 	})
 })
 
 var _ = ginkgo.AfterSuite(func() {
 	cleanUp()
-
-	adminKubeconfig := os.Getenv("ADMIN_KUBECONFIG")
-	managedKubeconfig := os.Getenv("MANAGED_KUBECONFIG")
 
 	if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, managedKubeconfig); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not delete hello-helidon namespace: %v\n", err))
@@ -126,7 +125,6 @@ var _ = ginkgo.AfterSuite(func() {
 })
 
 func cleanUp() {
-	adminKubeconfig := os.Getenv("ADMIN_KUBECONFIG")
 	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-app.yaml", adminKubeconfig); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to delete multi-cluster hello-helidon application resource: %v", err))
 	}
