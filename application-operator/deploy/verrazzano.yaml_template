@@ -140,8 +140,7 @@ rules:
     resources:
       - authorizationpolicies
     verbs:
-      - create
-      - get
+      - '*'
   - apiGroups:
       - weblogic.oracle
     resources:
