@@ -59,7 +59,6 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 	})
 
 	ginkgo.Context("Logging", func() {
-		adminKubeconfig := adminKubeconfig
 		indexName := "hello-helidon-hello-helidon-appconf-hello-helidon-component-hello-helidon-container"
 
 		// GIVEN an admin cluster and at least one managed cluster
