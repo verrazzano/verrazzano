@@ -51,7 +51,7 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 		})
 
 		// app should not be placed in the managed cluster
-		examples.VerifyHelloHelidonDeletedInCluster(managed1Kubeconfig, false)
+		examples.VerifyHelloHelidonInManagedCluster(managed1Kubeconfig, false)
 
 		// app should be placed in admin cluster
 		examples.VerifyHelloHelidonInAdminCluster(adminKubeconfig, true)
