@@ -268,13 +268,13 @@ pipeline {
                 expression { skip_stage == 'false' }
             }
             parallel {
-                /*stage('verify-install') {
+                stage('verify-install') {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             runGinkgo('verify-install')
                         }
                     }
-                }*/
+                }
                 stage('verify-infra restapi') {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
@@ -296,16 +296,6 @@ pipeline {
                         }
                     }
                 }
-                /* Disabling these for now, they take about 3x as long as the other tests, and the others are good
-                   enough to establish that the install is working
-                stage('Verify examples/todo') {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            runGinkgo('examples/todo')
-                        }
-                    }
-                }
-                */
             }
             post {
                 failure {

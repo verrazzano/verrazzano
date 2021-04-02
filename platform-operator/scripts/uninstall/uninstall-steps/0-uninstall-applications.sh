@@ -57,13 +57,7 @@ function initializing_uninstall {
         break
       fi
     done
-
-    # Occasionally the 'local' Rancher cluster object is stuck with a dangling finalizer, remove it so
-    # we don't orphan the cluster info between installs
-    log "Remove any dangling finalizers from the 'local' Rancher cluster object"
-    kubectl patch cluster local -n kube-system -p '{"metadata":{"finalizers":null}}' --type=merge || true
   fi
-
   return 0
 }
 
