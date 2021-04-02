@@ -12,3 +12,6 @@ spec:
         name: multiclustertest
     - metadata:
         name: anothermulticlustertest
+  placement:
+    clusters:
+      - name: managed1
