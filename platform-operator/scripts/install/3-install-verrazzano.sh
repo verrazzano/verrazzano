@@ -124,7 +124,6 @@ function install_verrazzano()
       --set config.envName=${ENV_NAME} \
       --set config.dnsSuffix=${DNS_SUFFIX} \
       --set config.enableMonitoringStorage=true \
-      --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)" \
       --set kubernetes.service.endpoint.ip=${ENDPOINT_ARRAY[0]} \
       --set kubernetes.service.endpoint.port=${ENDPOINT_ARRAY[1]} \
       ${PROFILE_VALUES_OVERRIDE} \
