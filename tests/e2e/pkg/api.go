@@ -49,7 +49,7 @@ func GetAPIEndpoint(kubeconfigPath string) *APIEndpoint {
 
 // getAPIURL returns the Verrazzano REST API URL for the cluster whose kubeconfig is given as argument
 func getAPIURL(kubeconfigPath string) string {
-	ingress, _ := GetKubernetesClientsetForCluster(kubeconfigPath).ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-console-ingress", v1.GetOptions{})
+	ingress, _ := GetKubernetesClientsetForCluster(kubeconfigPath).ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
 	var ingressRules []extensionsv1beta1.IngressRule = ingress.Spec.Rules
 	return fmt.Sprintf("https://%s/%s", ingressRules[0].Host, verrazzanoAPIURLPrefix)
 }

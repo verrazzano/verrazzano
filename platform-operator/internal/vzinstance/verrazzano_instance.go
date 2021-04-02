@@ -6,6 +6,7 @@ package vzinstance
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"go.uber.org/zap"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
@@ -29,7 +30,7 @@ func GetInstanceInfo(client client.Client) *v1alpha1.InstanceInfo {
 	}
 
 	instanceInfo := &v1alpha1.InstanceInfo{
-		ConsoleURL:    getSystemIngressURL(client, ingressList.Items, systemNamespace, "verrazzano-console-ingress"),
+		ConsoleURL:    getSystemIngressURL(client, ingressList.Items, systemNamespace, "verrazzano-ingress"),
 		RancherURL:    getSystemIngressURL(client, ingressList.Items, "cattle-system", "rancher"),
 		KeyCloakURL:   getSystemIngressURL(client, ingressList.Items, "keycloak", "keycloak"),
 		ElasticURL:    getSystemIngressURL(client, ingressList.Items, systemNamespace, "vmi-system-es-ingest"),
