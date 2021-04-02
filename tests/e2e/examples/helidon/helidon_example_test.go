@@ -97,7 +97,6 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 		ginkgo.It("Access /greet App Url.", func() {
 			url := fmt.Sprintf("https://%s/greet", host)
 			gomega.Eventually(func() bool {
-
 				return appEndpointAccessible(url, host)
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 		})
@@ -154,13 +153,7 @@ func helloHelidonPodsRunning() bool {
 
 func appEndpointAccessible(url string, hostname string) bool {
 	status, webpage := pkg.GetWebPageWithBasicAuth(url, hostname, "", "")
-	pkg.Log(pkg.Info, fmt.Sprintf("appEndPointAcessible return http status =: %d", status))
-	pkg.Log(pkg.Info, fmt.Sprintf("appEndPointAcessible return webpage =: %s", webpage))
-	isGood := (status == http.StatusOK) && (strings.Contains(webpage, "Hello World"))
-	pkg.Log(pkg.Info, fmt.Sprintf("appEndPointAcessible return isGood =: %t", isGood))
-	return isGood
-	//	return gomega.Expect(status).To(gomega.Equal(http.StatusOK), fmt.Sprintf("GET %v returns status %v expected 200.", url, status)) &&
-	//		gomega.Expect(strings.Contains(webpage, "Hello World")).To(gomega.Equal(true), fmt.Sprintf("Webpage is NOT Hello World %v", webpage))
+	return (status == http.StatusOK) && (strings.Contains(webpage, "Hello World"))
 }
 
 func appMetricsExists() bool {
