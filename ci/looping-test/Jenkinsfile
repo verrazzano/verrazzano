@@ -268,13 +268,13 @@ pipeline {
                 expression { skip_stage == 'false' }
             }
             parallel {
-                stage('verify-install') {
+                /*stage('verify-install') {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             runGinkgo('verify-install')
                         }
                     }
-                }
+                }*/
                 stage('verify-infra restapi') {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
