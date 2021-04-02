@@ -438,7 +438,7 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 
 			resp, err := client.Do(req)
 			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Failed to do http request: %v", err))
+				ginkgo.Fail(fmt.Sprintf("Http Request failed for %s. Dump Request Object %+v", err, req))
 			}
 			return gomega.Expect(resp.StatusCode).To(gomega.Equal(500))
 		}, waitTimeout, shortPollingInterval).Should(gomega.BeTrue())
