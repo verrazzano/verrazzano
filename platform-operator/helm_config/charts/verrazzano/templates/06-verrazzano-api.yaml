@@ -357,10 +357,10 @@ spec:
                   - key: ca.crt
                     path: default-ca-bundle
             - secret:
-                name: verrazzano-multicluster-api-config
+                name: verrazzano-cluster-registration
                 optional: true
                 items:
-                  - key: ca.crt
+                  - key: ca-bundle
                     path: admin-ca-bundle
                   - key: keycloak-url
                     path: keycloak-url
