@@ -46,6 +46,9 @@ kibana:
   requests:
     memory: 192Mi
 
+rancher:
+  enabled: true
+
 verrazzanoOperator:
   name: verrazzano-operator
   imageName: ghcr.io/verrazzano/verrazzano-operator

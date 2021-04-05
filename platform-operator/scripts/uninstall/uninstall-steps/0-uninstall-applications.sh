@@ -14,6 +14,11 @@ UNINSTALL_DIR=$SCRIPT_DIR/..
 set -o pipefail
 
 function initializing_uninstall {
+  if [ $(is_rancher_enabled) != "true" ]; then
+    log "Rancher is not enabled, skip deleting the local cluster."
+    return 0
+  fi
+
   # Deleting rancher through API
   log "Listing pods in cattle-system namespace"
   kubectl get pods -n cattle-system

@@ -11,6 +11,9 @@ DEFAULT_CONFIG_FILE="$CONFIG_SCRIPT_DIR/config/config_defaults.json"
 # The max length of the environment name passed in by the user.
 ENV_NAME_LENGTH_LIMIT=10
 
+VZ_VALUES_DIR="${CONFIG_SCRIPT_DIR}/../../helm_config/charts/verrazzano"
+VZ_EFFECTIVE_VALUES="${VZ_VALUES_DIR}/effective.values.yaml"
+
 # Read a JSON installation config file and output the JSON to stdout
 function read_config() {
   local config_file=$1
@@ -319,6 +322,41 @@ function get_nginx_nodeport() {
   echo ${nodePort}
 }
 
+function merge_verrazzano_values() {
+  set -o pipefail
+  log "Printing yq version ..."
+  yq --version
+  local profile=$(get_config_value '.profile')
+  local values_file="${VZ_VALUES_DIR}/values.yaml"
+  local profile_values_override="${VZ_VALUES_DIR}/values.${profile}.yaml"
+  if [ ! -f "${profile_values_override}" ]; then
+    error "The file ${profile_values_override} does not exist"
+    exit 1
+  fi
+  yq eval-all "select(fileIndex == 0) * select(filename == \"${profile_values_override}\")" $values_file $profile_values_override > $VZ_EFFECTIVE_VALUES
+}
+
+function get_verrazzano_value() {
+  set -o pipefail
+  local yq_expr="$1"
+
+  local config_val=$(yq eval "${yq_expr}" $VZ_EFFECTIVE_VALUES)
+  if [ $? -ne 0 ]; then
+    log "Error reading $yq_expr from $VZ_EFFECTIVE_VALUES files"
+    return 1
+  fi
+  if [ "$config_val" == "null" ]; then
+    config_val=""
+  fi
+  echo $config_val
+  return 0
+}
+
+function is_rancher_enabled() {
+  local rancher_enabled=$(get_verrazzano_value '.rancher.enabled')
+  echo ${rancher_enabled}
+}
+
 if [ -z "$INSTALL_CONFIG_FILE" ]; then
   INSTALL_CONFIG_FILE=$DEFAULT_CONFIG_FILE
 fi
@@ -329,17 +367,10 @@ fi
 CONFIG_JSON="$(read_config $INSTALL_CONFIG_FILE)"
 
 validate_config_json "$CONFIG_JSON" || fail "Installation config is invalid"
-## Test cases - TODO remove before merging
-#log "got environmentName value $(get_config_value ".environmentName")"
-#log "got profile value $(get_config_value ".profile")"
-#log "got dns type value $(get_config_value ".dns.type")"
-#log "got certificates issuerType value $(get_config_value ".certificates.issuerType")"
-#log "got ingress type value $(get_config_value ".ingress.type")"
-#log "got nginx ingress ip $(get_verrazzano_ingress_ip)"
-#log "got nginx suffix $(get_dns_suffix $(get_verrazzano_ingress_ip))"
-#log "got istio ingress ip $(get_application_ingress_ip)"
-#log "got istio http $(get_application_ingress_http_port)"
-#log "got istio https $(get_application_ingress_https_port)"
-#log "got verrazzano ports spec $(get_verrazzano_ports_spec)"
-#log "got nginx helm args $(get_nginx_helm_args_from_config)"
-#log "got istio helm args $(get_istio_helm_args_from_config)"
+
+VERRAZZANO_PROFILE=$(get_config_value '.profile')
+if [ -z "$VERRAZZANO_PROFILE" ]; then
+  fail "The value .profile must be set in the config file"
+fi
+
+merge_verrazzano_values  || fail "Failure to merge the Verrazzano values"

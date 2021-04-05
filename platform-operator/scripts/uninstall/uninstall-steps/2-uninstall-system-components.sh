@@ -76,6 +76,10 @@ function delete_cert_manager() {
 }
 
 function delete_rancher() {
+  if [ $(is_rancher_enabled) != "true" ]; then
+    log "Rancher is not enabled, skip deleting rancher."
+    return 0
+  fi
   # Deleting rancher components
   log "Deleting rancher"
   helm ls -A \

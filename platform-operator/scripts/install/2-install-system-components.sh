@@ -336,6 +336,9 @@ RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
 
 action "Installing cert manager" install_cert_manager || exit 1
 action "Installing external DNS" install_external_dns || exit 1
-action "Installing Rancher" install_rancher || exit 1
-action "Setting Rancher Server URL" set_rancher_server_url || true
-action "Patching Rancher Agents" patch_rancher_agents || true
+if [ $(is_rancher_enabled) == "true" ]; then
+  action "Installing Rancher" install_rancher || exit 1
+  action "Setting Rancher Server URL" set_rancher_server_url || true
+  action "Patching Rancher Agents" patch_rancher_agents || true
+fi
+

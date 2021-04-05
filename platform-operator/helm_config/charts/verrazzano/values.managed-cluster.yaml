@@ -13,3 +13,6 @@ grafana:
 
 kibana:
   enabled: false
+
+rancher:
+  enabled: false
