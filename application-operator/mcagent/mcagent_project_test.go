@@ -260,6 +260,7 @@ func TestDeleteVerrazzanoProject(t *testing.T) {
 					vp.Namespace = tt.fields.vpNamespace
 					vp.Name = tt.fields.vpName
 					vp.Spec.Template.Namespaces = tt.fields.nsList
+					vp.Spec.Placement.Clusters = tt.fields.clusters
 					return nil
 				})
 
