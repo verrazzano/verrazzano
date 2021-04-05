@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package mchelidon
+package change_placement
 
 import (
 	"fmt"
@@ -84,8 +84,6 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	cleanUp()
-
 	if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, managed1Kubeconfig); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not delete hello-helidon namespace: %v\n", err))
 	}
