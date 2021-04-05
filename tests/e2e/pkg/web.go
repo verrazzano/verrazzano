@@ -101,8 +101,8 @@ func GetVerrazzanoHTTPClientForCluster(kubeconfigPath string) *retryablehttp.Cli
 }
 
 // GetRancherHTTPClient returns an Http client configured with the Rancher CA cert
-func GetRancherHTTPClient() *retryablehttp.Client {
-	rawClient := getHTTPClientWIthCABundle(getRancherCACert())
+func GetRancherHTTPClient(kubeconfigPath string) *retryablehttp.Client {
+	rawClient := getHTTPClientWIthCABundle(getRancherCACert(kubeconfigPath), kubeconfigPath)
 	return newRetryableHTTPClient(rawClient)
 }
 
@@ -266,8 +266,8 @@ func getVerrazzanoCACert(kubeconfigPath string) []byte {
 }
 
 // getRancherCACert returns the Rancher CA cert
-func getRancherCACert() []byte {
-	return doGetCACertFromSecret("tls-rancher-ingress", "cattle-system")
+func getRancherCACert(kubeconfigPath string) []byte {
+	return doGetCACertFromSecret("tls-rancher-ingress", "cattle-system", kubeconfigPath)
 }
 
 // getKeycloakCACert returns the keycloak CA cert
