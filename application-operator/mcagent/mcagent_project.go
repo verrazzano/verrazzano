@@ -116,6 +116,7 @@ func (s *Syncer) updateVerrazzanoProjectStatus(name types.NamespacedName, newCon
 // mutateVerrazzanoProject mutates the VerrazzanoProject to reflect the contents of the parent VerrazzanoProject
 func mutateVerrazzanoProject(vp clustersv1alpha1.VerrazzanoProject, vpNew *clustersv1alpha1.VerrazzanoProject) {
 	vpNew.Spec.Template = vp.Spec.Template
+	vpNew.Spec.Placement = vp.Spec.Placement
 }
 
 // projectListContains returns boolean indicating if the list contains the object with the specified name and namespace
