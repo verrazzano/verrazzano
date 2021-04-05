@@ -252,8 +252,8 @@ func getHTTPClientWIthCABundle(caData []byte, kubeconfigPath string) *http.Clien
 	return &http.Client{Transport: tr}
 }
 
-func getEnvName() string {
-	installedEnvName := GetVerrazzanoInstallResource().Spec.EnvironmentName
+func getEnvName(kubeconfigPath string) string {
+	installedEnvName := GetVerrazzanoInstallResourceInCluster(kubeconfigPath).Spec.EnvironmentName
 	if len(installedEnvName) == 0 {
 		return DefaultEnvName
 	}
@@ -262,7 +262,7 @@ func getEnvName() string {
 
 // getVerrazzanoCACert returns the verrazzano CA cert in the specified cluster
 func getVerrazzanoCACert(kubeconfigPath string) []byte {
-	return doGetCACertFromSecret(getEnvName()+"-secret", "verrazzano-system", kubeconfigPath)
+	return doGetCACertFromSecret(getEnvName(kubeconfigPath)+"-secret", "verrazzano-system", kubeconfigPath)
 }
 
 // getRancherCACert returns the Rancher CA cert
@@ -272,7 +272,7 @@ func getRancherCACert() []byte {
 
 // getKeycloakCACert returns the keycloak CA cert
 func getKeycloakCACert(kubeconfigPath string) []byte {
-	return doGetCACertFromSecret(getEnvName()+"-secret", "keycloak", kubeconfigPath)
+	return doGetCACertFromSecret(getEnvName(kubeconfigPath)+"-secret", "keycloak", kubeconfigPath)
 }
 
 // getSystemVMICACert returns the system vmi CA cert

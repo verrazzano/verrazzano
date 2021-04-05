@@ -268,18 +268,19 @@ func GetVerrazzanoManagedClusterClientset() *vmcClient.Clientset {
 	return client
 }
 
-// GetPlatformOperatorClientset returns the Kubernetes clientset for the Verrazzano Platform Operator
-func GetPlatformOperatorClientset() *vpoClient.Clientset {
-	client, err := vpoClient.NewForConfig(GetKubeConfig())
+// getPlatformOperatorClientsetForCluster returns the Kubernetes clientset for the Verrazzano Platform Operator
+func getPlatformOperatorClientsetForCluster(kubeconfigPath string) *vpoClient.Clientset {
+	client, err := vpoClient.NewForConfig(GetKubeConfigGivenPath(kubeconfigPath))
 	if err != nil {
 		ginkgo.Fail("Could not get Verrazzano Platform Operator clientset")
 	}
 	return client
 }
 
-// GetVerrazzanoInstallResource returns the installed Verrazzano CR (there should only be 1 per cluster)
-func GetVerrazzanoInstallResource() *v1alpha1.Verrazzano {
-	vzClient := GetPlatformOperatorClientset().VerrazzanoV1alpha1().Verrazzanos("")
+// GetVerrazzanoInstallResourceInCluster returns the installed Verrazzano CR in the given cluster
+// (there should only be 1 per cluster)
+func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) *v1alpha1.Verrazzano {
+	vzClient := getPlatformOperatorClientsetForCluster(kubeconfigPath).VerrazzanoV1alpha1().Verrazzanos("")
 	vzList, err := vzClient.List(context.TODO(), metav1.ListOptions{})
 
 	if err != nil {
@@ -298,17 +299,17 @@ func GetVerrazzanoInstallResource() *v1alpha1.Verrazzano {
 
 // IsDevProfile returns true if the deployed resource is a Dev profile
 func IsDevProfile() bool {
-	return GetVerrazzanoInstallResource().Spec.Profile == v1alpha1.Dev
+	return GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv()).Spec.Profile == v1alpha1.Dev
 }
 
 // IsProdProfile returns true if the deployed resource is a 'prod' profile
 func IsProdProfile() bool {
-	return GetVerrazzanoInstallResource().Spec.Profile == v1alpha1.Prod
+	return GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv()).Spec.Profile == v1alpha1.Prod
 }
 
 // IsManagedClusterProfile returns true if the deployed resource is a 'managed-cluster' profile
 func IsManagedClusterProfile() bool {
-	return GetVerrazzanoInstallResource().Spec.Profile == v1alpha1.ManagedCluster
+	return GetVerrazzanoInstallResourceInCluster(GetKubeConfigPathFromEnv()).Spec.Profile == v1alpha1.ManagedCluster
 }
 
 // APIExtensionsClientSet returns a Kubernetes ClientSet for this cluster.

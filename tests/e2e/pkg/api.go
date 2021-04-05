@@ -26,7 +26,7 @@ type APIEndpoint struct {
 	HTTPClient  *retryablehttp.Client
 }
 
-// GetAPIEndpoint returns the APIEndpoint stub with AccessToken
+// GetAPIEndpoint returns the APIEndpoint stub with AccessToken, from the given cluster
 func GetAPIEndpoint(kubeconfigPath string) *APIEndpoint {
 	ingress, _ := GetKubernetesClientsetForCluster(kubeconfigPath).ExtensionsV1beta1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
 	var ingressRules = ingress.Spec.Rules
