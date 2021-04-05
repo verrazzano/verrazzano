@@ -3,7 +3,7 @@
 
 # Network policy for Verrazzano API Proxy
 # Ingress: allow nginx-ingress-controller to connect to port 8775
-# Egress:  allow access to Kubernetes API server
+# Egress:  allow access to Keycloak via external https endpoint
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -15,7 +15,6 @@ spec:
       app: verrazzano-api
   policyTypes:
     - Ingress
-    - Egress
   ingress:
     - from:
         - namespaceSelector:
@@ -27,18 +26,10 @@ spec:
       ports:
         - protocol: TCP
           port: 8775
-  egress:
-    - ports:
-        - port: {{ .Values.kubernetes.service.endpoint.port }}
-          protocol: TCP
-      to:
-        - ipBlock:
-            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
 ---
 # Network policy for Verrazzano console
 # Ingress: allow nginx-ingress-controller to connect to port 8775
-# Egress:  allow egress to all since console accesses keycloak via https
-#  (outside the cluster)
+# Egress:  allow access to Keycloak via external https endpoint
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -60,7 +51,7 @@ spec:
               app.kubernetes.io/instance: ingress-controller
       ports:
         - protocol: TCP
-          port: 8775
+          port: 8000
 ---
 # Network policy for Verrazzano operator
 # Ingress: deny all
