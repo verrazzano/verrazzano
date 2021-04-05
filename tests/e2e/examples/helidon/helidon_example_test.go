@@ -5,6 +5,7 @@ package helidon
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"net/http"
 	"strings"
 	"time"
@@ -97,7 +98,13 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 		ginkgo.It("Access /greet App Url.", func() {
 			url := fmt.Sprintf("https://%s/greet", host)
 			isEndpointAccessible := func() bool {
-				return appEndpointAccessible(url, host)
+				result, err := appEndpointAccessible(url, host)
+				if err != nil {
+					// we just log the error without causing the test to fail
+					// because we want it to retry in the Eventually()
+					pkg.Log(pkg.Error, err.Error())
+				}
+				return result
 			}
 			gomega.Eventually(isEndpointAccessible, 15*time.Second, 1*time.Second).Should(gomega.BeTrue())
 		})
@@ -152,11 +159,15 @@ func helloHelidonPodsRunning() bool {
 	return pkg.PodsRunning(testNamespace, expectedPodsHelloHelidon)
 }
 
-func appEndpointAccessible(url string, hostname string) bool {
+func appEndpointAccessible(url string, hostname string) (bool, error) {
 	status, webpage := pkg.GetWebPageWithBasicAuth(url, hostname, "", "")
-	gomega.Expect(status).To(gomega.Equal(http.StatusOK), fmt.Sprintf("GET %v returns status %v expected 200.", url, status))
-	gomega.Expect(strings.Contains(webpage, "Hello World")).To(gomega.Equal(true), fmt.Sprintf("Webpage is NOT Hello World %v", webpage))
-	return true
+	if status != http.StatusOK {
+		return false, errors.Errorf("GET %v returns status %v expected 200.", url, status)
+	}
+	if strings.Contains(webpage, "Hello World") {
+		return false, errors.Errorf(fmt.Sprintf("Webpage is NOT Hello World %v", webpage))
+	}
+	return true, nil
 }
 
 func appMetricsExists() bool {
