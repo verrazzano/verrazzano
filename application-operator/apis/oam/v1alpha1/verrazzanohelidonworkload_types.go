@@ -5,7 +5,6 @@ package v1alpha1
 
 import (
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
-	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -20,10 +19,9 @@ type VerrazzanoHelidonWorkloadSpec struct {
 type DeploymentTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 	Metadata metav1.ObjectMeta `json:"metadata,omitempty"`
-	// The deployment strategy to use to replace existing pods with new ones.
+	// Number of desired pods. Defaults to 1.
 	// +optional
-	// +patchStrategy=retainKeys
-	Strategy appsv1.DeploymentStrategy `json:"strategy,omitempty" patchStrategy:"retainKeys" protobuf:"bytes,4,opt,name=strategy"`
+	Replicas *int32     `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
 	PodSpec  v1.PodSpec `json:"podSpec,omitempty"`
 }
 
