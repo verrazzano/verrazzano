@@ -3,7 +3,7 @@
 
 # Network policy for Verrazzano API Proxy
 # Ingress: allow nginx-ingress-controller to connect to port 8775
-# Egress:  deny all
+# Egress:  allow access to Kubernetes API server
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -27,10 +27,18 @@ spec:
       ports:
         - protocol: TCP
           port: 8775
+  egress:
+    - ports:
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
 ---
 # Network policy for Verrazzano console
 # Ingress: allow nginx-ingress-controller to connect to port 8775
-# Egress:  allow egress since console accesses keycloak via https (outside the cluster)
+# Egress:  allow egress to all since console accesses keycloak via https
+#  (outside the cluster)
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -56,7 +64,7 @@ spec:
 ---
 # Network policy for Verrazzano operator
 # Ingress: deny all
-# Egress:  deny all
+# Egress:  allow access to Kubernetes API server
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -69,10 +77,17 @@ spec:
   policyTypes:
     - Ingress
     - Egress
+  egress:
+    - ports:
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
 ---
 # Network policy for Verrazzano application operator
-# Ingress: deny all
-# Egress:  deny all
+# Ingress: allow access from Kubernetes API server for webhook
+# Egress:  allow access to Kubernetes API server
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -85,10 +100,24 @@ spec:
   policyTypes:
     - Ingress
     - Egress
+  egress:
+    - ports:
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+  ingress:
+    - ports:
+        - port: 9443
+          protocol: TCP
+      from:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
 ---
 # Network policy for Verrazzano monitoring operator
 # Ingress: deny all
-# Egress:  deny all
+# Egress:  allow access to Kubernetes API server
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -101,10 +130,17 @@ spec:
   policyTypes:
     - Ingress
     - Egress
+  egress:
+    - ports:
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
 ---
 # Network policy for OAM Kubernetes Runtime operator
 # Ingress: deny all
-# Egress:  deny all
+# Egress:  allow access to Kubernetes API server
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -117,4 +153,11 @@ spec:
   policyTypes:
     - Ingress
     - Egress
----
+  egress:
+    - ports:
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+
