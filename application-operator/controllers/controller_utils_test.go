@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 )
 
 // Test_stringSliceContainsString tests metrics trait utility function stringSliceContainsString
@@ -94,4 +95,21 @@ func TestConvertAPIVersionToGroupAndVersion(t *testing.T) {
 	g, v = ConvertAPIVersionToGroupAndVersion("version")
 	assert.Equal("", g)
 	assert.Equal("version", v)
+}
+
+// TestIsWorkloadMarkedForUpgrade tests IsWorkloadMarkedForUpgrade to ensure that it returns the correct response
+// based on a map of labels and a current version.
+func TestIsWorkloadMarkedForUpgrade(t *testing.T) {
+	assert := asserts.New(t)
+	labels := map[string]string{"foo": "bar", constants.LabelUpgradeVersion: "12345"}
+
+	// GIVEN a current upgrade version that matches the corresponding label
+	// WHEN IsWorkloadMarkedForUpgrade is called
+	// THEN false is returned
+	assert.False(IsWorkloadMarkedForUpgrade(labels, "12345"))
+
+	// GIVEN a current upgrade version that doesn't match the corresponding label
+	// WHEN IsWorkloadMarkedForUpgrade is called
+	// THEN true is returned
+	assert.True(IsWorkloadMarkedForUpgrade(labels, "99999"))
 }

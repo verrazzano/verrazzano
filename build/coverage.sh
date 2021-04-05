@@ -13,6 +13,8 @@ go test -coverpkg=./... -coverprofile ./coverage.raw.cov $(go list ./... | \
   grep -Ev github.com/verrazzano/verrazzano/tools | \
   grep -Ev github.com/verrazzano/verrazzano/tests)
 
+TEST_STATUS=$?
+
 cat ./coverage.raw.cov | grep -v "zz_generated.deepcopy" | grep -v "mocks" > coverage.cov
 
 # Display the global code coverage.  This generates the total number the badge uses
@@ -29,3 +31,5 @@ if [ "$1" == "html" ]; then
         fi
     fi
 fi
+
+exit $TEST_STATUS

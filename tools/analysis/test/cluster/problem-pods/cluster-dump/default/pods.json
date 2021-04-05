@@ -133,10 +133,10 @@
                     }
                 ],
                 "hostIP": "REDACTED-FOR-TEST",
-                "podIP": "10.244.0.143",
+                "podIP": "REDACTED-IP4-ADDRESS",
                 "podIPs": [
                     {
-                        "ip": "10.244.0.143"
+                        "ip": "REDACTED-IP4-ADDRESS"
                     }
                 ],
                 "startTime": "2021-02-03T19:28:53Z",

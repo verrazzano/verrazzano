@@ -21,6 +21,9 @@ var jsonDataMap = make(map[string]interface{})
 var cacheMutex = &sync.Mutex{}
 var cacheHits = 0
 
+var matchAllArrayRe = regexp.MustCompile(`[[:alnum:]]*\[\]`)
+var matchIndexedArrayRe = regexp.MustCompile(`[[:alnum:]]*\[[[:digit:]]*\]`)
+
 type nodeInfo struct {
 	nodeName string // Name may be empty, denotes the current value is not keyed
 	isArray  bool
@@ -234,26 +237,18 @@ func getNodeInfo(log *zap.SugaredLogger, nodeString string) (info nodeInfo, err 
 	if len(nodeString) == 0 {
 		return info, nil
 	}
-	matchAllArray, err := regexp.Compile(`[[:alnum:]]*\[\]`)
-	if err != nil {
-		log.Debugf("matchAllArray bad regular expression", err)
-		return info, err
-	}
+
 	// if it matches name[] or [] then we want the entire array, and trim the [] off
-	if matchAllArray.MatchString(nodeString) {
+	if matchAllArrayRe.MatchString(nodeString) {
 		info.isArray = true
 		info.index = -1
 		info.nodeName = strings.Split(nodeString, "[")[0]
 		log.Debugf("matched all array %s, returns: %v", nodeString, info)
 		return info, nil
 	}
-	matchIndexedArray, err := regexp.Compile(`[[:alnum:]]*\[[[:digit:]]*\]`)
-	if err != nil {
-		log.Debugf("matchedIndexedArray bad regular expression", err)
-		return info, err
-	}
+
 	// if it matches name[number] then we want the entire array, extract number, and trim the [number] off
-	if matchIndexedArray.MatchString(nodeString) {
+	if matchIndexedArrayRe.MatchString(nodeString) {
 		info.isArray = true
 		tokens := strings.Split(nodeString, "[")
 		info.nodeName = tokens[0]

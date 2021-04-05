@@ -1,0 +1,14 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+==== START logs for container install of pod default/verrazzano-install-my-verrazzano-kplsp ====
+REDACTED FOR TEST
+[2021-03-17 13:47:39 UTC] Reading installation config file /config/config.json
+[2021-03-17 13:47:39 UTC] Installing NGINX Ingress Controller                                          [ .... ]
+[2021-03-17 13:47:39 UTC] Error from server (NotFound): namespaces "ingress-nginx" not found
+[2021-03-17 13:47:40 UTC] namespace/ingress-nginx created
+[2021-03-17 13:47:40 UTC] Release "ingress-controller" does not exist. Installing it now.
+[2021-03-17 14:02:41 UTC] Error: timed out waiting for the condition
+[2021-03-17 14:02:41 UTC] Installing NGINX Ingress Controller                                          [FAILED]
+[2021-03-17 14:02:41 UTC]
+==== END logs for container install of pod default/verrazzano-install-my-verrazzano-kplsp ====

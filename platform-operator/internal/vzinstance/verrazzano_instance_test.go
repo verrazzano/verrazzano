@@ -98,14 +98,6 @@ func TestGetInstanceInfo(t *testing.T) {
 						},
 					},
 				},
-				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-api"},
-					Spec: extv1beta1.IngressSpec{
-						Rules: []extv1beta1.IngressRule{
-							{Host: apiURL},
-						},
-					},
-				},
 			}
 			return nil
 		})
@@ -120,7 +112,6 @@ func TestGetInstanceInfo(t *testing.T) {
 	assert.Equal(t, "https://"+grafanaURL, *instanceInfo.GrafanaURL)
 	assert.Equal(t, "https://"+kibanaURL, *instanceInfo.KibanaURL)
 	assert.Equal(t, "https://"+promURL, *instanceInfo.PrometheusURL)
-	assert.Equal(t, "https://"+apiURL, *instanceInfo.SystemURL)
 }
 
 // TestGetInstanceInfoManagedCluster tests GetInstanceInfo method
@@ -179,14 +170,6 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 						},
 					},
 				},
-				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-api"},
-					Spec: extv1beta1.IngressSpec{
-						Rules: []extv1beta1.IngressRule{
-							{Host: apiURL},
-						},
-					},
-				},
 			}
 			return nil
 		})
@@ -201,7 +184,6 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 	assert.Nil(t, instanceInfo.GrafanaURL)
 	assert.Nil(t, instanceInfo.KibanaURL)
 	assert.Equal(t, "https://"+promURL, *instanceInfo.PrometheusURL)
-	assert.Equal(t, "https://"+apiURL, *instanceInfo.SystemURL)
 }
 
 // TestGetInstanceInfoManagedCluster tests GetInstanceInfo method

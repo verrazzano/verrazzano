@@ -50,14 +50,14 @@ Writing following contents to rules file:  /tmp/iptables-rules-16158349273339050
 -A ISTIO_INBOUND -p tcp --dport 15020 -j RETURN
 -A ISTIO_INBOUND -p tcp -j ISTIO_IN_REDIRECT
 -A OUTPUT -p tcp -j ISTIO_OUTPUT
--A ISTIO_OUTPUT -o lo -s 127.0.0.6/32 -j RETURN
--A ISTIO_OUTPUT -o lo ! -d 127.0.0.1/32 -m owner --uid-owner 1337 -j ISTIO_IN_REDIRECT
+-A ISTIO_OUTPUT -o lo -s REDACTED-IP4-ADDRESS/32 -j RETURN
+-A ISTIO_OUTPUT -o lo ! -d REDACTED-IP4-ADDRESS/32 -m owner --uid-owner 1337 -j ISTIO_IN_REDIRECT
 -A ISTIO_OUTPUT -o lo -m owner ! --uid-owner 1337 -j RETURN
 -A ISTIO_OUTPUT -m owner --uid-owner 1337 -j RETURN
--A ISTIO_OUTPUT -o lo ! -d 127.0.0.1/32 -m owner --gid-owner 1337 -j ISTIO_IN_REDIRECT
+-A ISTIO_OUTPUT -o lo ! -d REDACTED-IP4-ADDRESS/32 -m owner --gid-owner 1337 -j ISTIO_IN_REDIRECT
 -A ISTIO_OUTPUT -o lo -m owner ! --gid-owner 1337 -j RETURN
 -A ISTIO_OUTPUT -m owner --gid-owner 1337 -j RETURN
--A ISTIO_OUTPUT -d 127.0.0.1/32 -j RETURN
+-A ISTIO_OUTPUT -d REDACTED-IP4-ADDRESS/32 -j RETURN
 -A ISTIO_OUTPUT -j ISTIO_REDIRECT
 COMMIT
 
@@ -86,14 +86,14 @@ iptables-save
 -A ISTIO_INBOUND -p tcp -j ISTIO_IN_REDIRECT
 -A ISTIO_REDIRECT -p tcp -j REDIRECT --to-ports 15001
 -A ISTIO_IN_REDIRECT -p tcp -j REDIRECT --to-ports 15006
--A ISTIO_OUTPUT -s 127.0.0.6/32 -o lo -j RETURN
--A ISTIO_OUTPUT ! -d 127.0.0.1/32 -o lo -m owner --uid-owner 1337 -j ISTIO_IN_REDIRECT
+-A ISTIO_OUTPUT -s REDACTED-IP4-ADDRESS/32 -o lo -j RETURN
+-A ISTIO_OUTPUT ! -d REDACTED-IP4-ADDRESS/32 -o lo -m owner --uid-owner 1337 -j ISTIO_IN_REDIRECT
 -A ISTIO_OUTPUT -o lo -m owner ! --uid-owner 1337 -j RETURN
 -A ISTIO_OUTPUT -m owner --uid-owner 1337 -j RETURN
--A ISTIO_OUTPUT ! -d 127.0.0.1/32 -o lo -m owner --gid-owner 1337 -j ISTIO_IN_REDIRECT
+-A ISTIO_OUTPUT ! -d REDACTED-IP4-ADDRESS/32 -o lo -m owner --gid-owner 1337 -j ISTIO_IN_REDIRECT
 -A ISTIO_OUTPUT -o lo -m owner ! --gid-owner 1337 -j RETURN
 -A ISTIO_OUTPUT -m owner --gid-owner 1337 -j RETURN
--A ISTIO_OUTPUT -d 127.0.0.1/32 -j RETURN
+-A ISTIO_OUTPUT -d REDACTED-IP4-ADDRESS/32 -j RETURN
 -A ISTIO_OUTPUT -j ISTIO_REDIRECT
 COMMIT
 # Completed on Mon Mar 15 19:02:07 2021

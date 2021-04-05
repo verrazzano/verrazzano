@@ -76,6 +76,12 @@ function delete_cert_manager() {
 }
 
 function delete_rancher() {
+  # Occasionally the 'local' Rancher cluster object is stuck with a dangling finalizer, remove it so
+  # we don't orphan the cluster info between installs
+  log "Remove any dangling finalizers from the 'local' Rancher cluster object"
+  kubectl patch cluster local -n kube-system -p '{"metadata":{"finalizers":null}}' --type=merge || true
+  kubectl wait --for=delete -n kube-system cluster/local --timeout=2m || true
+
   # Deleting rancher components
   log "Deleting rancher"
   helm ls -A \

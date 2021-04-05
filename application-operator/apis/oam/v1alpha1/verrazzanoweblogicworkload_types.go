@@ -17,11 +17,14 @@ type VerrazzanoWebLogicWorkloadSpec struct {
 
 // VerrazzanoWebLogicWorkloadStatus defines the observed state of VerrazzanoWebLogicWorkload
 type VerrazzanoWebLogicWorkloadStatus struct {
+	// CurrentUpgradeVersion is the version that was specified when the application was last upgraded with Verrazzano
+	CurrentUpgradeVersion string `json:"currentUpgradeVersion,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
 // VerrazzanoWebLogicWorkload is the Schema for the verrazzanoweblogicworkloads API
+// +kubebuilder:subresource:status
 type VerrazzanoWebLogicWorkload struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

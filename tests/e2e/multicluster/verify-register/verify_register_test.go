@@ -11,6 +11,7 @@ import (
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -55,26 +56,46 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 		ginkgo.It("admin cluster has the expected VerrazzanoManagedCluster", func() {
 			gomega.Eventually(func() bool {
 				vmc, err := pkg.GetVerrazzanoManagedClusterClientset().ClustersV1alpha1().VerrazzanoManagedClusters(multiclusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
-				return err == nil && vmc.Status.LastAgentConnectTime.After(time.Now().Add(-30*time.Minute))
+				return err == nil &&
+					vmcStatusReady(vmc) &&
+					vmc.Status.LastAgentConnectTime.After(time.Now().Add(-30*time.Minute))
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find VerrazzanoManagedCluster")
+		})
+
+		ginkgo.It("admin cluster has the expected ServiceAccounts and ClusterRoleBindings", func() {
+			pkg.Concurrently(
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.DoesServiceAccountExist(multiclusterNamespace, fmt.Sprintf("verrazzano-cluster-%s", managedClusterName))
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find ServiceAccount")
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.DoesClusterRoleBindingExist(fmt.Sprintf("verrazzano-cluster-%s", managedClusterName))
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find ClusterRoleBinding")
+				},
+			)
 		})
 
 		ginkgo.It("admin cluster has the expected secrets", func() {
 			pkg.Concurrently(
 				func() {
+					secretName := fmt.Sprintf("verrazzano-cluster-%s-manifest", managedClusterName)
 					gomega.Eventually(func() bool {
-						return findSecret(multiclusterNamespace, fmt.Sprintf("verrazzano-cluster-%s-manifest", managedClusterName))
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret")
+						return findSecret(multiclusterNamespace, secretName)
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret "+secretName)
 				},
 				func() {
+					secretName := fmt.Sprintf("verrazzano-cluster-%s-agent", managedClusterName)
 					gomega.Eventually(func() bool {
-						return findSecret(multiclusterNamespace, fmt.Sprintf("verrazzano-cluster-%s-agent", managedClusterName))
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret")
+						return findSecret(multiclusterNamespace, secretName)
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret "+secretName)
 				},
 				func() {
+					secretName := fmt.Sprintf("verrazzano-cluster-%s-registration", managedClusterName)
 					gomega.Eventually(func() bool {
-						return findSecret(multiclusterNamespace, fmt.Sprintf("verrazzano-cluster-%s-registration", managedClusterName))
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret")
+						return findSecret(multiclusterNamespace, secretName)
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret "+secretName)
 				},
 			)
 		})
@@ -125,12 +146,12 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 				func() {
 					gomega.Eventually(func() bool {
 						return findSecret(verrazzanoSystemNamespace, "verrazzano-cluster-agent")
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret")
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret verrazzano-cluster-agent")
 				},
 				func() {
 					gomega.Eventually(func() bool {
 						return findSecret(verrazzanoSystemNamespace, "verrazzano-cluster-registration")
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret")
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find secret verrazzano-cluster-registration")
 				},
 			)
 		})
@@ -141,18 +162,50 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find VerrazzanoProject")
 		})
 
-		ginkgo.It("managed cluster has the expected namespace and role bindings", func() {
+		ginkgo.It("managed cluster has the expected namespace", func() {
+			gomega.Eventually(func() bool {
+				return findNamespace(fmt.Sprintf("ns-%s", managedClusterName))
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find namespace")
+		})
+
+		ginkgo.It("managed cluster has the expected RoleBindings", func() {
+			namespace := fmt.Sprintf("ns-%s", managedClusterName)
 			pkg.Concurrently(
 				func() {
 					gomega.Eventually(func() bool {
-						return findNamespace(fmt.Sprintf("ns-%s", managedClusterName))
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find namespace")
+						return pkg.DoesRoleBindingContainSubject(namespace, "verrazzano-project-admin", "User", "test-user")
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find role binding verrazzano-project-admin")
 				},
-				// TODO check rolebinding
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.DoesRoleBindingContainSubject(namespace, "admin", "User", "test-user")
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find role binding admin")
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.DoesRoleBindingContainSubject(namespace, "verrazzano-project-monitor", "Group", "test-viewers")
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find role binding verrazzano-project-monitor")
+				},
+				func() {
+					gomega.Eventually(func() bool {
+						return pkg.DoesRoleBindingContainSubject(namespace, "view", "Group", "test-viewers")
+					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find role binding view")
+				},
 			)
 		})
 	})
 })
+
+func vmcStatusReady(vmc *vmcv1alpha1.VerrazzanoManagedCluster) bool {
+	fmt.Printf("VMC %s has %d status conditions\n", vmc.Name, len(vmc.Status.Conditions))
+	for _, cond := range vmc.Status.Conditions {
+		fmt.Printf("VMC %s has status condition %s with value %s with message %s\n", vmc.Name, cond.Type, cond.Status, cond.Message)
+		if cond.Type == vmcv1alpha1.ConditionReady && cond.Status == v1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
 
 func findSecret(namespace, name string) bool {
 	s, err := pkg.GetSecret(namespace, name)

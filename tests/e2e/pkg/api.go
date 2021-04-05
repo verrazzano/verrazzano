@@ -12,12 +12,11 @@ import (
 	"net/http"
 	"strings"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // APIEndpoint contains information needed to access an API
@@ -30,7 +29,7 @@ type APIEndpoint struct {
 // GetAPIEndpoint returns the APIEndpoint stub with AccessToken
 func GetAPIEndpoint() *APIEndpoint {
 	ingress, _ := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
-	var ingressRules []extensionsv1beta1.IngressRule = ingress.Spec.Rules
+	var ingressRules = ingress.Spec.Rules
 	keycloakURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", ingressRules[0].Host, realm)
 	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", Username, GetVerrazzanoPassword(), clientID)
 	status, resp := postWithClient(keycloakURL, "application/x-www-form-urlencoded", strings.NewReader(body), GetKeycloakHTTPClient())

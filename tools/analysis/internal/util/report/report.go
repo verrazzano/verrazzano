@@ -64,6 +64,7 @@ func ContributeIssuesMap(log *zap.SugaredLogger, source string, issues map[strin
 		reportIssues = make([]Issue, 0, 10)
 	}
 	for _, issue := range issues {
+		issue.SupportingData = DeduplicateSupportingData(issue.SupportingData)
 		reportIssues = append(reportIssues, issue)
 	}
 	reports[source] = reportIssues
@@ -84,6 +85,7 @@ func ContributeIssue(log *zap.SugaredLogger, issue Issue) (err error) {
 	if len(reportIssues) == 0 {
 		reportIssues = make([]Issue, 0, 10)
 	}
+	issue.SupportingData = DeduplicateSupportingData(issue.SupportingData)
 	reportIssues = append(reportIssues, issue)
 	reports[issue.Source] = reportIssues
 	reportMutex.Unlock()
@@ -132,7 +134,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, includeSuppo
 		}
 		for _, issue := range actuallyReported {
 			// Print the Issue out
-			_, err = fmt.Fprintf(writeOut, "\n\tISSUE:\n\t\tsummary: %s\n", issue.Summary)
+			_, err = fmt.Fprintf(writeOut, "\n\tISSUE (%s)\n\t\tsummary: %s\n", issue.Type, issue.Summary)
 			if err != nil {
 				return err
 			}

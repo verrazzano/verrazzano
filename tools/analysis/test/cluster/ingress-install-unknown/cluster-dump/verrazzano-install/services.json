@@ -1,0 +1,84 @@
+{
+    "kind": "ServiceList",
+    "apiVersion": "v1",
+    "metadata": {
+        "selfLink": "/api/v1/namespaces/verrazzano-install/services",
+        "resourceVersion": "4494"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "verrazzano-platform-operator",
+                "namespace": "verrazzano-install",
+                "selfLink": "/api/v1/namespaces/verrazzano-install/services/verrazzano-platform-operator",
+                "uid": "c678ab82-ffff-404d-8b19-e0dd422b0969",
+                "resourceVersion": "590",
+                "creationTimestamp": "2021-03-26T01:29:01Z",
+                "labels": {
+                    "app": "verrazzano-platform-operator"
+                },
+                "annotations": {
+                    "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"verrazzano-platform-operator\"},\"name\":\"verrazzano-platform-operator\",\"namespace\":\"verrazzano-install\"},\"spec\":{\"ports\":[{\"name\":\"webhook\",\"port\":443,\"targetPort\":9443}],\"selector\":{\"app\":\"verrazzano-platform-operator\"}}}\n"
+                },
+                "managedFields": [
+                    {
+                        "manager": "kubectl",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-03-26T01:29:01Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:annotations": {
+                                    ".": {},
+                                    "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                                },
+                                "f:labels": {
+                                    ".": {},
+                                    "f:app": {}
+                                }
+                            },
+                            "f:spec": {
+                                "f:ports": {
+                                    ".": {},
+                                    "k:{\"port\":443,\"protocol\":\"TCP\"}": {
+                                        ".": {},
+                                        "f:name": {},
+                                        "f:port": {},
+                                        "f:protocol": {},
+                                        "f:targetPort": {}
+                                    }
+                                },
+                                "f:selector": {
+                                    ".": {},
+                                    "f:app": {}
+                                },
+                                "f:sessionAffinity": {},
+                                "f:type": {}
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "webhook",
+                        "protocol": "TCP",
+                        "port": 443,
+                        "targetPort": 9443
+                    }
+                ],
+                "selector": {
+                    "app": "verrazzano-platform-operator"
+                },
+                "clusterIP": "REDACTED-IP4-ADDRESS",
+                "type": "ClusterIP",
+                "sessionAffinity": "None"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        }
+    ]
+}

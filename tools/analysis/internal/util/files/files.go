@@ -16,17 +16,15 @@ import (
 )
 
 // GetMatchingFiles returns the filenames for files that match a regular expression.
-func GetMatchingFiles(log *zap.SugaredLogger, rootDirectory string, fileMatch string) (fileMatches []string, err error) {
-	log.Debugf("GetMatchingFiles called rootDirectory: %s fileMatch: %s", rootDirectory, fileMatch)
-	if len(rootDirectory) == 0 || len(fileMatch) == 0 {
-		log.Debugf("GetMatchingFiles invalid argument. rootDirectory: %s fileMatch: %s", rootDirectory, fileMatch)
-		return nil, errors.New("GetMatchingFiles requires a rootDirectory and fileMatch expression")
+func GetMatchingFiles(log *zap.SugaredLogger, rootDirectory string, fileMatchRe *regexp.Regexp) (fileMatches []string, err error) {
+	log.Debugf("GetMatchingFiles called with rootDirectory: %s", rootDirectory)
+	if len(rootDirectory) == 0 {
+		log.Debugf("GetMatchingFiles requires a rootDirectory")
+		return nil, errors.New("GetMatchingFiles requires a rootDirectory")
 	}
 
-	fileMatchRe, err := regexp.Compile(fileMatch)
-	if err != nil {
-		log.Debugf("Failed to compile regular expression: %s", fileMatch, err)
-		return nil, err
+	if fileMatchRe == nil {
+		return nil, fmt.Errorf("GetMatchingFiles requires a regular expression")
 	}
 
 	walkFunc := func(fileName string, fileInfo os.FileInfo, err error) error {
@@ -49,17 +47,15 @@ func GetMatchingFiles(log *zap.SugaredLogger, rootDirectory string, fileMatch st
 }
 
 // GetMatchingDirectories returns the filenames for directories that match a regular expression.
-func GetMatchingDirectories(log *zap.SugaredLogger, rootDirectory string, fileMatch string) (fileMatches []string, err error) {
-	log.Debugf("GetMatchingFiles called rootDirectory: %s fileMatch: %s", rootDirectory, fileMatch)
-	if len(rootDirectory) == 0 || len(fileMatch) == 0 {
-		log.Debugf("GetMatchingDirectories invalid argument. rootDirectory: %s fileMatch: %s", rootDirectory, fileMatch)
-		return nil, errors.New("GetMatchingFiles requires a rootDirectory and fileMatch expression")
+func GetMatchingDirectories(log *zap.SugaredLogger, rootDirectory string, fileMatchRe *regexp.Regexp) (fileMatches []string, err error) {
+	log.Debugf("GetMatchingFiles called with rootDirectory: %s", rootDirectory)
+	if len(rootDirectory) == 0 {
+		log.Debugf("GetMatchingDirectories requires a root directory")
+		return nil, errors.New("GetMatchingDirectories requires a rootDirectory")
 	}
 
-	fileMatchRe, err := regexp.Compile(fileMatch)
-	if err != nil {
-		log.Debugf("Failed to compile regular expression: %s", fileMatch, err)
-		return nil, err
+	if fileMatchRe == nil {
+		return nil, fmt.Errorf("GetMatchingDirectories requires a regular expression")
 	}
 
 	walkFunc := func(fileName string, fileInfo os.FileInfo, err error) error {

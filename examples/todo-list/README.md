@@ -131,7 +131,6 @@ The ToDo List application deployment artifacts are contained in the Verrazzano p
    $ kubectl get ingress -n verrazzano-system
    NAME                         CLASS    HOSTS                                                     ADDRESS           PORTS     AGE
    verrazzano-console-ingress   <none>   verrazzano.default.140.141.142.143.xip.io                 140.141.142.143   80, 443   7d2h
-   vmi-system-api               <none>   api.vmi.system.default.140.141.142.143.xip.io             140.141.142.143   80, 443   7d2h
    vmi-system-es-ingest         <none>   elasticsearch.vmi.system.default.140.141.142.143.xip.io   140.141.142.143   80, 443   7d2h
    vmi-system-grafana           <none>   grafana.vmi.system.default.140.141.142.143.xip.io         140.141.142.143   80, 443   7d2h
    vmi-system-kibana            <none>   kibana.vmi.system.default.140.141.142.143.xip.io          140.141.142.143   80, 443   7d2h

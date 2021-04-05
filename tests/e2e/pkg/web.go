@@ -92,6 +92,12 @@ func GetVerrazzanoHTTPClient() *retryablehttp.Client {
 	return newRetryableHTTPClient(rawClient)
 }
 
+// GetRancherHTTPClient returns an Http client configured with the Rancher CA cert
+func GetRancherHTTPClient() *retryablehttp.Client {
+	rawClient := getHTTPClientWIthCABundle(getRancherCACert())
+	return newRetryableHTTPClient(rawClient)
+}
+
 // GetKeycloakHTTPClient returns the Keycloak Http client
 func GetKeycloakHTTPClient() *retryablehttp.Client {
 	keycloakRawClient := getHTTPClientWIthCABundle(getKeycloakCACert())
@@ -248,6 +254,11 @@ func getEnvName() string {
 // getVerrazzanoCACert returns the verrazzano CA cert
 func getVerrazzanoCACert() []byte {
 	return doGetCACertFromSecret(getEnvName()+"-secret", "verrazzano-system")
+}
+
+// getRancherCACert returns the Rancher CA cert
+func getRancherCACert() []byte {
+	return doGetCACertFromSecret("tls-rancher-ingress", "cattle-system")
 }
 
 // getKeycloakCACert returns the keycloak CA cert

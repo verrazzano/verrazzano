@@ -66,6 +66,8 @@ Install Verrazzano following the [installation instructions](https://verrazzano.
      ```
      Then, you can access the application in a browser at `https://springboot.example.com/` and `https://springboot.example.com/facts`.
      
+     If you are using `xip.io`, then you can access the application in a browser using the `HOST` variable (for example, `https://${HOST}/facts`).  If you are going through a proxy, you may need to add `*.xip.io` to the `NO_PROXY` list.
+
    * **Using your own DNS name**:
      * Point your own DNS name to the ingress gateway's `EXTERNAL-IP` address.
      * In this case, you would need to have edited the `springboot-app.yaml` file
@@ -93,7 +95,6 @@ Install Verrazzano following the [installation instructions](https://verrazzano.
    $ kubectl get ingress -n verrazzano-system
    NAME                         CLASS    HOSTS                                                     ADDRESS           PORTS     AGE
    verrazzano-console-ingress   <none>   verrazzano.default.140.141.142.143.xip.io                 140.141.142.143   80, 443   7d2h
-   vmi-system-api               <none>   api.vmi.system.default.140.141.142.143.xip.io             140.141.142.143   80, 443   7d2h
    vmi-system-es-ingest         <none>   elasticsearch.vmi.system.default.140.141.142.143.xip.io   140.141.142.143   80, 443   7d2h
    vmi-system-grafana           <none>   grafana.vmi.system.default.140.141.142.143.xip.io         140.141.142.143   80, 443   7d2h
    vmi-system-kibana            <none>   kibana.vmi.system.default.140.141.142.143.xip.io          140.141.142.143   80, 443   7d2h

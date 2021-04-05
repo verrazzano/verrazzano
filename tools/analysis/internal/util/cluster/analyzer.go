@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/report"
 	"go.uber.org/zap"
+	"regexp"
 )
 
 // TBD: Overall the intention/design is that we could execute analysis in parallel if we want to do that in the
@@ -31,10 +32,30 @@ var clusterAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory
 	"Pod Related Issues": AnalyzePodIssues,
 }
 
+// ClusterDumpDirectoriesRe is used for finding cluster-dump directory name matches
+var ClusterDumpDirectoriesRe = regexp.MustCompile(`.*/cluster-dump$`)
+
+// LogFilesMatchRe is used for finding pod log files in a cluster dump
+var LogFilesMatchRe = regexp.MustCompile(`logs.txt`)
+
+// PodFilesMatchRe is used for finding pod files in a cluster dump
+var PodFilesMatchRe = regexp.MustCompile(`pods.json`)
+
+// ErrorSearchRe is used for searching for case insensitive "error". This is useful when we know there is a
+// problem lurking but we can't identify the specific issue and are trying to capture relevant information
+// to include in support data from logs and events
+var ErrorSearchRe = regexp.MustCompile(`(?i).*error.*`)
+
+// WideErrorSearchRe is used for casting a wider net while looking for issues TBD: .*ERROR.*|.*Error.*|.*FAILED.*
+var WideErrorSearchRe = regexp.MustCompile(`(?i).*error.*|.*failed.*`)
+
+// EventReasonFailedRe is used for finding event reason failures
+var EventReasonFailedRe = regexp.MustCompile(`.*Failed.*`)
+
 // RunAnalysis is the main entry analysis function
 func RunAnalysis(log *zap.SugaredLogger, rootDirectory string) (err error) {
 	log.Debugf("Cluster Analyzer runAnalysis on %s", rootDirectory)
-	clusterRoots, err := files.GetMatchingDirectories(log, rootDirectory, ".*/cluster-dump$")
+	clusterRoots, err := files.GetMatchingDirectories(log, rootDirectory, ClusterDumpDirectoriesRe)
 	if err != nil {
 		log.Debugf("Cluster Analyzer runAnalysis failed examining directories for %s", rootDirectory, err)
 		return fmt.Errorf("Cluster Analyzer runAnalysis failed examining directories for %s", rootDirectory)

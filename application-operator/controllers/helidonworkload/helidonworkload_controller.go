@@ -10,6 +10,8 @@ import (
 
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
@@ -18,6 +20,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -85,8 +88,26 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	// Add the sidecars and configmaps required for logging to the Deployment.
-	if err = r.addLogging(ctx, log, req.NamespacedName.Namespace, workload.ObjectMeta.Labels, deploy); err != nil {
+	// Attempt to get the existing deployment. This is used in the case where we don't want to update any resources
+	// which are defined by Verrazzano such as the Fluentd image used by logging. In this case we obtain the previous
+	// Fluentd image and set that on the new deployment. We also need to know if the deployment exists
+	// so that when we write out the deployment later, we will call update instead of create if the deployment exists.
+	var existingDeployment appsv1.Deployment
+	deploymentKey := types.NamespacedName{Name: workload.Spec.DeploymentTemplate.Metadata.GetName(), Namespace: workload.Namespace}
+	if err := r.Get(ctx, deploymentKey, &existingDeployment); err != nil {
+		if k8serrors.IsNotFound(err) {
+			log.Info("No existing deployment found")
+		} else {
+			log.Error(err, "An error occurred trying to obtain an existing deployment")
+			return reconcile.Result{}, err
+		}
+	}
+	// upgradeApp indicates whether the user has indicated that it is ok to update the application to use the latest
+	// resource values from Verrazzano. An example of this is the Fluentd image used by logging.
+	upgradeApp := controllers.IsWorkloadMarkedForUpgrade(workload.Labels, workload.Status.CurrentUpgradeVersion)
+
+	// Add the Fluentd sidecar container required for logging to the Deployment
+	if err = r.addLogging(ctx, log, &workload, upgradeApp, deploy, &existingDeployment); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -141,9 +162,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		},
 	}
 
-	// Update status only if nothing has changed to avoid reconcile loop.
-	if !vzapi.QualifiedResourceRelationSlicesEquivalent(statusResources, workload.Status.Resources) {
+	if !vzapi.QualifiedResourceRelationSlicesEquivalent(statusResources, workload.Status.Resources) ||
+		workload.Status.CurrentUpgradeVersion != workload.Labels[constants.LabelUpgradeVersion] {
+
 		workload.Status.Resources = statusResources
+		workload.Status.CurrentUpgradeVersion = workload.Labels[constants.LabelUpgradeVersion]
 		if err := r.Status().Update(ctx, &workload); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -279,9 +302,21 @@ func mergeMapOverrideWithDest(src, dst map[string]string) map[string]string {
 	return r
 }
 
-// addLogging adds a FLUENTD sidecar and configmap and updates the Deployment
-func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace string, labels map[string]string, deployment *appsv1.Deployment) error {
-	loggingScope, err := loggingscope.FetchLoggingScopeFromWorkloadLabels(ctx, r.Client, log, namespace, labels)
+// addLogging adds a FLUENTD sidecar to the Helidon deployment
+func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoHelidonWorkload, upgradeApp bool, newDeployment *appsv1.Deployment, existingDeployment *appsv1.Deployment) error {
+	// If the Deployment already exists and we don't want to update the Fluentd image, obtain the Fluentd image from the
+	// current Deployment
+	var existingFluentdImage string
+	if !upgradeApp {
+		for _, container := range existingDeployment.Spec.Template.Spec.Containers {
+			if container.Name == loggingscope.FluentdContainerName {
+				existingFluentdImage = container.Image
+				break
+			}
+		}
+	}
+
+	loggingScope, err := loggingscope.FetchLoggingScopeFromWorkloadLabels(ctx, r.Client, log, workload.Namespace, workload.Labels, existingFluentdImage)
 	if err != nil {
 		return err
 	}
@@ -291,9 +326,9 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, namespace 
 		return nil
 	}
 
-	resource := vzapi.QualifiedResourceRelation{Name: deployment.Name, Namespace: deployment.Namespace}
+	resource := vzapi.QualifiedResourceRelation{Name: newDeployment.Name, Namespace: newDeployment.Namespace}
 	handler := loggingscope.HelidonHandler{Client: r.Client, Log: r.Log}
-	_, err = handler.ApplyToDeployment(ctx, resource, loggingScope, deployment)
+	_, err = handler.ApplyToDeployment(ctx, resource, loggingScope, newDeployment)
 	if err != nil {
 		log.Info("Failed to add logging to Deployment")
 		return err

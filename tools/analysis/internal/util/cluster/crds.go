@@ -4,12 +4,7 @@
 // Package cluster handles cluster analysis
 package cluster
 
-import (
-	"github.com/verrazzano/verrazzano/tools/analysis/internal/util/json"
-	"go.uber.org/zap"
-)
-
 // GetCustomResource gets a customResource list
-func GetCustomResources(log *zap.SugaredLogger, path string) (customResources interface{}, err error) {
-	return json.GetJSONDataFromFile(log, path)
-}
+//func GetCustomResources(log *zap.SugaredLogger, path string) (customResources interface{}, err error) {
+//	return json.GetJSONDataFromFile(log, path)
+//}

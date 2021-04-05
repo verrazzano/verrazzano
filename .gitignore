@@ -1,14 +1,14 @@
 # Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 .verrazzano/
-operator/scripts/install/build/
-operator/scripts/uninstall/build/
-operator/scripts/uninstall/uninstall-steps/build/
+platform-operator/scripts/install/build/
+platform-operator/scripts/uninstall/build/
+platform-operator/scripts/uninstall/uninstall-steps/build/
 examples/**/build/
 .idea/
 *.iml
-operator/build/_output
-operator/build/deploy
+application-operator/build/_output
+application-operator/build/deploy
 vendor
 .idea
 **/*.iml

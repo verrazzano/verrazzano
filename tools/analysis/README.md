@@ -88,11 +88,24 @@ To perform an analysis of the dumped clusters, the analysis will analyze each cl
 TBD: This is useful for analyzing CI build level output, this makes assumptions about logs captured during the CI build and tests.
 TBD: This will look at least for general things like image handling issues, but it may also look for more specific artifacts from verrazzano builds such as build and install logs. This may be more generally useful in the builds...
 
-`analyze --analysis=build buildoutputdir'
+`analyze -analysis=build buildoutputdir'
 
-## Usage
+## Build Executable
+To build the analysis tool executable image:
+
 ```
-go run main.go [options] captured-data-directory
+cd verrazzano/tools/analysis
+make go-build
+```
+
+This will create an executable image for your current platform in the "out" directory. For example:
+```
+out/Darwin_x86_64/verrazzano-analysis
+```
+## Usage
+If you have built the executable image for your platform, you may execute it as follows:
+```
+verrazzano-analysis [options] captured-data-directory
 
 Options:
     -analysis=string
@@ -120,6 +133,7 @@ Options:
     -zap-stacktrace-level value
     	Zap Level at and above which stacktraces are captured (one of 'info', 'error', 'panic').
 ```
+
 
 ## Docker image
 The analysis tool can be built and executed from a docker container. For example, if you build the docker image locally, and execute analysis against existing cluster-dumps.

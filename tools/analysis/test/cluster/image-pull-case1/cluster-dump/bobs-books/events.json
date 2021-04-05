@@ -1715,7 +1715,7 @@
                 "fieldPath": "spec.containers{istio-proxy}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://10.244.0.110:15021/healthz/ready: dial tcp 10.244.0.110:15021: connect: connection refused",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:15021/healthz/ready: dial tcp REDACTED-IP4-ADDRESS:15021: connect: connection refused",
             "source": {
                 "component": "kubelet",
                 "host": "at-tests-control-plane"
@@ -3127,7 +3127,7 @@
                 "fieldPath": "spec.containers{istio-proxy}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://10.244.0.116:15021/healthz/ready: dial tcp 10.244.0.116:15021: connect: connection refused",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:15021/healthz/ready: dial tcp REDACTED-IP4-ADDRESS:15021: connect: connection refused",
             "source": {
                 "component": "kubelet",
                 "host": "at-tests-control-plane"
@@ -3992,7 +3992,7 @@
                 "fieldPath": "spec.containers{istio-proxy}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://10.244.0.77:15021/healthz/ready: dial tcp 10.244.0.77:15021: connect: connection refused",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:15021/healthz/ready: dial tcp REDACTED-IP4-ADDRESS:15021: connect: connection refused",
             "source": {
                 "component": "kubelet",
                 "host": "at-tests-control-plane"
@@ -6720,7 +6720,7 @@
                 "fieldPath": "spec.containers{istio-proxy}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://10.244.0.117:15021/healthz/ready: dial tcp 10.244.0.117:15021: connect: connection refused",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:15021/healthz/ready: dial tcp REDACTED-IP4-ADDRESS:15021: connect: connection refused",
             "source": {
                 "component": "kubelet",
                 "host": "at-tests-control-plane"
@@ -8194,7 +8194,7 @@
                 "fieldPath": "spec.containers{istio-proxy}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://10.244.0.119:15021/healthz/ready: dial tcp 10.244.0.119:15021: connect: connection refused",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:15021/healthz/ready: dial tcp REDACTED-IP4-ADDRESS:15021: connect: connection refused",
             "source": {
                 "component": "kubelet",
                 "host": "at-tests-control-plane"
@@ -9119,7 +9119,7 @@
                 "fieldPath": "spec.containers{istio-proxy}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://10.244.0.102:15021/healthz/ready: dial tcp 10.244.0.102:15021: connect: connection refused",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:15021/healthz/ready: dial tcp REDACTED-IP4-ADDRESS:15021: connect: connection refused",
             "source": {
                 "component": "kubelet",
                 "host": "at-tests-control-plane"
@@ -10585,7 +10585,7 @@
                 "fieldPath": "spec.containers{istio-proxy}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://10.244.0.72:15021/healthz/ready: dial tcp 10.244.0.72:15021: connect: connection refused",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:15021/healthz/ready: dial tcp REDACTED-IP4-ADDRESS:15021: connect: connection refused",
             "source": {
                 "component": "kubelet",
                 "host": "at-tests-control-plane"
@@ -11822,7 +11822,7 @@
                 "fieldPath": "spec.containers{istio-proxy}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://10.244.0.84:15021/healthz/ready: dial tcp 10.244.0.84:15021: connect: connection refused",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:15021/healthz/ready: dial tcp REDACTED-IP4-ADDRESS:15021: connect: connection refused",
             "source": {
                 "component": "kubelet",
                 "host": "at-tests-control-plane"
@@ -13051,7 +13051,7 @@
                 "fieldPath": "spec.containers{istio-proxy}"
             },
             "reason": "Unhealthy",
-            "message": "Readiness probe failed: Get http://10.244.0.86:15021/healthz/ready: dial tcp 10.244.0.86:15021: connect: connection refused",
+            "message": "Readiness probe failed: Get http://REDACTED-IP4-ADDRESS:15021/healthz/ready: dial tcp REDACTED-IP4-ADDRESS:15021: connect: connection refused",
             "source": {
                 "component": "kubelet",
                 "host": "at-tests-control-plane"

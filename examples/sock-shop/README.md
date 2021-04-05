@@ -99,6 +99,8 @@ Follow these steps to test the endpoints:
      ```
      Then, you can access the application in a browser at `https://sockshop.example.com/catalogue`.
 
+     If you are using `xip.io`, then you can access the application in a browser using the `HOST` variable (for example, `https://${HOST}/catalogue`).  If you are going through a proxy, you may need to add `*.xip.io` to the `NO_PROXY` list.
+
    * **Using your own DNS name**:
 
      * Point your own DNS name to the ingress gateway's `EXTERNAL-IP` address.
@@ -145,7 +147,6 @@ the deployed Sock Shop application.  Accessing them may require the following:
     $ kubectl get ing -n verrazzano-system
     NAME                         CLASS    HOSTS                                                    ADDRESS          PORTS     AGE
     verrazzano-console-ingress   <none>   verrazzano.default.140.238.94.217.xip.io                 140.238.94.217   80, 443   7d2h
-    vmi-system-api               <none>   api.vmi.system.default.140.238.94.217.xip.io             140.238.94.217   80, 443   7d2h
     vmi-system-es-ingest         <none>   elasticsearch.vmi.system.default.140.238.94.217.xip.io   140.238.94.217   80, 443   7d2h
     vmi-system-grafana           <none>   grafana.vmi.system.default.140.238.94.217.xip.io         140.238.94.217   80, 443   7d2h
     vmi-system-kibana            <none>   kibana.vmi.system.default.140.238.94.217.xip.io          140.238.94.217   80, 443   7d2h

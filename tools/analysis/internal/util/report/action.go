@@ -6,6 +6,7 @@ package report
 
 import (
 	"errors"
+	"fmt"
 	"go.uber.org/zap"
 )
 
@@ -34,19 +35,39 @@ func (action *Action) Validate(log *zap.SugaredLogger) (err error) {
 
 // Standard Action Summaries
 const (
-	ConsultRunbookUsingSupportingData = "Consult the runbook using the supporting data supplied"
+	ConsultRunbook = "Consult %s using supporting details identified in the report"
 )
 
 // RunbookLinks are known runbook links
 var RunbookLinks = map[string][]string{
-	ImagePullBackOff:       {"TBD-ImagePullBackOffAction-runbook"},
-	InsufficientMemory:     {"TBD-InsufficientMemory-runbook"},
-	PodProblemsNotReported: {"TBD-PodProblemsNotReported-runbook"},
+	ImagePullBackOff:          {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/ImagePullBackOffAction.md"},
+	ImagePullRateLimit:        {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/ImagePullRateLimit.md"},
+	ImagePullNotFound:         {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/ImagePullNotFound.md"},
+	ImagePullService:          {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/ImagePullService.md"},
+	InsufficientMemory:        {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/InsufficientMemory.md"},
+	IngressInstallFailure:     {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/IngressInstallFailure.md"},
+	IngressNoLoadBalancerIP:   {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/IngressNoLoadBalancerIP.md"},
+	IngressOciIPLimitExceeded: {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/IngressOciIPLimitExceeded.md"},
+	InstallFailure:            {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/InstallFailure.md"},
+	PendingPods:               {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/PendingPods.md"},
+	PodProblemsNotReported:    {"https://github.com/verrazzano/verrazzano/tree/master/tools/analysis/advice/PodProblemsNotReported.md"},
 }
 
 // KnownActions are Standard Action types
 var KnownActions = map[string]Action{
-	ImagePullBackOff:       {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[ImagePullBackOff]},
-	InsufficientMemory:     {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[InsufficientMemory]},
-	PodProblemsNotReported: {Summary: ConsultRunbookUsingSupportingData, Links: RunbookLinks[PodProblemsNotReported]},
+	ImagePullBackOff:          {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[ImagePullBackOff][0])},
+	ImagePullRateLimit:        {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[ImagePullRateLimit][0])},
+	ImagePullNotFound:         {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[ImagePullNotFound][0])},
+	ImagePullService:          {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[ImagePullService][0])},
+	InsufficientMemory:        {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[InsufficientMemory][0])},
+	IngressInstallFailure:     {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IngressInstallFailure][0])},
+	IngressNoLoadBalancerIP:   {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IngressNoLoadBalancerIP][0])},
+	IngressOciIPLimitExceeded: {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IngressOciIPLimitExceeded][0])},
+	InstallFailure:            {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[InstallFailure][0])},
+	PendingPods:               {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[PendingPods][0])},
+	PodProblemsNotReported:    {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[PodProblemsNotReported][0])},
+}
+
+func getConsultRunbookAction(summaryF string, runbookLink string) string {
+	return fmt.Sprintf(summaryF, runbookLink)
 }

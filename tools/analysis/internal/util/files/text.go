@@ -7,93 +7,69 @@ package files
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"go.uber.org/zap"
+	"io"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"regexp"
+	"time"
 )
 
 // TextMatch supplies information about the matched text
 type TextMatch struct {
 	FileName    string
 	FileLine    int
+	Timestamp   metav1.Time
 	MatchedText string
 }
 
-// SearchFiles will search the list of files that are already known for text that matches
-func SearchFiles(log *zap.SugaredLogger, rootDirectory string, files []string, searchExpression string) (matches []TextMatch, err error) {
-	if len(searchExpression) == 0 {
-		return nil, errors.New("SearchFiles requires a search expression")
-	}
-	if len(files) == 0 {
-		log.Debugf("SearchFiles was not given any files, return nil")
-		return nil, nil
-	}
+// TODO: May move to only functions which require pre-compiled regular expressions, and have the pre-compiled at
+// compilation time rather than at runtime
 
-	searchMatchRe, err := regexp.Compile(searchExpression)
-	if err != nil {
-		log.Debugf("Failed to compile regular expression: %s", searchExpression, err)
-		return nil, err
-	}
-
-	for _, fileName := range files {
-		file, err := os.Open(fileName)
-		if err != nil {
-			log.Debugf("failure opening %s", fileName, err)
-			return nil, err
-		}
-		defer file.Close()
-
-		fileStat, err := file.Stat()
-		if err != nil {
-			log.Debugf("failure getting stat for %s", fileName, err)
-			return nil, err
-		}
-		if fileStat.IsDir() {
-			log.Debugf("Skipping directory in search %s", fileName)
-			continue
-		}
-		if !fileStat.Mode().IsRegular() {
-			log.Debugf("Skipping non-regular file in search %s", fileName)
-			continue
-		}
-
-		scanner := bufio.NewScanner(file)
-		lineNumber := 0
-		var match TextMatch
-		for scanner.Scan() {
-			lineNumber++
-			matched := searchMatchRe.Find(scanner.Bytes())
-			if len(matched) > 0 {
-				match.FileLine = lineNumber
-				match.FileName = fileName
-				match.MatchedText = scanner.Text()
-				matches = append(matches, match)
-			}
-		}
-		err = scanner.Err()
-		if err != nil {
-			log.Debugf("failure scanning file %s", fileName, err)
-			return nil, err
+// SearchMatches will search the list of TextMatch using a search expression and will return all that match
+func SearchMatches(log *zap.SugaredLogger, matchesToSearch []TextMatch, searchMatchRe *regexp.Regexp) (matches []TextMatch, err error) {
+	for _, matchToSearch := range matchesToSearch {
+		if searchMatchRe.MatchString(matchToSearch.MatchedText) {
+			matches = append(matches, matchToSearch)
 		}
 	}
 	return matches, nil
 }
 
-// SearchFile searches a file
-func SearchFile(log *zap.SugaredLogger, fileName string, searchExpression string) (matches []TextMatch, err error) {
-	if len(searchExpression) == 0 {
-		return nil, errors.New("SearchFile requires a search expression")
+// SearchFiles will search the list of files that are already known for text that matches
+func SearchFiles(log *zap.SugaredLogger, rootDirectory string, files []string, searchMatchRe *regexp.Regexp) (matches []TextMatch, err error) {
+	if searchMatchRe == nil {
+		return nil, fmt.Errorf("SaerchFilesRe requires a regular expression")
 	}
 
-	if len(fileName) == 0 {
-		log.Debugf("SearchFile was not given a files, return nil")
+	if len(files) == 0 {
+		log.Debugf("SearchFilesRe was not given any files, return nil")
 		return nil, nil
 	}
 
-	searchMatchRe, err := regexp.Compile(searchExpression)
-	if err != nil {
-		log.Debugf("Failed to compile regular expression: %s", searchExpression, err)
-		return nil, err
+	for _, fileName := range files {
+		matchesFromFile, err := SearchFile(log, fileName, searchMatchRe)
+		if err != nil {
+			log.Debugf("failure opening %s", fileName, err)
+			return nil, err
+		}
+		if len(matchesFromFile) > 0 {
+			matches = append(matches, matchesFromFile...)
+		}
+	}
+	return matches, nil
+}
+
+// SearchFile search a file
+func SearchFile(log *zap.SugaredLogger, fileName string, searchMatchRe *regexp.Regexp) (matches []TextMatch, err error) {
+	if searchMatchRe == nil {
+		return nil, fmt.Errorf("SearchFileRe requires a regular expression")
+	}
+
+	if len(fileName) == 0 {
+		log.Debugf("SearchFileRe was not given a file, return nil")
+		return nil, nil
 	}
 
 	file, err := os.Open(fileName)
@@ -117,63 +93,66 @@ func SearchFile(log *zap.SugaredLogger, fileName string, searchExpression string
 		return nil, nil
 	}
 
-	scanner := bufio.NewScanner(file)
+	// Had issues with token too large using the scanner, so using a reader instead
+	reader := bufio.NewReader(file)
 	lineNumber := 0
 	var match TextMatch
-	for scanner.Scan() {
-		lineNumber++
-		matched := searchMatchRe.Find(scanner.Bytes())
-		if len(matched) > 0 {
-			match.FileLine = lineNumber
-			match.FileName = fileName
-			match.MatchedText = scanner.Text()
-			matches = append(matches, match)
+	for {
+		line, readErr := reader.ReadString('\n')
+		if readErr != nil && readErr != io.EOF {
+			// If we had an unexpected failure we fail
+			log.Debugf("failure reading file %s", fileName, readErr)
+			return nil, readErr
 		}
-	}
-	err = scanner.Err()
-	if err != nil {
-		log.Debugf("failure scanning file %s", fileName, err)
-		return nil, err
+		if len(line) > 0 {
+			// See if we have a match
+			lineNumber++
+			matched := searchMatchRe.Find([]byte(line))
+			if len(matched) > 0 {
+				match.FileLine = lineNumber
+				match.FileName = fileName
+				match.MatchedText = line
+				matches = append(matches, match)
+				match.Timestamp = ExtractTimeIfPresent(line)
+			}
+		}
+		// If we hit EOF, we're done
+		if readErr == io.EOF {
+			break
+		}
 	}
 
 	return matches, nil
 }
 
 // FindFilesAndSearch will search across files that match a specified expression
-func FindFilesAndSearch(log *zap.SugaredLogger, rootDirectory string, fileMatch string, searchExpression string) (matches []TextMatch, err error) {
+func FindFilesAndSearch(log *zap.SugaredLogger, rootDirectory string, fileMatchRe *regexp.Regexp, searchMatchRe *regexp.Regexp) (matches []TextMatch, err error) {
 	if len(rootDirectory) == 0 {
 		return nil, errors.New("FindFilesAndSearch requires rootDirectory")
 	}
 
-	if len(fileMatch) == 0 {
+	if fileMatchRe == nil {
 		return nil, errors.New("FindFilesAndSearch requires fileMatch expression")
 	}
 
-	if len(searchExpression) == 0 {
+	if searchMatchRe == nil {
 		return nil, errors.New("FindFilesAndSearch requires a search expression be supplied")
 	}
 
 	// Get the list of files that match
-	filesToSearch, err := GetMatchingFiles(log, rootDirectory, fileMatch)
+	filesToSearch, err := GetMatchingFiles(log, rootDirectory, fileMatchRe)
 	if err != nil {
 		log.Debugf("FindFilesAndSearch failed", err)
 		return nil, err
 	}
 
 	// Note that SearchFiles will detect if no files were found so just call it
-	return SearchFiles(log, rootDirectory, filesToSearch, searchExpression)
+	return SearchFiles(log, rootDirectory, filesToSearch, searchMatchRe)
 }
 
-// GetAllMatches wrappers the Compile and FindAll so we can debug log any compile failures (just reduce the code
-// on the calling side a little)
-func GetAllMatches(log *zap.SugaredLogger, inputString []byte, matchEx string, number int) (value [][]byte, err error) {
-	if len(inputString) == 0 {
-		return nil, nil
-	}
-	matcher, err := regexp.Compile(matchEx)
-	if err != nil {
-		log.Debugf("Regular expression %s compile failed", matchEx, err)
-		return nil, err
-	}
-	return matcher.FindAll(inputString, number), nil
+// ExtractTimeIfPresent determines if the text matches a known pattern which has a timestamp in it (such as known log formats)
+// and will extract the timestamp into a wrappered metav1.Time. If there is no timestamp found it will return a zero time value
+func ExtractTimeIfPresent(inputText string) metav1.Time {
+	// TODO: Add known log timestamp patterns, and parse out the times
+	return metav1.NewTime(time.Time{})
 }

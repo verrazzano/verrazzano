@@ -1,0 +1,329 @@
+{
+    "kind": "PodList",
+    "apiVersion": "v1",
+    "metadata": {
+        "selfLink": "/api/v1/namespaces/default/pods",
+        "resourceVersion": "4476"
+    },
+    "items": [
+        {
+            "metadata": {
+                "name": "verrazzano-install-my-verrazzano-rslwh",
+                "generateName": "verrazzano-install-my-verrazzano-",
+                "namespace": "default",
+                "selfLink": "/api/v1/namespaces/default/pods/verrazzano-install-my-verrazzano-rslwh",
+                "uid": "66b25036-100d-4511-9a8a-5d3e253e5296",
+                "resourceVersion": "4425",
+                "creationTimestamp": "2021-03-26T01:30:31Z",
+                "labels": {
+                    "controller-uid": "349df811-c51e-41d3-8232-951165780901",
+                    "job-name": "verrazzano-install-my-verrazzano"
+                },
+                "ownerReferences": [
+                    {
+                        "apiVersion": "batch/v1",
+                        "kind": "Job",
+                        "name": "verrazzano-install-my-verrazzano",
+                        "uid": "349df811-c51e-41d3-8232-951165780901",
+                        "controller": true,
+                        "blockOwnerDeletion": true
+                    }
+                ],
+                "managedFields": [
+                    {
+                        "manager": "kube-controller-manager",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-03-26T01:30:31Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:metadata": {
+                                "f:generateName": {},
+                                "f:labels": {
+                                    ".": {},
+                                    "f:controller-uid": {},
+                                    "f:job-name": {}
+                                },
+                                "f:ownerReferences": {
+                                    ".": {},
+                                    "k:{\"uid\":\"349df811-c51e-41d3-8232-951165780901\"}": {
+                                        ".": {},
+                                        "f:apiVersion": {},
+                                        "f:blockOwnerDeletion": {},
+                                        "f:controller": {},
+                                        "f:kind": {},
+                                        "f:name": {},
+                                        "f:uid": {}
+                                    }
+                                }
+                            },
+                            "f:spec": {
+                                "f:containers": {
+                                    "k:{\"name\":\"install\"}": {
+                                        ".": {},
+                                        "f:env": {
+                                            ".": {},
+                                            "k:{\"name\":\"DEBUG\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:value": {}
+                                            },
+                                            "k:{\"name\":\"INSTALL_CONFIG_FILE\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:value": {}
+                                            },
+                                            "k:{\"name\":\"MODE\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:value": {}
+                                            },
+                                            "k:{\"name\":\"VERRAZZANO_KUBECONFIG\"}": {
+                                                ".": {},
+                                                "f:name": {},
+                                                "f:value": {}
+                                            }
+                                        },
+                                        "f:image": {},
+                                        "f:imagePullPolicy": {},
+                                        "f:name": {},
+                                        "f:resources": {},
+                                        "f:terminationMessagePath": {},
+                                        "f:terminationMessagePolicy": {},
+                                        "f:volumeMounts": {
+                                            ".": {},
+                                            "k:{\"mountPath\":\"/config\"}": {
+                                                ".": {},
+                                                "f:mountPath": {},
+                                                "f:name": {}
+                                            }
+                                        }
+                                    }
+                                },
+                                "f:dnsPolicy": {},
+                                "f:enableServiceLinks": {},
+                                "f:restartPolicy": {},
+                                "f:schedulerName": {},
+                                "f:securityContext": {},
+                                "f:serviceAccount": {},
+                                "f:serviceAccountName": {},
+                                "f:terminationGracePeriodSeconds": {},
+                                "f:volumes": {
+                                    ".": {},
+                                    "k:{\"name\":\"config-volume\"}": {
+                                        ".": {},
+                                        "f:configMap": {
+                                            ".": {},
+                                            "f:defaultMode": {},
+                                            "f:name": {}
+                                        },
+                                        "f:name": {}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "manager": "kubelet",
+                        "operation": "Update",
+                        "apiVersion": "v1",
+                        "time": "2021-03-26T01:45:52Z",
+                        "fieldsType": "FieldsV1",
+                        "fieldsV1": {
+                            "f:status": {
+                                "f:conditions": {
+                                    "k:{\"type\":\"ContainersReady\"}": {
+                                        ".": {},
+                                        "f:lastProbeTime": {},
+                                        "f:lastTransitionTime": {},
+                                        "f:message": {},
+                                        "f:reason": {},
+                                        "f:status": {},
+                                        "f:type": {}
+                                    },
+                                    "k:{\"type\":\"Initialized\"}": {
+                                        ".": {},
+                                        "f:lastProbeTime": {},
+                                        "f:lastTransitionTime": {},
+                                        "f:status": {},
+                                        "f:type": {}
+                                    },
+                                    "k:{\"type\":\"Ready\"}": {
+                                        ".": {},
+                                        "f:lastProbeTime": {},
+                                        "f:lastTransitionTime": {},
+                                        "f:message": {},
+                                        "f:reason": {},
+                                        "f:status": {},
+                                        "f:type": {}
+                                    }
+                                },
+                                "f:containerStatuses": {},
+                                "f:hostIP": {},
+                                "f:phase": {},
+                                "f:podIP": {},
+                                "f:podIPs": {
+                                    ".": {},
+                                    "k:{\"ip\":\"REDACTED-IP4-ADDRESS\"}": {
+                                        ".": {},
+                                        "f:ip": {}
+                                    }
+                                },
+                                "f:startTime": {}
+                            }
+                        }
+                    }
+                ]
+            },
+            "spec": {
+                "volumes": [
+                    {
+                        "name": "config-volume",
+                        "configMap": {
+                            "name": "verrazzano-install-my-verrazzano",
+                            "defaultMode": 420
+                        }
+                    },
+                    {
+                        "name": "verrazzano-install-my-verrazzano-token-8ptqw",
+                        "secret": {
+                            "secretName": "verrazzano-install-my-verrazzano-token-8ptqw",
+                            "defaultMode": 420
+                        }
+                    }
+                ],
+                "containers": [
+                    {
+                        "name": "install",
+                        "image": "ghcr.io/verrazzano/verrazzano-platform-operator-jenkins:0.13.0-20210326011328-7a2b0a4",
+                        "env": [
+                            {
+                                "name": "MODE",
+                                "value": "INSTALL"
+                            },
+                            {
+                                "name": "INSTALL_CONFIG_FILE",
+                                "value": "/config/config.json"
+                            },
+                            {
+                                "name": "VERRAZZANO_KUBECONFIG",
+                                "value": "/home/verrazzano/kubeconfig"
+                            },
+                            {
+                                "name": "DEBUG",
+                                "value": "1"
+                            }
+                        ],
+                        "resources": {},
+                        "volumeMounts": [
+                            {
+                                "name": "config-volume",
+                                "mountPath": "/config"
+                            },
+                            {
+                                "name": "verrazzano-install-my-verrazzano-token-8ptqw",
+                                "readOnly": true,
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                            }
+                        ],
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "IfNotPresent"
+                    }
+                ],
+                "restartPolicy": "Never",
+                "terminationGracePeriodSeconds": 30,
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "verrazzano-install-my-verrazzano",
+                "serviceAccount": "verrazzano-install-my-verrazzano",
+                "nodeName": "verrazzano-control-plane",
+                "securityContext": {},
+                "imagePullSecrets": [
+                    {
+                        "name": "verrazzano-container-registry"
+                    }
+                ],
+                "schedulerName": "default-scheduler",
+                "tolerations": [
+                    {
+                        "key": "node.kubernetes.io/not-ready",
+                        "operator": "Exists",
+                        "effect": "NoExecute",
+                        "tolerationSeconds": 300
+                    },
+                    {
+                        "key": "node.kubernetes.io/unreachable",
+                        "operator": "Exists",
+                        "effect": "NoExecute",
+                        "tolerationSeconds": 300
+                    }
+                ],
+                "priority": 0,
+                "enableServiceLinks": true
+            },
+            "status": {
+                "phase": "Failed",
+                "conditions": [
+                    {
+                        "type": "Initialized",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2021-03-26T01:30:31Z"
+                    },
+                    {
+                        "type": "Ready",
+                        "status": "False",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2021-03-26T01:45:52Z",
+                        "reason": "ContainersNotReady",
+                        "message": "containers with unready status: [install]"
+                    },
+                    {
+                        "type": "ContainersReady",
+                        "status": "False",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2021-03-26T01:45:52Z",
+                        "reason": "ContainersNotReady",
+                        "message": "containers with unready status: [install]"
+                    },
+                    {
+                        "type": "PodScheduled",
+                        "status": "True",
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2021-03-26T01:30:31Z"
+                    }
+                ],
+                "hostIP": "REDACTED-IP4-ADDRESS",
+                "podIP": "REDACTED-IP4-ADDRESS",
+                "podIPs": [
+                    {
+                        "ip": "REDACTED-IP4-ADDRESS"
+                    }
+                ],
+                "startTime": "2021-03-26T01:30:31Z",
+                "containerStatuses": [
+                    {
+                        "name": "install",
+                        "state": {
+                            "terminated": {
+                                "exitCode": 1,
+                                "reason": "Error",
+                                "startedAt": "2021-03-26T01:30:32Z",
+                                "finishedAt": "2021-03-26T01:45:51Z",
+                                "containerID": "containerd://8784d0302f04dc052a5c1282480f01116a4a7a6b0e603e0b65a0590bad3e45d5"
+                            }
+                        },
+                        "lastState": {},
+                        "ready": false,
+                        "restartCount": 0,
+                        "image": "ghcr.io/verrazzano/verrazzano-platform-operator-jenkins:0.13.0-20210326011328-7a2b0a4",
+                        "imageID": "sha256:0a359b675b88462974fddfb9b7651d1c13095a3372c33b1be247360d08dc1636",
+                        "containerID": "containerd://8784d0302f04dc052a5c1282480f01116a4a7a6b0e603e0b65a0590bad3e45d5",
+                        "started": false
+                    }
+                ],
+                "qosClass": "BestEffort"
+            }
+        }
+    ]
+}

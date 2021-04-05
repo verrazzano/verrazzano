@@ -159,37 +159,14 @@ func appEndpointAccessible(url string, hostname string) bool {
 	return true
 }
 
-// findMetric parses a Prometheus response to find a specified metric value
-func findMetric(metrics []interface{}, key, value string) bool {
-	for _, metric := range metrics {
-		if pkg.Jq(metric, "metric", key) == value {
-			return true
-		}
-	}
-	return false
-}
-
-// metricsExist validates the availability of a specified metric
-func metricsExist(metricsName, key, value string) bool {
-	metric, err := pkg.QueryMetric(metricsName)
-	if err != nil {
-		return false
-	}
-	metrics := pkg.JTq(metric, "data", "result").([]interface{})
-	if metrics != nil {
-		return findMetric(metrics, key, value)
-	}
-	return false
-}
-
 func appMetricsExists() bool {
-	return metricsExist("base_jvm_uptime_seconds", "app", "hello-helidon")
+	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "hello-helidon")
 }
 
 func appComponentMetricsExists() bool {
-	return metricsExist("vendor_requests_count_total", "app_oam_dev_name", "hello-helidon-appconf")
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", "hello-helidon-appconf")
 }
 
 func appConfigMetricsExists() bool {
-	return metricsExist("vendor_requests_count_total", "app_oam_dev_component", "hello-helidon-component")
+	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "hello-helidon-component")
 }
