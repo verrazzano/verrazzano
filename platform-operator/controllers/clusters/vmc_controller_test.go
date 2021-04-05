@@ -646,32 +646,6 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 			return nil
 		})
 
-	// Expect a call to get the keycloak ingress and return the ingress.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "keycloak", Name: "keycloak"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *extv1beta1.Ingress) error {
-			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
-				Kind:       "ingress"}
-			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name}
-			ingress.Spec.TLS = []extv1beta1.IngressTLS{{
-				Hosts: []string{"keycloak"},
-			}}
-			return nil
-		})
-
-	// Expect a call to get the system-tls secret, return the secret with the fields set
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.SystemTLS}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				CaCrtKey: []byte(caData),
-			}
-			return nil
-		})
-
 	// Create a reconciler and call the function to sync the manifest secret - the call to register the cluster with Rancher will
 	// fail but the result of syncManifestSecret should be success
 	vmc := clustersapi.VerrazzanoManagedCluster{ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}}
@@ -1178,6 +1152,22 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string) {
 			return nil
 		})
 
+	// Expect a call to get the keycloak ingress and return the ingress.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "keycloak", Name: "keycloak"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *extv1beta1.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name}
+			ingress.Spec.TLS = []extv1beta1.IngressTLS{{
+				Hosts: []string{"keycloak"},
+			}}
+			return nil
+		})
+
 	// Expect a call to create the registration secret
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
@@ -1257,32 +1247,6 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockRequestSender 
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.Equal(vmc.Spec.ManagedClusterManifestSecret, GetManifestSecretName(name), "Manifest secret testManagedCluster did not match")
-			return nil
-		})
-
-	// Expect a call to get the keycloak ingress and return the ingress.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "keycloak", Name: "keycloak"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *extv1beta1.Ingress) error {
-			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "extensions/v1beta1",
-				Kind:       "ingress"}
-			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name}
-			ingress.Spec.TLS = []extv1beta1.IngressTLS{{
-				Hosts: []string{"keycloak"},
-			}}
-			return nil
-		})
-
-	// Expect a call to get the system-tls secret, return the secret with the fields set
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.SystemTLS}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				CaCrtKey: []byte(caData),
-			}
 			return nil
 		})
 }
