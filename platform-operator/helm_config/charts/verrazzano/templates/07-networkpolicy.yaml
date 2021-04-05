@@ -41,6 +41,7 @@ spec:
       app: verrazzano-console
   policyTypes:
     - Ingress
+    - Egress
   ingress:
     - from:
         - namespaceSelector:
