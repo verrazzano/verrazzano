@@ -57,6 +57,22 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 		examples.VerifyHelloHelidonInAdminCluster(adminKubeconfig, true)
 	})
 
+	// Ensure that if we change placement again, back to the original managed cluster, everything functions
+	// as expected. This is needed because the change of placement to admin cluster and the change of placement to
+	// a managed cluster are different, and we want to ensure we test the case where the destination cluster is
+	// each of the 2 types - admin and managed
+	ginkgo.Context("Return the app to Managed Cluster", func() {
+		ginkgo.It("Deploy manifests with placement in managed cluster", func() {
+			examples.DeployHelloHelidon(adminKubeconfig)
+		})
+
+		// app should now NOT be placed in admin cluster
+		examples.VerifyHelloHelidonInAdminCluster(adminKubeconfig, false)
+
+		// app should now once again be placed in managed cluster
+		examples.VerifyHelloHelidonInManagedCluster(managed1Kubeconfig, true)
+	})
+
 	ginkgo.Context("Delete resources on admin cluster", func() {
 		ginkgo.It("Delete all the things", func() {
 			cleanUp()
