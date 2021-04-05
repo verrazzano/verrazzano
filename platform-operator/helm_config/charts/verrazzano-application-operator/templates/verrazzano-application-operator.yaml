@@ -60,6 +60,12 @@ rules:
       - list
       - watch
   - apiGroups:
+      - networking.k8s.io
+    resources:
+      - networkpolicies
+    verbs:
+      - '*'
+  - apiGroups:
       - rbac.authorization.k8s.io
     resources:
       - clusterroles

@@ -21,11 +21,13 @@ import (
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -85,6 +87,9 @@ const (
 	workloadType              = "coherence"
 	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
 	destinationRuleKind       = "DestinationRule"
+	networkPolicyAPIVersion   = "networking.k8s.io/v1"
+	networkPolicyKind         = "NetworkPolicy"
+	coherenceDeploymentLabel  = "coherenceDeployment"
 	coherenceExtendPort       = 9000
 )
 
@@ -149,7 +154,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// the embedded resource doesn't have an API version or kind, so add them
 	gvk := vznav.APIVersionAndKindToContainedGVK(workload.APIVersion, workload.Kind)
 	if gvk == nil {
-		errStr := "Unable to determine contained GroupVersionKind for workload"
+		errStr := "unable to determine contained GroupVersionKind for workload"
 		log.Error(nil, errStr, "workload", workload)
 		return reconcile.Result{}, errors.New(errStr)
 	}
@@ -165,7 +170,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	spec, found, _ := unstructured.NestedMap(u.Object, specField)
 	if !found {
-		return reconcile.Result{}, errors.New("Embedded Coherence resource is missing the required 'spec' field")
+		return reconcile.Result{}, errors.New("embedded Coherence resource is missing the required 'spec' field")
 	}
 
 	// Attempt to get the existing Coherence StatefulSet. This is used in the case where we don't want to update any resources
@@ -234,6 +239,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	if err = r.createOrUpdateDestinationRule(ctx, log, namespace.Name, namespace.Labels, workload.ObjectMeta.Labels); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if err = r.createNetworkPolicy(ctx, log, namespace.Name, u); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -338,7 +347,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 	// the FLUENTD data
 	var extracted containersMountsVolumes
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(coherenceSpec, &extracted); err != nil {
-		return errors.New("Unable to extract containers, volumes, and volume mounts from Coherence spec")
+		return errors.New("unable to extract containers, volumes, and volume mounts from Coherence spec")
 	}
 
 	// fluentdPod starts with what's in the spec and we add in the FLUENTD things when Apply is
@@ -575,6 +584,81 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+// createNetworkPolicy creates a networkPolicy required by Coherence pods.
+func (r *Reconciler) createNetworkPolicy(ctx context.Context, log logr.Logger, appNamespace string, coherence *unstructured.Unstructured) error {
+	protocol := corev1.ProtocolTCP
+	// TODO: get value from Coherence resource if not using the default
+	port := intstr.FromInt(6676)
+
+	// Create a network policy, if it does not already exist
+	networkPolicy := &netv1.NetworkPolicy{}
+	err := r.Get(ctx, client.ObjectKey{Namespace: constants.VerrazzanoSystemNamespace, Name: coherence.GetName()}, networkPolicy)
+	if err != nil && k8serrors.IsNotFound(err) {
+		networkPolicy = &netv1.NetworkPolicy{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: networkPolicyAPIVersion,
+				Kind:       networkPolicyKind},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.VerrazzanoSystemNamespace,
+				Name:      coherence.GetName(),
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: coherence.GetAPIVersion(),
+						Kind:       coherence.GetKind(),
+						Name:       coherence.GetName(),
+						UID:        coherence.GetUID(),
+					},
+				},
+			},
+			Spec: netv1.NetworkPolicySpec{
+				PodSelector: metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"control-plane": "coherence",
+					},
+				},
+				PolicyTypes: []netv1.PolicyType{
+					netv1.PolicyTypeEgress,
+				},
+				Egress: []netv1.NetworkPolicyEgressRule{
+					{
+						Ports: []netv1.NetworkPolicyPort{
+							{
+								Protocol: &protocol,
+								Port:     &port,
+							},
+						},
+						To: []netv1.NetworkPolicyPeer{
+							{
+								NamespaceSelector: &metav1.LabelSelector{
+									MatchLabels: map[string]string{
+										constants.LabelVerrazzanoManaged: "true",
+									},
+								},
+								PodSelector: &metav1.LabelSelector{
+									MatchLabels: map[string]string{
+										coherenceDeploymentLabel: coherence.GetName(),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		log.Info(fmt.Sprintf("Creating network policy %s:%s", constants.VerrazzanoSystemNamespace, coherence.GetName()))
+		err = r.Create(ctx, networkPolicy)
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+	log.Info(fmt.Sprintf("Network policy %s:%s already exist", constants.VerrazzanoSystemNamespace, coherence.GetName()))
 
 	return nil
 }
