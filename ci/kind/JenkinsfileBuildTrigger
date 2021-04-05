@@ -18,6 +18,10 @@ pipeline {
                         defaultValue: 'master',
                         description: 'Branch to clone and checkout the Verrazzano repo',
                         trim: true)
+        string (name: 'VERRAZZANO_OPERATOR_IMAGE',
+                        defaultValue: 'NONE',
+                        description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from Verrazzano repo will be used to create Verrazzano platform operator',
+                        trim: true)
     }
 
     environment {
@@ -33,6 +37,7 @@ pipeline {
                             parameters: [
                                 string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
                                 string(name: 'KUBERNETES_CLUSTER_VERSION', value: kversion)
+                                string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE)
                             ], wait: false
                     }
                 }

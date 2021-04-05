@@ -487,6 +487,16 @@ pipeline {
     }
 
     post {
+        success {
+            script {
+                # FIXME: This is temporary for early setup, need to switch this to be "master"
+                build job: 'verrazzano-push-triggered-acceptance-tests/tvlatas/change-test-job-triggering',
+                    parameters: [
+                        string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
+                        string(name: 'STORAGE_LOCATION', value: ${SHORT_COMMIT_HASH})
+                    ], wait: false
+            }
+        }
         always {
             script {
                 if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
