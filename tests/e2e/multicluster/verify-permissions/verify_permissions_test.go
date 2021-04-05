@@ -6,11 +6,12 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"strings"
 	"time"
+
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -378,10 +379,18 @@ func deployTestResources() {
 
 	// create the test project
 	pkg.Log(pkg.Info, "Creating test project")
-	err := CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-multiclustertest.yaml", &clustersv1alpha1.VerrazzanoProject{})
+	err := CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-permissiontest.yaml", &clustersv1alpha1.VerrazzanoProject{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create test namespace: %v", err))
 	}
+
+	// Wait for the namespaces to be created
+	gomega.Eventually(func() bool {
+		return pkg.DoesNamespaceExist(testNamespace)
+	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Expected to find namespace %s", testNamespace))
+	gomega.Eventually(func() bool {
+		return pkg.DoesNamespaceExist(anotherTestNamespace)
+	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Expected to find namespace %s", anotherTestNamespace))
 
 	// create a config map
 	pkg.Log(pkg.Info, "Creating MC config map")
@@ -434,7 +443,7 @@ func undeployTestResources() {
 
 	// delete the test project
 	pkg.Log(pkg.Info, "Deleting test project")
-	err = DeleteResourceFromFile("testdata/multicluster/verrazzanoproject-multiclustertest.yaml", &clustersv1alpha1.VerrazzanoProject{})
+	err = DeleteResourceFromFile("testdata/multicluster/verrazzanoproject-permissiontest.yaml", &clustersv1alpha1.VerrazzanoProject{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create test namespace: %v", err))
 	}
