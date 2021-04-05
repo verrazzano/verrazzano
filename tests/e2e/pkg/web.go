@@ -65,8 +65,8 @@ func GetWebPageWithBasicAuth(url string, hostHeader string, username string, pas
 }
 
 // RetryGetWithBasicAuth retries getting a web page using basic auth
-func RetryGetWithBasicAuth(url string, hostHeader string, username string, password string) (int, string) {
-	client := GetVerrazzanoHTTPClient()
+func RetryGetWithBasicAuth(url string, hostHeader string, username string, password string, kubeconfigPath string) (int, string) {
+	client := GetVerrazzanoHTTPClientForCluster(kubeconfigPath)
 	client.CheckRetry = GetRetryPolicy()
 	return doGetWebPage(url, hostHeader, client, username, password)
 }
@@ -83,12 +83,20 @@ func Delete(url string, hostHeader string) (int, string) {
 
 // GetVerrazzanoNoRetryHTTPClient returns an Http client configured with the verrazzano CA cert
 func GetVerrazzanoNoRetryHTTPClient() *http.Client {
-	return getHTTPClientWIthCABundle(getVerrazzanoCACert())
+	kubeconfigPath := GetKubeConfigPathFromEnv()
+	return getHTTPClientWIthCABundle(getVerrazzanoCACert(kubeconfigPath), kubeconfigPath)
 }
 
 // GetVerrazzanoHTTPClient returns an Http client configured with the verrazzano CA cert
 func GetVerrazzanoHTTPClient() *retryablehttp.Client {
-	rawClient := getHTTPClientWIthCABundle(getVerrazzanoCACert())
+	kubeconfigPath := GetKubeConfigPathFromEnv()
+	rawClient := getHTTPClientWIthCABundle(getVerrazzanoCACert(kubeconfigPath), kubeconfigPath)
+	return newRetryableHTTPClient(rawClient)
+}
+
+// GetVerrazzanoHTTPClient returns an Http client configured with the verrazzano CA cert
+func GetVerrazzanoHTTPClientForCluster(kubeconfigPath string) *retryablehttp.Client {
+	rawClient := getHTTPClientWIthCABundle(getVerrazzanoCACert(kubeconfigPath), kubeconfigPath)
 	return newRetryableHTTPClient(rawClient)
 }
 
@@ -99,8 +107,8 @@ func GetRancherHTTPClient() *retryablehttp.Client {
 }
 
 // GetKeycloakHTTPClient returns the Keycloak Http client
-func GetKeycloakHTTPClient() *retryablehttp.Client {
-	keycloakRawClient := getHTTPClientWIthCABundle(getKeycloakCACert())
+func GetKeycloakHTTPClient(kubeconfigPath string) *retryablehttp.Client {
+	keycloakRawClient := getHTTPClientWIthCABundle(getKeycloakCACert(kubeconfigPath), kubeconfigPath)
 	client := newRetryableHTTPClient(keycloakRawClient)
 	client.CheckRetry = GetRetryPolicy()
 	return client
@@ -132,7 +140,8 @@ func ExpectHTTPGetOk(httpClient *retryablehttp.Client, url string) {
 
 // GetSystemVmiHTTPClient returns an HTTP client configured with the system vmi CA cert
 func GetSystemVmiHTTPClient() *retryablehttp.Client {
-	vmiRawClient := getHTTPClientWIthCABundle(getSystemVMICACert())
+	kubeconfigPath := GetKubeConfigPathFromEnv()
+	vmiRawClient := getHTTPClientWIthCABundle(getSystemVMICACert(kubeconfigPath), kubeconfigPath)
 	client := newRetryableHTTPClient(vmiRawClient)
 	client.CheckRetry = GetRetryPolicy()
 	return client
@@ -201,7 +210,7 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 }
 
 // getHTTPClientWIthCABundle returns an HTTP client configured with the provided CA cert
-func getHTTPClientWIthCABundle(caData []byte) *http.Client {
+func getHTTPClientWIthCABundle(caData []byte, kubeconfigPath string) *http.Client {
 	tr := &http.Transport{TLSClientConfig: &tls.Config{RootCAs: rootCertPool(caData)}}
 
 	proxyURL := getProxyURL()
@@ -211,7 +220,7 @@ func getHTTPClientWIthCABundle(caData []byte) *http.Client {
 		tr.Proxy = http.ProxyURL(tURLProxy)
 	}
 
-	ipResolve := getNginxNodeIP()
+	ipResolve := getNginxNodeIP(kubeconfigPath)
 	if ipResolve != "" {
 		dialer := &net.Dialer{
 			Timeout:   30 * time.Second,
@@ -251,9 +260,9 @@ func getEnvName() string {
 	return installedEnvName
 }
 
-// getVerrazzanoCACert returns the verrazzano CA cert
-func getVerrazzanoCACert() []byte {
-	return doGetCACertFromSecret(getEnvName()+"-secret", "verrazzano-system")
+// getVerrazzanoCACert returns the verrazzano CA cert in the specified cluster
+func getVerrazzanoCACert(kubeconfigPath string) []byte {
+	return doGetCACertFromSecret(getEnvName()+"-secret", "verrazzano-system", kubeconfigPath)
 }
 
 // getRancherCACert returns the Rancher CA cert
@@ -262,13 +271,13 @@ func getRancherCACert() []byte {
 }
 
 // getKeycloakCACert returns the keycloak CA cert
-func getKeycloakCACert() []byte {
-	return doGetCACertFromSecret(getEnvName()+"-secret", "keycloak")
+func getKeycloakCACert(kubeconfigPath string) []byte {
+	return doGetCACertFromSecret(getEnvName()+"-secret", "keycloak", kubeconfigPath)
 }
 
 // getSystemVMICACert returns the system vmi CA cert
-func getSystemVMICACert() []byte {
-	return doGetCACertFromSecret("system-tls", "verrazzano-system")
+func getSystemVMICACert(kubeconfigPath string) []byte {
+	return doGetCACertFromSecret("system-tls", "verrazzano-system", kubeconfigPath)
 }
 
 // getProxyURL returns the proxy URL from the proxy env variables
@@ -288,16 +297,16 @@ func getProxyURL() string {
 	return ""
 }
 
-// doGetCACertFromSecret returns the CA cert from the specified kubernetes secret
-func doGetCACertFromSecret(secretName string, namespace string) []byte {
-	clientset := GetKubernetesClientset()
+// doGetCACertFromSecret returns the CA cert from the specified kubernetes secret in the given cluster
+func doGetCACertFromSecret(secretName string, namespace string, kubeconfigPath string) []byte {
+	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
 	certSecret, _ := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	return certSecret.Data["ca.crt"]
 }
 
 // Returns the nginx controller node ip
-func getNginxNodeIP() string {
-	clientset := GetKubernetesClientset()
+func getNginxNodeIP(kubeconfigPath string) string {
+	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
 	pods, err := clientset.CoreV1().Pods("ingress-nginx").List(context.TODO(), metav1.ListOptions{})
 	if err == nil {
 		for i := range pods.Items {

@@ -85,7 +85,7 @@ func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, 
 
 // PodsRunning is identical to PodsRunningInCluster, except that it uses the cluster specified in the environment
 func PodsRunning(namespace string, namePrefixes []string) bool {
-	return PodsRunningInCluster(namespace, namePrefixes, getKubeConfigPathFromEnv())
+	return PodsRunningInCluster(namespace, namePrefixes, GetKubeConfigPathFromEnv())
 }
 
 // PodsRunning checks if all the pods identified by namePrefixes are ready and running in the given cluster
@@ -236,7 +236,7 @@ func findMetric(metrics []interface{}, key, value string) bool {
 
 // MetricsExist is identical to MetricsExistInCluster, except that it uses the cluster specified in the environment
 func MetricsExist(metricsName, key, value string) bool {
-	return MetricsExistInCluster(metricsName, key, value, getKubeConfigPathFromEnv())
+	return MetricsExistInCluster(metricsName, key, value, GetKubeConfigPathFromEnv())
 }
 
 // MetricsExist validates the availability of a given metric in the given cluster

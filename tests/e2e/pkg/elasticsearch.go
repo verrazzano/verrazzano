@@ -33,7 +33,7 @@ func getSystemElasticSearchIngressHost(kubeconfigPath string) string {
 // listSystemElasticSearchIndices lists the system Elasticsearch indices in the given cluster
 func listSystemElasticSearchIndices(kubeconfigPath string) []string {
 	url := fmt.Sprintf("https://%s/_all", getSystemElasticSearchIngressHost(kubeconfigPath))
-	status, body := RetryGetWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPasswordInCluster(kubeconfigPath))
+	status, body := RetryGetWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
 	list := []string{}
 	if status != 200 {
 		Log(Debug, fmt.Sprintf("Error retrieving Elasticsearch indices: url=%s, status=%d", url, status))
@@ -60,7 +60,7 @@ func querySystemElasticSearch(index string, fields map[string]string, kubeconfig
 		}
 	}
 	url := fmt.Sprintf("https://%s/%s/_doc/_search?q=%s", getSystemElasticSearchIngressHost(kubeconfigPath), index, query)
-	status, body := RetryGetWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPassword())
+	status, body := RetryGetWithBasicAuth(url, "", "verrazzano", GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
 	var result map[string]interface{}
 	if status != 200 {
 		Log(Debug, fmt.Sprintf("Error retrieving Elasticsearch query results: url=%s, status=%d", url, status))
@@ -73,7 +73,7 @@ func querySystemElasticSearch(index string, fields map[string]string, kubeconfig
 
 // LogIndexFound confirms a named index can be found in Elasticsearch in the cluster specified in the environment
 func LogIndexFound(indexName string) bool {
-	return LogIndexFoundInCluster(indexName, getKubeConfigPathFromEnv())
+	return LogIndexFoundInCluster(indexName, GetKubeConfigPathFromEnv())
 }
 
 // LogIndexFoundInCluster confirms a named index can be found in Elasticsearch on the given cluster
@@ -91,7 +91,7 @@ func LogIndexFoundInCluster(indexName, kubeconfigPath string) bool {
 // LogRecordFound confirms a recent log record for the index with matching fields can be found
 // in the cluster specified in the environment
 func LogRecordFound(indexName string, after time.Time, fields map[string]string) bool {
-	return LogRecordFoundInCluster(indexName, after, fields, getKubeConfigPathFromEnv())
+	return LogRecordFoundInCluster(indexName, after, fields, GetKubeConfigPathFromEnv())
 }
 
 // LogRecordFoundInCluster confirms a recent log record for the index with matching fields can be found

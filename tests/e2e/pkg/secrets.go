@@ -29,7 +29,7 @@ func ListSecrets(namespace string) *corev1.SecretList {
 
 // GetSecret returns the a secret in a given namespace for the cluster specified in the environment
 func GetSecret(namespace string, name string) (*corev1.Secret, error) {
-	return GetSecretInCluster(namespace, name, getKubeConfigPathFromEnv())
+	return GetSecretInCluster(namespace, name, GetKubeConfigPathFromEnv())
 }
 
 // GetSecretInCluster returns the a secret in a given namespace for the given cluster

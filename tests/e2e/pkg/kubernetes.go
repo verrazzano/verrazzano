@@ -41,9 +41,10 @@ func GetKubeConfigGivenPath(kubeconfigPath string) *restclient.Config {
 	return buildKubeConfig(kubeconfigPath)
 }
 
-// GetKubeConfig will get the kubeconfig from the environment variable KUBECONFIG, if set, or else from $HOME/.kube/config
+// GetKubeConfig will get the kubeconfig from the TEST_KUBECONFIG env var if set, then the env var KUBECONFIG, if set,
+// or else from $HOME/.kube/config
 func GetKubeConfig() *restclient.Config {
-	kubeconfig := getKubeConfigPathFromEnv()
+	kubeconfig := GetKubeConfigPathFromEnv()
 
 	return buildKubeConfig(kubeconfig)
 }
@@ -58,7 +59,9 @@ func buildKubeConfig(kubeconfig string) *restclient.Config {
 	return config
 }
 
-func getKubeConfigPathFromEnv() string {
+// GetKubeConfigPathFromEnv returns the path to the default kubernetes config file in use (from
+// the TEST_KUBECONFIG env var if set, then the env var KUBECONFIG, if set, or else from $HOME/.kube/config
+func GetKubeConfigPathFromEnv() string {
 	kubeconfig := ""
 	kubeconfigEnvVar := ""
 	testKubeConfigEnvVar := os.Getenv("TEST_KUBECONFIG")
@@ -417,7 +420,7 @@ func DeleteNamespace(name string) error {
 		return nil
 	}
 
-	return DeleteNamespaceInCluster(name, getKubeConfigPathFromEnv())
+	return DeleteNamespaceInCluster(name, GetKubeConfigPathFromEnv())
 }
 
 func DeleteNamespaceInCluster(name string, kubeconfigPath string) error {
