@@ -22,7 +22,7 @@ const (
 var _ = ginkgo.Describe("rancher url test", func() {
 
 	var _ = ginkgo.BeforeEach(func() {
-		api = pkg.GetAPIEndpoint()
+		api = pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
 	})
 
 	ginkgo.Context("Fetching the rancher url using api and test ", func() {
