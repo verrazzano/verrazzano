@@ -489,11 +489,11 @@ pipeline {
     post {
         success {
             script {
-                # FIXME: This is temporary for early setup, need to switch this to be "master"
+                // FIXME: This is temporary for early setup, need to switch this to be "master"
                 build job: 'verrazzano-push-triggered-acceptance-tests/tvlatas/change-test-job-triggering',
                     parameters: [
                         string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
-                        string(name: 'STORAGE_LOCATION', value: ${SHORT_COMMIT_HASH})
+                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: ${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG})
                     ], wait: false
             }
         }
