@@ -10,6 +10,7 @@
 # - Kibana
 # - Grafana
 # - Rancher
+# - Console
 #
 # Prometheus is installed for recording metrics from the system services and deployed apps in the local
 # cluster, which will then be scraped from the admin cluster.

@@ -3,7 +3,7 @@
 name: verrazzano
 
 # Managed cluster profile
-# - ES, Kibana, and Grafana disabled
+# - ES, Kibana, Grafana, Rancher and Verrazzano Console disabled
 
 elasticSearch:
   enabled: false
@@ -12,6 +12,9 @@ grafana:
   enabled: false
 
 kibana:
+  enabled: false
+
+console:
   enabled: false
 
 rancher:

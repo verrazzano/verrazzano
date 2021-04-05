@@ -10,14 +10,17 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"io"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"regexp"
+	"time"
 )
 
 // TextMatch supplies information about the matched text
 type TextMatch struct {
 	FileName    string
 	FileLine    int
+	Timestamp   metav1.Time
 	MatchedText string
 }
 
@@ -46,60 +49,14 @@ func SearchFiles(log *zap.SugaredLogger, rootDirectory string, files []string, s
 	}
 
 	for _, fileName := range files {
-		// Note that since we are in a loop, we do not use defer to close the file, we close it explicitly so they
-		// don't pile up until the function return
-		file, err := os.Open(fileName)
+		matchesFromFile, err := SearchFile(log, fileName, searchMatchRe)
 		if err != nil {
 			log.Debugf("failure opening %s", fileName, err)
 			return nil, err
 		}
-
-		fileStat, err := file.Stat()
-		if err != nil {
-			file.Close()
-			log.Debugf("failure getting stat for %s", fileName, err)
-			return nil, err
+		if len(matchesFromFile) > 0 {
+			matches = append(matches, matchesFromFile...)
 		}
-		if fileStat.IsDir() {
-			log.Debugf("Skipping directory in search %s", fileName)
-			file.Close()
-			continue
-		}
-		if !fileStat.Mode().IsRegular() {
-			log.Debugf("Skipping non-regular file in search %s", fileName)
-			file.Close()
-			continue
-		}
-
-		// Had issues with token too large using the scanner, so using a reader instead
-		reader := bufio.NewReader(file)
-		//scanner := bufio.NewScanner(file)
-		lineNumber := 0
-		var match TextMatch
-		for {
-			line, readErr := reader.ReadString('\n')
-			if readErr != nil && readErr != io.EOF {
-				// If we had an unexpected failure we fail
-				log.Debugf("failure reading file %s", fileName, readErr)
-				file.Close()
-				return nil, readErr
-			}
-			if len(line) > 0 {
-				lineNumber++
-				matched := searchMatchRe.Find([]byte(line))
-				if len(matched) > 0 {
-					match.FileLine = lineNumber
-					match.FileName = fileName
-					match.MatchedText = line
-					matches = append(matches, match)
-				}
-			}
-			// If we hit EOF, we're done
-			if readErr == io.EOF {
-				break
-			}
-		}
-		file.Close()
 	}
 	return matches, nil
 }
@@ -136,23 +93,33 @@ func SearchFile(log *zap.SugaredLogger, fileName string, searchMatchRe *regexp.R
 		return nil, nil
 	}
 
-	scanner := bufio.NewScanner(file)
+	// Had issues with token too large using the scanner, so using a reader instead
+	reader := bufio.NewReader(file)
 	lineNumber := 0
 	var match TextMatch
-	for scanner.Scan() {
-		lineNumber++
-		matched := searchMatchRe.Find(scanner.Bytes())
-		if len(matched) > 0 {
-			match.FileLine = lineNumber
-			match.FileName = fileName
-			match.MatchedText = scanner.Text()
-			matches = append(matches, match)
+	for {
+		line, readErr := reader.ReadString('\n')
+		if readErr != nil && readErr != io.EOF {
+			// If we had an unexpected failure we fail
+			log.Debugf("failure reading file %s", fileName, readErr)
+			return nil, readErr
 		}
-	}
-	err = scanner.Err()
-	if err != nil {
-		log.Debugf("failure scanning file %s", fileName, err)
-		return nil, err
+		if len(line) > 0 {
+			// See if we have a match
+			lineNumber++
+			matched := searchMatchRe.Find([]byte(line))
+			if len(matched) > 0 {
+				match.FileLine = lineNumber
+				match.FileName = fileName
+				match.MatchedText = line
+				matches = append(matches, match)
+				match.Timestamp = ExtractTimeIfPresent(line)
+			}
+		}
+		// If we hit EOF, we're done
+		if readErr == io.EOF {
+			break
+		}
 	}
 
 	return matches, nil
@@ -181,4 +148,11 @@ func FindFilesAndSearch(log *zap.SugaredLogger, rootDirectory string, fileMatchR
 
 	// Note that SearchFiles will detect if no files were found so just call it
 	return SearchFiles(log, rootDirectory, filesToSearch, searchMatchRe)
+}
+
+// ExtractTimeIfPresent determines if the text matches a known pattern which has a timestamp in it (such as known log formats)
+// and will extract the timestamp into a wrappered metav1.Time. If there is no timestamp found it will return a zero time value
+func ExtractTimeIfPresent(inputText string) metav1.Time {
+	// TODO: Add known log timestamp patterns, and parse out the times
+	return metav1.NewTime(time.Time{})
 }

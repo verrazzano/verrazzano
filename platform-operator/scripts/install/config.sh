@@ -287,6 +287,16 @@ function get_verrazzano_ports_spec() {
   echo $ports_spec
 }
 
+function get_install_profile() {
+  local profile=$(get_config_value '.profile')
+  if [ -z "${profile}" ]; then
+    error "The value .profile must be set in the config file"
+    exit 1
+  else
+    echo "${profile}"
+  fi
+}
+
 function get_acme_environment() {
   if [ -z "$(get_config_value ".certificates.acme.environment")" ]; then
     echo "production"
@@ -328,7 +338,7 @@ function get_nginx_nodeport() {
 # in both the values files.
 function compute_effective_values() {
   set -o pipefail
-  local profile=$(get_config_value '.profile')
+  local profile=$(get_install_profile)
   local values_file="${VZ_VALUES_DIR}/values.yaml"
   local profile_values_override="${VZ_VALUES_DIR}/values.${profile}.yaml"
   if [ ! -f "${profile_values_override}" ]; then
