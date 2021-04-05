@@ -23,26 +23,3 @@ spec:
       to:
         - ipBlock:
             cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
----
-# Network policy for Coherence operator
-# Ingress:  deny all
-# Egress: allow Coherence Operator to connect to Kubernetes API server
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: coherence-operator
-  namespace: {{ .Release.Namespace }}
-spec:
-  podSelector:
-    matchLabels:
-      control-plane: coherence
-  policyTypes:
-    - Ingress
-    - Egress
-  egress:
-    - ports:
-        - port: {{ .Values.kubernetes.service.endpoint.port }}
-          protocol: TCP
-      to:
-        - ipBlock:
-            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32

@@ -19,10 +19,10 @@ function initializing_uninstall {
   kubectl get pods -n cattle-system
   log "Deleting Rancher through API"
   rancher_exists=$(kubectl get namespace cattle-system) || return 0
-  rancher_host_name="$(kubectl get ingress -n cattle-system --no-headers -o custom-columns=":spec.rules[0].host")" || err_return $? "Could not retrieve Rancher hostname" || return $?
+  rancher_host_name="$(kubectl get ingress -n cattle-system --no-headers -o custom-columns=":spec.rules[0].host")" || err_return $? "Could not retrieve Rancher hostname" || return 0
   rancher_cluster_url="https://${rancher_host_name}/v3/clusters/local"
-  rancher_admin_password=$(kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password}) || err_return $? "Could not retrieve rancher-admin-secret" || return $?
-  rancher_admin_password=$(echo ${rancher_admin_password} | base64 --decode) || err_return $? "Could not decode rancher-admin-secret" || return $?
+  rancher_admin_password=$(kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password}) || err_return $? "Could not retrieve rancher-admin-secret" || return 0
+  rancher_admin_password=$(echo ${rancher_admin_password} | base64 --decode) || err_return $? "Could not decode rancher-admin-secret" || return 0
 
   if [ "$rancher_admin_password" ] && [ "$rancher_host_name" ] ; then
     log "Retrieving Rancher access token."
@@ -40,7 +40,8 @@ function initializing_uninstall {
       return 0
     fi
 
-    local max_retries=30
+    # Wait 60s for local cluster to delete
+    local max_retries=6
     local retries=0
     while true ; do
       still_exists="$(curl -s $(get_rancher_resolve ${rancher_hostname}) -X GET -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")"
@@ -53,10 +54,11 @@ function initializing_uninstall {
       fi
       ((retries+=1))
       if [ "$retries" -ge "$max_retries" ] ; then
-        return 0
+        break
       fi
     done
   fi
+  return 0
 }
 
 # Delete all of the OAM ApplicationConfiguration resources in all namespaces.

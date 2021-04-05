@@ -134,7 +134,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, reportFile string, includeSuppo
 		}
 		for _, issue := range actuallyReported {
 			// Print the Issue out
-			_, err = fmt.Fprintf(writeOut, "\n\tISSUE:\n\t\tsummary: %s\n", issue.Summary)
+			_, err = fmt.Fprintf(writeOut, "\n\tISSUE (%s)\n\t\tsummary: %s\n", issue.Type, issue.Summary)
 			if err != nil {
 				return err
 			}

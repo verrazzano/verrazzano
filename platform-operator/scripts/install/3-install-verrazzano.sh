@@ -101,11 +101,7 @@ function install_verrazzano()
     EXTRA_V8O_ARGUMENTS="${EXTRA_V8O_ARGUMENTS} --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
   fi
 
-  local profile=$(get_config_value '.profile')
-  if [ -z "$profile" ]; then
-    error "The value .profile must be set in the config file"
-    exit 1
-  fi
+  local profile=$(get_install_profile)
   if [ ! -f "${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml" ]; then
     error "The file ${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml does not exist"
     exit 1
@@ -128,6 +124,9 @@ function install_verrazzano()
       --set kubernetes.service.endpoint.port=${ENDPOINT_ARRAY[1]} \
       ${PROFILE_VALUES_OVERRIDE} \
       ${EXTRA_V8O_ARGUMENTS} || return $?
+
+  log "Waiting for the verrazzano-operator pod in ${VERRAZZANO_NS} to reach Ready state"
+  kubectl  wait -l app=verrazzano-operator --for=condition=Ready pod -n verrazzano-system
 
   log "Verifying that needed secrets are created"
   retries=0
