@@ -24,7 +24,7 @@ function read_config() {
 # get_config_value outputs to stdout a configuration value, without the surrounding quotes
 # Note: if the value requested is an array, it will return a JSON array - use get_config_array
 # if you want a bash array.
-# The configuration value is read from the following from the following files in the given order
+# The configuration value is read from the following files in the given order
 # - custom resource
 # - install-overrides/config.${profile}.json
 # - install-overrides/config.json
