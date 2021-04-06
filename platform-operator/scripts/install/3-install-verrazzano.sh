@@ -190,10 +190,13 @@ function install_application_operator {
 function install_weblogic_operator {
 
   log "Create WebLogic Kubernetes operator service account"
-  kubectl create serviceaccount -n "${VERRAZZANO_NS}" weblogic-operator-sa
-  if [ $? -ne 0 ]; then
-    error "Failed to create WebLogic Kubernetes operator service account."
-    return 1
+
+  if ! kubectl get serviceaccount weblogic-operator-sa -n ${VERRAZZANO_NS} > /dev/null 2>&1; then
+    kubectl create serviceaccount -n "${VERRAZZANO_NS}" weblogic-operator-sa
+    if [ $? -ne 0 ]; then
+      error "Failed to create WebLogic Kubernetes operator service account."
+      return 1
+    fi
   fi
 
   log "Install WebLogic Kubernetes operator"

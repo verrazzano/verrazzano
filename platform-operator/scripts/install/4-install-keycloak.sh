@@ -34,6 +34,14 @@ fi
 DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
 function install_mysql {
+  local deployment_status=$(get_deployment_status mysql keycloak)
+  if [ "${deployment_status}" == "deployed" ]; then
+    log "MySQL for Keycloak already installed"
+    return 0
+  else
+    log "MySQL for Keycloak chart state is ${deployment_status}, continuing..."
+  fi
+
   MYSQL_CHART_DIR=${CHARTS_DIR}/mysql
 
   log "Check for Keycloak namespace"
@@ -64,6 +72,15 @@ function install_mysql {
 }
 
 function install_keycloak {
+
+  local deployment_status=$(get_deployment_status keycloak keycloak)
+  if [ "${deployment_status}" == "deployed" ]; then
+    log "Keycloak already installed"
+    return 0
+  else
+    log "Keycloak chart state is ${deployment_status}, continuing..."
+  fi
+
   KEYCLOAK_CHART_DIR=${CHARTS_DIR}/keycloak
 
   if ! kubectl get secret --namespace ${VERRAZZANO_NS} verrazzano ; then
@@ -78,21 +95,11 @@ function install_keycloak {
   sed "s|ENV_NAME|${ENV_NAME}|g;s|DNS_SUFFIX|${DNS_SUFFIX}|g;s|VZ_SYS_REALM|${VZ_SYS_REALM}|g;s|VZ_USERNAME|${VZ_USERNAME}|g;s|VZ_PW_SALT|${VZ_PW_SALT}|g;s|VZ_PW_HASH|${VZ_PW_HASH}|g;s|VZ_ADMIN_GROUP|${VZ_ADMIN_GROUP}|g" $SCRIPT_DIR/config/keycloak.json > ${TMP_DIR}/keycloak-sed.json
 
   # Create keycloak secret
-  kubectl create secret generic keycloak-realm-cacert \
-      -n ${KEYCLOAK_NS} \
-      --from-file=realm.json=${TMP_DIR}/keycloak-sed.json
+  kubectl create secret generic --save-config --dry-run=client keycloak-realm-cacert -n ${KEYCLOAK_NS} \
+    --from-file=realm.json=${TMP_DIR}/keycloak-sed.json -o yaml | kubectl apply -f -
 
   # Create a random secret for the keycloakadmin user
-  kubectl apply -f <(echo "
-apiVersion: v1
-kind: Secret
-metadata:
-  name: ${KCADMIN_SECRET}
-  namespace: ${KEYCLOAK_NS}
-type: Opaque
-data:
-  password: $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1 | base64)
-")
+  update_secret_from_literal ${KCADMIN_SECRET} ${KEYCLOAK_NS} "$(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1 | base64)"
 
 VPROMUSR=$(echo -n $VERRAZZANO_INTERNAL_PROM_USER | base64)
 VPROM=$( (echo -n $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1) ) | base64)

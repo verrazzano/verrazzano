@@ -2868,6 +2868,41 @@ spec:
                 description: EnvironmentName identifies install environment.  Default
                   environment name is "default".
                 type: string
+              jobSettings:
+                description: JobSettings allows user to specify the retry and timeout
+                  settings for the Verrazzano install/uninstall jobs
+                properties:
+                  install:
+                    description: Retry settings for the Verrazzano installation jobs
+                    properties:
+                      activeDeadlineSeconds:
+                        description: Specifies the duration in seconds relative to
+                          the startTime that the job may be active before the system
+                          tries to terminate it; value must be positive integer
+                        format: int64
+                        type: integer
+                      backoffLimit:
+                        description: Specifies the number of retries before marking
+                          this job failed. Defaults to 6
+                        format: int32
+                        type: integer
+                    type: object
+                  uninstall:
+                    description: Retry settings for the Verrazzano installation jobs
+                    properties:
+                      activeDeadlineSeconds:
+                        description: Specifies the duration in seconds relative to
+                          the startTime that the job may be active before the system
+                          tries to terminate it; value must be positive integer
+                        format: int64
+                        type: integer
+                      backoffLimit:
+                        description: Specifies the number of retries before marking
+                          this job failed. Defaults to 6
+                        format: int32
+                        type: integer
+                    type: object
+                type: object
               profile:
                 description: Profile is the name of the profile to install.  Default
                   is "prod".

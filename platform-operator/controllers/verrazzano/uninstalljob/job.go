@@ -21,7 +21,12 @@ const uninstallMode = "UNINSTALL"
 
 // NewJob returns a job resource for uninstalling Verrazzano
 func NewJob(jobConfig *JobConfig) *batchv1.Job {
-	var backOffLimit int32 = 0
+	var backoffLimit *int32 = nil
+	var activeDeadlineSeconds *int64 = nil
+	if jobConfig.RetrySettings != nil {
+		backoffLimit = jobConfig.RetrySettings.BackoffLimit
+		activeDeadlineSeconds = jobConfig.RetrySettings.ActiveDeadlineSeconds
+	}
 	var annotations map[string]string = nil
 	mode := uninstallMode
 	if jobConfig.DryRun {
@@ -37,7 +42,8 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 			Annotations: annotations,
 		},
 		Spec: batchv1.JobSpec{
-			BackoffLimit: &backOffLimit,
+			BackoffLimit:          backoffLimit,
+			ActiveDeadlineSeconds: activeDeadlineSeconds,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        jobConfig.JobName,
@@ -71,7 +77,7 @@ func NewJob(jobConfig *JobConfig) *batchv1.Job {
 							},
 						},
 					}},
-					RestartPolicy:      corev1.RestartPolicyNever,
+					RestartPolicy:      corev1.RestartPolicyOnFailure,
 					ServiceAccountName: jobConfig.ServiceAccountName,
 				},
 			},

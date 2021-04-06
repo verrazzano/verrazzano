@@ -536,6 +536,11 @@ func TestUninstallComplete(t *testing.T) {
 			return nil
 		})
 
+	// Expect a lookup of a running install job
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Job"}, buildInstallJobName(name)))
+
 	// Expect a call to get the uninstall Job - return that it exists
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
@@ -624,6 +629,11 @@ func TestUninstallStarted(t *testing.T) {
 			return nil
 		})
 
+	// Expect a lookup of a running install job
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Job"}, buildInstallJobName(name)))
+
 	// Expect a call to get the uninstall Job - return that it does not exist
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
@@ -675,6 +685,11 @@ func TestUninstallFailed(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
+
+	// Expect a lookup of a running install job
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Job"}, buildInstallJobName(name)))
 
 	// Expect a call to get the verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().
@@ -760,6 +775,11 @@ func TestUninstallSucceeded(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
+
+	// Expect a lookup of a running install job
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Job"}, buildInstallJobName(name)))
 
 	// Expect a call to get the verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().

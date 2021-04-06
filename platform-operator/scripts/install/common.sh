@@ -188,6 +188,33 @@ function call_curl {
   return 1
 }
 
+# Common function to create/update a generic secret from a literal string if it doesn't already exist
+# $1 the secret name
+# $2 the namespace for the secret
+# $3 the password secret
+function update_secret_from_literal() {
+  local secret_name=$1
+  local ns=$2
+  local password_secret=$3
+
+  kubectl apply -f <(echo "
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: ${secret_name}
+  namespace: ${ns}
+data:
+  password: $(echo -n "${password_secret}"|base64)
+")
+}
+
+# Get the current state of a helm chart
+# $1 chart name
+# $2 namespace
+function get_deployment_status() {
+  echo -n $(helm status $1 -n $2 -o json | jq -r .info.status || true)
+}
 
 VERRAZZANO_DIR=${SCRIPT_DIR}/.verrazzano
 
