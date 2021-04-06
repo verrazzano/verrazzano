@@ -2,4 +2,4 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 rancherImage: ghcr.io/verrazzano/rancher
-rancherImageTag: v2.5.7-20210406031510-26313f6ea
+rancherImageTag: v2.5.7-20210406043045-472a83d9b
