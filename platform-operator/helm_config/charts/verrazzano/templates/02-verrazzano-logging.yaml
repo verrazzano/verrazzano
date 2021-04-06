@@ -15,7 +15,7 @@ data:
     @include "#{ENV['FLUENTD_CONFIG'] || 'fluentd-standalone.conf'}"
 
   # A config for running Fluentd as a daemon which collects, filters, parses,
-  # and sends log to storage. No extra fluentd processes required.
+  # and sends log to storage. No extra Fluentd processes required.
   fluentd-standalone.conf: |
     # Common config
     @include general.conf
@@ -28,13 +28,12 @@ data:
     # Parsing/Filtering
     @include systemd-filter.conf
     @include kubernetes-filter.conf
-    @include extra.conf
 
     # Send to storage
     @include output.conf
 
   general.conf: |
-    # Prevent fluentd from handling records containing its own logs. Otherwise
+    # Prevent Fluentd from handling records containing its own logs. Otherwise
     # it can lead to an infinite loop, when error in sending one message generates
     # another message which also fails to be sent and so on.
     <match fluent.**>
@@ -51,7 +50,7 @@ data:
     </source>
 
     # Emits internal metrics to every minute, and also exposes them on port
-    # 24220. Useful for determining if an output plugin is retryring/erroring,
+    # 24220. Useful for determining if an output plugin is retrying/erroring,
     # or determining the buffer queue length.
     <source>
       @type monitor_agent
@@ -62,7 +61,7 @@ data:
     </source>
 
   prometheus.conf: |
-    # input plugin that is required to expose metrics by other prometheus
+    # input plugin that is required to expose metrics by other Prometheus
     # plugins, such as the prometheus_monitor input below.
     <source>
       @type prometheus
@@ -73,24 +72,24 @@ data:
     </source>
 
     # input plugin that collects metrics from MonitorAgent and exposes them
-    # as prometheus metrics
+    # as Prometheus metrics
     <source>
       @type prometheus_monitor
       @id prometheus_monitor
-      # update the metrics every 5 seconds
-      interval 5
+      # update the metrics every 20 seconds
+      interval 20
     </source>
 
     <source>
       @type prometheus_output_monitor
       @id prometheus_output_monitor
-      interval 5
+      interval 20
     </source>
 
     <source>
       @type prometheus_tail_monitor
       @id prometheus_tail_monitor
-      interval 5
+      interval 20
     </source>
 
   systemd-input.conf: |
@@ -102,7 +101,6 @@ data:
       <storage>
         @type local
         persistent true
-       #path /var/log/journald_pos.json
         path /tmp/journald_pos.json
       </storage>
       <entry>
@@ -111,24 +109,6 @@ data:
     </source>
 
   systemd-filter.conf: |
-    #<match systemd>
-    #  @type rewrite_tag_filter
-    #  @id systemd_rewrite_tag_filter
-    #  # hostname_command sh /fluentd/etc/hostname.sh hostid
-    #  hostname_command echo $HOSTNAME
-    #  <rule>
-    #    key SYSTEMD_UNIT
-    #    pattern ^(.+).service$
-    #    tag systemd.$1
-    #  </rule>
-    #  <rule>
-    #    key SYSTEMD_UNIT
-    #    pattern ^(.+).service$
-    #    invert true
-    #    tag systemd.unmatched
-    #  </rule>
-    #</match>
-
     <filter systemd.kubelet>
       @type parser
       @id systemd_kubelet_parser
@@ -145,7 +125,7 @@ data:
       key_name MESSAGE
     </filter>
 
-    # Filter filter ssh logs since it's mostly bots trying to login
+    # Filter ssh logs since it's mostly bots trying to login
     <filter systemd.**>
       @type grep
       @id systemd_grep
@@ -165,6 +145,7 @@ data:
       # @id in_tail
       path /var/log/containers/*.log
       pos_file /tmp/fluentd-containers.log.pos
+      # Exclude the log of the Fluentd daemonset itself
       exclude_path ["/var/log/containers/fluentd*_verrazzano-system_fluentd*.log"]
       tag kubernetes.*
       read_from_head true
@@ -197,7 +178,6 @@ data:
       @id kubernetes_record_transformer
       enable_ruby true
       <record>
-       #@target_index vmi-ns-${record["kubernetes"]["namespace_name"]}-${time.strftime('%Y.%m.%d')}
         @target_index vmi-ns-${record["kubernetes"]["namespace_name"]}
       </record>
       <record>
@@ -215,18 +195,6 @@ data:
       replace_invalid_sequence true
       emit_invalid_record_to_error true
     </filter>
-
-    # retag based on the container name of the log message
-    #<match kubernetes.**>
-    #  @type rewrite_tag_filter
-    #  @id kubernetes_rewrite_tag_filter
-    #  # hostname_command "echo $HOSTNAME"
-    #  <rule>
-    #    key kubernetes_namespace_container_name
-    #    pattern ^(.+)$
-    #    tag kube.$1
-    #  </rule>
-    #</match>
 
     # Remove the unnecessary field as the information is already available on
     # other fields.
@@ -250,12 +218,11 @@ data:
       reserve_data true
       remove_key_name_field false
       emit_invalid_record_to_error false
-      hash_value_field wercker
       <parse>
         @type multi_format
         <pattern>
           format json
-          time_format %Y-%m-%dT%H:%M:%S.%N%z
+          time_format %Y-%m-%dT%H:%M:%S.%N%Z
         </pattern>
         <pattern>
           format json
@@ -271,7 +238,6 @@ data:
       @log_level info
       logstash_format true
       logstash_prefix vmi-journal
-      #logstash_prefix ${record['index_prefix'] || 'vmi-journal'}
       target_index_key @target_index
       include_tag_key true
 
@@ -279,16 +245,16 @@ data:
       template_name elasticsearch-template-vmi.json
       template_overwrite true
 
-      # time_as_integer needs to be set to false in order for fluentd
+      # time_as_integer needs to be set to false in order for Fluentd
       # to convert timestamps to Fluent::EventTime objects instead of
-      # integers. Thus allowing fluentd to preserve/transmit
+      # integers. Thus allowing Fluentd to preserve/transmit
       # nanosecond-precision values.
       time_as_integer false
 
-      # Ensure that the aws-elasticsearch-service plugin preserves
+      # Ensure that the elasticsearch-service plugin preserves
       # nanosecond-precision when formatting Fluent::EventTime values
-      # into a JSON payload destined for ElasticSearch.
-      # time_key_format %Y-%m-%dT%H:%M:%S.%N%z
+      # into a JSON payload destined for Elasticsearch.
+      # time_key_format %Y-%m-%dT%H:%M:%S.%N%Z
 
       # A value of 9 gives us nanosecond-precision in our timestamps. The default is
       # 0 which effectively gives us only second-precision; we don't want that. The
@@ -308,8 +274,7 @@ data:
       # Use multiple threads for processing.
       num_threads 8
 
-      # Prevent reloading connections to AWS ES. This fixes the issues
-      # described in https://github.com/wercker/infrastructure/pull/185
+      # Prevent reloading connections to Elasticsearch
       reload_on_failure false
       reload_connections false
 
@@ -319,16 +284,6 @@ data:
       user "#{ENV['ELASTICSEARCH_USER']}"
       password "#{ENV['ELASTICSEARCH_PASSWORD']}"
     </match>
-
-  extra.conf: |
-    # Example filter that adds an extra field "cluster_name" to all log
-    # messages:
-    # <filter **>
-    #   @type record_transformer
-    #   <record>
-    #     cluster_name "your_cluster_name"
-    #   </record>
-    # </filter>
 
   elasticsearch-template-vmi.json: |
     {
@@ -397,11 +352,8 @@ rules:
   - apiGroups:
       - ""
     resources:
-      - nodes
-      - services
       - namespaces
       - pods
-      - daemonsets
     verbs:
       - get
       - list
@@ -446,24 +398,20 @@ spec:
               value: fluentd-standalone.conf
             - name: FLUENT_ELASTICSEARCH_SED_DISABLE
               value: "true"
-            # To be Updated by operators
             - name: ELASTICSEARCH_URL
               value: http://vmi-system-es-ingest:9200
-            # To be Updated by operators
             - name: CLUSTER_NAME
               value: local
             - name: ELASTICSEARCH_USER
               valueFrom:
                 secretKeyRef:
                   key: username
-                  # To be Updated by operators
                   name: verrazzano
                   optional: true
             - name: ELASTICSEARCH_PASSWORD
               valueFrom:
                 secretKeyRef:
                   key: password
-                  # To be Updated by operators
                   name: verrazzano
                   optional: true
           image: {{ .Values.logging.fluentdImage }}
@@ -495,11 +443,8 @@ spec:
       volumes:
         - name: secret-volume
           secret:
-            defaultMode: 420
-            # To be created or updated by operators
             secretName: verrazzano
         - configMap:
-            defaultMode: 420
             name: {{ .Values.logging.name }}-config
           name: {{ .Values.logging.name }}-config
         - hostPath:

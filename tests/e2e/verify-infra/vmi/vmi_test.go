@@ -12,19 +12,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned/typed/verrazzano/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
-
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
-
 	"github.com/hashicorp/go-retryablehttp"
-
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned/typed/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-
-	//v1 "k8s.io/api/core/v1"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
