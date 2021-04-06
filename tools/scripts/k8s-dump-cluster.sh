@@ -195,7 +195,7 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get rolebindings -n $NAMESPACE -o json > $CAPTURE_DIR/cluster-dump/$NAMESPACE/role-bindings.json || true
         kubectl --insecure-skip-tls-verify get clusterrolebindings -n $NAMESPACE -o json > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-role-bindings.json || true
         kubectl --insecure-skip-tls-verify get clusterroles -n $NAMESPACE -o json > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-roles.json || true
-        kubectl --insecure-skip-tls-verify describe ns -n $NAMESPACE -o json > $CAPTURE_DIR/cluster-dump/$NAMESPACE/namespace.json || true
+        kubectl --insecure-skip-tls-verify get ns -n $NAMESPACE -o json > $CAPTURE_DIR/cluster-dump/$NAMESPACE/namespace.json || true
       fi
     fi
   done <$CAPTURE_DIR/cluster-dump/namespace_list.out
