@@ -42,8 +42,8 @@ spec:
             description: VerrazzanoProjectSpec defines the desired state of VerrazzanoProject
             properties:
               placement:
-                description: Clusters in which the namespaces in this project is to
-                  be placed
+                description: Clusters in which the namespaces in this project are
+                  to be placed
                 properties:
                   clusters:
                     items:

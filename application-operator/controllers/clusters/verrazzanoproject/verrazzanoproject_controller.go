@@ -64,6 +64,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		opResult = controllerutil.OperationResultNone
 	}
 
+	clusters.SetEffectiveStateIfChanged(vp.Spec.Placement, &vp.Status)
 	return r.updateStatus(ctx, &vp, opResult, err)
 }
 
