@@ -78,7 +78,9 @@ pipeline {
                 """
 
                 script {
-                    checkout scm
+                    def scmInfo = checkout scm
+                    env.GIT_COMMIT = ${scmInfo.GIT_COMMIT}
+                    env.GIT_BRANCH = ${scmInfo.GIT_BRANCH}
                 }
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
@@ -493,8 +495,8 @@ pipeline {
                 build job: 'verrazzano-push-triggered-acceptance-tests/tvlatas/change-test-job-triggering',
                     parameters: [
                         string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
-                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: ${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG})
-                    ], wait: false
+                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
+                    ], wait: true
             }
         }
         always {

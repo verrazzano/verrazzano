@@ -1,0 +1,129 @@
+// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+pipeline {
+    options {
+        skipDefaultCheckout true
+    }
+
+    agent {
+       docker {
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryCredentialsId 'ocir-pull-and-push-account'
+            label "VM.Standard2.8"
+        }
+    }
+
+    parameters {
+        string (name: 'VERRAZZANO_BRANCH',
+                        defaultValue: 'master',
+                        description: 'Branch to clone and checkout the Verrazzano repo',
+                        trim: true)
+        string (name: 'GIT_COMMIT_TO_USE',
+                        defaultValue: 'NONE',
+                        description: 'This is the full git commit hash from the source build to be used for all jobs',
+                        trim: true)
+    }
+
+    environment {
+        KUBERNETES_VERSION = '1.17,1.19,1.20'
+    }
+
+    stages {
+        stage('Clean workspace and checkout') {
+            steps {
+                sh """
+                    echo "${NODE_LABELS}"
+                """
+
+                script {
+                    if params.GIT_COMMIT_TO_USE == "NONE" {
+                        echo "Specific GIT commit was not specified, use current head"
+                        def scmInfo = checkout scm
+                        env.GIT_COMMIT = ${scmInfo.GIT_COMMIT}
+                        env.GIT_BRANCH = ${scmInfo.GIT_BRANCH}
+                    } else {
+                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+                        def scmInfo = checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: ${params.GIT_COMMIT_TO_USE}]],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[url: ${SCM_VERRAZZANO_GIT_URL}]]])
+                        env.GIT_COMMIT = ${scmInfo.GIT_COMMIT}
+                        env.GIT_BRANCH = ${scmInfo.GIT_BRANCH}
+                        // If the commit we were handed is not what the SCM says we are using, fail
+                        if !env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE) {
+                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                            exit 1
+                        }
+                    }
+                }
+
+                sh """
+                    cp -f "${NETRC_FILE}" $HOME/.netrc
+                    chmod 600 $HOME/.netrc
+                """
+
+                sh """
+                    rm -rf ${GO_REPO_PATH}/verrazzano
+                    mkdir -p ${GO_REPO_PATH}/verrazzano
+                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+                """
+
+                script {
+                    def props = readProperties file: '.verrazzano-development-version'
+                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
+                    // update the description with some meaningful info
+                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                }
+            }
+        }
+
+        stage ('Kick off parallel tests') {
+            parallel {
+                stage('Kind Acceptance Tests on 1.17') {
+                    steps {
+                        script {
+                            build job: 'verrazzano-new-kind-acceptance-tests/${params.VERRAZZANO_BRANCH}',
+                                parameters: [
+                                    string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.17')
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Kind Acceptance Tests on 1.19') {
+                    steps {
+                        script {
+                            build job: 'verrazzano-new-kind-acceptance-tests/${params.VERRAZZANO_BRANCH}',
+                                parameters: [
+                                    string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19')
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Kind Acceptance Tests on 1.20') {
+                    steps {
+                        script {
+                            build job: 'verrazzano-new-kind-acceptance-tests/${params.VERRAZZANO_BRANCH}',
+                                parameters: [
+                                    string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20')
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
+                                ], wait: true
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

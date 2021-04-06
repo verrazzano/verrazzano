@@ -27,6 +27,10 @@ pipeline {
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
                 choices: [ "1.18", "1.19", "1.20", "1.17" ])
+        string (name: 'GIT_COMMIT_TO_USE',
+                        defaultValue: 'NONE',
+                        description: 'This is the full git commit hash from the source build to be used for all jobs',
+                        trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                         defaultValue: 'NONE',
                         description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from Verrazzano repo will be used to create Verrazzano platform operator',
@@ -74,7 +78,28 @@ pipeline {
                 """
 
                 script {
-                    checkout scm
+                    if params.GIT_COMMIT_TO_USE == "NONE" {
+                        echo "Specific GIT commit was not specified, use current head"
+                        def scmInfo = checkout scm
+                        env.GIT_COMMIT = ${scmInfo.GIT_COMMIT}
+                        env.GIT_BRANCH = ${scmInfo.GIT_BRANCH}
+                    } else {
+                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+                        def scmInfo = checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: ${params.GIT_COMMIT_TO_USE}]],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[url: ${SCM_VERRAZZANO_GIT_URL}]]])
+                        env.GIT_COMMIT = ${scmInfo.GIT_COMMIT}
+                        env.GIT_BRANCH = ${scmInfo.GIT_BRANCH}
+                        // If the commit we were handed is not what the SCM says we are using, fail
+                        if !env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE) {
+                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                            exit 1
+                        }
+                    }
                 }
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
@@ -157,8 +182,14 @@ pipeline {
 
                             echo "Install Platform Operator"
                             cd ${GO_REPO_PATH}/verrazzano
-                            echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
-                            env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
+                            if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
+                                echo "Using operator.yaml from object storage"
+                                oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                                cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+                            else
+                                echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
+                                env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
+                            fi
                             kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
 
                             # make sure ns exists
