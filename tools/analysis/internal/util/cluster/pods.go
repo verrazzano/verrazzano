@@ -140,7 +140,7 @@ func verrazzanoUninstallIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 //   those directly to the report.Contribute* helpers
 func podContainerIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
 	log.Debugf("podContainerIssues analysis called for cluster: %s, ns: %s, pod: %s", clusterRoot, pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
-	podEvents, err := GetEventsRelatedToPod(log, clusterRoot, pod)
+	podEvents, err := GetEventsRelatedToPod(log, clusterRoot, pod, nil)
 	if err != nil {
 		log.Debugf("Failed to get events related to ns: %s, pod: %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 	}

@@ -113,7 +113,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		issueDetected := false
 
 		// TODO: Need to handle time range correlation (only events within a time range)
-		events, err := GetEventsRelatedToService(log, clusterRoot, controllerService)
+		events, err := GetEventsRelatedToService(log, clusterRoot, controllerService, nil)
 		if err != nil {
 			log.Debugf("Failed to get events related to the NGINX ingress controller service", err)
 			return err

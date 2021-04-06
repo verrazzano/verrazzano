@@ -167,6 +167,40 @@ function dump_configmaps() {
     done <$CAPTURE_DIR/cluster-dump/configmap_list.out
 }
 
+# This relies on the directory structure which is setup by kubectl cluster-info dump, so this is not a standalone function and currently
+# should only be called after that has been called.
+# kubectl cluster-info dump only captures certain information, we need additional information captured though and have it placed into
+# namespace specific directories which are created by cluster-info. We capture those things here.
+#
+function dump_extra_details_per_namespace() {
+  # Get list of all namespaces in the cluster
+  kubectl --insecure-skip-tls-verify get -o custom-columns=NAMEHEADER:.metadata.name namespaces > $CAPTURE_DIR/cluster-dump/namespace_list.out || true
+
+  # Iterate the list, describe each configmap individually in a file in the namespace
+  local NAMESPACE=""
+  while read NAMESPACE; do
+    if [[ ! $NAMESPACE == *"NAMESPACEHEADER"* ]]; then
+      if [ ! -z $NAMESPACE ] ; then
+        # The cluster-dump should create the directories for us, but just in case there is a situation where there is a namespace
+        # that is present which doesn't have one created, make sure we have the directory
+        if [ ! -d $CAPTURE_DIR/cluster-dump/$NAMESPACE ] ; then
+          mkdir $CAPTURE_DIR/cluster-dump/$NAMESPACE || true
+        fi
+        kubectl --insecure-skip-tls-verify get ApplicationConfiguration -n $NAMESPACE -o json > $CAPTURE_DIR/cluster-dump/$NAMESPACE/application-configurations.json || true
+        kubectl --insecure-skip-tls-verify get IngressTrait -n $NAMESPACE -o json > $CAPTURE_DIR/cluster-dump/$NAMESPACE/ingress-traits.json || true
+        kubectl --insecure-skip-tls-verify get Coherence -n $NAMESPACE -o json > $CAPTURE_DIR/cluster-dump/$NAMESPACE/coherence.json || true
+        kubectl --insecure-skip-tls-verify get gateway -n $NAMESPACE -o json > $CAPTURE_DIR/cluster-dump/$NAMESPACE/gateways.json || true
+        kubectl --insecure-skip-tls-verify get virtualservice -n $NAMESPACE -o json > $CAPTURE_DIR/cluster-dump/$NAMESPACE/virtualservices.json || true
+        kubectl --insecure-skip-tls-verify describe verrazzano -n $NAMESPACE > $CAPTURE_DIR/cluster-dump/$NAMESPACE/verrazzano_resources.json || true
+        kubectl --insecure-skip-tls-verify get rolebindings -n $NAMESPACE -o json > $CAPTURE_DIR/cluster-dump/$NAMESPACE/role-bindings.json || true
+        kubectl --insecure-skip-tls-verify get clusterrolebindings -n $NAMESPACE -o json > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-role-bindings.json || true
+        kubectl --insecure-skip-tls-verify get clusterroles -n $NAMESPACE-o json > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-roles.json || true
+      fi
+    fi
+  done <$CAPTURE_DIR/cluster-dump/namespace_list.out
+  rm $CAPTURE_DIR/cluster-dump/namespace_list.out
+}
+
 function full_k8s_cluster_dump() {
   echo "Full capture of kubernetes cluster"
   # Get general cluster-info dump, this contains quite a bit but not everything, it also sets up the directory structure
@@ -176,17 +210,9 @@ function full_k8s_cluster_dump() {
     kubectl --insecure-skip-tls-verify get crd -o json > $CAPTURE_DIR/cluster-dump/crd.json || true
     kubectl --insecure-skip-tls-verify get pv -o json > $CAPTURE_DIR/cluster-dump/pv.json || true
     kubectl --insecure-skip-tls-verify get ingress -A -o json > $CAPTURE_DIR/cluster-dump/ingress.json || true
-    kubectl --insecure-skip-tls-verify get ApplicationConfiguration --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/application-configurations.json || true
-    kubectl --insecure-skip-tls-verify get IngressTrait --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/ingress-traits.json || true
-    kubectl --insecure-skip-tls-verify get Coherence --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/coherence.json || true
-    kubectl --insecure-skip-tls-verify get gateway --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/gateways.json || true
-    kubectl --insecure-skip-tls-verify get virtualservice --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/virtualservices.json || true
-    kubectl --insecure-skip-tls-verify describe verrazzano --all-namespaces > $CAPTURE_DIR/cluster-dump/verrazzano_resources.json || true
     kubectl --insecure-skip-tls-verify api-resources -o wide > $CAPTURE_DIR/cluster-dump/api_resources.out || true
-    kubectl --insecure-skip-tls-verify get rolebindings --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/role-bindings.json || true
-    kubectl --insecure-skip-tls-verify get clusterrolebindings --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/cluster-role-bindings.json || true
-    kubectl --insecure-skip-tls-verify get clusterroles --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/cluster-roles.json || true
     # squelch the "too many clients" warnings from newer kubectl versions
+    dump_extra_details_per_namespace
     dump_configmaps
     helm version > $CAPTURE_DIR/cluster-dump/helm-version.out || true
     helm ls -A -o json > $CAPTURE_DIR/cluster-dump/helm-ls.json || true

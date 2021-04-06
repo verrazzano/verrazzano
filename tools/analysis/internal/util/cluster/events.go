@@ -52,7 +52,7 @@ func GetEventList(log *zap.SugaredLogger, path string) (eventList *corev1.EventL
 // pods/services/etc that happened only within a given time range
 
 // GetEventsRelatedToPod gets events related to a pod
-func GetEventsRelatedToPod(log *zap.SugaredLogger, clusterRoot string, pod corev1.Pod) (podEvents []corev1.Event, err error) {
+func GetEventsRelatedToPod(log *zap.SugaredLogger, clusterRoot string, pod corev1.Pod, timeRange *files.TimeRange) (podEvents []corev1.Event, err error) {
 	allEvents, err := GetEventList(log, files.FindFileInNamespace(clusterRoot, pod.ObjectMeta.Namespace, "events.json"))
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func GetEventsRelatedToPod(log *zap.SugaredLogger, clusterRoot string, pod corev
 }
 
 // GetEventsRelatedToService gets events related to a service
-func GetEventsRelatedToService(log *zap.SugaredLogger, clusterRoot string, service corev1.Service) (serviceEvents []corev1.Event, err error) {
+func GetEventsRelatedToService(log *zap.SugaredLogger, clusterRoot string, service corev1.Service, timeRange *files.TimeRange) (serviceEvents []corev1.Event, err error) {
 	log.Debugf("GetEventsRelatedToService called for %s in namespace ", service.ObjectMeta.Name, service.ObjectMeta.Namespace)
 	allEvents, err := GetEventList(log, files.FindFileInNamespace(clusterRoot, service.ObjectMeta.Namespace, "events.json"))
 	if err != nil {

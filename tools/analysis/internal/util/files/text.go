@@ -25,6 +25,7 @@ type TimeRange struct {
 	StartTime metav1.Time
 	EndTime   metav1.Time
 }
+
 // TextMatch supplies information about the matched text
 type TextMatch struct {
 	FileName    string
@@ -34,6 +35,7 @@ type TextMatch struct {
 }
 
 var ZeroTime = metav1.NewTime(time.Time{})
+
 // TODO: May move to only functions which require pre-compiled regular expressions, and have the pre-compiled at
 // compilation time rather than at runtime
 
@@ -122,10 +124,10 @@ func SearchFile(log *zap.SugaredLogger, fileName string, searchMatchRe *regexp.R
 				timestamp := ExtractTimeIfPresent(line)
 				if IsInTimeRange(timestamp, timeRange) {
 					match.Timestamp = timestamp
-				match.FileLine = lineNumber
-				match.FileName = fileName
-				match.MatchedText = line
-				matches = append(matches, match)
+					match.FileLine = lineNumber
+					match.FileName = fileName
+					match.MatchedText = line
+					matches = append(matches, match)
 				}
 			}
 		}
