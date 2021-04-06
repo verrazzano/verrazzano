@@ -194,7 +194,8 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify describe verrazzano -n $NAMESPACE > $CAPTURE_DIR/cluster-dump/$NAMESPACE/verrazzano_resources.json || true
         kubectl --insecure-skip-tls-verify get rolebindings -n $NAMESPACE -o json > $CAPTURE_DIR/cluster-dump/$NAMESPACE/role-bindings.json || true
         kubectl --insecure-skip-tls-verify get clusterrolebindings -n $NAMESPACE -o json > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-role-bindings.json || true
-        kubectl --insecure-skip-tls-verify get clusterroles -n $NAMESPACE-o json > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-roles.json || true
+        kubectl --insecure-skip-tls-verify get clusterroles -n $NAMESPACE -o json > $CAPTURE_DIR/cluster-dump/$NAMESPACE/cluster-roles.json || true
+        kubectl --insecure-skip-tls-verify describe ns -n $NAMESPACE -o json > $CAPTURE_DIR/cluster-dump/$NAMESPACE/namespace.json || true
       fi
     fi
   done <$CAPTURE_DIR/cluster-dump/namespace_list.out
@@ -211,6 +212,8 @@ function full_k8s_cluster_dump() {
     kubectl --insecure-skip-tls-verify get pv -o json > $CAPTURE_DIR/cluster-dump/pv.json || true
     kubectl --insecure-skip-tls-verify get ingress -A -o json > $CAPTURE_DIR/cluster-dump/ingress.json || true
     kubectl --insecure-skip-tls-verify api-resources -o wide > $CAPTURE_DIR/cluster-dump/api_resources.out || true
+    kubectl --insecure-skip-tls-verify get netpol -A -o json > $CAPTURE_DIR/cluster-dump/network-policies.json || true
+    kubectl --insecure-skip-tls-verify describe netpol -A > $CAPTURE_DIR/cluster-dump/network-policies.txt || true
     # squelch the "too many clients" warnings from newer kubectl versions
     dump_extra_details_per_namespace
     dump_configmaps
