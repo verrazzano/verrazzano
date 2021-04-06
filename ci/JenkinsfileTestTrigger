@@ -45,7 +45,9 @@ pipeline {
                         echo "SCM returned"
                         echo "SCM INFO: ${scmInfo.GIT_BRANCH}  ${scmInfo.GIT_COMMIT}"
                         env.GIT_COMMIT = ${scmInfo.GIT_COMMIT}
+                        echo "Set COMMIT"
                         env.GIT_BRANCH = ${scmInfo.GIT_BRANCH}
+                        echo "Set BRANCH"
                     } else {
                         echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
                         def scmInfo = checkout([
@@ -63,26 +65,33 @@ pipeline {
                             exit 1
                         }
                     }
+                    echo "done SCM script"
                 }
 
                 sh """
+                    echo "start netrc"
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
+                    echo "done netrc"
                 """
 
                 sh """
+                    echo "start copy files"
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
                     tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+                    echo "done copy files"
                 """
 
                 script {
+                    echo "setup props"
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    echo "done setup props"
                 }
             }
         }
