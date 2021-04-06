@@ -186,9 +186,9 @@ function full_k8s_cluster_dump() {
     kubectl --insecure-skip-tls-verify get rolebindings --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/role-bindings.json || true
     kubectl --insecure-skip-tls-verify get clusterrolebindings --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/cluster-role-bindings.json || true
     kubectl --insecure-skip-tls-verify get clusterroles --all-namespaces -o json > $CAPTURE_DIR/cluster-dump/cluster-roles.json || true
-    kubectl --insecure-skip-tls-verify get ns  --show-labels > $CAPTURE_DIR/cluster-dump/namespaces.txt || true
-    kubectl --insecure-skip-tls-verify describe netpol -A > $CAPTURE_DIR/cluster-dump/network-policies.txt || true
+    kubectl --insecure-skip-tls-verify get ns -o json > $CAPTURE_DIR/cluster-dump/namespaces.json || true
     kubectl --insecure-skip-tls-verify get netpol -A -o json > $CAPTURE_DIR/cluster-dump/network-policies.json || true
+    kubectl --insecure-skip-tls-verify describe netpol -A > $CAPTURE_DIR/cluster-dump/network-policies.txt || true
     # squelch the "too many clients" warnings from newer kubectl versions
     dump_configmaps
     helm version > $CAPTURE_DIR/cluster-dump/helm-version.out || true
