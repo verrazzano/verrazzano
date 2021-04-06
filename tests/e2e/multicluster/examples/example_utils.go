@@ -65,16 +65,8 @@ func DeployChangePlacement(kubeConfigPath string) error {
 func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisCluster bool) bool {
 	// call both mcAppConfExists and mcComponentExists and store the results, to avoid short-circuiting
 	// since we should check both in all cases
-	mcAppConfExists, err := mcAppConfExists(kubeconfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Could not retrieve multi cluster application configuration: %v", err))
-		return false
-	}
-	mcCompExists, err := mcComponentExists(kubeconfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Could not retrieve multicluster component: %v", err))
-		return false
-	}
+	mcAppConfExists := mcAppConfExists(kubeconfigPath)
+	mcCompExists := mcComponentExists(kubeconfigPath)
 
 	if isAdminCluster || placedInThisCluster {
 		// always expect MC resources on admin cluster - otherwise expect them only if placed here
@@ -88,18 +80,10 @@ func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisC
 // VerifyHelloHelidonInCluster verifies that the hello helidon app resources are either present or absent
 // depending on whether the app is placed in this cluster
 func VerifyHelloHelidonInCluster(kubeConfigPath string, placedInThisCluster bool) bool {
-	projectExists, err := projectExists(kubeConfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, err.Error())
-		return false
-	}
-	workloadExists, err := componentWorkloadExists(kubeConfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, err.Error())
-		return false
-	}
-
+	projectExists := projectExists(kubeConfigPath)
+	workloadExists := componentWorkloadExists(kubeConfigPath)
 	podsRunning := helloHelidonPodsRunning(kubeConfigPath)
+
 	if !placedInThisCluster {
 		return projectExists && !workloadExists && !podsRunning
 	} else {
@@ -119,12 +103,7 @@ func VerifyHelloHelidonDeletedAdminCluster(kubeconfigPath string, placedInCluste
 }
 
 func VerifyHelloHelidonDeletedInManagedCluster(kubeconfigPath string) bool {
-	projExists, err := projectExists(kubeconfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Could not retrieve VerrazzanoProject: %v", err))
-		return false
-	}
-	return !projExists
+	return !projectExists(kubeconfigPath)
 
 	// NOTE: These tests are disabled pending a fix for VZ-2454 - once fixed, the project check can be removed since
 	// it is part of verifyMCResourcesDeleted. It is here because it is the only thing that can be verified on a
@@ -140,33 +119,15 @@ func VerifyHelloHelidonDeletedInManagedCluster(kubeconfigPath string) bool {
 }
 
 func verifyAppDeleted(kubeconfigPath string) bool {
-	workloadExists, err := componentWorkloadExists(kubeconfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Could not retrieve VerrazzanoProject: %v", err))
-		return false
-	}
-
+	workloadExists := componentWorkloadExists(kubeconfigPath)
 	podsRunning := helloHelidonPodsRunning(kubeconfigPath)
 	return !workloadExists && !podsRunning
 }
 
 func verifyMCResourcesDeleted(kubeconfigPath string) bool {
-	appConfExists, err := mcAppConfExists(kubeconfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Could not retrieve multicluster application configuration: %v", err))
-		return false
-	}
-	compExists, err := mcComponentExists(kubeconfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Could not retrieve multicluster component: %v", err))
-		return false
-	}
-
-	projExists, err := projectExists(kubeconfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Could not retrieve VerrazzanoProject: %v", err))
-		return false
-	}
+	appConfExists := mcAppConfExists(kubeconfigPath)
+	compExists := mcComponentExists(kubeconfigPath)
+	projExists := projectExists(kubeconfigPath)
 	return !appConfExists && !compExists && !projExists
 }
 
@@ -176,7 +137,7 @@ func HelidonNamespaceExists(kubeconfigPath string) bool {
 	return err == nil
 }
 
-func projectExists(kubeconfigPath string) (bool, error) {
+func projectExists(kubeconfigPath string) bool {
 	gvr := schema.GroupVersionResource{
 		Group:    clustersv1alpha1.GroupVersion.Group,
 		Version:  clustersv1alpha1.GroupVersion.Version,
@@ -185,7 +146,7 @@ func projectExists(kubeconfigPath string) (bool, error) {
 	return resourceExists(gvr, multiclusterNamespace, projectName, kubeconfigPath)
 }
 
-func mcAppConfExists(kubeconfigPath string) (bool, error) {
+func mcAppConfExists(kubeconfigPath string) bool {
 	gvr := schema.GroupVersionResource{
 		Group:    clustersv1alpha1.GroupVersion.Group,
 		Version:  clustersv1alpha1.GroupVersion.Version,
@@ -194,7 +155,7 @@ func mcAppConfExists(kubeconfigPath string) (bool, error) {
 	return resourceExists(gvr, TestNamespace, appConfigName, kubeconfigPath)
 }
 
-func mcComponentExists(kubeconfigPath string) (bool, error) {
+func mcComponentExists(kubeconfigPath string) bool {
 	gvr := schema.GroupVersionResource{
 		Group:    clustersv1alpha1.GroupVersion.Group,
 		Version:  clustersv1alpha1.GroupVersion.Version,
@@ -203,7 +164,7 @@ func mcComponentExists(kubeconfigPath string) (bool, error) {
 	return resourceExists(gvr, TestNamespace, componentName, kubeconfigPath)
 }
 
-func componentWorkloadExists(kubeconfigPath string) (bool, error) {
+func componentWorkloadExists(kubeconfigPath string) bool {
 	gvr := schema.GroupVersionResource{
 		Group:    oamv1alpha1.GroupVersion.Group,
 		Version:  oamv1alpha1.GroupVersion.Version,
@@ -212,19 +173,21 @@ func componentWorkloadExists(kubeconfigPath string) (bool, error) {
 	return resourceExists(gvr, TestNamespace, workloadName, kubeconfigPath)
 }
 
-func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kubeconfigPath string) (bool, error) {
+func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kubeconfigPath string) bool {
 	config := pkg.GetKubeConfigGivenPath(kubeconfigPath)
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
-		return false, fmt.Errorf("Could not create dynamic client: %v\n", err)
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not create dynamic client: %v\n", err))
+		return false
 	}
 
 	u, err := client.Resource(gvr).Namespace(ns).Get(context.TODO(), name, v1.GetOptions{})
 
 	if err != nil {
-		return false, err
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not retrieve resource %s: %v\n", gvr.String(), err))
+		return false
 	}
-	return u != nil, nil
+	return u != nil
 }
 
 func helloHelidonPodsRunning(kubeconfigPath string) bool {
