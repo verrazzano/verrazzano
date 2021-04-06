@@ -100,12 +100,18 @@ var _ = Describe("Sock Shop Application", func() {
 	sockShop.SetHostHeader(hostname)
 
 	It("SockShop can be accessed and user can be registered", func() {
-		sockShop.RegisterUser(fmt.Sprintf(registerTemp, username, password), hostname)
+		Eventually(func() bool {
+			return sockShop.RegisterUser(fmt.Sprintf(registerTemp, username, password), hostname)
+		}, waitTimeout, pollingInterval).Should(BeTrue(), "Failed to register SockShop User")
 	})
+
 	It("SockShop can log in with default user", func() {
-		url := fmt.Sprintf("https://%v/login", hostname)
-		status, _ := pkg.GetWebPageWithBasicAuth(url, hostname, username, password)
-		Expect(status).To(Equal(http.StatusOK), fmt.Sprintf("GET %v returns status %v expected 200.", url, status))
+		Eventually(func() bool {
+			url := fmt.Sprintf("https://%v/login", hostname)
+			status, _ := pkg.GetWebPageWithBasicAuth(url, hostname, username, password)
+			return status == http.StatusOK
+		}, waitTimeout, pollingInterval).Should(BeTrue(), "Failed to login to SockShop with default user")
+
 	})
 
 	It("SockShop can access Calatogue and choose item", func() {
