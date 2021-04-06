@@ -42,6 +42,8 @@ pipeline {
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
+                        echo "SCM returned"
+                        echo "SCM INFO: ${scmInfo.GIT_BRANCH}  ${scmInfo.GIT_COMMIT}"
                         env.GIT_COMMIT = ${scmInfo.GIT_COMMIT}
                         env.GIT_BRANCH = ${scmInfo.GIT_BRANCH}
                     } else {
