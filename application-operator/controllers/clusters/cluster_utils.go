@@ -15,7 +15,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -135,17 +135,7 @@ func ComputeEffectiveState(status clustersv1alpha1.MultiClusterResourceStatus, p
 	clustersPending := 0
 	clustersFailed := 0
 
-	// In some cases (such as VerrazzanoProject, which has no placement section), there may not be
-	// any specified cluster placements. In this case assume the known placements as the ones for
-	// which we have received updates from the cluster
-	knownClusterPlacements := placement.Clusters
-	if knownClusterPlacements == nil {
-		for _, clusterStatus := range status.Clusters {
-			knownClusterPlacements = append(knownClusterPlacements, clustersv1alpha1.Cluster{Name: clusterStatus.Name})
-		}
-	}
-
-	for _, cluster := range knownClusterPlacements {
+	for _, cluster := range placement.Clusters {
 		for _, clusterStatus := range status.Clusters {
 			if clusterStatus.Name == cluster.Name {
 				clustersFound++
@@ -165,7 +155,7 @@ func ComputeEffectiveState(status clustersv1alpha1.MultiClusterResourceStatus, p
 	}
 
 	// if all clusters succeeded, mark the overall state as succeeded
-	if clustersSucceeded == len(knownClusterPlacements) {
+	if clustersSucceeded == len(placement.Clusters) {
 		return clustersv1alpha1.Succeeded
 	}
 
