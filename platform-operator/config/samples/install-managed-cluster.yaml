@@ -21,3 +21,6 @@ metadata:
   name: my-verrazzano-managed-cluster
 spec:
   profile: managed-cluster
+  components:
+    rancher:
+      enabled: false

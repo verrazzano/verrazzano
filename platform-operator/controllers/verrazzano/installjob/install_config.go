@@ -164,6 +164,10 @@ type MySQL struct {
 	MySQLInstallArgs []InstallArg `json:"mySqlInstallArgs,omitempty"`
 }
 
+type Rancher struct {
+	Enabled bool   `json:"enabled"`
+}
+
 // InstallConfiguration - Verrazzano installation configuration options
 type InstallConfiguration struct {
 	EnvironmentName string                      `json:"environmentName"`
@@ -172,6 +176,7 @@ type InstallConfiguration struct {
 	Ingress         Ingress                     `json:"ingress"`
 	Certificates    Certificate                 `json:"certificates"`
 	Keycloak        Keycloak                    `json:"keycloak"`
+	Rancher         Rancher                     `json:"rancher"`
 	VzInstallArgs   []InstallArg                `json:"verrazzanoInstallArgs,omitempty"`
 }
 
@@ -199,7 +204,10 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfigurati
 	if err != nil {
 		return nil, err
 	}
-
+	rancher, err := getRancher(vz.Spec.Components.Rancher)
+	if err != nil {
+		return nil, err
+	}
 	var acmeConfig *CertificateACME = &CertificateACME{}
 	if vz.Spec.Components.CertManager != nil {
 		acmeConfig = &CertificateACME{
@@ -228,6 +236,7 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfigurati
 			ACME:       acmeConfig,
 		},
 		Keycloak: keycloak,
+		Rancher:  rancher,
 	}, nil
 }
 
@@ -239,6 +248,10 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguratio
 		return nil, err
 	}
 	keycloak, err := getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource)
+	if err != nil {
+		return nil, err
+	}
+	rancher, err := getRancher(vz.Spec.Components.Rancher)
 	if err != nil {
 		return nil, err
 	}
@@ -258,6 +271,7 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguratio
 			},
 		},
 		Keycloak: keycloak,
+		Rancher:  rancher,
 	}, nil
 }
 
@@ -270,6 +284,10 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfig
 		return nil, err
 	}
 	keycloak, err := getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource)
+	if err != nil {
+		return nil, err
+	}
+	rancher, err := getRancher(vz.Spec.Components.Rancher)
 	if err != nil {
 		return nil, err
 	}
@@ -292,6 +310,7 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfig
 			},
 		},
 		Keycloak: keycloak,
+		Rancher:  rancher,
 	}, nil
 }
 
@@ -351,6 +370,17 @@ func getInstallArgs(args []installv1alpha1.InstallArgs) []InstallArg {
 	}
 
 	return installArgs
+}
+
+func getRancher(rancher *installv1alpha1.RancherComponent) (Rancher, error) {
+	if rancher == nil {
+		return Rancher{
+			Enabled:      true}, nil
+	}
+	rancherConfig := Rancher{
+		Enabled:      rancher.Enabled,
+	}
+	return rancherConfig, nil
 }
 
 // getKeycloak returns the json representation for the keycloak configuration
@@ -601,7 +631,6 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]Install
 			Value: strconv.FormatBool(vzSpec.Components.Console.Enabled),
 		})
 	}
-
 	return args, nil
 }
 

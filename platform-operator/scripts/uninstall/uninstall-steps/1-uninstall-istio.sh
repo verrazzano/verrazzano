@@ -86,13 +86,16 @@ function finalize() {
       || err_return $? "Could delete Helm Repos" || return $? # return on pipefail
   fi
 
-  if [ $(is_rancher_enabled) == "true" ]; then
-    log "Removing Namespace Finalizers"
-    kubectl get namespaces --no-headers -o custom-columns=":metadata.name,:metadata.finalizers" \
-      | awk '/controller.cattle.io/ {print $1}' \
-      | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
-      || err_return $? "Could not remove Rancher finalizers from all namespaces" || return $? # return on pipefail
+  local rancher_exists=$(kubectl get namespace cattle-system --ignore-not-found)
+  if [ -z "$rancher_exists" ] ; then
+    return 0
   fi
+
+  log "Removing Namespace Finalizers"
+  kubectl get namespaces --no-headers -o custom-columns=":metadata.name,:metadata.finalizers" \
+    | awk '/controller.cattle.io/ {print $1}' \
+    | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \
+    || err_return $? "Could not remove Rancher finalizers from all namespaces" || return $? # return on pipefail
 }
 
 action "Deleting Istio Components" uninstall_istio || exit 1

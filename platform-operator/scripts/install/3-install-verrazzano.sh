@@ -104,6 +104,10 @@ function install_verrazzano()
   fi
 
   local profile=$(get_install_profile)
+  if [ ! -f "${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml" ]; then
+    error "The file ${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml does not exist"
+    exit 1
+  fi
   local PROFILE_VALUES_OVERRIDE=" -f ${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml"
 
   # Get the endpoint for the Kubernetes API server.  The endpoint returned has the format of IP:PORT

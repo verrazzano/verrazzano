@@ -11,9 +11,6 @@ DEFAULT_CONFIG_FILE="$CONFIG_SCRIPT_DIR/config/config_defaults.json"
 # The max length of the environment name passed in by the user.
 ENV_NAME_LENGTH_LIMIT=10
 
-VZ_VALUES_DIR="${CONFIG_SCRIPT_DIR}/../../helm_config/charts/verrazzano"
-VZ_EFFECTIVE_VALUES="${VZ_VALUES_DIR}/effective.values.yaml"
-
 # Read a JSON installation config file and output the JSON to stdout
 function read_config() {
   local config_file=$1
@@ -332,45 +329,9 @@ function get_nginx_nodeport() {
   echo ${nodePort}
 }
 
-
-# Merge default Verrazzano values file with the override file for the given profile into effective.values.yaml
-# This function gives the precedence to the value set in the override file for the given profile, if a key is contained
-# in both the values files.
-function compute_effective_values() {
-  set -o pipefail
-  local profile=$(get_install_profile)
-  local values_file="${VZ_VALUES_DIR}/values.yaml"
-  local profile_values_override="${VZ_VALUES_DIR}/values.${profile}.yaml"
-  if [ ! -f "${profile_values_override}" ]; then
-    error "The file ${profile_values_override} does not exist"
-    exit 1
-  fi
-  if [ -f "$VZ_EFFECTIVE_VALUES" ]; then
-   rm "$VZ_EFFECTIVE_VALUES"
-  fi
-  yq eval-all "select(fileIndex == 0) * select(filename == \"${profile_values_override}\")" $values_file $profile_values_override > $VZ_EFFECTIVE_VALUES
-}
-
-# Return the value for a given key from effective.values.yaml
-function get_verrazzano_value() {
-  set -o pipefail
-  local yq_expr="$1"
-
-  local config_val=$(yq eval "${yq_expr}" $VZ_EFFECTIVE_VALUES)
-  if [ $? -ne 0 ]; then
-    log "Error reading $yq_expr from $VZ_EFFECTIVE_VALUES files"
-    return 1
-  fi
-  if [ "$config_val" == "null" ]; then
-    config_val=""
-  fi
-  echo $config_val
-  return 0
-}
-
-# Return the value for the key rancher.enabled from effective.values.yaml
+# Return the value for the key rancher.enabled from CONFIG_JSON
 function is_rancher_enabled() {
-  local rancher_enabled=$(get_verrazzano_value '.rancher.enabled')
+  local rancher_enabled=$(get_config_value '.rancher.enabled')
   echo ${rancher_enabled}
 }
 
@@ -384,10 +345,3 @@ fi
 CONFIG_JSON="$(read_config $INSTALL_CONFIG_FILE)"
 
 validate_config_json "$CONFIG_JSON" || fail "Installation config is invalid"
-
-VERRAZZANO_PROFILE=$(get_config_value '.profile')
-if [ -z "$VERRAZZANO_PROFILE" ]; then
-  fail "The value .profile must be set in the config file"
-fi
-
-compute_effective_values  || fail "Failure to merge the default values and the overrides for the profile"

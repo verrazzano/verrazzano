@@ -57,7 +57,7 @@ function delete_cert_manager() {
     || err_return $? "Could not delete cert-manager from helm" || return $? # return on pipefail
 
   # delete the custom resource definition for cert manager
-  log "deleting the custom resource definition for cert manager"
+  log "Deleting the custom resource definition for cert manager"
   kubectl delete -f "${MANIFESTS_DIR}/cert-manager/00-crds.yaml" --ignore-not-found=true \
     || err_return $? "Could not delete CustomResourceDefinition from cert-manager" || return $?
 
@@ -76,8 +76,8 @@ function delete_cert_manager() {
 }
 
 function delete_rancher() {
-  if [ $(is_rancher_enabled) != "true" ]; then
-    log "Rancher is not enabled, skip deleting rancher."
+  local rancher_exists=$(kubectl get namespace cattle-system --ignore-not-found)
+  if [ -z "$rancher_exists" ] ; then
     return 0
   fi
 

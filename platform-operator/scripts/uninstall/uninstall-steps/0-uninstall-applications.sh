@@ -14,16 +14,14 @@ UNINSTALL_DIR=$SCRIPT_DIR/..
 set -o pipefail
 
 function initializing_uninstall {
-  if [ $(is_rancher_enabled) != "true" ]; then
-    log "Rancher is not enabled, skip deleting the local cluster."
+  # Check whether rancher is installed for the given profile
+  rancher_exists=$(kubectl get namespace cattle-system) || return 0
+  local rancher_exists=$(kubectl get namespace verrazzano-install --ignore-not-found)
+  if [ -z "$rancher_exists" ] ; then
     return 0
   fi
-
   # Deleting rancher through API
-  log "Listing pods in cattle-system namespace"
-  kubectl get pods -n cattle-system
   log "Deleting Rancher through API"
-  rancher_exists=$(kubectl get namespace cattle-system) || return 0
   rancher_host_name="$(kubectl get ingress -n cattle-system --no-headers -o custom-columns=":spec.rules[0].host")" || err_return $? "Could not retrieve Rancher hostname" || return 0
   rancher_cluster_url="https://${rancher_host_name}/v3/clusters/local"
   rancher_admin_password=$(kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password}) || err_return $? "Could not retrieve rancher-admin-secret" || return 0

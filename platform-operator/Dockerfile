@@ -31,17 +31,13 @@ RUN yum update -y \
     && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne12/x86_64/ \
     && yum install -y kubectl-1.18.10-3.el7 \
     && yum install -y helm-3.1.1-1.0.2.el7.x86_64 \
-    && yum install -y wget \
-    && wget https://github.com/mikefarah/yq/releases/download/v4.1.0/yq_linux_amd64 -O /usr/bin/yq \
     && yum clean all \
     && rm -rf /var/cache/yum
 
 RUN groupadd -r verrazzano \
     && useradd --no-log-init -r -m -d /verrazzano -g verrazzano -u 1000 verrazzano \
     && mkdir /home/verrazzano \
-    && chmod +x /usr/bin/yq \
-    && chown -R 1000:verrazzano /home/verrazzano \
-    && yum erase -y wget
+    && chown -R 1000:verrazzano /home/verrazzano
 
 # Copy the operator binary
 COPY --from=build_base --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator

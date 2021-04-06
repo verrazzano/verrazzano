@@ -216,9 +216,7 @@ command -v jq >/dev/null 2>&1 || {
 command -v curl >/dev/null 2>&1 || {
   fail "curl is required but cannot be found on the path. Aborting."
 }
-command -v yq >/dev/null 2>&1 || {
-  fail "yq is required but cannot be found on the path. Aborting."
-}
+
 ##################################################
 ####Constants for Docker images, versions, tags
 ##################################################

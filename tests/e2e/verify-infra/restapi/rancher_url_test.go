@@ -27,14 +27,18 @@ var _ = ginkgo.Describe("rancher url test", func() {
 
 	ginkgo.Context("Fetching the rancher url using api and test ", func() {
 		ginkgo.It("Fetches rancher url", func() {
-			keycloakURL := func() string {
+			rancherURL := func() string {
 				ingress := api.GetIngress("cattle-system", "rancher")
 				return fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
 			}
-			gomega.Eventually(keycloakURL, waitTimeout, pollingInterval).ShouldNot(gomega.BeEmpty())
-
+			gomega.Eventually(rancherURL, waitTimeout, pollingInterval).ShouldNot(gomega.BeEmpty())
 			httpClient := pkg.GetRancherHTTPClient()
-			pkg.ExpectHTTPGetOk(httpClient, keycloakURL())
+			isManagedClusterProfile := pkg.IsManagedClusterProfile()
+			if isManagedClusterProfile {
+				pkg.ExpectHTTPGetNotFound(httpClient, rancherURL())
+			} else {
+				pkg.ExpectHTTPGetOk(httpClient, rancherURL())
+			}
 		})
 	})
 })
