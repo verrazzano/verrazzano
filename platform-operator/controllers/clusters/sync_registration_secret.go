@@ -10,6 +10,7 @@ import (
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
+	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	k8net "k8s.io/api/networking/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -63,6 +64,12 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 		return err
 	}
 
+	// Write the keycloak URL to secret
+	keycloakURL, err := r.getKeycloakURL()
+	if err != nil {
+		return err
+	}
+
 	// Build the secret data
 	secret.Data = map[string][]byte{
 		ManagedClusterNameKey: []byte(manageClusterName),
@@ -70,6 +77,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 		CaBundleKey:           tlsSecret.Data[CaCrtKey],
 		UsernameKey:           vzSecret.Data[UsernameKey],
 		PasswordKey:           vzSecret.Data[PasswordKey],
+		KeycloakURLKey:        []byte(keycloakURL),
 	}
 	return nil
 }
@@ -124,4 +132,14 @@ func (r *VerrazzanoManagedClusterReconciler) getTLSSecret() (corev1.Secret, erro
 		return corev1.Secret{}, fmt.Errorf("Failed to fetch the secret %s/%s, %v", nsn.Namespace, nsn.Name, err)
 	}
 	return secret, nil
+}
+
+// Get the keycloak URL
+func (r *VerrazzanoManagedClusterReconciler) getKeycloakURL() (string, error) {
+	var ingress = &extv1beta1.Ingress{}
+	err := r.Get(context.TODO(), types.NamespacedName{Name: "keycloak", Namespace: "keycloak"}, ingress)
+	if err != nil {
+		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", "keycloak", "keycloak", err)
+	}
+	return fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0]), nil
 }
