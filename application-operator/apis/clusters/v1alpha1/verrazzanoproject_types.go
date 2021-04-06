@@ -39,7 +39,7 @@ type ProjectTemplate struct {
 type VerrazzanoProjectSpec struct {
 	Template ProjectTemplate `json:"template"`
 
-	// Clusters in which the secret is to be placed
+	// Clusters in which the namespaces in this project is to be placed
 	Placement Placement `json:"placement"`
 }
 

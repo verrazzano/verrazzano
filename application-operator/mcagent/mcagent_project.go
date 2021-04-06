@@ -31,33 +31,35 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 
 	// Write each of the records in verrazzano-mc namespace
 	for _, vp := range allAdminProjects.Items {
-		if s.isThisCluster(vp.Spec.Placement) {
-			_, err := s.createOrUpdateVerrazzanoProject(vp)
-			if err != nil {
-				s.Log.Error(err, "Error syncing object",
-					"VerrazzanoProject",
-					types.NamespacedName{Namespace: vp.Namespace, Name: vp.Name})
-			} else {
-				// Add the project namespaces to the list of namespaces to watch.
-				// Check for duplicates values, even though they should never exist.
-				for _, namespace := range vp.Spec.Template.Namespaces {
-					if controllers.StringSliceContainsString(namespaces, namespace.Metadata.Name) {
-						s.Log.Info(fmt.Sprintf("the namespace %s in project %s is a duplicate", namespace.Metadata.Name, vp.Name))
-					} else {
-						namespaces = append(namespaces, namespace.Metadata.Name)
+		if vp.Namespace == constants.VerrazzanoMultiClusterNamespace {
+			if s.isThisCluster(vp.Spec.Placement) {
+				_, err := s.createOrUpdateVerrazzanoProject(vp)
+				if err != nil {
+					s.Log.Error(err, "Error syncing object",
+						"VerrazzanoProject",
+						types.NamespacedName{Namespace: vp.Namespace, Name: vp.Name})
+				} else {
+					// Add the project namespaces to the list of namespaces to watch.
+					// Check for duplicates values, even though they should never exist.
+					for _, namespace := range vp.Spec.Template.Namespaces {
+						if controllers.StringSliceContainsString(namespaces, namespace.Metadata.Name) {
+							s.Log.Info(fmt.Sprintf("the namespace %s in project %s is a duplicate", namespace.Metadata.Name, vp.Name))
+						} else {
+							namespaces = append(namespaces, namespace.Metadata.Name)
+						}
 					}
 				}
-			}
-		} else {
-			// Remove the VerrazzanoProject resource if it is on the local cluster but no longer
-			// contains placements for this cluster.
-			vpLocal := clustersv1alpha1.VerrazzanoProject{}
-			err := s.LocalClient.Get(s.Context, types.NamespacedName{Namespace: vp.Namespace, Name: vp.Name}, &vpLocal)
-			if err == nil {
-				s.Log.Info(fmt.Sprintf("deleting VerrazzanoProject %q from namespace %q because it is no longer targetted at this cluster", vp.Name, vp.Namespace))
-				err2 := s.LocalClient.Delete(s.Context, &vpLocal)
-				if err2 != nil {
-					s.Log.Error(err, fmt.Sprintf("failed to delete VerrazzanoProject with name %q and namespace %q: %s", vp.Name, vp.Namespace, err2.Error()))
+			} else {
+				// Remove the VerrazzanoProject resource if it is on the local cluster but no longer
+				// contains placements for this cluster.
+				vpLocal := clustersv1alpha1.VerrazzanoProject{}
+				err := s.LocalClient.Get(s.Context, types.NamespacedName{Namespace: vp.Namespace, Name: vp.Name}, &vpLocal)
+				if err == nil {
+					s.Log.Info(fmt.Sprintf("deleting VerrazzanoProject %q from namespace %q because it is no longer targetted at this cluster", vp.Name, vp.Namespace))
+					err2 := s.LocalClient.Delete(s.Context, &vpLocal)
+					if err2 != nil {
+						s.Log.Error(err, fmt.Sprintf("failed to delete VerrazzanoProject with name %q and namespace %q: %s", vp.Name, vp.Namespace, err2.Error()))
+					}
 				}
 			}
 		}
