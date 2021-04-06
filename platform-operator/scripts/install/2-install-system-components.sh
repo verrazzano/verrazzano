@@ -47,7 +47,7 @@ function install_nginx_ingress_controller()
 
     # Label the ingress-nginx namespace so that we can apply network policies
     log "Adding label needed by network policies to ingress-nginx namespace"
-    kubectl label namespace ingress-nginx "verrazzano.io/namespace: ingress-nginx"
+    kubectl label namespace ingress-nginx "verrazzano.io/namespace=ingress-nginx"
 
     # Handle any ports specified for Verrazzano Ingress - these must be patched after install
     local nginx_svc_patch_spec=$(get_verrazzano_ports_spec)
