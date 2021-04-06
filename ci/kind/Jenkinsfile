@@ -87,11 +87,11 @@ pipeline {
                         echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
                         def scmInfo = checkout([
                             $class: 'GitSCM',
-                            branches: [[name: ${params.GIT_COMMIT_TO_USE}]],
+                            branches: [[name: params.GIT_COMMIT_TO_USE]],
                             doGenerateSubmoduleConfigurations: false,
                             extensions: [],
                             submoduleCfg: [],
-                            userRemoteConfigs: [[url: ${SCM_VERRAZZANO_GIT_URL}]]])
+                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                         // If the commit we were handed is not what the SCM says we are using, fail
