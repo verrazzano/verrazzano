@@ -431,24 +431,6 @@
     },
     "notBefore" : 0,
     "groups" : [ ]
-  }, {
-    "id" : "0f3293ca-009e-401f-9dbe-ac0c31d2906f",
-    "createdTimestamp" : 1564417628739,
-    "username" : "service-account-verrazzano-oauth-client",
-    "enabled" : true,
-    "totp" : false,
-    "emailVerified" : false,
-    "email" : "service-account-verrazzano-oauth-client@placeholder.org",
-    "serviceAccountClientId" : "verrazzano-oauth-client",
-    "credentials" : [ ],
-    "disableableCredentialTypes" : [ ],
-    "requiredActions" : [ ],
-    "realmRoles" : [ "offline_access", "uma_authorization" ],
-    "clientRoles" : {
-      "account" : [ "view-profile", "manage-account" ]
-    },
-    "notBefore" : 0,
-    "groups" : [ ]
   } ],
   "scopeMappings" : [ {
     "clientScope" : "offline_access",
@@ -712,7 +694,7 @@
     "implicitFlowEnabled" : false,
     "directAccessGrantsEnabled" : true,
     "serviceAccountsEnabled" : true,
-    "publicClient" : false,
+    "publicClient" : true,
     "frontchannelLogout" : false,
     "protocol" : "openid-connect",
     "attributes" : {
@@ -777,6 +759,21 @@
         "jsonType.label" : "String"
       }
     }, {
+      "id": "67ef034c-ab84-42d3-9428-b2d6ca4d8979",
+      "name": "realm roles",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-usermodel-realm-role-mapper",
+      "consentRequired": false,
+      "config": {
+        "multivalued": "true",
+        "user.attribute": "foo",
+        "id.token.claim": "true",
+        "access.token.claim": "true",
+        "claim.name": "realm_access.roles",
+        "jsonType.label": "String"
+      }
+    },
+    {
       "id" : "e1d1e81b-308b-4f85-a55c-e75e1eff88e3",
       "name" : "Client Host",
       "protocol" : "openid-connect",
