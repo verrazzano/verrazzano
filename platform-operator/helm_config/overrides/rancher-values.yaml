@@ -1,6 +1,5 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-#systemDefaultRegistry: ghcr.io/verrazzano
 rancherImage: ghcr.io/verrazzano/rancher
-rancherImageTag: v2.5.7-20210405201746-26313f6ea
+rancherImageTag: v2.5.7-20210406031510-26313f6ea
