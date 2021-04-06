@@ -81,7 +81,7 @@ pipeline {
                 stage('Kind Acceptance Tests on 1.17') {
                     steps {
                         script {
-                            build job: "verrazzano-new-kind-acceptance-tests/${params.VERRAZZANO_BRANCH}",
+                            build job: "verrazzano-new-kind-acceptance-tests",
                                 parameters: [
                                     string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.17'),
@@ -93,7 +93,7 @@ pipeline {
                 stage('Kind Acceptance Tests on 1.19') {
                     steps {
                         script {
-                            build job: "verrazzano-new-kind-acceptance-tests/${params.VERRAZZANO_BRANCH}",
+                            build job: "verrazzano-new-kind-acceptance-tests",
                                 parameters: [
                                     string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
@@ -105,7 +105,7 @@ pipeline {
                 stage('Kind Acceptance Tests on 1.20') {
                     steps {
                         script {
-                            build job: "verrazzano-new-kind-acceptance-tests/${params.VERRAZZANO_BRANCH}",
+                            build job: "verrazzano-new-kind-acceptance-tests",
                                 parameters: [
                                     string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
