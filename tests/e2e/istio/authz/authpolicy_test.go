@@ -241,7 +241,7 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 		ginkgo.It("and waiting for expected pods must be running", func() {
 			gomega.Eventually(func() bool {
 				return pkg.PodsRunning(fooNamespace, expectedPodsFoo)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", fooNamespace))
 		})
 	})
 
@@ -249,7 +249,7 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 		ginkgo.It("and waiting for expected pods must be running", func() {
 			gomega.Eventually(func() bool {
 				return pkg.PodsRunning(barNamespace, expectedPodsBar)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", barNamespace))
 		})
 	})
 
@@ -257,7 +257,7 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 		ginkgo.It("and waiting for expected pods must be running", func() {
 			gomega.Eventually(func() bool {
 				return pkg.PodsRunning(noIstioNamespace, expectedPodsBar)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", noIstioNamespace))
 		})
 	})
 
@@ -266,7 +266,7 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 		gomega.Eventually(func() string {
 			fooHost = pkg.GetHostnameFromGateway(fooNamespace, "")
 			return fooHost
-		}, waitTimeout, shortPollingInterval).Should(gomega.Not(gomega.BeEmpty()))
+		}, waitTimeout, shortPollingInterval).Should(gomega.Not(gomega.BeEmpty()), fmt.Sprintf("Failed to get host from gateway in %s", fooNamespace))
 	})
 
 	var barHost = ""
@@ -274,7 +274,7 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 		gomega.Eventually(func() string {
 			barHost = pkg.GetHostnameFromGateway(barNamespace, "")
 			return barHost
-		}, waitTimeout, shortPollingInterval).Should(gomega.Not(gomega.BeEmpty()))
+		}, waitTimeout, shortPollingInterval).Should(gomega.Not(gomega.BeEmpty()), fmt.Sprintf("Failed to get host from gateway in %s", barNamespace))
 	})
 
 	var noIstioHost = ""
@@ -282,7 +282,7 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 		gomega.Eventually(func() string {
 			noIstioHost = pkg.GetHostnameFromGateway(noIstioNamespace, "")
 			return noIstioHost
-		}, waitTimeout, shortPollingInterval).Should(gomega.Not(gomega.BeEmpty()))
+		}, waitTimeout, shortPollingInterval).Should(gomega.Not(gomega.BeEmpty()), fmt.Sprintf("Failed to get host from gateway in %s", noIstioNamespace))
 	})
 
 	// Verify application in namespace foo is working
@@ -294,11 +294,8 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", fooHost))
 			url := fmt.Sprintf("https://%s/", fooHost)
 			status, content := pkg.GetWebPageWithCABundle(url, fooHost)
-			return gomega.Expect(status).To(gomega.Equal(200)) &&
-				//	gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
-				// Because I am using the old Springbboot Container for the FrontEnd
-				gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
-		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+			return (status == http.StatusOK) && (strings.Contains(content, "Greetings from Verrazzano Enterprise Container Platform"))
+		}, waitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Failed to Verify welcome page of Foo Spring Boot FrontEnd")
 	})
 
 	// Verify application in namespace bar is working
@@ -310,11 +307,8 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
 			url := fmt.Sprintf("https://%s/", barHost)
 			status, content := pkg.GetWebPageWithCABundle(url, barHost)
-			return gomega.Expect(status).To(gomega.Equal(200)) &&
-				//	gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
-				// Because I am using the old Springbboot Container for the FrontEnd
-				gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
-		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+			return (status == http.StatusOK) && (strings.Contains(content, "Greetings from Verrazzano Enterprise Container Platform"))
+		}, waitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Failed to Verify welcome page of Bar Spring Boot FrontEnd")
 	})
 
 	// Verify application in namespace bar is working
@@ -326,11 +320,8 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", noIstioHost))
 			url := fmt.Sprintf("https://%s/", noIstioHost)
 			status, content := pkg.GetWebPageWithCABundle(url, noIstioHost)
-			return gomega.Expect(status).To(gomega.Equal(200)) &&
-				//	gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
-				// Because I am using the old Springbboot Container for the FrontEnd
-				gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
-		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+			return (status == http.StatusOK) && (strings.Contains(content, "Greetings from Verrazzano Enterprise Container Platform"))
+		}, waitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Failed to Verify welcome page of NoIstio Spring Boot FrontEnd")
 	})
 
 	// Verify Frontend can call Backend in foo
@@ -344,9 +335,8 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.foo:8080/", fooHost)
 			status, content := pkg.GetWebPageWithCABundle(url, fooHost)
 			pkg.Log(pkg.Info, fmt.Sprintf("Frontend Http return code: %d, Backend Http return code : %s", status, content))
-			return gomega.Expect(status).To(gomega.Equal(200)) &&
-				gomega.Expect(content).To(gomega.Equal("200"))
-		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+			return (status == http.StatusOK) && (content == "200")
+		}, waitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Failed to Verify Foo Frontend can call Foo Backend")
 	})
 
 	// Verify Frontend can call Backend in bar
@@ -360,9 +350,8 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", barHost)
 			status, content := pkg.GetWebPageWithCABundle(url, barHost)
 			pkg.Log(pkg.Info, fmt.Sprintf("Frontend Http return code: %d, Backend Http return code : %s", status, content))
-			return gomega.Expect(status).To(gomega.Equal(200)) &&
-				gomega.Expect(content).To(gomega.Equal("200"))
-		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+			return (status == http.StatusOK) && (content == "200")
+		}, waitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Failed to Verify Bar Frontend can call Bar Backend")
 	})
 
 	// Verify Foo Frontend can't call bar Backend
@@ -376,9 +365,8 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", fooHost)
 			status, content := pkg.GetWebPageWithCABundle(url, fooHost)
 			pkg.Log(pkg.Info, fmt.Sprintf("Frontend Http return code: %d, Backend Http return code : %s", status, content))
-			return gomega.Expect(status).To(gomega.Equal(200)) &&
-				gomega.Expect(content).To(gomega.Equal("403"))
-		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+			return (status == http.StatusOK) && (content == "403")
+		}, waitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Failed to Verify Foo Frontend canNOT call Bar Backend")
 	})
 
 	// Verify Bar Frontend can't call Foo Backend
@@ -392,9 +380,8 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.foo:8080/", barHost)
 			status, content := pkg.GetWebPageWithCABundle(url, barHost)
 			pkg.Log(pkg.Info, fmt.Sprintf("Frontend Http return code: %d, Backend Http return code : %s", status, content))
-			return gomega.Expect(status).To(gomega.Equal(200)) &&
-				gomega.Expect(content).To(gomega.Equal("403"))
-		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+			return (status == http.StatusOK) && (content == "403")
+		}, waitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Failed to Verify Bar Frontend canNOT call Foo Backend")
 	})
 
 	// Verify Bar Frontend can call NoIstio Backend
@@ -408,9 +395,8 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.noistio:8080/", barHost)
 			status, content := pkg.GetWebPageWithCABundle(url, barHost)
 			pkg.Log(pkg.Info, fmt.Sprintf("Frontend Http return code: %d, Backend Http return code : %s", status, content))
-			return gomega.Expect(status).To(gomega.Equal(200)) &&
-				gomega.Expect(content).To(gomega.Equal("200"))
-		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+			return (status == http.StatusOK) && (content == "200")
+		}, waitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Failed to Verify Bar Frontend can call NoIstio Backend")
 	})
 
 	// Verify noistio Frontend can't call bar Backend
@@ -438,10 +424,10 @@ var _ = ginkgo.Describe("Verify AuthPolicy Applications", func() {
 
 			resp, err := client.Do(req)
 			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Failed to do http request: %v", err))
+				ginkgo.Fail(fmt.Sprintf("Http Request failed for %s. Dump Request Object %+v", err, req))
 			}
 			return gomega.Expect(resp.StatusCode).To(gomega.Equal(500))
-		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+		}, waitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Failed to Verify NoIstio Frontend canNOT call Bar Backend")
 	})
 
 })
@@ -455,7 +441,7 @@ var _ = ginkgo.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 		ginkgo.It("and waiting for expected pods must be running", func() {
 			gomega.Eventually(func() bool {
 				return pkg.PodsRunning(fooNamespace, expectedPodsFoo)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", fooNamespace))
 		})
 	})
 
@@ -463,7 +449,7 @@ var _ = ginkgo.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 		ginkgo.It("and waiting for expected pods must be running", func() {
 			gomega.Eventually(func() bool {
 				return pkg.PodsRunning(barNamespace, expectedPodsBar)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", barNamespace))
 		})
 	})
 
@@ -471,7 +457,7 @@ var _ = ginkgo.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 		ginkgo.It("and waiting for expected pods must be running", func() {
 			gomega.Eventually(func() bool {
 				return pkg.PodsRunning(noIstioNamespace, expectedPodsBar)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", noIstioNamespace))
 		})
 	})
 
@@ -506,8 +492,8 @@ var _ = ginkgo.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 					}
 				}
 			}
-			return gomega.Expect(httpsFound).Should(gomega.BeTrue())
-		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+			return httpsFound == true
+		}, waitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Failed to Verify that Istio scrape target authpolicy-appconf_default_foo_springboot-frontend is using https for scraping")
 	})
 
 	// Verify That Generated Prometheus Scrape Targets for authpolicy-appconf_default_bar_springboot-frontend is using https for scraping
@@ -541,8 +527,8 @@ var _ = ginkgo.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 					}
 				}
 			}
-			return gomega.Expect(httpsFound).Should(gomega.BeTrue())
-		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+			return httpsFound == true
+		}, waitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Failed to Verify that Istio scrape target authpolicy-appconf_default_bar_springboot-frontend is using https for scraping")
 	})
 
 	// Verify That Generated Prometheus Scrape Targets for authpolicy-appconf_default_noistio_springboot-frontend is using http for scraping
@@ -576,8 +562,8 @@ var _ = ginkgo.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 					}
 				}
 			}
-			return gomega.Expect(httpsNotFound).Should(gomega.BeTrue())
-		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+			return httpsNotFound == true
+		}, waitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Failed to Verify that Istio scrape target authpolicy-appconf_default_noistio_springboot-frontend is using http for scraping")
 	})
 
 })

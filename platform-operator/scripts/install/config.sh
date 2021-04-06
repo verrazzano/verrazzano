@@ -284,6 +284,16 @@ function get_verrazzano_ports_spec() {
   echo $ports_spec
 }
 
+function get_install_profile() {
+  local profile=$(get_config_value '.profile')
+  if [ -z "${profile}" ]; then
+    error "The value .profile must be set in the config file"
+    exit 1
+  else
+    echo "${profile}"
+  fi
+}
+
 function get_acme_environment() {
   if [ -z "$(get_config_value ".certificates.acme.environment")" ]; then
     echo "production"

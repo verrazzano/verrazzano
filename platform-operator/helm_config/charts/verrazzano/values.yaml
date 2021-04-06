@@ -121,3 +121,9 @@ userrolebindings:
   monitor:
     kind: Group
     name: verrazzano-monitors
+
+kubernetes:
+  service:
+    endpoint:
+      ip:
+      port:
