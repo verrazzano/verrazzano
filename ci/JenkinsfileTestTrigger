@@ -93,7 +93,7 @@ pipeline {
                             build job: 'verrazzano-new-kind-acceptance-tests/${params.VERRAZZANO_BRANCH}',
                                 parameters: [
                                     string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
-                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.17')
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.17'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
                                 ], wait: true
                         }
@@ -105,7 +105,7 @@ pipeline {
                             build job: 'verrazzano-new-kind-acceptance-tests/${params.VERRAZZANO_BRANCH}',
                                 parameters: [
                                     string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
-                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19')
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
                                 ], wait: true
                         }
@@ -117,7 +117,7 @@ pipeline {
                             build job: 'verrazzano-new-kind-acceptance-tests/${params.VERRAZZANO_BRANCH}',
                                 parameters: [
                                     string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
-                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20')
+                                    string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
                                 ], wait: true
                         }
