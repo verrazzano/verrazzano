@@ -38,5 +38,16 @@ pipeline {
                 }
             }
         }
+        stage('Trigger Uninstall Tests') {
+            steps {
+                script {
+                    build job: 'verrazzano-uninstall-test/pabhat%2Ftrigger-uninstall-test-master',
+                        parameters: [
+                            string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
+                            booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS)
+                        ], wait: false
+                }
+            }
+        }
     }
 }
