@@ -15,16 +15,9 @@ import (
 )
 
 const (
-	pollingInterval = 5 * time.Second
-	waitTimeout     = 5 * time.Minute
-
-	multiclusterNamespace = "verrazzano-mc"
-	testNamespace         = "hello-helidon"
-
-	projectName   = "hello-helidon"
-	appConfigName = "hello-helidon-appconf"
-	componentName = "hello-helidon-component"
-	workloadName  = "hello-helidon-workload"
+	pollingInterval      = 5 * time.Second
+	waitTimeout          = 5 * time.Minute
+	consistentlyDuration = 1 * time.Minute
 )
 
 var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
@@ -62,11 +55,11 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 		})
 		// GIVEN an admin cluster
 		// WHEN the multi-cluster example application has been created on admin cluster but not placed there
-		// THEN expect that the app is not deployed to the admin cluster
+		// THEN expect that the app is not deployed to the admin cluster - check this for some period of time
 		ginkgo.It("Does not have application placed", func() {
-			gomega.Eventually(func() bool {
+			gomega.Consistently(func() bool {
 				return examples.VerifyHelloHelidonInCluster(adminKubeconfig, false)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, consistentlyDuration, pollingInterval).Should(gomega.BeTrue())
 		})
 	})
 
@@ -142,7 +135,7 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 		})
 
 		// GIVEN an admin cluster
-		// WHEN the multi-cluster example application has changed placement from admin to managed cluster
+		// WHEN the multi-cluster example application has changed placement from admin back to managed cluster
 		// THEN expect that the app is not deployed to the admin cluster
 		ginkgo.It("Admin cluster does not have application placed", func() {
 			gomega.Eventually(func() bool {
@@ -167,12 +160,12 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 		ginkgo.It("Verify deletion on admin cluster", func() {
 			gomega.Eventually(func() bool {
 				return examples.VerifyHelloHelidonDeletedAdminCluster(adminKubeconfig, false)
-			}, waitTimeout, pollingInterval).Should(gomega.BeFalse())
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 		ginkgo.It("Verify deletion on managed cluster", func() {
 			gomega.Eventually(func() bool {
 				return examples.VerifyHelloHelidonDeletedInManagedCluster(managed1Kubeconfig)
-			})
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 	})
 })

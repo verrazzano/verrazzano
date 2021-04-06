@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	pollingInterval = 5 * time.Second
-	waitTimeout     = 5 * time.Minute
+	pollingInterval      = 5 * time.Second
+	waitTimeout          = 5 * time.Minute
+	consistentlyDuration = 1 * time.Minute
 )
 
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
@@ -54,11 +55,11 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 		})
 		// GIVEN an admin cluster
 		// WHEN the multi-cluster example application has been created on admin cluster but not placed there
-		// THEN expect that the app is not deployed to the admin cluster
+		// THEN expect that the app is not deployed to the admin cluster consistently for some length of time
 		ginkgo.It("Does not have application placed", func() {
-			gomega.Eventually(func() bool {
+			gomega.Consistently(func() bool {
 				return examples.VerifyHelloHelidonInCluster(adminKubeconfig, false)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}, consistentlyDuration, pollingInterval).Should(gomega.BeTrue())
 		})
 	})
 
@@ -157,12 +158,12 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 		ginkgo.It("Verify deletion on admin cluster", func() {
 			gomega.Eventually(func() bool {
 				return examples.VerifyHelloHelidonDeletedAdminCluster(adminKubeconfig, false)
-			}, waitTimeout, pollingInterval).Should(gomega.BeFalse())
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 		ginkgo.It("Verify deletion on managed cluster", func() {
 			gomega.Eventually(func() bool {
 				return examples.VerifyHelloHelidonDeletedInManagedCluster(managedKubeconfig)
-			})
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 	})
 })
