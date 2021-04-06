@@ -26,16 +26,59 @@ var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 
 // set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources
 var _ = ginkgo.BeforeSuite(func() {
-	examples.DeployHelloHelidon(adminKubeconfig)
+	// deploy the VerrazzanoProject
+	err := examples.DeployHelloHelidonProject(adminKubeconfig)
+	if err != nil {
+		ginkgo.Fail(err.Error())
+	}
+	// wait for the namespace to be created on the cluster before deploying app
+	gomega.Eventually(func() bool {
+		return examples.HelidonNamespaceExists(adminKubeconfig)
+	}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+
+	err = examples.DeployHelloHelidonApp(adminKubeconfig)
+	if err != nil {
+		ginkgo.Fail(err.Error())
+	}
 })
 
 var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 	ginkgo.Context("Admin Cluster", func() {
-		examples.VerifyHelloHelidonInAdminCluster(adminKubeconfig, false)
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect that the multi-cluster resources have been created on the admin cluster
+		ginkgo.It("Has multi cluster resources", func() {
+			gomega.Eventually(func() bool {
+				return examples.VerifyMCResources(adminKubeconfig, true, false)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
+		// GIVEN an admin cluster
+		// WHEN the multi-cluster example application has been created on admin cluster but not placed there
+		// THEN expect that the app is not deployed to the admin cluster
+		ginkgo.It("Does not have application placed", func() {
+			gomega.Eventually(func() bool {
+				return examples.VerifyHelloHelidonInCluster(adminKubeconfig, false)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
 	})
 
 	ginkgo.Context("Managed Cluster", func() {
-		examples.VerifyHelloHelidonInManagedCluster(managedKubeconfig, true)
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the example application has been deployed to the admin cluster
+		// THEN expect that the multi-cluster resources have been created on the managed cluster
+		ginkgo.It("Has multi cluster resources", func() {
+			gomega.Eventually(func() bool {
+				return examples.VerifyMCResources(managedKubeconfig, false, true)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
+		// GIVEN an admin cluster and at least one managed cluster
+		// WHEN the multi-cluster example application has been created on admin cluster and placed in managed cluster
+		// THEN expect that the app is deployed to the managed cluster
+		ginkgo.It("Has application placed", func() {
+			gomega.Eventually(func() bool {
+				return examples.VerifyHelloHelidonInCluster(managedKubeconfig, true)
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+		})
 	})
 
 	ginkgo.Context("Remaining Managed Clusters", func() {
@@ -53,8 +96,16 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 		kubeconfigDir := os.Getenv("KUBECONFIG_DIR")
 		for i := 3; i <= clusterCount; i++ {
 			kubeconfig := kubeconfigDir + "/" + fmt.Sprintf("%d", i) + "/kube_config"
-
-			examples.VerifyHelloHelidonInManagedCluster(kubeconfig, false)
+			ginkgo.It("Does not have multi cluster resources", func() {
+				gomega.Eventually(func() bool {
+					return examples.VerifyMCResources(kubeconfig, false, false)
+				}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			})
+			ginkgo.It("Does not have application placed", func() {
+				gomega.Eventually(func() bool {
+					return examples.VerifyHelloHelidonInCluster(kubeconfig, false)
+				}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			})
 		}
 	})
 
@@ -103,17 +154,20 @@ var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
 			cleanUp()
 		})
 
-		examples.VerifyHelloHelidonDeletedAdminCluster(adminKubeconfig, false)
-	})
-
-	ginkgo.Context("Verify resources have been deleted on the managed cluster", func() {
-		examples.VerifyHelloHelidonDeletedInCluster(managedKubeconfig, true)
+		ginkgo.It("Verify deletion on admin cluster", func() {
+			gomega.Eventually(func() bool {
+				return examples.VerifyHelloHelidonDeletedAdminCluster(adminKubeconfig, false)
+			}, waitTimeout, pollingInterval).Should(gomega.BeFalse())
+		})
+		ginkgo.It("Verify deletion on managed cluster", func() {
+			gomega.Eventually(func() bool {
+				return examples.VerifyHelloHelidonDeletedInManagedCluster(managedKubeconfig)
+			})
+		})
 	})
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	cleanUp()
-
 	if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, managedKubeconfig); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not delete hello-helidon namespace: %v\n", err))
 	}

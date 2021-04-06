@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -32,226 +30,153 @@ const (
 
 var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 
-// DeployHelloHelidon deploys the hello-helidon example to the cluster with the given kubeConfigPath
-func DeployHelloHelidon(kubeConfigPath string) {
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/hello-helidon/verrazzano-project.yaml", kubeConfigPath); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create hello-helidon project resource: %v", err))
+// DeployHelloHelidonApp deploys the hello-helidon example's VerrazzanoProject to the cluster with the given kubeConfigPath
+func DeployHelloHelidonProject(kubeconfigPath string) error {
+	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/hello-helidon/verrazzano-project.yaml", kubeconfigPath); err != nil {
+		return fmt.Errorf("Failed to create hello-helidon project resource: %v", err)
 	}
-	// wait for the namespace to be created on the cluster before applying components and app config
-	gomega.Eventually(func() bool {
-		return namespaceExists(kubeConfigPath)
-	}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+	return nil
+}
 
+// DeployHelloHelidonApp deploys the hello-helidon example application to the cluster with the given kubeConfigPath
+func DeployHelloHelidonApp(kubeConfigPath string) error {
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-comp.yaml", kubeConfigPath); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create multi-cluster hello-helidon component resources: %v", err))
+		return fmt.Errorf("Failed to create multi-cluster hello-helidon component resources: %v", err)
 	}
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-app.yaml", kubeConfigPath); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create multi-cluster hello-helidon application resource: %v", err))
+		return fmt.Errorf("Failed to create multi-cluster hello-helidon application resource: %v", err)
 	}
+	return nil
 }
 
 // DeployChangePlacement deploys the change-placement example to the cluster with the given kubeConfigPath
-func DeployChangePlacement(kubeConfigPath string) {
+func DeployChangePlacement(kubeConfigPath string) error {
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/change-placement/mc-hello-helidon-comp.yaml", kubeConfigPath); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create multi-cluster hello-helidon component resources: %v", err))
+		return fmt.Errorf("Failed to create multi-cluster hello-helidon component resources: %v", err)
 	}
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/change-placement/mc-hello-helidon-app.yaml", kubeConfigPath); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create multi-cluster hello-helidon application resource: %v", err))
+		return fmt.Errorf("Failed to create multi-cluster hello-helidon application resource: %v", err)
+	}
+	return nil
+}
+
+// VerifyMCResources verifies that the MC resources are present or absent depending on whether this is an admin
+// cluster and whether the resources are placed in the given cluster
+func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisCluster bool) bool {
+	// call both mcAppConfExists and mcComponentExists and store the results, to avoid short-circuiting
+	// since we should check both in all cases
+	mcAppConfExists, err := mcAppConfExists(kubeconfigPath)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not retrieve multi cluster application configuration: %v", err))
+		return false
+	}
+	mcCompExists, err := mcComponentExists(kubeconfigPath)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not retrieve multicluster component: %v", err))
+		return false
+	}
+
+	if isAdminCluster || placedInThisCluster {
+		// always expect MC resources on admin cluster - otherwise expect them only if placed here
+		return mcAppConfExists && mcCompExists
+	} else {
+		// don't expect either
+		return !mcAppConfExists && !mcCompExists
 	}
 }
 
-// VerifyHelloHelidonInAdminCluster verifies the hello-helidon application in the given admin cluster
-// In an admin cluster, MC resources must be present, but unwrapped resources should only exist if
-// placedInAdminCluster = true, and not exist otherwise
-func VerifyHelloHelidonInAdminCluster(kubeconfigPath string, placedInAdminCluster bool) {
-	// GIVEN an admin cluster and at least one managed cluster
-	// WHEN the example application has been deployed to the admin cluster
-	// THEN expect that the mulit-cluster app config has been created on the admin cluster
-	ginkgo.It("Verify the MultiClusterApplicationConfiguration exists", func() {
-		gomega.Eventually(func() bool {
-			return mcAppConfExists(kubeconfigPath)
-		}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
-	})
+// VerifyHelloHelidonInCluster verifies that the hello helidon app resources are either present or absent
+// depending on whether the app is placed in this cluster
+func VerifyHelloHelidonInCluster(kubeConfigPath string, placedInThisCluster bool) bool {
+	projectExists, err := projectExists(kubeConfigPath)
+	if err != nil {
+		pkg.Log(pkg.Error, err.Error())
+		return false
+	}
+	workloadExists, err := componentWorkloadExists(kubeConfigPath)
+	if err != nil {
+		pkg.Log(pkg.Error, err.Error())
+		return false
+	}
 
-	// GIVEN an admin cluster and at least one managed cluster
-	// WHEN the example application has been deployed to the admin cluster
-	// THEN expect that the multi-cluster component has been created on the admin cluster
-	ginkgo.It("Verify the MultiClusterComponent exists", func() {
-		gomega.Eventually(func() bool {
-			return mcComponentExists(kubeconfigPath)
-		}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
-	})
-
-	verifyHelloHelidonInCluster(kubeconfigPath, placedInAdminCluster)
-}
-
-// VerifyHelloHelidonInManagedCluster verifies the hello-helidon application in the given managed cluster
-// In a managed cluster, MC resources as well as unwrapped resources should only exist if
-// placedInThisCluster = true, and not exist otherwise
-func VerifyHelloHelidonInManagedCluster(kubeconfigPath string, placedInThisCluster bool) {
-	existString := "exists"
+	podsRunning := helloHelidonPodsRunning(kubeConfigPath)
 	if !placedInThisCluster {
-		existString = "does not exist"
+		return projectExists && !workloadExists && !podsRunning
+	} else {
+		return projectExists && workloadExists && podsRunning
 	}
-
-	// GIVEN a managed cluster
-	// WHEN the example application has been deployed to the admin cluster
-	// THEN expect that the multi-cluster app config exists on managed cluster ONLY if the app is placed in the cluster
-	ginkgo.It(fmt.Sprintf("Verify the MultiClusterApplicationConfiguration %s on this managed cluster", existString), func() {
-		pkg.Log(pkg.Info, "Testing against cluster with kubeconfig: "+kubeconfigPath)
-		gomega.Eventually(func() bool {
-			return mcAppConfExists(kubeconfigPath)
-		}, waitTimeout, pollingInterval).Should(gomega.Equal(placedInThisCluster))
-	})
-
-	// GIVEN a managed cluster
-	// WHEN the example application has been deployed to the admin cluster
-	// THEN expect that the multi-cluster component exists on managed cluster ONLY if the app is placed in the cluster
-	ginkgo.It(fmt.Sprintf("Verify the MultiClusterComponent %s on this managed cluster", existString), func() {
-		pkg.Log(pkg.Info, "Testing against cluster with kubeconfig: "+kubeconfigPath)
-		gomega.Eventually(func() bool {
-			return mcComponentExists(kubeconfigPath)
-		}, waitTimeout, pollingInterval).Should(gomega.Equal(placedInThisCluster))
-	})
-
-	verifyHelloHelidonInCluster(kubeconfigPath, placedInThisCluster)
 }
 
-func verifyHelloHelidonInCluster(kubeConfigPath string, placedInThisCluster bool) {
-	// GIVEN an admin or managed cluster
-	// WHEN the multi-cluster example application has been created on admin cluster
-	// THEN expect that the project has been created on this cluster
-	ginkgo.It("Verify the project exists", func() {
-		gomega.Eventually(func() bool {
-			return projectExists(kubeConfigPath)
-		}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
-	})
-
-	appExistsSuffix := "does NOT exist"
-	if placedInThisCluster {
-		appExistsSuffix = "exists"
-	}
-	podsRunningTestCaseName := "Verify pods are NOT running"
-	if placedInThisCluster {
-		podsRunningTestCaseName = "Verify expected pods are running"
-	}
-	// GIVEN an admin or managed cluster
-	// WHEN the multi-cluster example application has been created on admin cluster and placed in this cluster
-	// THEN expect that the component workload HAS been unwrapped in this cluster
-	// GIVEN an admin or managed cluster
-	// WHEN the multi-cluster example application has been created on admin cluster and NOT placed in this cluster
-	// THEN expect that the component workload has NOT been unwrapped on the admin cluster
-	ginkgo.It(fmt.Sprintf("Verify the VerrazzanoHelidonWorkload %s", appExistsSuffix), func() {
-		gomega.Eventually(func() bool {
-			return componentWorkloadExists(kubeConfigPath)
-		}, waitTimeout, pollingInterval).Should(gomega.Equal(placedInThisCluster))
-	})
-
-	// GIVEN an admin or managed cluster
-	// WHEN the multi-cluster example application has been created on admin cluster and placed in this cluster
-	// THEN expect that the application pods are running
-	// GIVEN an admin or managed cluster
-	// WHEN the multi-cluster example application has been created on admin cluster and NOT placed in this cluster
-	// THEN expect that the pods are NOT running
-	ginkgo.It(podsRunningTestCaseName, func() {
-		gomega.Eventually(func() bool {
-			return helloHelidonPodsRunning(kubeConfigPath)
-		}, waitTimeout, pollingInterval).Should(gomega.Equal(placedInThisCluster))
-	})
-}
-
-func VerifyHelloHelidonPods(kubeconfigPath string, placedInCluster bool) {
-	runningOrNotStr := "running"
+func VerifyHelloHelidonDeletedAdminCluster(kubeconfigPath string, placedInCluster bool) bool {
+	mcResDeleted := verifyMCResourcesDeleted(kubeconfigPath)
 	if !placedInCluster {
-		runningOrNotStr = "NOT running"
+		return mcResDeleted
 	}
-	// Verify hello-helidon-deployment pod is running
-	// GIVEN OAM hello-helidon app is deployed
-	// WHEN the component and appconfig are created
-	// THEN the expected pod must be running in the test namespace if placed in this cluster, and NOT running otherwise
-	ginkgo.Describe(fmt.Sprintf("Verify hello-helidon-deployment pod is %s.", runningOrNotStr), func() {
-		ginkgo.It(fmt.Sprintf("and waiting for expected pods must be %s", runningOrNotStr), func() {
-			gomega.Eventually(func() bool {
-				return helloHelidonPodsRunning(kubeconfigPath)
-			}, waitTimeout, pollingInterval).Should(gomega.Equal(placedInCluster))
-		})
-	})
+
+	appDeleted := verifyAppDeleted(kubeconfigPath)
+
+	return mcResDeleted && appDeleted
 }
 
-func VerifyHelloHelidonDeletedAdminCluster(kubeconfigPath string, placedInAdminCluster bool) {
-	// GIVEN an admin cluster
-	// WHEN the example application has been deleted from the admin cluster
-	// THEN expect the multi-cluster app config to no longer exist on the admin cluster
-	ginkgo.It("Verify the MultiClusterApplicationConfiguration no longer exists on the admin cluster", func() {
-		gomega.Eventually(func() bool {
-			return mcAppConfExists(kubeconfigPath)
-		}, waitTimeout, pollingInterval).Should(gomega.BeFalse())
-	})
+func VerifyHelloHelidonDeletedInManagedCluster(kubeconfigPath string) bool {
+	projExists, err := projectExists(kubeconfigPath)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not retrieve VerrazzanoProject: %v", err))
+		return false
+	}
+	return !projExists
 
-	// GIVEN an admin cluster
-	// WHEN the example application has been deleted from the admin cluster
-	// THEN expect the multi-cluster component to no longer exist on the admin cluster
-	ginkgo.It("Verify the MultiClusterComponent no longer exists on the admin cluster", func() {
-		gomega.Eventually(func() bool {
-			return mcComponentExists(kubeconfigPath)
-		}, waitTimeout, pollingInterval).Should(gomega.BeFalse())
-	})
+	// NOTE: These tests are disabled pending a fix for VZ-2454 - once fixed, the project check can be removed since
+	// it is part of verifyMCResourcesDeleted. It is here because it is the only thing that can be verified on a
+	// managed cluster due to the bug
 
-	VerifyHelloHelidonDeletedInCluster(kubeconfigPath, placedInAdminCluster)
+	/*
+		mcResDeleted := verifyMCResourcesDeleted(kubeconfigPath)
+		appDeleted := verifyAppDeleted(kubeconfigPath)
+
+		return mcResDeleted && appDeleted
+
+	*/
 }
 
-func VerifyHelloHelidonDeletedInCluster(kubeconfigPath string, placedInThisCluster bool) {
-	// GIVEN an admin or managed cluster
-	// WHEN the example application has been deleted from the admin cluster
-	// THEN expect the project to no longer exist on this cluster
-	ginkgo.It("Verify the project no longer exists on the cluster", func() {
-		gomega.Eventually(func() bool {
-			return projectExists(kubeconfigPath)
-		}, waitTimeout, pollingInterval).Should(gomega.BeFalse())
-	})
+func verifyAppDeleted(kubeconfigPath string) bool {
+	workloadExists, err := componentWorkloadExists(kubeconfigPath)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not retrieve VerrazzanoProject: %v", err))
+		return false
+	}
 
-	// NOTE: These tests are disabled pending a fix for VZ-2454 - once fixed, the mcappconf and mccomp
-	// deletion checks can be removed from VerifyHelloHelidonDeletedAdminCluster as they are duplicated here
-
-	// GIVEN an admin or managed cluster
-	// WHEN the example application has been deleted from the admin cluster
-	// THEN expect the multi-cluster app config to no longer exist on this cluster
-	// ginkgo.It("Verify the MultiClusterApplicationConfiguration no longer exists on the cluster", func() {
-	// 	gomega.Eventually(func() bool {
-	//  	return mcAppConfExists(kubeconfigPath)
-	// 	}, waitTimeout, pollingInterval).Should(gomega.BeFalse())
-	// })
-
-	// GIVEN an admin or managed cluster
-	// WHEN the example application has been deleted from the admin cluster
-	// THEN expect the multi-cluster component to no longer exist on this cluster
-	// ginkgo.It("Verify the MultiClusterComponent no longer exists on the cluster", func() {
-	// 	gomega.Eventually(func() bool {
-	//  	return mcComponentExists(kubeconfigPath)
-	// 	}, waitTimeout, pollingInterval).Should(gomega.BeFalse())
-	// })
-
-	// GIVEN an admin or managed cluster
-	// WHEN the example application has been deleted from the admin cluster
-	// THEN expect the component workload to no longer exist on this cluster
-	// ginkgo.It("Verify the VerrazzanoHelidonWorkload no longer exists on the cluster", func() {
-	// 	gomega.Eventually(componentWorkloadExists, waitTimeout, pollingInterval).Should(gomega.BeFalse())
-	// })
-
-	// GIVEN an admin or managed cluster
-	// WHEN the example application has been deleted from the admin cluster
-	// THEN expect the application pods to no longer be running on this cluster
-	// ginkgo.It("Verify expected pods are no longer running", func() {
-	// 	gomega.Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(gomega.BeFalse())
-	// })
+	podsRunning := helloHelidonPodsRunning(kubeconfigPath)
+	return !workloadExists && !podsRunning
 }
 
-func namespaceExists(kubeconfigPath string) bool {
+func verifyMCResourcesDeleted(kubeconfigPath string) bool {
+	appConfExists, err := mcAppConfExists(kubeconfigPath)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not retrieve multicluster application configuration: %v", err))
+		return false
+	}
+	compExists, err := mcComponentExists(kubeconfigPath)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not retrieve multicluster component: %v", err))
+		return false
+	}
+
+	projExists, err := projectExists(kubeconfigPath)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not retrieve VerrazzanoProject: %v", err))
+		return false
+	}
+	return !appConfExists && !compExists && !projExists
+}
+
+// HelidonNamespaceExists - returns true if the hello-helidon namespace exists in the given cluster
+func HelidonNamespaceExists(kubeconfigPath string) bool {
 	_, err := pkg.GetNamespaceInCluster(TestNamespace, kubeconfigPath)
 	return err == nil
 }
 
-func projectExists(kubeconfigPath string) bool {
+func projectExists(kubeconfigPath string) (bool, error) {
 	gvr := schema.GroupVersionResource{
 		Group:    clustersv1alpha1.GroupVersion.Group,
 		Version:  clustersv1alpha1.GroupVersion.Version,
@@ -260,7 +185,7 @@ func projectExists(kubeconfigPath string) bool {
 	return resourceExists(gvr, multiclusterNamespace, projectName, kubeconfigPath)
 }
 
-func mcAppConfExists(kubeconfigPath string) bool {
+func mcAppConfExists(kubeconfigPath string) (bool, error) {
 	gvr := schema.GroupVersionResource{
 		Group:    clustersv1alpha1.GroupVersion.Group,
 		Version:  clustersv1alpha1.GroupVersion.Version,
@@ -269,7 +194,7 @@ func mcAppConfExists(kubeconfigPath string) bool {
 	return resourceExists(gvr, TestNamespace, appConfigName, kubeconfigPath)
 }
 
-func mcComponentExists(kubeconfigPath string) bool {
+func mcComponentExists(kubeconfigPath string) (bool, error) {
 	gvr := schema.GroupVersionResource{
 		Group:    clustersv1alpha1.GroupVersion.Group,
 		Version:  clustersv1alpha1.GroupVersion.Version,
@@ -278,7 +203,7 @@ func mcComponentExists(kubeconfigPath string) bool {
 	return resourceExists(gvr, TestNamespace, componentName, kubeconfigPath)
 }
 
-func componentWorkloadExists(kubeconfigPath string) bool {
+func componentWorkloadExists(kubeconfigPath string) (bool, error) {
 	gvr := schema.GroupVersionResource{
 		Group:    oamv1alpha1.GroupVersion.Group,
 		Version:  oamv1alpha1.GroupVersion.Version,
@@ -287,16 +212,19 @@ func componentWorkloadExists(kubeconfigPath string) bool {
 	return resourceExists(gvr, TestNamespace, workloadName, kubeconfigPath)
 }
 
-func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kubeconfigPath string) bool {
+func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kubeconfigPath string) (bool, error) {
 	config := pkg.GetKubeConfigGivenPath(kubeconfigPath)
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Could not create dynamic client: %v\n", err))
+		return false, fmt.Errorf("Could not create dynamic client: %v\n", err)
 	}
 
 	u, err := client.Resource(gvr).Namespace(ns).Get(context.TODO(), name, v1.GetOptions{})
 
-	return u != nil && err == nil
+	if err != nil {
+		return false, err
+	}
+	return u != nil, nil
 }
 
 func helloHelidonPodsRunning(kubeconfigPath string) bool {
