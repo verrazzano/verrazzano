@@ -1,0 +1,57 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+---
+# Network policy for Elasticsearch master
+# Ingress: allow nginx-ingress-controller to connect to port 8775 (OIDC proxy)
+# Egress:  deny all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: verrazzano-elasticsearch
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: es-master
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow ingress from ingress controller to the OIDC sidecar running in the ES pod
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ingress-controller
+      ports:
+        - protocol: TCP
+          port: 8775
+    {{- if ne .Values.elasticSearch.singlePod true}}
+    # Normal multipod ES installation
+    # Allow ingress from ES ingest and ES data pods in same namespace to master port
+    # Any of the 3 matching pod selectors will result in a match.  The es-master
+    # label is required in the case of a single pod ES (dev profile)
+    - from:
+        - podSelector:
+            matchLabels:
+              app: es-ingest
+        - podSelector:
+            matchLabels:
+              app: es-data
+      ports:
+        - protocol: TCP
+          port: 9300
+    {{- else }}
+    # Single pod ES installation
+    # Allow ingress from Kibana
+    - from:
+        - podSelector:
+            matchLabels:
+              app: system-kibana
+      ports:
+        - protocol: TCP
+          port: 9200
+    {{- end }}
