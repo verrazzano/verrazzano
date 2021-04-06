@@ -78,7 +78,7 @@ pipeline {
                 """
 
                 script {
-                    if params.GIT_COMMIT_TO_USE == "NONE" {
+                    if (params.GIT_COMMIT_TO_USE == "NONE" {
                         echo "Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
                         env.GIT_COMMIT = ${scmInfo.GIT_COMMIT}
