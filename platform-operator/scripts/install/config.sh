@@ -8,6 +8,9 @@ CONFIG_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && p
 
 DEFAULT_CONFIG_FILE="$CONFIG_SCRIPT_DIR/config/config_defaults.json"
 
+INSTALL_OVERRIDES_DIR="${CONFIG_SCRIPT_DIR}/install-overrides"
+EFFECTIVE_CONFIG_VALUES="${INSTALL_OVERRIDES_DIR}/effective.config.json"
+
 # The max length of the environment name passed in by the user.
 ENV_NAME_LENGTH_LIMIT=10
 
@@ -21,6 +24,10 @@ function read_config() {
 # get_config_value outputs to stdout a configuration value, without the surrounding quotes
 # Note: if the value requested is an array, it will return a JSON array - use get_config_array
 # if you want a bash array.
+# The configuration value is read from the following from the following files in the given order
+# - custom resource
+# - install-overrides/config.${profile}.json
+# - install-overrides/config.json
 function get_config_value() {
   set -o pipefail
   local jq_expr="$1"
@@ -30,7 +37,8 @@ function get_config_value() {
     return 1
   fi
   if [ "$config_val" == "null" ]; then
-    config_val=""
+    # The configuration is not defined in CONFIG_JSON, check it is defined in the json files under install-overrides
+    config_val=$(get_override_config_value "$jq_expr")
   fi
   echo $config_val
   return 0
@@ -329,7 +337,39 @@ function get_nginx_nodeport() {
   echo ${nodePort}
 }
 
-# Return the value for the key rancher.enabled from CONFIG_JSON
+# Merge the default config json, install-overrides.json with the corresponding override for the profile
+function compute_effective_override() {
+  set -o pipefail
+  local profile=$(get_install_profile)
+  local default_config="${INSTALL_OVERRIDES_DIR}/config.json"
+  local profile_config_override="${INSTALL_OVERRIDES_DIR}/config.${profile}.json"
+  if [ ! -f "${profile_config_override}" ]; then
+    error "The file ${profile_config_override} does not exist"
+    exit 1
+  fi
+  if [ -f "$EFFECTIVE_CONFIG_VALUES" ]; then
+   rm "$EFFECTIVE_CONFIG_VALUES"
+  fi
+  jq -rs 'reduce .[] as $item ({}; . * $item)' $default_config $profile_config_override > $EFFECTIVE_CONFIG_VALUES
+}
+
+# Read the value for a given key from effective.config.json
+function get_override_config_value() {
+  set -o pipefail
+  local jq_expr="$1"
+  local config_val=$(jq -r "$jq_expr" $EFFECTIVE_CONFIG_VALUES)
+  if [ $? -ne 0 ]; then
+    echo "Error reading $jq_expr from config files"
+    return 1
+  fi
+  if [ "$config_val" == "null" ]; then
+    config_val=""
+  fi
+  echo $config_val
+  return 0
+}
+
+# Return the value for the key rancher.enabled
 function is_rancher_enabled() {
   local rancher_enabled=$(get_config_value '.rancher.enabled')
   echo ${rancher_enabled}
@@ -345,3 +385,5 @@ fi
 CONFIG_JSON="$(read_config $INSTALL_CONFIG_FILE)"
 
 validate_config_json "$CONFIG_JSON" || fail "Installation config is invalid"
+
+compute_effective_override  || fail "Failure to merge the install overrides"
