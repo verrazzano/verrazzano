@@ -42,21 +42,17 @@ pipeline {
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
-                        echo "SCM returned"
-                        echo "SCM INFO: ${scmInfo.GIT_BRANCH}  ${scmInfo.GIT_COMMIT}"
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                        echo "Set COMMIT"
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
-                        echo "Set BRANCH"
                     } else {
                         echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
                         def scmInfo = checkout([
                             $class: 'GitSCM',
-                            branches: [[name: ${params.GIT_COMMIT_TO_USE}]],
+                            branches: [[name: params.GIT_COMMIT_TO_USE]],
                             doGenerateSubmoduleConfigurations: false,
                             extensions: [],
                             submoduleCfg: [],
-                            userRemoteConfigs: [[url: ${SCM_VERRAZZANO_GIT_URL}]]])
+                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                         // If the commit we were handed is not what the SCM says we are using, fail
@@ -65,23 +61,7 @@ pipeline {
                             exit 1
                         }
                     }
-                    echo "done SCM script"
                 }
-
-                sh """
-                    echo "start netrc"
-                    cp -f "${NETRC_FILE}" $HOME/.netrc
-                    chmod 600 $HOME/.netrc
-                    echo "done netrc"
-                """
-
-                sh """
-                    echo "start copy files"
-                    rm -rf ${GO_REPO_PATH}/verrazzano
-                    mkdir -p ${GO_REPO_PATH}/verrazzano
-                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
-                    echo "done copy files"
-                """
 
                 script {
                     echo "setup props"

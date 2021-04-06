@@ -79,8 +79,8 @@ pipeline {
 
                 script {
                     def scmInfo = checkout scm
-                    env.GIT_COMMIT = ${scmInfo.GIT_COMMIT}
-                    env.GIT_BRANCH = ${scmInfo.GIT_BRANCH}
+                    env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                    env.GIT_BRANCH = scmInfo.GIT_BRANCH
                 }
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
