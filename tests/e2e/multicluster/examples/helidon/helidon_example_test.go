@@ -43,7 +43,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	}
 })
 
-var _ = ginkgo.Describe("Multi-cluster Verify Hello Helidon", func() {
+var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 	ginkgo.Context("Admin Cluster", func() {
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
