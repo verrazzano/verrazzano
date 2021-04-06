@@ -29,7 +29,7 @@ spec:
 ---
 # Network policy for Verrazzano console
 # Ingress: allow nginx-ingress-controller to connect to port 8000
-# Egress:  allow access to Keycloak via external https endpoint
+# Egress:  deny all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
