@@ -165,7 +165,7 @@ type MySQL struct {
 }
 
 type Rancher struct {
-	Enabled bool   `json:"enabled"`
+	Enabled bool `json:"enabled"`
 }
 
 // InstallConfiguration - Verrazzano installation configuration options
@@ -375,10 +375,10 @@ func getInstallArgs(args []installv1alpha1.InstallArgs) []InstallArg {
 func getRancher(rancher *installv1alpha1.RancherComponent) (Rancher, error) {
 	if rancher == nil {
 		return Rancher{
-			Enabled:      true}, nil
+			Enabled: true}, nil
 	}
 	rancherConfig := Rancher{
-		Enabled:      rancher.Enabled,
+		Enabled: rancher.Enabled,
 	}
 	return rancherConfig, nil
 }
