@@ -155,7 +155,10 @@ var _ = ginkgo.Describe("Multicluster app placed in managed cluster", func() {
 
 	ginkgo.Context("Delete resources on admin cluster", func() {
 		ginkgo.It("Delete all the things", func() {
-			cleanUp()
+			err := cleanUp()
+			if err != nil {
+				ginkgo.Fail(err.Error())
+			}
 		})
 		ginkgo.It("Verify deletion on admin cluster", func() {
 			gomega.Eventually(func() bool {
@@ -180,16 +183,17 @@ var _ = ginkgo.AfterSuite(func() {
 	}
 })
 
-func cleanUp() {
+func cleanUp() error {
 	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/change-placement/mc-hello-helidon-app.yaml", adminKubeconfig); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to delete multi-cluster change-placement application resource: %v", err))
+		return fmt.Errorf("Failed to delete multi-cluster change-placement application resource: %v", err)
 	}
 
 	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/change-placement/mc-hello-helidon-comp.yaml", adminKubeconfig); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to delete multi-cluster change-placement component resources: %v", err))
+		return fmt.Errorf("Failed to delete multi-cluster change-placement component resources: %v", err)
 	}
 
 	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/verrazzano-project.yaml", adminKubeconfig); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to delete hello-helidon project resource: %v", err))
+		return fmt.Errorf("Failed to delete hello-helidon project resource: %v", err)
 	}
+	return nil
 }
