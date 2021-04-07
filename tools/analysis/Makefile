@@ -59,16 +59,17 @@ run:
 #
 .PHONY: go-build
 go-build:
-	$(GO) build \
+	GOOS=darwin GOARCH=amd64 $(GO) build \
 		-ldflags "${GO_LDFLAGS}" \
-		-o out/$(shell uname)_$(shell uname -m)/verrazzano-analysis \
+		-o out/darwin_amd64/verrazzano-analysis \
 		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/analysis/main.go
-
-.PHONY: go-build-linux
-go-build-linux:
 	GOOS=linux GOARCH=amd64 $(GO) build \
 		-ldflags "${GO_LDFLAGS}" \
 		-o out/linux_amd64/verrazzano-analysis \
+		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/analysis/main.go
+	GOOS=windows GOARCH=amd64 $(GO) build \
+		-ldflags "${GO_LDFLAGS}" \
+		-o out/windows_amd64/verrazzano-analysis \
 		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/analysis/main.go
 
 .PHONY: go-install
