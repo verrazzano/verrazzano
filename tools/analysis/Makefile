@@ -33,8 +33,10 @@ endif
 DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)
 
 OPERATOR_VERSION = ${DOCKER_IMAGE_TAG}
+ANALYSIS_TOOL_VERSION ?= $(shell git rev-parse --abbrev-ref HEAD)
 ifdef RELEASE_VERSION
 	OPERATOR_VERSION = ${RELEASE_VERSION}
+	ANALYSIS_TOOL_VERSION = ${RELEASE_VERSION}
 endif
 ifndef RELEASE_BRANCH
 	RELEASE_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
@@ -60,16 +62,12 @@ run:
 .PHONY: go-build
 go-build:
 	GOOS=darwin GOARCH=amd64 $(GO) build \
-		-ldflags "${GO_LDFLAGS}" \
+		-ldflags "${GO_LDFLAGS} -X main.analysisToolVersion=${ANALYSIS_TOOL_VERSION}" \
 		-o out/darwin_amd64/verrazzano-analysis \
 		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/analysis/main.go
 	GOOS=linux GOARCH=amd64 $(GO) build \
-		-ldflags "${GO_LDFLAGS}" \
+		-ldflags "${GO_LDFLAGS} -X main.analysisToolVersion=${ANALYSIS_TOOL_VERSION}" \
 		-o out/linux_amd64/verrazzano-analysis \
-		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/analysis/main.go
-	GOOS=windows GOARCH=amd64 $(GO) build \
-		-ldflags "${GO_LDFLAGS}" \
-		-o out/windows_amd64/verrazzano-analysis \
 		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/analysis/main.go
 
 .PHONY: go-install
