@@ -29,3 +29,6 @@ const ESURLKey = "es-url"
 
 // YamlKey is the key for YAML that can be applied using kubectl
 const YamlKey = "yaml"
+
+// KeycloakURLKey is the key for Keycloak URL
+const KeycloakURLKey = "keycloak-url"

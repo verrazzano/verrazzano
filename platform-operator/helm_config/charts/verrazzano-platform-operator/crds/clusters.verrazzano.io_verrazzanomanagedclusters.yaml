@@ -100,6 +100,9 @@ spec:
                   to the admin cluster.
                 format: date-time
                 type: string
+              apiUrl:
+                description: Verrazzano API Server URL for the managed cluster.
+                type: string
             type: object
         type: object
     served: true
