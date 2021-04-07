@@ -155,7 +155,8 @@ func ComputeEffectiveState(status clustersv1alpha1.MultiClusterResourceStatus, p
 	}
 
 	// if all clusters succeeded, mark the overall state as succeeded
-	if clustersSucceeded == len(placement.Clusters) {
+	// The check for ">=" is because placement on the admin cluster is implied.
+	if clustersSucceeded >= len(placement.Clusters) && clustersPending == 0 {
 		return clustersv1alpha1.Succeeded
 	}
 
