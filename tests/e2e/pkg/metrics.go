@@ -11,9 +11,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// QueryMetric queries a metric from the system Prometheus
-func QueryMetric(metricsName string) (string, error) {
-	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", getPrometheusIngressHost(), metricsName)
+// QueryMetric queries a metric from the specified Prometheus host
+func QueryMetric(metricsName string, prometheusHost string) (string, error) {
+	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", prometheusHost, metricsName)
 	status, content := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", GetVerrazzanoPassword())
 	if status != 200 {
 		Log(Error, fmt.Sprintf("Error retrieving metric %s, status %d", metricsName, status))
@@ -25,9 +25,10 @@ func QueryMetric(metricsName string) (string, error) {
 	return content, nil
 }
 
-// getPrometheusIngressHost gest the host used for ingress to the system Prometheus
-func getPrometheusIngressHost() string {
-	ingressList, _ := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").List(context.TODO(), metav1.ListOptions{})
+// getPrometheusIngressHost gest the host used for ingress to the system Prometheus in the given cluster
+func getPrometheusIngressHost(kubeconfigPath string) string {
+	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
+	ingressList, _ := clientset.ExtensionsV1beta1().Ingresses("verrazzano-system").List(context.TODO(), metav1.ListOptions{})
 	for _, ingress := range ingressList.Items {
 		if ingress.Name == "vmi-system-prometheus" {
 			Log(Info, fmt.Sprintf("Found Ingress %v", ingress.Name))

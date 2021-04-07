@@ -298,7 +298,7 @@ func assertURLAccessibleAndAuthorized(url string) bool {
 
 func assertBearerAuthorized(url string) bool {
 	vmiHTTPClient := pkg.GetSystemVmiHTTPClient()
-	api := pkg.GetAPIEndpoint()
+	api := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
 	req, _ := retryablehttp.NewRequest("GET", url, nil)
 	if api.AccessToken != "" {
 		bearer := fmt.Sprintf("Bearer %v", api.AccessToken)
@@ -423,7 +423,7 @@ func assertDashboard(url string) {
 }
 
 func assertInstanceInfoURLs() {
-	cr := pkg.GetVerrazzanoInstallResource()
+	cr := pkg.GetVerrazzanoInstallResourceInCluster(pkg.GetKubeConfigPathFromEnv())
 	instanceInfo := cr.Status.VerrazzanoInstance
 	switch cr.Spec.Profile {
 	case v1alpha1.ManagedCluster:

@@ -26,13 +26,14 @@ type APIEndpoint struct {
 	HTTPClient  *retryablehttp.Client
 }
 
-// GetAPIEndpoint returns the APIEndpoint stub with AccessToken
-func GetAPIEndpoint() *APIEndpoint {
-	ingress, _ := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
+// GetAPIEndpoint returns the APIEndpoint stub with AccessToken, from the given cluster
+func GetAPIEndpoint(kubeconfigPath string) *APIEndpoint {
+	ingress, _ := GetKubernetesClientsetForCluster(kubeconfigPath).ExtensionsV1beta1().Ingresses("keycloak").Get(context.TODO(), "keycloak", v1.GetOptions{})
 	var ingressRules = ingress.Spec.Rules
+	keycloakHTTPClient := GetKeycloakHTTPClient(kubeconfigPath)
 	keycloakURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", ingressRules[0].Host, realm)
 	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", Username, GetVerrazzanoPassword(), clientID)
-	status, resp := postWithClient(keycloakURL, "application/x-www-form-urlencoded", strings.NewReader(body), GetKeycloakHTTPClient())
+	status, resp := postWithClient(keycloakURL, "application/x-www-form-urlencoded", strings.NewReader(body), keycloakHTTPClient)
 	var api APIEndpoint
 	if status == http.StatusOK {
 		json.Unmarshal([]byte(resp), &api)
@@ -41,14 +42,14 @@ func GetAPIEndpoint() *APIEndpoint {
 			ginkgo.Fail(fmt.Sprintf("%v error getting API access token from %v", status, keycloakURL))
 		}
 	}
-	api.APIURL = getAPIURL()
-	api.HTTPClient = GetVerrazzanoHTTPClient()
+	api.APIURL = getAPIURL(kubeconfigPath)
+	api.HTTPClient = GetVerrazzanoHTTPClientForCluster(kubeconfigPath)
 	return &api
 }
 
-// getAPIURL returns the Verrazzano REST API URL
-func getAPIURL() string {
-	ingress, _ := GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-console-ingress", v1.GetOptions{})
+// getAPIURL returns the Verrazzano REST API URL for the cluster whose kubeconfig is given as argument
+func getAPIURL(kubeconfigPath string) string {
+	ingress, _ := GetKubernetesClientsetForCluster(kubeconfigPath).ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-console-ingress", v1.GetOptions{})
 	var ingressRules []extensionsv1beta1.IngressRule = ingress.Spec.Rules
 	return fmt.Sprintf("https://%s/%s", ingressRules[0].Host, verrazzanoAPIURLPrefix)
 }
