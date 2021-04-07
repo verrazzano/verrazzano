@@ -127,10 +127,8 @@ data:
     logJsonMessage(ngx.INFO, "Set headers")
     ngx.req.set_header("Authorization", "Bearer " .. serviceAccountToken)
     if ( jwt_obj.payload and jwt_obj.payload.groups) then
-      for i,group in pairs(jwt_obj.payload.groups) do
-        logJsonMessage(ngx.INFO, ("Adding group " .. group))
-        ngx.req.set_header("Impersonate-Group", group)
-      end
+      logJsonMessage(ngx.INFO, ("Adding groups " .. cjson.encode(jwt_obj.payload.groups)))
+      ngx.req.set_header("Impersonate-Group", jwt_obj.payload.groups)
     end
     if ( jwt_obj.payload and jwt_obj.payload.sub) then
       logJsonMessage(ngx.INFO, ("Adding sub " .. jwt_obj.payload.sub))
