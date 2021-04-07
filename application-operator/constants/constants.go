@@ -75,3 +75,6 @@ const StatusUpdateBatchSize = 10
 // changed since the application was deployed, the application will pick up the latest values and be restarted. If the
 // label value matches the value in the workload status, all Verrazzano provided resources will remain unchanged.
 const LabelUpgradeVersion = "upgrade-version"
+
+// VzConsoleIngress - the name of the ingress for verrazzano console and api
+const VzConsoleIngress = "verrazzano-console-ingress"
