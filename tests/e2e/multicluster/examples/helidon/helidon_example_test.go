@@ -58,7 +58,7 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 		// THEN expect that the app is not deployed to the admin cluster consistently for some length of time
 		ginkgo.It("Does not have application placed", func() {
 			gomega.Consistently(func() bool {
-				return examples.VerifyHelloHelidonInCluster(adminKubeconfig, true, false)
+				return examples.VerifyHelloHelidonInCluster(adminKubeconfig, false)
 			}, consistentlyDuration, pollingInterval).Should(gomega.BeTrue())
 		})
 	})
@@ -77,7 +77,7 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 		// THEN expect that the app is deployed to the managed cluster
 		ginkgo.It("Has application placed", func() {
 			gomega.Eventually(func() bool {
-				return examples.VerifyHelloHelidonInCluster(managedKubeconfig, false, true)
+				return examples.VerifyHelloHelidonInCluster(managedKubeconfig, true)
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 		})
 	})
@@ -104,7 +104,7 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 			})
 			ginkgo.It("Does not have application placed", func() {
 				gomega.Eventually(func() bool {
-					return examples.VerifyHelloHelidonInCluster(kubeconfig, false, false)
+					return examples.VerifyHelloHelidonInCluster(kubeconfig, false)
 				}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 			})
 		}
