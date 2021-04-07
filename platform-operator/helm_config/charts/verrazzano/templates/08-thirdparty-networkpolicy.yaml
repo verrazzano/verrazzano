@@ -41,15 +41,15 @@ spec:
     - Egress
   ingress:
     - ports:
-        - port: 9443
-          protocol: TCP
-        from:
-          - ipBlock:
-              cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+      - port: 9443
+        protocol: TCP
+      from:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
   egress:
-      - ports:
-        - port: {{ .Values.kubernetes.service.endpoint.port }}
-          protocol: TCP
-        to:
-          - ipBlock:
-              cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+    - ports:
+      - port: {{ .Values.kubernetes.service.endpoint.port }}
+        protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
