@@ -82,7 +82,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build: go-build-linux
+docker-build: go-build
 	@echo Building verrazzano-analysis image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	# the TPL file needs to be copied into this dir so it is in the docker build context
 	cp ../../THIRD_PARTY_LICENSES.txt .
