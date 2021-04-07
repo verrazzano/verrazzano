@@ -23,6 +23,7 @@ pipeline {
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
         booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
     }
 
     environment {
@@ -492,10 +493,12 @@ pipeline {
     post {
         success {
             script {
-                build job: "verrazzano-push-triggered-acceptance-tests/${env.GIT_BRANCH.replace("/", "%2F")}"",
-                    parameters: [
-                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
-                    ], wait: true
+                if ( params.TRIGGER_FULL_TESTS == true || env.GIT_BRANCH == "master" || env.GIT_BRANCH.startsWith("release")  ) {
+                    build job: "verrazzano-push-triggered-acceptance-tests/${env.GIT_BRANCH.replace("/", "%2F")}"",
+                        parameters: [
+                            string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
+                        ], wait: true
+                }
             }
         }
         always {
