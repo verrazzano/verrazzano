@@ -1,0 +1,155 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+# Network policy for Verrazzano API Proxy
+# Ingress: allow nginx-ingress-controller to connect to port 8775
+# Egress:  allow access to Keycloak via external https endpoint
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: verrazzano-api
+  namespace: verrazzano-system
+spec:
+  podSelector:
+    matchLabels:
+      app: verrazzano-api
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ingress-controller
+      ports:
+        - protocol: TCP
+          port: 8775
+---
+# Network policy for Verrazzano console
+# Ingress: allow nginx-ingress-controller to connect to port 8000
+# Egress:  deny all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: verrazzano-console
+  namespace: verrazzano-system
+spec:
+  podSelector:
+    matchLabels:
+      app: verrazzano-console
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ingress-controller
+      ports:
+        - protocol: TCP
+          port: 8000
+---
+# Network policy for Verrazzano operator
+# Ingress: deny all
+# Egress:  allow access to Kubernetes API server
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: verrazzano-operator
+  namespace: verrazzano-system
+spec:
+  podSelector:
+    matchLabels:
+      app: verrazzano-operator
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    - ports:
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+---
+# Network policy for Verrazzano application operator
+# Ingress: allow access from Kubernetes API server for webhook
+# Egress:  allow access to Kubernetes API server
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: verrazzano-application-operator
+  namespace: verrazzano-system
+spec:
+  podSelector:
+    matchLabels:
+      app: verrazzano-application-operator
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    - ports:
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+  ingress:
+    - ports:
+        - port: 9443
+          protocol: TCP
+      from:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+---
+# Network policy for Verrazzano monitoring operator
+# Ingress: deny all
+# Egress:  allow access to Kubernetes API server
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: verrazzano-monitoring-operator
+  namespace: verrazzano-system
+spec:
+  podSelector:
+    matchLabels:
+      app: verrazzano-monitoring-operator
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    - ports:
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+---
+# Network policy for OAM Kubernetes Runtime operator
+# Ingress: deny all
+# Egress:  allow access to Kubernetes API server
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: oam-kubernetes-runtime
+  namespace: verrazzano-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: oam-kubernetes-runtime
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    - ports:
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+
