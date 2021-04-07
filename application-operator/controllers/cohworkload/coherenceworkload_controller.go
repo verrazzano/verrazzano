@@ -596,12 +596,12 @@ func (r *Reconciler) createNetworkPolicies(ctx context.Context, log logr.Logger,
 	}
 
 	// Add required label to application namespace if not already included.
-	label, ok := appNamespace.Labels[constants.LabelVerrazzanoIONamespace]
+	label, ok := appNamespace.Labels[constants.LabelVerrazzanoNamespace]
 	if !ok || label != constants.VerrazzanoSystemNamespace {
 		if appNamespace.Labels == nil {
 			appNamespace.Labels = make(map[string]string)
 		}
-		appNamespace.Labels[constants.LabelVerrazzanoIONamespace] = appNamespace.Name
+		appNamespace.Labels[constants.LabelVerrazzanoNamespace] = appNamespace.Name
 		err := r.Update(ctx, appNamespace)
 		if err != nil {
 			return err
@@ -611,7 +611,7 @@ func (r *Reconciler) createNetworkPolicies(ctx context.Context, log logr.Logger,
 	// Create a network policy in the verrazzano-system namespace, if it does not already exist.
 	// This network policy is an egress for the Coherence operator to Coherence pods in application namespaces.
 	networkPolicy := &netv1.NetworkPolicy{}
-	appNamespaceName := fmt.Sprintf("%s-%s", appNamespace.Name, appName)
+	appNamespaceName := fmt.Sprintf("coh-%s-%s", appNamespace.Name, appName)
 	err := r.Get(ctx, client.ObjectKey{Namespace: constants.VerrazzanoSystemNamespace, Name: appNamespaceName}, networkPolicy)
 	if err != nil && k8serrors.IsNotFound(err) {
 		networkPolicy = &netv1.NetworkPolicy{
@@ -637,7 +637,7 @@ func (r *Reconciler) createNetworkPolicies(ctx context.Context, log logr.Logger,
 							{
 								NamespaceSelector: &metav1.LabelSelector{
 									MatchLabels: map[string]string{
-										constants.LabelVerrazzanoIONamespace: appNamespace.Name,
+										constants.LabelVerrazzanoNamespace: appNamespace.Name,
 									},
 								},
 								PodSelector: &metav1.LabelSelector{

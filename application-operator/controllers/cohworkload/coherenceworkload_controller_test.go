@@ -161,7 +161,7 @@ func TestReconcileCreateCoherence(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
 			assert.Equal(1, len(namespace.Labels))
-			assert.Equal(map[string]string{constants.LabelVerrazzanoIONamespace: "test-namespace"}, namespace.Labels)
+			assert.Equal(map[string]string{constants.LabelVerrazzanoNamespace: "test-namespace"}, namespace.Labels)
 			return nil
 		})
 	// expect call to fetch existing NetworkPolicy resource
@@ -183,7 +183,7 @@ func TestReconcileCreateCoherence(t *testing.T) {
 			assert.Nil(networkPolicy.Spec.Egress[0].Ports)
 			assert.Equal(1, len(networkPolicy.Spec.Egress[0].To))
 			assert.Equal(map[string]string{"coherenceComponent": "coherencePod"}, networkPolicy.Spec.Egress[0].To[0].PodSelector.MatchLabels)
-			assert.Equal(map[string]string{constants.LabelVerrazzanoIONamespace: "test-namespace"}, networkPolicy.Spec.Egress[0].To[0].NamespaceSelector.MatchLabels)
+			assert.Equal(map[string]string{constants.LabelVerrazzanoNamespace: "test-namespace"}, networkPolicy.Spec.Egress[0].To[0].NamespaceSelector.MatchLabels)
 			assert.Nil(networkPolicy.Spec.Egress[0].To[0].IPBlock)
 			assert.Equal(1, len(networkPolicy.Spec.PolicyTypes))
 			assert.Equal(netv1.PolicyTypeEgress, networkPolicy.Spec.PolicyTypes[0])

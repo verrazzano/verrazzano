@@ -54,8 +54,8 @@ const LabelVerrazzanoManagedDefault = "true"
 // LabelIstioInjection - constant for a Kubernetes label that is applied by Verrazzano
 const LabelIstioInjection = "istio-injection"
 
-// LabelVerrazzanoIONamespace - constant for a Kubernetes label that is used by network policies
-const LabelVerrazzanoIONamespace = "verrazzano.io/namespace"
+// LabelVerrazzanoNamespace - constant for a Kubernetes label that is used by network policies
+const LabelVerrazzanoNamespace = "verrazzano.io/namespace"
 
 // LabelIstioInjectionDefault - default value for LabelIstioInjection
 const LabelIstioInjectionDefault = "enabled"
