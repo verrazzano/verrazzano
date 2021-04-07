@@ -81,6 +81,7 @@ pipeline {
                     def scmInfo = checkout scm
                     env.GIT_COMMIT = scmInfo.GIT_COMMIT
                     env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                 }
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
@@ -494,7 +495,6 @@ pipeline {
                 // FIXME: This is temporary for early setup, need to switch this to be "master"
                 build job: 'verrazzano-push-triggered-acceptance-tests/${env.GIT_BRANCH.replace("/", "%2F")}',
                     parameters: [
-                        string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
                     ], wait: true
             }

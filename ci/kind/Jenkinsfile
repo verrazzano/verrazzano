@@ -19,10 +19,6 @@ pipeline {
     }
 
     parameters {
-        string (name: 'VERRAZZANO_BRANCH',
-                        defaultValue: 'master',
-                        description: 'Branch to clone and checkout the Verrazzano repo',
-                        trim: true)
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
@@ -150,7 +146,7 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
-                    currentBuild.description = SHORT_COMMIT_HASH + " on " + KUBERNETES_CLUSTER_VERSION
+                    currentBuild.description = KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
                 }
             }
         }

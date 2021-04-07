@@ -17,10 +17,6 @@ pipeline {
     }
 
     parameters {
-        string (name: 'VERRAZZANO_BRANCH',
-                        defaultValue: 'master',
-                        description: 'Branch to clone and checkout the Verrazzano repo',
-                        trim: true)
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -61,17 +57,16 @@ pipeline {
                             exit 1
                         }
                     }
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                 }
 
                 script {
-                    echo "setup props"
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
-                    echo "done setup props"
                 }
             }
         }
@@ -81,9 +76,8 @@ pipeline {
                 stage('Kind Acceptance Tests on 1.17') {
                     steps {
                         script {
-                            build job: "verrazzano-new-kind-acceptance-tests/${params.VERRAZZANO_BRANCH.replace("/", "%2F")}",
+                            build job: "verrazzano-new-kind-acceptance-tests/${env.GIT_BRANCH.replace("/", "%2F")}",
                                 parameters: [
-                                    string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.17'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
                                 ], wait: true
@@ -93,9 +87,8 @@ pipeline {
                 stage('Kind Acceptance Tests on 1.19') {
                     steps {
                         script {
-                            build job: "/verrazzano-new-kind-acceptance-tests/${params.VERRAZZANO_BRANCH.replace("/", "%2F")}",
+                            build job: "/verrazzano-new-kind-acceptance-tests/${env.GIT_BRANCH.replace("/", "%2F")}",
                                 parameters: [
-                                    string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
                                 ], wait: true
@@ -105,9 +98,8 @@ pipeline {
                 stage('Kind Acceptance Tests on 1.20') {
                     steps {
                         script {
-                            build job: "/verrazzano-new-kind-acceptance-tests/${params.VERRAZZANO_BRANCH.replace("/", "%2F")}",
+                            build job: "/verrazzano-new-kind-acceptance-tests/${env.GIT_BRANCH.replace("/", "%2F")}",
                                 parameters: [
-                                    string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
                                 ], wait: true
