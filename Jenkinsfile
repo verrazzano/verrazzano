@@ -492,7 +492,7 @@ pipeline {
     post {
         success {
             script {
-                build job: 'verrazzano-push-triggered-acceptance-tests/${env.GIT_BRANCH.replace("/", "%2F")}',
+                build job: "verrazzano-push-triggered-acceptance-tests/${env.GIT_BRANCH.replace("/", "%2F")}"",
                     parameters: [
                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
                     ], wait: true
