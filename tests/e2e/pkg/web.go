@@ -111,10 +111,6 @@ func ExpectHTTPOk(resp *HTTPResponse, err error, msg string) {
 	ExpectHTTPStatus(http.StatusOK, resp, err, msg)
 }
 
-func ExpectHTTPNotFound(resp *HTTPResponse, err error, msg string) {
-	ExpectHTTPStatus(http.StatusNotFound, resp, err, msg)
-}
-
 // ExpectHTTPStatus validates that this is no error and a that the status matchs
 func ExpectHTTPStatus(status int, resp *HTTPResponse, err error, msg string) {
 	gomega.Expect(err).To(gomega.BeNil(), msg)
@@ -132,13 +128,6 @@ func ExpectHTTPGetOk(httpClient *retryablehttp.Client, url string) {
 	resp, err := httpClient.Get(url)
 	httpResp := ProcHTTPResponse(resp, err)
 	ExpectHTTPOk(httpResp, err, "Error doing http(s) get from "+url)
-}
-
-// ExpectHTTPGetNotFound submits a GET request and expect a status 404 response
-func ExpectHTTPGetNotFound(httpClient *retryablehttp.Client, url string) {
-	resp, err := httpClient.Get(url)
-	httpResp := ProcHTTPResponse(resp, err)
-	ExpectHTTPNotFound(httpResp, err, "Error doing http(s) get from "+url)
 }
 
 // GetSystemVmiHTTPClient returns an HTTP client configured with the system vmi CA cert
