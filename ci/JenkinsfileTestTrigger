@@ -34,6 +34,13 @@ pipeline {
                     echo "${NODE_LABELS}"
                 """
 
+                // REVIEW: I'm not sure that we actually need to fetch the sources here, but I'm doing here as it was easier
+                // to test working with the SCM checkout settings starting from this job. We should be able to trigger this job
+                // with parameters directly (ie: based on a previous build), in that situation doing this gives us a single point
+                // to ensure the commit matches what was intended before triggering a bunch of downstream jobs that will
+                // all fail if it wasn't correct. So we may want to keep it here unless there is a compelling reason not to do so.
+                // I haven't looked at the executor resource usage yet in all of this, so it may be that could have constraints for
+                // using flyweight executors (still need to look at that)
                 script {
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"

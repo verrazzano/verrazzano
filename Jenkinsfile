@@ -488,12 +488,20 @@ pipeline {
                 }
             }
         }
-    }
 
-    post {
-        success {
-            script {
-                if ( params.TRIGGER_FULL_TESTS == true || env.GIT_BRANCH == "master" || env.GIT_BRANCH.startsWith("release")  ) {
+        stage('Triggered Tests') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    anyOf {
+                        branch 'master';
+                        branch 'release-*';
+                        expression {params.TRIGGER_FULL_TESTS == true};
+                    }
+                }
+            }
+            steps {
+                script {
                     build job: "verrazzano-push-triggered-acceptance-tests/${env.GIT_BRANCH.replace("/", "%2F")}",
                         parameters: [
                             string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
@@ -501,6 +509,9 @@ pipeline {
                 }
             }
         }
+    }
+
+    post {
         always {
             script {
                 if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
