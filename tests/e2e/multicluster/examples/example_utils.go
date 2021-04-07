@@ -52,6 +52,9 @@ func DeployHelloHelidonApp(kubeConfigPath string) error {
 
 // DeployChangePlacement deploys the change-placement example to the cluster with the given kubeConfigPath
 func DeployChangePlacement(kubeConfigPath string) error {
+	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/change-placement/verrazzano-project.yaml", kubeConfigPath); err != nil {
+		return fmt.Errorf("Failed to create VerrazzanoProject resource: %v", err)
+	}
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/change-placement/mc-hello-helidon-comp.yaml", kubeConfigPath); err != nil {
 		return fmt.Errorf("Failed to create multi-cluster hello-helidon component resources: %v", err)
 	}
@@ -80,15 +83,15 @@ func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisC
 
 // VerifyHelloHelidonInCluster verifies that the hello helidon app resources are either present or absent
 // depending on whether the app is placed in this cluster
-func VerifyHelloHelidonInCluster(kubeConfigPath string, placedInThisCluster bool) bool {
+func VerifyHelloHelidonInCluster(kubeConfigPath string, isAdminCluster bool, placedInThisCluster bool) bool {
 	projectExists := projectExists(kubeConfigPath)
 	workloadExists := componentWorkloadExists(kubeConfigPath)
 	podsRunning := helloHelidonPodsRunning(kubeConfigPath)
 
-	if !placedInThisCluster {
-		return projectExists && !workloadExists && !podsRunning
-	} else {
+	if isAdminCluster || placedInThisCluster {
 		return projectExists && workloadExists && podsRunning
+	} else {
+		return projectExists && !workloadExists && !podsRunning
 	}
 }
 
