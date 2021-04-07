@@ -64,8 +64,22 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		opResult = controllerutil.OperationResultNone
 	}
 
-	clusters.SetEffectiveStateIfChanged(vp.Spec.Placement, &vp.Status)
-	return r.updateStatus(ctx, &vp, opResult, err)
+	// Update the cluster status
+	_, err = r.updateStatus(ctx, &vp, opResult, err)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Update the VerrazzanoProject state
+	oldState := clusters.SetEffectiveStateIfChanged(vp.Spec.Placement, &vp.Status)
+	if oldState != vp.Status.State {
+		err = r.Status().Update(ctx, &vp)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	return ctrl.Result{}, nil
 }
 
 func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
