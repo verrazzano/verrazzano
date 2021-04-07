@@ -156,14 +156,14 @@ func TestReconcileCreateCoherence(t *testing.T) {
 			namespace.Name = "test-namespace"
 			return nil
 		})
-	// expect a call to update a label for the namespace
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
-			assert.Equal(1, len(namespace.Labels))
-			assert.Equal(map[string]string{constants.LabelVerrazzanoIONamespace: "test-namespace"}, namespace.Labels)
-			return nil
-		})
+		/*	// expect a call to update a label for the namespace
+			cli.EXPECT().
+				Update(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
+					assert.Equal(1, len(namespace.Labels))
+					assert.Equal(map[string]string{constants.LabelVerrazzanoIONamespace: "test-namespace"}, namespace.Labels)
+					return nil
+				}) */
 	// expect call to fetch existing NetworkPolicy resource
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
@@ -189,39 +189,39 @@ func TestReconcileCreateCoherence(t *testing.T) {
 			assert.Equal(netv1.PolicyTypeEgress, networkPolicy.Spec.PolicyTypes[0])
 			return nil
 		})
-	// expect call to fetch existing NetworkPolicy resource
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, networkPolicy *netv1.NetworkPolicy) error {
-			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
-		})
-	// expect a call to create the NetworkPolicy resource
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, networkPolicy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
-			assert.Equal("NetworkPolicy", networkPolicy.Kind)
-			assert.Equal("networking.k8s.io/v1", networkPolicy.APIVersion)
-			assert.Equal("unit-test-cluster", networkPolicy.Name)
-			assert.Equal(1, len(networkPolicy.OwnerReferences))
-			assert.Equal("coherence.oracle.com/v1", networkPolicy.OwnerReferences[0].APIVersion)
-			assert.Equal("Coherence", networkPolicy.OwnerReferences[0].Kind)
-			assert.Equal("unit-test-cluster", networkPolicy.OwnerReferences[0].Name)
-			assert.Equal(1, len(networkPolicy.Spec.PodSelector.MatchLabels))
-			assert.Equal(map[string]string{"coherenceDeployment": "unit-test-cluster"}, networkPolicy.Spec.PodSelector.MatchLabels)
-			assert.Equal(1, len(networkPolicy.Spec.Ingress))
-			assert.Equal(1, len(networkPolicy.Spec.Ingress[0].Ports))
-			assert.Equal(corev1.ProtocolTCP, *networkPolicy.Spec.Ingress[0].Ports[0].Protocol)
-			assert.Equal(int32(6676), networkPolicy.Spec.Ingress[0].Ports[0].Port.IntVal)
-			assert.Equal(1, len(networkPolicy.Spec.Ingress[0].From))
-			assert.Equal(map[string]string{"control-plane": "coherence"}, networkPolicy.Spec.Ingress[0].From[0].PodSelector.MatchLabels)
-			assert.Equal(map[string]string{constants.LabelVerrazzanoIONamespace: constants.VerrazzanoSystemNamespace}, networkPolicy.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels)
-			assert.Nil(networkPolicy.Spec.Ingress[0].From[0].IPBlock)
-			assert.Equal(0, len(networkPolicy.Spec.Egress))
-			assert.Equal(1, len(networkPolicy.Spec.PolicyTypes))
-			assert.Equal(netv1.PolicyTypeIngress, networkPolicy.Spec.PolicyTypes[0])
-			return nil
-		})
-
+		/*	// expect call to fetch existing NetworkPolicy resource
+			cli.EXPECT().
+				Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, name types.NamespacedName, networkPolicy *netv1.NetworkPolicy) error {
+					return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
+				})
+			// expect a call to create the NetworkPolicy resource
+			cli.EXPECT().
+				Create(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, networkPolicy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
+					assert.Equal("NetworkPolicy", networkPolicy.Kind)
+					assert.Equal("networking.k8s.io/v1", networkPolicy.APIVersion)
+					assert.Equal("unit-test-cluster", networkPolicy.Name)
+					assert.Equal(1, len(networkPolicy.OwnerReferences))
+					assert.Equal("coherence.oracle.com/v1", networkPolicy.OwnerReferences[0].APIVersion)
+					assert.Equal("Coherence", networkPolicy.OwnerReferences[0].Kind)
+					assert.Equal("unit-test-cluster", networkPolicy.OwnerReferences[0].Name)
+					assert.Equal(1, len(networkPolicy.Spec.PodSelector.MatchLabels))
+					assert.Equal(map[string]string{"coherenceDeployment": "unit-test-cluster"}, networkPolicy.Spec.PodSelector.MatchLabels)
+					assert.Equal(1, len(networkPolicy.Spec.Ingress))
+					assert.Equal(1, len(networkPolicy.Spec.Ingress[0].Ports))
+					assert.Equal(corev1.ProtocolTCP, *networkPolicy.Spec.Ingress[0].Ports[0].Protocol)
+					assert.Equal(int32(6676), networkPolicy.Spec.Ingress[0].Ports[0].Port.IntVal)
+					assert.Equal(1, len(networkPolicy.Spec.Ingress[0].From))
+					assert.Equal(map[string]string{"control-plane": "coherence"}, networkPolicy.Spec.Ingress[0].From[0].PodSelector.MatchLabels)
+					assert.Equal(map[string]string{constants.LabelVerrazzanoIONamespace: constants.VerrazzanoSystemNamespace}, networkPolicy.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels)
+					assert.Nil(networkPolicy.Spec.Ingress[0].From[0].IPBlock)
+					assert.Equal(0, len(networkPolicy.Spec.Egress))
+					assert.Equal(1, len(networkPolicy.Spec.PolicyTypes))
+					assert.Equal(netv1.PolicyTypeIngress, networkPolicy.Spec.PolicyTypes[0])
+					return nil
+				})
+		*/
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -366,12 +366,12 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
-	// expect a call to update a label for the namespace
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
-			return nil
-		})
+		/*	// expect a call to update a label for the namespace
+			cli.EXPECT().
+				Update(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
+					return nil
+				})*/
 	// expect call to fetch existing NetworkPolicy resource
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
@@ -384,18 +384,18 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, networkPolicy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
 			return nil
 		})
-	// expect call to fetch existing NetworkPolicy resource
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, networkPolicy *netv1.NetworkPolicy) error {
-			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
-		})
-	// expect a call to create the NetworkPolicy resource
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, networkPolicy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
-			return nil
-		})
+		/*	// expect call to fetch existing NetworkPolicy resource
+			cli.EXPECT().
+				Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, name types.NamespacedName, networkPolicy *netv1.NetworkPolicy) error {
+					return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
+				})
+			// expect a call to create the NetworkPolicy resource
+			cli.EXPECT().
+				Create(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, networkPolicy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
+					return nil
+				}) */
 
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
@@ -551,12 +551,12 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
-	// expect a call to update a label for the namespace
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
-			return nil
-		})
+		/*	// expect a call to update a label for the namespace
+			cli.EXPECT().
+				Update(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
+					return nil
+				})*/
 	// expect call to fetch existing NetworkPolicy resource
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
@@ -569,18 +569,18 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, networkPolicy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
 			return nil
 		})
-	// expect call to fetch existing NetworkPolicy resource
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, networkPolicy *netv1.NetworkPolicy) error {
-			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
-		})
-	// expect a call to create the NetworkPolicy resource
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, networkPolicy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
-			return nil
-		})
+		/*	// expect call to fetch existing NetworkPolicy resource
+			cli.EXPECT().
+				Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, name types.NamespacedName, networkPolicy *netv1.NetworkPolicy) error {
+					return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
+				})
+			// expect a call to create the NetworkPolicy resource
+			cli.EXPECT().
+				Create(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, networkPolicy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
+					return nil
+				}) */
 	// expect a call to status update
 	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 	mockStatus.EXPECT().
@@ -726,12 +726,12 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
-	// expect a call to update a label for the namespace
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
-			return nil
-		})
+		/*	// expect a call to update a label for the namespace
+			cli.EXPECT().
+				Update(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
+					return nil
+				})*/
 	// expect call to fetch existing NetworkPolicy resource
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
@@ -744,19 +744,19 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, networkPolicy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
 			return nil
 		})
-	// expect call to fetch existing NetworkPolicy resource
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, networkPolicy *netv1.NetworkPolicy) error {
-			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
-		})
-	// expect a call to create the NetworkPolicy resource
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, networkPolicy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
-			return nil
-		})
-
+		/*	// expect call to fetch existing NetworkPolicy resource
+			cli.EXPECT().
+				Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, name types.NamespacedName, networkPolicy *netv1.NetworkPolicy) error {
+					return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
+				})
+			// expect a call to create the NetworkPolicy resource
+			cli.EXPECT().
+				Create(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, networkPolicy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
+					return nil
+				})
+		*/
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -849,12 +849,12 @@ func TestReconcileUpdateCR(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
-	// expect a call to update a label for the namespace
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
-			return nil
-		})
+		/*	// expect a call to update a label for the namespace
+			cli.EXPECT().
+				Update(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
+					return nil
+				})*/
 	// expect call to fetch existing NetworkPolicy resource
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
@@ -867,18 +867,18 @@ func TestReconcileUpdateCR(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, networkPolicy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
 			return nil
 		})
-	// expect call to fetch existing NetworkPolicy resource
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, networkPolicy *netv1.NetworkPolicy) error {
-			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
-		})
-	// expect a call to create the NetworkPolicy resource
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, networkPolicy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
-			return nil
-		})
+		/*	// expect call to fetch existing NetworkPolicy resource
+			cli.EXPECT().
+				Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, name types.NamespacedName, networkPolicy *netv1.NetworkPolicy) error {
+					return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
+				})
+			// expect a call to create the NetworkPolicy resource
+			cli.EXPECT().
+				Create(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, networkPolicy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
+					return nil
+				})*/
 
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
@@ -1027,12 +1027,12 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
-	// expect a call to update a label for the namespace
-	cli.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
-			return nil
-		})
+		/*	// expect a call to update a label for the namespace
+			cli.EXPECT().
+				Update(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, namespace *corev1.Namespace, opts ...client.UpdateOption) error {
+					return nil
+				})*/
 	// expect call to fetch existing NetworkPolicy resource
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
@@ -1045,18 +1045,18 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, networkPolicy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
 			return nil
 		})
-	// expect call to fetch existing NetworkPolicy resource
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, networkPolicy *netv1.NetworkPolicy) error {
-			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
-		})
-	// expect a call to create the NetworkPolicy resource
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, networkPolicy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
-			return nil
-		})
+		/*	// expect call to fetch existing NetworkPolicy resource
+			cli.EXPECT().
+				Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, name types.NamespacedName, networkPolicy *netv1.NetworkPolicy) error {
+					return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
+				})
+			// expect a call to create the NetworkPolicy resource
+			cli.EXPECT().
+				Create(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, networkPolicy *netv1.NetworkPolicy, opts ...client.CreateOption) error {
+					return nil
+				})*/
 
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
