@@ -116,9 +116,6 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 				gomega.Expect(vzComponentPresent(name, "cattle-system")).To(gomega.Equal(expected))
 			},
 			ginkgoExt.Entry("includes rancher", "rancher", true),
-			// Disabled as a result of the upgrade to Rancher 2.5.7
-			// ginkgoExt.Entry("includes rancher-agent", "cattle-node-agent", true),
-			// ginkgoExt.Entry("includes rancher-agent", "cattle-cluster-agent", true),
 		)
 
 		ginkgoExt.DescribeTable("deployed VMI components",
