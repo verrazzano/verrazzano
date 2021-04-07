@@ -16,10 +16,23 @@ pipeline {
         }
     }
 
+    // Use cases:
+    //        1) (automatic) master, release* will trigger this job by default on successful runs and supply GIT_COMMIT_TO_USE with the exact GIT commit to use for all testing (same as the upstream build)
+    //        2) (automatic) branch builds with TRIGGER_FULL_TESTS enabled will trigger this job by default on successful runs and supply GIT_COMMIT_TO_USE with the exact GIT commit to use for all testing (same as the upstream build)
+    //        3) (manual) any branch should be able to call this “trigger” job with a commit that was previously built and has a valid GIT commit hash. In this case the manual job
+    //           must be started from the desired branch using Build with Parameters, the GIT_COMMIT_TO_USE must supply the GIT commit hash from the previous build, and VERRAZZANO_OPERATOR_IMAGE must NOT BE SPECIFIED or be NONE
+    //           This allows one to rerun the tests without rerunning the upstream build (ie: if intermittent test issue occurred)
+    //        4) (manual) any branch should be able to call this “trigger” job with the current head of their branch, pointing to a previously built operator image. This is useful if you are adding/fixing test cases where the
+    //           operator image was built already (from master, or your branch) and only want to run the tests using it without running the full build. This is not a super likely situation (more likely individual test jobs
+    //           will be manually kicked off rather than all of them). To accomplish this, specify GIT_COMMIT_TO_USE=NONE, and VERRAZZANO_OPERATOR_IMAGE=image-to-use
     parameters {
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
-                        description: 'This is the full git commit hash from the source build to be used for all jobs',
+                        description: 'This is the full git commit hash from the source build to be used for all jobs. A full pipeline specifies a valid commit hash here. NONE can be used for manually triggered jobs, however even for those a commit hash value is preferred to be supplied',
+                        trim: true)
+        string (name: 'VERRAZZANO_OPERATOR_IMAGE',
+                        defaultValue: 'NONE',
+                        description: 'This is for manually testing only where someone needs to use a specific operator image, otherwise the default value of NONE is used',
                         trim: true)
     }
 
@@ -86,7 +99,8 @@ pipeline {
                             build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.17'),
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE)
                                 ], wait: true
                         }
                     }
@@ -97,7 +111,8 @@ pipeline {
                             build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE)
                                 ], wait: true
                         }
                     }
@@ -108,7 +123,8 @@ pipeline {
                             build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE)
                                 ], wait: true
                         }
                     }
