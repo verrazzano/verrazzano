@@ -20,6 +20,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
@@ -123,8 +124,15 @@ func (s *Syncer) updateVMCStatus() error {
 	if err != nil {
 		return err
 	}
+
 	curTime := metav1.Now()
 	vmc.Status.LastAgentConnectTime = &curTime
+	apiURL, err := s.GetAPIServerURL()
+	if err != nil {
+		return fmt.Errorf("Failed to get api server url for vmc %s with error %v", vmcName, err)
+	}
+
+	vmc.Status.APIUrl = apiURL
 
 	// update status of VMC
 	return s.AdminClient.Status().Update(s.Context, &vmc)
@@ -278,4 +286,14 @@ func discardStatusMessages(statusUpdateChannel chan clusters.StatusUpdateMessage
 	for i := 0; i < length; i++ {
 		<-statusUpdateChannel
 	}
+}
+
+// GetAPIServerURL returns the API Server URL for Verrazzano instance.
+func (s *Syncer) GetAPIServerURL() (string, error) {
+	ingress := &extv1beta1.Ingress{}
+	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.VzConsoleIngress, Namespace: constants.VerrazzanoSystemNamespace}, ingress)
+	if err != nil {
+		return "", fmt.Errorf("Unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, constants.VzConsoleIngress, err)
+	}
+	return fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0]), nil
 }
