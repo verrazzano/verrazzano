@@ -48,8 +48,9 @@ func (e *Elastic) PodsRunning() bool {
 
 // Connect checks if the elasticsearch cluster can be connected
 func (e *Elastic) Connect() bool {
-	esURL := pkg.GetAPIEndpoint().GetElasticURL()
-	body, err := e.retryGet(esURL, pkg.Username, pkg.GetVerrazzanoPassword())
+	kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+	esURL := pkg.GetAPIEndpoint(kubeconfigPath).GetElasticURL()
+	body, err := e.retryGet(esURL, pkg.Username, pkg.GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
 	if err != nil {
 		return false
 	}
@@ -57,10 +58,10 @@ func (e *Elastic) Connect() bool {
 	return err == nil
 }
 
-func (e *Elastic) retryGet(url, username, password string) ([]byte, error) {
+func (e *Elastic) retryGet(url, username, password string, kubeconfigPath string) ([]byte, error) {
 	req, _ := retryablehttp.NewRequest("GET", url, nil)
 	req.SetBasicAuth(username, password)
-	client := e.getVmiHTTPClient()
+	client := e.getVmiHTTPClient(kubeconfigPath)
 	client.CheckRetry = pkg.GetRetryPolicy()
 	resp, err := client.Do(req)
 	if err != nil {
@@ -79,9 +80,9 @@ func (e *Elastic) retryGet(url, username, password string) ([]byte, error) {
 	return httpResp.Body, nil
 }
 
-func (e *Elastic) getVmiHTTPClient() *retryablehttp.Client {
+func (e *Elastic) getVmiHTTPClient(kubeconfigPath string) *retryablehttp.Client {
 	if e.vmiHTTPClient == nil {
-		e.vmiHTTPClient = pkg.GetBindingVmiHTTPClient(e.binding)
+		e.vmiHTTPClient = pkg.GetBindingVmiHTTPClient(e.binding, kubeconfigPath)
 	}
 	return e.vmiHTTPClient
 }
@@ -89,16 +90,17 @@ func (e *Elastic) getVmiHTTPClient() *retryablehttp.Client {
 // ListIndices lists elasticsearch indices
 func (e *Elastic) ListIndices() []string {
 	idx := []string{}
-	for i := range e.GetIndices() {
+	kubeconfigPath := pkg.GetKubeConfigPathFromEnv()
+	for i := range e.getIndices(kubeconfigPath) {
 		idx = append(idx, i)
 	}
 	return idx
 }
 
-// GetIndices gets index metadata (aliases, mappings, and settings) of all elasticsearch indices
-func (e *Elastic) GetIndices() map[string]interface{} {
-	esURL := pkg.GetAPIEndpoint().GetElasticURL() + "/_all"
-	body, err := e.retryGet(esURL, pkg.Username, pkg.GetVerrazzanoPassword())
+// getIndices gets index metadata (aliases, mappings, and settings) of all elasticsearch indices in the given cluster
+func (e *Elastic) getIndices(kubeconfigPath string) map[string]interface{} {
+	esURL := pkg.GetAPIEndpoint(kubeconfigPath).GetElasticURL() + "/_all"
+	body, err := e.retryGet(esURL, pkg.Username, pkg.GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Info, fmt.Sprintf("Error ListIndices %v error: %v", esURL, err))
 		return nil
