@@ -83,17 +83,14 @@ const (
 	specField                 = "spec"
 	jvmField                  = "jvm"
 	argsField                 = "args"
-	healthPortField           = "healthPort"
 	workloadType              = "coherence"
 	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
 	destinationRuleKind       = "DestinationRule"
 	networkPolicyAPIVersion   = "networking.k8s.io/v1"
 	networkPolicyKind         = "NetworkPolicy"
-	coherenceDeploymentLabel  = "coherenceDeployment"
 	coherenceControlPaneLabel = "control-plane"
 	coherenceComponentLabel   = "coherenceComponent"
 	coherenceExtendPort       = 9000
-	defaultHealthPort         = 6676
 )
 
 var specLabelsFields = []string{specField, "labels"}
@@ -598,20 +595,18 @@ func (r *Reconciler) createNetworkPolicies(ctx context.Context, log logr.Logger,
 		return errors.New("OAM app name label missing from metadata, unable to generate network policies")
 	}
 
-	/*
-		// Add required label to application namespace if not already included.
-		label, ok := appNamespace.Labels[constants.LabelVerrazzanoIONamespace]
-		if !ok || label != constants.VerrazzanoSystemNamespace {
-			if appNamespace.Labels == nil {
-				appNamespace.Labels = make(map[string]string)
-			}
-			appNamespace.Labels[constants.LabelVerrazzanoIONamespace] = appNamespace.Name
-			err := r.Update(ctx, appNamespace)
-			if err != nil {
-				return err
-			}
+	// Add required label to application namespace if not already included.
+	label, ok := appNamespace.Labels[constants.LabelVerrazzanoIONamespace]
+	if !ok || label != constants.VerrazzanoSystemNamespace {
+		if appNamespace.Labels == nil {
+			appNamespace.Labels = make(map[string]string)
 		}
-	*/
+		appNamespace.Labels[constants.LabelVerrazzanoIONamespace] = appNamespace.Name
+		err := r.Update(ctx, appNamespace)
+		if err != nil {
+			return err
+		}
+	}
 
 	// Create a network policy in the verrazzano-system namespace, if it does not already exist.
 	// This network policy is an egress for the Coherence operator to Coherence pods in application namespaces.
@@ -667,89 +662,6 @@ func (r *Reconciler) createNetworkPolicies(ctx context.Context, log logr.Logger,
 	}
 	log.Info(fmt.Sprintf("Network policy %s:%s already exist", constants.VerrazzanoSystemNamespace, appNamespaceName))
 
-	/*
-		// Get the health port if specified.  If found, use the port specified otherwise use the deafult of 6676.
-		// The health port is used during shutdown of coherence pods so we create an ingress for that port.
-		healthPort, found, err := unstructured.NestedFieldNoCopy(coherence.Object, specField, healthPortField)
-		if err != nil {
-			return err
-		}
-		var port intstr.IntOrString
-		if found {
-			port = intstr.FromInt(int(healthPort.(int64)))
-		} else {
-			port = intstr.FromInt(defaultHealthPort)
-		}
-
-		protocol := corev1.ProtocolTCP
-
-		// Create a network policy in the application namespace, if it does not already exist.
-		// This network policy is an ingress for a Coherence deployment from the Coherence operator health check port.
-		networkPolicy = &netv1.NetworkPolicy{}
-		err = r.Get(ctx, client.ObjectKey{Namespace: appNamespace.Name, Name: coherence.GetName()}, networkPolicy)
-		if err != nil && k8serrors.IsNotFound(err) {
-			networkPolicy = &netv1.NetworkPolicy{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: networkPolicyAPIVersion,
-					Kind:       networkPolicyKind},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: appNamespace.Name,
-					Name:      coherence.GetName(),
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							APIVersion: coherence.GetAPIVersion(),
-							Kind:       coherence.GetKind(),
-							Name:       coherence.GetName(),
-							UID:        coherence.GetUID(),
-						},
-					},
-				},
-				Spec: netv1.NetworkPolicySpec{
-					PodSelector: metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							coherenceDeploymentLabel: coherence.GetName(),
-						},
-					},
-					PolicyTypes: []netv1.PolicyType{
-						netv1.PolicyTypeIngress,
-					},
-					Ingress: []netv1.NetworkPolicyIngressRule{
-						{
-							Ports: []netv1.NetworkPolicyPort{
-								{
-									Protocol: &protocol,
-									Port:     &port,
-								},
-							},
-							From: []netv1.NetworkPolicyPeer{
-								{
-									NamespaceSelector: &metav1.LabelSelector{
-										MatchLabels: map[string]string{
-											constants.LabelVerrazzanoIONamespace: constants.VerrazzanoSystemNamespace,
-										},
-									},
-									PodSelector: &metav1.LabelSelector{
-										MatchLabels: map[string]string{
-											coherenceControlPaneLabel: "coherence",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			}
-
-			log.Info(fmt.Sprintf("Creating network policy %s:%s", appNamespace.Name, coherence.GetName()))
-			err = r.Create(ctx, networkPolicy)
-			if err != nil {
-				return err
-			}
-		} else if err != nil {
-			return err
-		}
-		log.Info(fmt.Sprintf("Network policy %s:%s already exist", appNamespace.Name, coherence.GetName()))
-	*/
 	return nil
 }
 
