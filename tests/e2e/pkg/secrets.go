@@ -27,10 +27,15 @@ func ListSecrets(namespace string) *corev1.SecretList {
 	return secrets
 }
 
-// GetSecret returns the a secret in a given namespace for the cluster
+// GetSecret returns the a secret in a given namespace for the cluster specified in the environment
 func GetSecret(namespace string, name string) (*corev1.Secret, error) {
-	// Get the kubernetes clientset
-	clientset := GetKubernetesClientset()
+	return GetSecretInCluster(namespace, name, GetKubeConfigPathFromEnv())
+}
+
+// GetSecretInCluster returns the a secret in a given namespace for the given cluster
+func GetSecretInCluster(namespace string, name string, kubeconfigPath string) (*corev1.Secret, error) {
+	// Get the kubernetes clientset for the given cluster
+	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
 
 	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
