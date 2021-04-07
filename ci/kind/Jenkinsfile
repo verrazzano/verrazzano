@@ -96,6 +96,7 @@ pipeline {
                             exit 1
                         }
                     }
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                 }
 
                 sh """
