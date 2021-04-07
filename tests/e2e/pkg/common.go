@@ -45,6 +45,11 @@ func GetVerrazzanoPassword() string {
 	return string(secret.Data["password"])
 }
 
+func GetVerrazzanoPasswordInCluster(kubeconfigPath string) string {
+	secret, _ := GetSecretInCluster("verrazzano-system", "verrazzano", kubeconfigPath)
+	return string(secret.Data["password"])
+}
+
 // Concurrently executes the given assertions in parallel and waits for them all to complete
 func Concurrently(assertions ...func()) {
 	number := len(assertions)
@@ -78,9 +83,15 @@ func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, 
 	return resp.StatusCode == http.StatusOK
 }
 
-//PodsRunning checks if all the pods identified by namePrefixes are ready and running
+// PodsRunning is identical to PodsRunningInCluster, except that it uses the cluster specified in the environment
 func PodsRunning(namespace string, namePrefixes []string) bool {
-	pods := ListPods(namespace)
+	return PodsRunningInCluster(namespace, namePrefixes, GetKubeConfigPathFromEnv())
+}
+
+// PodsRunning checks if all the pods identified by namePrefixes are ready and running in the given cluster
+func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPath string) bool {
+	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
+	pods := ListPodsInCluster(namespace, clientset)
 	missing := notRunning(pods.Items, namePrefixes...)
 	if len(missing) > 0 {
 		Log(Info, fmt.Sprintf("Pods %v were NOT running in %v", missing, namespace))
@@ -95,15 +106,16 @@ func PodsRunning(namespace string, namePrefixes []string) bool {
 	return len(missing) == 0
 }
 
-//PodsNotRunning waits for all the pods in namePrefixes to be terminated
+// PodsNotRunning waits for all the pods in namePrefixes to be terminated
 func PodsNotRunning(namespace string, namePrefixes []string) bool {
-	allPods := ListPods(namespace)
+	clientset := GetKubernetesClientset()
+	allPods := ListPodsInCluster(namespace, clientset)
 	terminatedPods := notRunning(allPods.Items, namePrefixes...)
 	var i int = 0
 	for len(terminatedPods) != len(namePrefixes) {
 		Log(Info, fmt.Sprintf("Pods %v were TERMINATED in %v", terminatedPods, namespace))
 		time.Sleep(15 * time.Second)
-		pods := ListPods(namespace)
+		pods := ListPodsInCluster(namespace, clientset)
 		terminatedPods = notRunning(pods.Items, namePrefixes...)
 		i++
 		if i > 10 {
@@ -222,9 +234,14 @@ func findMetric(metrics []interface{}, key, value string) bool {
 	return false
 }
 
-// MetricsExist validates the availability of a specified metric
+// MetricsExist is identical to MetricsExistInCluster, except that it uses the cluster specified in the environment
 func MetricsExist(metricsName, key, value string) bool {
-	metric, err := QueryMetric(metricsName)
+	return MetricsExistInCluster(metricsName, key, value, GetKubeConfigPathFromEnv())
+}
+
+// MetricsExist validates the availability of a given metric in the given cluster
+func MetricsExistInCluster(metricsName, key, value, kubeconfigPath string) bool {
+	metric, err := QueryMetric(metricsName, getPrometheusIngressHost(kubeconfigPath))
 	if err != nil {
 		return false
 	}

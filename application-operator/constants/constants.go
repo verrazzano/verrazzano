@@ -74,4 +74,4 @@ const StatusUpdateBatchSize = 10
 const LabelUpgradeVersion = "upgrade-version"
 
 // VzConsoleIngress - the name of the ingress for verrazzano console and api
-const VzConsoleIngress = "verrazzano-console-ingress"
+const VzConsoleIngress = "verrazzano-ingress"
