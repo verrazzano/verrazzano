@@ -108,8 +108,6 @@ type VolumeClaimSpecTemplate struct {
 type InstanceInfo struct {
 	// ConsoleURL The Console URL for this Verrazzano installation
 	ConsoleURL *string `json:"consoleUrl,omitempty"`
-	// SystemURL The System API URL for this Verrazzano installation
-	SystemURL *string `json:"systemApi,omitempty"`
 	// KeyCloakURL The KeyCloak URL for this Verrazzano installation
 	KeyCloakURL *string `json:"keyCloakUrl,omitempty"`
 	// RancherURL The Rancher URL for this Verrazzano installation
@@ -231,6 +229,9 @@ type ComponentSpec struct {
 	// Grafana configuration
 	// +optional
 	Grafana *GrafanaComponent `json:"grafana,omitempty"`
+	// Console configuration
+	// +optional
+	Console *ConsoleComponent `json:"console,omitempty"`
 }
 
 // MonitoringComponent Common configuration for monitoring components
@@ -319,6 +320,11 @@ type MySQLComponent struct {
 	// is used, it must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates section.
 	// +optional
 	VolumeSource *corev1.VolumeSource `json:"volumeSource,omitempty"`
+}
+
+// ConsoleComponent specifies the Console UI configuration
+type ConsoleComponent struct {
+	MonitoringComponent `json:",inline"`
 }
 
 // InstallArgs identifies a name/value or name/value list needed for install.

@@ -8,41 +8,56 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/api/extensions/v1beta1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = ginkgo.Describe("Verrazzano Web UI",
 	func() {
-		ingress, _ := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-console-ingress", v1.GetOptions{})
-		var ingressRules []v1beta1.IngressRule = ingress.Spec.Rules
-		serverURL := fmt.Sprintf("https://%s/", ingressRules[0].Host)
+		ingress, err := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
 
-		pkg.Log(pkg.Info, "The Web UI's URL is "+serverURL)
-
-		ginkgo.It("can be accessed", func() {
-			rc, content := pkg.GetWebPageWithCABundle(serverURL, "")
-			gomega.Expect(rc).To(gomega.Equal(200))
-			gomega.Expect(content).To(gomega.Not(gomega.BeEmpty()))
-			gomega.Expect(content).To(gomega.Not(gomega.ContainSubstring("404")))
+		ginkgo.It("ingress exist", func() {
+			gomega.Expect(err).To(gomega.BeNil())
+			gomega.Expect(len(ingress.Spec.Rules)).To(gomega.Equal(1))
 		})
 
-		ginkgo.It("has the correct SSL certificate",
-			func() {
-				certs, err := pkg.GetCertificates(serverURL)
-				gomega.Expect(err).To(gomega.BeNil())
-				// There will normally be several certs, but we only need to check the
-				// first one -- might want to refactor the checks out into a pkg.IsCertValid()
-				// function so we can use it from other test suites too??
-				pkg.Log(pkg.Debug, "Issuer Common Name: "+certs[0].Issuer.CommonName)
-				pkg.Log(pkg.Debug, "Subject Common Name: "+certs[0].Subject.CommonName)
-				pkg.Log(pkg.Debug, "Not Before: "+certs[0].NotBefore.String())
-				pkg.Log(pkg.Debug, "Not After: "+certs[0].NotAfter.String())
-				gomega.Expect(time.Now().After(certs[0].NotBefore)).To(gomega.BeTrue())
-				gomega.Expect(time.Now().Before(certs[0].NotAfter)).To(gomega.BeTrue())
+		// Determine if the console UI is configured
+		consoleUIConfigured := false
+		for _, path := range ingress.Spec.Rules[0].HTTP.Paths {
+			if path.Backend.ServiceName == "verrazzano-console" {
+				consoleUIConfigured = true
+			}
+		}
+
+		if consoleUIConfigured {
+
+			var ingressRules = ingress.Spec.Rules
+			serverURL := fmt.Sprintf("https://%s/", ingressRules[0].Host)
+
+			pkg.Log(pkg.Info, "The Web UI's URL is "+serverURL)
+
+			ginkgo.It("can be accessed", func() {
+				rc, content := pkg.GetWebPageWithCABundle(serverURL, "")
+				gomega.Expect(rc).To(gomega.Equal(200))
+				gomega.Expect(content).To(gomega.Not(gomega.BeEmpty()))
+				gomega.Expect(content).To(gomega.Not(gomega.ContainSubstring("404")))
 			})
+
+			ginkgo.It("has the correct SSL certificate",
+				func() {
+					certs, err := pkg.GetCertificates(serverURL)
+					gomega.Expect(err).To(gomega.BeNil())
+					// There will normally be several certs, but we only need to check the
+					// first one -- might want to refactor the checks out into a pkg.IsCertValid()
+					// function so we can use it from other test suites too??
+					pkg.Log(pkg.Debug, "Issuer Common Name: "+certs[0].Issuer.CommonName)
+					pkg.Log(pkg.Debug, "Subject Common Name: "+certs[0].Subject.CommonName)
+					pkg.Log(pkg.Debug, "Not Before: "+certs[0].NotBefore.String())
+					pkg.Log(pkg.Debug, "Not After: "+certs[0].NotAfter.String())
+					gomega.Expect(time.Now().After(certs[0].NotBefore)).To(gomega.BeTrue())
+					gomega.Expect(time.Now().Before(certs[0].NotAfter)).To(gomega.BeTrue())
+				})
+		}
 	})

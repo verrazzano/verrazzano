@@ -19,10 +19,11 @@ const (
 	pollingInterval = 5 * time.Second
 )
 
+var kubeconfigPath = pkg.GetKubeConfigPathFromEnv()
 var _ = ginkgo.Describe("rancher url test", func() {
 
 	var _ = ginkgo.BeforeEach(func() {
-		api = pkg.GetAPIEndpoint()
+		api = pkg.GetAPIEndpoint(kubeconfigPath)
 	})
 
 	ginkgo.Context("Fetching the rancher url using api and test ", func() {
@@ -33,7 +34,7 @@ var _ = ginkgo.Describe("rancher url test", func() {
 			}
 			gomega.Eventually(keycloakURL, waitTimeout, pollingInterval).ShouldNot(gomega.BeEmpty())
 
-			httpClient := pkg.GetVerrazzanoHTTPClient()
+			httpClient := pkg.GetRancherHTTPClient(kubeconfigPath)
 			pkg.ExpectHTTPGetOk(httpClient, keycloakURL())
 		})
 	})

@@ -14,13 +14,168 @@ imagePullSecrets:
 {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-application-operator
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - namespaces
+      - pods
+      - secrets
+      - rolebindings
+      - serviceaccounts
+      - services
+    verbs:
+      - '*'
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - statefulsets
+      - replicasets
+    verbs:
+      - '*'
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - '*'
+  - apiGroups:
+      - admissionregistration.k8s.io
+    resources:
+      - mutatingwebhookconfigurations
+      - validatingwebhookconfigurations
+    verbs:
+      - '*'
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - ingresses
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - networkpolicies
+    verbs:
+      - '*'
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+      - roles
+      - rolebindings
+    verbs:
+      - '*'
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - certificates
+    verbs:
+      - '*'
+  - apiGroups:
+      - clusters.verrazzano.io
+    resources:
+      - multiclusterapplicationconfigurations
+      - multiclustercomponents
+      - multiclusterconfigmaps
+      - multiclusterloggingscopes
+      - multiclustersecrets
+      - verrazzanoprojects
+    verbs:
+      - '*'
+  - apiGroups:
+      - clusters.verrazzano.io
+    resources:
+      - multiclusterapplicationconfigurations/status
+      - multiclustercomponents/status
+      - multiclusterconfigmaps/status
+      - multiclusterloggingscopes/status
+      - multiclustersecrets/status
+      - verrazzanoprojects/status
+    verbs:
+      - '*'
+  - apiGroups:
+      - coherence.oracle.com
+    resources:
+      - coherence
+    verbs:
+      - '*'
+  - apiGroups:
+      - core.oam.dev
+    resources:
+      - applicationconfigurations
+      - components
+      - containerizedworkloads
+      - workloaddefinitions
+    verbs:
+      - '*'
+  - apiGroups:
+      - networking.istio.io
+    resources:
+      - destinationrules
+      - ingresses
+      - gateways
+      - virtualservices
+    verbs:
+      - '*'
+  - apiGroups:
+      - oam.verrazzano.io
+    resources:
+      - ingresstraits
+      - loggingscopes
+      - metricstraits
+      - verrazzanocoherenceworkloads
+      - verrazzanohelidonworkloads
+      - verrazzanoweblogicworkloads
+    verbs:
+      - '*'
+  - apiGroups:
+      - oam.verrazzano.io
+    resources:
+      - ingresstraits/status
+      - loggingscopes/status
+      - metricstraits/status
+      - verrazzanocoherenceworkloads/status
+      - verrazzanohelidonworkloads/status
+      - verrazzanoweblogicworkloads/status
+    verbs:
+      - '*'
+  - apiGroups:
+      - security.istio.io
+    resources:
+      - authorizationpolicies
+    verbs:
+      - '*'
+  - apiGroups:
+      - weblogic.oracle
+    resources:
+      - domains
+    verbs:
+      - '*'
+  - apiGroups:
+      - extensions
+    resources:
+      - ingresses
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: {{ .Values.name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: cluster-admin
+  name: verrazzano-application-operator
 subjects:
   - kind: ServiceAccount
     name: {{ .Values.name }}

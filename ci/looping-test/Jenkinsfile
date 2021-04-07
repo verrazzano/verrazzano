@@ -238,7 +238,7 @@ pipeline {
                         mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
                         kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
                         kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
-                        echo "Verrazzano Installation logs dumped to verrazzano-install.log"
+                        echo "Verrazzano install logs dumped to verrazzano-install.log"
                         echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
                         echo "------------------------------------------"
                     """
@@ -253,12 +253,12 @@ pipeline {
                 }
                 failure {
                     script {
+                        dumpK8sCluster('verrazzano-install-loop-install-failure-cluster-dump')
                         skip_stage = 'true'
                     }
                 }
             }
         }
-
 
         stage('Verify Install') {
             environment {
@@ -267,18 +267,42 @@ pipeline {
             when {
                 expression { skip_stage == 'false' }
             }
-            steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    runGinkgo('examples/todo')
+            parallel {
+                stage('verify-install') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            runGinkgo('verify-install')
+                        }
+                    }
+                }
+                stage('verify-infra restapi') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            runGinkgo('verify-infra/restapi')
+                        }
+                    }
+                }
+                stage('verify-infra oam') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            runGinkgo('verify-infra/oam')
+                        }
+                    }
+                }
+                stage('verify-infra vmi') {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            runGinkgo('verify-infra/vmi')
+                        }
+                    }
                 }
             }
             post {
                 failure {
-                    dumpK8sCluster('verrazzano-installation-loop-after-test-run-cluster-dump')
+                    dumpK8sCluster('verrazzano-install-loop-test-failure-cluster-dump')
                 }
             }
         }
-
         stage('Uninstall Verrazzano') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
@@ -324,7 +348,7 @@ pipeline {
         always {
             script {
                 if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                    dumpK8sCluster('verrazzano-installation-loop-cluster-dump')
+                    dumpK8sCluster('verrazzano-install-loop-cluster-dump')
                 }
             }
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
@@ -339,7 +363,7 @@ pipeline {
         }
 
         failure {
-            dumpK8sCluster('verrazzano-installation-loop-cluster-dump')
+            dumpK8sCluster('verrazzano-install-loop-cluster-dump')
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
             sh """
                 if [ -f ${POST_DUMP_FAILED_FILE} ]; then
@@ -354,12 +378,12 @@ pipeline {
                 mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
                 subject: "Verrazzano: ${env.JOB_NAME} - Failed",
                 body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
-                script {
-                    if (env.BRANCH_NAME == "master") {
+                /*script {
+                    if (env.JOB_NAME == "verrazzano-install-loop/master") {
                         pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                         slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                     }
-                }
+                }*/
 
                 // kick off another cluster build after initial attempt to reuse cluster (failureCount = 1)
                 if (failureCount > 1) {
@@ -371,10 +395,14 @@ pipeline {
                                 string(name: 'OKE_CLUSTER_VERSION', value: params.OKE_CLUSTER_VERSION),
                             ], wait: true
                         failureCount = 0
-                        // pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\nPlease investigate the cause of the failure, then clean up the cluster and associated resources when you are done. The OKE cluster to inspect will be the one associated with the previous successful build of project create-oke-cluster")
+                        /*if (env.JOB_NAME == "verrazzano-install-loop/master") {
+                            pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\nPlease investigate the cause of the failure, then clean up the cluster and associated resources when you are done. The OKE cluster to inspect will be the one associated with the previous successful build of project create-oke-cluster")
+                        }*/
                     } catch (Exception e) {
                         abort = true
-                        // slackSend ( message: "Loop test interrupted due to cluster build failure - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
+                        /*if (env.JOB_NAME == "verrazzano-install-loop/master") {
+                            slackSend ( message: "Loop test interrupted due to cluster build failure - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
+                        }*/
                     }
                 }
             }
@@ -391,21 +419,21 @@ pipeline {
         }
         cleanup {
             deleteDir()
+            script {
+                if (!abort) {
+                    def failures = failureCount as String
+                    build job: env.JOB_NAME,  // Use the current Job so it stays in-branch
+                        parameters: [
+                            string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
+                            string(name: 'OKE_NODE_POOL', value: params.OKE_NODE_POOL),
+                            string(name: 'OKE_CLUSTER_VERSION', value: params.OKE_CLUSTER_VERSION),
+                            string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                            string(name: 'failureCount', value: failures),
+                            booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS)
+                        ], wait: false
+                }
+            }
         }
-        //cleanup {
-        //    script {
-        //        if (!abort) {
-        //             def failures = failureCount as String
-        //             build job: 'verrazzano-new-installation-loop/master',
-        //                parameters: [
-        //                        string(name: 'VERRAZZANO_BRANCH', value: params.VERRAZZANO_BRANCH),
-        //                        string(name: 'OKE_NODE_POOL', value: params.OKE_NODE_POOL),
-        //                        string(name: 'OKE_CLUSTER_VERSION', value: params.OKE_CLUSTER_VERSION),
-        //                        string(name: 'failureCount', value: failures)
-        //                ], wait: false
-        //        }
-        //    }
-        //}
     }
 }
 

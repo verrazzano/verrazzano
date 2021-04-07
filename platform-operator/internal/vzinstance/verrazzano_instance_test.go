@@ -6,11 +6,13 @@ package vzinstance
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/golang/mock/gomock"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -91,18 +93,10 @@ func TestGetInstanceInfo(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "verrazzano-console-ingress"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: constants.VzConsoleIngress},
 					Spec: extv1beta1.IngressSpec{
 						Rules: []extv1beta1.IngressRule{
 							{Host: consoleURL},
-						},
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-api"},
-					Spec: extv1beta1.IngressSpec{
-						Rules: []extv1beta1.IngressRule{
-							{Host: apiURL},
 						},
 					},
 				},
@@ -120,7 +114,6 @@ func TestGetInstanceInfo(t *testing.T) {
 	assert.Equal(t, "https://"+grafanaURL, *instanceInfo.GrafanaURL)
 	assert.Equal(t, "https://"+kibanaURL, *instanceInfo.KibanaURL)
 	assert.Equal(t, "https://"+promURL, *instanceInfo.PrometheusURL)
-	assert.Equal(t, "https://"+apiURL, *instanceInfo.SystemURL)
 }
 
 // TestGetInstanceInfoManagedCluster tests GetInstanceInfo method
@@ -172,18 +165,10 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "verrazzano-console-ingress"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: constants.VzConsoleIngress},
 					Spec: extv1beta1.IngressSpec{
 						Rules: []extv1beta1.IngressRule{
 							{Host: consoleURL},
-						},
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-api"},
-					Spec: extv1beta1.IngressSpec{
-						Rules: []extv1beta1.IngressRule{
-							{Host: apiURL},
 						},
 					},
 				},
@@ -201,7 +186,6 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 	assert.Nil(t, instanceInfo.GrafanaURL)
 	assert.Nil(t, instanceInfo.KibanaURL)
 	assert.Equal(t, "https://"+promURL, *instanceInfo.PrometheusURL)
-	assert.Equal(t, "https://"+apiURL, *instanceInfo.SystemURL)
 }
 
 // TestGetInstanceInfoManagedCluster tests GetInstanceInfo method
