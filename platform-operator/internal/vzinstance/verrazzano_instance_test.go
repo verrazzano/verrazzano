@@ -6,11 +6,13 @@ package vzinstance
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/golang/mock/gomock"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -91,7 +93,7 @@ func TestGetInstanceInfo(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "verrazzano-console-ingress"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: constants.VzConsoleIngress},
 					Spec: extv1beta1.IngressSpec{
 						Rules: []extv1beta1.IngressRule{
 							{Host: consoleURL},
@@ -163,7 +165,7 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "verrazzano-console-ingress"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: constants.VzConsoleIngress},
 					Spec: extv1beta1.IngressSpec{
 						Rules: []extv1beta1.IngressRule{
 							{Host: consoleURL},
