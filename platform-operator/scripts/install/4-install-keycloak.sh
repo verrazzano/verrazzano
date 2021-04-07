@@ -45,7 +45,8 @@ function install_mysql {
 
   echo "CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;" > ${TMP_DIR}/create-db.sql
   echo "USE keycloak;" >> ${TMP_DIR}/create-db.sql
-  echo "GRANT ALL ON keycloak.* TO '${MYSQL_USERNAME}'@'%';" >> ${TMP_DIR}/create-db.sql
+  # Allow the keycloak user to create/drop tables, indices, foreign key references, and read/write to all tables in keycloak schema
+  echo "GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON keycloak.* TO '${MYSQL_USERNAME}'@'%';" >> ${TMP_DIR}/create-db.sql
   echo "FLUSH PRIVILEGES;" >> ${TMP_DIR}/create-db.sql
   EXTRA_MYSQL_ARGUMENTS="$EXTRA_MYSQL_ARGUMENTS --set-file initializationFiles.create-db=${TMP_DIR}/create-db.sql"
 
