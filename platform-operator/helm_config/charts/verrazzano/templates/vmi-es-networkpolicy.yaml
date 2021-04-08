@@ -1,3 +1,43 @@
+# Network policy for Elasticsearch master single pod installation
+{{- if .Values.elasticSearch.nodes.data.replicas eq 0 and .Values.elasticSearch.enabled eq "true"}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vmi-system-es-master
+  namespace: verrazzano-system
+spec:
+  podSelector:
+    matchLabels:
+      app: es-master
+  policyTypes:
+    - Ingress
+    # Deny all egress
+    - Egress
+  ingress:
+    # Allow ingress from ingress controller to the OIDC sidecar running in the ES pod
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ingress-controller
+      ports:
+        - protocol: TCP
+          port: 8775
+    # Allow ingress from Kibana
+    - from:
+        - podSelector:
+            matchLabels:
+              app: system-kibana
+      ports:
+        - protocol: TCP
+          port: 9200
+{{- end }}
+---
+# Network policy for Elasticsearch full multi-pod installation
+{{- if .Values.elasticSearch.nodes.data.replicas ne 0 and .Values.elasticSearch.enabled eq "true"}}
+
 # Network policy for Elasticsearch master
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -151,8 +191,6 @@ spec:
         - protocol: TCP
           port: 9200
         - protocol: TCP
-          port: 9300
-        - protocol: TCP
           port: 8775
   egress:
     # Egress: allow TCP/UDP for name resolution
@@ -234,3 +272,4 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
+{{- end }}
