@@ -48,7 +48,6 @@ HOST=$(kubectl get ing vmi-system-prometheus -n verrazzano-system -o jsonpath='{
 
 #create the yaml file
 echo "prometheus:" > $OUTPUT_FILE
-echo "  authpasswd: $AUTH_PASSWORD" >> $OUTPUT_FILE
 echo "  host: $HOST" >> $OUTPUT_FILE
 if [ ! -z "${CA_CERT}" ] ; then
    echo "  cacrt: |" >> $OUTPUT_FILE
