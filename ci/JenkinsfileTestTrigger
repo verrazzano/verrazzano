@@ -93,7 +93,7 @@ pipeline {
 
         stage ('Kick off parallel tests') {
             parallel {
-                stage('Uninstall Tests') {
+                stage('Multi Cluster Tests') {
                     steps {
                         script {
                             build job: "/verrazzano-multi-cluster-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
