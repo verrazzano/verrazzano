@@ -266,8 +266,6 @@ pipeline {
                     }
                 }
             }
-
-            when { not { buildingTag() } }
             steps {
                 sh """
                     mkdir ${HOME}/.kube/ || true
