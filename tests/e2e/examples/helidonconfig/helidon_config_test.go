@@ -94,8 +94,8 @@ var _ = ginkgo.Describe("Verify Helidon Config OAM App.", func() {
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
 	ginkgo.Describe("Verify Helidon Config app is working.", func() {
-		ginkgo.It("Access /greet App Url.", func() {
-			url := fmt.Sprintf("https://%s/greet", host)
+		ginkgo.It("Access /config App Url.", func() {
+			url := fmt.Sprintf("https://%s/config", host)
 			isEndpointAccessible := func() bool {
 				return appEndpointAccessible(url, host)
 			}
