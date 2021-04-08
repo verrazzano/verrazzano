@@ -160,7 +160,8 @@ rules:
   - apiGroups:
       - coherence.oracle.com
     resources:
-      - coherence
+      - coherences
+      - coherences/status
     verbs:
       - create
       - delete
@@ -173,10 +174,8 @@ rules:
   - apiGroups:
       - core.oam.dev
     resources:
-      - applicationconfigurations
-      - components
-      - containerizedworkloads
-      - workloaddefinitions
+      - '*'
+      - '*/status'
     verbs:
       - create
       - delete
@@ -203,14 +202,24 @@ rules:
       - update
       - watch
   - apiGroups:
+      - verrazzano.io
+    resources:
+      - '*'
+      - '*/status'
+    verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
       - oam.verrazzano.io
     resources:
-      - ingresstraits
-      - loggingscopes
-      - metricstraits
-      - verrazzanocoherenceworkloads
-      - verrazzanohelidonworkloads
-      - verrazzanoweblogicworkloads
+      - '*'
+      - '*/status'
     verbs:
       - create
       - delete
@@ -255,6 +264,7 @@ rules:
       - weblogic.oracle
     resources:
       - domains
+      - domains/status
     verbs:
       - create
       - delete
