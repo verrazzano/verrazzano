@@ -502,12 +502,12 @@ func TestRemovePlacementVerrazzanoProject(t *testing.T) {
 			testProj.DeepCopyInto(vp)
 			return nil
 		})
-		/*
-			// Managed Cluster - expect a call to delete a VerrazzanoProject object
-			localMock.EXPECT().
-				Delete(gomock.Any(), gomock.Eq(&testProj), gomock.Any()).
-				Return(nil)
-		*/
+
+	// Managed Cluster - expect a call to delete a VerrazzanoProject object
+	localMock.EXPECT().
+		Delete(gomock.Any(), gomock.Eq(&testProj), gomock.Any()).
+		Return(nil)
+
 	// Managed Cluster - expect call to list VerrazzanoProject objects on the local cluster, return an empty list
 	localMock.EXPECT().
 		List(gomock.Any(), &clustersv1alpha1.VerrazzanoProjectList{}, gomock.AssignableToTypeOf(&client.ListOptions{})).

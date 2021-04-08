@@ -52,14 +52,18 @@ func DeployHelloHelidonApp(kubeConfigPath string) error {
 
 // DeployChangePlacement deploys the change-placement example to the cluster with the given kubeConfigPath
 func DeployChangePlacement(kubeConfigPath string) error {
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/change-placement/verrazzano-project.yaml", kubeConfigPath); err != nil {
-		return fmt.Errorf("Failed to create VerrazzanoProject resource: %v", err)
-	}
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/change-placement/mc-hello-helidon-comp.yaml", kubeConfigPath); err != nil {
 		return fmt.Errorf("Failed to create multi-cluster hello-helidon component resources: %v", err)
 	}
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/change-placement/mc-hello-helidon-app.yaml", kubeConfigPath); err != nil {
 		return fmt.Errorf("Failed to create multi-cluster hello-helidon application resource: %v", err)
+	}
+	// This is a temporary timer until this bug is fixed: VZ-2448
+	// Allow the MC objects to sync before the change in the VerrazzanoProject
+	time.Sleep(time.Minute)
+
+	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/change-placement/verrazzano-project.yaml", kubeConfigPath); err != nil {
+		return fmt.Errorf("Failed to create VerrazzanoProject resource: %v", err)
 	}
 	return nil
 }

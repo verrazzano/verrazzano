@@ -56,13 +56,10 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 				err := s.LocalClient.Get(s.Context, types.NamespacedName{Namespace: vp.Namespace, Name: vp.Name}, &vpLocal)
 				if err == nil {
 					s.Log.Info(fmt.Sprintf("deleting VerrazzanoProject %q from namespace %q because it is no longer targetted at this cluster", vp.Name, vp.Namespace))
-					// NOTE: Disabled pending a fix for VZ-2454
-					/*
-						err2 := s.LocalClient.Delete(s.Context, &vpLocal)
-						if err2 != nil {
-							s.Log.Error(err, fmt.Sprintf("failed to delete VerrazzanoProject with name %q and namespace %q: %s", vp.Name, vp.Namespace, err2.Error()))
-						}
-					*/
+					err2 := s.LocalClient.Delete(s.Context, &vpLocal)
+					if err2 != nil {
+						s.Log.Error(err, fmt.Sprintf("failed to delete VerrazzanoProject with name %q and namespace %q: %s", vp.Name, vp.Namespace, err2.Error()))
+					}
 				}
 			}
 		}
