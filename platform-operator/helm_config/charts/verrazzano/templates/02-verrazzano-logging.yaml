@@ -178,7 +178,7 @@ data:
       @id kubernetes_record_transformer
       enable_ruby true
       <record>
-        @target_index vmi-ns-${record["kubernetes"]["namespace_name"]}
+        @target_index verrazzano-namespace-${record["kubernetes"]["namespace_name"]}
       </record>
       <record>
         kubernetes_namespace_container_name ${record["kubernetes"]["namespace_name"]}.${record["kubernetes"]["container_name"]}
@@ -237,12 +237,12 @@ data:
       @id out_elasticsearch
       @log_level info
       logstash_format true
-      logstash_prefix vmi-journal
+      logstash_prefix verrazzano-journal
       target_index_key @target_index
       include_tag_key true
 
-      template_file /fluentd/etc/elasticsearch-template-vmi.json
-      template_name elasticsearch-template-vmi.json
+      template_file /fluentd/etc/elasticsearch-template-verrazzano.json
+      template_name elasticsearch-template-verrazzano.json
       template_overwrite true
 
       # time_as_integer needs to be set to false in order for Fluentd
@@ -262,18 +262,6 @@ data:
       # length of fractional seconds, e.g. 10^-9.
       time_precision 9
 
-      # Set the chunk limit the same as for fluentd-gcp.
-      buffer_chunk_limit 4M
-      # Cap buffer memory usage to 2MiB/chunk * 32 chunks = 64 MiB
-      buffer_queue_limit 32
-      flush_interval 5s
-      # Never wait longer than 5 minutes between retries.
-      max_retry_wait 30
-      # Disable the limit on the number of retries (retry forever).
-      disable_retry_limit
-      # Use multiple threads for processing.
-      num_threads 8
-
       # Prevent reloading connections to Elasticsearch
       reload_on_failure false
       reload_connections false
@@ -283,11 +271,23 @@ data:
       # ssl_version TLSv1_2
       user "#{ENV['ELASTICSEARCH_USER']}"
       password "#{ENV['ELASTICSEARCH_PASSWORD']}"
+      bulk_message_request_threshold 16M
+      <buffer>
+        @type file
+        path /fluentd/log/elastic-buffer
+        flush_thread_count 8
+        flush_interval 5s
+        retry_forever
+        retry_max_interval 10
+        # Cap buffer memory usage to 8MiB/chunk * 8 chunks = 64 MiB
+        chunk_limit_size 8M
+        queue_limit_length 8
+      </buffer>
     </match>
 
-  elasticsearch-template-vmi.json: |
+  elasticsearch-template-verrazzano.json: |
     {
-      "index_patterns" : "vmi-*",
+      "index_patterns" : "verrazzano-*",
       "version" : 60001,
       "settings" : {
         "index.refresh_interval" : "5s",
@@ -399,7 +399,7 @@ spec:
             - name: FLUENT_ELASTICSEARCH_SED_DISABLE
               value: "true"
             - name: ELASTICSEARCH_URL
-              value: http://vmi-system-es-ingest:9200
+              value: http://vmi-system-es-ingest-oidc:8775
             - name: CLUSTER_NAME
               value: local
             - name: ELASTICSEARCH_USER

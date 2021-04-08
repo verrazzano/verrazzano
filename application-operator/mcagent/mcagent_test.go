@@ -452,3 +452,131 @@ func expectGetAPIServerURLCalled(mock *mocks.MockClient) {
 			return nil
 		})
 }
+
+// TestSyncer_configureLogging tests configuring logging by updating Fluentd daemonset
+// GIVEN a request to configure the logging
+// WHEN the cluster name in registration secret has been changed or the elasticsearch secret has been updated
+// THEN ensure that Fluentd daemonset is updated
+func TestSyncer_configureLogging(t *testing.T) {
+	type fields struct {
+		oldSecretVersion string
+		newSecretVersion string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+	}{
+		{
+			name: "new registration",
+			fields: fields{
+				oldSecretVersion: "",
+				newSecretVersion: "version1",
+			},
+		},
+		{
+			name: "delete registration",
+			fields: fields{
+				oldSecretVersion: "version1",
+				newSecretVersion: "",
+			},
+		},
+		{
+			name: "update registration",
+			fields: fields{
+				oldSecretVersion: "version1",
+				newSecretVersion: "version2",
+			},
+		},
+		{
+			name: "no registration",
+			fields: fields{
+				oldSecretVersion: "",
+				newSecretVersion: "",
+			},
+		},
+		{
+			name: "same registration",
+			fields: fields{
+				oldSecretVersion: "version1",
+				newSecretVersion: "version1",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			oldVersion := tt.fields.oldSecretVersion
+			newVersion := tt.fields.newSecretVersion
+
+			// Managed cluster mocks
+			mcMocker := gomock.NewController(t)
+			mcMock := mocks.NewMockClient(mcMocker)
+
+			// Managed Cluster - expect call to get the cluster registration secret.
+			mcMock.EXPECT().
+				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCRegistrationSecret}, gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+					secret.Name = constants.MCRegistrationSecret
+					secret.Namespace = constants.VerrazzanoSystemNamespace
+					secret.ResourceVersion = newVersion
+					return nil
+				})
+
+			// Managed Cluster - expect call to get the verrazzano operator deployment.
+			mcMock.EXPECT().
+				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "fluentd"}, gomock.Not(gomock.Nil())).
+				DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet) error {
+					ds.Name = "fluentd"
+					ds.Namespace = constants.VerrazzanoSystemNamespace
+					ds.Spec = getTestDaemonSetSpec(oldVersion)
+					return nil
+				})
+			// update only when registration is updated
+			if oldVersion != newVersion {
+				mcMock.EXPECT().
+					Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "fluentd"}, gomock.Not(gomock.Nil())).
+					DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet) error {
+						ds.Name = "fluentd"
+						ds.Namespace = constants.VerrazzanoSystemNamespace
+						ds.Spec = getTestDaemonSetSpec(oldVersion)
+						return nil
+					})
+				mcMock.EXPECT().
+					Update(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
+						asserts.Equal(t, newVersion, getEnvValue(ds.Spec.Template.Spec.Containers[0].Env, registrationSecretVersion), "expected env value for "+registrationSecretVersion)
+						return nil
+					})
+			}
+
+			// Make the request
+			s := &Syncer{
+				LocalClient: mcMock,
+				Log:         ctrl.Log.WithName("test"),
+				Context:     context.TODO(),
+			}
+			s.configureLogging()
+
+			// Validate the results
+			mcMocker.Finish()
+		})
+	}
+}
+func getTestDaemonSetSpec(secretVersion string) appsv1.DaemonSetSpec {
+	return appsv1.DaemonSetSpec{
+		Template: corev1.PodTemplateSpec{
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{
+						Name: "fluentd",
+						Env: []corev1.EnvVar{
+							{
+								Name:  registrationSecretVersion,
+								Value: secretVersion,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
