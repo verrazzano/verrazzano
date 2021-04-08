@@ -57,7 +57,7 @@ function delete_cert_manager() {
     || err_return $? "Could not delete cert-manager from helm" || return $? # return on pipefail
 
   # delete the custom resource definition for cert manager
-  log "deleting the custom resource definition for cert manager"
+  log "Deleting the custom resource definition for cert manager"
   kubectl delete -f "${MANIFESTS_DIR}/cert-manager/00-crds.yaml" --ignore-not-found=true \
     || err_return $? "Could not delete CustomResourceDefinition from cert-manager" || return $?
 
@@ -76,6 +76,11 @@ function delete_cert_manager() {
 }
 
 function delete_rancher() {
+  local rancher_exists=$(kubectl get namespace cattle-system --ignore-not-found)
+  if [ -z "$rancher_exists" ] ; then
+    return 0
+  fi
+
   # Occasionally the 'local' Rancher cluster object is stuck with a dangling finalizer, remove it so
   # we don't orphan the cluster info between installs
   log "Remove any dangling finalizers from the 'local' Rancher cluster object"
