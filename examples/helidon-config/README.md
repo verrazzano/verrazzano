@@ -33,7 +33,7 @@ The Hello World Helidon application deployment artifacts are contained in the Ve
 
 ## Testing the example application
 
-The Hello World Helidon microservices application implements a single REST API endpoint `/greet`, which returns a message `{"message":"Hello World!"}` when invoked.
+The Hello World Helidon microservices application implements a single REST API endpoint `/config`, which returns a message `{"message":"HelloConfig World!"}` when invoked.
 
 **NOTE**:  The following instructions assume that you are using a Kubernetes
 environment such as OKE.  Other environments or deployments may require alternative mechanisms for retrieving addresses,
@@ -61,8 +61,8 @@ Follow these steps to test the endpoints:
    There are several ways to access it:
    * **Using the command line**:
      ```
-     $ curl -sk -X GET https://${HOST}/greet --resolve ${HOST}:443:${ADDRESS}
-     {"message":"Hello World!"}
+     $ curl -sk -X GET https://${HOST}/config --resolve ${HOST}:443:${ADDRESS}
+     {"message":"HelloConfig World!"}
      ```
      If you are using `xip.io`, then you do not need to include `--resolve`.
    * **Local testing with a browser**:
@@ -74,14 +74,14 @@ Follow these steps to test the endpoints:
      ```
      11.22.33.44 helidon-config.example.com
      ```
-     Then you can access the application in a browser at `https://<host>/greet`.
+     Then you can access the application in a browser at `https://<host>/config`.
 
    * **Using your own DNS name**:
      * Point your own DNS name to the ingress gateway's `EXTERNAL-IP` address.
      * In this case, you would need to edit the `helidon-config-app.yaml` file
        to use the appropriate value under the `hosts` section (such as `yourhost.your.domain`),
        before deploying the `helidon-config` application.
-     * Then, you can use a browser to access the application at `https://<yourhost.your.domain>/greet`.
+     * Then, you can use a browser to access the application at `https://<yourhost.your.domain>/config`.
 
 ## Troubleshooting
 
