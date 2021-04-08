@@ -1,19 +1,121 @@
-# Copyright (c) 2021, Oracle and/or its affiliates.
-# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
+# Network policy for Elasticsearch master
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vmi-system-es-master
+  namespace: verrazzano-system
+spec:
+  podSelector:
+    matchLabels:
+      app: system-es-master
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Ingress: allow ingress on cluster port from ES pods
+    - from:
+        - podSelector:
+            matchLabels:
+              app: system-es-master
+        - podSelector:
+            matchLabels:
+              app: system-es-data
+        - podSelector:
+            matchLabels:
+              app: system-es-ingest
+      ports:
+        - protocol: TCP
+          port: 9300
+  egress:
+    # Egress:  allow egress to cluster protocol port for master and any port for ingress
+    - to:
+        - podSelector:
+            matchLabels:
+              app: system-es-master
+        - podSelector:
+            matchLabels:
+              app: system-es-data
+        - podSelector:
+            matchLabels:
+              app: system-es-ingest
+      ports:
+        - protocol: TCP
+          port: 9300
+---
+# Network policy for Elasticsearch data
+# Ingress: allow ingress on cluster port from ES data and ingest pods
+# Egress:  allow access to es-master.  Note if the port is restricted to 9300 then es-data pod will not start
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vmi-system-es-data
+  namespace: verrazzano-system
+spec:
+  podSelector:
+    matchLabels:
+      app: system-es-data
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: system-es-ingest
+        - podSelector:
+            matchLabels:
+              app: system-kibana
+      ports:
+        - protocol: TCP
+          port: 9200
+        - protocol: TCP
+          port: 9300
+    - from:
+        - podSelector:
+            matchLabels:
+              app: system-prometheus
+      ports:
+        - protocol: TCP
+          port: 9100
+    - from:
+        - podSelector:
+            matchLabels:
+              app: system-es-master
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - podSelector:
+            matchLabels:
+              app: system-es-master
+        - podSelector:
+            matchLabels:
+              app: system-es-ingest
+      ports:
+        - protocol: TCP
+          port: 9300
 ---
 # Network policy for Elasticsearch master
-# Ingress: allow nginx-ingress-controller to connect to port 8775 (OIDC proxy)
 # Egress:  deny all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: verrazzano-elasticsearch
-  namespace: {{ .Release.Namespace }}
+  name: vmi-system-es-ingest
+  namespace: verrazzano-system
 spec:
   podSelector:
     matchLabels:
-      app: es-master
+      app: system-es-ingest
   policyTypes:
     - Ingress
     - Egress
@@ -29,23 +131,17 @@ spec:
       ports:
         - protocol: TCP
           port: 8775
-    {{- if ne .Values.elasticSearch.singlePod true}}
-    # Normal multipod ES installation
-    # Allow ingress from ES ingest and ES data pods in same namespace to master port
-    # Any of the 3 matching pod selectors will result in a match.  The es-master
-    # label is required in the case of a single pod ES (dev profile)
+    # Ingress: allow TCP from ES master
     - from:
         - podSelector:
             matchLabels:
-              app: es-ingest
+              app: system-es-master
         - podSelector:
             matchLabels:
-              app: es-data
+              app: system-es-data
       ports:
         - protocol: TCP
           port: 9300
-    {{- else }}
-    # Single pod ES installation
     # Allow ingress from Kibana
     - from:
         - podSelector:
@@ -54,4 +150,87 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
-    {{- end }}
+        - protocol: TCP
+          port: 9300
+        - protocol: TCP
+          port: 8775
+  egress:
+    # Egress: allow TCP/UDP for name resolution
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Egress: allow any to master
+    - to:
+        - podSelector:
+            matchLabels:
+              app: system-es-master
+    # Egress: allow to ES data port 9200
+    - to:
+        - podSelector:
+            matchLabels:
+              app: system-es-data
+      ports:
+        - protocol: TCP
+          port: 9200
+        - protocol: TCP
+          port: 9300
+---
+# Network policy for Kibana
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vmi-system-kibana
+  namespace: verrazzano-system
+spec:
+  podSelector:
+    matchLabels:
+      app: system-kibana
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Ingress: allow nginx-ingress-controller to connect to port 8775 (OIDC proxy)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ingress-controller
+      ports:
+        - protocol: TCP
+          port: 8775
+  egress:
+    # Egress to CoreDNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Egress: allow nginx-ingress-controller to connect to 9200
+    - to:
+        - podSelector:
+            matchLabels:
+              app: system-es-data
+        - podSelector:
+            matchLabels:
+              app: system-es-ingest
+      ports:
+        - protocol: TCP
+          port: 9200
