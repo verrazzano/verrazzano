@@ -227,6 +227,9 @@ if ! kubectl get namespace ${VERRAZZANO_NS} ; then
   action "Creating ${VERRAZZANO_NS} namespace" kubectl create namespace ${VERRAZZANO_NS} || exit 1
 fi
 
+log "Adding label needed by network policies to ${VERRAZZANO_NS} namespace"
+kubectl label namespace ${VERRAZZANO_NS} "verrazzano.io/namespace=${VERRAZZANO_NS}"
+
 if ! kubectl get namespace ${VERRAZZANO_MC} ; then
   action "Creating ${VERRAZZANO_MC} namespace" kubectl create namespace ${VERRAZZANO_MC} || exit 1
 fi
