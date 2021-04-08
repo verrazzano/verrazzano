@@ -26,6 +26,5 @@ spec:
             spec:
               rules:
                 - paths:
-                    - path: "/greet"
+                    - path: "/config"
                       pathType: Prefix
-    - componentName: helidon-config-configmap

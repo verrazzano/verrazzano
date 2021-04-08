@@ -1,25 +1,14 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-apiVersion: core.oam.dev/v1alpha2
-kind: Component
+kind: ConfigMap
+apiVersion: v1
 metadata:
-  name: helidon-config-configmap
-  namespace: helidon-config
-spec:
-  workload:
-    apiVersion: v1
-    kind: ConfigMap
-    metadata:
-      name: helidon-config-cm
-      namespace: helidon-config
-    data:
-      config-properties.yaml: |
-        app.greeting: Hello
-  parameters:
-    - name: config-data
-      required: false
-      fieldPaths:
-        - data
+  name: helidon-config-cm
+  namespace: default
+data:
+  config-properties.yaml: |
+    app.greeting: Hello
+    config.greeting: HelloConfig
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -41,7 +30,10 @@ spec:
         podSpec:
           containers:
             - name: helidon-config-container
-              image: "phx.ocir.io/stevengreenberginc/arjav/helidon-config:latest"
+              image: "phx.ocir.io/stevengreenberginc/arjav/hello-helidon:latest"
+              env:
+                - name: IS_CONFIG
+                  value: "True"
               ports:
                 - containerPort: 7001
                   name: http
