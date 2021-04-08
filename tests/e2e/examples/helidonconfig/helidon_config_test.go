@@ -155,7 +155,7 @@ func helidonConfigPodsRunning() bool {
 func appEndpointAccessible(url string, hostname string) bool {
 	status, webpage := pkg.GetWebPageWithBasicAuth(url, hostname, "", "")
 	gomega.Expect(status).To(gomega.Equal(http.StatusOK), fmt.Sprintf("GET %v returns status %v expected 200.", url, status))
-	gomega.Expect(strings.Contains(webpage, "Hello World")).To(gomega.Equal(true), fmt.Sprintf("Webpage is NOT Hello World %v", webpage))
+	gomega.Expect(strings.Contains(webpage, "HelloConfig World")).To(gomega.Equal(true), fmt.Sprintf("Webpage is NOT HelloConfig World %v", webpage))
 	return true
 }
 
