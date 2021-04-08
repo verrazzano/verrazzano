@@ -145,8 +145,8 @@ rules:
   - apiGroups:
       - coherence.oracle.com
     resources:
-      - coherences
-      - coherences/status
+      - coherence
+      - coherence/status
     verbs:
       - create
       - delete
