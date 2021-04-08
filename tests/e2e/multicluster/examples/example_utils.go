@@ -83,15 +83,20 @@ func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisC
 
 // VerifyHelloHelidonInCluster verifies that the hello helidon app resources are either present or absent
 // depending on whether the app is placed in this cluster
-func VerifyHelloHelidonInCluster(kubeConfigPath string, placedInThisCluster bool) bool {
+func VerifyHelloHelidonInCluster(kubeConfigPath string, isAdminCluster bool, placedInThisCluster bool) bool {
 	projectExists := projectExists(kubeConfigPath)
 	workloadExists := componentWorkloadExists(kubeConfigPath)
 	podsRunning := helloHelidonPodsRunning(kubeConfigPath)
 
-	if !placedInThisCluster {
-		return projectExists && !workloadExists && !podsRunning
-	} else {
+	if placedInThisCluster {
 		return projectExists && workloadExists && podsRunning
+	} else {
+		if isAdminCluster {
+			return projectExists && !workloadExists && !podsRunning
+		} else {
+			// When VZ-2454 is fixed, add !projectExists to the ands
+			return !workloadExists && !podsRunning
+		}
 	}
 }
 
