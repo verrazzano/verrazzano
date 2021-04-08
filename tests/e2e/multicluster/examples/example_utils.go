@@ -18,15 +18,15 @@ import (
 )
 
 const (
-	TestNamespace = "hello-helidon"
+	TestNamespace   = "hello-helidon"
 	pollingInterval = 5 * time.Second
 	waitTimeout     = 5 * time.Minute
 
 	multiclusterNamespace = "verrazzano-mc"
-	projectName   = "hello-helidon"
-	appConfigName = "hello-helidon-appconf"
-	componentName = "hello-helidon-component"
-	workloadName  = "hello-helidon-workload"
+	projectName           = "hello-helidon"
+	appConfigName         = "hello-helidon-appconf"
+	componentName         = "hello-helidon-component"
+	workloadName          = "hello-helidon-workload"
 )
 
 var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
