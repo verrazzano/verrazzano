@@ -104,7 +104,6 @@ rules:
       - rbac.authorization.k8s.io
     resources:
       - clusterroles
-      - clusterrolebindings
       - roles
       - rolebindings
     verbs:
@@ -147,43 +146,29 @@ rules:
       - coherence.oracle.com
     resources:
       - coherences
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - update
-      - patch
-      - delete
-      - deletecollection
-  - apiGroups:
-      - coherence.oracle.com
-    resources:
       - coherences/status
     verbs:
+      - create
+      - delete
+      - deletecollection
       - get
       - list
+      - patch
+      - update
       - watch
   - apiGroups:
       - core.oam.dev
     resources:
       - '*'
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - update
-      - patch
-      - delete
-      - deletecollection
-  - apiGroups:
-      - core.oam.dev
-    resources:
       - '*/status'
     verbs:
+      - create
+      - delete
+      - deletecollection
       - get
       - list
+      - patch
+      - update
       - watch
   - apiGroups:
       - networking.istio.io
@@ -205,43 +190,29 @@ rules:
       - verrazzano.io
     resources:
       - '*'
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - update
-      - patch
-      - delete
-      - deletecollection
-  - apiGroups:
-      - verrazzano.io
-    resources:
       - '*/status'
     verbs:
+      - create
+      - delete
+      - deletecollection
       - get
       - list
+      - patch
+      - update
       - watch
   - apiGroups:
       - oam.verrazzano.io
     resources:
       - '*'
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - update
-      - patch
-      - delete
-      - deletecollection
-  - apiGroups:
-      - oam.verrazzano.io
-    resources:
       - '*/status'
     verbs:
+      - create
+      - delete
+      - deletecollection
       - get
       - list
+      - patch
+      - update
       - watch
   - apiGroups:
       - security.istio.io
@@ -260,6 +231,7 @@ rules:
       - weblogic.oracle
     resources:
       - domains
+      - domains/status
     verbs:
       - create
       - delete
@@ -268,14 +240,6 @@ rules:
       - list
       - patch
       - update
-      - watch
-  - apiGroups:
-      - weblogic.oracle
-    resources:
-      - domains/status
-    verbs:
-      - get
-      - list
       - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
