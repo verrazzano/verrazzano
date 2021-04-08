@@ -68,6 +68,9 @@ spec:
             description: VerrazzanoManagedClusterStatus defines the observed state
               of VerrazzanoManagedCluster
             properties:
+              apiUrl:
+                description: Verrazzano API Server URL for the managed cluster.
+                type: string
               conditions:
                 description: The latest available observations of an object's current
                   state.
@@ -99,9 +102,6 @@ spec:
                 description: Last time the agent from this managed cluster connected
                   to the admin cluster.
                 format: date-time
-                type: string
-              apiUrl:
-                description: Verrazzano API Server URL for the managed cluster.
                 type: string
             type: object
         type: object

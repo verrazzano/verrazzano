@@ -62,6 +62,7 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 					gomega.Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(gomega.BeFalse())
 					gomega.Expect(nsListContains(namespaces.Items, "cattle-global-nt")).To(gomega.BeFalse())
 					gomega.Expect(nsListContains(namespaces.Items, "cattle-system")).To(gomega.BeFalse())
+					gomega.Expect(nsListContains(namespaces.Items, "local")).To(gomega.BeFalse())
 				} else {
 					gomega.Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(gomega.BeTrue())
 					gomega.Expect(nsListContains(namespaces.Items, "cattle-global-nt")).To(gomega.BeTrue())

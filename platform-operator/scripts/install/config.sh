@@ -345,7 +345,7 @@ function compute_effective_override() {
   local profile_config_override="${INSTALL_OVERRIDES_DIR}/config.${profile}.json"
   if [ ! -f "${profile_config_override}" ]; then
     error "The file ${profile_config_override} does not exist"
-    exit 1
+    return 1
   fi
   if [ -f "$EFFECTIVE_CONFIG_VALUES" ]; then
    rm "$EFFECTIVE_CONFIG_VALUES"

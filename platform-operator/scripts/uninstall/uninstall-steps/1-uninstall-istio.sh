@@ -91,7 +91,7 @@ function finalize() {
     return 0
   fi
 
-  log "Removing Namespace Finalizers"
+  log "Removing Rancher Namespace Finalizers"
   kubectl get namespaces --no-headers -o custom-columns=":metadata.name,:metadata.finalizers" \
     | awk '/controller.cattle.io/ {print $1}' \
     | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \

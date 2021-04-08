@@ -13,13 +13,9 @@ UNINSTALL_DIR=$SCRIPT_DIR/..
 
 set -o pipefail
 
-function initializing_uninstall {
+function delete_rancher_local_cluster {
   # Check whether rancher is installed for the given profile
   rancher_exists=$(kubectl get namespace cattle-system) || return 0
-  local rancher_exists=$(kubectl get namespace verrazzano-install --ignore-not-found)
-  if [ -z "$rancher_exists" ] ; then
-    return 0
-  fi
   # Deleting rancher through API
   log "Deleting Rancher through API"
   rancher_host_name="$(kubectl get ingress -n cattle-system --no-headers -o custom-columns=":spec.rules[0].host")" || err_return $? "Could not retrieve Rancher hostname" || return 0
@@ -74,6 +70,6 @@ function delete_oam_components {
   delete_k8s_resource_from_all_namespaces components.core.oam.dev
 }
 
-action "Initializing Uninstall" initializing_uninstall || exit 1
+action "Deleting Rancher Local Cluster" delete_rancher_local_cluster || exit 1
 action "Deleting OAM application configurations" delete_oam_applications_configurations || exit 1
 action "Deleting OAM components" delete_oam_components || exit 1
