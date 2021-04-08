@@ -339,7 +339,6 @@ function get_nginx_nodeport() {
 
 # Merge the default config json under install/install-overrides with the corresponding override for the profile
 function compute_effective_override() {
-  set -o pipefail
   local profile=$(get_install_profile)
   local default_config="${INSTALL_OVERRIDES_DIR}/config.json"
   local profile_config_override="${INSTALL_OVERRIDES_DIR}/config.${profile}.json"
@@ -355,7 +354,6 @@ function compute_effective_override() {
 
 # Read the value for a given key from effective.config.json
 function get_override_config_value() {
-  set -o pipefail
   local jq_expr="$1"
   local config_val=$(jq -r "$jq_expr" $EFFECTIVE_CONFIG_VALUES)
   if [ $? -ne 0 ]; then
