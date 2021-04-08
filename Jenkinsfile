@@ -131,6 +131,8 @@ pipeline {
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+                    // update the description with some meaningful info
+                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
                 }
             }
         }
