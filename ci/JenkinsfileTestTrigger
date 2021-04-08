@@ -93,6 +93,28 @@ pipeline {
 
         stage ('Kick off parallel tests') {
             parallel {
+                stage('Uninstall Tests') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-multi-cluster-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Uninstall Tests') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-uninstall-test/${BRANCH_NAME.replace("/", "%2F")}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE)
+                                ], wait: true
+                        }
+                    }
+                }
                 stage('Kind Acceptance Tests on 1.17') {
                     steps {
                         script {
