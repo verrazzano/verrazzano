@@ -36,6 +36,10 @@ func deployBobsBooksExample() {
 	regServ := pkg.GetRequiredEnvVarOrFail("OCR_REPO")
 	regUser := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_USR")
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
+	dockerServ := pkg.GetRequiredEnvVarOrFail("DOCKER_REPO")
+	dockerUser := pkg.GetRequiredEnvVarOrFail("DOCKER_CREDS_USR")
+	dockerPass := pkg.GetRequiredEnvVarOrFail("DOCKER_CREDS_PSW")
+
 
 	pkg.Log(pkg.Info, "Create namespace")
 	nsLabels := map[string]string{
@@ -47,6 +51,10 @@ func deployBobsBooksExample() {
 	pkg.Log(pkg.Info, "Create Docker repository secret")
 	if _, err := pkg.CreateDockerSecret("bobs-books", "bobs-books-repo-credentials", regServ, regUser, regPass); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create Docker registry secret: %v", err))
+	}
+	pkg.Log(pkg.Info, "Create bobs-books-secret")
+	if _, err := pkg.CreateDockerSecret("bobs-books", "bobs-books-secret", dockerServ, dockerUser, dockerPass); err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create secret bobs-books-secret: %v", err))
 	}
 	pkg.Log(pkg.Info, "Create Bobbys front end Weblogic credentials secret")
 	if _, err := pkg.CreateCredentialsSecret("bobs-books", "bobbys-front-end-weblogic-credentials", wlsUser, wlsPass, nil); err != nil {
