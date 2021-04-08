@@ -115,9 +115,9 @@ rules:
       - roles
       - rolebindings
     verbs:
+      - bind
       - create
       - delete
-      - escalate
       - deletecollection
       - get
       - list
