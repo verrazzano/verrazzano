@@ -23,6 +23,7 @@ pipeline {
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
         booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        booleanParam (description: 'Whether to build the analysis tool release bundle for non-master/release branch (default is off)', name: 'BUILD_ANALYSIS_TOOL', defaultValue: false)
     }
 
     environment {
@@ -242,6 +243,36 @@ pipeline {
                     clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                     clairScanTemp "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_ANALYSIS_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                 }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Analysis Tool') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    anyOf {
+                        branch 'master';
+                        branch 'release-*';
+                        expression {BUILD_ANALYSIS_TOOL == true};
+                    }
+                }
+            }
+
+            when { not { buildingTag() } }
+            steps {
+                sh """
+                    mkdir ${HOME}/.kube/ || true
+                    cd ${GO_REPO_PATH}/verrazzano/tools/analysis
+                    make release-package
+                    cd out
+                    zip -r ${WORKSPACE}analysis-tool.zip linux darwin
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/analysis-tool.zip --file $WORKSPACE/analysis-tool.zip
+                """
             }
             post {
                 always {
