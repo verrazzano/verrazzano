@@ -94,3 +94,10 @@ spec:
     - ports:
         - port: 8080
           protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: keycloak
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: keycloak
