@@ -39,11 +39,22 @@ rules:
     - list
     - watch
 - apiGroups:
+    - ""
+  resourceNames:
+    - oam-kubernetes-runtime
+  resources:
+    - configmaps
+  verbs:
+    - get
+    - patch
+    - update
+- apiGroups:
   - apps
   resources:
   - deployments
   - controllerrevisions
   verbs:
+  - create
   - get
   - list
   - watch
@@ -54,6 +65,7 @@ rules:
   verbs:
     - get
     - list
+    - update
     - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1

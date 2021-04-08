@@ -15,7 +15,7 @@ function uninstall_oam {
   helm delete oam --namespace verrazzano-system 
 
 #  log "Delete OAM roles"
-   kubectl delete clusterrolebinding cluster-admin-binding-oam
+#   kubectl delete clusterrolebinding cluster-admin-binding-oam
 
 }
 
