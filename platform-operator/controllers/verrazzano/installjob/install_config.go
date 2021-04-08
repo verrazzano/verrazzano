@@ -204,10 +204,7 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfigurati
 	if err != nil {
 		return nil, err
 	}
-	rancher, err := getRancher(vz.Spec.Components.Rancher)
-	if err != nil {
-		return nil, err
-	}
+	rancher := getRancher(vz.Spec.Components.Rancher)
 	var acmeConfig *CertificateACME = &CertificateACME{}
 	if vz.Spec.Components.CertManager != nil {
 		acmeConfig = &CertificateACME{
@@ -251,10 +248,7 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguratio
 	if err != nil {
 		return nil, err
 	}
-	rancher, err := getRancher(vz.Spec.Components.Rancher)
-	if err != nil {
-		return nil, err
-	}
+	rancher := getRancher(vz.Spec.Components.Rancher)
 	return &InstallConfiguration{
 		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
@@ -287,10 +281,7 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfig
 	if err != nil {
 		return nil, err
 	}
-	rancher, err := getRancher(vz.Spec.Components.Rancher)
-	if err != nil {
-		return nil, err
-	}
+	rancher := getRancher(vz.Spec.Components.Rancher)
 	return &InstallConfiguration{
 		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
@@ -372,14 +363,14 @@ func getInstallArgs(args []installv1alpha1.InstallArgs) []InstallArg {
 	return installArgs
 }
 
-func getRancher(rancher *installv1alpha1.RancherComponent) (Rancher, error) {
+func getRancher(rancher *installv1alpha1.RancherComponent) Rancher {
 	if rancher == nil {
-		return Rancher{}, nil
+		return Rancher{}
 	}
 	rancherConfig := Rancher{
 		Enabled: strconv.FormatBool(rancher.Enabled),
 	}
-	return rancherConfig, nil
+	return rancherConfig
 }
 
 // getKeycloak returns the json representation for the keycloak configuration
