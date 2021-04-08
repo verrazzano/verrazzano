@@ -37,7 +37,7 @@ function get_config_value() {
     return 1
   fi
   if [ "$config_val" == "null" ]; then
-    # The configuration is not defined in CONFIG_JSON, check it is defined in the json files under install-overrides
+    # The configuration is not defined in CONFIG_JSON, check if it is defined in the json files under install-overrides
     config_val=$(get_override_config_value "$jq_expr")
   fi
   echo $config_val
@@ -337,7 +337,7 @@ function get_nginx_nodeport() {
   echo ${nodePort}
 }
 
-# Merge the default config json, install-overrides.json with the corresponding override for the profile
+# Merge the default config json under install/install-overrides with the corresponding override for the profile
 function compute_effective_override() {
   set -o pipefail
   local profile=$(get_install_profile)

@@ -14,7 +14,7 @@ UNINSTALL_DIR=$SCRIPT_DIR/..
 set -o pipefail
 
 function delete_rancher_local_cluster {
-  # Check whether rancher is installed for the given profile
+  # Check whether rancher is installed for the given profile, before attempting to delete the local cluster
   rancher_exists=$(kubectl get namespace cattle-system) || return 0
   # Deleting rancher through API
   log "Deleting Rancher through API"
