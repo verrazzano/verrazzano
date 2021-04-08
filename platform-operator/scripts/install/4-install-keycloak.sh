@@ -41,7 +41,6 @@ function install_mysql {
 
   # Handle any additional MySQL install args that cannot be in mysql-values.yaml
   local EXTRA_MYSQL_ARGUMENTS=$(get_mysql_helm_args_from_config)
-  EXTRA_MYSQL_ARGUMENTS="$EXTRA_MYSQL_ARGUMENTS --set mysqlUser=${MYSQL_USERNAME}"
 
   echo "CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;" > ${TMP_DIR}/create-db.sql
   echo "USE keycloak;" >> ${TMP_DIR}/create-db.sql
