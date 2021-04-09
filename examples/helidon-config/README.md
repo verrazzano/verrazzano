@@ -1,16 +1,16 @@
 # Hello World Helidon
 
-The Helidon Config example is a Helidon-based service that returns a "hello world" response when invoked. The example application is specified using Open Application Model (OAM) component and application configuration YAML files, and then deployed by applying those files.
+The Hello World Helidon configuration example is a Helidon-based service that returns a "HelloConfig World" response when invoked. In this example, the configuration for application is set using a Kubernetes ConfigMap inplace of the default microprofile properties file. The example application is specified using Open Application Model (OAM) component and application configuration YAML files, and then deployed by applying those files.
 
 ## Prerequisites
 
 Install Verrazzano following the [installation instructions](https://verrazzano.io/docs/setup/install/installation/).
 
-The Hello World Helidon application deployment artifacts are contained in the Verrazzano project located at
-`<VERRAZZANO_HOME>/examples/hello-helidon`, where `<VERRAZZANO_HOME>` is the root of the Verrazzano project.
+The Hello World Helidon configuration example deployment artifacts are contained in the Verrazzano project located at
+`<VERRAZZANO_HOME>/examples/helidon-config`, where `<VERRAZZANO_HOME>` is the root of the Verrazzano project.
 
 **NOTE:** All files and paths in this document are relative to
-`<VERRAZZANO_HOME>/examples/hello-helidon`.
+`<VERRAZZANO_HOME>/examples/helidon-config`.
 
 ## Deploy the Hello World Helidon application
 
@@ -33,7 +33,7 @@ The Hello World Helidon application deployment artifacts are contained in the Ve
 
 ## Testing the example application
 
-The Hello World Helidon microservices application implements a single REST API endpoint `/config`, which returns a message `{"message":"HelloConfig World!"}` when invoked.
+The Hello World Helidon configuration example implements a single REST API endpoint `/config`, which returns a message `{"message":"HelloConfig World!"}` when invoked.
 
 **NOTE**:  The following instructions assume that you are using a Kubernetes
 environment such as OKE.  Other environments or deployments may require alternative mechanisms for retrieving addresses,
@@ -100,7 +100,7 @@ Follow these steps to test the endpoints:
     helidon-config-deployment-676d97c7d4-wkrj2   3/3     Running   0          5m39s
    ```
 1. A variety of endpoints are available to further explore the logs, metrics, and such, associated with
-the deployed Hello World Helidon application.  Accessing them may require the following:
+the deployed Hello World Helidon configuration example.  Accessing them may require the following:
 
     - Run this command to get the password that was generated for the telemetry components:
         ```
