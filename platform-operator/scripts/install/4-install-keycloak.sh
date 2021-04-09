@@ -50,7 +50,6 @@ function install_mysql {
   echo "FLUSH PRIVILEGES;" >> ${TMP_DIR}/create-db.sql
   EXTRA_MYSQL_ARGUMENTS="$EXTRA_MYSQL_ARGUMENTS --set-file initializationFiles.create-db\.sql=${TMP_DIR}/create-db.sql"
 
-  log "EXTRA MYSQL ARGS: ${EXTRA_MYSQL_ARGUMENTS}"
   log "Install MySQL helm chart"
   helm upgrade mysql ${MYSQL_CHART_DIR} \
       --install \
