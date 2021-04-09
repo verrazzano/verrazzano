@@ -31,16 +31,17 @@ function delete_rancher_local_cluster {
   if [ "${RANCHER_ACCESS_TOKEN}" ]; then
     log "Updating ${rancher_cluster_url}"
     local temp_output="/tmp/delete_cluster.out"
-    status=$(curl -o ${temp_output} -s -w "%{http_code}\n" $(get_rancher_resolve ${rancher_hostname}) -X DELETE -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")
-    if [ "$status" != 200 ] ; then
+    status=$(curl -o ${temp_output} --max-time 60 -s -w "%{http_code}\n" $(get_rancher_resolve ${rancher_hostname}) -X DELETE -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")
+    log "Status: ${status}"
+    if [ "$status" != "200" ]; then
       local cluster_delete_output=$(cat $temp_output)
       log "${cluster_delete_output}"
       rm "$temp_output"
       return 0
     fi
 
-    # Wait 60s for local cluster to delete
-    local max_retries=6
+    # Wait 180s for local cluster to delete
+    local max_retries=18
     local retries=0
     while true ; do
       still_exists="$(curl -s $(get_rancher_resolve ${rancher_hostname}) -X GET -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")"

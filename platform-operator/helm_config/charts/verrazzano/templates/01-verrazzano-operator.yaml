@@ -404,8 +404,8 @@ rules:
 - apiGroups:
     - coherence.oracle.com
   resources:
-    - coherences
-    - coherences/status
+    - coherence
+    - coherence/status
   verbs:
     - get
     - list
@@ -444,7 +444,7 @@ rules:
 - apiGroups:
     - coherence.oracle.com
   resources:
-    - coherences
+    - coherence
   verbs:
     - create
     - update
