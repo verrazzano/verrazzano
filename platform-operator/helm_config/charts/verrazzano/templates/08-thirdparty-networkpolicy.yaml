@@ -115,7 +115,7 @@ spec:
 ---
 # Network policy for VMI System Prometheus
 # Ingress: allow connect from the ingress controller to oidc port 8775
-#          allow connect from Grafana to port 9090
+#          allow connect to port 9090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -140,26 +140,6 @@ spec:
         - port: 8775
           protocol: TCP
     - from:
-        - podSelector:
-            matchLabels:
-              app: system-grafana
       ports:
         - port: 9090
           protocol: TCP
----
-# Network policy for Prometheus node exporter
-# Ingress: deny all
-# Egress: deny all
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: node-exporter
-  namespace: monitoring
-spec:
-  podSelector:
-    matchLabels:
-      app: node-exporter
-  policyTypes:
-    - Ingress
-    - Egress
-
