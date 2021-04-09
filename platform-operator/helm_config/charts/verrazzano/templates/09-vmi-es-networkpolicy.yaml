@@ -243,7 +243,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: vmi-system-kibana
-  namespace: verrazzano-system
+  namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
     matchLabels:
