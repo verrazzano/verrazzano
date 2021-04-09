@@ -23,6 +23,7 @@ pipeline {
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
         booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
     }
 
     environment {
@@ -78,7 +79,10 @@ pipeline {
                 """
 
                 script {
-                    checkout scm
+                    def scmInfo = checkout scm
+                    env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                    env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                 }
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
@@ -127,6 +131,40 @@ pipeline {
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+                    // update the description with some meaningful info
+                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
+                }
+            }
+        }
+
+        stage('Analysis Tool') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    anyOf {
+                        branch 'master';
+                        branch 'release-*';
+                    }
+                }
+            }
+            environment {
+                OCI_CLI_AUTH="instance_principal"
+                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                OCI_OS_BUCKET="verrazzano-builds"
+            }
+            steps {
+                sh """
+                    cd ${GO_REPO_PATH}/verrazzano/tools/analysis
+                    make go-build
+                    cd out
+                    zip -r ${WORKSPACE}/analysis-tool.zip linux_amd64 darwin_amd64
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
+                """
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/analysis-tool.zip', allowEmptyArchive: true
                 }
             }
         }
@@ -481,6 +519,27 @@ pipeline {
                             dumpK8sCluster('new-acceptance-tests-cluster-dump')
                         }
                     }
+                }
+            }
+        }
+
+        stage('Triggered Tests') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    anyOf {
+                        branch 'master';
+                        branch 'release-*';
+                        expression {params.TRIGGER_FULL_TESTS == true};
+                    }
+                }
+            }
+            steps {
+                script {
+                    build job: "verrazzano-push-triggered-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                        parameters: [
+                            string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
+                        ], wait: true
                 }
             }
         }

@@ -168,10 +168,12 @@ consoleout "You will need the credentials to access the preceding user interface
 consoleout "User: verrazzano"
 consoleout "Password: kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo"
 consoleout
-consoleout "Rancher - https://rancher.${ENV_NAME}.${DNS_SUFFIX}"
-consoleout "User: admin"
-consoleout "Password: kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo"
-consoleout
+if [ $(is_rancher_enabled) == "true" ]; then
+  consoleout "Rancher - https://rancher.${ENV_NAME}.${DNS_SUFFIX}"
+  consoleout "User: admin"
+  consoleout "Password: kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo"
+  consoleout
+fi
 consoleout "Keycloak - https://keycloak.${ENV_NAME}.${DNS_SUFFIX}"
 consoleout "User: keycloakadmin"
 consoleout "Password: kubectl get secret --namespace keycloak ${KCADMIN_SECRET} -o jsonpath={.data.password} | base64 --decode; echo"

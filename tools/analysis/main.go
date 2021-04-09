@@ -19,6 +19,10 @@ var analyzerTypeFunctions = map[string]func(log *zap.SugaredLogger, args string)
 	"buildlog": buildlog.RunAnalysis,
 }
 
+// The analysisToolVersion is set during the build, this value is a default if the tool is built differently
+var analysisToolVersion = "development build"
+
+var version = false
 var help = false
 var analyzerType string
 var reportFile string
@@ -47,6 +51,7 @@ func initFlags() {
 	flag.IntVar(&minImpact, "minImpact", 0, "Minimum impact threshold to report for issues, 0-10, default is 0")
 	flag.IntVar(&minConfidence, "minConfidence", 0, "Minimum confidence threshold to report for issues, 0-10, default is 0")
 	flag.BoolVar(&help, "help", false, "Display usage help")
+	flag.BoolVar(&version, "version", false, "Display version")
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
 	opts.BindFlags(flag.CommandLine)
@@ -68,6 +73,11 @@ func handleMain() (exitCode int) {
 	// presenting issues/actions/supporting data which would be used by someone with technical background to resolve an issue
 	// in their environment. We also could generate a more detailed "bug-report-type" which someone could call which would
 	// gather up information, sanitize it in a way that it could be sent along to someone else for further analysis, etc...
+
+	if version {
+		printVersion()
+		return 0
+	}
 
 	if help {
 		printUsage()
@@ -135,9 +145,14 @@ func Analyze(logger *zap.SugaredLogger, analyzerType string, flagArgs string) (e
 // printUsage Prints the help for this program
 func printUsage() {
 	usageString := `
-Usage: go run main.go [options] captured-data-directory
+Usage: analysis-tool [options] captured-data-directory
 Options:
 `
 	fmt.Printf(usageString)
 	flag.PrintDefaults()
+}
+
+// printVersion Prints the version for this program
+func printVersion() {
+	fmt.Printf("%s\n", analysisToolVersion)
 }

@@ -274,7 +274,7 @@ function install_rancher()
     local retries=0
     while true ; do
       RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- reset-password 2>$STDERROR_FILE)
-      ADMIN_PW=`echo $RANCHER_DATA | awk '{ print $NF }'`
+      ADMIN_PW=`echo $RANCHER_DATA | awk 'END{ print $NF }'`
 
       if [ -z "$ADMIN_PW" ] ; then
         sleep 10
@@ -291,7 +291,18 @@ function install_rancher()
       fi
     done
 
-    kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
+    # Use apply so it's idempotent
+    kubectl apply --server-side -f <(echo "
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: rancher-admin-secret
+  namespace: cattle-system
+data:
+  password: $(echo "${ADMIN_PW}"|base64)
+")
+
 }
 
 function set_rancher_server_url
@@ -392,6 +403,9 @@ RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
 
 action "Installing cert manager" install_cert_manager || exit 1
 action "Installing external DNS" install_external_dns || exit 1
-action "Installing Rancher" install_rancher || exit 1
-action "Setting Rancher Server URL" set_rancher_server_url || true
-action "Patching Rancher Agents" patch_rancher_agents || true
+if [ $(is_rancher_enabled) == "true" ]; then
+  action "Installing Rancher" install_rancher || exit 1
+  action "Setting Rancher Server URL" set_rancher_server_url || true
+  action "Patching Rancher Agents" patch_rancher_agents || true
+fi
+
