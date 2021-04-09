@@ -35,8 +35,13 @@ rules:
     - events
     - services
   verbs:
+    - create
+    - delete
+    - deletecollection
     - get
     - list
+    - patch
+    - update
     - watch
 - apiGroups:
     - ""
@@ -63,8 +68,12 @@ rules:
   resources:
     - "*"
   verbs:
+    - create
+    - delete
+    - deletecollection
     - get
     - list
+    - patch
     - update
     - watch
 - apiGroups:
