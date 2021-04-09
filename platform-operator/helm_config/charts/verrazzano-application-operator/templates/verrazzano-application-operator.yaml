@@ -29,7 +29,14 @@ rules:
       - serviceaccounts
       - services
     verbs:
-      - '*'
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
   - apiGroups:
       - apps
     resources:
@@ -37,20 +44,49 @@ rules:
       - statefulsets
       - replicasets
     verbs:
-      - '*'
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - extensions
+    resources:
+      - ingresses
+    verbs:
+      - get
+      - list
+      - watch
   - apiGroups:
       - apiextensions.k8s.io
     resources:
       - customresourcedefinitions
     verbs:
-      - '*'
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
   - apiGroups:
       - admissionregistration.k8s.io
     resources:
       - mutatingwebhookconfigurations
       - validatingwebhookconfigurations
     verbs:
-      - '*'
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
   - apiGroups:
       - networking.k8s.io
     resources:
@@ -64,7 +100,14 @@ rules:
     resources:
       - networkpolicies
     verbs:
-      - '*'
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
   - apiGroups:
       - rbac.authorization.k8s.io
     resources:
@@ -72,50 +115,70 @@ rules:
       - roles
       - rolebindings
     verbs:
-      - '*'
+      - bind
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
   - apiGroups:
       - cert-manager.io
     resources:
       - certificates
     verbs:
-      - '*'
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
   - apiGroups:
       - clusters.verrazzano.io
     resources:
-      - multiclusterapplicationconfigurations
-      - multiclustercomponents
-      - multiclusterconfigmaps
-      - multiclusterloggingscopes
-      - multiclustersecrets
-      - verrazzanoprojects
-    verbs:
       - '*'
-  - apiGroups:
-      - clusters.verrazzano.io
-    resources:
-      - multiclusterapplicationconfigurations/status
-      - multiclustercomponents/status
-      - multiclusterconfigmaps/status
-      - multiclusterloggingscopes/status
-      - multiclustersecrets/status
-      - verrazzanoprojects/status
+      - '*/status'
     verbs:
-      - '*'
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
   - apiGroups:
       - coherence.oracle.com
     resources:
       - coherence
+      - coherence/status
     verbs:
-      - '*'
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
   - apiGroups:
       - core.oam.dev
     resources:
-      - applicationconfigurations
-      - components
-      - containerizedworkloads
-      - workloaddefinitions
-    verbs:
       - '*'
+      - '*/status'
+    verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
   - apiGroups:
       - networking.istio.io
     resources:
@@ -124,48 +187,68 @@ rules:
       - gateways
       - virtualservices
     verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - verrazzano.io
+    resources:
       - '*'
+      - '*/status'
+    verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
   - apiGroups:
       - oam.verrazzano.io
     resources:
-      - ingresstraits
-      - loggingscopes
-      - metricstraits
-      - verrazzanocoherenceworkloads
-      - verrazzanohelidonworkloads
-      - verrazzanoweblogicworkloads
-    verbs:
       - '*'
-  - apiGroups:
-      - oam.verrazzano.io
-    resources:
-      - ingresstraits/status
-      - loggingscopes/status
-      - metricstraits/status
-      - verrazzanocoherenceworkloads/status
-      - verrazzanohelidonworkloads/status
-      - verrazzanoweblogicworkloads/status
+      - '*/status'
     verbs:
-      - '*'
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
   - apiGroups:
       - security.istio.io
     resources:
       - authorizationpolicies
     verbs:
-      - '*'
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
   - apiGroups:
       - weblogic.oracle
     resources:
       - domains
+      - domains/status
     verbs:
-      - '*'
-  - apiGroups:
-      - extensions
-    resources:
-      - ingresses
-    verbs:
+      - create
+      - delete
+      - deletecollection
       - get
       - list
+      - patch
+      - update
       - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1

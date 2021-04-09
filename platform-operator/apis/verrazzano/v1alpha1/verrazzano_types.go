@@ -232,6 +232,9 @@ type ComponentSpec struct {
 	// Console configuration
 	// +optional
 	Console *ConsoleComponent `json:"console,omitempty"`
+	// Rancher configuration
+	// +optional
+	Rancher *RancherComponent `json:"rancher,omitempty"`
 }
 
 // MonitoringComponent Common configuration for monitoring components
@@ -325,6 +328,11 @@ type MySQLComponent struct {
 // ConsoleComponent specifies the Console UI configuration
 type ConsoleComponent struct {
 	MonitoringComponent `json:",inline"`
+}
+
+type RancherComponent struct {
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
 }
 
 // InstallArgs identifies a name/value or name/value list needed for install.
