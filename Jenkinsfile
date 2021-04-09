@@ -262,7 +262,7 @@ pipeline {
                     anyOf {
                         branch 'master';
                         branch 'release-*';
-                        expression {param.BUILD_ANALYSIS_TOOL == true};
+                        expression {BUILD_ANALYSIS_TOOL == true};
                     }
                 }
             }
@@ -276,8 +276,8 @@ pipeline {
                     cd ${GO_REPO_PATH}/verrazzano/tools/analysis
                     make go-build
                     cd out
-                    zip -r ${WORKSPACE}analysis-tool.zip linux_amd64 darwin_amd64
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/analysis-tool.zip --file $WORKSPACE/analysis-tool.zip
+                    zip -r ${WORKSPACE}/analysis-tool.zip linux_amd64 darwin_amd64
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
                 """
             }
             post {
