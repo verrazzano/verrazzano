@@ -16,11 +16,7 @@ import (
 func (in *DeploymentTemplate) DeepCopyInto(out *DeploymentTemplate) {
 	*out = *in
 	in.Metadata.DeepCopyInto(&out.Metadata)
-	if in.Replicas != nil {
-		in, out := &in.Replicas, &out.Replicas
-		*out = new(int32)
-		**out = **in
-	}
+	in.Strategy.DeepCopyInto(&out.Strategy)
 	in.PodSpec.DeepCopyInto(&out.PodSpec)
 }
 
