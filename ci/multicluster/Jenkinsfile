@@ -450,14 +450,14 @@ pipeline {
                 failure {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('multicluster-acceptance-tests-cluster-dump')
+                            dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
                         }
                     }
                 }
                 success {
                     script {
                         if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('multicluster-acceptance-tests-cluster-dump')
+                            dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
                         }
                     }
                 }
@@ -468,7 +468,7 @@ pipeline {
         success {
             script {
                 if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                    dumpK8sCluster('multicluster-acceptance-tests-cluster-dump')
+                    dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
                 }
             }
         }
