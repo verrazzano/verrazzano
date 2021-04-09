@@ -23,7 +23,6 @@ pipeline {
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
         booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
-        booleanParam (description: 'Whether to build the analysis tool release bundle for non-master/release branch (default is off)', name: 'BUILD_ANALYSIS_TOOL', defaultValue: false)
         booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
     }
 
@@ -143,7 +142,6 @@ pipeline {
                     anyOf {
                         branch 'master';
                         branch 'release-*';
-                        expression {params.BUILD_ANALYSIS_TOOL == true};
                     }
                 }
             }
