@@ -86,7 +86,12 @@ function finalize() {
       || err_return $? "Could delete Helm Repos" || return $? # return on pipefail
   fi
 
-  log "Removing Namespace Finalizers"
+  local rancher_exists=$(kubectl get namespace cattle-system --ignore-not-found)
+  if [ -z "$rancher_exists" ] ; then
+    return 0
+  fi
+
+  log "Removing Rancher Namespace Finalizers"
   kubectl get namespaces --no-headers -o custom-columns=":metadata.name,:metadata.finalizers" \
     | awk '/controller.cattle.io/ {print $1}' \
     | xargsr kubectl patch namespace -p '{"metadata":{"finalizers":null}}' --type=merge \

@@ -73,28 +73,30 @@ set -eu
 
 function install_verrazzano()
 {
-  local RANCHER_HOSTNAME=rancher.${ENV_NAME}.${DNS_SUFFIX}
+  if [ $(is_rancher_enabled) == "true" ]; then
+    local RANCHER_HOSTNAME=rancher.${ENV_NAME}.${DNS_SUFFIX}
 
-  local rancher_admin_password=`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode`
+    local rancher_admin_password=`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode`
 
-  if [ -z "$rancher_admin_password" ] ; then
-    error "ERROR: Failed to retrieve rancher-admin-secret - did you run the scripts to install Istio and system components?"
-    return 1
+    if [ -z "$rancher_admin_password" ] ; then
+      error "ERROR: Failed to retrieve rancher-admin-secret - did you run the scripts to install Istio and system components?"
+      return 1
+    fi
+
+    # Wait until rancher TLS cert is ready
+    log "Waiting for Rancher TLS cert to reach ready state"
+    kubectl wait --for=condition=ready cert tls-rancher-ingress -n cattle-system
+
+    # Make sure rancher ingress has an IP
+    wait_for_ingress_ip rancher cattle-system || exit 1
+
+    get_rancher_access_token "${RANCHER_HOSTNAME}" "${rancher_admin_password}"
+    if [ $? -ne 0 ] ; then
+      error "ERROR: Failed to get rancher access token"
+      exit 1
+    fi
+    local token_array=(${RANCHER_ACCESS_TOKEN//:/ })
   fi
-
-  # Wait until rancher TLS cert is ready
-  log "Waiting for Rancher TLS cert to reach ready state"
-  kubectl wait --for=condition=ready cert tls-rancher-ingress -n cattle-system
-
-  # Make sure rancher ingress has an IP
-  wait_for_ingress_ip rancher cattle-system || exit 1
-
-  get_rancher_access_token "${RANCHER_HOSTNAME}" "${rancher_admin_password}"
-  if [ $? -ne 0 ] ; then
-    error "ERROR: Failed to get rancher access token"
-    exit 1
-  fi
-  local token_array=(${RANCHER_ACCESS_TOKEN//:/ })
 
   EXTRA_V8O_ARGUMENTS=$(get_verrazzano_helm_args_from_config)
   if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then

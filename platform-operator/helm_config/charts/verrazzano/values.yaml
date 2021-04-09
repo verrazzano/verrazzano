@@ -82,11 +82,15 @@ monitoringOperator:
   oidcAuthEnabled: true
   RequestMemory: 48Mi
 
+logging:
+  name: fluentd
+  fluentdImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.10.4-20201016214205-7f37ac6
+
 console:
   enabled: true
   name: verrazzano-console
   imageName: ghcr.io/verrazzano/console
-  imageVersion: 0.14.0-20210407095135-a4ff9dc
+  imageVersion: 0.14.0-20210408111300-bfb4aef
 
 api:
   name: verrazzano-api
