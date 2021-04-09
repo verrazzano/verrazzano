@@ -1,13 +1,13 @@
 # Summary
-Analysis detected that there were pods which had issues due to failures to pull an image/images where the root cause was the service wasn't available.
+Analysis detected that there were pods which had issues due to failures to pull an image or images where the root cause was that the service wasn't available.
 
 The service may be unreachable or may be incorrect.
 
 # Steps
-* Review the analysis data supplied. This will enumerate the pods and related messages which provide the images which had this issue.
-* Confirm that the registry for the image is correct
-* The messages may identify a connectivity issue
-* The service may be experiencing an outage, consult the specific service status page (see related information for some common service status page links)
+1. Review the analysis data supplied. It enumerates the pods and related messages about which images had this issue.
+2. Confirm that the registry for the image is correct.
+3. The messages may identify a connectivity issue.
+4. If the service is experiencing an outage, then consult the specific service status page. For common service status pages, see [Related information](#Related Information).
 
 # Related Information
 * https://www.githubstatus.com/
