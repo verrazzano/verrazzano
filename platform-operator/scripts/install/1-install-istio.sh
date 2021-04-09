@@ -214,6 +214,10 @@ log "Kubernetes nodes exist"
 action "Waiting for all Kubernetes nodes to be ready" \
     kubectl wait --for=condition=ready nodes --all || exit 1
 
+# Label the kube-system namespace so that we can apply network policies
+log "Adding label needed by network policies to kube-system namespace"
+kubectl label namespace kube-system "verrazzano.io/namespace=kube-system" --overwrite
+
 # Create istio-system namespace if it does not exist
 if ! kubectl get namespace istio-system > /dev/null 2>&1 ; then
   action "Creating istio-system namespace" \

@@ -4,7 +4,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: vmi-system-es-master
-  namespace: verrazzano-system
+  namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
     matchLabels:
@@ -33,6 +33,14 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
+    # Allow ingress from Fluentd
+    - from:
+        - podSelector:
+            matchLabels:
+              app: fluentd
+      ports:
+        - protocol: TCP
+          port: 9200
 {{- end }}
 ---
 # Network policy for Elasticsearch full multi-pod installation
@@ -43,7 +51,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: vmi-system-es-master
-  namespace: verrazzano-system
+  namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
     matchLabels:
@@ -82,14 +90,12 @@ spec:
         - protocol: TCP
           port: 9300
 ---
-# Network policy for Elasticsearch data
-# Ingress: allow ingress on cluster port from ES data and ingest pods
-# Egress:  allow access to es-master.  Note if the port is restricted to 9300 then es-data pod will not start
+# Network policy for Elasticsearch Data
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: vmi-system-es-data
-  namespace: verrazzano-system
+  namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
     matchLabels:
@@ -98,6 +104,7 @@ spec:
     - Ingress
     - Egress
   ingress:
+    # Ingress: allow ingress on cluster port from ES data and ingest pods
     - from:
         - podSelector:
             matchLabels:
@@ -110,6 +117,7 @@ spec:
           port: 9200
         - protocol: TCP
           port: 9300
+    # Ingress: allow Prometheus to scrape pod
     - from:
         - podSelector:
             matchLabels:
@@ -117,11 +125,13 @@ spec:
       ports:
         - protocol: TCP
           port: 9100
+    # Ingress: allow ES Master to access
     - from:
         - podSelector:
             matchLabels:
               app: system-es-master
   egress:
+    # Allow egress to CoreDNS
     - to:
         - namespaceSelector:
             matchLabels:
@@ -134,6 +144,7 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
+    # Allow egress to cluster port for other ES pods
     - to:
         - podSelector:
             matchLabels:
@@ -145,13 +156,12 @@ spec:
         - protocol: TCP
           port: 9300
 ---
-# Network policy for Elasticsearch master
-# Egress:  deny all
+# Network policy for Elasticsearch Ingest
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: vmi-system-es-ingest
-  namespace: verrazzano-system
+  namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
     matchLabels:
@@ -190,8 +200,14 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
+    # Allow ingress from Fluentd
+    - from:
+        - podSelector:
+            matchLabels:
+              app: fluentd
+      ports:
         - protocol: TCP
-          port: 8775
+          port: 9200
   egress:
     # Egress: allow TCP/UDP for name resolution
     - to:
