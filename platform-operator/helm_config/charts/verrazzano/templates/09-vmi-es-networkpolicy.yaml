@@ -107,19 +107,24 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Ingress: allow ingress on cluster port from ES data and ingest pods
+    # Ingress: allow ES Ingest access
     - from:
         - podSelector:
             matchLabels:
               app: system-es-ingest
+      ports:
+        - protocol: TCP
+          port: 9200
+        - protocol: TCP
+          port: 9300
+    # Ingress: Allow Kibana
+    - from:
         - podSelector:
             matchLabels:
               app: system-kibana
       ports:
         - protocol: TCP
           port: 9200
-        - protocol: TCP
-          port: 9300
     # Ingress: allow Prometheus to scrape pod
     - from:
         - podSelector:
@@ -133,6 +138,9 @@ spec:
         - podSelector:
             matchLabels:
               app: system-es-master
+      ports:
+        - protocol: TCP
+          port: 9300
   egress:
     # Allow egress to CoreDNS
     - to:
@@ -225,11 +233,14 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    # Egress: allow any to master
+    # Egress: allow to master
     - to:
         - podSelector:
             matchLabels:
               app: system-es-master
+      ports:
+        - protocol: TCP
+          port: 9300
     # Egress: allow to ES data port 9200
     - to:
         - podSelector:
@@ -240,6 +251,7 @@ spec:
           port: 9200
         - protocol: TCP
           port: 9300
+{{- end }}
 ---
 # Network policy for Kibana
 apiVersion: networking.k8s.io/v1
@@ -291,5 +303,4 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
-{{- end }}
 {{- end }}
