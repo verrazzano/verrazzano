@@ -5966,6 +5966,10 @@ spec:
                   - type
                   type: object
                 type: array
+              currentUpgradeVersion:
+                description: CurrentUpgradeVersion is the version that was specified
+                  when the application was last upgraded with Verrazzano
+                type: string
               resources:
                 description: Resources managed by this workload.
                 items:

@@ -1,23 +1,17 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: VerrazzanoProject
 metadata:
-  name: project-managed2
+  name: permissions-test
   namespace: verrazzano-mc
 spec:
   template:
     namespaces:
     - metadata:
-        name: ns-managed2
-    security:
-      projectAdminSubjects:
-        - kind: User
-          name: test-user
-      projectMonitorSubjects:
-        - kind: Group
-          name: test-viewers
+        name: multiclustertest
+    - metadata:
+        name: anothermulticlustertest
   placement:
     clusters:
-      - name: managed2
+      - name: managed1
