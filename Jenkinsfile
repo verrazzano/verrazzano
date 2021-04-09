@@ -266,19 +266,23 @@ pipeline {
                     }
                 }
             }
+            environment {
+                OCI_CLI_AUTH="instance_principal"
+                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                OCI_OS_BUCKET="verrazzano-builds"
+            }
             steps {
                 sh """
-                    mkdir ${HOME}/.kube/ || true
                     cd ${GO_REPO_PATH}/verrazzano/tools/analysis
-                    make release-package
+                    make go-build
                     cd out
-                    zip -r ${WORKSPACE}analysis-tool.zip linux darwin
+                    zip -r ${WORKSPACE}analysis-tool.zip linux_amd64 darwin_amd64
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/analysis-tool.zip --file $WORKSPACE/analysis-tool.zip
                 """
             }
             post {
                 always {
-                    archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/analysis-tool.zip', allowEmptyArchive: true
                 }
             }
         }
