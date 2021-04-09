@@ -1,6 +1,6 @@
 # Hello World Helidon
 
-The Hello World Helidon configuration example is a Helidon-based service that returns a "HelloConfig World" response when invoked. In this example, the configuration for application is set using a Kubernetes ConfigMap inplace of the default microprofile properties file. The example application is specified using Open Application Model (OAM) component and application configuration YAML files, and then deployed by applying those files.
+The Hello World Helidon configuration example is a Helidon-based service that returns a "HelloConfig World" response when invoked. In this example, the configuration for the application uses a Kubernetes ConfigMap instead of the default microprofile properties file. The example application is specified using Open Application Model (OAM) component and application configuration YAML files, and then deployed by applying those files.
 
 ## Prerequisites
 
