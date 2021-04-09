@@ -228,7 +228,8 @@ func getRegistrationYAMLFromRancher(rc *rancherConfig, clusterName string, ranch
 		return "", errors.New("unable to find manifest token in Rancher response")
 	}
 
-	manifestURL := rc.baseURL + manifestPath + token + ".yaml"
+	// Rancher 2.5.x added the cluster ID to the manifest URL.
+	manifestURL := rc.baseURL + manifestPath + token + "_" + rancherClusterID + ".yaml"
 
 	action = http.MethodGet
 	response, manifestContent, err = sendRequest(action, manifestURL, headers, "", rc, log)
