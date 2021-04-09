@@ -224,6 +224,9 @@ if ! kubectl get namespace istio-system > /dev/null 2>&1 ; then
     kubectl create namespace istio-system || exit 1
 fi
 
+log "Adding label needed by network policies to istio-system namespace"
+kubectl label namespace istio-system "verrazzano.io/namespace=istio-system" --overwrite
+
 # Copy the optional global registry secret to the istio-system namespace for pulling OLCNE images in a OKE cluster
 REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
