@@ -64,7 +64,22 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		opResult = controllerutil.OperationResultNone
 	}
 
-	return r.updateStatus(ctx, &vp, opResult, err)
+	// Update the cluster status
+	_, err = r.updateStatus(ctx, &vp, opResult, err)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Update the VerrazzanoProject state
+	oldState := clusters.SetEffectiveStateIfChanged(vp.Spec.Placement, &vp.Status)
+	if oldState != vp.Status.State {
+		err = r.Status().Update(ctx, &vp)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	return ctrl.Result{}, nil
 }
 
 func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
@@ -168,9 +183,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, vp *clustersv1alpha1.Verr
 	clusterName := clusters.GetClusterName(ctx, r.Client)
 	newCondition := clusters.GetConditionFromResult(err, opResult, "VerrazzanoProject")
 	updateFunc := func() error { return r.Status().Update(ctx, vp) }
-	// pass an empty placement since there are no placements on VerrazzanoProject
-	emptyPlacement := clustersv1alpha1.Placement{}
-	return clusters.UpdateStatus(vp, &vp.Status, emptyPlacement, newCondition, clusterName,
+	return clusters.UpdateStatus(vp, &vp.Status, vp.Spec.Placement, newCondition, clusterName,
 		r.AgentChannel, updateFunc)
 }
 

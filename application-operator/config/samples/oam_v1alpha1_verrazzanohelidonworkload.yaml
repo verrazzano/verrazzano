@@ -11,11 +11,16 @@ spec:
   deploymentTemplate:
     metadata:
       name: hello-helidon-deployment
-    replicas: 2
-    podSpec:
-      containers:
-        - name: hello-helidon-container
-          image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4"
-          ports:
-          - containerPort: 8080
-            name: http
+    spec:
+      strategy:
+        type: RollingUpdate
+        rollingUpdate:
+          maxSurge: 25%
+          maxUnavailable: 25%
+      podSpec:
+        containers:
+          - name: hello-helidon-container
+            image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4"
+            ports:
+            - containerPort: 8080
+              name: http
