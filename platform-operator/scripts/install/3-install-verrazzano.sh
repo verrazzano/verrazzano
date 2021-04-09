@@ -8,8 +8,6 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 . $SCRIPT_DIR/config.sh
 
 CONFIG_DIR=$SCRIPT_DIR/config
-TMP_DIR=$(mktemp -d)
-trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
 VERRAZZANO_NS=verrazzano-system
 VERRAZZANO_MC=verrazzano-mc
@@ -75,44 +73,46 @@ set -eu
 
 function install_verrazzano()
 {
-  local RANCHER_HOSTNAME=rancher.${ENV_NAME}.${DNS_SUFFIX}
+  if [ $(is_rancher_enabled) == "true" ]; then
+    local RANCHER_HOSTNAME=rancher.${ENV_NAME}.${DNS_SUFFIX}
 
-  local rancher_admin_password=`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode`
+    local rancher_admin_password=`kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode`
 
-  if [ -z "$rancher_admin_password" ] ; then
-    error "ERROR: Failed to retrieve rancher-admin-secret - did you run the scripts to install Istio and system components?"
-    return 1
+    if [ -z "$rancher_admin_password" ] ; then
+      error "ERROR: Failed to retrieve rancher-admin-secret - did you run the scripts to install Istio and system components?"
+      return 1
+    fi
+
+    # Wait until rancher TLS cert is ready
+    log "Waiting for Rancher TLS cert to reach ready state"
+    kubectl wait --for=condition=ready cert tls-rancher-ingress -n cattle-system
+
+    # Make sure rancher ingress has an IP
+    wait_for_ingress_ip rancher cattle-system || exit 1
+
+    get_rancher_access_token "${RANCHER_HOSTNAME}" "${rancher_admin_password}"
+    if [ $? -ne 0 ] ; then
+      error "ERROR: Failed to get rancher access token"
+      exit 1
+    fi
+    local token_array=(${RANCHER_ACCESS_TOKEN//:/ })
   fi
-
-  # Wait until rancher TLS cert is ready
-  log "Waiting for Rancher TLS cert to reach ready state"
-  kubectl wait --for=condition=ready cert tls-rancher-ingress -n cattle-system
-
-  # Make sure rancher ingress has an IP
-  wait_for_ingress_ip rancher cattle-system || exit 1
-
-  get_rancher_access_token "${RANCHER_HOSTNAME}" "${rancher_admin_password}"
-  if [ $? -ne 0 ] ; then
-    error "ERROR: Failed to get rancher access token"
-    exit 1
-  fi
-  local token_array=(${RANCHER_ACCESS_TOKEN//:/ })
 
   EXTRA_V8O_ARGUMENTS=$(get_verrazzano_helm_args_from_config)
   if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
     EXTRA_V8O_ARGUMENTS="${EXTRA_V8O_ARGUMENTS} --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
   fi
 
-  local profile=$(get_config_value '.profile')
-  if [ -z "$profile" ]; then
-    error "The value .profile must be set in the config file"
-    exit 1
-  fi
+  local profile=$(get_install_profile)
   if [ ! -f "${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml" ]; then
     error "The file ${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml does not exist"
     exit 1
   fi
   local PROFILE_VALUES_OVERRIDE=" -f ${VZ_CHARTS_DIR}/verrazzano/values.${profile}.yaml"
+
+  # Get the endpoint for the Kubernetes API server.  The endpoint returned has the format of IP:PORT
+  local ENDPOINT=$(kubectl get endpoints --namespace default kubernetes --no-headers | awk '{ print $2}')
+  local ENDPOINT_ARRAY=(${ENDPOINT//:/ })
 
   helm \
       upgrade --install verrazzano \
@@ -122,9 +122,13 @@ function install_verrazzano()
       --set config.envName=${ENV_NAME} \
       --set config.dnsSuffix=${DNS_SUFFIX} \
       --set config.enableMonitoringStorage=true \
-      --set verrazzanoAdmissionController.caBundle="$(kubectl -n ${VERRAZZANO_NS} get secret verrazzano-validation -o json | jq -r '.data."ca.crt"' | base64 --decode)" \
+      --set kubernetes.service.endpoint.ip=${ENDPOINT_ARRAY[0]} \
+      --set kubernetes.service.endpoint.port=${ENDPOINT_ARRAY[1]} \
       ${PROFILE_VALUES_OVERRIDE} \
       ${EXTRA_V8O_ARGUMENTS} || return $?
+
+  log "Waiting for the verrazzano-operator pod in ${VERRAZZANO_NS} to reach Ready state"
+  kubectl  wait -l app=verrazzano-operator --for=condition=Ready pod -n verrazzano-system
 
   log "Verifying that needed secrets are created"
   retries=0
@@ -222,6 +226,9 @@ REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 if ! kubectl get namespace ${VERRAZZANO_NS} ; then
   action "Creating ${VERRAZZANO_NS} namespace" kubectl create namespace ${VERRAZZANO_NS} || exit 1
 fi
+
+log "Adding label needed by network policies to ${VERRAZZANO_NS} namespace"
+kubectl label namespace ${VERRAZZANO_NS} "verrazzano.io/namespace=${VERRAZZANO_NS}"
 
 if ! kubectl get namespace ${VERRAZZANO_MC} ; then
   action "Creating ${VERRAZZANO_MC} namespace" kubectl create namespace ${VERRAZZANO_MC} || exit 1

@@ -7,23 +7,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned/typed/verrazzano/v1alpha1"
 	"io/ioutil"
-	corev1 "k8s.io/api/core/v1"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
-
 	"github.com/hashicorp/go-retryablehttp"
-
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned/typed/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-
-	//v1 "k8s.io/api/core/v1"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -170,6 +166,12 @@ var _ = ginkgo.Describe("VMI", func() {
 					map[string]string{
 						"beat.version": "6.8.3"})
 			}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a filebeat log record")
+			gomega.Eventually(func() bool {
+				return pkg.LogRecordFound("vmi-ns-verrazzano-system",
+					time.Now().Add(-24*time.Hour),
+					map[string]string{"caller": "*"})
+			}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a verrazzano-system log record")
+
 		})
 
 		ginkgo.It("Elasticsearch journalbeat Index should be accessible", func() {
@@ -179,6 +181,9 @@ var _ = ginkgo.Describe("VMI", func() {
 					map[string]string{
 						"beat.version": "6.8.3"})
 			}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a journalbeat log record")
+			gomega.Eventually(func() bool {
+				return pkg.LogIndexFound("vmi-journal-" + time.Now().Format("2006.01.02"))
+			}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a systemd journal log record")
 		})
 
 		ginkgo.It("Kibana endpoint should be accessible", func() {
@@ -298,7 +303,7 @@ func assertURLAccessibleAndAuthorized(url string) bool {
 
 func assertBearerAuthorized(url string) bool {
 	vmiHTTPClient := pkg.GetSystemVmiHTTPClient()
-	api := pkg.GetAPIEndpoint()
+	api := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
 	req, _ := retryablehttp.NewRequest("GET", url, nil)
 	if api.AccessToken != "" {
 		bearer := fmt.Sprintf("Bearer %v", api.AccessToken)
@@ -423,7 +428,7 @@ func assertDashboard(url string) {
 }
 
 func assertInstanceInfoURLs() {
-	cr := pkg.GetVerrazzanoInstallResource()
+	cr := pkg.GetVerrazzanoInstallResourceInCluster(pkg.GetKubeConfigPathFromEnv())
 	instanceInfo := cr.Status.VerrazzanoInstance
 	switch cr.Spec.Profile {
 	case v1alpha1.ManagedCluster:

@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	defaultCAClusterResourceName string = "cattle-system"
-	defaultCASecretName          string = "tls-rancher"
+	defaultCAClusterResourceName string = "verrazzano-install"
+	defaultCASecretName          string = "verrazzano-ca-certificate-secret"
 
 	// Verrazzano Helm chart value names
 	esStorageValueName         string = "elasticSearch.nodes.data.requests.storage"
@@ -28,6 +28,7 @@ const (
 	esEnabledValueName         string = "elasticSearch.enabled"
 	promEnabledValueName       string = "prometheus.enabled"
 	kibanaEnabledValueName     string = "kibana.enabled"
+	consoleEnabledValueName    string = "console.enabled"
 )
 
 // DNSType identifies the DNS type
@@ -163,6 +164,10 @@ type MySQL struct {
 	MySQLInstallArgs []InstallArg `json:"mySqlInstallArgs,omitempty"`
 }
 
+type Rancher struct {
+	Enabled string `json:"enabled,omitempty"`
+}
+
 // InstallConfiguration - Verrazzano installation configuration options
 type InstallConfiguration struct {
 	EnvironmentName string                      `json:"environmentName"`
@@ -171,6 +176,7 @@ type InstallConfiguration struct {
 	Ingress         Ingress                     `json:"ingress"`
 	Certificates    Certificate                 `json:"certificates"`
 	Keycloak        Keycloak                    `json:"keycloak"`
+	Rancher         Rancher                     `json:"rancher"`
 	VzInstallArgs   []InstallArg                `json:"verrazzanoInstallArgs,omitempty"`
 }
 
@@ -198,7 +204,7 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfigurati
 	if err != nil {
 		return nil, err
 	}
-
+	rancher := getRancher(vz.Spec.Components.Rancher)
 	var acmeConfig *CertificateACME = &CertificateACME{}
 	if vz.Spec.Components.CertManager != nil {
 		acmeConfig = &CertificateACME{
@@ -227,6 +233,7 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfigurati
 			ACME:       acmeConfig,
 		},
 		Keycloak: keycloak,
+		Rancher:  rancher,
 	}, nil
 }
 
@@ -241,6 +248,7 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguratio
 	if err != nil {
 		return nil, err
 	}
+	rancher := getRancher(vz.Spec.Components.Rancher)
 	return &InstallConfiguration{
 		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
@@ -257,6 +265,7 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguratio
 			},
 		},
 		Keycloak: keycloak,
+		Rancher:  rancher,
 	}, nil
 }
 
@@ -272,6 +281,7 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfig
 	if err != nil {
 		return nil, err
 	}
+	rancher := getRancher(vz.Spec.Components.Rancher)
 	return &InstallConfiguration{
 		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
 		Profile:         getProfile(vz.Spec.Profile),
@@ -291,6 +301,7 @@ func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfig
 			},
 		},
 		Keycloak: keycloak,
+		Rancher:  rancher,
 	}, nil
 }
 
@@ -350,6 +361,16 @@ func getInstallArgs(args []installv1alpha1.InstallArgs) []InstallArg {
 	}
 
 	return installArgs
+}
+
+func getRancher(rancher *installv1alpha1.RancherComponent) Rancher {
+	if rancher == nil {
+		return Rancher{}
+	}
+	rancherConfig := Rancher{
+		Enabled: strconv.FormatBool(rancher.Enabled),
+	}
+	return rancherConfig
 }
 
 // getKeycloak returns the json representation for the keycloak configuration
@@ -592,6 +613,14 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]Install
 		})
 	}
 	args = append(args, getVMIInstallArgs(vzSpec)...)
+
+	// Console
+	if vzSpec.Components.Console != nil {
+		args = append(args, InstallArg{
+			Name:  consoleEnabledValueName,
+			Value: strconv.FormatBool(vzSpec.Components.Console.Enabled),
+		})
+	}
 	return args, nil
 }
 

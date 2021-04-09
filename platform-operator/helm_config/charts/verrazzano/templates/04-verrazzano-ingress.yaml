@@ -1,0 +1,32 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    external-dns.alpha.kubernetes.io/target: verrazzano-ingress.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  name: verrazzano-ingress
+  namespace: {{ .Release.Namespace }}
+spec:
+  rules:
+    - host: verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
+      http:
+        paths:
+          - backend:
+              serviceName: {{ .Values.api.name }}
+              servicePort: {{ .Values.api.port }}
+            path: /20210501(/|$)(.*)
+          {{- if .Values.console.enabled }}
+          - backend:
+              serviceName: {{ .Values.console.name }}
+              servicePort: 8000
+            path: /()(.*)
+          {{- end }}
+  tls:
+    - hosts:
+        - verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
+      secretName: {{ .Values.config.envName }}-secret

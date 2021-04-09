@@ -5,10 +5,10 @@ package restapi
 
 import (
 	"fmt"
+	"github.com/onsi/gomega"
 	"time"
 
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
@@ -19,22 +19,26 @@ const (
 	pollingInterval = 5 * time.Second
 )
 
+var kubeconfigPath = pkg.GetKubeConfigPathFromEnv()
 var _ = ginkgo.Describe("rancher url test", func() {
 
 	var _ = ginkgo.BeforeEach(func() {
-		api = pkg.GetAPIEndpoint()
+		api = pkg.GetAPIEndpoint(kubeconfigPath)
 	})
 
 	ginkgo.Context("Fetching the rancher url using api and test ", func() {
 		ginkgo.It("Fetches rancher url", func() {
-			keycloakURL := func() string {
-				ingress := api.GetIngress("cattle-system", "rancher")
-				return fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
-			}
-			gomega.Eventually(keycloakURL, waitTimeout, pollingInterval).ShouldNot(gomega.BeEmpty())
+			isManagedClusterProfile := pkg.IsManagedClusterProfile()
+			if !isManagedClusterProfile {
+				rancherURL := func() string {
+					ingress := api.GetIngress("cattle-system", "rancher")
+					return fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
+				}
+				gomega.Eventually(rancherURL, waitTimeout, pollingInterval).ShouldNot(gomega.BeEmpty())
 
-			httpClient := pkg.GetVerrazzanoHTTPClient()
-			pkg.ExpectHTTPGetOk(httpClient, keycloakURL())
+				httpClient := pkg.GetRancherHTTPClient(kubeconfigPath)
+				pkg.ExpectHTTPGetOk(httpClient, rancherURL())
+			}
 		})
 	})
 })

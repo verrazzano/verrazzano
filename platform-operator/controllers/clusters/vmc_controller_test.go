@@ -25,6 +25,7 @@ import (
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
+	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -434,10 +435,10 @@ func TestCreateVMCSyncSvcAccountFailed(t *testing.T) {
 	reconciler := newVMCReconciler(mock)
 	result, err := reconciler.Reconcile(request)
 
-	// Validate the results - there should not have been an error returned - we already expect the
-	// status to be updated with a Ready=false condition
+	// Validate the results - there should have been an error returned for failing to sync svc account
 	mocker.Finish()
-	asserts.Nil(err)
+	asserts.NotNil(err)
+	asserts.Contains(err.Error(), "failing syncServiceAccount")
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
@@ -471,10 +472,10 @@ func TestCreateVMCSyncRoleBindingFailed(t *testing.T) {
 	reconciler := newVMCReconciler(mock)
 	result, err := reconciler.Reconcile(request)
 
-	// Validate the results - there should not have been an error returned - we already expect the
-	// status to be updated with a Ready=false condition
+	// Validate the results - there should have been an error returned
 	mocker.Finish()
-	asserts.Nil(err)
+	asserts.NotNil(err)
+	asserts.Contains(err.Error(), "failing syncRoleBinding")
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
@@ -1148,6 +1149,22 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string) {
 			secret.Data = map[string][]byte{
 				CaCrtKey: []byte(caData),
 			}
+			return nil
+		})
+
+	// Expect a call to get the keycloak ingress and return the ingress.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "keycloak", Name: "keycloak"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *extv1beta1.Ingress) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "extensions/v1beta1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name}
+			ingress.Spec.TLS = []extv1beta1.IngressTLS{{
+				Hosts: []string{"keycloak"},
+			}}
 			return nil
 		})
 

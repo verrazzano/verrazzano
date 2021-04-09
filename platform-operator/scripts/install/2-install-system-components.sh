@@ -12,6 +12,9 @@ trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT
 
 set -eu
 
+VERRAZZANO_DEFAULT_SECRET_NAMESPACE="verrazzano-install"
+VERRAZZANO_DEFAULT_SECRET_NAME="verrazzano-ca-certificate-secret"
+
 function install_nginx_ingress_controller()
 {
     local NGINX_INGRESS_CHART_DIR=${CHARTS_DIR}/ingress-nginx
@@ -41,6 +44,10 @@ function install_nginx_ingress_controller()
       --timeout 15m0s \
       --wait \
       || return $?
+
+    # Label the ingress-nginx namespace so that we can apply network policies
+    log "Adding label needed by network policies to ingress-nginx namespace"
+    kubectl label namespace ingress-nginx "verrazzano.io/namespace=ingress-nginx"
 
     # Handle any ports specified for Verrazzano Ingress - these must be patched after install
     local nginx_svc_patch_spec=$(get_verrazzano_ports_spec)
@@ -72,6 +79,12 @@ function setup_cluster_issuer() {
         fail "The OCI Configuration Secret $OCI_DNS_CONFIG_SECRET does not exist"
     fi
 
+    acmeURL="https://acme-v02.api.letsencrypt.org/directory"
+    if [ "$(get_acme_environment)" != "production" ]; then
+      log "Non-production case, using the ACME staging environment"
+      acmeURL="https://acme-staging-v02.api.letsencrypt.org/directory"
+    fi
+
     kubectl apply -f <(echo "
 apiVersion: cert-manager.io/v1alpha2
 kind: ClusterIssuer
@@ -80,7 +93,7 @@ metadata:
 spec:
   acme:
     email: $EMAIL_ADDRESS
-    server: "https://acme-v02.api.letsencrypt.org/directory"
+    server: "${acmeURL}"
     privateKeySecretRef:
       name: verrazzano-cert-acme-secret
     solvers:
@@ -93,6 +106,35 @@ spec:
             ocizonename: $DNS_SUFFIX
 ")
   elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
+    if [ $(get_config_value ".certificates.ca.secretName") == "$VERRAZZANO_DEFAULT_SECRET_NAME" ] &&
+       [ $(get_config_value ".certificates.ca.clusterResourceNamespace") == "$VERRAZZANO_DEFAULT_SECRET_NAMESPACE" ]; then
+    log "Certificate not specified. Creating default Verrazzano Issuer and Certificate in verrazzano-install namespace"
+
+    kubectl apply -f <(echo "
+apiVersion: cert-manager.io/v1alpha2
+kind: Issuer
+metadata:
+  name: verrazzano-selfsigned-issuer
+  namespace: $(get_config_value ".certificates.ca.clusterResourceNamespace")
+spec:
+  selfSigned: {}
+")
+
+    kubectl apply -f <(echo "
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: verrazzano-ca-certificate
+  namespace: $(get_config_value ".certificates.ca.clusterResourceNamespace")
+spec:
+  secretName: $(get_config_value ".certificates.ca.secretName")
+  commonName: verrazzano-root-ca
+  isCA: true
+  issuerRef:
+    name: verrazzano-selfsigned-issuer
+    kind: Issuer
+")
+    fi
     kubectl apply -f <(echo "
 apiVersion: cert-manager.io/v1alpha2
 kind: ClusterIssuer
@@ -212,13 +254,27 @@ function install_rancher()
     log "Rollout Rancher"
     kubectl -n cattle-system rollout status -w deploy/rancher || return $?
 
-    log "Create Rancher secrets"
-    STDERROR_FILE="/tmp/rancher_resetpwd.err"
+    log "Ensure default Rancher admin user is present"
+    STDERROR_FILE="${TMP_DIR}/rancher_ensureadminuser.err"
+    kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- ensure-default-admin 2>$STDERROR_FILE
+    RANCHER_ADMIN_USERNAME=$(kubectl get users -l authz.management.cattle.io/bootstrapping=admin-user -o jsonpath={'.items[].username'})
+    if [ -z "${RANCHER_ADMIN_USERNAME}" ]; then
+      echo "Could not detect default Rancher admin user"
+      local std_error_file=$(cat $STDERROR_FILE)
+      log "${std_error_file}"
+      rm "$STDERROR_FILE"
+      return 1
+    else
+      echo "Rancher admin user: ${RANCHER_ADMIN_USERNAME}"
+    fi
+
+    log "Reset Rancher admin password and create secrets"
+    STDERROR_FILE="${TMP_DIR}/rancher_resetpwd.err"
     local max_retries=5
     local retries=0
     while true ; do
       RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- reset-password 2>$STDERROR_FILE)
-      ADMIN_PW=`echo $RANCHER_DATA | awk '{ print $NF }'`
+      ADMIN_PW=`echo $RANCHER_DATA | awk 'END{ print $NF }'`
 
       if [ -z "$ADMIN_PW" ] ; then
         sleep 10
@@ -235,7 +291,18 @@ function install_rancher()
       fi
     done
 
-    kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
+    # Use apply so it's idempotent
+    kubectl apply --server-side -f <(echo "
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: rancher-admin-secret
+  namespace: cattle-system
+data:
+  password: $(echo "${ADMIN_PW}"|base64)
+")
+
 }
 
 function set_rancher_server_url
@@ -336,6 +403,9 @@ RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
 
 action "Installing cert manager" install_cert_manager || exit 1
 action "Installing external DNS" install_external_dns || exit 1
-action "Installing Rancher" install_rancher || exit 1
-action "Setting Rancher Server URL" set_rancher_server_url || true
-action "Patching Rancher Agents" patch_rancher_agents || true
+if [ $(is_rancher_enabled) == "true" ]; then
+  action "Installing Rancher" install_rancher || exit 1
+  action "Setting Rancher Server URL" set_rancher_server_url || true
+  action "Patching Rancher Agents" patch_rancher_agents || true
+fi
+

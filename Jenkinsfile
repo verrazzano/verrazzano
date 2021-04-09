@@ -23,6 +23,7 @@ pipeline {
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
         booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
     }
 
     environment {
@@ -78,7 +79,10 @@ pipeline {
                 """
 
                 script {
-                    checkout scm
+                    def scmInfo = checkout scm
+                    env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                    env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                 }
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
@@ -206,13 +210,16 @@ pipeline {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
                     make -B coverage
-                    cp coverage.html ${WORKSPACE}
-                    cp coverage.xml ${WORKSPACE}
-                    build/copy-junit-output.sh ${WORKSPACE}
                 """
             }
             post {
                 always {
+                    sh """
+                        cd ${GO_REPO_PATH}/verrazzano
+                        cp coverage.html ${WORKSPACE}
+                        cp coverage.xml ${WORKSPACE}
+                        build/copy-junit-output.sh ${WORKSPACE}
+                    """
                     archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                     cobertura(coberturaReportFile: 'coverage.xml',
@@ -483,6 +490,27 @@ pipeline {
                             dumpK8sCluster('new-acceptance-tests-cluster-dump')
                         }
                     }
+                }
+            }
+        }
+
+        stage('Triggered Tests') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    anyOf {
+                        branch 'master';
+                        branch 'release-*';
+                        expression {params.TRIGGER_FULL_TESTS == true};
+                    }
+                }
+            }
+            steps {
+                script {
+                    build job: "verrazzano-push-triggered-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                        parameters: [
+                            string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
+                        ], wait: true
                 }
             }
         }

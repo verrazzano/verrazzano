@@ -115,8 +115,7 @@ the deployed Hello World Helidon application.  Accessing them may require the fo
     ```
     $ kubectl get ing -n verrazzano-system
     NAME                         CLASS    HOSTS                                                    ADDRESS          PORTS     AGE
-    verrazzano-console-ingress   <none>   verrazzano.default.140.238.94.217.xip.io                 140.238.94.217   80, 443   7d2h
-    vmi-system-api               <none>   api.vmi.system.default.140.238.94.217.xip.io             140.238.94.217   80, 443   7d2h
+    verrazzano-ingress           <none>   verrazzano.default.140.238.94.217.xip.io                 140.238.94.217   80, 443   7d2h
     vmi-system-es-ingest         <none>   elasticsearch.vmi.system.default.140.238.94.217.xip.io   140.238.94.217   80, 443   7d2h
     vmi-system-grafana           <none>   grafana.vmi.system.default.140.238.94.217.xip.io         140.238.94.217   80, 443   7d2h
     vmi-system-kibana            <none>   kibana.vmi.system.default.140.238.94.217.xip.io          140.238.94.217   80, 443   7d2h

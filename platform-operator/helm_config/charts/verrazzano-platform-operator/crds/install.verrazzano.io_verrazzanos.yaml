@@ -90,6 +90,12 @@ spec:
                             type: object
                         type: object
                     type: object
+                  console:
+                    description: Console configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   dns:
                     description: DNS contains the DNS component configuration
                     properties:
@@ -1658,6 +1664,12 @@ spec:
                       enabled:
                         type: boolean
                     type: object
+                  rancher:
+                    description: Rancher configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                 type: object
               defaultVolumeSource:
                 description: DefaultVolumeSource Defines the type of volume to be
@@ -3084,10 +3096,6 @@ spec:
                     type: string
                   rancherUrl:
                     description: RancherURL The Rancher URL for this Verrazzano installation
-                    type: string
-                  systemApi:
-                    description: SystemURL The System API URL for this Verrazzano
-                      installation
                     type: string
                 type: object
               state:

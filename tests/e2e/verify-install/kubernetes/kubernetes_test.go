@@ -30,7 +30,6 @@ var expectedPodsIngressNginx = []string{
 	"ingress-controller-ingress-nginx-defaultbackend"}
 
 var expectedNonVMIPodsVerrazzanoSystem = []string{
-	"verrazzano-console",
 	"verrazzano-monitoring-operator",
 	"verrazzano-operator",
 }
@@ -41,6 +40,9 @@ var expectedNonVMIPodsVerrazzanoSystem = []string{
 
 var _ = ginkgo.Describe("Kubernetes Cluster",
 	func() {
+		isManagedClusterProfile := pkg.IsManagedClusterProfile()
+		isProdProfile := pkg.IsProdProfile()
+
 		ginkgo.It("has the expected number of nodes",
 			func() {
 				nodes := pkg.ListNodes()
@@ -56,13 +58,20 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 		ginkgo.It("has the expected namespaces",
 			func() {
 				namespaces := pkg.ListNamespaces()
-				gomega.Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(gomega.Equal(true))
-				gomega.Expect(nsListContains(namespaces.Items, "cattle-global-nt")).To(gomega.Equal(true))
-				gomega.Expect(nsListContains(namespaces.Items, "cattle-system")).To(gomega.Equal(true))
+				if isManagedClusterProfile {
+					gomega.Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(gomega.BeFalse())
+					gomega.Expect(nsListContains(namespaces.Items, "cattle-global-nt")).To(gomega.BeFalse())
+					gomega.Expect(nsListContains(namespaces.Items, "cattle-system")).To(gomega.BeFalse())
+					gomega.Expect(nsListContains(namespaces.Items, "local")).To(gomega.BeFalse())
+				} else {
+					gomega.Expect(nsListContains(namespaces.Items, "cattle-global-data")).To(gomega.BeTrue())
+					gomega.Expect(nsListContains(namespaces.Items, "cattle-global-nt")).To(gomega.BeTrue())
+					gomega.Expect(nsListContains(namespaces.Items, "cattle-system")).To(gomega.BeTrue())
+					gomega.Expect(nsListContains(namespaces.Items, "local")).To(gomega.BeTrue())
+				}
 				gomega.Expect(nsListContains(namespaces.Items, "istio-system")).To(gomega.Equal(true))
 				gomega.Expect(nsListContains(namespaces.Items, "gitlab")).To(gomega.Equal(false))
 				gomega.Expect(nsListContains(namespaces.Items, "keycloak")).To(gomega.Equal(true))
-				gomega.Expect(nsListContains(namespaces.Items, "local")).To(gomega.Equal(true))
 				gomega.Expect(nsListContains(namespaces.Items, "verrazzano-system")).To(gomega.Equal(true))
 				gomega.Expect(nsListContains(namespaces.Items, "verrazzano-mc")).To(gomega.Equal(true))
 				gomega.Expect(nsListContains(namespaces.Items, "cert-manager")).To(gomega.Equal(true))
@@ -81,7 +90,7 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 			},
 			ginkgoExt.Entry("includes verrazzano-operator", "verrazzano-operator", true),
 			ginkgoExt.Entry("does not include verrazzano-web", "verrazzano-web", false),
-			ginkgoExt.Entry("includes verrazzano-console", "verrazzano-console", true),
+			ginkgoExt.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
 			ginkgoExt.Entry("does not include verrazzano-ldap", "verrazzano-ldap", false),
 			ginkgoExt.Entry("does not include verrazzano-cluster-operator", "verrazzano-cluster-operator", false),
 			ginkgoExt.Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", true),
@@ -109,17 +118,26 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 			ginkgoExt.Entry("includes ssoproxycontroller", "ssoproxycontroller", false),
 		)
 
-		ginkgoExt.DescribeTable("deployed rancher components",
-			func(name string, expected bool) {
-				gomega.Expect(vzComponentPresent(name, "cattle-system")).To(gomega.Equal(expected))
-			},
-			ginkgoExt.Entry("includes rancher", "rancher", true),
-			ginkgoExt.Entry("includes rancher-agent", "cattle-node-agent", true),
-			ginkgoExt.Entry("includes rancher-agent", "cattle-cluster-agent", true),
-		)
+		if isManagedClusterProfile {
+			ginkgoExt.DescribeTable("rancher components are not deployed",
+				func(name string, expected bool) {
+					gomega.Expect(vzComponentPresent(name, "cattle-system")).To(gomega.BeFalse())
+				},
+				ginkgoExt.Entry("includes rancher", "rancher", false),
+				ginkgoExt.Entry("includes rancher-agent", "cattle-node-agent", false),
+				ginkgoExt.Entry("includes rancher-agent", "cattle-cluster-agent", false),
+			)
+		} else {
+			ginkgoExt.DescribeTable("deployed rancher components",
+				func(name string, expected bool) {
+					gomega.Expect(vzComponentPresent(name, "cattle-system")).To(gomega.Equal(expected))
+				},
+				ginkgoExt.Entry("includes rancher", "rancher", true),
+				ginkgoExt.Entry("includes rancher-agent", "cattle-node-agent", true),
+				ginkgoExt.Entry("includes rancher-agent", "cattle-cluster-agent", true),
+			)
+		}
 
-		isManagedClusterProfile := pkg.IsManagedClusterProfile()
-		isProdProfile := pkg.IsProdProfile()
 		ginkgoExt.DescribeTable("deployed VMI components",
 			func(name string, expected bool) {
 				gomega.Expect(vzComponentPresent(name, "verrazzano-system")).To(gomega.Equal(expected))
@@ -131,14 +149,19 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 			ginkgoExt.Entry("includes es-master", "vmi-system-es-master", !isManagedClusterProfile),
 			ginkgoExt.Entry("includes es-kibana", "vmi-system-kibana", !isManagedClusterProfile),
 			ginkgoExt.Entry("includes es-grafana", "vmi-system-grafana", !isManagedClusterProfile),
+			ginkgoExt.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
 		)
 
 		ginkgo.It("Expected pods are running",
 			func() {
 				pkg.Concurrently(
 					func() {
-						gomega.Eventually(pkg.PodsRunning("cattle-system", expectedPodsCattleSystem), waitTimeout, pollingInterval).
-							Should(gomega.BeTrue())
+						// The test above asserts the namespace cattle-system doesn't exist for managed-cluster profile,
+						// so the following check is not enabled for that profile.
+						if !isManagedClusterProfile {
+							gomega.Eventually(pkg.PodsRunning("cattle-system", expectedPodsCattleSystem), waitTimeout, pollingInterval).
+								Should(gomega.BeTrue())
+						}
 					},
 					func() {
 						gomega.Eventually(pkg.PodsRunning("keycloak", expectedPodsKeycloak), waitTimeout, pollingInterval).
@@ -157,11 +180,6 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 							Should(gomega.BeTrue())
 					},
 				)
-			})
-
-		ginkgo.It("The pod vmi-system-api is not there",
-			func() {
-				gomega.Expect(vzComponentPresent("vmi-system-api", "verrazzano-system")).To(gomega.Equal(false))
 			})
 	})
 
