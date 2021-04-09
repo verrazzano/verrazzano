@@ -482,6 +482,11 @@ pipeline {
                                 runGinkgo('examples/helidon')
                             }
                         }
+                        stage('examples helidon-config') {
+                            steps {
+                                runGinkgo('examples/helidonconfig')
+                            }
+                        }
                         stage('examples bobs') {
                             when {
                                 expression {params.RUN_SLOW_TESTS == true}
