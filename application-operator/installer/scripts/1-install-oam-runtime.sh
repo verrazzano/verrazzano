@@ -27,14 +27,13 @@ function install_oam {
   fi
 
   log "Install OAM"
-  helm install oam \
-      --namespace "${NAMESPACE}" \
-      --set image.repostiory=ghcr.io/verrazzano/oam-kubernetes-runtime \
-      --set image.tag=v0.3.0 \
-      --version 0.3.0 \
-      crossplane-master/oam-kubernetes-runtime
+  helm upgrade --install --wait oam-kubernetes-runtime \
+    ${SCRIPT_DIR}/../../../platform-operator/thirdparty/charts/oam-kubernetes-runtime \
+    --namespace "${VERRAZZANO_NS}" \
+    -f ${SCRIPT_DIR}/../../../platform-operator/helm_config/overrides/oam-kubernetes-runtime-values.yaml \
+    || return $?
   if [ $? -ne 0 ]; then
-    error "Failed to OAM Helm install."
+    error "Failed to install OAM Kubernetes operator."
     return 1
   fi
 
