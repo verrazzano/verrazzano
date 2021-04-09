@@ -1,5 +1,6 @@
 # Network policy for Elasticsearch master single pod installation
-{{- if .Values.elasticSearch.nodes.data.replicas eq 0 and .Values.elasticSearch.enabled eq "true"}}
+{{- if .Values.elasticSearch.enabled}}
+{{- if .Values.elasticSearch.singlePod}}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -41,10 +42,9 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
-{{- end }}
+{{- else }}
 ---
 # Network policy for Elasticsearch full multi-pod installation
-{{- if .Values.elasticSearch.nodes.data.replicas ne 0 and .Values.elasticSearch.enabled eq "true"}}
 
 # Network policy for Elasticsearch master
 apiVersion: networking.k8s.io/v1
@@ -288,4 +288,5 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
+{{- end }}
 {{- end }}
