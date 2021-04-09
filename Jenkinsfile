@@ -136,6 +136,44 @@ pipeline {
             }
         }
 
+        stage('Analysis Tool') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    anyOf {
+                        branch 'master';
+                        branch 'release-*';
+                        expression {params.BUILD_ANALYSIS_TOOL == true};
+                    }
+                }
+            }
+            environment {
+                OCI_CLI_AUTH="instance_principal"
+                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                OCI_OS_BUCKET="verrazzano-builds"
+            }
+            steps {
+                sh """
+                    echo "debug 1"
+                    cd ${GO_REPO_PATH}/verrazzano/tools/analysis
+                    echo "debug 2"
+                    make go-build
+                    echo "debug 3"
+                    cd out
+                    echo "debug 4"
+                    zip -r ${WORKSPACE}/analysis-tool.zip linux_amd64 darwin_amd64
+                    echo "debug 5"
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
+                    echo "debug 6"
+                """
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/analysis-tool.zip', allowEmptyArchive: true
+                }
+            }
+        }
+
         stage('Generate operator.yaml') {
             when { not { buildingTag() } }
             steps {
@@ -251,38 +289,6 @@ pipeline {
             post {
                 always {
                     archiveArtifacts artifacts: '**/scanning-report.json', allowEmptyArchive: true
-                }
-            }
-        }
-
-        stage('Analysis Tool') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    anyOf {
-                        branch 'master';
-                        branch 'release-*';
-                        expression {params.BUILD_ANALYSIS_TOOL == true};
-                    }
-                }
-            }
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
-            }
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano/tools/analysis
-                    make go-build
-                    cd out
-                    zip -r ${WORKSPACE}/analysis-tool.zip linux_amd64 darwin_amd64
-                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
-                """
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/analysis-tool.zip', allowEmptyArchive: true
                 }
             }
         }
