@@ -1,28 +1,27 @@
 # Analysis Tooling
-The analysis tooling analyzes data from a variety of sources (cluster dumps, build logs, etc...) and report on issues found and actions to take related to the issues found.  These tools are continually evolving, for example what may be captured, the knowledge base of issues/actions, the types of analysis that can be performed, etc...
+The analysis tooling analyzes data from a variety of sources (cluster dumps, build logs, and such), reports the issues found and related actions to take.  These tools are continually evolving with regard to what may be captured, the knowledge base of issues and actions, the types of analysis that can be performed, and so on.
 
-The intention is that this tooling can be used by the CI, developers, and users to quickly identify the root cause of problems that are encountered, actions which can be taken to mitigate those issues, and provide a report which is sharable with others users/tooling.
+Users, developers, and Continuous Integration (CI) can use this tooling to quickly identify the root cause of encountered problems, mitigation actions for those issues, and provide a sharable report with other users or tooling.
 
-The data which the analysis looks at is expected to follow the structure created by the corresponding capture tooling.
+The data at which the analysis examines follows the structure created by the corresponding capture tooling.
 
-For example: tools/scripts/k8s-dump-cluster.sh will dump a cluster into a specific structure which may contain data which you do not want to share. The analysis tooling will analyze the data and provide you with a report which will identify issues and provide actions to take.
-All of this data is entirely under your control and you can choose whether to share it with anyone else or not.
+For example, `tools/scripts/k8s-dump-cluster.sh` dumps a cluster into a specific structure, which may contain data that you do not want to share. The analysis tooling analyzes the data and provides you with a report, which will identify issues and provide actions for you to take.
+This data is entirely under your control; you can choose whether to share it.
 
-The types of analysis initially supported:
-- cluster
-- build
+The types of analysis initially supported are:
+- Cluster
+- Build
 
-We likely will also add other analysis types as well (for more localized build/install seems likely, etc...)
 
-## Cluster Analysis
+## Cluster analysis
 
-The cluster analysis looks at all cluster-dump's which are found under the specified root directory, and provides a report.
+The cluster analysis examines all cluster dumps which are found under a specified root directory and provides a report.
 
-### Directory Structures Expected
+### Expected directory structures
 
-The k8s-dump-cluster tool creates a directory structure, and as such we expect the directory structure for a specific cluster dump to appear as follows
+Using the `k8s-dump-cluster` tool, the directory structure for a specific cluster dump appears as follows:
 
-    $CAPTURE_DIR
+    $ CAPTURE_DIR
       cluster-dump
         directory per namespace (a directory at this level is assumed to represent a namespace)
           daemonsets.json
@@ -52,26 +51,27 @@ The k8s-dump-cluster tool creates a directory structure, and as such we expect t
         verrazzano_resources.out
         virtualservices.json
 
-#### Single Cluster Analysis Structure Expected
+#### Single cluster analysis structure
 
-Given a dump from the k8s-dump-cluster.sh tool, we have the following directory structure:
+Using the `k8s-dump-cluster.sh` tool, a single cluster dump yields the following directory structure:
 
-    $CAPTURE_DIR
+    $ CAPTURE_DIR
         cluster-dump
             ...
 
-To perform an analysis of that dumped cluster:
-`go run analyze.go --analysis=cluster $CAPTURE_DIR`
+To perform an analysis of that cluster run:
 
-#### Multiple Cluster Analysis Structure Expected
+`$ go run analyze.go --analysis=cluster $CAPTURE_DIR`
 
-The cluster analysis will find and analyze all cluster-dump directories found under a specified root directory.
+#### Multiple cluster analysis structure
 
-It is unclear whether k8s-dump-cluster.sh will capture all related clusters or whether each would require a separate k8s-dump-cluster.sh be done.
+The cluster analysis will find and analyze all cluster dump directories found under a specified root directory.
+
+It is unclear whether `k8s-dump-cluster.sh` will capture all related clusters or whether each would require a separate `k8s-dump-cluster.sh` be done.
 
 TBD: The assumption is that if k8s-dump-cluster.sh can do that, structure may look something like this:
 
-    $CAPTURE_DIR
+    $ CAPTURE_DIR
         admin-cluster
             cluster-dump
                 ...
@@ -79,33 +79,33 @@ TBD: The assumption is that if k8s-dump-cluster.sh can do that, structure may lo
             cluster-dump
                 ...
 
-To perform an analysis of the dumped clusters, the analysis will analyze each cluster-dump directory found, so you just need to give the single root directory:
+The tool will analyze each cluster dump directory found, so you just need to provide the single root directory. To perform an analysis of the clusters, run:
 
-`go run analyze.go --analysis=cluster $CAPTURE_DIR`
+`$ go run analyze.go --analysis=cluster $CAPTURE_DIR`
 
-## Build Log Analysis
+## Build log analysis
 
 TBD: This is useful for analyzing CI build level output, this makes assumptions about logs captured during the CI build and tests.
 TBD: This will look at least for general things like image handling issues, but it may also look for more specific artifacts from verrazzano builds such as build and install logs. This may be more generally useful in the builds...
 
-`analyze -analysis=build buildoutputdir'
+`$ analyze -analysis=build buildoutputdir`
 
-## Build Executable
-To build the analysis tool executable image:
+## Build executable
+To build the analysis tool executable:
 
 ```
-cd verrazzano/tools/analysis
-make go-build
+$ cd verrazzano/tools/analysis
+$ make go-build
 ```
 
-This will create an executable image for your current platform in the "out" directory. For example:
+This will create an executable image for your current platform in the `out` directory. For example:
 ```
 out/Darwin_x86_64/verrazzano-analysis
 ```
 ## Usage
-If you have built the executable image for your platform, you may execute it as follows:
+If you have built the executable image for your platform, then you run it as follows:
 ```
-verrazzano-analysis [options] captured-data-directory
+$ verrazzano-analysis [options] captured-data-directory
 
 Options:
     -analysis=string
@@ -136,10 +136,11 @@ Options:
 
 
 ## Docker image
-The analysis tool can be built and executed from a docker container. For example, if you build the docker image locally, and execute analysis against existing cluster-dumps.
+The analysis tool can be built and run from a Docker container. For example, if you build the Docker image locally and run the analysis against existing cluster dumps:
 
-- make docker-build
-- Make note of the verrazzano-analysis-dev image which was built and run it. You need to map your local host's directory into the container and supply the mounted location to the analysis command line.
-- docker run verrazzano-analysis-dev:local-0d987e15 -v /Users/myuser/triage:/triage /triage
+- `make docker-build`
+
+   Make note of the `verrazzano-analysis-dev` image which was built and run it. You need to map your local host's directory into the container and supply the mounted location to the analysis command line.
+- `docker run verrazzano-analysis-dev:local-0d987e15 -v /Users/myuser/triage:/triage /triage`
 
 TBD: It is likely this will be extended to optionally dump a cluster and then analyze it.
