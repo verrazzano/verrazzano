@@ -104,10 +104,6 @@ spec:
         - name: CATTLE_SYSTEM_CATALOG
           value: bundled
 {{- end }}
-{{- if .Values.restrictedAdmin }}
-        - name: CATTLE_RESTRICTED_DEFAULT_ADMIN
-          value: "true"
-{{- end}}
 {{- if .Values.extraEnv }}
 {{ toYaml .Values.extraEnv | indent 8}}
 {{- end }}
@@ -143,15 +139,6 @@ spec:
           subPath: cacerts.pem
           readOnly: true
 {{- end }}
-{{- if and .Values.customLogos.enabled (or (eq .Values.customLogos.volumeKind "persistentVolumeClaim") (and (eq .Values.customLogos.volumeKind "configMap") (.Values.customLogos.volumeName))) }}
-        # Mount rancher custom-logos volume
-        - mountPath: /usr/share/rancher/ui/assets/images/logos
-          name: custom-logos
-          subPath: {{ .Values.customLogos.volumeSubpaths.emberUi | default "ember" | quote }}
-        - mountPath: /usr/share/rancher/ui-dashboard/dashboard/_nuxt/assets/images/pl
-          name: custom-logos
-          subPath: {{ .Values.customLogos.volumeSubpaths.vueUi | default "vue" | quote }}
-{{- end }}
 {{- if gt (int .Values.auditLog.level) 0 }}
         - mountPath: /var/log/auditlog
           name: audit-log
@@ -159,7 +146,6 @@ spec:
 {{- if gt (int .Values.auditLog.level) 0 }}
       # Make audit logs available for Rancher log collector tools.
       - image: {{ .Values.busyboxImage }}
-        imagePullPolicy: {{ default "IfNotPresent" .Values.busyboxImagePullPolicy }}
         name: {{ template "rancher.name" . }}-audit-log
         command: ["tail"]
         args: ["-F", "/var/log/auditlog/rancher-api-audit.log"]
@@ -189,15 +175,5 @@ spec:
   {{- else }}
       - name: audit-log
         emptyDir: {}
-  {{- end }}
-{{- end }}
-{{- if and .Values.customLogos.enabled (or (eq .Values.customLogos.volumeKind "persistentVolumeClaim") (and (eq .Values.customLogos.volumeKind "configMap") (.Values.customLogos.volumeName))) }}
-      - name: custom-logos
-  {{- if (eq .Values.customLogos.volumeKind "persistentVolumeClaim") }}
-        persistentVolumeClaim:
-          claimName: {{ .Values.customLogos.volumeName | default (printf "%s-custom-logos" (include "rancher.fullname" .)) }}
-  {{- else if (eq .Values.customLogos.volumeKind "configMap") }}
-        configMap:
-          name: {{ .Values.customLogos.volumeName }}
   {{- end }}
 {{- end }}
