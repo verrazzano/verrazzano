@@ -157,6 +157,7 @@ pipeline {
                     cd out
                     zip -r ${WORKSPACE}/analysis-tool.zip linux_amd64 darwin_amd64
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
                 """
             }
             post {
