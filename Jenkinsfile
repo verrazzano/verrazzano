@@ -154,17 +154,11 @@ pipeline {
             }
             steps {
                 sh """
-                    echo "debug 1"
                     cd ${GO_REPO_PATH}/verrazzano/tools/analysis
-                    echo "debug 2"
                     make go-build
-                    echo "debug 3"
                     cd out
-                    echo "debug 4"
                     zip -r ${WORKSPACE}/analysis-tool.zip linux_amd64 darwin_amd64
-                    echo "debug 5"
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/analysis-tool.zip --file ${WORKSPACE}/analysis-tool.zip
-                    echo "debug 6"
                 """
             }
             post {
