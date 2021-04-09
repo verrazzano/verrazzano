@@ -262,7 +262,7 @@ pipeline {
                     anyOf {
                         branch 'master';
                         branch 'release-*';
-                        expression {BUILD_ANALYSIS_TOOL == true};
+                        expression {params.BUILD_ANALYSIS_TOOL == true};
                     }
                 }
             }
