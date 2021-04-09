@@ -18,15 +18,15 @@ import (
 )
 
 const (
-	TestNamespace = "hello-helidon"
+	TestNamespace   = "hello-helidon"
 	pollingInterval = 5 * time.Second
 	waitTimeout     = 5 * time.Minute
 
 	multiclusterNamespace = "verrazzano-mc"
-	projectName   = "hello-helidon"
-	appConfigName = "hello-helidon-appconf"
-	componentName = "hello-helidon-component"
-	workloadName  = "hello-helidon-workload"
+	projectName           = "hello-helidon"
+	appConfigName         = "hello-helidon-appconf"
+	componentName         = "hello-helidon-component"
+	workloadName          = "hello-helidon-workload"
 )
 
 var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
@@ -58,6 +58,13 @@ func DeployChangePlacement(kubeConfigPath string) error {
 	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/change-placement/mc-hello-helidon-app.yaml", kubeConfigPath); err != nil {
 		return fmt.Errorf("Failed to create multi-cluster hello-helidon application resource: %v", err)
 	}
+	// This is a temporary timer until this bug is fixed: VZ-2448
+	// Allow the MC objects to sync before the change in the VerrazzanoProject
+	time.Sleep(time.Minute)
+
+	if err := pkg.CreateOrUpdateResourceFromFileInCluster("examples/multicluster/change-placement/verrazzano-project.yaml", kubeConfigPath); err != nil {
+		return fmt.Errorf("Failed to create VerrazzanoProject resource: %v", err)
+	}
 	return nil
 }
 
@@ -80,15 +87,20 @@ func VerifyMCResources(kubeconfigPath string, isAdminCluster bool, placedInThisC
 
 // VerifyHelloHelidonInCluster verifies that the hello helidon app resources are either present or absent
 // depending on whether the app is placed in this cluster
-func VerifyHelloHelidonInCluster(kubeConfigPath string, placedInThisCluster bool) bool {
+func VerifyHelloHelidonInCluster(kubeConfigPath string, isAdminCluster bool, placedInThisCluster bool) bool {
 	projectExists := projectExists(kubeConfigPath)
 	workloadExists := componentWorkloadExists(kubeConfigPath)
 	podsRunning := helloHelidonPodsRunning(kubeConfigPath)
 
-	if !placedInThisCluster {
-		return projectExists && !workloadExists && !podsRunning
-	} else {
+	if placedInThisCluster {
 		return projectExists && workloadExists && podsRunning
+	} else {
+		if isAdminCluster {
+			return projectExists && !workloadExists && !podsRunning
+		} else {
+			// When VZ-2454 is fixed, add !projectExists to the ands
+			return !workloadExists && !podsRunning
+		}
 	}
 }
 
