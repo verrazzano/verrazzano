@@ -105,10 +105,12 @@ function delete_rancher() {
 
   # Deleting rancher components
   log "Deleting rancher"
-  helm ls -A \
-    | awk '/rancher/ {print $1}' \
-    | xargsr helm uninstall -n cattle-system \
-    || err_return $? "Could not delete rancher from helm" || return $? # return on pipefail
+  helm ls -n fleet-system | awk '/fleet/ {print $1}' | xargsr helm uninstall -n fleet-system \
+    || err_return $? "Could not delete fleet-system charts from helm" || return $? # return on pipefail
+  helm ls -n rancher-operator-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n rancher-operator-system \
+    || err_return $? "Could not delete rancher-operator-system charts from helm" || return $? # return on pipefail
+  helm ls -n cattle-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n cattle-system \
+    || err_return $? "Could not delete cattle-system from helm" || return $? # return on pipefail
 
   log "Deleting CRDs from rancher"
 
@@ -153,14 +155,14 @@ function delete_rancher() {
   log "Deleting ConfigMap"
   kubectl delete configmap cattle-controllers -n kube-system  --ignore-not-found=true || err_return $? "Could not delete ConfigMap from Rancher in namespace kube-system" || return $?
 
-  log "Deleting cattle namespaces"
+  log "Removing Rancher namespace finalizers"
   # delete namespace finalizers
-  patch_k8s_resources namespaces ":metadata.name" "Could not remove finalizers from namespaces in Rancher" '/cattle-|local|p-|user-/ {print $1}' '{"metadata":{"finalizers":null}}' \
+  patch_k8s_resources namespaces ":metadata.name" "Could not remove finalizers from namespaces in Rancher" '/cattle-|local|p-|user-|fleet|rancher/ {print $1}' '{"metadata":{"finalizers":null}}' \
     || return $? # return on pipefail
 
   # delete cattle namespaces
   log "Delete rancher namespace"
-  delete_k8s_resources namespaces ":metadata.name" "Could not delete namespaces from Rancher" '/cattle-|local|p-|user-/ {print $1}' \
+  delete_k8s_resources namespaces ":metadata.name" "Could not delete namespaces from Rancher" '/cattle-|local|p-|user-|fleet|rancher/ {print $1}' \
     || return $? # return on pipefail
 
   # delete annotations left in kube-system secrets
