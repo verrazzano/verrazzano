@@ -118,6 +118,14 @@ config:
   dnsSuffix: verrazzano.io
   enableMonitoringStorage: true
 
+security:
+  adminSubjects:
+    "verrazzano-admins":
+      kind: group
+  monitorSubjects:
+    "verrazzano-monitors":
+      kind: group
+
 kubernetes:
   service:
     endpoint:

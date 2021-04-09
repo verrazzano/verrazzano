@@ -85,10 +85,10 @@ type VerrazzanoSpec struct {
 
 // SecuritySpec defines the security configuration for Verrazzano
 type SecuritySpec struct {
-	// AdminSubjects specifies the subjects that should be bound to the verrazzano-admin role
+	// AdminSubjects specifies subjects that should be bound to the verrazzano-admin role
 	// +optional
 	AdminSubjects []rbacv1.Subject `json:"adminSubjects,omitempty"`
-	// MonitorSubjects specifies the subjects that should be bound to the verrazzano-monitor role
+	// MonitorSubjects specifies subjects that should be bound to the verrazzano-monitor role
 	// +optional
 	MonitorSubjects []rbacv1.Subject `json:"monitorSubjects,omitempty"`
 }
