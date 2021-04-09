@@ -465,13 +465,6 @@ pipeline {
         }
     }
     post {
-        success {
-            script {
-                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                    dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
-                }
-            }
-        }
         failure {
             // sh """
             //    curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
