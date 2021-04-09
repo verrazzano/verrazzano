@@ -45,7 +45,7 @@ helm fetch jetstack/cert-manager --untar=true --version=${CERT_MANAGER_CHART_VER
 The `rancher` folder was created by running the following commands:
 
 ```
-export RANCHER_CHART_VERSION=v2.4.3
+export RANCHER_CHART_VERSION=v2.5.7
 rm -rf rancher
 helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
 helm repo update

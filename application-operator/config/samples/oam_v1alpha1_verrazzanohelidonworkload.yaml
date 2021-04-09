@@ -12,7 +12,11 @@ spec:
       labels:
         app: hello-helidon
     spec:
-      replicas: 2
+      strategy:
+        type: RollingUpdate
+        rollingUpdate:
+          maxSurge: 25%
+          maxUnavailable: 25%
       podSpec:
         containers:
           - name: hello-helidon-container

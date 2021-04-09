@@ -98,6 +98,10 @@ func LogRecordFound(indexName string, after time.Time, fields map[string]string)
 // in the given cluster
 func LogRecordFoundInCluster(indexName string, after time.Time, fields map[string]string, kubeconfigPath string) bool {
 	searchResult := querySystemElasticSearch(indexName, fields, kubeconfigPath)
+	if searchResult == nil {
+		Log(Info, fmt.Sprintf("Expected to find log record matching fields %v", fields))
+		return false
+	}
 	hits := Jq(searchResult, "hits", "hits")
 	if hits == nil {
 		Log(Info, "Expected to find hits in log record query results")

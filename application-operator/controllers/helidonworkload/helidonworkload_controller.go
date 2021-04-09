@@ -60,10 +60,6 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // Reconcile reconciles a VerrazzanoHelidonWorkload resource. It fetches the embedded DeploymentSpec, mutates it to add
 // scopes and traits, and then writes out the apps/Deployment (or deletes it if the workload is being deleted).
-// +kubebuilder:rbac:groups=oam.verrazzano.io,resources=verrazzanohelidonworkloads,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=oam.verrazzano.io,resources=verrazzanohelidonworkloads/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("verrazzanohelidonworkload", req.NamespacedName)
@@ -202,8 +198,8 @@ func (r *Reconciler) convertWorkloadToDeployment(
 	// Set metadata on deployment from workload spec's metadata
 	d.ObjectMeta.SetLabels(workload.Spec.DeploymentTemplate.Metadata.GetLabels())
 	d.ObjectMeta.SetAnnotations(workload.Spec.DeploymentTemplate.Metadata.GetAnnotations())
-	// Set replication deployment from workload spec
-	d.Spec.Replicas = workload.Spec.DeploymentTemplate.Replicas
+	// Set deployment strategy from workload spec
+	d.Spec.Strategy = workload.Spec.DeploymentTemplate.Strategy
 	// Set PodSpec on deployment's PodTemplate from workload spec
 	workload.Spec.DeploymentTemplate.PodSpec.DeepCopyInto(&d.Spec.Template.Spec)
 	// making sure pods have same label as selector on deployment
