@@ -48,8 +48,9 @@ function install_mysql {
   # Allow the keycloak user to create/drop tables, indices, foreign key references, and read/write to all tables in keycloak schema
   echo "GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON keycloak.* TO '${MYSQL_USERNAME}'@'%';" >> ${TMP_DIR}/create-db.sql
   echo "FLUSH PRIVILEGES;" >> ${TMP_DIR}/create-db.sql
-  EXTRA_MYSQL_ARGUMENTS="$EXTRA_MYSQL_ARGUMENTS --set-file initializationFiles.create-db=${TMP_DIR}/create-db.sql"
+  EXTRA_MYSQL_ARGUMENTS="$EXTRA_MYSQL_ARGUMENTS --set-file initializationFiles.create-db\.sql=${TMP_DIR}/create-db.sql"
 
+  log "EXTRA MYSQL ARGS: ${EXTRA_MYSQL_ARGUMENTS}"
   log "Install MySQL helm chart"
   helm upgrade mysql ${MYSQL_CHART_DIR} \
       --install \
