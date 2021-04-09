@@ -1,11 +1,11 @@
 # Summary
-Analysis detected that the Verrazzano install failed while installing the NGINX Ingress Controller.
+Analysis detected that the Verrazzano installation failed while installing the NGINX Ingress Controller.
 
-The root cause appears to be an OCI IP non-ephemeral address limit has been reached.
+The root cause appears to be that an OCI IP non-ephemeral address limit has been reached.
 
-# Steps
+## Steps
 1. Review the messages from the supporting details for the exact limit.
-2. Refer to the OCI documentation related to managing IP Addresses: https://docs.oracle.com/en-us/iaas/Content/Network/Tasks/managingpublicIPs.htm#overview
+2. Refer to the OCI documentation related to managing [IP Addresses](https://docs.oracle.com/en-us/iaas/Content/Network/Tasks/managingpublicIPs.htm#overview).
 
-# Related Information
+## Related information
 * https://docs.oracle.com/en-us/iaas/Content/Network/Tasks/managingpublicIPs.htm#overview
