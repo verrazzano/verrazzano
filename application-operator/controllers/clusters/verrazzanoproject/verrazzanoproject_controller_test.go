@@ -111,12 +111,17 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 		{Kind: "User", Name: "project-monitor-test-user"},
 	}
 
+	clusterList := []clustersv1alpha1.Cluster{
+		{Name: clusterstest.UnitTestClusterName},
+	}
+
 	type fields struct {
 		vpNamespace     string
 		vpName          string
 		nsList          []clustersv1alpha1.NamespaceTemplate
 		adminSubjects   []rbacv1.Subject
 		monitorSubjects []rbacv1.Subject
+		placementList   []clustersv1alpha1.Cluster
 	}
 	tests := []struct {
 		name    string
@@ -131,6 +136,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 				[]clustersv1alpha1.NamespaceTemplate{existingNS},
 				adminSubjects,
 				monitorSubjects,
+				clusterList,
 			},
 			false,
 		},
@@ -142,6 +148,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 				[]clustersv1alpha1.NamespaceTemplate{newNS},
 				nil,
 				nil,
+				clusterList,
 			},
 			false,
 		},
@@ -153,6 +160,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 				[]clustersv1alpha1.NamespaceTemplate{newNS},
 				adminSubjects,
 				nil,
+				clusterList,
 			},
 			false,
 		},
@@ -164,6 +172,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 				[]clustersv1alpha1.NamespaceTemplate{newNS},
 				nil,
 				monitorSubjects,
+				clusterList,
 			},
 			false,
 		},
@@ -175,6 +184,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 				[]clustersv1alpha1.NamespaceTemplate{newNS},
 				nil,
 				nil,
+				clusterList,
 			},
 			false,
 		},
@@ -186,6 +196,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 				[]clustersv1alpha1.NamespaceTemplate{existingNS},
 				nil,
 				nil,
+				clusterList,
 			},
 			false,
 		},
@@ -208,6 +219,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 						vp.Spec.Template.Namespaces = tt.fields.nsList
 						vp.Spec.Template.Security.ProjectAdminSubjects = tt.fields.adminSubjects
 						vp.Spec.Template.Security.ProjectMonitorSubjects = tt.fields.monitorSubjects
+						vp.Spec.Placement.Clusters = tt.fields.placementList
 						return nil
 					})
 
