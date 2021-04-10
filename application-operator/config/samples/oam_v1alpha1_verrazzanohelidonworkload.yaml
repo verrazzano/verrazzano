@@ -5,12 +5,12 @@ apiVersion: oam.verrazzano.io/v1alpha1
 kind: VerrazzanoHelidonWorkload
 metadata:
   name: verrazzanohelidonworkload-sample
+  labels:
+    app: hello-helidon
 spec:
   deploymentTemplate:
     metadata:
       name: hello-helidon-deployment
-      labels:
-        app: hello-helidon
     spec:
       strategy:
         type: RollingUpdate
