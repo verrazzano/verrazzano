@@ -586,7 +586,7 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]Install
 				err := fmt.Errorf("Invalid apiGroup '%s' for adminSubjects[%d]", v.APIGroup, i)
 				return []InstallArg{}, err
 			}
-			if v.Kind == "ServiceAccount" && (len(v.APIGroup) > 0 || v.APIGroup != "") {
+			if v.Kind == "ServiceAccount" && len(v.APIGroup) > 0 && v.APIGroup != "\"\"" {
 				err := fmt.Errorf("Invalid apiGroup '%s' for adminSubjects[%d]", v.APIGroup, i)
 				return []InstallArg{}, err
 			}
