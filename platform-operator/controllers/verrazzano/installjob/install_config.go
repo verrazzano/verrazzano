@@ -574,6 +574,26 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]Install
 	}
 	if len(vzSpec.Security.AdminSubjects) > 0 {
 		for i, v := range vzSpec.Security.AdminSubjects {
+			if len(v.Name) < 1 {
+				err := fmt.Errorf("No name for adminSubjects[%d]", i)
+				return []InstallArg{}, err
+			}
+			if v.Kind != "User" && v.Kind != "Group" && v.Kind != "ServiceAccount" {
+				err := fmt.Errorf("Invalid kind '%s' for adminSubjects[%d]", v.Kind, i)
+				return []InstallArg{}, err
+			}
+			if (v.Kind == "User" || v.Kind == "Group") && len(v.APIGroup) > 0 && v.APIGroup != "rbac.authorization.k8s.io" {
+				err := fmt.Errorf("Invalid apiGroup '%s' for adminSubjects[%d]", v.APIGroup, i)
+				return []InstallArg{}, err
+			}
+			if v.Kind == "ServiceAccount" && (len(v.APIGroup) > 0 || v.APIGroup != "") {
+				err := fmt.Errorf("Invalid apiGroup '%s' for adminSubjects[%d]", v.APIGroup, i)
+				return []InstallArg{}, err
+			}
+			if v.Kind == "ServiceAccount" && len(v.Namespace) < 1 {
+				err := fmt.Errorf("No namespace for ServiceAccount in adminSubjects[%d]", i)
+				return []InstallArg{}, err
+			}
 			args = append(args, InstallArg{
 				Name:      fmt.Sprintf("security.adminSubjects.subject-%d.name", i),
 				Value:     v.Name,
@@ -602,6 +622,26 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]Install
 	}
 	if len(vzSpec.Security.MonitorSubjects) > 0 {
 		for i, v := range vzSpec.Security.MonitorSubjects {
+			if len(v.Name) < 1 {
+				err := fmt.Errorf("No name for monitorSubjects[%d]", i)
+				return []InstallArg{}, err
+			}
+			if v.Kind != "User" && v.Kind != "Group" && v.Kind != "ServiceAccount" {
+				err := fmt.Errorf("Invalid kind '%s' for monitorSubjects[%d]", v.Kind, i)
+				return []InstallArg{}, err
+			}
+			if (v.Kind == "User" || v.Kind == "Group") && len(v.APIGroup) > 0 && v.APIGroup != "rbac.authorization.k8s.io" {
+				err := fmt.Errorf("Invalid apiGroup '%s' for monitorSubjects[%d]", v.APIGroup, i)
+				return []InstallArg{}, err
+			}
+			if v.Kind == "ServiceAccount" && (len(v.APIGroup) > 0 || v.APIGroup != "") {
+				err := fmt.Errorf("Invalid apiGroup '%s' for monitorSubjects[%d]", v.APIGroup, i)
+				return []InstallArg{}, err
+			}
+			if v.Kind == "ServiceAccount" && len(v.Namespace) < 1 {
+				err := fmt.Errorf("No namespace for ServiceAccount in monitorSubjects[%d]", i)
+				return []InstallArg{}, err
+			}
 			args = append(args, InstallArg{
 				Name:      fmt.Sprintf("security.monitorSubjects.subject-%d.name", i),
 				Value:     v.Name,

@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -589,29 +590,29 @@ func TestGetVerrazzanoInstallArgsPVCVolumeSource(t *testing.T) {
 func TestGetVerrazzanoInstallArgsWithSecurity(t *testing.T) {
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Security: installv1alpha1.SecuritySpec{
-			AdminBinding: installv1alpha1.RoleBindingSubject{
+			AdminSubjects: []rbacv1.Subject{{
 				Kind: "User",
 				Name: "kilgore-trout",
-			},
-			MonitorBinding: installv1alpha1.RoleBindingSubject{
+			}},
+			MonitorSubjects: []rbacv1.Subject{{
 				Kind: "Group",
 				Name: "group-of-monitors",
-			},
+			}},
 		},
 	}
 	args, err := getVerrazzanoInstallArgs(&vzSpec)
 	assert.Len(t, args, 4)
 	assert.Nil(t, err)
-	assert.Equal(t, "userrolebindings.admin.name", args[0].Name)
+	assert.Equal(t, "security.adminSubjects.subject-0.name", args[0].Name)
 	assert.Equal(t, "kilgore-trout", args[0].Value)
 	assert.True(t, args[0].SetString)
-	assert.Equal(t, "userrolebindings.admin.kind", args[1].Name)
+	assert.Equal(t, "security.adminSubjects.subject-0.kind", args[1].Name)
 	assert.Equal(t, "User", args[1].Value)
 	assert.True(t, args[1].SetString)
-	assert.Equal(t, "userrolebindings.monitor.name", args[2].Name)
+	assert.Equal(t, "security.monitorSubjects.subject-0.name", args[2].Name)
 	assert.Equal(t, "group-of-monitors", args[2].Value)
 	assert.True(t, args[2].SetString)
-	assert.Equal(t, "userrolebindings.monitor.kind", args[3].Name)
+	assert.Equal(t, "security.monitorSubjects.subject-0.kind", args[3].Name)
 	assert.Equal(t, "Group", args[3].Value)
 	assert.True(t, args[3].SetString)
 }
@@ -623,10 +624,10 @@ func TestGetVerrazzanoInstallArgsWithSecurity(t *testing.T) {
 func TestGetVerrazzanoInstallArgsWithSecurityInvalidSubjectKind(t *testing.T) {
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Security: installv1alpha1.SecuritySpec{
-			MonitorBinding: installv1alpha1.RoleBindingSubject{
+			MonitorSubjects: []rbacv1.Subject{{
 				Kind: "BadKind",
 				Name: "bad-kind-name",
-			},
+			}},
 		},
 	}
 	args, err := getVerrazzanoInstallArgs(&vzSpec)
@@ -647,10 +648,10 @@ func TestGetVerrazzanoInstallArgsWithSecurityAndPVCVolumeSource(t *testing.T) {
 	storageClass := "mystorageclass"
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Security: installv1alpha1.SecuritySpec{
-			AdminBinding: installv1alpha1.RoleBindingSubject{
+			AdminSubjects: []rbacv1.Subject{{
 				Kind: "User",
 				Name: "kilgore-trout",
-			},
+			}},
 		},
 		DefaultVolumeSource: &corev1.VolumeSource{
 			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
@@ -681,10 +682,10 @@ func TestGetVerrazzanoInstallArgsWithSecurityAndPVCVolumeSource(t *testing.T) {
 	assert.Equal(t, prometheusStorageValueName, args[2].Name)
 	assert.Equal(t, "50Gi", args[2].Value)
 	assert.True(t, args[2].SetString)
-	assert.Equal(t, "userrolebindings.admin.name", args[3].Name)
+	assert.Equal(t, "security.adminSubjects.subject-0.name", args[3].Name)
 	assert.Equal(t, "kilgore-trout", args[3].Value)
 	assert.True(t, args[3].SetString)
-	assert.Equal(t, "userrolebindings.admin.kind", args[4].Name)
+	assert.Equal(t, "security.adminSubjects.subject-0.kind", args[4].Name)
 	assert.Equal(t, "User", args[4].Value)
 	assert.True(t, args[4].SetString)
 }
