@@ -11,7 +11,6 @@ KUBECONFIG=$3
 K8S_VERSION=$4
 CLEANUP_KIND_CONTAINERS=${5:-true}
 CONNECT_JENKINS_RUNNER_TO_NETWORK=${6:-true}
-KIND_AT_CACHE=${7:-false}
 KIND_IMAGE=""
 
 create_kind_cluster() {
@@ -46,13 +45,8 @@ create_kind_cluster() {
   echo "Kubeconfig ${KUBECONFIG}"
   echo "KIND Image : ${KIND_IMAGE}"
   cd ${SCRIPT_DIR}/
-  KIND_CONFIG_FILE=kind-config.yaml
-  if [ ${KIND_AT_CACHE} == true ]; then
-    echo "Using kind-config-ci.yaml for pre-created cache"
-    KIND_CONFIG_FILE=kind-config-ci.yaml
-  fi
-  sed -i "s/KIND_IMAGE/${KIND_IMAGE}/g" ${KIND_CONFIG_FILE}
-  HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 --name ${CLUSTER_NAME} --wait 5m --config=${KIND_CONFIG_FILE}
+  sed -i "s/KIND_IMAGE/${KIND_IMAGE}/g" kind-config.yaml
+  HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 --name ${CLUSTER_NAME} --wait 5m --config=kind-config.yaml
   kubectl config set-context kind-${CLUSTER_NAME}
   sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
   cat ${KUBECONFIG} | grep server

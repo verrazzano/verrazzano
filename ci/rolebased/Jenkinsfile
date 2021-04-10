@@ -61,7 +61,6 @@ pipeline {
         INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
-        TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
@@ -134,17 +133,60 @@ pipeline {
 
                 stage('Prepare AT environment') {
                     environment {
-                        VERRAZZANO_OPERATOR_IMAGE="NONE"
-                        KIND_KUBERNETES_CLUSTER_VERSION="1.18"
                         OCI_CLI_AUTH="instance_principal"
                         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                         OCI_OS_BUCKET="verrazzano-builds"
-                        OCI_OS_LOCATION="${SHORT_COMMIT_HASH}"
                     }
                     steps {
                         sh """
+                            echo "tests will execute" > ${TESTS_EXECUTED_FILE}
+                            echo "Create Kind cluster"
                             cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_jenkins_at_environment.sh
+                            ./ci/scripts/setup_kind_for_jenkins.sh at-tests ${KUBECONFIG}
+
+                            echo "Install metallb"
+                            cd ${GO_REPO_PATH}/verrazzano
+                            ./tests/e2e/config/scripts/install-metallb.sh
+
+                            echo "Create Image Pull Secrets"
+                            cd ${GO_REPO_PATH}/verrazzano
+                            ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                            ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                            ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+
+                            echo "Install Platform Operator"
+                            cd ${GO_REPO_PATH}/verrazzano
+                            if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
+                                echo "Using operator.yaml from object storage"
+                                oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                                cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+                            else
+                                echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
+                                env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
+                            fi
+                            kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
+
+                            # make sure ns exists
+                            ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+
+                            # create secret in verrazzano-install ns
+                            ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+
+                            # Configure the custom resource to install verrazzano on Kind
+                            echo "Installing yq"
+                            GO111MODULE=on go get github.com/mikefarah/yq/v4
+                            export PATH=${HOME}/go/bin:${PATH}
+                            ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND}
+
+                            echo "Wait for Operator to be ready"
+                            cd ${GO_REPO_PATH}/verrazzano
+                            kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+
+                            echo "Installing Verrazzano on Kind"
+                            kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}
+
+                            # wait for Verrazzano install to complete
+                            ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
                         """
                     }
                     post {
