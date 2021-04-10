@@ -52,7 +52,7 @@ INTEG_RUN_ID=
 ENV_NAME=verrazzano-application-operator
 GO ?= CGO_ENABLED=0 GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
-
+KIND_CONFIG ?= kind-config.yaml
 CRD_PATH=../platform-operator/helm_config/charts/verrazzano-application-operator/crds
 
 CLUSTER_DUMP_LOCATION ?= application-operator-integ-cluster-dump
@@ -149,21 +149,15 @@ unit-test: go-install
 #
 # Test-related tasks
 #
-CLUSTER_NAME = apo-integ
+CLUSTER_NAME = verrazzano
 VERRAZZANO_NS = verrazzano-system
 DEPLOY = deploy
 OPERATOR_SETUP = test/operatorsetup
 OAM_RUNTIME_IMAGE="ghcr.io/verrazzano/oam-kubernetes-runtime:v0.3.0-20210222205541-9e8d4fb"
 
 # These exports are needed for the install.sh
-ifdef JENKINS_KUBECONFIG
-export KUBECONFIG=${JENKINS_KUBECONFIG}
-export VERRAZZANO_KUBECONFIG=${JENKINS_KUBECONFIG}
-else
 export KUBECONFIG=${HOME}/.kube/config
 export VERRAZZANO_KUBECONFIG=${HOME}/.kube/config
-endif
-
 export VERRAZZANO_APP_OP_IMAGE=${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 .PHONY: setup-cluster
@@ -185,8 +179,6 @@ cleanup-cluster:
 
 .PHONY: create-cluster
 create-cluster:
-	# We only create a cluster here if this is not on Jenkins. Jenkins will set the cluster
-ifndef JENKINS_URL
 	kind_clusters=$$(kind get clusters) ; \
     if [ -z "$${kind_clusters}" ] || ! kind get clusters | egrep "^${CLUSTER_NAME}\$$" > /dev/null ; then \
         echo 'Create cluster...' ;\
@@ -194,18 +186,21 @@ ifndef JENKINS_URL
         HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 \
             --name ${CLUSTER_NAME} \
             --wait 5m \
-            --config=test/kind-config.yaml ;\
+            --config=test/${KIND_CONFIG} ;\
         kubectl config set-context kind-${CLUSTER_NAME} ;\
     fi
+ifdef JENKINS_URL
+	# Get the ip address of the container running the kube apiserver
+	# and update the kubeconfig file to point to that address, instead of localhost
+	sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
+	cat ${KUBECONFIG} | grep server
+
+	$$(X=$$(docker inspect $$(docker ps | grep "jenkins-runner" | awk '{ print $$1 }') | jq '.[].NetworkSettings.Networks' | grep -q kind ; echo $$?); if [[ ! $$X -eq "0" ]]; then docker network connect kind $$(docker ps | grep "jenkins-runner" | awk '{ print $$1 }'); fi)
 endif
 
 .PHONY: delete-cluster
 delete-cluster:
-ifdef JENKINS_URL
-	echo "Don't bother deleting the cluster on Jenkins, it will not be re-used by anything else"
-else
 	kind delete cluster --name ${CLUSTER_NAME}
-endif
 
 #
 # Kubernetes-related tasks

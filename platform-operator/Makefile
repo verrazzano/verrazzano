@@ -13,14 +13,7 @@ CONTROLLER_GEN_VERSION ?= $(shell go list -m -f '{{.Version}}' sigs.k8s.io/contr
 CREATE_LATEST_TAG=0
 
 CRD_OPTIONS ?= "crd:crdVersions=v1"
-
-# If this is a Jenkins run, get the KUBECONFIG to use from that
-ifdef JENKINS_KUBECONFIG
-export KUBECONFIG=${JENKINS_KUBECONFIG}
-export VERRAZZANO_KUBECONFIG=${JENKINS_KUBECONFIG}
-else
 KUBECONFIG ?= ${HOME}/.kube/config
-endif
 
 ifndef DOCKER_IMAGE_FULLNAME
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
@@ -68,7 +61,7 @@ CRD_PATH=helm_config/charts/verrazzano-platform-operator/crds
 CLUSTER_DUMP_LOCATION ?= platform-operator-integ-cluster-dump
 
 
-# Run against the configured Kubernetes cluster specified by KUBECONFIG
+# Run against the configured Kubernetes cluster in ~/.kube/config
 .PHONY: run
 run:
 	$(GO) run main.go --kubeconfig=${KUBECONFIG} --zap-log-level=debug
@@ -146,12 +139,15 @@ unit-test: go-install
 # Test-related tasks
 #
 # On Jenkins we have pre-created clusters ready to go that are named specifically for the integ-test case
-CLUSTER_NAME = vpo-integ
+CLUSTER_NAME = verrazzano
 VERRAZZANO_NS = verrazzano-install
 BUILD_DEPLOY = build/deploy
 OPERATOR_YAML ?= ${BUILD_DEPLOY}/operator.yaml
 DEPLOY = deploy
 OPERATOR_SETUP = test/operatorsetup
+
+CLUSTER_DUMP_LOCATION ?= platform-operator-integ-cluster-dump
+KIND_CONFIG ?= kind-config.yaml
 
 .PHONY: integ-test
 integ-test: create-cluster generate-operator-yaml
@@ -163,7 +159,6 @@ integ-test: create-cluster generate-operator-yaml
 	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/analysis.report; exit 1)
 
 .PHONY: create-cluster
-
 generate-operator-yaml:
 	OPERATOR_DIR=$$(dirname ${OPERATOR_YAML}) ; \
 	mkdir -p $${OPERATOR_DIR} ; \
@@ -175,8 +170,6 @@ cleanup-cluster:
 
 .PHONY: create-cluster
 create-cluster:
-	# We only create a cluster here if this is not on Jenkins. Jenkins will set the cluster
-ifndef JENKINS_URL
 	kind_clusters=$$(kind get clusters) ; \
     if [ -z "$${kind_clusters}" ] || ! kind get clusters | egrep "^${CLUSTER_NAME}\$$" > /dev/null ; then \
 		echo 'Create cluster...' ;\
@@ -184,18 +177,13 @@ ifndef JENKINS_URL
 		HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 \
 			--name ${CLUSTER_NAME} \
 			--wait 5m \
-			--config=test/kind-config.yaml ;\
+			--config=test/${KIND_CONFIG} ;\
 		kubectl config set-context kind-${CLUSTER_NAME} ;\
 	fi
-endif
 
 .PHONY: delete-cluster
 delete-cluster:
-ifdef JENKINS_URL
-	echo "Don't bother deleting the cluster on Jenkins, it will not be re-used by anything else"
-else
 	kind delete cluster --name ${CLUSTER_NAME}
-endif
 
 .PHONY: push-tag
 push-tag:
