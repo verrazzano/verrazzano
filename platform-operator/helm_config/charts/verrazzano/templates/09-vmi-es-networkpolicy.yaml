@@ -3,7 +3,7 @@
 
 # Network policy for Elasticsearch master single pod installation
 {{- if .Values.elasticSearch.enabled}}
-{{- if .Values.elasticSearch.singlePod}}
+{{- if eq (int .Values.elasticSearch.nodes.data.replicas) 0}}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -46,9 +46,7 @@ spec:
         - protocol: TCP
           port: 9200
 {{- else }}
----
 # Network policy for Elasticsearch full multi-pod installation
-
 # Network policy for Elasticsearch master
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -251,6 +249,7 @@ spec:
           port: 9200
         - protocol: TCP
           port: 9300
+# end else
 {{- end }}
 ---
 # Network policy for Kibana
