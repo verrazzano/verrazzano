@@ -572,46 +572,63 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]Install
 			}...)
 		}
 	}
-	if vzSpec.Security.AdminBinding.Name != "" {
-		args = append(args, InstallArg{
-			Name:      "userrolebindings.admin.name",
-			Value:     vzSpec.Security.AdminBinding.Name,
-			SetString: true,
-		})
-		k := vzSpec.Security.AdminBinding.Kind
-		if k == "" {
-			k = "Group"
+	if len(vzSpec.Security.AdminSubjects) > 0 {
+		for i, v := range vzSpec.Security.AdminSubjects {
+			args = append(args, InstallArg{
+				Name:      fmt.Sprintf("security.adminSubjects.subject-%d.name", i),
+				Value:     v.Name,
+				SetString: true,
+			})
+			args = append(args, InstallArg{
+				Name:      fmt.Sprintf("security.adminSubjects.subject-%d.kind", i),
+				Value:     v.Kind,
+				SetString: true,
+			})
+			if len(v.Namespace) > 0 {
+				args = append(args, InstallArg{
+					Name:      fmt.Sprintf("security.adminSubjects.subject-%d.namespace", i),
+					Value:     v.Namespace,
+					SetString: true,
+				})
+			}
+			if len(v.APIGroup) > 0 {
+				args = append(args, InstallArg{
+					Name:      fmt.Sprintf("security.adminSubjects.subject-%d.apiGroup", i),
+					Value:     v.APIGroup,
+					SetString: true,
+				})
+			}
 		}
-		if k != "Group" && k != "User" {
-			err := fmt.Errorf("Unsuppored subject kind %s", k)
-			return []InstallArg{}, err
-		}
-		args = append(args, InstallArg{
-			Name:      "userrolebindings.admin.kind",
-			Value:     k,
-			SetString: true,
-		})
 	}
-	if vzSpec.Security.MonitorBinding.Name != "" {
-		args = append(args, InstallArg{
-			Name:      "userrolebindings.monitor.name",
-			Value:     vzSpec.Security.MonitorBinding.Name,
-			SetString: true,
-		})
-		k := vzSpec.Security.MonitorBinding.Kind
-		if k == "" {
-			k = "Group"
+	if len(vzSpec.Security.MonitorSubjects) > 0 {
+		for i, v := range vzSpec.Security.MonitorSubjects {
+			args = append(args, InstallArg{
+				Name:      fmt.Sprintf("security.monitorSubjects.subject-%d.name", i),
+				Value:     v.Name,
+				SetString: true,
+			})
+			args = append(args, InstallArg{
+				Name:      fmt.Sprintf("security.monitorSubjects.subject-%d.kind", i),
+				Value:     v.Kind,
+				SetString: true,
+			})
+			if len(v.Namespace) > 0 {
+				args = append(args, InstallArg{
+					Name:      fmt.Sprintf("security.monitorSubjects.subject-%d.namespace", i),
+					Value:     v.Namespace,
+					SetString: true,
+				})
+			}
+			if len(v.APIGroup) > 0 {
+				args = append(args, InstallArg{
+					Name:      fmt.Sprintf("security.monitorSubjects.subject-%d.apiGroup", i),
+					Value:     v.APIGroup,
+					SetString: true,
+				})
+			}
 		}
-		if k != "Group" && k != "User" {
-			err := fmt.Errorf("Unsuppored subject kind %s", k)
-			return []InstallArg{}, err
-		}
-		args = append(args, InstallArg{
-			Name:      "userrolebindings.monitor.kind",
-			Value:     k,
-			SetString: true,
-		})
 	}
+
 	args = append(args, getVMIInstallArgs(vzSpec)...)
 
 	// Console
