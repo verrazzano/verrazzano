@@ -373,6 +373,12 @@ function is_rancher_enabled() {
   echo ${rancher_enabled}
 }
 
+# Return the value for the key keycloak.enabled
+function is_keycloak_enabled() {
+  local keycloak_enabled=$(get_config_value '.keycloak.enabled')
+  echo ${keycloak_enabled}
+}
+
 if [ -z "$INSTALL_CONFIG_FILE" ]; then
   INSTALL_CONFIG_FILE=$DEFAULT_CONFIG_FILE
 fi
