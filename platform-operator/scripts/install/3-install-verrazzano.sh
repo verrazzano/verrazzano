@@ -124,6 +124,7 @@ function install_verrazzano()
       --set config.enableMonitoringStorage=true \
       --set kubernetes.service.endpoint.ip=${ENDPOINT_ARRAY[0]} \
       --set kubernetes.service.endpoint.port=${ENDPOINT_ARRAY[1]} \
+      --set rancher.enabled=$(is_rancher_enabled) \
       ${PROFILE_VALUES_OVERRIDE} \
       ${EXTRA_V8O_ARGUMENTS} || return $?
 
