@@ -621,7 +621,6 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]Install
 			Value: strconv.FormatBool(vzSpec.Components.Console.Enabled),
 		})
 	}
-
 	return args, nil
 }
 
