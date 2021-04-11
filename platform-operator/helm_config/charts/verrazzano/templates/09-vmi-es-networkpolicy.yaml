@@ -12,7 +12,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: es-master
+      app: system-es-master
   policyTypes:
     - Ingress
     # Deny all egress
