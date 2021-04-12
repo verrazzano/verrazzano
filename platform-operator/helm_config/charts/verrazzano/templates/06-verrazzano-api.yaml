@@ -342,8 +342,6 @@ spec:
       labels:
         app: {{ .Values.api.name }}
     spec:
-      securityContext:
-        runAsUser: 101
       volumes:
        - name: api-config
          projected:
