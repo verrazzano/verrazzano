@@ -386,11 +386,9 @@ func deployTestResources() {
 	// Wait for the namespaces to be created
 	pkg.Log(pkg.Info, "Wait for the project namespaces to be created")
 	gomega.Eventually(func() bool {
-		pkg.Log(pkg.Info, "polling for testnamespace to be created")
 		return pkg.DoesNamespaceExist(testNamespace)
 	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Expected to find namespace %s", testNamespace))
 	gomega.Eventually(func() bool {
-		pkg.Log(pkg.Info, "polling for another testnamespace to be created")
 		return pkg.DoesNamespaceExist(anotherTestNamespace)
 	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Expected to find namespace %s", anotherTestNamespace))
 
