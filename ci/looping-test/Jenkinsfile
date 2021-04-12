@@ -338,7 +338,10 @@ pipeline {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
-                        kubectl delete -f ${WORKSPACE}/acceptance-test-operator.yaml
+                        echo "Removing any finalizers from the install namespace"
+                        kubectl patch namespace verrazzano-install -p '{"metadata":{"finalizers":null}}' --type=merge || true
+                        echo "Deleting the platform operator"
+                        kubectl delete -f ${OPERATOR_YAML}
                     """
                 }
             }
