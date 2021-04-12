@@ -45,6 +45,10 @@ function install_nginx_ingress_controller()
       --wait \
       || return $?
 
+    # Label the ingress-nginx namespace so that we can apply network policies
+    log "Adding label needed by network policies to ingress-nginx namespace"
+    kubectl label namespace ingress-nginx "verrazzano.io/namespace=ingress-nginx"
+
     # Handle any ports specified for Verrazzano Ingress - these must be patched after install
     local nginx_svc_patch_spec=$(get_verrazzano_ports_spec)
     if [ ! -z "${nginx_svc_patch_spec}" ]; then
@@ -270,7 +274,7 @@ function install_rancher()
     local retries=0
     while true ; do
       RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- reset-password 2>$STDERROR_FILE)
-      ADMIN_PW=`echo $RANCHER_DATA | awk '{ print $NF }'`
+      ADMIN_PW=$(echo -n $RANCHER_DATA | awk 'END{ print $NF }')
 
       if [ -z "$ADMIN_PW" ] ; then
         sleep 10
@@ -388,6 +392,9 @@ RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
 
 action "Installing cert manager" install_cert_manager || exit 1
 action "Installing external DNS" install_external_dns || exit 1
-action "Installing Rancher" install_rancher || exit 1
-action "Setting Rancher Server URL" set_rancher_server_url || true
-action "Patching Rancher Agents" patch_rancher_agents || true
+if [ $(is_rancher_enabled) == "true" ]; then
+  action "Installing Rancher" install_rancher || exit 1
+  action "Setting Rancher Server URL" set_rancher_server_url || true
+  action "Patching Rancher Agents" patch_rancher_agents || true
+fi
+

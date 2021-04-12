@@ -1,0 +1,465 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.logging.name }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.logging.name }}
+data:
+  fluent.conf: |
+    # Use the config specified by the FLUENTD_CONFIG environment variable, or
+    # default to fluentd-standalone.conf
+    @include "#{ENV['FLUENTD_CONFIG'] || 'fluentd-standalone.conf'}"
+
+  # A config for running Fluentd as a daemon which collects, filters, parses,
+  # and sends log to storage. No extra Fluentd processes required.
+  fluentd-standalone.conf: |
+    # Common config
+    @include general.conf
+    @include prometheus.conf
+
+    # Input sources
+    @include systemd-input.conf
+    @include kubernetes-input.conf
+
+    # Parsing/Filtering
+    @include systemd-filter.conf
+    @include kubernetes-filter.conf
+
+    # Send to storage
+    @include output.conf
+
+  general.conf: |
+    # Prevent Fluentd from handling records containing its own logs. Otherwise
+    # it can lead to an infinite loop, when error in sending one message generates
+    # another message which also fails to be sent and so on.
+    <match fluent.**>
+      @type null
+      @id out_fluent_null
+    </match>
+
+    # Used for health checking
+    <source>
+      @type http
+      @id in_http
+      port 9880
+      bind 0.0.0.0
+    </source>
+
+    # Emits internal metrics to every minute, and also exposes them on port
+    # 24220. Useful for determining if an output plugin is retrying/erroring,
+    # or determining the buffer queue length.
+    <source>
+      @type monitor_agent
+      @id in_monitor_agent
+      bind 0.0.0.0
+      port 24220
+      tag fluentd.monitor.metrics
+    </source>
+
+  prometheus.conf: |
+    # input plugin that is required to expose metrics by other Prometheus
+    # plugins, such as the prometheus_monitor input below.
+    <source>
+      @type prometheus
+      @id prometheus
+      bind 0.0.0.0
+      port 24231
+      metrics_path /metrics
+    </source>
+
+    # input plugin that collects metrics from MonitorAgent and exposes them
+    # as Prometheus metrics
+    <source>
+      @type prometheus_monitor
+      @id prometheus_monitor
+      # update the metrics every 20 seconds
+      interval 20
+    </source>
+
+    <source>
+      @type prometheus_output_monitor
+      @id prometheus_output_monitor
+      interval 20
+    </source>
+
+    <source>
+      @type prometheus_tail_monitor
+      @id prometheus_tail_monitor
+      interval 20
+    </source>
+
+  systemd-input.conf: |
+    <source>
+      @type systemd
+      @id in_systemd
+      read_from_head true
+      tag systemd
+      <storage>
+        @type local
+        persistent true
+        path /tmp/journald_pos.json
+      </storage>
+      <entry>
+        fields_strip_underscores true
+      </entry>
+    </source>
+
+  systemd-filter.conf: |
+    <filter systemd.kubelet>
+      @type parser
+      @id systemd_kubelet_parser
+      format kubernetes
+      reserve_data true
+      key_name MESSAGE
+    </filter>
+
+    <filter systemd.docker>
+      @type parser
+      @id systemd_docker_parser
+      format /^time="(?<time>[^)]*)" level=(?<severity>[^ ]*) msg="(?<message>[^"]*)"( err="(?<error>[^"]*)")?( statusCode=($<status_code>\d+))?/
+      reserve_data true
+      key_name MESSAGE
+    </filter>
+
+    # Filter ssh logs since it's mostly bots trying to login
+    <filter systemd.**>
+      @type grep
+      @id systemd_grep
+      <exclude>
+        key SYSTEMD_UNIT
+        pattern (sshd@.*\.service)
+      </exclude>
+    </filter>
+
+  kubernetes-input.conf: |
+    # Capture Kubernetes pod logs
+    # The kubelet creates symlinks that capture the pod name, namespace,
+    # container name & Docker container ID to the docker logs for pods in the
+    # /var/log/containers directory on the host.
+    <source>
+      @type tail
+      # @id in_tail
+      path /var/log/containers/*.log
+      pos_file /tmp/fluentd-containers.log.pos
+      # Exclude the log of the Fluentd daemonset itself
+      exclude_path ["/var/log/containers/fluentd*_verrazzano-system_fluentd*.log"]
+      tag kubernetes.*
+      read_from_head true
+      <parse>
+        @type multi_format
+        <pattern>
+          format json
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        # kind needs following pattern/format
+        <pattern>
+          format /^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<flags>[^ ]+) (?<log>.*)$/
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+      </parse>
+    </source>
+
+  kubernetes-filter.conf: |
+    # Query the API for extra metadata.
+    <filter kubernetes.**>
+      @type kubernetes_metadata
+      @id kubernetes_metadata
+    </filter>
+
+    # rewrite_tag_filter does not support nested fields like
+    # kubernetes.container_name, so this exists to flatten the fields
+    # so we can use them in our rewrite_tag_filter
+    <filter kubernetes.**>
+      @type record_transformer
+      @id kubernetes_record_transformer
+      enable_ruby true
+      <record>
+        @target_index vmi-ns-${record["kubernetes"]["namespace_name"]}
+      </record>
+      <record>
+        kubernetes_namespace_container_name ${record["kubernetes"]["namespace_name"]}.${record["kubernetes"]["container_name"]}
+      </record>
+    </filter>
+
+    # parse verrazzano operators' json log
+    <filter kubernetes.**_verrazzano-**_**operator**>
+      @type parser
+      format json
+      reserve_data true
+      key_name log
+      ignore_key_not_exist true
+      replace_invalid_sequence true
+      emit_invalid_record_to_error true
+    </filter>
+
+    # Remove the unnecessary field as the information is already available on
+    # other fields.
+    <filter kube.**>
+      @type record_transformer
+      @id kube_record_transformer
+      remove_keys kubernetes_namespace_container_name
+    </filter>
+
+    <filter kube.kube-system.**>
+      @type parser
+      @id kube_parser
+      format kubernetes
+      reserve_data true
+      key_name log
+    </filter>
+
+    <filter kube.**>
+      @type parser
+      key_name log
+      reserve_data true
+      remove_key_name_field false
+      emit_invalid_record_to_error false
+      <parse>
+        @type multi_format
+        <pattern>
+          format json
+          time_format %Y-%m-%dT%H:%M:%S.%N%Z
+        </pattern>
+        <pattern>
+          format json
+          time_format %Y-%m-%dT%H:%M:%S%z
+        </pattern>
+      </parse>
+    </filter>
+
+  output.conf: |
+    <match **>
+      @type elasticsearch
+      @id out_elasticsearch
+      @log_level info
+      logstash_format true
+      logstash_prefix vmi-journal
+      target_index_key @target_index
+      include_tag_key true
+
+      template_file /fluentd/etc/elasticsearch-template-vmi.json
+      template_name elasticsearch-template-vmi.json
+      template_overwrite true
+
+      # time_as_integer needs to be set to false in order for Fluentd
+      # to convert timestamps to Fluent::EventTime objects instead of
+      # integers. Thus allowing Fluentd to preserve/transmit
+      # nanosecond-precision values.
+      time_as_integer false
+
+      # Ensure that the elasticsearch-service plugin preserves
+      # nanosecond-precision when formatting Fluent::EventTime values
+      # into a JSON payload destined for Elasticsearch.
+      # time_key_format %Y-%m-%dT%H:%M:%S.%N%Z
+
+      # A value of 9 gives us nanosecond-precision in our timestamps. The default is
+      # 0 which effectively gives us only second-precision; we don't want that. The
+      # value here comes from Ruby's DateTime::iso8601 method and represents the
+      # length of fractional seconds, e.g. 10^-9.
+      time_precision 9
+
+      # Set the chunk limit the same as for fluentd-gcp.
+      buffer_chunk_limit 4M
+      # Cap buffer memory usage to 2MiB/chunk * 32 chunks = 64 MiB
+      buffer_queue_limit 32
+      flush_interval 5s
+      # Never wait longer than 5 minutes between retries.
+      max_retry_wait 30
+      # Disable the limit on the number of retries (retry forever).
+      disable_retry_limit
+      # Use multiple threads for processing.
+      num_threads 8
+
+      # Prevent reloading connections to Elasticsearch
+      reload_on_failure false
+      reload_connections false
+
+      hosts "#{ENV['ELASTICSEARCH_URL']}"
+      ca_file /fluentd/secret/ca-bundle
+      # ssl_version TLSv1_2
+      user "#{ENV['ELASTICSEARCH_USER']}"
+      password "#{ENV['ELASTICSEARCH_PASSWORD']}"
+    </match>
+
+  elasticsearch-template-vmi.json: |
+    {
+      "index_patterns" : "vmi-*",
+      "version" : 60001,
+      "settings" : {
+        "index.refresh_interval" : "5s",
+        "index.mapping.total_fields.limit" : "2000",
+        "number_of_shards": 5
+      },
+      "mappings" : {
+        "dynamic_templates" : [ {
+          "message_field" : {
+            "path_match" : "message",
+            "match_mapping_type" : "string",
+            "mapping" : {
+              "type" : "text",
+              "norms" : false
+            }
+          }
+        }, {
+          "string_fields" : {
+            "match" : "*",
+            "match_mapping_type" : "string",
+            "mapping" : {
+              "type" : "text", "norms" : false,
+              "fields" : {
+                "keyword" : { "type": "keyword", "ignore_above": 256 }
+              }
+            }
+          }
+        } ],
+        "properties" : {
+          "@timestamp": { "type": "date", "format": "strict_date_time||strict_date_optional_time||epoch_millis"},
+          "@version": { "type": "keyword"},
+          "geoip"  : {
+            "dynamic": true,
+            "properties" : {
+              "ip": { "type": "ip" },
+              "location" : { "type" : "geo_point" },
+              "latitude" : { "type" : "half_float" },
+              "longitude" : { "type" : "half_float" }
+            }
+          }
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.logging.name }}
+  namespace: {{ .Release.Namespace }}
+  {{- if .Values.global.imagePullSecrets }}
+imagePullSecrets:
+  {{- range .Values.global.imagePullSecrets }}
+- name: {{ . }}
+  {{- end }}
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.logging.name }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.logging.name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.logging.name }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ .Values.logging.name }}
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ .Values.logging.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: fluentd
+    k8s-app: fluentd
+spec:
+  selector:
+    matchLabels:
+      k8s-app: fluentd
+  template:
+    metadata:
+      labels:
+        k8s-app: fluentd
+    spec:
+      containers:
+        - args:
+            - -c
+            - /etc/fluentd.conf
+          env:
+            - name: FLUENTD_CONF
+              value: fluentd-standalone.conf
+            - name: FLUENT_ELASTICSEARCH_SED_DISABLE
+              value: "true"
+            - name: ELASTICSEARCH_URL
+              value: http://vmi-system-es-ingest:9200
+            - name: CLUSTER_NAME
+              value: local
+            - name: ELASTICSEARCH_USER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: verrazzano
+                  optional: true
+            - name: ELASTICSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: verrazzano
+                  optional: true
+          image: {{ .Values.logging.fluentdImage }}
+          imagePullPolicy: IfNotPresent
+          name: {{ .Values.logging.name }}
+          securityContext:
+            runAsUser: 0
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /fluentd/secret
+              name: secret-volume
+              readOnly: true
+            - mountPath: /fluentd/etc
+              name: {{ .Values.logging.name }}-config
+              readOnly: true
+            - mountPath: /var/log
+              name: varlog
+              readOnly: true
+            - mountPath: /var/lib/docker/containers
+              name: varlibdockercontainers
+              readOnly: true
+            - mountPath: /u01/data/docker/containers
+              name: datadockercontainers
+              readOnly: true
+      serviceAccount: fluentd
+      serviceAccountName: fluentd
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: secret-volume
+          secret:
+            secretName: verrazzano
+        - configMap:
+            name: {{ .Values.logging.name }}-config
+          name: {{ .Values.logging.name }}-config
+        - hostPath:
+            path: /var/log
+            type: ""
+          name: varlog
+        - hostPath:
+            path: /var/lib/docker/containers
+            type: ""
+          name: varlibdockercontainers
+        - hostPath:
+            path: /u01/data/docker/containers
+            type: ""
+          name: datadockercontainers
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
+    type: RollingUpdate

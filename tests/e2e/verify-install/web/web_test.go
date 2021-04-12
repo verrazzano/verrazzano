@@ -16,7 +16,7 @@ import (
 
 var _ = ginkgo.Describe("Verrazzano Web UI",
 	func() {
-		ingress, err := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-console-ingress", v1.GetOptions{})
+		ingress, err := pkg.GetKubernetesClientset().ExtensionsV1beta1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
 
 		ginkgo.It("ingress exist", func() {
 			gomega.Expect(err).To(gomega.BeNil())

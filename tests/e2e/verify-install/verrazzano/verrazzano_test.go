@@ -56,12 +56,12 @@ var _ = ginkgo.Describe("Verrazzano", func() {
 	vzCoherenceReadRule := rbacv1.PolicyRule{
 		Verbs:     []string{"get", "list", "watch"},
 		APIGroups: []string{"coherence.oracle.com"},
-		Resources: []string{"coherences", "coherences/status"},
+		Resources: []string{"coherence", "coherence/status"},
 	}
 	vzCoherenceWriteRule := rbacv1.PolicyRule{
 		Verbs:     []string{"create", "update", "patch", "delete", "deletecollection"},
 		APIGroups: []string{"coherence.oracle.com"},
-		Resources: []string{"coherences"},
+		Resources: []string{"coherence"},
 	}
 	vzIstioReadRule := rbacv1.PolicyRule{
 		Verbs:     []string{"get", "list", "watch"},

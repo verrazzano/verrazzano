@@ -55,10 +55,10 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
         --from-literal=url=jdbc:mysql://mysql.bobs-books.svc.cluster.local:3306/books \
         -n bobs-books
     ```
-   Note that the example application is pre-configured to use specific credentials.
+   Note that the example application is pre-configured to use specific secret names.
    For the source code for the example application, see
    [Bob's Books example application page](https://github.com/verrazzano/examples/tree/master/bobs-books).
-   If you want to use credentials that are different from what is specified in the source code, you will need to rebuild the Docker images for the example application.
+   If you want to use secret names that are different from what is specified in the source code, you will need to update the corresponding YAML and rebuild the Docker images for the example application.
 
 1. Apply the example resources to deploy the application.
    ```

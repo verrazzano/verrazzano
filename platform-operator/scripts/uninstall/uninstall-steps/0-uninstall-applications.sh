@@ -13,12 +13,11 @@ UNINSTALL_DIR=$SCRIPT_DIR/..
 
 set -o pipefail
 
-function initializing_uninstall {
-  # Deleting rancher through API
-  log "Listing pods in cattle-system namespace"
-  kubectl get pods -n cattle-system
-  log "Deleting Rancher through API"
+function delete_rancher_local_cluster {
+  # Check whether rancher is installed for the given profile, before attempting to delete the local cluster
   rancher_exists=$(kubectl get namespace cattle-system) || return 0
+  # Deleting rancher through API
+  log "Deleting Rancher through API"
   rancher_host_name="$(kubectl get ingress -n cattle-system --no-headers -o custom-columns=":spec.rules[0].host")" || err_return $? "Could not retrieve Rancher hostname" || return 0
   rancher_cluster_url="https://${rancher_host_name}/v3/clusters/local"
   rancher_admin_password=$(kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password}) || err_return $? "Could not retrieve rancher-admin-secret" || return 0
@@ -32,16 +31,17 @@ function initializing_uninstall {
   if [ "${RANCHER_ACCESS_TOKEN}" ]; then
     log "Updating ${rancher_cluster_url}"
     local temp_output="/tmp/delete_cluster.out"
-    status=$(curl -o ${temp_output} -s -w "%{http_code}\n" $(get_rancher_resolve ${rancher_hostname}) -X DELETE -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")
-    if [ "$status" != 200 ] ; then
+    status=$(curl -o ${temp_output} --max-time 60 -s -w "%{http_code}\n" $(get_rancher_resolve ${rancher_hostname}) -X DELETE -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")
+    log "Status: ${status}"
+    if [ "$status" != "200" ]; then
       local cluster_delete_output=$(cat $temp_output)
       log "${cluster_delete_output}"
       rm "$temp_output"
       return 0
     fi
 
-    # Wait 60s for local cluster to delete
-    local max_retries=6
+    # Wait 180s for local cluster to delete
+    local max_retries=18
     local retries=0
     while true ; do
       still_exists="$(curl -s $(get_rancher_resolve ${rancher_hostname}) -X GET -H "Accept: application/json" -H "Authorization: Bearer ${RANCHER_ACCESS_TOKEN}" --insecure "${rancher_cluster_url}")"
@@ -71,6 +71,6 @@ function delete_oam_components {
   delete_k8s_resource_from_all_namespaces components.core.oam.dev
 }
 
-action "Initializing Uninstall" initializing_uninstall || exit 1
+action "Deleting Rancher Local Cluster" delete_rancher_local_cluster || exit 1
 action "Deleting OAM application configurations" delete_oam_applications_configurations || exit 1
 action "Deleting OAM components" delete_oam_components || exit 1

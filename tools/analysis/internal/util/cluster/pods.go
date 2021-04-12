@@ -140,7 +140,7 @@ func verrazzanoUninstallIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 //   those directly to the report.Contribute* helpers
 func podContainerIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
 	log.Debugf("podContainerIssues analysis called for cluster: %s, ns: %s, pod: %s", clusterRoot, pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
-	podEvents, err := GetEventsRelatedToPod(log, clusterRoot, pod)
+	podEvents, err := GetEventsRelatedToPod(log, clusterRoot, pod, nil)
 	if err != nil {
 		log.Debugf("Failed to get events related to ns: %s, pod: %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 	}
@@ -314,9 +314,11 @@ func GetPodList(log *zap.SugaredLogger, path string) (podList *corev1.PodList, e
 
 // IsPodProblematic returns a boolean indicating whether a pod is deemed problematic or not
 func IsPodProblematic(pod corev1.Pod) bool {
+	// If it isn't Running or Succeeded it is problematic
 	if pod.Status.Phase == corev1.PodRunning ||
 		pod.Status.Phase == corev1.PodSucceeded {
-		return false
+		// The Pod indicates it is Running/Succeeded, check if there are containers that are not ready
+		return IsContainerNotReady(pod.Status.Conditions)
 	}
 	return true
 }
@@ -329,28 +331,37 @@ func IsPodPending(pod corev1.Pod) bool {
 // This looks at the pods.json files in the cluster and will give a list of files
 // if any have pods that are not Running or Succeeded.
 func findProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFiles []string, err error) {
-	allPodPhases, err := files.FindFilesAndSearch(log, clusterRoot, PodFilesMatchRe, podPhaseRe)
+	allPodFiles, err := files.GetMatchingFiles(log, clusterRoot, PodFilesMatchRe)
 	if err != nil {
 		return podFiles, err
 	}
 
-	// REVIEW: is there a more efficient way in Go to model a Set?
-	problematicFiles := make(map[string]string)
-	for _, podPhase := range allPodPhases {
-		// If the phase is ok, we skip it. Running/Succeeded
-		// other phases are flagged as problematic: Pending, Failed, Unknown
-		if strings.Contains(podPhase.MatchedText, "Running") || strings.Contains(podPhase.MatchedText, "Succeeded") {
-			continue
-		}
-		problematicFiles[podPhase.FileName] = podPhase.FileName
-	}
-	if len(problematicFiles) == 0 {
+	if len(allPodFiles) == 0 {
 		return podFiles, nil
 	}
-	podFiles = make([]string, 0, len(problematicFiles))
-	for _, fileName := range problematicFiles {
-		log.Debugf("Problematic pod file: %s", fileName)
-		podFiles = append(podFiles, fileName)
+	podFiles = make([]string, 0, len(allPodFiles))
+	for _, podFile := range allPodFiles {
+		log.Debugf("Looking at pod file for problematic pods: %s", podFile)
+		podList, err := GetPodList(log, podFile)
+		if err != nil {
+			log.Debugf("Failed to get the PodList for %s, skipping", podFile, err)
+			continue
+		}
+		if podList == nil {
+			log.Debugf("No PodList was returned, skipping")
+			continue
+		}
+
+		// If we find any we flag the file as havin problematic pods and move to the next file
+		// this is just a quick scan to identify which files to drill into
+		for _, pod := range podList.Items {
+			if !IsPodProblematic(pod) {
+				continue
+			}
+			log.Debugf("Problematic pods detected: %s", podFile)
+			podFiles = append(podFiles, podFile)
+			break
+		}
 	}
 	return podFiles, nil
 }
@@ -388,7 +399,8 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 				messages = append(messages, fmt.Sprintf("Namespace %s, Pod %s, Status %s, Reason %s, Message %s",
 					pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, condition.Status, condition.Reason, condition.Message))
 			}
-			matched, err := files.SearchFile(log, files.FindPodLogFileName(clusterRoot, pod), WideErrorSearchRe)
+			// TODO: Time correlation for search
+			matched, err := files.SearchFile(log, files.FindPodLogFileName(clusterRoot, pod), WideErrorSearchRe, nil)
 			if err != nil {
 				log.Debugf("Failed to search the logfile %s for the ns/pod %s/%s",
 					files.FindPodLogFileName(clusterRoot, pod), pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, err)

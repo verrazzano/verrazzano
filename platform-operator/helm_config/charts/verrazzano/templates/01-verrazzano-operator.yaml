@@ -111,28 +111,6 @@ metadata:
   name: {{ .Values.verrazzanoOperator.name }}
 rules:
   - apiGroups:
-      - verrazzano.io
-    resources:
-      - '*'
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - update
-      - delete
-  - apiGroups:
-      - verrazzano.io
-    resources:
-      - verrazzanomonitoringinstances
-    verbs:
-      - get
-      - list
-      - watch
-      - update
-      - create
-      - delete
-  - apiGroups:
       - ""
     resources:
       - pods
@@ -145,7 +123,14 @@ rules:
       - secrets
       - services
     verbs:
-      - '*'
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
   - apiGroups:
       - ""
     resources:
@@ -155,14 +140,14 @@ rules:
       - pods/log
       - pods/portforward
     verbs:
+      - create
+      - delete
+      - deletecollection
       - get
       - list
-      - watch
-      - create
-      - update
-      - delete
       - patch
-      - deletecollection
+      - update
+      - watch
   - apiGroups:
       - apps
     resources:
@@ -171,7 +156,27 @@ rules:
       - replicasets
       - statefulsets
     verbs:
-      - '*'
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
   - apiGroups:
       - extensions
     resources:
@@ -187,12 +192,25 @@ rules:
       - replicasets
       - statefulsets
     verbs:
-      - get
-      - list
-      - watch
-      - update
       - create
       - delete
+      - get
+      - list
+      - update
+      - watch
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
   - apiGroups:
       - authentication.k8s.io
     resources:
@@ -213,12 +231,19 @@ rules:
       - roles
       - rolebindings
     verbs:
-      - get
-      - list
-      - watch
-      - update
       - create
       - delete
+      - get
+      - list
+      - update
+      - watch
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - servicemonitors
+    verbs:
+      - create
+      - get
   - apiGroups:
       - networking.istio.io
     resources:
@@ -226,38 +251,34 @@ rules:
       - virtualservices
       - serviceentries
     verbs:
-      - get
-      - list
-      - watch
-      - update
       - create
       - delete
+      - get
+      - list
+      - update
+      - watch
   - apiGroups:
-      - apiextensions.k8s.io
+      - verrazzano.io
     resources:
-      - customresourcedefinitions
-    verbs:
       - '*'
-  - apiGroups:
-      - batch
-    resources:
-      - jobs
     verbs:
+      - create
+      - delete
       - get
       - list
-      - watch
-      - create
       - update
-      - delete
-      - patch
-      - deletecollection
+      - watch
   - apiGroups:
-      - monitoring.coreos.com
+      - verrazzano.io
     resources:
-      - servicemonitors
+      - verrazzanomonitoringinstances
     verbs:
-      - get
       - create
+      - delete
+      - get
+      - list
+      - update
+      - watch
   - nonResourceURLs:
       - /version/*
     verbs:
@@ -383,8 +404,8 @@ rules:
 - apiGroups:
     - coherence.oracle.com
   resources:
-    - coherences
-    - coherences/status
+    - coherence
+    - coherence/status
   verbs:
     - get
     - list
@@ -423,7 +444,7 @@ rules:
 - apiGroups:
     - coherence.oracle.com
   resources:
-    - coherences
+    - coherence
   verbs:
     - create
     - update

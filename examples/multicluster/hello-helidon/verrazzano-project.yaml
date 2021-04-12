@@ -10,3 +10,6 @@ spec:
     namespaces:
       - metadata:
           name: hello-helidon
+  placement:
+    clusters:
+      - name: managed1

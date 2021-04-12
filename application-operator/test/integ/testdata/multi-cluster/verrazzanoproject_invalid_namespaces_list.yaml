@@ -8,3 +8,6 @@ metadata:
 spec:
   template:
     namespaces:
+  placement:
+    clusters:
+      - name: managed1

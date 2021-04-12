@@ -361,7 +361,7 @@
     "clientRoles" : { },
     "subGroups" : [ ]
   } ],
-  "defaultRoles" : [ "offline_access", "uma_authorization" ],
+  "defaultRoles" : [ "offline_access", "uma_authorization", "console_users" ],
   "requiredCredentials" : [ "password" ],
   "otpPolicyType" : "totp",
   "otpPolicyAlgorithm" : "HmacSHA1",
@@ -394,7 +394,7 @@
     } ],
     "disableableCredentialTypes" : [ "password" ],
     "requiredActions" : [ ],
-    "realmRoles" : [ "admin", "offline_access", "uma_authorization", "Admin" ],
+    "realmRoles" : [ "admin", "offline_access", "uma_authorization", "Admin", "console_users" ],
     "clientRoles" : {
       "verrazzano-oauth-client" : [ "Admin" ],
       "account" : [ "manage-account", "view-profile" ],
@@ -428,24 +428,6 @@
     "clientRoles" : {
       "verrazzano-oauth-client" : [ "Viewer" ],
       "account" : [ "manage-account", "view-profile" ]
-    },
-    "notBefore" : 0,
-    "groups" : [ ]
-  }, {
-    "id" : "0f3293ca-009e-401f-9dbe-ac0c31d2906f",
-    "createdTimestamp" : 1564417628739,
-    "username" : "service-account-verrazzano-oauth-client",
-    "enabled" : true,
-    "totp" : false,
-    "emailVerified" : false,
-    "email" : "service-account-verrazzano-oauth-client@placeholder.org",
-    "serviceAccountClientId" : "verrazzano-oauth-client",
-    "credentials" : [ ],
-    "disableableCredentialTypes" : [ ],
-    "requiredActions" : [ ],
-    "realmRoles" : [ "offline_access", "uma_authorization" ],
-    "clientRoles" : {
-      "account" : [ "view-profile", "manage-account" ]
     },
     "notBefore" : 0,
     "groups" : [ ]
@@ -712,7 +694,7 @@
     "implicitFlowEnabled" : false,
     "directAccessGrantsEnabled" : true,
     "serviceAccountsEnabled" : true,
-    "publicClient" : false,
+    "publicClient" : true,
     "frontchannelLogout" : false,
     "protocol" : "openid-connect",
     "attributes" : {
@@ -777,6 +759,21 @@
         "jsonType.label" : "String"
       }
     }, {
+      "id": "67ef034c-ab84-42d3-9428-b2d6ca4d8979",
+      "name": "realm roles",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-usermodel-realm-role-mapper",
+      "consentRequired": false,
+      "config": {
+        "multivalued": "true",
+        "user.attribute": "foo",
+        "id.token.claim": "true",
+        "access.token.claim": "true",
+        "claim.name": "realm_access.roles",
+        "jsonType.label": "String"
+      }
+    },
+    {
       "id" : "e1d1e81b-308b-4f85-a55c-e75e1eff88e3",
       "name" : "Client Host",
       "protocol" : "openid-connect",
@@ -905,7 +902,22 @@
             "claim.name": "groups",
             "userinfo.token.claim": "true"
           }
-	      }
+        },
+        {
+          "id": "5a713e4a-b114-4780-9eb8-2e3aa43e20b2",
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "user.attribute": "foo",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String"
+          }
+        }
       ],
     "defaultClientScopes": [
       "web-origins",

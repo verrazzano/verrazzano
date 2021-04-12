@@ -102,12 +102,11 @@ func (s *SockShop) Delete(url string) (int, string) {
 }
 
 // RegisterUser interacts with sock shop to create a user
-func (s *SockShop) RegisterUser(body string, hostname string) {
+func (s *SockShop) RegisterUser(body string, hostname string) bool {
 	url := fmt.Sprintf("https://%v/register", hostname)
 	status, register := pkg.PostWithHostHeader(url, "application/json", s.hostHeader, strings.NewReader(body))
 	pkg.Log(Info, fmt.Sprintf("Finished register %v status: %v", register, status))
-	gomega.Expect(status).To(gomega.Equal(200), fmt.Sprintf("GET %v returns status %v expected 200", hostname, status))
-	gomega.Expect(strings.Contains(register, "username")).To(gomega.Equal(true), fmt.Sprintf("Cannot register %v", register))
+	return (status == http.StatusOK) && (strings.Contains(register, "username"))
 }
 
 // ConnectToCatalog connects to the catalog page

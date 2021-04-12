@@ -57,7 +57,7 @@ function delete_cert_manager() {
     || err_return $? "Could not delete cert-manager from helm" || return $? # return on pipefail
 
   # delete the custom resource definition for cert manager
-  log "deleting the custom resource definition for cert manager"
+  log "Deleting the custom resource definition for cert manager"
   kubectl delete -f "${MANIFESTS_DIR}/cert-manager/00-crds.yaml" --ignore-not-found=true \
     || err_return $? "Could not delete CustomResourceDefinition from cert-manager" || return $?
 
@@ -75,19 +75,42 @@ function delete_cert_manager() {
   kubectl delete namespace cert-manager --ignore-not-found=true || err_return $? "Could not delete namespace cert-manager" || return $?
 }
 
+function cleanup_rancher_local_cluster() {
+  if kubectl get cluster local > /dev/null 2>&1 ; then
+    # Occasionally we have problems deleting 'local' Rancher cluster object nicely, and it gets stuck and puts any
+    # re-installed cluster in a bad state.  So here we force the delete of the object, wait for it, and then
+    # patch out any remaining finalizers and check one more time for delete success.
+    log "Found 'local' cluster object still present, removing..."
+    kubectl delete --wait=false clusters.management.cattle.io local || true
+    kubectl wait --for=delete -n kube-system clusters.management.cattle.io/local --timeout=2m || true
+    # Patch any dangling finalizers
+    kubectl patch clusters.management.cattle.io local -p '{"metadata":{"finalizers":null}}' --type=merge || true
+    kubectl wait --for=delete -n kube-system clusters.management.cattle.io/local --timeout=2m || true
+    if kubectl get cluster local > /dev/null 2>&1 ; then
+      log "Unable to delete Rancher 'local' cluster object"
+    else
+      log "Rancher 'local' cluster deleted successfully"
+    fi
+  fi
+}
+
 function delete_rancher() {
-  # Occasionally the 'local' Rancher cluster object is stuck with a dangling finalizer, remove it so
-  # we don't orphan the cluster info between installs
-  log "Remove any dangling finalizers from the 'local' Rancher cluster object"
-  kubectl patch cluster local -n kube-system -p '{"metadata":{"finalizers":null}}' --type=merge || true
-  kubectl wait --for=delete -n kube-system cluster/local --timeout=2m || true
+  local rancher_exists=$(kubectl get namespace cattle-system --ignore-not-found)
+  if [ -z "$rancher_exists" ] ; then
+    return 0
+  fi
+
+  # Clean up the local rancher cluster object if necessary
+  cleanup_rancher_local_cluster
 
   # Deleting rancher components
   log "Deleting rancher"
-  helm ls -A \
-    | awk '/rancher/ {print $1}' \
-    | xargsr helm uninstall -n cattle-system \
-    || err_return $? "Could not delete rancher from helm" || return $? # return on pipefail
+  helm ls -n fleet-system | awk '/fleet/ {print $1}' | xargsr helm uninstall -n fleet-system \
+    || err_return $? "Could not delete fleet-system charts from helm" || return $? # return on pipefail
+  helm ls -n rancher-operator-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n rancher-operator-system \
+    || err_return $? "Could not delete rancher-operator-system charts from helm" || return $? # return on pipefail
+  helm ls -n cattle-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n cattle-system \
+    || err_return $? "Could not delete cattle-system from helm" || return $? # return on pipefail
 
   log "Deleting CRDs from rancher"
 
@@ -132,14 +155,14 @@ function delete_rancher() {
   log "Deleting ConfigMap"
   kubectl delete configmap cattle-controllers -n kube-system  --ignore-not-found=true || err_return $? "Could not delete ConfigMap from Rancher in namespace kube-system" || return $?
 
-  log "Deleting cattle namespaces"
+  log "Removing Rancher namespace finalizers"
   # delete namespace finalizers
-  patch_k8s_resources namespaces ":metadata.name" "Could not remove finalizers from namespaces in Rancher" '/cattle-|local|p-|user-/ {print $1}' '{"metadata":{"finalizers":null}}' \
+  patch_k8s_resources namespaces ":metadata.name" "Could not remove finalizers from namespaces in Rancher" '/cattle-|local|p-|user-|fleet|rancher/ {print $1}' '{"metadata":{"finalizers":null}}' \
     || return $? # return on pipefail
 
   # delete cattle namespaces
   log "Delete rancher namespace"
-  delete_k8s_resources namespaces ":metadata.name" "Could not delete namespaces from Rancher" '/cattle-|local|p-|user-/ {print $1}' \
+  delete_k8s_resources namespaces ":metadata.name" "Could not delete namespaces from Rancher" '/cattle-|local|p-|user-|fleet|rancher/ {print $1}' \
     || return $? # return on pipefail
 
   # delete annotations left in kube-system secrets

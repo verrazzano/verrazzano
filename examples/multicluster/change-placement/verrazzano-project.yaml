@@ -3,12 +3,13 @@
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: VerrazzanoProject
 metadata:
-  name: permissions-test
+  name: hello-helidon
   namespace: verrazzano-mc
 spec:
   template:
     namespaces:
-    - metadata:
-        name: multiclustertest
-    - metadata:
-        name: anothermulticlustertest
+      - metadata:
+          name: hello-helidon
+  placement:
+    clusters:
+      - name: local

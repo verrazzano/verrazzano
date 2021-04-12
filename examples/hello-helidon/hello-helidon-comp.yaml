@@ -11,7 +11,6 @@ spec:
     kind: VerrazzanoHelidonWorkload
     metadata:
       name: hello-helidon-workload
-      namespace: hello-helidon
       labels:
         app: hello-helidon
     spec:
@@ -21,7 +20,7 @@ spec:
         podSpec:
           containers:
             - name: hello-helidon-container
-              image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4"
+              image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.12-1-20210409130027-707ecc4"
               ports:
                 - containerPort: 8080
                   name: http

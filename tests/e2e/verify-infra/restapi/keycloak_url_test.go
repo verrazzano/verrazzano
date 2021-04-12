@@ -16,7 +16,7 @@ var api *pkg.APIEndpoint
 var _ = ginkgo.Describe("keycloak url test", func() {
 
 	var _ = ginkgo.BeforeEach(func() {
-		api = pkg.GetAPIEndpoint()
+		api = pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
 	})
 
 	ginkgo.Context("Fetching the keycloak url using api and test ", func() {

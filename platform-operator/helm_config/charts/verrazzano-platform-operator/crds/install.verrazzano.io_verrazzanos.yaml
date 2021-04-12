@@ -1664,6 +1664,12 @@ spec:
                       enabled:
                         type: boolean
                     type: object
+                  rancher:
+                    description: Rancher configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                 type: object
               defaultVolumeSource:
                 description: DefaultVolumeSource Defines the type of volume to be

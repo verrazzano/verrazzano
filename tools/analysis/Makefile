@@ -33,8 +33,10 @@ endif
 DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)
 
 OPERATOR_VERSION = ${DOCKER_IMAGE_TAG}
+ANALYSIS_TOOL_VERSION ?= $(shell git rev-parse --abbrev-ref HEAD)
 ifdef RELEASE_VERSION
 	OPERATOR_VERSION = ${RELEASE_VERSION}
+	ANALYSIS_TOOL_VERSION = ${RELEASE_VERSION}
 endif
 ifndef RELEASE_BRANCH
 	RELEASE_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
@@ -59,15 +61,12 @@ run:
 #
 .PHONY: go-build
 go-build:
-	$(GO) build \
-		-ldflags "${GO_LDFLAGS}" \
-		-o out/$(shell uname)_$(shell uname -m)/verrazzano-analysis \
+	GOOS=darwin GOARCH=amd64 $(GO) build \
+		-ldflags "${GO_LDFLAGS} -X main.analysisToolVersion=${ANALYSIS_TOOL_VERSION}" \
+		-o out/darwin_amd64/verrazzano-analysis \
 		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/analysis/main.go
-
-.PHONY: go-build-linux
-go-build-linux:
 	GOOS=linux GOARCH=amd64 $(GO) build \
-		-ldflags "${GO_LDFLAGS}" \
+		-ldflags "${GO_LDFLAGS} -X main.analysisToolVersion=${ANALYSIS_TOOL_VERSION}" \
 		-o out/linux_amd64/verrazzano-analysis \
 		${GOPATH}/src/github.com/verrazzano/verrazzano/tools/analysis/main.go
 
@@ -83,7 +82,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build: go-build-linux
+docker-build: go-build
 	@echo Building verrazzano-analysis image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	# the TPL file needs to be copied into this dir so it is in the docker build context
 	cp ../../THIRD_PARTY_LICENSES.txt .

@@ -2982,9 +2982,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-console-ingress.16688f13aa8c16de",
+                "name": "verrazzano-ingress.16688f13aa8c16de",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-console-ingress.16688f13aa8c16de",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-ingress.16688f13aa8c16de",
                 "uid": "15d83d88-a4c8-4ce7-915a-00c5a7bbc44d",
                 "resourceVersion": "4262",
                 "creationTimestamp": "2021-03-02T15:09:41Z",
@@ -3020,13 +3020,13 @@
             "involvedObject": {
                 "kind": "Ingress",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-console-ingress",
+                "name": "verrazzano-ingress",
                 "uid": "515d8698-9c2e-4853-835c-32318f22581b",
                 "apiVersion": "networking.k8s.io/v1beta1",
                 "resourceVersion": "4255"
             },
             "reason": "CREATE",
-            "message": "Ingress verrazzano-system/verrazzano-console-ingress",
+            "message": "Ingress verrazzano-system/verrazzano-ingress",
             "source": {
                 "component": "nginx-ingress-controller"
             },
@@ -3040,9 +3040,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-console-ingress.16688f13ada1e91f",
+                "name": "verrazzano-ingress.16688f13ada1e91f",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-console-ingress.16688f13ada1e91f",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-ingress.16688f13ada1e91f",
                 "uid": "f3d576e0-50ac-44e8-a25c-c252addd8db0",
                 "resourceVersion": "4284",
                 "creationTimestamp": "2021-03-02T15:09:41Z",
@@ -3078,7 +3078,7 @@
             "involvedObject": {
                 "kind": "Ingress",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-console-ingress",
+                "name": "verrazzano-ingress",
                 "uid": "515d8698-9c2e-4853-835c-32318f22581b",
                 "apiVersion": "extensions/v1beta1",
                 "resourceVersion": "4255"
@@ -3098,9 +3098,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-console-ingress.16688f17eb15d6a8",
+                "name": "verrazzano-ingress.16688f17eb15d6a8",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-console-ingress.16688f17eb15d6a8",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-ingress.16688f17eb15d6a8",
                 "uid": "eb1ae9c9-c429-4acd-a9a7-86a8dd417213",
                 "resourceVersion": "4439",
                 "creationTimestamp": "2021-03-02T15:09:59Z",
@@ -3136,13 +3136,13 @@
             "involvedObject": {
                 "kind": "Ingress",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-console-ingress",
+                "name": "verrazzano-ingress",
                 "uid": "515d8698-9c2e-4853-835c-32318f22581b",
                 "apiVersion": "networking.k8s.io/v1beta1",
                 "resourceVersion": "4436"
             },
             "reason": "UPDATE",
-            "message": "Ingress verrazzano-system/verrazzano-console-ingress",
+            "message": "Ingress verrazzano-system/verrazzano-ingress",
             "source": {
                 "component": "nginx-ingress-controller"
             },
@@ -3156,9 +3156,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-console-ingress.16688fc9382e5c95",
+                "name": "verrazzano-ingress.16688fc9382e5c95",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-console-ingress.16688fc9382e5c95",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-ingress.16688fc9382e5c95",
                 "uid": "72ef9daa-c2d2-45db-b7e9-4db4c56b18fe",
                 "resourceVersion": "7210",
                 "creationTimestamp": "2021-03-02T15:22:40Z",
@@ -3194,13 +3194,13 @@
             "involvedObject": {
                 "kind": "Ingress",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-console-ingress",
+                "name": "verrazzano-ingress",
                 "uid": "515d8698-9c2e-4853-835c-32318f22581b",
                 "apiVersion": "networking.k8s.io/v1beta1",
                 "resourceVersion": "7049"
             },
             "reason": "CREATE",
-            "message": "Ingress verrazzano-system/verrazzano-console-ingress",
+            "message": "Ingress verrazzano-system/verrazzano-ingress",
             "source": {
                 "component": "nginx-ingress-controller"
             },
@@ -3214,9 +3214,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-console-ingress.16688fc984f11250",
+                "name": "verrazzano-ingress.16688fc984f11250",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-console-ingress.16688fc984f11250",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-ingress.16688fc984f11250",
                 "uid": "343a950f-5c51-4887-a929-ac8ab35d0492",
                 "resourceVersion": "7233",
                 "creationTimestamp": "2021-03-02T15:22:43Z",
@@ -3252,13 +3252,13 @@
             "involvedObject": {
                 "kind": "Ingress",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-console-ingress",
+                "name": "verrazzano-ingress",
                 "uid": "515d8698-9c2e-4853-835c-32318f22581b",
                 "apiVersion": "networking.k8s.io/v1beta1",
                 "resourceVersion": "7224"
             },
             "reason": "UPDATE",
-            "message": "Ingress verrazzano-system/verrazzano-console-ingress",
+            "message": "Ingress verrazzano-system/verrazzano-ingress",
             "source": {
                 "component": "nginx-ingress-controller"
             },
@@ -3272,9 +3272,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-console-ingress.16688fd3eae740de",
+                "name": "verrazzano-ingress.16688fd3eae740de",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-console-ingress.16688fd3eae740de",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-ingress.16688fd3eae740de",
                 "uid": "bc485ba2-d35f-4f50-a942-375216a2cc30",
                 "resourceVersion": "7357",
                 "creationTimestamp": "2021-03-02T15:23:26Z",
@@ -3310,13 +3310,13 @@
             "involvedObject": {
                 "kind": "Ingress",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-console-ingress",
+                "name": "verrazzano-ingress",
                 "uid": "515d8698-9c2e-4853-835c-32318f22581b",
                 "apiVersion": "networking.k8s.io/v1beta1",
                 "resourceVersion": "7312"
             },
             "reason": "CREATE",
-            "message": "Ingress verrazzano-system/verrazzano-console-ingress",
+            "message": "Ingress verrazzano-system/verrazzano-ingress",
             "source": {
                 "component": "nginx-ingress-controller"
             },
@@ -3330,9 +3330,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-console-ingress.16688fd43ce06bdd",
+                "name": "verrazzano-ingress.16688fd43ce06bdd",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-console-ingress.16688fd43ce06bdd",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-ingress.16688fd43ce06bdd",
                 "uid": "098d4eaf-811c-411f-ae29-9abaac66033a",
                 "resourceVersion": "7381",
                 "creationTimestamp": "2021-03-02T15:23:29Z",
@@ -3368,13 +3368,13 @@
             "involvedObject": {
                 "kind": "Ingress",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-console-ingress",
+                "name": "verrazzano-ingress",
                 "uid": "515d8698-9c2e-4853-835c-32318f22581b",
                 "apiVersion": "networking.k8s.io/v1beta1",
                 "resourceVersion": "7373"
             },
             "reason": "UPDATE",
-            "message": "Ingress verrazzano-system/verrazzano-console-ingress",
+            "message": "Ingress verrazzano-system/verrazzano-ingress",
             "source": {
                 "component": "nginx-ingress-controller"
             },
@@ -3388,9 +3388,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-console-ingress.16688fe006423cbc",
+                "name": "verrazzano-ingress.16688fe006423cbc",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-console-ingress.16688fe006423cbc",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-ingress.16688fe006423cbc",
                 "uid": "6f728e07-ea2c-4f19-9f4f-5af422ea1b21",
                 "resourceVersion": "7518",
                 "creationTimestamp": "2021-03-02T15:24:18Z",
@@ -3426,13 +3426,13 @@
             "involvedObject": {
                 "kind": "Ingress",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-console-ingress",
+                "name": "verrazzano-ingress",
                 "uid": "515d8698-9c2e-4853-835c-32318f22581b",
                 "apiVersion": "networking.k8s.io/v1beta1",
                 "resourceVersion": "7473"
             },
             "reason": "CREATE",
-            "message": "Ingress verrazzano-system/verrazzano-console-ingress",
+            "message": "Ingress verrazzano-system/verrazzano-ingress",
             "source": {
                 "component": "nginx-ingress-controller"
             },
@@ -3446,9 +3446,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-console-ingress.16688fe03b0214f5",
+                "name": "verrazzano-ingress.16688fe03b0214f5",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-console-ingress.16688fe03b0214f5",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-ingress.16688fe03b0214f5",
                 "uid": "d611bcda-d303-4de5-90f4-21ea4dcad208",
                 "resourceVersion": "7533",
                 "creationTimestamp": "2021-03-02T15:24:20Z",
@@ -3484,13 +3484,13 @@
             "involvedObject": {
                 "kind": "Ingress",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-console-ingress",
+                "name": "verrazzano-ingress",
                 "uid": "515d8698-9c2e-4853-835c-32318f22581b",
                 "apiVersion": "networking.k8s.io/v1beta1",
                 "resourceVersion": "7528"
             },
             "reason": "UPDATE",
-            "message": "Ingress verrazzano-system/verrazzano-console-ingress",
+            "message": "Ingress verrazzano-system/verrazzano-ingress",
             "source": {
                 "component": "nginx-ingress-controller"
             },
@@ -3504,9 +3504,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-console-ingress.16688feb62b92b1c",
+                "name": "verrazzano-ingress.16688feb62b92b1c",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-console-ingress.16688feb62b92b1c",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-ingress.16688feb62b92b1c",
                 "uid": "ea2c6fb9-12ce-46d0-9d7c-d7f629b5286e",
                 "resourceVersion": "7678",
                 "creationTimestamp": "2021-03-02T15:25:07Z",
@@ -3542,13 +3542,13 @@
             "involvedObject": {
                 "kind": "Ingress",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-console-ingress",
+                "name": "verrazzano-ingress",
                 "uid": "515d8698-9c2e-4853-835c-32318f22581b",
                 "apiVersion": "networking.k8s.io/v1beta1",
                 "resourceVersion": "7628"
             },
             "reason": "CREATE",
-            "message": "Ingress verrazzano-system/verrazzano-console-ingress",
+            "message": "Ingress verrazzano-system/verrazzano-ingress",
             "source": {
                 "component": "nginx-ingress-controller"
             },
@@ -3562,9 +3562,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-console-ingress.16688febb0bf1d24",
+                "name": "verrazzano-ingress.16688febb0bf1d24",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-console-ingress.16688febb0bf1d24",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-ingress.16688febb0bf1d24",
                 "uid": "77146d8a-e35d-4ed7-bf1c-efa4ab133589",
                 "resourceVersion": "7703",
                 "creationTimestamp": "2021-03-02T15:25:09Z",
@@ -3600,13 +3600,13 @@
             "involvedObject": {
                 "kind": "Ingress",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-console-ingress",
+                "name": "verrazzano-ingress",
                 "uid": "515d8698-9c2e-4853-835c-32318f22581b",
                 "apiVersion": "networking.k8s.io/v1beta1",
                 "resourceVersion": "7694"
             },
             "reason": "UPDATE",
-            "message": "Ingress verrazzano-system/verrazzano-console-ingress",
+            "message": "Ingress verrazzano-system/verrazzano-ingress",
             "source": {
                 "component": "nginx-ingress-controller"
             },
@@ -3620,9 +3620,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-console-ingress.16688ff74e346e46",
+                "name": "verrazzano-ingress.16688ff74e346e46",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-console-ingress.16688ff74e346e46",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-ingress.16688ff74e346e46",
                 "uid": "569fd8f4-80fb-4363-a3e3-16d661815fce",
                 "resourceVersion": "7850",
                 "creationTimestamp": "2021-03-02T15:25:58Z",
@@ -3658,13 +3658,13 @@
             "involvedObject": {
                 "kind": "Ingress",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-console-ingress",
+                "name": "verrazzano-ingress",
                 "uid": "515d8698-9c2e-4853-835c-32318f22581b",
                 "apiVersion": "networking.k8s.io/v1beta1",
                 "resourceVersion": "7795"
             },
             "reason": "CREATE",
-            "message": "Ingress verrazzano-system/verrazzano-console-ingress",
+            "message": "Ingress verrazzano-system/verrazzano-ingress",
             "source": {
                 "component": "nginx-ingress-controller"
             },
@@ -3678,9 +3678,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-console-ingress.16688ff7ad47361c",
+                "name": "verrazzano-ingress.16688ff7ad47361c",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-console-ingress.16688ff7ad47361c",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-ingress.16688ff7ad47361c",
                 "uid": "628aeff6-51d6-4a20-b1be-c2423905f922",
                 "resourceVersion": "7875",
                 "creationTimestamp": "2021-03-02T15:26:01Z",
@@ -3716,13 +3716,13 @@
             "involvedObject": {
                 "kind": "Ingress",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-console-ingress",
+                "name": "verrazzano-ingress",
                 "uid": "515d8698-9c2e-4853-835c-32318f22581b",
                 "apiVersion": "networking.k8s.io/v1beta1",
                 "resourceVersion": "7868"
             },
             "reason": "UPDATE",
-            "message": "Ingress verrazzano-system/verrazzano-console-ingress",
+            "message": "Ingress verrazzano-system/verrazzano-ingress",
             "source": {
                 "component": "nginx-ingress-controller"
             },
@@ -3736,9 +3736,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-console-ingress.16689017e6cb2418",
+                "name": "verrazzano-ingress.16689017e6cb2418",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-console-ingress.16689017e6cb2418",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-ingress.16689017e6cb2418",
                 "uid": "2c926efe-488c-4746-ac0e-7486dbe9b909",
                 "resourceVersion": "8235",
                 "creationTimestamp": "2021-03-02T15:28:18Z",
@@ -3774,13 +3774,13 @@
             "involvedObject": {
                 "kind": "Ingress",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-console-ingress",
+                "name": "verrazzano-ingress",
                 "uid": "515d8698-9c2e-4853-835c-32318f22581b",
                 "apiVersion": "networking.k8s.io/v1beta1",
                 "resourceVersion": "7961"
             },
             "reason": "CREATE",
-            "message": "Ingress verrazzano-system/verrazzano-console-ingress",
+            "message": "Ingress verrazzano-system/verrazzano-ingress",
             "source": {
                 "component": "nginx-ingress-controller"
             },
@@ -3794,9 +3794,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-console-ingress.166890181577b455",
+                "name": "verrazzano-ingress.166890181577b455",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-console-ingress.166890181577b455",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-ingress.166890181577b455",
                 "uid": "fad73479-1a1e-49c5-916b-7a023a4264a1",
                 "resourceVersion": "8251",
                 "creationTimestamp": "2021-03-02T15:28:20Z",
@@ -3832,13 +3832,13 @@
             "involvedObject": {
                 "kind": "Ingress",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-console-ingress",
+                "name": "verrazzano-ingress",
                 "uid": "515d8698-9c2e-4853-835c-32318f22581b",
                 "apiVersion": "networking.k8s.io/v1beta1",
                 "resourceVersion": "8242"
             },
             "reason": "UPDATE",
-            "message": "Ingress verrazzano-system/verrazzano-console-ingress",
+            "message": "Ingress verrazzano-system/verrazzano-ingress",
             "source": {
                 "component": "nginx-ingress-controller"
             },
@@ -3852,9 +3852,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-console-ingress.16689049054eeae6",
+                "name": "verrazzano-ingress.16689049054eeae6",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-console-ingress.16689049054eeae6",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-ingress.16689049054eeae6",
                 "uid": "c66ba6ee-1b57-4dc9-b9eb-0698ec49557d",
                 "resourceVersion": "8783",
                 "creationTimestamp": "2021-03-02T15:31:49Z",
@@ -3890,13 +3890,13 @@
             "involvedObject": {
                 "kind": "Ingress",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-console-ingress",
+                "name": "verrazzano-ingress",
                 "uid": "515d8698-9c2e-4853-835c-32318f22581b",
                 "apiVersion": "networking.k8s.io/v1beta1",
                 "resourceVersion": "8348"
             },
             "reason": "CREATE",
-            "message": "Ingress verrazzano-system/verrazzano-console-ingress",
+            "message": "Ingress verrazzano-system/verrazzano-ingress",
             "source": {
                 "component": "nginx-ingress-controller"
             },
@@ -3910,9 +3910,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-console-ingress.16689049698532c2",
+                "name": "verrazzano-ingress.16689049698532c2",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-console-ingress.16689049698532c2",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-ingress.16689049698532c2",
                 "uid": "3ed27adc-9e70-434a-b91d-51fb8b931d37",
                 "resourceVersion": "8815",
                 "creationTimestamp": "2021-03-02T15:31:52Z",
@@ -3948,13 +3948,13 @@
             "involvedObject": {
                 "kind": "Ingress",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-console-ingress",
+                "name": "verrazzano-ingress",
                 "uid": "515d8698-9c2e-4853-835c-32318f22581b",
                 "apiVersion": "networking.k8s.io/v1beta1",
                 "resourceVersion": "8806"
             },
             "reason": "UPDATE",
-            "message": "Ingress verrazzano-system/verrazzano-console-ingress",
+            "message": "Ingress verrazzano-system/verrazzano-ingress",
             "source": {
                 "component": "nginx-ingress-controller"
             },
@@ -3968,9 +3968,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-console-ingress.1668909c1f6474c9",
+                "name": "verrazzano-ingress.1668909c1f6474c9",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-console-ingress.1668909c1f6474c9",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-ingress.1668909c1f6474c9",
                 "uid": "1bce59a6-7698-40c4-91dc-782c2fd964bf",
                 "resourceVersion": "9783",
                 "creationTimestamp": "2021-03-02T15:37:46Z",
@@ -4006,13 +4006,13 @@
             "involvedObject": {
                 "kind": "Ingress",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-console-ingress",
+                "name": "verrazzano-ingress",
                 "uid": "515d8698-9c2e-4853-835c-32318f22581b",
                 "apiVersion": "networking.k8s.io/v1beta1",
                 "resourceVersion": "8896"
             },
             "reason": "CREATE",
-            "message": "Ingress verrazzano-system/verrazzano-console-ingress",
+            "message": "Ingress verrazzano-system/verrazzano-ingress",
             "source": {
                 "component": "nginx-ingress-controller"
             },
@@ -4026,9 +4026,9 @@
         },
         {
             "metadata": {
-                "name": "verrazzano-console-ingress.1668909c77484ab8",
+                "name": "verrazzano-ingress.1668909c77484ab8",
                 "namespace": "verrazzano-system",
-                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-console-ingress.1668909c77484ab8",
+                "selfLink": "/api/v1/namespaces/verrazzano-system/events/verrazzano-ingress.1668909c77484ab8",
                 "uid": "1a72bdbf-b9e8-48b9-a5bb-92f2bd3181ac",
                 "resourceVersion": "9803",
                 "creationTimestamp": "2021-03-02T15:37:49Z",
@@ -4064,13 +4064,13 @@
             "involvedObject": {
                 "kind": "Ingress",
                 "namespace": "verrazzano-system",
-                "name": "verrazzano-console-ingress",
+                "name": "verrazzano-ingress",
                 "uid": "515d8698-9c2e-4853-835c-32318f22581b",
                 "apiVersion": "networking.k8s.io/v1beta1",
                 "resourceVersion": "9796"
             },
             "reason": "UPDATE",
-            "message": "Ingress verrazzano-system/verrazzano-console-ingress",
+            "message": "Ingress verrazzano-system/verrazzano-ingress",
             "source": {
                 "component": "nginx-ingress-controller"
             },

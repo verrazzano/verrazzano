@@ -54,6 +54,9 @@ const LabelVerrazzanoManagedDefault = "true"
 // LabelIstioInjection - constant for a Kubernetes label that is applied by Verrazzano
 const LabelIstioInjection = "istio-injection"
 
+// LabelVerrazzanoNamespace - constant for a Kubernetes label that is used by network policies
+const LabelVerrazzanoNamespace = "verrazzano.io/namespace"
+
 // LabelIstioInjectionDefault - default value for LabelIstioInjection
 const LabelIstioInjectionDefault = "enabled"
 
@@ -72,3 +75,6 @@ const StatusUpdateBatchSize = 10
 // changed since the application was deployed, the application will pick up the latest values and be restarted. If the
 // label value matches the value in the workload status, all Verrazzano provided resources will remain unchanged.
 const LabelUpgradeVersion = "upgrade-version"
+
+// VzConsoleIngress - the name of the ingress for verrazzano console and api
+const VzConsoleIngress = "verrazzano-ingress"

@@ -59,6 +59,8 @@ type VerrazzanoManagedClusterStatus struct {
 	// Last time the agent from this managed cluster connected to the admin cluster.
 	// +optional
 	LastAgentConnectTime *metav1.Time `json:"lastAgentConnectTime,omitempty"`
+	// Verrazzano API Server URL for the managed cluster.
+	APIUrl string `json:"apiUrl,omitempty"`
 }
 
 // VerrazzanoManagedCluster is the Schema for the Verrazzanomanagedclusters API

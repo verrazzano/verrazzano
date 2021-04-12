@@ -27,4 +27,7 @@ spec:
       projectMonitorSubjects:
         - kind: Group
           name: test-viewers
+  placement:
+    clusters:
+      - name: managed1
 

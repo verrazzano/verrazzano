@@ -16,7 +16,7 @@ import (
 var _ = ginkgo.Describe("vmi urls test", func() {
 
 	var _ = ginkgo.BeforeEach(func() {
-		api = pkg.GetAPIEndpoint()
+		api = pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
 	})
 
 	ginkgo.Context("Fetching the system vmi using api and test urls", func() {

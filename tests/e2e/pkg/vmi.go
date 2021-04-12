@@ -34,14 +34,14 @@ func GetSystemVMICredentials() (*UsernamePassword, error) {
 }
 
 // GetBindingVmiHTTPClient returns the VMI client for the prided binding
-func GetBindingVmiHTTPClient(bindingName string) *retryablehttp.Client {
-	bindingVmiCaCert := getBindingVMICACert(bindingName)
-	vmiRawClient := getHTTPClientWIthCABundle(bindingVmiCaCert)
+func GetBindingVmiHTTPClient(bindingName string, kubeconfigPath string) *retryablehttp.Client {
+	bindingVmiCaCert := getBindingVMICACert(bindingName, kubeconfigPath)
+	vmiRawClient := getHTTPClientWIthCABundle(bindingVmiCaCert, kubeconfigPath)
 	retryableClient := newRetryableHTTPClient(vmiRawClient)
 	retryableClient.CheckRetry = GetRetryPolicy()
 	return retryableClient
 }
 
-func getBindingVMICACert(bindingName string) []byte {
-	return doGetCACertFromSecret(fmt.Sprintf("%v-tls", bindingName), "verrazzano-system")
+func getBindingVMICACert(bindingName string, kubeconfigPath string) []byte {
+	return doGetCACertFromSecret(fmt.Sprintf("%v-tls", bindingName), "verrazzano-system", kubeconfigPath)
 }
