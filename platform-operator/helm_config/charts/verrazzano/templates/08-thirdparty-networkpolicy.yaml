@@ -115,13 +115,14 @@ spec:
 ---
 # Network policy for VMI System Prometheus
 # Ingress: allow connect from the ingress controller to oidc port 8775
-#          allow connect to port 9090
+#          allow connect from Prometheus Pusher and Grafana to port 9090
 # Egress: allow connect to Kubernetes API server
 #         allow connect to istio ports 15012 and 15014
 #         allow connect to DNS lookup port 53 for both UDP and TCP
 #         allow connect to Keycloak port 8080
 #         allow connect in ingress controller ports 80, 443, and 10254 for scraping metrics
-#         allow connect to various ports for scraping metrics
+#         allow connect to Prometheus Pusher port 9091 for scraping metrics
+#         allow connect to ports 7001, 8001, 8080, and 15090 for scraping application pod metrics
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -205,6 +206,9 @@ spec:
             matchLabels:
               app.kubernetes.io/instance: ingress-controller
     - ports:
+        - port: 9091
+          protocol: TCP
+    - ports:
         - port: 7001
           protocol: TCP
     - ports:
@@ -212,9 +216,6 @@ spec:
           protocol: TCP
     - ports:
         - port: 8080
-          protocol: TCP
-    - ports:
-        - port: 9091
           protocol: TCP
     - ports:
         - port: 15090
