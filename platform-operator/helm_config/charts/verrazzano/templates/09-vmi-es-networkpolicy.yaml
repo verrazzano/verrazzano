@@ -6,7 +6,7 @@
 #          allow from Kibana to port 9200
 #          allow from FluentD to port 9200
 # Egress:  allow to DNS lookup port 53 for both UDP and TCP
-#          allow to Keycloak port 8080
+#          allow to Keycloak via external ingress
 {{- if .Values.elasticSearch.enabled}}
 {{- if eq (int .Values.elasticSearch.nodes.data.replicas) 0}}
 apiVersion: networking.k8s.io/v1
@@ -62,15 +62,8 @@ spec:
             matchLabels:
               k8s-app: kube-dns
     - ports:
-        - port: 8080
+        - port: 443
           protocol: TCP
-      to:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: keycloak
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/instance: keycloak
 {{- else }}
 # Network policy for Elasticsearch full multi-pod installation
 
@@ -210,7 +203,7 @@ spec:
 #          allow to ES master to port 9300
 #          allow to ES data to port 9300
 #          allow to ES data to port 9200
-#          allow to Keycloak to port 8080
+#          allow to Keycloak to external ingress
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -295,15 +288,8 @@ spec:
         - protocol: TCP
           port: 9300
     - ports:
-        - port: 8080
+        - port: 443
           protocol: TCP
-      to:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: keycloak
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/instance: keycloak
 # end else
 {{- end }}
 ---
