@@ -149,14 +149,8 @@ var _ = ginkgo.Describe("VMI", func() {
 			gomega.Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "ingress did not show up")
 			gomega.Expect(ingressURLs).To(gomega.HaveKey("vmi-system-es-ingest"), "Ingress vmi-system-es-ingest not found")
 			assertOidcIngressByName("vmi-system-es-ingest")
-			pkg.Concurrently(
-				func() {
-					gomega.Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "never connected")
-				},
-				func() {
-					gomega.Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "indices never created")
-				},
-			)
+			gomega.Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "never connected")
+			gomega.Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(gomega.BeTrue(), "indices never created")
 		})
 
 		ginkgo.It("Elasticsearch filebeat Index should be accessible", func() {

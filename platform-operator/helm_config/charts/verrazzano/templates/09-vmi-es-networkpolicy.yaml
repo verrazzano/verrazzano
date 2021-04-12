@@ -7,8 +7,8 @@
 #          allow from FluentD to port 9200
 # Egress:  allow to DNS lookup port 53 for both UDP and TCP
 #          allow to Keycloak via external ingress
-{{- if .Values.elasticSearch.enabled}}
-{{- if eq (int .Values.elasticSearch.nodes.data.replicas) 0}}
+  {{- if .Values.elasticSearch.enabled}}
+  {{- if eq (int .Values.elasticSearch.nodes.data.replicas) 0}}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -33,6 +33,7 @@ spec:
         - protocol: TCP
           port: 8775
     # Allow ingress from Kibana
+    # Allow ingress from Kibana
     - from:
         - podSelector:
             matchLabels:
@@ -40,49 +41,25 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
-    # Allow ingress from Fluentd
     - from:
         - podSelector:
             matchLabels:
-              app: fluentd
+              app: system-prometheus
       ports:
         - protocol: TCP
-          port: 9200
-    # Allow ingress from Logging Journalbeat and Filebeat
+          port: 9100
     - from:
-        - namespaceSelector:
+        - podSelector:
             matchLabels:
-              verrazzano.binding: system
-      ports:
+              app: system-es-master
+    - ports:
         - protocol: TCP
           port: 9200
+        - protocol: TCP
+          port: 9300
   egress:
-    - to:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: kube-system
-          podSelector:
-            matchLabels:
-              k8s-app: kube-dns
-      ports:
-        - port: 53
-          protocol: UDP
-        - port: 53
-          protocol: TCP
-    - ports:
-        - port: 443
-          protocol: TCP
-    - ports:
-        - port: 8080
-          protocol: TCP
-      to:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: keycloak
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/instance: keycloak
-{{- else }}
+    - {}
+  {{- else }}
 # Network policy for Elasticsearch full multi-pod installation
 
 # Network policy for Elasticsearch master
@@ -327,8 +304,8 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/instance: keycloak
-# end else
-{{- end }}
+  # end else
+  {{- end }}
 ---
 # Network policy for Kibana
 # Ingress: allow from ingress controller to the OIDC sidecar port 8775
@@ -402,4 +379,4 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/instance: keycloak
-{{- end }}
+  {{- end }}
