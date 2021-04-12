@@ -4,6 +4,8 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
+# $1 Boolean indicates whether to setup and install Calico or not
+
 set -o pipefail
 
 set -xv
@@ -13,14 +15,18 @@ if [ -z "$JENKINS_URL" ] || [ -z "$GO_REPO_PATH" ] || [ -z "$TESTS_EXECUTED_FILE
   exit 1
 fi
 
+INSTALL_CALICO=${1:-false}
+
 cd ${GO_REPO_PATH}/verrazzano
 echo "tests will execute" > ${TESTS_EXECUTED_FILE}
 echo "Create Kind cluster"
 cd ${TEST_SCRIPTS_DIR}
-./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KIND_KUBERNETES_CLUSTER_VERSION}" true true true
+./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KIND_KUBERNETES_CLUSTER_VERSION}" true true true $INSTALL_CALICO
 
-echo "Install Calico"
-kubectl apply -f https://docs.projectcalico.org/manifests/canal.yaml
+if [ $INSTALL_CALICO == true ]; then
+    echo "Install Calico"
+    kubectl apply -f https://docs.projectcalico.org/manifests/canal.yaml
+fi
 
 echo "Install metallb"
 cd ${GO_REPO_PATH}/verrazzano

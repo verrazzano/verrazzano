@@ -15,3 +15,6 @@ nodes:
     extraMounts:
       - hostPath: /var/lib/docker/v8o_cache/at_tests
         containerPath: /var/lib/containerd
+networking:
+  disableDefaultCNI: true # disable kindnet
+  podSubnet: 192.168.0.0/16 # set to Calico's default subnet

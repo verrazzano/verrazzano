@@ -546,9 +546,8 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 echo "Create Kind cluster \$1"
                 cd ${TEST_SCRIPTS_DIR}
-                ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork"
-                echo "Install Calico"
-                kubectl apply -f https://docs.projectcalico.org/manifests/canal.yaml
+                # Not using the caching, and not setting up Calico
+                ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" false false
                 echo "Install metallb"
                 cd ${GO_REPO_PATH}/verrazzano
                 ./tests/e2e/config/scripts/install-metallb.sh $metallbAddressRange
