@@ -45,13 +45,6 @@ function install_oam {
     return 1
   fi
 
-#  log "Setup OAM roles"
-#  kubectl create clusterrolebinding cluster-admin-binding-oam --clusterrole cluster-admin --user system:serviceaccount:verrazzano-system:oam-kubernetes-runtime-oam
-#  if [ $? -ne 0 ]; then
-#    error "Failed to setup OAM roles."
-#    return 1
-#  fi
-
   echo "Wait for OAM runtime pod to be ready."
   attempt=1
   while true; do
