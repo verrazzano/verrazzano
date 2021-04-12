@@ -6,8 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"strings"
 	"time"
@@ -18,6 +16,8 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
@@ -378,10 +378,19 @@ func deployTestResources() {
 
 	// create the test project
 	pkg.Log(pkg.Info, "Creating test project")
-	err := CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-multiclustertest.yaml", &clustersv1alpha1.VerrazzanoProject{})
+	err := CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-permissiontest.yaml", &clustersv1alpha1.VerrazzanoProject{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create test namespace: %v", err))
 	}
+
+	// Wait for the namespaces to be created
+	pkg.Log(pkg.Info, "Wait for the project namespaces to be created")
+	gomega.Eventually(func() bool {
+		return pkg.DoesNamespaceExist(testNamespace)
+	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Expected to find namespace %s", testNamespace))
+	gomega.Eventually(func() bool {
+		return pkg.DoesNamespaceExist(anotherTestNamespace)
+	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Expected to find namespace %s", anotherTestNamespace))
 
 	// create a config map
 	pkg.Log(pkg.Info, "Creating MC config map")
@@ -434,7 +443,7 @@ func undeployTestResources() {
 
 	// delete the test project
 	pkg.Log(pkg.Info, "Deleting test project")
-	err = DeleteResourceFromFile("testdata/multicluster/verrazzanoproject-multiclustertest.yaml", &clustersv1alpha1.VerrazzanoProject{})
+	err = DeleteResourceFromFile("testdata/multicluster/verrazzanoproject-permissiontest.yaml", &clustersv1alpha1.VerrazzanoProject{})
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create test namespace: %v", err))
 	}

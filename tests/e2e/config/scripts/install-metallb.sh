@@ -9,7 +9,8 @@ set -e
 ADDRESS_RANGE=${1:-"172.18.0.230-172.18.0.254"}
 
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.5/manifests/namespace.yaml
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.5/manifests/metallb.yaml
+curl --silent https://raw.githubusercontent.com/metallb/metallb/v0.9.5/manifests/metallb.yaml | sed 's/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/g' > metallb.yaml
+kubectl apply -f metallb.yaml
 kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
 kubectl apply -f - <<-EOF
 apiVersion: v1

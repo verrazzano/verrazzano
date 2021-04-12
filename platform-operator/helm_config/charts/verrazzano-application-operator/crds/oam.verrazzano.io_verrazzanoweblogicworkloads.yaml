@@ -50,10 +50,17 @@ spec:
           status:
             description: VerrazzanoWebLogicWorkloadStatus defines the observed state
               of VerrazzanoWebLogicWorkload
+            properties:
+              currentUpgradeVersion:
+                description: CurrentUpgradeVersion is the version that was specified
+                  when the application was last upgraded with Verrazzano
+                type: string
             type: object
         type: object
     served: true
     storage: true
+    subresources:
+      status: {}
 status:
   acceptedNames:
     kind: ""
