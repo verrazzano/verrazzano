@@ -14,7 +14,6 @@ set -xv
 
 kind_container_name=${KIND_CLUSTER_NAME}-control-plane
 kind_container_ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${kind_container_name})
-
 if [ $? -ne 0 ]; then
     echo "Kind container ${KIND_CONTAINER_NAME} not running"
     exit 1
@@ -36,6 +35,5 @@ for jenkins_runner_container in $(docker ps  -q -f "label=${JENKINS_RUNNER_CONTA
         fi
     fi
 done
-
 
 exit 0
