@@ -116,7 +116,7 @@ func DoesNamespaceExist(name string) bool {
 	clientset := GetKubernetesClientset()
 
 	namespace, err := clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil {
+	if err != nil && !errors.IsNotFound(err) {
 		ginkgo.Fail(fmt.Sprintf("Failed to get namespace %s with error: %v", name, err))
 	}
 
