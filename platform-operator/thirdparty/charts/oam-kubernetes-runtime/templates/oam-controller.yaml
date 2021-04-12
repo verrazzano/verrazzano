@@ -32,6 +32,7 @@ rules:
 - apiGroups:
     - ""
   resources:
+    - configmaps
     - events
     - services
   verbs:
@@ -43,16 +44,6 @@ rules:
     - patch
     - update
     - watch
-- apiGroups:
-    - ""
-  resourceNames:
-    - oam-kubernetes-runtime
-  resources:
-    - configmaps
-  verbs:
-    - get
-    - patch
-    - update
 - apiGroups:
   - apps
   resources:
