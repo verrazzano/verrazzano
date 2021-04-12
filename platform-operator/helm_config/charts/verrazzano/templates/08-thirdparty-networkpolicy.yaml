@@ -97,7 +97,7 @@ spec:
           protocol: TCP
 # Network policy for Rancher cluster agent
 # Ingress: deny all
-# Egress: Kubernetes API server, DNS for Rancher host lookups, and port 443 to talk to Rancher
+# Egress: Kubernetes API server, DNS for Rancher host lookups, and port 443 to talk to Rancher on the admin cluster
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
