@@ -383,6 +383,9 @@ spec:
         - podSelector:
             matchLabels:
               app: system-es-ingest
+        - podSelector:
+            matchLabels:
+              app: system-es-master
       ports:
         - protocol: TCP
           port: 9200
