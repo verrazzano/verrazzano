@@ -131,7 +131,7 @@ data:
     "/opt/jboss/keycloak/bin/kcadm.sh update realms/master -s loginTheme=oracle --no-config --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --password \$(cat /etc/${KCADMIN_SECRET}/password)"
 
   # Update the password policy.
-  local PASSWORD_POLICY="length(8)"
+  local PASSWORD_POLICY="length(8) and notUsername and notEmail"
   kubectl exec keycloak-0 \
     -n ${KEYCLOAK_NS} \
     -c keycloak \
