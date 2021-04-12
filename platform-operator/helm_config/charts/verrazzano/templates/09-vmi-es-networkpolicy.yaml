@@ -48,6 +48,14 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
+    # Allow ingress from Logging Journalbeat and Filebeat
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.binding: system
+      ports:
+        - protocol: TCP
+          port: 9200
   egress:
     - to:
         - namespaceSelector:
@@ -270,7 +278,7 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: logging
+              verrazzano.binding: system
       ports:
         - protocol: TCP
           port: 9200
