@@ -21,12 +21,15 @@ var _ = ginkgo.Describe("keycloak url test", func() {
 
 	ginkgo.Context("Fetching the keycloak url using api and test ", func() {
 		ginkgo.It("Fetches keycloak url", func() {
-			ingress := api.GetIngress("keycloak", "keycloak")
-			keycloakURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
-			gomega.Expect(keycloakURL).NotTo(gomega.BeEmpty())
+			isManagedClusterProfile := pkg.IsManagedClusterProfile()
+			if !isManagedClusterProfile {
+				ingress := api.GetIngress("keycloak", "keycloak")
+				keycloakURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
+				gomega.Expect(keycloakURL).NotTo(gomega.BeEmpty())
 
-			httpClient := pkg.GetVerrazzanoHTTPClient()
-			pkg.ExpectHTTPGetOk(httpClient, keycloakURL)
+				httpClient := pkg.GetVerrazzanoHTTPClient()
+				pkg.ExpectHTTPGetOk(httpClient, keycloakURL)
+			}
 		})
 	})
 })
