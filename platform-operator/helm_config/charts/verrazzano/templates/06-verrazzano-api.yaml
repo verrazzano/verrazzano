@@ -343,8 +343,7 @@ spec:
         app: {{ .Values.api.name }}
     spec:
       securityContext:
-        runAsUser: 0
-        runAsGroup: 0
+        runAsUser: 101
       volumes:
        - name: api-config
          projected:
