@@ -23,7 +23,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "VM.Standard2.8"
+            label "largeexperimental"
         }
     }
 
@@ -547,6 +547,8 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 echo "Create Kind cluster \$1"
                 cd ${TEST_SCRIPTS_DIR}
                 ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork"
+                echo "Install Calico"
+                kubectl apply -f https://docs.projectcalico.org/manifests/canal.yaml
                 echo "Install metallb"
                 cd ${GO_REPO_PATH}/verrazzano
                 ./tests/e2e/config/scripts/install-metallb.sh $metallbAddressRange
