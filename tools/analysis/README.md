@@ -1,20 +1,14 @@
 # Analysis Tooling
-The analysis tooling analyzes data from a variety of sources (cluster dumps, build logs, and such), reports the issues found and related actions to take.  These tools are continually evolving with regard to what may be captured, the knowledge base of issues and actions, the types of analysis that can be performed, and so on.
+The analysis tooling analyzes data from a variety of sources (cluster dumps, build logs, and such), reports the issues found, and prescribes related actions to take.  These tools are continually evolving with regard to what may be captured, the knowledge base of issues and actions, and the types of analysis that can be performed.
 
-Users, developers, and Continuous Integration (CI) can use this tooling to quickly identify the root cause of encountered problems, mitigation actions for those issues, and provide a sharable report with other users or tooling.
+Users, developers, and Continuous Integration (CI) can use this tooling to quickly identify the root cause of encountered problems, determine mitigation actions, and provide a sharable report with other users or tooling.
 
-The data at which the analysis examines follows the structure created by the corresponding capture tooling.
-
-For example, `tools/scripts/k8s-dump-cluster.sh` dumps a cluster into a specific structure, which may contain data that you do not want to share. The analysis tooling analyzes the data and provides you with a report, which will identify issues and provide actions for you to take.
-This data is entirely under your control; you can choose whether to share it.
-
-The types of analysis initially supported are:
-- Cluster
+The data that the analysis examines follows the structure created by the corresponding capture tooling. For example, `tools/scripts/k8s-dump-cluster.sh` dumps a cluster into a specific structure, which may contain data that you do not want to share. The tooling analyzes the data and provides you with a report, which identifies issues and provides you with actions to take. This data is entirely under your control; you can choose whether to share it.
 
 
 ## Cluster analysis
 
-The cluster analysis examines all cluster dumps which are found under a specified root directory and provides a report.
+Initially, only cluster analysis is supported. Cluster analysis examines all cluster dumps which are found under a specified root directory and provides a report.
 
 ### Expected directory structures
 
@@ -58,7 +52,7 @@ Using the `k8s-dump-cluster.sh` tool, a single cluster dump yields the following
         cluster-dump
             ...
 
-To perform an analysis of that cluster run:
+To perform an analysis on that cluster:
 
 `$ go run analyze.go --analysis=cluster $CAPTURE_DIR`
 
@@ -79,7 +73,7 @@ For example:
             cluster-dump
                 ...
 
-The tool will analyze each cluster dump directory found, so you just need to provide the single root directory. To perform an analysis of the clusters, run:
+The tool analyzes each cluster dump directory found; you need to provide only the single root directory. To perform an analysis of the clusters:
 
 `$ go run analyze.go --analysis=cluster my-cluster-dumps`
 
@@ -97,7 +91,7 @@ out/darwin_amd64/verrazzano-analysis
 out/linux_amd64/verrazzano-analysis
 ```
 ## Usage
-If you have built the executable image for your platform, then you run it as follows:
+If you have built the executable image for your platform, then run it as follows:
 ```
 $ verrazzano-analysis [options] captured-data-directory
 
@@ -134,7 +128,8 @@ Options:
 ## Docker image
 The analysis tool can be built and run from a Docker container. For example, if you build the Docker image locally and run the analysis against existing cluster dumps:
 
-- `make docker-build`
+  `$ make docker-build`
 
    Make note of the `verrazzano-analysis-dev` image which was built and run it. You need to map your local host's directory into the container and supply the mounted location to the analysis command line.
-- `docker run verrazzano-analysis-dev:local-0d987e15 -v /Users/myuser/triage:/triage /triage`
+
+  `$ docker run verrazzano-analysis-dev:local-0d987e15 -v /Users/myuser/triage:/triage /triage`
