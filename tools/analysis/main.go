@@ -43,7 +43,7 @@ func main() {
 // initFlags is handled here. Separated out here from the main logic for now to allow for more main test coverage
 // TODO: Look at if we can reliably mess with flag variants in Go unit tests
 func initFlags() {
-	flag.StringVar(&analyzerType, "analysis", "cluster", "Type of analysis: cluster, buildlog")
+	flag.StringVar(&analyzerType, "analysis", "cluster", "Type of analysis: cluster")
 	flag.StringVar(&reportFile, "reportFile", "", "Name of report output file, default is stdout")
 	flag.BoolVar(&includeInfo, "info", true, "Include informational messages, default is true")
 	flag.BoolVar(&includeSupport, "support", true, "Include support data in the report, default is true")
@@ -145,7 +145,7 @@ func Analyze(logger *zap.SugaredLogger, analyzerType string, flagArgs string) (e
 // printUsage Prints the help for this program
 func printUsage() {
 	usageString := `
-Usage: analysis-tool [options] captured-data-directory
+Usage: verrazzano-analysis [options] captured-data-directory
 Options:
 `
 	fmt.Printf(usageString)

@@ -124,6 +124,8 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 					gomega.Expect(vzComponentPresent(name, "cattle-system")).To(gomega.BeFalse())
 				},
 				ginkgoExt.Entry("includes rancher", "rancher", false),
+				ginkgoExt.Entry("includes rancher-agent", "cattle-node-agent", false),
+				ginkgoExt.Entry("includes rancher-agent", "cattle-cluster-agent", false),
 			)
 		} else {
 			ginkgoExt.DescribeTable("deployed rancher components",
@@ -131,6 +133,8 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 					gomega.Expect(vzComponentPresent(name, "cattle-system")).To(gomega.Equal(expected))
 				},
 				ginkgoExt.Entry("includes rancher", "rancher", true),
+				ginkgoExt.Entry("includes rancher-agent", "cattle-node-agent", true),
+				ginkgoExt.Entry("includes rancher-agent", "cattle-cluster-agent", true),
 			)
 		}
 

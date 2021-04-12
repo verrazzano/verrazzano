@@ -7,11 +7,11 @@ Analysis detected that there were nodes reporting insufficient memory.
 
    a. Are the nodes sized correctly for the workload?
 
-      1. For the minimum resources required for installing Verrazzano, see https://verrazzano.io/docs/setup/install/installation/.
+      1. For the minimum resources required for installing Verrazzano, see the [Installation Guide](https://verrazzano.io/docs/setup/install/installation/).
       2. Refer to documentation for other applications that you are deploying for resource guidelines and take those into account.
 
   b. Is something unexpected running on the nodes or consuming more memory than expected?
 
 ## Related information
-* https://verrazzano.io/docs/setup/install/installation/
-* https://kubernetes.io/docs/tasks/debug-application-cluster/troubleshooting/
+* [Installation Guide](https://verrazzano.io/docs/setup/install/installation/)
+* [Kubernetes Troubleshooting](https://kubernetes.io/docs/tasks/debug-application-cluster/troubleshooting/)
