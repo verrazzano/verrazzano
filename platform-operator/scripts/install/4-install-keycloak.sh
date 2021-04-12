@@ -130,6 +130,14 @@ data:
     -- bash -c \
     "/opt/jboss/keycloak/bin/kcadm.sh update realms/master -s loginTheme=oracle --no-config --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --password \$(cat /etc/${KCADMIN_SECRET}/password)"
 
+  # Update the password policy.
+  local PASSWORD_POLICY="length(8)"
+  kubectl exec keycloak-0 \
+    -n ${KEYCLOAK_NS} \
+    -c keycloak \
+    -- bash -c \
+    "/opt/jboss/keycloak/bin/kcadm.sh update realms/master -s \'passwordPolicy=\"${PASSWORD_POLICY}\"\' --no-config --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --password \$(cat /etc/${KCADMIN_SECRET}/password)"
+
   # Label the keycloak namespace so that we can apply network policies
   log "Adding label needed by network policies to keycloak namespace"
   kubectl label namespace keycloak "verrazzano.io/namespace=keycloak"
