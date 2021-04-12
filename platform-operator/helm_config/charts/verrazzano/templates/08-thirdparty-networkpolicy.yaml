@@ -116,13 +116,7 @@ spec:
 # Network policy for VMI System Prometheus
 # Ingress: allow connect from the ingress controller to oidc port 8775
 #          allow connect from Prometheus Pusher and Grafana to port 9090
-# Egress: allow connect to Kubernetes API server
-#         allow connect to istio ports 15012 and 15014
-#         allow connect to DNS lookup port 53 for both UDP and TCP
-#         allow connect to Keycloak port 8080
-#         allow connect in ingress controller ports 80, 443, and 10254 for scraping metrics
-#         allow connect to Prometheus Pusher port 9091 for scraping metrics
-#         allow connect to ports 7001, 8001, 8080, and 15090 for scraping application pod metrics
+# Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -134,7 +128,6 @@ spec:
       app: system-prometheus
   policyTypes:
     - Ingress
-    - Egress
   ingress:
     - from:
         - namespaceSelector:
@@ -149,74 +142,4 @@ spec:
     - from:
       ports:
         - port: 9090
-          protocol: TCP
-  egress:
-    - ports:
-        - port: {{ .Values.kubernetes.service.endpoint.port }}
-          protocol: TCP
-      to:
-        - ipBlock:
-            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
-    - ports:
-        - port: 15012
-          protocol: TCP
-        - port: 15014
-          protocol: TCP
-      to:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: istio-system
-          podSelector:
-            matchLabels:
-              app: istiod
-    - ports:
-        - port: 53
-          protocol: UDP
-        - port: 53
-          protocol: TCP
-      to:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: kube-system
-          podSelector:
-            matchLabels:
-              k8s-app: kube-dns
-    - ports:
-        - port: 8080
-          protocol: TCP
-      to:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: keycloak
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/instance: keycloak
-    - ports:
-        - port: 10254
-          protocol: TCP
-        - port: 80
-          protocol: TCP
-        - port: 443
-          protocol: TCP
-      to:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: ingress-nginx
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/instance: ingress-controller
-    - ports:
-        - port: 9091
-          protocol: TCP
-    - ports:
-        - port: 7001
-          protocol: TCP
-    - ports:
-        - port: 8001
-          protocol: TCP
-    - ports:
-        - port: 8080
-          protocol: TCP
-    - ports:
-        - port: 15090
           protocol: TCP
