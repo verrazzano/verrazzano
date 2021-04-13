@@ -69,6 +69,10 @@ spec:
         - podSelector:
             matchLabels:
               app: system-es-master
+    # Allow ingress from anywhere since fluentd is in app ns (this will be removed once fluentd sidecars are gone)
+    - ports:
+      - protocol: TCP
+        port: 9200
   egress:
     - {}
   {{- else }}
@@ -266,6 +270,10 @@ spec:
             matchLabels:
               verrazzano.binding: system
       ports:
+        - protocol: TCP
+          port: 9200
+    # Allow ingress from anywhere since fluentd is in app ns (this will be removed once fluentd sidecars are gone)
+    - ports:
         - protocol: TCP
           port: 9200
   egress:
