@@ -3,7 +3,7 @@
 
 module "oke" {
   source = "oracle-terraform-modules/oke/oci"
-  version = "3.0.0"
+  version = "3.1.0"
 
   tenancy_id = var.tenancy_id
   user_id = var.user_id
