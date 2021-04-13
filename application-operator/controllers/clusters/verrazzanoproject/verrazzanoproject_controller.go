@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -48,13 +49,22 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log.WithValues("verrazzanoproject", req.NamespacedName)
 	var vp clustersv1alpha1.VerrazzanoProject
-	result := reconcile.Result{}
 	ctx := context.Background()
 	logger.Info("Fetching VerrazzanoProject")
 	err := r.Get(ctx, req.NamespacedName, &vp)
 	if err != nil {
+		// If the resource is not found, that means all of the finalizers have been removed,
+		// and the verrazzano resource has been deleted, so there is nothing left to do.
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+
 		logger.Error(err, "Failed to fetch VerrazzanoProject")
-		return result, client.IgnoreNotFound(err)
+		return reconcile.Result{}, err
+	}
+
+	if !vp.ObjectMeta.DeletionTimestamp.IsZero() {
+		return reconcile.Result{}, nil
 	}
 
 	// Use OperationResultCreated by default since we don't really know what happened to individual NS
