@@ -4,7 +4,7 @@
 # Network policy for Elasticsearch master single pod installation
 # Ingress: allow from ingress controller to the OIDC sidecar port 8775
 #          allow from Kibana to port 9200
-#          allow from FluentD to port 9200
+#          allow from Fluentd to port 9200
 # Egress:  allow to DNS lookup port 53 for both UDP and TCP
 #          allow to Keycloak via external ingress
   {{- if .Values.elasticSearch.enabled}}
@@ -32,7 +32,6 @@ spec:
       ports:
         - protocol: TCP
           port: 8775
-    # Allow ingress from Kibana
     # Allow ingress from Kibana
     - from:
         - podSelector:
@@ -92,7 +91,6 @@ spec:
         - protocol: TCP
           port: 9300
   egress:
-    # Egress:  allow egress to cluster protocol port for master and any port for ingress
     - to:
         - podSelector:
             matchLabels:
@@ -113,8 +111,7 @@ spec:
 #          allow from Kibana to port 9200
 #          allow from Prometheus to port 9100
 # Egress:  allow to DNS lookup port 53 for both UDP and TCP
-#          allow to ES master to port 9300
-#          allow to ES ingest to port 9300
+#          allow to ES master and ES ingest to port 9300
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -291,9 +288,6 @@ spec:
           port: 9200
         - protocol: TCP
           port: 9300
-    - ports:
-        - port: 443
-          protocol: TCP
     - ports:
         - port: 8080
           protocol: TCP
