@@ -77,6 +77,7 @@ spec:
     - Ingress
     - Egress
   ingress:
+    # Allow ingress from ES pods to cluster port
     - from:
         - podSelector:
             matchLabels:
@@ -91,6 +92,7 @@ spec:
         - protocol: TCP
           port: 9300
   egress:
+    # Allow egress to ES pods cluster port
     - to:
         - podSelector:
             matchLabels:
@@ -125,7 +127,7 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Ingress: allow ES Master to access
+    # Allow ingress from ES master
     - from:
         - podSelector:
             matchLabels:
@@ -133,7 +135,7 @@ spec:
       ports:
         - protocol: TCP
           port: 9300
-    # Ingress: allow ES Ingest access
+    # Allow ingress from ES ingest
     - from:
         - podSelector:
             matchLabels:
@@ -143,7 +145,7 @@ spec:
           port: 9200
         - protocol: TCP
           port: 9300
-    # Ingress: Allow Kibana
+    # Allow ingress from Kibana
     - from:
         - podSelector:
             matchLabels:
@@ -151,7 +153,7 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
-    # Ingress: allow Prometheus to scrape pod
+    # Allow ingress from Prometheus to scrape pod
     - from:
         - podSelector:
             matchLabels:
@@ -187,15 +189,12 @@ spec:
 ---
 # Network policy for Elasticsearch Ingest
 # Ingress: allow from ingress controller to the OIDC sidecar port 8775
-#          allow from ES master to port 9300
-#          allow from ES data to port 9300
+#          allow from ES master and ES data to port 9300
 #          allow from Kibana to port 9200
 #          allow from Fluentd to port 9200
 # Egress:  allow to DNS lookup port 53 for both UDP and TCP
 #          allow to ES master to port 9300
-#          allow to ES data to port 9300
-#          allow to ES data to port 9200
-#          allow to Keycloak to external ingress
+#          allow to ES data to port 9300 and 9200
 #          allow to Keycloak to port 8080
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -221,7 +220,7 @@ spec:
       ports:
         - protocol: TCP
           port: 8775
-    # Ingress: allow TCP from ES master
+    # Allow ingress from ES master and ES data on cluster port
     - from:
         - podSelector:
             matchLabels:
@@ -257,7 +256,7 @@ spec:
         - protocol: TCP
           port: 9200
   egress:
-    # Egress: allow TCP/UDP for name resolution
+    # Allow egress to TCP/UDP for name resolution
     - to:
         - namespaceSelector:
             matchLabels:
@@ -270,7 +269,7 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    # Egress: allow to master
+    # Allow egress to ES master
     - to:
         - podSelector:
             matchLabels:
@@ -278,7 +277,7 @@ spec:
       ports:
         - protocol: TCP
           port: 9300
-    # Egress: allow to ES data port 9200
+    # Allow egress to ES data
     - to:
         - podSelector:
             matchLabels:
@@ -288,25 +287,24 @@ spec:
           port: 9200
         - protocol: TCP
           port: 9300
-    - ports:
-        - port: 8080
-          protocol: TCP
-      to:
+    # Allow egress to keycloak
+    - to:
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: keycloak
           podSelector:
             matchLabels:
               app.kubernetes.io/instance: keycloak
+    - ports:
+        - port: 8080
+          protocol: TCP
   # end else
   {{- end }}
 ---
 # Network policy for Kibana
 # Ingress: allow from ingress controller to the OIDC sidecar port 8775
 # Egress:  allow to DNS lookup port 53 for both UDP and TCP
-#          allow to ES data to port 9200
-#          allow to ES ingest to port 9200
-#          allow to 443 to access external keycloak
+#          allow to ES data and ingest to port 9200
 #          allow to Keycloak to port 8080
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -346,7 +344,7 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    # Egress: allow nginx-ingress-controller to connect to 9200
+    # Egress to ES data and ingest
     - to:
         - podSelector:
             matchLabels:
@@ -357,17 +355,15 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
-    - ports:
-        - port: 443
-          protocol: TCP
-    - ports:
-        - port: 8080
-          protocol: TCP
-      to:
+    # Egress to keycloak
+    - to:
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: keycloak
           podSelector:
             matchLabels:
               app.kubernetes.io/instance: keycloak
+    - ports:
+        - port: 8080
+          protocol: TCP
   {{- end }}
