@@ -56,8 +56,8 @@ var _ = ginkgo.AfterSuite(func() {
 
 var (
 	expectedPodsHelidonConfig = []string{"helidon-config-deployment"}
-	waitTimeout              = 10 * time.Minute
-	pollingInterval          = 30 * time.Second
+	waitTimeout               = 10 * time.Minute
+	pollingInterval           = 30 * time.Second
 )
 
 const (
