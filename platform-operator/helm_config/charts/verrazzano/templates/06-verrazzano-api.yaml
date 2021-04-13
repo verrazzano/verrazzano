@@ -279,8 +279,9 @@ data:
 
     export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
     ln -s /etc/ssl/certs/ca-bundle.trust.crt /etc/nginx/ca-bundle
-    /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -t --prefix /etc/nginx
-    /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf --prefix /etc/nginx
+
+    /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -t -p /etc/nginx
+    /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf -p /etc/nginx
 
     sh -c "`dirname $0`/reload.sh &"
     tail -f /etc/nginx/logs/error.log
@@ -364,16 +365,16 @@ spec:
                 items:
                   - key: startup.sh
                     path: startup.sh
-                    mode: 0744
+                    mode: 0755
                   - key: nginx.conf
                     path: nginx.conf
                     mode: 0744 
                   - key: conf.lua
                     path: conf.lua
-                    mode: 0744 
+                    mode: 0755
                   - key: reload.sh
                     path: reload.sh
-                    mode: 0744
+                    mode: 0755
       containers:
       - image: {{ .Values.api.imageName }}:{{ .Values.api.imageVersion }}
         imagePullPolicy: {{ .Values.api.pullPolicy }}
