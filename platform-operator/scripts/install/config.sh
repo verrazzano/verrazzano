@@ -37,7 +37,10 @@ function get_config_value() {
     return 1
   fi
   if [ "$config_val" == "null" ]; then
-    # The configuration is not defined in CONFIG_JSON, check if it is defined in the json files under install-overrides
+    config_val=""
+  fi
+  # check if it is defined in the json files under install-overrides
+  if [ ! $(get_override_config_value "$jq_expr") == "" ]; then
     config_val=$(get_override_config_value "$jq_expr")
   fi
   echo $config_val
