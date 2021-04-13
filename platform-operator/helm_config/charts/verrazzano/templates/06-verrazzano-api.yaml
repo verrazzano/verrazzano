@@ -138,11 +138,11 @@ data:
     #user  nobody;
     worker_processes  1;
 
-    #error_log  /etc/nginx/logs/error.log;
-    #error_log  /etc/nginx/logs/error.log  notice;
-    #error_log  /etc/nginx/logs/error.log  info;
+    #error_log  logs/error.log;
+    #error_log  logs/error.log  notice;
+    #error_log  logs/error.log  info;
 
-    pid        /etc/nginx/logs/nginx.pid;
+    pid        logs/nginx.pid;
 
 
     events {
@@ -158,7 +158,7 @@ data:
         #                  '$status $body_bytes_sent "$http_referer" '
         #                  '"$http_user_agent" "$http_x_forwarded_for"';
 
-        error_log  /etc/nginx/logs/error.log  info;
+        error_log  logs/error.log  info;
 
         sendfile        on;
         #tcp_nopush     on;
