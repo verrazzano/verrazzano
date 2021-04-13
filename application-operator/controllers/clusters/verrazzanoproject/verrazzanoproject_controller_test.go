@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
@@ -294,6 +295,37 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestDeleteVerrazzanoProject tests deleting a VerrazzanoProject
+// GIVEN a VerrazzanoProject resource is deleted
+// WHEN the controller Reconcile function is called
+// THEN the resource is successfully cleaned up
+func TestDeleteVerrazzanoProject(t *testing.T) {
+	vpName := "testDelete"
+	assert := asserts.New(t)
+
+	mocker := gomock.NewController(t)
+	mockClient := mocks.NewMockClient(mocker)
+
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: vpName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
+			vp.Namespace = constants.VerrazzanoMultiClusterNamespace
+			vp.Name = vpName
+			vp.Spec.Template.Namespaces = []clustersv1alpha1.NamespaceTemplate{existingNS}
+			vp.Spec.Placement.Clusters = []clustersv1alpha1.Cluster{{Name: clusterstest.UnitTestClusterName}}
+			vp.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+			return nil
+		})
+
+	// Make the request
+	request := clusterstest.NewRequest(constants.VerrazzanoMultiClusterNamespace, vpName)
+	reconciler := newVerrazzanoProjectReconciler(mockClient)
+	_, err := reconciler.Reconcile(request)
+	assert.NoError(err)
+
+	mocker.Finish()
 }
 
 // newVerrazzanoProjectReconciler creates a new reconciler for testing

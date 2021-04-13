@@ -3,7 +3,7 @@
 ---
 # Network policy for WebLogic operator
 # Ingress: deny all
-# Egress: allow WebLogic Operator to connect to Kubernetes API server
+# Egress: allow connect to Kubernetes API server
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -25,8 +25,8 @@ spec:
             cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
 ---
 # Network policy for Coherence Operator
-# Ingress:  allow Kubernetes API server to connect to the Coherence Operator validating webhook with port 9443
-# Egress: allow Coherence Operator to connect to Kubernetes API server
+# Ingress: allow connect from Kubernetes API server to validating webhook port 9443
+# Egress: allow connect to Kubernetes API server
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -53,3 +53,93 @@ spec:
       to:
         - ipBlock:
             cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+---
+# Network policy for VMI System Grafana
+# Ingress: allow connect from the ingress controller to oidc port 8775
+# Egress: allow connect to Prometheus port 9090
+#         allow connect to DNS lookup port 53 for both UDP and TCP
+#         allow connect to Keycloak port 8080
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vmi-system-grafana
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: system-grafana
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ingress-controller
+      ports:
+        - port: 8775
+          protocol: TCP
+  egress:
+    - ports:
+        - port: 9090
+          protocol: TCP
+      to:
+        - podSelector:
+            matchLabels:
+              app: system-prometheus
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+    - ports:
+        - port: 8080
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: keycloak
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: keycloak
+---
+# Network policy for VMI System Prometheus
+# Ingress: allow connect from the ingress controller to oidc port 8775
+#          allow connect from Prometheus Pusher and Grafana to port 9090
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vmi-system-prometheus
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: system-prometheus
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ingress-controller
+      ports:
+        - port: 8775
+          protocol: TCP
+    - from:
+      ports:
+        - port: 9090
+          protocol: TCP

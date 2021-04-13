@@ -147,14 +147,6 @@ function install_verrazzano()
 
 function install_oam_operator {
 
-  log "Setup OAM Kubernetes operator roles"
-  kubectl delete clusterrolebinding cluster-admin-binding-oam || true
-  kubectl create clusterrolebinding cluster-admin-binding-oam --clusterrole cluster-admin --user "system:serviceaccount:${VERRAZZANO_NS}:oam-kubernetes-runtime" || return $?
-  if [ $? -ne 0 ]; then
-    error "Failed to create OAM Kubernetes operator roles."
-    return 1
-  fi
-
   log "Install OAM Kubernetes operator"
   helm upgrade --install --wait oam-kubernetes-runtime \
     ${CHARTS_DIR}/oam-kubernetes-runtime \
@@ -228,7 +220,8 @@ if ! kubectl get namespace ${VERRAZZANO_NS} ; then
 fi
 
 log "Adding label needed by network policies to ${VERRAZZANO_NS} namespace"
-kubectl label namespace ${VERRAZZANO_NS} "verrazzano.io/namespace=${VERRAZZANO_NS}"
+kubectl label namespace ${VERRAZZANO_NS} "verrazzano.io/namespace=${VERRAZZANO_NS}" --overwrite
+
 
 if ! kubectl get namespace ${VERRAZZANO_MC} ; then
   action "Creating ${VERRAZZANO_MC} namespace" kubectl create namespace ${VERRAZZANO_MC} || exit 1
