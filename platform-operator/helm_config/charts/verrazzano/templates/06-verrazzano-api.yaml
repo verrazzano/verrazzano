@@ -142,7 +142,7 @@ data:
     #error_log  /etc/nginx/logs/error.log  notice;
     #error_log  /etc/nginx/logs/error.log  info;
 
-    #pid        logs/nginx.pid;
+    pid        /etc/nginx/logs/nginx.pid;
 
 
     events {
