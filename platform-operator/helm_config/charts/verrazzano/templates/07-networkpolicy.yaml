@@ -3,12 +3,12 @@
 
 # Network policy for Verrazzano API Proxy
 # Ingress: allow nginx-ingress-controller to connect to port 8775
-# Egress:  allow access to Keycloak via external https endpoint
+# Egress:  allow all - access needed to Keycloak via external https endpoint
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: verrazzano-api
-  namespace: verrazzano-system
+  namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
     matchLabels:
@@ -34,7 +34,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: verrazzano-console
-  namespace: verrazzano-system
+  namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
     matchLabels:
@@ -61,7 +61,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: verrazzano-operator
-  namespace: verrazzano-system
+  namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
     matchLabels:
@@ -78,13 +78,13 @@ spec:
             cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
 ---
 # Network policy for Verrazzano application operator
-# Ingress: allow access from Kubernetes API server for webhook
+# Ingress: allow access from Kubernetes API server for webhook port 9443
 # Egress:  allow access to Kubernetes API server
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: verrazzano-application-operator
-  namespace: verrazzano-system
+  namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
     matchLabels:
@@ -114,7 +114,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: verrazzano-monitoring-operator
-  namespace: verrazzano-system
+  namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
     matchLabels:
@@ -137,7 +137,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: oam-kubernetes-runtime
-  namespace: verrazzano-system
+  namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
     matchLabels:
