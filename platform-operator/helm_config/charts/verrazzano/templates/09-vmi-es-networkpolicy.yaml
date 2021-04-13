@@ -40,6 +40,7 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
+    # Allow ingress from prometheus
     - from:
         - podSelector:
             matchLabels:
@@ -47,15 +48,19 @@ spec:
       ports:
         - protocol: TCP
           port: 9100
+    # Allow ingress from Logging Journalbeat and Filebeat
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.binding: system
+      ports:
+        - protocol: TCP
+          port: 9200
+    # Allow ingress from ES master to itself
     - from:
         - podSelector:
             matchLabels:
               app: system-es-master
-    - ports:
-        - protocol: TCP
-          port: 9200
-        - protocol: TCP
-          port: 9300
   egress:
     - {}
   {{- else }}
