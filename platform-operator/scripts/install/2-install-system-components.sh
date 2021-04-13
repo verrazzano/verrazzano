@@ -408,7 +408,3 @@ if [ $(is_rancher_enabled) == "true" ]; then
   action "Setting Rancher Server URL" set_rancher_server_url || true
   action "Patching Rancher Agents" patch_rancher_agents || true
 fi
-
-# Label the kube-system namespace so that we can apply network policies
-log "Adding label needed by network policies to kube-system namespace"
-kubectl label namespace kube-system "verrazzano.io/namespace=kube-system" || true
