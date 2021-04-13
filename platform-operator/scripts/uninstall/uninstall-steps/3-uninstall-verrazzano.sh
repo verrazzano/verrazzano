@@ -75,13 +75,6 @@ function delete_oam_operator {
       error "Failed to uninstall the OAM Kubernetes operator."
     fi
   fi
-
-  log "Delete the OAM Kubernetes operator roles"
-  if kubectl get clusterrolebinding cluster-admin-binding-oam ; then
-    if ! kubectl delete clusterrolebinding cluster-admin-binding-oam ; then
-      error "Failed to delete the OAM Kubernetes operator roles."
-    fi
-  fi
 }
 
 function delete_application_operator {
