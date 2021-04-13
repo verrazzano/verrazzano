@@ -7,8 +7,6 @@ busybox:
   image: ghcr.io/oracle/oraclelinux
   tag: 7-slim
 
-mysqlDatabase: keycloak
-
 imagePullPolicy: IfNotPresent
 
 ssl:
