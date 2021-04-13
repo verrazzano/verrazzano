@@ -40,6 +40,14 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
+    # Allow ingress from Fluentd
+    - from:
+        - podSelector:
+            matchLabels:
+              app: fluentd
+      ports:
+        - protocol: TCP
+          port: 9200
     # Allow ingress from prometheus
     - from:
         - podSelector:
