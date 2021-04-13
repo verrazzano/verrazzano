@@ -134,12 +134,12 @@ function delete_rancher() {
 
   # delete clusterrolebindings deployed by rancher
   log "Deleting ClusterRoleBindings"
-  delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Rancher" '/cattle.io|app:rancher/ {print $1}' \
+  delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Rancher" '/cattle.io|app:rancher|fleetworkspace-|fleet-/ {print $1}' \
     || return $? # return on pipefail
 
   # delete clusterroles
   log "Deleting ClusterRoles"
-  delete_k8s_resources clusterrole ":metadata.name,:metadata.labels" "Could not delete ClusterRoles from Rancher" '/cattle.io/ {print $1}' \
+  delete_k8s_resources clusterrole ":metadata.name,:metadata.labels" "Could not delete ClusterRoles from Rancher" '/cattle.io|fleetworkspace-|fleet-/ {print $1}' \
     || return $? # return on pipefail
 
   # delete rolebinding
