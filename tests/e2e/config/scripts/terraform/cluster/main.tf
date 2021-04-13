@@ -28,13 +28,13 @@ module "oke" {
   vcn_dns_label = "${var.cluster_name}"
   label_prefix = "${var.label_prefix}"
 
-  operator_shape = "VM.Standard.E3.Flex"
+  operator_shape = { shape="VM.Standard.E3.Flex", ocpus=1, memory=4, boot_volume_size=50 }
   operator_notification_endpoint = ""
   operator_instance_principal = false
   operator_notification_enabled = false
   operator_timezone = "UTC"
 
-  bastion_shape = "VM.Standard.E3.Flex"
+  bastion_shape = { shape="VM.Standard.E3.Flex", ocpus=1, memory=4, boot_volume_size=50 }
   bastion_timezone = "UTC"
   bastion_notification_enabled = false
   bastion_notification_endpoint = ""
