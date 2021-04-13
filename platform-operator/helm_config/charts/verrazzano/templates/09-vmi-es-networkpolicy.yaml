@@ -40,8 +40,6 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
-        - protocol: TCP
-          port: 9300
     # Allow ingress from Fluentd
     - from:
         - podSelector:
@@ -326,9 +324,7 @@ spec:
 ---
 # Network policy for Kibana
 # Ingress: allow from ingress controller to the OIDC sidecar port 8775
-# Egress:  allow to DNS lookup port 53 for both UDP and TCP
-#          allow to ES data and ingest to port 9200
-#          allow to Keycloak to port 8080
+# Egress:  allow all egress
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -354,39 +350,5 @@ spec:
         - protocol: TCP
           port: 8775
   egress:
-    # Egress to CoreDNS
-    - to:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: kube-system
-          podSelector:
-            matchLabels:
-              k8s-app: kube-dns
-      ports:
-        - protocol: UDP
-          port: 53
-        - protocol: TCP
-          port: 53
-    # Egress to ES data and ingest
-    - to:
-        - podSelector:
-            matchLabels:
-              app: system-es-data
-        - podSelector:
-            matchLabels:
-              app: system-es-ingest
-      ports:
-        - protocol: TCP
-          port: 9200
-    # Egress to keycloak
-    - to:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: keycloak
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/instance: keycloak
-    - ports:
-        - port: 8080
-          protocol: TCP
+    - {}
   {{- end }}
