@@ -12,11 +12,7 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 function uninstall_oam {
 
   log "Uninstall OAM"
-  helm delete oam --namespace verrazzano-system 
-
-#  log "Delete OAM roles"
-   kubectl delete clusterrolebinding cluster-admin-binding-oam
-
+  helm delete oam --namespace verrazzano-system
 }
 
 action "Uninstalling OAM runtime" uninstall_oam
