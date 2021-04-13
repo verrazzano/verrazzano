@@ -10,6 +10,7 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 set -u
 
 KEYCLOAK_NS=keycloak
+KCADMIN_REALM=master
 KCADMIN_USERNAME=keycloakadmin
 KCADMIN_SECRET=keycloak-http
 MYSQL_USERNAME=keycloak
@@ -129,6 +130,18 @@ data:
     -c keycloak \
     -- bash -c \
     "/opt/jboss/keycloak/bin/kcadm.sh update realms/master -s loginTheme=oracle --no-config --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --password \$(cat /etc/${KCADMIN_SECRET}/password)"
+
+  # Update the password policies.
+  log "Setting password policies"
+  local POLICY="length(8) and notUsername"
+  local COMMAND="/opt/jboss/keycloak/bin/kcadm.sh update realms/master -s 'passwordPolicy=\"${POLICY}\"' --no-config --server http://localhost:8080/auth --realm ${KCADMIN_REALM} --user ${KCADMIN_USERNAME} --password \$(cat /etc/${KCADMIN_SECRET}/password)"
+  if ! kubectl exec keycloak-0 -n ${KEYCLOAK_NS} -c keycloak -- bash -c "${COMMAND}" ; then
+    fail "Failed to set password policy for realm master"
+  fi
+  local COMMAND="/opt/jboss/keycloak/bin/kcadm.sh update realms/Verrazzano-system -s 'passwordPolicy=\"${POLICY}\"' --no-config --server http://localhost:8080/auth --realm ${KCADMIN_REALM} --user ${KCADMIN_USERNAME} --password \$(cat /etc/${KCADMIN_SECRET}/password)"
+  if ! kubectl exec keycloak-0 -n ${KEYCLOAK_NS} -c keycloak -- bash -c "${COMMAND}" ; then
+    fail "Failed to set password policy for realm Verrazzano-system"
+  fi
 
   # Label the keycloak namespace so that we can apply network policies
   log "Adding label needed by network policies to keycloak namespace"
