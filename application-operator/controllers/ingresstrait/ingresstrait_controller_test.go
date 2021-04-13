@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -163,9 +164,9 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert"}, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Certificate"}, "test-space-myapp-cert"))
-	// Expect a call to get the Rancher ingress and return the ingress.
+	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -173,7 +174,7 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace:   name.Namespace,
 				Name:        name.Name,
-				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
+				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.my.host.com"}}
 			return nil
 		})
 	// Expect a call to get the app config and return that it is not found.
@@ -850,9 +851,9 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, certificate *certapiv1alpha2.Certificate, opts ...client.CreateOption) error {
 			return nil
 		})
-	// Expect a call to get the Rancher ingress and return the ingress.
+	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -860,7 +861,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace:   name.Namespace,
 				Name:        name.Name,
-				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
+				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.my.host.com"}}
 			return nil
 		})
 	// Expect a call to get the gateway resource related to the ingress trait and return that it is not found.
@@ -1115,9 +1116,9 @@ func TestFailureToUpdateStatus(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, certificate *certapiv1alpha2.Certificate, opts ...client.CreateOption) error {
 			return nil
 		})
-	// Expect a call to get the Rancher ingress and return the ingress.
+	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -1125,7 +1126,7 @@ func TestFailureToUpdateStatus(t *testing.T) {
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace:   name.Namespace,
 				Name:        name.Name,
-				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
+				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.my.host.com"}}
 			return nil
 		})
 	// Expect a call to get the gateway resource related to the ingress trait and return that it is not found.
@@ -1190,9 +1191,9 @@ func TestBuildAppHostNameForDNS(t *testing.T) {
 			Labels:    map[string]string{oam.LabelAppName: "myapp"},
 		},
 	}
-	// Expect a call to get the Rancher ingress and return the ingress.
+	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -1200,7 +1201,7 @@ func TestBuildAppHostNameForDNS(t *testing.T) {
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace:   name.Namespace,
 				Name:        name.Name,
-				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
+				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.my.host.com"}}
 			return nil
 		})
 
@@ -1239,9 +1240,9 @@ func TestBuildAppHostNameIgnoreWildcardForDNS(t *testing.T) {
 		},
 	}
 
-	// Expect a call to get the Rancher ingress and return the ingress.
+	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -1249,7 +1250,7 @@ func TestBuildAppHostNameIgnoreWildcardForDNS(t *testing.T) {
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace:   name.Namespace,
 				Name:        name.Name,
-				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
+				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.my.host.com"}}
 			return nil
 		})
 
@@ -1264,7 +1265,7 @@ func TestBuildAppHostNameIgnoreWildcardForDNS(t *testing.T) {
 
 // TestFailureBuildAppHostNameForDNS tests failure of building a DNS hostname for the application
 // GIVEN an appName and a trait
-// WHEN the ingress domain is not XIP.IO and the Rancher annotation is missing
+// WHEN the ingress domain is not XIP.IO and the verrazzano annotation is missing
 // THEN ensure that an error is returned
 func TestFailureBuildAppHostNameForDNS(t *testing.T) {
 	assert := asserts.New(t)
@@ -1282,16 +1283,16 @@ func TestFailureBuildAppHostNameForDNS(t *testing.T) {
 			Labels:    map[string]string{oam.LabelAppName: "myapp"},
 		},
 	}
-	// Expect a call to get the Rancher ingress and return the ingress.
+	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name}
+				Namespace:   name.Namespace,
+				Name:        name.Name}
 			return nil
 		})
 
@@ -1301,7 +1302,7 @@ func TestFailureBuildAppHostNameForDNS(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	assert.Error(err)
-	assert.Contains(err.Error(), "Annotation nginx.ingress.kubernetes.io/auth-realm missing from Rancher ingress")
+	assert.Contains(err.Error(), "Annotation external-dns.alpha.kubernetes.io/target missing from verrazzano ingress")
 }
 
 // TestBuildAppHostNameLoadBalancerXIP tests building a hostname for the application
@@ -1323,9 +1324,9 @@ func TestBuildAppHostNameLoadBalancerXIP(t *testing.T) {
 			Labels:    map[string]string{oam.LabelAppName: "myapp"},
 		},
 	}
-	// Expect a call to get the Rancher ingress and return the ingress.
+	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -1333,7 +1334,7 @@ func TestBuildAppHostNameLoadBalancerXIP(t *testing.T) {
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace:   name.Namespace,
 				Name:        name.Name,
-				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "1.2.3.4.xip.io auth"}}
+				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.xip.io"}}
 			return nil
 		})
 
@@ -1378,9 +1379,9 @@ func TestFailureBuildAppHostNameLoadBalancerXIP(t *testing.T) {
 			Labels:    map[string]string{oam.LabelAppName: "myapp"},
 		},
 	}
-	// Expect a call to get the Rancher ingress and return the ingress.
+	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -1388,7 +1389,7 @@ func TestFailureBuildAppHostNameLoadBalancerXIP(t *testing.T) {
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace:   name.Namespace,
 				Name:        name.Name,
-				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "1.2.3.4.xip.io auth"}}
+				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.xip.io"}}
 			return nil
 		})
 
@@ -1430,9 +1431,9 @@ func TestBuildAppHostNameNodePortXIP(t *testing.T) {
 			Labels:    map[string]string{oam.LabelAppName: "myapp"},
 		},
 	}
-	// Expect a call to get the Rancher ingress and return the ingress.
+	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -1440,7 +1441,7 @@ func TestBuildAppHostNameNodePortXIP(t *testing.T) {
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace:   name.Namespace,
 				Name:        name.Name,
-				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "1.2.3.4.xip.io auth"}}
+				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.xip.io"}}
 			return nil
 		})
 
@@ -1494,9 +1495,9 @@ func TestFailureBuildAppHostNameNodePortXIP(t *testing.T) {
 			Labels:    map[string]string{oam.LabelAppName: "myapp"},
 		},
 	}
-	// Expect a call to get the Rancher ingress and return the ingress.
+	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -1504,7 +1505,7 @@ func TestFailureBuildAppHostNameNodePortXIP(t *testing.T) {
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace:   name.Namespace,
 				Name:        name.Name,
-				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "1.2.3.4.xip.io auth"}}
+				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.xip.io"}}
 			return nil
 		})
 
@@ -1659,9 +1660,9 @@ func TestCreateHostsFromIngressTraitRuleWildcards(t *testing.T) {
 		},
 	}
 
-	// Expect a call to get the Rancher ingress and return the ingress.
+	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "cattle-system", Name: "rancher"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -1669,7 +1670,7 @@ func TestCreateHostsFromIngressTraitRuleWildcards(t *testing.T) {
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace:   name.Namespace,
 				Name:        name.Name,
-				Annotations: map[string]string{"nginx.ingress.kubernetes.io/auth-realm": "my.host.com auth"}}
+				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.my.host.com"}}
 			return nil
 		})
 
@@ -1858,8 +1859,8 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 
 	// Create namespace
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
-	// Create Rancher ingress
-	assert.NoError(cli.Create(context.Background(), newRancherIngress("1.2.3.4")))
+	// Create verrazzano ingress
+	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress("verrazzano-ingress.1.2.3.4")))
 	// Create Istio ingress service
 	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService("10.11.12.13", "1.2.3.4")))
 	// Create application configuration
@@ -1958,8 +1959,8 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 
 	// Create namespace
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
-	// Create Rancher ingress
-	assert.NoError(cli.Create(context.Background(), newRancherIngress("1.2.3.4")))
+	// Create verrazzano ingress
+	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress("1.2.3.4")))
 	// Create Istio ingress service
 	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService("10.11.12.13", "1.2.3.4")))
 	// Create application configuration
@@ -2059,8 +2060,8 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 
 	// Create namespace
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
-	// Create Rancher ingress
-	assert.NoError(cli.Create(context.Background(), newRancherIngress("1.2.3.4")))
+	// Create verrazzano ingress
+	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress("1.2.3.4")))
 	// Create Istio ingress service
 	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService("10.11.12.13", "1.2.3.4")))
 	// Create application configuration
@@ -2170,8 +2171,8 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 
 	// Create namespace
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
-	// Create Rancher ingress
-	assert.NoError(cli.Create(context.Background(), newRancherIngress("1.2.3.4")))
+	// Create verrazzano ingress
+	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress("1.2.3.4")))
 	// Create Istio ingress service
 	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService("10.11.12.13", "1.2.3.4")))
 	// Create application configuration
@@ -2295,8 +2296,8 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 
 	// Create namespace
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
-	// Create Rancher ingress
-	assert.NoError(cli.Create(context.Background(), newRancherIngress("1.2.3.4")))
+	// Create verrazzano ingress
+	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress("1.2.3.4")))
 	// Create Istio ingress service
 	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService("10.11.12.13", "1.2.3.4")))
 	// Create application configuration
@@ -2446,14 +2447,14 @@ func appendAsUnstructured(list *unstructured.UnstructuredList, object interface{
 	return nil
 }
 
-// newRancherIngress creates a new Ranger Ingress with the provided IP address.
-func newRancherIngress(ipAddress string) *k8net.Ingress {
+// newVerrazzanoIngress creates a new Ranger Ingress with the provided IP address.
+func newVerrazzanoIngress(ipAddress string) *k8net.Ingress {
 	rangerIngress := k8net.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rancher",
-			Namespace: "cattle-system",
+			Name:      "verrazzano-ingress",
+			Namespace: "verrazzano-system",
 			Annotations: map[string]string{
-				"nginx.ingress.kubernetes.io/auth-realm": fmt.Sprintf("default.%s.xip.io auth", ipAddress)},
+				"external-dns.alpha.kubernetes.io/target": fmt.Sprintf("verrazzano-ingress.default.%s.xip.io", ipAddress)},
 		},
 	}
 	return &rangerIngress

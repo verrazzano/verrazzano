@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"reflect"
 	"strings"
 
@@ -717,22 +718,21 @@ func buildAppFullyQualifiedHostName(cli client.Reader, trait *vzapi.IngressTrait
 //   dns-subdomain is The DNS subdomain name
 // For example: cars.example.com
 func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
-	const authRealmKey = "nginx.ingress.kubernetes.io/auth-realm"
-	const rancherIngress = "rancher"
-	const rancherNamespace = "cattle-system"
+	const externalDnsKey = "external-dns.alpha.kubernetes.io/target"
+	const verrazzanoIngress = "verrazzano-ingress"
 
-	// Extract the domain name from the Rancher ingress
+	// Extract the domain name from the verrazzano ingress
 	ingress := k8net.Ingress{}
-	err := cli.Get(context.TODO(), types.NamespacedName{Name: rancherIngress, Namespace: rancherNamespace}, &ingress)
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: verrazzanoIngress, Namespace: constants.VerrazzanoSystemNamespace}, &ingress)
 	if err != nil {
 		return "", err
 	}
-	authRealmAnno, ok := ingress.Annotations[authRealmKey]
-	if !ok || len(authRealmAnno) == 0 {
-		return "", fmt.Errorf("Annotation %s missing from Rancher ingress, unable to generate DNS name", authRealmKey)
+	externalDnsAnno, ok := ingress.Annotations[externalDnsKey]
+	if !ok || len(externalDnsAnno) == 0 {
+		return "", fmt.Errorf("Annotation %s missing from verrazzano ingress, unable to generate DNS name", externalDnsKey)
 	}
-	segs := strings.Split(strings.TrimSpace(authRealmAnno), " ")
-	domain := strings.TrimSpace(segs[0])
+
+	domain := externalDnsAnno[len(verrazzanoIngress) + 1:]
 
 	// If this is xip.io then build the domain name using Istio info
 	if strings.HasSuffix(domain, "xip.io") {
