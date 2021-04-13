@@ -166,7 +166,7 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Certificate"}, "test-space-myapp-cert"))
 	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -853,7 +853,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 		})
 	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -1118,7 +1118,7 @@ func TestFailureToUpdateStatus(t *testing.T) {
 		})
 	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -1193,7 +1193,7 @@ func TestBuildAppHostNameForDNS(t *testing.T) {
 	}
 	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -1242,7 +1242,7 @@ func TestBuildAppHostNameIgnoreWildcardForDNS(t *testing.T) {
 
 	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -1285,7 +1285,7 @@ func TestFailureBuildAppHostNameForDNS(t *testing.T) {
 	}
 	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -1326,7 +1326,7 @@ func TestBuildAppHostNameLoadBalancerXIP(t *testing.T) {
 	}
 	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -1381,7 +1381,7 @@ func TestFailureBuildAppHostNameLoadBalancerXIP(t *testing.T) {
 	}
 	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -1433,7 +1433,7 @@ func TestBuildAppHostNameNodePortXIP(t *testing.T) {
 	}
 	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -1497,7 +1497,7 @@ func TestFailureBuildAppHostNameNodePortXIP(t *testing.T) {
 	}
 	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -1662,7 +1662,7 @@ func TestCreateHostsFromIngressTraitRuleWildcards(t *testing.T) {
 
 	// Expect a call to get the verrazzano ingress and return the ingress.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-ingress"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
 			ingress.TypeMeta = metav1.TypeMeta{
 				APIVersion: "extensions/v1beta1",
@@ -2451,8 +2451,8 @@ func appendAsUnstructured(list *unstructured.UnstructuredList, object interface{
 func newVerrazzanoIngress(ipAddress string) *k8net.Ingress {
 	rangerIngress := k8net.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "verrazzano-ingress",
-			Namespace: "verrazzano-system",
+			Name:      constants.VzConsoleIngress,
+			Namespace: constants.VerrazzanoSystemNamespace,
 			Annotations: map[string]string{
 				"external-dns.alpha.kubernetes.io/target": fmt.Sprintf("verrazzano-ingress.default.%s.xip.io", ipAddress)},
 		},

@@ -719,11 +719,10 @@ func buildAppFullyQualifiedHostName(cli client.Reader, trait *vzapi.IngressTrait
 // For example: cars.example.com
 func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
 	const externalDNSKey = "external-dns.alpha.kubernetes.io/target"
-	const verrazzanoIngress = "verrazzano-ingress"
 
 	// Extract the domain name from the verrazzano ingress
 	ingress := k8net.Ingress{}
-	err := cli.Get(context.TODO(), types.NamespacedName{Name: verrazzanoIngress, Namespace: constants.VerrazzanoSystemNamespace}, &ingress)
+	err := cli.Get(context.TODO(), types.NamespacedName{Name: constants.VzConsoleIngress, Namespace: constants.VerrazzanoSystemNamespace}, &ingress)
 	if err != nil {
 		return "", err
 	}
@@ -732,7 +731,7 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 		return "", fmt.Errorf("Annotation %s missing from verrazzano ingress, unable to generate DNS name", externalDNSKey)
 	}
 
-	domain := externalDNSAnno[len(verrazzanoIngress)+1:]
+	domain := externalDNSAnno[len(constants.VzConsoleIngress)+1:]
 
 	// If this is xip.io then build the domain name using Istio info
 	if strings.HasSuffix(domain, "xip.io") {
