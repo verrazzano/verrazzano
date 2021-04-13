@@ -8,4 +8,4 @@ The root cause appears to be that an OCI IP non-ephemeral address limit has been
 2. Refer to the OCI documentation related to managing [IP Addresses](https://docs.oracle.com/en-us/iaas/Content/Network/Tasks/managingpublicIPs.htm#overview).
 
 ## Related information
-* https://docs.oracle.com/en-us/iaas/Content/Network/Tasks/managingpublicIPs.htm#overview
+* [Public IP Addresses](https://docs.oracle.com/en-us/iaas/Content/Network/Tasks/managingpublicIPs.htm#overview)

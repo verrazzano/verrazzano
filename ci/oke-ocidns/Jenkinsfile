@@ -174,7 +174,7 @@ pipeline {
             }
             steps {
                 script {
-                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                 }
                 sh """
                     echo "Install Platform Operator"

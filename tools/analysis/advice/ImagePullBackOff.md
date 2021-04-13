@@ -8,6 +8,6 @@ The analysis was not able to identify a specific root cause, however, it might h
 2. If the service is experiencing an outage, then consult the specific service status page. For common service status pages, see [Related information](#related-information).
 
 ## Related information
-* https://www.githubstatus.com/
-* https://ocistatus.oraclecloud.com/
-* https://kubernetes.io/docs/tasks/debug-application-cluster/troubleshooting/
+* [GitHub Status](https://www.githubstatus.com/)
+* [OCI Status](https://ocistatus.oraclecloud.com/)
+* [Kubernetes Troubleshooting](https://kubernetes.io/docs/tasks/debug-application-cluster/troubleshooting/)
