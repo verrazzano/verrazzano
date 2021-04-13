@@ -1291,8 +1291,8 @@ func TestFailureBuildAppHostNameForDNS(t *testing.T) {
 				APIVersion: "extensions/v1beta1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace:   name.Namespace,
-				Name:        name.Name}
+				Namespace: name.Namespace,
+				Name:      name.Name}
 			return nil
 		})
 

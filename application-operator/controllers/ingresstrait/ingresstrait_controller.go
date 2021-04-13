@@ -718,7 +718,7 @@ func buildAppFullyQualifiedHostName(cli client.Reader, trait *vzapi.IngressTrait
 //   dns-subdomain is The DNS subdomain name
 // For example: cars.example.com
 func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
-	const externalDnsKey = "external-dns.alpha.kubernetes.io/target"
+	const externalDNSKey = "external-dns.alpha.kubernetes.io/target"
 	const verrazzanoIngress = "verrazzano-ingress"
 
 	// Extract the domain name from the verrazzano ingress
@@ -727,12 +727,12 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 	if err != nil {
 		return "", err
 	}
-	externalDnsAnno, ok := ingress.Annotations[externalDnsKey]
-	if !ok || len(externalDnsAnno) == 0 {
-		return "", fmt.Errorf("Annotation %s missing from verrazzano ingress, unable to generate DNS name", externalDnsKey)
+	externalDNSAnno, ok := ingress.Annotations[externalDNSKey]
+	if !ok || len(externalDNSAnno) == 0 {
+		return "", fmt.Errorf("Annotation %s missing from verrazzano ingress, unable to generate DNS name", externalDNSKey)
 	}
 
-	domain := externalDnsAnno[len(verrazzanoIngress) + 1:]
+	domain := externalDNSAnno[len(verrazzanoIngress)+1:]
 
 	// If this is xip.io then build the domain name using Istio info
 	if strings.HasSuffix(domain, "xip.io") {
