@@ -23,7 +23,6 @@ module "oke" {
   operator_enabled = var.operator_enabled
   bastion_enabled = var.bastion_enabled
   username = var.username
-  tenancy_name = var.tenancy_name
 
   vcn_name = "${var.cluster_name}-vcn"
   vcn_dns_label = "${var.cluster_name}"
