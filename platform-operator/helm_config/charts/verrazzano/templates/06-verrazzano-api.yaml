@@ -138,9 +138,9 @@ data:
     #user  nobody;
     worker_processes  1;
 
-    #error_log  logs/error.log;
-    #error_log  logs/error.log  notice;
-    #error_log  logs/error.log  info;
+    #error_log  /etc/nginx/logs/error.log;
+    #error_log  /etc/nginx/logs/error.log  notice;
+    #error_log  /etc/nginx/logs/error.log  info;
 
     #pid        logs/nginx.pid;
 
@@ -158,7 +158,7 @@ data:
         #                  '$status $body_bytes_sent "$http_referer" '
         #                  '"$http_user_agent" "$http_x_forwarded_for"';
 
-        error_log  logs/error.log  info;
+        error_log  /etc/nginx/logs/error.log  info;
 
         sendfile        on;
         #tcp_nopush     on;
@@ -274,8 +274,8 @@ data:
     nameserver=$(grep -i nameserver /etc/resolv.conf | awk '{split($0,line," "); print line[2]}')
     sed -i -e "s|_NAMESERVER_|${nameserver}|g" /etc/nginx/nginx.conf
 
-    mkdir -p /usr/local/nginx/logs
-    touch /usr/local/nginx/logs/error.log
+    mkdir -p /etc/nginx/logs
+    touch /etc/nginx/logs/error.log
 
     export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
     ln -s /etc/ssl/certs/ca-bundle.trust.crt /etc/nginx/ca-bundle
@@ -283,7 +283,7 @@ data:
     /usr/local/nginx/sbin/nginx -c /etc/nginx/nginx.conf
 
     sh -c "`dirname $0`/reload.sh &"
-    tail -f /usr/local/nginx/logs/error.log
+    tail -f /etc/nginx/logs/error.log
   reload.sh: |
     #!/bin/bash
 
