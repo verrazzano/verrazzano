@@ -157,6 +157,7 @@ type DNS struct {
 type Keycloak struct {
 	KeycloakInstallArgs []InstallArg `json:"keycloakInstallArgs,omitempty"`
 	MySQL               MySQL        `json:"mysql,omitempty"`
+	Enabled             string       `json:"enabled,omitempty"`
 }
 
 // MySQL configuration
@@ -388,6 +389,7 @@ func getKeycloak(keycloak *installv1alpha1.KeycloakComponent, templates []instal
 		MySQL: MySQL{
 			MySQLInstallArgs: mySQLArgs,
 		},
+		Enabled: strconv.FormatBool(keycloak.Enabled),
 	}
 
 	// Use a volume source specified in the Keycloak config, otherwise use the default spec

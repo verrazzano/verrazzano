@@ -154,16 +154,20 @@ data:
 DNS_TARGET_NAME=verrazzano-ingress.${ENV_NAME}.${DNS_SUFFIX}
 REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 
-action "Installing MySQL" install_mysql
-  if [ "$?" -ne 0 ]; then
-    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "${KEYCLOAK_NS}" -m "install_mysql"
-    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "${KEYCLOAK_NS}" -m "install_mysql"
-    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "nodes" -n "default" -m "install_mysql"
-    log "For additional detailed information on the cluster at the time of this error, please check the diagnostics log file"
-    fail "Installation of MySQL failed"
-  fi
+if [ $(is_keycloak_enabled) == "true" ]; then
+  action "Installing MySQL" install_mysql
+    if [ "$?" -ne 0 ]; then
+      "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "${KEYCLOAK_NS}" -m "install_mysql"
+      "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "${KEYCLOAK_NS}" -m "install_mysql"
+      "$SCRIPT_DIR"/k8s-dump-objects.sh -o "nodes" -n "default" -m "install_mysql"
+      log "For additional detailed information on the cluster at the time of this error, please check the diagnostics log file"
+      fail "Installation of MySQL failed"
+    fi
 
-action "Installing Keycloak" install_keycloak || exit 1
+  action "Installing Keycloak" install_keycloak || exit 1
+else
+  log "Skip Keycloak installation, disabled"
+fi
 
 rm -rf $TMP_DIR
 
@@ -188,11 +192,12 @@ if [ $(is_rancher_enabled) == "true" ]; then
   consoleout "Password: kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo"
   consoleout
 fi
-consoleout "Keycloak - https://keycloak.${ENV_NAME}.${DNS_SUFFIX}"
-consoleout "User: keycloakadmin"
-consoleout "Password: kubectl get secret --namespace keycloak ${KCADMIN_SECRET} -o jsonpath={.data.password} | base64 --decode; echo"
-if [ $(get_application_ingress_ip) == "null" ];
-then
+if [ $(is_keycloak_enabled) == "true" ]; then
+  consoleout "Keycloak - https://keycloak.${ENV_NAME}.${DNS_SUFFIX}"
+  consoleout "User: keycloakadmin"
+  consoleout "Password: kubectl get secret --namespace keycloak ${KCADMIN_SECRET} -o jsonpath={.data.password} | base64 --decode; echo"
+fi
+if [ $(get_application_ingress_ip) == "null" ]; then
   consoleout
   consoleout "WARNING: istio-ingressgateway service does not have a valid external IP assigned yet. Public access to deployed applications will not work."
   consoleout "Use the following command to check if an External IP has been assigned to the gateway."

@@ -38,10 +38,8 @@ TLS_SECRET=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get
 if [ ! -z "${TLS_SECRET%%*( )}" ] ; then
   CA_CERT=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"' | base64 --decode)
 fi
-AUTH_PASSWORD=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret verrazzano -o jsonpath='{.data.password}' | base64 --decode)
 HOST=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get ing vmi-system-prometheus -o jsonpath='{.spec.tls[0].hosts[0]}')
 echo "prometheus:" > ${PROMETHEUS_SECRET_FILE}
-echo "  authpasswd: $AUTH_PASSWORD" >> ${PROMETHEUS_SECRET_FILE}
 echo "  host: $HOST" >> ${PROMETHEUS_SECRET_FILE}
 if [ ! -z "${CA_CERT}" ] ; then
    echo "  cacrt: |" >> ${PROMETHEUS_SECRET_FILE}

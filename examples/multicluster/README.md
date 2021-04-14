@@ -50,7 +50,6 @@ Complete the following sections prior to running the multicluster examples.
    ```
    $ export KUBECONFIG=$KUBECONFIG_MANAGED1
    $ echo "prometheus:" > managed1.yaml
-   $ echo "  authpasswd: $(KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get secret verrazzano -n verrazzano-system -o jsonpath='{.data.password}' | base64 --decode)" >> managed1.yaml
    $ echo "  host: $(KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get ing vmi-system-prometheus -n verrazzano-system -o jsonpath='{.spec.tls[0].hosts[0]}')" >> managed1.yaml
 
    # Perform the following commands if the result of this command is not null:

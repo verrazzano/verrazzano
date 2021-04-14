@@ -53,7 +53,8 @@ func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUp
 		if err != nil {
 			s.Log.Error(err, "error processing multi-cluster resources")
 		}
-		s.configureBeats()
+		s.updateDeployment("verrazzano-operator")
+		s.updateDeployment("verrazzano-monitoring-operator")
 		if !s.AgentReadyToSync() {
 			// there is no admin cluster we are connected to, so nowhere to send any status updates
 			// received - discard them
@@ -220,10 +221,10 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	return clientset, nil
 }
 
-// reconfigure beats by restarting Verrazzano Operator deployment if ManagedClusterName has been changed
-func (s *Syncer) configureBeats() {
-	// Get the verrazzano-operator deployment
-	deploymentName := types.NamespacedName{Name: "verrazzano-operator", Namespace: constants.VerrazzanoSystemNamespace}
+// reconfigure deployment if cluster registration has been changed
+func (s *Syncer) updateDeployment(name string) {
+	// Get the deployment
+	deploymentName := types.NamespacedName{Name: name, Namespace: constants.VerrazzanoSystemNamespace}
 	deployment := appsv1.Deployment{}
 	err := s.LocalClient.Get(context.TODO(), deploymentName, &deployment)
 	if err != nil {
@@ -248,7 +249,7 @@ func (s *Syncer) configureBeats() {
 	}
 	secretVersionEnv := getEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, registrationSecretVersion)
 
-	// CreateOrUpdate updates the deployment if cluster name or es secret version changed
+	// CreateOrUpdate updates the deployment if cluster registration secret version changed
 	if secretVersionEnv != secretVersion {
 		controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &deployment, func() error {
 			s.Log.Info(fmt.Sprintf("Update the deployment %s, registration secret version from %q to %q", deploymentName, secretVersionEnv, secretVersion))

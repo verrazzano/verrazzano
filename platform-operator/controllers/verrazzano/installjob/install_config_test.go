@@ -32,6 +32,8 @@ func TestXipIoInstallDefaults(t *testing.T) {
 	assert.Equalf(t, "verrazzano-ca-certificate-secret", config.Certificates.CA.SecretName, "Expected CA secret name did not match")
 	assert.Equalf(t, 0, len(config.Keycloak.KeycloakInstallArgs), "Expected keycloakInstallArgs length did not match")
 	assert.Equalf(t, 0, len(config.Keycloak.MySQL.MySQLInstallArgs), "Expected mySqlInstallArgs length did not match")
+	assert.Equalf(t, "", config.Keycloak.Enabled, "Expected keycloak enabled did not match")
+	assert.Equalf(t, "", config.Rancher.Enabled, "Expected rancher enabled did not match")
 }
 
 // TestXipIoInstallNonDefaults tests the creation of an xip.io install non-default configuration
@@ -81,6 +83,9 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 						},
 					},
 				},
+				Rancher: &installv1alpha1.RancherComponent{
+					Enabled: true,
+				},
 				Keycloak: &installv1alpha1.KeycloakComponent{
 					KeycloakInstallArgs: []installv1alpha1.InstallArgs{
 						{
@@ -96,6 +101,7 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 							},
 						},
 					},
+					Enabled: true,
 				},
 			},
 		},
@@ -125,12 +131,15 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 	assert.Equalf(t, "customNamespace", config.Certificates.CA.ClusterResourceNamespace, "Expected namespace did not match")
 	assert.Equalf(t, "customSecret", config.Certificates.CA.SecretName, "Expected CA secret name did not match")
 
+	assert.Equalf(t, "true", config.Rancher.Enabled, "Expected rancher enabled did not match")
+
 	assert.Equalf(t, 1, len(config.Keycloak.KeycloakInstallArgs), "Expected keycloakInstallArgs length did not match")
 	assert.Equalf(t, "keycloak-name", config.Keycloak.KeycloakInstallArgs[0].Name, "Expected keycloakInstallArgs name did not match")
 	assert.Equalf(t, "keycloak-value", config.Keycloak.KeycloakInstallArgs[0].Value, "Expected keycloakInstallArgs value did not match")
 	assert.Equalf(t, 1, len(config.Keycloak.MySQL.MySQLInstallArgs), "Expected mysqlInstallArgs length did not match")
 	assert.Equalf(t, "mysql-name", config.Keycloak.MySQL.MySQLInstallArgs[0].Name, "Expected mysqlInstallArgs name did not match")
 	assert.Equalf(t, "mysql-value", config.Keycloak.MySQL.MySQLInstallArgs[0].Value, "Expected mysqlInstallArgs value did not match")
+	assert.Equalf(t, "true", config.Keycloak.Enabled, "Expected keycloak enabled did not match")
 }
 
 // TestExternalInstall tests the creation of an external install configuration

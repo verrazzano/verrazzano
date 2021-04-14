@@ -247,11 +247,12 @@ func getTestDeploymentSpec(secretVersion string) appsv1.DeploymentSpec {
 	}
 }
 
-// TestSyncer_configureBeats tests configuring beats by updating verrazzano operator deployment
-// GIVEN a request to configure the beats
-// WHEN the cluster name in registration secret has been changed or the elasticsearch secret has been updated
-// THEN ensure that verrazzano operator deployment is updated
-func TestSyncer_configureBeats(t *testing.T) {
+// TestSyncer_updateDeployment tests updating deployment
+// GIVEN a request to update the deployment
+// WHEN the cluster registration secret has been changed
+// THEN ensure that the deployment is updated
+func TestSyncer_updateDeployment(t *testing.T) {
+	deploymentName := "some-operrator"
 	type fields struct {
 		oldSecretVersion string
 		newSecretVersion string
@@ -315,11 +316,11 @@ func TestSyncer_configureBeats(t *testing.T) {
 					return nil
 				})
 
-			// Managed Cluster - expect call to get the verrazzano operator deployment.
+			// Managed Cluster - expect call to get the verrazzano monitoring operator deployment.
 			mcMock.EXPECT().
-				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-operator"}, gomock.Not(gomock.Nil())).
+				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: deploymentName}, gomock.Not(gomock.Nil())).
 				DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
-					deployment.Name = "verrazzano-operator"
+					deployment.Name = deploymentName
 					deployment.Namespace = constants.VerrazzanoSystemNamespace
 					deployment.Spec = getTestDeploymentSpec(oldVersion)
 					return nil
@@ -329,15 +330,15 @@ func TestSyncer_configureBeats(t *testing.T) {
 			if oldVersion != newVersion {
 				// Managed Cluster - expect another call to get the verrazzano operator deployment prior to updating it
 				mcMock.EXPECT().
-					Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-operator"}, gomock.Not(gomock.Nil())).
+					Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: deploymentName}, gomock.Not(gomock.Nil())).
 					DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
-						deployment.Name = "verrazzano-operator"
+						deployment.Name = deploymentName
 						deployment.Namespace = constants.VerrazzanoSystemNamespace
 						deployment.Spec = getTestDeploymentSpec(oldVersion)
 						return nil
 					})
 
-				// Managed Cluster - expect call to update the verrazzano operator deployment.
+				// Managed Cluster - expect call to update the deployment.
 				mcMock.EXPECT().
 					Update(gomock.Any(), gomock.Any()).
 					DoAndReturn(func(ctx context.Context, deployment *appsv1.Deployment) error {
@@ -352,7 +353,7 @@ func TestSyncer_configureBeats(t *testing.T) {
 				Log:         ctrl.Log.WithName("test"),
 				Context:     context.TODO(),
 			}
-			s.configureBeats()
+			s.updateDeployment(deploymentName)
 
 			// Validate the results
 			mcMocker.Finish()

@@ -1,5 +1,8 @@
 {
   "rancher": {
     "enabled": true
+  },
+  "keycloak": {
+    "enabled": true
   }
 }

@@ -57,7 +57,6 @@ type AssertFn func(configMap *corev1.ConfigMap) error
 func TestCreateVMC(t *testing.T) {
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	promData := "prometheus:\n" +
-		"  authpasswd: nRXlxXgMwN\n" +
 		"  host: prometheus.vmi.system.default.152.67.141.181.xip.io\n" +
 		"  cacrt: |\n" +
 		"    -----BEGIN CERTIFICATE-----\n" +
@@ -126,7 +125,6 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	namespace := "verrazzano-mc"
 	// OCI DNS cluster does not include a CA cert since the CA is public
 	promData := "prometheus:\n" +
-		"  authpasswd: nRXlxXgMwN\n" +
 		"  host: prometheus.vmi.system.default.152.67.141.181.xip.io\n"
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -189,7 +187,6 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 func TestCreateVMCWithExistingScrapeConfiguration(t *testing.T) {
 	namespace := "verrazzano-mc"
 	promData := "prometheus:\n" +
-		"  authpasswd: nRXlxXgMwN\n" +
 		"  host: prometheus.vmi.system.default.152.67.141.181.xip.io\n" +
 		"  cacrt: |\n" +
 		"    -----BEGIN CERTIFICATE-----\n" +
@@ -268,7 +265,6 @@ scrape_configs:
 func TestReplaceExistingScrapeConfiguration(t *testing.T) {
 	namespace := "verrazzano-mc"
 	promData := "prometheus:\n" +
-		"  authpasswd: nRXlxXgMwN\n" +
 		"  host: prometheus.vmi.system.default.152.67.141.181.xip.io\n" +
 		"  cacrt: |\n" +
 		"    -----BEGIN CERTIFICATE-----\n" +
@@ -348,7 +344,6 @@ scrape_configs:
 func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	promData := "prometheus:\n" +
-		"  authpasswd: nRXlxXgMwN\n" +
 		"  host: prometheus.vmi.system.default.152.67.141.181.xip.io\n" +
 		"  cacrt: |\n" +
 		"    -----BEGIN CERTIFICATE-----\n" +
@@ -1290,6 +1285,16 @@ func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometh
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
 				getClusterYamlKey(vmcName): []byte(prometheusSecretData),
+			}
+			return nil
+		})
+
+	// Expect a call to get the verrazzano secret - return it
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.Verrazzano}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				PasswordKey: []byte("nRXlxXgMwN"),
 			}
 			return nil
 		})

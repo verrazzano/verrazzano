@@ -43,9 +43,8 @@ basic_auth:
 
 // prometheusConfig contains the information required to create a scrape configuration
 type prometheusConfig struct {
-	AuthPasswd string `yaml:"authpasswd"`
-	Host       string `yaml:"host"`
-	CaCrt      string `yaml:"cacrt"`
+	Host  string `yaml:"host"`
+	CaCrt string `yaml:"cacrt"`
 }
 
 // prometheusInfo wraps the prometheus configuration info
@@ -160,16 +159,21 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(info *prometheusInf
 		return newScrapeConfig, nil
 	}
 
+	vzSecret, err := r.getVzSecret()
+	if err != nil {
+		return nil, err
+	}
+
 	newScrapeConfigMappings := map[string]string{
 		"##JOB_NAME##":     vmc.Name,
 		"##HOST##":         info.Prometheus.Host,
-		"##PASSWORD##":     info.Prometheus.AuthPasswd,
+		"##PASSWORD##":     string(vzSecret.Data[PasswordKey]),
 		"##CLUSTER_NAME##": vmc.Name}
 	configTemplate := scrapeConfigTemplate
 	for key, value := range newScrapeConfigMappings {
 		configTemplate = strings.ReplaceAll(configTemplate, key, value)
 	}
-	var err error
+
 	newScrapeConfig, err = parseScrapeConfig(configTemplate)
 	if err != nil {
 		return nil, err

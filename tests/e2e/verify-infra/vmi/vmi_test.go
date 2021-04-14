@@ -232,7 +232,9 @@ var _ = ginkgo.Describe("VMI", func() {
 	})
 
 	ginkgo.It("Verify the instance info endpoint URLs", func() {
-		assertInstanceInfoURLs()
+		if !isManagedClusterProfile {
+			assertInstanceInfoURLs()
+		}
 	})
 
 	size := "50Gi"
