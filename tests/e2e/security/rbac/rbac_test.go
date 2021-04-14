@@ -15,8 +15,8 @@ import (
 var (
 	expectedPodsOperator = []string{"verrazzano-application-operator"}
 	expectedPodsOam      = []string{"oam-kubernetes-runtime"}
-	waitTimeout          = 10 * time.Minute
-	pollingInterval      = 30 * time.Second
+	waitTimeout          = 5 * time.Minute
+	pollingInterval      = 10 * time.Second
 )
 
 const (
@@ -65,8 +65,10 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 
 		ginkgo.It("Succeed getting Pods in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User List Pods in NameSpace rbactest?  Yes")
-			allowed, reason := pkg.CanI(v80ProjectAdmin, rbacTestNamespace, "list", "pods")
-			gomega.Expect(allowed).To(gomega.BeTrue(), fmt.Sprintf("FAIL: Did Not Pass Authorization on user list pods: Allowed = %t, reason = %s", allowed, reason))
+			gomega.Eventually(func() bool {
+				allowed, _ := pkg.CanI(v80ProjectAdmin, rbacTestNamespace, "list", "pods")
+				return allowed
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "FAIL: Did Not Pass Authorization on user list pods")
 		})
 
 		ginkgo.It("Fail getting Pods in namespace verrazzano-system", func() {
@@ -111,8 +113,10 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 
 		ginkgo.It("Succeed create ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create ApplicationConfiguration in NameSpace rbactest?  Yes")
-			allowed, reason := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
-			gomega.Expect(allowed).To(gomega.BeTrue(), fmt.Sprintf("FAIL: Did Not Pass Authorization on user create ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason))
+			gomega.Eventually(func() bool {
+				allowed, _ := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
+				return allowed
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "FAIL: Did Not Pass Authorization on user create ApplicationConfiguration")
 		})
 
 		ginkgo.It("Succeed list ApplicationConfiguration in namespace rbactest", func() {
@@ -151,14 +155,16 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 			gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: Admin RoleBinding creation failed: reason = %s", err))
 		})
 
-		ginkgo.It("Verify RoleBinding monitor-binding for verrazzano-project-admin", func() {
+		ginkgo.It("Verify RoleBinding monitor-binding for verrazzano-project-monitor", func() {
 			verifyRoleBindingExists("monitor-binding")
 		})
 
 		ginkgo.It("Succeed getting Pods in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User List Pods in NameSpace rbactest?  Yes")
-			allowed, reason := pkg.CanI(v80ProjectMonitor, rbacTestNamespace, "list", "pods")
-			gomega.Expect(allowed).To(gomega.BeTrue(), fmt.Sprintf("FAIL: Did Not Pass Authorization on user list pods: Allowed = %t, reason = %s", allowed, reason))
+			gomega.Eventually(func() bool {
+				allowed, _ := pkg.CanI(v80ProjectMonitor, rbacTestNamespace, "list", "pods")
+				return allowed
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "FAIL: Did Not Pass Authorization on user list pods")
 		})
 
 		ginkgo.It("Fail getting Pods in namespace verrazzano-system", func() {
@@ -197,14 +203,16 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 			gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("FAIL: VerrazzanoProjectAdmin RoleBinding creation failed: reason = %s", err))
 		})
 
-		ginkgo.It("Verify RoleBinding verrazzano-project-monitor-binding for verrazzano-project-admin", func() {
+		ginkgo.It("Verify RoleBinding verrazzano-project-monitor-binding for verrazzano-project-monitor", func() {
 			verifyRoleBindingExists("verrazzano-project-monitor-binding")
 		})
 
 		ginkgo.It("Fail create ApplicationConfiguration in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User create ApplicationConfiguration in NameSpace rbactest?  No")
-			allowed, reason := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
-			gomega.Expect(allowed).To(gomega.BeFalse(), fmt.Sprintf("FAIL: Passed Authorization on user create ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason))
+			gomega.Eventually(func() bool {
+				allowed, _ := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
+				return allowed
+			}, waitTimeout, pollingInterval).Should(gomega.BeFalse(), "FAIL: Passed Authorization on user create ApplicationConfiguration")
 		})
 
 		ginkgo.It("Succeed list ApplicationConfiguration in namespace rbactest", func() {
