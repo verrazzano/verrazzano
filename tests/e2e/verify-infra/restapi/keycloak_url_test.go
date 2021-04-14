@@ -11,18 +11,12 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var api *pkg.APIEndpoint
-
 var _ = ginkgo.Describe("keycloak url test", func() {
-
-	var _ = ginkgo.BeforeEach(func() {
-		api = pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
-	})
-
 	ginkgo.Context("Fetching the keycloak url using api and test ", func() {
 		ginkgo.It("Fetches keycloak url", func() {
 			isManagedClusterProfile := pkg.IsManagedClusterProfile()
 			if !isManagedClusterProfile {
+				api := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
 				ingress := api.GetIngress("keycloak", "keycloak")
 				keycloakURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
 				gomega.Expect(keycloakURL).NotTo(gomega.BeEmpty())
