@@ -166,7 +166,7 @@ if [ $(is_keycloak_enabled) == "true" ]; then
 
   action "Installing Keycloak" install_keycloak || exit 1
 else
-  log "Skip Keycloak installation on managed cluster"
+  log "Skip Keycloak installation, disabled"
 fi
 
 rm -rf $TMP_DIR
