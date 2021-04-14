@@ -154,6 +154,13 @@ data:
 DNS_TARGET_NAME=verrazzano-ingress.${ENV_NAME}.${DNS_SUFFIX}
 REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 
+CONFIG_CONTENT=$(cat $INSTALL_CONFIG_FILE)
+EFFECTIVE_CONTENT=$(cat $EFFECTIVE_CONFIG_VALUES)
+log "config content: $CONFIG_CONTENT"
+log "effective content: $EFFECTIVE_CONTENT"
+log "is keycloak enabled: $(is_keycloak_enabled)"
+log "is rancher enabled: $(is_rancher_enabled)"
+
 if [ $(is_keycloak_enabled) == "true" ]; then
   action "Installing MySQL" install_mysql
     if [ "$?" -ne 0 ]; then
