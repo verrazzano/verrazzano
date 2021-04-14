@@ -212,25 +212,18 @@ function install_external_dns()
   fi
 }
 
-function create_rancher_namespace()
-{
-    if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
-        kubectl create namespace cattle-system
-    fi
-}
-
 function install_rancher()
 {
     local RANCHER_CHART_DIR=${CHARTS_DIR}/rancher
+
+    log "Create Rancher namespace (if required)"
+    if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
+        kubectl create namespace cattle-system
+    fi
+
     local INGRESS_TLS_SOURCE=""
     local EXTRA_RANCHER_ARGUMENTS=""
     local RANCHER_PATCH_DATA=""
-
-    # Create the rancher-operator-system namespace so we can create network policies
-    if ! kubectl get namespace rancher-operator-system > /dev/null 2>&1; then
-        kubectl create namespace rancher-operator-system
-    fi
-
     if [ "$CERT_ISSUER_TYPE" == "acme" ]; then
       INGRESS_TLS_SOURCE="letsEncrypt"
       EXTRA_RANCHER_ARGUMENTS="--set letsEncrypt.ingress.class=rancher --set letsEncrypt.email=$(get_config_value ".certificates.acme.emailAddress") --set letsEncrypt.environment=$(get_acme_environment)"
@@ -399,12 +392,9 @@ RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
 
 action "Installing cert manager" install_cert_manager || exit 1
 action "Installing external DNS" install_external_dns || exit 1
-
-# Always create the Rancher namespace so we can create network policies
-action "Creating Rancher namespace" create_rancher_namespace || exit 1
-
 if [ $(is_rancher_enabled) == "true" ]; then
   action "Installing Rancher" install_rancher || exit 1
   action "Setting Rancher Server URL" set_rancher_server_url || true
   action "Patching Rancher Agents" patch_rancher_agents || true
 fi
+
