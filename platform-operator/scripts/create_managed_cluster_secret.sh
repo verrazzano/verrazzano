@@ -43,7 +43,6 @@ TLS_SECRET=$(kubectl -n verrazzano-system get secret system-tls -o json | jq -r 
 if [ ! -z "${TLS_SECRET%%*( )}" ] ; then
   CA_CERT=$(kubectl -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"' | base64 -d)
 fi
-AUTH_PASSWORD=$(kubectl get secret verrazzano -n verrazzano-system -o jsonpath='{.data.password}' | base64 -d)
 HOST=$(kubectl get ing vmi-system-prometheus -n verrazzano-system -o jsonpath='{.spec.tls[0].hosts[0]}')
 
 #create the yaml file
