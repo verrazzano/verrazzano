@@ -30,32 +30,60 @@ metadata:
     rbac.oam.dev/aggregate-to-controller: "true"
 rules:
 - apiGroups:
-  - core.oam.dev
+    - ""
   resources:
-  - "*"
+    - configmaps
+    - events
+    - services
   verbs:
-  - "*"
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
 - apiGroups:
   - apps
   resources:
   - deployments
   - controllerrevisions
   verbs:
-  - "*"
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
-  - apiextensions.k8s.io
+    - core.oam.dev
   resources:
-  - customresourcedefinitions
+    - "*"
   verbs:
-  - "*"
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
 - apiGroups:
-  - ""
+    - oam.verrazzano.io
   resources:
-  - events
-  - services
+    - "*"
   verbs:
-  - "*"
-
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

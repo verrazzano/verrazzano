@@ -417,8 +417,6 @@ spec:
           image: {{ .Values.logging.fluentdImage }}
           imagePullPolicy: IfNotPresent
           name: {{ .Values.logging.name }}
-          securityContext:
-            runAsUser: 0
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
           volumeMounts:

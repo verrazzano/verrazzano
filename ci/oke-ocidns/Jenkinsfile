@@ -23,6 +23,7 @@ Collections.shuffle(availableRegions)
 
 pipeline {
     options {
+        skipDefaultCheckout true
         copyArtifactPermission('*');
     }
 
@@ -49,6 +50,10 @@ pipeline {
         string defaultValue: 'NONE', description: 'Verrazzano platform operator image name (within ghcr.io/verrazzano repo)', name: 'VERRAZZANO_OPERATOR_IMAGE', trim: true
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
                 choices: testEnvironments)
+        string (name: 'GIT_COMMIT_TO_USE',
+                        defaultValue: 'NONE',
+                        description: 'This is the full git commit hash from the source build to be used for all jobs',
+                        trim: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
     }
 
@@ -125,6 +130,32 @@ pipeline {
 
         stage('Initialize') {
             steps {
+                script {
+                    if (params.GIT_COMMIT_TO_USE == "NONE") {
+                        echo "Specific GIT commit was not specified, use current head"
+                        def scmInfo = checkout scm
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    } else {
+                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+                        def scmInfo = checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: params.GIT_COMMIT_TO_USE]],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                        // If the commit we were handed is not what the SCM says we are using, fail
+                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
+                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                            exit 1
+                        }
+                    }
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                }
+
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
@@ -134,6 +165,12 @@ pipeline {
                 sh """
                     echo "${NODE_LABELS}"
                 """
+
+                script {
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                    // update the description with some meaningful info
+                    currentBuild.description = SHORT_COMMIT_HASH + " : " + params.OKE_CLUSTER_REGION + " : " + params.OKE_CLUSTER_VERSION
+                }
             }
         }
 
@@ -173,9 +210,6 @@ pipeline {
                 OCI_OS_BUCKET="verrazzano-builds"
             }
             steps {
-                script {
-                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                }
                 sh """
                     echo "Install Platform Operator"
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml

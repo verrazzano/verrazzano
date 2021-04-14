@@ -25,6 +25,7 @@ const (
 	pollInterval              = 40 * time.Millisecond
 	applicationOperator       = "verrazzano-application-operator"
 	duration                  = 1 * time.Minute
+	existingNamespace         = "test-namespace-exists"
 )
 
 var (
@@ -210,6 +211,28 @@ var _ = ginkgo.Describe("Testing VerrazzanoProject namespace generation", func()
 					len(namespace.Labels) == 3
 			}
 			return false
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+	})
+	ginkgo.It("Apply VerrazzanoProject with namespace already exists", func() {
+		_, stderr := util.Kubectl("create ns " + existingNamespace)
+		if stderr != "" {
+			ginkgo.Fail(fmt.Sprintf("failed to create namespace %s", existingNamespace))
+		}
+		_, stderr = util.Kubectl("apply -f testdata/multi-cluster/verrazzanoproject_namespace_exists.yaml")
+		gomega.Expect(stderr).To(gomega.Equal(""), "VerrazzanoProject should be created successfully")
+		gomega.Eventually(func() bool {
+			namespace, err := K8sClient.GetNamespace(existingNamespace)
+			if err == nil {
+				return namespace.Labels[constants.LabelIstioInjection] == constants.LabelIstioInjectionDefault &&
+					namespace.Labels[constants.LabelVerrazzanoManaged] == constants.LabelVerrazzanoManagedDefault &&
+					namespace.Labels["label1"] == "test1" &&
+					len(namespace.Labels) == 3
+			}
+			return false
+		}, timeout, pollInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			vp, err := K8sClient.GetVerrazzanoProject(constants.VerrazzanoMultiClusterNamespace, "test-default-labels")
+			return err == nil && isStatusAsExpected(vp.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, "managed1")
 		}, timeout, pollInterval).Should(gomega.BeTrue())
 	})
 })

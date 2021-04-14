@@ -22,6 +22,7 @@ pipeline {
     parameters {
         booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
         booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
+        booleanParam (description: 'Whether to create kind cluster with Calico for AT testing (defaults to true)', name: 'CREATE_KIND_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
     }
@@ -49,7 +50,7 @@ pipeline {
         GITHUB_RELEASE_EMAIL = credentials('github-email-release')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
-        CLUSTER_NAME = 'at-tests'
+        CLUSTER_NAME = 'verrazzano'
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
@@ -60,6 +61,7 @@ pipeline {
         INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
+        TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
@@ -292,14 +294,16 @@ pipeline {
             when { not { buildingTag() } }
             steps {
                 sh """
-                    mkdir ${HOME}/.kube/ || true
                     cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                    ../ci/scripts/setup_kind_for_jenkins.sh vpo-integ ${HOME}/.kube/vpo-integ-config
-                    make integ-test JENKINS_KUBECONFIG=${HOME}/.kube/vpo-integ-config CLUSTER_DUMP_LOCATION=${WORKSPACE}/platform-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+
+                    make cleanup-cluster
+                    make create-cluster KIND_CONFIG="kind-config-ci.yaml"
+                    ../ci/scripts/setup_kind_for_jenkins.sh
+                    make integ-test CLUSTER_DUMP_LOCATION=${WORKSPACE}/platform-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     ../build/copy-junit-output.sh ${WORKSPACE}
                     cd ${GO_REPO_PATH}/verrazzano/application-operator
-                    ../ci/scripts/setup_kind_for_jenkins.sh apo-integ ${HOME}/.kube/apo-integ-config
-                    make integ-test JENKINS_KUBECONFIG=${HOME}/.kube/apo-integ-config CLUSTER_DUMP_LOCATION=${WORKSPACE}/application-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
+                    make cleanup-cluster
+                    make integ-test KIND_CONFIG="kind-config-ci.yaml" CLUSTER_DUMP_LOCATION=${WORKSPACE}/application-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     ../build/copy-junit-output.sh ${WORKSPACE}
                 """
             }
@@ -351,59 +355,17 @@ pipeline {
 
                 stage('Prepare AT environment') {
                     environment {
+                        VERRAZZANO_OPERATOR_IMAGE="NONE"
+                        KIND_KUBERNETES_CLUSTER_VERSION="1.18"
                         OCI_CLI_AUTH="instance_principal"
                         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                         OCI_OS_BUCKET="verrazzano-builds"
+                        OCI_OS_LOCATION="${SHORT_COMMIT_HASH}"
                     }
                     steps {
                         sh """
-                            echo "tests will execute" > ${TESTS_EXECUTED_FILE}
-                            echo "Create Kind cluster"
-                            cd ${GO_REPO_PATH}/verrazzano/platform-operator
-
-                            ../ci/scripts/setup_kind_for_jenkins.sh at-tests ${KUBECONFIG}
-
-                            echo "Install metallb"
                             cd ${GO_REPO_PATH}/verrazzano
-                            ./tests/e2e/config/scripts/install-metallb.sh
-
-                            echo "Create Image Pull Secrets"
-                            cd ${GO_REPO_PATH}/verrazzano
-                            ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                            ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                            ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
-
-                            echo "Install Platform Operator"
-                            cd ${GO_REPO_PATH}/verrazzano
-
-                            # Configure the deployment file to use an image pull secret for branches that have private images
-                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-                            cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
-
-                            # Install the verrazzano-platform-operator
-                            kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
-
-                            # make sure ns exists
-                            ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
-
-                            # create secret in verrazzano-install ns
-                            ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
-
-                            # Configure the custom resource to install verrazzano on Kind
-                            echo "Installing yq"
-                            GO111MODULE=on go get github.com/mikefarah/yq/v4
-                            export PATH=${HOME}/go/bin:${PATH}
-                            ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND}
-
-                            echo "Wait for Operator to be ready"
-                            cd ${GO_REPO_PATH}/verrazzano
-                            kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-
-                            echo "Installing Verrazzano on Kind"
-                            kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}
-
-                            # wait for Verrazzano install to complete
-                            ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+                            ci/scripts/prepare_jenkins_at_environment.sh {$params.CREATE_KIND_USE_CALICO}
                         """
                     }
                     post {
