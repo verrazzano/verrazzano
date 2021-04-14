@@ -3,7 +3,7 @@
 
 module "oke" {
   source = "oracle-terraform-modules/oke/oci"
-  version = "3.0.0-RC2"
+  version = "3.1.0"
 
   tenancy_id = var.tenancy_id
   user_id = var.user_id
@@ -23,19 +23,18 @@ module "oke" {
   operator_enabled = var.operator_enabled
   bastion_enabled = var.bastion_enabled
   username = var.username
-  tenancy_name = var.tenancy_name
 
   vcn_name = "${var.cluster_name}-vcn"
   vcn_dns_label = "${var.cluster_name}"
   label_prefix = "${var.label_prefix}"
 
-  operator_shape = "VM.Standard.E2.1"
+  operator_shape = { shape="VM.Standard.E3.Flex", ocpus=1, memory=4, boot_volume_size=50 }
   operator_notification_endpoint = ""
   operator_instance_principal = false
   operator_notification_enabled = false
   operator_timezone = "UTC"
 
-  bastion_shape = "VM.Standard.E2.1"
+  bastion_shape = { shape="VM.Standard.E3.Flex", ocpus=1, memory=4, boot_volume_size=50 }
   bastion_timezone = "UTC"
   bastion_notification_enabled = false
   bastion_notification_endpoint = ""

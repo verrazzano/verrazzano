@@ -14,6 +14,10 @@ variable "username" {
 }
 variable "tenancy_name" {}
 
+variable "operating_system_version" {
+  default     = "8"
+}
+
 variable "kubernetes_version" {
   default = "v1.18.10"
 }
