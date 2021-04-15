@@ -17,6 +17,7 @@ require (
 	github.com/jetstack/cert-manager v0.13.1
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.1
+	github.com/spf13/cobra v1.0.0
 	github.com/stretchr/testify v1.6.1
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.25
 	go.uber.org/zap v1.16.0
