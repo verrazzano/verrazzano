@@ -11,7 +11,7 @@ The multicluster Hello World Helidon example will be used to show how to change 
 
 ## Edit the placement of the VerrazzanoProject and the application
 
-Edit the placement of the VerrazzanoProject and each of the application resources by changing the cluster name under `spec.placement.clusters` from `managed1` to `local` (the default name of the admin cluster).  Use the following commands to apply the changes.
+Edit the placement of the VerrazzanoProject and each of the application resources by changing the cluster name under `spec.placement.clusters` from `managed1` to `local` (the default name of the admin cluster).  Use the following commands to apply the changes:
 
     ```
     $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl apply -f verrazzano-project.yaml
@@ -23,7 +23,7 @@ Edit the placement of the VerrazzanoProject and each of the application resource
 
 Wait a few minutes for the change in placement to take effect on each cluster.
 
-1. Use the following commands to verify that the application resources have been removed from the managed cluster.
+1. Use the following commands to verify that the application resources have been removed from the managed cluster:
 
     ```
     $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get MultiClusterComponent hello-helidon-component -n hello-helidon
@@ -32,7 +32,7 @@ Wait a few minutes for the change in placement to take effect on each cluster.
     $ KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get VerrazzanoHelidonWorkload -n hello-helidon
     ```
 
-1. Use the following commands to verify that the resources have been moved to the admin cluster.
+1. Use the following commands to verify that the resources have been moved to the admin cluster:
 
     ```
     $ KUBECONFIG=$KUBECONFIG_ADMIN kubectl get ns hello-helidon

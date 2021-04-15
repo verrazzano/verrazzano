@@ -1,6 +1,6 @@
 # Spring Boot Application
 
-This example provides a simple web application developed using Spring Boot. For more information and the source code of this application, see the [Verrazzano examples](https://github.com/verrazzano/examples).
+This example provides a simple web application developed using Spring Boot. For more information and the source code of this application, see the [Verrazzano Examples](https://github.com/verrazzano/examples).
 
 ## Prerequisites
 
@@ -46,16 +46,15 @@ Install Verrazzano following the [installation instructions](https://verrazzano.
    11.22.33.44
    ```   
 
-1. Access the Springboot example application.
-   There are several ways to access it:
+1. Access the Springboot example application. There are several ways to access it:
 
-   * **Using the command line**:
+   * **Using the command line**
      ```
      $ curl -sk https://${HOST} --resolve ${HOST}:443:${ADDRESS}
      $ curl -sk https://${HOST}/facts --resolve ${HOST}:443:${ADDRESS}
      ```
      If you are using `xip.io`, then you do not need to include `--resolve`.
-   * **Local testing with a browser**:
+   * **Local testing with a browser**
 
      Temporarily, modify the `/etc/hosts` file (on Mac or Linux)
      or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10),
@@ -65,10 +64,10 @@ Install Verrazzano following the [installation instructions](https://verrazzano.
      11.22.33.44 springboot.example.com
      ```
      Then, you can access the application in a browser at `https://springboot.example.com/` and `https://springboot.example.com/facts`.
-     
+
      If you are using `xip.io`, then you can access the application in a browser using the `HOST` variable (for example, `https://${HOST}/facts`).  If you are going through a proxy, you may need to add `*.xip.io` to the `NO_PROXY` list.
 
-   * **Using your own DNS name**:
+   * **Using your own DNS name**
      * Point your own DNS name to the ingress gateway's `EXTERNAL-IP` address.
      * In this case, you would need to have edited the `springboot-app.yaml` file
        to use the appropriate value under the `hosts` section (such as `yourhost.your.domain`),
