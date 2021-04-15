@@ -21,17 +21,22 @@ const (
 
 var _ = ginkgo.Describe("Verify Keycloak configuration", func() {
 	var _ = ginkgo.Describe("Verify password policies", func() {
+		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		ginkgo.It("Verify master realm password policy", func() {
-			// GIVEN the password policy setup for the master realm during installation
-			// WHEN valid and invalid password changes are attempted
-			// THEN verify valid passwords are accepted and invalid passwords are rejected.
-			gomega.Eventually(verifyKeycloakMasterRealmPasswordPolicyIsCorrect, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			if !isManagedClusterProfile {
+				// GIVEN the password policy setup for the master realm during installation
+				// WHEN valid and invalid password changes are attempted
+				// THEN verify valid passwords are accepted and invalid passwords are rejected.
+				gomega.Eventually(verifyKeycloakMasterRealmPasswordPolicyIsCorrect, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}
 		})
 		ginkgo.It("Verify Verrazzano-system realm password policy", func() {
-			// GIVEN the password policy setup for the Verrazzano-system realm during installation
-			// WHEN valid and invalid password changes are attempted
-			// THEN verify valid passwords are accepted and invalid passwords are rejected.
-			gomega.Eventually(verifyKeycloakVerrazzanoRealmPasswordPolicyIsCorrect, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			if !isManagedClusterProfile {
+				// GIVEN the password policy setup for the Verrazzano-system realm during installation
+				// WHEN valid and invalid password changes are attempted
+				// THEN verify valid passwords are accepted and invalid passwords are rejected.
+				gomega.Eventually(verifyKeycloakVerrazzanoRealmPasswordPolicyIsCorrect, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+			}
 		})
 	})
 })

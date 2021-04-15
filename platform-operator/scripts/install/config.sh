@@ -37,7 +37,10 @@ function get_config_value() {
     return 1
   fi
   if [ "$config_val" == "null" ]; then
-    # The configuration is not defined in CONFIG_JSON, check if it is defined in the json files under install-overrides
+    config_val=""
+  fi
+  # check if it is defined in the json files under install-overrides
+  if [ ! $(get_override_config_value "$jq_expr") == "" ]; then
     config_val=$(get_override_config_value "$jq_expr")
   fi
   echo $config_val
@@ -371,6 +374,12 @@ function get_override_config_value() {
 function is_rancher_enabled() {
   local rancher_enabled=$(get_config_value '.rancher.enabled')
   echo ${rancher_enabled}
+}
+
+# Return the value for the key keycloak.enabled
+function is_keycloak_enabled() {
+  local keycloak_enabled=$(get_config_value '.keycloak.enabled')
+  echo ${keycloak_enabled}
 }
 
 if [ -z "$INSTALL_CONFIG_FILE" ]; then

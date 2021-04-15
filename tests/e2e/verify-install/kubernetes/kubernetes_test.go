@@ -71,7 +71,11 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 				}
 				gomega.Expect(nsListContains(namespaces.Items, "istio-system")).To(gomega.Equal(true))
 				gomega.Expect(nsListContains(namespaces.Items, "gitlab")).To(gomega.Equal(false))
-				gomega.Expect(nsListContains(namespaces.Items, "keycloak")).To(gomega.Equal(true))
+				if isManagedClusterProfile {
+					gomega.Expect(nsListContains(namespaces.Items, "keycloak")).To(gomega.Equal(false))
+				} else {
+					gomega.Expect(nsListContains(namespaces.Items, "keycloak")).To(gomega.Equal(true))
+				}
 				gomega.Expect(nsListContains(namespaces.Items, "verrazzano-system")).To(gomega.Equal(true))
 				gomega.Expect(nsListContains(namespaces.Items, "verrazzano-mc")).To(gomega.Equal(true))
 				gomega.Expect(nsListContains(namespaces.Items, "cert-manager")).To(gomega.Equal(true))
@@ -111,12 +115,21 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 			ginkgoExt.Entry("includes ingress-controller-ingress-nginx-controller", "ingress-controller-ingress-nginx-controller", true),
 		)
 
-		ginkgoExt.DescribeTable("deployed keycloak components",
-			func(name string, expected bool) {
-				gomega.Expect(vzComponentPresent(name, "keycloak")).To(gomega.Equal(expected))
-			},
-			ginkgoExt.Entry("includes ssoproxycontroller", "ssoproxycontroller", false),
-		)
+		if isManagedClusterProfile {
+			ginkgoExt.DescribeTable("keycloak components are not deployed",
+				func(name string, expected bool) {
+					gomega.Expect(vzComponentPresent(name, "keycloak")).To(gomega.BeFalse())
+				},
+				ginkgoExt.Entry("includes ssoproxycontroller", "ssoproxycontroller", false),
+			)
+		} else {
+			ginkgoExt.DescribeTable("deployed keycloak components",
+				func(name string, expected bool) {
+					gomega.Expect(vzComponentPresent(name, "keycloak")).To(gomega.Equal(expected))
+				},
+				ginkgoExt.Entry("includes ssoproxycontroller", "ssoproxycontroller", false),
+			)
+		}
 
 		if isManagedClusterProfile {
 			ginkgoExt.DescribeTable("rancher components are not deployed",
@@ -124,6 +137,8 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 					gomega.Expect(vzComponentPresent(name, "cattle-system")).To(gomega.BeFalse())
 				},
 				ginkgoExt.Entry("includes rancher", "rancher", false),
+				ginkgoExt.Entry("includes rancher-agent", "cattle-node-agent", false),
+				ginkgoExt.Entry("includes rancher-agent", "cattle-cluster-agent", false),
 			)
 		} else {
 			ginkgoExt.DescribeTable("deployed rancher components",
@@ -131,6 +146,8 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 					gomega.Expect(vzComponentPresent(name, "cattle-system")).To(gomega.Equal(expected))
 				},
 				ginkgoExt.Entry("includes rancher", "rancher", true),
+				ginkgoExt.Entry("includes rancher-agent", "cattle-node-agent", true),
+				ginkgoExt.Entry("includes rancher-agent", "cattle-cluster-agent", true),
 			)
 		}
 
@@ -160,8 +177,10 @@ var _ = ginkgo.Describe("Kubernetes Cluster",
 						}
 					},
 					func() {
-						gomega.Eventually(pkg.PodsRunning("keycloak", expectedPodsKeycloak), waitTimeout, pollingInterval).
-							Should(gomega.BeTrue())
+						if !isManagedClusterProfile {
+							gomega.Eventually(pkg.PodsRunning("keycloak", expectedPodsKeycloak), waitTimeout, pollingInterval).
+								Should(gomega.BeTrue())
+						}
 					},
 					func() {
 						gomega.Eventually(pkg.PodsRunning("cert-manager", expectedPodsCertManager), waitTimeout, pollingInterval).

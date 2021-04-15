@@ -61,6 +61,7 @@ pipeline {
                 description: 'Verrazzano Managed Cluster install profile name',
                 // 1st choice is the default value
                 choices: [ "managed-cluster", "dev", "prod" ])
+        booleanParam (description: 'Whether to create kind cluster with Calico for AT testing (defaults to false, flip will change default after it is supported)', name: 'CREATE_KIND_USE_CALICO', defaultValue: false)
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', description: 'Whether to dump k8s cluster on success (off by default, can be useful to capture for comparing to failed cluster)', defaultValue: false)
     }
 
@@ -314,7 +315,7 @@ pipeline {
                                 cd ${GO_REPO_PATH}/verrazzano
                                 if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
                                     echo "Using the latest master branch operator.yaml from object storage"
-                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                                     cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
                                 else
                                     echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
@@ -546,7 +547,12 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 echo "Create Kind cluster \$1"
                 cd ${TEST_SCRIPTS_DIR}
-                ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork"
+                # Not using the caching, and not setting up Calico
+                ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" false ${CREATE_KIND_USE_CALICO}
+                if [ ${CREATE_KIND_USE_CALICO} == true ]; then
+                    echo "Install Calico"
+                    kubectl apply -f https://docs.projectcalico.org/manifests/canal.yaml
+                fi
                 echo "Install metallb"
                 cd ${GO_REPO_PATH}/verrazzano
                 ./tests/e2e/config/scripts/install-metallb.sh $metallbAddressRange
