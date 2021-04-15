@@ -248,7 +248,7 @@ func (s *Syncer) updateDeployment(name string) {
 	} else {
 		secretVersion = regSecret.ResourceVersion
 	}
-	secretVersionEnv := getEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, registrationSecretVersion)
+	secretVersionEnv := getEnvValue(&deployment.Spec.Template.Spec.Containers, registrationSecretVersion)
 
 	// CreateOrUpdate updates the deployment if cluster registration secret version changed
 	if secretVersionEnv != secretVersion {
@@ -281,7 +281,7 @@ func (s *Syncer) configureLogging() {
 	} else {
 		secretVersion = regSecret.ResourceVersion
 	}
-	secretVersionEnv := getContainerEnvValue(&daemonSet.Spec.Template.Spec.Containers, registrationSecretVersion)
+	secretVersionEnv := getEnvValue(&daemonSet.Spec.Template.Spec.Containers, registrationSecretVersion)
 	// CreateOrUpdate updates the deployment if cluster name or es secret version changed
 	if secretVersionEnv != secretVersion {
 		controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &daemonSet, func() error {
@@ -292,7 +292,7 @@ func (s *Syncer) configureLogging() {
 	}
 }
 
-func getContainerEnvValue(containers *[]corev1.Container, envName string) string {
+func getEnvValue(containers *[]corev1.Container, envName string) string {
 	for _, container := range *containers {
 		for _, env := range container.Env {
 			if env.Name == envName {
@@ -304,7 +304,7 @@ func getContainerEnvValue(containers *[]corev1.Container, envName string) string
 }
 
 func updateLoggingDaemonSet(newSecret, secretVersion string, ds *appsv1.DaemonSet) *appsv1.DaemonSet {
-	ds.Spec.Template.Spec.Volumes = updateVolumes(newSecret, ds.Spec.Template.Spec.Volumes)
+	ds.Spec.Template.Spec.Volumes = updateVolumes(newSecret, secretVersion, ds.Spec.Template.Spec.Volumes)
 	for i, c := range ds.Spec.Template.Spec.Containers {
 		if c.Name == "fluentd" {
 			ds.Spec.Template.Spec.Containers[i].Env = updateEnv(newSecret, secretVersion, ds.Spec.Template.Spec.Containers[i].Env)
@@ -410,7 +410,11 @@ func updateEnv(newSecret, secretVersion string, old []corev1.EnvVar) []corev1.En
 	return new
 }
 
-func updateVolumes(newSecret string, old []corev1.Volume) []corev1.Volume {
+func updateVolumes(newSecret, secretVersion string, old []corev1.Volume) []corev1.Volume {
+	secretName := newSecret
+	if secretVersion == "" {
+		secretName = defaultSecretName
+	}
 	var new []corev1.Volume
 	for _, vol := range old {
 		if vol.Name == "secret-volume" {
@@ -418,7 +422,7 @@ func updateVolumes(newSecret string, old []corev1.Volume) []corev1.Volume {
 				Name: vol.Name,
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: newSecret},
+						SecretName: secretName},
 				},
 			})
 		} else {
@@ -426,15 +430,6 @@ func updateVolumes(newSecret string, old []corev1.Volume) []corev1.Volume {
 		}
 	}
 	return new
-}
-
-func getEnvValue(envs []corev1.EnvVar, envName string) string {
-	for _, env := range envs {
-		if env.Name == envName {
-			return env.Value
-		}
-	}
-	return ""
 }
 
 func updateEnvValue(envs []corev1.EnvVar, envName string, newValue string) []corev1.EnvVar {
