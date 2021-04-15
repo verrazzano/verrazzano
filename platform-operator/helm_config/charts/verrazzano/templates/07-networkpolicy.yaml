@@ -96,6 +96,8 @@ spec:
     - ports:
         - port: 443
           protocol: TCP
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
+          protocol: TCP
   ingress:
     - ports:
         - port: 9443
