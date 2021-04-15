@@ -143,3 +143,89 @@ spec:
       ports:
         - port: 9090
           protocol: TCP
+---
+# Network policy for Cert Manager
+# Ingress: allow connect from Prometheus for scraping metrics
+# Egress: allow connect to Kubernetes API server
+#         allow connect to DNS lookup port 53 for both UDP and TCP
+#         allow connect to Let's Encrypt server
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cert-manager
+  namespace: cert-manager
+spec:
+  podSelector:
+    matchLabels:
+      app: cert-manager
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Port for scraping Prometheus metrics
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: {{ .Release.Namespace }}
+          podSelector:
+            matchLabels:
+              app: system-prometheus
+      ports:
+        - port: 9402
+          protocol: TCP
+  egress:
+    # Port for connecting to Kubernetes API services
+    - ports:
+        - port: 6443
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+    # Ports for DNS lookup
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Port for connecting to Let's Encrypt server
+    - ports:
+        - port: 443
+          protocol: TCP
+{{- if .Values.externaldns.enabled }}
+---
+# Network policy for External DNS
+# Ingress: deny all
+# Egress: allow connect to Kubernetes API server
+#         allow connect to DNS lookup port 53 for both UDP and TCP
+#         allow connect to DNS server
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: external-dns
+  namespace: cert-manager
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: external-dns
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    # Port for connecting to Kubernetes API services
+    - ports:
+        - port: 6443
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+    # Ports for DNS lookup
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Port for connecting to DNS server
+    - ports:
+        - port: 443
+          protocol: TCP
+{{- end }}

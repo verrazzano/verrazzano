@@ -183,33 +183,31 @@ function install_external_dns()
 {
   local EXTERNAL_DNS_CHART_DIR=${CHARTS_DIR}/external-dns
 
-  if [ "$DNS_TYPE" == "oci" ]; then
-    if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n cert-manager ; then
-      # secret does not exist, so copy the configured oci config secret from default namespace.
-      # Operator has already checked for existence of secret in default namespace
-      # The DNS zone compartment will get appended to secret generated for cert external dns
-      local dns_compartment=$(get_config_value ".dns.oci.dnsZoneCompartmentOcid")
-      kubectl get secret ${OCI_DNS_CONFIG_SECRET} -o go-template='{{range $k,$v := .data}}{{if not $v}}{{$v}}{{else}}{{$v | base64decode}}{{end}}{{"\n"}}{{end}}' \
-          | sed '/^$/d' > $TMP_DIR/oci.yaml
-      echo "compartment: $dns_compartment" >> $TMP_DIR/oci.yaml
-      kubectl create secret generic $OCI_DNS_CONFIG_SECRET --from-file=$TMP_DIR/oci.yaml -n cert-manager
-    fi
-
-    helm upgrade external-dns ${EXTERNAL_DNS_CHART_DIR} \
-        --install \
-        --namespace cert-manager \
-        -f $VZ_OVERRIDES_DIR/external-dns-values.yaml \
-        --set domainFilters[0]=${DNS_SUFFIX} \
-        --set zoneIdFilters[0]=$(get_config_value ".dns.oci.dnsZoneOcid") \
-        --set txtOwnerId=v8o-local-${NAME} \
-        --set txtPrefix=_v8o-local-${NAME}_ \
-        --set extraVolumes[0].name=config \
-        --set extraVolumes[0].secret.secretName=$OCI_DNS_CONFIG_SECRET \
-        --set extraVolumeMounts[0].name=config \
-        --set extraVolumeMounts[0].mountPath=/etc/kubernetes/ \
-        --wait \
-        || return $?
+  if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n cert-manager ; then
+    # secret does not exist, so copy the configured oci config secret from default namespace.
+    # Operator has already checked for existence of secret in default namespace
+    # The DNS zone compartment will get appended to secret generated for cert external dns
+    local dns_compartment=$(get_config_value ".dns.oci.dnsZoneCompartmentOcid")
+    kubectl get secret ${OCI_DNS_CONFIG_SECRET} -o go-template='{{range $k,$v := .data}}{{if not $v}}{{$v}}{{else}}{{$v | base64decode}}{{end}}{{"\n"}}{{end}}' \
+        | sed '/^$/d' > $TMP_DIR/oci.yaml
+    echo "compartment: $dns_compartment" >> $TMP_DIR/oci.yaml
+    kubectl create secret generic $OCI_DNS_CONFIG_SECRET --from-file=$TMP_DIR/oci.yaml -n cert-manager
   fi
+
+  helm upgrade external-dns ${EXTERNAL_DNS_CHART_DIR} \
+      --install \
+      --namespace cert-manager \
+      -f $VZ_OVERRIDES_DIR/external-dns-values.yaml \
+      --set domainFilters[0]=${DNS_SUFFIX} \
+      --set zoneIdFilters[0]=$(get_config_value ".dns.oci.dnsZoneOcid") \
+      --set txtOwnerId=v8o-local-${NAME} \
+      --set txtPrefix=_v8o-local-${NAME}_ \
+      --set extraVolumes[0].name=config \
+      --set extraVolumes[0].secret.secretName=$OCI_DNS_CONFIG_SECRET \
+      --set extraVolumeMounts[0].name=config \
+      --set extraVolumeMounts[0].mountPath=/etc/kubernetes/ \
+      --wait \
+      || return $?
 }
 
 function install_rancher()
@@ -227,7 +225,7 @@ function install_rancher()
     if [ "$CERT_ISSUER_TYPE" == "acme" ]; then
       INGRESS_TLS_SOURCE="letsEncrypt"
       EXTRA_RANCHER_ARGUMENTS="--set letsEncrypt.ingress.class=rancher --set letsEncrypt.email=$(get_config_value ".certificates.acme.emailAddress") --set letsEncrypt.environment=$(get_acme_environment)"
-      RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${DNS_SUFFIX} auth\",\"external-dns.alpha.kubernetes.io/target\":\"verrazzano-ingress.${NAME}.${DNS_SUFFIX}\",\"cert-manager.io/issuer\":null,\"external-dns.alpha.kubernetes.io/ttl\":\"60\"}}}"
+      RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${DNS_SUFFIX} auth\",\"external-dns.alpha.kubernetes.io/target\":\"verrazzano-ingress.${NAME}.${DNS_SUFFIX}\",\"cert-manager.io/issuer\":null,\"cert-manager.io/issuer-kind\":null,\"external-dns.alpha.kubernetes.io/ttl\":\"60\"}}}"
     elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
       INGRESS_TLS_SOURCE="rancher"
       RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${NAME}.${DNS_SUFFIX} auth\",\"cert-manager.io/issuer\":\"rancher\",\"cert-manager.io/issuer-kind\":\"Issuer\"}}}"
@@ -391,7 +389,9 @@ DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
 
 action "Installing cert manager" install_cert_manager || exit 1
-action "Installing external DNS" install_external_dns || exit 1
+if [ "$DNS_TYPE" == "oci" ]; then
+  action "Installing external DNS" install_external_dns || exit 1
+fi
 if [ $(is_rancher_enabled) == "true" ]; then
   action "Installing Rancher" install_rancher || exit 1
   action "Setting Rancher Server URL" set_rancher_server_url || true

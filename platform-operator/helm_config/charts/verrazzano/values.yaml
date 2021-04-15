@@ -131,3 +131,6 @@ kubernetes:
     endpoint:
       ip:
       port:
+
+externaldns:
+  enabled: false

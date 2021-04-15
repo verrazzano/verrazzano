@@ -85,7 +85,7 @@ function install_verrazzano()
 
     # Wait until rancher TLS cert is ready
     log "Waiting for Rancher TLS cert to reach ready state"
-    kubectl wait --for=condition=ready cert tls-rancher-ingress -n cattle-system
+    kubectl wait --for=condition=ready cert tls-rancher-ingress -n cattle-system || exit 1
 
     # Make sure rancher ingress has an IP
     wait_for_ingress_ip rancher cattle-system || exit 1
@@ -114,6 +114,12 @@ function install_verrazzano()
   local ENDPOINT=$(kubectl get endpoints --namespace default kubernetes --no-headers | awk '{ print $2}')
   local ENDPOINT_ARRAY=(${ENDPOINT//:/ })
 
+  local DNS_TYPE=$(get_config_value ".dns.type")
+  local EXTERNAL_DNS_ENABLED=false
+  if [ "$DNS_TYPE" == "oci" ]; then
+    EXTERNAL_DNS_ENABLED=true
+  fi
+
   helm \
       upgrade --install verrazzano \
       ${VZ_CHARTS_DIR}/verrazzano \
@@ -124,6 +130,7 @@ function install_verrazzano()
       --set config.enableMonitoringStorage=true \
       --set kubernetes.service.endpoint.ip=${ENDPOINT_ARRAY[0]} \
       --set kubernetes.service.endpoint.port=${ENDPOINT_ARRAY[1]} \
+      --set externaldns.enabled=${EXTERNAL_DNS_ENABLED} \
       ${PROFILE_VALUES_OVERRIDE} \
       ${EXTRA_V8O_ARGUMENTS} || return $?
 
