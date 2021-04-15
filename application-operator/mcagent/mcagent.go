@@ -307,7 +307,7 @@ func updateLoggingDaemonSet(newSecret, secretVersion string, ds *appsv1.DaemonSe
 	ds.Spec.Template.Spec.Volumes = updateVolumes(newSecret, ds.Spec.Template.Spec.Volumes)
 	for i, c := range ds.Spec.Template.Spec.Containers {
 		if c.Name == "fluentd" {
-			ds.Spec.Template.Spec.Containers[i].Env = updateEnv(newSecret, ds.Spec.Template.Spec.Containers[i].Env)
+			ds.Spec.Template.Spec.Containers[i].Env = updateEnv(newSecret, secretVersion, ds.Spec.Template.Spec.Containers[i].Env)
 			ds.Spec.Template.Spec.Containers[i].Env = updateEnvValue(ds.Spec.Template.Spec.Containers[i].Env,
 				registrationSecretVersion, secretVersion)
 		}
@@ -315,46 +315,71 @@ func updateLoggingDaemonSet(newSecret, secretVersion string, ds *appsv1.DaemonSe
 	return ds
 }
 
-func updateEnv(newSecret string, old []corev1.EnvVar) []corev1.EnvVar {
+const (
+	defaultClusterName = "local"
+	defaultElasticURL  = "http://vmi-system-es-ingest-oidc:8775"
+	defaultSecretName  = "verrazzano"
+)
+
+func updateEnv(newSecret, secretVersion string, old []corev1.EnvVar) []corev1.EnvVar {
+	secretName := newSecret
+	if secretVersion == "" {
+		secretName = defaultSecretName
+	}
 	var new []corev1.EnvVar
 	for _, env := range old {
 		if env.Name == "CLUSTER_NAME" {
-			new = append(new, corev1.EnvVar{
-				Name: env.Name,
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: newSecret,
+			if secretVersion == "" {
+				new = append(new, corev1.EnvVar{
+					Name:  env.Name,
+					Value: defaultClusterName,
+				})
+			} else {
+				new = append(new, corev1.EnvVar{
+					Name: env.Name,
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: newSecret,
+							},
+							Key: constants.ClusterNameData,
+							Optional: func(opt bool) *bool {
+								return &opt
+							}(true),
 						},
-						Key: constants.ClusterNameData,
-						Optional: func(opt bool) *bool {
-							return &opt
-						}(true),
 					},
-				},
-			})
+				})
+
+			}
 		} else if env.Name == "ELASTICSEARCH_URL" {
-			new = append(new, corev1.EnvVar{
-				Name: env.Name,
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: newSecret,
+			if secretVersion == "" {
+				new = append(new, corev1.EnvVar{
+					Name:  env.Name,
+					Value: defaultElasticURL,
+				})
+			} else {
+				new = append(new, corev1.EnvVar{
+					Name: env.Name,
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: newSecret,
+							},
+							Key: constants.ElasticsearchURLData,
+							Optional: func(opt bool) *bool {
+								return &opt
+							}(true),
 						},
-						Key: constants.ElasticsearchURLData,
-						Optional: func(opt bool) *bool {
-							return &opt
-						}(true),
 					},
-				},
-			})
+				})
+			}
 		} else if env.Name == "ELASTICSEARCH_USER" {
 			new = append(new, corev1.EnvVar{
 				Name: env.Name,
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: newSecret,
+							Name: secretName,
 						},
 						Key: constants.ElasticsearchUsernameData,
 						Optional: func(opt bool) *bool {
@@ -369,7 +394,7 @@ func updateEnv(newSecret string, old []corev1.EnvVar) []corev1.EnvVar {
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: newSecret,
+							Name: secretName,
 						},
 						Key: constants.ElasticsearchPasswordData,
 						Optional: func(opt bool) *bool {
