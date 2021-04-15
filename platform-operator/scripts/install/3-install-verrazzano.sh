@@ -85,7 +85,7 @@ function install_verrazzano()
 
     # Wait until rancher TLS cert is ready
     log "Waiting for Rancher TLS cert to reach ready state"
-    kubectl wait --for=condition=ready cert tls-rancher-ingress -n cattle-system || exit 1
+    kubectl wait --for=condition=ready cert tls-rancher-ingress -n cattle-system
 
     # Make sure rancher ingress has an IP
     wait_for_ingress_ip rancher cattle-system || exit 1
