@@ -143,6 +143,12 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 					"oam.applicationconfiguration.namespace": "hello-helidon",
 					"oam.applicationconfiguration.name":      "hello-helidon-appconf"})
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+
+			gomega.Eventually(func() bool {
+				return pkg.LogRecordFound("verrazzano-namespace-hello-helidon", time.Now().Add(-24*time.Hour), map[string]string{
+					"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-appconf",
+					"kubernetes.container_name":            "hello-helidon-container"})
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 		})
 	})
 })
