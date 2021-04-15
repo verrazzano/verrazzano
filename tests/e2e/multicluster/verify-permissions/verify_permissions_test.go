@@ -57,6 +57,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				return findMultiClusterConfigMap(testNamespace, "mymcconfigmap")
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc configmap")
 
+			eventuallyIterations := 0
 			gomega.Eventually(func() bool {
 				// Verify we have the expected status update
 				configMap := clustersv1alpha1.MultiClusterConfigMap{}
@@ -66,10 +67,13 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 					pkg.Log(pkg.Debug, string("cluster reported status: "+configMap.Status.Clusters[0].State))
 					pkg.Log(pkg.Debug, "cluster reported name: "+configMap.Status.Clusters[0].Name)
 				}
-				pkg.Log(pkg.Info, "Dumping Status of config map mymcconfigmap")
-				pkg.Log(pkg.Info, fmt.Sprintf("Conditions: %v", configMap.Status.Conditions))
-				pkg.Log(pkg.Info, fmt.Sprintf("Clusters: %v", configMap.Status.Clusters))
-				pkg.Log(pkg.Info, fmt.Sprintf("State: %v", configMap.Status.State))
+				eventuallyIterations++
+				if eventuallyIterations > 30 {
+					pkg.Log(pkg.Info, "Dumping Status of config map mymcconfigmap after 30 iterations of Eventually block")
+					pkg.Log(pkg.Info, fmt.Sprintf("Conditions: %v", configMap.Status.Conditions))
+					pkg.Log(pkg.Info, fmt.Sprintf("Clusters: %v", configMap.Status.Clusters))
+					pkg.Log(pkg.Info, fmt.Sprintf("State: %v", configMap.Status.State))
+				}
 				return err == nil && configMap.Status.State == clustersv1alpha1.Succeeded &&
 					isStatusAsExpected(configMap.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, managedClusterName)
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
