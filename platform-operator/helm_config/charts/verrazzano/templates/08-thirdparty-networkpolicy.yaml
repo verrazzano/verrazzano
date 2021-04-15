@@ -176,7 +176,7 @@ spec:
   egress:
     # Port for connecting to Kubernetes API services
     - ports:
-        - port: 6443
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
           protocol: TCP
       to:
         - ipBlock:
@@ -213,7 +213,7 @@ spec:
   egress:
     # Port for connecting to Kubernetes API services
     - ports:
-        - port: 6443
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
           protocol: TCP
       to:
         - ipBlock:
