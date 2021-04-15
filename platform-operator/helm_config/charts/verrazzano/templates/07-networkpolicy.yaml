@@ -94,11 +94,8 @@ spec:
     - Egress
   egress:
     - ports:
-        - port: {{ .Values.kubernetes.service.endpoint.port }}
+        - port: 443
           protocol: TCP
-      to:
-        - ipBlock:
-            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
   ingress:
     - ports:
         - port: 9443
