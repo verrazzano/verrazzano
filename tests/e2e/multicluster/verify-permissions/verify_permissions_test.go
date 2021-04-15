@@ -68,7 +68,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 					pkg.Log(pkg.Debug, "cluster reported name: "+configMap.Status.Clusters[0].Name)
 				}
 				eventuallyIterations++
-				if eventuallyIterations >= 30 && eventuallyIterations % 10 == 0 {
+				if eventuallyIterations >= 30 && eventuallyIterations%10 == 0 {
 					pkg.Log(pkg.Info, "Dumping Status of config map mymcconfigmap every 10 iterations of Eventually block after we hit 30 iterations")
 					pkg.Log(pkg.Info, fmt.Sprintf("Conditions: %v", configMap.Status.Conditions))
 					pkg.Log(pkg.Info, fmt.Sprintf("Clusters: %v", configMap.Status.Clusters))
