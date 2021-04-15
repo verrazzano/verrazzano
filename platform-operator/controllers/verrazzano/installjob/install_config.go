@@ -671,6 +671,7 @@ func validateRoleBindingSubject(subject rbacv1.Subject, name string) error {
 		err := fmt.Errorf("no namespace for ServiceAccount in %s", name)
 		return err
 	}
+	return nil
 }
 
 func getVMIInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) []InstallArg {
