@@ -311,6 +311,8 @@ type KeycloakComponent struct {
 	// MySQL contains the MySQL component configuration needed for Keycloak
 	// +optional
 	MySQL MySQLComponent `json:"mysql,omitempty"`
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
 }
 
 // MySQLComponent specifies the MySQL configuration

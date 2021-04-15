@@ -267,6 +267,8 @@ spec:
                   keycloak:
                     description: Keycloak contains the Keycloak component configuration
                     properties:
+                      enabled:
+                        type: boolean
                       keycloakInstallArgs:
                         description: Arguments for installing Keycloak
                         items:
