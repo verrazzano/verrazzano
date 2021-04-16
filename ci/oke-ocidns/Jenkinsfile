@@ -55,6 +55,7 @@ pipeline {
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
                         trim: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        booleanParam (description: 'Whether to only run the first stage to refresh the Jenkinsfile for the job (defaults to false)', name: 'REFRESH_JENKINS', defaultValue: false)
     }
 
     environment {
@@ -169,20 +170,34 @@ pipeline {
                 script {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
-                    currentBuild.description = SHORT_COMMIT_HASH + " : " + params.OKE_CLUSTER_REGION + " : " + params.OKE_CLUSTER_VERSION
+                    if (params.REFRESH_JENKINS) {
+                        currentBuild.description = SHORT_COMMIT_HASH + " : " + "REFRESH_JENKINS"
+                    } else {
+                        currentBuild.description = SHORT_COMMIT_HASH + " : " + params.OKE_CLUSTER_REGION + " : " + params.OKE_CLUSTER_VERSION
+                    }
                 }
             }
         }
 
         stage("install-oke") {
-            when { expression { return params.TEST_ENV != 'kind' } }
+            when {
+                allOf {
+                    expression { return params.TEST_ENV != 'kind' }
+                    expression {params.REFRESH_JENKINS == false}
+                }
+            }
             steps {
                 sh "TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/create_oke_cluster.sh"
             }
         }
 
         stage('install-kind') {
-            when { expression { return params.TEST_ENV == 'kind' } }
+            when {
+                allOf {
+                    expression { return params.TEST_ENV == 'kind' }
+                    expression {params.REFRESH_JENKINS == false}
+                }
+            }
             steps {
                 sh """
                     cd ${WORKSPACE}/verrazzano-acceptance-test-suite
@@ -192,6 +207,7 @@ pipeline {
         }
 
         stage("create-image-pull-secrets") {
+            when { expression {params.REFRESH_JENKINS == false} }
             steps {
                 sh """
                     # Create image pull secret for Verrazzano docker images
@@ -204,6 +220,7 @@ pipeline {
         }
 
         stage("install-platform-operator") {
+            when { expression {params.REFRESH_JENKINS == false} }
             environment {
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
@@ -232,7 +249,12 @@ pipeline {
         }
 
         stage("create-dns-zone") {
-            when { expression { return params.TEST_ENV == 'ocidns_oke' } }
+            when {
+                allOf {
+                    expression { return params.TEST_ENV == 'ocidns_oke' }
+                    expression {params.REFRESH_JENKINS == false}
+                }
+            }
             steps {
                 script {
                     dns_zone_ocid = sh(script: "${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId}", returnStdout: true)
@@ -241,7 +263,12 @@ pipeline {
         }
 
         stage("setup-oci-dns-config") {
-            when { expression { return params.TEST_ENV == 'ocidns_oke' } }
+            when {
+                allOf {
+                    expression { return params.TEST_ENV == 'ocidns_oke' }
+                    expression {params.REFRESH_JENKINS == false}
+                }
+            }
             environment {
                 OCI_DNS_COMPARTMENT_OCID = credentials('oci-dns-compartment')
                 OCI_PRIVATE_KEY_FILE = credentials('oci-api-key')
@@ -260,7 +287,12 @@ pipeline {
         }
 
         stage("create-oci-config-secret") {
-            when { expression { return params.TEST_ENV == 'ocidns_oke' } }
+            when {
+                allOf {
+                    expression { return params.TEST_ENV == 'ocidns_oke' }
+                    expression {params.REFRESH_JENKINS == false}
+                }
+            }
             steps {
                 script {
                     sh """
@@ -271,7 +303,12 @@ pipeline {
         }
 
         stage("setup-xip-io-config") {
-            when { expression { return params.TEST_ENV == 'magicdns_oke' } }
+            when {
+                allOf {
+                    expression { return params.TEST_ENV == 'magicdns_oke' }
+                    expression {params.REFRESH_JENKINS == false}
+                }
+            }
             steps {
                 script {
                     sh """
@@ -285,7 +322,12 @@ pipeline {
         }
 
         stage("setup-nodeport-config") {
-            when { expression { return params.TEST_ENV == 'kind' } }
+            when {
+                allOf {
+                    expression { return params.TEST_ENV == 'kind' }
+                    expression {params.REFRESH_JENKINS == false}
+                }
+            }
             steps {
                 script {
                     sh """
@@ -299,6 +341,7 @@ pipeline {
         }
 
         stage("install-verrazzano") {
+            when { expression {params.REFRESH_JENKINS == false} }
             steps {
                 sh """
                     echo "Waiting for Operator to be ready"
@@ -346,6 +389,7 @@ pipeline {
         }
 
         stage('acceptance-tests-1') {
+            when { expression {params.REFRESH_JENKINS == false} }
             parallel {
                 // Quick fix for Bob's Books test failure that reports "Webpage is NOT Robert's Books Greetings from Verrazzano!"
                 //     Do not run this in parallel with Bob's Books because both specify a mapping for "/" path.
@@ -371,6 +415,7 @@ pipeline {
         }
 
         stage('acceptance-tests-2') {
+            when { expression {params.REFRESH_JENKINS == false} }
             parallel {
                 stage('verify-install') {
                     steps {
@@ -479,15 +524,16 @@ pipeline {
     post {
         always {
             script {
-                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
-                    dumpK8sCluster('oke-acceptance-tests-cluster-dump')
+                if (params.REFRESH_JENKINS == false) {
+                    if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
+                        dumpK8sCluster('oke-acceptance-tests-cluster-dump')
+                    }
+                    dumpVerrazzanoSystemPods()
+                    dumpCattleSystemPods()
+                    dumpNginxIngressControllerLogs()
+                    dumpVerrazzanoPlatformOperatorLogs()
                 }
             }
-
-            dumpVerrazzanoSystemPods()
-            dumpCattleSystemPods()
-            dumpNginxIngressControllerLogs()
-            dumpVerrazzanoPlatformOperatorLogs()
 
             sh """
                 echo "sorting the images file prior to archiving"
@@ -499,30 +545,34 @@ pipeline {
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             sh """
-                if [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                  ${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
-                fi
-                if [ "${TEST_ENV}" == "kind" ]; then
-                  ${WORKSPACE}/tests/e2e/config/scripts/delete-kind-cluster.sh
-                else
-                  TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh
-                fi
-                if [ -f ${POST_DUMP_FAILED_FILE} ]; then
-                  echo "Failures seen during dumping of artifacts, treat post as failed"
-                  exit 1
+                if [ "$REFRESH_JENKINS" == "false" ]; then
+                  if [ "${TEST_ENV}" == "ocidns_oke" ]; then
+                    ${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
+                  fi
+                  if [ "${TEST_ENV}" == "kind" ]; then
+                    ${WORKSPACE}/tests/e2e/config/scripts/delete-kind-cluster.sh
+                  else
+                    TF_VAR_label_prefix=${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh
+                  fi
+                  if [ -f ${POST_DUMP_FAILED_FILE} ]; then
+                    echo "Failures seen during dumping of artifacts, treat post as failed"
+                    exit 1
+                  fi
                 fi
             """
        }
        failure {
             script {
-                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME == "verrazzano/develop") {
-                    emailext recipientProviders: [[$class: 'CulpritsRecipientProvider'],[$class: 'RequesterRecipientProvider']],
-                       subject: "Verrazzano: ${env.JOB_NAME} - Failed",
-                       body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
-                    pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
-                    slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
+                if (params.REFRESH_JENKINS == false) {
+                    if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME == "verrazzano/develop") {
+                        emailext recipientProviders: [[$class: 'CulpritsRecipientProvider'],[$class: 'RequesterRecipientProvider']],
+                           subject: "Verrazzano: ${env.JOB_NAME} - Failed",
+                           body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
+                        pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+                        slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
+                   }
                 }
-           }
+            }
        }
     }
 }

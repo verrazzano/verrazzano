@@ -34,6 +34,7 @@ pipeline {
                         defaultValue: 'NONE',
                         description: 'This is for manually testing only where someone needs to use a specific operator image, otherwise the default value of NONE is used',
                         trim: true)
+        booleanParam (description: 'Whether to only run the first stage to refresh the Jenkinsfile for the job (defaults to false)', name: 'REFRESH_JENKINS', defaultValue: false)
     }
 
     environment {
@@ -86,7 +87,11 @@ pipeline {
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
-                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    if (params.REFRESH_JENKINS) {
+                        currentBuild.description = SHORT_COMMIT_HASH + " : " + "REFRESH_JENKINS"
+                    } else {
+                        currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
+                    }
                 }
             }
         }
@@ -99,7 +104,8 @@ pipeline {
                             build job: "/verrazzano-multi-cluster-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE)
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                    booleanParam(name: 'REFRESH_JENKINS', value: params.REFRESH_JENKINS)
                                 ], wait: true
                         }
                     }
@@ -110,7 +116,8 @@ pipeline {
                             build job: "/verrazzano-uninstall-test/${BRANCH_NAME.replace("/", "%2F")}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE)
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                    booleanParam(name: 'REFRESH_JENKINS', value: params.REFRESH_JENKINS)
                                 ], wait: true
                         }
                     }
@@ -121,11 +128,14 @@ pipeline {
                             build job: "/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE)
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                    booleanParam(name: 'REFRESH_JENKINS', value: params.REFRESH_JENKINS)
                                 ], wait: true
                         }
                     }
                 }
+                // Only pass the REFRESH_JENKINS to one variant of these jobs if it is set to true (we only need one
+                // to run to refresh the Jenkinsfile)
                 stage('Kind Acceptance Tests on 1.17') {
                     steps {
                         script {
@@ -133,12 +143,15 @@ pipeline {
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.17'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE)
+                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                    booleanParam(name: 'REFRESH_JENKINS', value: params.REFRESH_JENKINS)
                                 ], wait: true
                         }
                     }
                 }
+                // skip this if REFRESH_JENKINS == true
                 stage('Kind Acceptance Tests on 1.19') {
+                    when { expression {params.REFRESH_JENKINS == false} }
                     steps {
                         script {
                             build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
@@ -150,7 +163,9 @@ pipeline {
                         }
                     }
                 }
+                // skip this if REFRESH_JENKINS == true
                 stage('Kind Acceptance Tests on 1.20') {
+                    when { expression {params.REFRESH_JENKINS == false} }
                     steps {
                         script {
                             build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",

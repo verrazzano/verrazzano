@@ -33,6 +33,7 @@ pipeline {
                         trim: true)
         booleanParam (description: 'Whether to create kind cluster with Calico for AT testing (defaults to true)', name: 'CREATE_KIND_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        booleanParam (description: 'Whether to only run the first stage to refresh the Jenkinsfile for the job (defaults to false)', name: 'REFRESH_JENKINS', defaultValue: false)
     }
 
     environment {
@@ -148,12 +149,17 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
-                    currentBuild.description = KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    if (params.REFRESH_JENKINS) {
+                        currentBuild.description = SHORT_COMMIT_HASH + " : " + "REFRESH_JENKINS"
+                    } else {
+                        currentBuild.description = KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
+                    }
                 }
             }
         }
 
         stage('Acceptance Tests') {
+            when { expression {params.REFRESH_JENKINS == false} }
             stages {
                 stage('Prepare AT environment') {
                     environment {
@@ -262,7 +268,7 @@ pipeline {
     post {
         always {
             script {
-                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                if ( fileExists(env.TESTS_EXECUTED_FILE) && params.REFRESH_JENKINS == false) {
                     dumpVerrazzanoSystemPods()
                     dumpCattleSystemPods()
                     dumpNginxIngressControllerLogs()
@@ -276,12 +282,14 @@ pipeline {
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
 
             sh """
-                cd ${GO_REPO_PATH}/verrazzano/platform-operator
-                make delete-cluster
-                cd ${WORKSPACE}/verrazzano
-                if [ -f ${POST_DUMP_FAILED_FILE} ]; then
-                  echo "Failures seen during dumping of artifacts, treat post as failed"
-                  exit 1
+                if [ "$REFRESH_JENKINS" == "false" ]; then
+                  cd ${GO_REPO_PATH}/verrazzano/platform-operator
+                  make delete-cluster
+                  cd ${WORKSPACE}/verrazzano
+                  if [ -f ${POST_DUMP_FAILED_FILE} ]; then
+                    echo "Failures seen during dumping of artifacts, treat post as failed"
+                    exit 1
+                  fi
                 fi
             """
         }
@@ -290,7 +298,7 @@ pipeline {
             subject: "Verrazzano: ${env.JOB_NAME} - Failed",
             body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
             script {
-                if (env.BRANCH_NAME == "master") {
+                if (env.BRANCH_NAME == "master" && params.REFRESH_JENKINS == false) {
                     pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }

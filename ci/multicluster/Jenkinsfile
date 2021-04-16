@@ -63,6 +63,7 @@ pipeline {
                 choices: [ "managed-cluster", "dev", "prod" ])
         booleanParam (description: 'Whether to create kind cluster with Calico for AT testing (defaults to false, flip will change default after it is supported)', name: 'CREATE_KIND_USE_CALICO', defaultValue: false)
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', description: 'Whether to dump k8s cluster on success (off by default, can be useful to capture for comparing to failed cluster)', defaultValue: false)
+        booleanParam (description: 'Whether to only run the first stage to refresh the Jenkinsfile for the job (defaults to false)', name: 'REFRESH_JENKINS', defaultValue: false)
     }
 
     environment {
@@ -209,7 +210,11 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
-                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    if (params.REFRESH_JENKINS) {
+                        currentBuild.description = SHORT_COMMIT_HASH + " : " + "REFRESH_JENKINS"
+                    } else {
+                        currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
+                    }
                 }
             }
         }
@@ -218,6 +223,7 @@ pipeline {
             when {
                 allOf {
                     not { buildingTag() }
+                    expression {params.REFRESH_JENKINS == false}
                     anyOf {
                         branch 'master';
                         expression {SKIP_ACCEPTANCE_TESTS == false};
@@ -484,7 +490,7 @@ pipeline {
         }
         always {
             script {
-                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                if ( fileExists(env.TESTS_EXECUTED_FILE) && params.REFRESH_JENKINS == false) {
                     dumpVerrazzanoSystemPods()
                     dumpCattleSystemPods()
                     dumpNginxIngressControllerLogs()
@@ -497,33 +503,35 @@ pipeline {
             archiveArtifacts artifacts: '**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump*/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             script {
-                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                if (env.TEST_ENV == "kind") {
-                    for(int count=1; count<=clusterCount; count++) {
+                if (params.REFRESH_JENKINS == false) {
+                    int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                    if (env.TEST_ENV == "kind") {
+                        for(int count=1; count<=clusterCount; count++) {
+                            sh """
+                                if [ "${env.TEST_ENV}" == "kind" ]
+                                then
+                                    kind delete cluster --name ${CLUSTER_NAME_PREFIX}-$count
+                                fi
+                            """
+                        }
+                    } else {
                         sh """
-                            if [ "${env.TEST_ENV}" == "kind" ]
-                            then
-                                kind delete cluster --name ${CLUSTER_NAME_PREFIX}-$count
+                            mkdir -p ${KUBECONFIG_DIR}
+                            if [ "${TEST_ENV}" == "ocidns_oke" ]; then
+                              cd ${GO_REPO_PATH}/verrazzano
+                              ./tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
                             fi
+                            cd ${TEST_SCRIPTS_DIR}
+                            TF_VAR_label_prefix=multicluster-${env.BUILD_NUMBER} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}"
                         """
                     }
-                } else {
                     sh """
-                        mkdir -p ${KUBECONFIG_DIR}
-                        if [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                          cd ${GO_REPO_PATH}/verrazzano
-                          ./tests/e2e/config/scripts/oci_dns_ops.sh -o delete -s z${zoneId} || echo "Failed to delete DNS zone z${zoneId}"
+                        if [ -f ${POST_DUMP_FAILED_FILE} ]; then
+                            echo "Failures seen during dumping of artifacts, treat post as failed"
+                            exit 1
                         fi
-                        cd ${TEST_SCRIPTS_DIR}
-                        TF_VAR_label_prefix=multicluster-${env.BUILD_NUMBER} TF_VAR_state_name=multicluster-${env.BUILD_NUMBER}-${env.BRANCH_NAME} ./delete_oke_cluster.sh "$clusterCount" "${KUBECONFIG_DIR}"
                     """
                 }
-                sh """
-                    if [ -f ${POST_DUMP_FAILED_FILE} ]; then
-                        echo "Failures seen during dumping of artifacts, treat post as failed"
-                        exit 1
-                    fi
-                """
             }
         }
         cleanup {

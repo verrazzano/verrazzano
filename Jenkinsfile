@@ -139,6 +139,28 @@ pipeline {
             }
         }
 
+        stage('Refresh Downstream Jenkinsfiles') {
+            when {
+                allOf {
+                    not { buildingTag() }
+                    anyOf {
+                        branch 'master';
+                        branch 'release-*';
+                        expression {params.TRIGGER_FULL_TESTS == true};
+                    }
+                }
+            }
+            steps {
+                script {
+                    build job: "verrazzano-push-triggered-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                        parameters: [
+                            string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                            booleanParam(name: 'REFRESH_JENKINS', value: true)
+                        ], wait: false
+                }
+            }
+        }
+
         stage('Analysis Tool') {
             when {
                 allOf {

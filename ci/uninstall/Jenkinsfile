@@ -49,6 +49,7 @@ pipeline {
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS',
                       defaultValue: false,
                       description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)')
+        booleanParam (description: 'Whether to only run the first stage to refresh the Jenkinsfile for the job (defaults to false)', name: 'REFRESH_JENKINS', defaultValue: false)
     }
 
     environment {
@@ -185,18 +186,24 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
-                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    if (params.REFRESH_JENKINS) {
+                        currentBuild.description = SHORT_COMMIT_HASH + " : " + "REFRESH_JENKINS"
+                    } else {
+                        currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
+                    }
                 }
             }
         }
 
         stage("Create Cluster") {
+            when { expression {params.REFRESH_JENKINS == false} }
             steps {
                 sh "TF_VAR_label_prefix=uninstall-${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=uninstall-${env.BUILD_NUMBER}-${env.BRANCH_NAME}-${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
             }
         }
 
         stage('Install Verrazzano') {
+            when { expression {params.REFRESH_JENKINS == false} }
             environment {
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                 OCI_OS_BUCKET="verrazzano-builds"
@@ -284,6 +291,7 @@ pipeline {
         }
 
         stage('Run Test') {
+            when { expression {params.REFRESH_JENKINS == false} }
             environment {
                 TEST_ENV = "OKE"
             }
@@ -300,6 +308,7 @@ pipeline {
         }
 
         stage('Uninstall Verrazzano') {
+            when { expression {params.REFRESH_JENKINS == false} }
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
@@ -323,6 +332,7 @@ pipeline {
         }
 
         stage("Verify Uninstall") {
+            when { expression {params.REFRESH_JENKINS == false} }
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
@@ -334,6 +344,7 @@ pipeline {
         }
 
         stage("Reinstall Verrazzano") {
+            when { expression {params.REFRESH_JENKINS == false} }
             steps {
                 listNamepacesAndPods('before reinstalling Verrazzano')
                 sh """
@@ -374,6 +385,7 @@ pipeline {
         }
 
         stage('Rerun Test') {
+            when { expression {params.REFRESH_JENKINS == false} }
             environment {
                 TEST_ENV = "OKE"
             }
@@ -387,7 +399,7 @@ pipeline {
     post {
         always {
             script {
-                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && params.REFRESH_JENKINS == false) {
                     dumpK8sCluster('verrazzano-uninstall-test-dump')
                 }
             }
@@ -396,21 +408,27 @@ pipeline {
         }
         failure {
             script {
-                dumpK8sCluster('verrazzano-uninstall-test-dump')
-                archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*test-dump/**', allowEmptyArchive: true
-                mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
-                subject: "Verrazzano: ${env.JOB_NAME} - Failed",
-                body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
-                script {
-                    if (env.JOB_NAME == "verrazzano-uninstall-test/master") {
-                        pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
-                        slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
+                if (params.REFRESH_JENKINS == false) {
+                    dumpK8sCluster('verrazzano-uninstall-test-dump')
+                    archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*test-dump/**', allowEmptyArchive: true
+                    mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
+                    subject: "Verrazzano: ${env.JOB_NAME} - Failed",
+                    body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
+                    script {
+                        if (env.JOB_NAME == "verrazzano-uninstall-test/master") {
+                            pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+                            slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
+                        }
                     }
                 }
             }
         }
         cleanup {
-            sh "VERRAZZANO_KUBECONFIG=${env.KUBECONFIG} TF_VAR_label_prefix=uninstall-${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=uninstall-${env.BUILD_NUMBER}-${env.BRANCH_NAME}-${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/delete_oke_cluster.sh"
+            script {
+                if (params.REFRESH_JENKINS == false) {
+                    sh "VERRAZZANO_KUBECONFIG=${env.KUBECONFIG} TF_VAR_label_prefix=uninstall-${env.BUILD_NUMBER}-${env.TIMESTAMP} TF_VAR_state_name=uninstall-${env.BUILD_NUMBER}-${env.BRANCH_NAME}-${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/delete_oke_cluster.sh"
+                }
+            }
             deleteDir()
         }
     }
