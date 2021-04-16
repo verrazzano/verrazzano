@@ -93,16 +93,12 @@ spec:
     - Ingress
     - Egress
   egress:
-    # Egress rule 1 - allow access to Kubernetes API server on its port
+    # allow access to all destinations on Kubernetes API server port
+    # allow access to all destinations on 443
+    # So that a managed cluster can connect to admin cluster on both of those ports
     - ports:
         - port: {{ .Values.kubernetes.service.endpoint.port }}
           protocol: TCP
-      to:
-        - ipBlock:
-            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
-    # Egress rule 2 - allow access to all destinations on 443, so that a managed cluster
-    # can connect to the admin cluster
-    - ports:
         - port: 443
           protocol: TCP
   ingress:
