@@ -5,6 +5,9 @@ package verrazzanoproject
 
 import (
 	"context"
+	"fmt"
+	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -73,6 +76,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err != nil {
 		opResult = controllerutil.OperationResultNone
 	}
+
+	// Sync the network policies
+	//err := r.syncNetworkPolices(ctx, vp.N)
+	//if err != nil {
+	//	opResult = controllerutil.OperationResultNone
+	//}
+
 
 	// Update the cluster status
 	_, err = r.updateStatus(ctx, &vp, opResult, err)
@@ -211,4 +221,67 @@ func newRoleBinding(namespace string, roleName string, subjects []rbacv1.Subject
 		},
 		Subjects: subjects,
 	}
+}
+
+// syncNetworkPolices syncs the NetworkPolicies specified in the project
+func (r *Reconciler) syncNetworkPolices(ctx context.Context, project clustersv1alpha1.VerrazzanoProject, policies []netv1.NetworkPolicy, logger logr.Logger) error {
+	// Build the set of project namespaces for validation
+	nsSet := make(map[string]bool)
+	for _, ns := range project.Spec.Template.Namespaces {
+		nsSet[ns.Metadata.Name] = true
+	}
+	
+	// Create or update policies that are in the project spec
+	desiredPolicySet := make(map[string]bool)
+	for _, policy := range policies {
+		if ok, _ := nsSet[policy.Namespace]; ok != true {
+			logger.Error(fmt.Errorf("Namespace %s used in NetworkPolicy %s does not exist in project %s"), policy.Namespace, policy.Name, project.Name)
+		}
+		desiredPolicySet[policy.Namespace + policy.Name] = true
+		err := r.createOrUpdateNetworkPolicy(ctx, &policy)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Delete policies in this namespace that should not exist
+	return r.deleteNetworkPolicies(ctx, project, desiredPolicySet, logger)
+}
+
+// createOrUpdateNetworkPolicy creates or updates the network polices in the project
+func (r *Reconciler) createOrUpdateNetworkPolicy(ctx context.Context, desiredPolicy *netv1.NetworkPolicy) error {
+	var policy netv1.NetworkPolicy
+	policy.Namespace = policy.Namespace
+	policy.Name = policy.Name
+
+	// Get policy and handle case where it doesn't exist
+	if err := r.Get(ctx, types.NamespacedName{Namespace: policy.Namespace, Name: policy.Name}, &policy); err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		}
+		return r.Create(ctx, desiredPolicy)
+	}
+	// Policy exists, replace it
+	return r.Update(ctx, desiredPolicy)
+}
+
+// deleteNetworkPolicies deletes policies that exist in the project namespaces, but are not defined in the project spec
+func (r *Reconciler) deleteNetworkPolicies(ctx context.Context,  project clustersv1alpha1.VerrazzanoProject, desiredPolicySet map[string]bool, logger logr.Logger) error {
+	for _, ns := range project.Spec.Template.Namespaces {
+		policies := netv1.NetworkPolicyList{}
+		if err := r.List(ctx, &policies, client.InNamespace(ns.Metadata.Name)); err != nil {
+			return err
+		}
+		// Loop through the policies found in the namespace
+		for _, policy := range policies.Items {
+			if _, ok := desiredPolicySet[policy.Namespace+policy.Name]; ok {
+				continue
+			}
+			// Found a policy in the namespace that is not specified in the project.  Delete it
+			if err := r.Delete(ctx, &policy, &client.DeleteOptions{}); err != nil {
+				logger.Error(err, fmt.Sprintf("Unable to delete NetworkPolicy %s:%s during cleanup of project %s"), policy.Namespace, policy.Name, project.Name)
+			}
+		}
+	}
+	return nil
 }
