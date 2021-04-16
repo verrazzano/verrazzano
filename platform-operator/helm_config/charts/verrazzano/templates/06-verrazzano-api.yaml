@@ -179,8 +179,10 @@ data:
         lua_ssl_trusted_certificate /etc/nginx/ca-bundle;
 
         server {
-            listen       8775;
+            listen       8775 ssl;
             server_name  apiserver;
+            ssl_certificate      /etc/nginx/default-tls-crt;
+            ssl_certificate_key  /etc/nginx/default-tls-key;
             root     /opt/nginx/html;
             rewrite_by_lua_file /etc/nginx/conf.lua;
             #charset koi8-r;
@@ -271,6 +273,8 @@ data:
     cd `dirname $0`
     cp `dirname $0`/nginx.conf /etc/nginx/nginx.conf
     cp `dirname $0`/conf.lua /etc/nginx/conf.lua
+    cp `dirname $0`/default-tls-crt /etc/nginx/default-tls-crt
+    cp `dirname $0`/default-tls-key /etc/nginx/default-tls-key
     nameserver=$(grep -i nameserver /etc/resolv.conf | awk '{split($0,line," "); print line[2]}')
     sed -i -e "s|_NAMESERVER_|${nameserver}|g" /etc/nginx/nginx.conf
 
@@ -352,6 +356,10 @@ spec:
                 items:
                   - key: ca.crt
                     path: default-ca-bundle
+                  - key: tls.crt
+                    path: default-tls-crt
+                  - key: tls.key
+                    path: default-tls-key
             - secret:
                 name: verrazzano-cluster-registration
                 optional: true
