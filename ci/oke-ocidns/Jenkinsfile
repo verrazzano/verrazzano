@@ -14,7 +14,7 @@ def testEnvironments = env.JOB_NAME.contains('oci-dns-acceptance')
                        : env.JOB_NAME.contains('magic-dns')
                        ? ["magicdns_oke", "ocidns_oke", "kind"]
                        : ["kind", "magicdns_oke", "ocidns_oke"]
-
+def acmeEnvironments = [ "staging", "production" ]
 def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : "VM.Standard2.8"
 def availableRegions = [ "us-ashburn-1", "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
                           "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
@@ -55,6 +55,8 @@ pipeline {
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
                         trim: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
+                choices: acmeEnvironments)
     }
 
     environment {
@@ -253,7 +255,7 @@ pipeline {
                         echo "Installing yq"
                         GO111MODULE=on go get github.com/mikefarah/yq/v4
                         export PATH=${HOME}/go/bin:${PATH}
-                        ${WORKSPACE}/tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $INSTALL_CONFIG_FILE_OCIDNS
+                        ${WORKSPACE}/tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $INSTALL_CONFIG_FILE_OCIDNS $ACME_ENVIRONMENT
                     """
                 }
             }
