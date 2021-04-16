@@ -4,12 +4,15 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/spf13/cobra"
 	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var targetNamespace string
@@ -54,6 +57,8 @@ func createHelidonApplication(args []string) error {
 	//}
 
 	// create the Helidon workload resource
+
+
 	app := v1alpha12.VerrazzanoHelidonWorkload{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -85,9 +90,28 @@ func createHelidonApplication(args []string) error {
 		},
 	}
 
-	fmt.Printf("app: %+v\n", app)
-
 	// create the OAM component file
+	raw, err := json.Marshal(app)
+	if err != nil {
+		return err
+	}
+
+	comp := oamv1.Component{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Namespace: targetNamespace,
+		},
+		Spec:       oamv1.ComponentSpec{
+			Workload: runtime.RawExtension{
+				Raw: raw,
+			},
+		},
+	}
+
+	fmt.Printf("comp: %+v\n", comp)
+	var v v1alpha12.VerrazzanoHelidonWorkload
+	json.Unmarshal(comp.Spec.Workload.Raw, &v)
+	fmt.Printf("raw part: %+v\n", &v)
 
 	return nil
 }
