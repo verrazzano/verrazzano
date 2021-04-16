@@ -78,11 +78,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// Sync the network policies
-	//err := r.syncNetworkPolices(ctx, vp.N)
-	//if err != nil {
-	//	opResult = controllerutil.OperationResultNone
-	//}
-
+	err = r.syncNetworkPolices(ctx, &vp, logger)
+	if err != nil {
+		opResult = controllerutil.OperationResultNone
+	}
 
 	// Update the cluster status
 	_, err = r.updateStatus(ctx, &vp, opResult, err)
@@ -224,18 +223,29 @@ func newRoleBinding(namespace string, roleName string, subjects []rbacv1.Subject
 }
 
 // syncNetworkPolices syncs the NetworkPolicies specified in the project
-func (r *Reconciler) syncNetworkPolices(ctx context.Context, project clustersv1alpha1.VerrazzanoProject, policies []netv1.NetworkPolicy, logger logr.Logger) error {
+func (r *Reconciler) syncNetworkPolices(ctx context.Context, project *clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
 	// Build the set of project namespaces for validation
 	nsSet := make(map[string]bool)
 	for _, ns := range project.Spec.Template.Namespaces {
 		nsSet[ns.Metadata.Name] = true
 	}
-	
+
 	// Create or update policies that are in the project spec
 	desiredPolicySet := make(map[string]bool)
-	for _, policy := range policies {
-		if ok, _ := nsSet[policy.Namespace]; ok != true {
-			logger.Error(fmt.Errorf("Namespace %s used in NetworkPolicy %s does not exist in project %s"), policy.Namespace, policy.Name, project.Name)
+	for _, policyTemplate := range project.Spec.Template.NetworkPolicies {
+		policy := netv1.NetworkPolicy{
+			TypeMeta:   metav1.TypeMeta{
+				Kind:       "NetworkPolicy",
+				APIVersion: "networking.k8s.io/v1",
+			},
+		}
+		policyTemplate.Metadata.DeepCopyInto(&policy.ObjectMeta)
+		policyTemplate.Spec.DeepCopyInto(&policy.Spec)
+
+		if ok, _ := nsSet[policyTemplate.Metadata.Namespace]; ok != true {
+			logger.Error(fmt.Errorf("Namespace %s used in NetworkPolicy %s does not exist in project %s"),
+				policyTemplate.Metadata.Namespace, policyTemplate.Metadata.Name, project.Name)
+			continue
 		}
 		desiredPolicySet[policy.Namespace + policy.Name] = true
 		err := r.createOrUpdateNetworkPolicy(ctx, &policy)
@@ -251,8 +261,8 @@ func (r *Reconciler) syncNetworkPolices(ctx context.Context, project clustersv1a
 // createOrUpdateNetworkPolicy creates or updates the network polices in the project
 func (r *Reconciler) createOrUpdateNetworkPolicy(ctx context.Context, desiredPolicy *netv1.NetworkPolicy) error {
 	var policy netv1.NetworkPolicy
-	policy.Namespace = policy.Namespace
-	policy.Name = policy.Name
+	policy.Namespace = desiredPolicy.Namespace
+	policy.Name = desiredPolicy.Name
 
 	// Get policy and handle case where it doesn't exist
 	if err := r.Get(ctx, types.NamespacedName{Namespace: policy.Namespace, Name: policy.Name}, &policy); err != nil {
@@ -266,7 +276,7 @@ func (r *Reconciler) createOrUpdateNetworkPolicy(ctx context.Context, desiredPol
 }
 
 // deleteNetworkPolicies deletes policies that exist in the project namespaces, but are not defined in the project spec
-func (r *Reconciler) deleteNetworkPolicies(ctx context.Context,  project clustersv1alpha1.VerrazzanoProject, desiredPolicySet map[string]bool, logger logr.Logger) error {
+func (r *Reconciler) deleteNetworkPolicies(ctx context.Context,  project *clustersv1alpha1.VerrazzanoProject, desiredPolicySet map[string]bool, logger logr.Logger) error {
 	for _, ns := range project.Spec.Template.Namespaces {
 		policies := netv1.NetworkPolicyList{}
 		if err := r.List(ctx, &policies, client.InNamespace(ns.Metadata.Name)); err != nil {
@@ -285,3 +295,4 @@ func (r *Reconciler) deleteNetworkPolicies(ctx context.Context,  project cluster
 	}
 	return nil
 }
+

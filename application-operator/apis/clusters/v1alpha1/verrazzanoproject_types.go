@@ -18,10 +18,12 @@ type NamespaceTemplate struct {
 }
 
 // NetworkPolicyTemplate has the metadata and spec of the underlying NetworkPolicy
-type NetworkPolicyTempate struct {
+type NetworkPolicyTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 	Metadata metav1.ObjectMeta    `json:"metadata"`
-	Spec     netv1.NetworkPolicy `json:"spec,omitempty"`
+
+	// NetworkPolicySpec specifies the NetworkPolicy for a specific namespace / pod combination.
+	Spec     netv1.NetworkPolicySpec `json:"spec,omitempty"`
 }
 
 // SecuritySpec defines the security configuration for a project
@@ -44,7 +46,7 @@ type ProjectTemplate struct {
 
 	// Network policies applied to namespaces in the project
 	// +optional
-	NetworkPolicies []NetworkPolicyTempate `json:"networkpolicies,omitempty"`
+	NetworkPolicies []NetworkPolicyTemplate `json:"networkPolicies,omitempty"`
 }
 
 // VerrazzanoProjectSpec defines the desired state of VerrazzanoProject

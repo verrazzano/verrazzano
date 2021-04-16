@@ -139,7 +139,6 @@ spec:
       ports:
         - port: 8775
           protocol: TCP
-    - from:
-      ports:
+    - ports:
         - port: 9090
           protocol: TCP
