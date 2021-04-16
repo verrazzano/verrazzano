@@ -75,15 +75,10 @@ func executeClusterDump() error {
 	if command == "" {
 		return nil
 	}
-	cmd := exec.Cmd{
-		Path: command,
-		Args: []string{command, "-d", directory}, //"-r", report},
-		Env: []string{
-			fmt.Sprintf("PATH=%s", os.Getenv("PATH")),
-			fmt.Sprintf("KUBECONFIG=%s", kubeconfig)},
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
-	}
+	cmd := exec.Command(command, "-d", directory)
+	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
 		return err
 	}
