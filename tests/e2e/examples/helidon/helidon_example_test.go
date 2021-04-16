@@ -69,16 +69,18 @@ var _ = ginkgo.AfterSuite(func() {
 func executeClusterDump() error {
 	kubeconfig := os.Getenv("DUMP_KUBECONFIG")
 	directory := os.Getenv("DUMP_DIRECTORY")
-	report := fmt.Sprintf("%s/analysis.report", directory)
+	//report := fmt.Sprintf("%s/analysis.report", directory)
 	command := os.Getenv("DUMP_COMMAND")
-	fmt.Printf("Dump command: KUBECONFIG=%s; %s -d %s", kubeconfig, command, directory)
+	fmt.Printf("Dump command: KUBECONFIG=%s; %s -d %s\n", kubeconfig, command, directory)
 	if command == "" {
 		return nil
 	}
 	cmd := exec.Cmd{
 		Path: command,
-		Args: []string{"-d", directory, "-r", report},
-		Env: []string{fmt.Sprintf("KUBECONFIG=%s", kubeconfig)},
+		Args: []string{command, "-d", directory}, //"-r", report},
+		Env: []string{
+			fmt.Sprintf("PATH=%s", os.Getenv("PATH")),
+			fmt.Sprintf("KUBECONFIG=%s", kubeconfig)},
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 	}
