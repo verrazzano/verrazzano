@@ -43,7 +43,6 @@ rules:
       - deployments
       - statefulsets
       - replicasets
-      - daemonsets
     verbs:
       - create
       - delete
