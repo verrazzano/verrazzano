@@ -47,7 +47,7 @@ spec:
               app: fluentd
       ports:
         - protocol: TCP
-          port: 9200
+          port: 8775
     # Allow ingress from Logging Journalbeat and Filebeat
     - from:
         - namespaceSelector:
@@ -246,7 +246,7 @@ spec:
               app: fluentd
       ports:
         - protocol: TCP
-          port: 9200
+          port: 8775
     # Allow ingress from Logging Journalbeat and Filebeat
     - from:
         - namespaceSelector:
