@@ -9,6 +9,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
+	"github.com/avast/retry-go"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -24,6 +25,8 @@ var shortPollingInterval = 10 * time.Second
 var shortWaitTimeout = 5 * time.Minute
 var longWaitTimeout = 10 * time.Minute
 var longPollingInterval = 20 * time.Second
+var retryDelay = retry.Delay(shortPollingInterval)
+var retryAttempts = retry.Attempts(3)
 
 var _ = ginkgo.BeforeSuite(func() {
 	deploySpringBootApplication()
@@ -44,12 +47,15 @@ func deploySpringBootApplication() {
 		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
 	}
 
-	pkg.Log(pkg.Info, "Create logging scope resource")
+	pkg.Log(pkg.Info, "Create component resource")
 	if err := pkg.CreateOrUpdateResourceFromFile("examples/springboot-app/springboot-comp.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create Spring Boot component resources: %v", err))
 	}
-	pkg.Log(pkg.Info, "Create component resources")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/springboot-app/springboot-app.yaml"); err != nil {
+	pkg.Log(pkg.Info, "Create application resource")
+	err := retry.Do(
+		func() error { return pkg.CreateOrUpdateResourceFromFile("examples/springboot-app/springboot-app.yaml") },
+		retryAttempts, retryDelay)
+	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create Spring Boot application resources: %v", err))
 	}
 }
