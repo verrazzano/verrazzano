@@ -4,9 +4,12 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	clustersclient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned/typed/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -80,7 +83,13 @@ placement: %v
 
 	fmt.Printf("project: %#v", project)
 
+	config := pkg.GetKubeConfig()
+	clientset, err := clustersclient.NewForConfig(config)
+	if err != nil {
+		fmt.Print("could not get the clientset")
+	}
 
-	
+	clientset.VerrazzanoProjects("verrazzano-mc").Create(context.Background(), &project, metav1.CreateOptions{})
+	fmt.Println("created the project")
 	return nil
 }

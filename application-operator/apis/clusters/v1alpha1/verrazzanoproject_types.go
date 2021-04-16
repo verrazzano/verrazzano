@@ -46,6 +46,7 @@ type VerrazzanoProjectSpec struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=vp;vps
 // +kubebuilder:subresource:status
+// +genclient
 
 // VerrazzanoProject is the Schema for the verrazzanoprojects API
 type VerrazzanoProject struct {
@@ -57,6 +58,7 @@ type VerrazzanoProject struct {
 }
 
 // +kubebuilder:object:root=true
+// +genclient
 
 // VerrazzanoProjectList contains a list of VerrazzanoProject
 type VerrazzanoProjectList struct {
