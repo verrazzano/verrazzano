@@ -441,10 +441,13 @@ pipeline {
                         }
                         stage('examples helidon') {
                             steps {
+                                sh """
                                 export DUMP_KUBECONFIG="${KUBECONFIG}"
-                                export DUMP_DIRECTORY="${WORKSPACE}/examples-helidon/cluster-dump"
+                                export DUMP_DIRECTORY="${WORKSPACE}/examples-helidon-cluster-dump"
                                 export DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
-                                runGinkgo('examples/helidon')
+                                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                                ginkgo -v -keepGoing --noColor examples/helidon/...
+                                """
                             }
                         }
                         stage('examples helidon-config') {
