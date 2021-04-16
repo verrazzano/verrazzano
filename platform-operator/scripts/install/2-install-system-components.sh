@@ -255,21 +255,30 @@ function install_rancher()
     log "Ensure default Rancher admin user is present"
     STDERROR_FILE="${TMP_DIR}/rancher_ensureadminuser.err"
     kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- ensure-default-admin 2>$STDERROR_FILE
-    RANCHER_ADMIN_USERNAME=$(kubectl get users -l authz.management.cattle.io/bootstrapping=admin-user -o jsonpath={'.items[].username'})
-    if [ -z "${RANCHER_ADMIN_USERNAME}" ]; then
-      echo "Could not detect default Rancher admin user"
-      local std_error_file=$(cat $STDERROR_FILE)
-      log "${std_error_file}"
-      rm "$STDERROR_FILE"
-      return 1
-    else
-      echo "Rancher admin user: ${RANCHER_ADMIN_USERNAME}"
-    fi
+    local max_retries=5
+    local retries=0
+    while true ; do
+      RANCHER_ADMIN_USERNAME=$(kubectl get users -l authz.management.cattle.io/bootstrapping=admin-user -o jsonpath={'.items[].username'} || true)
+      if [ -z "${RANCHER_ADMIN_USERNAME}" ] ; then
+        sleep 10
+      else
+        echo "Rancher admin user: ${RANCHER_ADMIN_USERNAME}"
+        break
+      fi
+      ((retries+=1))
+      if [ "$retries" -ge "$max_retries" ] ; then
+        echo "Could not detect default Rancher admin user"
+        local std_error_file=$(cat $STDERROR_FILE)
+        log "${std_error_file}"
+        rm "$STDERROR_FILE"
+        return 1
+      fi
+    done
 
     log "Reset Rancher admin password and create secrets"
     STDERROR_FILE="${TMP_DIR}/rancher_resetpwd.err"
-    local max_retries=5
-    local retries=0
+    max_retries=5
+    retries=0
     while true ; do
       RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- reset-password 2>$STDERROR_FILE)
       ADMIN_PW=$(echo -n $RANCHER_DATA | awk 'END{ print $NF }')
