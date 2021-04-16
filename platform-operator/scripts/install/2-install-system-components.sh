@@ -213,7 +213,7 @@ function install_external_dns()
 function ensure_rancher_admin_user() {
   log "Ensure default Rancher admin user is present"
   local STDERROR_FILE="${TMP_DIR}/rancher_ensureadminuser.err"
-  kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- ensure-default-admin 2>$STDERROR_FILE
+  kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- ensure-default-admin > /dev/null 2>$STDERROR_FILE
   local max_retries=5
   local retries=0
   while true ; do
