@@ -8,7 +8,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	name string
+)
+
 func init() {
+	clusterRegisterCmd.Flags().StringVarP(&username, "name", "n", "", "Cluster name")
 	clustersCmd.AddCommand(clusterRegisterCmd)
 }
 
@@ -16,7 +21,6 @@ var clusterRegisterCmd = &cobra.Command{
 	Use: "register",
 	Short: "Register a cluster",
 	Long: "Register a cluster",
-	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := register(args); err != nil {
 			return err
@@ -26,6 +30,7 @@ var clusterRegisterCmd = &cobra.Command{
 }
 
 func register(args []string) error {
-	fmt.Println("list clusters...")
+	fmt.Println("register cluster...")
+	fmt.Printf("  name: %s\n", name)
 	return nil
 }

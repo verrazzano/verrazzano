@@ -4,20 +4,15 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/spf13/cobra"
-	"os"
 )
 
-var rootCmd = &cobra.Command{
-	Use: "vz",
-	Short: "Verrazzano CLI",
-	Long: "Verrazzano CLI",
+func init() {
+	rootCmd.AddCommand(projectsCmd)
 }
 
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+var projectsCmd = &cobra.Command{
+	Use: "projects",
+	Short: "Information about projects",
+	Long: "Information about projects",
 }

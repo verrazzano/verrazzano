@@ -17,6 +17,7 @@ application-manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./apis/oam/..." output:crd:artifacts:config=$(CRD_PATH)
 	# Add copyright headers to the kubebuilder generated CRDs
 	./hack/add-crd-header.sh
+	./hack/update-codegen.sh "clusters:v1alpha1" "clusters" "boilerplate.go.txt"
 	# Add copyright headers to the kubebuilder generated manifests
 	./hack/add-yml-header.sh PROJECT
 	./hack/add-yml-header.sh config/rbac/role.yaml

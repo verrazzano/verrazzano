@@ -4,7 +4,6 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/spf13/cobra"
 )
 
@@ -16,16 +15,4 @@ var clustersCmd = &cobra.Command{
 	Use: "clusters",
 	Short: "Information about clusters",
 	Long: "Information about clusters",
-	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := clusters(args); err != nil {
-			return err
-		}
-		return nil
-	},
-}
-
-func clusters(args []string) error {
-	fmt.Println("clusters...")
-	return nil
 }

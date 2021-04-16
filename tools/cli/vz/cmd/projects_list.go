@@ -9,22 +9,22 @@ import (
 )
 
 func init() {
-	clustersCmd.AddCommand(clusterListCmd)
+	projectsCmd.AddCommand(projectListCmd)
 }
 
-var clusterListCmd = &cobra.Command{
+var projectListCmd = &cobra.Command{
 	Use: "list",
-	Short: "List the clusters",
-	Long: "List the clusters",
+	Short: "List projects",
+	Long: "List projects",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := listClusters(args); err != nil {
+		if err := listProjects(args); err != nil {
 			return err
 		}
 		return nil
 	},
 }
 
-func listClusters(args []string) error {
-	fmt.Println("list clusters...")
+func listProjects(args []string) error {
+	fmt.Println("list projects...")
 	return nil
 }
