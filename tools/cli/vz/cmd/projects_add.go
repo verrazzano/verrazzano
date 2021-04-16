@@ -36,18 +36,15 @@ var projectAddCmd = &cobra.Command{
 }
 
 func addProject(args []string) error {
-	fmt.Println("add a project...")
 	projectName := args[0]
 
+	// if no namespace was provided, default to a single namespace
+	// with the same name as the project itself
 	if len(projectNamespaces) == 0 {
 		projectNamespaces = []string{ projectName }
 	}
 
-	fmt.Printf(`project name: %s
-namespaces: %v
-placement: %v
-`, args[0], projectNamespaces, projectPlacement)
-
+	// prepare the project resource
 	project := v1alpha1.VerrazzanoProject{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: projectName,
@@ -81,15 +78,18 @@ placement: %v
 		},
 	}
 
-	fmt.Printf("project: %#v", project)
-
+	// connect to the cluster
 	config := pkg.GetKubeConfig()
 	clientset, err := clustersclient.NewForConfig(config)
 	if err != nil {
 		fmt.Print("could not get the clientset")
 	}
 
-	clientset.VerrazzanoProjects("verrazzano-mc").Create(context.Background(), &project, metav1.CreateOptions{})
-	fmt.Println("created the project")
+	// create the project resource in the cluster
+	_, err = clientset.VerrazzanoProjects("verrazzano-mc").Create(context.Background(), &project, metav1.CreateOptions{})
+	if err != nil {
+		return err
+	}
+	fmt.Println("project created")
 	return nil
 }

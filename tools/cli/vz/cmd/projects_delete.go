@@ -30,17 +30,20 @@ var projectDeleteCmd = &cobra.Command{
 }
 
 func deleteProject(args []string) error {
-	fmt.Println("delete a project...")
 	projectName := args[0]
 
-	fmt.Printf("project name: %s\n",args[0])
+	// connect to the cluster
 	config := pkg.GetKubeConfig()
 	clientset, err := clustersclient.NewForConfig(config)
 	if err != nil {
 		fmt.Print("could not get the clientset")
 	}
 
-	clientset.VerrazzanoProjects("verrazzano-mc").Delete(context.Background(), projectName, metav1.DeleteOptions{})
-	fmt.Println("deleted the project")
+	// delete the project
+	err = clientset.VerrazzanoProjects("verrazzano-mc").Delete(context.Background(), projectName, metav1.DeleteOptions{})
+	if err != nil {
+		return err
+	}
+	fmt.Println("project deleted")
 	return nil
 }
