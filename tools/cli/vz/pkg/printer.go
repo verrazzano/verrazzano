@@ -7,6 +7,9 @@ import (
 	"errors"
 	"fmt"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/duration"
+	"strings"
+	"time"
 )
 
 // PrintTable will print the data in a well-formatted table with the headings at top
@@ -51,7 +54,7 @@ func formatOutput(headings []string, data[][]string) (string, error) {
 
 	// now format the string according to the calculated lengths
 	for i, heading := range headings {
-		output += fmt.Sprintf("%-*s", lengths[i], heading)
+		output += fmt.Sprintf("%-*s", lengths[i], strings.ToUpper(heading))
 	}
 	output += "\n"
 	for _, row := range data {
@@ -75,6 +78,6 @@ func FormatStringSlice(in []string) string {
 
 // Age takes a Time and returns the length of time from then to now
 // in a compact format like 2d3h
-func Age(time v1.Time) string {
-	return "2d"
+func Age(createTime v1.Time) string {
+	return duration.HumanDuration(time.Since(createTime.Time))
 }
