@@ -14,7 +14,6 @@ import (
 type ClustersV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	VerrazzanoProjectsGetter
-	VerrazzanoProjectListsGetter
 }
 
 // ClustersV1alpha1Client is used to interact with features provided by the clusters group.
@@ -24,10 +23,6 @@ type ClustersV1alpha1Client struct {
 
 func (c *ClustersV1alpha1Client) VerrazzanoProjects(namespace string) VerrazzanoProjectInterface {
 	return newVerrazzanoProjects(c, namespace)
-}
-
-func (c *ClustersV1alpha1Client) VerrazzanoProjectLists(namespace string) VerrazzanoProjectListInterface {
-	return newVerrazzanoProjectLists(c, namespace)
 }
 
 // NewForConfig creates a new ClustersV1alpha1Client for the given config.

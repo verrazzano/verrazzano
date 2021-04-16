@@ -6,5 +6,3 @@
 package v1alpha1
 
 type VerrazzanoProjectExpansion interface{}
-
-type VerrazzanoProjectListExpansion interface{}

@@ -19,10 +19,6 @@ func (c *FakeClustersV1alpha1) VerrazzanoProjects(namespace string) v1alpha1.Ver
 	return &FakeVerrazzanoProjects{c, namespace}
 }
 
-func (c *FakeClustersV1alpha1) VerrazzanoProjectLists(namespace string) v1alpha1.VerrazzanoProjectListInterface {
-	return &FakeVerrazzanoProjectLists{c, namespace}
-}
-
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeClustersV1alpha1) RESTClient() rest.Interface {

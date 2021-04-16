@@ -58,7 +58,6 @@ type VerrazzanoProject struct {
 }
 
 // +kubebuilder:object:root=true
-// +genclient
 
 // VerrazzanoProjectList contains a list of VerrazzanoProject
 type VerrazzanoProjectList struct {
