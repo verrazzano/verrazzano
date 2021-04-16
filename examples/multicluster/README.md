@@ -82,13 +82,13 @@ Complete the following sections prior to running the multicluster examples.
 
 Unregistering a managed cluster is largely the reverse of the registering steps; at a high level the steps are:
 
-* (Recommended) Move or remove any application placements to the managed cluster (see the [hello-helidon example](./hello-helidon/README.md#Undeploy the Hello World Helidon application)). 
+* (Recommended) Move or remove any application placements to the managed cluster (see the [hello-helidon example](./hello-helidon/README.md#undeploy-the-hello-world-helidon-application)).
 * Delete the cluster registration secrets from the managed cluster.
 * Delete the VerrazzanoManagedCluster custom resource on the admin cluster.
-* (Optional) Delete the managed cluster Prometheus secret on the admin cluster, if it is no longer needed.
-* (Optional) Delete the admin cluster ConfigMap, if it is no longer needed.
+* (Optional) If it is no longer needed, delete the managed cluster Prometheus secret on the admin cluster.
+* (Optional) If it is no longer needed, delete the admin cluster ConfigMap.
 
-Using the names and resources from the examples in the previous section, here are the steps for 
+Using the names and resources from the examples in the previous section, here are the steps for
 unregistering the managed cluster `managed1`:
 
 1. On the managed cluster, delete the cluster registration secrets.

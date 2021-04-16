@@ -67,10 +67,9 @@ Follow these steps to test the endpoints:
    11.22.33.44
    ```   
 
-1. Access the Sock Shop example application.
+1. Access the Sock Shop example application. There are several ways to access it:
 
-   There are several ways to access it:
-   * **Using the command line**:
+   * **Using the command line**
 
      ```
      # Get catalogue
@@ -88,7 +87,7 @@ Follow these steps to test the endpoints:
      ```
      If you are using `xip.io`, then you do not need to include `--resolve`.
 
-   * **Local testing with a browser**:
+   * **Local testing with a browser**
 
      Temporarily, modify the `/etc/hosts` file (on Mac or Linux)
      or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10),
@@ -101,7 +100,7 @@ Follow these steps to test the endpoints:
 
      If you are using `xip.io`, then you can access the application in a browser using the `HOST` variable (for example, `https://${HOST}/catalogue`).  If you are going through a proxy, you may need to add `*.xip.io` to the `NO_PROXY` list.
 
-   * **Using your own DNS name**:
+   * **Using your own DNS name**
 
      * Point your own DNS name to the ingress gateway's `EXTERNAL-IP` address.
      * In this case, you would need to edit the `sock-shop-app.yaml` file

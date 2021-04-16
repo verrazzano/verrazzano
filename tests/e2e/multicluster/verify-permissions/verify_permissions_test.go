@@ -57,6 +57,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				return findMultiClusterConfigMap(testNamespace, "mymcconfigmap")
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find mc configmap")
 
+			eventuallyIterations := 0
 			gomega.Eventually(func() bool {
 				// Verify we have the expected status update
 				configMap := clustersv1alpha1.MultiClusterConfigMap{}
@@ -65,6 +66,13 @@ var _ = ginkgo.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				if len(configMap.Status.Clusters) > 0 {
 					pkg.Log(pkg.Debug, string("cluster reported status: "+configMap.Status.Clusters[0].State))
 					pkg.Log(pkg.Debug, "cluster reported name: "+configMap.Status.Clusters[0].Name)
+				}
+				eventuallyIterations++
+				if eventuallyIterations >= 30 && eventuallyIterations%10 == 0 {
+					pkg.Log(pkg.Info, "Dumping Status of config map mymcconfigmap every 10 iterations of Eventually block after we hit 30 iterations")
+					pkg.Log(pkg.Info, fmt.Sprintf("Conditions: %v", configMap.Status.Conditions))
+					pkg.Log(pkg.Info, fmt.Sprintf("Clusters: %v", configMap.Status.Clusters))
+					pkg.Log(pkg.Info, fmt.Sprintf("State: %v", configMap.Status.State))
 				}
 				return err == nil && configMap.Status.State == clustersv1alpha1.Succeeded &&
 					isStatusAsExpected(configMap.Status, clustersv1alpha1.DeployComplete, "created", clustersv1alpha1.Succeeded, managedClusterName)
@@ -614,7 +622,8 @@ func getClustersClient() (client.Client, error) {
 
 // isStatusAsExpected checks whehter the provided inputs align with the provided status
 func isStatusAsExpected(status clustersv1alpha1.MultiClusterResourceStatus,
-	expectedConditionType clustersv1alpha1.ConditionType, conditionMsgContains string,
+	expectedConditionType clustersv1alpha1.ConditionType,
+	conditionMsgContains string,
 	expectedClusterState clustersv1alpha1.StateType,
 	expectedClusterName string) bool {
 	matchingConditionCount := 0
