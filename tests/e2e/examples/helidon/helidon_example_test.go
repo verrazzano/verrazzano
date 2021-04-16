@@ -118,6 +118,12 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 				func() {
 					gomega.Eventually(appConfigMetricsExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 				},
+				func() {
+					gomega.Eventually(nodeExporterProcsRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+				},
+				func() {
+					gomega.Eventually(nodeExporterDiskIoNow, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+				},
 			)
 		})
 	})
@@ -166,4 +172,12 @@ func appComponentMetricsExists() bool {
 
 func appConfigMetricsExists() bool {
 	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "hello-helidon-component")
+}
+
+func nodeExporterProcsRunning() bool {
+	return pkg.MetricsExist("node_procs_running", "job", "node-exporter")
+}
+
+func nodeExporterDiskIoNow() bool {
+	return pkg.MetricsExist("node_disk_io_now", "job", "node-exporter")
 }
