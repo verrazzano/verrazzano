@@ -1,0 +1,137 @@
+// Copyright (c) 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+package k8s
+
+import (
+	"context"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+)
+
+const (
+	apiServerIP   = "1.2.3.4"
+	apiServerPort = 6443
+)
+
+// TestCreateNetworkPolicies tests creating network policies for the operator.
+// GIVEN a call to CreateOrUpdateNetworkPolicies
+// WHEN the network policies do not exist
+// THEN the network policies are created
+func TestCreateNetworkPolicies(t *testing.T) {
+	asserts := assert.New(t)
+	mockClient := ctrlfake.NewFakeClientWithScheme(k8scheme.Scheme)
+
+	// mock the clientset with a kubernetes API server endpoint
+	mockClientset := k8sfake.NewSimpleClientset(makeKubeAPIServerEndpoint())
+
+	// create the network policy
+	opResult, err := CreateOrUpdateNetworkPolicies(mockClientset, mockClient)
+	asserts.NoError(err)
+	asserts.Equal(controllerutil.OperationResultCreated, opResult)
+
+	// fetch the policy and make sure the spec matches what we expect
+	netPolicy := &netv1.NetworkPolicy{}
+	err = mockClient.Get(context.TODO(), client.ObjectKey{Namespace: installNamespace, Name: networkPolicyPodName}, netPolicy)
+	asserts.NoError(err)
+
+	expectedNetPolicy := makeNetworkPolicy(apiServerIP, apiServerPort)
+	asserts.Equal(expectedNetPolicy.Spec, netPolicy.Spec)
+}
+
+// TestUpdateNetworkPolicies tests updating network policies for the operator.
+// GIVEN a call to CreateOrUpdateNetworkPolicies
+// WHEN the network policies already exist
+// THEN the network policies are updated
+func TestUpdateNetworkPolicies(t *testing.T) {
+	asserts := assert.New(t)
+	mockClient := ctrlfake.NewFakeClientWithScheme(k8scheme.Scheme)
+
+	// mock the clientset with a kubernetes API server endpoint
+	mockClientset := k8sfake.NewSimpleClientset(makeKubeAPIServerEndpoint())
+
+	// make an existing network policy and change the API server IP
+	existingNetPolicy := makeNetworkPolicy("1.1.1.1", apiServerPort)
+	mockClient.Create(context.TODO(), existingNetPolicy)
+
+	// this call should update the network policy
+	opResult, err := CreateOrUpdateNetworkPolicies(mockClientset, mockClient)
+	asserts.NoError(err)
+	asserts.Equal(controllerutil.OperationResultUpdated, opResult)
+
+	// fetch the policy and make sure the spec matches what we expect
+	netPolicy := &netv1.NetworkPolicy{}
+	err = mockClient.Get(context.TODO(), client.ObjectKey{Namespace: installNamespace, Name: networkPolicyPodName}, netPolicy)
+	asserts.NoError(err)
+
+	expectedNetPolicy := makeNetworkPolicy(apiServerIP, apiServerPort)
+	asserts.Equal(expectedNetPolicy.Spec, netPolicy.Spec)
+}
+
+// TestNetworkPoliciesFailures tests failure cases attempting to create or update
+// the operator network policies.
+func TestNetworkPoliciesFailures(t *testing.T) {
+	asserts := assert.New(t)
+	mockClient := ctrlfake.NewFakeClientWithScheme(k8scheme.Scheme)
+
+	// GIVEN a call to CreateOrUpdateNetworkPolicies
+	// WHEN there is no Kubernetes API server endpoint found
+	// THEN we expect an error
+
+	// mock the clientset, no kuberetes API server endpoints exist
+	mockClientset := k8sfake.NewSimpleClientset()
+
+	// this call should fail
+	_, err := CreateOrUpdateNetworkPolicies(mockClientset, mockClient)
+	asserts.Error(err)
+
+	// GIVEN a call to CreateOrUpdateNetworkPolicies
+	// WHEN there is a Kubernetes API server endpoint
+	// AND it does not contain any IP addresses or ports
+	// THEN we expect an error
+
+	emptyEndpoints := &corev1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      apiServerEndpointName,
+			Namespace: corev1.NamespaceDefault,
+		},
+	}
+	mockClientset = k8sfake.NewSimpleClientset(emptyEndpoints)
+
+	// this call should fail
+	_, err = CreateOrUpdateNetworkPolicies(mockClientset, mockClient)
+	asserts.Error(err)
+}
+
+// makeKubeAPIServerEndpoint returns a populated corev1.Endpoints struct with the kubernetes API server IP and port
+func makeKubeAPIServerEndpoint() *corev1.Endpoints {
+	return &corev1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      apiServerEndpointName,
+			Namespace: corev1.NamespaceDefault,
+		},
+		Subsets: []corev1.EndpointSubset{
+			{
+				Addresses: []corev1.EndpointAddress{
+					{
+						IP: apiServerIP,
+					},
+				},
+				Ports: []corev1.EndpointPort{
+					{
+						Port: apiServerPort,
+					},
+				},
+			},
+		},
+	}
+}
