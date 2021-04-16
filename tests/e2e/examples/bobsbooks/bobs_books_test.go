@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/avast/retry-go"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -20,8 +21,28 @@ const (
 	longPollingInterval  = 20 * time.Second
 )
 
+var (
+	retryDelay    = retry.Delay(shortPollingInterval)
+	retryAttempts = retry.Attempts(3)
+)
+
 var _ = ginkgo.BeforeSuite(func() {
 	deployBobsBooksExample()
+
+	gomega.Eventually(func() bool {
+		expectedPods := []string{
+			"bobbys-front-end-adminserver",
+			"bobs-bookstore-adminserver",
+			"bobbys-coherence-0",
+			"roberts-coherence-0",
+			"roberts-coherence-1",
+			"bobbys-helidon-stock-application",
+			"robert-helidon",
+			"mysql",
+		}
+		return pkg.PodsRunning("bobs-books", expectedPods)
+	}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Bobs Books Application Failed to Deploy")
+
 })
 
 var _ = ginkgo.AfterSuite(func() {
@@ -78,7 +99,10 @@ func deployBobsBooksExample() {
 		ginkgo.Fail(fmt.Sprintf("Failed to create Bobs Books component resources: %v", err))
 	}
 	pkg.Log(pkg.Info, "Create application resources")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-app.yaml"); err != nil {
+	err := retry.Do(
+		func() error { return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-app.yaml") },
+		retryAttempts, retryDelay)
+	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create Bobs Books application resource: %v", err))
 	}
 }
@@ -104,26 +128,6 @@ func undeployBobsBooksExample() {
 }
 
 var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
-	ginkgo.Context("Deployment.", func() {
-		// GIVEN the Bobs Books app is deployed
-		// WHEN the running pods are checked
-		// THEN the adminserver and managed server pods should be found running
-		ginkgo.It("Verify expected pods are running", func() {
-			gomega.Eventually(func() bool {
-				expectedPods := []string{
-					"bobbys-front-end-adminserver",
-					"bobs-bookstore-adminserver",
-					"bobbys-coherence-0",
-					"roberts-coherence-0",
-					"roberts-coherence-1",
-					"bobbys-helidon-stock-application",
-					"robert-helidon",
-					"mysql",
-				}
-				return pkg.PodsRunning("bobs-books", expectedPods)
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
-		})
-	})
 	var host = ""
 	// Get the host from the Istio gateway resource.
 	// GIVEN the Istio gateway for the bobs-books namespace

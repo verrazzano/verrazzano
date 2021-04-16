@@ -9,6 +9,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
+	"github.com/avast/retry-go"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -24,6 +25,8 @@ var shortPollingInterval = 10 * time.Second
 var shortWaitTimeout = 5 * time.Minute
 var longWaitTimeout = 10 * time.Minute
 var longPollingInterval = 20 * time.Second
+var retryDelay = retry.Delay(shortPollingInterval)
+var retryAttempts = retry.Attempts(3)
 
 var _ = ginkgo.BeforeSuite(func() {
 	deploySpringBootApplication()
@@ -44,12 +47,15 @@ func deploySpringBootApplication() {
 		ginkgo.Fail(fmt.Sprintf("Failed to create namespace: %v", err))
 	}
 
-	pkg.Log(pkg.Info, "Create logging scope resource")
+	pkg.Log(pkg.Info, "Create component resource")
 	if err := pkg.CreateOrUpdateResourceFromFile("examples/springboot-app/springboot-comp.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create Spring Boot component resources: %v", err))
 	}
-	pkg.Log(pkg.Info, "Create component resources")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/springboot-app/springboot-app.yaml"); err != nil {
+	pkg.Log(pkg.Info, "Create application resource")
+	err := retry.Do(
+		func() error { return pkg.CreateOrUpdateResourceFromFile("examples/springboot-app/springboot-app.yaml") },
+		retryAttempts, retryDelay)
+	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create Spring Boot application resources: %v", err))
 	}
 }
@@ -125,20 +131,11 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 		indexName := "springboot-springboot-appconf-springboot-component-springboot-container"
 		ginkgo.It("Verify Elasticsearch index exists", func() {
 			gomega.Eventually(func() bool {
-				return pkg.LogIndexFound("verrazzano-namespace-springboot")
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find Elasticsearch index for Spring Boot application.")
-			gomega.Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find Elasticsearch index for Spring Boot application.")
 		})
 
 		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
-			gomega.Eventually(func() bool {
-				return pkg.LogRecordFound("verrazzano-namespace-springboot", time.Now().Add(-24*time.Hour), map[string]string{
-					"kubernetes.labels.app_oam_dev\\/component": "springboot-component",
-					"kubernetes.container_name":                 "springboot-container",
-				})
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record.")
 			gomega.Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"oam.component.name": "springboot-component"})
