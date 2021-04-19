@@ -55,6 +55,7 @@ func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUp
 		}
 		s.updateDeployment("verrazzano-operator")
 		s.updateDeployment("verrazzano-monitoring-operator")
+		s.configureLogging()
 		if !s.AgentReadyToSync() {
 			// there is no admin cluster we are connected to, so nowhere to send any status updates
 			// received - discard them
@@ -247,7 +248,7 @@ func (s *Syncer) updateDeployment(name string) {
 	} else {
 		secretVersion = regSecret.ResourceVersion
 	}
-	secretVersionEnv := getEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, registrationSecretVersion)
+	secretVersionEnv := getEnvValue(&deployment.Spec.Template.Spec.Containers, registrationSecretVersion)
 
 	// CreateOrUpdate updates the deployment if cluster registration secret version changed
 	if secretVersionEnv != secretVersion {
@@ -261,13 +262,174 @@ func (s *Syncer) updateDeployment(name string) {
 	}
 }
 
-func getEnvValue(envs []corev1.EnvVar, envName string) string {
-	for _, env := range envs {
-		if env.Name == envName {
-			return env.Value
+// reconfigure Fluentd by restarting Fluentd DaemonSet if ManagedClusterName has been changed
+func (s *Syncer) configureLogging() {
+	loggingName := types.NamespacedName{Name: "fluentd", Namespace: constants.VerrazzanoSystemNamespace}
+	daemonSet := appsv1.DaemonSet{}
+	err := s.LocalClient.Get(context.TODO(), loggingName, &daemonSet)
+	if err != nil {
+		s.Log.Info(fmt.Sprintf("Failed to find the logging DaemonSet %s, %s", loggingName, err.Error()))
+		return
+	}
+	secretVersion := ""
+	regSecret := corev1.Secret{}
+	regErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}, &regSecret)
+	if regErr != nil {
+		if clusters.IgnoreNotFoundWithLog("secret", regErr, s.Log) != nil {
+			return
+		}
+	} else {
+		secretVersion = regSecret.ResourceVersion
+	}
+	secretVersionEnv := getEnvValue(&daemonSet.Spec.Template.Spec.Containers, registrationSecretVersion)
+	// CreateOrUpdate updates the deployment if cluster name or es secret version changed
+	if secretVersionEnv != secretVersion {
+		controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &daemonSet, func() error {
+			s.Log.Info(fmt.Sprintf("Update the DaemonSet %s, registration secret version from %q to %q", loggingName, secretVersionEnv, secretVersion))
+			daemonSet = *updateLoggingDaemonSet(constants.MCRegistrationSecret, secretVersion, &daemonSet)
+			return nil
+		})
+	}
+}
+
+func getEnvValue(containers *[]corev1.Container, envName string) string {
+	for _, container := range *containers {
+		for _, env := range container.Env {
+			if env.Name == envName {
+				return env.Value
+			}
 		}
 	}
 	return ""
+}
+
+func updateLoggingDaemonSet(newSecret, secretVersion string, ds *appsv1.DaemonSet) *appsv1.DaemonSet {
+	ds.Spec.Template.Spec.Volumes = updateVolumes(newSecret, secretVersion, ds.Spec.Template.Spec.Volumes)
+	for i, c := range ds.Spec.Template.Spec.Containers {
+		if c.Name == "fluentd" {
+			ds.Spec.Template.Spec.Containers[i].Env = updateEnv(newSecret, secretVersion, ds.Spec.Template.Spec.Containers[i].Env)
+			ds.Spec.Template.Spec.Containers[i].Env = updateEnvValue(ds.Spec.Template.Spec.Containers[i].Env,
+				registrationSecretVersion, secretVersion)
+		}
+	}
+	return ds
+}
+
+const (
+	defaultClusterName = "local"
+	defaultElasticURL  = "http://vmi-system-es-ingest:9200"
+	defaultSecretName  = "verrazzano"
+)
+
+func updateEnv(newSecret, secretVersion string, old []corev1.EnvVar) []corev1.EnvVar {
+	secretName := newSecret
+	if secretVersion == "" {
+		secretName = defaultSecretName
+	}
+	var new []corev1.EnvVar
+	for _, env := range old {
+		if env.Name == "CLUSTER_NAME" {
+			if secretVersion == "" {
+				new = append(new, corev1.EnvVar{
+					Name:  env.Name,
+					Value: defaultClusterName,
+				})
+			} else {
+				new = append(new, corev1.EnvVar{
+					Name: env.Name,
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: newSecret,
+							},
+							Key: constants.ClusterNameData,
+							Optional: func(opt bool) *bool {
+								return &opt
+							}(true),
+						},
+					},
+				})
+
+			}
+		} else if env.Name == "ELASTICSEARCH_URL" {
+			if secretVersion == "" {
+				new = append(new, corev1.EnvVar{
+					Name:  env.Name,
+					Value: defaultElasticURL,
+				})
+			} else {
+				new = append(new, corev1.EnvVar{
+					Name: env.Name,
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: newSecret,
+							},
+							Key: constants.ElasticsearchURLData,
+							Optional: func(opt bool) *bool {
+								return &opt
+							}(true),
+						},
+					},
+				})
+			}
+		} else if env.Name == "ELASTICSEARCH_USER" {
+			new = append(new, corev1.EnvVar{
+				Name: env.Name,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: secretName,
+						},
+						Key: constants.ElasticsearchUsernameData,
+						Optional: func(opt bool) *bool {
+							return &opt
+						}(true),
+					},
+				},
+			})
+		} else if env.Name == "ELASTICSEARCH_PASSWORD" {
+			new = append(new, corev1.EnvVar{
+				Name: env.Name,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: secretName,
+						},
+						Key: constants.ElasticsearchPasswordData,
+						Optional: func(opt bool) *bool {
+							return &opt
+						}(true),
+					},
+				},
+			})
+		} else {
+			new = append(new, env)
+		}
+	}
+	return new
+}
+
+func updateVolumes(newSecret, secretVersion string, old []corev1.Volume) []corev1.Volume {
+	secretName := newSecret
+	if secretVersion == "" {
+		secretName = defaultSecretName
+	}
+	var new []corev1.Volume
+	for _, vol := range old {
+		if vol.Name == "secret-volume" {
+			new = append(new, corev1.Volume{
+				Name: vol.Name,
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: secretName},
+				},
+			})
+		} else {
+			new = append(new, vol)
+		}
+	}
+	return new
 }
 
 func updateEnvValue(envs []corev1.EnvVar, envName string, newValue string) []corev1.EnvVar {
