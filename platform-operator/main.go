@@ -14,7 +14,7 @@ import (
 	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/certificate"
 	config2 "github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/netpolicy"
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -111,7 +111,7 @@ func main() {
 		}
 
 		setupLog.Info("Creating or updating network policies")
-		opResult, err := k8s.CreateOrUpdateNetworkPolicies(kubeClient, client)
+		opResult, err := netpolicy.CreateOrUpdateNetworkPolicies(kubeClient, client)
 		if err != nil {
 			setupLog.Errorf("unable to create or update network policies: %v", err)
 			os.Exit(1)
