@@ -45,7 +45,7 @@ function get_config_value() {
 
   # check if it is defined in the json files under install-overrides
   local config_override_value=$(get_override_config_value "$jq_expr")
-  if [ ! $config_override_value == "" ]; then
+  if [ ! "$config_override_value" == "" ]; then
     config_val=$config_override_value
   fi
   echo $config_val
