@@ -13,6 +13,7 @@ import (
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -574,46 +575,69 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]Install
 			}...)
 		}
 	}
-	if vzSpec.Security.AdminBinding.Name != "" {
-		args = append(args, InstallArg{
-			Name:      "userrolebindings.admin.name",
-			Value:     vzSpec.Security.AdminBinding.Name,
-			SetString: true,
-		})
-		k := vzSpec.Security.AdminBinding.Kind
-		if k == "" {
-			k = "Group"
+	if len(vzSpec.Security.AdminSubjects) > 0 {
+		for i, v := range vzSpec.Security.AdminSubjects {
+			if err := validateRoleBindingSubject(v, fmt.Sprintf("adminSubjects[%d]", i)); err != nil {
+				return []InstallArg{}, err
+			}
+			args = append(args, InstallArg{
+				Name:      fmt.Sprintf("security.adminSubjects.subject-%d.name", i),
+				Value:     v.Name,
+				SetString: true,
+			})
+			args = append(args, InstallArg{
+				Name:      fmt.Sprintf("security.adminSubjects.subject-%d.kind", i),
+				Value:     v.Kind,
+				SetString: true,
+			})
+			if len(v.Namespace) > 0 {
+				args = append(args, InstallArg{
+					Name:      fmt.Sprintf("security.adminSubjects.subject-%d.namespace", i),
+					Value:     v.Namespace,
+					SetString: true,
+				})
+			}
+			if len(v.APIGroup) > 0 {
+				args = append(args, InstallArg{
+					Name:      fmt.Sprintf("security.adminSubjects.subject-%d.apiGroup", i),
+					Value:     v.APIGroup,
+					SetString: true,
+				})
+			}
 		}
-		if k != "Group" && k != "User" {
-			err := fmt.Errorf("Unsuppored subject kind %s", k)
-			return []InstallArg{}, err
-		}
-		args = append(args, InstallArg{
-			Name:      "userrolebindings.admin.kind",
-			Value:     k,
-			SetString: true,
-		})
 	}
-	if vzSpec.Security.MonitorBinding.Name != "" {
-		args = append(args, InstallArg{
-			Name:      "userrolebindings.monitor.name",
-			Value:     vzSpec.Security.MonitorBinding.Name,
-			SetString: true,
-		})
-		k := vzSpec.Security.MonitorBinding.Kind
-		if k == "" {
-			k = "Group"
+	if len(vzSpec.Security.MonitorSubjects) > 0 {
+		for i, v := range vzSpec.Security.MonitorSubjects {
+			if err := validateRoleBindingSubject(v, fmt.Sprintf("adminSubjects[%d]", i)); err != nil {
+				return []InstallArg{}, err
+			}
+			args = append(args, InstallArg{
+				Name:      fmt.Sprintf("security.monitorSubjects.subject-%d.name", i),
+				Value:     v.Name,
+				SetString: true,
+			})
+			args = append(args, InstallArg{
+				Name:      fmt.Sprintf("security.monitorSubjects.subject-%d.kind", i),
+				Value:     v.Kind,
+				SetString: true,
+			})
+			if len(v.Namespace) > 0 {
+				args = append(args, InstallArg{
+					Name:      fmt.Sprintf("security.monitorSubjects.subject-%d.namespace", i),
+					Value:     v.Namespace,
+					SetString: true,
+				})
+			}
+			if len(v.APIGroup) > 0 {
+				args = append(args, InstallArg{
+					Name:      fmt.Sprintf("security.monitorSubjects.subject-%d.apiGroup", i),
+					Value:     v.APIGroup,
+					SetString: true,
+				})
+			}
 		}
-		if k != "Group" && k != "User" {
-			err := fmt.Errorf("Unsuppored subject kind %s", k)
-			return []InstallArg{}, err
-		}
-		args = append(args, InstallArg{
-			Name:      "userrolebindings.monitor.kind",
-			Value:     k,
-			SetString: true,
-		})
 	}
+
 	args = append(args, getVMIInstallArgs(vzSpec)...)
 
 	// Console
@@ -624,6 +648,30 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]Install
 		})
 	}
 	return args, nil
+}
+
+func validateRoleBindingSubject(subject rbacv1.Subject, name string) error {
+	if len(subject.Name) < 1 {
+		err := fmt.Errorf("no name for %s", name)
+		return err
+	}
+	if subject.Kind != "User" && subject.Kind != "Group" && subject.Kind != "ServiceAccount" {
+		err := fmt.Errorf("invalid kind '%s' for %s", subject.Kind, name)
+		return err
+	}
+	if (subject.Kind == "User" || subject.Kind == "Group") && len(subject.APIGroup) > 0 && subject.APIGroup != "rbac.authorization.k8s.io" {
+		err := fmt.Errorf("invalid apiGroup '%s' for %s", subject.APIGroup, name)
+		return err
+	}
+	if subject.Kind == "ServiceAccount" && (len(subject.APIGroup) > 0 || subject.APIGroup != "") {
+		err := fmt.Errorf("invalid apiGroup '%s' for %s", subject.APIGroup, name)
+		return err
+	}
+	if subject.Kind == "ServiceAccount" && len(subject.Namespace) < 1 {
+		err := fmt.Errorf("no namespace for ServiceAccount in %s", name)
+		return err
+	}
+	return nil
 }
 
 func getVMIInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) []InstallArg {

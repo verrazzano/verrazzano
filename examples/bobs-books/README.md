@@ -1,13 +1,13 @@
 # Bob's Books
 
-The Bob's Books example is an application based on WebLogic, Helidon, and Coherence. For more information and the source code of this application, see the [Verrazzano examples](https://github.com/verrazzano/examples).
+The Bob's Books example is an application based on WebLogic, Helidon, and Coherence. For more information and the source code of this application, see the [Verrazzano Examples](https://github.com/verrazzano/examples).
 
 ## Prerequisites
 
 * Install Verrazzano following the [installation instructions](https://verrazzano.io/docs/setup/install/installation/).
-* In order to be able to download the example image, you must first accept the license agreement.
-  * In a browser navigate to https://container-registry.oracle.com/ and sign in.
-  * Search for `example-bobbys-coherence`, `example-bobbys-front-end`, `example-bobs-books-order-manager` and `example-roberts-coherence`.
+* To download the example image, you must first accept the license agreement.
+  * In a browser, navigate to https://container-registry.oracle.com/ and sign in.
+  * Search for `example-bobbys-coherence`, `example-bobbys-front-end`, `example-bobs-books-order-manager`, and `example-roberts-coherence`.
   * For each, select the image name in the results, click Continue, then read and accept the license agreement.
 
    The Bob's Books application deployment artifacts are contained in the Verrazzano project located at
@@ -55,10 +55,10 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
         --from-literal=url=jdbc:mysql://mysql.bobs-books.svc.cluster.local:3306/books \
         -n bobs-books
     ```
-   Note that the example application is pre-configured to use specific secret names.
-   For the source code for the example application, see
-   [Bob's Books example application page](https://github.com/verrazzano/examples/tree/master/bobs-books).
-   If you want to use secret names that are different from what is specified in the source code, you will need to update the corresponding YAML and rebuild the Docker images for the example application.
+   Note that the example application is preconfigured to use specific secret names.
+   For the source code of this example application, see the
+   [Bob's Books Application](https://github.com/verrazzano/examples/tree/master/bobs-books) page.
+   If you want to use secret names that are different from what is specified in the source code, you will need to update the corresponding YAML file and rebuild the Docker images for the example application.
 
 1. Apply the example resources to deploy the application.
    ```
@@ -67,7 +67,7 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
 
 1. Wait for all of the pods in the Bob's Books example application to be ready.
    You may need to repeat this command several times before it is successful.
-   The WebLogic Server and Coherence pods can take some time to be created and `Ready`.
+   The WebLogic Server and Coherence pods may take a while to be created and `Ready`.
    ```
    $ kubectl wait --for=condition=Ready pods --all -n bobs-books --timeout=600s
    ```
@@ -98,7 +98,7 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
       ```
       11.22.33.44 bobs-books.example.com
       ```
-      Then, you can use a browser to access the application as shown:
+      Then, you can use a browser to access the application, as shown:
 
       * Robert's Books UI at `https://bobs-books.example.com/`.
 
@@ -107,7 +107,7 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
       * Bob's order manager  UI at `https://bobs-books.example.com/bobs-bookstore-order-manager/orders`.
 
     * **Option 3:** Alternatively, point your own DNS name to the load balancer's external IP address. In this case, you would need to have edited the `bobs-books-app.yaml` file to use the appropriate values under the `hosts` section for the application (such as `your-roberts-books-host.your.domain`), before deploying the application.
-      Then, you can use a browser to access the application as shown:
+      Then, you can use a browser to access the application, as shown:
 
       * Robert's Books UI at `https://<your-roberts-books-host.your.domain>/`.
 
@@ -128,7 +128,7 @@ The Bob's Books example is an application based on WebLogic, Helidon, and Cohere
 1. Verify that the service pods are successfully created and transition to the `READY` state.
    Note that this may take a few minutes and that you may see some of the services terminate and restart.
    ```
-    kubectl get pods -n bobs-books
+   $ kubectl get pods -n bobs-books
 
    NAME                                                READY   STATUS    RESTARTS   AGE
    bobbys-helidon-stock-application-868b5965c8-dk2xb   3/3     Running   0          19h

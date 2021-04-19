@@ -79,7 +79,7 @@ spec:
 ---
 # Network policy for Verrazzano application operator
 # Ingress: allow access from Kubernetes API server for webhook port 9443
-# Egress:  allow access to Kubernetes API server
+# Egress:  allow access to Kubernetes API server on its port, and to all destinations on 443
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -93,12 +93,14 @@ spec:
     - Ingress
     - Egress
   egress:
+    # allow access to all destinations on Kubernetes API server port
+    # allow access to all destinations on 443
+    # So that a managed cluster can connect to admin cluster on both of those ports
     - ports:
         - port: {{ .Values.kubernetes.service.endpoint.port }}
           protocol: TCP
-      to:
-        - ipBlock:
-            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+        - port: 443
+          protocol: TCP
   ingress:
     - ports:
         - port: 9443
