@@ -6,5 +6,3 @@ APIService
 ClusterRoleBinding
 ClusterRole
 RoleBinding
-CertificateSigningRequest
-
