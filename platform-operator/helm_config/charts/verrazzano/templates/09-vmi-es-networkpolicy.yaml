@@ -48,14 +48,6 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
-    # Allow ingress from prometheus
-    - from:
-        - podSelector:
-            matchLabels:
-              app: system-prometheus
-      ports:
-        - protocol: TCP
-          port: 9100
     # Allow ingress from Logging Journalbeat and Filebeat
     - from:
         - namespaceSelector:
@@ -128,7 +120,6 @@ spec:
 # Ingress: allow from ES master to port 9300
 #          allow from ES ingest to port 9200 and 9300
 #          allow from Kibana to port 9200
-#          allow from Prometheus to port 9100
 # Egress:  allow to DNS lookup port 53 for both UDP and TCP
 #          allow to ES master and ES ingest to port 9300
 apiVersion: networking.k8s.io/v1
@@ -170,14 +161,6 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
-    # Allow ingress from Prometheus to scrape pod
-    - from:
-        - podSelector:
-            matchLabels:
-              app: system-prometheus
-      ports:
-        - protocol: TCP
-          port: 9100
   egress:
     # Allow egress to CoreDNS
     - to:
