@@ -85,13 +85,14 @@ func listHelidonApplications(args []string) error {
 	}
 
 	// print out details of the projects
-	headings := []string{"NAMESPACE", "NAME", "AGE"}
+	headings := []string{"NAMESPACE", "NAME", "AGE", "HOSTNAME"}
 	data := [][]string{}
 	for _, app := range apps {
 		rowData := []string{
 			app.Namespace,
 			app.Name,
 			pkg2.Age(app.CreationTimestamp),
+			pkg.GetHostnameFromGateway(app.Namespace, app.Name + "-appconf"),
 		}
 		data = append(data, rowData)
 	}
