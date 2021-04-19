@@ -61,7 +61,7 @@ verrazzanoOperator:
 monitoringOperator:
   name: verrazzano-monitoring-operator
   imageName: ghcr.io/verrazzano/verrazzano-monitoring-operator
-  imageVersion: 0.14.0-20210413210131-b2ec2e0
+  imageVersion: 0.14.0-20210419142415-84ec581
   metricsPort: 8090
   defaultSimpleCompReplicas: 1
   defaultPrometheusReplicas: 1
@@ -73,11 +73,10 @@ monitoringOperator:
   alertManagerImage: "noimage"
   esWaitTargetVersion: 7.6.1
   esImage: ghcr.io/verrazzano/elasticsearch:7.6.1-20201130145440-5c76ab1
-  esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:0.14.0-20210413210131-b2ec2e0
+  esWaitImage: ghcr.io/verrazzano/verrazzano-monitoring-instance-eswait:0.14.0-20210419142415-84ec581
   esInitImage: ghcr.io/oracle/oraclelinux:7.8
   kibanaImage: ghcr.io/verrazzano/kibana:7.6.1-20201130145840-7717e73
   configReloaderImage: ghcr.io/verrazzano/configmap-reload:0.3-20201016205243-4f24a0e
-  nodeExporterImage: ghcr.io/verrazzano/node-exporter:0.18.1-20201016212926-e3dc9ad
   oidcProxyImage: ghcr.io/verrazzano/nginx-ingress-controller:0.32-20210122132046-a84f6166a
   oidcAuthEnabled: true
   RequestMemory: 48Mi
@@ -118,16 +117,25 @@ config:
   dnsSuffix: verrazzano.io
   enableMonitoringStorage: true
 
-userrolebindings:
-  admin:
-    kind: Group
-    name: verrazzano-admins
-  monitor:
-    kind: Group
-    name: verrazzano-monitors
+security:
+  adminsGroup: &default_adminsGroup verrazzano-admins
+  monitorsGroup: &default_monitorsGroup verrazzano-monitors
+  projectAdminsGroup: &default_projectAdminsGroup verrazzano-project-admins
+  projectMonitorsGroup: &default_projectMonitorsGroup verrazzano-project-monitors
+  adminSubjects:
+    "subject-0":
+      kind: Group
+      name: *default_adminsGroup
+  monitorSubjects:
+    "subject-0":
+      kind: Group
+      name: *default_monitorsGroup
 
 kubernetes:
   service:
     endpoint:
       ip:
       port:
+
+externaldns:
+  enabled: false

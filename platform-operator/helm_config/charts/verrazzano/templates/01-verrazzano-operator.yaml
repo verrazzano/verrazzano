@@ -467,9 +467,16 @@ kind: ClusterRoleBinding
 metadata:
   name: verrazzano-admin
 subjects:
-- kind: {{ .Values.userrolebindings.admin.kind }}
-  name: {{ .Values.userrolebindings.admin.name }}
-  apiGroup: rbac.authorization.k8s.io
+{{- range .Values.security.adminSubjects }}
+- kind: {{ .kind }}
+  name: {{ .name }}
+{{- if .namespace }}
+  namespace: {{ .namespace }}
+{{- end }}
+{{- if .apiGroup }}
+  apiGroup: {{ .apiGroup }}
+{{- end }}
+{{- end }}
 roleRef:
   kind: ClusterRole
   name: verrazzano-admin
@@ -480,9 +487,16 @@ kind: ClusterRoleBinding
 metadata:
   name: verrazzano-admin-k8s
 subjects:
-- kind: {{ .Values.userrolebindings.admin.kind }}
-  name: {{ .Values.userrolebindings.admin.name }}
-  apiGroup: rbac.authorization.k8s.io
+{{- range .Values.security.adminSubjects }}
+- kind: {{ .kind }}
+  name: {{ .name }}
+{{- if .namespace }}
+  namespace: {{ .namespace }}
+{{- end }}
+{{- if .apiGroup }}
+  apiGroup: {{ .apiGroup }}
+{{- end }}
+{{- end }}
 roleRef:
   kind: ClusterRole
   name: admin
@@ -503,9 +517,16 @@ kind: ClusterRoleBinding
 metadata:
   name: verrazzano-monitor
 subjects:
-- kind: {{ .Values.userrolebindings.monitor.kind }}
-  name: {{ .Values.userrolebindings.monitor.name }}
-  apiGroup: rbac.authorization.k8s.io
+{{- range .Values.security.monitorSubjects }}
+- kind: {{ .kind }}
+  name: {{ .name }}
+{{- if .namespace }}
+  namespace: {{ .namespace }}
+{{- end }}
+{{- if .apiGroup }}
+  apiGroup: {{ .apiGroup }}
+{{- end }}
+{{- end }}
 roleRef:
   kind: ClusterRole
   name: verrazzano-monitor
@@ -516,9 +537,16 @@ kind: ClusterRoleBinding
 metadata:
   name: verrazzano-monitor-k8s
 subjects:
-- kind: {{ .Values.userrolebindings.monitor.kind }}
-  name: {{ .Values.userrolebindings.monitor.name }}
-  apiGroup: rbac.authorization.k8s.io
+{{- range .Values.security.monitorSubjects }}
+- kind: {{ .kind }}
+  name: {{ .name }}
+{{- if .namespace }}
+  namespace: {{ .namespace }}
+{{- end }}
+{{- if .apiGroup }}
+  apiGroup: {{ .apiGroup }}
+{{- end }}
+{{- end }}
 roleRef:
   kind: ClusterRole
   name: view

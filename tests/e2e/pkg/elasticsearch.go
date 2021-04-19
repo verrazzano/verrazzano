@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,6 +75,17 @@ func querySystemElasticSearch(index string, fields map[string]string, kubeconfig
 // LogIndexFound confirms a named index can be found in Elasticsearch in the cluster specified in the environment
 func LogIndexFound(indexName string) bool {
 	return LogIndexFoundInCluster(indexName, GetKubeConfigPathFromEnv())
+}
+
+// FindLogIndexWithPrefix find indices with the specified index name prefix
+func FindLogIndexWithPrefix(prefix string) []string {
+	indices := []string{}
+	for _, name := range listSystemElasticSearchIndices(GetKubeConfigPathFromEnv()) {
+		if strings.HasPrefix(name, prefix) {
+			indices = append(indices, name)
+		}
+	}
+	return indices
 }
 
 // LogIndexFoundInCluster confirms a named index can be found in Elasticsearch on the given cluster

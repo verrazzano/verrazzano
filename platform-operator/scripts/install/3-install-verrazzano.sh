@@ -11,6 +11,7 @@ CONFIG_DIR=$SCRIPT_DIR/config
 
 VERRAZZANO_NS=verrazzano-system
 VERRAZZANO_MC=verrazzano-mc
+MONITORING_NS=monitoring
 
 ENV_NAME=$(get_config_value ".environmentName")
 
@@ -114,6 +115,12 @@ function install_verrazzano()
   local ENDPOINT=$(kubectl get endpoints --namespace default kubernetes --no-headers | awk '{ print $2}')
   local ENDPOINT_ARRAY=(${ENDPOINT//:/ })
 
+  local DNS_TYPE=$(get_config_value ".dns.type")
+  local EXTERNAL_DNS_ENABLED=false
+  if [ "$DNS_TYPE" == "oci" ]; then
+    EXTERNAL_DNS_ENABLED=true
+  fi
+
   helm \
       upgrade --install verrazzano \
       ${VZ_CHARTS_DIR}/verrazzano \
@@ -124,6 +131,7 @@ function install_verrazzano()
       --set config.enableMonitoringStorage=true \
       --set kubernetes.service.endpoint.ip=${ENDPOINT_ARRAY[0]} \
       --set kubernetes.service.endpoint.port=${ENDPOINT_ARRAY[1]} \
+      --set externaldns.enabled=${EXTERNAL_DNS_ENABLED} \
       ${PROFILE_VALUES_OVERRIDE} \
       ${EXTRA_V8O_ARGUMENTS} || return $?
 
@@ -222,10 +230,16 @@ fi
 log "Adding label needed by network policies to ${VERRAZZANO_NS} namespace"
 kubectl label namespace ${VERRAZZANO_NS} "verrazzano.io/namespace=${VERRAZZANO_NS}" --overwrite
 
-
 if ! kubectl get namespace ${VERRAZZANO_MC} ; then
   action "Creating ${VERRAZZANO_MC} namespace" kubectl create namespace ${VERRAZZANO_MC} || exit 1
 fi
+
+if ! kubectl get namespace ${MONITORING_NS} ; then
+  action "Creating ${MONITORING_NS} namespace" kubectl create namespace ${MONITORING_NS} || exit 1
+fi
+
+log "Adding label needed by network policies to ${MONITORING_NS} namespace"
+kubectl label namespace ${MONITORING_NS} "verrazzano.io/namespace=${MONITORING_NS}" --overwrite
 
 if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
   if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${VERRAZZANO_NS} > /dev/null 2>&1 ; then
