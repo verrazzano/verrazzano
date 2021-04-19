@@ -6,8 +6,6 @@ package helidon
 import (
 	"fmt"
 	"net/http"
-	"os"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -50,7 +48,7 @@ var _ = ginkgo.BeforeSuite(func() {
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	executeClusterDump()
+	pkg.ExecuteClusterDumpWithEnvVarConfig()
 	// undeploy the application here
 	err := pkg.DeleteResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
 	if err != nil {
@@ -65,28 +63,6 @@ var _ = ginkgo.AfterSuite(func() {
 		ginkgo.Fail(fmt.Sprintf("Could not delete hello-helidon namespace: %v\n", err.Error()))
 	}
 })
-
-func executeClusterDump() error {
-	kubeconfig := os.Getenv("DUMP_KUBECONFIG")
-	directory := os.Getenv("DUMP_DIRECTORY")
-	//report := fmt.Sprintf("%s/analysis.report", directory)
-	command := os.Getenv("DUMP_COMMAND")
-	fmt.Printf("Dump command: KUBECONFIG=%s; %s -d %s\n", kubeconfig, command, directory)
-	if command == "" {
-		return nil
-	}
-	cmd := exec.Command(command, "-d", directory)
-	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-	if err := cmd.Wait(); err != nil {
-		return err
-	}
-	return nil
-}
 
 var (
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
