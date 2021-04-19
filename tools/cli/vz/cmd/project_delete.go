@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	projectsCmd.AddCommand(projectDeleteCmd)
+	projectCmd.AddCommand(projectDeleteCmd)
 }
 
 var projectDeleteCmd = &cobra.Command{

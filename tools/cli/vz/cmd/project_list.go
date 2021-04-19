@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	projectsCmd.AddCommand(projectListCmd)
+	projectCmd.AddCommand(projectListCmd)
 }
 
 var projectListCmd = &cobra.Command{

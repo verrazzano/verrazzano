@@ -19,7 +19,7 @@ var projectPlacement []string
 func init() {
 	projectAddCmd.Flags().StringSliceVarP(&projectNamespaces, "namespaces", "n", []string{}, "List of namespaces to include in the project")
 	projectAddCmd.Flags().StringSliceVarP(&projectPlacement, "placement", "p", []string{"local"}, "List of clusters this project will be placed in")
-	projectsCmd.AddCommand(projectAddCmd)
+	projectCmd.AddCommand(projectAddCmd)
 }
 
 var projectAddCmd = &cobra.Command{

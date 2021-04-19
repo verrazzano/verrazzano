@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -51,6 +50,11 @@ func CreateOrUpdateResourceFromFileInCluster(file string, kubeconfigPath string)
 	}
 	Log(Info, fmt.Sprintf("Found resource: %s", found))
 	return createOrUpdateResourceFromBytes(bytes, GetKubeConfigGivenPath(kubeconfigPath))
+}
+
+func CreateOrUpdateResourceFromString(str string) error {
+	bytes := []byte(str)
+	return createOrUpdateResourceFromBytes(bytes, GetKubeConfigGivenPath(GetKubeConfigPathFromEnv()))
 }
 
 // createOrUpdateResourceFromBytes creates or updates a Kubernetes resource from bytes.

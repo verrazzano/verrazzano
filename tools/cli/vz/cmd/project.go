@@ -8,11 +8,11 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(projectsCmd)
+	rootCmd.AddCommand(projectCmd)
 }
 
-var projectsCmd = &cobra.Command{
-	Use: "projects",
-	Short: "Information about projects",
-	Long: "Information about projects",
+var projectCmd = &cobra.Command{
+	Use: "project",
+	Short: "Work with projects",
+	Long: "Work with projects",
 }
