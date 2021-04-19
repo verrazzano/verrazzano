@@ -12,16 +12,21 @@ import (
 	"text/template"
 )
 
-var targetNamespace string
-var listenPort int32
-var image string
+var (
+	targetNamespace string
+	listenPort int32
+	image string
+	version string
+	description string
+	path string
+)
 
 // this template is used to create the YAML we need to apply on the server
-const tmpl = `
+const compTmpl = `
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
-  name: {{.Name}}
+  name: {{.Name}}-component
   namespace: {{.Namespace}}
 spec:
   workload:
@@ -43,6 +48,35 @@ spec:
                 - containerPort: {{.ListenPort}}
                   name: http
 `
+const appTmpl = `
+apiVersion: core.oam.dev/v1alpha2
+kind: ApplicationConfiguration
+metadata:
+  name: {{.Name}}-appconf
+  namespace: {{.Namespace}}
+  annotations:
+    version: {{.Version}}
+    description: "{{.Description}}"
+spec:
+  components:
+    - componentName: {{.Name}}-component
+      traits:
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: MetricsTrait
+            spec:
+                scraper: verrazzano-system/vmi-system-prometheus-0
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: IngressTrait
+            metadata:
+              name: {{.Name}}-ingress
+            spec:
+              rules:
+                - paths:
+                    - path: "{{.Path}}"
+                      pathType: Prefix
+`
 
 // this struct holds the data needed to populate the template
 type templateData struct {
@@ -50,12 +84,18 @@ type templateData struct {
 	Namespace string
 	Image string
 	ListenPort int32
+	Version string
+	Description string
+	Path string
 }
 
 func init() {
 	helidonCreateCmd.Flags().StringVarP(&targetNamespace, "namespace", "n", "default", "Namespace to create Helidon application in")
 	helidonCreateCmd.Flags().Int32VarP(&listenPort, "listenport", "l", 8080, "Helidon application's listen port")
 	helidonCreateCmd.Flags().StringVarP(&image, "image", "i", "", "Docker image for the application")
+	helidonCreateCmd.Flags().StringVarP(&version, "version", "v", "v1.0.0", "Version of the application")
+	helidonCreateCmd.Flags().StringVarP(&description, "description", "d", "An Helidon application", "Description of the application")
+	helidonCreateCmd.Flags().StringVarP(&path, "path", "p", "/", "Path to the application endpoint")
 	helidonCmd.AddCommand(helidonCreateCmd)
 }
 
@@ -87,11 +127,16 @@ func createHelidonApplication(args []string) error {
 		Namespace: targetNamespace,
 		Image: image,
 		ListenPort: listenPort,
+		Version: version,
+		Path: path,
+		Description: description,
 	}
+
+	// --- Create the OAM Component ---
 
 	// use template to get populate template with data
 	var b bytes.Buffer
-	t, err:= template.New("comp").Parse(tmpl)
+	t, err:= template.New("comp").Parse(compTmpl)
 	if err != nil {
 		return err
 	}
@@ -103,5 +148,22 @@ func createHelidonApplication(args []string) error {
 
 	// apply the resulting data (yaml) on the server
 	err = pkg2.ServerSideApply(pkg.GetKubeConfig(), b.String())
+	if err != nil {
+		return err
+	}
+
+	// --- create the OAM ApplicationConfiguration ---
+	var b2 bytes.Buffer
+	t2, err := template.New("appconfig").Parse(appTmpl)
+	if err != nil {
+		return err
+	}
+
+	err = t2.Execute(&b2, &data)
+	if err != nil {
+		return err
+	}
+
+	err = pkg2.ServerSideApply(pkg.GetKubeConfig(), b2.String())
 	return err
 }
