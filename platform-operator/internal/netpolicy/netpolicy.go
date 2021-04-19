@@ -45,7 +45,7 @@ func CreateOrUpdateNetworkPolicies(clientset kubernetes.Interface, client client
 	objKey := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: netPolicy.ObjectMeta.Name, Namespace: netPolicy.ObjectMeta.Namespace}}
 
 	opResult, err := controllerutil.CreateOrUpdate(context.TODO(), client, objKey, func() error {
-		objKey.Spec = netPolicy.Spec
+		netPolicy.Spec.DeepCopyInto(&objKey.Spec)
 		return nil
 	})
 
