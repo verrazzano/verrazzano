@@ -14,6 +14,7 @@ EFFECTIVE_CONFIG_VALUES="${INSTALL_OVERRIDES_DIR}/effective.config.json"
 # The max length of the environment name passed in by the user.
 ENV_NAME_LENGTH_LIMIT=10
 
+# Flag to differentiate install from uninstall
 INSTALL_PATH=true
 
 # Read a JSON installation config file and output the JSON to stdout
@@ -167,6 +168,8 @@ function validate_config_json {
 
 # Make sure the environmentName, dns entries and certificates are valid in CONFIG_JSON
 function validate_config_json_entries {
+  set -o pipefail
+  local jsonToValidate=$1
   validate_environment_name "$jsonToValidate"
   validate_dns_section "$jsonToValidate"
   validate_certificates_section "$jsonToValidate"
@@ -365,6 +368,8 @@ function compute_effective_override() {
 # Read the value for a given key from effective.config.json
 function get_override_config_value() {
   local config_val=""
+  # The install-overrides is meant for install operation, return empty string for uninstall.
+  # Also when get_config_value is called before creating the effective config, return an empty string.
   if [ $INSTALL_PATH = false ] || [ ! -f "$EFFECTIVE_CONFIG_VALUES" ]; then
     echo $config_val
     return 0
