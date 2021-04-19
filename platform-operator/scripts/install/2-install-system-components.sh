@@ -279,7 +279,12 @@ function install_rancher()
     local RANCHER_PATCH_DATA=""
     if [ "$CERT_ISSUER_TYPE" == "acme" ]; then
       INGRESS_TLS_SOURCE="letsEncrypt"
-      EXTRA_RANCHER_ARGUMENTS="--set letsEncrypt.ingress.class=rancher --set letsEncrypt.email=$(get_config_value ".certificates.acme.emailAddress") --set letsEncrypt.environment=$(get_acme_environment)"
+      local useAdditionalCAs=false
+      if [ "$(get_acme_environment)" == "staging" ]; then
+        log "Using ACME staging, enable use of additional trusted CAs for Rancher"
+        useAdditionalCAs=true
+      fi
+      EXTRA_RANCHER_ARGUMENTS="--set letsEncrypt.ingress.class=rancher --set letsEncrypt.email=$(get_config_value ".certificates.acme.emailAddress") --set letsEncrypt.environment=$(get_acme_environment) --set additionalTrustedCAs=${useAdditionalCAs}"
       RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${DNS_SUFFIX} auth\",\"external-dns.alpha.kubernetes.io/target\":\"verrazzano-ingress.${NAME}.${DNS_SUFFIX}\",\"cert-manager.io/issuer\":null,\"external-dns.alpha.kubernetes.io/ttl\":\"60\"}}}"
     elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
       INGRESS_TLS_SOURCE="rancher"
@@ -296,6 +301,14 @@ function install_rancher()
       --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
       --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
       ${EXTRA_RANCHER_ARGUMENTS}
+
+    if [ "$CERT_ISSUER_TYPE" == "acme" ] && [ "$(get_acme_environment)" == "staging" ]; then
+      log "Using ACME staging, create staging certs secret for Rancher"
+      local acme_staging_certs=${TMP_DIR}/ca-additional.pem
+      curl https://letsencrypt.org/certs/staging/letsencrypt-stg-int-r3.pem > ${acme_staging_certs}
+      curl https://letsencrypt.org/certs/staging/letsencrypt-stg-int-e1.pem >> ${acme_staging_certs}
+      kubectl -n cattle-system create secret generic tls-ca-additional --from-file=ca-additional.pem=${acme_staging_certs}
+    fi
 
     # CRI-O does not deliver MKNOD by default, until https://github.com/rancher/rancher/pull/27582 is merged we must add the capability
     # OLCNE uses CRI-O and needs this change, and it doesn't hurt other cases
