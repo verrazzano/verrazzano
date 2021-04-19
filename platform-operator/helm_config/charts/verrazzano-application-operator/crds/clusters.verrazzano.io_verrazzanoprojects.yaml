@@ -93,7 +93,7 @@ spec:
                     properties:
                       projectAdminSubjects:
                         description: ProjectAdminSubjects specifies the list of subjects
-                          that should be bound to the verrazzano-project-admins role
+                          that should be bound to the verrazzano-project-admin role
                         items:
                           description: Subject contains a reference to the object
                             or user identities a role binding applies to.  This can
@@ -128,7 +128,7 @@ spec:
                         type: array
                       projectMonitorSubjects:
                         description: ProjectMonitorBinding specifies the subject that
-                          should be bound to the verrazzano-project-monitors role
+                          should be bound to the verrazzano-project-monitor role
                         items:
                           description: Subject contains a reference to the object
                             or user identities a role binding applies to.  This can
@@ -180,6 +180,9 @@ spec:
                   properties:
                     lastUpdateTime:
                       description: LastUpdateTime of the resource state in this cluster
+                      type: string
+                    message:
+                      description: Message with details about the status in this cluster
                       type: string
                     name:
                       description: Name of the cluster
