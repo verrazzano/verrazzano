@@ -14,7 +14,6 @@ EFFECTIVE_CONFIG_VALUES="${INSTALL_OVERRIDES_DIR}/effective.config.json"
 # The max length of the environment name passed in by the user.
 ENV_NAME_LENGTH_LIMIT=10
 
-# Flag to differentiate install from uninstall
 INSTALL_PATH=true
 
 # Read a JSON installation config file and output the JSON to stdout
@@ -31,8 +30,6 @@ function read_config() {
 # - custom resource
 # - install-overrides/config.${profile}.json
 # - install-overrides/config.json
-# The install-overrides is meant for install operation, so the value is read from the install-overrides
-# only for the install operation.
 function get_config_value() {
   set -o pipefail
   local jq_expr="$1"
@@ -45,14 +42,10 @@ function get_config_value() {
     config_val=""
   fi
 
-  if [ "$config_val" != "" ]; then
-    echo $config_val
-    return 0
-  fi
-
-  # check if it is defined in the json files under install-overrides, only for install operation
-  if [ $INSTALL_PATH = true ] && [ ! $(get_override_config_value "$jq_expr") == "" ]; then
-    config_val=$(get_override_config_value "$jq_expr")
+  # check if it is defined in the json files under install-overrides
+  local config_override_value=$(get_override_config_value "$jq_expr")
+  if [ ! $config_override_value == "" ]; then
+    config_val=$config_override_value
   fi
   echo $config_val
   return 0
@@ -174,8 +167,6 @@ function validate_config_json {
 
 # Make sure the environmentName, dns entries and certificates are valid in CONFIG_JSON
 function validate_config_json_entries {
-  set -o pipefail
-  local jsonToValidate=$1
   validate_environment_name "$jsonToValidate"
   validate_dns_section "$jsonToValidate"
   validate_certificates_section "$jsonToValidate"
@@ -373,8 +364,14 @@ function compute_effective_override() {
 
 # Read the value for a given key from effective.config.json
 function get_override_config_value() {
+  local config_val=""
+  if [ $INSTALL_PATH = false ] || [ ! -f "$EFFECTIVE_CONFIG_VALUES" ]; then
+    echo $config_val
+    return 0
+  fi
+
   local jq_expr="$1"
-  local config_val=$(jq -r "$jq_expr" $EFFECTIVE_CONFIG_VALUES)
+  config_val=$(jq -r "$jq_expr" $EFFECTIVE_CONFIG_VALUES)
   if [ $? -ne 0 ]; then
     echo "Error reading $jq_expr from config files"
     return 1

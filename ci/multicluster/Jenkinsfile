@@ -484,6 +484,7 @@ pipeline {
         }
         always {
             script {
+                dumpInstallLogs()
                 if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                     dumpVerrazzanoSystemPods()
                     dumpCattleSystemPods()
@@ -849,6 +850,23 @@ def dumpVerrazzanoApiLogs() {
                 mkdir -p ${LOG_DIR}
                 export DIAGNOSTIC_LOG="${LOG_DIR}/verrazzano-api.log"
                 ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+            """
+        }
+    }
+}
+
+def dumpInstallLogs() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=1; count<=clusterCount; count++) {
+            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            sh """
+                ## dump verrazzano install logs
+                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+                mkdir -p ${LOG_DIR}
+                kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install.log --tail -1
+                kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install-job-pod.out
+                echo "------------------------------------------"
             """
         }
     }
