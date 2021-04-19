@@ -8,11 +8,11 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(clustersCmd)
+	rootCmd.AddCommand(clusterCmd)
 }
 
-var clustersCmd = &cobra.Command{
-	Use: "clusters",
+var clusterCmd = &cobra.Command{
+	Use: "cluster",
 	Short: "Information about clusters",
 	Long: "Information about clusters",
 }

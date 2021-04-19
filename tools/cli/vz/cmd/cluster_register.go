@@ -14,7 +14,7 @@ var (
 
 func init() {
 	clusterRegisterCmd.Flags().StringVarP(&username, "name", "n", "", "Cluster name")
-	clustersCmd.AddCommand(clusterRegisterCmd)
+	clusterCmd.AddCommand(clusterRegisterCmd)
 }
 
 var clusterRegisterCmd = &cobra.Command{
