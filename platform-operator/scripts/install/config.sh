@@ -31,6 +31,8 @@ function read_config() {
 # - custom resource
 # - install-overrides/config.${profile}.json
 # - install-overrides/config.json
+# The install-overrides is meant for install operation, so the value is read from the install-overrides
+# only for the install operation.
 function get_config_value() {
   set -o pipefail
   local jq_expr="$1"
@@ -42,7 +44,13 @@ function get_config_value() {
   if [ "$config_val" == "null" ]; then
     config_val=""
   fi
-  # check if it is defined in the json files under install-overrides
+
+  if [ "$config_val" != "" ]; then
+    echo $config_val
+    return 0
+  fi
+
+  # check if it is defined in the json files under install-overrides, only for install operation
   if [ $INSTALL_PATH = true ] && [ ! $(get_override_config_value "$jq_expr") == "" ]; then
     config_val=$(get_override_config_value "$jq_expr")
   fi
@@ -162,7 +170,12 @@ function validate_config_json {
   set -o pipefail
   local jsonToValidate=$1
   echo "$jsonToValidate" | jq . > /dev/null || fail "Failed to read installation config file contents. Make sure it is valid JSON"
+}
 
+# Make sure the environmentName, dns entries and certificates are valid in CONFIG_JSON
+function validate_config_json_entries {
+  set -o pipefail
+  local jsonToValidate=$1
   validate_environment_name "$jsonToValidate"
   validate_dns_section "$jsonToValidate"
   validate_certificates_section "$jsonToValidate"
@@ -400,3 +413,5 @@ validate_config_json "$CONFIG_JSON" || fail "Installation config is invalid"
 if [ $INSTALL_PATH = true ]; then
   compute_effective_override  || fail "Failure to merge the install overrides"
 fi
+
+validate_config_json_entries "$CONFIG_JSON" || fail "Failure to validate the entries in config file"
