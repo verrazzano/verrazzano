@@ -4,17 +4,13 @@
 package loggingscope
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
-	"text/template"
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -29,20 +25,12 @@ const (
 	fluentdConfKey       = "fluentd.conf"
 	fluentdConfMountPath = "/fluentd/etc/fluentd.conf"
 	configMapName        = "fluentd-config"
+	confVolume           = "fluentd-config-volume"
 	scratchVolMountPath  = "/scratch"
-
 	elasticSearchURLEnv  = "ELASTICSEARCH_URL"
 	elasticSearchUserEnv = "ELASTICSEARCH_USER"
 	elasticSearchPwdEnv  = "ELASTICSEARCH_PASSWORD"
-
-	secretVolume    = "secret-volume"
-	secretMountPath = "/fluentd/secret"
-
-	CAFileConfig = "\n  ca_file /fluentd/secret/ca-bundle"
 )
-
-// ElasticSearchIndex defines the common index pattern
-const ElasticSearchIndex = "#{ENV['NAMESPACE']}-#{ENV['APP_CONF_NAME']}-#{ENV['COMPONENT_NAME']}"
 
 const (
 	// DefaultElasticSearchURL defines the default Elasticsearch URL used if it is not specified in the logging scope
@@ -90,11 +78,7 @@ type FluentdPod struct {
 func (f *Fluentd) Apply(scope *vzapi.LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error) {
 	upToDate := f.isFluentdContainerUpToDate(fluentdPod.Containers, scope)
 	if !upToDate {
-		requiresCABundle, err := ensureLoggingSecret(f.Context, f, resource.Namespace, scope.Spec.SecretName)
-		if err != nil {
-			return false, err
-		}
-		err = f.ensureFluentdConfigMapExists(resource.Namespace, scope, requiresCABundle)
+		err := f.ensureFluentdConfigMapExists(resource.Namespace, scope)
 		if err != nil {
 			return false, err
 		}
@@ -149,21 +133,15 @@ func (f *Fluentd) ensureFluentdVolumes(fluentdPod *FluentdPod, scope *vzapi.Logg
 	volumes := fluentdPod.Volumes
 	configMapVolumeExists := false
 	fluentdVolumeExists := false
-	secretVolumeExists := false
 	for _, volume := range volumes {
 		if volume.Name == f.StorageVolumeName {
 			fluentdVolumeExists = true
 		} else if volume.Name == fmt.Sprintf("%s-volume", configMapName) {
 			configMapVolumeExists = true
-		} else if volume.Name == secretVolume {
-			secretVolumeExists = true
 		}
 	}
 	if !configMapVolumeExists {
 		volumes = append(volumes, f.createFluentdConfigMapVolume(configMapName))
-	}
-	if !secretVolumeExists {
-		volumes = append(volumes, f.createFluentdSecretVolume(scope.Spec.SecretName))
 	}
 	if !fluentdVolumeExists {
 		volumes = append(volumes, f.createFluentdEmptyDirVolume())
@@ -176,12 +154,9 @@ func (f *Fluentd) ensureFluentdVolumes(fluentdPod *FluentdPod, scope *vzapi.Logg
 func (f *Fluentd) ensureFluentdVolumeMountExists(fluentdPod *FluentdPod) {
 	volumeMounts := fluentdPod.VolumeMounts
 	storageVolumeMountExists := false
-	secretVolumeMountExists := false
 	for _, volumeMount := range volumeMounts {
 		if volumeMount.Name == f.StorageVolumeName {
 			storageVolumeMountExists = true
-		} else if volumeMount.Name == secretVolume {
-			secretVolumeMountExists = true
 		}
 	}
 
@@ -190,17 +165,12 @@ func (f *Fluentd) ensureFluentdVolumeMountExists(fluentdPod *FluentdPod) {
 		volumeMounts = append(volumeMounts, f.createStorageVolumeMount())
 	}
 
-	// If no secret volume mount exists create one and add it to the list.
-	if !secretVolumeMountExists {
-		volumeMounts = append(volumeMounts, f.createSecretVolumeMount())
-	}
-
 	fluentdPod.VolumeMounts = volumeMounts
 }
 
 // ensureFluentdConfigMapExists ensures that the FLUENTD configmap exists. If it already exists, there is nothing
 // to do. If it doesn't exist, create it.
-func (f *Fluentd) ensureFluentdConfigMapExists(namespace string, scope *vzapi.LoggingScope, requiresCABundle bool) error {
+func (f *Fluentd) ensureFluentdConfigMapExists(namespace string, scope *vzapi.LoggingScope) error {
 	// check if configmap exists
 	configMapExists, err := resourceExists(f.Context, f, configMapAPIVersion, configMapKind, configMapName+"-"+f.WorkloadType, namespace)
 	if err != nil {
@@ -208,7 +178,7 @@ func (f *Fluentd) ensureFluentdConfigMapExists(namespace string, scope *vzapi.Lo
 	}
 
 	if !configMapExists {
-		if err = f.Create(f.Context, f.createFluentdConfigMap(namespace, requiresCABundle), &k8sclient.CreateOptions{}); err != nil {
+		if err = f.Create(f.Context, f.createFluentdConfigMap(namespace), &k8sclient.CreateOptions{}); err != nil {
 			return err
 		}
 	}
@@ -216,7 +186,7 @@ func (f *Fluentd) ensureFluentdConfigMapExists(namespace string, scope *vzapi.Lo
 }
 
 // createFluentdConfigMap creates the FLUENTD configmap per given namespace.
-func (f *Fluentd) createFluentdConfigMap(namespace string, requiresCABundle bool) *v1.ConfigMap {
+func (f *Fluentd) createFluentdConfigMap(namespace string) *v1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      configMapName + "-" + f.WorkloadType,
@@ -224,33 +194,10 @@ func (f *Fluentd) createFluentdConfigMap(namespace string, requiresCABundle bool
 		},
 		Data: func() map[string]string {
 			var data = make(map[string]string)
-			data[fluentdConfKey] = GetFluentdConfiguration(f.ParseRules, requiresCABundle)
+			data[fluentdConfKey] = f.ParseRules
 			return data
 		}(),
 	}
-}
-
-func GetFluentdConfiguration(templateConfig string, requiresCABundle bool) string {
-	tmpl, err := template.New("fluentdContainer").Parse(templateConfig)
-	if err != nil {
-		return ""
-	}
-
-	caFile := ""
-	if requiresCABundle {
-		caFile = CAFileConfig
-	}
-	data := struct {
-		CAFile string
-	}{caFile}
-
-	var buf bytes.Buffer
-	err = tmpl.Execute(&buf, data)
-	if err != nil {
-		return ""
-	}
-
-	return buf.String()
 }
 
 // removeFluentdContainer removes FLUENTD container
@@ -318,7 +265,7 @@ func (f *Fluentd) removeFluentdConfigMap(namespace string, scope *vzapi.LoggingS
 
 	if configMapExists {
 		// TODO what if the ca_file doesn't match
-		_ = f.Delete(f.Context, f.createFluentdConfigMap(namespace, false), &k8sclient.DeleteOptions{})
+		_ = f.Delete(f.Context, f.createFluentdConfigMap(namespace), &k8sclient.DeleteOptions{})
 	}
 	// return true when we confirm that the configmap has been successfully deleted
 	return !(configMapExists) && err == nil
@@ -383,42 +330,6 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 				Value: fluentdConfKey,
 			},
 			{
-				Name:  "FLUENT_ELASTICSEARCH_SED_DISABLE",
-				Value: "true",
-			},
-			{
-				Name:  elasticSearchURLEnv,
-				Value: scope.Spec.ElasticSearchURL,
-			},
-			{
-				Name: elasticSearchUserEnv,
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: scope.Spec.SecretName,
-						},
-						Key: constants.ElasticsearchUsernameData,
-						Optional: func(opt bool) *bool {
-							return &opt
-						}(true),
-					},
-				},
-			},
-			{
-				Name: elasticSearchPwdEnv,
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: scope.Spec.SecretName,
-						},
-						Key: constants.ElasticsearchPasswordData,
-						Optional: func(opt bool) *bool {
-							return &opt
-						}(true),
-					},
-				},
-			},
-			{
 				Name:  "NAMESPACE",
 				Value: namespace,
 			},
@@ -458,11 +369,6 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 				MountPath: fluentdConfMountPath,
 				Name:      confVolume,
 				SubPath:   fluentdConfKey,
-				ReadOnly:  true,
-			},
-			{
-				MountPath: secretMountPath,
-				Name:      secretVolume,
 				ReadOnly:  true,
 			},
 			{
@@ -506,30 +412,11 @@ func (f *Fluentd) createFluentdConfigMapVolume(name string) corev1.Volume {
 	}
 }
 
-// createFluentdSecretVolume creates a FLUENTD secret volume
-func (f *Fluentd) createFluentdSecretVolume(secretName string) corev1.Volume {
-	return corev1.Volume{
-		Name: secretVolume,
-		VolumeSource: corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName: secretName},
-		},
-	}
-}
-
 // createStorageVolumeMount creates a storage volume mount
 func (f *Fluentd) createStorageVolumeMount() corev1.VolumeMount {
 	return corev1.VolumeMount{
 		Name:      f.StorageVolumeName,
 		MountPath: f.StorageVolumeMountPath,
-	}
-}
-
-// createSecretVolumeMount creates a secret volume mount
-func (f *Fluentd) createSecretVolumeMount() corev1.VolumeMount {
-	return corev1.VolumeMount{
-		Name:      secretVolume,
-		MountPath: secretMountPath,
 	}
 }
 
@@ -540,109 +427,4 @@ func resourceExists(ctx context.Context, r k8sclient.Reader, apiVersion, kind, n
 	resources.SetKind(kind)
 	err := r.List(ctx, &resources, k8sclient.InNamespace(namespace), k8sclient.MatchingFields{"metadata.name": name})
 	return len(resources.Items) != 0, err
-}
-
-func ensureLoggingSecret(ctx context.Context, cli k8sclient.Client, namespace, name string) (bool, error) {
-	requiresCABundle := false
-	secret := &corev1.Secret{}
-	err := cli.Get(ctx, objKey(namespace, name), secret)
-	if kerrs.IsNotFound(err) {
-		// If this is a managed cluster, and we are using the managed cluster ES secret, copy
-		// that secret to the app namespace
-		if shouldUseManagedClusterLoggingSecret(ctx, cli, name) {
-			// The managed cluster ES secret is the one specified on the logging scope - copy it
-			// to the app namespace
-			return copyManagedClusterLoggingSecret(ctx, cli, namespace, name)
-		}
-		// create an empty secret, which is required in order to mount the secret
-		// as a volume in fluentd. In certain cases (e.g. admin server using local Elasticsearch),
-		// the secret is not required to have contents. In other cases, where user explicitly
-		// specifies a secret on the logging scope, they should have already created it in the app NS
-		return false, createEmptySecretForFluentdVolume(ctx, cli, namespace, name)
-	}
-	if len(secret.Data[constants.ElasticsearchCABundleData]) > 0 {
-		requiresCABundle = true
-	}
-	return requiresCABundle, err
-}
-
-func createEmptySecretForFluentdVolume(ctx context.Context, cli k8sclient.Client, namespace string, name string) error {
-	placeholderSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      name,
-		},
-	}
-	return cli.Create(ctx, placeholderSecret, &k8sclient.CreateOptions{})
-}
-
-// copies the logging related data from managed cluster secret to the given namespace/name IF it exists
-func copyManagedClusterLoggingSecret(ctx context.Context, cli k8sclient.Client, namespace string, name string) (bool, error) {
-	requiresCABundle := false
-	if name != clusters.MCRegistrationSecretFullName.Name {
-		// The managed cluster ES secret is not the one specified on the logging scope
-		// nothing to copy
-		return requiresCABundle, nil
-	}
-	secret := &corev1.Secret{}
-	err := cli.Get(ctx, clusters.MCRegistrationSecretFullName, secret)
-	if kerrs.IsNotFound(err) {
-		// Not a managed cluster, nothing to copyLoggingData
-		return requiresCABundle, nil
-	}
-	if err != nil {
-		return requiresCABundle, err
-	}
-	if len(secret.Data[constants.ElasticsearchCABundleData]) > 0 {
-		requiresCABundle = true
-	}
-	err = cli.Create(ctx, copyLoggingData(secret, namespace, name), &k8sclient.CreateOptions{})
-	if kerrs.IsAlreadyExists(err) {
-		return requiresCABundle, nil
-	}
-	return requiresCABundle, err
-}
-
-// copies the logging related data from one secret to another
-func copyLoggingData(original *corev1.Secret, namespace, name string) *corev1.Secret {
-	data := map[string][]byte{}
-	if original.Data[constants.ClusterNameData] != nil {
-		data[constants.ClusterNameData] = original.Data[constants.ClusterNameData]
-	}
-	if original.Data[constants.ElasticsearchURLData] != nil {
-		data[constants.ElasticsearchURLData] = original.Data[constants.ElasticsearchURLData]
-	}
-	if original.Data[constants.ElasticsearchUsernameData] != nil {
-		data[constants.ElasticsearchUsernameData] = original.Data[constants.ElasticsearchUsernameData]
-	}
-	if original.Data[constants.ElasticsearchPasswordData] != nil {
-		data[constants.ElasticsearchPasswordData] = original.Data[constants.ElasticsearchPasswordData]
-	}
-	if original.Data[constants.ElasticsearchCABundleData] != nil {
-		data[constants.ElasticsearchCABundleData] = original.Data[constants.ElasticsearchCABundleData]
-	}
-	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      name,
-		},
-		Data: data,
-	}
-}
-
-// shouldUseManagedClusterLoggingSecret returns true if this is a managed cluster and the
-// logging scope specifies that the managed cluster Elasticsearch secret should be used
-func shouldUseManagedClusterLoggingSecret(ctx context.Context, cli k8sclient.Client, loggingScopeSecretName string) bool {
-	if loggingScopeSecretName != clusters.MCRegistrationSecretFullName.Name {
-		// We are not using the managed cluster Elasticsearch secret in our logging scope
-		return false
-	}
-	secret := &corev1.Secret{}
-	err := cli.Get(ctx, clusters.MCRegistrationSecretFullName, secret)
-	if kerrs.IsNotFound(err) {
-		// Not a managed cluster - can't use managed cluster ES secret
-		return false
-	}
-	// we retrieved the secret and there were no errors - we should use it
-	return err == nil
 }

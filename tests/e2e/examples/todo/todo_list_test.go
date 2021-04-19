@@ -218,7 +218,7 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 	//})
 
 	ginkgo.Context("Logging.", func() {
-		indexName := "todo-list-todo-appconf-todo-domain"
+		indexName := "verrazzano-namespace-todo-list"
 
 		// GIVEN a WebLogic application with logging enabled via a logging scope
 		// WHEN the Elasticsearch index is retrieved
@@ -232,13 +232,32 @@ var _ = ginkgo.Describe("Verify ToDo List example application.", func() {
 		// GIVEN a WebLogic application with logging enabled via a logging scope
 		// WHEN the log records are retrieved from the Elasticsearch index
 		// THEN verify that at least one recent log record is found
-		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
-			gomega.Eventually(func() bool {
-				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"domainUID":  "tododomain",
-					"serverName": "tododomain-adminserver"})
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
-		})
+		pkg.Concurrently(
+			func() {
+				ginkgo.It("Verify recent adminserver log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+							"kubernetes.labels.weblogic_domainUID":  "tododomain",
+							"kubernetes.labels.app_oam_dev\\/name":  "todo-appconf",
+							"kubernetes.labels.weblogic_serverName": "AdminServer",
+							"kubernetes.container_name":             "weblogic-server",
+						})
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			func() {
+				ginkgo.It("Verify recent Elasticsearch log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+							"kubernetes.labels.weblogic_domainUID":  "tododomain",
+							"kubernetes.labels.app_oam_dev\\/name":  "todo-appconf",
+							"kubernetes.labels.weblogic_serverName": "AdminServer",
+							"kubernetes.container_name":             "fluentd",
+						})
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+		)
 	})
 })
 

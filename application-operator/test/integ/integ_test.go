@@ -137,9 +137,6 @@ var _ = Describe("Testing hello app lifecycle", func() {
 	It("hello deployment should be updated ", func() {
 		Eventually(appDeploymentUpdated, for10s).Should(BeTrue())
 	})
-	It("logging sidecar exists in app pod ", func() {
-		Eventually(fluentdSidecarExists, for5m).Should(BeTrue())
-	})
 	It("hello service should exist ", func() {
 		Eventually(appServiceExists, for10s).Should(BeTrue(),
 			"The hello service should exist")
@@ -150,9 +147,6 @@ var _ = Describe("Testing hello app lifecycle", func() {
 	})
 	It("hello deployment should be updated ", func() {
 		Eventually(appDeploymentUpdated, for5m).Should(BeTrue())
-	})
-	It("logging sidecar exists in updated app pod ", func() {
-		Eventually(fluentdSidecarExists, for5m).Should(BeTrue())
 	})
 
 	It("deleting app config", func() {

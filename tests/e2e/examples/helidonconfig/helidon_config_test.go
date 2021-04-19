@@ -135,8 +135,7 @@ var _ = ginkgo.Describe("Verify Helidon Config OAM App.", func() {
 	})
 
 	ginkgo.Context("Logging.", func() {
-		indexName := "helidon-config-helidon-config-appconf-helidon-config-component-helidon-config-container"
-
+		indexName := "verrazzano-namespace-helidon-config"
 		// GIVEN an application with logging enabled via a logging scope
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
@@ -152,8 +151,10 @@ var _ = ginkgo.Describe("Verify Helidon Config OAM App.", func() {
 		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
 			gomega.Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"oam.applicationconfiguration.namespace": "helidon-config",
-					"oam.applicationconfiguration.name":      "helidon-config-appconf"})
+					"kubernetes.labels.app_oam_dev\\/component": "helidon-config-component",
+					"kubernetes.labels.app_oam_dev\\/name":      "helidon-config-appconf",
+					"kubernetes.container_name":                 "helidon-config-container",
+				})
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 		})
 	})
