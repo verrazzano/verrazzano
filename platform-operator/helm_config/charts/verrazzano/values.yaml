@@ -118,16 +118,25 @@ config:
   dnsSuffix: verrazzano.io
   enableMonitoringStorage: true
 
-userrolebindings:
-  admin:
-    kind: Group
-    name: verrazzano-admins
-  monitor:
-    kind: Group
-    name: verrazzano-monitors
+security:
+  adminsGroup: &default_adminsGroup verrazzano-admins
+  monitorsGroup: &default_monitorsGroup verrazzano-monitors
+  projectAdminsGroup: &default_projectAdminsGroup verrazzano-project-admins
+  projectMonitorsGroup: &default_projectMonitorsGroup verrazzano-project-monitors
+  adminSubjects:
+    "subject-0":
+      kind: Group
+      name: *default_adminsGroup
+  monitorSubjects:
+    "subject-0":
+      kind: Group
+      name: *default_monitorsGroup
 
 kubernetes:
   service:
     endpoint:
       ip:
       port:
+
+externaldns:
+  enabled: false

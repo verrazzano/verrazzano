@@ -7,7 +7,7 @@ image:
   tag: v0.7.1-20201016205338-516bc8b2
 
 interval: "24h"
-logLevel: debug
+logLevel: info
 registry: "txt"
 policy: sync
 provider: oci

@@ -18,10 +18,10 @@ type NamespaceTemplate struct {
 
 // SecuritySpec defines the security configuration for a project
 type SecuritySpec struct {
-	// ProjectAdminSubjects specifies the list of subjects that should be bound to the verrazzano-project-admins role
+	// ProjectAdminSubjects specifies the list of subjects that should be bound to the verrazzano-project-admin role
 	// +optional
 	ProjectAdminSubjects []rbacv1.Subject `json:"projectAdminSubjects,omitempty"`
-	// ProjectMonitorBinding specifies the subject that should be bound to the verrazzano-project-monitors role
+	// ProjectMonitorBinding specifies the subject that should be bound to the verrazzano-project-monitor role
 	// +optional
 	ProjectMonitorSubjects []rbacv1.Subject `json:"projectMonitorSubjects,omitempty"`
 }

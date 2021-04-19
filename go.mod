@@ -7,6 +7,7 @@ go 1.15
 
 require (
 	github.com/Jeffail/gabs/v2 v2.2.0
+	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/crossplane/crossplane-runtime v0.10.0
 	github.com/crossplane/oam-kubernetes-runtime v0.3.2
 	github.com/gertd/go-pluralize v0.1.7

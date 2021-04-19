@@ -1,13 +1,13 @@
 # ToDo List
 
 ToDo List is an example application containing a WebLogic component.
-For more information and the source code of this application, see the [Verrazzano examples](https://github.com/verrazzano/examples).
+For more information and the source code of this application, see the [Verrazzano Examples](https://github.com/verrazzano/examples).
 
 ## Prerequisites
 
 * Install Verrazzano following the [installation instructions](https://verrazzano.io/docs/setup/install/installation/).
-* In order to be able to download the example image, you must first accept the license agreement.
-  * In a browser navigate to https://container-registry.oracle.com/ and sign in.
+* To download the example image, you must first accept the license agreement.
+  * In a browser, navigate to https://container-registry.oracle.com/ and sign in.
   * Search for `example-todo` and select the image name in the results.
   * Click Continue, then read and accept the license agreement.
 
@@ -55,9 +55,9 @@ The ToDo List application deployment artifacts are contained in the Verrazzano p
    $ kubectl -n todo-list label secret tododomain-runtime-encrypt-secret weblogic.domainUID=tododomain
    ```
 
-   Note that the ToDo List example application is pre-configured to use these credentials.
+   Note that the ToDo List example application is preconfigured to use these credentials.
    If you want to use different credentials, you will need to rebuild the Docker images for the example application.
-   For the source code of the example application, see the
+   For the source code of this example application, see the
    [ToDo List Lift-and-Shift Application](https://github.com/verrazzano/examples/tree/master/todo-list) page.  
 
 1. Apply the ToDo List example resources to deploy the application.
@@ -67,7 +67,7 @@ The ToDo List application deployment artifacts are contained in the Verrazzano p
 
 1. Wait for the ToDo List example application to be ready.
    You may need to repeat this command several times before it is successful.
-   The `tododomain-adminserver` pod can take some time to be created and `Ready`.
+   The `tododomain-adminserver` pod may take a while to be created and `Ready`.
    ```
    $ kubectl wait pod --for=condition=Ready tododomain-adminserver -n todo-list
    ```
@@ -86,14 +86,14 @@ The ToDo List application deployment artifacts are contained in the Verrazzano p
    11.22.33.44
    ```   
 
-1. Access the ToDo List example application.
-   There are several ways to access it:
-   * **Using the command line**:
+1. Access the ToDo List example application. There are several ways to access it:
+
+   * **Using the command line**
      ```
      $ curl -sk https://${HOST}/todo/ --resolve ${HOST}:443:${ADDRESS}
      ```
-     If you are using `xip.io` then you do not need to include `--resolve`.
-   * **Local testing with a browser**:
+     If you are using `xip.io`, then you do not need to include `--resolve`.
+   * **Local testing with a browser**
 
      Temporarily, modify the `/etc/hosts` file (on Mac or Linux)
      or `c:\Windows\System32\Drivers\etc\hosts` file (on Windows 10),
@@ -103,7 +103,7 @@ The ToDo List application deployment artifacts are contained in the Verrazzano p
      11.22.33.44 todo.example.com
      ```
      Then, you can access the application in a browser at `https://todo.example.com/todo`.
-   * **Using your own DNS name**:
+   * **Using your own DNS name**
      * Point your own DNS name to the ingress gateway's `EXTERNAL-IP` address.
      * In this case, you would need to have edited the `todo-list-application.yaml` file
        to use the appropriate value under the `hosts` section (such as `yourhost.your.domain`),

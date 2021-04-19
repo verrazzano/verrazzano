@@ -365,7 +365,7 @@ pipeline {
                     steps {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_jenkins_at_environment.sh {$params.CREATE_KIND_USE_CALICO}
+                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO}
                         """
                     }
                     post {
