@@ -277,10 +277,10 @@ function install_rancher()
     local INGRESS_TLS_SOURCE=""
     local EXTRA_RANCHER_ARGUMENTS=""
     local RANCHER_PATCH_DATA=""
+    local useAdditionalCAs=false
     if [ "$CERT_ISSUER_TYPE" == "acme" ]; then
       INGRESS_TLS_SOURCE="letsEncrypt"
-      local useAdditionalCAs=false
-      if [ "$(get_acme_environment)" == "staging" ]; then
+      if [ "$(get_acme_environment)" != "production" ]; then
         log "Using ACME staging, enable use of additional trusted CAs for Rancher"
         useAdditionalCAs=true
       fi
@@ -302,11 +302,12 @@ function install_rancher()
       --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
       ${EXTRA_RANCHER_ARGUMENTS}
 
-    if [ "$CERT_ISSUER_TYPE" == "acme" ] && [ "$(get_acme_environment)" == "staging" ]; then
+    if [ "$useAdditionalCAs" == "true" ]; then
       log "Using ACME staging, create staging certs secret for Rancher"
       local acme_staging_certs=${TMP_DIR}/ca-additional.pem
       curl https://letsencrypt.org/certs/staging/letsencrypt-stg-int-r3.pem > ${acme_staging_certs}
       curl https://letsencrypt.org/certs/staging/letsencrypt-stg-int-e1.pem >> ${acme_staging_certs}
+      curl https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem >> ${acme_staging_certs}
       kubectl -n cattle-system create secret generic tls-ca-additional --from-file=ca-additional.pem=${acme_staging_certs}
     fi
 
