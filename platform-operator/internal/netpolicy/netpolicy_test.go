@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,10 +42,10 @@ func TestCreateNetworkPolicies(t *testing.T) {
 
 	// fetch the policy and make sure the spec matches what we expect
 	netPolicy := &netv1.NetworkPolicy{}
-	err = mockClient.Get(context.TODO(), client.ObjectKey{Namespace: installNamespace, Name: networkPolicyPodName}, netPolicy)
+	err = mockClient.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoInstallNamespace, Name: networkPolicyPodName}, netPolicy)
 	asserts.NoError(err)
 
-	expectedNetPolicy := makeNetworkPolicy(apiServerIP, apiServerPort)
+	expectedNetPolicy := newNetworkPolicy(apiServerIP, apiServerPort)
 	asserts.Equal(expectedNetPolicy.Spec, netPolicy.Spec)
 }
 
@@ -60,7 +61,7 @@ func TestUpdateNetworkPolicies(t *testing.T) {
 	mockClientset := k8sfake.NewSimpleClientset(makeKubeAPIServerEndpoint())
 
 	// make an existing network policy and change the API server IP
-	existingNetPolicy := makeNetworkPolicy("1.1.1.1", apiServerPort)
+	existingNetPolicy := newNetworkPolicy("1.1.1.1", apiServerPort)
 	mockClient.Create(context.TODO(), existingNetPolicy)
 
 	// this call should update the network policy
@@ -70,10 +71,10 @@ func TestUpdateNetworkPolicies(t *testing.T) {
 
 	// fetch the policy and make sure the spec matches what we expect
 	netPolicy := &netv1.NetworkPolicy{}
-	err = mockClient.Get(context.TODO(), client.ObjectKey{Namespace: installNamespace, Name: networkPolicyPodName}, netPolicy)
+	err = mockClient.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoInstallNamespace, Name: networkPolicyPodName}, netPolicy)
 	asserts.NoError(err)
 
-	expectedNetPolicy := makeNetworkPolicy(apiServerIP, apiServerPort)
+	expectedNetPolicy := newNetworkPolicy(apiServerIP, apiServerPort)
 	asserts.Equal(expectedNetPolicy.Spec, netPolicy.Spec)
 }
 

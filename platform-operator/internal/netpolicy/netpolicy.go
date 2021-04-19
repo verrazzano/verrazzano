@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,7 +18,6 @@ import (
 )
 
 const (
-	installNamespace      = "verrazzano-install"
 	kubeSystemNamespace   = "kube-system"
 	nginxIngressNamespace = "ingress-nginx"
 
@@ -41,13 +41,11 @@ func CreateOrUpdateNetworkPolicies(clientset kubernetes.Interface, client client
 		return controllerutil.OperationResultNone, err
 	}
 
-	netPolicy := makeNetworkPolicy(ip, port)
-	// deep copy the spec because it can get overwritten when the network policy already exists
-	spec := netPolicy.Spec.DeepCopy()
+	netPolicy := newNetworkPolicy(ip, port)
+	objKey := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: netPolicy.ObjectMeta.Name, Namespace: netPolicy.ObjectMeta.Namespace}}
 
-	opResult, err := controllerutil.CreateOrUpdate(context.TODO(), client, netPolicy, func() error {
-		// mutate the spec in case this is an update and the spec has changed
-		netPolicy.Spec = *spec
+	opResult, err := controllerutil.CreateOrUpdate(context.TODO(), client, objKey, func() error {
+		objKey.Spec = netPolicy.Spec
 		return nil
 	})
 
@@ -68,8 +66,8 @@ func getAPIServerIPAndPort(clientset kubernetes.Interface) (string, int32, error
 	return "", 0, fmt.Errorf("unable to find a host and port for the kubernetes API server")
 }
 
-// makeNetworkPolicy returns a populated NetworkPolicy with ingress and egress rules for this operator.
-func makeNetworkPolicy(apiServerIP string, apiServerPort int32) *netv1.NetworkPolicy {
+// newNetworkPolicy returns a populated NetworkPolicy with ingress and egress rules for this operator.
+func newNetworkPolicy(apiServerIP string, apiServerPort int32) *netv1.NetworkPolicy {
 	tcpProtocol := corev1.ProtocolTCP
 	udpProtocol := corev1.ProtocolUDP
 	dnsPort := intstr.FromInt(53)
@@ -84,7 +82,7 @@ func makeNetworkPolicy(apiServerIP string, apiServerPort int32) *netv1.NetworkPo
 			Kind:       networkPolicyKind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: installNamespace,
+			Namespace: constants.VerrazzanoInstallNamespace,
 			Name:      networkPolicyPodName,
 		},
 		Spec: netv1.NetworkPolicySpec{
