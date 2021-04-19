@@ -172,6 +172,7 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 })
 
 var _ = ginkgo.AfterSuite(func() {
+	pkg.ExecuteClusterDumpWithEnvVarConfig()
 	if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, managedKubeconfig); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not delete hello-helidon namespace: %v\n", err))
 	}
