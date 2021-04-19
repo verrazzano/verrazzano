@@ -4,8 +4,8 @@
 package controllers
 
 import (
-	"strings"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"strings"
 )
 
 // ConvertAPIVersionToGroupAndVersion splits APIVersion into API and version parts.

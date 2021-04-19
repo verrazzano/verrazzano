@@ -20,10 +20,10 @@ type NamespaceTemplate struct {
 // NetworkPolicyTemplate has the metadata and spec of the underlying NetworkPolicy
 type NetworkPolicyTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Metadata metav1.ObjectMeta    `json:"metadata"`
+	Metadata metav1.ObjectMeta `json:"metadata"`
 
 	// NetworkPolicySpec specifies the NetworkPolicy for a specific namespace / pod combination.
-	Spec     netv1.NetworkPolicySpec `json:"spec,omitempty"`
+	Spec netv1.NetworkPolicySpec `json:"spec,omitempty"`
 }
 
 // SecuritySpec defines the security configuration for a project

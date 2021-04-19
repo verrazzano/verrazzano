@@ -64,8 +64,7 @@ var ns1Netpol = clustersv1alpha1.NetworkPolicyTemplate{
 		Name:      "ns1Netpol",
 		Namespace: "ns1",
 	},
-	Spec: netv1.NetworkPolicySpec{
-	},
+	Spec: netv1.NetworkPolicySpec{},
 }
 
 var ns2Netpol = clustersv1alpha1.NetworkPolicyTemplate{
@@ -73,17 +72,7 @@ var ns2Netpol = clustersv1alpha1.NetworkPolicyTemplate{
 		Name:      "ns2Netpol",
 		Namespace: "ns2",
 	},
-	Spec: netv1.NetworkPolicySpec{
-	},
-}
-
-var ns2Netpol2 = clustersv1alpha1.NetworkPolicyTemplate{
-	Metadata: metav1.ObjectMeta{
-		Name:      "ns2Netpol2",
-		Namespace: "ns2",
-	},
-	Spec: netv1.NetworkPolicySpec{
-	},
+	Spec: netv1.NetworkPolicySpec{},
 }
 
 // roleBindingMatcher is a gomock Matcher that matches a rbacv1.RoleBinding based on roleref name
