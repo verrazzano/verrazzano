@@ -48,7 +48,6 @@ var _ = ginkgo.BeforeSuite(func() {
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	pkg.ExecuteClusterDumpWithEnvVarConfig()
 	// undeploy the application here
 	err := pkg.DeleteResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
 	if err != nil {
