@@ -45,7 +45,7 @@ function get_config_value() {
 
   # check if it is defined in the json files under install-overrides
   local config_override_value=$(get_override_config_value "$jq_expr")
-  if [ ! "$config_override_value" == "" ]; then
+  if [ "$config_override_value" != "" ]; then
     config_val=$config_override_value
   fi
   echo $config_val
@@ -370,7 +370,7 @@ function get_override_config_value() {
   local config_val=""
   # The install-overrides is meant for install operation, return empty string for uninstall.
   # Also when get_config_value is called before creating the effective config, return an empty string.
-  if [ $INSTALL_PATH = false ] || [ ! -f "$EFFECTIVE_CONFIG_VALUES" ]; then
+  if [ ! -f "$EFFECTIVE_CONFIG_VALUES" ]; then
     echo $config_val
     return 0
   fi
