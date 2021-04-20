@@ -3,8 +3,6 @@
 
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
-def INCLUDE_TESTS_DEFAULT = ".*"
-def EXCLUDE_TESTS_DEFAULT = "_excluded_test"
 
 pipeline {
     options {
@@ -28,12 +26,12 @@ pipeline {
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
         string (name: 'INCLUDE_TESTS',
-                defaultValue: "${INCLUDE_TESTS_DEFAULT}",
-                description: 'A regex matching any test fully qualified test file that should be executed (e.g. $examples/helidon/). Default ${INCLUDED_TESTS_DEFAULT}',
+                defaultValue: ".*",
+                description: 'A regex matching any test fully qualified test file that should be executed (e.g. $examples/helidon/). Default: .*',
                 trim: true)
         string (name: 'EXCLUDE_TESTS',
-                defaultValue: "${INCLUDE_TESTS_DEFAULT}",
-                description: "A regex matching any test file qualified test file that should not be executed (e.g. $multicluster/|_excluded_test). Default ${INCLUDE_TESTS_DEFAULT}",
+                defaultValue: "_excluded_test",
+                description: "A regex matching any test file qualified test file that should not be executed (e.g. $multicluster/|_excluded_test). Default: _excluded_test",
                 trim: true)
     }
 
