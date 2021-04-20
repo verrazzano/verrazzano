@@ -114,18 +114,19 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 							"fields.verrazzano.cluster.name", "local")
 					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a journalbeat log record from admin cluster")
 				},
-				func() {
-					gomega.Eventually(func() bool {
-						return findLogs("vmo-local-filebeat-"+time.Now().Format("2006.01.02"),
-							"fields.verrazzano.cluster.name", managedClusterName)
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a filebeat log record from managed cluster")
-				},
-				func() {
-					gomega.Eventually(func() bool {
-						return findLogs("vmo-local-journalbeat-"+time.Now().Format("2006.01.02"),
-							"fields.verrazzano.cluster.name", managedClusterName)
-					}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a journalbeat log record from managed cluster")
-				},
+				// disabled until VZ-2546 is fixed
+				//func() {
+				//	gomega.Eventually(func() bool {
+				//		return findLogs("vmo-local-filebeat-"+time.Now().Format("2006.01.02"),
+				//			"fields.verrazzano.cluster.name", managedClusterName)
+				//	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a filebeat log record from managed cluster")
+				//},
+				//func() {
+				//	gomega.Eventually(func() bool {
+				//		return findLogs("vmo-local-journalbeat-"+time.Now().Format("2006.01.02"),
+				//			"fields.verrazzano.cluster.name", managedClusterName)
+				//	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a journalbeat log record from managed cluster")
+				//},
 			)
 		})
 
