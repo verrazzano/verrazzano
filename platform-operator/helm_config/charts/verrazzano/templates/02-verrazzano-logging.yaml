@@ -386,6 +386,8 @@ spec:
       k8s-app: fluentd
   template:
     metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
       labels:
         k8s-app: fluentd
     spec:

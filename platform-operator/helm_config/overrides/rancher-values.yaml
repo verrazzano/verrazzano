@@ -3,3 +3,8 @@
 
 rancherImage: ghcr.io/verrazzano/rancher
 rancherImageTag: v2.5.7-20210407205410-1c7b39d0c
+ingress:
+  extraAnnotations:
+    nginx.ingress.kubernetes.io/service-upstream: "true"
+    nginx.ingress.kubernetes.io/upstream-vhost: "rancher.cattle-system.svc.cluster.local"
+

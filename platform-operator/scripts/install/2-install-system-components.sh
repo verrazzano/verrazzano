@@ -22,6 +22,7 @@ function install_nginx_ingress_controller()
     # Create the namespace for nginx
     if ! kubectl get namespace ingress-nginx ; then
         kubectl create namespace ingress-nginx
+        kubectl label namespace ingress-nginx istio-injection=enabled
     fi
 
     # Handle any additional NGINX install args - since NGINX is for Verrazzano system Ingress,
@@ -216,6 +217,7 @@ function create_rancher_namespace()
 {
     if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
         kubectl create namespace cattle-system
+        kubectl label namespace cattle-system istio-injection=enabled
     fi
 }
 
