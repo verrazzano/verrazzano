@@ -19,6 +19,7 @@ const (
 	pollingInterval      = 5 * time.Second
 	waitTimeout          = 5 * time.Minute
 	consistentlyDuration = 1 * time.Minute
+	esWaitTimeout        = 10 * time.Minute
 )
 
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
@@ -119,7 +120,7 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 		ginkgo.It("Verify Elasticsearch index exists on admin cluster", func() {
 			gomega.Eventually(func() bool {
 				return pkg.LogIndexFoundInCluster(indexName, adminKubeconfig)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find log index for hello helidon")
+			}, esWaitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find log index for hello helidon")
 		})
 
 		// GIVEN an admin cluster and at least one managed cluster
@@ -132,7 +133,7 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 					"oam.applicationconfiguration.name":      "hello-helidon-appconf",
 					"verrazzano.cluster.name":                clusterName,
 				}, adminKubeconfig)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+			}, esWaitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 		})
 	})
 
