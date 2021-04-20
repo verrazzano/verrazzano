@@ -112,6 +112,9 @@ function delete_rancher() {
   helm ls -n cattle-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n cattle-system \
     || err_return $? "Could not delete cattle-system from helm" || return $? # return on pipefail
 
+  log "Delete the additional CA secret for Rancher"
+  kubectl -n cattle-system delete secret tls-ca-additional 2>&1 > /dev/null || true
+
   log "Deleting CRDs from rancher"
 
   local crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | awk '/coreos.com|cattle.io/')
