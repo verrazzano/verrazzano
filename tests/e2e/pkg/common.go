@@ -208,9 +208,9 @@ func GetRetryPolicy() func(ctx context.Context, resp *http.Response, err error) 
 	return func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 		if err != nil {
 			if v, ok := err.(*neturl.Error); ok {
-				//DefaultRetryPolicy does not retry "x509: certificate signed by unknown authority" which may happen on ".xip.io" when starting
+				//DefaultRetryPolicy does not retry "x509: certificate signed by unknown authority" which may happen on wildcard DNS (e.g. xip.io) when starting
 				if _, ok := v.Err.(x509.UnknownAuthorityError); ok {
-					return strings.Contains(v.URL, ".xip.io"), v
+					return hasDNSWildcard(v.URL), v
 				}
 			}
 		}
@@ -327,4 +327,17 @@ func SliceContainsPolicyRule(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRu
 		}
 	}
 	return false
+}
+
+// Returns well-known wildcard suffix or empty string
+func dnsWildcardSuffix(s string) string {
+	wildcards := []string {"xip.io, nip.io, sslip.io"}
+	// get address segment (ignore port)
+	segs := strings.Split(s, ":")
+	for _, w := range wildcards {
+		if strings.HasSuffix(segs[0], w) {
+			return w
+		}
+	}
+	return ""
 }
