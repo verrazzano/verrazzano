@@ -119,4 +119,6 @@ if [[ "${ES_HOST}" == *.xip.io ]]; then
   patch_data='{"spec":{"template":{"spec":{"hostAliases":[{"hostnames":["'"${ES_HOST}"'"],"ip":"'"${ES_IP}"'"}]}}}}'
   kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging patch daemonset filebeat --patch ${patch_data}
   kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging patch daemonset journalbeat --patch ${patch_data}
+  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging get daemonset filebeat -o json | jq .spec.template.spec.hostAliases
+  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging get daemonset journalbeat -o json | jq .spec.template.spec.hostAliases
 fi
