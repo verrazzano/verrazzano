@@ -75,8 +75,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		_, err = clusters.AddFinalizer(ctx, r.Client, &mcConfigMap, finalizerName)
 	}
 
-	return r.updateStatus(ctx, &mcConfigMap, opResult, err)
+	ctrlResult, updateErr := r.updateStatus(ctx, &mcConfigMap, opResult, err)
 
+	// if an error occurred in createOrUpdate, return that error with a requeue
+	// even if update status succeeded
+	if err != nil {
+		res := ctrl.Result{Requeue: true, RequeueAfter: clusters.GetRandomRequeueDelay()}
+		return res, err
+	}
+
+	return ctrlResult, updateErr
 }
 
 // SetupWithManager registers our controller with the manager
