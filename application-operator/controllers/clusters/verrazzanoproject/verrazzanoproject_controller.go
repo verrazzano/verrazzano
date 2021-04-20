@@ -5,6 +5,7 @@ package verrazzanoproject
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -22,10 +23,12 @@ import (
 )
 
 const (
-	projectAdminRole      = "verrazzano-project-admin"
-	projectAdminK8sRole   = "admin"
-	projectMonitorRole    = "verrazzano-project-monitor"
-	projectMonitorK8sRole = "view"
+	projectAdminRole          = "verrazzano-project-admin"
+	projectAdminK8sRole       = "admin"
+	projectAdminGroupPrefix   = "verrazzano-project-admin"
+	projectMonitorRole        = "verrazzano-project-monitor"
+	projectMonitorK8sRole     = "view"
+	projectMonitorGroupPrefix = "verrazzano-project-monitor"
 )
 
 // Reconciler reconciles a VerrazzanoProject object
@@ -139,26 +142,35 @@ func (r *Reconciler) mutateNamespace(nsTemplate clustersv1alpha1.NamespaceTempla
 func (r *Reconciler) createOrUpdateRoleBindings(ctx context.Context, namespace string, vp clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
 	logger.Info("Create or update role bindings", "namespace", namespace)
 
-	// if there are any project admin subjects, create two role bindings, one for the project admin role and
-	// one for the k8s admin role
+	// get the default binding subjects
+	adminSubjects, monitorSubjects := r.getDefaultRoleBindingSubjects(vp)
+
+	// override defaults if specified in the project
 	if len(vp.Spec.Template.Security.ProjectAdminSubjects) > 0 {
-		rb := newRoleBinding(namespace, projectAdminRole, vp.Spec.Template.Security.ProjectAdminSubjects)
+		adminSubjects = vp.Spec.Template.Security.ProjectAdminSubjects
+	}
+	if len(vp.Spec.Template.Security.ProjectMonitorSubjects) > 0 {
+		monitorSubjects = vp.Spec.Template.Security.ProjectMonitorSubjects
+	}
+
+	// create two role bindings, one for the project admin role and one for the k8s admin role
+	if len(adminSubjects) > 0 {
+		rb := newRoleBinding(namespace, projectAdminRole, adminSubjects)
 		if err := r.createOrUpdateRoleBinding(ctx, rb, logger); err != nil {
 			return err
 		}
-		rb = newRoleBinding(namespace, projectAdminK8sRole, vp.Spec.Template.Security.ProjectAdminSubjects)
+		rb = newRoleBinding(namespace, projectAdminK8sRole, adminSubjects)
 		if err := r.createOrUpdateRoleBinding(ctx, rb, logger); err != nil {
 			return err
 		}
 	}
-	// if there are any project monitor subjects, create two role bindings, one for the project monitor role and
-	// one for the k8s monitor role
-	if len(vp.Spec.Template.Security.ProjectMonitorSubjects) > 0 {
-		rb := newRoleBinding(namespace, projectMonitorRole, vp.Spec.Template.Security.ProjectMonitorSubjects)
+	// create two role bindings, one for the project monitor role and one for the k8s monitor role
+	if len(monitorSubjects) > 0 {
+		rb := newRoleBinding(namespace, projectMonitorRole, monitorSubjects)
 		if err := r.createOrUpdateRoleBinding(ctx, rb, logger); err != nil {
 			return err
 		}
-		rb = newRoleBinding(namespace, projectMonitorK8sRole, vp.Spec.Template.Security.ProjectMonitorSubjects)
+		rb = newRoleBinding(namespace, projectMonitorK8sRole, monitorSubjects)
 		if err := r.createOrUpdateRoleBinding(ctx, rb, logger); err != nil {
 			return err
 		}
@@ -211,4 +223,17 @@ func newRoleBinding(namespace string, roleName string, subjects []rbacv1.Subject
 		},
 		Subjects: subjects,
 	}
+}
+
+// getDefaultRoleBindingSubjects returns the default binding subjects for project admin/monitor roles
+func (r *Reconciler) getDefaultRoleBindingSubjects(vp clustersv1alpha1.VerrazzanoProject) ([]rbacv1.Subject, []rbacv1.Subject) {
+	adminSubjects := []rbacv1.Subject{{
+		Kind: "Group",
+		Name: fmt.Sprintf("%s-%s", projectAdminGroupPrefix, vp.Name),
+	}}
+	monitorSubjects := []rbacv1.Subject{{
+		Kind: "Group",
+		Name: fmt.Sprintf("%s-%s", projectMonitorGroupPrefix, vp.Name),
+	}}
+	return adminSubjects, monitorSubjects
 }
