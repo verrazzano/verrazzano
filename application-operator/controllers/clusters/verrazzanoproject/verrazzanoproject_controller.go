@@ -75,25 +75,20 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// Update the cluster status
-	_, statusErr := r.updateStatus(ctx, &vp, opResult, err)
-	if statusErr != nil {
-		return ctrl.Result{}, statusErr
+	_, err = r.updateStatus(ctx, &vp, opResult, err)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// Update the VerrazzanoProject state
 	oldState := clusters.SetEffectiveStateIfChanged(vp.Spec.Placement, &vp.Status)
 	if oldState != vp.Status.State {
-		stateErr := r.Status().Update(ctx, &vp)
-		if stateErr != nil {
-			return ctrl.Result{}, stateErr
+		err = r.Status().Update(ctx, &vp)
+		if err != nil {
+			return ctrl.Result{}, err
 		}
 	}
 
-	// if an error occurred in createOrUpdate, return that error with a requeue
-	// even if update status succeeded
-	if err != nil {
-		return ctrl.Result{Requeue: true, RequeueAfter: clusters.GetRandomRequeueDelay()}, err
-	}
 	return ctrl.Result{}, nil
 }
 

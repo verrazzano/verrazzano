@@ -208,9 +208,8 @@ func TestReconcileCreateSecretFailed(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	// expect an error and requeue upon failure
-	assert.NotNil(err)
-	assert.Equal(true, result.Requeue)
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
 }
 
 func TestReconcileUpdateSecretFailed(t *testing.T) {
@@ -251,9 +250,8 @@ func TestReconcileUpdateSecretFailed(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	// expect an error and requeue upon failure
-	assert.NotNil(err)
-	assert.Equal(true, result.Requeue)
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
 }
 
 // TestReconcilePlacementInDifferentCluster tests the path of reconciling a MultiClusterSecret which

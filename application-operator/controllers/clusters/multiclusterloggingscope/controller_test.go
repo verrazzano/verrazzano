@@ -218,9 +218,8 @@ func TestReconcileCreateLoggingScopeFailed(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	// expect an error and requeue upon failure
-	assert.NotNil(err)
-	assert.Equal(true, result.Requeue)
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
 }
 
 // TestReconcileCreateLoggingScopeFailed tests the path of reconciling a MultiClusterLoggingScope
@@ -271,9 +270,8 @@ func TestReconcileUpdateLoggingScopeFailed(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	// expect an error and requeue upon failure
-	assert.NotNil(err)
-	assert.Equal(true, result.Requeue)
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
 }
 
 // TestReconcilePlacementInDifferentCluster tests the path of reconciling a MultiClusterLoggingScope which
