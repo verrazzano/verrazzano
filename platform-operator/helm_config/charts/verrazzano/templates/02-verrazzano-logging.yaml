@@ -379,15 +379,14 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app: fluentd
-    k8s-app: fluentd
 spec:
   selector:
     matchLabels:
-      k8s-app: fluentd
+      app: fluentd
   template:
     metadata:
       labels:
-        k8s-app: fluentd
+        app: fluentd
     spec:
       containers:
         - args:
@@ -399,7 +398,7 @@ spec:
             - name: FLUENT_ELASTICSEARCH_SED_DISABLE
               value: "true"
             - name: ELASTICSEARCH_URL
-              value: http://vmi-system-es-ingest:9200
+              value: http://vmi-system-es-ingest-oidc:8775
             - name: CLUSTER_NAME
               value: local
             - name: ELASTICSEARCH_USER

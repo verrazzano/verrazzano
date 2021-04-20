@@ -124,7 +124,7 @@ func CreateClusterLevelStatus(condition clustersv1alpha1.Condition, clusterName 
 		state = clustersv1alpha1.Pending
 	}
 	return clustersv1alpha1.ClusterLevelStatus{
-		Name: clusterName, State: state, LastUpdateTime: condition.LastTransitionTime}
+		Name: clusterName, State: state, Message: condition.Message, LastUpdateTime: condition.LastTransitionTime}
 }
 
 // ComputeEffectiveState computes the overall state of the multi cluster resource from the statuses

@@ -139,8 +139,7 @@ spec:
       ports:
         - port: 8775
           protocol: TCP
-    - from:
-      ports:
+    - ports:
         - port: 9090
           protocol: TCP
 ---
@@ -229,3 +228,30 @@ spec:
         - port: 443
           protocol: TCP
 {{- end }}
+---
+# Network policy for Node Exporter
+# Ingress: allow connect from Prometheus to scrap metrics
+# Egress: deny all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: node-exporter
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      verrazzano.io/namespace: monitoring
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus
+      ports:
+        - port: 9100
+          protocol: TCP

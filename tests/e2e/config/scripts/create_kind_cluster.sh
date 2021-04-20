@@ -54,9 +54,9 @@ create_kind_cluster() {
   cd ${SCRIPT_DIR}/
   KIND_CONFIG_FILE=kind-config${CALICO_SUFFIX}.yaml
   if [ ${KIND_AT_CACHE} == true ]; then
-    echo "Using kind-config-ci.yaml for pre-created cache"
     KIND_CONFIG_FILE=kind-config-ci${CALICO_SUFFIX}.yaml
   fi
+  echo "Using ${KIND_CONFIG_FILE}"
   sed -i "s/KIND_IMAGE/${KIND_IMAGE}/g" ${KIND_CONFIG_FILE}
   HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 --name ${CLUSTER_NAME} --wait 5m --config=${KIND_CONFIG_FILE}
   kubectl config set-context kind-${CLUSTER_NAME}
