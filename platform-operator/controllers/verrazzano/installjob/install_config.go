@@ -207,12 +207,23 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfigurati
 		return nil, err
 	}
 	rancher := getRancher(vz.Spec.Components.Rancher)
-	var acmeConfig *CertificateACME = &CertificateACME{}
-	if vz.Spec.Components.CertManager != nil {
-		acmeConfig = &CertificateACME{
-			Provider:     string(vz.Spec.Components.CertManager.Certificate.Acme.Provider),
-			EmailAddress: vz.Spec.Components.CertManager.Certificate.Acme.EmailAddress,
-			Environment:  vz.Spec.Components.CertManager.Certificate.Acme.Environment,
+	var certConfig Certificate
+	if vz.Spec.Components.CertManager != nil && (vz.Spec.Components.CertManager.Certificate.Acme != installv1alpha1.Acme{}) {
+		certConfig = Certificate{
+			IssuerType: CertIssuerTypeAcme,
+			ACME: &CertificateACME{
+				Provider:     string(vz.Spec.Components.CertManager.Certificate.Acme.Provider),
+				EmailAddress: vz.Spec.Components.CertManager.Certificate.Acme.EmailAddress,
+				Environment:  vz.Spec.Components.CertManager.Certificate.Acme.Environment,
+			},
+		}
+	} else {
+		certConfig = Certificate{
+			IssuerType: CertIssuerTypeCA,
+			CA: &CertificateCA{
+				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager),
+				SecretName:               getCASecretName(vz.Spec.Components.CertManager),
+			},
 		}
 	}
 
@@ -229,13 +240,10 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfigurati
 				DNSZoneName:            vz.Spec.Components.DNS.OCI.DNSZoneName,
 			},
 		},
-		Ingress: getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
-		Certificates: Certificate{
-			IssuerType: CertIssuerTypeAcme,
-			ACME:       acmeConfig,
-		},
-		Keycloak: keycloak,
-		Rancher:  rancher,
+		Ingress:      getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
+		Certificates: certConfig,
+		Keycloak:     keycloak,
+		Rancher:      rancher,
 	}, nil
 }
 
