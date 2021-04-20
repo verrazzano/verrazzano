@@ -554,7 +554,7 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" false ${CREATE_KIND_USE_CALICO}
                 if [ ${CREATE_KIND_USE_CALICO} == true ]; then
                     echo "Install Calico"
-                    kubectl apply -f https://docs.projectcalico.org/manifests/canal.yaml
+                    kubectl apply -f https://docs.projectcalico.org/archive/v3.18/manifests/canal.yaml
                 fi
                 echo "Install metallb"
                 cd ${GO_REPO_PATH}/verrazzano
