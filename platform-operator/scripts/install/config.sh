@@ -164,12 +164,6 @@ function validate_config_json {
   set -o pipefail
   local jsonToValidate=$1
   echo "$jsonToValidate" | jq . > /dev/null || fail "Failed to read installation config file contents. Make sure it is valid JSON"
-}
-
-# Make sure the environmentName, dns entries and certificates are valid in CONFIG_JSON
-function validate_config_json_entries {
-  set -o pipefail
-  local jsonToValidate=$1
   validate_environment_name "$jsonToValidate"
   validate_dns_section "$jsonToValidate"
   validate_certificates_section "$jsonToValidate"
@@ -368,8 +362,8 @@ function compute_effective_override() {
 # Read the value for a given key from effective.config.json
 function get_override_config_value() {
   local config_val=""
-  # The install-overrides is meant for install operation, return empty string for uninstall.
-  # Also when get_config_value is called before creating the effective config, return an empty string.
+  # Return an empty string when effective.config.json is not there - during uninstall and when validate_config_json
+  # calls get_config_value.
   if [ ! -f "$EFFECTIVE_CONFIG_VALUES" ]; then
     echo $config_val
     return 0
@@ -415,5 +409,3 @@ validate_config_json "$CONFIG_JSON" || fail "Installation config is invalid"
 if [ $INSTALL_PATH = true ]; then
   compute_effective_override  || fail "Failure to merge the install overrides"
 fi
-
-validate_config_json_entries "$CONFIG_JSON" || fail "Failure to validate the entries in config file"
