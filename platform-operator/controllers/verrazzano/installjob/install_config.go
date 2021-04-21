@@ -36,8 +36,8 @@ const (
 type DNSType string
 
 const (
-	// DNSTypeXip is for the dns type xip (magic dns)
-	DNSTypeXip DNSType = "xip.io"
+	// DNSTypeWildcard is for the dns type wildcard (magic dns)
+	DNSTypeWildcard DNSType = "wildcard"
 	// DNSTypeOci is for the dns type OCI
 	DNSTypeOci DNSType = "oci"
 	// DNSTypeExternal is for dns type external (e.g. olcne)
@@ -119,6 +119,11 @@ type Ingress struct {
 	Application Application `json:"application,omitempty"`
 }
 
+// WildcardDNS configuration
+type WildcardDNS struct {
+	Domain installv1alpha1.DomainType `json:"domain"`
+}
+
 // ExternalDNS configuration
 type ExternalDNS struct {
 	Suffix string `json:"suffix"`
@@ -150,6 +155,7 @@ type DNSOCI struct {
 // DNS configuration for a Verrazzano installation
 type DNS struct {
 	Type     DNSType      `json:"type"`
+	Wildcard *WildcardDNS `json:"wildcard,omitempty"`
 	External *ExternalDNS `json:"external,omitempty"`
 	Oci      *DNSOCI      `json:"oci,omitempty"`
 }
@@ -194,7 +200,7 @@ func GetInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, er
 			return newOCIDNSInstallConfig(vz)
 		}
 	}
-	return newXipIoInstallConfig(vz)
+	return newWildcardInstallConfig(vz)
 }
 
 func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
@@ -239,9 +245,9 @@ func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfigurati
 	}, nil
 }
 
-// newXipIoInstallConfig returns an install configuration for a xip.io install in the
+// newWildcardInstallConfig returns an install configuration for a wildcard (magic DNS) install in the
 // json format required by the bash installer scripts.
-func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
+func newWildcardInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
 	vzArgs, err := getVerrazzanoInstallArgs(&vz.Spec)
 	if err != nil {
 		return nil, err
@@ -256,7 +262,8 @@ func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguratio
 		Profile:         getProfile(vz.Spec.Profile),
 		VzInstallArgs:   vzArgs,
 		DNS: DNS{
-			Type: DNSTypeXip,
+			Type:     DNSTypeWildcard,
+			Wildcard: getWildcardType(vz.Spec.Components.DNS.Wildcard.Domain),
 		},
 		Ingress: getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
 		Certificates: Certificate{
@@ -512,6 +519,16 @@ func getEnvironmentName(envName string) string {
 	}
 
 	return envName
+}
+
+// getWildcardType returns the install wildcard DNS type
+func getWildcardType(domainType installv1alpha1.DomainType) *WildcardDNS {
+	// Use domain type of xip.io, if not specified
+	if domainType == "" {
+		return &WildcardDNS{Domain: installv1alpha1.XIPIO}
+	}
+
+	return &WildcardDNS{Domain: domainType}
 }
 
 // getProfile returns the install profile name
