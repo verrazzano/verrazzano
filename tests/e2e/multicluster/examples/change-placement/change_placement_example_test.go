@@ -174,6 +174,7 @@ var _ = ginkgo.Describe("Multicluster app placed in managed cluster", func() {
 })
 
 var _ = ginkgo.AfterSuite(func() {
+	pkg.ExecuteClusterDumpWithEnvVarConfig()
 	if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, managed1Kubeconfig); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not delete hello-helidon namespace: %v\n", err))
 	}
