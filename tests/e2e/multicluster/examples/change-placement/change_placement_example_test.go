@@ -25,6 +25,12 @@ var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managed1Kubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 
+var failed = false
+var _ = ginkgo.AfterEach(func() {
+	// failed var indicates whether any of the tests has failed
+	failed = failed || ginkgo.CurrentGinkgoTestDescription().Failed
+})
+
 // Deploy the example resources to the admin cluster
 var _ = ginkgo.BeforeSuite(func() {
 	// deploy the VerrazzanoProject
@@ -177,7 +183,9 @@ var _ = ginkgo.Describe("Multicluster app placed in managed cluster", func() {
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	pkg.ExecuteClusterDumpWithEnvVarConfig()
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, managed1Kubeconfig); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not delete hello-helidon namespace: %v\n", err))
 	}
