@@ -16,7 +16,7 @@ if [ -z "$JENKINS_URL" ] || [ -z "$GO_REPO_PATH" ] || [ -z "$TESTS_EXECUTED_FILE
 fi
 
 INSTALL_CALICO=${1:-false}
-DNS_WILDCARD_DOMAIN_TYPE=${2:-"xip.io"}
+DNS_WILDCARD_DOMAIN=${2:-"xip.io"}
 
 cd ${GO_REPO_PATH}/verrazzano
 echo "tests will execute" > ${TESTS_EXECUTED_FILE}
@@ -61,7 +61,7 @@ kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
 echo "Installing yq"
 GO111MODULE=on go get github.com/mikefarah/yq/v4
 export PATH=${HOME}/go/bin:${PATH}
-./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${DNS_WILDCARD_DOMAIN_TYPE}
+./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${DNS_WILDCARD_DOMAIN}
 
 echo "Wait for Operator to be ready"
 cd ${GO_REPO_PATH}/verrazzano
