@@ -23,10 +23,10 @@ pipeline {
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
                 choices: [ "1.18", "1.19", "1.20", "1.17" ])
-        choice (name: 'DNS_WILDCARD',
-                description: 'DNS Wildcard Provider',
+        choice (name: 'DNS_WILDCARD_DOMAIN',
+                description: 'DNS Wildcard Domain',
                 // 1st choice is the default value
-                choices: [ "xip.io", "nip.io", "sslip.io", ])
+                choices: [ "xip.io", "nip.io"])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -170,7 +170,7 @@ pipeline {
                     steps {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO} ${params.DNS_WILDCARD}
+                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO} ${params.DNS_WILDCARD_DOMAIN}
                         """
                     }
                     post {
