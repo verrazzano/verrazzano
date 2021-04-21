@@ -29,8 +29,6 @@ function install_oam {
   log "Install OAM"
   helm install oam \
       --namespace "${NAMESPACE}" \
-      --set image.repository=ghcr.io/verrazzano/oam-kubernetes-runtime \
-      --set image.tag=v0.3.0 \
       --version 0.3.0 \
       -f ${VZ_OVERRIDES_DIR}/oam-kubernetes-runtime-values.yaml \
       ${CHARTS_DIR}/oam-kubernetes-runtime
