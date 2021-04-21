@@ -14,9 +14,6 @@ EFFECTIVE_CONFIG_VALUES="${INSTALL_OVERRIDES_DIR}/effective.config.json"
 # The max length of the environment name passed in by the user.
 ENV_NAME_LENGTH_LIMIT=10
 
-# Flag to differentiate install from uninstall
-INSTALL_PATH=true
-
 # Read a JSON installation config file and output the JSON to stdout
 function read_config() {
   local config_file=$1
@@ -396,7 +393,6 @@ function is_keycloak_enabled() {
 
 if [ -z "$INSTALL_CONFIG_FILE" ]; then
   INSTALL_CONFIG_FILE=$DEFAULT_CONFIG_FILE
-  INSTALL_PATH=false
 fi
 log "Reading installation config file $INSTALL_CONFIG_FILE"
 if [ ! -f "$INSTALL_CONFIG_FILE" ]; then
@@ -406,6 +402,4 @@ CONFIG_JSON="$(read_config $INSTALL_CONFIG_FILE)"
 
 validate_config_json "$CONFIG_JSON" || fail "Installation config is invalid"
 
-if [ $INSTALL_PATH = true ]; then
-  compute_effective_override  || fail "Failure to merge the install overrides"
-fi
+compute_effective_override  || fail "Failure to merge the install overrides"
