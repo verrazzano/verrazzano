@@ -121,7 +121,7 @@ type Ingress struct {
 
 // WildcardDNS configuration
 type WildcardDNS struct {
-	Domain installv1alpha1.DomainType `json:"domain"`
+	Domain string `json:"domain"`
 }
 
 // ExternalDNS configuration
@@ -263,7 +263,7 @@ func newWildcardInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfigura
 		VzInstallArgs:   vzArgs,
 		DNS: DNS{
 			Type:     DNSTypeWildcard,
-			Wildcard: getWildcardType(vz.Spec.Components.DNS.Wildcard.Domain),
+			Wildcard: getWildcardDomain(vz.Spec.Components.DNS),
 		},
 		Ingress: getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
 		Certificates: Certificate{
@@ -521,14 +521,13 @@ func getEnvironmentName(envName string) string {
 	return envName
 }
 
-// getWildcardType returns the install wildcard DNS type
-func getWildcardType(domainType installv1alpha1.DomainType) *WildcardDNS {
-	// Use domain type of xip.io, if not specified
-	if domainType == "" {
-		return &WildcardDNS{Domain: installv1alpha1.XIPIO}
+// getWildcardDomain returns the install CR specified wildcard domain
+func getWildcardDomain(dns *installv1alpha1.DNSComponent) *WildcardDNS {
+	if dns != nil && dns.Wildcard != nil {
+		return &WildcardDNS{Domain: dns.Wildcard.Domain}
 	}
 
-	return &WildcardDNS{Domain: domainType}
+	return &WildcardDNS{Domain: "xip.io"}
 }
 
 // getProfile returns the install profile name

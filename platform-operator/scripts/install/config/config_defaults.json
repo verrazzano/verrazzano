@@ -2,7 +2,8 @@
    "environmentName": "default",
    "profile": "prod",
    "dns": {
-      "type": "xip.io"
+      "type": "wildcard",
+      "domain": "xip.io"
    },
    "certificates": {
       "issuerType": "ca",
