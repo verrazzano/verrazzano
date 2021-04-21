@@ -115,7 +115,7 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 			status, content := pkg.GetWebPageWithCABundle(url, host)
 			return gomega.Expect(status).To(gomega.Equal(200)) &&
 				gomega.Expect(content).To(gomega.ContainSubstring("Greetings from Verrazzano Enterprise Container Platform"))
-		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+		}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 	})
 
 	ginkgo.It("Verify Verrazzano facts endpoint is working.", func() {
@@ -124,7 +124,7 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 			status, content := pkg.GetWebPageWithCABundle(url, host)
 			gomega.Expect(len(content) > 0, fmt.Sprintf("An empty string returned from /facts endpoint %v", content))
 			return gomega.Expect(status).To(gomega.Equal(200))
-		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+		}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue())
 	})
 
 	ginkgo.Context("Logging.", func() {
