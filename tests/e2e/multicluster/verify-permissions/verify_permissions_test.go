@@ -2,8 +2,6 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package permissions_test
 
-// +build disabled_test
-
 import (
 	"context"
 	"fmt"
