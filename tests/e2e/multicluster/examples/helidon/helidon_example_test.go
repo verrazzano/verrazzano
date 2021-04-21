@@ -190,6 +190,14 @@ var _ = ginkgo.AfterSuite(func() {
 	if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, adminKubeconfig); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not delete %s namespace: %v\n", examples.TestNamespace, err))
 	}
+
+	// Wait until the namespace is fully deleted in both clusters, so that we don't interfere with other subsequent
+	// tests that may use the examples namespace
+	gomega.Eventually(func() bool {
+		return !pkg.DoesNamespaceExistInCluster(examples.TestNamespace, managedKubeconfig) &&
+			!pkg.DoesNamespaceExistInCluster(examples.TestNamespace, adminKubeconfig)
+	}, waitTimeout, pollingInterval)
+
 })
 
 func cleanUp() error {
