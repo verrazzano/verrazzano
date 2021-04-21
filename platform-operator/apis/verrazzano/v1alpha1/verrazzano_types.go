@@ -401,16 +401,10 @@ const OciConfigSecretFile = "oci.yaml"
 // DomainType is the type of DNS wildcard domain type
 type DomainType string
 
-const (
-	// XIPIO identifies and xip.io domain
-	XIPIO DomainType = "xip.io"
-	// NIPIO identifies and mip.io domain
-	NIPIO DomainType = "nip.io"
-)
-
-// Wildcard is wildcard DNS type
+// Wildcard DNS type
 type Wildcard struct {
-	Domain DomainType `json:"domainType,omitempty"`
+	// DNS wildcard domain (xip.io, nip.io, etc.)
+	Domain string `json:"domain"`
 }
 
 // OCI DNS type

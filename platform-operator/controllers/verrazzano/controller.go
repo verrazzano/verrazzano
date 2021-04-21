@@ -656,12 +656,7 @@ func buildDomainSuffix(c client.Client, vz *installv1alpha1.Verrazzano) (string,
 	}
 
 	if dns != nil && dns.Wildcard != nil {
-		if dns.Wildcard.Domain == installv1alpha1.XIPIO {
-			return ipAddress + ".xip.io", nil
-		}
-		if dns.Wildcard.Domain == installv1alpha1.NIPIO {
-			return ipAddress + ".nip.io", nil
-		}
+		return ipAddress + dns.Wildcard.Domain, nil
 	}
 
 	// Default to xip.io

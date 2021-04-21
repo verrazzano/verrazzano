@@ -130,10 +130,11 @@ spec:
                       wildcard:
                         description: DNS type of wildcard.  This is the default.
                         properties:
-                          domainType:
-                            description: DomainType is the type of DNS wildcard domain
-                              type
+                          domain:
+                            description: DNS wildcard domain (xip.io, nip.io, etc.)
                             type: string
+                        required:
+                        - domain
                         type: object
                     type: object
                   elasticsearch:
