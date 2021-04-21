@@ -6,9 +6,12 @@
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
+INSTALL_CALICO=${1:-false}
+
 usage() {
-  echo "Usage: $0 [-p]" 1>&2
+  echo "Usage: $0 [-p] [install_calico]" 1>&2
   echo "-p create cluster with private endpoints" 1>&2
+  echo "install_calico true/false, defaults to false" 1>&2
   exit 1
 }
 
@@ -105,6 +108,10 @@ if [ ${status_code:-1} -eq 0 ]; then
     timeout 15m bash -c 'until kubectl get nodes | grep NAME; do sleep 10; done'
     echo "Waiting for nodes to transition to 'READY' at $(date)..."
     kubectl wait --for=condition=ready nodes --timeout=5m --all
+
+    if [ $INSTALL_CALICO == true ] ; then
+        ${SCRIPT_DIR}/install_calico_oke.sh
+    fi
 else
     echo "OKE Cluster creation request failed!"
     exit 1
