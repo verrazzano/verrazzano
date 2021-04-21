@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"os"
 	"strings"
 	"time"
@@ -54,11 +55,12 @@ const configDataKey = "spec"
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.TODO()
-	log := zap.S().With("resource", fmt.Sprintf("%s:%s", req.Namespace, req.Name))
+	log := zap.S().With("resource", fmt.Sprintf("%s:%s", constants.VerrazzanoInstallNamespace, req.Name))
 
 	log.Info("Reconciler called")
 
 	vz := &installv1alpha1.Verrazzano{}
+	// TODO : Any change required here ?
 	if err := r.Get(ctx, req.NamespacedName, vz); err != nil {
 		// If the resource is not found, that means all of the finalizers have been removed,
 		// and the verrazzano resource has been deleted, so there is nothing left to do.
@@ -148,6 +150,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *Reconciler) doesOCIDNSConfigSecretExist(vz *installv1alpha1.Verrazzano) error {
 	// ensure the secret exists before proceeding
 	secret := &corev1.Secret{}
+	// TODO : Change required here ? If not, revert the change create_oci_config_secret.sh and 2-install-system-components.sh
 	err := r.Get(context.TODO(), types.NamespacedName{Name: vz.Spec.Components.DNS.OCI.OCIConfigSecret, Namespace: "default"}, secret)
 	if err != nil {
 		return err
@@ -163,17 +166,17 @@ func (r *Reconciler) createServiceAccount(ctx context.Context, log *zap.SugaredL
 		imagePullSecrets[i] = strings.TrimSpace(imagePullSecrets[i])
 	}
 	serviceAccount := installjob.NewServiceAccount(vz.Namespace, buildServiceAccountName(vz.Name), imagePullSecrets, vz.Labels)
-
 	// Set verrazzano resource as the owner and controller of the service account resource.
 	// This reference will result in the service account resource being deleted when the verrazzano CR is deleted.
 	if err := controllerutil.SetControllerReference(vz, serviceAccount, r.Scheme); err != nil {
 		return err
 	}
 
+	serviceAccount.Namespace = constants.VerrazzanoInstallNamespace
 	// Check if the service account for running the scripts exist
 	serviceAccountFound := &corev1.ServiceAccount{}
 	log.Infof("Checking if install service account %s exist", buildServiceAccountName(vz.Name))
-	err := r.Get(ctx, types.NamespacedName{Name: buildServiceAccountName(vz.Name), Namespace: vz.Namespace}, serviceAccountFound)
+	err := r.Get(ctx, types.NamespacedName{Name: buildServiceAccountName(vz.Name), Namespace: serviceAccount.Namespace}, serviceAccountFound)
 	if err != nil && errors.IsNotFound(err) {
 		log.Infof("Creating install service account %s", buildServiceAccountName(vz.Name))
 		err = r.Create(ctx, serviceAccount)
@@ -183,7 +186,6 @@ func (r *Reconciler) createServiceAccount(ctx context.Context, log *zap.SugaredL
 	} else if err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -196,6 +198,7 @@ func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log *zap.Suga
 	clusterRoleBindingFound := &rbacv1.ClusterRoleBinding{}
 	log.Infof("Checking if install cluster role binding %s exist", clusterRoleBinding.Name)
 	err := r.Get(ctx, types.NamespacedName{Name: clusterRoleBinding.Name, Namespace: clusterRoleBinding.Namespace}, clusterRoleBindingFound)
+	// REMOVE ME: Not changing the namespace, as cluster role will be bound to all the namespaces in the cluster
 	if err != nil && errors.IsNotFound(err) {
 		log.Infof("Creating install cluster role binding %s", clusterRoleBinding.Name)
 		err = r.Create(ctx, clusterRoleBinding)
@@ -219,6 +222,9 @@ func (r *Reconciler) createConfigMap(ctx context.Context, log *zap.SugaredLogger
 	if err != nil {
 		return err
 	}
+
+	// Set the namespace for the config map
+	configMap.Namespace = constants.VerrazzanoInstallNamespace
 
 	// Check if the ConfigMap exists for running the install
 	configMapFound := &corev1.ConfigMap{}
@@ -269,10 +275,14 @@ func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogge
 	if err := controllerutil.SetControllerReference(vz, job, r.Scheme); err != nil {
 		return err
 	}
+
+	// Set the namespace for the installation job
+	job.Namespace = constants.VerrazzanoInstallNamespace
+
 	// Check if the job for running the install scripts exist
 	jobFound := &batchv1.Job{}
 	log.Infof("Checking if install job %s exist", buildInstallJobName(vz.Name))
-	err := r.Get(ctx, types.NamespacedName{Name: buildInstallJobName(vz.Name), Namespace: vz.Namespace}, jobFound)
+	err := r.Get(ctx, types.NamespacedName{Name: buildInstallJobName(vz.Name), Namespace: job.Namespace}, jobFound)
 	if err != nil && errors.IsNotFound(err) {
 		log.Infof("Creating install job %s, dry-run=%v", buildInstallJobName(vz.Name), r.DryRun)
 		err = r.Create(ctx, job)
@@ -290,7 +300,7 @@ func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogge
 		}
 
 		// Delete leftover uninstall job if we find one.
-		err = r.cleanupUninstallJob(buildUninstallJobName(vz.Name), vz.Namespace, log)
+		err = r.cleanupUninstallJob(buildUninstallJobName(vz.Name), job.Namespace, log)
 		if err != nil {
 			return err
 		}
@@ -363,10 +373,14 @@ func (r *Reconciler) createUninstallJob(log *zap.SugaredLogger, vz *installv1alp
 		return err
 	}
 
+	// Set the namespace for the uninstall job
+	job.Namespace = constants.VerrazzanoInstallNamespace
+
 	// Check if the job for running the uninstall scripts exist
 	jobFound := &batchv1.Job{}
 	log.Infof("Checking if uninstall job %s exist", buildUninstallJobName(vz.Name))
-	err := r.Get(context.TODO(), types.NamespacedName{Name: buildUninstallJobName(vz.Name), Namespace: vz.Namespace}, jobFound)
+	err := r.Get(context.TODO(), types.NamespacedName{Name: buildUninstallJobName(vz.Name),
+		Namespace: job.Namespace}, jobFound)
 	if err != nil && errors.IsNotFound(err) {
 		log.Infof("Creating uninstall job %s, dry-run=%v", buildUninstallJobName(vz.Name), r.DryRun)
 		err = r.Create(context.TODO(), job)
@@ -557,6 +571,9 @@ func (r *Reconciler) saveVerrazzanoSpec(ctx context.Context, log *zap.SugaredLog
 			},
 			Data: configData,
 		}
+
+		// Set the namespace for the install spec in a configmap
+		installConfig.Namespace = constants.VerrazzanoInstallNamespace
 		err := r.Create(ctx, installConfig)
 		if err != nil {
 			log.Errorf("Unable to create installer config map %s: %v", configMapName, err)
@@ -598,7 +615,7 @@ func (r *Reconciler) getSavedInstallSpec(ctx context.Context, log *zap.SugaredLo
 // getInternalConfigMap Convenience method for getting the saved install ConfigMap
 func (r *Reconciler) getInternalConfigMap(ctx context.Context, vz *installv1alpha1.Verrazzano) (installConfig *corev1.ConfigMap, err error) {
 	key := client.ObjectKey{
-		Namespace: vz.Namespace,
+		Namespace: constants.VerrazzanoInstallNamespace,
 		Name:      buildInternalConfigMapName(vz.Name),
 	}
 	installConfig = &corev1.ConfigMap{}

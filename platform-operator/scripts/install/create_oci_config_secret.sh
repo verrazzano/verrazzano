@@ -90,16 +90,16 @@ if [[ ! -z "$pass_phrase" ]]; then
   echo "  passphrase: $pass_phrase" >> $OUTPUT_FILE
 fi
 
-# create the secret in default namespace
+# create the secret in verrazzano-install namespace
 create_secret=true
 
-kubectl get secret $OCI_CONFIG_SECRET_NAME -n default > /dev/null 2>&1
+kubectl get secret $OCI_CONFIG_SECRET_NAME -n verrazzano-install > /dev/null 2>&1
 if [ $? -eq 0 ]; then
   # secret exists
   echo "Secret $OCI_CONFIG_SECRET_NAME already exists.  Please delete then try again."
   exit 1
 fi
-kubectl create secret generic $OCI_CONFIG_SECRET_NAME --from-file=$OUTPUT_FILE
+kubectl create secret generic $OCI_CONFIG_SECRET_NAME --from-file=$OUTPUT_FILE -n verrazzano-install
 
 
 
