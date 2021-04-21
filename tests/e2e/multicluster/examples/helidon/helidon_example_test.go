@@ -160,7 +160,7 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 
 	ginkgo.Context("Delete resources on admin cluster", func() {
 		ginkgo.It("Delete all the things", func() {
-			err := cleanUp()
+			err := cleanUp(adminKubeconfig)
 			if err != nil {
 				ginkgo.Fail(err.Error())
 			}
@@ -183,6 +183,13 @@ var _ = ginkgo.AfterSuite(func() {
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
+	// This is necessary because of VZ-2454 since resources are not automatically deleted on managed cluster
+	err := cleanUp(managedKubeconfig)
+	if err != nil {
+		fmt.Printf("Cleanup failed on managed cluster: %v", err.Error())
+	}
+	gomega.Eventually(examples.VerifyAppDeleted, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+
 	if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, managedKubeconfig); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not delete hello-helidon namespace: %v\n", err))
 	}
@@ -191,7 +198,7 @@ var _ = ginkgo.AfterSuite(func() {
 		ginkgo.Fail(fmt.Sprintf("Could not delete %s namespace: %v\n", examples.TestNamespace, err))
 	}
 
-	// Wait until the namespace is fully deleted in both clusters, so that we don't interfere with other subsequent
+	// Wait until the namespace is deleted in both clusters, so that we don't interfere with other subsequent
 	// tests that may use the examples namespace
 	gomega.Eventually(func() bool {
 		return !pkg.DoesNamespaceExistInCluster(examples.TestNamespace, managedKubeconfig) &&
@@ -200,16 +207,16 @@ var _ = ginkgo.AfterSuite(func() {
 
 })
 
-func cleanUp() error {
-	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-app.yaml", adminKubeconfig); err != nil {
+func cleanUp(kubeconfigPath string) error {
+	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-app.yaml", kubeconfigPath); err != nil {
 		return fmt.Errorf("Failed to delete multi-cluster hello-helidon application resource: %v", err)
 	}
 
-	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-comp.yaml", adminKubeconfig); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/mc-hello-helidon-comp.yaml", kubeconfigPath); err != nil {
 		return fmt.Errorf("Failed to delete multi-cluster hello-helidon component resources: %v", err)
 	}
 
-	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/verrazzano-project.yaml", adminKubeconfig); err != nil {
+	if err := pkg.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon/verrazzano-project.yaml", kubeconfigPath); err != nil {
 		return fmt.Errorf("Failed to delete hello-helidon project resource: %v", err)
 	}
 	return nil
