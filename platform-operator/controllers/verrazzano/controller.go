@@ -654,10 +654,21 @@ func buildDomainSuffix(c client.Client, vz *installv1alpha1.Verrazzano) (string,
 	if err != nil {
 		return "", err
 	}
+
+	if dns != nil && dns.Wildcard != nil {
+		if dns.Wildcard.Domain == installv1alpha1.XIPIO {
+			return ipAddress + ".xip.io", nil
+		}
+		if dns.Wildcard.Domain == installv1alpha1.NIPIO {
+			return ipAddress + ".nip.io", nil
+		}
+	}
+
+	// Default to xip.io
 	return ipAddress + ".xip.io", nil
 }
 
-// getIngressIP get the Ingress IP, used for the xip.io case
+// getIngressIP get the Ingress IP, used for the wildcard case (magic DNS)
 func getIngressIP(c client.Client) (string, error) {
 	const nginxIngressController = "ingress-controller-ingress-nginx-controller"
 	const nginxNamespace = "ingress-nginx"
