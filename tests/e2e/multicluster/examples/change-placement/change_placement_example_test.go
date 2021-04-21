@@ -3,6 +3,8 @@
 
 package change_placement
 
+// +build disabled_test
+
 import (
 	"fmt"
 	"os"
