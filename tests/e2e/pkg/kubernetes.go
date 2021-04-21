@@ -427,7 +427,8 @@ func DeleteNamespace(name string) error {
 func DeleteNamespaceInCluster(name string, kubeconfigPath string) error {
 	// Get the Kubernetes clientset
 	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
-	err := clientset.CoreV1().Namespaces().Delete(context.TODO(), name, metav1.DeleteOptions{})
+	policy := metav1.DeletePropagationForeground // delete in the foreground and wait for the delete to complete
+	err := clientset.CoreV1().Namespaces().Delete(context.TODO(), name, metav1.DeleteOptions{PropagationPolicy: &policy})
 	if err != nil {
 		Log(Error, fmt.Sprintf("DeleteNamespace %s error: %v", name, err))
 	}
