@@ -25,6 +25,10 @@ pipeline {
         booleanParam (description: 'Whether to create kind cluster with Calico for AT testing (defaults to true)', name: 'CREATE_KIND_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
+        choice (name: 'DNS_WILDCARD_DOMAIN',
+                description: 'DNS Wildcard Domain',
+                // 1st choice is the default value
+                choices: [ "xip.io", "nip.io"])
     }
 
     environment {
@@ -365,7 +369,7 @@ pipeline {
                     steps {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO}
+                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO} ${params.DNS_WILDCARD_DOMAIN}
                         """
                     }
                     post {
