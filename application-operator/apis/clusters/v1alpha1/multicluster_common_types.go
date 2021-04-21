@@ -38,6 +38,8 @@ type ClusterLevelStatus struct {
 	Name string `json:"name"`
 	// State of the resource in this cluster
 	State StateType `json:"state"`
+	// Message with details about the status in this cluster
+	Message string `json:"message,omitempty"`
 	// LastUpdateTime of the resource state in this cluster
 	LastUpdateTime string `json:"lastUpdateTime"`
 }

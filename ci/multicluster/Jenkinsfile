@@ -6,6 +6,7 @@ def SKIP_ACCEPTANCE_TESTS = false
 def availableRegions = [ "us-ashburn-1", "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
                           "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
                           "sa-saopaulo-1", "uk-london-1", "us-phoenix-1" ]
+def acmeEnvironments = [ "staging", "production" ]
 Collections.shuffle(availableRegions)
 def zoneId = UUID.randomUUID().toString().substring(0,3).replace('-','')
 def dns_zone_ocid = 'dummy'
@@ -31,6 +32,8 @@ pipeline {
         choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS', choices: ["2", "1", "3"])
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
                 choices: ["kind", "magicdns_oke", "ocidns_oke"])
+        choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
+                choices: acmeEnvironments)
         choice (description: 'OCI region to launch OKE clusters', name: 'OKE_CLUSTER_REGION',
             // 1st choice is the default value
             choices: availableRegions )
@@ -123,6 +126,7 @@ pipeline {
         INSTALL_CONFIG_FILE_XIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-xipio.yaml"
         OCI_DNS_ZONE_SUFFIX=credentials('oci-dns-zone')
         OCI_DNS_ZONE_NAME="z${zoneId}." + "${OCI_DNS_ZONE_SUFFIX}"
+        ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
 
@@ -427,6 +431,9 @@ pipeline {
                                 export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
                                 export CLUSTER_COUNT=$clusterCount
                                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                                export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+                                export DUMP_DIRECTORY="${WORKSPACE}/examples-helidon-cluster-dump"
+                                export DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
                                 ginkgo -v -keepGoing --noColor multicluster/examples/helidon/...
                             """
                         }
@@ -441,6 +448,9 @@ pipeline {
                                 export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
                                 export CLUSTER_COUNT=$clusterCount
                                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                                export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+                                export DUMP_DIRECTORY="${WORKSPACE}/examples-changeplacement-cluster-dump"
+                                export DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
                                 ginkgo -v -keepGoing --noColor multicluster/examples/change-placement/...
                             """
                         }
@@ -661,7 +671,7 @@ def configureVerrazzanoInstallers(installResourceTemplate, configProcessorScript
 
                 # Copy the template config over for the mgd cluster profile configuration
                 cp $installResourceTemplate $destinationPath
-                VZ_ENVIRONMENT_NAME="${envName}" INSTALL_PROFILE=$installProfile $configProcessorScript $destinationPath
+                VZ_ENVIRONMENT_NAME="${envName}" INSTALL_PROFILE=$installProfile $configProcessorScript $destinationPath $ACME_ENVIRONMENT
             """
         }
     }

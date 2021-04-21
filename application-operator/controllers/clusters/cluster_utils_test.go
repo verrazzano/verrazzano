@@ -195,8 +195,8 @@ func TestStatusNeedsUpdate(t *testing.T) {
 		{Type: clustersv1alpha1.DeployComplete, Status: v1.ConditionTrue, LastTransitionTime: formattedConditionTimestamp},
 	}
 	curState := clustersv1alpha1.Failed
-	curCluster1Status := clustersv1alpha1.ClusterLevelStatus{Name: "cluster1", State: clustersv1alpha1.Succeeded, LastUpdateTime: formattedConditionTimestamp}
-	curCluster2Status := clustersv1alpha1.ClusterLevelStatus{Name: "cluster2", State: clustersv1alpha1.Failed, LastUpdateTime: formattedConditionTimestamp}
+	curCluster1Status := clustersv1alpha1.ClusterLevelStatus{Name: "cluster1", State: clustersv1alpha1.Succeeded, Message: "success msg", LastUpdateTime: formattedConditionTimestamp}
+	curCluster2Status := clustersv1alpha1.ClusterLevelStatus{Name: "cluster2", State: clustersv1alpha1.Failed, Message: "failure msg", LastUpdateTime: formattedConditionTimestamp}
 
 	curStatus := clustersv1alpha1.MultiClusterResourceStatus{
 		Conditions: curConditions,
@@ -209,23 +209,32 @@ func TestStatusNeedsUpdate(t *testing.T) {
 	existingCond := curConditions[0]
 	newCluster1Status := clustersv1alpha1.ClusterLevelStatus{
 		Name:           curCluster1Status.Name,
+		Message:        "cluster failed",
 		State:          clustersv1alpha1.Failed,
 		LastUpdateTime: formattedConditionTimestamp}
 	newCluster2Status := clustersv1alpha1.ClusterLevelStatus{
 		Name:           curCluster2Status.Name,
+		Message:        "cluster succeeded",
 		State:          clustersv1alpha1.Succeeded,
 		LastUpdateTime: formattedConditionTimestamp}
 
 	existingCondDiffTimestampCluster1 := clustersv1alpha1.Condition{
-		Type: curConditions[0].Type, Status: curConditions[0].Status, LastTransitionTime: otherTimestamp}
+		Type: curConditions[0].Type, Status: curConditions[0].Status,
+		Message: curConditions[0].Message, LastTransitionTime: otherTimestamp}
+
+	existingCondDiffMessageCluster1 := clustersv1alpha1.Condition{
+		Type: curConditions[0].Type, Status: curConditions[0].Status,
+		Message: "Some other different message", LastTransitionTime: curConditions[0].LastTransitionTime}
 
 	cluster1StatusDiffTimestamp := clustersv1alpha1.ClusterLevelStatus{
 		Name:           curCluster1Status.Name,
+		Message:        curCluster1Status.Message,
 		State:          curCluster1Status.State,
 		LastUpdateTime: otherTimestamp}
 
 	newClusterStatus := clustersv1alpha1.ClusterLevelStatus{
 		Name:           "newCluster",
+		Message:        "cluster succeeded",
 		State:          clustersv1alpha1.Succeeded,
 		LastUpdateTime: otherTimestamp}
 
@@ -251,6 +260,12 @@ func TestStatusNeedsUpdate(t *testing.T) {
 	// same condition, differing in cluster status timestamp - does not need update
 	asserts.False(t, StatusNeedsUpdate(curStatus, existingCondDiffTimestampCluster1, cluster1StatusDiffTimestamp))
 
+	// same condition, differing in condition message - needs update
+	asserts.True(t, StatusNeedsUpdate(curStatus, existingCondDiffMessageCluster1, curCluster1Status))
+
+	// same condition, differing in condition message - needs update
+	asserts.True(t, StatusNeedsUpdate(curStatus, existingCondDiffMessageCluster1, cluster1StatusDiffTimestamp))
+
 	// same condition, new cluster not present in conditions - needs update
 	asserts.True(t, StatusNeedsUpdate(curStatus, existingCond, newClusterStatus))
 }
@@ -262,20 +277,22 @@ func TestStatusNeedsUpdate(t *testing.T) {
 func TestCreateClusterLevelStatus(t *testing.T) {
 	formattedConditionTimestamp := time.Now().Format(time.RFC3339)
 	condition1 := clustersv1alpha1.Condition{
-		Type: clustersv1alpha1.DeployComplete, Status: v1.ConditionTrue, LastTransitionTime: formattedConditionTimestamp,
+		Type: clustersv1alpha1.DeployComplete, Status: v1.ConditionTrue, Message: "cond1 msg", LastTransitionTime: formattedConditionTimestamp,
 	}
 	condition2 := clustersv1alpha1.Condition{
-		Type: clustersv1alpha1.DeployFailed, Status: v1.ConditionTrue, LastTransitionTime: formattedConditionTimestamp,
+		Type: clustersv1alpha1.DeployFailed, Status: v1.ConditionTrue, Message: "cond2 msg", LastTransitionTime: formattedConditionTimestamp,
 	}
 	clusterState1 := CreateClusterLevelStatus(condition1, "cluster1")
 	asserts.Equal(t, "cluster1", clusterState1.Name)
 	asserts.Equal(t, clustersv1alpha1.Succeeded, clusterState1.State)
 	asserts.Equal(t, formattedConditionTimestamp, clusterState1.LastUpdateTime)
+	asserts.Equal(t, condition1.Message, clusterState1.Message)
 
 	clusterState2 := CreateClusterLevelStatus(condition2, "somecluster")
 	asserts.Equal(t, "somecluster", clusterState2.Name)
 	asserts.Equal(t, clustersv1alpha1.Failed, clusterState2.State)
 	asserts.Equal(t, formattedConditionTimestamp, clusterState2.LastUpdateTime)
+	asserts.Equal(t, condition2.Message, clusterState2.Message)
 }
 
 // TestComputeEffectiveState tests the ComputeEffectiveState function

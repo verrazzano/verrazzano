@@ -218,8 +218,9 @@ func TestReconcileCreateAppConfigFailed(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	assert.NoError(err)
-	assert.Equal(false, result.Requeue)
+	// expect an error and requeue upon failure
+	assert.NotNil(err)
+	assert.Equal(true, result.Requeue)
 }
 
 // TestReconcileUpdateAppConfigFailed tests the path of reconciling a
@@ -267,8 +268,9 @@ func TestReconcileUpdateAppConfigFailed(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	assert.NoError(err)
-	assert.Equal(false, result.Requeue)
+	// expect an error and requeue upon failure
+	assert.NotNil(err)
+	assert.Equal(true, result.Requeue)
 }
 
 // TestReconcileResourceNotFound tests the path of reconciling a
