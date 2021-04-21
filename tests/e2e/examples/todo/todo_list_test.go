@@ -77,7 +77,9 @@ func deployToDoListExample() {
 	}
 	pkg.Log(pkg.Info, "Create application resources")
 	err := retry.Do(
-		func() error { return pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-application.yaml") },
+		func() error {
+			return pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-application.yaml")
+		},
 		retryAttempts, retryDelay)
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create application resource: %v", err))

@@ -15,6 +15,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/rand"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -268,7 +269,7 @@ func UpdateStatus(resource MultiClusterResource, mcStatus *clustersv1alpha1.Mult
 	clusterLevelStatus := CreateClusterLevelStatus(newCondition, clusterName)
 
 	if StatusNeedsUpdate(*mcStatus, newCondition, clusterLevelStatus) {
-		mcStatus.Conditions = append(mcStatus.Conditions, newCondition)
+		addOrUpdateCondition(mcStatus, newCondition)
 		SetClusterLevelStatus(mcStatus, clusterLevelStatus)
 		mcStatus.State = ComputeEffectiveState(*mcStatus, placement)
 		err := updateFunc()
@@ -288,6 +289,31 @@ func UpdateStatus(resource MultiClusterResource, mcStatus *clustersv1alpha1.Mult
 		}
 	}
 	return reconcile.Result{}, nil
+}
+
+// addOrUpdateCondition adds or updates the newCondition in the status' list of existing conditions
+func addOrUpdateCondition(status *clustersv1alpha1.MultiClusterResourceStatus, condition clustersv1alpha1.Condition) {
+	var matchingCondition *clustersv1alpha1.Condition
+	for i, existingCondition := range status.Conditions {
+		if condition.Type == existingCondition.Type &&
+			condition.Status == existingCondition.Status &&
+			condition.Message == existingCondition.Message {
+			// the exact same condition already exists, don't update
+			return
+		}
+		if condition.Type == existingCondition.Type {
+			// use the index here since "existingCondition" is a copy and won't point to the object in the slice
+			matchingCondition = &status.Conditions[i]
+			break
+		}
+	}
+	if matchingCondition == nil {
+		status.Conditions = append(status.Conditions, condition)
+	} else {
+		matchingCondition.Message = condition.Message
+		matchingCondition.Status = condition.Status
+		matchingCondition.LastTransitionTime = condition.LastTransitionTime
+	}
 }
 
 // SetEffectiveStateIfChanged - if the effective state of the resource has changed, set it on the
@@ -340,4 +366,11 @@ func AddFinalizer(ctx context.Context, r client.Client, obj controllerutil.Objec
 	}
 
 	return controllerruntime.Result{}, nil
+}
+
+// GetRandomRequeueDelay returns a random delay to be used for RequeueAfter
+func GetRandomRequeueDelay() time.Duration {
+	// get a jittered delay to use for requeueing reconcile
+	var seconds = rand.IntnRange(2, 8)
+	return time.Duration(seconds) * time.Second
 }

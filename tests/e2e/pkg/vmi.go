@@ -36,7 +36,7 @@ func GetSystemVMICredentials() (*UsernamePassword, error) {
 // GetBindingVmiHTTPClient returns the VMI client for the prided binding
 func GetBindingVmiHTTPClient(bindingName string, kubeconfigPath string) *retryablehttp.Client {
 	bindingVmiCaCert := getBindingVMICACert(bindingName, kubeconfigPath)
-	vmiRawClient := getHTTPClientWIthCABundle(bindingVmiCaCert, kubeconfigPath)
+	vmiRawClient := getHTTPClientWithCABundle(bindingVmiCaCert, kubeconfigPath)
 	retryableClient := newRetryableHTTPClient(vmiRawClient)
 	retryableClient.CheckRetry = GetRetryPolicy()
 	return retryableClient

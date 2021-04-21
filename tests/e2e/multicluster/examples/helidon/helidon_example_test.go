@@ -110,31 +110,33 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 		}
 	})
 
-	ginkgo.Context("Logging", func() {
-		indexName := "hello-helidon-hello-helidon-appconf-hello-helidon-component-hello-helidon-container"
-
-		// GIVEN an admin cluster and at least one managed cluster
-		// WHEN the example application has been deployed to the admin cluster
-		// THEN expect the Elasticsearch index for the app exists on the admin cluster Elasticsearch
-		ginkgo.It("Verify Elasticsearch index exists on admin cluster", func() {
-			gomega.Eventually(func() bool {
-				return pkg.LogIndexFoundInCluster(indexName, adminKubeconfig)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find log index for hello helidon")
-		})
-
-		// GIVEN an admin cluster and at least one managed cluster
-		// WHEN the example application has been deployed to the admin cluster
-		// THEN expect recent Elasticsearch logs for the app exist on the admin cluster Elasticsearch
-		ginkgo.It("Verify recent Elasticsearch log record exists on admin cluster", func() {
-			gomega.Eventually(func() bool {
-				return pkg.LogRecordFoundInCluster(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"oam.applicationconfiguration.namespace": "hello-helidon",
-					"oam.applicationconfiguration.name":      "hello-helidon-appconf",
-					"verrazzano.cluster.name":                clusterName,
-				}, adminKubeconfig)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
-		})
-	})
+	// Disable this multi-cluster Helidon logging tests until the reliability issues with
+	// the DNS resolution of xip.io hostnames on OCI hosts is fixed.
+	//ginkgo.Context("Logging", func() {
+	//	indexName := "hello-helidon-hello-helidon-appconf-hello-helidon-component-hello-helidon-container"
+	//
+	//	// GIVEN an admin cluster and at least one managed cluster
+	//	// WHEN the example application has been deployed to the admin cluster
+	//	// THEN expect the Elasticsearch index for the app exists on the admin cluster Elasticsearch
+	//	ginkgo.It("Verify Elasticsearch index exists on admin cluster", func() {
+	//		gomega.Eventually(func() bool {
+	//			return pkg.LogIndexFoundInCluster(indexName, adminKubeconfig)
+	//		}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find log index for hello helidon")
+	//	})
+	//
+	//	// GIVEN an admin cluster and at least one managed cluster
+	//	// WHEN the example application has been deployed to the admin cluster
+	//	// THEN expect recent Elasticsearch logs for the app exist on the admin cluster Elasticsearch
+	//	ginkgo.It("Verify recent Elasticsearch log record exists on admin cluster", func() {
+	//		gomega.Eventually(func() bool {
+	//			return pkg.LogRecordFoundInCluster(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+	//				"oam.applicationconfiguration.namespace": "hello-helidon",
+	//				"oam.applicationconfiguration.name":      "hello-helidon-appconf",
+	//				"verrazzano.cluster.name":                clusterName,
+	//			}, adminKubeconfig)
+	//		}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+	//	})
+	//})
 
 	// NOTE: This test is disabled until this bug is fixed: VZ-2448
 

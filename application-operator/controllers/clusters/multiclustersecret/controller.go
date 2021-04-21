@@ -73,7 +73,17 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		_, err = clusters.AddFinalizer(ctx, r.Client, &mcSecret, finalizerName)
 	}
 
-	return r.updateStatus(ctx, &mcSecret, opResult, err)
+	ctrlResult, updateErr := r.updateStatus(ctx, &mcSecret, opResult, err)
+
+	// if an error occurred in createOrUpdate, return that error with a requeue
+	// even if update status succeeded
+	if err != nil {
+		res := ctrl.Result{Requeue: true, RequeueAfter: clusters.GetRandomRequeueDelay()}
+		return res, err
+	}
+
+	return ctrlResult, updateErr
+
 }
 
 func (r *Reconciler) updateStatus(ctx context.Context, mcSecret *clustersv1alpha1.MultiClusterSecret, opResult controllerutil.OperationResult, err error) (ctrl.Result, error) {
