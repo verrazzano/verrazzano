@@ -16,6 +16,7 @@ global:
   controlPlaneSecurityEnabled: true
   enableHelmTest: false
   istioNamespace: istio-system
+  imagePullPolicy: IfNotPresent
 
 gateways:
   istio-egressgateway:
