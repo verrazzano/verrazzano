@@ -6,8 +6,8 @@ package pkg
 import "strings"
 
 // Returns well-known wildcard suffix or empty string
-func getDNSWildcard(s string) string {
-	wildcards := []string {"xip.io", "nip.io", "sslip.io"}
+func GetWildcardDNS(s string) string {
+	wildcards := []string{"xip.io", "nip.io", "sslip.io"}
 	// get address segment (ignore port)
 	segs := strings.Split(s, ":")
 	for _, w := range wildcards {
@@ -19,8 +19,6 @@ func getDNSWildcard(s string) string {
 }
 
 // Returns true if string has DNS wildcard name
-func hasDNSWildcard(s string) bool {
-	return getDNSWildcard(s) != ""
+func HasWildcardDNS(s string) bool {
+	return GetWildcardDNS(s) != ""
 }
-
-

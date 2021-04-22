@@ -49,7 +49,7 @@ func TestValidWildcard(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert.True(hasDNSWildcard(test.data), test.name + " failed")
+			assert.True(HasWildcardDNS(test.data), test.name+" failed")
 		})
 	}
 }
@@ -95,7 +95,7 @@ func TestNotWildcard(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert.False(hasDNSWildcard(test.data), test.name + " failed")
+			assert.False(HasWildcardDNS(test.data), test.name+" failed")
 		})
 	}
 }

@@ -228,7 +228,7 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) *http.Clien
 		}
 		tr.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 			Log(Debug, fmt.Sprintf("original address %s", addr))
-			wildcardSuffix := dnsWildcardSuffix(addr)
+			wildcardSuffix := GetWildcardDNS(addr)
 			if strings.Contains(addr, "127.0.0.1") && strings.Contains(addr, ":443") {
 				// resolve to the nginx node ip if address contains 127.0.0.1, for node port installation
 				addr = ipResolve + ":443"
