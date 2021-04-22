@@ -13,6 +13,8 @@ KEYCLOAK_NS=keycloak
 KCADMIN_REALM=master
 KCADMIN_USERNAME=keycloakadmin
 KCADMIN_SECRET=keycloak-http
+VERRAZZANO_INTERNAL_PROM_USER=verrazzano-prom-internal
+VERRAZZANO_INTERNAL_ES_USER=verrazzano-es-internal
 MYSQL_USERNAME=keycloak
 VERRAZZANO_NS=verrazzano-system
 VZ_SYS_REALM=verrazzano-system
@@ -92,6 +94,35 @@ data:
   password: $(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1 | base64)
 ")
 
+
+VPROM=$(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1 | base64)
+VES=$(cat /dev/urandom | LC_ALL=C tr -dc "a-zA-Z0-9" | fold -w 10 | head -n 1 | base64)
+
+  # Create a random secret for the verrazzano-prom-internal user
+  kubectl apply -f <(echo "
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ${VERRAZZANO_INTERNAL_PROM_USER}
+  namespace: ${VERRAZZANO_NS}
+type: Opaque
+data:
+  password: ${VPROM}
+")
+
+
+  # Create a random secret for the verrazzano-es-internal user
+  kubectl apply -f <(echo "
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ${VERRAZZANO_INTERNAL_ES_USER}
+  namespace: ${VERRAZZANO_NS}
+type: Opaque
+data:
+  password: ${VES}
+")
+
   # Check if using the optional imagePullSecret
   local KEYCLOAK_ARGUMENTS=""
   if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
@@ -130,6 +161,17 @@ data:
     -c keycloak \
     -- bash -c \
     "/opt/jboss/keycloak/bin/kcadm.sh update realms/master -s loginTheme=oracle --no-config --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --password \$(cat /etc/${KCADMIN_SECRET}/password)"
+
+  kubectl exec keycloak-0 \
+    -n ${KEYCLOAK_NS} \
+    -c keycloak \
+    -- bash -c \
+    "/opt/jboss/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user ${KCADMIN_USERNAME} --client admin-cli --password \$(cat /etc/${KCADMIN_SECRET}/password) && \
+     /opt/jboss/keycloak/bin/kcadm.sh create users -r verrazzano-system -s username=${VERRAZZANO_INTERNAL_PROM_USER} -s enabled=true && \
+     /opt/jboss/keycloak/bin/kcadm.sh set-password -r verrazzano-system --username ${VERRAZZANO_INTERNAL_PROM_USER} --new-password $(echo "${VPROM}" | base64 --decode) && \
+     /opt/jboss/keycloak/bin/kcadm.sh create users -r verrazzano-system -s username=${VERRAZZANO_INTERNAL_ES_USER} -s enabled=true && \
+     /opt/jboss/keycloak/bin/kcadm.sh set-password -r verrazzano-system --username ${VERRAZZANO_INTERNAL_ES_USER} --new-password $(echo "${VES}" | base64 --decode) "
+
 
   # Update the password policies.
   log "Setting password policies"
