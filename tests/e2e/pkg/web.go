@@ -235,7 +235,7 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) *http.Clien
 				Log(Debug, fmt.Sprintf("modified address %s", addr))
 			} else if wildcardSuffix != "" && strings.Contains(addr, ":443") {
 				// resolve DNS wildcard ourselves
-				resolving := strings.TrimSuffix(strings.TrimSuffix(addr, ":443"), wildcardSuffix)
+				resolving := strings.TrimSuffix(strings.TrimSuffix(addr, ":443"), "."+wildcardSuffix)
 				four := resolving[strings.LastIndex(resolving, "."):]
 				resolving = strings.TrimSuffix(resolving, four)
 				three := resolving[strings.LastIndex(resolving, "."):]

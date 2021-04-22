@@ -15,41 +15,50 @@ import (
 func TestValidWildcard(t *testing.T) {
 	assert := asserts.New(t)
 	tests := []struct {
-		name string
-		data string
+		name   string
+		data   string
+		domain string
 	}{
 		{
-			name: "test1",
-			data: "xip.io",
+			name:   "test1",
+			data:   "xip.io",
+			domain: "xip.io",
 		},
 		{
-			name: "test2",
-			data: "a.xip.io",
+			name:   "test2",
+			data:   "a.xip.io",
+			domain: "xip.io",
 		},
 		{
-			name: "test3",
-			data: "a.xip.io:33",
+			name:   "test3",
+			data:   "a.xip.io:33",
+			domain: "xip.io",
 		},
 		{
-			name: "test4",
-			data: "a.xip.io:33",
+			name:   "test4",
+			data:   "a.xip.io:33",
+			domain: "xip.io",
 		},
 		{
-			name: "test5",
-			data: "123.23.344.343.xip.io:33",
+			name:   "test5",
+			data:   "123.23.344.343.xip.io/foo:33",
+			domain: "xip.io",
 		},
 		{
-			name: "test6",
-			data: "a.nip.io",
+			name:   "test6",
+			data:   "a.nip.io",
+			domain: "nip.io",
 		},
 		{
-			name: "test7",
-			data: "a.sslip.io",
+			name:   "test7",
+			data:   "a.sslip.io",
+			domain: "sslip.io",
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert.True(HasWildcardDNS(test.data), test.name+" failed")
+			assert.Equal(GetWildcardDNS(test.data), test.domain, test.name+" failed")
 		})
 	}
 }
