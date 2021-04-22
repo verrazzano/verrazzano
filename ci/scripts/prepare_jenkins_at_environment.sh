@@ -68,7 +68,15 @@ cd ${GO_REPO_PATH}/verrazzano
 kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
 
 echo "Installing Verrazzano on Kind"
-kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}
+install_retries=0
+until kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}; do
+  install_retries=$((install_retries+1))
+  sleep 6
+  if [ "install_retries" -ge 10 ] ; then
+    echo "Installation Failed trying to apply the Verazzano CR YAML"
+    exit 1
+  fi
+done
 
 ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/debug-new-kind-acceptance-tests-cluster-dump -r ${WORKSPACE}/debug-new-kind-acceptance-tests-cluster-dump/analysis.report
 
