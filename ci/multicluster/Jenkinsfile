@@ -432,7 +432,7 @@ pipeline {
                                 export CLUSTER_COUNT=$clusterCount
                                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                                 export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-                                export DUMP_DIRECTORY="${WORKSPACE}/examples-helidon-cluster-dump"
+                                export DUMP_DIRECTORY="${WORKSPACE}/test-cluster-dumps/examples-helidon"
                                 export DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
                                 ginkgo -v -keepGoing --noColor multicluster/examples/helidon/...
                             """
@@ -449,7 +449,7 @@ pipeline {
                                 export CLUSTER_COUNT=$clusterCount
                                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                                 export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-                                export DUMP_DIRECTORY="${WORKSPACE}/examples-changeplacement-cluster-dump"
+                                export DUMP_DIRECTORY="${WORKSPACE}/test-cluster-dumps/examples-changeplacement"
                                 export DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
                                 ginkgo -v -keepGoing --noColor multicluster/examples/change-placement/...
                             """
@@ -504,7 +504,7 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: '**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump*/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump*/**,**/test-cluster-dumps/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             script {
                 int clusterCount = params.TOTAL_CLUSTERS.toInteger()
