@@ -52,6 +52,9 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 	scopeName := "default-hello-app-logging-scope"
 	namespacedName := types.NamespacedName{Name: scopeName, Namespace: "default"}
 	namespaceName := types.NamespacedName{Name: "default", Namespace: ""}
+
+	// WHEN the appconfig is being deleted
+	// THEN Default should not add the default LoggingScope to the component of the appconfig
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
 	// Expect get namespace
@@ -59,8 +62,19 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, ns *v1.Namespace) error {
 			return nil
 		})
+	testLoggingScopeDefaulterDefault(t, cli, "hello-conf-deleting.yaml", map[string]string{"hello-component": scopeName}, false, false)
+	mocker.Finish()
+
 	// WHEN the appconfig has one component with no scopes and the default scope exists
 	// THEN Default should add the default LoggingScope to the component of the appconfig
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+	// Expect get namespace
+	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespaceName), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, ns *v1.Namespace) error {
+			return nil
+		})
+	// Expect get existing logging scope
 	cli.EXPECT().Get(gomock.Eq(context.TODO()), gomock.Eq(namespacedName), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, scope *vzapi.LoggingScope) error {
 			scope.Name = "default-hello-app-logging-scope"
@@ -83,7 +97,6 @@ func TestLoggingScopeDefaulter_Default(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, scope *vzapi.LoggingScope) error {
 			return NotFoundError{}
 		})
-
 	// Expect create logging scope
 	cli.EXPECT().Create(gomock.Eq(context.TODO()), gomock.Eq(createDefaultLoggingScope(namespacedName)), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
