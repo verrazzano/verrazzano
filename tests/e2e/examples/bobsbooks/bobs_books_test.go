@@ -28,24 +28,17 @@ var (
 
 var _ = ginkgo.BeforeSuite(func() {
 	deployBobsBooksExample()
+})
 
-	gomega.Eventually(func() bool {
-		expectedPods := []string{
-			"bobbys-front-end-adminserver",
-			"bobs-bookstore-adminserver",
-			"bobbys-coherence-0",
-			"roberts-coherence-0",
-			"roberts-coherence-1",
-			"bobbys-helidon-stock-application",
-			"robert-helidon",
-			"mysql",
-		}
-		return pkg.PodsRunning("bobs-books", expectedPods)
-	}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Bobs Books Application Failed to Deploy")
-
+var failed = false
+var _ = ginkgo.AfterEach(func() {
+	failed = failed || ginkgo.CurrentGinkgoTestDescription().Failed
 })
 
 var _ = ginkgo.AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	undeployBobsBooksExample()
 })
 
@@ -128,7 +121,25 @@ func undeployBobsBooksExample() {
 }
 
 var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
+
+	ginkgo.It("Wait for deployment.", func() {
+		gomega.Eventually(func() bool {
+			expectedPods := []string{
+				"bobbys-front-end-adminserver",
+				"bobs-bookstore-adminserver",
+				"bobbys-coherence-0",
+				"roberts-coherence-0",
+				"roberts-coherence-1",
+				"bobbys-helidon-stock-application",
+				"robert-helidon",
+				"mysql",
+			}
+			return pkg.PodsRunning("bobs-books", expectedPods)
+		}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Bobs Books Application Failed to Deploy")
+	})
+
 	var host = ""
+
 	// Get the host from the Istio gateway resource.
 	// GIVEN the Istio gateway for the bobs-books namespace
 	// WHEN GetHostnameFromGateway is called
