@@ -134,6 +134,7 @@ pipeline {
 
         DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
+        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
     }
 
     stages {
@@ -364,7 +365,7 @@ pipeline {
                 stage('generic-springboot') {
                     environment {
                         DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/generic-springboot-test.log"
-                        DUMP_DIRECTORY="${WORKSPACE}/examples-springboot-cluster-dump"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-springboot"
                     }
                     steps {
                         script {
@@ -395,7 +396,7 @@ pipeline {
                 }
                 stage('hello-helidon') {
                     environment {
-                        DUMP_DIRECTORY="${WORKSPACE}/examples-hello-helidon-cluster-dump"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-hello-helidon"
                     }
                     steps {
                         script {
@@ -427,7 +428,7 @@ pipeline {
                 stage('lift-and-shift') {
                     environment {
                         DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/lift-and-shift-test.log"
-                        DUMP_DIRECTORY="${WORKSPACE}/examples-lift-and-shift-cluster-dump"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-lift-and-shift"
                     }
                     steps {
                         script {
@@ -437,7 +438,7 @@ pipeline {
                 }
                 stage('istio authorization policy') {
                     environment {
-                        DUMP_DIRECTORY="${WORKSPACE}/examples-istio-auth-policy-cluster-dump"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-istio-auth-policy"
                     }
                     steps {
                         runGinkgo('istio/authz')
@@ -445,7 +446,7 @@ pipeline {
                 }
                 stage('security role based access') {
                     environment {
-                        DUMP_DIRECTORY="${WORKSPACE}/examples-rbac-cluster-dump"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-rbac"
                     }
                     steps {
                         runGinkgo('security/rbac')
@@ -454,7 +455,7 @@ pipeline {
                 stage('bobs-books') {
                     environment {
                         DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/bobs-book-test.log"
-                        DUMP_DIRECTORY="${WORKSPACE}/examples-bobs-books-dump"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs-books-dump"
                     }
                     steps {
                         script {
@@ -476,7 +477,7 @@ pipeline {
                 stage('socks') {
                     environment {
                         DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/socks-test.log"
-                        DUMP_DIRECTORY="${WORKSPACE}/examples-socks-cluster-dump"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
                     }
                     steps {
                         script {
@@ -519,7 +520,7 @@ pipeline {
                     sort -u -o ${IMG_LIST_FILE} ${IMG_LIST_FILE}
                 fi
             """
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/test-cluster-dumps/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             sh """
                 if [ "${TEST_ENV}" == "ocidns_oke" ]; then
