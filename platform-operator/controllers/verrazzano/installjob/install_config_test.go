@@ -1220,7 +1220,7 @@ func TestNewExternalDNSInstallConfigInvalidVZInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	config, err := newExternalDNSInstallConfig(&vzSpec)
+	config, err := GetInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
@@ -1246,7 +1246,7 @@ func TestNewExternalDNSInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 			},
 		},
 	}
-	config, err := newExternalDNSInstallConfig(&vzSpec)
+	config, err := GetInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
@@ -1271,7 +1271,7 @@ func TestNewXipIoInstallConfigInvalidVZInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	config, err := newXipIoInstallConfig(&vzSpec)
+	config, err := GetInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
@@ -1297,7 +1297,7 @@ func TestNewXipIoInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 			},
 		},
 	}
-	config, err := newXipIoInstallConfig(&vzSpec)
+	config, err := GetInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
@@ -1322,7 +1322,7 @@ func TestNewOCIDNSInstallConfigInvalidVZInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	config, err := newOCIDNSInstallConfig(&vzSpec)
+	config, err := GetInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
@@ -1348,7 +1348,7 @@ func TestNewOCIDNSInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 			},
 		},
 	}
-	config, err := newOCIDNSInstallConfig(&vzSpec)
+	config, err := GetInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }

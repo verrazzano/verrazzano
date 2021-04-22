@@ -39,7 +39,9 @@ var _ = ginkgo.BeforeSuite(func() {
 		ginkgo.Fail(fmt.Sprintf("Failed to create helidon-config component resources: %v", err))
 	}
 	err := retry.Do(
-		func() error { return pkg.CreateOrUpdateResourceFromFile("examples/helidon-config/helidon-config-app.yaml") },
+		func() error {
+			return pkg.CreateOrUpdateResourceFromFile("examples/helidon-config/helidon-config-app.yaml")
+		},
 		retryAttempts, retryDelay)
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create helidon-config application resource: %v", err))
