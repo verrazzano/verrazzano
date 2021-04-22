@@ -59,10 +59,11 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 	appConfig := &oamv1.ApplicationConfiguration{}
 	//This json can be used to curl -X POST the webhook endpoint
 	log.V(1).Info("admission.Request", "request", req)
+	log.Info("Handling appconfig default",
+		"request.Operation", req.Operation, "appconfig.Name", req.Name)
 
 	// if the operation is Delete then decode the old object and call the defaulter to cleanup any app conf defaults
 	if req.Operation == v1beta12.Delete {
-		log.Info("cleaning up appconfig default", "appconfig.Name", req.Name)
 		err := a.decoder.DecodeRaw(req.OldObject, appConfig)
 		if err != nil {
 			return admission.Errored(http.StatusBadRequest, err)
@@ -82,8 +83,6 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 		return admission.Allowed("cleaned up appconfig default")
 	}
 
-	log.Info("Handling appconfig default",
-		"request.Operation", req.Operation, "appconfig.Name", req.Name)
 	err := a.decoder.Decode(req, appConfig)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)

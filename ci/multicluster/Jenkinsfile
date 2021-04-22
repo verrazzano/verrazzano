@@ -557,11 +557,22 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 echo "Create Kind cluster \$1"
                 cd ${TEST_SCRIPTS_DIR}
-                # Not using the caching, and not setting up Calico
-                ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" false ${CREATE_KIND_USE_CALICO}
+                # As a stop gap, for now we are using the api/vpo caches here to see if it helps with rate limiting issues, we will need to add specific caches so for now
+                # specify the cache name based on the count value, this is assuming 1 or 2 clusters
+                case "${count}" in
+                    1)
+                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" true ${CREATE_KIND_USE_CALICO} "vpo_integ"
+                        ;;
+                    2)
+                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" true ${CREATE_KIND_USE_CALICO} "apo_integ"
+                        ;;
+                    *)
+                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" false ${CREATE_KIND_USE_CALICO} "NONE"
+                        ;;
+                esac
                 if [ ${CREATE_KIND_USE_CALICO} == true ]; then
                     echo "Install Calico"
-                    kubectl apply -f https://docs.projectcalico.org/manifests/canal.yaml
+                    kubectl apply -f https://docs.projectcalico.org/v3.18/manifests/calico.yaml
                 fi
                 echo "Install metallb"
                 cd ${GO_REPO_PATH}/verrazzano
