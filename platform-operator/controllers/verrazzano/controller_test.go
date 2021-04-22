@@ -427,7 +427,6 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 			return nil
 		})
 
-
 	// Expect a call to get the ConfigMap - return that it does not exist
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildConfigMapName(name)}, gomock.Not(gomock.Nil())).
