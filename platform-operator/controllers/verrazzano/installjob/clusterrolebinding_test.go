@@ -4,6 +4,7 @@
 package installjob
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -24,7 +25,6 @@ func TestNewClusterRoleBinding(t *testing.T) {
 		},
 	}
 
-	namespace := "verrazzano"
 	name := "test-clusterRoleBinding"
 	saName := "service-account"
 
@@ -36,5 +36,5 @@ func TestNewClusterRoleBinding(t *testing.T) {
 	assert.Equalf(t, vz.Labels, clusterRoleBinding.Labels, "Expected labels did not match")
 	assert.Equalf(t, saName, clusterRoleBinding.Subjects[0].Name, "Expected service account name did not match")
 	assert.Equalf(t, "ServiceAccount", clusterRoleBinding.Subjects[0].Kind, "Expected subject kind did not match")
-	assert.Equalf(t, namespace, clusterRoleBinding.Subjects[0].Namespace, "Expected namespace did not match")
+	assert.Equalf(t, constants.VerrazzanoInstallNamespace, clusterRoleBinding.Subjects[0].Namespace, "Expected namespace did not match")
 }

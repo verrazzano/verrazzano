@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"os"
 	"strings"
 	"time"
@@ -28,7 +29,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	//"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/yaml"
@@ -89,6 +90,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 					if err != nil && !errors.IsConflict(err) {
 						return reconcile.Result{}, err
 					}
+				} else {
+					log.Infof("Reconcile: condition.Type ", condition.Type)
 				}
 			}
 		}
@@ -162,18 +165,25 @@ func (r *Reconciler) createServiceAccount(ctx context.Context, log *zap.SugaredL
 	for i := range imagePullSecrets {
 		imagePullSecrets[i] = strings.TrimSpace(imagePullSecrets[i])
 	}
-	serviceAccount := installjob.NewServiceAccount(vz.Namespace, buildServiceAccountName(vz.Name), imagePullSecrets, vz.Labels)
+	serviceAccount := installjob.NewServiceAccount(constants.VerrazzanoInstallNamespace, buildServiceAccountName(vz.Name), imagePullSecrets, vz.Labels)
 
 	// Set verrazzano resource as the owner and controller of the service account resource.
 	// This reference will result in the service account resource being deleted when the verrazzano CR is deleted.
-	if err := controllerutil.SetControllerReference(vz, serviceAccount, r.Scheme); err != nil {
-		return err
-	}
+	serviceAccount.SetOwnerReferences([]metav1.OwnerReference{{
+		APIVersion: vz.APIVersion,
+		Kind:       vz.Kind,
+		Name:       vz.Name,
+		UID:        vz.UID,
+	}})
+	// Using SetOwnerReferences in place of controllerutil.SetControllerReference to avoid cross-namespace owner references
+	//if err := controllerutil.SetControllerReference(vz, serviceAccount, r.Scheme); err != nil {
+	//	return err
+	//}
 
 	// Check if the service account for running the scripts exist
 	serviceAccountFound := &corev1.ServiceAccount{}
 	log.Infof("Checking if install service account %s exist", buildServiceAccountName(vz.Name))
-	err := r.Get(ctx, types.NamespacedName{Name: buildServiceAccountName(vz.Name), Namespace: vz.Namespace}, serviceAccountFound)
+	err := r.Get(ctx, types.NamespacedName{Name: buildServiceAccountName(vz.Name), Namespace: serviceAccount.Namespace}, serviceAccountFound)
 	if err != nil && errors.IsNotFound(err) {
 		log.Infof("Creating install service account %s", buildServiceAccountName(vz.Name))
 		err = r.Create(ctx, serviceAccount)
@@ -183,7 +193,6 @@ func (r *Reconciler) createServiceAccount(ctx context.Context, log *zap.SugaredL
 	} else if err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -212,19 +221,25 @@ func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log *zap.Suga
 // createConfigMap creates a required config map for installation
 func (r *Reconciler) createConfigMap(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Create the configmap resource that will contain installation configuration options
-	configMap := installjob.NewConfigMap(vz.Namespace, buildConfigMapName(vz.Name), vz.Labels)
+	configMap := installjob.NewConfigMap(constants.VerrazzanoInstallNamespace, buildConfigMapName(vz.Name), vz.Labels)
 
 	// Set the verrazzano resource as the owner and controller of the configmap
-	err := controllerutil.SetControllerReference(vz, configMap, r.Scheme)
-	if err != nil {
-		return err
-	}
+	configMap.SetOwnerReferences([]metav1.OwnerReference{{
+		APIVersion: vz.APIVersion,
+		Kind:       vz.Kind,
+		Name:       vz.Name,
+		UID:        vz.UID,
+	}})
+	//err := controllerutil.SetControllerReference(vz, configMap, r.Scheme)
+	//if err != nil {
+	//	return err
+	//}
 
 	// Check if the ConfigMap exists for running the install
 	configMapFound := &corev1.ConfigMap{}
 	log.Infof("Checking if install ConfigMap %s exist", configMap.Name)
 
-	err = r.Get(ctx, types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}, configMapFound)
+	err := r.Get(ctx, types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}, configMapFound)
 	if err != nil && errors.IsNotFound(err) {
 		config, err := installjob.GetInstallConfig(vz)
 		if err != nil {
@@ -255,7 +270,7 @@ func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogge
 		&installjob.JobConfig{
 			JobConfigCommon: k8s.JobConfigCommon{
 				JobName:            buildInstallJobName(vz.Name),
-				Namespace:          vz.Namespace,
+				Namespace:          constants.VerrazzanoInstallNamespace,
 				Labels:             vz.Labels,
 				ServiceAccountName: buildServiceAccountName(vz.Name),
 				JobImage:           os.Getenv("VZ_INSTALL_IMAGE"),
@@ -266,16 +281,26 @@ func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogge
 
 	// Set verrazzano resource as the owner and controller of the job resource.
 	// This reference will result in the job resource being deleted when the verrazzano CR is deleted.
-	if err := controllerutil.SetControllerReference(vz, job, r.Scheme); err != nil {
-		return err
-	}
+	job.SetOwnerReferences([]metav1.OwnerReference{{
+		APIVersion: vz.APIVersion,
+		Kind:       vz.Kind,
+		Name:       vz.Name,
+		UID:        vz.UID,
+	}})
+	log.Info("createInstallJob: UID of the Verrazzano Resource ", vz.UID)
+	//if err := controllerutil.SetControllerReference(vz, job, r.Scheme); err != nil {
+	//	return err
+	//}
+	//job.Namespace = constants.VerrazzanoInstallNamespace
+
 	// Check if the job for running the install scripts exist
 	jobFound := &batchv1.Job{}
 	log.Infof("Checking if install job %s exist", buildInstallJobName(vz.Name))
-	err := r.Get(ctx, types.NamespacedName{Name: buildInstallJobName(vz.Name), Namespace: vz.Namespace}, jobFound)
+	err := r.Get(ctx, types.NamespacedName{Name: buildInstallJobName(vz.Name), Namespace: job.Namespace}, jobFound)
 	if err != nil && errors.IsNotFound(err) {
 		log.Infof("Creating install job %s, dry-run=%v", buildInstallJobName(vz.Name), r.DryRun)
 		err = r.Create(ctx, job)
+		log.Infof("createInstallJob: UID of the job ", job.UID)
 		if err != nil {
 			return err
 		}
@@ -290,7 +315,7 @@ func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogge
 		}
 
 		// Delete leftover uninstall job if we find one.
-		err = r.cleanupUninstallJob(buildUninstallJobName(vz.Name), vz.Namespace, log)
+		err = r.cleanupUninstallJob(buildUninstallJobName(vz.Name), job.Namespace, log)
 		if err != nil {
 			return err
 		}
@@ -315,7 +340,7 @@ func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogge
 func (r *Reconciler) cleanupUninstallJob(jobName string, namespace string, log *zap.SugaredLogger) error {
 	// Check if the job for running the uninstall scripts exist
 	jobFound := &batchv1.Job{}
-	log.Infof("Checking if stale uninstall job %s exists", jobName)
+	log.Infof("Checking if stale uninstall job %s exists in namespace %s", jobName, namespace)
 	err := r.Get(context.TODO(), types.NamespacedName{Name: jobName, Namespace: namespace}, jobFound)
 	if err == nil {
 		log.Infof("Deleting stale uninstall job %s", jobName)
@@ -349,7 +374,7 @@ func (r *Reconciler) createUninstallJob(log *zap.SugaredLogger, vz *installv1alp
 		&uninstalljob.JobConfig{
 			JobConfigCommon: k8s.JobConfigCommon{
 				JobName:            buildUninstallJobName(vz.Name),
-				Namespace:          vz.Namespace,
+				Namespace:          constants.VerrazzanoInstallNamespace,
 				Labels:             vz.Labels,
 				ServiceAccountName: buildServiceAccountName(vz.Name),
 				JobImage:           os.Getenv("VZ_INSTALL_IMAGE"),
@@ -358,18 +383,26 @@ func (r *Reconciler) createUninstallJob(log *zap.SugaredLogger, vz *installv1alp
 		},
 	)
 
+	job.SetOwnerReferences([]metav1.OwnerReference{{
+		APIVersion: vz.APIVersion,
+		Kind:       vz.Kind,
+		Name:       vz.Name,
+		UID:        vz.UID,
+	}})
+	log.Info("createUninstallJob: UID of the Verrazzano Resource ", vz.UID)
 	// Set verrazzano resource as the owner and controller of the uninstall job resource.
-	if err := controllerutil.SetControllerReference(vz, job, r.Scheme); err != nil {
-		return err
-	}
+	//if err := controllerutil.SetControllerReference(vz, job, r.Scheme); err != nil {
+	//	return err
+	//}
 
 	// Check if the job for running the uninstall scripts exist
 	jobFound := &batchv1.Job{}
 	log.Infof("Checking if uninstall job %s exist", buildUninstallJobName(vz.Name))
-	err := r.Get(context.TODO(), types.NamespacedName{Name: buildUninstallJobName(vz.Name), Namespace: vz.Namespace}, jobFound)
+	err := r.Get(context.TODO(), types.NamespacedName{Name: buildUninstallJobName(vz.Name), Namespace: job.Namespace}, jobFound)
 	if err != nil && errors.IsNotFound(err) {
 		log.Infof("Creating uninstall job %s, dry-run=%v", buildUninstallJobName(vz.Name), r.DryRun)
 		err = r.Create(context.TODO(), job)
+		log.Infof("createUninstallJob: UID of the job ", job.UID)
 		if err != nil {
 			return err
 		}
@@ -417,6 +450,7 @@ func buildInternalConfigMapName(name string) string {
 
 // updateStatus updates the status in the verrazzano CR
 func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType) error {
+	log.Infof("updateStatus - conditionType", conditionType)
 	t := time.Now().UTC()
 	condition := installv1alpha1.Condition{
 		Type:    conditionType,
@@ -458,8 +492,20 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 // setInstallCondition sets the verrazzano resource condition in status for install
 func (r *Reconciler) setInstallCondition(log *zap.SugaredLogger, job *batchv1.Job, vz *installv1alpha1.Verrazzano) (err error) {
 	// If the job has succeeded or failed add the appropriate condition
+	log.Info("setInstallCondition: job.Status.Succeeded ", job.Status.Succeeded)
+	log.Info("setInstallCondition: job.Status.CompletionTime ", job.Status.CompletionTime)
+	if len(job.Status.Conditions) != 0 {
+		log.Info("setInstallCondition: job.Status.Conditions[0].Status ", job.Status.Conditions[0].Status)
+	}
+	log.Info("setInstallCondition: job.Namespace ", job.Namespace)
+	log.Info("setInstallCondition: job.UID ", job.UID)
+	if len(job.OwnerReferences) != 0 {
+		log.Info("setInstallCondition: job.OwnerReferences[0].UID ", job.OwnerReferences[0].UID)
+	}
+
 	if job.Status.Succeeded != 0 || job.Status.Failed != 0 {
 		for _, condition := range vz.Status.Conditions {
+			log.Info("setInstallCondition: condition.Type ", condition.Type)
 			if condition.Type == installv1alpha1.InstallComplete || condition.Type == installv1alpha1.InstallFailed {
 				return nil
 			}
@@ -479,6 +525,7 @@ func (r *Reconciler) setInstallCondition(log *zap.SugaredLogger, job *batchv1.Jo
 	// Add the install started condition if not already added
 	for _, condition := range vz.Status.Conditions {
 		if condition.Type == installv1alpha1.InstallStarted {
+			log.Info("setInstallCondition: condition.Type is still installStarted ")
 			return nil
 		}
 	}
@@ -488,9 +535,22 @@ func (r *Reconciler) setInstallCondition(log *zap.SugaredLogger, job *batchv1.Jo
 
 // setUninstallCondition sets the verrazzano resource condition in status for uninstall
 func (r *Reconciler) setUninstallCondition(log *zap.SugaredLogger, job *batchv1.Job, vz *installv1alpha1.Verrazzano) (err error) {
+	log.Info("setUninstallCondition: job.Status.Succeeded ", job.Status.Succeeded)
+	log.Info("setUninstallCondition: job.Status.CompletionTime ", job.Status.CompletionTime)
+	if len(job.Status.Conditions) != 0 {
+		log.Info("setUninstallCondition: job.Status.Conditions[0].Status ", job.Status.Conditions[0].Status)
+	}
+	log.Info("setUninstallCondition: job.Namespace ", job.Namespace)
+	log.Info("setUninstallCondition: job.UID ", job.UID)
+	if len(job.OwnerReferences) != 0 {
+		log.Info("setUninstallCondition: job.OwnerReferences[0].UID ", job.OwnerReferences[0].UID)
+	}
+
 	// If the job has succeeded or failed add the appropriate condition
 	if job.Status.Succeeded != 0 || job.Status.Failed != 0 {
+		log.Info("setUninstallCondition - Inside job.Status.Succeeded != 0 || job.Status.Failed != 0")
 		for _, condition := range vz.Status.Conditions {
+			log.Info("setUninstallCondition - condition.Type ", condition.Type)
 			if condition.Type == installv1alpha1.UninstallComplete || condition.Type == installv1alpha1.UninstallFailed {
 				return nil
 			}
@@ -521,6 +581,7 @@ func (r *Reconciler) setUninstallCondition(log *zap.SugaredLogger, job *batchv1.
 	// Add the uninstall started condition if not already added
 	for _, condition := range vz.Status.Conditions {
 		if condition.Type == installv1alpha1.UninstallStarted {
+			log.Info("setUninstallCondition - condition.Type = UninstallStarted ")
 			return nil
 		}
 	}
@@ -547,7 +608,7 @@ func (r *Reconciler) saveVerrazzanoSpec(ctx context.Context, log *zap.SugaredLog
 		installConfig = &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      configMapName,
-				Namespace: vz.Namespace,
+				Namespace: constants.VerrazzanoInstallNamespace,
 				OwnerReferences: []metav1.OwnerReference{{
 					APIVersion: vz.APIVersion,
 					Kind:       vz.Kind,
@@ -557,6 +618,7 @@ func (r *Reconciler) saveVerrazzanoSpec(ctx context.Context, log *zap.SugaredLog
 			},
 			Data: configData,
 		}
+
 		err := r.Create(ctx, installConfig)
 		if err != nil {
 			log.Errorf("Unable to create installer config map %s: %v", configMapName, err)
@@ -598,7 +660,7 @@ func (r *Reconciler) getSavedInstallSpec(ctx context.Context, log *zap.SugaredLo
 // getInternalConfigMap Convenience method for getting the saved install ConfigMap
 func (r *Reconciler) getInternalConfigMap(ctx context.Context, vz *installv1alpha1.Verrazzano) (installConfig *corev1.ConfigMap, err error) {
 	key := client.ObjectKey{
-		Namespace: vz.Namespace,
+		Namespace: constants.VerrazzanoInstallNamespace,
 		Name:      buildInternalConfigMapName(vz.Name),
 	}
 	installConfig = &corev1.ConfigMap{}

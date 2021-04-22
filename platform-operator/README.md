@@ -52,7 +52,7 @@ $ cp config/samples/install-oci.yaml /tmp
 # Edit the file and provide the DNS ZONE name, OCID, and compartment OCID, and secret name
 
 # Monitor the install
-$ kubectl logs -f $(kubectl get pod -l job-name=verrazzano-install-my-verrazzano -o jsonpath="{.items[0].metadata.name}")
+$ kubectl logs -f $(kubectl get pod -l job-name=verrazzano-install-my-verrazzano -n verrazzano-install -o jsonpath="{.items[0].metadata.name}") -n verrazzano-install
 
 # Wait for the Verrazzano install to complete
 $ kubectl wait --timeout=20m --for=condition=InstallComplete verrazzano/my-verrazzano
@@ -65,7 +65,7 @@ To uninstall Verrazzano using the Verrazzano platform operator:
 $ kubectl delete -f config/samples/install-default.yaml
 
 # Monitor the uninstall
-$ kubectl logs -f $(kubectl get pod -l job-name=verrazzano-uninstall-my-verrazzano -o jsonpath="{.items[0].metadata.name}")
+$ kubectl logs -f $(kubectl get pod -l job-name=verrazzano-uninstall-my-verrazzano -n verrazzano-install -o jsonpath="{.items[0].metadata.name}") -n verrazzano-install
 ```
 
 ## Build the Verrazzano platform operator

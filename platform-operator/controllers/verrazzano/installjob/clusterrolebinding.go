@@ -5,6 +5,7 @@ package installjob
 
 import (
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -44,7 +45,7 @@ func NewClusterRoleBinding(vz *installv1alpha1.Verrazzano, name string, saName s
 			{
 				Kind:      "ServiceAccount",
 				Name:      saName,
-				Namespace: vz.Namespace,
+				Namespace: constants.VerrazzanoInstallNamespace,
 			},
 		},
 	}

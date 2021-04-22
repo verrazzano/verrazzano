@@ -6,6 +6,9 @@ package constants
 // SystemTLS is the name of the system-tls secret in the Verrazzano system namespace
 const SystemTLS = "system-tls"
 
+// VerrazzanoInstallNamespace is the namespace for verrazzano install
+const VerrazzanoInstallNamespace = "verrazzano-install"
+
 // VerrazzanoSystemNamespace is the system namespace for verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
 
