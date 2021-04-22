@@ -330,7 +330,9 @@ func SetEffectiveStateIfChanged(placement clustersv1alpha1.Placement,
 	return statusPtr.State
 }
 
-// DeleteAssociatedResource will retrieve and delete the resource specified by the name
+// DeleteAssociatedResource will retrieve and delete the resource specified by the name. It is used to delete
+// the underlying resource corresponding to a MultiClusterxxx wrapper resource (e.g. the OAM app config corresponding
+// to a MultiClusterApplicationConfiguration)
 func DeleteAssociatedResource(ctx context.Context, c client.Client, mcResource runtime.Object, finalizerName string, resourceToDelete runtime.Object, name types.NamespacedName) error {
 	// Get and delete the associated with the name specified by resourceToDelete
 	err := c.Get(ctx, name, resourceToDelete)
