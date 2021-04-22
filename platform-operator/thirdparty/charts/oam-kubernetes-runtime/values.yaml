@@ -7,7 +7,7 @@ useWebhook: false
 image:
   repository: crossplane/oam-kubernetes-runtime
   tag: v0.3.0
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 imagePullSecrets: []
 nameOverride: ""

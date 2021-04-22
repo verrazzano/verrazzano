@@ -151,7 +151,7 @@ telemetry:
       enabled: true
       # Indicates whether to enable WebAssembly runtime for stats filter.
       wasmEnabled: false
-      # overrides stats EnvoyFilter configuration.
+      # overrides stats EnvoyFilter configuration. 
       configOverride:
         gateway: {}
         inboundSidecar: {}
@@ -247,7 +247,7 @@ global:
 
   # Specify image pull policy if default behavior isn't desired.
   # Default behavior: latest images will be Always else IfNotPresent.
-  imagePullPolicy: "IfNotPresent"
+  imagePullPolicy: ""
 
   # ImagePullSecrets for all ServiceAccount, list of secrets in the same namespace
   # to use for pulling any images in pods that reference this ServiceAccount.
