@@ -39,6 +39,7 @@ import (
 
 const installPrefix = "verrazzano-install-"
 const uninstallPrefix = "verrazzano-uninstall-"
+const installNamespace = constants.VerrazzanoInstallNamespace
 
 // TestGetConfigMapName tests generating a ConfigMap name
 // GIVEN a name
@@ -96,7 +97,7 @@ func TestGetInstallJobName(t *testing.T) {
 // WHEN a verrazzano resource has been applied
 // THEN ensure all the objects are already created
 func TestSuccessfulInstall(t *testing.T) {
-	namespace := "verrazzano"
+	namespace := installNamespace
 	name := "test"
 	labels := map[string]string{"label1": "test"}
 	var savedVerrazzano *vzapi.Verrazzano
@@ -216,7 +217,7 @@ func TestSuccessfulInstall(t *testing.T) {
 // WHEN a verrazzano resource has been created
 // THEN ensure all the objects are created
 func TestCreateVerrazzano(t *testing.T) {
-	namespace := "verrazzano"
+	namespace := installNamespace
 	name := "test"
 	labels := map[string]string{"label1": "test1"}
 
@@ -344,7 +345,7 @@ func TestCreateVerrazzano(t *testing.T) {
 // WHEN a verrazzano resource has been created
 // THEN ensure all the objects are created
 func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
-	namespace := "verrazzano"
+	namespace := installNamespace
 	name := "test"
 	labels := map[string]string{"label1": "test1"}
 
@@ -426,6 +427,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 			return nil
 		})
 
+
 	// Expect a call to get the ConfigMap - return that it does not exist
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildConfigMapName(name)}, gomock.Not(gomock.Nil())).
@@ -500,7 +502,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 // WHEN a verrazzano resource has been deleted
 // THEN ensure all the objects are deleted
 func TestUninstallComplete(t *testing.T) {
-	namespace := "verrazzano"
+	namespace := installNamespace
 	name := "test"
 	labels := map[string]string{"label1": "test"}
 
@@ -587,7 +589,7 @@ func TestUninstallComplete(t *testing.T) {
 // WHEN a verrazzano resource has been deleted
 // THEN ensure an unisntall job is started
 func TestUninstallStarted(t *testing.T) {
-	namespace := "verrazzano"
+	namespace := installNamespace
 	name := "test"
 	labels := map[string]string{"label1": "test"}
 
@@ -662,7 +664,7 @@ func TestUninstallStarted(t *testing.T) {
 // WHEN a verrazzano resource has been deleted
 // THEN ensure the error is handled
 func TestUninstallFailed(t *testing.T) {
-	namespace := "verrazzano"
+	namespace := installNamespace
 	name := "test"
 	labels := map[string]string{"label1": "test"}
 
@@ -747,7 +749,7 @@ func TestUninstallFailed(t *testing.T) {
 // WHEN a verrazzano resource has been deleted
 // THEN ensure all the objects are deleted
 func TestUninstallSucceeded(t *testing.T) {
-	namespace := "verrazzano"
+	namespace := installNamespace
 	name := "test"
 	labels := map[string]string{"label1": "test"}
 
@@ -894,7 +896,7 @@ func TestVerrazzanoGetError(t *testing.T) {
 // WHEN a verrazzano resource has been applied
 // THEN return error if failure getting ServiceAccount
 func TestServiceAccountGetError(t *testing.T) {
-	namespace := "verrazzano"
+	namespace := installNamespace
 	name := "test"
 	labels := map[string]string{"label1": "test"}
 	asserts := assert.New(t)
@@ -939,7 +941,7 @@ func TestServiceAccountGetError(t *testing.T) {
 // WHEN a there is a failure creating a ServiceAccount
 // THEN return error
 func TestServiceAccountCreateError(t *testing.T) {
-	namespace := "verrazzano"
+	namespace := installNamespace
 	name := "test"
 	labels := map[string]string{"label1": "test"}
 	asserts := assert.New(t)
@@ -989,7 +991,7 @@ func TestServiceAccountCreateError(t *testing.T) {
 // WHEN a there is an error getting the ClusterRoleBinding
 // THEN return error
 func TestClusterRoleBindingGetError(t *testing.T) {
-	namespace := "verrazzano"
+	namespace := installNamespace
 	name := "test"
 	labels := map[string]string{"label1": "test"}
 	asserts := assert.New(t)
@@ -1043,7 +1045,7 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 // WHEN a there is a failure creating a ClusterRoleBinding
 // THEN return error
 func TestClusterRoleBindingCreateError(t *testing.T) {
-	namespace := "verrazzano"
+	namespace := installNamespace
 	name := "test"
 	labels := map[string]string{"label1": "test"}
 	asserts := assert.New(t)
@@ -1102,7 +1104,7 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 // WHEN a there is an error getting the ConfigMap
 // THEN return error
 func TestConfigMapGetError(t *testing.T) {
-	namespace := "verrazzano"
+	namespace := installNamespace
 	name := "test"
 	labels := map[string]string{"label1": "test"}
 	var savedVerrazzano *vzapi.Verrazzano
@@ -1169,7 +1171,7 @@ func TestConfigMapGetError(t *testing.T) {
 // WHEN a there is a failure creating a ConfigMap
 // THEN return error
 func TestConfigMapCreateError(t *testing.T) {
-	namespace := "verrazzano"
+	namespace := installNamespace
 	name := "test"
 	labels := map[string]string{"label1": "test"}
 	var savedVerrazzano *vzapi.Verrazzano
@@ -1241,7 +1243,7 @@ func TestConfigMapCreateError(t *testing.T) {
 // WHEN a there is an error getting the Job
 // THEN return error
 func TestJobGetError(t *testing.T) {
-	namespace := "verrazzano"
+	namespace := installNamespace
 	name := "test"
 	labels := map[string]string{"label1": "test"}
 	var savedVerrazzano *vzapi.Verrazzano
@@ -1317,7 +1319,7 @@ func TestJobGetError(t *testing.T) {
 // WHEN a there is an error getting the OCI Config secret
 // THEN return error
 func TestGetOCIConfigSecretError(t *testing.T) {
-	namespace := "verrazzano"
+	namespace := installNamespace
 	name := "test"
 	labels := map[string]string{"label1": "test"}
 	var savedVerrazzano *vzapi.Verrazzano
@@ -1392,7 +1394,7 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 // WHEN a there is a failure creating a Job
 // THEN return error
 func TestJobCreateError(t *testing.T) {
-	namespace := "verrazzano"
+	namespace := installNamespace
 	name := "test"
 	labels := map[string]string{"label1": "test"}
 	var savedVerrazzano *vzapi.Verrazzano
@@ -1473,7 +1475,7 @@ func TestJobCreateError(t *testing.T) {
 // WHEN an no internal configmap already exists
 // THEN an error is returned if the Create() call fails
 func TestCreateInternalConfigMapReturnsError(t *testing.T) {
-	namespace := "verrazzano"
+	namespace := installNamespace
 	name := "test"
 
 	asserts := assert.New(t)
@@ -1519,7 +1521,7 @@ func TestCreateInternalConfigMapReturnsError(t *testing.T) {
 // WHEN an internal configmap already exists for the install
 // THEN ensure that update is called for the configmap
 func TestUpdateInternalConfigMap(t *testing.T) {
-	namespace := "verrazzano"
+	namespace := installNamespace
 	name := "test"
 
 	asserts := assert.New(t)

@@ -75,7 +75,7 @@ function setup_cluster_issuer() {
     local OCI_DNS_ZONE_OCID=$(get_config_value ".dns.oci.dnsZoneOcid")
     local OCI_DNS_ZONE_NAME=$(get_config_value ".dns.oci.dnsZoneName")
 
-    if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n $VERRAZZANO_DEFAULT_SECRET_NAMESPACE ; then
+    if ! kubectl get secret $OCI_DNS_CONFIG_SECRET ; then
         fail "The OCI Configuration Secret $OCI_DNS_CONFIG_SECRET does not exist"
     fi
 
