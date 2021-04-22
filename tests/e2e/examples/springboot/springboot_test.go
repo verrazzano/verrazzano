@@ -32,7 +32,15 @@ var _ = ginkgo.BeforeSuite(func() {
 	deploySpringBootApplication()
 })
 
+var failed = false
+var _ = ginkgo.AfterEach(func() {
+	failed = failed || ginkgo.CurrentGinkgoTestDescription().Failed
+})
+
 var _ = ginkgo.AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	undeploySpringBootApplication()
 })
 

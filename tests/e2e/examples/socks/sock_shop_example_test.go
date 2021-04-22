@@ -51,6 +51,17 @@ var _ = BeforeSuite(func() {
 	}
 })
 
+var failed = false
+var _ = AfterEach(func() {
+	failed = failed || CurrentGinkgoTestDescription().Failed
+})
+
+var _ = AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
+})
+
 // the list of expected pods
 var expectedPods = []string{
 	"carts-coh-0",

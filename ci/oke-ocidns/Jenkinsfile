@@ -131,6 +131,9 @@ pipeline {
         ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
 
         VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'ocidns_oke' ? 'b' + env.BUILD_NUMBER : 'default'}"
+
+        DUMP_KUBECONFIG="${KUBECONFIG}"
+        DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
     }
 
     stages {
@@ -361,6 +364,7 @@ pipeline {
                 stage('generic-springboot') {
                     environment {
                         DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/generic-springboot-test.log"
+                        DUMP_DIRECTORY="${WORKSPACE}/examples-springboot-cluster-dump"
                     }
                     steps {
                         script {
@@ -390,6 +394,9 @@ pipeline {
                     }
                 }
                 stage('hello-helidon') {
+                    environment {
+                        DUMP_DIRECTORY="${WORKSPACE}/examples-hello-helidon-cluster-dump"
+                    }
                     steps {
                         script {
                             runGinkgoFailFast('examples/helidon')
@@ -420,6 +427,7 @@ pipeline {
                 stage('lift-and-shift') {
                     environment {
                         DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/lift-and-shift-test.log"
+                        DUMP_DIRECTORY="${WORKSPACE}/examples-lift-and-shift-cluster-dump"
                     }
                     steps {
                         script {
@@ -428,11 +436,17 @@ pipeline {
                     }
                 }
                 stage('istio authorization policy') {
+                    environment {
+                        DUMP_DIRECTORY="${WORKSPACE}/examples-istio-auth-policy-cluster-dump"
+                    }
                     steps {
                         runGinkgo('istio/authz')
                     }
                 }
                 stage('security role based access') {
+                    environment {
+                        DUMP_DIRECTORY="${WORKSPACE}/examples-rbac-cluster-dump"
+                    }
                     steps {
                         runGinkgo('security/rbac')
                     }
@@ -440,6 +454,7 @@ pipeline {
                 stage('bobs-books') {
                     environment {
                         DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/bobs-book-test.log"
+                        DUMP_DIRECTORY="${WORKSPACE}/examples-bobs-books-dump"
                     }
                     steps {
                         script {
@@ -461,6 +476,7 @@ pipeline {
                 stage('socks') {
                     environment {
                         DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/socks-test.log"
+                        DUMP_DIRECTORY="${WORKSPACE}/examples-socks-cluster-dump"
                     }
                     steps {
                         script {
