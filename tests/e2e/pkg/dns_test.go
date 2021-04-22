@@ -70,15 +70,7 @@ func TestNotWildcard(t *testing.T) {
 		},
 		{
 			name: "test2",
-			data: "xip.io.a",
-		},
-		{
-			name: "test3",
-			data: "a.xip.io.b",
-		},
-		{
-			name: "test4",
-			data: "a.xip.io.a:33",
+			data: "xipio.a",
 		},
 		{
 			name: "test5",
@@ -86,11 +78,11 @@ func TestNotWildcard(t *testing.T) {
 		},
 		{
 			name: "test6",
-			data: "nip.io.b",
+			data: "nip.b",
 		},
 		{
 			name: "test7",
-			data: "sslip.io.b",
+			data: "sslip.b",
 		},
 	}
 	for _, test := range tests {

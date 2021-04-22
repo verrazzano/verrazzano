@@ -5,13 +5,11 @@ package pkg
 
 import "strings"
 
-// Returns well-known wildcard suffix or empty string
+// Returns well-known wildcard DNS name is used
 func GetWildcardDNS(s string) string {
 	wildcards := []string{"xip.io", "nip.io", "sslip.io"}
-	// get address segment (ignore port)
-	segs := strings.Split(s, ":")
 	for _, w := range wildcards {
-		if strings.HasSuffix(segs[0], w) {
+		if strings.Contains(s, w) {
 			return w
 		}
 	}
