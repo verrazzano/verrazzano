@@ -51,17 +51,6 @@ var _ = BeforeSuite(func() {
 	}
 })
 
-var failed = false
-var _ = AfterEach(func() {
-	failed = failed || CurrentGinkgoTestDescription().Failed
-})
-
-var _ = AfterSuite(func() {
-	if failed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
-	}
-})
-
 // the list of expected pods
 var expectedPods = []string{
 	"carts-coh-0",
@@ -206,8 +195,16 @@ var _ = Describe("Sock Shop Application", func() {
 
 })
 
+var failed = false
+var _ = AfterEach(func() {
+	failed = failed || CurrentGinkgoTestDescription().Failed
+})
+
 // undeploys the application, components, and namespace
 var _ = AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	err := undeploySockShopApplication()
 	if err != nil {
 		Fail(fmt.Sprintf("Could not undeploy sock shop application: %v\n", err.Error()))
