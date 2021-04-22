@@ -73,8 +73,7 @@ var _ = ginkgo.Describe("Multicluster app placed in managed cluster", func() {
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect that the multi-cluster resources have been created on the managed cluster
-		// desagar Temporarily disabled pending fix (part of VZ-2559)
-		ginkgo.PIt("Has multi cluster resources", func() {
+		ginkgo.It("Has multi cluster resources", func() {
 			gomega.Eventually(func() bool {
 				return examples.VerifyMCResources(managed1Kubeconfig, false, true)
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
@@ -82,8 +81,7 @@ var _ = ginkgo.Describe("Multicluster app placed in managed cluster", func() {
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the multi-cluster example application has been created on admin cluster and placed in managed cluster
 		// THEN expect that the app is deployed to the managed cluster
-		// desagar Temporarily disabled pending fix (part of VZ-2559)
-		ginkgo.PIt("Has application placed", func() {
+		ginkgo.It("Has application placed", func() {
 			gomega.Eventually(func() bool {
 				return examples.VerifyHelloHelidonInCluster(managed1Kubeconfig, false, true)
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
@@ -154,8 +152,7 @@ var _ = ginkgo.Describe("Multicluster app placed in managed cluster", func() {
 		// GIVEN a managed cluster
 		// WHEN the multi-cluster example application has changed placement to this managed cluster
 		// THEN expect that the app is now deployed to the cluster
-		// desagar Temporarily disabled pending fix (part of VZ-2559)
-		ginkgo.PIt("Managed cluster again has application placed", func() {
+		ginkgo.It("Managed cluster again has application placed", func() {
 			gomega.Eventually(func() bool {
 				return examples.VerifyHelloHelidonInCluster(managed1Kubeconfig, false, true)
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
