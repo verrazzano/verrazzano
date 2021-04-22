@@ -432,7 +432,7 @@ pipeline {
                     }
                     steps {
                         script {
-                            runGinkgo('examples/todo')
+                            runGinkgoFailFast('examples/todo')
                         }
                     }
                 }
@@ -459,7 +459,7 @@ pipeline {
                     }
                     steps {
                         script {
-                            runGinkgo('examples/bobsbooks')
+                            runGinkgoFailFast('examples/bobsbooks')
                         }
                         sh """
                             ${WORKSPACE}/tests/e2e/config/scripts/get_verrazzano_image.sh bob >> ${IMG_LIST_FILE}
