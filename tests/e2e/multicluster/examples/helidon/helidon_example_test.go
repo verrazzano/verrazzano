@@ -188,7 +188,9 @@ var _ = ginkgo.AfterSuite(func() {
 	if err != nil {
 		fmt.Printf("Cleanup failed on managed cluster: %v", err.Error())
 	}
-	gomega.Eventually(examples.VerifyAppDeleted, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+	gomega.Eventually(func() bool {
+		return examples.VerifyAppDeleted(managedKubeconfig)
+	}, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 
 	if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, managedKubeconfig); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not delete hello-helidon namespace: %v\n", err))
