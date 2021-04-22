@@ -113,11 +113,11 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 	}
 
 	defaultAdminSubjects := []rbacv1.Subject{
-		{Kind: "Group", Name: "verrazzano-project-admin-" + existingVP},
+		{Kind: "Group", Name: fmt.Sprintf("verrazzano-project-%s-admins", existingVP)},
 	}
 
 	defaultMonitorSubjects := []rbacv1.Subject{
-		{Kind: "Group", Name: "verrazzano-project-monitor-" + existingVP},
+		{Kind: "Group", Name: fmt.Sprintf("verrazzano-project-%s-monitors", existingVP)},
 	}
 
 	clusterList := []clustersv1alpha1.Cluster{

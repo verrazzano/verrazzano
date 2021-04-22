@@ -23,12 +23,12 @@ import (
 )
 
 const (
-	projectAdminRole          = "verrazzano-project-admin"
-	projectAdminK8sRole       = "admin"
-	projectAdminGroupPrefix   = "verrazzano-project-admin"
-	projectMonitorRole        = "verrazzano-project-monitor"
-	projectMonitorK8sRole     = "view"
-	projectMonitorGroupPrefix = "verrazzano-project-monitor"
+	projectAdminRole            = "verrazzano-project-admin"
+	projectAdminK8sRole         = "admin"
+	projectAdminGroupTemplate   = "verrazzano-project-%s-admins"
+	projectMonitorRole          = "verrazzano-project-monitor"
+	projectMonitorK8sRole       = "view"
+	projectMonitorGroupTemplate = "verrazzano-project-%s-monitors"
 )
 
 // Reconciler reconciles a VerrazzanoProject object
@@ -234,11 +234,11 @@ func newRoleBinding(namespace string, roleName string, subjects []rbacv1.Subject
 func (r *Reconciler) getDefaultRoleBindingSubjects(vp clustersv1alpha1.VerrazzanoProject) ([]rbacv1.Subject, []rbacv1.Subject) {
 	adminSubjects := []rbacv1.Subject{{
 		Kind: "Group",
-		Name: fmt.Sprintf("%s-%s", projectAdminGroupPrefix, vp.Name),
+		Name: fmt.Sprintf(projectAdminGroupTemplate, vp.Name),
 	}}
 	monitorSubjects := []rbacv1.Subject{{
 		Kind: "Group",
-		Name: fmt.Sprintf("%s-%s", projectMonitorGroupPrefix, vp.Name),
+		Name: fmt.Sprintf(projectMonitorGroupTemplate, vp.Name),
 	}}
 	return adminSubjects, monitorSubjects
 }
