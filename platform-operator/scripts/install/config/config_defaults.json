@@ -3,7 +3,9 @@
    "profile": "prod",
    "dns": {
       "type": "wildcard",
-      "domain": "xip.io"
+      "wildcard": {
+         "domain": "xip.io"
+      }
    },
    "certificates": {
       "issuerType": "ca",

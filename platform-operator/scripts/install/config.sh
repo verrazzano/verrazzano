@@ -207,7 +207,7 @@ function get_dns_suffix {
   local ingress_ip=$1
   local dns_type=$(get_config_value ".dns.type")
   if [ $dns_type == "wildcard" ]; then
-    dns_suffix=$(get_config_value ".dns.wildcard.domain")
+    dns_suffix="${ingress_ip}".$(get_config_value ".dns.wildcard.domain")
   elif [ $dns_type == "oci" ]; then
     dns_suffix=$(get_config_value ".dns.oci.dnsZoneName")
   elif [ $dns_type == "external" ]; then

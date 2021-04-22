@@ -398,9 +398,6 @@ const OciPrivateKeyFileName = "oci_api_key.pem"
 // OciConfigSecretFile is the name of the OCI configuration yaml file
 const OciConfigSecretFile = "oci.yaml"
 
-// DomainType is the type of DNS wildcard domain type
-type DomainType string
-
 // Wildcard DNS type
 type Wildcard struct {
 	// DNS wildcard domain (xip.io, nip.io, etc.)
