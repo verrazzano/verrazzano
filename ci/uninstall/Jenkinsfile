@@ -47,7 +47,7 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "v1.18.10", "v1.17.13" ])
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS',
-                      defaultValue: false,
+                      defaultValue: true,
                       description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)')
     }
 
@@ -301,6 +301,13 @@ pipeline {
                 }
             }
             post {
+                success {
+                    script {
+                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                            dumpK8sCluster('verrazzano-testrun-after-install-cluster-dump')
+                        }
+                    }
+                }
                 failure {
                     dumpK8sCluster('verrazzano-test-failure-cluster-dump')
 
@@ -329,7 +336,6 @@ pipeline {
                     """
                     listNamepacesAndPods('after Verrazzano uninstall')
                     listHelmReleases('after Verrazzano uninstall')
-
                 }
                 success {
                     script {
@@ -412,6 +418,15 @@ pipeline {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     runGinkgo('examples/todo')
+                }
+            }
+            post {
+                success {
+                    script {
+                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                            dumpK8sCluster('verrazzano-testrun-after-reinstall-cluster-dump')
+                        }
+                    }
                 }
             }
         }
