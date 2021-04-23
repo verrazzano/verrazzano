@@ -58,6 +58,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 				vmc, err := pkg.GetVerrazzanoManagedClusterClientset().ClustersV1alpha1().VerrazzanoManagedClusters(multiclusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
 				return err == nil &&
 					vmcStatusReady(vmc) &&
+					vmc.Status.LastAgentConnectTime != nil &&
 					vmc.Status.LastAgentConnectTime.After(time.Now().Add(-30*time.Minute))
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find VerrazzanoManagedCluster")
 		})
