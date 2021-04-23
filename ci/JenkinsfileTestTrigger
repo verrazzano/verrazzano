@@ -35,9 +35,9 @@ pipeline {
                         description: 'This is for manually testing only where someone needs to use a specific operator image, otherwise the default value of NONE is used',
                         trim: true)
         string (name: 'WILDCARD_DNS_DOMAIN',
-                defaultValue: 'xip.io',
-                description: 'This is the wildcard DNS domain',
-                trim: true)
+                        defaultValue: 'nip.io',
+                        description: 'This is the wildcard DNS domain',
+                        trim: true)
     }
 
     environment {

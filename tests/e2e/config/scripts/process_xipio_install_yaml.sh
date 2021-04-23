@@ -4,7 +4,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 INSTALL_CONFIG_TO_EDIT=$1
-DNS_WILDCARD_DOMAIN=${2:-"xip.io"}
+DNS_WILDCARD_DOMAIN=${2:-"nip.io"}
 echo "Editing install config file for DNS Wildcard domain (e.g. xip.io) ${INSTALL_CONFIG_TO_EDIT}"
 yq -i eval ".spec.environmentName = \"${VZ_ENVIRONMENT_NAME}\"" ${INSTALL_CONFIG_TO_EDIT}
 yq -i eval ".spec.profile = \"${INSTALL_PROFILE}\"" ${INSTALL_CONFIG_TO_EDIT}

@@ -16,7 +16,7 @@ if [ -z "$JENKINS_URL" ] || [ -z "$GO_REPO_PATH" ] || [ -z "$TESTS_EXECUTED_FILE
 fi
 
 INSTALL_CALICO=${1:-false}
-WILDCARD_DNS_DOMAIN=${2:-"xip.io"}
+WILDCARD_DNS_DOMAIN=${2:-"x=nip.io"}
 
 cd ${GO_REPO_PATH}/verrazzano
 echo "tests will execute" > ${TESTS_EXECUTED_FILE}
