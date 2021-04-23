@@ -39,3 +39,4 @@ out/
 platform-operator/THIRD_PARTY_LICENSES.txt
 application-operator/THIRD_PARTY_LICENSES.txt
 tools/analysis/THIRD_PARTY_LICENSES.txt
+tests/e2e/**/*.test
