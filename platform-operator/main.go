@@ -14,6 +14,7 @@ import (
 	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/certificate"
 	config2 "github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/netpolicy"
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -21,6 +22,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -91,7 +93,7 @@ func main() {
 
 		kubeClient, err := kubernetes.NewForConfig(config)
 		if err != nil {
-			setupLog.Errorf("unable to get client: %v", err)
+			setupLog.Errorf("unable to get clientset: %v", err)
 			os.Exit(1)
 		}
 
@@ -101,6 +103,20 @@ func main() {
 			setupLog.Errorf("unable to update validation webhook configuration: %v", err)
 			os.Exit(1)
 		}
+
+		client, err := client.New(config, client.Options{})
+		if err != nil {
+			setupLog.Errorf("unable to get client: %v", err)
+			os.Exit(1)
+		}
+
+		setupLog.Info("Creating or updating network policies")
+		opResult, err := netpolicy.CreateOrUpdateNetworkPolicies(kubeClient, client)
+		if err != nil {
+			setupLog.Errorf("unable to create or update network policies: %v", err)
+			os.Exit(1)
+		}
+		setupLog.Infof("Network policy operation result: %s", opResult)
 
 		return
 	}

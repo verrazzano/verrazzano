@@ -39,9 +39,11 @@ function get_config_value() {
   if [ "$config_val" == "null" ]; then
     config_val=""
   fi
+
   # check if it is defined in the json files under install-overrides
-  if [ ! $(get_override_config_value "$jq_expr") == "" ]; then
-    config_val=$(get_override_config_value "$jq_expr")
+  local config_override_value=$(get_override_config_value "$jq_expr")
+  if [ "$config_override_value" != "" ]; then
+    config_val=$config_override_value
   fi
   echo $config_val
   return 0
@@ -110,6 +112,12 @@ function validate_dns_section {
     if [ -z "$suffix" ]; then
       fail "For dns type external, a suffix is expected in section .dns.external.suffix of the config file"
     fi
+  elif [ "$dnsType" == "wildcard" ]; then
+    #there should be an "wildcard" section containing a domain
+    local domain=$(get_config_value ".dns.wildcard.domain")
+    if [ -z "$domain" ]; then
+      fail "For dns type wildcard, a domain is expected in section .dns.wildcard.domain of the config file"
+    fi
   elif [ "$dnsType" == "oci" ]; then
     CHECK_VALUES=false
     value=$(get_config_value '.dns.oci.ociConfigSecret')
@@ -139,8 +147,8 @@ function validate_dns_section {
     if [ $CHECK_VALUES = true ]; then
         exit 1
     fi
-  elif [ "$dnsType" != "xip.io" ]; then
-    fail "Unknown dns type $dnsType - valid values are xip.io, oci and external"
+  else
+    fail "Unknown dns type $dnsType - valid values are wildcard, oci and external"
   fi
 }
 
@@ -159,7 +167,6 @@ function validate_config_json {
   set -o pipefail
   local jsonToValidate=$1
   echo "$jsonToValidate" | jq . > /dev/null || fail "Failed to read installation config file contents. Make sure it is valid JSON"
-
   validate_environment_name "$jsonToValidate"
   validate_dns_section "$jsonToValidate"
   validate_certificates_section "$jsonToValidate"
@@ -200,8 +207,8 @@ function get_application_ingress_ip {
 function get_dns_suffix {
   local ingress_ip=$1
   local dns_type=$(get_config_value ".dns.type")
-  if [ $dns_type == "xip.io" ]; then
-    dns_suffix="${ingress_ip}".xip.io
+  if [ $dns_type == "wildcard" ]; then
+    dns_suffix="${ingress_ip}".$(get_config_value ".dns.wildcard.domain")
   elif [ $dns_type == "oci" ]; then
     dns_suffix=$(get_config_value ".dns.oci.dnsZoneName")
   elif [ $dns_type == "external" ]; then
@@ -357,8 +364,16 @@ function compute_effective_override() {
 
 # Read the value for a given key from effective.config.json
 function get_override_config_value() {
+  local config_val=""
+  # Return an empty string when effective.config.json is not there - during uninstall and when validate_config_json
+  # calls get_config_value.
+  if [ ! -f "$EFFECTIVE_CONFIG_VALUES" ]; then
+    echo $config_val
+    return 0
+  fi
+
   local jq_expr="$1"
-  local config_val=$(jq -r "$jq_expr" $EFFECTIVE_CONFIG_VALUES)
+  config_val=$(jq -r "$jq_expr" $EFFECTIVE_CONFIG_VALUES)
   if [ $? -ne 0 ]; then
     echo "Error reading $jq_expr from config files"
     return 1

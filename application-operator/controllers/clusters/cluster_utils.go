@@ -330,17 +330,11 @@ func SetEffectiveStateIfChanged(placement clustersv1alpha1.Placement,
 	return statusPtr.State
 }
 
-// DeleteAssociatedResource will retrieve and delete the resource specified by the name
+// DeleteAssociatedResource will retrieve and delete the resource specified by the name. It is used to delete
+// the underlying resource corresponding to a MultiClusterxxx wrapper resource (e.g. the OAM app config corresponding
+// to a MultiClusterApplicationConfiguration)
 func DeleteAssociatedResource(ctx context.Context, c client.Client, mcResource runtime.Object, finalizerName string, resourceToDelete runtime.Object, name types.NamespacedName) error {
-	// assert the MC object is a controller util Object that can be processed by controller util convenience methods
-	mcObj, ok := mcResource.(controllerutil.Object)
-	if ok {
-		controllerutil.RemoveFinalizer(mcObj, finalizerName)
-		err := c.Update(ctx, mcResource)
-		if err != nil {
-			return err
-		}
-	}
+	// Get and delete the associated with the name specified by resourceToDelete
 	err := c.Get(ctx, name, resourceToDelete)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
@@ -351,6 +345,18 @@ func DeleteAssociatedResource(ctx context.Context, c client.Client, mcResource r
 	err = c.Delete(ctx, resourceToDelete)
 	if err != nil {
 		return err
+	}
+
+	// Deletion succeeded, now we can remove the finalizer
+
+	// assert the MC object is a controller util Object that can be processed by controllerutil.RemoveFinalizer
+	mcObj, ok := mcResource.(controllerutil.Object)
+	if ok {
+		controllerutil.RemoveFinalizer(mcObj, finalizerName)
+		err := c.Update(ctx, mcResource)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -19,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -436,4 +438,82 @@ func TestSetEffectiveStateIfChanged(t *testing.T) {
 
 	SetEffectiveStateIfChanged(placement, &secret.Status)
 	asserts.Equal(t, clustersv1alpha1.Failed, secret.Status.State)
+}
+
+// TestDeleteAssociatedResource tests that if DeleteAssociatedResource is called
+// the given resourceToDelete is deleted and the finalizer on the mcResource is removed
+// GIVEN a MultiCluster resource and a resourceToDelete,
+// WHEN TestDeleteAssociatedResource is called and the resourceToDelete is successfully deleted
+// THEN the finalizer should be removed
+// GIVEN a MultiCluster resource and a resourceToDelete,
+// WHEN TestDeleteAssociatedResource is called and it fails to delete the resourceToDelete
+// THEN the finalizer should NOT be removed
+func TestDeleteAssociatedResource(t *testing.T) {
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	mcResource := clustersv1alpha1.MultiClusterApplicationConfiguration{
+		Spec: clustersv1alpha1.MultiClusterApplicationConfigurationSpec{
+			Placement: clustersv1alpha1.Placement{
+				Clusters: []clustersv1alpha1.Cluster{{Name: "mycluster"}},
+			},
+		},
+	}
+	mcResource.Name = "mymcappconfig"
+	mcResource.Namespace = "myns"
+
+	resourceToDeleteName := types.NamespacedName{Name: "myappconfig", Namespace: "myns"}
+	finalizerToDelete := "thisfinalizergoes"
+	finalizerNotDelete := "thisfinalizerstays"
+
+	mcResource.SetFinalizers([]string{finalizerNotDelete, finalizerToDelete})
+
+	// GIVEN that the deletion succeeds
+	// THEN the finalizer should be removed
+
+	// expect get and delete the app config with name resourceToDeleteName, mocking successful deletion
+	expectGetAndDeleteAppConfig(t, cli, resourceToDeleteName, nil)
+
+	// The finalizer should be removed
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, mcApp *clustersv1alpha1.MultiClusterApplicationConfiguration, opts ...client.UpdateOption) error {
+			asserts.NotContains(t, mcApp.GetFinalizers(), finalizerToDelete)
+			asserts.Contains(t, mcApp.GetFinalizers(), finalizerNotDelete)
+			return nil
+		})
+
+	err := DeleteAssociatedResource(context.TODO(), cli, &mcResource, finalizerToDelete, &v1alpha2.ApplicationConfiguration{}, resourceToDeleteName)
+	asserts.Nil(t, err)
+
+	// GIVEN that the deletion fails
+	// THEN the finalizer should NOT be removed
+
+	// expect get and delete the app config with name resourceToDeleteName, mocking FAILED deletion
+	expectGetAndDeleteAppConfig(t, cli, resourceToDeleteName, errors.New("I will not delete you, resource"))
+
+	// There should be no more interactions i.e. the finalizer should not be removed
+
+	err = DeleteAssociatedResource(context.TODO(), cli, &mcResource, finalizerToDelete, &v1alpha2.ApplicationConfiguration{}, resourceToDeleteName)
+	asserts.NotNil(t, err)
+
+	mocker.Finish()
+}
+
+func expectGetAndDeleteAppConfig(t *testing.T, cli *mocks.MockClient, name types.NamespacedName, deleteErr error) {
+	cli.EXPECT().
+		Get(gomock.Any(), name, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *v1alpha2.ApplicationConfiguration) error {
+			appConfig.Name = name.Name
+			appConfig.Namespace = name.Namespace
+			return nil
+		})
+
+	cli.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, appConfig *v1alpha2.ApplicationConfiguration) error {
+			asserts.Equal(t, name.Name, appConfig.Name)
+			asserts.Equal(t, name.Namespace, appConfig.Namespace)
+			return deleteErr
+		})
 }

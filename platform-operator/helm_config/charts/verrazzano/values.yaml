@@ -6,7 +6,7 @@ global:
   imagePullSecrets: []
 
 image:
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
   terminationGracePeriodSeconds: 60
 
 appBinding:
@@ -95,7 +95,7 @@ api:
   name: verrazzano-api
   imageName: ghcr.io/verrazzano/nginx-ingress-controller
   imageVersion: 0.32-20210122132046-a84f6166a
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
   port: 8775
   impersonatorRoleName: impersonate-api-user
 
