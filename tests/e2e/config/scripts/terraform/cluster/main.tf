@@ -3,7 +3,7 @@
 
 module "oke" {
   source = "oracle-terraform-modules/oke/oci"
-  version = "3.1.0"
+  version = "3.2.0-RC1"
 
   tenancy_id = var.tenancy_id
   user_id = var.user_id
@@ -16,6 +16,7 @@ module "oke" {
   kubernetes_version = var.kubernetes_version
   allow_worker_ssh_access = var.allow_worker_ssh_access
   worker_mode = var.worker_mode
+  cluster_access = var.cluster_access
   ssh_private_key_path = var.ssh_private_key_path
   ssh_public_key_path = var.ssh_public_key_path
   node_pools =var.node_pools
@@ -25,8 +26,8 @@ module "oke" {
   username = var.username
 
   vcn_name = "${var.cluster_name}-vcn"
-  vcn_dns_label = "${var.cluster_name}"
-  label_prefix = "${var.label_prefix}"
+  vcn_dns_label = var.cluster_name
+  label_prefix = var.label_prefix
 
   operator_shape = { shape="VM.Standard.E3.Flex", ocpus=1, memory=4, boot_volume_size=50 }
   operator_notification_endpoint = ""
@@ -38,7 +39,6 @@ module "oke" {
   bastion_timezone = "UTC"
   bastion_notification_enabled = false
   bastion_notification_endpoint = ""
-  bastion_image_id = ""
 
   email_address = ""
 
