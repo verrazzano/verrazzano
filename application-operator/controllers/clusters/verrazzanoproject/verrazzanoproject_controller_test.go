@@ -142,6 +142,14 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 		{Kind: "User", Name: "project-monitor-test-user"},
 	}
 
+	defaultAdminSubjects := []rbacv1.Subject{
+		{Kind: "Group", Name: fmt.Sprintf("verrazzano-project-%s-admins", existingVP)},
+	}
+
+	defaultMonitorSubjects := []rbacv1.Subject{
+		{Kind: "Group", Name: fmt.Sprintf("verrazzano-project-%s-monitors", existingVP)},
+	}
+
 	clusterList := []clustersv1alpha1.Cluster{
 		{Name: clusterstest.UnitTestClusterName},
 	}
@@ -240,6 +248,15 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 			mockClient := mocks.NewMockClient(mocker)
 			mockStatusWriter := mocks.NewMockStatusWriter(mocker)
 
+			expectedAdminSubjects := defaultAdminSubjects
+			if len(tt.fields.adminSubjects) > 0 {
+				expectedAdminSubjects = tt.fields.adminSubjects
+			}
+			expectedMonitorSubjects := defaultMonitorSubjects
+			if len(tt.fields.monitorSubjects) > 0 {
+				expectedMonitorSubjects = tt.fields.monitorSubjects
+			}
+
 			// expect call to get a verrazzanoproject
 			if tt.fields.vpName == existingVP {
 				mockClient.EXPECT().
@@ -249,8 +266,8 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 						vp.Name = tt.fields.vpName
 						vp.ObjectMeta.Finalizers = []string{finalizer}
 						vp.Spec.Template.Namespaces = tt.fields.nsList
-						vp.Spec.Template.Security.ProjectAdminSubjects = tt.fields.adminSubjects
-						vp.Spec.Template.Security.ProjectMonitorSubjects = tt.fields.monitorSubjects
+						vp.Spec.Template.Security.ProjectAdminSubjects = expectedAdminSubjects
+						vp.Spec.Template.Security.ProjectMonitorSubjects = expectedMonitorSubjects
 						vp.Spec.Placement.Clusters = tt.fields.placementList
 						return nil
 					})
@@ -276,11 +293,11 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 								return nil
 							})
 
-						if len(tt.fields.adminSubjects) > 0 {
-							mockUpdatedRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectAdminRole, projectAdminK8sRole, tt.fields.adminSubjects)
+						if len(expectedAdminSubjects) > 0 {
+							mockUpdatedRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectAdminRole, projectAdminK8sRole, expectedAdminSubjects)
 						}
-						if len(tt.fields.monitorSubjects) > 0 {
-							mockUpdatedRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectMonitorRole, projectMonitorK8sRole, tt.fields.monitorSubjects)
+						if len(expectedMonitorSubjects) > 0 {
+							mockUpdatedRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectMonitorRole, projectMonitorK8sRole, expectedMonitorSubjects)
 						}
 
 					} else { // not an existing namespace
@@ -297,11 +314,11 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 								return nil
 							})
 
-						if len(tt.fields.adminSubjects) > 0 {
-							mockNewRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectAdminRole, projectAdminK8sRole, tt.fields.adminSubjects)
+						if len(expectedAdminSubjects) > 0 {
+							mockNewRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectAdminRole, projectAdminK8sRole, expectedAdminSubjects)
 						}
-						if len(tt.fields.monitorSubjects) > 0 {
-							mockNewRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectMonitorRole, projectMonitorK8sRole, tt.fields.monitorSubjects)
+						if len(expectedMonitorSubjects) > 0 {
+							mockNewRoleBindingExpectations(assert, mockClient, tt.fields.nsList[0].Metadata.Name, projectMonitorRole, projectMonitorK8sRole, expectedMonitorSubjects)
 						}
 					}
 				} // END VerrazzanoProject is in the expected Multi cluster namespace

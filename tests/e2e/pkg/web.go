@@ -84,31 +84,31 @@ func Delete(url string, hostHeader string) (int, string) {
 // GetVerrazzanoNoRetryHTTPClient returns an Http client configured with the verrazzano CA cert
 func GetVerrazzanoNoRetryHTTPClient() *http.Client {
 	kubeconfigPath := GetKubeConfigPathFromEnv()
-	return getHTTPClientWIthCABundle(getVerrazzanoCACert(kubeconfigPath), kubeconfigPath)
+	return getHTTPClientWithCABundle(getVerrazzanoCACert(kubeconfigPath), kubeconfigPath)
 }
 
 // GetVerrazzanoHTTPClient returns an Http client configured with the verrazzano CA cert
 func GetVerrazzanoHTTPClient() *retryablehttp.Client {
 	kubeconfigPath := GetKubeConfigPathFromEnv()
-	rawClient := getHTTPClientWIthCABundle(getVerrazzanoCACert(kubeconfigPath), kubeconfigPath)
+	rawClient := getHTTPClientWithCABundle(getVerrazzanoCACert(kubeconfigPath), kubeconfigPath)
 	return newRetryableHTTPClient(rawClient)
 }
 
 // GetVerrazzanoHTTPClient returns an Http client configured with the verrazzano CA cert
 func GetVerrazzanoHTTPClientForCluster(kubeconfigPath string) *retryablehttp.Client {
-	rawClient := getHTTPClientWIthCABundle(getVerrazzanoCACert(kubeconfigPath), kubeconfigPath)
+	rawClient := getHTTPClientWithCABundle(getVerrazzanoCACert(kubeconfigPath), kubeconfigPath)
 	return newRetryableHTTPClient(rawClient)
 }
 
 // GetRancherHTTPClient returns an Http client configured with the Rancher CA cert
 func GetRancherHTTPClient(kubeconfigPath string) *retryablehttp.Client {
-	rawClient := getHTTPClientWIthCABundle(getRancherCACert(kubeconfigPath), kubeconfigPath)
+	rawClient := getHTTPClientWithCABundle(getRancherCACert(kubeconfigPath), kubeconfigPath)
 	return newRetryableHTTPClient(rawClient)
 }
 
 // GetKeycloakHTTPClient returns the Keycloak Http client
 func GetKeycloakHTTPClient(kubeconfigPath string) *retryablehttp.Client {
-	keycloakRawClient := getHTTPClientWIthCABundle(getKeycloakCACert(kubeconfigPath), kubeconfigPath)
+	keycloakRawClient := getHTTPClientWithCABundle(getKeycloakCACert(kubeconfigPath), kubeconfigPath)
 	client := newRetryableHTTPClient(keycloakRawClient)
 	client.CheckRetry = GetRetryPolicy()
 	return client
@@ -141,7 +141,7 @@ func ExpectHTTPGetOk(httpClient *retryablehttp.Client, url string) {
 // GetSystemVmiHTTPClient returns an HTTP client configured with the system vmi CA cert
 func GetSystemVmiHTTPClient() *retryablehttp.Client {
 	kubeconfigPath := GetKubeConfigPathFromEnv()
-	vmiRawClient := getHTTPClientWIthCABundle(getSystemVMICACert(kubeconfigPath), kubeconfigPath)
+	vmiRawClient := getHTTPClientWithCABundle(getSystemVMICACert(kubeconfigPath), kubeconfigPath)
 	client := newRetryableHTTPClient(vmiRawClient)
 	client.CheckRetry = GetRetryPolicy()
 	return client
@@ -209,8 +209,8 @@ func doReq(url, method string, contentType string, hostHeader string, username s
 	return resp.StatusCode, string(html)
 }
 
-// getHTTPClientWIthCABundle returns an HTTP client configured with the provided CA cert
-func getHTTPClientWIthCABundle(caData []byte, kubeconfigPath string) *http.Client {
+// getHTTPClientWithCABundle returns an HTTP client configured with the provided CA cert
+func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) *http.Client {
 	tr := &http.Transport{TLSClientConfig: &tls.Config{RootCAs: rootCertPool(caData)}}
 
 	proxyURL := getProxyURL()
@@ -331,13 +331,16 @@ func newRetryableHTTPClient(client *http.Client) *retryablehttp.Client {
 
 // rootCertPool returns the root cert pool
 func rootCertPool(caData []byte) *x509.CertPool {
-	if len(caData) == 0 {
-		return nil
-	}
-
 	// if we have caData, use it
 	certPool := x509.NewCertPool()
-	certPool.AppendCertsFromPEM(caData)
+	for _, stagingCA := range getACMEStagingCAs() {
+		if len(stagingCA) > 0 {
+			certPool.AppendCertsFromPEM(stagingCA)
+		}
+	}
+	if len(caData) != 0 {
+		certPool.AppendCertsFromPEM(caData)
+	}
 	return certPool
 }
 

@@ -14,9 +14,10 @@ def testEnvironments = env.JOB_NAME.contains('oci-dns-acceptance')
                        : env.JOB_NAME.contains('magic-dns')
                        ? ["magicdns_oke", "ocidns_oke", "kind"]
                        : ["kind", "magicdns_oke", "ocidns_oke"]
-
+def acmeEnvironments = [ "staging", "production" ]
+def certIssuers = [ "self-signed", "acme" ]
 def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : "VM.Standard2.8"
-def availableRegions = [ "us-ashburn-1", "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
+def availableRegions = [ "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
                           "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
                           "sa-saopaulo-1", "uk-london-1", "us-phoenix-1" ]
 Collections.shuffle(availableRegions)
@@ -46,6 +47,10 @@ pipeline {
         choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
                 // 1st choice is the default value
                 choices: [ "v1.18.10", "v1.17.13", "v1.16.15" ])
+        choice (description: 'Certificate Issuer', name: 'CERT_ISSUER',
+                choices: certIssuers)
+        choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
+                choices: acmeEnvironments)
         string defaultValue: 'dev', description: 'Verrazzano install profile name', name: "INSTALL_PROFILE", trim: true
         string defaultValue: 'NONE', description: 'Verrazzano platform operator image name (within ghcr.io/verrazzano repo)', name: 'VERRAZZANO_OPERATOR_IMAGE', trim: true
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
@@ -120,10 +125,16 @@ pipeline {
         INSTALL_CONFIG_FILE_OCIDNS = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
         INSTALL_CONFIG_FILE_XIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-xipio.yaml"
         INSTALL_CONFIG_FILE_NODEPORT = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nodeport.yaml"
-        //OCI_DNS_ZONE = credentials('oci-dns-zone')
+
         OCI_DNS_ZONE_NAME="z${zoneId}.v8o.oracledx.com"
+        CERT_ISSUER="${params.CERT_ISSUER}"
+        ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
 
         VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'ocidns_oke' ? 'b' + env.BUILD_NUMBER : 'default'}"
+
+        DUMP_KUBECONFIG="${KUBECONFIG}"
+        DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
+        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
     }
 
     stages {
@@ -253,7 +264,7 @@ pipeline {
                         echo "Installing yq"
                         GO111MODULE=on go get github.com/mikefarah/yq/v4
                         export PATH=${HOME}/go/bin:${PATH}
-                        ${WORKSPACE}/tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $INSTALL_CONFIG_FILE_OCIDNS
+                        ${WORKSPACE}/tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $INSTALL_CONFIG_FILE_OCIDNS $CERT_ISSUER $ACME_ENVIRONMENT
                     """
                 }
             }
@@ -354,6 +365,7 @@ pipeline {
                 stage('generic-springboot') {
                     environment {
                         DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/generic-springboot-test.log"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-springboot"
                     }
                     steps {
                         script {
@@ -383,6 +395,9 @@ pipeline {
                     }
                 }
                 stage('hello-helidon') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-hello-helidon"
+                    }
                     steps {
                         script {
                             runGinkgoFailFast('examples/helidon')
@@ -413,19 +428,26 @@ pipeline {
                 stage('lift-and-shift') {
                     environment {
                         DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/lift-and-shift-test.log"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-lift-and-shift"
                     }
                     steps {
                         script {
-                            runGinkgo('examples/todo')
+                            runGinkgoFailFast('examples/todo')
                         }
                     }
                 }
                 stage('istio authorization policy') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-istio-auth-policy"
+                    }
                     steps {
                         runGinkgo('istio/authz')
                     }
                 }
                 stage('security role based access') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-rbac"
+                    }
                     steps {
                         runGinkgo('security/rbac')
                     }
@@ -433,10 +455,11 @@ pipeline {
                 stage('bobs-books') {
                     environment {
                         DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/bobs-book-test.log"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs-books-dump"
                     }
                     steps {
                         script {
-                            runGinkgo('examples/bobsbooks')
+                            runGinkgoFailFast('examples/bobsbooks')
                         }
                         sh """
                             ${WORKSPACE}/tests/e2e/config/scripts/get_verrazzano_image.sh bob >> ${IMG_LIST_FILE}
@@ -454,6 +477,7 @@ pipeline {
                 stage('socks') {
                     environment {
                         DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/socks-test.log"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
                     }
                     steps {
                         script {
@@ -496,7 +520,7 @@ pipeline {
                     sort -u -o ${IMG_LIST_FILE} ${IMG_LIST_FILE}
                 fi
             """
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/test-cluster-dumps/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             sh """
                 if [ "${TEST_ENV}" == "ocidns_oke" ]; then

@@ -31,7 +31,15 @@ var _ = ginkgo.BeforeSuite(func() {
 	deployToDoListExample()
 })
 
+var failed = false
+var _ = ginkgo.AfterEach(func() {
+	failed = failed || ginkgo.CurrentGinkgoTestDescription().Failed
+})
+
 var _ = ginkgo.AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	undeployToDoListExample()
 })
 
@@ -77,7 +85,9 @@ func deployToDoListExample() {
 	}
 	pkg.Log(pkg.Info, "Create application resources")
 	err := retry.Do(
-		func() error { return pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-application.yaml") },
+		func() error {
+			return pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-application.yaml")
+		},
 		retryAttempts, retryDelay)
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create application resource: %v", err))

@@ -305,6 +305,7 @@ pipeline {
                     make cleanup-cluster
                     make integ-test KIND_CONFIG="kind-config-ci.yaml" CLUSTER_DUMP_LOCATION=${WORKSPACE}/application-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     ../build/copy-junit-output.sh ${WORKSPACE}
+                    make cleanup-cluster
                 """
             }
             post {

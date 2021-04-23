@@ -110,7 +110,7 @@ func VerifyHelloHelidonDeletedAdminCluster(kubeconfigPath string, placedInCluste
 		return mcResDeleted
 	}
 
-	appDeleted := verifyAppDeleted(kubeconfigPath)
+	appDeleted := VerifyAppDeleted(kubeconfigPath)
 
 	return mcResDeleted && appDeleted
 }
@@ -131,7 +131,8 @@ func VerifyHelloHelidonDeletedInManagedCluster(kubeconfigPath string) bool {
 	*/
 }
 
-func verifyAppDeleted(kubeconfigPath string) bool {
+// VerifyAppDeleted - verifies that the workload and pods are deleted on the the specified cluster
+func VerifyAppDeleted(kubeconfigPath string) bool {
 	workloadExists := componentWorkloadExists(kubeconfigPath)
 	podsRunning := helloHelidonPodsRunning(kubeconfigPath)
 	return !workloadExists && !podsRunning

@@ -272,9 +272,9 @@ type CertManagerComponent struct {
 
 // DNSComponent specifies the DNS configuration
 type DNSComponent struct {
-	// DNS type of xip.io.  This is the default.
+	// DNS type of wildcard.  This is the default.
 	// +optional
-	XIPIO *XIPIO `json:"xip.io,omitempty"`
+	Wildcard *Wildcard `json:"wildcard,omitempty"`
 	// DNS type of OCI (Oracle Cloud Infrastructure)
 	// +optional
 	OCI *OCI `json:"oci,omitempty"`
@@ -395,14 +395,13 @@ type Certificate struct {
 // OciPrivateKeyFileName is the private key file name
 const OciPrivateKeyFileName = "oci_api_key.pem"
 
-// OciPrivateKeyFilePath is the private key mount path
-const OciPrivateKeyFilePath = "/config/" + OciPrivateKeyFileName
-
 // OciConfigSecretFile is the name of the OCI configuration yaml file
 const OciConfigSecretFile = "oci.yaml"
 
-// XIPIO is xip.io DNS type
-type XIPIO struct {
+// Wildcard DNS type
+type Wildcard struct {
+	// DNS wildcard domain (xip.io, nip.io, etc.)
+	Domain string `json:"domain"`
 }
 
 // OCI DNS type

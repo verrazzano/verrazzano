@@ -26,7 +26,7 @@ func TestXipIoInstallDefaults(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equalf(t, "default", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, installv1alpha1.Prod, config.Profile, "Expected profile did not match")
-	assert.Equalf(t, DNSTypeXip, config.DNS.Type, "Expected DNS type did not match")
+	assert.Equalf(t, DNSTypeWildcard, config.DNS.Type, "Expected DNS type did not match")
 	assert.Equalf(t, IngressTypeLoadBalancer, config.Ingress.Type, "Expected Ingress type did not match")
 	assert.Equalf(t, CertIssuerTypeCA, config.Certificates.IssuerType, "Expected certification issuer type did not match")
 	assert.Equalf(t, "verrazzano-install", config.Certificates.CA.ClusterResourceNamespace, "Expected namespace did not match")
@@ -48,7 +48,9 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 			EnvironmentName: "testEnv",
 			Components: installv1alpha1.ComponentSpec{
 				DNS: &installv1alpha1.DNSComponent{
-					XIPIO: &installv1alpha1.XIPIO{},
+					Wildcard: &installv1alpha1.Wildcard{
+						Domain: "xip.io",
+					},
 				},
 				Ingress: &installv1alpha1.IngressNginxComponent{
 					Type: installv1alpha1.LoadBalancer,
@@ -112,7 +114,8 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equalf(t, "testEnv", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, installv1alpha1.Dev, config.Profile, "Expected profile did not match")
-	assert.Equalf(t, DNSTypeXip, config.DNS.Type, "Expected DNS type did not match")
+	assert.Equalf(t, DNSTypeWildcard, config.DNS.Type, "Expected DNS type did not match")
+	assert.Equalf(t, "xip.io", config.DNS.Wildcard.Domain, "Expected domain did not match")
 
 	assert.Equalf(t, IngressTypeLoadBalancer, config.Ingress.Type, "Expected Ingress type did not match")
 	assert.Equalf(t, 1, len(config.Ingress.Verrazzano.NginxInstallArgs), "Expected nginxInstallArgs length did not match")
@@ -357,7 +360,7 @@ func TestNodePortInstall(t *testing.T) {
 			Components: installv1alpha1.ComponentSpec{
 				CertManager: &installv1alpha1.CertManagerComponent{},
 				DNS: &installv1alpha1.DNSComponent{
-					XIPIO: &installv1alpha1.XIPIO{},
+					Wildcard: &installv1alpha1.Wildcard{},
 				},
 				Ingress: &installv1alpha1.IngressNginxComponent{
 					Type: installv1alpha1.NodePort,
@@ -395,7 +398,7 @@ func TestNodePortInstall(t *testing.T) {
 	assert.Equalf(t, "kind", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, installv1alpha1.Dev, config.Profile, "Expected profile did not match")
 
-	assert.Equalf(t, DNSTypeXip, config.DNS.Type, "Expected DNS type did not match")
+	assert.Equalf(t, DNSTypeWildcard, config.DNS.Type, "Expected DNS type did not match")
 
 	assert.Equalf(t, IngressTypeNodePort, config.Ingress.Type, "Expected Ingress type did not match")
 	assert.Equalf(t, 5, len(config.Ingress.Verrazzano.NginxInstallArgs), "Expected nginxInstallArgs length did not match")
@@ -1220,7 +1223,7 @@ func TestNewExternalDNSInstallConfigInvalidVZInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	config, err := newExternalDNSInstallConfig(&vzSpec)
+	config, err := GetInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
@@ -1246,16 +1249,16 @@ func TestNewExternalDNSInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 			},
 		},
 	}
-	config, err := newExternalDNSInstallConfig(&vzSpec)
+	config, err := GetInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
 
-// TestNewXipIoInstallConfigInvalidVZInstallArgs Test the getVerrazzanoInstallArgs  function
-// GIVEN a call to newXipIoInstallConfig
+// TestNewWildcardInstallConfigInvalidVZInstallArgs Test the getVerrazzanoInstallArgs function
+// GIVEN a call to newWildcardInstallConfig
 // WHEN the VerrazzanoSpec contains an invalid storage config
 // THEN the returned config is nil and an error is returned
-func TestNewXipIoInstallConfigInvalidVZInstallArgs(t *testing.T) {
+func TestNewWildcardInstallConfigInvalidVZInstallArgs(t *testing.T) {
 	vzSpec := installv1alpha1.Verrazzano{
 		Spec: installv1alpha1.VerrazzanoSpec{
 			DefaultVolumeSource: &corev1.VolumeSource{
@@ -1271,16 +1274,16 @@ func TestNewXipIoInstallConfigInvalidVZInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	config, err := newXipIoInstallConfig(&vzSpec)
+	config, err := GetInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
 
-// TestNewXipIoInstallConfigInvalidKeyCloakConfig Test the getKeycloak  function
-// GIVEN a call to newXipIoInstallConfig
+// TestNewWildcardInstallConfigInvalidKeyCloakConfig Test the getKeycloak  function
+// GIVEN a call to newWildcardInstallConfig
 // WHEN with a PVCVolumeSource in the MySQL VolumeSource configuration with no templates specified
 // THEN the returned config is nil and an error is returned
-func TestNewXipIoInstallConfigInvalidKeyCloakConfig(t *testing.T) {
+func TestNewWildcardInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 	vzSpec := installv1alpha1.Verrazzano{
 		Spec: installv1alpha1.VerrazzanoSpec{
 			Components: installv1alpha1.ComponentSpec{
@@ -1297,7 +1300,7 @@ func TestNewXipIoInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 			},
 		},
 	}
-	config, err := newXipIoInstallConfig(&vzSpec)
+	config, err := GetInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
@@ -1322,7 +1325,7 @@ func TestNewOCIDNSInstallConfigInvalidVZInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	config, err := newOCIDNSInstallConfig(&vzSpec)
+	config, err := GetInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
@@ -1348,7 +1351,7 @@ func TestNewOCIDNSInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 			},
 		},
 	}
-	config, err := newOCIDNSInstallConfig(&vzSpec)
+	config, err := GetInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }

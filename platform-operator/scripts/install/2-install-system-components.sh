@@ -29,7 +29,7 @@ function install_nginx_ingress_controller()
     local EXTRA_NGINX_ARGUMENTS=$(get_nginx_helm_args_from_config)
 
     if [ "$DNS_TYPE" == "oci" ]; then
-      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.external-dns\.alpha\.kubernetes\.io/ttl=\"60\""
+      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set-string controller.service.annotations.external-dns\.alpha\.kubernetes\.io/ttl=60"
       local dns_zone=$(get_config_value ".dns.oci.dnsZoneName")
       EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.external-dns\.alpha\.kubernetes\.io/hostname=verrazzano-ingress.${NAME}.${dns_zone}"
     fi
@@ -277,9 +277,14 @@ function install_rancher()
     local INGRESS_TLS_SOURCE=""
     local EXTRA_RANCHER_ARGUMENTS=""
     local RANCHER_PATCH_DATA=""
+    local useAdditionalCAs=false
     if [ "$CERT_ISSUER_TYPE" == "acme" ]; then
       INGRESS_TLS_SOURCE="letsEncrypt"
-      EXTRA_RANCHER_ARGUMENTS="--set letsEncrypt.ingress.class=rancher --set letsEncrypt.email=$(get_config_value ".certificates.acme.emailAddress") --set letsEncrypt.environment=$(get_acme_environment)"
+      if [ "$(get_acme_environment)" != "production" ]; then
+        log "Using ACME staging, enable use of additional trusted CAs for Rancher"
+        useAdditionalCAs=true
+      fi
+      EXTRA_RANCHER_ARGUMENTS="--set letsEncrypt.ingress.class=rancher --set letsEncrypt.email=$(get_config_value ".certificates.acme.emailAddress") --set letsEncrypt.environment=$(get_acme_environment) --set additionalTrustedCAs=${useAdditionalCAs}"
       RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${DNS_SUFFIX} auth\",\"external-dns.alpha.kubernetes.io/target\":\"verrazzano-ingress.${NAME}.${DNS_SUFFIX}\",\"cert-manager.io/issuer\":null,\"external-dns.alpha.kubernetes.io/ttl\":\"60\"}}}"
     elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
       INGRESS_TLS_SOURCE="rancher"
@@ -296,6 +301,34 @@ function install_rancher()
       --set hostname=rancher.${NAME}.${DNS_SUFFIX} \
       --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
       ${EXTRA_RANCHER_ARGUMENTS}
+
+    if [ "$useAdditionalCAs" == "true" ]; then
+      log "Using ACME staging, create staging certs secret for Rancher"
+      local acme_staging_certs=${TMP_DIR}/ca-additional.pem
+      echo -n "" > ${acme_staging_certs}
+      curl_args=(--output ${TMP_DIR}/int-r3.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-r3.pem")
+      call_curl 200 http_response http_status curl_args || true
+      if [ ${http_status:--1} -ne 200 ]; then
+        log "Error downloading LetsEncrypt Staging intermediate R3 cert"
+      else
+        cat ${TMP_DIR}/int-r3.pem >> ${acme_staging_certs}
+      fi
+      curl_args=(--output ${TMP_DIR}/int-e1.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-e1.pem")
+      call_curl 200 http_response http_status curl_args || true
+      if [ ${http_status:--1} -ne 200 ]; then
+        log "Error downloading LetsEncrypt Staging intermediate E1 cert"
+      else
+        cat ${TMP_DIR}/int-e1.pem >> ${acme_staging_certs}
+      fi
+      curl_args=(--output ${TMP_DIR}/root-x1.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem")
+      call_curl 200 http_response http_status curl_args || true
+      if [ ${http_status:--1} -ne 200 ]; then
+        log "Error downloading LetsEncrypt Staging X1 Root cert"
+      else
+        cat ${TMP_DIR}/root-x1.pem >> ${acme_staging_certs}
+      fi
+      kubectl -n cattle-system create secret generic tls-ca-additional --from-file=ca-additional.pem=${acme_staging_certs}
+    fi
 
     # CRI-O does not deliver MKNOD by default, until https://github.com/rancher/rancher/pull/27582 is merged we must add the capability
     # OLCNE uses CRI-O and needs this change, and it doesn't hurt other cases

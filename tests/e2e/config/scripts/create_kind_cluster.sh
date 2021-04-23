@@ -13,6 +13,7 @@ CLEANUP_KIND_CONTAINERS=${5:-true}
 CONNECT_JENKINS_RUNNER_TO_NETWORK=${6:-true}
 KIND_AT_CACHE=${7:-false}
 SETUP_CALICO=${8:-false}
+KIND_AT_CACHE_NAME=${9:-"NONE"}
 KIND_IMAGE=""
 CALICO_SUFFIX=""
 
@@ -54,9 +55,17 @@ create_kind_cluster() {
   cd ${SCRIPT_DIR}/
   KIND_CONFIG_FILE=kind-config${CALICO_SUFFIX}.yaml
   if [ ${KIND_AT_CACHE} == true ]; then
-    echo "Using kind-config-ci.yaml for pre-created cache"
-    KIND_CONFIG_FILE=kind-config-ci${CALICO_SUFFIX}.yaml
+    if [ ${KIND_AT_CACHE_NAME} != "NONE" ]; then
+      # If a cache name was specified, replace the at_test cache name with the one specified (this is used only
+      # for multi-cluster tests at the moment)
+      sed "s;v8o_cache/at_tests;v8o_cache/${KIND_AT_CACHE_NAME};g" kind-config-ci${CALICO_SUFFIX}.yaml > kind-config-ci${CALICO_SUFFIX}_${KIND_AT_CACHE_NAME}.yaml
+      KIND_CONFIG_FILE=kind-config-ci${CALICO_SUFFIX}_${KIND_AT_CACHE_NAME}.yaml
+    else
+      # If no cache name specified use at_tests cache
+      KIND_CONFIG_FILE=kind-config-ci${CALICO_SUFFIX}.yaml
+    fi
   fi
+  echo "Using ${KIND_CONFIG_FILE}"
   sed -i "s/KIND_IMAGE/${KIND_IMAGE}/g" ${KIND_CONFIG_FILE}
   HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 --name ${CLUSTER_NAME} --wait 5m --config=${KIND_CONFIG_FILE}
   kubectl config set-context kind-${CLUSTER_NAME}

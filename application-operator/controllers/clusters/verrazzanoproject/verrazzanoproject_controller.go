@@ -5,6 +5,7 @@ package verrazzanoproject
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -23,10 +24,12 @@ import (
 )
 
 const (
-	projectAdminRole      = "verrazzano-project-admin"
-	projectAdminK8sRole   = "admin"
-	projectMonitorRole    = "verrazzano-project-monitor"
-	projectMonitorK8sRole = "view"
+	projectAdminRole            = "verrazzano-project-admin"
+	projectAdminK8sRole         = "admin"
+	projectAdminGroupTemplate   = "verrazzano-project-%s-admins"
+	projectMonitorRole          = "verrazzano-project-monitor"
+	projectMonitorK8sRole       = "view"
+	projectMonitorGroupTemplate = "verrazzano-project-%s-monitors"
 	finalizerName         = "project.verrazzano.io"
 	keyPolicyName         = "policy-name"
 	keyNamespace          = "namespace"
@@ -107,20 +110,25 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// Update the cluster status
-	_, err = r.updateStatus(ctx, &vp, opResult, err)
-	if err != nil {
-		return ctrl.Result{}, err
+	_, statusErr := r.updateStatus(ctx, &vp, opResult, err)
+	if statusErr != nil {
+		return ctrl.Result{}, statusErr
 	}
 
 	// Update the VerrazzanoProject state
 	oldState := clusters.SetEffectiveStateIfChanged(vp.Spec.Placement, &vp.Status)
 	if oldState != vp.Status.State {
-		err = r.Status().Update(ctx, &vp)
-		if err != nil {
-			return ctrl.Result{}, err
+		stateErr := r.Status().Update(ctx, &vp)
+		if stateErr != nil {
+			return ctrl.Result{}, stateErr
 		}
 	}
 
+	// if an error occurred in createOrUpdate, return that error with a requeue
+	// even if update status succeeded
+	if err != nil {
+		return ctrl.Result{Requeue: true, RequeueAfter: clusters.GetRandomRequeueDelay()}, err
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -171,26 +179,35 @@ func (r *Reconciler) mutateNamespace(nsTemplate clustersv1alpha1.NamespaceTempla
 func (r *Reconciler) createOrUpdateRoleBindings(ctx context.Context, namespace string, vp clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
 	logger.Info("Create or update role bindings", "namespace", namespace)
 
-	// if there are any project admin subjects, create two role bindings, one for the project admin role and
-	// one for the k8s admin role
+	// get the default binding subjects
+	adminSubjects, monitorSubjects := r.getDefaultRoleBindingSubjects(vp)
+
+	// override defaults if specified in the project
 	if len(vp.Spec.Template.Security.ProjectAdminSubjects) > 0 {
-		rb := newRoleBinding(namespace, projectAdminRole, vp.Spec.Template.Security.ProjectAdminSubjects)
+		adminSubjects = vp.Spec.Template.Security.ProjectAdminSubjects
+	}
+	if len(vp.Spec.Template.Security.ProjectMonitorSubjects) > 0 {
+		monitorSubjects = vp.Spec.Template.Security.ProjectMonitorSubjects
+	}
+
+	// create two role bindings, one for the project admin role and one for the k8s admin role
+	if len(adminSubjects) > 0 {
+		rb := newRoleBinding(namespace, projectAdminRole, adminSubjects)
 		if err := r.createOrUpdateRoleBinding(ctx, rb, logger); err != nil {
 			return err
 		}
-		rb = newRoleBinding(namespace, projectAdminK8sRole, vp.Spec.Template.Security.ProjectAdminSubjects)
+		rb = newRoleBinding(namespace, projectAdminK8sRole, adminSubjects)
 		if err := r.createOrUpdateRoleBinding(ctx, rb, logger); err != nil {
 			return err
 		}
 	}
-	// if there are any project monitor subjects, create two role bindings, one for the project monitor role and
-	// one for the k8s monitor role
-	if len(vp.Spec.Template.Security.ProjectMonitorSubjects) > 0 {
-		rb := newRoleBinding(namespace, projectMonitorRole, vp.Spec.Template.Security.ProjectMonitorSubjects)
+	// create two role bindings, one for the project monitor role and one for the k8s monitor role
+	if len(monitorSubjects) > 0 {
+		rb := newRoleBinding(namespace, projectMonitorRole, monitorSubjects)
 		if err := r.createOrUpdateRoleBinding(ctx, rb, logger); err != nil {
 			return err
 		}
-		rb = newRoleBinding(namespace, projectMonitorK8sRole, vp.Spec.Template.Security.ProjectMonitorSubjects)
+		rb = newRoleBinding(namespace, projectMonitorK8sRole, monitorSubjects)
 		if err := r.createOrUpdateRoleBinding(ctx, rb, logger); err != nil {
 			return err
 		}
@@ -241,6 +258,18 @@ func newRoleBinding(namespace string, roleName string, subjects []rbacv1.Subject
 		},
 		Subjects: subjects,
 	}
+}
+
+func (r *Reconciler) getDefaultRoleBindingSubjects(vp clustersv1alpha1.VerrazzanoProject) ([]rbacv1.Subject, []rbacv1.Subject) {
+	adminSubjects := []rbacv1.Subject{{
+		Kind: "Group",
+		Name: fmt.Sprintf(projectAdminGroupTemplate, vp.Name),
+	}}
+	monitorSubjects := []rbacv1.Subject{{
+		Kind: "Group",
+		Name: fmt.Sprintf(projectMonitorGroupTemplate, vp.Name),
+	}}
+	return adminSubjects, monitorSubjects
 }
 
 // syncNetworkPolices syncs the NetworkPolicies specified in the project
