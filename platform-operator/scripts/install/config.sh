@@ -39,9 +39,11 @@ function get_config_value() {
   if [ "$config_val" == "null" ]; then
     config_val=""
   fi
+
   # check if it is defined in the json files under install-overrides
-  if [ ! $(get_override_config_value "$jq_expr") == "" ]; then
-    config_val=$(get_override_config_value "$jq_expr")
+  local config_override_value=$(get_override_config_value "$jq_expr")
+  if [ "$config_override_value" != "" ]; then
+    config_val=$config_override_value
   fi
   echo $config_val
   return 0
@@ -159,7 +161,6 @@ function validate_config_json {
   set -o pipefail
   local jsonToValidate=$1
   echo "$jsonToValidate" | jq . > /dev/null || fail "Failed to read installation config file contents. Make sure it is valid JSON"
-
   validate_environment_name "$jsonToValidate"
   validate_dns_section "$jsonToValidate"
   validate_certificates_section "$jsonToValidate"
@@ -357,8 +358,16 @@ function compute_effective_override() {
 
 # Read the value for a given key from effective.config.json
 function get_override_config_value() {
+  local config_val=""
+  # Return an empty string when effective.config.json is not there - during uninstall and when validate_config_json
+  # calls get_config_value.
+  if [ ! -f "$EFFECTIVE_CONFIG_VALUES" ]; then
+    echo $config_val
+    return 0
+  fi
+
   local jq_expr="$1"
-  local config_val=$(jq -r "$jq_expr" $EFFECTIVE_CONFIG_VALUES)
+  config_val=$(jq -r "$jq_expr" $EFFECTIVE_CONFIG_VALUES)
   if [ $? -ne 0 ]; then
     echo "Error reading $jq_expr from config files"
     return 1
