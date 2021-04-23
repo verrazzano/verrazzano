@@ -300,13 +300,13 @@ pipeline {
                         stage("Configure KinD") {
                             when { expression { return params.TEST_ENV == 'kind' } }
                             steps {
-                                configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_NAME)
+                                configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                         stage("Configure OKE/MagicDNS") {
                             when { expression { return params.TEST_ENV == 'magicdns_oke' } }
                             steps {
-                                configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_XIPIO, "./tests/e2e/config/scripts/process_xipio_install_yaml.sh", params.WILDCARD_DNS_NAME)
+                                configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_XIPIO, "./tests/e2e/config/scripts/process_xipio_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
                             }
                         }
                     }
