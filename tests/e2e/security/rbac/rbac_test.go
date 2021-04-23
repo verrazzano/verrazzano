@@ -5,18 +5,17 @@ package rbac_test
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"time"
 )
 
 var (
-	expectedPodsOperator = []string{"verrazzano-application-operator"}
-	expectedPodsOam      = []string{"oam-kubernetes-runtime"}
-	waitTimeout          = 5 * time.Minute
-	pollingInterval      = 10 * time.Second
+	waitTimeout     = 5 * time.Minute
+	pollingInterval = 10 * time.Second
 )
 
 const (
@@ -233,6 +232,16 @@ var _ = ginkgo.Describe("Test RBAC Permission", func() {
 			gomega.Expect(allowed).To(gomega.BeTrue(), fmt.Sprintf("FAIL: Did Not Pass Authorization on user list OAM Components: Allowed = %t, reason = %s", allowed, reason))
 		})
 
+	})
+})
+
+var _ = ginkgo.Describe("Test RBAC Permission", func() {
+	ginkgo.Context("for serviceaccount verrazzano-api", func() {
+		ginkgo.It("Fail impersonating any other service account", func() {
+			pkg.Log(pkg.Info, "Can verrazzano-api service account impersonate any other service account?  No")
+			allowed, reason := pkg.CanIForAPIGroupForServiceAccountOrUser("verrazzano-api", "", "impersonate", "serviceaccounts", "core", true, verrazzanoSystemNS)
+			gomega.Expect(allowed).To(gomega.BeFalse(), fmt.Sprintf("FAIL: Passed Authorization on impersonating service accounts: Allowed = %t, reason = %s", allowed, reason))
+		})
 	})
 })
 

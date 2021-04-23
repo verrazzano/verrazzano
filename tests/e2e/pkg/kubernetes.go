@@ -463,6 +463,12 @@ func GetClusterRole(name string) *rbacv1.ClusterRole {
 
 //DoesServiceAccountExist returns whether a service account with the given name and namespace exists in the cluster
 func DoesServiceAccountExist(namespace, name string) bool {
+	sa := GetServiceAccount(namespace, name)
+	return sa != nil
+}
+
+//GetServiceAccount returns a service account with the given name and namespace
+func GetServiceAccount(namespace, name string) *corev1.ServiceAccount {
 	clientset := GetKubernetesClientset()
 
 	sa, err := clientset.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), name, metav1.GetOptions{})
@@ -471,7 +477,7 @@ func DoesServiceAccountExist(namespace, name string) bool {
 		ginkgo.Fail(fmt.Sprintf("Failed to get service account %s in namespace %s with error: %v", name, namespace, err))
 	}
 
-	return sa != nil
+	return sa
 
 }
 
@@ -627,7 +633,10 @@ func CanI(userOCID string, namespace string, verb string, resource string) (bool
 }
 
 func CanIForAPIGroup(userOCID string, namespace string, verb string, resource string, group string) (bool, string) {
+	return CanIForAPIGroupForServiceAccountOrUser(userOCID, namespace, verb, resource, group, false, "")
+}
 
+func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace string, verb string, resource string, group string, isServiceAccount bool, saNamespace string) (bool, string) {
 	canI := &v1beta1.SelfSubjectAccessReview{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "SelfSubjectAccessReview",
@@ -649,14 +658,23 @@ func CanIForAPIGroup(userOCID string, namespace string, verb string, resource st
 	config := GetKubeConfig()
 
 	wt := config.WrapTransport // Config might already have a transport wrapper
+	if isServiceAccount {
+		token := GetTokenForServiceAccount(saOrUserOCID, saNamespace)
+		config.BearerToken = string(token)
+	}
+
 	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
 		if wt != nil {
 			rt = wt(rt)
 		}
-		return &headerAdder{
-			headers: map[string][]string{"Impersonate-User": {userOCID}},
-			rt:      rt,
+		header := &headerAdder{
+			rt: rt,
 		}
+		if !isServiceAccount {
+			header.headers = map[string][]string{"Impersonate-User": {saOrUserOCID}}
+		}
+
+		return header
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
@@ -666,9 +684,31 @@ func CanIForAPIGroup(userOCID string, namespace string, verb string, resource st
 
 	auth, err := clientset.AuthorizationV1beta1().SelfSubjectAccessReviews().Create(context.TODO(), canI, metav1.CreateOptions{})
 	if err != nil {
-		Log(Info, fmt.Sprintf("Failed to check perms: %v", err))
+		ginkgo.Fail(fmt.Sprintf("Failed to check perms: %v", err))
 	}
 
 	return auth.Status.Allowed, auth.Status.Reason
+}
 
+//GetTokenForServiceAccount returns the token associated with service account
+func GetTokenForServiceAccount(sa string, namespace string) []byte {
+	serviceAccount := GetServiceAccount(namespace, sa)
+	if len(serviceAccount.Secrets) == 0 {
+		ginkgo.Fail(fmt.Sprintf("No secrets present in service account %s in namespace %s", sa, namespace))
+	}
+
+	secretName := serviceAccount.Secrets[0].Name
+	clientset := GetKubernetesClientset()
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get secret %s for service account %s in namespace %s with error: %v", secretName, sa, namespace, err))
+	}
+
+	token, ok := secret.Data["token"]
+
+	if !ok {
+		ginkgo.Fail(fmt.Sprintf("No token present in secret %s for service account %s in namespace %s with error: %v", secretName, sa, namespace, err))
+	}
+
+	return token
 }
