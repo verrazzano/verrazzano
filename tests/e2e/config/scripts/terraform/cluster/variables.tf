@@ -27,6 +27,9 @@ variable "allow_worker_ssh_access" {
 variable "worker_mode" {
   default = "private"
 }
+variable "cluster_access" {
+  default = "public"
+}
 variable "ssh_public_key_path" {
   default = ""
 }
