@@ -30,9 +30,9 @@ const (
 	projectMonitorRole          = "verrazzano-project-monitor"
 	projectMonitorK8sRole       = "view"
 	projectMonitorGroupTemplate = "verrazzano-project-%s-monitors"
-	finalizerName         = "project.verrazzano.io"
-	keyPolicyName         = "policy-name"
-	keyNamespace          = "namespace"
+	finalizerName               = "project.verrazzano.io"
+	keyPolicyName               = "policy-name"
+	keyNamespace                = "namespace"
 )
 
 // Reconciler reconciles a VerrazzanoProject object
