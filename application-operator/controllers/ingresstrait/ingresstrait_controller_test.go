@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -24,6 +23,7 @@ import (
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -1332,9 +1332,13 @@ func TestBuildAppHostNameLoadBalancerXIP(t *testing.T) {
 				APIVersion: "extensions/v1beta1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace:   name.Namespace,
-				Name:        name.Name,
-				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.xip.io"}}
+				Namespace: name.Namespace,
+				Name:      name.Name,
+				Annotations: map[string]string{
+					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.xip.io",
+					"verrazzano.io/dns.wildcard.domain":       "xip.io",
+				},
+			}
 			return nil
 		})
 
@@ -1387,9 +1391,13 @@ func TestFailureBuildAppHostNameLoadBalancerXIP(t *testing.T) {
 				APIVersion: "extensions/v1beta1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace:   name.Namespace,
-				Name:        name.Name,
-				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.xip.io"}}
+				Namespace: name.Namespace,
+				Name:      name.Name,
+				Annotations: map[string]string{
+					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.xip.io",
+					"verrazzano.io/dns.wildcard.domain":       "xip.io",
+				},
+			}
 			return nil
 		})
 
@@ -1439,9 +1447,13 @@ func TestBuildAppHostNameNodePortXIP(t *testing.T) {
 				APIVersion: "extensions/v1beta1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace:   name.Namespace,
-				Name:        name.Name,
-				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.xip.io"}}
+				Namespace: name.Namespace,
+				Name:      name.Name,
+				Annotations: map[string]string{
+					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.xip.io",
+					"verrazzano.io/dns.wildcard.domain":       "xip.io",
+				},
+			}
 			return nil
 		})
 
@@ -1503,9 +1515,13 @@ func TestFailureBuildAppHostNameNodePortXIP(t *testing.T) {
 				APIVersion: "extensions/v1beta1",
 				Kind:       "ingress"}
 			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace:   name.Namespace,
-				Name:        name.Name,
-				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.xip.io"}}
+				Namespace: name.Namespace,
+				Name:      name.Name,
+				Annotations: map[string]string{
+					"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.1.2.3.4.xip.io",
+					"verrazzano.io/dns.wildcard.domain":       "xip.io",
+				},
+			}
 			return nil
 		})
 
@@ -2454,7 +2470,9 @@ func newVerrazzanoIngress(ipAddress string) *k8net.Ingress {
 			Name:      constants.VzConsoleIngress,
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Annotations: map[string]string{
-				"external-dns.alpha.kubernetes.io/target": fmt.Sprintf("verrazzano-ingress.default.%s.xip.io", ipAddress)},
+				"external-dns.alpha.kubernetes.io/target": fmt.Sprintf("verrazzano-ingress.default.%s.xip.io", ipAddress),
+				"verrazzano.io/dns.wildcard.domain":       "xip.io",
+			},
 		},
 	}
 	return &rangerIngress
