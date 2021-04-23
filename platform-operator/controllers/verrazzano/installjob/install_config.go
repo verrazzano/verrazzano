@@ -185,126 +185,72 @@ type InstallConfiguration struct {
 // GetInstallConfig returns an install configuration in the json format required by the
 // bash installer scripts.
 func GetInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
+	vzArgs, err := getVerrazzanoInstallArgs(&vz.Spec)
+	if err != nil {
+		return nil, err
+	}
+	keycloak, err := getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource)
+	if err != nil {
+		return nil, err
+	}
+	return &InstallConfiguration{
+		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
+		Profile:         getProfile(vz.Spec.Profile),
+		VzInstallArgs:   vzArgs,
+		DNS:             getDNSConfig(vz),
+		Ingress:         getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
+		Certificates:    getCertificateConfig(vz),
+		Keycloak:        keycloak,
+		Rancher:         getRancher(vz.Spec.Components.Rancher),
+	}, nil
+}
+
+func getDNSConfig(vz *installv1alpha1.Verrazzano) DNS {
 	dns := vz.Spec.Components.DNS
 	if dns != nil {
 		if dns.External != nil {
-			return newExternalDNSInstallConfig(vz)
+			return DNS{
+				Type: DNSTypeExternal,
+				External: &ExternalDNS{
+					Suffix: vz.Spec.Components.DNS.External.Suffix,
+				},
+			}
 		}
 		if dns.OCI != nil {
-			return newOCIDNSInstallConfig(vz)
+			return DNS{
+				Type: DNSTypeOci,
+				Oci: &DNSOCI{
+					OCIConfigSecret:        vz.Spec.Components.DNS.OCI.OCIConfigSecret,
+					DNSZoneCompartmentOcid: vz.Spec.Components.DNS.OCI.DNSZoneCompartmentOCID,
+					DNSZoneOcid:            vz.Spec.Components.DNS.OCI.DNSZoneOCID,
+					DNSZoneName:            vz.Spec.Components.DNS.OCI.DNSZoneName,
+				},
+			}
 		}
 	}
-	return newXipIoInstallConfig(vz)
+	return DNS{
+		Type: DNSTypeXip,
+	}
 }
 
-func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
-	vzArgs, err := getVerrazzanoInstallArgs(&vz.Spec)
-	if err != nil {
-		return nil, err
-	}
-	keycloak, err := getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource)
-	if err != nil {
-		return nil, err
-	}
-	rancher := getRancher(vz.Spec.Components.Rancher)
-	var acmeConfig *CertificateACME = &CertificateACME{}
-	if vz.Spec.Components.CertManager != nil {
-		acmeConfig = &CertificateACME{
-			Provider:     string(vz.Spec.Components.CertManager.Certificate.Acme.Provider),
-			EmailAddress: vz.Spec.Components.CertManager.Certificate.Acme.EmailAddress,
-			Environment:  vz.Spec.Components.CertManager.Certificate.Acme.Environment,
-		}
-	}
-
-	return &InstallConfiguration{
-		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
-		Profile:         getProfile(vz.Spec.Profile),
-		VzInstallArgs:   vzArgs,
-		DNS: DNS{
-			Type: DNSTypeOci,
-			Oci: &DNSOCI{
-				OCIConfigSecret:        vz.Spec.Components.DNS.OCI.OCIConfigSecret,
-				DNSZoneCompartmentOcid: vz.Spec.Components.DNS.OCI.DNSZoneCompartmentOCID,
-				DNSZoneOcid:            vz.Spec.Components.DNS.OCI.DNSZoneOCID,
-				DNSZoneName:            vz.Spec.Components.DNS.OCI.DNSZoneName,
-			},
-		},
-		Ingress: getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
-		Certificates: Certificate{
+func getCertificateConfig(vz *installv1alpha1.Verrazzano) Certificate {
+	if vz.Spec.Components.CertManager != nil && (vz.Spec.Components.CertManager.Certificate.Acme != installv1alpha1.Acme{}) {
+		return Certificate{
 			IssuerType: CertIssuerTypeAcme,
-			ACME:       acmeConfig,
-		},
-		Keycloak: keycloak,
-		Rancher:  rancher,
-	}, nil
-}
-
-// newXipIoInstallConfig returns an install configuration for a xip.io install in the
-// json format required by the bash installer scripts.
-func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
-	vzArgs, err := getVerrazzanoInstallArgs(&vz.Spec)
-	if err != nil {
-		return nil, err
-	}
-	keycloak, err := getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource)
-	if err != nil {
-		return nil, err
-	}
-	rancher := getRancher(vz.Spec.Components.Rancher)
-	return &InstallConfiguration{
-		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
-		Profile:         getProfile(vz.Spec.Profile),
-		VzInstallArgs:   vzArgs,
-		DNS: DNS{
-			Type: DNSTypeXip,
-		},
-		Ingress: getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
-		Certificates: Certificate{
-			IssuerType: CertIssuerTypeCA,
-			CA: &CertificateCA{
-				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager),
-				SecretName:               getCASecretName(vz.Spec.Components.CertManager),
+			ACME: &CertificateACME{
+				Provider:     string(vz.Spec.Components.CertManager.Certificate.Acme.Provider),
+				EmailAddress: vz.Spec.Components.CertManager.Certificate.Acme.EmailAddress,
+				Environment:  vz.Spec.Components.CertManager.Certificate.Acme.Environment,
 			},
-		},
-		Keycloak: keycloak,
-		Rancher:  rancher,
-	}, nil
-}
-
-// newExternalDNSInstallConfig returns an install configuration for an external DNS install
-// in the json format required by the bash installer scripts.
-// This type of install configuration would be used for an OLCNE install.
-func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
-	vzArgs, err := getVerrazzanoInstallArgs(&vz.Spec)
-	if err != nil {
-		return nil, err
+		}
 	}
-	keycloak, err := getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource)
-	if err != nil {
-		return nil, err
+	return Certificate{
+		IssuerType: CertIssuerTypeCA,
+		CA: &CertificateCA{
+			ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager),
+			SecretName:               getCASecretName(vz.Spec.Components.CertManager),
+		},
 	}
-	rancher := getRancher(vz.Spec.Components.Rancher)
-	return &InstallConfiguration{
-		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
-		Profile:         getProfile(vz.Spec.Profile),
-		VzInstallArgs:   vzArgs,
-		DNS: DNS{
-			Type: DNSTypeExternal,
-			External: &ExternalDNS{
-				Suffix: vz.Spec.Components.DNS.External.Suffix,
-			},
-		},
-		Ingress: getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
-		Certificates: Certificate{
-			IssuerType: CertIssuerTypeCA,
-			CA: &CertificateCA{
-				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager),
-				SecretName:               getCASecretName(vz.Spec.Components.CertManager),
-			},
-		},
-		Keycloak: keycloak,
-		Rancher:  rancher,
-	}, nil
 }
 
 // getIngressPorts returns the list of ingress ports in the json format required by the bash installer scripts

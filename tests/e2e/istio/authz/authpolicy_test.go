@@ -43,7 +43,15 @@ var _ = ginkgo.BeforeSuite(func() {
 	deployNoIstioApplication()
 })
 
+var failed = false
+var _ = ginkgo.AfterEach(func() {
+	failed = failed || ginkgo.CurrentGinkgoTestDescription().Failed
+})
+
 var _ = ginkgo.AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	undeployFooApplication()
 	undeployBarApplication()
 	undeployNoIstioApplication()

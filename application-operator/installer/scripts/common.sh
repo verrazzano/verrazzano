@@ -12,6 +12,9 @@ BUILD_DIR="${SCRIPT_DIR}/build"
 # The max length of the environment name passed in by the user.
 ENV_NAME_LENGTH_LIMIT=10
 
+CHARTS_DIR=$(cd $SOURCE_DIR/../../../platform-operator/thirdparty/charts; pwd -P)
+VZ_OVERRIDES_DIR=$(cd $SOURCE_DIR/../../../platform-operator/helm_config/overrides; pwd -P)
+
 . ${SOURCE_DIR}/logging.sh
 
 # DEPRECATED: This function is deprecated and is replaced by the status function in logging.sh

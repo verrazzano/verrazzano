@@ -36,10 +36,10 @@ func (d *LoggingScopeDefaulter) Default(appConfig *oamv1.ApplicationConfiguratio
 	if err == nil && ns != nil {
 		defaultLoggingScopeName := getDefaultLoggingScopeName(appConfig)
 		log.Info("defaultLoggingScope",
-			"loggingScope", defaultLoggingScopeName, "dryRun", dryRun, "namespaceStatus", ns.Status.Phase)
+			"loggingScope", defaultLoggingScopeName, "dryRun", dryRun, "namespaceStatus", ns.Status.Phase, "appConfigDeleteTimeStamp", appConfig.DeletionTimestamp)
 
-		// don't attempt to create a default logging scope if the namespace is terminating
-		if ns.Status.Phase != v1.NamespaceTerminating {
+		// don't attempt to create a default logging scope if the namespace or application config is terminating
+		if ns.Status.Phase != v1.NamespaceTerminating && appConfig.DeletionTimestamp.IsZero() {
 			defaultLoggingComponentScope := oamv1.ComponentScope{
 				ScopeReference: runtimev1alpha1.TypedReference{
 					APIVersion: loggingScopeAPIVersion,
@@ -165,7 +165,7 @@ func fetchLoggingScope(ctx context.Context, c client.Reader, name types.Namespac
 
 // fetchNamespace attempts to get a namespace for the given name
 func fetchNamespace(ctx context.Context, c client.Reader, name types.NamespacedName) (*v1.Namespace, error) {
-	log.Info("Fetch scope", "scope", name)
+	log.Info("Fetch namespace", "namespace", name)
 	var ns v1.Namespace
 	err := c.Get(ctx, name, &ns)
 	if err != nil {
