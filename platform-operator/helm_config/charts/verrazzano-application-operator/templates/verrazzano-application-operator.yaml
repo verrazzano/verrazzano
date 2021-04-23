@@ -391,8 +391,9 @@ metadata:
 webhooks:
   - name: verrazzano-application-istio-defaulter.verrazzano.io
     namespaceSelector:
-      matchLabels:
-        istio-injection: enabled
+      matchExpressions:
+          - {key: istio-injection, operator: In, values: [enabled]}
+          - {key: verrazzano.io/namespace, operator: NotIn, values: [verrazzano-system]}
     clientConfig:
       service:
         name: {{ .Values.name }}

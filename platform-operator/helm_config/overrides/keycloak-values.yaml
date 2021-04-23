@@ -66,3 +66,10 @@ keycloak:
     dbVendor: mysql
     dbHost: mysql
     dbPort: 3306
+
+  readinessProbe: |
+    httpGet:
+      path: {{ if ne .Values.keycloak.basepath "" }}/{{ .Values.keycloak.basepath }}{{ end }}/realms/master
+      port: http
+    initialDelaySeconds: 45
+    timeoutSeconds: 1

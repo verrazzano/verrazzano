@@ -16,6 +16,8 @@ global:
   controlPlaneSecurityEnabled: true
   enableHelmTest: false
   istioNamespace: istio-system
+  proxy:
+    readinessInitialDelaySeconds: 60
 
 gateways:
   istio-egressgateway:
@@ -45,3 +47,17 @@ meshConfig:
 
 sidecarInjectorWebhook:
   rewriteAppHTTPProbe: true
+  neverInjectSelector:
+    - matchExpressions:
+        - {key: app, operator: In, values: [verrazzano-application-operator]}
+    - matchExpressions:
+        - {key: app, operator: In, values: [verrazzano-operator]}
+    - matchExpressions:
+        - {key: app, operator: In, values: [weblogic-operator]}
+    - matchExpressions:
+        - {key: control-plane, operator: In, values: [coherence]}
+    - matchExpressions:
+        - {key: app.kubernetes.io/name, operator: In, values: [oam-kubernetes-runtime]}
+    - matchExpressions:
+        - {key: k8s-app, operator: In, values: [verrazzano-monitoring-operator]}
+
