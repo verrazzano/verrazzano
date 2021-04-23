@@ -663,8 +663,9 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 	config := GetKubeConfig()
 
 	wt := config.WrapTransport // Config might already have a transport wrapper
+	var token []byte
 	if isServiceAccount {
-		token := GetTokenForServiceAccount(saOrUserOCID, saNamespace)
+		token = GetTokenForServiceAccount(saOrUserOCID, saNamespace)
 		config.BearerToken = string(token)
 	}
 
@@ -675,7 +676,9 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 		header := &headerAdder{
 			rt: rt,
 		}
-		if !isServiceAccount {
+		if isServiceAccount {
+			header.headers = map[string][]string{"Authorization": {fmt.Sprintf("Bearer %s", token)}}
+		} else {
 			header.headers = map[string][]string{"Impersonate-User": {saOrUserOCID}}
 		}
 
