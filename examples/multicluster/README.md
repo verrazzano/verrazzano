@@ -50,7 +50,6 @@ Complete the following sections prior to running the multicluster examples.
    ```
    $ export KUBECONFIG=$KUBECONFIG_MANAGED1
    $ echo "prometheus:" > managed1.yaml
-   $ echo "  authpasswd: $(KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get secret verrazzano -n verrazzano-system -o jsonpath='{.data.password}' | base64 --decode)" >> managed1.yaml
    $ echo "  host: $(KUBECONFIG=$KUBECONFIG_MANAGED1 kubectl get ing vmi-system-prometheus -n verrazzano-system -o jsonpath='{.spec.tls[0].hosts[0]}')" >> managed1.yaml
 
    # Perform the following commands if the result of this command is not null:
@@ -83,13 +82,13 @@ Complete the following sections prior to running the multicluster examples.
 
 Unregistering a managed cluster is largely the reverse of the registering steps; at a high level the steps are:
 
-* (Recommended) Move or remove any application placements to the managed cluster (see the [hello-helidon example](./hello-helidon/README.md#Undeploy the Hello World Helidon application)). 
+* (Recommended) Move or remove any application placements to the managed cluster (see the [hello-helidon example](./hello-helidon/README.md#undeploy-the-hello-world-helidon-application)).
 * Delete the cluster registration secrets from the managed cluster.
 * Delete the VerrazzanoManagedCluster custom resource on the admin cluster.
-* (Optional) Delete the managed cluster Prometheus secret on the admin cluster, if it is no longer needed.
-* (Optional) Delete the admin cluster ConfigMap, if it is no longer needed.
+* (Optional) If it is no longer needed, delete the managed cluster Prometheus secret on the admin cluster.
+* (Optional) If it is no longer needed, delete the admin cluster ConfigMap.
 
-Using the names and resources from the examples in the previous section, here are the steps for 
+Using the names and resources from the examples in the previous section, here are the steps for
 unregistering the managed cluster `managed1`:
 
 1. On the managed cluster, delete the cluster registration secrets.

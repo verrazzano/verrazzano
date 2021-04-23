@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/avast/retry-go"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -21,11 +22,24 @@ const (
 	longPollingInterval  = 20 * time.Second
 )
 
+var (
+	retryDelay    = retry.Delay(shortPollingInterval)
+	retryAttempts = retry.Attempts(3)
+)
+
 var _ = ginkgo.BeforeSuite(func() {
 	deployToDoListExample()
 })
 
+var failed = false
+var _ = ginkgo.AfterEach(func() {
+	failed = failed || ginkgo.CurrentGinkgoTestDescription().Failed
+})
+
 var _ = ginkgo.AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	undeployToDoListExample()
 })
 
@@ -70,8 +84,13 @@ func deployToDoListExample() {
 		ginkgo.Fail(fmt.Sprintf("Failed to create ToDo List component resources: %v", err))
 	}
 	pkg.Log(pkg.Info, "Create application resources")
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-application.yaml"); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create ToDo List application resource: %v", err))
+	err := retry.Do(
+		func() error {
+			return pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-application.yaml")
+		},
+		retryAttempts, retryDelay)
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create application resource: %v", err))
 	}
 }
 

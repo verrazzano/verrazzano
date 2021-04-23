@@ -15,6 +15,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/rand"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -124,7 +125,7 @@ func CreateClusterLevelStatus(condition clustersv1alpha1.Condition, clusterName 
 		state = clustersv1alpha1.Pending
 	}
 	return clustersv1alpha1.ClusterLevelStatus{
-		Name: clusterName, State: state, LastUpdateTime: condition.LastTransitionTime}
+		Name: clusterName, State: state, Message: condition.Message, LastUpdateTime: condition.LastTransitionTime}
 }
 
 // ComputeEffectiveState computes the overall state of the multi cluster resource from the statuses
@@ -268,7 +269,7 @@ func UpdateStatus(resource MultiClusterResource, mcStatus *clustersv1alpha1.Mult
 	clusterLevelStatus := CreateClusterLevelStatus(newCondition, clusterName)
 
 	if StatusNeedsUpdate(*mcStatus, newCondition, clusterLevelStatus) {
-		mcStatus.Conditions = append(mcStatus.Conditions, newCondition)
+		addOrUpdateCondition(mcStatus, newCondition)
 		SetClusterLevelStatus(mcStatus, clusterLevelStatus)
 		mcStatus.State = ComputeEffectiveState(*mcStatus, placement)
 		err := updateFunc()
@@ -290,6 +291,31 @@ func UpdateStatus(resource MultiClusterResource, mcStatus *clustersv1alpha1.Mult
 	return reconcile.Result{}, nil
 }
 
+// addOrUpdateCondition adds or updates the newCondition in the status' list of existing conditions
+func addOrUpdateCondition(status *clustersv1alpha1.MultiClusterResourceStatus, condition clustersv1alpha1.Condition) {
+	var matchingCondition *clustersv1alpha1.Condition
+	for i, existingCondition := range status.Conditions {
+		if condition.Type == existingCondition.Type &&
+			condition.Status == existingCondition.Status &&
+			condition.Message == existingCondition.Message {
+			// the exact same condition already exists, don't update
+			return
+		}
+		if condition.Type == existingCondition.Type {
+			// use the index here since "existingCondition" is a copy and won't point to the object in the slice
+			matchingCondition = &status.Conditions[i]
+			break
+		}
+	}
+	if matchingCondition == nil {
+		status.Conditions = append(status.Conditions, condition)
+	} else {
+		matchingCondition.Message = condition.Message
+		matchingCondition.Status = condition.Status
+		matchingCondition.LastTransitionTime = condition.LastTransitionTime
+	}
+}
+
 // SetEffectiveStateIfChanged - if the effective state of the resource has changed, set it on the
 // in-memory multicluster resource's status. Returns the previous state, whether changed or not
 func SetEffectiveStateIfChanged(placement clustersv1alpha1.Placement,
@@ -304,17 +330,11 @@ func SetEffectiveStateIfChanged(placement clustersv1alpha1.Placement,
 	return statusPtr.State
 }
 
-// DeleteAssociatedResource will retrieve and delete the resource specified by the name
+// DeleteAssociatedResource will retrieve and delete the resource specified by the name. It is used to delete
+// the underlying resource corresponding to a MultiClusterxxx wrapper resource (e.g. the OAM app config corresponding
+// to a MultiClusterApplicationConfiguration)
 func DeleteAssociatedResource(ctx context.Context, c client.Client, mcResource runtime.Object, finalizerName string, resourceToDelete runtime.Object, name types.NamespacedName) error {
-	// assert the MC object is a controller util Object that can be processed by controller util convenience methods
-	mcObj, ok := mcResource.(controllerutil.Object)
-	if ok {
-		controllerutil.RemoveFinalizer(mcObj, finalizerName)
-		err := c.Update(ctx, mcResource)
-		if err != nil {
-			return err
-		}
-	}
+	// Get and delete the associated with the name specified by resourceToDelete
 	err := c.Get(ctx, name, resourceToDelete)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
@@ -325,6 +345,18 @@ func DeleteAssociatedResource(ctx context.Context, c client.Client, mcResource r
 	err = c.Delete(ctx, resourceToDelete)
 	if err != nil {
 		return err
+	}
+
+	// Deletion succeeded, now we can remove the finalizer
+
+	// assert the MC object is a controller util Object that can be processed by controllerutil.RemoveFinalizer
+	mcObj, ok := mcResource.(controllerutil.Object)
+	if ok {
+		controllerutil.RemoveFinalizer(mcObj, finalizerName)
+		err := c.Update(ctx, mcResource)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -340,4 +372,11 @@ func AddFinalizer(ctx context.Context, r client.Client, obj controllerutil.Objec
 	}
 
 	return controllerruntime.Result{}, nil
+}
+
+// GetRandomRequeueDelay returns a random delay to be used for RequeueAfter
+func GetRandomRequeueDelay() time.Duration {
+	// get a jittered delay to use for requeueing reconcile
+	var seconds = rand.IntnRange(2, 8)
+	return time.Duration(seconds) * time.Second
 }

@@ -13,6 +13,7 @@ import (
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -35,8 +36,8 @@ const (
 type DNSType string
 
 const (
-	// DNSTypeXip is for the dns type xip (magic dns)
-	DNSTypeXip DNSType = "xip.io"
+	// DNSTypeWildcard is for the dns type wildcard (magic dns)
+	DNSTypeWildcard DNSType = "wildcard"
 	// DNSTypeOci is for the dns type OCI
 	DNSTypeOci DNSType = "oci"
 	// DNSTypeExternal is for dns type external (e.g. olcne)
@@ -118,6 +119,11 @@ type Ingress struct {
 	Application Application `json:"application,omitempty"`
 }
 
+// WildcardDNS configuration
+type WildcardDNS struct {
+	Domain string `json:"domain"`
+}
+
 // ExternalDNS configuration
 type ExternalDNS struct {
 	Suffix string `json:"suffix"`
@@ -149,6 +155,7 @@ type DNSOCI struct {
 // DNS configuration for a Verrazzano installation
 type DNS struct {
 	Type     DNSType      `json:"type"`
+	Wildcard *WildcardDNS `json:"wildcard,omitempty"`
 	External *ExternalDNS `json:"external,omitempty"`
 	Oci      *DNSOCI      `json:"oci,omitempty"`
 }
@@ -157,6 +164,7 @@ type DNS struct {
 type Keycloak struct {
 	KeycloakInstallArgs []InstallArg `json:"keycloakInstallArgs,omitempty"`
 	MySQL               MySQL        `json:"mysql,omitempty"`
+	Enabled             string       `json:"enabled,omitempty"`
 }
 
 // MySQL configuration
@@ -183,126 +191,84 @@ type InstallConfiguration struct {
 // GetInstallConfig returns an install configuration in the json format required by the
 // bash installer scripts.
 func GetInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
+	vzArgs, err := getVerrazzanoInstallArgs(&vz.Spec)
+	if err != nil {
+		return nil, err
+	}
+	keycloak, err := getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource)
+	if err != nil {
+		return nil, err
+	}
+	return &InstallConfiguration{
+		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
+		Profile:         getProfile(vz.Spec.Profile),
+		VzInstallArgs:   vzArgs,
+		DNS:             getDNSConfig(vz),
+		Ingress:         getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
+		Certificates:    getCertificateConfig(vz),
+		Keycloak:        keycloak,
+		Rancher:         getRancher(vz.Spec.Components.Rancher),
+	}, nil
+}
+
+func getDNSConfig(vz *installv1alpha1.Verrazzano) DNS {
 	dns := vz.Spec.Components.DNS
 	if dns != nil {
+		if dns.Wildcard != nil {
+			return DNS{
+				Type: DNSTypeWildcard,
+				Wildcard: &WildcardDNS{
+					Domain: vz.Spec.Components.DNS.Wildcard.Domain,
+				},
+			}
+		}
 		if dns.External != nil {
-			return newExternalDNSInstallConfig(vz)
+			return DNS{
+				Type: DNSTypeExternal,
+				External: &ExternalDNS{
+					Suffix: vz.Spec.Components.DNS.External.Suffix,
+				},
+			}
 		}
 		if dns.OCI != nil {
-			return newOCIDNSInstallConfig(vz)
+			return DNS{
+				Type: DNSTypeOci,
+				Oci: &DNSOCI{
+					OCIConfigSecret:        vz.Spec.Components.DNS.OCI.OCIConfigSecret,
+					DNSZoneCompartmentOcid: vz.Spec.Components.DNS.OCI.DNSZoneCompartmentOCID,
+					DNSZoneOcid:            vz.Spec.Components.DNS.OCI.DNSZoneOCID,
+					DNSZoneName:            vz.Spec.Components.DNS.OCI.DNSZoneName,
+				},
+			}
 		}
 	}
-	return newXipIoInstallConfig(vz)
+
+	return DNS{
+		Type: DNSTypeWildcard,
+		Wildcard: &WildcardDNS{
+			Domain: "xip.io",
+		},
+	}
 }
 
-func newOCIDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
-	vzArgs, err := getVerrazzanoInstallArgs(&vz.Spec)
-	if err != nil {
-		return nil, err
-	}
-	keycloak, err := getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource)
-	if err != nil {
-		return nil, err
-	}
-	rancher := getRancher(vz.Spec.Components.Rancher)
-	var acmeConfig *CertificateACME = &CertificateACME{}
-	if vz.Spec.Components.CertManager != nil {
-		acmeConfig = &CertificateACME{
-			Provider:     string(vz.Spec.Components.CertManager.Certificate.Acme.Provider),
-			EmailAddress: vz.Spec.Components.CertManager.Certificate.Acme.EmailAddress,
-			Environment:  vz.Spec.Components.CertManager.Certificate.Acme.Environment,
-		}
-	}
-
-	return &InstallConfiguration{
-		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
-		Profile:         getProfile(vz.Spec.Profile),
-		VzInstallArgs:   vzArgs,
-		DNS: DNS{
-			Type: DNSTypeOci,
-			Oci: &DNSOCI{
-				OCIConfigSecret:        vz.Spec.Components.DNS.OCI.OCIConfigSecret,
-				DNSZoneCompartmentOcid: vz.Spec.Components.DNS.OCI.DNSZoneCompartmentOCID,
-				DNSZoneOcid:            vz.Spec.Components.DNS.OCI.DNSZoneOCID,
-				DNSZoneName:            vz.Spec.Components.DNS.OCI.DNSZoneName,
-			},
-		},
-		Ingress: getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
-		Certificates: Certificate{
+func getCertificateConfig(vz *installv1alpha1.Verrazzano) Certificate {
+	if vz.Spec.Components.CertManager != nil && (vz.Spec.Components.CertManager.Certificate.Acme != installv1alpha1.Acme{}) {
+		return Certificate{
 			IssuerType: CertIssuerTypeAcme,
-			ACME:       acmeConfig,
-		},
-		Keycloak: keycloak,
-		Rancher:  rancher,
-	}, nil
-}
-
-// newXipIoInstallConfig returns an install configuration for a xip.io install in the
-// json format required by the bash installer scripts.
-func newXipIoInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
-	vzArgs, err := getVerrazzanoInstallArgs(&vz.Spec)
-	if err != nil {
-		return nil, err
-	}
-	keycloak, err := getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource)
-	if err != nil {
-		return nil, err
-	}
-	rancher := getRancher(vz.Spec.Components.Rancher)
-	return &InstallConfiguration{
-		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
-		Profile:         getProfile(vz.Spec.Profile),
-		VzInstallArgs:   vzArgs,
-		DNS: DNS{
-			Type: DNSTypeXip,
-		},
-		Ingress: getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
-		Certificates: Certificate{
-			IssuerType: CertIssuerTypeCA,
-			CA: &CertificateCA{
-				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager),
-				SecretName:               getCASecretName(vz.Spec.Components.CertManager),
+			ACME: &CertificateACME{
+				Provider:     string(vz.Spec.Components.CertManager.Certificate.Acme.Provider),
+				EmailAddress: vz.Spec.Components.CertManager.Certificate.Acme.EmailAddress,
+				Environment:  vz.Spec.Components.CertManager.Certificate.Acme.Environment,
 			},
-		},
-		Keycloak: keycloak,
-		Rancher:  rancher,
-	}, nil
-}
-
-// newExternalDNSInstallConfig returns an install configuration for an external DNS install
-// in the json format required by the bash installer scripts.
-// This type of install configuration would be used for an OLCNE install.
-func newExternalDNSInstallConfig(vz *installv1alpha1.Verrazzano) (*InstallConfiguration, error) {
-	vzArgs, err := getVerrazzanoInstallArgs(&vz.Spec)
-	if err != nil {
-		return nil, err
+		}
 	}
-	keycloak, err := getKeycloak(vz.Spec.Components.Keycloak, vz.Spec.VolumeClaimSpecTemplates, vz.Spec.DefaultVolumeSource)
-	if err != nil {
-		return nil, err
+	return Certificate{
+		IssuerType: CertIssuerTypeCA,
+		CA: &CertificateCA{
+			ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager),
+			SecretName:               getCASecretName(vz.Spec.Components.CertManager),
+		},
 	}
-	rancher := getRancher(vz.Spec.Components.Rancher)
-	return &InstallConfiguration{
-		EnvironmentName: getEnvironmentName(vz.Spec.EnvironmentName),
-		Profile:         getProfile(vz.Spec.Profile),
-		VzInstallArgs:   vzArgs,
-		DNS: DNS{
-			Type: DNSTypeExternal,
-			External: &ExternalDNS{
-				Suffix: vz.Spec.Components.DNS.External.Suffix,
-			},
-		},
-		Ingress: getIngress(vz.Spec.Components.Ingress, vz.Spec.Components.Istio),
-		Certificates: Certificate{
-			IssuerType: CertIssuerTypeCA,
-			CA: &CertificateCA{
-				ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager),
-				SecretName:               getCASecretName(vz.Spec.Components.CertManager),
-			},
-		},
-		Keycloak: keycloak,
-		Rancher:  rancher,
-	}, nil
 }
 
 // getIngressPorts returns the list of ingress ports in the json format required by the bash installer scripts
@@ -388,6 +354,7 @@ func getKeycloak(keycloak *installv1alpha1.KeycloakComponent, templates []instal
 		MySQL: MySQL{
 			MySQLInstallArgs: mySQLArgs,
 		},
+		Enabled: strconv.FormatBool(keycloak.Enabled),
 	}
 
 	// Use a volume source specified in the Keycloak config, otherwise use the default spec
@@ -572,46 +539,69 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]Install
 			}...)
 		}
 	}
-	if vzSpec.Security.AdminBinding.Name != "" {
-		args = append(args, InstallArg{
-			Name:      "userrolebindings.admin.name",
-			Value:     vzSpec.Security.AdminBinding.Name,
-			SetString: true,
-		})
-		k := vzSpec.Security.AdminBinding.Kind
-		if k == "" {
-			k = "Group"
+	if len(vzSpec.Security.AdminSubjects) > 0 {
+		for i, v := range vzSpec.Security.AdminSubjects {
+			if err := validateRoleBindingSubject(v, fmt.Sprintf("adminSubjects[%d]", i)); err != nil {
+				return []InstallArg{}, err
+			}
+			args = append(args, InstallArg{
+				Name:      fmt.Sprintf("security.adminSubjects.subject-%d.name", i),
+				Value:     v.Name,
+				SetString: true,
+			})
+			args = append(args, InstallArg{
+				Name:      fmt.Sprintf("security.adminSubjects.subject-%d.kind", i),
+				Value:     v.Kind,
+				SetString: true,
+			})
+			if len(v.Namespace) > 0 {
+				args = append(args, InstallArg{
+					Name:      fmt.Sprintf("security.adminSubjects.subject-%d.namespace", i),
+					Value:     v.Namespace,
+					SetString: true,
+				})
+			}
+			if len(v.APIGroup) > 0 {
+				args = append(args, InstallArg{
+					Name:      fmt.Sprintf("security.adminSubjects.subject-%d.apiGroup", i),
+					Value:     v.APIGroup,
+					SetString: true,
+				})
+			}
 		}
-		if k != "Group" && k != "User" {
-			err := fmt.Errorf("Unsuppored subject kind %s", k)
-			return []InstallArg{}, err
-		}
-		args = append(args, InstallArg{
-			Name:      "userrolebindings.admin.kind",
-			Value:     k,
-			SetString: true,
-		})
 	}
-	if vzSpec.Security.MonitorBinding.Name != "" {
-		args = append(args, InstallArg{
-			Name:      "userrolebindings.monitor.name",
-			Value:     vzSpec.Security.MonitorBinding.Name,
-			SetString: true,
-		})
-		k := vzSpec.Security.MonitorBinding.Kind
-		if k == "" {
-			k = "Group"
+	if len(vzSpec.Security.MonitorSubjects) > 0 {
+		for i, v := range vzSpec.Security.MonitorSubjects {
+			if err := validateRoleBindingSubject(v, fmt.Sprintf("adminSubjects[%d]", i)); err != nil {
+				return []InstallArg{}, err
+			}
+			args = append(args, InstallArg{
+				Name:      fmt.Sprintf("security.monitorSubjects.subject-%d.name", i),
+				Value:     v.Name,
+				SetString: true,
+			})
+			args = append(args, InstallArg{
+				Name:      fmt.Sprintf("security.monitorSubjects.subject-%d.kind", i),
+				Value:     v.Kind,
+				SetString: true,
+			})
+			if len(v.Namespace) > 0 {
+				args = append(args, InstallArg{
+					Name:      fmt.Sprintf("security.monitorSubjects.subject-%d.namespace", i),
+					Value:     v.Namespace,
+					SetString: true,
+				})
+			}
+			if len(v.APIGroup) > 0 {
+				args = append(args, InstallArg{
+					Name:      fmt.Sprintf("security.monitorSubjects.subject-%d.apiGroup", i),
+					Value:     v.APIGroup,
+					SetString: true,
+				})
+			}
 		}
-		if k != "Group" && k != "User" {
-			err := fmt.Errorf("Unsuppored subject kind %s", k)
-			return []InstallArg{}, err
-		}
-		args = append(args, InstallArg{
-			Name:      "userrolebindings.monitor.kind",
-			Value:     k,
-			SetString: true,
-		})
 	}
+
 	args = append(args, getVMIInstallArgs(vzSpec)...)
 
 	// Console
@@ -622,6 +612,30 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]Install
 		})
 	}
 	return args, nil
+}
+
+func validateRoleBindingSubject(subject rbacv1.Subject, name string) error {
+	if len(subject.Name) < 1 {
+		err := fmt.Errorf("no name for %s", name)
+		return err
+	}
+	if subject.Kind != "User" && subject.Kind != "Group" && subject.Kind != "ServiceAccount" {
+		err := fmt.Errorf("invalid kind '%s' for %s", subject.Kind, name)
+		return err
+	}
+	if (subject.Kind == "User" || subject.Kind == "Group") && len(subject.APIGroup) > 0 && subject.APIGroup != "rbac.authorization.k8s.io" {
+		err := fmt.Errorf("invalid apiGroup '%s' for %s", subject.APIGroup, name)
+		return err
+	}
+	if subject.Kind == "ServiceAccount" && (len(subject.APIGroup) > 0 || subject.APIGroup != "") {
+		err := fmt.Errorf("invalid apiGroup '%s' for %s", subject.APIGroup, name)
+		return err
+	}
+	if subject.Kind == "ServiceAccount" && len(subject.Namespace) < 1 {
+		err := fmt.Errorf("no namespace for ServiceAccount in %s", name)
+		return err
+	}
+	return nil
 }
 
 func getVMIInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) []InstallArg {

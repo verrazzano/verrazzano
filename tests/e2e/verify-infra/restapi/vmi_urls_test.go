@@ -14,52 +14,51 @@ import (
 )
 
 var _ = ginkgo.Describe("vmi urls test", func() {
-
-	var _ = ginkgo.BeforeEach(func() {
-		api = pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
-	})
-
 	ginkgo.Context("Fetching the system vmi using api and test urls", func() {
 		ginkgo.It("Fetches vmi", func() {
-			response, err := api.Get("apis/verrazzano.io/v1/namespaces/verrazzano-system/verrazzanomonitoringinstances/system")
-			pkg.ExpectHTTPOk(response, err, fmt.Sprintf("Error fetching system vmi from api, error: %v, response: %v", err, response))
+			isManagedClusterProfile := pkg.IsManagedClusterProfile()
+			if !isManagedClusterProfile {
+				api := pkg.GetAPIEndpoint(pkg.GetKubeConfigPathFromEnv())
+				response, err := api.Get("apis/verrazzano.io/v1/namespaces/verrazzano-system/verrazzanomonitoringinstances/system")
+				pkg.ExpectHTTPOk(response, err, fmt.Sprintf("Error fetching system vmi from api, error: %v, response: %v", err, response))
 
-			var vmi map[string]interface{}
-			err = json.Unmarshal(response.Body, &vmi)
-			gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Invalid response for system vmi from api, error: %v", err))
+				var vmi map[string]interface{}
+				err = json.Unmarshal(response.Body, &vmi)
+				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Invalid response for system vmi from api, error: %v", err))
 
-			isEsEnabled := vmi["spec"].(map[string]interface{})["elasticsearch"].(map[string]interface{})["enabled"].(bool)
-			isKibanaEnabled := vmi["spec"].(map[string]interface{})["kibana"].(map[string]interface{})["enabled"].(bool)
-			isPrometheusEnabled := vmi["spec"].(map[string]interface{})["prometheus"].(map[string]interface{})["enabled"].(bool)
-			isGrafanaEnabled := vmi["spec"].(map[string]interface{})["grafana"].(map[string]interface{})["enabled"].(bool)
+				isEsEnabled := vmi["spec"].(map[string]interface{})["elasticsearch"].(map[string]interface{})["enabled"].(bool)
+				isKibanaEnabled := vmi["spec"].(map[string]interface{})["kibana"].(map[string]interface{})["enabled"].(bool)
+				isPrometheusEnabled := vmi["spec"].(map[string]interface{})["prometheus"].(map[string]interface{})["enabled"].(bool)
+				isGrafanaEnabled := vmi["spec"].(map[string]interface{})["grafana"].(map[string]interface{})["enabled"].(bool)
 
-			vmiCredentials, err := pkg.GetSystemVMICredentials()
-			gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Error retrieving system VMI credentials: %v", err))
+				vmiCredentials, err := pkg.GetSystemVMICredentials()
+				gomega.Expect(err).To(gomega.BeNil(), fmt.Sprintf("Error retrieving system VMI credentials: %v", err))
 
-			// Test VMI endpoints
-			sysVmiHTTPClient := pkg.GetSystemVmiHTTPClient()
+				// Test VMI endpoints
+				sysVmiHTTPClient := pkg.GetSystemVmiHTTPClient()
 
-			if isEsEnabled {
-				gomega.Expect(verifySystemVMIComponent(sysVmiHTTPClient, vmiCredentials, "vmi-system-es-ingest", "https://elasticsearch.vmi.system")).To(gomega.BeTrue(), "Unable to access ElasticSearch VMI url")
-			}
+				if isEsEnabled {
+					gomega.Expect(verifySystemVMIComponent(api, sysVmiHTTPClient, vmiCredentials, "vmi-system-es-ingest", "https://elasticsearch.vmi.system")).To(gomega.BeTrue(), "Unable to access ElasticSearch VMI url")
+				}
 
-			if isKibanaEnabled {
-				gomega.Expect(verifySystemVMIComponent(sysVmiHTTPClient, vmiCredentials, "vmi-system-kibana", "https://kibana.vmi.system")).To(gomega.BeTrue(), "Unable to access Kibana VMI url")
-			}
+				if isKibanaEnabled {
+					gomega.Expect(verifySystemVMIComponent(api, sysVmiHTTPClient, vmiCredentials, "vmi-system-kibana", "https://kibana.vmi.system")).To(gomega.BeTrue(), "Unable to access Kibana VMI url")
+				}
 
-			if isPrometheusEnabled {
-				gomega.Expect(verifySystemVMIComponent(sysVmiHTTPClient, vmiCredentials, "vmi-system-prometheus", "https://prometheus.vmi.system")).To(gomega.BeTrue(), "Unable to access Prometheus VMI url")
-			}
+				if isPrometheusEnabled {
+					gomega.Expect(verifySystemVMIComponent(api, sysVmiHTTPClient, vmiCredentials, "vmi-system-prometheus", "https://prometheus.vmi.system")).To(gomega.BeTrue(), "Unable to access Prometheus VMI url")
+				}
 
-			if isGrafanaEnabled {
-				gomega.Expect(verifySystemVMIComponent(sysVmiHTTPClient, vmiCredentials, "vmi-system-grafana", "https://grafana.vmi.system")).To(gomega.BeTrue(), "Unable to access Garafana VMI url")
+				if isGrafanaEnabled {
+					gomega.Expect(verifySystemVMIComponent(api, sysVmiHTTPClient, vmiCredentials, "vmi-system-grafana", "https://grafana.vmi.system")).To(gomega.BeTrue(), "Unable to access Garafana VMI url")
+				}
 			}
 
 		})
 	})
 })
 
-func verifySystemVMIComponent(sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *pkg.UsernamePassword, ingressName, expectedURLPrefix string) bool {
+func verifySystemVMIComponent(api *pkg.APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *pkg.UsernamePassword, ingressName, expectedURLPrefix string) bool {
 	ingress := api.GetIngress("verrazzano-system", ingressName)
 	vmiComponentURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
 	gomega.Expect(vmiComponentURL).Should(gomega.HavePrefix(expectedURLPrefix))

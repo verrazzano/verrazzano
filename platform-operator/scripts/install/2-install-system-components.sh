@@ -30,7 +30,7 @@ function install_nginx_ingress_controller()
     local EXTRA_NGINX_ARGUMENTS=$(get_nginx_helm_args_from_config)
 
     if [ "$DNS_TYPE" == "oci" ]; then
-      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.external-dns\.alpha\.kubernetes\.io/ttl=\"60\""
+      EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set-string controller.service.annotations.external-dns\.alpha\.kubernetes\.io/ttl=60"
       local dns_zone=$(get_config_value ".dns.oci.dnsZoneName")
       EXTRA_NGINX_ARGUMENTS="$EXTRA_NGINX_ARGUMENTS --set controller.service.annotations.external-dns\.alpha\.kubernetes\.io/hostname=verrazzano-ingress.${NAME}.${dns_zone}"
     fi
@@ -184,58 +184,109 @@ function install_external_dns()
 {
   local EXTERNAL_DNS_CHART_DIR=${CHARTS_DIR}/external-dns
 
-  if [ "$DNS_TYPE" == "oci" ]; then
-    if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n cert-manager ; then
-      # secret does not exist, so copy the configured oci config secret from default namespace.
-      # Operator has already checked for existence of secret in default namespace
-      # The DNS zone compartment will get appended to secret generated for cert external dns
-      local dns_compartment=$(get_config_value ".dns.oci.dnsZoneCompartmentOcid")
-      kubectl get secret ${OCI_DNS_CONFIG_SECRET} -o go-template='{{range $k,$v := .data}}{{if not $v}}{{$v}}{{else}}{{$v | base64decode}}{{end}}{{"\n"}}{{end}}' \
-          | sed '/^$/d' > $TMP_DIR/oci.yaml
-      echo "compartment: $dns_compartment" >> $TMP_DIR/oci.yaml
-      kubectl create secret generic $OCI_DNS_CONFIG_SECRET --from-file=$TMP_DIR/oci.yaml -n cert-manager
-    fi
-
-    helm upgrade external-dns ${EXTERNAL_DNS_CHART_DIR} \
-        --install \
-        --namespace cert-manager \
-        -f $VZ_OVERRIDES_DIR/external-dns-values.yaml \
-        --set domainFilters[0]=${DNS_SUFFIX} \
-        --set zoneIdFilters[0]=$(get_config_value ".dns.oci.dnsZoneOcid") \
-        --set txtOwnerId=v8o-local-${NAME} \
-        --set txtPrefix=_v8o-local-${NAME}_ \
-        --set extraVolumes[0].name=config \
-        --set extraVolumes[0].secret.secretName=$OCI_DNS_CONFIG_SECRET \
-        --set extraVolumeMounts[0].name=config \
-        --set extraVolumeMounts[0].mountPath=/etc/kubernetes/ \
-        --wait \
-        || return $?
+  if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n cert-manager ; then
+    # secret does not exist, so copy the configured oci config secret from default namespace.
+    # Operator has already checked for existence of secret in default namespace
+    # The DNS zone compartment will get appended to secret generated for cert external dns
+    local dns_compartment=$(get_config_value ".dns.oci.dnsZoneCompartmentOcid")
+    kubectl get secret ${OCI_DNS_CONFIG_SECRET} -o go-template='{{range $k,$v := .data}}{{if not $v}}{{$v}}{{else}}{{$v | base64decode}}{{end}}{{"\n"}}{{end}}' \
+        | sed '/^$/d' > $TMP_DIR/oci.yaml
+    echo "compartment: $dns_compartment" >> $TMP_DIR/oci.yaml
+    kubectl create secret generic $OCI_DNS_CONFIG_SECRET --from-file=$TMP_DIR/oci.yaml -n cert-manager
   fi
+
+  helm upgrade external-dns ${EXTERNAL_DNS_CHART_DIR} \
+      --install \
+      --namespace cert-manager \
+      -f $VZ_OVERRIDES_DIR/external-dns-values.yaml \
+      --set domainFilters[0]=${DNS_SUFFIX} \
+      --set zoneIdFilters[0]=$(get_config_value ".dns.oci.dnsZoneOcid") \
+      --set txtOwnerId=v8o-local-${NAME} \
+      --set txtPrefix=_v8o-local-${NAME}_ \
+      --set extraVolumes[0].name=config \
+      --set extraVolumes[0].secret.secretName=$OCI_DNS_CONFIG_SECRET \
+      --set extraVolumeMounts[0].name=config \
+      --set extraVolumeMounts[0].mountPath=/etc/kubernetes/ \
+      --wait \
+      || return $?
 }
 
-function create_rancher_namespace()
-{
-    if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
-        kubectl create namespace cattle-system
-        kubectl label namespace cattle-system istio-injection=enabled
+function ensure_rancher_admin_user() {
+  log "Ensure default Rancher admin user is present"
+  local STDERROR_FILE="${TMP_DIR}/rancher_ensureadminuser.err"
+  kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- ensure-default-admin > /dev/null 2>$STDERROR_FILE
+  local max_retries=5
+  local retries=0
+  while true ; do
+    RANCHER_ADMIN_USERNAME=$(kubectl get users -l authz.management.cattle.io/bootstrapping=admin-user -o jsonpath={'.items[].username'} || true)
+    if [ -z "${RANCHER_ADMIN_USERNAME}" ] ; then
+      sleep 10
+    else
+      log "Rancher admin user: ${RANCHER_ADMIN_USERNAME}"
+      break
     fi
+    ((retries+=1))
+    if [ "$retries" -ge "$max_retries" ] ; then
+      echo "Could not detect default Rancher admin user"
+      local std_error_file=$(cat $STDERROR_FILE)
+      log "${std_error_file}"
+      rm "$STDERROR_FILE"
+      return 1
+    fi
+    log "Retry Rancher admin user lookup..."
+  done
+  return 0
+}
+
+function reset_rancher_admin_password() {
+  log "Reset Rancher admin password and create secrets"
+  local STDERROR_FILE="${TMP_DIR}/rancher_resetpwd.err"
+  local max_retries=5
+  local retries=0
+  while true ; do
+    RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- reset-password 2>$STDERROR_FILE)
+    ADMIN_PW=$(echo -n $RANCHER_DATA | awk 'END{ print $NF }')
+
+    if [ -z "$ADMIN_PW" ] ; then
+      sleep 10
+    else
+      break
+    fi
+    ((retries+=1))
+    if [ "$retries" -ge "$max_retries" ] ; then
+      error "ERROR: Failed to reset Rancher password"
+      local std_error_file=$(cat $STDERROR_FILE)
+      log "${std_error_file}"
+      rm "$STDERROR_FILE"
+      return 1
+    fi
+    log "Retry Rancher admin password reset..."
+  done
+
+  kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
 }
 
 function install_rancher()
 {
     local RANCHER_CHART_DIR=${CHARTS_DIR}/rancher
+
+    log "Create Rancher namespace (if required)"
+    if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
+        kubectl create namespace cattle-system
+        kubectl label namespace cattle-system istio-injection=enabled
+    fi
+
     local INGRESS_TLS_SOURCE=""
     local EXTRA_RANCHER_ARGUMENTS=""
     local RANCHER_PATCH_DATA=""
-
-    # Create the rancher-operator-system namespace so we can create network policies
-    if ! kubectl get namespace rancher-operator-system > /dev/null 2>&1; then
-        kubectl create namespace rancher-operator-system
-    fi
-
+    local useAdditionalCAs=false
     if [ "$CERT_ISSUER_TYPE" == "acme" ]; then
       INGRESS_TLS_SOURCE="letsEncrypt"
-      EXTRA_RANCHER_ARGUMENTS="--set letsEncrypt.ingress.class=rancher --set letsEncrypt.email=$(get_config_value ".certificates.acme.emailAddress") --set letsEncrypt.environment=$(get_acme_environment)"
+      if [ "$(get_acme_environment)" != "production" ]; then
+        log "Using ACME staging, enable use of additional trusted CAs for Rancher"
+        useAdditionalCAs=true
+      fi
+      EXTRA_RANCHER_ARGUMENTS="--set letsEncrypt.ingress.class=rancher --set letsEncrypt.email=$(get_config_value ".certificates.acme.emailAddress") --set letsEncrypt.environment=$(get_acme_environment) --set additionalTrustedCAs=${useAdditionalCAs}"
       RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${DNS_SUFFIX} auth\",\"external-dns.alpha.kubernetes.io/target\":\"verrazzano-ingress.${NAME}.${DNS_SUFFIX}\",\"cert-manager.io/issuer\":null,\"external-dns.alpha.kubernetes.io/ttl\":\"60\"}}}"
     elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
       INGRESS_TLS_SOURCE="rancher"
@@ -253,6 +304,34 @@ function install_rancher()
       --set ingress.tls.source=${INGRESS_TLS_SOURCE} \
       ${EXTRA_RANCHER_ARGUMENTS}
 
+    if [ "$useAdditionalCAs" == "true" ]; then
+      log "Using ACME staging, create staging certs secret for Rancher"
+      local acme_staging_certs=${TMP_DIR}/ca-additional.pem
+      echo -n "" > ${acme_staging_certs}
+      curl_args=(--output ${TMP_DIR}/int-r3.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-r3.pem")
+      call_curl 200 http_response http_status curl_args || true
+      if [ ${http_status:--1} -ne 200 ]; then
+        log "Error downloading LetsEncrypt Staging intermediate R3 cert"
+      else
+        cat ${TMP_DIR}/int-r3.pem >> ${acme_staging_certs}
+      fi
+      curl_args=(--output ${TMP_DIR}/int-e1.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-e1.pem")
+      call_curl 200 http_response http_status curl_args || true
+      if [ ${http_status:--1} -ne 200 ]; then
+        log "Error downloading LetsEncrypt Staging intermediate E1 cert"
+      else
+        cat ${TMP_DIR}/int-e1.pem >> ${acme_staging_certs}
+      fi
+      curl_args=(--output ${TMP_DIR}/root-x1.pem "https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem")
+      call_curl 200 http_response http_status curl_args || true
+      if [ ${http_status:--1} -ne 200 ]; then
+        log "Error downloading LetsEncrypt Staging X1 Root cert"
+      else
+        cat ${TMP_DIR}/root-x1.pem >> ${acme_staging_certs}
+      fi
+      kubectl -n cattle-system create secret generic tls-ca-additional --from-file=ca-additional.pem=${acme_staging_certs}
+    fi
+
     # CRI-O does not deliver MKNOD by default, until https://github.com/rancher/rancher/pull/27582 is merged we must add the capability
     # OLCNE uses CRI-O and needs this change, and it doesn't hurt other cases
     kubectl patch deployments -n cattle-system rancher -p '{"spec":{"template":{"spec":{"containers":[{"name":"rancher","securityContext":{"capabilities":{"add":["MKNOD"]}}}]}}}}'
@@ -263,44 +342,8 @@ function install_rancher()
     log "Rollout Rancher"
     kubectl -n cattle-system rollout status -w deploy/rancher || return $?
 
-    log "Ensure default Rancher admin user is present"
-    STDERROR_FILE="${TMP_DIR}/rancher_ensureadminuser.err"
-    kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- ensure-default-admin 2>$STDERROR_FILE
-    RANCHER_ADMIN_USERNAME=$(kubectl get users -l authz.management.cattle.io/bootstrapping=admin-user -o jsonpath={'.items[].username'})
-    if [ -z "${RANCHER_ADMIN_USERNAME}" ]; then
-      echo "Could not detect default Rancher admin user"
-      local std_error_file=$(cat $STDERROR_FILE)
-      log "${std_error_file}"
-      rm "$STDERROR_FILE"
-      return 1
-    else
-      echo "Rancher admin user: ${RANCHER_ADMIN_USERNAME}"
-    fi
-
-    log "Reset Rancher admin password and create secrets"
-    STDERROR_FILE="${TMP_DIR}/rancher_resetpwd.err"
-    local max_retries=5
-    local retries=0
-    while true ; do
-      RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '2/2' | head -1 | awk '{ print $1 }') -- reset-password 2>$STDERROR_FILE)
-      ADMIN_PW=$(echo -n $RANCHER_DATA | awk 'END{ print $NF }')
-
-      if [ -z "$ADMIN_PW" ] ; then
-        sleep 10
-      else
-        break
-      fi
-      ((retries+=1))
-      if [ "$retries" -ge "$max_retries" ] ; then
-        error "ERROR: Failed to reset Rancher password"
-        local std_error_file=$(cat $STDERROR_FILE)
-        log "${std_error_file}"
-        rm "$STDERROR_FILE"
-        return 1
-      fi
-    done
-
-    kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
+    ensure_rancher_admin_user || return $?
+    reset_rancher_admin_password || return $?
 }
 
 function set_rancher_server_url
@@ -400,13 +443,12 @@ DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
 
 action "Installing cert manager" install_cert_manager || exit 1
-action "Installing external DNS" install_external_dns || exit 1
-
-# Always create the Rancher namespace so we can create network policies
-action "Creating Rancher namespace" create_rancher_namespace || exit 1
-
+if [ "$DNS_TYPE" == "oci" ]; then
+  action "Installing external DNS" install_external_dns || exit 1
+fi
 if [ $(is_rancher_enabled) == "true" ]; then
   action "Installing Rancher" install_rancher || exit 1
   action "Setting Rancher Server URL" set_rancher_server_url || true
   action "Patching Rancher Agents" patch_rancher_agents || true
 fi
+

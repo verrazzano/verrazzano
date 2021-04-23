@@ -161,14 +161,14 @@ var _ = ginkgo.Describe("VMI", func() {
 						"beat.version": "6.8.3"})
 			}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a filebeat log record")
 			gomega.Eventually(func() bool {
-				return pkg.LogRecordFound("vmi-ns-verrazzano-system",
+				return pkg.LogRecordFound("verrazzano-namespace-verrazzano-system",
 					time.Now().Add(-24*time.Hour),
 					map[string]string{"caller": "*"})
 			}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a verrazzano-system log record")
 
 		})
 
-		ginkgo.It("Elasticsearch journalbeat Index should be accessible", func() {
+		ginkgo.It("Elasticsearch systemd journal Index should be accessible", func() {
 			gomega.Eventually(func() bool {
 				return pkg.LogRecordFound("vmo-local-journalbeat-"+time.Now().Format("2006.01.02"),
 					time.Now().Add(-24*time.Hour),
@@ -176,7 +176,7 @@ var _ = ginkgo.Describe("VMI", func() {
 						"beat.version": "6.8.3"})
 			}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a journalbeat log record")
 			gomega.Eventually(func() bool {
-				return pkg.LogIndexFound("vmi-journal-" + time.Now().Format("2006.01.02"))
+				return len(pkg.FindLogIndexWithPrefix("verrazzano-journal")) > 0
 			}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue(), "Expected to find a systemd journal log record")
 		})
 
@@ -232,7 +232,9 @@ var _ = ginkgo.Describe("VMI", func() {
 	})
 
 	ginkgo.It("Verify the instance info endpoint URLs", func() {
-		assertInstanceInfoURLs()
+		if !isManagedClusterProfile {
+			assertInstanceInfoURLs()
+		}
 	})
 
 	size := "50Gi"

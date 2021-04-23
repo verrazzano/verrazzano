@@ -57,7 +57,6 @@ type AssertFn func(configMap *corev1.ConfigMap) error
 func TestCreateVMC(t *testing.T) {
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	promData := "prometheus:\n" +
-		"  authpasswd: nRXlxXgMwN\n" +
 		"  host: prometheus.vmi.system.default.152.67.141.181.xip.io\n" +
 		"  cacrt: |\n" +
 		"    -----BEGIN CERTIFICATE-----\n" +
@@ -126,7 +125,6 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	namespace := "verrazzano-mc"
 	// OCI DNS cluster does not include a CA cert since the CA is public
 	promData := "prometheus:\n" +
-		"  authpasswd: nRXlxXgMwN\n" +
 		"  host: prometheus.vmi.system.default.152.67.141.181.xip.io\n"
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
@@ -189,7 +187,6 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 func TestCreateVMCWithExistingScrapeConfiguration(t *testing.T) {
 	namespace := "verrazzano-mc"
 	promData := "prometheus:\n" +
-		"  authpasswd: nRXlxXgMwN\n" +
 		"  host: prometheus.vmi.system.default.152.67.141.181.xip.io\n" +
 		"  cacrt: |\n" +
 		"    -----BEGIN CERTIFICATE-----\n" +
@@ -268,7 +265,6 @@ scrape_configs:
 func TestReplaceExistingScrapeConfiguration(t *testing.T) {
 	namespace := "verrazzano-mc"
 	promData := "prometheus:\n" +
-		"  authpasswd: nRXlxXgMwN\n" +
 		"  host: prometheus.vmi.system.default.152.67.141.181.xip.io\n" +
 		"  cacrt: |\n" +
 		"    -----BEGIN CERTIFICATE-----\n" +
@@ -348,7 +344,6 @@ scrape_configs:
 func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	namespace := constants.VerrazzanoMultiClusterNamespace
 	promData := "prometheus:\n" +
-		"  authpasswd: nRXlxXgMwN\n" +
 		"  host: prometheus.vmi.system.default.152.67.141.181.xip.io\n" +
 		"  cacrt: |\n" +
 		"    -----BEGIN CERTIFICATE-----\n" +
@@ -1294,6 +1289,16 @@ func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometh
 			return nil
 		})
 
+	// Expect a call to get the verrazzano secret - return it
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.Verrazzano}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				PasswordKey: []byte("nRXlxXgMwN"),
+			}
+			return nil
+		})
+
 	// Expect a call to get the prometheus configmap and return one with an existing entry
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-prometheus-config"}, gomock.Not(gomock.Nil())).
@@ -1376,7 +1381,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 			return resp, nil
 		})
 
-	expectedClusterID := "unit-test-cluster-id"
+	clusterID := "unit-test-cluster-id"
 
 	// Expect an HTTP request to import the cluster to Rancher
 	requestSenderMock.EXPECT().
@@ -1394,7 +1399,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 					Body:       r,
 				}
 			} else {
-				r := ioutil.NopCloser(bytes.NewReader([]byte(`{"id":"` + expectedClusterID + `"}`)))
+				r := ioutil.NopCloser(bytes.NewReader([]byte(`{"id":"` + clusterID + `"}`)))
 				resp = &http.Response{
 					StatusCode: http.StatusCreated,
 					Body:       r,
@@ -1412,7 +1417,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 				asserts.Equal(urlParts[0], req.URL.Path)
 				asserts.Equal(urlParts[1]+clusterName, req.URL.RawQuery)
 
-				r := ioutil.NopCloser(bytes.NewReader([]byte(`{"data":[{"id":"` + expectedClusterID + `"}]}`)))
+				r := ioutil.NopCloser(bytes.NewReader([]byte(`{"data":[{"id":"` + clusterID + `"}]}`)))
 				resp := &http.Response{
 					StatusCode: http.StatusOK,
 					Body:       r,
@@ -1436,7 +1441,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 			asserts.NoError(err)
 			clusterID, ok := jsonString.Path("clusterId").Data().(string)
 			asserts.True(ok)
-			asserts.Equal(expectedClusterID, clusterID)
+			asserts.Equal("unit-test-cluster-id", clusterID)
 
 			// return a response with the manifest token
 			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"token":"` + manifestToken + `"}`)))
@@ -1451,7 +1456,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 	requestSenderMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			asserts.Equal(manifestPath+manifestToken+"_"+expectedClusterID+".yaml", req.URL.Path)
+			asserts.Equal(manifestPath+manifestToken+".yaml", req.URL.Path)
 
 			r := ioutil.NopCloser(bytes.NewReader([]byte(rancherManifestYAML)))
 			resp := &http.Response{

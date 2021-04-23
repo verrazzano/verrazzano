@@ -72,7 +72,7 @@ function install_keycloak {
   # Replace strings in keycloak.json file
   VZ_PW_SALT=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.salt}")
   VZ_PW_HASH=$(kubectl get secret -n ${VERRAZZANO_NS} verrazzano -o jsonpath="{.data.hash}")
-  VZ_ADMIN_GROUP=$(helm show values ${VZ_CHARTS_DIR}/verrazzano | grep -A3 "userrolebindings:" | grep -A3 "admin:" | tail -n1 | awk '{ print $2}')
+  VZ_ADMIN_GROUP=$(helm show values ${VZ_CHARTS_DIR}/verrazzano | grep "adminsGroup: &default_adminsGroup " | awk '{ print $3 }')
 
   sed "s|ENV_NAME|${ENV_NAME}|g;s|DNS_SUFFIX|${DNS_SUFFIX}|g;s|VZ_SYS_REALM|${VZ_SYS_REALM}|g;s|VZ_USERNAME|${VZ_USERNAME}|g;s|VZ_PW_SALT|${VZ_PW_SALT}|g;s|VZ_PW_HASH|${VZ_PW_HASH}|g;s|VZ_ADMIN_GROUP|${VZ_ADMIN_GROUP}|g" $SCRIPT_DIR/config/keycloak.json > ${TMP_DIR}/keycloak-sed.json
 
@@ -157,16 +157,20 @@ data:
 DNS_TARGET_NAME=verrazzano-ingress.${ENV_NAME}.${DNS_SUFFIX}
 REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 
-action "Installing MySQL" install_mysql
-  if [ "$?" -ne 0 ]; then
-    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "${KEYCLOAK_NS}" -m "install_mysql"
-    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "${KEYCLOAK_NS}" -m "install_mysql"
-    "$SCRIPT_DIR"/k8s-dump-objects.sh -o "nodes" -n "default" -m "install_mysql"
-    log "For additional detailed information on the cluster at the time of this error, please check the diagnostics log file"
-    fail "Installation of MySQL failed"
-  fi
+if [ $(is_keycloak_enabled) == "true" ]; then
+  action "Installing MySQL" install_mysql
+    if [ "$?" -ne 0 ]; then
+      "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "${KEYCLOAK_NS}" -m "install_mysql"
+      "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "${KEYCLOAK_NS}" -m "install_mysql"
+      "$SCRIPT_DIR"/k8s-dump-objects.sh -o "nodes" -n "default" -m "install_mysql"
+      log "For additional detailed information on the cluster at the time of this error, please check the diagnostics log file"
+      fail "Installation of MySQL failed"
+    fi
 
-action "Installing Keycloak" install_keycloak || exit 1
+  action "Installing Keycloak" install_keycloak || exit 1
+else
+  log "Skip Keycloak installation, disabled"
+fi
 
 rm -rf $TMP_DIR
 
@@ -191,11 +195,12 @@ if [ $(is_rancher_enabled) == "true" ]; then
   consoleout "Password: kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo"
   consoleout
 fi
-consoleout "Keycloak - https://keycloak.${ENV_NAME}.${DNS_SUFFIX}"
-consoleout "User: keycloakadmin"
-consoleout "Password: kubectl get secret --namespace keycloak ${KCADMIN_SECRET} -o jsonpath={.data.password} | base64 --decode; echo"
-if [ $(get_application_ingress_ip) == "null" ];
-then
+if [ $(is_keycloak_enabled) == "true" ]; then
+  consoleout "Keycloak - https://keycloak.${ENV_NAME}.${DNS_SUFFIX}"
+  consoleout "User: keycloakadmin"
+  consoleout "Password: kubectl get secret --namespace keycloak ${KCADMIN_SECRET} -o jsonpath={.data.password} | base64 --decode; echo"
+fi
+if [ $(get_application_ingress_ip) == "null" ]; then
   consoleout
   consoleout "WARNING: istio-ingressgateway service does not have a valid external IP assigned yet. Public access to deployed applications will not work."
   consoleout "Use the following command to check if an External IP has been assigned to the gateway."

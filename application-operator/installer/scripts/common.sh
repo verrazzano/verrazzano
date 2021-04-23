@@ -12,6 +12,9 @@ BUILD_DIR="${SCRIPT_DIR}/build"
 # The max length of the environment name passed in by the user.
 ENV_NAME_LENGTH_LIMIT=10
 
+CHARTS_DIR=$(cd $SOURCE_DIR/../../../platform-operator/thirdparty/charts; pwd -P)
+VZ_OVERRIDES_DIR=$(cd $SOURCE_DIR/../../../platform-operator/helm_config/overrides; pwd -P)
+
 . ${SOURCE_DIR}/logging.sh
 
 # DEPRECATED: This function is deprecated and is replaced by the status function in logging.sh
@@ -267,6 +270,5 @@ NGINX_DEFAULT_BACKEND_IMAGE=ghcr.io/verrazzano/nginx-ingress-default-backend
 NGINX_DEFAULT_BACKEND_TAG=0.32-d584a2b7a-31
 
 RANCHER_IMAGE=ghcr.io/verrazzano/rancher
-RANCHER_VERSION=v2.5.7
-RANCHER_TAG=v2.5.7-20210407205410-1c7b39d0c
-
+RANCHER_VERSION=v2.4.3
+RANCHER_TAG=v2.4.3-dfd6383be-27

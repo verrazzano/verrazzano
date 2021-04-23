@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -25,13 +26,15 @@ func TestXipIoInstallDefaults(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equalf(t, "default", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, installv1alpha1.Prod, config.Profile, "Expected profile did not match")
-	assert.Equalf(t, DNSTypeXip, config.DNS.Type, "Expected DNS type did not match")
+	assert.Equalf(t, DNSTypeWildcard, config.DNS.Type, "Expected DNS type did not match")
 	assert.Equalf(t, IngressTypeLoadBalancer, config.Ingress.Type, "Expected Ingress type did not match")
 	assert.Equalf(t, CertIssuerTypeCA, config.Certificates.IssuerType, "Expected certification issuer type did not match")
 	assert.Equalf(t, "verrazzano-install", config.Certificates.CA.ClusterResourceNamespace, "Expected namespace did not match")
 	assert.Equalf(t, "verrazzano-ca-certificate-secret", config.Certificates.CA.SecretName, "Expected CA secret name did not match")
 	assert.Equalf(t, 0, len(config.Keycloak.KeycloakInstallArgs), "Expected keycloakInstallArgs length did not match")
 	assert.Equalf(t, 0, len(config.Keycloak.MySQL.MySQLInstallArgs), "Expected mySqlInstallArgs length did not match")
+	assert.Equalf(t, "", config.Keycloak.Enabled, "Expected keycloak enabled did not match")
+	assert.Equalf(t, "", config.Rancher.Enabled, "Expected rancher enabled did not match")
 }
 
 // TestXipIoInstallNonDefaults tests the creation of an xip.io install non-default configuration
@@ -45,7 +48,9 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 			EnvironmentName: "testEnv",
 			Components: installv1alpha1.ComponentSpec{
 				DNS: &installv1alpha1.DNSComponent{
-					XIPIO: &installv1alpha1.XIPIO{},
+					Wildcard: &installv1alpha1.Wildcard{
+						Domain: "xip.io",
+					},
 				},
 				Ingress: &installv1alpha1.IngressNginxComponent{
 					Type: installv1alpha1.LoadBalancer,
@@ -81,6 +86,9 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 						},
 					},
 				},
+				Rancher: &installv1alpha1.RancherComponent{
+					Enabled: true,
+				},
 				Keycloak: &installv1alpha1.KeycloakComponent{
 					KeycloakInstallArgs: []installv1alpha1.InstallArgs{
 						{
@@ -96,6 +104,7 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 							},
 						},
 					},
+					Enabled: true,
 				},
 			},
 		},
@@ -105,7 +114,8 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equalf(t, "testEnv", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, installv1alpha1.Dev, config.Profile, "Expected profile did not match")
-	assert.Equalf(t, DNSTypeXip, config.DNS.Type, "Expected DNS type did not match")
+	assert.Equalf(t, DNSTypeWildcard, config.DNS.Type, "Expected DNS type did not match")
+	assert.Equalf(t, "xip.io", config.DNS.Wildcard.Domain, "Expected domain did not match")
 
 	assert.Equalf(t, IngressTypeLoadBalancer, config.Ingress.Type, "Expected Ingress type did not match")
 	assert.Equalf(t, 1, len(config.Ingress.Verrazzano.NginxInstallArgs), "Expected nginxInstallArgs length did not match")
@@ -125,12 +135,15 @@ func TestXipIoInstallNonDefaults(t *testing.T) {
 	assert.Equalf(t, "customNamespace", config.Certificates.CA.ClusterResourceNamespace, "Expected namespace did not match")
 	assert.Equalf(t, "customSecret", config.Certificates.CA.SecretName, "Expected CA secret name did not match")
 
+	assert.Equalf(t, "true", config.Rancher.Enabled, "Expected rancher enabled did not match")
+
 	assert.Equalf(t, 1, len(config.Keycloak.KeycloakInstallArgs), "Expected keycloakInstallArgs length did not match")
 	assert.Equalf(t, "keycloak-name", config.Keycloak.KeycloakInstallArgs[0].Name, "Expected keycloakInstallArgs name did not match")
 	assert.Equalf(t, "keycloak-value", config.Keycloak.KeycloakInstallArgs[0].Value, "Expected keycloakInstallArgs value did not match")
 	assert.Equalf(t, 1, len(config.Keycloak.MySQL.MySQLInstallArgs), "Expected mysqlInstallArgs length did not match")
 	assert.Equalf(t, "mysql-name", config.Keycloak.MySQL.MySQLInstallArgs[0].Name, "Expected mysqlInstallArgs name did not match")
 	assert.Equalf(t, "mysql-value", config.Keycloak.MySQL.MySQLInstallArgs[0].Value, "Expected mysqlInstallArgs value did not match")
+	assert.Equalf(t, "true", config.Keycloak.Enabled, "Expected keycloak enabled did not match")
 }
 
 // TestExternalInstall tests the creation of an external install configuration
@@ -347,7 +360,7 @@ func TestNodePortInstall(t *testing.T) {
 			Components: installv1alpha1.ComponentSpec{
 				CertManager: &installv1alpha1.CertManagerComponent{},
 				DNS: &installv1alpha1.DNSComponent{
-					XIPIO: &installv1alpha1.XIPIO{},
+					Wildcard: &installv1alpha1.Wildcard{},
 				},
 				Ingress: &installv1alpha1.IngressNginxComponent{
 					Type: installv1alpha1.NodePort,
@@ -385,7 +398,7 @@ func TestNodePortInstall(t *testing.T) {
 	assert.Equalf(t, "kind", config.EnvironmentName, "Expected environment name did not match")
 	assert.Equalf(t, installv1alpha1.Dev, config.Profile, "Expected profile did not match")
 
-	assert.Equalf(t, DNSTypeXip, config.DNS.Type, "Expected DNS type did not match")
+	assert.Equalf(t, DNSTypeWildcard, config.DNS.Type, "Expected DNS type did not match")
 
 	assert.Equalf(t, IngressTypeNodePort, config.Ingress.Type, "Expected Ingress type did not match")
 	assert.Equalf(t, 5, len(config.Ingress.Verrazzano.NginxInstallArgs), "Expected nginxInstallArgs length did not match")
@@ -589,29 +602,29 @@ func TestGetVerrazzanoInstallArgsPVCVolumeSource(t *testing.T) {
 func TestGetVerrazzanoInstallArgsWithSecurity(t *testing.T) {
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Security: installv1alpha1.SecuritySpec{
-			AdminBinding: installv1alpha1.RoleBindingSubject{
+			AdminSubjects: []rbacv1.Subject{{
 				Kind: "User",
 				Name: "kilgore-trout",
-			},
-			MonitorBinding: installv1alpha1.RoleBindingSubject{
+			}},
+			MonitorSubjects: []rbacv1.Subject{{
 				Kind: "Group",
 				Name: "group-of-monitors",
-			},
+			}},
 		},
 	}
 	args, err := getVerrazzanoInstallArgs(&vzSpec)
 	assert.Len(t, args, 4)
 	assert.Nil(t, err)
-	assert.Equal(t, "userrolebindings.admin.name", args[0].Name)
+	assert.Equal(t, "security.adminSubjects.subject-0.name", args[0].Name)
 	assert.Equal(t, "kilgore-trout", args[0].Value)
 	assert.True(t, args[0].SetString)
-	assert.Equal(t, "userrolebindings.admin.kind", args[1].Name)
+	assert.Equal(t, "security.adminSubjects.subject-0.kind", args[1].Name)
 	assert.Equal(t, "User", args[1].Value)
 	assert.True(t, args[1].SetString)
-	assert.Equal(t, "userrolebindings.monitor.name", args[2].Name)
+	assert.Equal(t, "security.monitorSubjects.subject-0.name", args[2].Name)
 	assert.Equal(t, "group-of-monitors", args[2].Value)
 	assert.True(t, args[2].SetString)
-	assert.Equal(t, "userrolebindings.monitor.kind", args[3].Name)
+	assert.Equal(t, "security.monitorSubjects.subject-0.kind", args[3].Name)
 	assert.Equal(t, "Group", args[3].Value)
 	assert.True(t, args[3].SetString)
 }
@@ -623,10 +636,10 @@ func TestGetVerrazzanoInstallArgsWithSecurity(t *testing.T) {
 func TestGetVerrazzanoInstallArgsWithSecurityInvalidSubjectKind(t *testing.T) {
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Security: installv1alpha1.SecuritySpec{
-			MonitorBinding: installv1alpha1.RoleBindingSubject{
+			MonitorSubjects: []rbacv1.Subject{{
 				Kind: "BadKind",
 				Name: "bad-kind-name",
-			},
+			}},
 		},
 	}
 	args, err := getVerrazzanoInstallArgs(&vzSpec)
@@ -647,10 +660,10 @@ func TestGetVerrazzanoInstallArgsWithSecurityAndPVCVolumeSource(t *testing.T) {
 	storageClass := "mystorageclass"
 	vzSpec := installv1alpha1.VerrazzanoSpec{
 		Security: installv1alpha1.SecuritySpec{
-			AdminBinding: installv1alpha1.RoleBindingSubject{
+			AdminSubjects: []rbacv1.Subject{{
 				Kind: "User",
 				Name: "kilgore-trout",
-			},
+			}},
 		},
 		DefaultVolumeSource: &corev1.VolumeSource{
 			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
@@ -681,10 +694,10 @@ func TestGetVerrazzanoInstallArgsWithSecurityAndPVCVolumeSource(t *testing.T) {
 	assert.Equal(t, prometheusStorageValueName, args[2].Name)
 	assert.Equal(t, "50Gi", args[2].Value)
 	assert.True(t, args[2].SetString)
-	assert.Equal(t, "userrolebindings.admin.name", args[3].Name)
+	assert.Equal(t, "security.adminSubjects.subject-0.name", args[3].Name)
 	assert.Equal(t, "kilgore-trout", args[3].Value)
 	assert.True(t, args[3].SetString)
-	assert.Equal(t, "userrolebindings.admin.kind", args[4].Name)
+	assert.Equal(t, "security.adminSubjects.subject-0.kind", args[4].Name)
 	assert.Equal(t, "User", args[4].Value)
 	assert.True(t, args[4].SetString)
 }
@@ -1210,7 +1223,7 @@ func TestNewExternalDNSInstallConfigInvalidVZInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	config, err := newExternalDNSInstallConfig(&vzSpec)
+	config, err := GetInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
@@ -1236,16 +1249,16 @@ func TestNewExternalDNSInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 			},
 		},
 	}
-	config, err := newExternalDNSInstallConfig(&vzSpec)
+	config, err := GetInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
 
-// TestNewXipIoInstallConfigInvalidVZInstallArgs Test the getVerrazzanoInstallArgs  function
-// GIVEN a call to newXipIoInstallConfig
+// TestNewWildcardInstallConfigInvalidVZInstallArgs Test the getVerrazzanoInstallArgs function
+// GIVEN a call to newWildcardInstallConfig
 // WHEN the VerrazzanoSpec contains an invalid storage config
 // THEN the returned config is nil and an error is returned
-func TestNewXipIoInstallConfigInvalidVZInstallArgs(t *testing.T) {
+func TestNewWildcardInstallConfigInvalidVZInstallArgs(t *testing.T) {
 	vzSpec := installv1alpha1.Verrazzano{
 		Spec: installv1alpha1.VerrazzanoSpec{
 			DefaultVolumeSource: &corev1.VolumeSource{
@@ -1261,16 +1274,16 @@ func TestNewXipIoInstallConfigInvalidVZInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	config, err := newXipIoInstallConfig(&vzSpec)
+	config, err := GetInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
 
-// TestNewXipIoInstallConfigInvalidKeyCloakConfig Test the getKeycloak  function
-// GIVEN a call to newXipIoInstallConfig
+// TestNewWildcardInstallConfigInvalidKeyCloakConfig Test the getKeycloak  function
+// GIVEN a call to newWildcardInstallConfig
 // WHEN with a PVCVolumeSource in the MySQL VolumeSource configuration with no templates specified
 // THEN the returned config is nil and an error is returned
-func TestNewXipIoInstallConfigInvalidKeyCloakConfig(t *testing.T) {
+func TestNewWildcardInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 	vzSpec := installv1alpha1.Verrazzano{
 		Spec: installv1alpha1.VerrazzanoSpec{
 			Components: installv1alpha1.ComponentSpec{
@@ -1287,7 +1300,7 @@ func TestNewXipIoInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 			},
 		},
 	}
-	config, err := newXipIoInstallConfig(&vzSpec)
+	config, err := GetInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
@@ -1312,7 +1325,7 @@ func TestNewOCIDNSInstallConfigInvalidVZInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	config, err := newOCIDNSInstallConfig(&vzSpec)
+	config, err := GetInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }
@@ -1338,7 +1351,7 @@ func TestNewOCIDNSInstallConfigInvalidKeyCloakConfig(t *testing.T) {
 			},
 		},
 	}
-	config, err := newOCIDNSInstallConfig(&vzSpec)
+	config, err := GetInstallConfig(&vzSpec)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 }

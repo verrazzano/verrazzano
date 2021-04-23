@@ -112,6 +112,9 @@ function delete_rancher() {
   helm ls -n cattle-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n cattle-system \
     || err_return $? "Could not delete cattle-system from helm" || return $? # return on pipefail
 
+  log "Delete the additional CA secret for Rancher"
+  kubectl -n cattle-system delete secret tls-ca-additional 2>&1 > /dev/null || true
+
   log "Deleting CRDs from rancher"
 
   local crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | awk '/coreos.com|cattle.io/')
@@ -134,12 +137,12 @@ function delete_rancher() {
 
   # delete clusterrolebindings deployed by rancher
   log "Deleting ClusterRoleBindings"
-  delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Rancher" '/cattle.io|app:rancher|fleetworkspace-|fleet-/ {print $1}' \
+  delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Rancher" '/cattle.io|app:rancher/ {print $1}' \
     || return $? # return on pipefail
 
   # delete clusterroles
   log "Deleting ClusterRoles"
-  delete_k8s_resources clusterrole ":metadata.name,:metadata.labels" "Could not delete ClusterRoles from Rancher" '/cattle.io|fleetworkspace-|fleet-/ {print $1}' \
+  delete_k8s_resources clusterrole ":metadata.name,:metadata.labels" "Could not delete ClusterRoles from Rancher" '/cattle.io/ {print $1}' \
     || return $? # return on pipefail
 
   # delete rolebinding

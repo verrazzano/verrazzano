@@ -29,10 +29,9 @@ function install_oam {
   log "Install OAM"
   helm install oam \
       --namespace "${NAMESPACE}" \
-      --set image.repostiory=ghcr.io/verrazzano/oam-kubernetes-runtime \
-      --set image.tag=v0.3.0 \
       --version 0.3.0 \
-      crossplane-master/oam-kubernetes-runtime
+      -f ${VZ_OVERRIDES_DIR}/oam-kubernetes-runtime-values.yaml \
+      ${CHARTS_DIR}/oam-kubernetes-runtime
   if [ $? -ne 0 ]; then
     error "Failed to OAM Helm install."
     return 1

@@ -33,7 +33,15 @@ var _ = ginkgo.BeforeSuite(func() {
 	}
 })
 
+var failed = false
+var _ = ginkgo.AfterEach(func() {
+	failed = failed || ginkgo.CurrentGinkgoTestDescription().Failed
+})
+
 var _ = ginkgo.AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	pkg.Log(pkg.Info, "Delete namespace")
 	if err := pkg.DeleteNamespace(rbacTestNamespace); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to delete the namespace: %v", err))

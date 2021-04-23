@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/avast/retry-go"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -19,6 +20,11 @@ const (
 	longPollingInterval  = 20 * time.Second
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 5 * time.Minute
+)
+
+var (
+	retryDelay    = retry.Delay(shortPollingInterval)
+	retryAttempts = retry.Attempts(3)
 )
 
 var _ = ginkgo.BeforeSuite(func() {
@@ -32,7 +38,12 @@ var _ = ginkgo.BeforeSuite(func() {
 	if err := pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-comp.yaml"); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create hello-helidon component resources: %v", err))
 	}
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml"); err != nil {
+	err := retry.Do(
+		func() error {
+			return pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
+		},
+		retryAttempts, retryDelay)
+	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to create hello-helidon application resource: %v", err))
 	}
 
@@ -118,6 +129,12 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 				func() {
 					gomega.Eventually(appConfigMetricsExists, waitTimeout, pollingInterval).Should(gomega.BeTrue())
 				},
+				func() {
+					gomega.Eventually(nodeExporterProcsRunning, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+				},
+				func() {
+					gomega.Eventually(nodeExporterDiskIoNow, waitTimeout, pollingInterval).Should(gomega.BeTrue())
+				},
 			)
 		})
 	})
@@ -143,6 +160,12 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 					"oam.applicationconfiguration.namespace": "hello-helidon",
 					"oam.applicationconfiguration.name":      "hello-helidon-appconf"})
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+
+			gomega.Eventually(func() bool {
+				return pkg.LogRecordFound("verrazzano-namespace-hello-helidon", time.Now().Add(-24*time.Hour), map[string]string{
+					"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-appconf",
+					"kubernetes.container_name":            "hello-helidon-container"})
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 		})
 	})
 })
@@ -166,4 +189,12 @@ func appComponentMetricsExists() bool {
 
 func appConfigMetricsExists() bool {
 	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "hello-helidon-component")
+}
+
+func nodeExporterProcsRunning() bool {
+	return pkg.MetricsExist("node_procs_running", "job", "node-exporter")
+}
+
+func nodeExporterDiskIoNow() bool {
+	return pkg.MetricsExist("node_disk_io_now", "job", "node-exporter")
 }

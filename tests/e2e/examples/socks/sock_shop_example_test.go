@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/avast/retry-go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -24,6 +25,8 @@ const (
 	pollingInterval      = 30 * time.Second
 )
 
+var retryDelay = retry.Delay(shortPollingInterval)
+var retryAttempts = retry.Attempts(3)
 var sockShop SockShop
 var username, password string
 
@@ -40,7 +43,10 @@ var _ = BeforeSuite(func() {
 	if err := pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-comp.yaml"); err != nil {
 		Fail(fmt.Sprintf("Failed to create Sock Shop component resources: %v", err))
 	}
-	if err := pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-app.yaml"); err != nil {
+	err := retry.Do(
+		func() error { return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/sock-shop-app.yaml") },
+		retryAttempts, retryDelay)
+	if err != nil {
 		Fail(fmt.Sprintf("Failed to create Sock Shop application resource: %v", err))
 	}
 })
@@ -189,8 +195,16 @@ var _ = Describe("Sock Shop Application", func() {
 
 })
 
+var failed = false
+var _ = AfterEach(func() {
+	failed = failed || CurrentGinkgoTestDescription().Failed
+})
+
 // undeploys the application, components, and namespace
 var _ = AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	err := undeploySockShopApplication()
 	if err != nil {
 		Fail(fmt.Sprintf("Could not undeploy sock shop application: %v\n", err.Error()))

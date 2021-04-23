@@ -19,7 +19,7 @@ spec:
           role: Carts
           replicas: 1
           image: ghcr.io/helidon-sockshop/carts-coherence:2.2.0
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           application:
             type: helidon
           jvm:
@@ -61,7 +61,7 @@ spec:
           role: Catalog
           replicas: 1
           image: ghcr.io/helidon-sockshop/catalog-coherence:2.2.0
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           application:
             type: helidon
           jvm:
@@ -103,7 +103,7 @@ spec:
           role: Orders
           replicas: 1
           image: ghcr.io/helidon-sockshop/orders-coherence:2.2.0
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           application:
             type: helidon
           jvm:
@@ -145,7 +145,7 @@ spec:
           role: Payment
           replicas: 1
           image: ghcr.io/helidon-sockshop/payment-coherence:2.2.0
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           application:
             type: helidon
           jvm:
@@ -191,7 +191,7 @@ spec:
           role: Shipping
           replicas: 1
           image: ghcr.io/helidon-sockshop/shipping-coherence:2.2.0
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           application:
             type: helidon
           jvm:
@@ -237,7 +237,7 @@ spec:
           role: Users
           replicas: 1
           image: ghcr.io/helidon-sockshop/users-coherence:2.2.0
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           application:
             type: helidon
           jvm:

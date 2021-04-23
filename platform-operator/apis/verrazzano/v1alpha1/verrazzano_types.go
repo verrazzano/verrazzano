@@ -5,6 +5,7 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -82,22 +83,14 @@ type VerrazzanoSpec struct {
 	VolumeClaimSpecTemplates []VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty"`
 }
 
-// RoleBindingSubject specifes the kind and name of a subject to bind to
-type RoleBindingSubject struct {
-	// Kind specifies the kind value for an rbac subject for a RoleBinding
-	Kind string `json:"kind,omitempty"`
-	// Name specifies the name value for an rbac subject for a RoleBinding
-	Name string `json:"name,omitempty"`
-}
-
 // SecuritySpec defines the security configuration for Verrazzano
 type SecuritySpec struct {
-	// AdminBinding specifies the subject that should be bound to the verrazzano-admin role
+	// AdminSubjects specifies subjects that should be bound to the verrazzano-admin role
 	// +optional
-	AdminBinding RoleBindingSubject `json:"adminBinding,omitempty"`
-	// MonitorBinding specifies the subject that should be bound to the verrazzano-monitor role
+	AdminSubjects []rbacv1.Subject `json:"adminSubjects,omitempty"`
+	// MonitorSubjects specifies subjects that should be bound to the verrazzano-monitor role
 	// +optional
-	MonitorBinding RoleBindingSubject `json:"monitorBinding,omitempty"`
+	MonitorSubjects []rbacv1.Subject `json:"monitorSubjects,omitempty"`
 }
 
 // VolumeClaimSpecTemplate Contains common PVC configuration that can be referenced from Components; these
@@ -279,9 +272,9 @@ type CertManagerComponent struct {
 
 // DNSComponent specifies the DNS configuration
 type DNSComponent struct {
-	// DNS type of xip.io.  This is the default.
+	// DNS type of wildcard.  This is the default.
 	// +optional
-	XIPIO *XIPIO `json:"xip.io,omitempty"`
+	Wildcard *Wildcard `json:"wildcard,omitempty"`
 	// DNS type of OCI (Oracle Cloud Infrastructure)
 	// +optional
 	OCI *OCI `json:"oci,omitempty"`
@@ -318,6 +311,8 @@ type KeycloakComponent struct {
 	// MySQL contains the MySQL component configuration needed for Keycloak
 	// +optional
 	MySQL MySQLComponent `json:"mysql,omitempty"`
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
 }
 
 // MySQLComponent specifies the MySQL configuration
@@ -400,14 +395,13 @@ type Certificate struct {
 // OciPrivateKeyFileName is the private key file name
 const OciPrivateKeyFileName = "oci_api_key.pem"
 
-// OciPrivateKeyFilePath is the private key mount path
-const OciPrivateKeyFilePath = "/config/" + OciPrivateKeyFileName
-
 // OciConfigSecretFile is the name of the OCI configuration yaml file
 const OciConfigSecretFile = "oci.yaml"
 
-// XIPIO is xip.io DNS type
-type XIPIO struct {
+// Wildcard DNS type
+type Wildcard struct {
+	// DNS wildcard domain (xip.io, nip.io, etc.)
+	Domain string `json:"domain"`
 }
 
 // OCI DNS type

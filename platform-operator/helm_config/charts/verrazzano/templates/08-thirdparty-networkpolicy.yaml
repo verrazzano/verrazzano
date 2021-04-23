@@ -139,72 +139,136 @@ spec:
       ports:
         - port: 8775
           protocol: TCP
-    - from:
-      ports:
+    - ports:
         - port: 9090
           protocol: TCP
 ---
-# Network policy for Rancher cluster agent
-# Ingress: deny all
-# Egress:  Kubernetes API server, DNS for Rancher host lookups, and port 443 to talk to Rancher on the admin cluster
+# Network policy for Cert Manager
+# Ingress: allow connect from Prometheus for scraping metrics
+# Egress: allow connect to Kubernetes API server
+#         allow connect to DNS lookup port 53 for both UDP and TCP
+#         allow connect to Let's Encrypt server
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: cattle-cluster-agent
-  namespace: cattle-system
+  name: cert-manager
+  namespace: cert-manager
 spec:
   podSelector:
     matchLabels:
-      app: cattle-cluster-agent
+      app: cert-manager
   policyTypes:
     - Ingress
     - Egress
+  ingress:
+    # Port for scraping Prometheus metrics
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: {{ .Release.Namespace }}
+          podSelector:
+            matchLabels:
+              app: system-prometheus
+      ports:
+        - port: 9402
+          protocol: TCP
   egress:
-    - ports:
-      - port: 443
-        protocol: TCP
+    # Port for connecting to Kubernetes API services
     - ports:
         - port: {{ .Values.kubernetes.service.endpoint.port }}
           protocol: TCP
       to:
         - ipBlock:
             cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+    # Ports for DNS lookup
     - ports:
-      - port: 53
-        protocol: UDP
-      - port: 53
-        protocol: TCP
-      to:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: kube-system
-          podSelector:
-            matchLabels:
-              k8s-app: kube-dns
-    - ports:
-        - port: 8080
+        - port: 53
+          protocol: UDP
+        - port: 53
           protocol: TCP
-      to:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: keycloak
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/instance: keycloak
-{{- if .Values.rancher.enabled }}
+    # Port for connecting to Let's Encrypt server
+    - ports:
+        - port: 443
+          protocol: TCP
+{{- if .Values.externaldns.enabled }}
 ---
-# Network policy for Rancher UI/API
-# Ingress: allow nginx ingress
-# Egress:  deny all
+# Network policy for External DNS
+# Ingress: deny all
+# Egress: allow connect to Kubernetes API server
+#         allow connect to DNS lookup port 53 for both UDP and TCP
+#         allow connect to DNS server
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: rancher
-  namespace: cattle-system
+  name: external-dns
+  namespace: cert-manager
 spec:
   podSelector:
     matchLabels:
-      app: rancher
+      app.kubernetes.io/instance: external-dns
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    # Port for connecting to Kubernetes API services
+    - ports:
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+    # Ports for DNS lookup
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Port for connecting to DNS server
+    - ports:
+        - port: 443
+          protocol: TCP
+{{- end }}
+---
+# Network policy for Node Exporter
+# Ingress: allow connect from Prometheus to scrap metrics
+# Egress: deny all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: node-exporter
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      verrazzano.io/namespace: monitoring
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus
+      ports:
+        - port: 9100
+          protocol: TCP
+{{- if .Values.keycloak.enabled }}
+---
+# Network policy for Keycloak
+# Ingress: allow nginx ingress and ingress from pods in the verrazzano-system namespace
+# Egress:  DNS and the port to talk to MySQL
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: keycloak
   policyTypes:
     - Ingress
     - Egress
@@ -218,28 +282,56 @@ spec:
             app.kubernetes.io/instance: ingress-controller
       ports:
         - protocol: TCP
-          port: 80
+          port: 8080
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            verrazzano.io/namespace: {{ .Release.Namespace }}
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - ports:
+      - port: 53
+        protocol: UDP
+      - port: 53
+        protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+    - ports:
+      - port: 3306
+        protocol: TCP
+      to:
+        - podSelector:
+            matchLabels:
+              app: mysql
 ---
-# Network policy for Rancher operator
-# Ingress: deny all
-# Egress:  Kubernetes API server
+# Network policy for Keycloak MySQL
+# Ingress: allow port 3306 from Keycloak pods
+# Egress:  deny all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: rancher-operator
-  namespace: rancher-operator-system
+  name: keycloak-mysql
+  namespace: keycloak
 spec:
   podSelector:
     matchLabels:
-      app: rancher-operator
+      app: mysql
   policyTypes:
     - Ingress
     - Egress
-  egress:
-    - ports:
-        - port: {{ .Values.kubernetes.service.endpoint.port }}
-          protocol: TCP
-      to:
-        - ipBlock:
-            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+  ingress:
+    - from:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/name: keycloak
+      ports:
+        - protocol: TCP
+          port: 3306
 {{- end }}

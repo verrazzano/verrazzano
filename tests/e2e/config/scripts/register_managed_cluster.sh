@@ -38,10 +38,8 @@ TLS_SECRET=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get
 if [ ! -z "${TLS_SECRET%%*( )}" ] ; then
   CA_CERT=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"' | base64 --decode)
 fi
-AUTH_PASSWORD=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret verrazzano -o jsonpath='{.data.password}' | base64 --decode)
 HOST=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get ing vmi-system-prometheus -o jsonpath='{.spec.tls[0].hosts[0]}')
 echo "prometheus:" > ${PROMETHEUS_SECRET_FILE}
-echo "  authpasswd: $AUTH_PASSWORD" >> ${PROMETHEUS_SECRET_FILE}
 echo "  host: $HOST" >> ${PROMETHEUS_SECRET_FILE}
 if [ ! -z "${CA_CERT}" ] ; then
    echo "  cacrt: |" >> ${PROMETHEUS_SECRET_FILE}
@@ -121,4 +119,6 @@ if [[ "${ES_HOST}" == *.xip.io ]]; then
   patch_data='{"spec":{"template":{"spec":{"hostAliases":[{"hostnames":["'"${ES_HOST}"'"],"ip":"'"${ES_IP}"'"}]}}}}'
   kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging patch daemonset filebeat --patch ${patch_data}
   kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging patch daemonset journalbeat --patch ${patch_data}
+  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging get daemonset filebeat -o json | jq .spec.template.spec.hostAliases
+  kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n logging get daemonset journalbeat -o json | jq .spec.template.spec.hostAliases
 fi

@@ -305,6 +305,7 @@ pipeline {
                     make cleanup-cluster
                     make integ-test KIND_CONFIG="kind-config-ci.yaml" CLUSTER_DUMP_LOCATION=${WORKSPACE}/application-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG}
                     ../build/copy-junit-output.sh ${WORKSPACE}
+                    make cleanup-cluster
                 """
             }
             post {
@@ -365,7 +366,7 @@ pipeline {
                     steps {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_jenkins_at_environment.sh {$params.CREATE_KIND_USE_CALICO}
+                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO}
                         """
                     }
                     post {
