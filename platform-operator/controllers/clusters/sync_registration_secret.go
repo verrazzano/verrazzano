@@ -121,6 +121,19 @@ func (r *VerrazzanoManagedClusterReconciler) getVzSecret() (corev1.Secret, error
 	return secret, nil
 }
 
+// Get the Verrazzano Prometheus secret
+func (r *VerrazzanoManagedClusterReconciler) getVzPromSecret() (corev1.Secret, error) {
+	var secret corev1.Secret
+	nsn := types.NamespacedName{
+		Namespace: constants.VerrazzanoSystemNamespace,
+		Name:      constants.VerrazzanoPromInternal,
+	}
+	if err := r.Get(context.TODO(), nsn, &secret); err != nil {
+		return corev1.Secret{}, fmt.Errorf("Failed to fetch the secret %s/%s, %v", nsn.Namespace, nsn.Name, err)
+	}
+	return secret, nil
+}
+
 // Get the system-tls secret
 func (r *VerrazzanoManagedClusterReconciler) getTLSSecret() (corev1.Secret, error) {
 	var secret corev1.Secret

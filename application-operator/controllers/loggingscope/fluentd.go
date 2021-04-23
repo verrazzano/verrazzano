@@ -49,7 +49,7 @@ const (
 	DefaultElasticSearchURL = "http://vmi-system-es-ingest.verrazzano-system.svc.cluster.local:9200"
 
 	// DefaultSecretName defines the default Elasticsearch secret name used if it is not specified in the logging scope
-	DefaultSecretName = "verrazzano"
+	DefaultSecretName = "verrazzano-es-internal"
 )
 
 // DefaultFluentdImage holds the default FLUENTD image that will be used if it is not specified in the logging scope
