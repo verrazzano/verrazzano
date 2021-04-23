@@ -121,6 +121,10 @@ function install_verrazzano()
     EXTERNAL_DNS_ENABLED=true
   fi
 
+  if [ "$DNS_TYPE" == "wildcard" ]; then
+    EXTRA_V8O_ARGUMENTS="${EXTRA_V8O_ARGUMENTS} --set dns.wildcard.domain=$(get_config_value ".dns.wildcard.domain")"
+  fi
+
   helm \
       upgrade --install verrazzano \
       ${VZ_CHARTS_DIR}/verrazzano \
