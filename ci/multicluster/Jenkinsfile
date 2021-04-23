@@ -135,6 +135,9 @@ pipeline {
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
 
         ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+
+        DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
+        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
     }
 
     stages {
@@ -436,8 +439,7 @@ pipeline {
                                 export CLUSTER_COUNT=$clusterCount
                                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                                 export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
-                                export DUMP_DIRECTORY="${WORKSPACE}/examples-helidon-cluster-dump"
-                                export DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
+                                export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
                                 ginkgo -v -keepGoing --noColor multicluster/examples/helidon/...
                             """
                         }
@@ -452,6 +454,8 @@ pipeline {
                                 export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
                                 export CLUSTER_COUNT=$clusterCount
                                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                                export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
+                                export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-changeplacement"
                                 ginkgo -v -keepGoing --noColor multicluster/examples/change-placement/...
                             """
                         }
@@ -495,6 +499,7 @@ pipeline {
         }
         always {
             script {
+                dumpInstallLogs()
                 if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                     dumpVerrazzanoSystemPods()
                     dumpCattleSystemPods()
@@ -505,7 +510,7 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: '**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump*/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump*/**,**/test-cluster-dumps/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             script {
                 int clusterCount = params.TOTAL_CLUSTERS.toInteger()
@@ -558,11 +563,22 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 echo "Create Kind cluster \$1"
                 cd ${TEST_SCRIPTS_DIR}
-                # Not using the caching, and not setting up Calico
-                ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" false ${CREATE_KIND_USE_CALICO}
+                # As a stop gap, for now we are using the api/vpo caches here to see if it helps with rate limiting issues, we will need to add specific caches so for now
+                # specify the cache name based on the count value, this is assuming 1 or 2 clusters
+                case "${count}" in
+                    1)
+                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" true ${CREATE_KIND_USE_CALICO} "vpo_integ"
+                        ;;
+                    2)
+                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" true ${CREATE_KIND_USE_CALICO} "apo_integ"
+                        ;;
+                    *)
+                        ./create_kind_cluster.sh "${CLUSTER_NAME_PREFIX}-$count" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG_DIR}/$count/kube_config" "${KIND_CLUSTER_VERSION}" "$cleanupKindContainers" "$connectJenkinsRunnerToNetwork" false ${CREATE_KIND_USE_CALICO} "NONE"
+                        ;;
+                esac
                 if [ ${CREATE_KIND_USE_CALICO} == true ]; then
                     echo "Install Calico"
-                    kubectl apply -f https://docs.projectcalico.org/manifests/canal.yaml
+                    kubectl apply -f https://docs.projectcalico.org/v3.18/manifests/calico.yaml
                 fi
                 echo "Install metallb"
                 cd ${GO_REPO_PATH}/verrazzano
@@ -860,6 +876,23 @@ def dumpVerrazzanoApiLogs() {
                 mkdir -p ${LOG_DIR}
                 export DIAGNOSTIC_LOG="${LOG_DIR}/verrazzano-api.log"
                 ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
+            """
+        }
+    }
+}
+
+def dumpInstallLogs() {
+    script {
+        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+        for(int count=1; count<=clusterCount; count++) {
+            LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/cluster-$count"
+            sh """
+                ## dump verrazzano install logs
+                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
+                mkdir -p ${LOG_DIR}
+                kubectl logs --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install.log --tail -1
+                kubectl describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/verrazzano-install-job-pod.out
+                echo "------------------------------------------"
             """
         }
     }

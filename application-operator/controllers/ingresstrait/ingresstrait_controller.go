@@ -738,8 +738,11 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 		suffix = "xip.io"
 	} else if strings.HasSuffix(domain, "nip.io") {
 		suffix = "nip.io"
+	} else if strings.HasSuffix(domain, "sslip.io") {
+		suffix = "sslip.io"
 	}
-	// If this is xip.io or nip.io then build the domain name using Istio info
+
+	// Build the domain name using Istio info
 	if len(suffix) != 0 {
 		domain, err = buildDomainNameForWildcard(cli, trait, suffix)
 		if err != nil {

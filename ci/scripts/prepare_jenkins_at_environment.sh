@@ -26,7 +26,7 @@ cd ${TEST_SCRIPTS_DIR}
 
 if [ $INSTALL_CALICO == true ]; then
     echo "Install Calico"
-    kubectl apply -f https://docs.projectcalico.org/manifests/canal.yaml
+    kubectl apply -f https://docs.projectcalico.org/v3.18/manifests/calico.yaml
 fi
 
 echo "Install metallb"

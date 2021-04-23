@@ -24,6 +24,13 @@ var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managed1Kubeconfig = os.Getenv("MANAGED_KUBECONFIG")
+// failed indicates whether any of the tests has failed
+var failed = false
+
+var _ = ginkgo.AfterEach(func() {
+	// set failed to true if any of the tests has failed
+	failed = failed || ginkgo.CurrentGinkgoTestDescription().Failed
+})
 
 // Deploy the example resources to the admin cluster
 var _ = ginkgo.BeforeSuite(func() {
@@ -174,6 +181,9 @@ var _ = ginkgo.Describe("Multicluster app placed in managed cluster", func() {
 })
 
 var _ = ginkgo.AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, managed1Kubeconfig); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not delete hello-helidon namespace: %v\n", err))
 	}
@@ -181,6 +191,14 @@ var _ = ginkgo.AfterSuite(func() {
 	if err := pkg.DeleteNamespaceInCluster(examples.TestNamespace, adminKubeconfig); err != nil {
 		ginkgo.Fail(fmt.Sprintf("Could not delete %s namespace: %v\n", examples.TestNamespace, err))
 	}
+
+	// Wait until the namespace is fully deleted in both clusters, so that we don't interfere with other subsequent
+	// tests that may use the examples namespace
+	gomega.Eventually(func() bool {
+		return !pkg.DoesNamespaceExistInCluster(examples.TestNamespace, managed1Kubeconfig) &&
+			!pkg.DoesNamespaceExistInCluster(examples.TestNamespace, adminKubeconfig)
+	}, waitTimeout, pollingInterval)
+
 })
 
 func cleanUp() error {

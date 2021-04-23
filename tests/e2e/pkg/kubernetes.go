@@ -110,10 +110,15 @@ func DoesCRDExist(crdName string) bool {
 	return false
 }
 
-// DoesNamespaceExist returns whether a namespace with the given name exists for the cluster
+// DoesNamespaceExist returns whether a namespace with the given name exists for the cluster set in the environment
 func DoesNamespaceExist(name string) bool {
+	return DoesNamespaceExistInCluster(name, GetKubeConfigPathFromEnv())
+}
+
+// DoesNamespaceExistInCluster returns whether a namespace with the given name exists in the specified cluster
+func DoesNamespaceExistInCluster(name string, kubeconfigPath string) bool {
 	// Get the Kubernetes clientset
-	clientset := GetKubernetesClientset()
+	clientset := GetKubernetesClientsetForCluster(kubeconfigPath)
 
 	namespace, err := clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
