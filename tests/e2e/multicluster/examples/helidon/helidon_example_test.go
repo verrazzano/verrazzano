@@ -24,10 +24,11 @@ const (
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
-
+// failed indicates whether any of the tests has failed
 var failed = false
+
 var _ = ginkgo.AfterEach(func() {
-	// failed var indicates whether any of the tests has failed
+	// set failed to true if any of the tests has failed
 	failed = failed || ginkgo.CurrentGinkgoTestDescription().Failed
 })
 
