@@ -75,6 +75,11 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
+
+        // Used for dumping cluster from inside tests
+        DUMP_KUBECONFIG="${KUBECONFIG}"
+        DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
+        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
     }
 
     stages {
@@ -395,66 +400,105 @@ pipeline {
                     }
                     parallel {
                         stage('verify-install') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
+                            }
                             steps {
                                 runGinkgoRandomize('verify-install')
                             }
                         }
                         stage('verify-infra restapi') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-restapi"
+                            }
                             steps {
                                 runGinkgoRandomize('verify-infra/restapi')
                             }
                         }
                         stage('verify-infra oam') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-oam"
+                            }
                             steps {
                                 runGinkgoRandomize('verify-infra/oam')
                             }
                         }
                         stage('verify-infra vmi') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-vmi"
+                            }
                             steps {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
                         stage('istio authorization policy') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
+                            }
                             steps {
                                 runGinkgo('istio/authz')
                             }
                         }
                         stage('security role based access') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
+                            }
                             steps {
                                 runGinkgo('security/rbac')
                             }
                         }
                         stage('examples logging helidon') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
+                            }
                             steps {
                                 runGinkgo('logging/helidon')
                             }
                         }
                         stage('examples todo') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-todo"
+                            }
                             steps {
                                 runGinkgo('examples/todo')
                             }
                         }
                         stage('examples socks') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-socks"
+                            }
                             steps {
                                 runGinkgo('examples/socks')
                             }
                         }
                         stage('examples spring') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-spring"
+                            }
                             steps {
                                 runGinkgo('examples/springboot')
                             }
                         }
                         stage('examples helidon') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
+                            }
                             steps {
                                 runGinkgo('examples/helidon')
                             }
                         }
                         stage('examples helidon-config') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-config"
+                            }
                             steps {
                                 runGinkgo('examples/helidonconfig')
                             }
                         }
                         stage('examples bobs') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
+                            }
                             when {
                                 expression {params.RUN_SLOW_TESTS == true}
                             }
@@ -463,6 +507,9 @@ pipeline {
                             }
                         }
                         stage('console ingress') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
+                            }
                             steps {
                                 runGinkgo('ingress/console')
                             }
@@ -470,7 +517,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
