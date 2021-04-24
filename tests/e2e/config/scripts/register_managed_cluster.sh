@@ -80,7 +80,7 @@ kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED
 # register using the manifest on managed
 kubectl --kubeconfig ${MANAGED_KUBECONFIG} apply -f register-${MANAGED_CLUSTER_NAME}.yaml
 
-# the following is not related to registering managed cluster, but to working around xip.io resolution problem
+# the following is not related to registering managed cluster, but to working around wildcard DNS (e.g. xip.io) resolution problem
 set +e
 retries=0
 until [ "$retries" -ge 30 ]

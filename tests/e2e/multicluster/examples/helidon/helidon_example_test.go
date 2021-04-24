@@ -118,7 +118,7 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 	})
 
 	// Disable this multi-cluster Helidon logging tests until the reliability issues with
-	// the DNS resolution of xip.io hostnames on OCI hosts is fixed.
+	// the DNS resolution of wildcard DNS (e.g. xip.io) hostnames on OCI hosts is fixed.
 	//ginkgo.Context("Logging", func() {
 	//	indexName := "hello-helidon-hello-helidon-appconf-hello-helidon-component-hello-helidon-container"
 	//
