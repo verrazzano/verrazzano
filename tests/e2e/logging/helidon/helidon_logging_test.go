@@ -105,50 +105,41 @@ var _ = ginkgo.Describe("Verify Hello Helidon OAM App.", func() {
 	})
 
 	ginkgo.Context("Logging.", func() {
-		indexNameContainer1 := "helidon-logging-hello-helidon-appconf-hello-helidon-component-hello-helidon-container"
-		indexNameContainer2 := "helidon-logging-hello-helidon-appconf-hello-helidon-component-other-container"
-
+		indexName := fmt.Sprintf("verrazzano-namespace-%s", testNamespace)
 		// GIVEN an application with logging enabled via a logging scope
-		// WHEN the Elasticsearch index for hello-helidon-container is retrieved
+		// WHEN the Elasticsearch index for hello-helidon namespace is retrieved
 		// THEN verify that it is found
-		ginkgo.It("Verify Elasticsearch index for hello-helidon-container exists", func() {
+		ginkgo.It("Verify Elasticsearch index for Logging exists", func() {
 			gomega.Eventually(func() bool {
-				return pkg.LogIndexFound(indexNameContainer1)
+				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for hello-helidon-container")
 		})
-
-		// GIVEN an application with logging enabled via a logging scope
-		// WHEN the Elasticsearch index for other-container is retrieved
-		// THEN verify that it is found
-		ginkgo.It("Verify Elasticsearch index for other-container exists", func() {
-			gomega.Eventually(func() bool {
-				return pkg.LogIndexFound(indexNameContainer2)
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for other-container")
-		})
-
-		// GIVEN an application with logging enabled via a logging scope
-		// WHEN the log records are retrieved from the Elasticsearch index for hello-helidon-container
-		// THEN verify that at least one recent log record is found
-		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
-			gomega.Eventually(func() bool {
-				return pkg.LogRecordFound(indexNameContainer1, time.Now().Add(-24*time.Hour), map[string]string{
-					"oam.applicationconfiguration.namespace": "hello-helidon",
-					"oam.applicationconfiguration.name":      "hello-helidon-appconf",
-					"oam.container.name":                     "hello-helidon-container"})
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record for container hello-helidon-container")
-		})
-
-		// GIVEN an application with logging enabled via a logging scope
-		// WHEN the log records are retrieved from the Elasticsearch index for other-container
-		// THEN verify that at least one recent log record is found
-		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
-			gomega.Eventually(func() bool {
-				return pkg.LogRecordFound(indexNameContainer2, time.Now().Add(-24*time.Hour), map[string]string{
-					"oam.applicationconfiguration.namespace": "hello-helidon",
-					"oam.applicationconfiguration.name":      "hello-helidon-appconf",
-					"oam.container.name":                     "other-container"})
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record for container other-container")
-		})
+		pkg.Concurrently(
+			func() {
+				// GIVEN an application with logging enabled via a logging scope
+				// WHEN the log records are retrieved from the Elasticsearch index for hello-helidon-container
+				// THEN verify that at least one recent log record is found
+				ginkgo.It("Verify recent Elasticsearch log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+							"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-appconf",
+							"kubernetes.container_name":            "hello-helidon-container"})
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record for container hello-helidon-container")
+				})
+			},
+			func() {
+				// GIVEN an application with logging enabled via a logging scope
+				// WHEN the log records are retrieved from the Elasticsearch index for other-container
+				// THEN verify that at least one recent log record is found
+				ginkgo.It("Verify recent Elasticsearch log record of other-container exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+							"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-appconf",
+							"kubernetes.container_name":            "other-container"})
+					}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record for other-container")
+				})
+			},
+		)
 	})
 })
 

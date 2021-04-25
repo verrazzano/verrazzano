@@ -11,8 +11,6 @@ import (
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/controllers"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingscope"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	appsv1 "k8s.io/api/apps/v1"
@@ -97,14 +95,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			log.Error(err, "An error occurred trying to obtain an existing deployment")
 			return reconcile.Result{}, err
 		}
-	}
-	// upgradeApp indicates whether the user has indicated that it is ok to update the application to use the latest
-	// resource values from Verrazzano. An example of this is the Fluentd image used by logging.
-	upgradeApp := controllers.IsWorkloadMarkedForUpgrade(workload.Labels, workload.Status.CurrentUpgradeVersion)
-
-	// Add the Fluentd sidecar container required for logging to the Deployment
-	if err = r.addLogging(ctx, log, &workload, upgradeApp, deploy, &existingDeployment); err != nil {
-		return reconcile.Result{}, err
 	}
 
 	if err = r.addMetrics(ctx, log, req.NamespacedName.Namespace, &workload, deploy); err != nil {
@@ -296,41 +286,6 @@ func mergeMapOverrideWithDest(src, dst map[string]string) map[string]string {
 		}
 	}
 	return r
-}
-
-// addLogging adds a FLUENTD sidecar to the Helidon deployment
-func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoHelidonWorkload, upgradeApp bool, newDeployment *appsv1.Deployment, existingDeployment *appsv1.Deployment) error {
-	// If the Deployment already exists and we don't want to update the Fluentd image, obtain the Fluentd image from the
-	// current Deployment
-	var existingFluentdImage string
-	if !upgradeApp {
-		for _, container := range existingDeployment.Spec.Template.Spec.Containers {
-			if container.Name == loggingscope.FluentdContainerName {
-				existingFluentdImage = container.Image
-				break
-			}
-		}
-	}
-
-	loggingScope, err := loggingscope.FetchLoggingScopeFromWorkloadLabels(ctx, r.Client, log, workload.Namespace, workload.Labels, existingFluentdImage)
-	if err != nil {
-		return err
-	}
-
-	if loggingScope == nil {
-		log.Info("No logging scope found for workload, nothing to do")
-		return nil
-	}
-
-	resource := vzapi.QualifiedResourceRelation{Name: newDeployment.Name, Namespace: newDeployment.Namespace}
-	handler := loggingscope.HelidonHandler{Client: r.Client, Log: r.Log}
-	_, err = handler.ApplyToDeployment(ctx, resource, loggingScope, newDeployment)
-	if err != nil {
-		log.Info("Failed to add logging to Deployment")
-		return err
-	}
-
-	return nil
 }
 
 // addMetrics adds the labels and annotations needed for metrics to the Helidon resource annotations which are propagated to the individual Helidon pods.

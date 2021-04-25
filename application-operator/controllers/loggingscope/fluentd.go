@@ -90,11 +90,7 @@ type FluentdPod struct {
 func (f *Fluentd) Apply(scope *vzapi.LoggingScope, resource vzapi.QualifiedResourceRelation, fluentdPod *FluentdPod) (bool, error) {
 	upToDate := f.isFluentdContainerUpToDate(fluentdPod.Containers, scope)
 	if !upToDate {
-		requiresCABundle, err := ensureLoggingSecret(f.Context, f, resource.Namespace, scope.Spec.SecretName)
-		if err != nil {
-			return false, err
-		}
-		err = f.ensureFluentdConfigMapExists(resource.Namespace, scope, requiresCABundle)
+		err := f.ensureFluentdConfigMapExists(resource.Namespace, scope)
 		if err != nil {
 			return false, err
 		}
@@ -149,21 +145,15 @@ func (f *Fluentd) ensureFluentdVolumes(fluentdPod *FluentdPod, scope *vzapi.Logg
 	volumes := fluentdPod.Volumes
 	configMapVolumeExists := false
 	fluentdVolumeExists := false
-	secretVolumeExists := false
 	for _, volume := range volumes {
 		if volume.Name == f.StorageVolumeName {
 			fluentdVolumeExists = true
 		} else if volume.Name == fmt.Sprintf("%s-volume", configMapName) {
 			configMapVolumeExists = true
-		} else if volume.Name == secretVolume {
-			secretVolumeExists = true
 		}
 	}
 	if !configMapVolumeExists {
 		volumes = append(volumes, f.createFluentdConfigMapVolume(configMapName))
-	}
-	if !secretVolumeExists {
-		volumes = append(volumes, f.createFluentdSecretVolume(scope.Spec.SecretName))
 	}
 	if !fluentdVolumeExists {
 		volumes = append(volumes, f.createFluentdEmptyDirVolume())
@@ -176,12 +166,9 @@ func (f *Fluentd) ensureFluentdVolumes(fluentdPod *FluentdPod, scope *vzapi.Logg
 func (f *Fluentd) ensureFluentdVolumeMountExists(fluentdPod *FluentdPod) {
 	volumeMounts := fluentdPod.VolumeMounts
 	storageVolumeMountExists := false
-	secretVolumeMountExists := false
 	for _, volumeMount := range volumeMounts {
 		if volumeMount.Name == f.StorageVolumeName {
 			storageVolumeMountExists = true
-		} else if volumeMount.Name == secretVolume {
-			secretVolumeMountExists = true
 		}
 	}
 
@@ -190,17 +177,12 @@ func (f *Fluentd) ensureFluentdVolumeMountExists(fluentdPod *FluentdPod) {
 		volumeMounts = append(volumeMounts, f.createStorageVolumeMount())
 	}
 
-	// If no secret volume mount exists create one and add it to the list.
-	if !secretVolumeMountExists {
-		volumeMounts = append(volumeMounts, f.createSecretVolumeMount())
-	}
-
 	fluentdPod.VolumeMounts = volumeMounts
 }
 
 // ensureFluentdConfigMapExists ensures that the FLUENTD configmap exists. If it already exists, there is nothing
 // to do. If it doesn't exist, create it.
-func (f *Fluentd) ensureFluentdConfigMapExists(namespace string, scope *vzapi.LoggingScope, requiresCABundle bool) error {
+func (f *Fluentd) ensureFluentdConfigMapExists(namespace string, scope *vzapi.LoggingScope) error {
 	// check if configmap exists
 	configMapExists, err := resourceExists(f.Context, f, configMapAPIVersion, configMapKind, configMapName+"-"+f.WorkloadType, namespace)
 	if err != nil {
@@ -208,7 +190,7 @@ func (f *Fluentd) ensureFluentdConfigMapExists(namespace string, scope *vzapi.Lo
 	}
 
 	if !configMapExists {
-		if err = f.Create(f.Context, f.createFluentdConfigMap(namespace, requiresCABundle), &k8sclient.CreateOptions{}); err != nil {
+		if err = f.Create(f.Context, f.createFluentdConfigMap(namespace), &k8sclient.CreateOptions{}); err != nil {
 			return err
 		}
 	}
@@ -216,7 +198,7 @@ func (f *Fluentd) ensureFluentdConfigMapExists(namespace string, scope *vzapi.Lo
 }
 
 // createFluentdConfigMap creates the FLUENTD configmap per given namespace.
-func (f *Fluentd) createFluentdConfigMap(namespace string, requiresCABundle bool) *v1.ConfigMap {
+func (f *Fluentd) createFluentdConfigMap(namespace string) *v1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      configMapName + "-" + f.WorkloadType,
@@ -224,7 +206,7 @@ func (f *Fluentd) createFluentdConfigMap(namespace string, requiresCABundle bool
 		},
 		Data: func() map[string]string {
 			var data = make(map[string]string)
-			data[fluentdConfKey] = GetFluentdConfiguration(f.ParseRules, requiresCABundle)
+			data[fluentdConfKey] = f.ParseRules
 			return data
 		}(),
 	}
@@ -317,8 +299,7 @@ func (f *Fluentd) removeFluentdConfigMap(namespace string, scope *vzapi.LoggingS
 	configMapExists, err := resourceExists(f.Context, f, configMapAPIVersion, configMapKind, configMapName+"-"+f.WorkloadType, namespace)
 
 	if configMapExists {
-		// TODO what if the ca_file doesn't match
-		_ = f.Delete(f.Context, f.createFluentdConfigMap(namespace, false), &k8sclient.DeleteOptions{})
+		_ = f.Delete(f.Context, f.createFluentdConfigMap(namespace), &k8sclient.DeleteOptions{})
 	}
 	// return true when we confirm that the configmap has been successfully deleted
 	return !(configMapExists) && err == nil
@@ -383,42 +364,6 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 				Value: fluentdConfKey,
 			},
 			{
-				Name:  "FLUENT_ELASTICSEARCH_SED_DISABLE",
-				Value: "true",
-			},
-			{
-				Name:  elasticSearchURLEnv,
-				Value: scope.Spec.ElasticSearchURL,
-			},
-			{
-				Name: elasticSearchUserEnv,
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: scope.Spec.SecretName,
-						},
-						Key: constants.ElasticsearchUsernameData,
-						Optional: func(opt bool) *bool {
-							return &opt
-						}(true),
-					},
-				},
-			},
-			{
-				Name: elasticSearchPwdEnv,
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: scope.Spec.SecretName,
-						},
-						Key: constants.ElasticsearchPasswordData,
-						Optional: func(opt bool) *bool {
-							return &opt
-						}(true),
-					},
-				},
-			},
-			{
 				Name:  "NAMESPACE",
 				Value: namespace,
 			},
@@ -458,11 +403,6 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, scope *vzapi.Lo
 				MountPath: fluentdConfMountPath,
 				Name:      confVolume,
 				SubPath:   fluentdConfKey,
-				ReadOnly:  true,
-			},
-			{
-				MountPath: secretMountPath,
-				Name:      secretVolume,
 				ReadOnly:  true,
 			},
 			{
