@@ -45,12 +45,12 @@ fi
 # find private_workers_seclist id
 SEC_LIST_ID=$(oci network security-list list \
   --compartment-id "${TF_VAR_compartment_id}" \
-  --display-name "${TF_VAR_label_prefix}-private-workers" \
+  --display-name "${TF_VAR_label_prefix}-workers" \
   --vcn-id "${VCN_ID}" \
   | jq -r '.data[0].id')
 
 if [ -z "$SEC_LIST_ID" ]; then
-    echo "Failed to get the id for security-list ${TF_VAR_label_prefix}-private-workers"
+    echo "Failed to get the id for security-list ${TF_VAR_label_prefix}-workers"
     exit 0
 fi
 

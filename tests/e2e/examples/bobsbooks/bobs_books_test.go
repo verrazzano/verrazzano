@@ -273,47 +273,141 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 		})
 	})
 	ginkgo.Context("WebLogic logging.", func() {
-		bobbyIndexName := "bobs-books-bobs-books-bobby-wls"
+		bobsIndexName := "verrazzano-namespace-bobs-books"
 		// GIVEN a WebLogic application with logging enabled via a logging scope
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
 		ginkgo.It("Verify Elasticsearch index exists", func() {
 			gomega.Eventually(func() bool {
-				return pkg.LogIndexFound(bobbyIndexName)
-			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find log index "+bobbyIndexName)
+				return pkg.LogIndexFound(bobsIndexName)
+			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find log index "+bobsIndexName)
 		})
-		// GIVEN a WebLogic application with logging enabled via a logging scope
-		// WHEN the log records are retrieved from the Elasticsearch index
-		// THEN verify that at least one recent log record is found
-		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
-			gomega.Eventually(func() bool {
-				return pkg.LogRecordFound(bobbyIndexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"domainUID":  "bobbys-front-end",
-					"serverName": "bobbys-front-end-adminserver"})
-			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
-		})
-		bobIndexName := "bobs-books-bobs-books-bobs-orders-wls"
-		// GIVEN a WebLogic application with logging enabled via a logging scope
-		// WHEN the Elasticsearch index is retrieved
-		// THEN verify that it is found
-		ginkgo.It("Verify Elasticsearch index exists", func() {
-			gomega.Eventually(func() bool {
-				return pkg.LogIndexFound(bobIndexName)
-			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find log index "+bobIndexName)
-		})
-		// GIVEN a WebLogic application with logging enabled via a logging scope
-		// WHEN the log records are retrieved from the Elasticsearch index
-		// THEN verify that at least one recent log record is found
-		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
-			gomega.Eventually(func() bool {
-				return pkg.LogRecordFound(bobIndexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"domainUID":  "bobs-bookstore",
-					"serverName": "bobs-bookstore-adminserver"})
-			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
-		})
+		pkg.Concurrently(
+			// GIVEN a WebLogic application with logging enabled via a logging scope
+			// WHEN the log records are retrieved from the Elasticsearch index
+			// THEN verify that a recent log record of bobbys-front-end-adminserver stdout is found
+			func() {
+				ginkgo.It("Verify recent bobbys-front-end-adminserver log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
+							"kubernetes.labels.weblogic_domainUID":  "bobbys-front-end",
+							"kubernetes.labels.weblogic_serverName": "AdminServer",
+							"kubernetes.pod_name":                   "bobbys-front-end-adminserver",
+							"kubernetes.container_name":             "weblogic-server",
+						})
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			// GIVEN a WebLogic application with logging enabled via a logging scope
+			// WHEN the log records are retrieved from the Elasticsearch index
+			// THEN verify that a recent log record of bobbys-front-end-adminserver log file is found
+			func() {
+				ginkgo.It("Verify recent bobbys-front-end-adminserver log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
+							"kubernetes.labels.weblogic_domainUID":  "bobbys-front-end",
+							"kubernetes.labels.weblogic_serverName": "AdminServer",
+							"kubernetes.pod_name":                   "bobbys-front-end-adminserver",
+							"kubernetes.container_name":             "fluentd",
+						})
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			// GIVEN a WebLogic application with logging enabled via a logging scope
+			// WHEN the log records are retrieved from the Elasticsearch index
+			// THEN verify that a recent log record of bobbys-front-end-managed-server stdout is found
+			func() {
+				ginkgo.It("Verify recent bobbys-front-end-managed-server1 log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
+							"kubernetes.labels.weblogic_domainUID":  "bobbys-front-end",
+							"kubernetes.labels.weblogic_serverName": "managed-server1",
+							"kubernetes.pod_name":                   "bobbys-front-end-managed-server1",
+							"kubernetes.container_name":             "weblogic-server",
+						})
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			// GIVEN a WebLogic application with logging enabled via a logging scope
+			// WHEN the log records are retrieved from the Elasticsearch index
+			// THEN verify that a recent log record of bobbys-front-end-managed-server log file is found
+			func() {
+				ginkgo.It("Verify recent bobbys-front-end-managed-server1 log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
+							"kubernetes.labels.weblogic_domainUID":  "bobbys-front-end",
+							"kubernetes.labels.weblogic_serverName": "managed-server1",
+							"kubernetes.pod_name":                   "bobbys-front-end-managed-server1",
+							"kubernetes.container_name":             "fluentd"})
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+		)
+		pkg.Concurrently(
+			// GIVEN a WebLogic application with logging enabled via a logging scope
+			// WHEN the log records are retrieved from the Elasticsearch index
+			// THEN verify that a recent log record of bobs-bookstore-adminserver stdout is found
+			func() {
+				ginkgo.It("Verify recent bobs-bookstore-adminserver log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
+							"kubernetes.labels.weblogic_domainUID":  "bobs-bookstore",
+							"kubernetes.labels.weblogic_serverName": "AdminServer",
+							"kubernetes.pod_name":                   "bobs-bookstore-adminserver",
+							"kubernetes.container_name":             "weblogic-server",
+						})
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			// GIVEN a WebLogic application with logging enabled via a logging scope
+			// WHEN the log records are retrieved from the Elasticsearch index
+			// THEN verify that a recent log record of bobs-bookstore-adminserver log file is found
+			func() {
+				ginkgo.It("Verify recent bobs-bookstore-adminserver log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
+							"kubernetes.labels.weblogic_domainUID":  "bobs-bookstore",
+							"kubernetes.labels.weblogic_serverName": "AdminServer",
+							"kubernetes.pod_name":                   "bobs-bookstore-adminserver",
+							"kubernetes.container_name":             "fluentd",
+						})
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			// GIVEN a WebLogic application with logging enabled via a logging scope
+			// WHEN the log records are retrieved from the Elasticsearch index
+			// THEN verify that a recent log record of bobs-bookstore-managed-server stdout is found
+			func() {
+				ginkgo.It("Verify recent bobs-bookstore-managed-server1 log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
+							"kubernetes.labels.weblogic_domainUID":  "bobs-bookstore",
+							"kubernetes.labels.weblogic_serverName": "managed-server1",
+							"kubernetes.pod_name":                   "bobs-bookstore-managed-server1",
+							"kubernetes.container_name":             "weblogic-server",
+						})
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			// GIVEN a WebLogic application with logging enabled via a logging scope
+			// WHEN the log records are retrieved from the Elasticsearch index
+			// THEN verify that a recent log record of bobs-bookstore-managed-server log file is found
+			func() {
+				ginkgo.It("Verify recent bobs-bookstore-managed-server1 log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
+							"kubernetes.labels.weblogic_domainUID":  "bobs-bookstore",
+							"kubernetes.labels.weblogic_serverName": "managed-server1",
+							"kubernetes.pod_name":                   "bobs-bookstore-managed-server1",
+							"kubernetes.container_name":             "fluentd",
+						})
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+		)
 	})
 	ginkgo.Context("Coherence logging.", func() {
-		indexName := "bobs-books-bobs-books-robert-coh"
+		indexName := "verrazzano-namespace-bobs-books"
 		// GIVEN a Coherence application with logging enabled via a logging scope
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
@@ -325,11 +419,69 @@ var _ = ginkgo.Describe("Verify Bobs Books example application.", func() {
 		// GIVEN a Coherence application with logging enabled via a logging scope
 		// WHEN the log records are retrieved from the Elasticsearch index
 		// THEN verify that at least one recent log record is found
-		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
+		ginkgo.It("Verify recent roberts-coherence log record exists", func() {
 			gomega.Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"coherence.cluster.name": "roberts-coherence"})
+					"kubernetes.labels.coherenceCluster":        "roberts-coherence",
+					"kubernetes.labels.app_oam_dev\\/component": "robert-coh",
+				})
 			}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 		})
+		pkg.Concurrently(
+			// GIVEN a Coherence application with logging enabled via a logging scope
+			// WHEN the log records are retrieved from the Elasticsearch index
+			// THEN verify that a recent log record of roberts-coherence-0 stdout is found
+			func() {
+				ginkgo.It("Verify recent roberts-coherence-0 log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+							"kubernetes.labels.coherenceCluster": "roberts-coherence",
+							"kubernetes.pod_name":                "roberts-coherence-0",
+							"kubernetes.container_name":          "coherence",
+						})
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			// GIVEN a Coherence application with logging enabled via a logging scope
+			// WHEN the log records are retrieved from the Elasticsearch index
+			// THEN verify that a recent log record of roberts-coherence-0 log file is found
+			func() {
+				ginkgo.It("Verify recent roberts-coherence-0 log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+							"kubernetes.labels.coherenceCluster": "roberts-coherence",
+							"kubernetes.pod_name":                "roberts-coherence-0",
+							"kubernetes.container_name":          "fluentd",
+						})
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			// GIVEN a Coherence application with logging enabled via a logging scope
+			// WHEN the log records are retrieved from the Elasticsearch index
+			// THEN verify that a recent log record of roberts-coherence-1 stdout is found
+			func() {
+				ginkgo.It("Verify recent roberts-coherence-1 log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+							"kubernetes.labels.coherenceCluster": "roberts-coherence",
+							"kubernetes.pod_name":                "roberts-coherence-1",
+							"kubernetes.container_name":          "coherence"})
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+			// GIVEN a Coherence application with logging enabled via a logging scope
+			// WHEN the log records are retrieved from the Elasticsearch index
+			// THEN verify that a recent log record of roberts-coherence-1 log file is found
+			func() {
+				ginkgo.It("Verify recent roberts-coherence-1 log record exists", func() {
+					gomega.Eventually(func() bool {
+						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
+							"kubernetes.labels.coherenceCluster": "roberts-coherence",
+							"kubernetes.pod_name":                "roberts-coherence-1",
+							"kubernetes.container_name":          "fluentd"})
+					}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+				})
+			},
+		)
 	})
 })
