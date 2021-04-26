@@ -335,3 +335,43 @@ spec:
         - protocol: TCP
           port: 3306
 {{- end }}
+---
+# Network policy for NGINX Ingress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ingress-nginx
+  namespace: ingress-nginx
+spec:
+  podSelector:
+    matchLabels:
+      app: mysql
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow ingress to port 443 from any source
+    - ports:
+      - protocol: TCP
+        port: 443
+  egress:
+    # Port for connecting to Kubernetes API services
+    - ports:
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+    # Ports for DNS lookup
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
