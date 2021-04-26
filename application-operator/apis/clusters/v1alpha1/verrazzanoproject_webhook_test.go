@@ -107,12 +107,12 @@ func TestInvalidNamespaces(t *testing.T) {
 	// Test create
 	err := testVP.ValidateCreate()
 	assert.Error(t, err, "Expected failure for invalid namespace list")
-	assert.Containsf(t, err.Error(), "one or more namespaces must be provided", "unexpected failure string")
+	assert.Containsf(t, err.Error(), "One or more namespaces must be provided", "unexpected failure string")
 
 	// Test update
 	err = testVP.ValidateUpdate(&VerrazzanoProject{})
 	assert.Error(t, err, "Expected failure for invalid namespace list")
-	assert.Containsf(t, err.Error(), "one or more namespaces must be provided", "unexpected failure string")
+	assert.Containsf(t, err.Error(), "One or more namespaces must be provided", "unexpected failure string")
 }
 
 // TestNetworkPolicyNamespace tests the validation of VerrazzanoProject NetworkPolicyTemplate
