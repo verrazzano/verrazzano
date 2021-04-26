@@ -220,6 +220,12 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) *http.Clien
 		tr.Proxy = http.ProxyURL(tURLProxy)
 	}
 
+	setupCustomDNSResolver(tr, kubeconfigPath)
+
+	return &http.Client{Transport: tr}
+}
+
+func setupCustomDNSResolver(tr *http.Transport, kubeconfigPath string) {
 	ipResolve := getNginxNodeIP(kubeconfigPath)
 	if ipResolve != "" {
 		dialer := &net.Dialer{
@@ -249,8 +255,6 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) *http.Clien
 			return dialer.DialContext(ctx, network, addr)
 		}
 	}
-
-	return &http.Client{Transport: tr}
 }
 
 func getEnvName(kubeconfigPath string) string {
