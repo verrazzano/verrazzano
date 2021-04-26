@@ -96,17 +96,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
-	// Use OperationResultCreated by default since we don't really know what happened to individual NS
+	// Use OperationResultCreated by default since we don't really know what happened to individual resources
 	opResult := controllerutil.OperationResultCreated
-	err = r.createOrUpdateNamespaces(ctx, vp, logger)
+	err = r.syncAll(ctx, vp, logger)
 	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// Sync the network policies
-	err = r.syncNetworkPolices(ctx, &vp, logger)
-	if err != nil {
-		return ctrl.Result{}, err
+		opResult = controllerutil.OperationResultNone
 	}
 
 	// Update the cluster status
@@ -130,6 +124,21 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{Requeue: true, RequeueAfter: clusters.GetRandomRequeueDelay()}, err
 	}
 	return ctrl.Result{}, nil
+}
+
+// Sync all the project resources, return immediately with error if failure
+func (r *Reconciler) syncAll(ctx context.Context, vp clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
+	err := r.createOrUpdateNamespaces(ctx, vp, logger)
+	if err != nil {
+		return err
+	}
+
+	// Sync the network policies
+	err = r.syncNetworkPolices(ctx, &vp, logger)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
