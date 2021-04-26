@@ -52,11 +52,11 @@ func (vp *VerrazzanoProject) ValidateDelete() error {
 // Perform validation checks on the resource
 func (vp *VerrazzanoProject) validateVerrazzanoProject() error {
 	if vp.ObjectMeta.Namespace != constants.VerrazzanoMultiClusterNamespace {
-		return fmt.Errorf("namespace for the resource must be %q", constants.VerrazzanoMultiClusterNamespace)
+		return fmt.Errorf("Namespace for the resource must be %q", constants.VerrazzanoMultiClusterNamespace)
 	}
 
 	if len(vp.Spec.Template.Namespaces) == 0 {
-		return fmt.Errorf("one or more namespaces must be provided")
+		return fmt.Errorf("One or more namespaces must be provided")
 	}
 
 	if err := vp.validateNetworkPolicies(); err != nil {
