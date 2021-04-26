@@ -136,26 +136,25 @@ var _ = ginkgo.Describe("Verify Spring Boot Application", func() {
 	})
 
 	ginkgo.Context("Logging.", func() {
-		indexName := "springboot-springboot-appconf-springboot-component-springboot-container"
+		indexName := "verrazzano-namespace-springboot"
 		ginkgo.It("Verify Elasticsearch index exists", func() {
-			gomega.Eventually(func() bool {
-				return pkg.LogIndexFound("verrazzano-namespace-springboot")
-			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find Elasticsearch index for Spring Boot application.")
 			gomega.Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find Elasticsearch index for Spring Boot application.")
 		})
-
 		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
 			gomega.Eventually(func() bool {
-				return pkg.LogRecordFound("verrazzano-namespace-springboot", time.Now().Add(-24*time.Hour), map[string]string{
+				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/component": "springboot-component",
 					"kubernetes.container_name":                 "springboot-container",
 				})
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record.")
 			gomega.Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"oam.component.name": "springboot-component"})
+					"kubernetes.labels.app_oam_dev\\/component": "springboot-component",
+					"kubernetes.labels.app_oam_dev\\/name":      "springboot-appconf",
+					"kubernetes.container_name":                 "springboot-container",
+				})
 			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record.")
 		})
 	})

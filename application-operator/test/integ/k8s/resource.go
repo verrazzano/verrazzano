@@ -89,7 +89,7 @@ func (c Client) IsDeploymentUpdated(name string, namespace string) bool {
 	if err != nil {
 		return false
 	}
-	return len(dep.Spec.Template.Spec.Containers) > 1
+	return len(dep.Spec.Template.Spec.Containers) > 0
 }
 
 // DoesPodExist returns true if a Pod with the given prefix exists
