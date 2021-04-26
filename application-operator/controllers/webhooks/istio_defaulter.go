@@ -10,7 +10,9 @@ import (
 	"net/http"
 	"strings"
 
+	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/gertd/go-pluralize"
+	cluv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	securityv1beta1 "istio.io/api/security/v1beta1"
 	"istio.io/api/type/v1beta1"
@@ -92,8 +94,14 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 		}
 	}
 
-	// Create/update Istio Authorization policy.
+	// Create/update Istio Authorization policy for the given pod.
 	err = a.createUpdateAuthorizationPolicy(req.Namespace, serviceAccountName, appConfigOwnerRef)
+	if err != nil {
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
+
+	// Fixup Istio Authorization policies within a project
+	err = a.fixupProjectAuthorizationPolicies(req.Namespace)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
@@ -120,6 +128,30 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 // InjectDecoder injects the decoder.
 func (a *IstioWebhook) InjectDecoder(d *admission.Decoder) error {
 	a.Decoder = d
+	return nil
+}
+
+func (a *IstioWebhook) fixupProjectAuthorizationPolicies(podNamespace string) error {
+	projectsList := &cluv1alpha1.VerrazzanoProjectList{}
+	err := a.Client.List(context.TODO(), projectsList)
+	if err != nil {
+		return err
+	}
+
+	for _, project := range projectsList.Items {
+		for _, namespace := range project.Spec.Template.Namespaces {
+			// Project has a namespace that matches the given pods namespace
+			if namespace.Metadata.Namespace == podNamespace {
+				appConfigList := &oamv1alpha2.ApplicationConfigurationList{}
+				// Get the list of config resources in the namespace
+				err := a.Client.List(context.TODO(), appConfigList)
+				if err != nil {
+					return err
+				}
+
+			}
+		}
+	}
 	return nil
 }
 
