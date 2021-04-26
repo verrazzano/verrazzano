@@ -52,15 +52,11 @@ func (vp *VerrazzanoProject) ValidateDelete() error {
 // Perform validation checks on the resource
 func (vp *VerrazzanoProject) validateVerrazzanoProject() error {
 	if vp.ObjectMeta.Namespace != constants.VerrazzanoMultiClusterNamespace {
-		return fmt.Errorf("Namespace for the resource must be %q", constants.VerrazzanoMultiClusterNamespace)
+		return fmt.Errorf("namespace for the resource must be %q", constants.VerrazzanoMultiClusterNamespace)
 	}
 
 	if len(vp.Spec.Template.Namespaces) == 0 {
-		return fmt.Errorf("One or more namespaces must be provided")
-	}
-
-	if len(vp.Spec.Template.Namespaces) == 0 {
-		return fmt.Errorf("One or more namespaces must be provided")
+		return fmt.Errorf("one or more namespaces must be provided")
 	}
 
 	if err := vp.validateNetworkPolicies(); err != nil {
@@ -80,7 +76,7 @@ func (vp *VerrazzanoProject) validateNetworkPolicies() error {
 	// Validate that the policy applies to a namespace in the project
 	for _, policyTemplate := range vp.Spec.Template.NetworkPolicies {
 		if ok := nsSet[policyTemplate.Metadata.Namespace]; !ok {
-			return fmt.Errorf("Namespace %s used in NetworkPolicy %s does not exist in project",
+			return fmt.Errorf("namespace %s used in NetworkPolicy %s does not exist in project",
 				policyTemplate.Metadata.Namespace, policyTemplate.Metadata.Name)
 		}
 	}

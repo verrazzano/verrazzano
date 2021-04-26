@@ -260,6 +260,7 @@ func newRoleBinding(namespace string, roleName string, subjects []rbacv1.Subject
 	}
 }
 
+// getDefaultRoleBindingSubjects returns the default binding subjects for project admin/monitor roles
 func (r *Reconciler) getDefaultRoleBindingSubjects(vp clustersv1alpha1.VerrazzanoProject) ([]rbacv1.Subject, []rbacv1.Subject) {
 	adminSubjects := []rbacv1.Subject{{
 		Kind: "Group",
@@ -274,21 +275,10 @@ func (r *Reconciler) getDefaultRoleBindingSubjects(vp clustersv1alpha1.Verrazzan
 
 // syncNetworkPolices syncs the NetworkPolicies specified in the project
 func (r *Reconciler) syncNetworkPolices(ctx context.Context, project *clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
-	// Build the set of project namespaces for validation
-	nsSet := make(map[string]bool)
-	for _, ns := range project.Spec.Template.Namespaces {
-		nsSet[ns.Metadata.Name] = true
-	}
-
 	// Create or update policies that are in the project spec
+	// The project webhook validates that the network policies use project namespaces
 	desiredPolicySet := make(map[string]bool)
 	for _, policyTemplate := range project.Spec.Template.NetworkPolicies {
-		if ok := nsSet[policyTemplate.Metadata.Namespace]; !ok {
-			logger.Error(nil, "Namespace used in NetworkPolicy does not exist in project",
-				keyNamespace, policyTemplate.Metadata.Namespace,
-				keyPolicyName, policyTemplate.Metadata.Name)
-			continue
-		}
 		desiredPolicySet[policyTemplate.Metadata.Namespace+policyTemplate.Metadata.Name] = true
 		_, err := r.createOrUpdateNetworkPolicy(ctx, &policyTemplate)
 		if err != nil {

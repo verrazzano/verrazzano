@@ -394,6 +394,16 @@ func TestNetworkPolicies(t *testing.T) {
 			return nil
 		})
 
+	defaultAdminSubjects := []rbacv1.Subject{
+		{Kind: "Group", Name: fmt.Sprintf("verrazzano-project-%s-admins", vpName)},
+	}
+	defaultMonitorSubjects := []rbacv1.Subject{
+		{Kind: "Group", Name: fmt.Sprintf("verrazzano-project-%s-monitors", vpName)},
+	}
+
+	mockUpdatedRoleBindingExpectations(assert, mockClient, ns1.Metadata.Name, projectAdminRole, projectAdminK8sRole, defaultAdminSubjects)
+	mockUpdatedRoleBindingExpectations(assert, mockClient, ns1.Metadata.Name, projectMonitorRole, projectMonitorK8sRole, defaultMonitorSubjects)
+
 	// expect call to get a network policy
 	mockClient.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: ns1Netpol.Metadata.Namespace, Name: ns1Netpol.Metadata.Name}, gomock.Not(gomock.Nil())).

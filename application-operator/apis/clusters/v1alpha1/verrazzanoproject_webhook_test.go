@@ -107,12 +107,12 @@ func TestInvalidNamespaces(t *testing.T) {
 	// Test create
 	err := testVP.ValidateCreate()
 	assert.Error(t, err, "Expected failure for invalid namespace list")
-	assert.Containsf(t, err.Error(), "One or more namespaces must be provided", "unexpected failure string")
+	assert.Containsf(t, err.Error(), "one or more namespaces must be provided", "unexpected failure string")
 
 	// Test update
 	err = testVP.ValidateUpdate(&VerrazzanoProject{})
 	assert.Error(t, err, "Expected failure for invalid namespace list")
-	assert.Containsf(t, err.Error(), "One or more namespaces must be provided", "unexpected failure string")
+	assert.Containsf(t, err.Error(), "one or more namespaces must be provided", "unexpected failure string")
 }
 
 // TestNetworkPolicyNamespace tests the validation of VerrazzanoProject NetworkPolicyTemplate
@@ -135,7 +135,7 @@ func TestNetworkPolicyNamespace(t *testing.T) {
 // TestNetworkPolicyMissingNamespace tests the validation of VerrazzanoProject NetworkPolicyTemplate
 // GIVEN a call validate VerrazzanoProject on create or update
 // WHEN the VerrazzanoProject has a NetworkPolicyTemplate with a namespace that does not exist in the project
-// THEN the validation should succeed
+// THEN the validation should fail
 func TestNetworkPolicyMissingNamespace(t *testing.T) {
 	// Test data
 	testVP := testNetworkPolicy
@@ -143,9 +143,9 @@ func TestNetworkPolicyMissingNamespace(t *testing.T) {
 
 	// Test create
 	err := testVP.ValidateCreate()
-	assert.EqualError(t, err, "Namespace ns1 used in NetworkPolicy net1 does not exist in project", "Error validating VerrazzanProject with NetworkPolicyTemplate")
+	assert.EqualError(t, err, "namespace ns1 used in NetworkPolicy net1 does not exist in project", "Error validating VerrazzanProject with NetworkPolicyTemplate")
 
 	// Test update
 	err = testVP.ValidateUpdate(&VerrazzanoProject{})
-	assert.EqualError(t, err, "Namespace ns1 used in NetworkPolicy net1 does not exist in project", "Error validating VerrazzanProject with NetworkPolicyTemplate")
+	assert.EqualError(t, err, "namespace ns1 used in NetworkPolicy net1 does not exist in project", "Error validating VerrazzanProject with NetworkPolicyTemplate")
 }
