@@ -214,6 +214,7 @@ func main() {
 			webhooks.IstioDefaulterPath,
 			&webhook.Admission{
 				Handler: &webhooks.IstioWebhook{
+					Client:        mgr.GetClient(),
 					KubeClient:    kubeClient,
 					DynamicClient: dynamicClient,
 					IstioClient:   clientSet,

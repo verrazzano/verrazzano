@@ -23,6 +23,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -34,6 +35,7 @@ const IstioAppLabel = "verrazzano.io/istio"
 
 // IstioWebhook type for istio defaulter webhook
 type IstioWebhook struct {
+	client.Client
 	IstioClient   istioversionedclient.Interface
 	Decoder       *admission.Decoder
 	KubeClient    kubernetes.Interface
