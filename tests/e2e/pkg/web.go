@@ -220,7 +220,8 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) *http.Clien
 		tr.Proxy = http.ProxyURL(tURLProxy)
 	}
 
-	setupCustomDNSResolver(tr, kubeconfigPath)
+	// disable the custom DNS resolver
+	// setupCustomDNSResolver(tr, kubeconfigPath)
 
 	return &http.Client{Transport: tr}
 }
