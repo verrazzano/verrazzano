@@ -1126,9 +1126,9 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string) {
 			return nil
 		})
 
-	// Expect a call to get the Verrazzano secret, return the secret with the fields set
+	// Expect a call to get the Verrazzano Elastic Search/FluentD secret, return the secret with the fields set
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.Verrazzano}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VerrazzanoESInternal}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
 				UsernameKey: []byte(userData),
