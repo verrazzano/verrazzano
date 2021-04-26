@@ -100,13 +100,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	opResult := controllerutil.OperationResultCreated
 	err = r.createOrUpdateNamespaces(ctx, vp, logger)
 	if err != nil {
-		opResult = controllerutil.OperationResultNone
+		return ctrl.Result{}, err
 	}
 
 	// Sync the network policies
 	err = r.syncNetworkPolices(ctx, &vp, logger)
 	if err != nil {
-		opResult = controllerutil.OperationResultNone
+		return ctrl.Result{}, err
 	}
 
 	// Update the cluster status
