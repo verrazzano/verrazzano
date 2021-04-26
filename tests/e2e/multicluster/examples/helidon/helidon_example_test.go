@@ -16,6 +16,8 @@ import (
 )
 
 const (
+	longPollingInterval  = 20 * time.Second
+	longWaitTimeout      = 10 * time.Minute
 	pollingInterval      = 5 * time.Second
 	waitTimeout          = 5 * time.Minute
 	consistentlyDuration = 1 * time.Minute
@@ -118,7 +120,7 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 	})
 
 	ginkgo.Context("Logging", func() {
-		indexName := "hello-helidon-hello-helidon-appconf-hello-helidon-component-hello-helidon-container"
+		indexName := "verrazzano-namespace-hello-helidon"
 
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
@@ -126,7 +128,7 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 		ginkgo.It("Verify Elasticsearch index exists on admin cluster", func() {
 			gomega.Eventually(func() bool {
 				return pkg.LogIndexFoundInCluster(indexName, adminKubeconfig)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find log index for hello helidon")
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find log index for hello helidon")
 		})
 
 		// GIVEN an admin cluster and at least one managed cluster
@@ -135,11 +137,11 @@ var _ = ginkgo.Describe("Multi-cluster verify hello-helidon", func() {
 		ginkgo.It("Verify recent Elasticsearch log record exists on admin cluster", func() {
 			gomega.Eventually(func() bool {
 				return pkg.LogRecordFoundInCluster(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"oam.applicationconfiguration.namespace": "hello-helidon",
-					"oam.applicationconfiguration.name":      "hello-helidon-appconf",
-					"verrazzano.cluster.name":                clusterName,
+					"kubernetes.labels.app_oam_dev\\/component": "hello-helidon-component",
+					"kubernetes.labels.app_oam_dev\\/name":      "hello-helidon-appconf",
+					"kubernetes.container_name":                 "hello-helidon-container",
 				}, adminKubeconfig)
-			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
+			}, longWaitTimeout, longPollingInterval).Should(gomega.BeTrue(), "Expected to find a recent log record")
 		})
 	})
 
