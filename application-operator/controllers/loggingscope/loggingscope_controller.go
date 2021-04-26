@@ -48,8 +48,7 @@ type Reconciler struct {
 // NewReconciler creates a new Logging Scope reconciler
 func NewReconciler(client client.Client, log logr.Logger, scheme *runtime.Scheme) *Reconciler {
 	handlers := map[string]Handler{
-		wlsWorkloadKey:     &wlsHandler{Client: client, Log: log},
-		helidonWorkloadKey: &HelidonHandler{Client: client, Log: log},
+		wlsWorkloadKey: &wlsHandler{Client: client, Log: log},
 	}
 	return &Reconciler{
 		Client:   client,

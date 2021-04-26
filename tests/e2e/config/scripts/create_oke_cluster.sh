@@ -6,6 +6,18 @@
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
+usage() {
+  echo "Usage: $0 [-p]" 1>&2
+  echo "-p create cluster with private endpoints" 1>&2
+  exit 1
+}
+
+set_private_access() {
+  echo "Cluster access set to private."
+  export TF_VAR_cluster_access=private
+  export TF_VAR_bastion_enabled=true
+}
+
 check_for_resources() {
   local resource_type=$1
   local service_name=$2
@@ -30,6 +42,13 @@ check_for_resources() {
     exit 1
   fi
 }
+
+while getopts ":p" arg; do
+  case $arg in
+    p) set_private_access;;
+    \?) usage;;
+  esac
+done
 
 if [ -z "$TF_VAR_compartment_id" ] ; then
     echo "TF_VAR_compartment_id env var must be set!"
@@ -56,6 +75,17 @@ cd ${SCRIPT_DIR}/terraform/cluster
 ./create-cluster.sh
 status_code=$?
 if [ ${status_code:-1} -eq 0 ]; then
+
+    # if the cluster has been created with private endpoints then setup the ssh tunnel through the bastion host
+    if [ "$TF_VAR_bastion_enabled" = true ] ; then
+      echo "Setting up ssh tunnel through bastion host."
+      ../../setup_ssh_tunnel.sh
+      if [ $? -ne 0 ]; then
+          echo "Can't setup ssh tunnel through bastion host!"
+          exit 1
+      fi
+    fi
+
     echo "OKE Cluster creation request submitted."
     cat generated/kubeconfig > ${KUBECONFIG}
     # Adding a Service Account Authentication Token to kubeconfig
