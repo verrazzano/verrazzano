@@ -340,6 +340,9 @@ function install_rancher()
     log "Rollout Rancher"
     kubectl -n cattle-system rollout status -w deploy/rancher || return $?
 
+    log "Adding label needed by Rancher network policies to cattle-system namespace"
+    kubectl label namespace cattle-system "verrazzano.io/namespace=cattle-system" --overwrite
+
     ensure_rancher_admin_user || return $?
     reset_rancher_admin_password || return $?
 }
