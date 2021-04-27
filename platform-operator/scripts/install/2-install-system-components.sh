@@ -265,7 +265,7 @@ function reset_rancher_admin_password() {
   kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
 }
 
-function create_rancher_namespace()
+function create_cattle_system_namespace()
 {
     if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
         kubectl create namespace cattle-system
@@ -452,8 +452,8 @@ if [ "$DNS_TYPE" == "oci" ]; then
   action "Installing external DNS" install_external_dns || exit 1
 fi
 
-# Always create the Rancher namespace so we can create network policies
-action "Creating Rancher namespace" create_rancher_namespace || exit 1
+# Always create the cattle-system namespace so we can create network policies
+action "Creating cattle-system namespace" create_cattle_system_namespace || exit 1
 
 if [ $(is_rancher_enabled) == "true" ]; then
   action "Installing Rancher" install_rancher || exit 1
