@@ -123,6 +123,7 @@ data:
       --namespace ${KEYCLOAK_NS} \
       -f $VZ_OVERRIDES_DIR/keycloak-values.yaml \
       ${KEYCLOAK_ARGUMENTS} \
+      --timeout 10m \
       --wait
 
   kubectl exec keycloak-0 \
