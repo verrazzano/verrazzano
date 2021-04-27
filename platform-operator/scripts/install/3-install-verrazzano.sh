@@ -235,8 +235,8 @@ log "Adding label for disabling istio sidecar injection by default to ${VERRAZZA
 kubectl label namespace ${VERRAZZANO_NS} "istio-injection=enabled" --overwrite
 
 # TEMP
-kubectl create secret docker-registry verrazzano-container-registry --docker-server=ghcr.io --docker-username=jmaron99 --docker-password=f1676438bfbe56d6a1752d7bb6b720a5630199b6 -n verrazzano-system
-kubectl create secret docker-registry verrazzano-container-registry --docker-server=ghcr.io --docker-username=jmaron99 --docker-password=f1676438bfbe56d6a1752d7bb6b720a5630199b6
+kubectl create secret docker-registry verrazzano-container-registry --docker-server=ghcr.io --docker-username=jmaron99 --docker-password=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 -n verrazzano-system
+kubectl create secret docker-registry verrazzano-container-registry --docker-server=ghcr.io --docker-username=jmaron99 --docker-password=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
 # END TEMP
 
 if ! kubectl get namespace ${VERRAZZANO_MC} ; then
@@ -253,6 +253,9 @@ kubectl label namespace ${MONITORING_NS} "verrazzano.io/namespace=${MONITORING_N
 # If Keycloak is being installed, create the Keycloak namespace if it doesn't exist so we can apply network policies
 if [ $(is_keycloak_enabled) == "true" ] && ! kubectl get namespace keycloak ; then
   action "Creating keycloak namespace" kubectl create namespace keycloak || exit 1
+  # Label the keycloak namespace so that we istio injection is enabled
+  log "Adding label needed for istio sidecar injection to keycloak namespace"
+  kubectl label namespace keycloak "istio-injection=enabled" --overwrite
 fi
 
 if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then

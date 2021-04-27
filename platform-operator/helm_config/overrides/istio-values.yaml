@@ -50,11 +50,7 @@ sidecarInjectorWebhook:
   rewriteAppHTTPProbe: true
   neverInjectSelector:
     - matchExpressions:
-        - {key: app, operator: In, values: [verrazzano-application-operator]}
-    - matchExpressions:
-        - {key: app, operator: In, values: [verrazzano-operator]}
-    - matchExpressions:
-        - {key: app, operator: In, values: [weblogic-operator]}
+        - {key: app, operator: In, values: [verrazzano-application-operator, verrazzano-operator, weblogic-operator, system-prometheus-gw, system-prometheus]}
     - matchExpressions:
         - {key: control-plane, operator: In, values: [coherence]}
     - matchExpressions:

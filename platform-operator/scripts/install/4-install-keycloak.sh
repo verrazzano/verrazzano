@@ -38,7 +38,6 @@ function install_mysql {
   if ! kubectl get namespace ${KEYCLOAK_NS} 2> /dev/null ; then
     log "Create Keycloak namespace"
     kubectl create namespace ${KEYCLOAK_NS}
-    kubectl label namespace keycloak istio-injection=enabled
   fi
 
   # Handle any additional MySQL install args that cannot be in mysql-values.yaml

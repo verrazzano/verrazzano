@@ -244,7 +244,7 @@ function reset_rancher_admin_password() {
   local max_retries=5
   local retries=0
   while true ; do
-    RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '1/1' | head -1 | awk '{ print $1 }') -- reset-password 2>$STDERROR_FILE)
+    RANCHER_DATA=$(kubectl --kubeconfig $KUBECONFIG -n cattle-system exec $(kubectl --kubeconfig $KUBECONFIG -n cattle-system get pods -l app=rancher | grep '2/2' | head -1 | awk '{ print $1 }') -- reset-password 2>$STDERROR_FILE)
     ADMIN_PW=$(echo -n $RANCHER_DATA | awk 'END{ print $NF }')
 
     if [ -z "$ADMIN_PW" ] ; then
