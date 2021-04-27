@@ -350,9 +350,17 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Allow ingress to 443 from anywhere
+    # Allow ingress to port 443 from anywhere
     - ports:
         - port: 443
+          protocol: TCP
+    # Allow ingress to port 80 from verrazzano-system
+    - from:
+      - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+      ports:
+        - port: 80
           protocol: TCP
   egress:
     # Allow egress to Kubernetes API server
