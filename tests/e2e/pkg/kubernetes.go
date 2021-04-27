@@ -4,7 +4,9 @@
 package pkg
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -676,9 +678,7 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 		header := &headerAdder{
 			rt: rt,
 		}
-		if isServiceAccount {
-			header.headers = map[string][]string{"Authorization": {fmt.Sprintf("Bearer %s", token)}}
-		} else {
+		if !isServiceAccount {
 			header.headers = map[string][]string{"Impersonate-User": {saOrUserOCID}}
 		}
 
@@ -719,4 +719,54 @@ func GetTokenForServiceAccount(sa string, namespace string) []byte {
 	}
 
 	return token
+}
+
+//CanIForAPIGroupForServiceAccountREST verifies servcieaccount privs using REST interface of K8S api directly
+func CanIForAPIGroupForServiceAccountREST(sa string, namespace string, verb string, resource string, group string, saNamespace string) (bool, string) {
+	canI := &v1beta1.SelfSubjectAccessReview{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "SelfSubjectAccessReview",
+			APIVersion: "authorization.k8s.io/v1",
+		},
+		Spec: v1beta1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &v1beta1.ResourceAttributes{
+				Namespace:   namespace,
+				Verb:        verb,
+				Group:       group,
+				Version:     "",
+				Resource:    resource,
+				Subresource: "",
+				Name:        "",
+			},
+		},
+	}
+
+	config := GetKubeConfig()
+
+	token := GetTokenForServiceAccount(sa, saNamespace)
+	config.BearerToken = string(token)
+
+	k8sApi := &APIEndpoint{
+		AccessToken: string(token),
+		APIURL:      config.Host,
+		HTTPClient:  GetVerrazzanoHTTPClient(),
+	}
+
+	buff, err := json.Marshal(canI)
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to marshal selfsubjectaccessreview: %v", err))
+	}
+
+	res, err := k8sApi.Post("apis/authorization.k8s.io/v1/selfsubjectaccessreviews", bytes.NewBuffer(buff))
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to check perms: %v", err))
+	}
+
+	auth := v1beta1.SelfSubjectAccessReview{}
+	err = json.Unmarshal(res.Body, &auth)
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to unmarshal selfsubjectaccessreview: %v", err))
+	}
+
+	return auth.Status.Allowed, auth.Status.Reason
 }
