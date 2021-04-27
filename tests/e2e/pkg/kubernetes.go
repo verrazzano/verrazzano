@@ -746,7 +746,7 @@ func CanIForAPIGroupForServiceAccountREST(sa string, namespace string, verb stri
 	token := GetTokenForServiceAccount(sa, saNamespace)
 	config.BearerToken = string(token)
 
-	k8sApi := &APIEndpoint{
+	k8sAPI := &APIEndpoint{
 		AccessToken: string(token),
 		APIURL:      config.Host,
 		HTTPClient:  GetVerrazzanoHTTPClient(),
@@ -757,7 +757,7 @@ func CanIForAPIGroupForServiceAccountREST(sa string, namespace string, verb stri
 		ginkgo.Fail(fmt.Sprintf("Failed to marshal selfsubjectaccessreview: %v", err))
 	}
 
-	res, err := k8sApi.Post("apis/authorization.k8s.io/v1/selfsubjectaccessreviews", bytes.NewBuffer(buff))
+	res, err := k8sAPI.Post("apis/authorization.k8s.io/v1/selfsubjectaccessreviews", bytes.NewBuffer(buff))
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to check perms: %v", err))
 	}
