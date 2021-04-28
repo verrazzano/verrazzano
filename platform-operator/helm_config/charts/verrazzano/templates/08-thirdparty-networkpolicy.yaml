@@ -348,7 +348,7 @@ spec:
       app.kubernetes.io/component: controller
   policyTypes:
     - Ingress
-{{/*    - Egress*/}}
+    - Egress
   ingress:
     # Allow ingress to port 443 from anywhere
     - ports:
@@ -362,37 +362,37 @@ spec:
       ports:
         - port: 80
           protocol: TCP
-{{/*  egress:*/}}
-{{/*    # Allow egress to Kubernetes API server*/}}
-{{/*    - ports:*/}}
-{{/*        - port: {{ .Values.kubernetes.service.endpoint.port }}*/}}
-{{/*          protocol: TCP*/}}
-{{/*      to:*/}}
-{{/*        - ipBlock:*/}}
-{{/*            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32*/}}
-{{/*    # Allow egress to kub-dns for name resolution*/}}
-{{/*    - to:*/}}
-{{/*        - namespaceSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              verrazzano.io/namespace: kube-system*/}}
-{{/*          podSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              k8s-app: kube-dns*/}}
-{{/*      ports:*/}}
-{{/*        - port: 53*/}}
-{{/*          protocol: UDP*/}}
-{{/*        - port: 53*/}}
-{{/*          protocol: TCP*/}}
-{{/*    # Allow egress to ingress-nginx default backend*/}}
-{{/*    - to:*/}}
-{{/*        - podSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              app.kubernetes.io/component: default-backend*/}}
-{{/*      ports:*/}}
-{{/*        - port: 8080*/}}
-{{/*          protocol: TCP*/}}
-{{/*    # Allow egress to verrazzano system pods at port 8775 (OIDC sidecar)*/}}
-{{/*    - to:*/}}
+  egress:
+    # Allow egress to Kubernetes API server
+    - ports:
+        - port: {{ .Values.kubernetes.service.endpoint.port }}
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.service.endpoint.ip }}/32
+    # Allow egress to kub-dns for name resolution
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Allow egress to ingress-nginx default backend
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: default-backend
+      ports:
+        - port: 8080
+          protocol: TCP
+    # Allow egress to verrazzano system pods at port 8775 (OIDC sidecar)
+    - to:
 {{/*        - namespaceSelector:*/}}
 {{/*            matchLabels:*/}}
 {{/*              verrazzano.io/namespace: verrazzano-system*/}}
@@ -423,47 +423,47 @@ spec:
 {{/*          podSelector:*/}}
 {{/*            matchLabels:*/}}
 {{/*              app: system-grafana*/}}
-{{/*      ports:*/}}
-{{/*        - port: 8775*/}}
-{{/*          protocol: TCP*/}}
-{{/*    # Allow egress to verrazzano console at port 8000*/}}
-{{/*    - to:*/}}
-{{/*        - namespaceSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              verrazzano.io/namespace: verrazzano-system*/}}
-{{/*          podSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              app: verrazzano-console*/}}
-{{/*      ports:*/}}
-{{/*        - port: 8000*/}}
-{{/*          protocol: TCP*/}}
-{{/*    # Allow egress to Prometheus gateway at port 9091*/}}
-{{/*    - to:*/}}
-{{/*        - namespaceSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              verrazzano.io/namespace: verrazzano-system*/}}
-{{/*          podSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              app: system-prometheus-gw*/}}
-{{/*      ports:*/}}
-{{/*        - port: 9091*/}}
-{{/*          protocol: TCP*/}}
-{{/*    # Allow egress to Rancher*/}}
-{{/*    - to:*/}}
-{{/*        - namespaceSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              verrazzano.io/namespace: cattle-system*/}}
-{{/*    # Allow egress to Keycloak at port 80*/}}
-{{/*    - to:*/}}
-{{/*        - namespaceSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              verrazzano.io/namespace: keycloak*/}}
-{{/*          podSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              app.kubernetes.io/name: keycloak*/}}
-{{/*      ports:*/}}
-{{/*        - port: 8080*/}}
-{{/*          protocol: TCP*/}}
+    - ports:
+        - port: 8775
+          protocol: TCP
+    # Allow egress to verrazzano console at port 8000
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: verrazzano-console
+      ports:
+        - port: 8000
+          protocol: TCP
+    # Allow egress to Prometheus gateway at port 9091
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus-gw
+      ports:
+        - port: 9091
+          protocol: TCP
+    # Allow egress to Rancher
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: cattle-system
+    # Allow egress to Keycloak at port 8080
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: keycloak
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: keycloak
+      ports:
+        - port: 8080
+          protocol: TCP
 ---
 # Network policy for NGINX Ingress default-backend
 apiVersion: networking.k8s.io/v1
