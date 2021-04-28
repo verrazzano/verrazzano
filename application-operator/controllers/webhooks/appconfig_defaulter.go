@@ -9,16 +9,15 @@ import (
 	"fmt"
 	"net/http"
 
+	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
+	v1beta12 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	v1beta12 "k8s.io/api/admission/v1beta1"
-
-	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -34,9 +33,10 @@ const (
 
 // AppConfigWebhook uses a list of AppConfigDefaulters to supply appconfig default values
 type AppConfigWebhook struct {
-	decoder    *admission.Decoder
-	Client     client.Client
-	Defaulters []AppConfigDefaulter
+	decoder     *admission.Decoder
+	Client      client.Client
+	IstioClient istioversionedclient.Interface
+	Defaulters  []AppConfigDefaulter
 }
 
 //AppConfigDefaulter supplies appconfig default values
