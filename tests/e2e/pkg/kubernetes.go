@@ -721,7 +721,7 @@ func GetTokenForServiceAccount(sa string, namespace string) []byte {
 	return token
 }
 
-//CanIForAPIGroupForServiceAccountREST verifies servcieaccount privs using REST interface of K8S api directly
+//CanIForAPIGroupForServiceAccountREST verifies servcieaccount privilege to impersonate other serviceaccounts using REST interface of K8S api directly
 func CanIForAPIGroupForServiceAccountREST(sa string, namespace string, verb string, resource string, group string, saNamespace string) (bool, string) {
 	canI := &v1beta1.SelfSubjectAccessReview{
 		TypeMeta: metav1.TypeMeta{
@@ -749,7 +749,7 @@ func CanIForAPIGroupForServiceAccountREST(sa string, namespace string, verb stri
 	k8sAPI := &APIEndpoint{
 		AccessToken: string(token),
 		APIURL:      config.Host,
-		HTTPClient:  GetVerrazzanoHTTPClient(),
+		HTTPClient:  newRetryableHTTPClient(getHTTPClientWithCABundle(config.CAData, GetKubeConfigPathFromEnv())),
 	}
 
 	buff, err := json.Marshal(canI)
