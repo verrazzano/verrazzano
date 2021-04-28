@@ -393,37 +393,37 @@ spec:
           protocol: TCP
     # Allow egress to verrazzano system pods at port 8775 (OIDC sidecar)
     - to:
-{{/*        - namespaceSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              verrazzano.io/namespace: verrazzano-system*/}}
-{{/*          podSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              app: verrazzano-api*/}}
-{{/*        - namespaceSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              verrazzano.io/namespace: verrazzano-system*/}}
-{{/*          podSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              app: system-es-ingest*/}}
-{{/*        - namespaceSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              verrazzano.io/namespace: verrazzano-system*/}}
-{{/*          podSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              app: system-kibana*/}}
-{{/*        - namespaceSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              verrazzano.io/namespace: verrazzano-system*/}}
-{{/*          podSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              app: system-prometheus*/}}
-{{/*        - namespaceSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              verrazzano.io/namespace: verrazzano-system*/}}
-{{/*          podSelector:*/}}
-{{/*            matchLabels:*/}}
-{{/*              app: system-grafana*/}}
-    - ports:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: verrazzano-api
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-es-ingest
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-kibana
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-prometheus
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-system
+          podSelector:
+            matchLabels:
+              app: system-grafana
+      ports:
         - port: 8775
           protocol: TCP
     # Allow egress to verrazzano console at port 8000
