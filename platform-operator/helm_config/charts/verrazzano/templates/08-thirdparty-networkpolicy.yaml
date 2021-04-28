@@ -396,33 +396,6 @@ spec:
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: verrazzano-system
-          podSelector:
-            matchLabels:
-              app: verrazzano-api
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: verrazzano-system
-          podSelector:
-            matchLabels:
-              app: system-es-ingest
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: verrazzano-system
-          podSelector:
-            matchLabels:
-              app: system-kibana
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: verrazzano-system
-          podSelector:
-            matchLabels:
-              app: system-prometheus
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: verrazzano-system
-          podSelector:
-            matchLabels:
-              app: system-grafana
       ports:
         - port: 8775
           protocol: TCP
