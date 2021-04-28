@@ -25,8 +25,8 @@ cd ${TEST_SCRIPTS_DIR}
 ./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KIND_KUBERNETES_CLUSTER_VERSION}" true true true $INSTALL_CALICO
 
 if [ $INSTALL_CALICO == true ]; then
-    echo "Install Calico"
-    kubectl apply -f https://docs.projectcalico.org/v3.18/manifests/calico.yaml
+    echo "Install Calico using thirdparty/calico/calico.yaml"
+    kubectl apply -f ${GO_REPO_PATH}/verrazzano/ci/scripts/thirdparty/calico/calico.yaml
 fi
 
 echo "Install metallb"
