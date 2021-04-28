@@ -265,6 +265,16 @@ function reset_rancher_admin_password() {
   kubectl -n cattle-system create secret generic rancher-admin-secret --from-literal=password="$ADMIN_PW"
 }
 
+function create_cattle_system_namespace()
+{
+    if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
+        kubectl create namespace cattle-system
+    fi
+    
+    log "Adding label needed by Rancher network policies to cattle-system namespace"
+    kubectl label namespace cattle-system "verrazzano.io/namespace=cattle-system" --overwrite
+}
+
 function install_rancher()
 {
     local RANCHER_CHART_DIR=${CHARTS_DIR}/rancher
@@ -339,9 +349,6 @@ function install_rancher()
 
     log "Rollout Rancher"
     kubectl -n cattle-system rollout status -w deploy/rancher || return $?
-
-    log "Adding label needed by Rancher network policies to cattle-system namespace"
-    kubectl label namespace cattle-system "verrazzano.io/namespace=cattle-system" --overwrite
 
     ensure_rancher_admin_user || return $?
     reset_rancher_admin_password || return $?
@@ -447,6 +454,10 @@ action "Installing cert manager" install_cert_manager || exit 1
 if [ "$DNS_TYPE" == "oci" ]; then
   action "Installing external DNS" install_external_dns || exit 1
 fi
+
+# Always create the cattle-system namespace so we can create network policies
+action "Creating cattle-system namespace" create_cattle_system_namespace || exit 1
+
 if [ $(is_rancher_enabled) == "true" ]; then
   action "Installing Rancher" install_rancher || exit 1
   action "Setting Rancher Server URL" set_rancher_server_url || true
