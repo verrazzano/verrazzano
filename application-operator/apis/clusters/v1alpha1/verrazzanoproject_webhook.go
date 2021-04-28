@@ -5,7 +5,6 @@ package v1alpha1
 
 import (
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -60,6 +59,27 @@ func (vp *VerrazzanoProject) validateVerrazzanoProject() error {
 		return fmt.Errorf("One or more namespaces must be provided")
 	}
 
+	if err := vp.validateNetworkPolicies(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Validate the network polices specified in the project
+func (vp *VerrazzanoProject) validateNetworkPolicies() error {
+	// Build the set of project namespaces for validation
+	nsSet := make(map[string]bool)
+	for _, ns := range vp.Spec.Template.Namespaces {
+		nsSet[ns.Metadata.Name] = true
+	}
+	// Validate that the policy applies to a namespace in the project
+	for _, policyTemplate := range vp.Spec.Template.NetworkPolicies {
+		if ok := nsSet[policyTemplate.Metadata.Namespace]; !ok {
+			return fmt.Errorf("namespace %s used in NetworkPolicy %s does not exist in project",
+				policyTemplate.Metadata.Namespace, policyTemplate.Metadata.Name)
+		}
+	}
 	return nil
 }
 

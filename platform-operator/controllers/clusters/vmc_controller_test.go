@@ -1381,7 +1381,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 			return resp, nil
 		})
 
-	clusterID := "unit-test-cluster-id"
+	expectedClusterID := "unit-test-cluster-id"
 
 	// Expect an HTTP request to import the cluster to Rancher
 	requestSenderMock.EXPECT().
@@ -1399,7 +1399,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 					Body:       r,
 				}
 			} else {
-				r := ioutil.NopCloser(bytes.NewReader([]byte(`{"id":"` + clusterID + `"}`)))
+				r := ioutil.NopCloser(bytes.NewReader([]byte(`{"id":"` + expectedClusterID + `"}`)))
 				resp = &http.Response{
 					StatusCode: http.StatusCreated,
 					Body:       r,
@@ -1417,7 +1417,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 				asserts.Equal(urlParts[0], req.URL.Path)
 				asserts.Equal(urlParts[1]+clusterName, req.URL.RawQuery)
 
-				r := ioutil.NopCloser(bytes.NewReader([]byte(`{"data":[{"id":"` + clusterID + `"}]}`)))
+				r := ioutil.NopCloser(bytes.NewReader([]byte(`{"data":[{"id":"` + expectedClusterID + `"}]}`)))
 				resp := &http.Response{
 					StatusCode: http.StatusOK,
 					Body:       r,
@@ -1441,7 +1441,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 			asserts.NoError(err)
 			clusterID, ok := jsonString.Path("clusterId").Data().(string)
 			asserts.True(ok)
-			asserts.Equal("unit-test-cluster-id", clusterID)
+			asserts.Equal(expectedClusterID, clusterID)
 
 			// return a response with the manifest token
 			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"token":"` + manifestToken + `"}`)))
@@ -1456,7 +1456,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 	requestSenderMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			asserts.Equal(manifestPath+manifestToken+".yaml", req.URL.Path)
+			asserts.Equal(manifestPath+manifestToken+"_"+expectedClusterID+".yaml", req.URL.Path)
 
 			r := ioutil.NopCloser(bytes.NewReader([]byte(rancherManifestYAML)))
 			resp := &http.Response{

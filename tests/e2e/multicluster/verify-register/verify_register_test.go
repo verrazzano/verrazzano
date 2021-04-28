@@ -101,7 +101,7 @@ var _ = ginkgo.Describe("Multi Cluster Verify Register", func() {
 			)
 		})
 
-		ginkgo.It("admin cluster has the expected system logs from admin and managed cluster", func() {
+		ginkgo.PIt("admin cluster has the expected system logs from admin and managed cluster", func() {
 			pkg.Concurrently(
 				func() {
 					gomega.Eventually(func() bool {
