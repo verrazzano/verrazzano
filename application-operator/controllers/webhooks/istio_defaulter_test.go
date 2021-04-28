@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	cluv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	istiofake "istio.io/client-go/pkg/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
+	ctrlfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -179,7 +181,12 @@ func TestHandleNoAppConfigOnwerReference(t *testing.T) {
 //    and a default service account referenced by the pod
 //  THEN Handle should return an Allowed response with patch values
 func TestHandleAppConfigOnwerReference1(t *testing.T) {
+	scheme := runtime.NewScheme()
+	cluv1alpha1.AddToScheme(scheme)
+	client := ctrlfake.NewFakeClientWithScheme(scheme)
+
 	defaulter := &IstioWebhook{
+		Client:        client,
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
 		IstioClient:   istiofake.NewSimpleClientset(),
@@ -246,7 +253,12 @@ func TestHandleAppConfigOnwerReference1(t *testing.T) {
 //    and a non-default service account referenced by the pod
 //  THEN Handle should return an Allowed response with patch values
 func TestHandleAppConfigOnwerReference2(t *testing.T) {
+	scheme := runtime.NewScheme()
+	cluv1alpha1.AddToScheme(scheme)
+	client := ctrlfake.NewFakeClientWithScheme(scheme)
+
 	defaulter := &IstioWebhook{
+		Client:        client,
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
 		IstioClient:   istiofake.NewSimpleClientset(),
@@ -325,7 +337,12 @@ func TestHandleAppConfigOnwerReference2(t *testing.T) {
 //    A different service account is used on each call.
 //  THEN Handle should return an Allowed response with patch values
 func TestHandleAppConfigOnwerReference3(t *testing.T) {
+	scheme := runtime.NewScheme()
+	cluv1alpha1.AddToScheme(scheme)
+	client := ctrlfake.NewFakeClientWithScheme(scheme)
+
 	defaulter := &IstioWebhook{
+		Client:        client,
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
 		IstioClient:   istiofake.NewSimpleClientset(),
@@ -460,7 +477,12 @@ func TestHandleAppConfigOnwerReference3(t *testing.T) {
 //    The same service account is used on each call.
 //  THEN Handle should return an Allowed response with patch values
 func TestHandleAppConfigOnwerReference4(t *testing.T) {
+	scheme := runtime.NewScheme()
+	cluv1alpha1.AddToScheme(scheme)
+	client := ctrlfake.NewFakeClientWithScheme(scheme)
+
 	defaulter := &IstioWebhook{
+		Client:        client,
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
 		IstioClient:   istiofake.NewSimpleClientset(),

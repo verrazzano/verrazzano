@@ -192,6 +192,7 @@ func (a *IstioWebhook) fixupAuthorizationPoliciesForProjects(podNamespace string
 	return nil
 }
 
+// unorderedEqual checks if a map and array have the same string elements
 func unorderedEqual(uniquePrincipals map[string]bool, principals []string) bool {
 	if len(uniquePrincipals) != len(principals) {
 		return false
@@ -204,15 +205,17 @@ func unorderedEqual(uniquePrincipals map[string]bool, principals []string) bool 
 	return true
 }
 
-func contains(needle string, haystack []string) bool {
-	for _, matchValue := range haystack {
-		if matchValue == needle {
+// contains checks that a given string is in an array of strings
+func contains(given string, list []string) bool {
+	for _, matchValue := range list {
+		if matchValue == given {
 			return true
 		}
 	}
 	return false
 }
 
+// updateAuthorizationPoliciesForProject updates Istio authorization policies for a project, if needed.
 func (a *IstioWebhook) updateAuthorizationPoliciesForProject(authzPolicyList []clisecurity.AuthorizationPolicy, uniquePrincipals map[string]bool) error {
 	for _, authzPolicy := range authzPolicyList {
 		policy, err := a.IstioClient.SecurityV1beta1().AuthorizationPolicies(authzPolicy.Namespace).Get(context.TODO(), authzPolicy.Name, metav1.GetOptions{})
@@ -220,13 +223,15 @@ func (a *IstioWebhook) updateAuthorizationPoliciesForProject(authzPolicyList []c
 			return err
 		}
 
+		// If the principals specified for the authorization policy do not have the expected principals then
+		// we need to update them.
 		if !unorderedEqual(uniquePrincipals, policy.Spec.Rules[0].From[0].Source.Principals) {
 			principals := []string{}
 			for principal, _ := range uniquePrincipals {
 				principals = append(principals, principal)
 			}
 			policy.Spec.Rules[0].From[0].Source.Principals = principals
-			istioLogger.Info(fmt.Sprintf("Updating Istio authorization policy: %s:%s", authzPolicy.Namespace, authzPolicy.Name))
+			istioLogger.Info(fmt.Sprintf("Updating project Istio authorization policy: %s:%s", authzPolicy.Namespace, authzPolicy.Name))
 			_, err := a.IstioClient.SecurityV1beta1().AuthorizationPolicies(authzPolicy.Namespace).Update(context.TODO(), policy, metav1.UpdateOptions{})
 			if err != nil {
 				return err
@@ -237,8 +242,8 @@ func (a *IstioWebhook) updateAuthorizationPoliciesForProject(authzPolicyList []c
 	return nil
 }
 
-// getAuthorizationPoliciesForProject returns a list of Istio Authorization Policies for a given list of namespaces.
-// The authorization policies have an owner reference to an applicationConfiguration resource.
+// getAuthorizationPoliciesForProject returns a list of Istio authorization policies for a given list of namespaces.
+// The returned authorization policies have an owner reference to an applicationConfiguration resource.
 func (a *IstioWebhook) getAuthorizationPoliciesForProject(namespaceList []cluv1alpha1.NamespaceTemplate) ([]clisecurity.AuthorizationPolicy, error) {
 	authzPolicyList := []clisecurity.AuthorizationPolicy{}
 	for _, namespace := range namespaceList {
@@ -250,6 +255,7 @@ func (a *IstioWebhook) getAuthorizationPoliciesForProject(namespaceList []cluv1a
 		}
 		for _, authzPolicy := range list.Items {
 			istioLogger.Info(fmt.Sprintf("authz policy name: %s", authzPolicy.Name))
+			// If the owner reference is an appconfig resource then we had to our list of authorization policies.
 			if authzPolicy.OwnerReferences[0].Kind == "ApplicationConfiguration" {
 				authzPolicyList = append(authzPolicyList, authzPolicy)
 			}
